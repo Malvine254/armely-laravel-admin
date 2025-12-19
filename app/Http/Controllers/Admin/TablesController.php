@@ -46,6 +46,12 @@ class TablesController extends Controller
         $limit = max(1, min($limit, 500));
 
         $start = microtime(true);
+        // Temporary fallback debug file (works even if Laravel logging is misconfigured)
+        try {
+            @file_put_contents(storage_path('logs/debug_blogs.txt'), "[".now()."] listBlogs called, limit={$limit}\n", FILE_APPEND | LOCK_EX);
+        } catch (\Throwable $__e) {
+            // suppress - this is only diagnostic
+        }
         $blogTable = Schema::hasTable('blogs') ? 'blogs' : 'blog';
 
         try {
@@ -61,6 +67,9 @@ class TablesController extends Controller
                 'count' => is_countable($blogs) ? count($blogs) : (method_exists($blogs, 'count') ? $blogs->count() : null),
                 'ms' => $duration,
             ]);
+            try {
+                @file_put_contents(storage_path('logs/debug_blogs.txt'), "[".now()."] listBlogs succeeded, count=".(is_countable($blogs)?count($blogs):(method_exists($blogs,'count')?$blogs->count():0)).", ms={$duration}\n", FILE_APPEND | LOCK_EX);
+            } catch (\Throwable $__e) {}
 
             return response()->json(['success' => true, 'data' => $blogs, 'limit' => $limit]);
         } catch (\Throwable $e) {
@@ -71,6 +80,10 @@ class TablesController extends Controller
                 'ms' => $duration,
                 'error' => $e->getMessage(),
             ]);
+
+            try {
+                @file_put_contents(storage_path('logs/debug_blogs.txt'), "[".now()."] listBlogs FAILED, error=".$e->getMessage().", ms={$duration}\n", FILE_APPEND | LOCK_EX);
+            } catch (\Throwable $__e) {}
 
             return response()->json(['success' => false, 'message' => 'Server error loading blogs'], 500);
         }
@@ -139,6 +152,12 @@ class TablesController extends Controller
     // Public ping endpoint for quick health / connectivity checks (no heavy DB work)
     public function ping()
     {
+        // Small, unconditional file append to help deployed debugging when logging is broken
+        try {
+            @file_put_contents(storage_path('logs/debug_ping.txt'), "[".now()."] ping\n", FILE_APPEND | LOCK_EX);
+        } catch (\Throwable $__e) {
+        }
+
         return response()->json([
             'ok' => true,
             'time' => now()->toDateTimeString(),
