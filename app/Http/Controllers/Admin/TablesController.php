@@ -113,6 +113,16 @@ class TablesController extends Controller
         $team = DB::table($table)->orderBy('id', 'desc')->limit($limit)->get();
         return response()->json(['success' => true, 'data' => $team, 'limit' => $limit]);
     }
+
+    // Public ping endpoint for quick health / connectivity checks (no heavy DB work)
+    public function ping()
+    {
+        return response()->json([
+            'ok' => true,
+            'time' => now()->toDateTimeString(),
+            'env' => config('app.env') ?? 'unknown'
+        ]);
+    }
     
     // ========== END LIST ENDPOINTS ==========
     

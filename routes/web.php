@@ -53,6 +53,9 @@ Route::prefix('admin')->group(function () {
     Route::post('/reset', [AuthController::class, 'reset'])->name('admin.reset.post');
 });
 
+// Lightweight public ping for deployment health checks (no auth)
+Route::get('/admin/tables/ping', [TablesController::class, 'ping'])->name('admin.tables.ping');
+
 // Admin Protected Routes
 Route::prefix('admin')->middleware(['admin'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('admin.dashboard');
