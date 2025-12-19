@@ -966,13 +966,21 @@ $(document).ready(function() {
     // Reload blogs table
     function reloadBlogsTable() {
         $.ajax({
-            url: '/admin/tables/blogs/list',
+            url: '/admin/tables/blogs/list?limit=50',
             type: 'GET',
-                success: function(response) {
+            dataType: 'json',
+            timeout: 15000,
+            success: function(response) {
                 const tbody = $('#blogsTable');
                 tbody.empty();
 
-                if (response.data && Array.isArray(response.data)) {
+                // Expected: { success: true, data: [...] }
+                if (response && Array.isArray(response.data)) {
+                    if (response.data.length === 0) {
+                        tbody.html('<tr><td colspan="4" class="text-center text-muted">No blogs found.</td></tr>');
+                        return;
+                    }
+
                     response.data.forEach(function(blog) {
                         const blogId = blog.blog_id || blog.id;
                         const btns = `
@@ -995,10 +1003,18 @@ $(document).ready(function() {
                         </tr>`;
                         tbody.append(row);
                     });
+                } else {
+                    // Unexpected response (maybe HTML login page on deployed site)
+                    console.warn('Unexpected blogs list response:', response);
+                    tbody.html('<tr><td colspan="4" class="text-center text-danger">Unable to load blogs (unexpected response).</td></tr>');
                 }
             },
-            error: function(xhr) {
-                console.error('Error reloading blogs table:', xhr);
+            error: function(xhr, status, err) {
+                console.error('Error reloading blogs table:', status, err, xhr);
+                const tbody = $('#blogsTable');
+                let msg = 'Error loading blogs';
+                if (xhr && xhr.status) msg += ': ' + xhr.status + ' ' + (xhr.statusText || '');
+                tbody.html(`<tr><td colspan="4" class="text-center text-danger">${msg}. Check console/network.</td></tr>`);
             }
         });
     }
