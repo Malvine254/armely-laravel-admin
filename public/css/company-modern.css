@@ -1,0 +1,93 @@
+/* Modern styles scoped to Company page */
+
+.company-story .modern-section-title .divider,
+.company-affiliations .modern-section-title .divider,
+.company-values .modern-section-title .divider,
+.demo-entities .modern-section-title .divider {
+  height: 4px;
+  width: 80px;
+  border-radius: 4px;
+  margin-top: 8px;
+}
+
+.modern-section-title .badge {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.company-story .story-content p {
+  font-size: 1rem;
+  line-height: 1.8;
+  color: #2d3748;
+  margin-bottom: 1rem;
+}
+
+/* Affiliations grid */
+.company-affiliations .affiliation-grid { row-gap: 24px; }
+.company-affiliations .affiliation-grid .col-6,
+.company-affiliations .affiliation-grid .col-md-3 {
+  display: flex;
+  justify-content: center;
+}
+.company-affiliations .affiliation-item {
+  width: 220px;
+  height: 220px;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.company-affiliations .affiliation-item img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 10px rgba(0,0,0,0.06));
+}
+
+/* Demo Entities cards */
+.modern-card {
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.modern-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 18px 44px rgba(47,85,151,0.22);
+}
+
+.logo-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+  margin-right: 12px;
+}
+
+/* If you have a subtle variant of default-background, this will blend; otherwise set a light tint */
+.default-background-subtle {
+  background: rgba(47,85,151,0.12);
+}
+
+.demo-entities h5.card-title { font-weight: 700; color: #1f2937; }
+.demo-entities .card-body ul li { margin-bottom: 8px; font-size: 0.95rem; }
+
+/* Values section tweaks */
+.company-values .services .section-title h2,
+.company-values .section-title h2 { color: #1f2937; }
+
+/* General spacing polish */
+.company-story .section-title,
+.company-affiliations .section-title,
+.demo-entities .section-title,
+.company-values .section-title { margin-bottom: 1rem; }
+
+.company-story .title-head,
+.company-affiliations .title-head,
+.demo-entities .title-head,
+.company-values .title-head { display: inline-block; }

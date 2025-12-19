@@ -1,0 +1,735 @@
+/* Modern Industries Page Styles */
+
+/* ==================== Hero Section ==================== */
+.modern-hero-industries {
+    position: relative;
+    padding: 120px 0 80px;
+    overflow: hidden;
+    background: linear-gradient(135deg, #2f5597 0%, #1e3a6d 100%) !important;
+}
+
+.modern-hero-industries::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320"><path fill="%23ffffff" fill-opacity="0.05" d="M0,96L48,112C96,128,192,160,288,160C384,160,480,128,576,122.7C672,117,768,139,864,154.7C960,171,1056,181,1152,165.3C1248,149,1344,107,1392,85.3L1440,64L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>') no-repeat bottom;
+    background-size: cover;
+    opacity: 0.4;
+}
+
+.industry-badge {
+    display: inline-block;
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    color: #fff;
+    padding: 8px 24px;
+    border-radius: 50px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    margin-bottom: 1rem;
+    text-transform: uppercase;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.hero-title-industries {
+    font-size: 3.5rem;
+    font-weight: 800;
+    color: #fff;
+    margin-bottom: 1rem;
+    text-shadow: 0 2px 20px rgba(0, 0, 0, 0.2);
+    letter-spacing: -1px;
+}
+
+.hero-subtitle-industries {
+    font-size: 1.25rem;
+    color: rgba(255, 255, 255, 0.95);
+    margin-bottom: 2rem;
+    font-weight: 300;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.modern-hero-industries .bread-list {
+    display: inline-flex;
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    border-radius: 50px;
+    padding: 10px 30px;
+    list-style: none;
+    margin: 0;
+}
+
+/* ==================== Content Section ==================== */
+.industries-content-section {
+    padding: 60px 0;
+    background: #f8f9fa;
+}
+
+/* ==================== Modern Tabs ==================== */
+.btn-modern-toggle {
+    border-radius: 12px;
+    padding: 14px 24px;
+    font-weight: 600;
+    box-shadow: 0 4px 15px rgba(47, 85, 151, 0.3);
+    transition: all 0.3s ease;
+}
+
+.btn-modern-toggle:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(47, 85, 151, 0.4);
+}
+
+.modern-tabs-industries {
+    background: #fff !important;
+    border-radius: 15px;
+    padding: 10px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+    border: none !important;
+    margin-bottom: 3rem;
+}
+
+.modern-tabs-industries .nav-item {
+    margin: 0 5px;
+}
+
+.modern-tabs-industries .nav-link {
+    border: none !important;
+    border-radius: 12px;
+    padding: 14px 24px;
+    color: #4a5568;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: transparent;
+}
+
+.modern-tabs-industries .nav-link i {
+    font-size: 1.3rem;
+    transition: transform 0.3s ease;
+}
+
+.modern-tabs-industries .nav-link:hover {
+    color: #2f5597;
+    background: rgba(47, 85, 151, 0.1);
+}
+
+.modern-tabs-industries .nav-link:hover i {
+    transform: scale(1.2);
+}
+
+.modern-tabs-industries .nav-link.active {
+    background: linear-gradient(135deg, #2f5597 0%, #1e3a6d 100%) !important;
+    color: #fff !important;
+    box-shadow: 0 5px 15px rgba(47, 85, 151, 0.3);
+}
+
+.modern-tabs-industries .nav-link.active i {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+/* ==================== Tab Content ==================== */
+.modern-tab-content {
+    background: #fff;
+    border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+    padding: 0;
+}
+
+.tab-content-wrapper {
+    padding: 3rem 2rem;
+    min-height: 65vh;
+}
+
+/* ==================== Industry Intro Section ==================== */
+.industry-intro-section {
+    margin-bottom: 3rem;
+}
+
+.industry-intro-content {
+    padding: 20px 0;
+}
+
+.industry-tag {
+    display: inline-block;
+    background: linear-gradient(135deg, rgba(47, 85, 151, 0.1) 0%, rgba(30, 58, 109, 0.1) 100%);
+    color: #2f5597;
+    padding: 6px 18px;
+    border-radius: 50px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    margin-bottom: 1rem;
+    text-transform: uppercase;
+    border: 2px solid rgba(47, 85, 151, 0.2);
+}
+
+.industry-title {
+    font-size: 2.75rem;
+    font-weight: 800;
+    color: #2d3748;
+    margin-bottom: 1rem;
+    line-height: 1.2;
+}
+
+.title-underline {
+    width: 80px;
+    height: 4px;
+    background: linear-gradient(135deg, #2f5597 0%, #1e3a6d 100%);
+    margin-bottom: 1.5rem;
+    border-radius: 2px;
+}
+
+.industry-description {
+    font-size: 1.05rem;
+    color: #4a5568;
+    line-height: 1.8;
+    margin-bottom: 1rem;
+}
+
+.industry-image-wrapper {
+    position: relative;
+    padding: 20px;
+}
+
+.industry-img {
+    border-radius: 20px;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+    transition: transform 0.4s ease;
+}
+
+.industry-img:hover {
+    transform: scale(1.05);
+}
+
+/* ==================== Solution Cards ==================== */
+.modern-solution-card {
+    border: none;
+    border-radius: 18px;
+    background: #fff;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+    height: 100%;
+    min-height: 320px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+}
+
+.modern-solution-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #2f5597 0%, #1e3a6d 100%);
+    transform: scaleX(0);
+    transition: transform 0.4s ease;
+    transform-origin: left;
+}
+
+.modern-solution-card:hover::before {
+    transform: scaleX(1);
+}
+
+.modern-solution-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 15px 40px rgba(47, 85, 151, 0.2);
+}
+
+.solution-icon-wrapper {
+    width: 80px;
+    height: 80px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+    transition: all 0.4s ease;
+    box-shadow: 0 8px 20px rgba(47, 85, 151, 0.25);
+}
+
+.modern-solution-card:hover .solution-icon-wrapper {
+    transform: rotateY(360deg);
+    box-shadow: 0 12px 30px rgba(47, 85, 151, 0.35);
+}
+
+.solution-icon-wrapper img {
+    filter: brightness(0) invert(1);
+}
+
+.solution-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #2d3748;
+    margin-bottom: 1rem;
+    line-height: 1.4;
+}
+
+.solution-description {
+    font-size: 0.95rem;
+    color: #718096;
+    line-height: 1.7;
+    margin: 0;
+    flex-grow: 1;
+}
+
+/* ==================== Section Subtitles ==================== */
+.section-subtitle {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #2d3748;
+    margin-bottom: 1rem;
+}
+
+.subtitle-underline {
+    width: 60px;
+    height: 3px;
+    background: linear-gradient(90deg, #2f5597 0%, #1e3a6d 100%);
+    margin-bottom: 2rem;
+}
+
+.subsection-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #2d3748;
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+}
+
+.section-text {
+    font-size: 1rem;
+    color: #4a5568;
+    line-height: 1.8;
+    margin-bottom: 1rem;
+}
+
+/* ==================== Benefit Cards ==================== */
+.benefit-card {
+    background: #fff;
+    padding: 2rem;
+    border-radius: 16px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+    height: 100%;
+    border: 2px solid transparent;
+}
+
+.benefit-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(47, 85, 151, 0.15);
+    border-color: rgba(47, 85, 151, 0.2);
+}
+
+.benefit-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1.25rem;
+    box-shadow: 0 5px 15px rgba(47, 85, 151, 0.2);
+}
+
+.benefit-icon i {
+    font-size: 1.8rem;
+    color: #fff;
+}
+
+.benefit-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #2d3748;
+    margin-bottom: 0.75rem;
+}
+
+.benefit-description {
+    font-size: 0.95rem;
+    color: #718096;
+    line-height: 1.7;
+    margin: 0;
+}
+
+/* ==================== CTA Button ==================== */
+.btn-modern-cta {
+    padding: 12px 32px;
+    border-radius: 50px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 5px 15px rgba(47, 85, 151, 0.3);
+}
+
+.btn-modern-cta:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(47, 85, 151, 0.4);
+}
+
+/* ==================== Features Section ==================== */
+.features-section-industries {
+    padding: 100px 0;
+    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+    position: relative;
+}
+
+.features-section-industries::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at 20% 50%, rgba(47, 85, 151, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(47, 85, 151, 0.03) 0%, transparent 50%);
+    pointer-events: none;
+}
+
+.features-section-title {
+    font-size: 2.25rem;
+    font-weight: 800;
+    color: #2d3748;
+    margin-bottom: 0.5rem;
+}
+
+.features-section-subtitle {
+    font-size: 1.1rem;
+    color: #718096;
+    margin-bottom: 1rem;
+}
+
+.feature-item {
+    text-align: center;
+    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+    position: relative;
+    z-index: 1;
+}
+
+.feature-item:hover {
+    transform: translateY(-15px);
+}
+
+.feature-icon-wrapper-large {
+    margin: 0 auto 1.5rem;
+    position: relative;
+    height: 140px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.feature-gradient-icon {
+    width: 130px;
+    height: 130px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #2f5597 0%, #1e3a6d 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 15px 40px rgba(47, 85, 151, 0.25);
+    transition: all 0.4s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.feature-gradient-icon::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, rgba(255, 255, 255, 0.1) 0%, transparent 100%);
+    border-radius: 50%;
+}
+
+.feature-item:hover .feature-gradient-icon {
+    transform: scale(1.1) rotate(10deg);
+    box-shadow: 0 20px 50px rgba(47, 85, 151, 0.35);
+}
+
+.feature-gradient-icon img {
+    filter: brightness(0) invert(1);
+    width: 60px;
+    height: 60px;
+    position: relative;
+    z-index: 1;
+}
+
+.feature-title {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: #2d3748;
+    margin-bottom: 0.75rem;
+    letter-spacing: -0.5px;
+}
+
+.feature-description {
+    font-size: 0.95rem;
+    color: #718096;
+    line-height: 1.6;
+    margin: 0;
+}
+
+/* ==================== CTA Section ==================== */
+.cta-section-industries {
+    padding: 120px 0;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, #2f5597 0%, #1e3a6d 100%);
+}
+
+.cta-section-industries::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320"><path fill="%23ffffff" fill-opacity="0.08" d="M0,160L48,170.7C96,181,192,203,288,186.7C384,171,480,117,576,112C672,107,768,149,864,165.3C960,181,1056,171,1152,154.7C1248,139,1344,117,1392,106.7L1440,96L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>') no-repeat center;
+    background-size: cover;
+    opacity: 1;
+}
+
+.cta-heading {
+    font-size: 2.75rem;
+    font-weight: 800;
+    color: #fff;
+    margin-bottom: 1.5rem;
+    position: relative;
+    z-index: 1;
+    text-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+}
+
+.cta-description {
+    font-size: 1.2rem;
+    color: rgba(255, 255, 255, 0.95);
+    margin-bottom: 2.5rem;
+    line-height: 1.8;
+    position: relative;
+    z-index: 1;
+    max-width: 700px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.btn-modern-cta-white {
+    background: #fff;
+    color: #2f5597;
+    padding: 18px 50px;
+    border-radius: 50px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    transition: all 0.3s ease;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.25);
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+    position: relative;
+    z-index: 1;
+    border: 2px solid #fff;
+}
+
+.btn-modern-cta-white:hover {
+    background: transparent;
+    color: #fff;
+    transform: translateY(-3px);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+    text-decoration: none;
+}
+
+.btn-modern-cta-white i {
+    font-size: 1.3rem;
+    transition: transform 0.3s ease;
+}
+
+.btn-modern-cta-white:hover i {
+    transform: rotate(360deg);
+}
+
+/* ==================== Responsive Design ==================== */
+@media (max-width: 992px) {
+    .hero-title-industries {
+        font-size: 2.5rem;
+    }
+
+    .industry-title {
+        font-size: 2.25rem;
+    }
+
+    .modern-tabs-industries .nav-link {
+        padding: 12px 18px;
+        font-size: 0.9rem;
+    }
+
+    .tab-content-wrapper {
+        padding: 2rem 1.5rem;
+    }
+
+    .modern-solution-card {
+        margin-bottom: 1.5rem;
+    }
+
+    .features-section-title {
+        font-size: 1.9rem;
+    }
+
+    .feature-gradient-icon {
+        width: 110px;
+        height: 110px;
+    }
+
+    .feature-gradient-icon img {
+        width: 50px;
+        height: 50px;
+    }
+
+    .feature-title {
+        font-size: 1.2rem;
+    }
+
+    .cta-heading {
+        font-size: 2.25rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .hero-title-industries {
+        font-size: 2rem;
+    }
+
+    .hero-subtitle-industries {
+        font-size: 1.1rem;
+    }
+
+    .industry-title {
+        font-size: 1.875rem;
+    }
+
+    .modern-hero-industries {
+        padding: 80px 0 60px;
+    }
+
+    .modern-tabs-industries {
+        padding: 5px;
+    }
+
+    .modern-tabs-industries .nav-link {
+        padding: 10px 15px;
+        font-size: 0.85rem;
+        gap: 5px;
+    }
+
+    .modern-tabs-industries .nav-link i {
+        font-size: 1.1rem;
+    }
+
+    .tab-content-wrapper {
+        padding: 1.5rem 1rem;
+    }
+
+    .features-section-title {
+        font-size: 1.75rem;
+    }
+
+    .features-section-subtitle {
+        font-size: 1rem;
+    }
+
+    .feature-icon-wrapper-large {
+        height: 120px;
+    }
+
+    .feature-gradient-icon {
+        width: 100px;
+        height: 100px;
+    }
+
+    .feature-gradient-icon img {
+        width: 45px;
+        height: 45px;
+    }
+
+    .feature-title {
+        font-size: 1.1rem;
+    }
+
+    .feature-description {
+        font-size: 0.9rem;
+    }
+
+    .cta-heading {
+        font-size: 1.875rem;
+    }
+
+    .cta-description {
+        font-size: 1rem;
+    }
+
+    .features-section-industries {
+        padding: 60px 0;
+    }
+
+    .cta-section-industries {
+        padding: 80px 0;
+    }
+
+    .btn-modern-cta-white {
+        padding: 14px 40px;
+        font-size: 1rem;
+    }
+}
+
+/* ==================== Grid Spacing ==================== */
+.g-4 {
+    --bs-gutter-x: 1.5rem;
+    --bs-gutter-y: 1.5rem;
+}
+
+/* ==================== Animation Delays ==================== */
+.animate__animated {
+    animation-duration: 1s;
+}
+
+.animate__fadeInDown {
+    animation-delay: 0.2s;
+}
+
+.animate__fadeInUp {
+    animation-delay: 0.4s;
+}
+
+.animate__fadeIn {
+    animation-delay: 0.6s;
+}
+
+/* ==================== Smooth Scrolling ==================== */
+html {
+    scroll-behavior: smooth;
+}
+/* Moderate, clean margins for the industries section */
+.industries-section-modern {
+    max-width: 1400px;          /* controls total width */
+    margin: 0 auto;             /* centers the content */
+    padding-left: 20px;         /* balanced small left margin */
+    padding-right: 20px;        /* balanced small right margin */
+}
+
+/* Reduce inner padding so content is not squeezed */
+.industries-section-modern .tab-content-wrapper {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+}

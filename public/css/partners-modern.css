@@ -1,0 +1,219 @@
+/* Modern Partners Page Styles */
+
+/* Partners Section */
+.partners-content-section {
+  padding: 30px 15px !important; /* standard Bootstrap spacing */
+  margin: 0 auto;
+  max-width: 1500px; /* optional */
+}
+
+
+/* Modern Toggle Button for Mobile */
+.btn-modern-toggle-partners {
+  border: 2px solid #2f5597;
+  color: #fff;
+  font-weight: 600;
+  padding: 10px 16px; /* reduced */
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.btn-modern-toggle-partners:hover {
+  background-color: #1e3a6d !important;
+  box-shadow: 0 4px 12px rgba(47, 85, 151, 0.3);
+}
+
+/* Modern Tab Navigation */
+.modern-tabs-partners {
+  border: none;
+  background: #fff;
+  border-radius: 12px;
+  padding: 8px; /* reduced */
+  margin-bottom: 20px; /* reduced */
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px; /* reduced */
+}
+
+.modern-tabs-partners .nav-item {
+  margin-right: 0;
+  margin-bottom: 0;
+}
+
+.modern-tabs-partners .nav-link {
+  display: flex;
+  align-items: center;
+  gap: 8px; /* reduced */
+  padding: 8px 12px; /* reduced */
+  border: 2px solid transparent;
+  border-radius: 8px;
+  color: #4b5563;
+  font-weight: 600;
+  font-size: 0.9rem; /* reduced */
+  text-decoration: none;
+  transition: all 0.3s ease;
+  background: #f5f7fa;
+  white-space: nowrap;
+}
+
+.modern-tabs-partners .nav-link img {
+  width: 26px; /* reduced */
+  height: 26px;
+  object-fit: contain;
+}
+
+/* Tab Content */
+.modern-tab-content-partners {
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px; /* reduced from 40px */
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+}
+
+/* Modern Partner Card */
+.modern-partner-card {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px; /* reduced */
+  align-items: center;
+}
+
+.partner-image-wrapper {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(47, 85, 151, 0.15); /* reduced */
+}
+
+.partner-image-wrapper img {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: cover;
+  min-height: 320px; /* reduced */
+  transition: transform 0.4s ease;
+}
+
+/* Partner Content */
+.partner-content-wrapper {
+  padding: 10px 0; /* reduced */
+}
+
+.partner-subtitle {
+  background: linear-gradient(135deg, #2f5597 0%, #1e3a6d 100%);
+  color: #fff;
+  padding: 4px 12px; /* reduced */
+  border-radius: 50px;
+  font-size: 0.75rem; /* reduced */
+  margin-bottom: 12px; /* reduced */
+}
+
+.partner-title {
+  font-size: 2rem; /* reduced */
+  font-weight: 800;
+  color: #1a202c;
+  margin-bottom: 14px; /* reduced */
+  line-height: 1.2;
+}
+
+.partner-lead {
+  font-size: 1rem; /* reduced */
+  color: #2d3748;
+  margin-bottom: 12px; /* reduced */
+}
+
+.partner-description {
+  font-size: 0.95rem; /* reduced */
+  margin-bottom: 18px; /* reduced */
+  line-height: 1.6;
+}
+
+/* CTA Button */
+.partner-cta-btn {
+  padding: 10px 22px; /* reduced */
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.partner-cta-btn:hover {
+  transform: translateY(-2px);
+}
+
+/* Full Partner Content */
+.partner-full-content {
+  margin-top: 24px; /* reduced */
+  padding-top: 24px;
+  border-top: 2px solid #e2e8f0;
+}
+
+/* Fade Animation */
+.tab-pane {
+  animation: fadeIn 0.4s ease-in-out;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .modern-partner-card {
+    grid-template-columns: 1fr;
+    gap: 20px; /* reduced */
+  }
+
+  .modern-tab-content-partners {
+    padding: 20px; /* reduced */
+  }
+
+  .partner-image-wrapper img {
+    min-height: 260px; /* reduced */
+  }
+}
+
+@media (max-width: 768px) {
+  .partners-content-section {
+    padding: 20px 0; /* reduced */
+  }
+
+  .modern-tabs-partners {
+    padding: 6px;
+    gap: 5px;
+  }
+
+  .modern-tab-content-partners {
+    padding: 16px; /* reduced */
+  }
+
+  .partner-title {
+    font-size: 1.6rem;
+  }
+
+  .partner-image-wrapper img {
+    min-height: 240px; /* reduced */
+  }
+
+  .partner-full-content {
+    margin-top: 20px;
+    padding-top: 20px;
+  }
+}
+
+@media (max-width: 576px) {
+  .partners-content-section {
+    padding: 16px 0; /* reduced */
+  }
+
+  .modern-tabs-partners {
+    flex-direction: column;
+  }
+
+  .modern-tab-content-partners {
+    padding: 12px; /* reduced */
+  }
+
+  .partner-title {
+    font-size: 1.4rem;
+  }
+
+  .partner-image-wrapper img {
+    min-height: 200px;
+  }
+}
