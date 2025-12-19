@@ -15,6 +15,10 @@
     .table td {
         vertical-align: middle;
     }
+    /* Icon-only action button layout */
+    .action-btns{display:flex;gap:.5rem;align-items:center}
+    .action-btns .btn{min-width:36px;padding:6px;display:inline-flex;align-items:center;justify-content:center}
+    @media(max-width:576px){.action-btns{flex-direction:row;flex-wrap:wrap}.action-btns .btn{min-width:40px}}
 </style>
 @endpush
 
@@ -79,7 +83,6 @@
                     <i class="fas fa-plus"></i> Add New Blog
                 </button>
                 
-                @if($blogs->count() > 0)
                     <div class="table-responsive">
                         <table class="table table-hover">
                             <thead>
@@ -91,30 +94,10 @@
                                 </tr>
                             </thead>
                             <tbody id="blogsTable">
-                                @foreach($blogs as $blog)
-                                <tr data-id="{{ $blog->id ?? $blog->blog_id }}">
-                                    <td>{{ \Illuminate\Support\Str::limit(strip_tags($blog->title ?? $blog->blog_title ?? ''), 50) }}</td>
-                                    <td>{{ $blog->author ?? 'Admin' }}</td>
-                                    <td>{{ \Carbon\Carbon::parse($blog->date ?? $blog->blog_date)->format('M d, Y') }}</td>
-                                    <td>
-                                        <button class="btn btn-sm btn-info view-blog" data-blog='@json($blog)' title="View">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-warning edit-blog" data-blog='@json($blog)' title="Edit">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-danger delete-blog" data-id="{{ $blog->id ?? $blog->blog_id }}" title="Delete">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                                @endforeach
+                                <tr><td colspan="4" class="text-center"><span class="spinner-border spinner-border-sm"></span></td></tr>
                             </tbody>
                         </table>
                     </div>
-                @else
-                    <p class="text-muted"><i class="fas fa-info-circle"></i> No blogs yet. Create your first blog!</p>
-                @endif
             </div>
         </div>
         
@@ -985,22 +968,30 @@ $(document).ready(function() {
         $.ajax({
             url: '/admin/tables/blogs/list',
             type: 'GET',
-            success: function(response) {
-                const tbody = $('#blogsTable tbody');
+                success: function(response) {
+                const tbody = $('#blogsTable');
                 tbody.empty();
-                
+
                 if (response.data && Array.isArray(response.data)) {
                     response.data.forEach(function(blog) {
                         const blogId = blog.blog_id || blog.id;
+                        const btns = `
+                            <div class="action-btns">
+                                <button class="btn btn-sm btn-info view-blog" data-blog='${JSON.stringify(blog).replace(/'/g, "&apos;")}' title="View">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="btn btn-sm btn-warning edit-blog" data-blog='${JSON.stringify(blog).replace(/'/g, "&apos;")}' title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger delete-blog" data-id="${blogId}" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>`;
                         const row = `<tr data-id="${blogId}">
                             <td>${blog.title || blog.blog_title || ''}</td>
                             <td>${blog.author || ''}</td>
                             <td>${blog.date || blog.blog_date || ''}</td>
-                            <td>
-                                <button class="btn btn-sm btn-info view-blog" data-blog='${JSON.stringify(blog).replace(/'/g, "&apos;")}'>View</button>
-                                <button class="btn btn-sm btn-warning edit-blog" data-blog='${JSON.stringify(blog).replace(/'/g, "&apos;")}'>Edit</button>
-                                <button class="btn btn-sm btn-danger delete-blog" data-id="${blogId}">Delete</button>
-                            </td>
+                            <td>${btns}</td>
                         </tr>`;
                         tbody.append(row);
                     });
@@ -1017,10 +1008,10 @@ $(document).ready(function() {
         $.ajax({
             url: '/admin/tables/videos/list',
             type: 'GET',
-            success: function(response) {
-                const tbody = $('#videosTable tbody');
+                success: function(response) {
+                const tbody = $('#videosTable');
                 tbody.empty();
-                
+
                 if (response.data && Array.isArray(response.data)) {
                     response.data.forEach(function(video) {
                         let videoPreview = video.url || '';
@@ -1029,12 +1020,18 @@ $(document).ready(function() {
                         } else {
                             videoPreview = `<a href="${videoPreview}" target="_blank">${videoPreview.substring(0, 60)}</a>`;
                         }
+                        const btns = `
+                            <div class="action-btns">
+                                <button class="btn btn-sm btn-warning edit-video" data-video='${JSON.stringify(video).replace(/'/g, "&apos;")}' title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger delete-video" data-id="${video.id}" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>`;
                         const row = `<tr data-id="${video.id}">
                             <td>${videoPreview}</td>
-                            <td>
-                                <button class="btn btn-sm btn-warning edit-video" data-video='${JSON.stringify(video).replace(/'/g, "&apos;")}'>Edit</button>
-                                <button class="btn btn-sm btn-danger delete-video" data-id="${video.id}">Delete</button>
-                            </td>
+                            <td>${btns}</td>
                         </tr>`;
                         tbody.append(row);
                     });
@@ -1051,22 +1048,30 @@ $(document).ready(function() {
         $.ajax({
             url: '/admin/tables/careers/list',
             type: 'GET',
-            success: function(response) {
-                const tbody = $('#careersTable tbody');
+                success: function(response) {
+                const tbody = $('#careersTable');
                 tbody.empty();
-                
+
                 if (response.data && Array.isArray(response.data)) {
                     response.data.forEach(function(career) {
+                        const btns = `
+                            <div class="action-btns">
+                                <button class="btn btn-sm btn-info view-career" data-career='${JSON.stringify(career).replace(/'/g, "&apos;")}' title="View">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="btn btn-sm btn-warning edit-career" data-career='${JSON.stringify(career).replace(/'/g, "&apos;")}' title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger delete-career" data-id="${career.id}" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>`;
                         const row = `<tr data-id="${career.id}">
                             <td>${career.job_title || career.title || ''}</td>
                             <td>${career.job_location || career.location || ''}</td>
                             <td>${career.job_type || career.type || ''}</td>
                             <td>${career.job_deadline || career.deadline || ''}</td>
-                            <td>
-                                <button class="btn btn-sm btn-info view-career" data-career='${JSON.stringify(career).replace(/'/g, "&apos;")}'>View</button>
-                                <button class="btn btn-sm btn-warning edit-career" data-career='${JSON.stringify(career).replace(/'/g, "&apos;")}'>Edit</button>
-                                <button class="btn btn-sm btn-danger delete-career" data-id="${career.id}">Delete</button>
-                            </td>
+                            <td>${btns}</td>
                         </tr>`;
                         tbody.append(row);
                     });
@@ -1083,22 +1088,30 @@ $(document).ready(function() {
         $.ajax({
             url: '/admin/tables/social-impact/list',
             type: 'GET',
-            success: function(response) {
-                const tbody = $('#socialTable tbody');
+                success: function(response) {
+                const tbody = $('#socialTable');
                 tbody.empty();
-                
+
                 if (response.data && Array.isArray(response.data)) {
                     response.data.forEach(function(social) {
+                        const btns = `
+                            <div class="action-btns">
+                                <button class="btn btn-sm btn-info view-social" data-social='${JSON.stringify(social).replace(/'/g, "&apos;")}' title="View">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="btn btn-sm btn-warning edit-social" data-social='${JSON.stringify(social).replace(/'/g, "&apos;")}' title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger delete-social" data-id="${social.id}" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>`;
                         const row = `<tr data-id="${social.id}">
                             <td>${social.title || ''}</td>
                             <td>${social.category || social.impact_area || ''}</td>
                             <td>${social.posted_date || social.published_date || ''}</td>
                             <td>${social.author_name || 'Admin'}</td>
-                            <td>
-                                <button class="btn btn-sm btn-info view-social" data-social='${JSON.stringify(social).replace(/'/g, "&apos;")}'>View</button>
-                                <button class="btn btn-sm btn-warning edit-social" data-social='${JSON.stringify(social).replace(/'/g, "&apos;")}'>Edit</button>
-                                <button class="btn btn-sm btn-danger delete-social" data-id="${social.id}">Delete</button>
-                            </td>
+                            <td>${btns}</td>
                         </tr>`;
                         tbody.append(row);
                     });
@@ -1115,20 +1128,28 @@ $(document).ready(function() {
         $.ajax({
             url: '/admin/tables/customer-stories/list',
             type: 'GET',
-            success: function(response) {
-                const tbody = $('#storiesTable tbody');
+                success: function(response) {
+                const tbody = $('#storiesTable');
                 tbody.empty();
-                
+
                 if (response.data && Array.isArray(response.data)) {
                     response.data.forEach(function(story) {
+                        const btns = `
+                            <div class="action-btns">
+                                <button class="btn btn-sm btn-info view-story" data-story='${JSON.stringify(story).replace(/'/g, "&apos;")}' title="View">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="btn btn-sm btn-warning edit-story" data-story='${JSON.stringify(story).replace(/'/g, "&apos;")}' title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger delete-story" data-id="${story.id}" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>`;
                         const row = `<tr data-id="${story.id}">
                             <td>${story.name || ''}</td>
                             <td>${story.position || ''}</td>
-                            <td>
-                                <button class="btn btn-sm btn-info view-story" data-story='${JSON.stringify(story).replace(/'/g, "&apos;")}'>View</button>
-                                <button class="btn btn-sm btn-warning edit-story" data-story='${JSON.stringify(story).replace(/'/g, "&apos;")}'>Edit</button>
-                                <button class="btn btn-sm btn-danger delete-story" data-id="${story.id}">Delete</button>
-                            </td>
+                            <td>${btns}</td>
                         </tr>`;
                         tbody.append(row);
                     });
@@ -2182,6 +2203,9 @@ $(document).ready(function() {
             });
         }
     });
+    // Initial load for the active tab (Blogs)
+    reloadBlogsTable();
+
 });
 </script>
 @endpush

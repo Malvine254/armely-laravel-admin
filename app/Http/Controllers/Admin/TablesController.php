@@ -15,78 +15,103 @@ class TablesController extends Controller
     {
         // Use table name fallback logic like DashboardController
         $blogTable = Schema::hasTable('blog') ? 'blog' : (Schema::hasTable('blogs') ? 'blogs' : null);
-        $blogs = $blogTable ? DB::table($blogTable)->orderBy(Schema::hasColumn($blogTable, 'blog_id') ? 'blog_id' : 'id', 'desc')->get() : collect();
+        $blogs = $blogTable ? DB::table($blogTable)->orderBy(Schema::hasColumn($blogTable, 'blog_id') ? 'blog_id' : 'id', 'desc')->limit(50)->get() : collect();
         
         $videoTable = Schema::hasTable('videos') ? 'videos' : (Schema::hasTable('video') ? 'video' : null);
-        $videos = $videoTable ? DB::table($videoTable)->orderBy(Schema::hasColumn($videoTable, 'video_id') ? 'video_id' : 'id', 'desc')->get() : collect();
+        $videos = $videoTable ? DB::table($videoTable)->orderBy(Schema::hasColumn($videoTable, 'video_id') ? 'video_id' : 'id', 'desc')->limit(50)->get() : collect();
         
         $careerTable = Schema::hasTable('careers') ? 'careers' : (Schema::hasTable('career') ? 'career' : null);
-        $careers = $careerTable ? DB::table($careerTable)->orderBy('id', 'desc')->get() : collect();
+        $careers = $careerTable ? DB::table($careerTable)->orderBy('id', 'desc')->limit(50)->get() : collect();
         
         $socialImpactTable = Schema::hasTable('social_impact') ? 'social_impact' : (Schema::hasTable('social_impacts') ? 'social_impacts' : null);
-        $socialImpact = $socialImpactTable ? DB::table($socialImpactTable)->orderBy('id', 'desc')->get() : collect();
+        $socialImpact = $socialImpactTable ? DB::table($socialImpactTable)->orderBy('id', 'desc')->limit(50)->get() : collect();
         
         $customerStoriesTable = Schema::hasTable('customer_stories') ? 'customer_stories' : (Schema::hasTable('customer_story') ? 'customer_story' : null);
-        $customerStories = $customerStoriesTable ? DB::table($customerStoriesTable)->orderBy('id', 'desc')->get() : collect();
+        $customerStories = $customerStoriesTable ? DB::table($customerStoriesTable)->orderBy('id', 'desc')->limit(50)->get() : collect();
         
         $eventsTable = Schema::hasTable('events') ? 'events' : (Schema::hasTable('event') ? 'event' : null);
-        $events = $eventsTable ? DB::table($eventsTable)->orderBy('id', 'desc')->get() : collect();
+        $events = $eventsTable ? DB::table($eventsTable)->orderBy('id', 'desc')->limit(50)->get() : collect();
         
         $teamTable = Schema::hasTable('team') ? 'team' : (Schema::hasTable('teams') ? 'teams' : null);
-        $team = $teamTable ? DB::table($teamTable)->orderBy('id', 'desc')->get() : collect();
+        $team = $teamTable ? DB::table($teamTable)->orderBy('id', 'desc')->limit(50)->get() : collect();
         
         return view('admin.tables', compact('blogs', 'videos', 'careers', 'socialImpact', 'customerStories', 'events', 'team'));
     }
     
     // ========== LIST ENDPOINTS FOR AJAX TABLE RELOAD ==========
     
-    public function listBlogs()
+    public function listBlogs(Request $request)
     {
+        $limit = (int) $request->query('limit', 50);
+        $limit = max(1, min($limit, 500));
+
         $blogTable = Schema::hasTable('blogs') ? 'blogs' : 'blog';
-        $blogs = DB::table($blogTable)->orderBy(Schema::hasColumn($blogTable, 'blog_id') ? 'blog_id' : 'id', 'desc')->get();
-        return response()->json(['success' => true, 'data' => $blogs]);
+        $blogs = DB::table($blogTable)
+            ->orderBy(Schema::hasColumn($blogTable, 'blog_id') ? 'blog_id' : 'id', 'desc')
+            ->limit($limit)
+            ->get();
+
+        return response()->json(['success' => true, 'data' => $blogs, 'limit' => $limit]);
     }
     
-    public function listVideos()
+    public function listVideos(Request $request)
     {
+        $limit = (int) $request->query('limit', 50);
+        $limit = max(1, min($limit, 500));
+
         $videoTable = Schema::hasTable('videos') ? 'videos' : 'video';
-        $videos = DB::table($videoTable)->orderBy('id', 'desc')->get();
-        return response()->json(['success' => true, 'data' => $videos]);
+        $videos = DB::table($videoTable)->orderBy('id', 'desc')->limit($limit)->get();
+        return response()->json(['success' => true, 'data' => $videos, 'limit' => $limit]);
     }
     
-    public function listCareers()
+    public function listCareers(Request $request)
     {
+        $limit = (int) $request->query('limit', 50);
+        $limit = max(1, min($limit, 500));
+
         $careerTable = Schema::hasTable('career') ? 'career' : 'careers';
-        $careers = DB::table($careerTable)->orderBy('id', 'desc')->get();
-        return response()->json(['success' => true, 'data' => $careers]);
+        $careers = DB::table($careerTable)->orderBy('id', 'desc')->limit($limit)->get();
+        return response()->json(['success' => true, 'data' => $careers, 'limit' => $limit]);
     }
     
-    public function listSocialImpact()
+    public function listSocialImpact(Request $request)
     {
+        $limit = (int) $request->query('limit', 50);
+        $limit = max(1, min($limit, 500));
+
         $table = Schema::hasTable('social_impact') ? 'social_impact' : 'social_impacts';
-        $items = DB::table($table)->orderBy('id', 'desc')->get();
-        return response()->json(['success' => true, 'data' => $items]);
+        $items = DB::table($table)->orderBy('id', 'desc')->limit($limit)->get();
+        return response()->json(['success' => true, 'data' => $items, 'limit' => $limit]);
     }
     
-    public function listCustomerStories()
+    public function listCustomerStories(Request $request)
     {
+        $limit = (int) $request->query('limit', 50);
+        $limit = max(1, min($limit, 500));
+
         $table = Schema::hasTable('customer_stories') ? 'customer_stories' : 'customer_story';
-        $stories = DB::table($table)->orderBy('id', 'desc')->get();
-        return response()->json(['success' => true, 'data' => $stories]);
+        $stories = DB::table($table)->orderBy('id', 'desc')->limit($limit)->get();
+        return response()->json(['success' => true, 'data' => $stories, 'limit' => $limit]);
     }
     
-    public function listEvents()
+    public function listEvents(Request $request)
     {
+        $limit = (int) $request->query('limit', 50);
+        $limit = max(1, min($limit, 500));
+
         $table = Schema::hasTable('events') ? 'events' : 'event';
-        $events = DB::table($table)->orderBy('id', 'desc')->get();
-        return response()->json(['success' => true, 'data' => $events]);
+        $events = DB::table($table)->orderBy('id', 'desc')->limit($limit)->get();
+        return response()->json(['success' => true, 'data' => $events, 'limit' => $limit]);
     }
     
-    public function listTeam()
+    public function listTeam(Request $request)
     {
+        $limit = (int) $request->query('limit', 50);
+        $limit = max(1, min($limit, 500));
+
         $table = Schema::hasTable('team') ? 'team' : 'teams';
-        $team = DB::table($table)->orderBy('id', 'desc')->get();
-        return response()->json(['success' => true, 'data' => $team]);
+        $team = DB::table($table)->orderBy('id', 'desc')->limit($limit)->get();
+        return response()->json(['success' => true, 'data' => $team, 'limit' => $limit]);
     }
     
     // ========== END LIST ENDPOINTS ==========
