@@ -45,13 +45,35 @@ class TablesController extends Controller
         $limit = (int) $request->query('limit', 50);
         $limit = max(1, min($limit, 500));
 
+        $start = microtime(true);
         $blogTable = Schema::hasTable('blogs') ? 'blogs' : 'blog';
-        $blogs = DB::table($blogTable)
-            ->orderBy(Schema::hasColumn($blogTable, 'blog_id') ? 'blog_id' : 'id', 'desc')
-            ->limit($limit)
-            ->get();
 
-        return response()->json(['success' => true, 'data' => $blogs, 'limit' => $limit]);
+        try {
+            $blogs = DB::table($blogTable)
+                ->orderBy(Schema::hasColumn($blogTable, 'blog_id') ? 'blog_id' : 'id', 'desc')
+                ->limit($limit)
+                ->get();
+
+            $duration = round((microtime(true) - $start) * 1000, 2);
+            \Illuminate\Support\Facades\Log::info('listBlogs executed', [
+                'table' => $blogTable,
+                'limit' => $limit,
+                'count' => is_countable($blogs) ? count($blogs) : (method_exists($blogs, 'count') ? $blogs->count() : null),
+                'ms' => $duration,
+            ]);
+
+            return response()->json(['success' => true, 'data' => $blogs, 'limit' => $limit]);
+        } catch (\Throwable $e) {
+            $duration = round((microtime(true) - $start) * 1000, 2);
+            \Illuminate\Support\Facades\Log::error('listBlogs failed', [
+                'table' => $blogTable,
+                'limit' => $limit,
+                'ms' => $duration,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json(['success' => false, 'message' => 'Server error loading blogs'], 500);
+        }
     }
     
     public function listVideos(Request $request)
