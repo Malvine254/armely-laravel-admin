@@ -97,7 +97,7 @@
                             </td>
                             <td>{{ $admin->joined_date ? $admin->joined_date->format('M d, Y') : 'N/A' }}</td>
                             <td>
-                                <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#editAdminModal" onclick="editAdmin({{ $admin }})">
+                                <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#editAdminModal" onclick='editAdmin(@json($admin))'>
                                     <i class="fas fa-edit"></i> Edit
                                 </button>
                                 @if(auth('admin')->user()->id !== $admin->id)
@@ -232,11 +232,19 @@
 
 <script>
 function editAdmin(admin) {
-    document.getElementById('editAdminForm').action = `/admin/admins/${admin.id}`;
-    document.getElementById('editName').value = admin.name;
-    document.getElementById('editEmail').value = admin.email;
-    document.getElementById('editRole').value = admin.role;
-    document.getElementById('editStatus').value = admin.status;
+    // If accidentally passed as a JSON string, parse it
+    if (typeof admin === 'string') {
+        try { admin = JSON.parse(admin); } catch (e) {}
+    }
+    const form = document.getElementById('editAdminForm');
+    form.action = `/admin/admins/${admin.id}`;
+    document.getElementById('editName').value = admin.name || '';
+    document.getElementById('editEmail').value = admin.email || '';
+    document.getElementById('editRole').value = admin.role || 'Admin';
+    document.getElementById('editStatus').value = admin.status || 'active';
+    // Clear password fields for safety
+    document.getElementById('editPassword').value = '';
+    document.getElementById('editPasswordConfirm').value = '';
 }
 </script>
 

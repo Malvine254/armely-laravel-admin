@@ -9,8 +9,8 @@
     
     <style>
         :root {
-            --primary-color: #2c3e50;
-            --secondary-color: #3498db;
+            --primary-color: #2f5597;
+            --secondary-color: #1e3a6d;
         }
         
         body {
@@ -22,78 +22,109 @@
             align-items: center;
             justify-content: center;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            position: relative;
+            overflow-x: hidden;
+        }
+        
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.06) 0%, transparent 50%);
+            pointer-events: none;
         }
         
         .login-container {
             width: 100%;
-            max-width: 400px;
+            max-width: 520px;
             padding: 20px;
+            position: relative;
+            z-index: 1;
         }
         
         .login-card {
             background: white;
-            border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 50px 45px;
+            backdrop-filter: blur(10px);
+            transition: transform 0.3s ease;
+        }
+        
+        .login-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 25px 70px rgba(0, 0, 0, 0.4);
         }
         
         .login-header {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 35px;
         }
         
         .login-header .logo {
-            width: 60px;
-            height: 60px;
+            width: 75px;
+            height: 75px;
             background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-            border-radius: 10px;
+            border-radius: 15px;
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
-            font-size: 32px;
-            margin: 0 auto 15px;
+            font-size: 36px;
+            margin: 0 auto 20px;
+            box-shadow: 0 8px 20px rgba(47, 85, 151, 0.3);
         }
         
         .login-header h1 {
-            font-size: 24px;
+            font-size: 28px;
             color: var(--primary-color);
-            margin: 0 0 5px 0;
+            margin: 0 0 8px 0;
             font-weight: 700;
+            letter-spacing: -0.5px;
         }
         
         .login-header p {
             color: #666;
             margin: 0;
-            font-size: 14px;
+            font-size: 15px;
+            font-weight: 500;
         }
         
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 24px;
         }
         
         .form-label {
             color: var(--primary-color);
             font-weight: 600;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
             display: block;
+            font-size: 14px;
         }
         
         .form-control {
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            padding: 12px 15px;
-            font-size: 14px;
+            border: 2px solid #e8eef5;
+            border-radius: 10px;
+            padding: 14px 18px;
+            font-size: 15px;
             transition: all 0.3s ease;
+            background: #f8fafc;
         }
         
         .form-control:focus {
-            border-color: var(--secondary-color);
-            box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.25rem rgba(47, 85, 151, 0.15);
+            background: white;
+            outline: none;
         }
         
         .form-control::placeholder {
-            color: #999;
+            color: #a0aec0;
         }
         
         .input-group {
@@ -102,62 +133,116 @@
         
         .input-group .icon {
             position: absolute;
-            left: 15px;
+            left: 18px;
             top: 50%;
             transform: translateY(-50%);
-            color: #999;
+            color: #a0aec0;
             pointer-events: none;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        .input-group .form-control:focus ~ .icon,
+        .input-group:focus-within .icon {
+            color: var(--primary-color);
         }
         
         .input-group .form-control {
-            padding-left: 45px;
+            padding-left: 50px;
         }
         
         .btn-login {
             width: 100%;
-            padding: 12px;
+            padding: 15px;
             background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
             color: white;
             border: none;
-            border-radius: 6px;
+            border-radius: 10px;
             font-weight: 600;
+            font-size: 16px;
             transition: all 0.3s ease;
-            margin-top: 10px;
+            margin-top: 15px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(47, 85, 151, 0.3);
         }
         
         .btn-login:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(52, 152, 219, 0.3);
+            box-shadow: 0 8px 25px rgba(47, 85, 151, 0.4);
             color: white;
             text-decoration: none;
         }
         
+        .btn-login:active {
+            transform: translateY(0);
+        }
+        
         .login-footer {
             text-align: center;
-            margin-top: 20px;
+            margin-top: 30px;
+            padding-top: 25px;
+            border-top: 1px solid #e8eef5;
+        }
+        
+        .login-footer p {
             color: #666;
             font-size: 14px;
+            margin: 8px 0;
         }
         
         .login-footer a {
-            color: var(--secondary-color);
+            color: var(--primary-color);
             text-decoration: none;
             font-weight: 600;
+            transition: all 0.3s ease;
         }
         
         .login-footer a:hover {
+            color: var(--secondary-color);
             text-decoration: underline;
         }
         
         .alert {
             border: none;
-            border-radius: 8px;
-            margin-bottom: 20px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            padding: 15px 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
         }
         
         .alert-danger {
-            background-color: #f8d7da;
-            color: #721c24;
+            background-color: #fee;
+            color: #c33;
+            border-left: 4px solid #c33;
+        }
+        
+        .alert-danger strong {
+            font-weight: 600;
+        }
+        
+        .alert-danger ul {
+            padding-left: 20px;
+        }
+        
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border-left: 4px solid #28a745;
+        }
+        
+        .alert-success strong {
+            font-weight: 600;
+        }
+        
+        @media (max-width: 576px) {
+            .login-card {
+                padding: 40px 30px;
+            }
+            
+            .login-container {
+                max-width: 100%;
+                padding: 15px;
+            }
         }
     </style>
 </head>
@@ -169,6 +254,12 @@
                 <h1>Armely Admin</h1>
                 <p>Secure Admin Panel</p>
             </div>
+            
+            @if (session('success'))
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle"></i> {{ session('success') }}
+                </div>
+            @endif
             
             @if ($errors->any())
                 <div class="alert alert-danger">
@@ -187,7 +278,6 @@
                 <div class="form-group">
                     <label class="form-label" for="email">Email Address</label>
                     <div class="input-group">
-                        <span class="icon"><i class="fas fa-envelope"></i></span>
                         <input 
                             type="email" 
                             class="form-control @error('email') is-invalid @enderror" 
@@ -198,6 +288,7 @@
                             required 
                             autofocus
                         >
+                        <span class="icon"><i class="fas fa-envelope"></i></span>
                     </div>
                     @error('email')
                         <small class="text-danger d-block mt-2">{{ $message }}</small>
@@ -207,7 +298,6 @@
                 <div class="form-group">
                     <label class="form-label" for="password">Password</label>
                     <div class="input-group">
-                        <span class="icon"><i class="fas fa-lock"></i></span>
                         <input 
                             type="password" 
                             class="form-control @error('password') is-invalid @enderror" 
@@ -216,6 +306,7 @@
                             placeholder="••••••••"
                             required
                         >
+                        <span class="icon"><i class="fas fa-lock"></i></span>
                     </div>
                     @error('password')
                         <small class="text-danger d-block mt-2">{{ $message }}</small>

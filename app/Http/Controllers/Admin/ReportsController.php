@@ -49,7 +49,7 @@ class ReportsController extends Controller
             \Log::error('Stats load failed: ' . $e->getMessage());
         }
 
-        // Load recent activity
+        // Load recent activity (public interactions + admin changes)
         $recentActivity = [];
         try {
             // Recent consultations
@@ -88,6 +88,16 @@ class ReportsController extends Controller
                 ->toArray();
             $recentActivity = array_merge($recentActivity, $campaigns);
             
+            // Admin activities (who did what)
+            $adminActivities = DB::table('admin_activities')
+                ->leftJoin('admin', 'admin_activities.admin_id', '=', 'admin.id')
+                ->select('admin_activities.created_at', DB::raw("'Admin Change' as type"), 'admin.name as name', 'admin.email as email', DB::raw("CONCAT(admin_activities.action, ' ', admin_activities.entity_type, ' #', COALESCE(admin_activities.entity_id,''), CASE WHEN admin_activities.description IS NOT NULL THEN CONCAT(' - ', admin_activities.description) ELSE '' END) as detail"))
+                ->orderBy('admin_activities.created_at', 'desc')
+                ->limit(10)
+                ->get()
+                ->toArray();
+            $recentActivity = array_merge($recentActivity, $adminActivities);
+
             // Sort by date
             usort($recentActivity, function($a, $b) {
                 return strtotime($b->created_at ?? 0) - strtotime($a->created_at ?? 0);

@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use App\Services\ActivityLogger;
 
 class TablesController extends Controller
 {
@@ -207,6 +208,7 @@ class TablesController extends Controller
             
             DB::table($blogTable)->where($idColumn, $request->id)->update($data);
             $blog = DB::table($blogTable)->where($idColumn, $request->id)->first();
+            ActivityLogger::log('update', 'Blog', $request->id, 'Updated blog ' . ($request->title ?? ($blog->title ?? $blog->blog_title ?? '')));
             return response()->json(['success' => true, 'message' => 'Blog updated successfully', 'data' => $blog]);
         } else {
             // CREATE - Require all fields
@@ -263,6 +265,7 @@ class TablesController extends Controller
             
             DB::table($blogTable)->insert($data);
             $blog = DB::table($blogTable)->orderBy('id', 'desc')->first();
+            ActivityLogger::log('create', 'Blog', $blog->{$idColumn} ?? ($blog->id ?? null), 'Created blog ' . ($request->title ?? ($blog->title ?? $blog->blog_title ?? '')));
             return response()->json(['success' => true, 'message' => 'Blog created successfully', 'data' => $blog]);
         }
     }
@@ -272,6 +275,7 @@ class TablesController extends Controller
         $blogTable = Schema::hasTable('blogs') ? 'blogs' : 'blog';
         $idColumn = Schema::hasColumn($blogTable, 'blog_id') ? 'blog_id' : 'id';
         DB::table($blogTable)->where($idColumn, $id)->delete();
+        ActivityLogger::log('delete', 'Blog', $id, 'Deleted blog #' . $id);
         return response()->json(['success' => true, 'message' => 'Blog deleted successfully']);
     }
     
@@ -300,9 +304,11 @@ class TablesController extends Controller
         
         if ($request->has('id') && $request->id) {
             DB::table($videoTable)->where($idColumn, $request->id)->update($data);
+            ActivityLogger::log('update', 'Video', $request->id, 'Updated video');
             return response()->json(['success' => true, 'message' => 'Video updated successfully']);
         } else {
             $id = DB::table($videoTable)->insertGetId($data);
+            ActivityLogger::log('create', 'Video', $id, 'Created video');
             return response()->json(['success' => true, 'message' => 'Video created successfully', 'id' => $id]);
         }
     }
@@ -312,6 +318,7 @@ class TablesController extends Controller
         $videoTable = Schema::hasTable('videos') ? 'videos' : 'video';
         $idColumn = Schema::hasColumn($videoTable, 'video_id') ? 'video_id' : 'id';
         DB::table($videoTable)->where($idColumn, $id)->delete();
+        ActivityLogger::log('delete', 'Video', $id, 'Deleted video #' . $id);
         return response()->json(['success' => true, 'message' => 'Video deleted successfully']);
     }
     
@@ -350,6 +357,7 @@ class TablesController extends Controller
             }
             
             $career = DB::table($careerTable)->where('id', $request->id)->first();
+            ActivityLogger::log('update', 'Career', $request->id, 'Updated career ' . ($career->job_title ?? $career->title ?? ''));
             return response()->json(['success' => true, 'message' => 'Career updated successfully', 'data' => $career]);
         } else {
             // CREATE
@@ -378,6 +386,7 @@ class TablesController extends Controller
             
             $id = DB::table($careerTable)->insertGetId($data);
             $career = DB::table($careerTable)->where('id', $id)->first();
+            ActivityLogger::log('create', 'Career', $id, 'Created career ' . ($career->job_title ?? $career->title ?? ''));
             return response()->json(['success' => true, 'message' => 'Career created successfully', 'data' => $career]);
         }
     }
@@ -386,6 +395,7 @@ class TablesController extends Controller
     {
         $careerTable = Schema::hasTable('career') ? 'career' : 'careers';
         DB::table($careerTable)->where('id', $id)->delete();
+        ActivityLogger::log('delete', 'Career', $id, 'Deleted career #' . $id);
         return response()->json(['success' => true, 'message' => 'Career deleted successfully']);
     }
     
@@ -436,6 +446,7 @@ class TablesController extends Controller
             }
             
             $item = DB::table($table)->where('id', $request->id)->first();
+            ActivityLogger::log('update', 'SocialImpact', $request->id, 'Updated social impact ' . ($item->title ?? $item->impact_title ?? ''));
             return response()->json(['success' => true, 'message' => 'Social impact updated successfully', 'data' => $item]);
         } else {
             // CREATE
@@ -481,6 +492,7 @@ class TablesController extends Controller
             
             $id = DB::table($table)->insertGetId($data);
             $item = DB::table($table)->where('id', $id)->first();
+            ActivityLogger::log('create', 'SocialImpact', $id, 'Created social impact ' . ($item->title ?? $item->impact_title ?? ''));
             return response()->json(['success' => true, 'message' => 'Social impact created successfully', 'data' => $item]);
         }
     }
@@ -489,6 +501,7 @@ class TablesController extends Controller
     {
         $table = Schema::hasTable('social_impact') ? 'social_impact' : 'social_impacts';
         DB::table($table)->where('id', $id)->delete();
+        ActivityLogger::log('delete', 'SocialImpact', $id, 'Deleted social impact #' . $id);
         return response()->json(['success' => true, 'message' => 'Social Impact deleted successfully']);
     }
     
@@ -531,6 +544,7 @@ class TablesController extends Controller
             }
             
             $story = DB::table($table)->where('id', $request->id)->first();
+            ActivityLogger::log('update', 'CustomerStory', $request->id, 'Updated customer story ' . ($story->name ?? ''));
             return response()->json(['success' => true, 'message' => 'Customer story updated successfully', 'data' => $story]);
         } else {
             // CREATE
@@ -563,6 +577,7 @@ class TablesController extends Controller
             
             $id = DB::table($table)->insertGetId($data);
             $story = DB::table($table)->where('id', $id)->first();
+            ActivityLogger::log('create', 'CustomerStory', $id, 'Created customer story ' . ($story->name ?? ''));
             return response()->json(['success' => true, 'message' => 'Customer story created successfully', 'data' => $story]);
         }
     }
@@ -571,6 +586,7 @@ class TablesController extends Controller
     {
         $table = Schema::hasTable('customer_stories') ? 'customer_stories' : 'customer_story';
         DB::table($table)->where('id', $id)->delete();
+        ActivityLogger::log('delete', 'CustomerStory', $id, 'Deleted customer story #' . $id);
         return response()->json(['success' => true, 'message' => 'Customer Story deleted successfully']);
     }
     
@@ -897,6 +913,7 @@ class TablesController extends Controller
             }
             
             $event = DB::table($table)->where('id', $id)->first();
+            ActivityLogger::log('update', 'Event', $id, 'Updated event ' . ($event->title ?? ''));
             return response()->json(['success' => true, 'message' => 'Event updated successfully', 'data' => $event]);
         } else {
             // Create new event
@@ -916,6 +933,7 @@ class TablesController extends Controller
             
             $eventId = DB::table($table)->insertGetId($data);
             $event = DB::table($table)->where('id', $eventId)->first();
+            ActivityLogger::log('create', 'Event', $eventId, 'Created event ' . ($event->title ?? ''));
             
             return response()->json(['success' => true, 'message' => 'Event created successfully', 'data' => $event]);
         }
@@ -925,6 +943,7 @@ class TablesController extends Controller
     {
         $table = Schema::hasTable('events') ? 'events' : 'event';
         DB::table($table)->where('id', $id)->delete();
+        ActivityLogger::log('delete', 'Event', $id, 'Deleted event #' . $id);
         return response()->json(['success' => true, 'message' => 'Event deleted successfully']);
     }
     
@@ -998,6 +1017,7 @@ class TablesController extends Controller
             }
             
             $member = DB::table($table)->where('id', $id)->first();
+            ActivityLogger::log('update', 'Team', $id, 'Updated team member ' . ($member->team_name ?? $member->name ?? ''));
             return response()->json(['success' => true, 'message' => 'Team member updated successfully', 'data' => $member]);
         } else {
             // Create new team member
@@ -1057,6 +1077,7 @@ class TablesController extends Controller
             
             $memberId = DB::table($table)->insertGetId($data);
             $member = DB::table($table)->where('id', $memberId)->first();
+            ActivityLogger::log('create', 'Team', $memberId, 'Created team member ' . ($member->team_name ?? $member->name ?? ''));
             
             return response()->json(['success' => true, 'message' => 'Team member created successfully', 'data' => $member]);
         }
@@ -1079,6 +1100,7 @@ class TablesController extends Controller
         }
         
         DB::table($table)->where('id', $id)->delete();
+        ActivityLogger::log('delete', 'Team', $id, 'Deleted team member #' . $id);
         return response()->json(['success' => true, 'message' => 'Team member deleted successfully']);
     }
 }

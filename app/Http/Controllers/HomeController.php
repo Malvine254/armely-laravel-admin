@@ -186,7 +186,7 @@ class HomeController extends Controller
         $services = $this->safeDb(function () {
             return DB::table('services_lists')
                 ->select('id', 'title', 'image', 'body')
-                ->get();
+                ->paginate(6);
         }, $dbErrorMessage);
 
         return view('services', [

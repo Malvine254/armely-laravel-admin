@@ -654,6 +654,10 @@
 }
 
 .modern-partner-grid .partner-item img {
+    max-width: 160px;
+    max-height: 90px;
+    object-fit: contain;
+    width: 100%;
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     filter: grayscale(0%) opacity(1);
 }
@@ -813,44 +817,44 @@
         <div class="partner-logos modern-partner-grid">
             
             <div class="partner-item partner-card">
-                <a href="{{ route('home') }}#partners">
+                <a href="{{ route('partners.show', ['slug' => 'aws']) }}" aria-label="AWS">
                     <img src="{{ asset('images/partners/aws.png') }}" alt="AWS">
                 </a>
             </div>
 
             <div class="partner-item partner-card">
-                <a href="{{ route('home') }}#partners">
-                    <img src="{{ asset('images/partners/td.png') }}" alt="TD">
+                <a href="{{ route('partners.show', ['slug' => 'td-synnex']) }}" aria-label="TD SYNNEX">
+                    <img src="{{ asset('images/partners/td.png') }}" alt="TD SYNNEX">
                 </a>
             </div>
 
             <div class="partner-item partner-card">
-                <a href="{{ route('home') }}#partners">
+                <a href="{{ route('partners.show', ['slug' => 'snowflake']) }}" aria-label="Snowflake">
                     <img src="{{ asset('images/partners/snowflake1.png') }}" alt="Snowflake">
                 </a>
             </div>
 
             <div class="partner-item partner-card">
-                <a href="{{ route('home') }}#partners">
+                <a href="{{ route('partners.show', ['slug' => 'microsoft']) }}" aria-label="Microsoft">
                     <img src="{{ asset('images/partners/ms.png') }}" alt="Microsoft">
                 </a>
             </div>
 
             <div class="partner-item partner-card">
-                <a href="{{ route('home') }}#partners">
+                <a href="{{ route('partners.show', ['slug' => 'redhat']) }}" aria-label="Red Hat">
                     <img src="{{ asset('images/partners/redhat.jpg') }}" alt="Red Hat">
                 </a>
             </div>
             
             <div class="partner-item partner-card">
-                <a href="{{ route('home') }}#partners">
-                    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQqHxfp5_IxQLcw1D8CVTi6ouBWcTy2m6sxHw&s" alt="Cisco">
+                <a href="{{ route('partners.show', ['slug' => 'cisco']) }}" aria-label="Cisco">
+                    <img src="{{ asset('images/partners/cisco.png') }}" alt="Cisco">
                 </a>
             </div>
             
             <div class="partner-item partner-card">
-                <a href="{{ route('home') }}#partners">
-                    <img src="https://i0.wp.com/v2catalog.com/wp-content/uploads/2024/05/CENTRE-box-logo-01.png?fit=656%2C213&ssl=1" alt="Guardz">
+                <a href="{{ route('partners.show', ['slug' => 'guardz']) }}" aria-label="Guardz">
+                    <img src="{{ asset('images/partners/quardz.png') }}" alt="Guardz">
                 </a>
             </div>
         </div> 
@@ -1002,7 +1006,7 @@
 
         <div class="row g-4">
             <!-- Story 1 -->
-            <div class="col-lg-4 col-md-6">
+            <div class="col-lg-4 col-md-6" id="aws-story">
                 <div class="story-card default-background rounded-lg overflow-hidden shadow-sm h-100 d-flex flex-column">
                     <div class="story-badge" style="background: linear-gradient(135deg, #2f5597 0%, #1e3a6d 100%);">
                         <span class="text-white fw-bold ps-3 py-2 d-block">AWS Partnership</span>
@@ -1019,7 +1023,7 @@
             </div>
 
             <!-- Story 2 -->
-            <div class="col-lg-4 col-md-6">
+            <div class="col-lg-4 col-md-6" id="snowflake-story">
                 <div class="story-card default-background rounded-lg overflow-hidden shadow-sm h-100 d-flex flex-column">
                     <div class="story-badge" style="background: linear-gradient(135deg, #0d9488 0%, #14453f 100%);">
                         <span class="text-white fw-bold ps-3 py-2 d-block">Snowflake Partnership</span>
@@ -1036,7 +1040,7 @@
             </div>
 
             <!-- Story 3 -->
-            <div class="col-lg-4 col-md-6">
+            <div class="col-lg-4 col-md-6" id="microsoft-story">
                 <div class="story-card default-background rounded-lg overflow-hidden shadow-sm h-100 d-flex flex-column">
                     <div class="story-badge" style="background: linear-gradient(135deg, #4a7bc1 0%, #2f5597 100%);">
                         <span class="text-white fw-bold ps-3 py-2 d-block">Microsoft Partnership</span>

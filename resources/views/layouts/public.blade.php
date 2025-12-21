@@ -89,6 +89,43 @@
     
     @stack('styles')
 @stack('head')
+
+<style>
+/* Force mobile menu earlier to prevent menu overflow */
+@media (max-width: 1300px) {
+	.main-menu {
+		display: none !important;
+	}
+	
+	.mobile-nav {
+		display: block !important;
+	}
+	
+	.slicknav_menu {
+		display: block !important;
+		background: transparent !important;
+	}
+	
+	.slicknav_btn {
+		background: transparent !important;
+	}
+	
+	.slicknav_icon-bar {
+		background-color: #2f5597 !important;
+		height: 4px !important;
+		border-radius: 2px !important;
+	}
+	
+	.slicknav_nav a,
+	.slicknav_nav .slicknav_item a {
+		color: #000000 !important;
+	}
+	
+	.slicknav_nav a:hover {
+		color: #2f5597 !important;
+	}
+}
+</style>
 </head>
 <body>
 

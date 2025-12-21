@@ -34,15 +34,27 @@
         <div class="d-flex align-items-center gap-3">
             <span class="text-white-50 small">Welcome, {{ auth('admin')->user()->name ?? 'Admin' }}</span>
             <div class="dropdown">
-                <a data-mdb-dropdown-init class="dropdown-toggle d-flex align-items-center gap-2 text-white" href="#" id="navbarDropdownMenuAvatar" role="button" aria-expanded="false">
+                <a class="dropdown-toggle d-flex align-items-center gap-2 text-white" href="#" id="navbarDropdownMenuAvatar" role="button" aria-expanded="false" data-bs-toggle="dropdown">
                     <img src="https://www.svgrepo.com/show/422421/account-avatar-multimedia.svg" class="rounded-circle" height="32" alt="User avatar" loading="lazy">
                 </a>
-                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdownMenuAvatar">
-                    <li><a class="dropdown-item" href="{{ route('admin.profile') }}">My profile</a></li>
-                    <li><a class="dropdown-item" href="{{ route('admin.profile') }}#settings">Settings</a></li>
+                <ul class="dropdown-menu dropdown-menu-end dropdown-menu-right" aria-labelledby="navbarDropdownMenuAvatar">
                     <li>
-                        <a class="dropdown-item" href="{{ route('admin.logout') }}" 
+                        <a class="dropdown-item" href="{{ route('admin.profile') }}">
+                            <i class="fas fa-user-circle me-2 text-primary"></i>
+                            My profile
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="{{ route('admin.profile') }}#settings">
+                            <i class="fas fa-gear me-2 text-primary"></i>
+                            Settings
+                        </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <a class="dropdown-item" href="{{ route('admin.logout.get') }}" 
                            onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+                            <i class="fas fa-right-from-bracket me-2 text-danger"></i>
                             Logout
                         </a>
                     </li>
@@ -93,7 +105,7 @@
         <strong>{{ auth('admin')->user()->name ?? 'Admin' }}</strong>
         <small>Administrator</small>
         <div class="mt-2">
-            <a class="text-light small" href="{{ route('admin.logout') }}" 
+                <a class="text-light small" href="{{ route('admin.logout.get') }}" 
                onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
                 <i class="fas fa-sign-out-alt me-2"></i>Logout
             </a>
@@ -141,6 +153,8 @@ document.addEventListener('DOMContentLoaded', function () {
             sidebar.classList.toggle('is-open');
         });
     }
+
+    // Bootstrap handles dropdowns via data-bs-toggle; no custom handler needed
 });
 </script>
 

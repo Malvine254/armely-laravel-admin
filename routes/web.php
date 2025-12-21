@@ -13,6 +13,7 @@ use App\Http\Controllers\ServicesController;
 use App\Http\Controllers\BlogController;
 use App\Http\Controllers\CaseStudiesController;
 use App\Http\Controllers\SearchController;
+use App\Http\Controllers\HtmlPageController;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/contact', [HomeController::class, 'contact'])->name('contact');
@@ -27,6 +28,14 @@ Route::get('/case-studies', [CaseStudiesController::class, 'index'])->name('case
 Route::get('/blog/{blogId?}', [BlogController::class, 'index'])->name('blog.index');
 Route::post('/blog/{blogId}/increment-clicks', [BlogController::class, 'incrementClicks'])->name('blog.increment-clicks');
 Route::get('/all-partners', [HomeController::class, 'allPartners'])->name('partners.index');
+Route::get('/all-partners/{slug}', [HtmlPageController::class, 'show'])
+    ->where('slug', '^(aws|snowflake|microsoft|redhat|cisco|guardz|td-synnex|td)$')
+    ->name('partners.show');
+
+// Backward-compatible redirect for old path
+Route::get('/partners/{slug}', function ($slug) {
+    return redirect()->route('partners.show', ['slug' => $slug]);
+});
 
 Route::get('/events', [HomeController::class, 'events'])->name('events.index');
 Route::get('/company', [HomeController::class, 'company'])->name('company.index');
@@ -49,8 +58,10 @@ Route::get('/api/search/suggestions', [SearchController::class, 'suggestions'])-
 Route::prefix('admin')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('admin.login');
     Route::post('/login', [AuthController::class, 'login'])->name('admin.login.post');
-    Route::get('/reset', [AuthController::class, 'showReset'])->name('admin.reset');
-    Route::post('/reset', [AuthController::class, 'reset'])->name('admin.reset.post');
+    Route::get('/forgot-password', [AuthController::class, 'showReset'])->name('admin.reset');
+    Route::post('/forgot-password', [AuthController::class, 'sendResetLink'])->name('admin.reset.post');
+    Route::get('/reset-password/{token}', [AuthController::class, 'showResetForm'])->name('admin.password.reset');
+    Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('admin.password.update');
 });
 
 // Lightweight public ping for deployment health checks (no auth)
@@ -60,6 +71,8 @@ Route::get('/admin/tables/ping', [TablesController::class, 'ping'])->name('admin
 Route::prefix('admin')->middleware(['admin'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('admin.dashboard');
     Route::post('/logout', [AuthController::class, 'logout'])->name('admin.logout');
+    // Graceful fallback: allow GET logout to handle cases where JS/form submission fails
+    Route::get('/logout', [AuthController::class, 'logout'])->name('admin.logout.get');
     
     // Tables Management (CRUD for content)
     Route::get('/tables', [TablesController::class, 'index'])->name('admin.tables');

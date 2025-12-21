@@ -974,6 +974,17 @@ $(document).ready(function() {
                 const tbody = $('#blogsTable');
                 tbody.empty();
 
+                // small helpers to validate & escape
+                function safeText(s){ return $('<div/>').text(s || '').html(); }
+                function isValidBlog(b){
+                    if (!b) return false;
+                    const id = b.blog_id || b.id;
+                    // must have an id and at least a title or author
+                    if (!id) return false;
+                    if (!b.title && !b.blog_title && !b.author) return false;
+                    return true;
+                }
+
                 // Expected: { success: true, data: [...] }
                 if (response && Array.isArray(response.data)) {
                     if (response.data.length === 0) {
@@ -981,28 +992,48 @@ $(document).ready(function() {
                         return;
                     }
 
-                    response.data.forEach(function(blog) {
-                        const blogId = blog.blog_id || blog.id;
-                        const btns = `
-                            <div class="action-btns">
-                                <button class="btn btn-sm btn-info view-blog" data-blog='${JSON.stringify(blog).replace(/'/g, "&apos;")}' title="View">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                                <button class="btn btn-sm btn-warning edit-blog" data-blog='${JSON.stringify(blog).replace(/'/g, "&apos;")}' title="Edit">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="btn btn-sm btn-danger delete-blog" data-id="${blogId}" title="Delete">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>`;
-                        const row = `<tr data-id="${blogId}">
-                            <td>${blog.title || blog.blog_title || ''}</td>
-                            <td>${blog.author || ''}</td>
-                            <td>${blog.date || blog.blog_date || ''}</td>
-                            <td>${btns}</td>
-                        </tr>`;
-                        tbody.append(row);
+                    let validCount = 0;
+                    response.data.forEach(function(blog, idx) {
+                        try {
+                            if (!isValidBlog(blog)) {
+                                console.warn('Skipping invalid blog at index', idx, blog);
+                                return; // skip malformed
+                            }
+
+                            const blogId = blog.blog_id || blog.id;
+                            const title = safeText(blog.title || blog.blog_title || '');
+                            const author = safeText(blog.author || '');
+                            const date = safeText(blog.date || blog.blog_date || '');
+
+                            const btns = `
+                                <div class="action-btns">
+                                    <button class="btn btn-sm btn-info view-blog" data-blog='${JSON.stringify(blog).replace(/'/g, "&apos;")}' title="View">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-warning edit-blog" data-blog='${JSON.stringify(blog).replace(/'/g, "&apos;")}' title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-danger delete-blog" data-id="${blogId}" title="Delete">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>`;
+
+                            const row = `<tr data-id="${blogId}">
+                                <td>${title}</td>
+                                <td>${author}</td>
+                                <td>${date}</td>
+                                <td>${btns}</td>
+                            </tr>`;
+                            tbody.append(row);
+                            validCount++;
+                        } catch (e) {
+                            console.warn('Error rendering blog at index', idx, e, blog);
+                        }
                     });
+
+                    if (validCount === 0) {
+                        tbody.html('<tr><td colspan="4" class="text-center text-muted">No valid blogs to display.</td></tr>');
+                    }
                 } else {
                     // Unexpected response (maybe HTML login page on deployed site)
                     console.warn('Unexpected blogs list response:', response);

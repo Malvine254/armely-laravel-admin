@@ -7,6 +7,9 @@ use App\Models\Admin;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use App\Services\AzureMailService;
+use App\Services\ActivityLogger;
 
 class AdminsController extends Controller
 {
@@ -34,7 +37,7 @@ class AdminsController extends Controller
             'status' => 'required|in:active,inactive',
         ]);
         
-        Admin::create([
+        $created = Admin::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
@@ -42,8 +45,35 @@ class AdminsController extends Controller
             'status' => $validated['status'],
             'joined_date' => now(),
         ]);
-        
-        return redirect()->route('admin.admins')->with('success', 'Admin created successfully');
+        ActivityLogger::log('create', 'Admin', $created->id, 'Created admin ' . $created->email . ' (' . $created->name . ')');
+        // Generate activation (set-password) token and send welcome email
+        try {
+            $token = Str::random(64);
+            DB::table('password_reset_tokens')->updateOrInsert(
+                ['email' => $validated['email']],
+                [
+                    'token' => Hash::make($token),
+                    'created_at' => now()
+                ]
+            );
+
+            $activationLink = route('admin.password.reset', ['token' => $token, 'email' => $validated['email']]);
+            $mailer = new AzureMailService();
+            // Prefer a tailored welcome email when available; fallback to reset template
+            if (method_exists($mailer, 'sendWelcomeAdminEmail')) {
+                $sent = $mailer->sendWelcomeAdminEmail($validated['email'], $activationLink, $validated['name']);
+            } else {
+                $sent = $mailer->sendResetEmail($validated['email'], $activationLink);
+            }
+
+            $msg = $sent
+                ? 'Admin created. Activation email sent.'
+                : 'Admin created, but failed to send activation email.';
+            return redirect()->route('admin.admins')->with($sent ? 'success' : 'error', $msg);
+        } catch (\Throwable $e) {
+            \Log::error('Failed to send admin activation email: ' . $e->getMessage(), ['exception' => $e]);
+            return redirect()->route('admin.admins')->with('error', 'Admin created, but failed to send activation email.');
+        }
     }
     
     public function update(Request $request, $id)
@@ -70,6 +100,7 @@ class AdminsController extends Controller
         }
         
         $admin->update($data);
+        ActivityLogger::log('update', 'Admin', $admin->id, 'Updated admin ' . $admin->email);
         
         return redirect()->route('admin.admins')->with('success', 'Admin updated successfully');
     }
@@ -87,6 +118,7 @@ class AdminsController extends Controller
         }
         
         $admin->delete();
+        ActivityLogger::log('delete', 'Admin', $admin->id, 'Deleted admin ' . $admin->email);
         
         return redirect()->route('admin.admins')->with('success', 'Admin deleted successfully');
     }

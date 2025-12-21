@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Forgot Password - Armely Admin</title>
+    <title>Reset Password - Armely Admin</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
@@ -177,31 +177,6 @@
             transform: translateY(0);
         }
         
-        .btn-back {
-            width: 100%;
-            padding: 15px;
-            background: #f0f4f8;
-            color: var(--primary-color);
-            border: 2px solid #e8eef5;
-            border-radius: 10px;
-            font-weight: 600;
-            font-size: 16px;
-            transition: all 0.3s ease;
-            margin-top: 12px;
-            cursor: pointer;
-            display: inline-block;
-            text-align: center;
-            text-decoration: none;
-        }
-        
-        .btn-back:hover {
-            background: #e8eef5;
-            border-color: var(--primary-color);
-            color: var(--primary-color);
-            text-decoration: none;
-            transform: translateY(-2px);
-        }
-        
         .reset-footer {
             text-align: center;
             margin-top: 30px;
@@ -249,12 +224,6 @@
             padding-left: 20px;
         }
         
-        .alert-success {
-            background-color: #d4edda;
-            color: #155724;
-            border-left: 4px solid #28a745;
-        }
-        
         .text-muted {
             color: #6c757d;
             font-size: 13px;
@@ -276,9 +245,9 @@
     <div class="reset-container">
         <div class="reset-card">
             <div class="reset-header">
-                <div class="logo"><i class="fas fa-envelope"></i></div>
-                <h1>Forgot Password?</h1>
-                <p>Enter your email to receive a reset link</p>
+                <div class="logo"><i class="fas fa-key"></i></div>
+                <h1>Set New Password</h1>
+                <p>Create a secure password for your account</p>
             </div>
             
             @if ($errors->any())
@@ -292,49 +261,69 @@
                 </div>
             @endif
             
-            @if (session('success'))
-                <div class="alert alert-success">
-                    <i class="fas fa-check-circle"></i> {{ session('success') }}
-                </div>
-            @endif
-            
-            <form method="POST" action="{{ route('admin.reset.post') }}">
+            <form method="POST" action="{{ route('admin.password.update') }}">
                 @csrf
+                <input type="hidden" name="token" value="{{ $token }}">
+                <input type="hidden" name="email" value="{{ $email }}">
                 
                 <div class="form-group">
                     <label class="form-label" for="email">Email Address</label>
                     <div class="input-group">
                         <input 
                             type="email" 
-                            class="form-control @error('email') is-invalid @enderror" 
+                            class="form-control" 
                             id="email" 
-                            name="email" 
-                            placeholder="admin@armely.com"
-                            value="{{ old('email') }}"
-                            required 
-                            autofocus
+                            value="{{ $email }}"
+                            disabled
                         >
                         <span class="icon"><i class="fas fa-envelope"></i></span>
                     </div>
-                    @error('email')
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="password">New Password</label>
+                    <div class="input-group">
+                        <input 
+                            type="password" 
+                            class="form-control @error('password') is-invalid @enderror" 
+                            id="password" 
+                            name="password" 
+                            placeholder="••••••••"
+                            required
+                            autofocus
+                        >
+                        <span class="icon"><i class="fas fa-lock"></i></span>
+                    </div>
+                    @error('password')
                         <small class="text-danger d-block mt-2">{{ $message }}</small>
                     @enderror
                     <small class="text-muted d-block mt-2">
-                        <i class="fas fa-info-circle"></i> We'll send you a secure link to reset your password
+                        <i class="fas fa-info-circle"></i> Minimum 8 characters
                     </small>
                 </div>
                 
-                <button type="submit" class="btn btn-reset">
-                    <i class="fas fa-paper-plane"></i> Send Reset Link
-                </button>
+                <div class="form-group">
+                    <label class="form-label" for="password_confirmation">Confirm Password</label>
+                    <div class="input-group">
+                        <input 
+                            type="password" 
+                            class="form-control" 
+                            id="password_confirmation" 
+                            name="password_confirmation" 
+                            placeholder="••••••••"
+                            required
+                        >
+                        <span class="icon"><i class="fas fa-lock"></i></span>
+                    </div>
+                </div>
                 
-                <a href="{{ route('admin.login') }}" class="btn btn-back">
-                    <i class="fas fa-arrow-left"></i> Back to Login
-                </a>
+                <button type="submit" class="btn btn-reset">
+                    <i class="fas fa-check"></i> Reset Password
+                </button>
             </form>
             
             <div class="reset-footer">
-                <p>Remember your password? <a href="{{ route('admin.login') }}">Login here</a></p>
+                <p><a href="{{ route('admin.login') }}"><i class="fas fa-arrow-left"></i> Back to Login</a></p>
             </div>
         </div>
     </div>

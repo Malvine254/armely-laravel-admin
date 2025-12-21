@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
 
 class SearchController extends Controller
 {
@@ -51,7 +52,7 @@ class SearchController extends Controller
                 }
             } catch (\Exception $e) {
                 // Log error but continue searching other pages
-                \Log::error("Search error for page {$page['name']}: " . $e->getMessage());
+                Log::error("Search error for page {$page['name']}: " . $e->getMessage());
             }
         }
 
@@ -109,6 +110,14 @@ class SearchController extends Controller
             if (View::exists($page['view'])) {
                 // Render the view and get content
                 $content = View::make($page['view'])->render();
+
+                // Remove inline styles and scripts so search doesn't index CSS/JS
+                // Strip <style>...</style> blocks
+                $content = preg_replace('/<style\b[^>]*>.*?<\/style>/is', '', $content);
+                // Strip <script>...</script> blocks
+                $content = preg_replace('/<script\b[^>]*>.*?<\/script>/is', '', $content);
+                // Also remove noscript blocks
+                $content = preg_replace('/<noscript\b[^>]*>.*?<\/noscript>/is', '', $content);
                 
                 // Strip HTML tags but preserve spacing
                 $content = strip_tags($content);
@@ -119,7 +128,7 @@ class SearchController extends Controller
                 return trim($content);
             }
         } catch (\Exception $e) {
-            \Log::error("Error getting content for {$page['name']}: " . $e->getMessage());
+            Log::error("Error getting content for {$page['name']}: " . $e->getMessage());
         }
 
         return null;
