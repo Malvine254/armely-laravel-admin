@@ -285,7 +285,7 @@ hr {
 .partner-hero {
   background: linear-gradient(135deg, #1f2a44 0%, #0f6cbd 55%, #2e7dd4 100%);
   color: #fff;
-  padding: 80px 0;
+  padding: 30px 0;
   position: relative;
   overflow: hidden;
 }

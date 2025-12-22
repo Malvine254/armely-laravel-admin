@@ -166,14 +166,19 @@
     <div class="header-inner">
         <div class="container">
             <div class="inner">
-                <div class="row">
+                <div class="row align-items-center">
                     <div class="col-lg-3 col-md-23 col-12">
-                        <div class="logo"><a href="{{ route('home') }}"><span class="logo-font">armely</span></a></div>
+                        <div class="logo d-flex align-items-center" style="padding: 0; margin: 0;">
+                            <a href="{{ route('home') }}" class="d-inline-flex align-items-center" style="margin: 0; padding: 0;">
+                                <!-- <span class="logo-font">armely</span> -->
+                                <img src="{{ asset('images/logo/main-logo.png') }}" alt="Armely logo" class="img-fluid" style="max-height: 52px; width: auto; display: block;" />
+                            </a>
+                        </div>
                         <div class="mobile-nav"></div>
                     </div>
-                    <div class="col-lg-9 col-md-9 col-12">
-                        <div class="main-menu">
-                            <nav class="navigation">
+                    <div class="col-lg-9 col-md-9 col-12 d-flex align-items-center justify-content-end">
+                        <div class="main-menu d-flex align-items-center justify-content-end w-100" style="height: 100%;">
+                            <nav class="navigation w-100 d-flex align-items-center" style="height: 100%;">
                                 <ul class="nav menu">
                                     <li class="{{ request()->is('company','career','job-board','applications','social-impact','social-impact-details') ? 'active' : '' }}"><a>Who We Are <i class="icofont-rounded-down"></i></a>
                                         <ul class="dropdown">

@@ -4405,8 +4405,9 @@ input:checked+.slider-two:before {
 
 /* Reduce spacing between main menu items */
 .header .nav li a {
-    padding: 18px 10px !important;
+    padding: 17px 10px !important;
     font-size: 14px !important;
+    line-height: 1.1 !important;
 }
 
 /* Remove extra padding inside dropdown links */
