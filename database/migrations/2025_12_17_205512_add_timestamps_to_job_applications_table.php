@@ -12,7 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('job_applications', function (Blueprint $table) {
-            $table->timestamps();
+            if (!Schema::hasColumn('job_applications', 'created_at')) {
+                $table->timestamp('created_at')->nullable();
+            }
+            if (!Schema::hasColumn('job_applications', 'updated_at')) {
+                $table->timestamp('updated_at')->nullable();
+            }
         });
     }
 

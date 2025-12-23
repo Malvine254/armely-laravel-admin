@@ -5,6 +5,12 @@
 @push('styles')
 <style>
 /* Modern Section Header */
+.customer-stories-section {
+    background: radial-gradient(circle at 20% 20%, rgba(47,85,151,0.08), transparent 30%),
+                radial-gradient(circle at 80% 10%, rgba(118,75,162,0.08), transparent 28%),
+                #f7f9fc;
+}
+
 .modern-section-header {
     position: relative;
 }
@@ -50,15 +56,6 @@
     content: '';
     position: absolute;
     left: 50%;
-        @if(!empty($dbErrorMessage))
-            <div class="row mb-3">
-                <div class="col-12">
-                    <div class="alert alert-warning text-center" role="alert">
-                        <i class="icofont-warning-alt"></i> {{ $dbErrorMessage }}
-                    </div>
-                </div>
-            </div>
-        @endif
     top: 50%;
     transform: translate(-50%, -50%);
     width: 12px;
@@ -75,20 +72,38 @@
 
 /* Modern Story Cards */
 .modern-story-card {
-    background: #fff;
-    border-radius: 20px;
+    background: linear-gradient(160deg, rgba(255,255,255,0.92) 0%, rgba(247,249,252,0.96) 60%, rgba(255,255,255,0.92) 100%);
+    border-radius: 18px;
     position: relative;
-    box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+    box-shadow: 0 12px 45px rgba(31,41,55,0.14);
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    border: 2px solid transparent;
+    border: 1px solid rgba(255,255,255,0.6);
     overflow: hidden;
     height: 100%;
     display: flex;
     flex-direction: column;
+    backdrop-filter: blur(4px);
+}
+
+.modern-story-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 15% 20%, rgba(255,255,255,0.08), transparent 35%),
+                radial-gradient(circle at 85% 10%, rgba(255,255,255,0.08), transparent 30%);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.modern-story-card:hover::after {
+    opacity: 1;
 }
 
 .modern-story-card.default-background {
     color: #fff;
+    background: linear-gradient(150deg, rgba(47,85,151,0.92) 0%, rgba(64,116,182,0.94) 50%, rgba(86,140,210,0.9) 100%);
+    border-color: rgba(255,255,255,0.12);
 }
 
 .modern-story-card.default-background .customer-name,
@@ -139,11 +154,11 @@
 }
 
 .card-header-section {
-    padding: 30px 25px 20px;
+    padding: 26px 24px 18px;
     display: flex;
-    align-items: flex-start;
-    gap: 15px;
-    background: linear-gradient(135deg, rgba(0,0,0,0.02) 0%, rgba(0,0,0,0) 100%);
+    align-items: center;
+    gap: 14px;
+    background: linear-gradient(135deg, rgba(0,0,0,0.03) 0%, rgba(0,0,0,0) 100%);
 }
 
 .customer-avatar {
@@ -270,16 +285,17 @@
 }
 
 .story-body {
-    padding: 25px;
+    padding: 24px 22px 26px;
     flex-grow: 1;
     display: flex;
     flex-direction: column;
+    background: linear-gradient(180deg, rgba(0,0,0,0.02) 0%, rgba(0,0,0,0) 45%);
 }
 
 .quote-wrapper {
     position: relative;
     flex-grow: 1;
-    padding: 0 10px;
+    padding: 0 6px;
 }
 
 .quote-mark-left,
@@ -308,11 +324,28 @@
 }
 
 .testimonial-content {
-    color: #555;
+    color: #2b2f3a;
     font-size: 15px;
-    line-height: 1.9;
-    font-style: italic;
-    text-align: justify;
+    line-height: 1.7;
+    font-style: normal;
+    text-align: left;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.testimonial-content .shorten-content {
+    display: -webkit-box;
+    -webkit-line-clamp: 6;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.testimonial-content.expanded .shorten-content {
+    -webkit-line-clamp: unset;
+    overflow: visible;
 }
 
 .modern-story-card.default-background .testimonial-content {
@@ -338,26 +371,51 @@
 }
 
 .read-more-btn {
-    font-weight: 600;
-    font-size: 13px;
-    text-decoration: none;
-    display: inline-block;
-    padding: 10px 20px;
-    border: 2px solid var(--default-background);
-    border-radius: 25px;
-    transition: all 0.3s ease;
-    background: transparent;
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    text-decoration: none !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border: 2px solid rgba(255,255,255,0.4);
+    border-radius: 20px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background: rgba(255,255,255,0.15);
+    color: #fff !important;
+    backdrop-filter: blur(4px);
+    align-self: flex-start;
+    margin-top: 4px;
 }
 
 .read-more-btn:hover {
-    background: var(--default-background);
+    background: linear-gradient(135deg, rgba(47,85,151,0.8) 0%, rgba(86,140,210,0.8) 100%);
+    border-color: rgba(47,85,151,0.6);
     color: #fff !important;
-    text-decoration: none;
-    transform: translateX(5px);
+    transform: translateX(4px);
+    box-shadow: 0 8px 20px rgba(47,85,151,0.3);
 }
 
 .read-more-btn strong {
-    display: flex;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+
+.read-more-btn i {
+    transition: transform 0.3s ease;
+    font-size: 13px;
+}
+
+.read-more-btn:hover i {
+    transform: translateX(3px);
+}
+
+.read-more-btn strong {
+    display: inline-flex;
     align-items: center;
     gap: 8px;
 }
@@ -624,3 +682,19 @@
 </section>
 <!--/End Customer Stories Section -->
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.read-more-btn').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const content = btn.closest('.testimonial-content');
+            if (!content) return;
+            const isExpanded = content.classList.toggle('expanded');
+            btn.querySelector('strong').innerHTML = isExpanded ? 'SHOW LESS <i class="fa fa-long-arrow-up"></i>' : 'READ MORE <i class="fa fa-long-arrow-right"></i>';
+        });
+    });
+});
+</script>
+@endpush

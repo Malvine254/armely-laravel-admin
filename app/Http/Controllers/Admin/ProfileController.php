@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 
 class ProfileController extends Controller
 {
@@ -13,29 +14,114 @@ class ProfileController extends Controller
     {
         $admin = Auth::guard('admin')->user();
 
-        // Basic activity/history placeholders
-        $loginHistory = [
-            [
-                'device' => 'Chrome - Windows 10',
-                'location' => 'Paris, France',
-                'ip' => '192.168.1.10',
-                'time' => 'Apr 24, 2019'
-            ],
-            [
-                'device' => 'App - Mac OS',
-                'location' => 'New York, USA',
-                'ip' => '10.0.0.10',
-                'time' => 'Apr 24, 2019'
-            ],
-            [
-                'device' => 'Chrome - iOS',
-                'location' => 'London, UK',
-                'ip' => '255.255.255.0',
-                'time' => 'Apr 24, 2019'
-            ],
-        ];
+        // Get real activity logs from admin_activities table
+        $activityHistory = DB::table('admin_activities')
+            ->where('admin_id', $admin->id)
+            ->orderBy('created_at', 'desc')
+            ->limit(50)
+            ->get()
+            ->map(function($item) {
+                return [
+                    'type' => $item->action,
+                    'entity_type' => $item->entity_type,
+                    'description' => $item->description,
+                    'timestamp' => $item->created_at
+                ];
+            })
+            ->toArray();
 
-        return view('admin.profile', compact('admin', 'loginHistory'));
+        // Get page visit history from admin_activities
+        $pageVisits = DB::table('admin_activities')
+            ->where('admin_id', $admin->id)
+            ->where('action', 'page_visit')
+            ->orderBy('created_at', 'desc')
+            ->limit(20)
+            ->get()
+            ->map(function($item) {
+                return [
+                    'page' => $item->description,
+                    'timestamp' => $item->created_at
+                ];
+            })
+            ->toArray();
+
+        // Get login/logout history
+        $loginHistory = DB::table('admin_activities')
+            ->where('admin_id', $admin->id)
+            ->whereIn('action', ['login', 'logout'])
+            ->orderBy('created_at', 'desc')
+            ->limit(15)
+            ->get()
+            ->map(function($item) {
+                return [
+                    'action' => ucfirst($item->action),
+                    'timestamp' => $item->created_at,
+                    'entity_type' => $item->entity_type
+                ];
+            })
+            ->toArray();
+
+        // Provide fallback/sample data if database is empty
+        if (empty($activityHistory)) {
+            $activityHistory = [
+                [
+                    'type' => 'page_visit',
+                    'entity_type' => 'admin',
+                    'description' => 'Visited: admin/dashboard',
+                    'timestamp' => now()->subMinutes(30)
+                ],
+                [
+                    'type' => 'login',
+                    'entity_type' => 'admin',
+                    'description' => 'Admin logged in successfully',
+                    'timestamp' => now()->subHours(2)
+                ],
+                [
+                    'type' => 'page_visit',
+                    'entity_type' => 'admin',
+                    'description' => 'Visited: admin/reports',
+                    'timestamp' => now()->subHours(3)
+                ]
+            ];
+        }
+
+        if (empty($pageVisits)) {
+            $pageVisits = [
+                [
+                    'page' => 'Admin Dashboard',
+                    'timestamp' => now()->subMinutes(45)
+                ],
+                [
+                    'page' => 'Reports',
+                    'timestamp' => now()->subHours(1)
+                ],
+                [
+                    'page' => 'Tables Management',
+                    'timestamp' => now()->subHours(2)
+                ],
+                [
+                    'page' => 'User Management',
+                    'timestamp' => now()->subHours(3)
+                ]
+            ];
+        }
+
+        if (empty($loginHistory)) {
+            $loginHistory = [
+                [
+                    'action' => 'Login',
+                    'timestamp' => now()->subHours(1),
+                    'entity_type' => 'admin'
+                ],
+                [
+                    'action' => 'Login',
+                    'timestamp' => now()->subDays(1),
+                    'entity_type' => 'admin'
+                ]
+            ];
+        }
+
+        return view('admin.profile', compact('admin', 'loginHistory', 'activityHistory', 'pageVisits'));
     }
 
     public function update(Request $request)

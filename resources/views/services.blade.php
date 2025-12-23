@@ -446,70 +446,74 @@
 	}
 
 	/* ===== SERVICE CARD ICON FIXES ===== */
-	.single-table {
+	.pricing-table .single-table {
 		height: 100%;
-		min-height: 350px !important;
-		max-height: 350px !important;
+		min-height: auto !important;
+		max-height: none !important;
 		display: flex !important;
 		flex-direction: column;
+		padding: 1.4rem 1.25rem !important;
+		gap: 0.55rem;
+		text-align: left !important;
 	}
 
-	.single-table .table-head {
-		text-align: center;
+	.pricing-table .single-table .table-head {
+		text-align: left !important;
 		display: flex;
 		flex-direction: column;
-		align-items: center;
+		align-items: flex-start !important;
 		justify-content: flex-start;
-		padding: 30px 20px;
+		padding: 0 !important;
 		flex: 1;
-		overflow: hidden;
+		gap: 0.4rem;
 	}
 
-	.single-table .icon {
-		width: 80px;
-		height: 80px;
+	.pricing-table .single-table .icon {
+		width: 60px;
+		height: 60px;
 		display: flex !important;
 		align-items: center;
 		justify-content: center;
-		margin: 0 auto 20px;
+		margin: 0 0 6px;
 		flex-shrink: 0;
+		border-radius: 12px;
 	}
 
-	.single-table .icon i {
-		font-size: 3.5rem !important;
+	.pricing-table .single-table .icon i {
+		font-size: 2.2rem !important;
 		line-height: 1 !important;
 		display: block;
 		color: #fff !important;
 	}
 
-	.single-table .title {
-		margin: 15px 0 !important;
-		font-size: 1.2rem !important;
-		line-height: 1.4;
+	.pricing-table .single-table .title {
+		margin: 4px 0 0 !important;
+		font-size: 1.05rem !important;
+		line-height: 1.3;
 		flex-shrink: 0;
-		min-height: 50px;
-		display: flex;
-		align-items: center;
-		justify-content: center;
+		min-height: auto;
+		display: block;
+		text-align: left !important;
 	}
 
-	.single-table .price {
-		margin-top: 10px;
+	.pricing-table .single-table .price {
+		margin-top: 4px;
 		flex: 1;
 		display: flex;
 		align-items: flex-start;
-		overflow: hidden;
+		overflow: visible;
 	}
 
-	.single-table .price p {
-		font-size: 0.95rem;
-		line-height: 1.6;
+	.pricing-table .single-table .price p {
+		font-size: 0.98rem;
+		line-height: 1.55;
 		margin: 0;
 		display: -webkit-box;
-		-webkit-line-clamp: 4;
+		-webkit-line-clamp: 7;
 		-webkit-box-orient: vertical;
 		overflow: hidden;
 		text-overflow: ellipsis;
+		text-align: left;
 	}
 </style>
 @endpush
@@ -566,23 +570,26 @@
 			<p>Try adjusting your search or filter to find what you're looking for.</p>
 		</div>
 
-		<div class="row" id="servicesContainer">
-			@forelse($services as $service)
-				<div class="col-lg-4 col-md-12 col-12">
-					<div class="single-table card-shadow default-background" style="max-block-size: 350px; min-block-size: 340px;">
-						<a class="text-light" href="{{ route('service-details', ['name' => Str::slug($service->title)]) }}" style="text-decoration: none;">
-							<div class="table-head">
-								<div class="icon text-light">
-									<i class="icofont text-light {{ $service->image ?? 'icofont-ui-settings' }}"></i>
-								</div>
-								<h4 class="title text-light">{{ $service->title }}</h4>
-								<div class="price text-light">
-									<p class="text-light">{{ Str::limit($service->body, 150) }}</p>
-								</div>
+				<div class="row" id="servicesContainer">
+					@forelse($services as $service)
+						@php
+							$iconClass = $service->image && trim($service->image) !== '' ? $service->image : 'icofont-ui-settings';
+						@endphp
+						<div class="col-lg-4 col-md-12 col-12">
+							<div class="single-table card-shadow default-background" style="max-block-size: 350px; min-block-size: 340px;">
+								<a class="text-light" href="{{ route('service-details', ['name' => Str::slug($service->title)]) }}" style="text-decoration: none;">
+									<div class="table-head">
+										<div class="icon text-light">
+											<i class="icofont text-light {{ $iconClass }}"></i>
+										</div>
+										<h4 class="title text-light">{{ $service->title }}</h4>
+										<div class="price text-light">
+											<p class="text-light">{{ Str::limit($service->body, 150) }}</p>
+										</div>
+									</div>
+								</a>
 							</div>
-						</a>
-					</div>
-				</div>
+						</div>
 			@empty
 				<div class="col-12">
 					<div class="alert alert-info text-center">

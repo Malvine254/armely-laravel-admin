@@ -11,22 +11,24 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('job_applications', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->string('email');
-            $table->string('position');
-            $table->string('phone')->nullable();
-            $table->text('address')->nullable();
-            $table->string('city')->nullable();
-            $table->string('state')->nullable();
-            $table->string('zip')->nullable();
-            $table->string('role')->nullable();
-            $table->string('cv')->nullable();
-            $table->integer('status')->default(1); // 1 = pending, 2 = shortlisted, 3 = hired
-            $table->timestamp('application_date')->useCurrent();
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('job_applications')) {
+            Schema::create('job_applications', function (Blueprint $table) {
+                $table->id();
+                $table->string('name');
+                $table->string('email');
+                $table->string('position');
+                $table->string('phone')->nullable();
+                $table->text('address')->nullable();
+                $table->string('city')->nullable();
+                $table->string('state')->nullable();
+                $table->string('zip')->nullable();
+                $table->string('role')->nullable();
+                $table->string('cv')->nullable();
+                $table->integer('status')->default(1); // 1 = pending, 2 = shortlisted, 3 = hired
+                $table->timestamp('application_date')->useCurrent();
+                $table->timestamps();
+            });
+        }
     }
 
     /**

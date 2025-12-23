@@ -11,21 +11,23 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('contacts', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->string('email');
-            $table->string('organization')->nullable();
-            $table->string('phone')->nullable();
-            $table->text('message');
-            $table->string('subject')->nullable();
-            $table->string('sent_date')->nullable();
-            $table->timestamps();
-            
-            // Add index for common queries
-            $table->index('email');
-            $table->index('created_at');
-        });
+        if (!Schema::hasTable('contacts')) {
+            Schema::create('contacts', function (Blueprint $table) {
+                $table->id();
+                $table->string('name');
+                $table->string('email');
+                $table->string('organization')->nullable();
+                $table->string('phone')->nullable();
+                $table->text('message');
+                $table->string('subject')->nullable();
+                $table->string('sent_date')->nullable();
+                $table->timestamps();
+                
+                // Add index for common queries
+                $table->index('email');
+                $table->index('created_at');
+            });
+        }
     }
 
     /**

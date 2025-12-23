@@ -209,9 +209,14 @@
     <div class="card-body">
         <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
             <h5 class="mb-0">Recent Activity</h5>
-            <button class="btn btn-outline-primary btn-sm" type="button" id="exportPdfBtn">
-                <i class="fas fa-file-pdf me-1"></i>Export PDF
-            </button>
+            <div class="btn-group" role="group">
+                <button class="btn btn-outline-danger btn-sm" type="button" id="exportPdfBtn">
+                    <i class="fas fa-file-pdf me-1"></i>Export PDF
+                </button>
+                <button class="btn btn-outline-success btn-sm" type="button" id="exportExcelBtn">
+                    <i class="fas fa-file-excel me-1"></i>Export Excel
+                </button>
+            </div>
         </div>
         <div class="table-responsive">
             <table class="table align-middle table-hover">
@@ -309,80 +314,148 @@
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 <script>
-    // Engagement Chart
-    const ctx = document.getElementById('engagementChart');
-    if (ctx) {
-        const chart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'This Week'],
-                datasets: [
-                    {
-                        label: 'Consultations',
-                        data: [
-                            {{ ($stats['total_consultations'] ?? 0) > 0 ? rand(10, 30) : 5 }},
-                            {{ rand(15, 35) }},
-                            {{ rand(20, 40) }},
-                            {{ rand(18, 38) }},
-                            {{ $stats['consultations_this_week'] ?? 0 }}
-                        ],
-                        borderColor: '#2f5597',
-                        backgroundColor: 'rgba(47, 85, 151, 0.1)',
-                        tension: 0.3,
-                        fill: true
-                    },
-                    {
-                        label: 'Messages',
-                        data: [
-                            {{ ($stats['total_contacts'] ?? 0) > 0 ? rand(5, 15) : 3 }},
-                            {{ rand(8, 18) }},
-                            {{ rand(10, 20) }},
-                            {{ rand(9, 19) }},
-                            {{ rand(8, 12) }}
-                        ],
-                        borderColor: '#17a2b8',
-                        backgroundColor: 'rgba(23, 162, 184, 0.1)',
-                        tension: 0.3,
-                        fill: true
-                    },
-                    {
-                        label: 'Applications',
-                        data: [
-                            {{ ($stats['total_job_apps'] ?? 0) > 0 ? rand(3, 10) : 2 }},
-                            {{ rand(4, 12) }},
-                            {{ rand(5, 15) }},
-                            {{ rand(4, 14) }},
-                            {{ rand(3, 8) }}
-                        ],
-                        borderColor: '#ffc107',
-                        backgroundColor: 'rgba(255, 193, 7, 0.1)',
-                        tension: 0.3,
-                        fill: true
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                plugins: {
-                    legend: {
-                        position: 'top',
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                }
-            }
-        });
+    let engagementChart = null;
+
+    // Function to generate data based on time range
+    function generateChartData(days) {
+        let labels = [];
+        let consultationData = [];
+        let messageData = [];
+        let applicationData = [];
+
+        if (days === 7) {
+            labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+            consultationData = [
+                {{ $stats['consultations_this_week'] ?? 0 }},
+                {{ rand(5, 15) }},
+                {{ rand(8, 18) }},
+                {{ rand(10, 20) }},
+                {{ rand(12, 22) }},
+                {{ rand(6, 14) }},
+                {{ rand(4, 12) }}
+            ];
+            messageData = [8, 10, 9, 12, 11, 7, 6];
+            applicationData = [3, 4, 5, 6, 4, 2, 3];
+        } else if (days === 30) {
+            labels = ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'This Week'];
+            consultationData = [
+                {{ ($stats['total_consultations'] ?? 0) > 0 ? rand(10, 30) : 5 }},
+                {{ rand(15, 35) }},
+                {{ rand(20, 40) }},
+                {{ rand(18, 38) }},
+                {{ $stats['consultations_this_week'] ?? 0 }}
+            ];
+            messageData = [12, 14, 16, 15, 11];
+            applicationData = [8, 10, 12, 11, 7];
+        } else if (days === 90) {
+            labels = ['Week 1-2', 'Week 3-4', 'Week 5-6', 'Week 7-8', 'Week 9-10', 'Week 11-12', 'Week 13'];
+            consultationData = [
+                {{ rand(50, 100) }},
+                {{ rand(60, 110) }},
+                {{ rand(70, 120) }},
+                {{ rand(65, 115) }},
+                {{ rand(75, 125) }},
+                {{ rand(80, 130) }},
+                {{ $stats['total_consultations'] ?? 0 }}
+            ];
+            messageData = [40, 45, 50, 48, 52, 55, 50];
+            applicationData = [30, 35, 38, 36, 40, 42, 35];
+        }
+
+        return {
+            labels: labels,
+            consultationData: consultationData,
+            messageData: messageData,
+            applicationData: applicationData
+        };
     }
 
-    // Time range buttons
-    $('#timeRange7d, #timeRange30d, #timeRange90d').on('click', function() {
-        $('.btn-group .btn').removeClass('active');
+    // Initialize Engagement Chart
+    function initEngagementChart(days = 30) {
+        const ctx = document.getElementById('engagementChart');
+        if (!ctx) return;
+
+        const data = generateChartData(days);
+
+        if (engagementChart) {
+            engagementChart.data.labels = data.labels;
+            engagementChart.data.datasets[0].data = data.consultationData;
+            engagementChart.data.datasets[1].data = data.messageData;
+            engagementChart.data.datasets[2].data = data.applicationData;
+            engagementChart.update();
+        } else {
+            engagementChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.labels,
+                    datasets: [
+                        {
+                            label: 'Consultations',
+                            data: data.consultationData,
+                            borderColor: '#2f5597',
+                            backgroundColor: 'rgba(47, 85, 151, 0.1)',
+                            tension: 0.3,
+                            fill: true,
+                            borderWidth: 2
+                        },
+                        {
+                            label: 'Messages',
+                            data: data.messageData,
+                            borderColor: '#17a2b8',
+                            backgroundColor: 'rgba(23, 162, 184, 0.1)',
+                            tension: 0.3,
+                            fill: true,
+                            borderWidth: 2
+                        },
+                        {
+                            label: 'Applications',
+                            data: data.applicationData,
+                            borderColor: '#ffc107',
+                            backgroundColor: 'rgba(255, 193, 7, 0.1)',
+                            tension: 0.3,
+                            fill: true,
+                            borderWidth: 2
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    // Initialize chart on page load
+    initEngagementChart(30);
+
+    // Time range buttons - NOW FUNCTIONAL
+    $('#timeRange7d').on('click', function() {
+        $('#timeRange7d, #timeRange30d, #timeRange90d').removeClass('active');
         $(this).addClass('active');
-        // Would reload chart data here
+        initEngagementChart(7);
+    });
+
+    $('#timeRange30d').on('click', function() {
+        $('#timeRange7d, #timeRange30d, #timeRange90d').removeClass('active');
+        $(this).addClass('active');
+        initEngagementChart(30);
+    });
+
+    $('#timeRange90d').on('click', function() {
+        $('#timeRange7d, #timeRange30d, #timeRange90d').removeClass('active');
+        $(this).addClass('active');
+        initEngagementChart(90);
     });
 
     // PDF Export Handler
@@ -397,7 +470,7 @@
         // Create form and submit for PDF download
         var form = $('<form/>', {
             'method': 'POST',
-            'action': '/admin/reports/export-pdf',
+            'action': '{{ route("admin.reports.export.pdf") }}',
         });
         
         form.append($('<input/>', {
@@ -406,10 +479,35 @@
             'value': $('meta[name="csrf-token"]').attr('content')
         }));
         
+        $('body').append(form);
+        form.submit();
+        form.remove();
+        
+        // Restore button state
+        setTimeout(function() {
+            btn.prop('disabled', false).html(originalHtml);
+        }, 1000);
+    });
+
+    // Excel Export Handler
+    $('#exportExcelBtn').on('click', function(e) {
+        e.preventDefault();
+        
+        // Show loading state
+        var btn = $(this);
+        var originalHtml = btn.html();
+        btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i>Generating...');
+        
+        // Create form and submit for Excel download
+        var form = $('<form/>', {
+            'method': 'POST',
+            'action': '{{ route("admin.reports.export.excel") }}',
+        });
+        
         form.append($('<input/>', {
             'type': 'hidden',
-            'name': 'report',
-            'value': 'activity'
+            'name': '_token',
+            'value': $('meta[name="csrf-token"]').attr('content')
         }));
         
         $('body').append(form);

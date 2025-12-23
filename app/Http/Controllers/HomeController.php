@@ -344,6 +344,11 @@ class HomeController extends Controller
             return redirect()->route('career.index')->with('error', 'Job not found');
         }
 
+        // Check if job deadline has passed
+        if ($job->job_deadline && strtotime($job->job_deadline) < time()) {
+            return redirect()->route('career.index')->with('error', 'This job posting has expired and is no longer accepting applications.');
+        }
+
         return view('job-board', [
             'job' => $job,
         ]);
@@ -389,6 +394,17 @@ class HomeController extends Controller
                 return redirect()->route('career.index')->with('error', 'Job not found');
             }
             $jobTitle = $job->job_title ?? $jobTitle;
+            
+            // Check if job deadline has passed
+            if ($job->job_deadline && strtotime($job->job_deadline) < time()) {
+                return redirect()->route('career.index')->with('error', 'This job posting has expired and is no longer accepting applications.');
+            }
+        } else {
+            // If title provided but need to validate deadline
+            $job = DB::table('career')->where('job_id', $jobId)->first();
+            if ($job && $job->job_deadline && strtotime($job->job_deadline) < time()) {
+                return redirect()->route('career.index')->with('error', 'This job posting has expired and is no longer accepting applications.');
+            }
         }
 
         // Do not hard-require application=true; just default to show form when job id exists

@@ -136,6 +136,8 @@ Route::prefix('admin')->middleware(['admin'])->group(function () {
     // Reports
     Route::get('/reports', [ReportsController::class, 'index'])->name('admin.reports');
     Route::post('/reports/export', [ReportsController::class, 'export'])->name('admin.reports.export');
+    Route::post('/reports/export-pdf', [ReportsController::class, 'exportActivityPdf'])->name('admin.reports.export.pdf');
+    Route::post('/reports/export-excel', [ReportsController::class, 'exportActivityExcel'])->name('admin.reports.export.excel');
     
     // File Upload Handlers
     Route::post('/upload/image', [TablesController::class, 'uploadImage'])->name('admin.upload.image');
