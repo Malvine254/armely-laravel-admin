@@ -164,6 +164,17 @@ $(function() {
 			},
 			success: function(resp) {
 				messageBox.addClass('alert alert-success').text(resp.message || 'Application submitted successfully!').show();
+				
+				// Google Ads Conversion Tracking
+				if (typeof gtag === 'function') {
+					gtag('event', 'conversion', {
+						'send_to': '{{ env("GOOGLE_ADS_ID") }}/job_application_submit',
+						'event_callback': function() {
+							console.log('Job application conversion tracked');
+						}
+					});
+				}
+				
 				form[0].reset();
 				if (typeof grecaptcha !== 'undefined') {
 					grecaptcha.reset();

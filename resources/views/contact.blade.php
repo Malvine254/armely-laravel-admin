@@ -198,6 +198,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 messageDiv.classList.add('alert-success');
                 messageDiv.textContent = '✅ ' + data.message;
                 
+                // Google Ads Conversion Tracking
+                if (typeof gtag === 'function') {
+                    gtag('event', 'conversion', {
+                        'send_to': '{{ env("GOOGLE_ADS_ID") }}/contact_form_submit',
+                        'event_callback': function() {
+                            console.log('Contact form conversion tracked');
+                        }
+                    });
+                }
+                
                 // Reset form and reCAPTCHA
                 form.reset();
                 grecaptcha.reset();
