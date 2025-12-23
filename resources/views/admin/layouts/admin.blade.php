@@ -17,6 +17,194 @@
     <script src="{{ asset('ckeditor/ckeditor.js') }}"></script>
     
     @stack('styles')
+
+    <style>
+    /* Modern, consistent pagination styles across admin */
+    /* DataTables pagination */
+    .dataTables_wrapper .dataTables_paginate {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 6px;
+        padding: 0.75rem 0;
+    }
+    .dataTables_wrapper .dataTables_paginate .paginate_button {
+        border: none !important;
+        border-radius: 999px !important;
+        background: #f2f4f7 !important;
+        color: #344054 !important;
+        padding: 0.4rem 0.75rem !important;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+    .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+        background: #e4e7ec !important;
+        color: #1f2937 !important;
+    }
+    .dataTables_wrapper .dataTables_paginate .paginate_button.current,
+    .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+        background: linear-gradient(135deg, #6366f1, #8b5cf6) !important;
+        color: #fff !important;
+        box-shadow: 0 8px 16px rgba(99, 102, 241, 0.25);
+    }
+    .dataTables_wrapper .dataTables_paginate .paginate_button.disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+        background: #f9fafb !important;
+        color: #98a2b3 !important;
+    }
+
+    /* DataTables top controls toolbar */
+    .dataTables_wrapper .row:first-child {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 0.75rem;
+        padding: 0.5rem 0.75rem;
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+    }
+    .dataTables_wrapper .dataTables_length,
+    .dataTables_wrapper .dataTables_filter {
+        float: none;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 0;
+    }
+    .dataTables_wrapper .dataTables_length { flex: 0 0 auto; }
+    .dataTables_wrapper .dataTables_filter { flex: 1 1 auto; justify-content: flex-end; }
+    .dataTables_wrapper .dataTables_length label,
+    .dataTables_wrapper .dataTables_filter label {
+        margin-bottom: 0;
+        color: #6b7280;
+        font-weight: 500;
+        font-size: 0.925rem;
+    }
+    .dataTables_wrapper .dataTables_length select,
+    .dataTables_wrapper .dataTables_filter input {
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 0.45rem 0.65rem;
+        background: #fff;
+        color: #111827;
+        transition: box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+    }
+    .dataTables_wrapper .dataTables_length select {
+        min-width: 84px;
+    }
+    .dataTables_wrapper .dataTables_filter input {
+        min-width: 280px;
+        max-width: 420px;
+        width: 100%;
+        padding-left: 2rem;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23344054' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'%3E%3C/circle%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'%3E%3C/line%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: 0.6rem center;
+        background-size: 16px 16px;
+    }
+    .dataTables_wrapper .dataTables_filter input:focus,
+    .dataTables_wrapper .dataTables_length select:focus {
+        outline: none;
+        box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
+        border-color: #6366f1;
+        background: #fff;
+    }
+    /* Stack nicely on small screens */
+    @media (max-width: 576px) {
+        .dataTables_wrapper .row:first-child {
+            flex-wrap: wrap;
+        }
+        .dataTables_wrapper .dataTables_length,
+        .dataTables_wrapper .dataTables_filter {
+            justify-content: center;
+            text-align: center;
+            width: 100%;
+            gap: 8px;
+        }
+        .dataTables_wrapper .dataTables_filter input {
+            max-width: 100%;
+        }
+    }
+    .dataTables_wrapper .dataTables_info {
+        color: #6b7280;
+        padding: 0.5rem 0;
+        text-align: center;
+        float: none !important;
+        width: 100%;
+    }
+
+    /* Make the bottom info + pagination row stack nicely and center */
+    .dataTables_wrapper .row:last-child {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+    .dataTables_wrapper .row:last-child > div {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+    .dataTables_wrapper .dataTables_paginate {
+        justify-content: center;
+    }
+
+    /* On wider screens, align info left and pagination right */
+    @media (min-width: 992px) {
+        .dataTables_wrapper .row:last-child {
+            justify-content: space-between;
+        }
+        .dataTables_wrapper .row:last-child > div {
+            flex: 0 0 auto;
+            max-width: none;
+        }
+        .dataTables_wrapper .dataTables_info {
+            text-align: left;
+            width: auto;
+        }
+        .dataTables_wrapper .dataTables_paginate {
+            justify-content: flex-end;
+        }
+    }
+
+    /* Bootstrap/Laravel paginator */
+    .pagination {
+        justify-content: center;
+        gap: 6px;
+        padding: 0.75rem 0;
+    }
+    .page-item .page-link {
+        border: none;
+        border-radius: 999px;
+        background: #f2f4f7;
+        color: #344054;
+        padding: 0.4rem 0.75rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+    .page-item .page-link:hover {
+        background: #e4e7ec;
+        color: #1f2937;
+    }
+    .page-item.active .page-link {
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        color: #fff;
+        box-shadow: 0 8px 16px rgba(99, 102, 241, 0.25);
+    }
+    .page-item.disabled .page-link {
+        opacity: 0.45;
+        cursor: not-allowed;
+        background: #f9fafb;
+        color: #98a2b3;
+    }
+    .page-link:focus {
+        outline: none;
+        box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
+    }
+    </style>
 </head>
 <body class="admin-body">
 

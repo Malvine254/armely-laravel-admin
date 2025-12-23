@@ -3,6 +3,10 @@
 @section('page-title', 'Admin Users')
 @section('title', 'Admin Users - Armely Admin')
 
+@push('styles')
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+@endpush
+
 @section('content')
 <div class="page-title">
     <h1>Admin Users</h1>
@@ -62,7 +66,7 @@
     <div class="card-body p-0">
         @if($admins->count() > 0)
             <div class="table-responsive">
-                <table class="table">
+                <table class="table" id="adminsDataTable">
                     <thead>
                         <tr>
                             <th>Name</th>
@@ -248,4 +252,27 @@ function editAdmin(admin) {
 }
 </script>
 
-@endsection
+    @endsection
+
+    @push('scripts')
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+    <script>
+    $(function() {
+        if ($.fn.DataTable && !$.fn.DataTable.isDataTable('#adminsDataTable')) {
+            $('#adminsDataTable').DataTable({
+                dom: 'lfrtip',
+                pageLength: 10,
+                lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, 'All']],
+                columnDefs: [{ orderable: false, targets: -1 }],
+                responsive: true,
+                autoWidth: false,
+                language: {
+                    search: '',
+                    searchPlaceholder: 'Search admins...'
+                }
+            });
+        }
+    });
+    </script>
+    @endpush

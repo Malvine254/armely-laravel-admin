@@ -4,6 +4,7 @@
 @section('title', 'Content Management - Armely Admin')
 
 @push('styles')
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
 <style>
     .content-preview {
         max-height: 100px;
@@ -19,6 +20,34 @@
     .action-btns{display:flex;gap:.5rem;align-items:center}
     .action-btns .btn{min-width:36px;padding:6px;display:inline-flex;align-items:center;justify-content:center}
     @media(max-width:576px){.action-btns{flex-direction:row;flex-wrap:wrap}.action-btns .btn{min-width:40px}}
+    
+    /* DataTables custom styling */
+    .dataTables_wrapper {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .dataTables_wrapper .dataTables_paginate .paginate_button {
+        padding: 0.25rem 0.5rem;
+        margin: 0 2px;
+    }
+    .dataTables_wrapper .dataTables_length select {
+        padding: 0.25rem 2rem 0.25rem 0.5rem;
+    }
+    .dataTables_wrapper .dataTables_filter input {
+        margin-left: 0.5rem;
+    }
+    
+    /* Uniform table styling */
+    .table-responsive {
+        border: 1px solid #dee2e6;
+        border-radius: 0.25rem;
+    }
+    
+    .dataTables_wrapper .dataTables_paginate {
+        padding-top: 1rem;
+        border-top: 1px solid #dee2e6;
+    }
 </style>
 @endpush
 
@@ -84,7 +113,7 @@
                 </button>
                 
                     <div class="table-responsive">
-                        <table class="table table-hover">
+                        <table class="table table-hover" id="blogsDataTable">
                             <thead>
                                 <tr>
                                     <th>Title</th>
@@ -110,10 +139,10 @@
                 
                 @if($videos->count() > 0)
                     <div class="table-responsive">
-                        <table class="table table-hover">
+                        <table class="table table-hover" id="videosDataTable">
                             <thead>
                                 <tr>
-                                    <th width="60%">Video Preview</th>
+                                    <th width="60%">Video URL</th>
                                     <th width="200">Actions</th>
                                 </tr>
                             </thead>
@@ -123,11 +152,14 @@
                                     <td>
                                         @php
                                             $videoContent = $video->url ?? $video->video_url ?? $video->iframe ?? '';
-                                            // If it's an iframe, show it; otherwise show URL as link
+                                            // Show preview link instead of actual video
                                             if (stripos($videoContent, '<iframe') !== false) {
-                                                echo '<div style="max-width: 400px;">' . $videoContent . '</div>';
+                                                // Extract URL from iframe if possible
+                                                preg_match('/src=["\']([^"\']+)["\']/', $videoContent, $matches);
+                                                $url = $matches[1] ?? $videoContent;
+                                                echo '<a href="' . e($url) . '" target="_blank" class="btn btn-sm btn-outline-primary"><i class="fas fa-play-circle me-2"></i>Preview Video</a>';
                                             } else {
-                                                echo '<a href="' . e($videoContent) . '" target="_blank">' . \Illuminate\Support\Str::limit($videoContent, 60) . '</a>';
+                                                echo '<a href="' . e($videoContent) . '" target="_blank" class="btn btn-sm btn-outline-primary"><i class="fas fa-play-circle me-2"></i>Preview Video</a>';
                                             }
                                         @endphp
                                     </td>
@@ -159,7 +191,7 @@
                 
                 @if($careers->count() > 0)
                     <div class="table-responsive">
-                        <table class="table table-hover">
+                        <table class="table table-hover" id="careersDataTable">
                             <thead>
                                 <tr>
                                     <th>Job Title</th>
@@ -205,7 +237,7 @@
                 
                 @if($socialImpact->count() > 0)
                     <div class="table-responsive">
-                        <table class="table table-hover">
+                        <table class="table table-hover" id="socialDataTable">
                             <thead>
                                 <tr>
                                     <th>Title</th>
@@ -251,7 +283,7 @@
                 
                 @if($customerStories->count() > 0)
                     <div class="table-responsive">
-                        <table class="table table-hover">
+                        <table class="table table-hover" id="storiesDataTable">
                             <thead>
                                 <tr>
                                     <th>Name</th>
@@ -295,7 +327,7 @@
                 
                 @if($events->count() > 0)
                     <div class="table-responsive">
-                        <table class="table table-hover">
+                        <table class="table table-hover" id="eventsDataTable">
                             <thead>
                                 <tr>
                                     <th>Title</th>
@@ -349,7 +381,7 @@
                 
                 @if($team->count() > 0)
                     <div class="table-responsive">
-                        <table class="table table-hover">
+                        <table class="table table-hover" id="teamDataTable">
                             <thead>
                                 <tr>
                                     <th>Name</th>
@@ -424,7 +456,7 @@
                             </div>
                         </div>
                         <div class="table-responsive">
-                            <table class="table table-hover">
+                            <table class="table table-hover" id="applicationsDataTable">
                                 <thead>
                                     <tr>
                                         <th>#</th>
@@ -454,7 +486,7 @@
                             </div>
                         </div>
                         <div class="table-responsive">
-                            <table class="table table-hover">
+                            <table class="table table-hover" id="shortlistedDataTable">
                                 <thead>
                                     <tr>
                                         <th>#</th>
@@ -483,7 +515,7 @@
                             </div>
                         </div>
                         <div class="table-responsive">
-                            <table class="table table-hover">
+                            <table class="table table-hover" id="hiredDataTable">
                                 <thead>
                                     <tr>
                                         <th>#</th>
@@ -954,6 +986,8 @@
 @endsection
 
 @push('scripts')
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="{{ asset('ckeditor/ckeditor.js') }}"></script>
 <script>
@@ -2253,6 +2287,76 @@ $(document).ready(function() {
     // Initial load for the active tab (Blogs)
     reloadBlogsTable();
 
+    // Initialize DataTables after data loads
+    function initializeDataTables() {
+        const tables = [
+            { id: '#blogsDataTable', pageLength: 10 },
+            { id: '#videosDataTable', pageLength: 10 },
+            { id: '#careersDataTable', pageLength: 10 },
+            { id: '#socialDataTable', pageLength: 10 },
+            { id: '#storiesDataTable', pageLength: 10 },
+            { id: '#eventsDataTable', pageLength: 10 },
+            { id: '#teamDataTable', pageLength: 10 }
+            // Skip job application tables - they load via AJAX
+        ];
+
+        tables.forEach(function(table) {
+            try {
+                // Destroy existing instance
+                if ($.fn.DataTable.isDataTable(table.id)) {
+                    $(table.id).DataTable().destroy();
+                }
+                
+                // Check if table exists and has data
+                if ($(table.id).length && $(table.id).find('tbody tr:not(:empty)').length > 0) {
+                    $(table.id).DataTable({
+                        pageLength: table.pageLength,
+                        lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+                        order: [[0, 'asc']],
+                        language: {
+                            search: "_INPUT_",
+                            searchPlaceholder: "Search...",
+                            lengthMenu: "Show _MENU_ entries",
+                            info: "Showing _START_ to _END_ of _TOTAL_ entries",
+                            infoEmpty: "No entries available",
+                            infoFiltered: "(filtered from _MAX_ total entries)",
+                            zeroRecords: "No matching records found",
+                            emptyTable: "No data available in table"
+                        },
+                        columnDefs: [
+                            { orderable: false, targets: -1 } // Disable sorting on last column
+                        ],
+                        responsive: true,
+                        autoWidth: false,
+                        dom: 'lBfrtip',
+                        buttons: []
+                    });
+                }
+            } catch(e) {
+                console.log('Error initializing DataTable for ' + table.id, e);
+            }
+        });
+    }
+
+    // Wrap the original reloadBlogsTable to call DataTables init
+    const originalReloadBlogsTable = window.reloadBlogsTable;
+    window.reloadBlogsTable = function() {
+        if (typeof originalReloadBlogsTable === 'function') {
+            originalReloadBlogsTable();
+            setTimeout(function() {
+                initializeDataTables();
+            }, 300);
+        }
+    };
+
+    // Initialize DataTables when switching to static content tabs (not job applications)
+    $('#blogs-tab, #videos-tab, #careers-tab, #social-tab, #stories-tab, #events-tab, #team-tab').on('click', function() {
+        setTimeout(function() {
+            initializeDataTables();
+        }, 100);
+    });
 });
 </script>
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
 @endpush
