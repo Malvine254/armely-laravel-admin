@@ -125,6 +125,11 @@
 		color: #2f5597 !important;
 	}
 }
+
+/* Add padding to menu items */
+.navigation .nav.menu > li > a {
+	padding: 20px 0 !important;
+}
 </style>
 </head>
 <body>
@@ -170,8 +175,8 @@
                     <div class="col-lg-3 col-md-23 col-12">
                         <div class="logo d-flex align-items-center" style="padding: 0; margin: 0;">
                             <a href="{{ route('home') }}" class="d-inline-flex align-items-center" style="margin: 0; padding: 0;">
-                                <!-- <span class="logo-font">armely</span> -->
-                                <img src="{{ asset('images/logo/main-logo.png') }}" alt="Armely logo" class="img-fluid" style="max-height: 52px; width: auto; display: block;" />
+                                <span class="logo-font" style="font-size: 4.0rem; padding-top: 10px;">armely</span>
+                                <!-- <img src="{{ asset('images/logo/main-logo.png') }}" alt="Armely logo" class="img-fluid" style="max-height: 52px; width: auto; display: block;" /> -->
                             </a>
                         </div>
                         <div class="mobile-nav"></div>
@@ -185,7 +190,7 @@
                                             <li><a href="{{ route('company.index') }}">Company Overview</a></li>
                                             <li><a href="{{ route('career.index') }}">Career Opportunities</a></li>
                                             <li><a href="{{ route('customer-stories.index') }}">Customer Stories</a></li>
-                                            <li><a href="{{ route('team.index') }}">Our Team</a></li>
+                                            {{-- <li><a href="{{ route('team.index') }}">Our Team</a></li> --}}
                                             <li><a href="{{ route('social-impact.index') }}">Social Impact</a></li>
                                         </ul>
                                     </li>

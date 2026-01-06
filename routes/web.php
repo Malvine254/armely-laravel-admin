@@ -54,7 +54,7 @@ Route::get('/partners/{slug}', function ($slug) {
 Route::get('/events', [HomeController::class, 'events'])->name('events.index');
 Route::get('/company', [HomeController::class, 'company'])->name('company.index');
 Route::get('/career', [HomeController::class, 'career'])->name('career.index');
-Route::get('/team', [HomeController::class, 'team'])->name('team.index');
+// Route::get('/team', [HomeController::class, 'team'])->name('team.index'); // Hidden per request
 Route::get('/customer-stories', [HomeController::class, 'customerStories'])->name('customer-stories.index');
 Route::get('/social-impact', [HomeController::class, 'socialImpact'])->name('social-impact.index');
 Route::get('/privacy-policy', [HomeController::class, 'privacyPolicy'])->name('privacy-policy');
