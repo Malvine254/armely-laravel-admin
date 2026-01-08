@@ -68,45 +68,42 @@ class CareerController extends Controller
         abort(404);
     }
 
-    // Delete a CV file for a given application
+    // Delete a CV file and entire application
     public function deleteCv($id)
     {
         $application = JobApplication::findOrFail($id);
 
         $cvValue = $application->cv_path ?? $application->cv ?? $application->resume ?? null;
-        if (!$cvValue) {
-            return response()->json(['message' => 'No CV to delete'], 404);
+        
+        // Delete CV file if it exists
+        if ($cvValue) {
+            // Normalize stored value
+            $path = ltrim(str_replace(['storage/', 'public/'], '', $cvValue), '/');
+            if (!str_starts_with($path, 'cv_uploads/')) {
+                $path = 'cv_uploads/' . $path;
+            }
+
+            // Try to delete from storage disk
+            if (Storage::disk('public')->exists($path)) {
+                Storage::disk('public')->delete($path);
+            }
+
+            // Also try common locations
+            $publicStoragePath = public_path('storage/' . $path);
+            if (file_exists($publicStoragePath)) {
+                @unlink($publicStoragePath);
+            }
+
+            $publicCvPath = public_path($path);
+            if (file_exists($publicCvPath)) {
+                @unlink($publicCvPath);
+            }
         }
 
-        // Normalize stored value
-        $path = ltrim(str_replace(['storage/', 'public/'], '', $cvValue), '/');
-        if (!str_starts_with($path, 'cv_uploads/')) {
-            $path = 'cv_uploads/' . $path;
-        }
+        // Delete entire application record
+        $application->delete();
 
-        // Try to delete from storage disk
-        if (Storage::disk('public')->exists($path)) {
-            Storage::disk('public')->delete($path);
-        }
-
-        // Also try common locations
-        $publicStoragePath = public_path('storage/' . $path);
-        if (file_exists($publicStoragePath)) {
-            @unlink($publicStoragePath);
-        }
-
-        $publicCvPath = public_path($path);
-        if (file_exists($publicCvPath)) {
-            @unlink($publicCvPath);
-        }
-
-        // Clear CV reference from database
-        $cvColumn = Schema::hasColumn('job_applications', 'cv') ? 'cv' : (Schema::hasColumn('job_applications', 'cv_path') ? 'cv_path' : 'resume');
-        if (Schema::hasColumn('job_applications', $cvColumn)) {
-            $application->update([$cvColumn => null]);
-        }
-
-        return response()->json(['message' => 'CV deleted successfully']);
+        return response()->json(['message' => 'Application and CV deleted successfully']);
     }
 
     // Get unique locations for filter

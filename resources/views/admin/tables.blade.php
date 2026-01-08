@@ -2330,23 +2330,25 @@ $(document).ready(function() {
 
     // Delete CV Handler
     $(document).on('click', '.delete-cv-btn', function() {
-        if (!confirm('Delete this CV? This action cannot be undone.')) {
+        if (!confirm('Delete this CV and application? This action cannot be undone.')) {
             return;
         }
 
         let appId = $(this).data('id');
+        const $row = $(this).closest('tr');
+
         $.ajax({
             url: `${cvDeleteBase}/${appId}`,
             type: 'DELETE',
             headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')},
             success: function(response) {
-                alert('CV deleted successfully.');
-                loadApplications();
-                loadShortlisted();
-                loadHired();
+                $row.fadeOut(300, function() {
+                    $(this).remove();
+                });
+                alert('Application and CV deleted.');
             },
             error: function(xhr) {
-                alert('Error: ' + (xhr.responseJSON?.message || 'Failed to delete CV'));
+                alert('Error: ' + (xhr.responseJSON?.message || 'Failed to delete'));
             }
         });
     });
