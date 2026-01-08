@@ -1114,7 +1114,6 @@ class HomeController extends Controller
 
             $userBody = "<p>Dear {$payload['name']},</p>" .
                 "<p>Thank you for applying to Armely. We have received your application for <strong>{$payload['position']}</strong>.</p>" .
-                ($cvUrlForEmail ? "<p><b>Your uploaded CV:</b> <a href='{$cvUrlForEmail}' target='_blank'>Download</a></p>" : '') .
                 "<p>Our team will review your CV and reach out within one month if you are shortlisted.</p>" .
                 "<p>Best regards,<br>HR Team</p>";
 
