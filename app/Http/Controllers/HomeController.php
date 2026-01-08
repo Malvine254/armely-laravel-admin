@@ -412,6 +412,7 @@ class HomeController extends Controller
             'jobId' => $jobId,
             'jobTitle' => $jobTitle,
             'applicationFlag' => $application,
+            'recaptchaSiteKey' => env('CAPTURE_SITE_KEY', ''),
         ]);
     }
 
@@ -459,6 +460,15 @@ class HomeController extends Controller
         $cvUrl = null;
         if ($request->hasFile('cv')) {
             $cvFile = $request->file('cv');
+            
+            // Validate file exists and is readable
+            if (!$cvFile->isValid()) {
+                if ($request->expectsJson()) {
+                    return response()->json(['success' => false, 'message' => 'CV file is invalid. Please try uploading again.'], 422);
+                }
+                return back()->withErrors(['cv' => 'CV file is invalid. Please try uploading again.'])->withInput();
+            }
+            
             // Additional validation for PDF
             if ($cvFile->getMimeType() !== 'application/pdf') {
                 if ($request->expectsJson()) {
@@ -466,8 +476,57 @@ class HomeController extends Controller
                 }
                 return back()->withErrors(['cv' => 'The cv field must be a file of type: pdf.'])->withInput();
             }
-            $cvPath = $cvFile->store('cv_uploads', 'public');
-            $cvUrl = asset('storage/' . $cvPath);
+            
+            // Validate file size (max 10MB)
+            if ($cvFile->getSize() > 10 * 1024 * 1024) {
+                if ($request->expectsJson()) {
+                    return response()->json(['success' => false, 'message' => 'CV file must not exceed 10MB.'], 422);
+                }
+                return back()->withErrors(['cv' => 'CV file must not exceed 10MB.'])->withInput();
+            }
+            
+            // Store the file with error handling
+            try {
+                $cvPath = $cvFile->store('cv_uploads', 'public');
+                
+                // Verify file was actually stored
+                if (!$cvPath) {
+                    throw new \Exception('File storage returned empty path');
+                }
+                
+                // Verify file exists at the expected location
+                $fullPath = storage_path('app/public/' . $cvPath);
+                if (!file_exists($fullPath)) {
+                    \Log::error('CV file not found after upload', [
+                        'expected_path' => $fullPath,
+                        'cv_path' => $cvPath,
+                        'file_name' => $cvFile->getClientOriginalName(),
+                    ]);
+                    throw new \Exception('File was not stored correctly in the file system');
+                }
+                
+                // Generate accessible URL
+                $cvUrl = asset('storage/' . $cvPath);
+                
+                \Log::info('CV file uploaded successfully', [
+                    'cv_path' => $cvPath,
+                    'full_path' => $fullPath,
+                    'file_size' => $cvFile->getSize(),
+                    'original_name' => $cvFile->getClientOriginalName(),
+                    'url' => $cvUrl,
+                ]);
+            } catch (\Exception $e) {
+                \Log::error('CV file upload failed', [
+                    'error' => $e->getMessage(),
+                    'file_name' => $cvFile->getClientOriginalName(),
+                    'file_size' => $cvFile->getSize(),
+                ]);
+                
+                if ($request->expectsJson()) {
+                    return response()->json(['success' => false, 'message' => 'Failed to upload CV file. ' . $e->getMessage()], 500);
+                }
+                return back()->withErrors(['cv' => 'Failed to upload CV file. Please try again.'])->withInput();
+            }
         }
 
         $applicationDate = Carbon::now();
@@ -726,6 +785,12 @@ class HomeController extends Controller
 
     private function verifyRecaptcha(string $token): bool
     {
+        // Log the token length for debugging
+        Log::debug('reCAPTCHA verification attempt', [
+            'token_length' => strlen($token),
+            'token_empty' => empty($token),
+        ]);
+
         // Opt-in bypass for debugging/local scenarios
         if (env('RECAPTCHA_BYPASS', false)) {
             Log::warning('reCAPTCHA bypass enabled via RECAPTCHA_BYPASS. Skipping verification.');
@@ -740,22 +805,51 @@ class HomeController extends Controller
             return true; // Allow form submission for testing
         }
 
-        $response = Http::asForm()->post('https://www.google.com/recaptcha/api/siteverify', [
-            'secret' => $secret,
-            'response' => $token,
-            'remoteip' => request()->ip(),
-        ]);
-
-        $success = $response->ok() && ($response->json('success') === true);
-        
-        if (!$success) {
-            Log::warning('reCAPTCHA verification failed', [
-                'response' => $response->json(),
-                'token_length' => strlen($token),
+        // Validate token is not empty
+        if (empty($token)) {
+            Log::error('reCAPTCHA token is empty', [
+                'request_ip' => request()->ip(),
             ]);
+            return false;
         }
 
-        return $success;
+        try {
+            $response = Http::timeout(10)->asForm()->post('https://www.google.com/recaptcha/api/siteverify', [
+                'secret' => $secret,
+                'response' => $token,
+                'remoteip' => request()->ip(),
+            ]);
+
+            $responseData = $response->json();
+            $success = $response->ok() && ($responseData['success'] === true);
+            
+            Log::info('reCAPTCHA verification response', [
+                'success' => $success,
+                'score' => $responseData['score'] ?? null,
+                'action' => $responseData['action'] ?? null,
+                'challenge_ts' => $responseData['challenge_ts'] ?? null,
+                'hostname' => $responseData['hostname'] ?? null,
+                'error-codes' => $responseData['error-codes'] ?? [],
+                'request_ip' => request()->ip(),
+            ]);
+            
+            if (!$success) {
+                Log::warning('reCAPTCHA verification failed', [
+                    'full_response' => $responseData,
+                    'token_length' => strlen($token),
+                    'status_code' => $response->status(),
+                ]);
+            }
+
+            return $success;
+        } catch (\Exception $e) {
+            Log::error('reCAPTCHA verification exception', [
+                'error' => $e->getMessage(),
+                'exception' => get_class($e),
+                'token_length' => strlen($token),
+            ]);
+            return false;
+        }
     }
 
     private function notifyViaGraph(string $name, string $email, string $message, string $organization, string $phone, string $subject = ''): void
@@ -972,6 +1066,15 @@ class HomeController extends Controller
             $jobType = $payload['type'] ?? ($payload['role'] ?? 'Not specified');
             $jobId = $payload['job_id'] ?? 'Not specified';
 
+            // Ensure the CV URL is accessible (full URL with correct path)
+            $cvUrlForEmail = $cvUrl;
+            if ($cvUrl && !str_starts_with($cvUrl, 'http')) {
+                // If it's a relative URL, ensure it's properly formatted
+                $cvUrlForEmail = rtrim(env('APP_URL', 'https://armely.com'), '/') . '/' . ltrim($cvUrl, '/');
+            }
+            
+            $cvSectionForEmail = $cvUrlForEmail ? "<p><b>Your uploaded CV:</b> <a href='{$cvUrlForEmail}' target='_blank'>Download</a></p>" : '';
+
             $adminBody = "<p><strong>New Job Application Submitted</strong></p>" .
                 "<ul>" .
                 "<li><b>Name:</b> {$payload['name']}</li>" .
@@ -984,7 +1087,7 @@ class HomeController extends Controller
                 "<li><b>Job Type:</b> {$jobType}</li>" .
                 "<li><b>Position:</b> {$payload['position']}</li>" .
                 "<li><b>Job ID:</b> {$jobId}</li>" .
-                $cvSection .
+                ($cvUrl ? "<li><b>CV:</b> <a href='{$cvUrlForEmail}' target='_blank'>Download</a></li>" : '') .
                 "</ul>";
 
             $adminPayload = [
@@ -1009,9 +1112,11 @@ class HomeController extends Controller
                 ->withHeaders(['Content-Type' => 'application/json'])
                 ->post("https://graph.microsoft.com/v1.0/users/{$fromEmail}/sendMail", $adminPayload);
 
-            $userBody = "<p>Dear {$payload['name']},</p><p>Thank you for applying to Armely. We have received your application for <strong>{$payload['position']}</strong>.</p>" .
-                ($cvUrl ? "<p>Your uploaded CV: <a href='{$cvUrl}' target='_blank'>Download</a></p>" : '') .
-                "<p>Our team will review your CV and reach out if you are shortlisted.</p><p>Best regards,<br>HR Team</p>";
+            $userBody = "<p>Dear {$payload['name']},</p>" .
+                "<p>Thank you for applying to Armely. We have received your application for <strong>{$payload['position']}</strong>.</p>" .
+                ($cvUrlForEmail ? "<p><b>Your uploaded CV:</b> <a href='{$cvUrlForEmail}' target='_blank'>Download</a></p>" : '') .
+                "<p>Our team will review your CV and reach out within one month if you are shortlisted.</p>" .
+                "<p>Best regards,<br>HR Team</p>";
 
             $userPayload = [
                 'message' => [

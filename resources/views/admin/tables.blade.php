@@ -465,11 +465,12 @@
                                         <th>Position</th>
                                         <th>Location</th>
                                         <th>Date</th>
+                                        <th>CV</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody id="applicationsTable">
-                                    <tr><td colspan="7" class="text-center"><span class="spinner-border spinner-border-sm"></span></td></tr>
+                                    <tr><td colspan="8" class="text-center"><span class="spinner-border spinner-border-sm"></span></td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -494,11 +495,12 @@
                                         <th>Email</th>
                                         <th>Position</th>
                                         <th>Date Applied</th>
+                                        <th>CV</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody id="shortlistedTable">
-                                    <tr><td colspan="6" class="text-center"><span class="spinner-border spinner-border-sm"></span></td></tr>
+                                    <tr><td colspan="7" class="text-center"><span class="spinner-border spinner-border-sm"></span></td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -523,11 +525,12 @@
                                         <th>Email</th>
                                         <th>Position</th>
                                         <th>Date Applied</th>
+                                        <th>CV</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody id="hiredTable">
-                                    <tr><td colspan="6" class="text-center"><span class="spinner-border spinner-border-sm"></span></td></tr>
+                                    <tr><td colspan="7" class="text-center"><span class="spinner-border spinner-border-sm"></span></td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -2071,6 +2074,28 @@ $(document).ready(function() {
     });
 
     // Job Applications Handlers
+    const cvBaseUrl = "{{ asset('storage/cv_uploads') }}";
+    function buildCvPreview(app) {
+        const cvValue = app.cv_path || app.cv || app.resume || '';
+        if (!cvValue) {
+            return '<span class="text-muted">N/A</span>';
+        }
+
+        if (/^https?:\/\//i.test(cvValue)) {
+            return `<a href="${cvValue}" target="_blank" rel="noopener" class="btn btn-link btn-sm"><i class="fas fa-file-pdf"></i> View CV</a>`;
+        }
+
+        let cleaned = cvValue
+            .replace(/^storage\//i, '')
+            .replace(/^public\//i, '');
+
+        if (cleaned.startsWith('cv_uploads/')) {
+            cleaned = cleaned.substring('cv_uploads/'.length);
+        }
+
+        return `<a href="${cvBaseUrl}/${cleaned}" target="_blank" rel="noopener" class="btn btn-link btn-sm"><i class="fas fa-file-pdf"></i> View CV</a>`;
+    }
+
     function loadApplications() {
         $.ajax({
             url: '/admin/career/list-applications',
@@ -2078,13 +2103,17 @@ $(document).ready(function() {
             success: function(response) {
                 let html = '';
                 response.forEach(function(app, index) {
+                    const cvPreview = buildCvPreview(app);
+                    const appliedDate = app.application_date ? new Date(app.application_date).toLocaleDateString() : 'N/A';
+
                     html += `<tr data-id="${app.id}" data-status="${app.status}">
                         <td>${index + 1}</td>
                         <td>${app.name}</td>
                         <td>${app.email}</td>
                         <td>${app.position}</td>
                         <td>${app.city || ''}</td>
-                        <td>${new Date(app.application_date).toLocaleDateString()}</td>
+                        <td>${appliedDate}</td>
+                        <td>${cvPreview}</td>
                         <td>
                             <button class="btn btn-sm btn-success shortlist-btn" data-id="${app.id}" title="Shortlist">
                                 <i class="fas fa-check"></i>
@@ -2095,7 +2124,7 @@ $(document).ready(function() {
                         </td>
                     </tr>`;
                 });
-                $('#applicationsTable').html(html || '<tr><td colspan="7" class="text-center text-muted">No pending applications</td></tr>');
+                $('#applicationsTable').html(html || '<tr><td colspan="8" class="text-center text-muted">No pending applications</td></tr>');
                 populateLocationFilter(response);
             }
         });
@@ -2108,12 +2137,16 @@ $(document).ready(function() {
             success: function(response) {
                 let html = '';
                 response.forEach(function(app, index) {
+                    const cvPreview = buildCvPreview(app);
+                    const appliedDate = app.application_date ? new Date(app.application_date).toLocaleDateString() : 'N/A';
+
                     html += `<tr data-id="${app.id}">
                         <td>${index + 1}</td>
                         <td>${app.name}</td>
                         <td>${app.email}</td>
                         <td>${app.position}</td>
-                        <td>${new Date(app.application_date).toLocaleDateString()}</td>
+                        <td>${appliedDate}</td>
+                        <td>${cvPreview}</td>
                         <td>
                             <button class="btn btn-sm btn-primary hire-btn" data-id="${app.id}" title="Hire">
                                 <i class="fas fa-user-check"></i>
@@ -2124,7 +2157,7 @@ $(document).ready(function() {
                         </td>
                     </tr>`;
                 });
-                $('#shortlistedTable').html(html || '<tr><td colspan="6" class="text-center text-muted">No shortlisted candidates</td></tr>');
+                $('#shortlistedTable').html(html || '<tr><td colspan="7" class="text-center text-muted">No shortlisted candidates</td></tr>');
             }
         });
     }
@@ -2136,12 +2169,16 @@ $(document).ready(function() {
             success: function(response) {
                 let html = '';
                 response.forEach(function(app, index) {
+                    const cvPreview = buildCvPreview(app);
+                    const appliedDate = app.application_date ? new Date(app.application_date).toLocaleDateString() : 'N/A';
+
                     html += `<tr data-id="${app.id}">
                         <td>${index + 1}</td>
                         <td>${app.name}</td>
                         <td>${app.email}</td>
                         <td>${app.position}</td>
-                        <td>${new Date(app.application_date).toLocaleDateString()}</td>
+                        <td>${appliedDate}</td>
+                        <td>${cvPreview}</td>
                         <td>
                             <button class="btn btn-sm btn-danger delete-hire-btn" data-id="${app.id}" title="Delete">
                                 <i class="fas fa-trash"></i>
@@ -2149,7 +2186,7 @@ $(document).ready(function() {
                         </td>
                     </tr>`;
                 });
-                $('#hiredTable').html(html || '<tr><td colspan="6" class="text-center text-muted">No hired employees</td></tr>');
+                $('#hiredTable').html(html || '<tr><td colspan="7" class="text-center text-muted">No hired employees</td></tr>');
             }
         });
     }

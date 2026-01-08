@@ -189,7 +189,7 @@
 						<div class="col-lg-12">
 							<div class="form-group">
 								<label class="text-start text-light">Confirm you are not a robot *</label>
-								<div class="g-recaptcha" data-sitekey="6Ld0Z0krAAAAAFCwIDiunmU9l68kT4Vm2cB7U7px"></div>
+								<div class="g-recaptcha" data-sitekey="{{ $recaptchaSiteKey ?? env('CAPTURE_SITE_KEY', '') }}"></div>
 							</div>
 						</div>
 						<div class="col-lg-12 form-group mt-3">
@@ -205,8 +205,15 @@
 </section>
 <!-- End Appointment -->
 <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
-<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+<script src="https://www.google.com/recaptcha/api.js?onload=onRecaptchaLoad&render=explicit" async defer></script>
 <script>
+// Track reCAPTCHA loading state
+let recaptchaLoaded = false;
+function onRecaptchaLoad() {
+	recaptchaLoaded = true;
+	console.log('reCAPTCHA library loaded successfully');
+}
+
 $(function() {
 	const form = $('#job-application-form');
 	if (!form.length) return;
@@ -214,6 +221,30 @@ $(function() {
 	const messageBox = $('#JobSubmitMessage');
 	const submitBtn = form.find('button[type="submit"]');
 	const cvInput = $('#cv');
+
+	// Disable submit button until reCAPTCHA is loaded
+	submitBtn.prop('disabled', true);
+	let recaptchaReady = false;
+	
+	// Check reCAPTCHA loading status periodically
+	const recaptchaCheckInterval = setInterval(function() {
+		if (typeof grecaptcha !== 'undefined') {
+			recaptchaReady = true;
+			submitBtn.prop('disabled', false);
+			clearInterval(recaptchaCheckInterval);
+			console.log('reCAPTCHA is ready, submit button enabled');
+		}
+	}, 100);
+	
+	// Timeout after 10 seconds
+	setTimeout(function() {
+		if (!recaptchaReady) {
+			clearInterval(recaptchaCheckInterval);
+			console.error('reCAPTCHA failed to load within timeout');
+			messageBox.addClass('alert alert-danger').html('<strong>Error:</strong> reCAPTCHA failed to load. Please refresh the page and try again.').show();
+			submitBtn.prop('disabled', true).text('reCAPTCHA Failed - Reload Page');
+		}
+	}, 10000);
 
 	// Validate PDF file on change
 	cvInput.on('change', function() {
@@ -270,15 +301,21 @@ $(function() {
 		if (typeof grecaptcha !== 'undefined') {
 			try {
 				recaptchaResponse = grecaptcha.getResponse();
+				console.log('reCAPTCHA token obtained:', recaptchaResponse ? 'Token length: ' + recaptchaResponse.length : 'Empty token');
 			} catch (e) {
 				console.error('reCAPTCHA error:', e);
 				messageBox.addClass('alert alert-danger').html('<strong>Error:</strong> reCAPTCHA is still loading. Please wait a moment and try again.').show();
 				return;
 			}
+		} else {
+			console.error('grecaptcha library not loaded');
+			messageBox.addClass('alert alert-danger').html('<strong>Error:</strong> reCAPTCHA library failed to load. Please refresh the page and try again.').show();
+			return;
 		}
 		
 		if (!recaptchaResponse) {
 			messageBox.addClass('alert alert-danger').html('<strong>Error:</strong> Please verify that you are not a robot.').show();
+			console.warn('reCAPTCHA verification required - user has not completed the CAPTCHA');
 			return;
 		}
 
