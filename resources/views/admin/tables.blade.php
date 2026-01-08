@@ -2076,6 +2076,7 @@ $(document).ready(function() {
     // Job Applications Handlers
     const cvDownloadBase = "{{ url('/admin/career/cv') }}";
     const cvStorageBase = "{{ asset('storage') }}";
+    const cvDeleteBase = "{{ url('/admin/career/cv') }}";
     function buildCvPreview(app) {
         const cvValue = app.cv_path || app.cv || app.resume || '';
         if (!cvValue) {
@@ -2083,7 +2084,8 @@ $(document).ready(function() {
         }
 
         if (/^https?:\/\//i.test(cvValue)) {
-            return `<a href="${cvValue}" target="_blank" rel="noopener" class="btn btn-link btn-sm"><i class="fas fa-file-pdf"></i> View CV</a>`;
+            return `<a href="${cvValue}" target="_blank" rel="noopener" class="btn btn-link btn-sm"><i class="fas fa-file-pdf"></i> View CV</a>` +
+                   ` <button class="btn btn-sm btn-outline-danger delete-cv-btn" data-id="${app.id}" title="Delete CV"><i class="fas fa-trash"></i></button>`;
         }
 
         // Normalize stored value to a direct public URL
@@ -2096,7 +2098,8 @@ $(document).ready(function() {
         // Fallback to download route if storage URL fails (user can still click to download)
         const downloadUrl = `${cvDownloadBase}/${app.id}`;
         return `<a href="${storageUrl}" target="_blank" rel="noopener" class="btn btn-link btn-sm"><i class="fas fa-file-pdf"></i> View CV</a>` +
-               ` <a href="${downloadUrl}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary" title="Download CV"><i class="fas fa-download"></i></a>`;
+               ` <a href="${downloadUrl}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary" title="Download CV"><i class="fas fa-download"></i></a>` +
+               ` <button class="btn btn-sm btn-outline-danger delete-cv-btn" data-id="${app.id}" title="Delete CV"><i class="fas fa-trash"></i></button>`;
     }
 
     function loadApplications() {
@@ -2323,6 +2326,29 @@ $(document).ready(function() {
                 }
             });
         }
+    });
+
+    // Delete CV Handler
+    $(document).on('click', '.delete-cv-btn', function() {
+        if (!confirm('Delete this CV? This action cannot be undone.')) {
+            return;
+        }
+
+        let appId = $(this).data('id');
+        $.ajax({
+            url: `${cvDeleteBase}/${appId}`,
+            type: 'DELETE',
+            headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')},
+            success: function(response) {
+                alert('CV deleted successfully.');
+                loadApplications();
+                loadShortlisted();
+                loadHired();
+            },
+            error: function(xhr) {
+                alert('Error: ' + (xhr.responseJSON?.message || 'Failed to delete CV'));
+            }
+        });
     });
     // Initial load for the active tab (Blogs)
     reloadBlogsTable();
