@@ -22,6 +22,81 @@
 </div>
 <!-- End Breadcrumbs -->
 
+<style>
+	/* Override default white text for Job Type and Job Position fields */
+	.form-group select.remove-input-background,
+	.form-group input[readonly].remove-input-background {
+		color: #000 !important;
+	}
+
+	.form-group select.remove-input-background {
+		background-color: #fff !important;
+		border: 1px solid #ddd !important;
+		padding: 10px 12px !important;
+		border-radius: 6px !important;
+		width: 100% !important;
+		font-size: 14px !important;
+		line-height: 1.4 !important;
+		color: #000 !important;
+		cursor: pointer;
+	}
+
+	.form-group select.remove-input-background:focus {
+		outline: none;
+		border-color: #2f5597 !important;
+		box-shadow: 0 0 0 3px rgba(47, 85, 151, 0.1);
+	}
+
+	/* Ensure dropdown items also display black text */
+	.form-group select.remove-input-background option {
+		color: #000 !important;
+		background-color: #fff !important;
+	}
+
+	.form-group input[readonly].remove-input-background {
+		background-color: #f5f5f5 !important;
+		border: 1px solid #ddd !important;
+		padding: 12px !important;
+		border-radius: 4px !important;
+	}
+
+	.form-group input[readonly].remove-input-background::placeholder {
+		color: #999;
+	}
+
+	/* Submit button loading state */
+	#submit-btn {
+		transition: all 0.3s ease;
+		position: relative;
+	}
+
+	#submit-btn.loading {
+		background: linear-gradient(135deg, #28a745 0%, #20c997 100%) !important;
+		color: #fff !important;
+		pointer-events: none;
+		padding-left: 45px !important;
+	}
+
+	#submit-btn.loading::before {
+		content: '';
+		position: absolute;
+		left: 15px;
+		top: 50%;
+		transform: translateY(-50%);
+		width: 18px;
+		height: 18px;
+		border: 3px solid rgba(255, 255, 255, 0.3);
+		border-top-color: #fff;
+		border-radius: 50%;
+		animation: spin 0.8s linear infinite;
+	}
+
+	@keyframes spin {
+		0% { transform: translateY(-50%) rotate(0deg); }
+		100% { transform: translateY(-50%) rotate(360deg); }
+	}
+</style>
+
 <!-- Start Appointment -->
 <section class="appointment mt-0">
 	<div class="container">
@@ -88,21 +163,25 @@
 							<label class="text-start text-light">CV - .pdf format only *</label>
 							<div class="form-group">
 								<input id="cv" required class="remove-input-background p-2" name="cv" type="file" accept=".pdf" placeholder="Upload CV">
+								<small class="text-light d-block mt-1">Max file size: 5MB</small>
 							</div>
 						</div>
-						<div class="col-lg-6 col-md-4 col-12">
+						<div class="col-lg-6 col-md-6 col-12">
 							<label class="text-start text-light">Job Type *</label>
 							<div class="form-group">
-								<select required name="type" class="form-control remove-input-background" id="type">
+								<select required name="type" class=" text-dark" id="type">
+								
 									<option value="Full Time" {{ old('type') === 'Full Time' ? 'selected' : '' }}>Full Time</option>
 									<option value="Part Time" {{ old('type') === 'Part Time' ? 'selected' : '' }}>Part Time</option>
+									<option value="Contract" {{ old('type') === 'Contract' ? 'selected' : '' }}>Contract</option>
+									<option value="Temporary" {{ old('type') === 'Temporary' ? 'selected' : '' }}>Temporary</option>
 								</select>
 							</div>
 						</div>
-						<div class="col-lg-6 col-md-4 col-12">
+						<div class="col-lg-6 col-md-6 col-12">
 							<label class="text-start text-light">Job Position *</label>
 							<div class="form-group">
-								<input type="text" readonly class="form-control remove-input-background" value="{{ $jobTitle }}" name="position">
+								<input type="text" readonly class="remove-input-background" value="{{ $jobTitle }}" name="position">
 								<input type="hidden" name="job_id" value="{{ $jobId }}">
 							</div>
 						</div>
@@ -110,12 +189,12 @@
 						<div class="col-lg-12">
 							<div class="form-group">
 								<label class="text-start text-light">Confirm you are not a robot *</label>
-								<div class="g-recaptcha" data-sitekey="{{ env('CAPTURE_SITE_KEY') }}"></div>
+								<div class="g-recaptcha" data-sitekey="6Ld0Z0krAAAAAFCwIDiunmU9l68kT4Vm2cB7U7px"></div>
 							</div>
 						</div>
-						<div class="form-group ml-3">
+						<div class="col-lg-12 form-group mt-3">
 							<div class="button">
-								<button type="submit" class="btn btn-light text-light">Complete Application</button>
+								<button type="submit" id="submit-btn" class="btn btn-light text-light" style="min-width: 200px; padding: 12px 30px;">Complete Application</button>
 							</div>
 						</div>
 					</div>
@@ -134,6 +213,32 @@ $(function() {
 
 	const messageBox = $('#JobSubmitMessage');
 	const submitBtn = form.find('button[type="submit"]');
+	const cvInput = $('#cv');
+
+	// Validate PDF file on change
+	cvInput.on('change', function() {
+		const file = this.files[0];
+		if (file) {
+			// Check file type - accept both MIME type and extension
+			const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+			if (!isPdf) {
+				messageBox.removeClass('alert-success').addClass('alert alert-danger')
+					.html('<strong>Error:</strong> Please upload a valid PDF file.').show();
+				$(this).val('');
+				return;
+			}
+			
+			// Check file size (5MB = 5242880 bytes)
+			if (file.size > 5242880) {
+				messageBox.removeClass('alert-success').addClass('alert alert-danger')
+					.html('<strong>Error:</strong> File size exceeds 5MB limit. Please choose a smaller PDF.').show();
+				$(this).val('');
+				return;
+			}
+			
+			messageBox.hide().removeClass('alert-success alert-danger').text('');
+		}
+	});
 
 	form.on('submit', function(e) {
 		e.preventDefault();
@@ -141,7 +246,37 @@ $(function() {
 
 		messageBox.hide().removeClass('alert-success alert-danger').text('');
 
-		const recaptchaResponse = typeof grecaptcha !== 'undefined' ? grecaptcha.getResponse() : '';
+		// Validate CV file
+		const cvFile = cvInput[0].files[0];
+		if (!cvFile) {
+			messageBox.addClass('alert alert-danger').html('<strong>Error:</strong> Please upload a CV file.').show();
+			return;
+		}
+
+		// More lenient PDF check - accept if file name ends with .pdf
+		const isPdf = cvFile.name.toLowerCase().endsWith('.pdf');
+		if (!isPdf) {
+			messageBox.addClass('alert alert-danger').html('<strong>Error:</strong> The cv field must be a file of type: pdf.').show();
+			return;
+		}
+
+		if (cvFile.size > 5242880) {
+			messageBox.addClass('alert alert-danger').html('<strong>Error:</strong> File size exceeds 5MB limit.').show();
+			return;
+		}
+
+		// Check if reCAPTCHA is loaded and get response
+		let recaptchaResponse = '';
+		if (typeof grecaptcha !== 'undefined') {
+			try {
+				recaptchaResponse = grecaptcha.getResponse();
+			} catch (e) {
+				console.error('reCAPTCHA error:', e);
+				messageBox.addClass('alert alert-danger').html('<strong>Error:</strong> reCAPTCHA is still loading. Please wait a moment and try again.').show();
+				return;
+			}
+		}
+		
 		if (!recaptchaResponse) {
 			messageBox.addClass('alert alert-danger').html('<strong>Error:</strong> Please verify that you are not a robot.').show();
 			return;
@@ -150,7 +285,10 @@ $(function() {
 		const formData = new FormData(this);
 		formData.append('g-recaptcha-response', recaptchaResponse);
 
-		submitBtn.prop('disabled', true).text('Submitting...');
+		submitBtn.prop('disabled', true)
+			.addClass('loading')
+			.text('Submitting...')
+			.css('visibility', 'visible');
 
 		$.ajax({
 			url: form.attr('action'),
@@ -177,18 +315,34 @@ $(function() {
 				
 				form[0].reset();
 				if (typeof grecaptcha !== 'undefined') {
-					grecaptcha.reset();
+					try {
+						grecaptcha.reset();
+					} catch (e) {
+						console.error('reCAPTCHA reset error:', e);
+					}
 				}
 			},
 			error: function(xhr) {
+				console.log('Error response:', xhr.responseJSON); // Debug log
 				let msg = 'An error occurred. Please try again.';
 				if (xhr.responseJSON && xhr.responseJSON.message) {
 					msg = xhr.responseJSON.message;
+				} else if (xhr.responseJSON && xhr.responseJSON.errors) {
+					// Handle validation errors
+					const errors = xhr.responseJSON.errors;
+					const errorMessages = [];
+					for (let field in errors) {
+						errorMessages.push('<strong>' + field + ':</strong> ' + errors[field].join(', '));
+					}
+					msg = errorMessages.join('<br>');
 				}
-				messageBox.addClass('alert alert-danger').text('❌ ' + msg).show();
+				messageBox.addClass('alert alert-danger').html('❌ ' + msg).show();
 			},
 			complete: function() {
-				submitBtn.prop('disabled', false).text('Complete Application');
+				submitBtn.prop('disabled', false)
+					.removeClass('loading')
+					.text('Complete Application')
+					.css('visibility', 'visible');
 			}
 		});
 	});

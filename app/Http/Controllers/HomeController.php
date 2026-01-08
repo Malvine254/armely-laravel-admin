@@ -431,10 +431,20 @@ class HomeController extends Controller
             'job_id' => ['required', 'string'],
             'website' => ['nullable', 'string', 'max:255'], // honeypot
             'g-recaptcha-response' => ['required', 'string'],
+        ], [
+            'cv.required' => 'Please upload your CV.',
+            'cv.mimes' => 'The cv field must be a file of type: pdf.',
+            'cv.max' => 'The CV file may not be larger than 5MB.',
+            'type.required' => 'Please select a job type.',
+            'position.required' => 'Job position is required.',
+            'g-recaptcha-response.required' => 'Please verify that you are not a robot.',
         ]);
 
         // Honeypot trap
         if (!empty($data['website'])) {
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Spam detected.'], 400);
+            }
             return back()->withErrors(['form' => 'Spam detected.'])->withInput();
         }
 
@@ -448,12 +458,34 @@ class HomeController extends Controller
         $cvPath = null;
         $cvUrl = null;
         if ($request->hasFile('cv')) {
-            $cvPath = $request->file('cv')->store('cv_uploads', 'public');
+            $cvFile = $request->file('cv');
+            // Additional validation for PDF
+            if ($cvFile->getMimeType() !== 'application/pdf') {
+                if ($request->expectsJson()) {
+                    return response()->json(['success' => false, 'message' => 'The cv field must be a file of type: pdf.'], 422);
+                }
+                return back()->withErrors(['cv' => 'The cv field must be a file of type: pdf.'])->withInput();
+            }
+            $cvPath = $cvFile->store('cv_uploads', 'public');
             $cvUrl = asset('storage/' . $cvPath);
         }
 
         $applicationDate = Carbon::now();
         $roleValue = strtolower($data['type']);
+
+        // Store values needed for email notification before building DB payload
+        $emailData = [
+            'name' => $data['name'],
+            'email' => strtolower($data['email']),
+            'phone' => $data['phone'],
+            'city' => $data['city'],
+            'address' => $data['address'],
+            'state' => $data['state'],
+            'zip' => $data['zip'],
+            'type' => $data['type'],
+            'position' => $data['position'],
+            'job_id' => $data['job_id'],
+        ];
 
         // Build payload with flexible column mapping
         $payload = [
@@ -507,9 +539,13 @@ class HomeController extends Controller
             }
         } catch (\Throwable $e) {
             Log::error('Job application insert failed', ['error' => $e->getMessage()]);
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Failed to submit application. Please try again.'], 500);
+            }
+            return back()->withErrors(['form' => 'Failed to submit application. Please try again.'])->withInput();
         }
 
-        $this->notifyJobApplicationViaGraph($payload, $cvUrl);
+        $this->notifyJobApplicationViaGraph($emailData, $cvUrl);
         if ($request->expectsJson()) {
             return response()->json(['success' => true, 'message' => 'Application submitted successfully!']);
         }
@@ -933,7 +969,8 @@ class HomeController extends Controller
             }
 
             $cvSection = $cvUrl ? "<li><b>CV:</b> <a href='{$cvUrl}' target='_blank'>Download</a></li>" : '';
-            $jobType = $payload['type'] ?? ($payload['role'] ?? '');
+            $jobType = $payload['type'] ?? ($payload['role'] ?? 'Not specified');
+            $jobId = $payload['job_id'] ?? 'Not specified';
 
             $adminBody = "<p><strong>New Job Application Submitted</strong></p>" .
                 "<ul>" .
@@ -946,7 +983,7 @@ class HomeController extends Controller
                 "<li><b>Zip:</b> {$payload['zip']}</li>" .
                 "<li><b>Job Type:</b> {$jobType}</li>" .
                 "<li><b>Position:</b> {$payload['position']}</li>" .
-                "<li><b>Job ID:</b> {$payload['job_id']}</li>" .
+                "<li><b>Job ID:</b> {$jobId}</li>" .
                 $cvSection .
                 "</ul>";
 

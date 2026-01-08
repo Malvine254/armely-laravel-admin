@@ -560,7 +560,6 @@
                 <div class="modern-section-header text-center">
                     <div class="header-badge mb-3">
                         <span class="badge-dot"></span>
-                        <span class="badge-dot"></span>
                     </div>
                     <h2 class="section-main-title mb-4">What Our Customers Say</h2>
                     <div class="title-underline mx-auto mb-4"></div>

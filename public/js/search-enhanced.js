@@ -64,7 +64,7 @@
                 if (query.length >= 2) {
                     searchTimeout = setTimeout(function () {
                         self.performSearch(query);
-                    }, 500);
+                    }, 150);
                 } else if (query.length === 0) {
                     self.showEmptyState();
                 } else {

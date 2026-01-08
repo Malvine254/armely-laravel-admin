@@ -175,8 +175,7 @@
                     <div class="col-lg-3 col-md-23 col-12">
                         <div class="logo d-flex align-items-center" style="padding: 0; margin: 0;">
                             <a href="{{ route('home') }}" class="d-inline-flex align-items-center" style="margin: 0; padding: 0;">
-                                <span class="logo-font" style="font-size: 4.0rem; padding-top: 10px;">armely</span>
-                                <!-- <img src="{{ asset('images/logo/main-logo.png') }}" alt="Armely logo" class="img-fluid" style="max-height: 52px; width: auto; display: block;" /> -->
+                                <img src="{{ asset('images/logo/logo-replace.png') }}" alt="Armely logo" class="img-fluid" style="max-height: 52px; width: auto; display: block;" />
                             </a>
                         </div>
                         <div class="mobile-nav"></div>
