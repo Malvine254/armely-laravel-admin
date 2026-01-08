@@ -122,7 +122,7 @@
 									@if($status === 'Closed')
 										<button class="btn btn-danger w-100" disabled>Closed</button>
 									@else
-										<a href="{{ route('job-board.index') }}?job-details={{ urlencode($job->job_id) }}" class="btn default-button apply-btn w-100">View Details</a>
+										<a href="{{ route('job-board.index') }}?job-details={{ urlencode($job->job_id) }}" class="btn default-button apply-btn w-100">View Details <i class="icofont-arrow-right"></i></a>
 									@endif
 								</div>
 							</div>

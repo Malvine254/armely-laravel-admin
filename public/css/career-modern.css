@@ -301,13 +301,12 @@
     box-shadow: 0 8px 20px rgba(47,85,151,0.3);
 }
 
-.career-card .btn.apply-btn::after {
-    content: '\u2192';
-    font-size: 18px;
+.career-card .btn.apply-btn i {
+    margin-left: 6px;
     transition: transform 0.3s ease;
 }
 
-.career-card .btn.apply-btn:hover::after {
+.career-card .btn.apply-btn:hover i {
     transform: translateX(5px);
 }
 
