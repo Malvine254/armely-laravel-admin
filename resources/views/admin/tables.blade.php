@@ -2079,13 +2079,18 @@ $(document).ready(function() {
     const cvDeleteBase = "{{ url('/admin/career/cv') }}";
     function buildCvPreview(app) {
         const cvValue = app.cv_path || app.cv || app.resume || '';
+        
+        // Always include delete button
+        let deleteBtn = `<button class="btn btn-sm btn-outline-danger delete-cv-btn" data-id="${app.id}" title="Delete Application"><i class="fas fa-trash"></i></button>`;
+        
         if (!cvValue) {
-            return '<span class="text-muted">N/A</span>';
+            return '<span class="text-muted">N/A</span> ' + deleteBtn;
         }
 
         if (/^https?:\/\//i.test(cvValue)) {
             return `<a href="${cvValue}" target="_blank" rel="noopener" class="btn btn-link btn-sm"><i class="fas fa-file-pdf"></i> View CV</a>` +
-                   ` <button class="btn btn-sm btn-outline-danger delete-cv-btn" data-id="${app.id}" title="Delete CV"><i class="fas fa-trash"></i></button>`;
+                   ` <a href="${downloadUrl}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary" title="Download CV"><i class="fas fa-download"></i></a>` +
+                   ` ${deleteBtn}`;
         }
 
         // Normalize stored value to a direct public URL
@@ -2099,7 +2104,7 @@ $(document).ready(function() {
         const downloadUrl = `${cvDownloadBase}/${app.id}`;
         return `<a href="${storageUrl}" target="_blank" rel="noopener" class="btn btn-link btn-sm"><i class="fas fa-file-pdf"></i> View CV</a>` +
                ` <a href="${downloadUrl}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary" title="Download CV"><i class="fas fa-download"></i></a>` +
-               ` <button class="btn btn-sm btn-outline-danger delete-cv-btn" data-id="${app.id}" title="Delete CV"><i class="fas fa-trash"></i></button>`;
+               ` ${deleteBtn}`;
     }
 
     function loadApplications() {
