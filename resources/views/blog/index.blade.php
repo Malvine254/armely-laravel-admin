@@ -3,6 +3,9 @@
 @section('title', isset($main) ? $main->title . ' - Armely Blog' : 'Our Insights & Stories - Armely Blog')
 
 @push('head')
+	<!-- Blog Page Styles -->
+	<link rel="stylesheet" href="{{ asset('css/blog-modern.css') }}">
+	
 @if(isset($main))
 	<!-- Open Graph Meta Tags for Social Media Sharing -->
 	<meta property="og:type" content="article">
