@@ -1,9 +1,26 @@
 @extends('layouts.public')
 
-@section('title', 'Our Insights & Stories - Armely Blog')
+@section('title', isset($main) ? $main->title . ' - Armely Blog' : 'Our Insights & Stories - Armely Blog')
 
-@push('styles')
-<link rel="stylesheet" href="{{ asset('css/blog-modern.css') }}">
+@push('head')
+@if(isset($main))
+	<!-- Open Graph Meta Tags for Social Media Sharing -->
+	<meta property="og:type" content="article">
+	<meta property="og:title" content="{{ $main->title }}">
+	<meta property="og:description" content="{{ Str::limit(strip_tags($main->body), 160) }}">
+	<meta property="og:url" content="{{ request()->url() }}">
+	@if($main->image_path)
+		<meta property="og:image" content="{{ asset('storage/' . $main->image_path) }}">
+		<meta property="og:image:width" content="1200">
+		<meta property="og:image:height" content="630">
+	@endif
+	<meta name="twitter:card" content="summary_large_image">
+	<meta name="twitter:title" content="{{ $main->title }}">
+	<meta name="twitter:description" content="{{ Str::limit(strip_tags($main->body), 160) }}">
+	@if($main->image_path)
+		<meta name="twitter:image" content="{{ asset('storage/' . $main->image_path) }}">
+	@endif
+@endif
 @endpush
 
 @section('content')
