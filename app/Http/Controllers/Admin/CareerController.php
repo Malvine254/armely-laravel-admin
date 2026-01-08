@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\JobApplication;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class CareerController extends Controller
 {
@@ -30,6 +31,40 @@ class CareerController extends Controller
         return JobApplication::where('status', 3)
             ->orderBy('application_date', 'desc')
             ->get();
+    }
+
+    // Stream a CV file for a given application
+    public function downloadCv($id)
+    {
+        $application = JobApplication::findOrFail($id);
+
+        $cvValue = $application->cv_path ?? $application->cv ?? $application->resume ?? null;
+        if (!$cvValue) {
+            abort(404);
+        }
+
+        // Normalize stored value to match disk layout
+        $path = ltrim(str_replace(['storage/', 'public/'], '', $cvValue), '/');
+        if (!str_starts_with($path, 'cv_uploads/')) {
+            $path = 'cv_uploads/' . $path;
+        }
+
+        // Check common locations: storage disk, public/storage, public root
+        if (Storage::disk('public')->exists($path)) {
+            return Storage::disk('public')->download($path);
+        }
+
+        $publicStoragePath = public_path('storage/' . $path);
+        if (file_exists($publicStoragePath)) {
+            return response()->file($publicStoragePath);
+        }
+
+        $publicCvPath = public_path($path);
+        if (file_exists($publicCvPath)) {
+            return response()->file($publicCvPath);
+        }
+
+        abort(404);
     }
 
     // Get unique locations for filter

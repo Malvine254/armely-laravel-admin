@@ -2074,26 +2074,15 @@ $(document).ready(function() {
     });
 
     // Job Applications Handlers
-    const cvBaseUrl = "{{ asset('storage/cv_uploads') }}";
+    const cvDownloadBase = "{{ url('/admin/career/cv') }}";
     function buildCvPreview(app) {
         const cvValue = app.cv_path || app.cv || app.resume || '';
         if (!cvValue) {
             return '<span class="text-muted">N/A</span>';
         }
 
-        if (/^https?:\/\//i.test(cvValue)) {
-            return `<a href="${cvValue}" target="_blank" rel="noopener" class="btn btn-link btn-sm"><i class="fas fa-file-pdf"></i> View CV</a>`;
-        }
-
-        let cleaned = cvValue
-            .replace(/^storage\//i, '')
-            .replace(/^public\//i, '');
-
-        if (cleaned.startsWith('cv_uploads/')) {
-            cleaned = cleaned.substring('cv_uploads/'.length);
-        }
-
-        return `<a href="${cvBaseUrl}/${cleaned}" target="_blank" rel="noopener" class="btn btn-link btn-sm"><i class="fas fa-file-pdf"></i> View CV</a>`;
+        const directUrl = /^https?:\/\//i.test(cvValue) ? cvValue : `${cvDownloadBase}/${app.id}`;
+        return `<a href="${directUrl}" target="_blank" rel="noopener" class="btn btn-link btn-sm"><i class="fas fa-file-pdf"></i> View CV</a>`;
     }
 
     function loadApplications() {
