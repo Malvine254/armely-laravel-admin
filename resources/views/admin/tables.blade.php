@@ -2075,14 +2075,28 @@ $(document).ready(function() {
 
     // Job Applications Handlers
     const cvDownloadBase = "{{ url('/admin/career/cv') }}";
+    const cvStorageBase = "{{ asset('storage') }}";
     function buildCvPreview(app) {
         const cvValue = app.cv_path || app.cv || app.resume || '';
         if (!cvValue) {
             return '<span class="text-muted">N/A</span>';
         }
 
-        const directUrl = /^https?:\/\//i.test(cvValue) ? cvValue : `${cvDownloadBase}/${app.id}`;
-        return `<a href="${directUrl}" target="_blank" rel="noopener" class="btn btn-link btn-sm"><i class="fas fa-file-pdf"></i> View CV</a>`;
+        if (/^https?:\/\//i.test(cvValue)) {
+            return `<a href="${cvValue}" target="_blank" rel="noopener" class="btn btn-link btn-sm"><i class="fas fa-file-pdf"></i> View CV</a>`;
+        }
+
+        // Normalize stored value to a direct public URL
+        let cleaned = cvValue.replace(/^storage\//i, '').replace(/^public\//i, '');
+        if (!cleaned.startsWith('cv_uploads/')) {
+            cleaned = `cv_uploads/${cleaned}`;
+        }
+
+        const storageUrl = `${cvStorageBase}/${cleaned}`;
+        // Fallback to download route if storage URL fails (user can still click to download)
+        const downloadUrl = `${cvDownloadBase}/${app.id}`;
+        return `<a href="${storageUrl}" target="_blank" rel="noopener" class="btn btn-link btn-sm"><i class="fas fa-file-pdf"></i> View CV</a>` +
+               ` <a href="${downloadUrl}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary" title="Download CV"><i class="fas fa-download"></i></a>`;
     }
 
     function loadApplications() {
