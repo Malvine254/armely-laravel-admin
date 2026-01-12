@@ -741,7 +741,6 @@ document.addEventListener('DOMContentLoaded', function() {
 	
 	const searchInput = document.getElementById('serviceSearch');
 	const filterBtns = document.querySelectorAll('.filter-btn');
-	const servicesContainer = document.getElementById('servicesContainer');
 	const noResults = document.getElementById('noResults');
 	
 	let currentFilter = 'all';
@@ -776,42 +775,39 @@ document.addEventListener('DOMContentLoaded', function() {
 		const services = servicesContainer.querySelectorAll('.single-table');
 		let visibleCount = 0;
 
-		// Service mapping based on exact header menu structure - optimized for database content
+		// Service mapping based on exact database titles
 		const serviceMap = {
 			'ai': [
 				'ai consulting',
 				'ai advisory',
-				'generative',
-				'poc',
-				'copilot'
+				'generative ai',
+				'ai poc'
 			],
 			'data': [
-				'fabric',
+				'estimate your fabric',
+				'microsoft fabric',
 				'data science',
-				'analytics',
 				'data strategy',
 				'databricks',
 				'snowflake',
-				'sql',
-				'warehouse'
+				'sql & data'
 			],
 			'digital': [
-				'api',
+				'api data access',
 				'powerapps',
 				'power automate',
-				'automate',
-				'virtual agent',
+				'power virtual agents',
 				'power pages',
-				'dynamics',
-				'robotic',
-				'rpa',
+				'dynamics 365',
+				'robotic processing',
 				'sharepoint'
 			],
 			'managed': [
 				'sql server support',
-				'sql support',
-				'support',
-				'managed'
+				'applications support'
+			],
+			'advisory': [
+				'freemium'
 			]
 		};
 
@@ -828,11 +824,6 @@ document.addEventListener('DOMContentLoaded', function() {
 					category = cat;
 					break;
 				}
-			}
-			
-			// Freemiums goes to advisory
-			if (title.includes('freemium')) {
-				category = 'advisory';
 			}
 
 			// Check if service matches current filter and search
@@ -875,42 +866,39 @@ document.addEventListener('DOMContentLoaded', function() {
 			advisory: 0
 		};
 
-		// Service mapping based on exact header menu structure - optimized for database content
+		// Service mapping based on exact database titles
 		const serviceMap = {
 			'ai': [
 				'ai consulting',
 				'ai advisory',
-				'generative',
-				'poc',
-				'copilot'
+				'generative ai',
+				'ai poc'
 			],
 			'data': [
-				'fabric',
+				'estimate your fabric',
+				'microsoft fabric',
 				'data science',
-				'analytics',
 				'data strategy',
 				'databricks',
 				'snowflake',
-				'sql',
-				'warehouse'
+				'sql & data'
 			],
 			'digital': [
-				'api',
+				'api data access',
 				'powerapps',
 				'power automate',
-				'automate',
-				'virtual agent',
+				'power virtual agents',
 				'power pages',
-				'dynamics',
-				'robotic',
-				'rpa',
+				'dynamics 365',
+				'robotic processing',
 				'sharepoint'
 			],
 			'managed': [
 				'sql server support',
-				'sql support',
-				'support',
-				'managed'
+				'applications support'
+			],
+			'advisory': [
+				'freemium'
 			]
 		};
 
@@ -925,13 +913,8 @@ document.addEventListener('DOMContentLoaded', function() {
 			for (const [cat, keywords] of Object.entries(serviceMap)) {
 				if (keywords.some(keyword => fullText.includes(keyword))) {
 					counts[cat]++;
-					return;
+					break;
 				}
-			}
-			
-			// Freemiums goes to advisory
-			if (title.includes('freemium')) {
-				counts.advisory++;
 			}
 		});
 
