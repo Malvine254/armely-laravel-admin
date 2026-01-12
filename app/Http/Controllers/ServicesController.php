@@ -43,7 +43,7 @@ class ServicesController extends Controller
                 return $service;
             });
 
-        return view('services.index', [
+        return view('services', [
             'services' => $services,
             'titleToUrl' => $this->titleToUrl,
         ]);

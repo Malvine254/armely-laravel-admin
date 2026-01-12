@@ -19,10 +19,8 @@ Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/contact', [HomeController::class, 'contact'])->name('contact');
 Route::post('/contact', [HomeController::class, 'submitContact'])->name('contact.submit');
 
-// Redirect /services to ai-consulting by default
-Route::get('/services', function() {
-    return redirect('/service-details/ai-consulting');
-})->name('services');
+// Services listing page
+Route::get('/services', [ServicesController::class, 'index'])->name('services');
 
 // Accept query parameter format: /service-details?name=ai-consulting
 Route::get('/service-details', function(\Illuminate\Http\Request $request) {

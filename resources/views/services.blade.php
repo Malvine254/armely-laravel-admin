@@ -4,6 +4,24 @@
 
 @push('styles')
 <style>
+	/* Fix select dropdown text visibility */
+	.form-control {
+		color: #ffffff !important;
+		background: transparent !important;
+		border: 1px solid rgba(255, 255, 255, 0.3) !important;
+	}
+
+	.form-control option {
+		color: #1a1f36;
+		background: white;
+	}
+
+	.remove-input-background {
+		color: #ffffff !important;
+		background: transparent !important;
+		border: 1px solid rgba(255, 255, 255, 0.3) !important;
+	}
+
 	/* Service Navigation */
 	.service-navigation {
 		background: linear-gradient(135deg, #2f5597 0%, #1e3a6d 100%);
