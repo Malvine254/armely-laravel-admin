@@ -21,6 +21,7 @@ class HtmlPageController extends Controller
             'guardz' => 'guardz-full.php',
             'td-synnex' => 'td-full.php',
             'td' => 'td-full.php',
+            'veeam' => 'veeam-full.php',
         ];
 
         if (!array_key_exists($slug, $map)) {
@@ -52,6 +53,7 @@ class HtmlPageController extends Controller
             'guardz' => 'Guardz Partner',
             'td-synnex' => 'TD SYNNEX Partner',
             'td' => 'TD SYNNEX Partner',
+            'veeam' => 'Veeam Partner',
         ];
 
         $pageTitle = $titles[$slug] ?? ucfirst($slug) . ' Partner';

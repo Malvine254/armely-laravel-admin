@@ -43,7 +43,7 @@ Route::get('/blog/{blogId?}', [BlogController::class, 'index'])->name('blog.inde
 Route::post('/blog/{blogId}/increment-clicks', [BlogController::class, 'incrementClicks'])->name('blog.increment-clicks');
 Route::get('/all-partners', [HomeController::class, 'allPartners'])->name('partners.index');
 Route::get('/all-partners/{slug}', [HtmlPageController::class, 'show'])
-    ->where('slug', '^(aws|snowflake|microsoft|redhat|cisco|guardz|td-synnex|td)$')
+    ->where('slug', '^(aws|snowflake|microsoft|redhat|cisco|guardz|td-synnex|td|veeam)$')
     ->name('partners.show');
 
 // Backward-compatible redirect for old path

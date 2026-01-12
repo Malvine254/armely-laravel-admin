@@ -853,6 +853,12 @@
             </div>
             
             <div class="partner-item partner-card">
+                <a href="{{ route('partners.show', ['slug' => 'veeam']) }}" aria-label="Veeam">
+                    <img src="{{ asset('images/partners/veem-logo-white.png') }}" alt="Veeam">
+                </a>
+            </div>
+
+            <div class="partner-item partner-card">
                 <a href="{{ route('partners.show', ['slug' => 'guardz']) }}" aria-label="Guardz">
                     <img src="{{ asset('images/partners/quardz.png') }}" alt="Guardz">
                 </a>
