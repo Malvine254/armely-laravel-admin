@@ -734,6 +734,11 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+	console.log('Services page loaded');
+	const servicesContainer = document.getElementById('servicesContainer');
+	console.log('Services container found:', servicesContainer);
+	console.log('Number of services:', servicesContainer ? servicesContainer.querySelectorAll('.single-table').length : 0);
+	
 	const searchInput = document.getElementById('serviceSearch');
 	const filterBtns = document.querySelectorAll('.filter-btn');
 	const servicesContainer = document.getElementById('servicesContainer');
