@@ -97,6 +97,7 @@
     gap: 14px;
     position: relative;
     background: linear-gradient(135deg, var(--default-background) 0%, var(--default-color) 100%);
+    min-height: 240px;
 }
 
 .customer-avatar {
@@ -105,8 +106,8 @@
 }
 
 .avatar-image {
-    width: 90px;
-    height: 90px;
+    width: 110px;
+    height: 110px;
     border-radius: 50%;
     object-fit: cover;
     border: 4px solid rgba(255,255,255,0.6);
@@ -115,14 +116,14 @@
 }
 
 .avatar-placeholder {
-    width: 90px;
-    height: 90px;
+    width: 110px;
+    height: 110px;
     border-radius: 50%;
     background: rgba(255,255,255,0.2);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 32px;
+    font-size: 38px;
     font-weight: 700;
     color: #fff;
     border: 4px solid rgba(255,255,255,0.6);
@@ -173,6 +174,12 @@
     color: #ffffff;
     margin: 0 0 6px 0;
     line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-height: 50px;
 }
 
 .customer-position {
@@ -180,6 +187,12 @@
     color: #ffffff !important;
     margin: 0 0 10px 0;
     line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-height: 40px;
 }
 
 .rating-stars {
