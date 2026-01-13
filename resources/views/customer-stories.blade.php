@@ -149,7 +149,7 @@
     height: 28px;
     background: #10b981;
     border-radius: 50%;
-    display: flex;
+    display: none;
     align-items: center;
     justify-content: center;
     border: 3px solid #fff;
