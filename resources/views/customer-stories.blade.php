@@ -6,9 +6,9 @@
 <style>
 /* Modern Section Header */
 .customer-stories-section {
-    background: radial-gradient(circle at 20% 20%, rgba(47,85,151,0.08), transparent 30%),
-                radial-gradient(circle at 80% 10%, rgba(118,75,162,0.08), transparent 28%),
-                #f7f9fc;
+    background: radial-gradient(circle at 20% 20%, rgba(93,110,130,0.06), transparent 30%),
+                radial-gradient(circle at 80% 10%, rgba(118,120,140,0.06), transparent 28%),
+    linear-gradient(135deg, #f8f9fa 0%, #ffffff 50%, #f5f6f7 100%);
 }
 
 .modern-section-header {
@@ -72,93 +72,31 @@
 
 /* Modern Story Cards */
 .modern-story-card {
-    background: linear-gradient(160deg, rgba(255,255,255,0.92) 0%, rgba(247,249,252,0.96) 60%, rgba(255,255,255,0.92) 100%);
-    border-radius: 18px;
+    background: #ffffff;
+    border-radius: 20px;
     position: relative;
-    box-shadow: 0 12px 45px rgba(31,41,55,0.14);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    border: 1px solid rgba(255,255,255,0.6);
+    border: none;
     overflow: hidden;
     height: 100%;
     display: flex;
     flex-direction: column;
-    backdrop-filter: blur(4px);
-}
-
-.modern-story-card::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(circle at 15% 20%, rgba(255,255,255,0.08), transparent 35%),
-                radial-gradient(circle at 85% 10%, rgba(255,255,255,0.08), transparent 30%);
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-.modern-story-card:hover::after {
-    opacity: 1;
-}
-
-.modern-story-card.default-background {
-    color: #fff;
-    background: linear-gradient(150deg, rgba(47,85,151,0.92) 0%, rgba(64,116,182,0.94) 50%, rgba(86,140,210,0.9) 100%);
-    border-color: rgba(255,255,255,0.12);
-}
-
-.modern-story-card.default-background .customer-name,
-.modern-story-card.default-background .customer-position,
-.modern-story-card.default-background .testimonial-content,
-.modern-story-card.default-background .shorten-content,
-.modern-story-card.default-background .quote-mark-left,
-.modern-story-card.default-background .quote-mark-right,
-.modern-story-card.default-background .rating-stars i {
-    color: #fff !important;
-    opacity: 1;
-}
-
-.modern-story-card.default-background .divider-line {
-    background: rgba(255, 255, 255, 0.35);
-}
-
-.modern-story-card.default-background .read-more-btn {
-    color: #fff !important;
-    border-color: #fff;
-}
-
-.modern-story-card.default-background .read-more-btn:hover {
-    background: #fff;
-    color: var(--default-color) !important;
-}
-
-.modern-story-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 5px;
-    background: linear-gradient(90deg, var(--default-background), var(--default-color));
-    transform: translateX(-100%);
-    transition: transform 0.6s ease;
 }
 
 .modern-story-card:hover {
-    transform: translateY(-12px) scale(1.02);
-    box-shadow: 0 20px 50px rgba(0,0,0,0.15);
-    border-color: var(--default-background);
-}
-
-.modern-story-card:hover::before {
-    transform: translateX(0);
+    transform: translateY(-8px);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.15);
 }
 
 .card-header-section {
-    padding: 26px 24px 18px;
+    padding: 35px 24px 25px;
     display: flex;
+    flex-direction: column;
     align-items: center;
     gap: 14px;
-    background: linear-gradient(135deg, rgba(0,0,0,0.03) 0%, rgba(0,0,0,0) 100%);
+    position: relative;
+    background: linear-gradient(135deg, var(--default-background) 0%, var(--default-color) 100%);
 }
 
 .customer-avatar {
@@ -167,28 +105,28 @@
 }
 
 .avatar-image {
-    width: 70px;
-    height: 70px;
+    width: 90px;
+    height: 90px;
     border-radius: 50%;
     object-fit: cover;
-    border: 4px solid var(--default-background);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    border: 4px solid rgba(255,255,255,0.6);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
     transition: all 0.3s ease;
 }
 
 .avatar-placeholder {
-    width: 70px;
-    height: 70px;
+    width: 90px;
+    height: 90px;
     border-radius: 50%;
-    background: var(--default-background);
+    background: rgba(255,255,255,0.2);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 24px;
+    font-size: 32px;
     font-weight: 700;
     color: #fff;
-    border: 4px solid var(--default-background);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    border: 4px solid rgba(255,255,255,0.6);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
     transition: all 0.3s ease;
     position: relative;
 }
@@ -199,89 +137,66 @@
 
 .modern-story-card:hover .avatar-image,
 .modern-story-card:hover .avatar-placeholder {
-    transform: rotate(5deg) scale(1.1);
-    box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+    transform: scale(1.05);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.25);
 }
 
 .verified-badge {
     position: absolute;
-    bottom: 0;
-    right: 0;
-    width: 24px;
-    height: 24px;
-    background: var(--default-background);
+    bottom: 2px;
+    right: 2px;
+    width: 28px;
+    height: 28px;
+    background: #10b981;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     border: 3px solid #fff;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
 
 .verified-badge i {
-    font-size: 12px;
+    font-size: 13px;
     color: #fff;
 }
 
 .customer-meta {
     flex: 1;
     min-width: 0;
-    padding-top: 5px;
+    text-align: center;
 }
 
 .customer-name {
-    font-size: 17px;
+    font-size: 19px;
     font-weight: 700;
-    color: #222;
-    margin: 0 0 5px 0;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    color: #ffffff;
+    margin: 0 0 6px 0;
     line-height: 1.3;
 }
 
 .customer-position {
-    font-size: 13px;
-    color: #666;
-    margin: 0 0 8px 0;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    font-size: 14px;
+    color: #ffffff !important;
+    margin: 0 0 10px 0;
     line-height: 1.4;
 }
 
 .rating-stars {
     display: flex;
-    gap: 2px;
+    gap: 4px;
+    justify-content: center;
 }
 
 .rating-stars i {
-    font-size: 15px;
-    color: #ffc107;
-    animation: starPulse 2s ease-in-out infinite;
-}
-
-.rating-stars i:nth-child(1) { animation-delay: 0s; }
-.rating-stars i:nth-child(2) { animation-delay: 0.1s; }
-.rating-stars i:nth-child(3) { animation-delay: 0.2s; }
-.rating-stars i:nth-child(4) { animation-delay: 0.3s; }
-.rating-stars i:nth-child(5) { animation-delay: 0.4s; }
-
-@keyframes starPulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.15); }
-}
-
-.modern-story-card:hover .rating-stars i {
-    animation: none;
-    transform: scale(1.1);
+    color: #fbbf24;
+    font-size: 14px;
 }
 
 .divider-line {
     height: 1px;
-    background: linear-gradient(90deg, transparent, var(--default-background), transparent);
-    margin: 0 25px;
-    opacity: 0.3;
+    background: rgba(0,0,0,0.06);
+    margin: 0;
 }
 
 .story-body {
@@ -289,28 +204,26 @@
     flex-grow: 1;
     display: flex;
     flex-direction: column;
-    background: linear-gradient(180deg, rgba(0,0,0,0.02) 0%, rgba(0,0,0,0) 45%);
+    background: #ffffff;
 }
 
 .quote-wrapper {
     position: relative;
     flex-grow: 1;
     padding: 0 6px;
+    display: flex;
+    flex-direction: column;
 }
 
-.quote-mark-left,
+.testimonial-content {
+    flex-grow: 1;
+}
 .quote-mark-right {
     position: absolute;
     font-size: 40px;
-    opacity: 0.15;
+    opacity: 0.08;
     color: var(--default-color);
     pointer-events: none;
-}
-
-.modern-story-card.default-background .quote-mark-left,
-.modern-story-card.default-background .quote-mark-right {
-    color: #fff !important;
-    opacity: 0.3;
 }
 
 .quote-mark-left {
@@ -324,7 +237,7 @@
 }
 
 .testimonial-content {
-    color: #2b2f3a;
+    color: #222222;
     font-size: 15px;
     line-height: 1.7;
     font-style: normal;
@@ -337,7 +250,7 @@
 
 .testimonial-content .shorten-content {
     display: -webkit-box;
-    -webkit-line-clamp: 6;
+    -webkit-line-clamp: 4;
     -webkit-box-orient: vertical;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -348,98 +261,94 @@
     overflow: visible;
 }
 
-.modern-story-card.default-background .testimonial-content {
-    color: #fff !important;
-}
-
-.modern-story-card.default-background .testimonial-content * {
-    color: #fff !important;
-}
-
 .shorten-content {
     display: block;
     margin-bottom: 15px;
     color: inherit;
 }
 
-.modern-story-card.default-background .shorten-content {
-    color: #fff !important;
-}
-
-.modern-story-card.default-background .shorten-content * {
-    color: #fff !important;
-}
-
 .read-more-btn {
-    font-weight: 700;
-    font-size: 12px;
-    letter-spacing: 0.5px;
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: 0.3px;
     text-decoration: none !important;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    padding: 10px 16px;
-    border: 2px solid rgba(255,255,255,0.4);
-    border-radius: 20px;
+    padding: 9px 24px;
+    border: 1.5px solid var(--default-color);
+    border-radius: 6px;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    background: rgba(255,255,255,0.15);
-    color: #fff !important;
-    backdrop-filter: blur(4px);
+    background: transparent;
+    color: var(--default-color) !important;
     align-self: flex-start;
-    margin-top: 4px;
+    margin-top: auto;
+}
+
+.read-more-btn.default-color {
+    color: var(--default-color) !important;
+    border-color: var(--default-color);
+}
+
+.read-more-btn.default-color:hover {
+    background: var(--default-color) !important;
+    border-color: var(--default-color) !important;
+    color: #ffffff !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.read-more-btn.default-color:hover strong {
+    color: #ffffff !important;
+}
+
+.read-more-btn:hover strong.default-color {
+    color: #222222 !important;
 }
 
 .read-more-btn:hover {
-    background: linear-gradient(135deg, rgba(47,85,151,0.8) 0%, rgba(86,140,210,0.8) 100%);
-    border-color: rgba(47,85,151,0.6);
-    color: #fff !important;
-    transform: translateX(4px);
-    box-shadow: 0 8px 20px rgba(47,85,151,0.3);
+    background: var(--default-color) !important;
+    border-color: var(--default-color) !important;
+    color: #ffffff !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.read-more-btn:hover strong {
+    color: #ffffff !important;
 }
 
 .read-more-btn strong {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
     white-space: nowrap;
-}
-
-.read-more-btn i {
-    transition: transform 0.3s ease;
-    font-size: 13px;
-}
-
-.read-more-btn:hover i {
-    transform: translateX(3px);
-}
-
-.read-more-btn strong {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.read-more-btn i {
-    transition: transform 0.3s ease;
-}
-
-.read-more-btn:hover i {
-    transform: translateX(5px);
 }
 
 .trust-stat {
     padding: 30px 20px;
-    background: #fff;
-    border-radius: 15px;
-    box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+    background: linear-gradient(160deg, rgba(255,255,255,0.98) 0%, rgba(248,249,251,0.99) 50%, rgba(255,255,255,0.98) 100%);
+    border-radius: 18px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04);
     transition: all 0.3s ease;
-    border: 2px solid transparent;
+    border: 1px solid rgba(0,0,0,0.05);
+}
+
+.trust-stat.default-background {
+    color: #333;
+    background: linear-gradient(160deg, rgba(255,255,255,0.98) 0%, rgba(248,249,251,0.99) 50%, rgba(255,255,255,0.98) 100%);
+    border-color: rgba(74, 90, 117, 0.15);
+}
+
+.trust-stat.default-background .stat-icon {
+    background: var(--default-background);
+}
+
+.trust-stat.default-background .stat-number,
+.trust-stat.default-background .stat-label {
+    color: #ffffff !important;
 }
 
 .trust-stat:hover {
-    transform: translateY(-10px);
-    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    transform: translateY(-12px);
+    box-shadow: 0 20px 48px rgba(0,0,0,0.16), 0 8px 16px rgba(0,0,0,0.12);
     border-color: var(--default-background);
 }
 
@@ -467,12 +376,12 @@
 .stat-number {
     font-size: 2rem;
     font-weight: 700;
-    color: var(--default-color);
+    color: #ffffff;
     margin-bottom: 5px;
 }
 
 .stat-label {
-    color: #666;
+    color: rgba(255,255,255,0.9);
     font-size: 14px;
     margin: 0;
 }
@@ -603,28 +512,28 @@
                                 </div>
                             </div>
                             <div class="customer-meta">
-                                <h5 class="customer-name text-light" title="{{ $testimonial->name }}">{{ $testimonial->name }}</h5>
-                                <p class="text-light" title="{{ $testimonial->position }}">{{ $testimonial->position }}</p>
-                                <div class="rating-stars">
-                                    <i class="icofont-star"></i>
-                                    <i class="icofont-star"></i>
-                                    <i class="icofont-star"></i>
-                                    <i class="icofont-star"></i>
-                                    <i class="icofont-star"></i>
-                                </div>
+                                <h5 class="customer-name" title="{{ $testimonial->name }}">{{ $testimonial->name }}</h5>
+                                <p class="customer-position" title="{{ $testimonial->position }}">{{ $testimonial->position }}</p>
                             </div>
                         </div>
                         <div class="divider-line"></div>
                         <div class="story-body">
+                            <div class="rating-stars mb-3">
+                                <i class="icofont-star"></i>
+                                <i class="icofont-star"></i>
+                                <i class="icofont-star"></i>
+                                <i class="icofont-star"></i>
+                                <i class="icofont-star"></i>
+                            </div>
                             <div class="quote-wrapper">
-                                <i class="icofont-quote-left quote-mark-left text-light"></i>
+                                <i class="icofont-quote-left quote-mark-left"></i>
                                 <div class="testimonial-content">
                                     <span class="shorten-content">{!! $testimonial->body_content !!}</span>
-                                    <a id="{{ $testimonial->id }}" class="read-more-btn" href="#">
-                                        <strong>READ MORE <i class="fa fa-long-arrow-right"></i></strong>
+                                    <a id="{{ $testimonial->id }}" class="read-more-btn " href="#">
+                                        <strong class="default-color">Read More</strong>
                                     </a>
                                 </div>
-                                <i class="icofont-quote-right quote-mark-right text-light"></i>
+                                <i class="icofont-quote-right quote-mark-right"></i>
                             </div>
                         </div>
                     </div>
@@ -645,8 +554,8 @@
                     <div class="stat-icon mb-3">
                         <i class="icofont-users-alt-4"></i>
                     </div>
-                    <h3 class="stat-number text-light">500+</h3>
-                    <p class="stat-label text-light">Happy Clients</p>
+                    <h3 class="stat-number">500+</h3>
+                    <p class="stat-label">Happy Clients</p>
                 </div>
             </div>
             <div class="col-lg-3 col-md-6 col-12 mb-4">
@@ -654,8 +563,8 @@
                     <div class="stat-icon mb-3">
                         <i class="icofont-star"></i>
                     </div>
-                    <h3 class="stat-number text-light">4.9/5</h3>
-                    <p class="stat-label text-light">Average Rating</p>
+                    <h3 class="stat-number">4.9/5</h3>
+                    <p class="stat-label">Average Rating</p>
                 </div>
             </div>
             <div class="col-lg-3 col-md-6 col-12 mb-4 ">
@@ -663,8 +572,8 @@
                     <div class="stat-icon mb-3">
 						<i class="fas fa-book text-light"></i>
                     </div>
-                    <h3 class="stat-number text-light">98%</h3>
-                    <p class="stat-label text-light">Success Rate</p>
+                    <h3 class="stat-number">98%</h3>
+                    <p class="stat-label">Success Rate</p>
                 </div>
             </div>
             <div class="col-lg-3 col-md-6 col-12 mb-4">
@@ -672,8 +581,8 @@
                     <div class="stat-icon mb-3">
                         <i class="icofont-check-circled"></i>
                     </div>
-                    <h3 class="stat-number text-light">1000+</h3>
-                    <p class="stat-label text-light">Projects Delivered</p>
+                    <h3 class="stat-number">1000+</h3>
+                    <p class="stat-label">Projects Delivered</p>
                 </div>
             </div>
         </div>
@@ -691,7 +600,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const content = btn.closest('.testimonial-content');
             if (!content) return;
             const isExpanded = content.classList.toggle('expanded');
-            btn.querySelector('strong').innerHTML = isExpanded ? 'SHOW LESS <i class="fa fa-long-arrow-up"></i>' : 'READ MORE <i class="fa fa-long-arrow-right"></i>';
+            btn.querySelector('strong').textContent = isExpanded ? 'Show Less' : 'Read More';
         });
     });
 });
