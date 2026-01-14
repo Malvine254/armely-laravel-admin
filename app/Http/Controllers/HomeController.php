@@ -197,6 +197,11 @@ class HomeController extends Controller
 
     public function serviceDetails($name)
     {
+        // Block access to freemiums service
+        if (strtolower($name) === 'freemiums') {
+            abort(404);
+        }
+
         $dbErrorMessage = null;
 
         $service = $this->safeDb(function () use ($name) {
