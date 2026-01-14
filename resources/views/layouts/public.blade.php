@@ -227,7 +227,8 @@
                                                     <li><a href="{{ route('service-details', ['name' => 'sharepoint-online']) }}">Sharepoint Online</a></li>
                                                 </ul>
                                             </li>
-                                            <li><a href="{{ route('service-details', ['name' => 'freemiums']) }}">Freemiums</a></li>
+                                            {{-- Hidden per request --}}
+                                            {{-- <li><a href="{{ route('service-details', ['name' => 'freemiums']) }}">Freemiums</a></li> --}}
                                             <li><a>Managed Services <i class="icofont-rounded-right"></i></a>
                                                 <ul class="dropdown">
                                                     <li><a href="{{ route('service-details', ['name' => 'sql-server-support']) }}">SQL Server Support</a></li>
