@@ -437,6 +437,9 @@
                     <li class="nav-item" role="presentation">
                         <button class="nav-link" id="hired-tab" data-bs-toggle="tab" data-bs-target="#hired" type="button" role="tab">Hired</button>
                     </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="rejected-tab" data-bs-toggle="tab" data-bs-target="#rejected" type="button" role="tab">Rejected</button>
+                    </li>
                 </ul>
 
                 <div class="tab-content">
@@ -530,6 +533,35 @@
                                     </tr>
                                 </thead>
                                 <tbody id="hiredTable">
+                                    <tr><td colspan="7" class="text-center"><span class="spinner-border spinner-border-sm"></span></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <!-- Rejected -->
+                    <div class="tab-pane fade" id="rejected" role="tabpanel">
+                        <div class="row mb-3 align-items-center">
+                            <div class="col-md-12">
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                    <input type="text" class="form-control" id="searchRejected" placeholder="Search rejected...">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="rejectedDataTable">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Name</th>
+                                        <th>Email</th>
+                                        <th>Position</th>
+                                        <th>Date Applied</th>
+                                        <th>CV</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="rejectedTable">
                                     <tr><td colspan="7" class="text-center"><span class="spinner-border spinner-border-sm"></span></td></tr>
                                 </tbody>
                             </table>
@@ -995,6 +1027,36 @@
 <script src="{{ asset('ckeditor/ckeditor.js') }}"></script>
 <script>
 $(document).ready(function() {
+        function loadRejected() {
+            $.ajax({
+                url: '/admin/career/list-rejected',
+                type: 'GET',
+                success: function(response) {
+                    let html = '';
+                    response.forEach(function(app, index) {
+                        const cvPreview = buildCvPreview(app);
+                        const appliedDate = app.application_date ? new Date(app.application_date).toLocaleDateString() : 'N/A';
+                        html += `<tr data-id="${app.id}">
+                            <td>${index + 1}</td>
+                            <td>${app.name}</td>
+                            <td>${app.email}</td>
+                            <td>${app.position}</td>
+                            <td>${appliedDate}</td>
+                            <td>${cvPreview}</td>
+                            <td>
+                                <button class="btn btn-sm btn-success shortlist-btn" data-id="${app.id}" title="Shortlist">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger delete-cv-btn" data-id="${app.id}" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>`;
+                    });
+                    $('#rejectedTable').html(html || '<tr><td colspan="7" class="text-center text-muted">No rejected applications</td></tr>');
+                }
+            });
+        }
     // Initialize CKEditor
     let blogEditor;
     
@@ -2216,6 +2278,12 @@ $(document).ready(function() {
         loadApplications();
         loadShortlisted();
         loadHired();
+        loadRejected();
+    });
+
+    // Also load rejected in real time when switching directly to the rejected tab
+    $(document).on('shown.bs.tab', 'button[data-bs-target="#rejected"]', function() {
+        loadRejected();
     });
 
     // Search Functionality
@@ -2240,6 +2308,15 @@ $(document).ready(function() {
     $(document).on('keyup', '#searchHired', function() {
         let searchTerm = $(this).val().toLowerCase();
         $('#hiredTable tr').each(function() {
+            let row = $(this);
+            let text = row.text().toLowerCase();
+            row.toggle(text.includes(searchTerm));
+        });
+    });
+
+    $(document).on('keyup', '#searchRejected', function() {
+        let searchTerm = $(this).val().toLowerCase();
+        $('#rejectedTable tr').each(function() {
             let row = $(this);
             let text = row.text().toLowerCase();
             row.toggle(text.includes(searchTerm));

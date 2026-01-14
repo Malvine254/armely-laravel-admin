@@ -159,6 +159,7 @@ Route::prefix('admin')->middleware(['admin'])->group(function () {
     Route::get('/career/list-applications', [CareerController::class, 'listApplications'])->name('admin.career.list-applications');
     Route::get('/career/list-shortlisted', [CareerController::class, 'listShortlisted'])->name('admin.career.list-shortlisted');
     Route::get('/career/list-employees', [CareerController::class, 'listEmployees'])->name('admin.career.list-employees');
+    Route::get('/career/list-rejected', [CareerController::class, 'listRejected'])->name('admin.career.list-rejected');
     Route::get('/career/locations', [CareerController::class, 'getLocations'])->name('admin.career.locations');
     Route::get('/career/cv/{id}', [CareerController::class, 'downloadCv'])->name('admin.career.cv');     Route::delete('/career/cv/{id}', [CareerController::class, 'deleteCv'])->name('admin.career.cv.delete');    Route::post('/career/shortlist/{id}', [CareerController::class, 'shortlist'])->name('admin.career.shortlist');
     Route::post('/career/hire/{id}', [CareerController::class, 'hire'])->name('admin.career.hire');

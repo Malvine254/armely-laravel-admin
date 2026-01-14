@@ -10,6 +10,13 @@ use Illuminate\Support\Facades\Schema;
 
 class CareerController extends Controller
 {
+    // List rejected applications (status = 0)
+    public function listRejected()
+    {
+        return JobApplication::where('status', 0)
+            ->orderBy('application_date', 'desc')
+            ->get();
+    }
     // List all pending applications (status = 1)
     public function listApplications()
     {
@@ -52,7 +59,8 @@ class CareerController extends Controller
 
         // Check common locations: storage disk, public/storage, public root
         if (Storage::disk('public')->exists($path)) {
-            return Storage::disk('public')->download($path);
+            $fullPath = Storage::disk('public')->path($path);
+            return response()->download($fullPath);
         }
 
         $publicStoragePath = public_path('storage/' . $path);
@@ -134,7 +142,7 @@ class CareerController extends Controller
     public function reject($id)
     {
         $application = JobApplication::findOrFail($id);
-        $application->update(['status' => 1]);
+        $application->update(['status' => 0]);
         return response()->json(['message' => 'Candidate rejected']);
     }
 
