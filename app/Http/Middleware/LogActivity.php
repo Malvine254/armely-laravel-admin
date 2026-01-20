@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 use Symfony\Component\HttpFoundation\Response;
 
 class LogActivity
@@ -102,8 +103,14 @@ class LogActivity
             // Get referrer
             $referrer = $request->header('referer') ?? null;
 
-            // Try to get country from IP (basic implementation)
-            $country = $this->getCountryFromIp($ipAddress);
+            // Prefer Cloudflare header if present (gives country code)
+            $countryHeader = $request->header('CF-IPCountry');
+            if ($countryHeader && preg_match('/^[A-Za-z]{2}$/', $countryHeader)) {
+                $country = strtoupper($countryHeader);
+            } else {
+                // Try to get country from IP (GeoIP helper / external API)
+                $country = $this->getCountryFromIp($ipAddress);
+            }
 
             DB::table('admin_activities')->insert([
                 'admin_id' => $userId,
@@ -181,50 +188,60 @@ class LogActivity
             return $cached;
         }
 
-        // Try to resolve using ipapi.co which returns a 2-letter country code for /country
-        $attempted = false;
+        // If torann/geoip or similar is installed, prefer local DB lookup
         try {
-            $attempted = true;
-            $url = "https://ipapi.co/{$ip}/country/";
-            $opts = ['http' => ['timeout' => 3]]; // short timeout
-            $context = stream_context_create($opts);
-            $result = file_get_contents($url, false, $context);
-            if ($result !== false) {
-                $code = strtoupper(trim($result));
-                if (preg_match('/^[A-Z]{2}$/', $code)) {
-                    // Cache for 7 days
-                    Cache::put($cacheKey, $code, now()->addDays(7));
-                    Log::info('GeoIP lookup success', ['ip' => $ip, 'country' => $code]);
-                    return $code;
+            if (function_exists('geoip')) {
+                $loc = geoip($ip);
+                if ($loc) {
+                    $code = strtoupper($loc->iso_code ?? ($loc->country_code ?? ''));
+                    if ($code && preg_match('/^[A-Z]{2}$/', $code)) {
+                        Cache::put($cacheKey, $code, now()->addDays(7));
+                        Log::info('GeoIP local lookup success', ['ip' => $ip, 'country' => $code]);
+                        return $code;
+                    }
                 }
-                Log::info('GeoIP lookup returned unexpected data', ['ip' => $ip, 'raw' => $result]);
             }
         } catch (\Throwable $e) {
-            Log::warning('GeoIP lookup exception', ['ip' => $ip, 'error' => $e->getMessage()]);
+            Log::debug('GeoIP local lookup exception: ' . $e->getMessage());
         }
 
-        // Fallback: try ipapi JSON endpoint for country_code field
+        $attempted = false;
+
+        // Use Laravel HTTP client to query ipapi (returns country code)
         try {
             $attempted = true;
-            $url = "https://ipapi.co/{$ip}/json/";
-            $opts = ['http' => ['timeout' => 3]];
-            $context = stream_context_create($opts);
-            $json = file_get_contents($url, false, $context);
-            if ($json) {
-                $data = json_decode($json, true);
+            $resp = Http::timeout(3)->get("https://ipapi.co/{$ip}/country/");
+            if ($resp->ok()) {
+                $code = strtoupper(trim($resp->body()));
+                if (preg_match('/^[A-Z]{2}$/', $code)) {
+                    Cache::put($cacheKey, $code, now()->addDays(7));
+                    Log::info('GeoIP http lookup success', ['ip' => $ip, 'country' => $code]);
+                    return $code;
+                }
+                Log::info('GeoIP http lookup unexpected', ['ip' => $ip, 'body' => $resp->body()]);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('GeoIP http lookup exception', ['ip' => $ip, 'error' => $e->getMessage()]);
+        }
+
+        // Fallback to JSON endpoint
+        try {
+            $attempted = true;
+            $resp = Http::timeout(3)->get("https://ipapi.co/{$ip}/json/");
+            if ($resp->ok()) {
+                $data = $resp->json();
                 if (!empty($data['country_code'])) {
                     $code = strtoupper($data['country_code']);
                     Cache::put($cacheKey, $code, now()->addDays(7));
-                    Log::info('GeoIP JSON lookup success', ['ip' => $ip, 'country' => $code]);
+                    Log::info('GeoIP http json lookup success', ['ip' => $ip, 'country' => $code]);
                     return $code;
                 }
-                Log::info('GeoIP JSON returned no country_code', ['ip' => $ip, 'json' => $data]);
+                Log::info('GeoIP json returned no country_code', ['ip' => $ip, 'json' => $data]);
             }
         } catch (\Throwable $e) {
-            Log::warning('GeoIP JSON lookup exception', ['ip' => $ip, 'error' => $e->getMessage()]);
+            Log::warning('GeoIP http json lookup exception', ['ip' => $ip, 'error' => $e->getMessage()]);
         }
 
-        // If external lookups were attempted but failed, store and return 'Unknown'
         if ($attempted) {
             Cache::put($cacheKey, 'Unknown', now()->addHours(6));
             Log::info('GeoIP lookup failed - caching Unknown', ['ip' => $ip]);

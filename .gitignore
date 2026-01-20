@@ -21,3 +21,10 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Exceptions: allow committing these files/directories for shared-host deployments
+# (useful when the server cannot run Composer or download the MaxMind DB)
+!composer.lock
+!vendor/
+!storage/app/geoip/
+!storage/app/geoip/GeoLite2-Country.mmdb
