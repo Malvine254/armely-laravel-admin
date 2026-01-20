@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 use Symfony\Component\HttpFoundation\Response;
 
 class LogActivity
@@ -136,6 +137,13 @@ class LogActivity
 
         if ($request->header('X-Forwarded-For')) {
             $ips = explode(',', $request->header('X-Forwarded-For'));
+            // X-Forwarded-For lists client first, then proxies. Use the first non-private IP if available.
+            foreach ($ips as $candidate) {
+                $candidate = trim($candidate);
+                if ($candidate && !$this->isPrivateIp($candidate)) {
+                    return $candidate;
+                }
+            }
             return trim($ips[0]);
         }
 
@@ -156,18 +164,74 @@ class LogActivity
      */
     protected function getCountryFromIp(?string $ip): ?string
     {
-        if (!$ip || $ip === 'Unknown' || $ip === '127.0.0.1' || $ip === '::1') {
+        if (!$ip || $ip === 'Unknown' || in_array($ip, ['127.0.0.1', '::1'], true)) {
             return 'Local';
         }
 
         // Basic check for private IPs
         if ($this->isPrivateIp($ip)) {
-            return 'Private Network';
+            return 'Private';
         }
 
-        // You can integrate with MaxMind GeoIP2 or other services here
-        // For now, return null to indicate IP is available in database
-        return null;
+        // Cache country lookups to reduce external calls
+        $cacheKey = 'geoip_country_' . md5($ip);
+        $cached = Cache::get($cacheKey);
+        if ($cached !== null) {
+            Log::info('GeoIP cache hit', ['ip' => $ip, 'country' => $cached]);
+            return $cached;
+        }
+
+        // Try to resolve using ipapi.co which returns a 2-letter country code for /country
+        $attempted = false;
+        try {
+            $attempted = true;
+            $url = "https://ipapi.co/{$ip}/country/";
+            $opts = ['http' => ['timeout' => 3]]; // short timeout
+            $context = stream_context_create($opts);
+            $result = file_get_contents($url, false, $context);
+            if ($result !== false) {
+                $code = strtoupper(trim($result));
+                if (preg_match('/^[A-Z]{2}$/', $code)) {
+                    // Cache for 7 days
+                    Cache::put($cacheKey, $code, now()->addDays(7));
+                    Log::info('GeoIP lookup success', ['ip' => $ip, 'country' => $code]);
+                    return $code;
+                }
+                Log::info('GeoIP lookup returned unexpected data', ['ip' => $ip, 'raw' => $result]);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('GeoIP lookup exception', ['ip' => $ip, 'error' => $e->getMessage()]);
+        }
+
+        // Fallback: try ipapi JSON endpoint for country_code field
+        try {
+            $attempted = true;
+            $url = "https://ipapi.co/{$ip}/json/";
+            $opts = ['http' => ['timeout' => 3]];
+            $context = stream_context_create($opts);
+            $json = file_get_contents($url, false, $context);
+            if ($json) {
+                $data = json_decode($json, true);
+                if (!empty($data['country_code'])) {
+                    $code = strtoupper($data['country_code']);
+                    Cache::put($cacheKey, $code, now()->addDays(7));
+                    Log::info('GeoIP JSON lookup success', ['ip' => $ip, 'country' => $code]);
+                    return $code;
+                }
+                Log::info('GeoIP JSON returned no country_code', ['ip' => $ip, 'json' => $data]);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('GeoIP JSON lookup exception', ['ip' => $ip, 'error' => $e->getMessage()]);
+        }
+
+        // If external lookups were attempted but failed, store and return 'Unknown'
+        if ($attempted) {
+            Cache::put($cacheKey, 'Unknown', now()->addHours(6));
+            Log::info('GeoIP lookup failed - caching Unknown', ['ip' => $ip]);
+            return 'Unknown';
+        }
+
+        return 'Unknown';
     }
 
     /**
