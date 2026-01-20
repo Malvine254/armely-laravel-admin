@@ -57,6 +57,10 @@ Route::get('/career', [HomeController::class, 'career'])->name('career.index');
 Route::get('/customer-stories', [HomeController::class, 'customerStories'])->name('customer-stories.index');
 Route::get('/social-impact', [HomeController::class, 'socialImpact'])->name('social-impact.index');
 Route::get('/privacy-policy', [HomeController::class, 'privacyPolicy'])->name('privacy-policy');
+// IP / Country test endpoints
+Route::get('/visit/geoip', [\App\Http\Controllers\VisitController::class, 'geoip'])->name('visit.geoip');
+Route::get('/visit/ipapi', [\App\Http\Controllers\VisitController::class, 'ipapi'])->name('visit.ipapi');
+Route::get('/visit/cloudflare', [\App\Http\Controllers\VisitController::class, 'cloudflare'])->name('visit.cloudflare');
 Route::get('/social-impact-details/{secure_id}', [HomeController::class, 'socialImpactDetails'])->name('social-impact-details');
 Route::get('/industries', [HomeController::class, 'industries'])->name('industries.index');
 Route::get('/job-board', [HomeController::class, 'jobBoard'])->name('job-board.index');
