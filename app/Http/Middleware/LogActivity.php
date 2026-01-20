@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use IP2Location\Database as IP2LocationDB;
 use Symfony\Component\HttpFoundation\Response;
 
 class LogActivity
@@ -203,6 +204,27 @@ class LogActivity
             }
         } catch (\Throwable $e) {
             Log::debug('GeoIP local lookup exception: ' . $e->getMessage());
+        }
+
+        // Next: try IP2Location local DB (open-source LITE DB, no API keys)
+        try {
+            $dbPath = storage_path('app/geoip/IP2LOCATION-LITE.BIN');
+            if (file_exists($dbPath)) {
+                try {
+                    $reader = new IP2LocationDB($dbPath, IP2LocationDB::FILE_IO);
+                    $rec = $reader->lookup($ip, IP2LocationDB::COUNTRY_CODE);
+                    $code = is_string($rec) ? strtoupper(trim($rec)) : null;
+                    if ($code && preg_match('/^[A-Z]{2}$/', $code)) {
+                        Cache::put($cacheKey, $code, now()->addDays(30));
+                        Log::info('GeoIP IP2Location lookup success', ['ip' => $ip, 'country' => $code]);
+                        return $code;
+                    }
+                } catch (\Throwable $e) {
+                    Log::debug('IP2Location lookup failed: ' . $e->getMessage());
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::debug('IP2Location outer exception: ' . $e->getMessage());
         }
 
         $attempted = false;

@@ -3,7 +3,7 @@
         'name' => 'laravel/laravel',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => '8ab420ec8268ab3efaf77525361f2898ba4ebc15',
+        'reference' => 'cb55736c7dea636ce7eaabf65e4eb1ba1d684eed',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -400,6 +400,15 @@
                 0 => 'v12.42.0',
             ),
         ),
+        'ip2location/ip2location-php' => array(
+            'pretty_version' => '9.8.1',
+            'version' => '9.8.1.0',
+            'reference' => 'e18e5372cfa4b57f33d2dc8c15d24cee1ee6d1ce',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../ip2location/ip2location-php',
+            'aliases' => array(),
+            'dev_requirement' => false,
+        ),
         'kodova/hamcrest-php' => array(
             'dev_requirement' => true,
             'replaced' => array(
@@ -418,7 +427,7 @@
         'laravel/laravel' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '8ab420ec8268ab3efaf77525361f2898ba4ebc15',
+            'reference' => 'cb55736c7dea636ce7eaabf65e4eb1ba1d684eed',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

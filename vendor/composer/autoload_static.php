@@ -143,6 +143,7 @@ class ComposerStaticInitc514d8f7b9fc5970bdd94287905ef584
         array (
             'Illuminate\\Support\\' => 19,
             'Illuminate\\' => 11,
+            'IP2Location\\' => 12,
         ),
         'G' =>
         array (
@@ -467,6 +468,10 @@ class ComposerStaticInitc514d8f7b9fc5970bdd94287905ef584
         'Illuminate\\' =>
         array (
             0 => __DIR__ . '/..' . '/laravel/framework/src/Illuminate',
+        ),
+        'IP2Location\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/ip2location/ip2location-php/src',
         ),
         'GuzzleHttp\\UriTemplate\\' =>
         array (
@@ -1632,6 +1637,11 @@ class ComposerStaticInitc514d8f7b9fc5970bdd94287905ef584
         'Hamcrest\\Type\\IsString' => __DIR__ . '/..' . '/hamcrest/hamcrest-php/hamcrest/Hamcrest/Type/IsString.php',
         'Hamcrest\\Util' => __DIR__ . '/..' . '/hamcrest/hamcrest-php/hamcrest/Hamcrest/Util.php',
         'Hamcrest\\Xml\\HasXPath' => __DIR__ . '/..' . '/hamcrest/hamcrest-php/hamcrest/Hamcrest/Xml/HasXPath.php',
+        'IP2Location\\Country' => __DIR__ . '/..' . '/ip2location/ip2location-php/src/Country.php',
+        'IP2Location\\Database' => __DIR__ . '/..' . '/ip2location/ip2location-php/src/Database.php',
+        'IP2Location\\IpTools' => __DIR__ . '/..' . '/ip2location/ip2location-php/src/IpTools.php',
+        'IP2Location\\Region' => __DIR__ . '/..' . '/ip2location/ip2location-php/src/Region.php',
+        'IP2Location\\WebService' => __DIR__ . '/..' . '/ip2location/ip2location-php/src/WebService.php',
         'Illuminate\\Auth\\Access\\AuthorizationException' => __DIR__ . '/..' . '/laravel/framework/src/Illuminate/Auth/Access/AuthorizationException.php',
         'Illuminate\\Auth\\Access\\Events\\GateEvaluated' => __DIR__ . '/..' . '/laravel/framework/src/Illuminate/Auth/Access/Events/GateEvaluated.php',
         'Illuminate\\Auth\\Access\\Gate' => __DIR__ . '/..' . '/laravel/framework/src/Illuminate/Auth/Access/Gate.php',
