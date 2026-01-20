@@ -117,11 +117,12 @@
 <script src="{{ asset('js/niceselect.js') }}"></script>
 <script src="{{ asset('js/tilt.jquery.min.js') }}"></script>
 <script src="{{ asset('js/owl-carousel.js') }}"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/waypoints/2.0.3/waypoints.min.js"></script>
 <script src="{{ asset('js/jquery.counterup.min.js') }}"></script>
 <script src="{{ asset('js/steller.js') }}"></script>
 <script src="{{ asset('js/wow.min.js') }}"></script>
 <script src="{{ asset('js/jquery.magnific-popup.min.js') }}"></script>
-<script src="http://cdnjs.cloudflare.com/ajax/libs/waypoints/2.0.3/waypoints.min.js"></script>
+<!-- Waypoints loaded earlier (HTTPS) to avoid mixed-content blocking -->
 <script src="{{ asset('js/main.js') }}"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.1.4/dist/sweetalert2.all.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
