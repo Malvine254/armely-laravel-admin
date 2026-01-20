@@ -24,14 +24,14 @@ class ReportsController extends Controller
 
         // Load stats from database
         try {
-            // Consultations this week
+            // Consultations this week (using contacts, which has sent_date not created_at)
             $weekAgo = now()->subDays(7)->toDateString();
-            $stats['consultations_this_week'] = DB::table('consultation')
-                ->where('date_now', '>=', $weekAgo)
+            $stats['consultations_this_week'] = DB::table('contacts')
+                ->whereDate('sent_date', '>=', $weekAgo)
                 ->count();
             
-            // Total consultations
-            $stats['total_consultations'] = DB::table('consultation')->count();
+            // Total consultations (using contacts instead)
+            $stats['total_consultations'] = DB::table('contacts')->count();
             
             // Total contacts
             $stats['total_contacts'] = DB::table('contacts')->count();
@@ -39,8 +39,8 @@ class ReportsController extends Controller
             // Total job applications
             $stats['total_job_apps'] = DB::table('job_applications')->count();
             
-            // Total campaigns
-            $stats['total_campaigns'] = DB::table('campaigns')->count();
+            // Total campaigns (remove this if campaigns table doesn't exist)
+            $stats['total_campaigns'] = 0; // Placeholder - no campaigns table
 
             // Conversions (estimate: consultations that became contacts)
             $stats['conversions'] = intval($stats['total_contacts'] * 0.4);
@@ -52,21 +52,14 @@ class ReportsController extends Controller
         // Load recent activity (public interactions + admin changes)
         $recentActivity = [];
         try {
-            // Recent consultations
-            $consultations = DB::table('consultation')
-                ->select(DB::raw("'Consultation' as type"), 'name', 'email', 'service_name as detail', 'date_now as created_at')
-                ->orderBy('date_now', 'desc')
-                ->limit(5)
-                ->get()
-                ->toArray();
-            $recentActivity = array_merge($recentActivity, $consultations);
-            
-            // Recent contacts
+            // Recent contacts - use COALESCE to handle null sent_date
             $contacts = DB::table('contacts')
-                ->select(DB::raw("'Contact' as type"), 'name', 'email', 'subject as detail', 'sent_date as created_at')
-                ->orderBy('sent_date', 'desc')
+                ->select(DB::raw("'Contact' as type"), 'name', 'email', 'subject as detail', 
+                    DB::raw("COALESCE(sent_date, DATE(NOW())) as created_at"))
+                ->orderByRaw("COALESCE(sent_date, DATE(NOW())) DESC")
                 ->limit(5)
                 ->get()
+                ->map(function($item) { return (array) $item; })
                 ->toArray();
             $recentActivity = array_merge($recentActivity, $contacts);
             
@@ -76,17 +69,9 @@ class ReportsController extends Controller
                 ->orderBy('application_date', 'desc')
                 ->limit(5)
                 ->get()
+                ->map(function($item) { return (array) $item; })
                 ->toArray();
             $recentActivity = array_merge($recentActivity, $applications);
-            
-            // Recent campaigns
-            $campaigns = DB::table('campaigns')
-                ->select(DB::raw("'Campaign' as type"), 'full_name as name', 'business_email as email', 'company_name as detail', 'sent_date as created_at')
-                ->orderBy('sent_date', 'desc')
-                ->limit(5)
-                ->get()
-                ->toArray();
-            $recentActivity = array_merge($recentActivity, $campaigns);
             
             // Admin activities (who did what) - NOW INCLUDES PAGE VISITS
             $adminActivities = DB::table('admin_activities')
@@ -111,103 +96,38 @@ class ReportsController extends Controller
                 ->orderBy('admin_activities.created_at', 'desc')
                 ->limit(50) // Get more activity records now
                 ->get()
+                ->map(function($item) { return (array) $item; })
                 ->toArray();
             $recentActivity = array_merge($recentActivity, $adminActivities);
 
+            \Log::info('Total activities before sorting: ' . count($recentActivity));
+
             // Sort by date
             usort($recentActivity, function($a, $b) {
-                return strtotime($b->created_at ?? 0) - strtotime($a->created_at ?? 0);
+                $dateA = strtotime($a['created_at'] ?? '0000-00-00 00:00:00');
+                $dateB = strtotime($b['created_at'] ?? '0000-00-00 00:00:00');
+                return $dateB - $dateA;
             });
             
             // Keep only last 10
             $recentActivity = array_slice($recentActivity, 0, 10);
             
-            // Convert objects to arrays for Blade
-            $recentActivity = array_map(function($item) {
-                return (array) $item;
-            }, $recentActivity);
+            \Log::info('Activities after slicing to 10: ' . count($recentActivity));
+            \Log::info('Final activities count: ' . count($recentActivity));
             
         } catch (\Exception $e) {
             \Log::error('Activity load failed: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
         }
 
-        // If no activity found, add sample data
-        if (empty($recentActivity) || count($recentActivity) === 0) {
-            $recentActivity = [
-                [
-                    'type' => 'Consultation',
-                    'name' => 'John Smith',
-                    'email' => 'john.smith@techcorp.com',
-                    'detail' => 'Data Science and Analytics consultation request',
-                    'created_at' => date('Y-m-d H:i:s', strtotime('-2 hours'))
-                ],
-                [
-                    'type' => 'Contact',
-                    'name' => 'Sarah Johnson',
-                    'email' => 'sarah.j@innovate.io',
-                    'detail' => 'Inquiry about Microsoft Fabric implementation',
-                    'created_at' => date('Y-m-d H:i:s', strtotime('-5 hours'))
-                ],
-                [
-                    'type' => 'Job Application',
-                    'name' => 'Michael Chen',
-                    'email' => 'mchen@email.com',
-                    'detail' => 'Senior Data Engineer position',
-                    'created_at' => date('Y-m-d H:i:s', strtotime('-8 hours'))
-                ],
-                [
-                    'type' => 'Campaign',
-                    'name' => 'Emily Davis',
-                    'email' => 'emily.davis@globaltech.com',
-                    'detail' => 'Enterprise AI Solutions Campaign',
-                    'created_at' => date('Y-m-d H:i:s', strtotime('-1 day'))
-                ],
-                [
-                    'type' => 'Consultation',
-                    'name' => 'Robert Martinez',
-                    'email' => 'r.martinez@dataworks.net',
-                    'detail' => 'AI Consulting service inquiry',
-                    'created_at' => date('Y-m-d H:i:s', strtotime('-1 day'))
-                ],
-                [
-                    'type' => 'Contact',
-                    'name' => 'Lisa Anderson',
-                    'email' => 'l.anderson@startup.xyz',
-                    'detail' => 'Question about Power BI integration',
-                    'created_at' => date('Y-m-d H:i:s', strtotime('-2 days'))
-                ],
-                [
-                    'type' => 'Admin Change',
-                    'name' => 'Admin User',
-                    'email' => 'admin@armely.com',
-                    'detail' => 'Updated service Data Strategy - Modified pricing',
-                    'created_at' => date('Y-m-d H:i:s', strtotime('-2 days'))
-                ],
-                [
-                    'type' => 'Job Application',
-                    'name' => 'David Wilson',
-                    'email' => 'dwilson@jobseeker.com',
-                    'detail' => 'AI/ML Consultant position',
-                    'created_at' => date('Y-m-d H:i:s', strtotime('-3 days'))
-                ],
-                [
-                    'type' => 'Consultation',
-                    'name' => 'Jennifer Lee',
-                    'email' => 'jlee@enterprise.com',
-                    'detail' => 'Microsoft Power Platform implementation',
-                    'created_at' => date('Y-m-d H:i:s', strtotime('-3 days'))
-                ],
-                [
-                    'type' => 'Contact',
-                    'name' => 'Thomas Brown',
-                    'email' => 'thomas.b@company.org',
-                    'detail' => 'General inquiry about managed services',
-                    'created_at' => date('Y-m-d H:i:s', strtotime('-4 days'))
-                ]
-            ];
-        }
+        // NO SAMPLE DATA - Show real data only
+        // If no activity found, the view will display "No recent activity found."
+        \Log::info('Passing to view - activities count: ' . count($recentActivity));
 
-        return view('admin.reports', compact('stats', 'recentActivity'));
+        // Get chart data from database (last 30 days)
+        $chartData = $this->getChartData(30);
+
+        return view('admin.reports', compact('stats', 'recentActivity', 'chartData'));
     }
     
     public function export(Request $request)
@@ -453,46 +373,7 @@ class ReportsController extends Controller
             $recentActivity = [];
         }
 
-        // If no data, use sample data
-        if (empty($recentActivity)) {
-            $recentActivity = [
-                [
-                    'type' => 'Page Visit',
-                    'name' => 'Admin User',
-                    'email' => 'admin@armely.com',
-                    'detail' => 'Visited: admin/reports',
-                    'created_at' => date('Y-m-d H:i:s', strtotime('-1 hour'))
-                ],
-                [
-                    'type' => 'Login',
-                    'name' => 'Admin User',
-                    'email' => 'admin@armely.com',
-                    'detail' => 'Admin User login',
-                    'created_at' => date('Y-m-d H:i:s', strtotime('-2 hours'))
-                ],
-                [
-                    'type' => 'Page Visit',
-                    'name' => 'Admin User',
-                    'email' => 'admin@armely.com',
-                    'detail' => 'Visited: admin/dashboard',
-                    'created_at' => date('Y-m-d H:i:s', strtotime('-3 hours'))
-                ],
-                [
-                    'type' => 'Consultation',
-                    'name' => 'John Smith',
-                    'email' => 'john.smith@techcorp.com',
-                    'detail' => 'Data Science and Analytics consultation',
-                    'created_at' => date('Y-m-d H:i:s', strtotime('-5 hours'))
-                ],
-                [
-                    'type' => 'Contact',
-                    'name' => 'Sarah Johnson',
-                    'email' => 'sarah.j@innovate.io',
-                    'detail' => 'Inquiry about Microsoft Fabric',
-                    'created_at' => date('Y-m-d H:i:s', strtotime('-1 day'))
-                ]
-            ];
-        }
+        // NO SAMPLE DATA - Export real data only
 
         $filename = 'activity_report_' . date('Y-m-d_His') . '.html';
         
@@ -639,22 +520,6 @@ class ReportsController extends Controller
         // Get the same data
         $recentActivity = [];
         try {
-            $consultations = DB::table('consultation')
-                ->select(DB::raw("'Consultation' as type"), 'name', 'email', 'service_name as detail', 'date_now as created_at')
-                ->orderBy('date_now', 'desc')
-                ->limit(10)
-                ->get();
-            
-            foreach ($consultations as $item) {
-                $recentActivity[] = [
-                    'type' => $item->type,
-                    'name' => $item->name,
-                    'email' => $item->email,
-                    'detail' => $item->detail,
-                    'created_at' => $item->created_at
-                ];
-            }
-            
             $contacts = DB::table('contacts')
                 ->select(DB::raw("'Contact' as type"), 'name', 'email', 'subject as detail', 'sent_date as created_at')
                 ->orderBy('sent_date', 'desc')
@@ -733,46 +598,7 @@ class ReportsController extends Controller
             $recentActivity = [];
         }
 
-        // If no data, use sample data
-        if (empty($recentActivity)) {
-            $recentActivity = [
-                [
-                    'type' => 'Page Visit',
-                    'name' => 'Admin User',
-                    'email' => 'admin@armely.com',
-                    'detail' => 'Visited: admin/reports',
-                    'created_at' => date('Y-m-d H:i:s', strtotime('-1 hour'))
-                ],
-                [
-                    'type' => 'Login',
-                    'name' => 'Admin User',
-                    'email' => 'admin@armely.com',
-                    'detail' => 'Admin User login',
-                    'created_at' => date('Y-m-d H:i:s', strtotime('-2 hours'))
-                ],
-                [
-                    'type' => 'Page Visit',
-                    'name' => 'Admin User',
-                    'email' => 'admin@armely.com',
-                    'detail' => 'Visited: admin/dashboard',
-                    'created_at' => date('Y-m-d H:i:s', strtotime('-3 hours'))
-                ],
-                [
-                    'type' => 'Consultation',
-                    'name' => 'John Smith',
-                    'email' => 'john.smith@techcorp.com',
-                    'detail' => 'Data Science and Analytics consultation',
-                    'created_at' => date('Y-m-d H:i:s', strtotime('-5 hours'))
-                ],
-                [
-                    'type' => 'Contact',
-                    'name' => 'Sarah Johnson',
-                    'email' => 'sarah.j@innovate.io',
-                    'detail' => 'Inquiry about Microsoft Fabric',
-                    'created_at' => date('Y-m-d H:i:s', strtotime('-1 day'))
-                ]
-            ];
-        }
+        // NO SAMPLE DATA - Export real data only
 
         $filename = 'activity_report_' . date('Y-m-d_His') . '.csv';
         
@@ -808,6 +634,104 @@ class ReportsController extends Controller
         };
         
         return response()->stream($callback, 200, $headers);
+    }
+
+    /**
+     * Get chart data for engagement timeline
+     */
+    private function getChartData($days = 30)
+    {
+        try {
+            $chartData = [
+                'labels' => [],
+                'consultations' => [],
+                'contacts' => [],
+                'applications' => []
+            ];
+
+            // Get data based on time range
+            if ($days == 7) {
+                // Daily data for last 7 days
+                for ($i = 6; $i >= 0; $i--) {
+                    $date = now()->subDays($i)->toDateString();
+                    $chartData['labels'][] = now()->subDays($i)->format('D');
+                    
+                    $chartData['consultations'][] = DB::table('contacts')
+                        ->whereDate('sent_date', $date)
+                        ->count();
+                    
+                    $chartData['contacts'][] = DB::table('contacts')
+                        ->whereDate('sent_date', $date)
+                        ->count();
+                    
+                    $chartData['applications'][] = DB::table('job_applications')
+                        ->whereDate('application_date', $date)
+                        ->count();
+                }
+            } elseif ($days == 30) {
+                // Weekly data for last 4 weeks + current week
+                for ($i = 4; $i >= 0; $i--) {
+                    $endDate = now()->subWeeks($i);
+                    $startDate = now()->subWeeks($i + 1);
+                    
+                    $chartData['labels'][] = $i == 0 ? 'This Week' : 'Week ' . (5 - $i);
+                    
+                    $chartData['consultations'][] = DB::table('contacts')
+                        ->whereBetween('sent_date', [$startDate, $endDate])
+                        ->count();
+                    
+                    $chartData['contacts'][] = DB::table('contacts')
+                        ->whereBetween('sent_date', [$startDate, $endDate])
+                        ->count();
+                    
+                    $chartData['applications'][] = DB::table('job_applications')
+                        ->whereBetween('application_date', [$startDate, $endDate])
+                        ->count();
+                }
+            } else { // 90 days
+                // Bi-weekly data for last 90 days
+                for ($i = 6; $i >= 0; $i--) {
+                    $endDate = now()->subWeeks($i * 2);
+                    $startDate = now()->subWeeks(($i + 1) * 2);
+                    
+                    $chartData['labels'][] = $i == 0 ? 'Week 13' : 'Week ' . ((7 - $i) * 2 - 1) . '-' . ((7 - $i) * 2);
+                    
+                    $chartData['consultations'][] = DB::table('contacts')
+                        ->whereBetween('sent_date', [$startDate, $endDate])
+                        ->count();
+                    
+                    $chartData['contacts'][] = DB::table('contacts')
+                        ->whereBetween('sent_date', [$startDate, $endDate])
+                        ->count();
+                    
+                    $chartData['applications'][] = DB::table('job_applications')
+                        ->whereBetween('application_date', [$startDate, $endDate])
+                        ->count();
+                }
+            }
+
+            return $chartData;
+        } catch (\Exception $e) {
+            \Log::error('Chart data load failed: ' . $e->getMessage());
+            // Return empty data structure on error
+            return [
+                'labels' => [],
+                'consultations' => [],
+                'contacts' => [],
+                'applications' => []
+            ];
+        }
+    }
+
+    /**
+     * AJAX endpoint to get chart data
+     */
+    public function getChartDataAjax(Request $request)
+    {
+        $days = $request->input('days', 30);
+        $chartData = $this->getChartData($days);
+        
+        return response()->json($chartData);
     }
 }
 

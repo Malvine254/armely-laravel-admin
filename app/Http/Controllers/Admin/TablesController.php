@@ -36,7 +36,9 @@ class TablesController extends Controller
         $teamTable = Schema::hasTable('team') ? 'team' : (Schema::hasTable('teams') ? 'teams' : null);
         $team = $teamTable ? DB::table($teamTable)->orderBy('id', 'desc')->limit(50)->get() : collect();
         
-        return view('admin.tables', compact('blogs', 'videos', 'careers', 'socialImpact', 'customerStories', 'events', 'team'));
+        $contacts = Schema::hasTable('contacts') ? DB::table('contacts')->orderBy('id', 'desc')->limit(50)->get() : collect();
+        
+        return view('admin.tables', compact('blogs', 'videos', 'careers', 'socialImpact', 'customerStories', 'events', 'team', 'contacts'));
     }
     
     // ========== LIST ENDPOINTS FOR AJAX TABLE RELOAD ==========
@@ -148,6 +150,15 @@ class TablesController extends Controller
         $table = Schema::hasTable('team') ? 'team' : 'teams';
         $team = DB::table($table)->orderBy('id', 'desc')->limit($limit)->get();
         return response()->json(['success' => true, 'data' => $team, 'limit' => $limit]);
+    }
+
+    public function listContacts(Request $request)
+    {
+        $limit = (int) $request->query('limit', 50);
+        $limit = max(1, min($limit, 500));
+
+        $contacts = DB::table('contacts')->orderBy('id', 'desc')->limit($limit)->get();
+        return response()->json($contacts);
     }
 
     // Public ping endpoint for quick health / connectivity checks (no heavy DB work)
@@ -1102,5 +1113,41 @@ class TablesController extends Controller
         DB::table($table)->where('id', $id)->delete();
         ActivityLogger::log('delete', 'Team', $id, 'Deleted team member #' . $id);
         return response()->json(['success' => true, 'message' => 'Team member deleted successfully']);
+    }
+
+    // ========== CONTACTS CRUD FUNCTIONS ==========
+    
+    public function storeOrUpdateContact(Request $request)
+    {
+        $id = $request->id;
+        
+        $data = [
+            'name' => $request->name ?? '',
+            'email' => $request->email ?? '',
+            'phone' => $request->phone ?? '',
+            'organization' => $request->organization ?? '',
+            'subject' => $request->subject ?? '',
+            'message' => $request->message ?? '',
+            'sent_date' => $request->sent_date ?? now(),
+        ];
+        
+        if ($id) {
+            // Update existing contact
+            DB::table('contacts')->where('id', $id)->update($data);
+            ActivityLogger::log('update', 'Contact', $id, 'Updated contact: ' . ($request->name ?? ''));
+            return response()->json(['success' => true, 'message' => 'Contact updated successfully']);
+        } else {
+            // Create new contact
+            $insertId = DB::table('contacts')->insertGetId($data);
+            ActivityLogger::log('create', 'Contact', $insertId, 'Created new contact: ' . ($request->name ?? ''));
+            return response()->json(['success' => true, 'message' => 'Contact created successfully', 'id' => $insertId]);
+        }
+    }
+    
+    public function deleteContact($id)
+    {
+        DB::table('contacts')->where('id', $id)->delete();
+        ActivityLogger::log('delete', 'Contact', $id, 'Deleted contact #' . $id);
+        return response()->json(['success' => true, 'message' => 'Contact deleted successfully']);
     }
 }

@@ -499,10 +499,17 @@
                         </h5>
                         <div class="row g-2">
                             <div class="col-6">
+                                <a href="{{ route('admin.analytics') }}" class="quick-action-btn">
+                                    <i class="fas fa-chart-line"></i>
+                                    <div class="fw-bold">Analytics</div>
+                                    <small class="text-muted">Visitor tracking</small>
+                                </a>
+                            </div>
+                            <div class="col-6">
                                 <a href="{{ route('admin.reports') }}" class="quick-action-btn">
                                     <i class="fas fa-chart-bar"></i>
                                     <div class="fw-bold">Reports</div>
-                                    <small class="text-muted">View analytics</small>
+                                    <small class="text-muted">View activity</small>
                                 </a>
                             </div>
                             <div class="col-6">

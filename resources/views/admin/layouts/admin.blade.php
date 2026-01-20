@@ -288,6 +288,12 @@
                 <span>Generate Reports</span>
             </a>
         </li>
+        <li>
+            <a href="{{ route('admin.analytics') }}" class="nav-link {{ request()->routeIs('admin.analytics*') ? 'active' : '' }}">
+                <i class="fas fa-bar-chart"></i>
+                <span>Analytics</span>
+            </a>
+        </li>
     </ul>
     <div class="sidebar-user mt-3">
         <strong>{{ auth('admin')->user()->name ?? 'Admin' }}</strong>

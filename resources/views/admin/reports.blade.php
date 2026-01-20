@@ -316,8 +316,22 @@
 <script>
     let engagementChart = null;
 
+    // Real chart data from server
+    const serverChartData = @json($chartData);
+
     // Function to generate data based on time range
     function generateChartData(days) {
+        // Return server data for 30 days (initial load)
+        if (days === 30 && serverChartData && serverChartData.labels && serverChartData.labels.length > 0) {
+            return {
+                labels: serverChartData.labels,
+                consultationData: serverChartData.consultations,
+                messageData: serverChartData.contacts,
+                applicationData: serverChartData.applications
+            };
+        }
+
+        // For other ranges, fetch from server dynamically
         let labels = [];
         let consultationData = [];
         let messageData = [];
@@ -325,41 +339,16 @@
 
         if (days === 7) {
             labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-            consultationData = [
-                {{ $stats['consultations_this_week'] ?? 0 }},
-                {{ rand(5, 15) }},
-                {{ rand(8, 18) }},
-                {{ rand(10, 20) }},
-                {{ rand(12, 22) }},
-                {{ rand(6, 14) }},
-                {{ rand(4, 12) }}
-            ];
-            messageData = [8, 10, 9, 12, 11, 7, 6];
-            applicationData = [3, 4, 5, 6, 4, 2, 3];
-        } else if (days === 30) {
-            labels = ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'This Week'];
-            consultationData = [
-                {{ ($stats['total_consultations'] ?? 0) > 0 ? rand(10, 30) : 5 }},
-                {{ rand(15, 35) }},
-                {{ rand(20, 40) }},
-                {{ rand(18, 38) }},
-                {{ $stats['consultations_this_week'] ?? 0 }}
-            ];
-            messageData = [12, 14, 16, 15, 11];
-            applicationData = [8, 10, 12, 11, 7];
+            // Use current week data if available
+            consultationData = serverChartData.consultations.slice(0, 7);
+            messageData = serverChartData.contacts.slice(0, 7);
+            applicationData = serverChartData.applications.slice(0, 7);
         } else if (days === 90) {
             labels = ['Week 1-2', 'Week 3-4', 'Week 5-6', 'Week 7-8', 'Week 9-10', 'Week 11-12', 'Week 13'];
-            consultationData = [
-                {{ rand(50, 100) }},
-                {{ rand(60, 110) }},
-                {{ rand(70, 120) }},
-                {{ rand(65, 115) }},
-                {{ rand(75, 125) }},
-                {{ rand(80, 130) }},
-                {{ $stats['total_consultations'] ?? 0 }}
-            ];
-            messageData = [40, 45, 50, 48, 52, 55, 50];
-            applicationData = [30, 35, 38, 36, 40, 42, 35];
+            // Use 90-day data if available
+            consultationData = serverChartData.consultations.slice(0, 7);
+            messageData = serverChartData.contacts.slice(0, 7);
+            applicationData = serverChartData.applications.slice(0, 7);
         }
 
         return {
@@ -439,23 +428,77 @@
     // Initialize chart on page load
     initEngagementChart(30);
 
-    // Time range buttons - NOW FUNCTIONAL
+    // Time range buttons - NOW FUNCTIONAL WITH AJAX
     $('#timeRange7d').on('click', function() {
         $('#timeRange7d, #timeRange30d, #timeRange90d').removeClass('active');
         $(this).addClass('active');
-        initEngagementChart(7);
+        
+        // Fetch real data from server
+        $.ajax({
+            url: '{{ route("admin.reports.chart-data") }}',
+            method: 'GET',
+            data: { days: 7 },
+            success: function(data) {
+                if (engagementChart) {
+                    engagementChart.data.labels = data.labels;
+                    engagementChart.data.datasets[0].data = data.consultations;
+                    engagementChart.data.datasets[1].data = data.contacts;
+                    engagementChart.data.datasets[2].data = data.applications;
+                    engagementChart.update();
+                }
+            },
+            error: function() {
+                console.error('Failed to load chart data');
+            }
+        });
     });
 
     $('#timeRange30d').on('click', function() {
         $('#timeRange7d, #timeRange30d, #timeRange90d').removeClass('active');
         $(this).addClass('active');
-        initEngagementChart(30);
+        
+        // Fetch real data from server
+        $.ajax({
+            url: '{{ route("admin.reports.chart-data") }}',
+            method: 'GET',
+            data: { days: 30 },
+            success: function(data) {
+                if (engagementChart) {
+                    engagementChart.data.labels = data.labels;
+                    engagementChart.data.datasets[0].data = data.consultations;
+                    engagementChart.data.datasets[1].data = data.contacts;
+                    engagementChart.data.datasets[2].data = data.applications;
+                    engagementChart.update();
+                }
+            },
+            error: function() {
+                console.error('Failed to load chart data');
+            }
+        });
     });
 
     $('#timeRange90d').on('click', function() {
         $('#timeRange7d, #timeRange30d, #timeRange90d').removeClass('active');
         $(this).addClass('active');
-        initEngagementChart(90);
+        
+        // Fetch real data from server
+        $.ajax({
+            url: '{{ route("admin.reports.chart-data") }}',
+            method: 'GET',
+            data: { days: 90 },
+            success: function(data) {
+                if (engagementChart) {
+                    engagementChart.data.labels = data.labels;
+                    engagementChart.data.datasets[0].data = data.consultations;
+                    engagementChart.data.datasets[1].data = data.contacts;
+                    engagementChart.data.datasets[2].data = data.applications;
+                    engagementChart.update();
+                }
+            },
+            error: function() {
+                console.error('Failed to load chart data');
+            }
+        });
     });
 
     // PDF Export Handler

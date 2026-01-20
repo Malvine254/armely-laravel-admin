@@ -25,9 +25,9 @@ class DashboardController extends Controller
             'careers' => $this->safeCountAny(['careers', 'career']),
             'admins' => $this->countActiveAdmins(),
             'unique_authors' => $this->countUniqueBlogAuthors($blogTable),
-            'total_consultations' => $this->safeCount('consultation'),
-            'consultations_today' => $this->safeCountOnDate('consultation', 'date_now', $today),
-            'consultations_this_week' => $this->safeCountSince('consultation', 'date_now', $weekAgo),
+            'total_consultations' => $this->safeCount('contacts'), // Changed from consultation to contacts
+            'consultations_today' => $this->safeCountOnDate('contacts', 'sent_date', $today), // Changed column to sent_date
+            'consultations_this_week' => $this->safeCountSince('contacts', 'sent_date', $weekAgo), // Changed column to sent_date
             'total_contacts' => $this->safeCount('contacts'),
             'contacts_today' => $this->safeCountOnDate('contacts', 'sent_date', $today),
             'total_job_apps' => $this->safeCount('job_applications'),
@@ -246,7 +246,7 @@ class DashboardController extends Controller
             $end = Carbon::now()->endOfMonth()->subMonths($i);
 
             $labels[] = $start->format('M');
-            $consultations[] = $this->safeCountBetween('consultation', 'date_now', $start, $end);
+            $consultations[] = $this->safeCountBetween('contacts', 'sent_date', $start, $end); // Changed from consultation to contacts
             $contacts[] = $this->safeCountBetween('contacts', 'sent_date', $start, $end);
             $jobApplications[] = $this->safeCountBetween('job_applications', 'application_date', $start, $end);
         }
@@ -257,53 +257,85 @@ class DashboardController extends Controller
     private function recentActivity(): Collection
     {
         $maxResults = 8;
-        $activities = collect();
+        $activities = [];
 
-        // Safely fetch consultations
-        if (Schema::hasTable('consultation')) {
-            $detailCol = Schema::hasColumn('consultation', 'service_name')
-                ? 'service_name'
-                : (Schema::hasColumn('consultation', 'service') ? 'service' : 'id');
-            $dateCol = Schema::hasColumn('consultation', 'date_now') ? 'date_now' : 'created_at';
-            
-            try {
-                $consultations = DB::table('consultation')
-                    ->selectRaw("'Consultation' as type, name, email, {$detailCol} as detail, {$this->dateExpression($dateCol)} as created_at")
-                    ->orderByDesc($dateCol)
-                    ->limit(5)
-                    ->get();
-                $activities = $activities->merge($consultations);
-            } catch (\Exception $e) {
-                // Skip if query fails
-            }
+        // Fetch contacts
+        try {
+            $contacts = DB::table('contacts')
+                ->select(DB::raw("'Contact' as type"), 'name', 'email', 'subject as detail', 
+                    DB::raw("COALESCE(sent_date, DATE(NOW())) as created_at"))
+                ->orderByRaw("COALESCE(sent_date, DATE(NOW())) DESC")
+                ->limit(5)
+                ->get()
+                ->map(function($item) { return (array) $item; })
+                ->toArray();
+            $activities = array_merge($activities, $contacts);
+        } catch (\Exception $e) {
+            // Skip if query fails
         }
 
-        // Safely fetch contacts
-        if (Schema::hasTable('contacts')) {
-            $detailCol = Schema::hasColumn('contacts', 'subject') ? 'subject' : 'id';
-            $dateCol = Schema::hasColumn('contacts', 'sent_date') ? 'sent_date' : 'created_at';
-            
-            try {
-                $contacts = DB::table('contacts')
-                    ->selectRaw("'Contact' as type, name, email, {$detailCol} as detail, {$this->dateExpression($dateCol)} as created_at")
-                    ->orderByDesc($dateCol)
-                    ->limit(5)
-                    ->get();
-                $activities = $activities->merge($contacts);
-            } catch (\Exception $e) {
-                // Skip if query fails
-            }
+        // Fetch job applications
+        try {
+            $applications = DB::table('job_applications')
+                ->select(DB::raw("'Job Application' as type"), 'name', 'email', 'position as detail', 'application_date as created_at')
+                ->orderBy('application_date', 'desc')
+                ->limit(5)
+                ->get()
+                ->map(function($item) { return (array) $item; })
+                ->toArray();
+            $activities = array_merge($activities, $applications);
+        } catch (\Exception $e) {
+            // Skip if query fails
         }
 
-        return $activities
+        // Fetch admin activities
+        try {
+            $adminActivities = DB::table('admin_activities')
+                ->leftJoin('admin', 'admin_activities.admin_id', '=', 'admin.id')
+                ->whereNotNull('admin_activities.admin_id') // Only activities from authenticated admins
+                ->select(
+                    'admin_activities.created_at', 
+                    DB::raw("CASE 
+                        WHEN admin_activities.action = 'login' THEN 'Login'
+                        WHEN admin_activities.action = 'logout' THEN 'Logout'
+                        WHEN admin_activities.action = 'page_visit' THEN 'Page Visit'
+                        ELSE 'Admin Action'
+                    END as type"),
+                    DB::raw("COALESCE(admin.name, 'Unknown User') as name"),
+                    DB::raw("COALESCE(admin.email, 'N/A') as email"),
+                    DB::raw("CASE 
+                        WHEN admin_activities.action = 'page_visit' THEN admin_activities.description
+                        ELSE CONCAT(admin_activities.action, ' ', admin_activities.entity_type, 
+                             CASE WHEN admin_activities.entity_id IS NOT NULL THEN CONCAT(' #', admin_activities.entity_id) ELSE '' END,
+                             CASE WHEN admin_activities.description IS NOT NULL THEN CONCAT(' - ', admin_activities.description) ELSE '' END)
+                    END as detail")
+                )
+                ->orderBy('admin_activities.created_at', 'desc')
+                ->limit(20)
+                ->get()
+                ->map(function($item) { return (array) $item; })
+                ->toArray();
+            $activities = array_merge($activities, $adminActivities);
+        } catch (\Exception $e) {
+            // Skip if query fails
+        }
+
+        // Sort and limit results
+        usort($activities, function($a, $b) {
+            $dateA = strtotime($a['created_at'] ?? '0000-00-00 00:00:00');
+            $dateB = strtotime($b['created_at'] ?? '0000-00-00 00:00:00');
+            return $dateB - $dateA;
+        });
+
+        return collect($activities)
             ->map(function ($item) {
-                $created = $item->created_at ? Carbon::parse($item->created_at) : null;
+                $created = isset($item['created_at']) ? Carbon::parse($item['created_at']) : null;
 
                 return [
-                    'type' => $item->type,
-                    'name' => $item->name ?? '',
-                    'email' => $item->email ?? '',
-                    'detail' => $item->detail ?? '',
+                    'type' => $item['type'] ?? '',
+                    'name' => $item['name'] ?? '',
+                    'email' => $item['email'] ?? '',
+                    'detail' => $item['detail'] ?? '',
                     'created_at' => $created,
                 ];
             })

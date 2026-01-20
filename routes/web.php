@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\AdminsController;
 use App\Http\Controllers\Admin\ReportsController;
 use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\CareerController;
+use App\Http\Controllers\Admin\AnalyticsController;
 use App\Http\Controllers\ServicesController;
 use App\Http\Controllers\BlogController;
 use App\Http\Controllers\CaseStudiesController;
@@ -66,6 +67,9 @@ Route::post('/applications', [HomeController::class, 'submitApplication'])->name
 Route::get('/api/search', [SearchController::class, 'search'])->name('search.api');
 Route::get('/api/search/suggestions', [SearchController::class, 'suggestions'])->name('search.suggestions');
 
+// Analytics API (requires admin auth)
+Route::get('/api/analytics/summary', [AnalyticsController::class, 'apiSummary'])->name('api.analytics.summary')->middleware('auth:admin');
+
 // Admin Authentication Routes (guest only)
 Route::prefix('admin')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('admin.login');
@@ -97,6 +101,7 @@ Route::prefix('admin')->middleware(['admin'])->group(function () {
     Route::get('/tables/customer-stories/list', [TablesController::class, 'listCustomerStories'])->name('admin.tables.customer-stories.list');
     Route::get('/tables/events/list', [TablesController::class, 'listEvents'])->name('admin.tables.events.list');
     Route::get('/tables/team/list', [TablesController::class, 'listTeam'])->name('admin.tables.team.list');
+    Route::get('/tables/contacts/list', [TablesController::class, 'listContacts'])->name('admin.tables.contacts.list');
     
     // Blogs
     Route::get('/tables/blogs/{id}', [TablesController::class, 'showBlog'])->name('admin.tables.blogs.show');
@@ -136,6 +141,10 @@ Route::prefix('admin')->middleware(['admin'])->group(function () {
     Route::post('/tables/team', [TablesController::class, 'storeOrUpdateTeam'])->name('admin.tables.team.store');
     Route::delete('/tables/team/{id}', [TablesController::class, 'deleteTeam'])->name('admin.tables.team.delete');
     
+    // Contacts
+    Route::post('/tables/contacts', [TablesController::class, 'storeOrUpdateContact'])->name('admin.tables.contacts.store');
+    Route::delete('/tables/contacts/{id}', [TablesController::class, 'deleteContact'])->name('admin.tables.contacts.delete');
+    
     // Admin User Management
     Route::get('/profile', [ProfileController::class, 'show'])->name('admin.profile');
     Route::post('/profile', [ProfileController::class, 'update'])->name('admin.profile.update');
@@ -150,6 +159,12 @@ Route::prefix('admin')->middleware(['admin'])->group(function () {
     Route::post('/reports/export', [ReportsController::class, 'export'])->name('admin.reports.export');
     Route::post('/reports/export-pdf', [ReportsController::class, 'exportActivityPdf'])->name('admin.reports.export.pdf');
     Route::post('/reports/export-excel', [ReportsController::class, 'exportActivityExcel'])->name('admin.reports.export.excel');
+    Route::get('/reports/chart-data', [ReportsController::class, 'getChartDataAjax'])->name('admin.reports.chart-data');
+    
+    // Analytics Routes (keep full dashboard for detailed views)
+    Route::get('/analytics', [AnalyticsController::class, 'index'])->name('admin.analytics');
+    Route::get('/analytics/export/csv', [AnalyticsController::class, 'exportCsv'])->name('admin.analytics.export.csv');
+    Route::get('/analytics/export/pdf', [AnalyticsController::class, 'exportPdf'])->name('admin.analytics.export.pdf');
     
     // File Upload Handlers
     Route::post('/upload/image', [TablesController::class, 'uploadImage'])->name('admin.upload.image');
