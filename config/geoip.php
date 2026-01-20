@@ -36,7 +36,8 @@ return [
     |
     */
 
-    'service' => null,
+    // Prefer local MaxMind DB by default (change to null if you prefer external API)
+    'service' => env('GEOIP_SERVICE', 'maxmind_database'),
 
     /*
     |--------------------------------------------------------------------------
@@ -51,7 +52,8 @@ return [
 
         'maxmind_database' => [
             'class' => \Torann\GeoIP\Services\MaxMindDatabase::class,
-            'database_path' => storage_path('app/geoip.mmdb'),
+            // Place your GeoLite2-Country.mmdb at storage/app/geoip/GeoLite2-Country.mmdb
+            'database_path' => storage_path('app/geoip/GeoLite2-Country.mmdb'),
             'update_url' => sprintf('https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-City&license_key=%s&suffix=tar.gz', env('MAXMIND_LICENSE_KEY')),
             'locales' => ['en'],
         ],
@@ -102,7 +104,9 @@ return [
     |
     */
 
-    'cache' => 'all',
+    // Use no tags when file cache is used (avoid "cache store does not support tagging" errors).
+    // Set to 'all' if using Redis or a cache that supports tags.
+    'cache' => env('GEOIP_CACHE', 'none'),
 
     /*
     |--------------------------------------------------------------------------
@@ -114,7 +118,7 @@ return [
     |
     */
 
-    'cache_tags' => ['torann-geoip-location'],
+    'cache_tags' => env('GEOIP_CACHE_TAGS') ? explode(',', env('GEOIP_CACHE_TAGS')) : [],
 
     /*
     |--------------------------------------------------------------------------
