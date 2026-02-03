@@ -11,6 +11,7 @@ use App\Services\AzureMailService;
 use Illuminate\Support\Str;
 use App\Models\Admin;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Database\QueryException;
 
 class AuthController extends Controller
 {
@@ -80,15 +81,22 @@ class AuthController extends Controller
 
         // Generate reset token
         $token = Str::random(64);
-        
-        // Store token in database
-        DB::table('password_reset_tokens')->updateOrInsert(
-            ['email' => $request->email],
-            [
-                'token' => Hash::make($token),
-                'created_at' => now()
-            ]
-        );
+
+        // Store token in database (use configured table name)
+        $resetTable = config('auth.passwords.users.table', 'password_reset_tokens');
+        try {
+            DB::table($resetTable)->updateOrInsert(
+                ['email' => $request->email],
+                [
+                    'token' => Hash::make($token),
+                    'created_at' => now()
+                ]
+            );
+        } catch (QueryException $e) {
+            // If the underlying table doesn't exist, log and return a helpful error
+            \Log::error('Password reset storage error: ' . $e->getMessage());
+            return back()->withErrors(['email' => 'Password reset is currently unavailable. Please contact the site administrator.']);
+        }
 
         // Send email with reset link
         $resetLink = route('admin.password.reset', ['token' => $token, 'email' => $request->email]);
@@ -119,10 +127,16 @@ class AuthController extends Controller
             'password' => 'required|min:8|confirmed',
         ]);
 
-        // Verify token
-        $passwordReset = DB::table('password_reset_tokens')
-            ->where('email', $request->email)
-            ->first();
+        // Verify token (use configured table name and handle missing table)
+        $resetTable = config('auth.passwords.users.table', 'password_reset_tokens');
+        try {
+            $passwordReset = DB::table($resetTable)
+                ->where('email', $request->email)
+                ->first();
+        } catch (QueryException $e) {
+            \Log::error('Password reset lookup error: ' . $e->getMessage());
+            return back()->withErrors(['email' => 'Password reset is currently unavailable. Please contact the site administrator.']);
+        }
 
         if (!$passwordReset || !Hash::check($request->token, $passwordReset->token)) {
             return back()->withErrors(['email' => 'Invalid or expired reset token.']);
@@ -133,8 +147,13 @@ class AuthController extends Controller
         $admin->password = Hash::make($request->password);
         $admin->save();
 
-        // Delete token
-        DB::table('password_reset_tokens')->where('email', $request->email)->delete();
+        // Delete token (best-effort)
+        try {
+            DB::table($resetTable)->where('email', $request->email)->delete();
+        } catch (QueryException $e) {
+            // Log and continue
+            \Log::warning('Failed to delete password reset token: ' . $e->getMessage());
+        }
 
         return redirect()->route('admin.login')->with('success', 'Your password has been reset successfully!');
     }
