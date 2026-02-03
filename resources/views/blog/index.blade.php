@@ -13,7 +13,8 @@
 	<meta property="og:description" content="{{ Str::limit(strip_tags($main->body), 160) }}">
 	<meta property="og:url" content="{{ request()->url() }}">
 	@if($main->image_path)
-		<meta property="og:image" content="{{ asset('storage/' . $main->image_path) }}">
+		<meta property="og:image" content="{{ url($main->image_path) }}">
+		<meta property="og:image:secure_url" content="{{ url($main->image_path) }}">
 		<meta property="og:image:width" content="1200">
 		<meta property="og:image:height" content="630">
 	@endif
@@ -21,7 +22,7 @@
 	<meta name="twitter:title" content="{{ $main->title }}">
 	<meta name="twitter:description" content="{{ Str::limit(strip_tags($main->body), 160) }}">
 	@if($main->image_path)
-		<meta name="twitter:image" content="{{ asset('storage/' . $main->image_path) }}">
+		<meta name="twitter:image" content="{{ url($main->image_path) }}">
 	@endif
 @endif
 @endpush
@@ -299,49 +300,368 @@ document.addEventListener('DOMContentLoaded', function() {
 	
 	// Function to reinitialize features after content update
 	function reinitializeBlogFeatures() {
-		// Reinitialize read aloud button
+		// Diagnostic helper to log container/button metrics for debugging autoscroll/show-more
+		function _logBlogDiagnostics(context, contentEl, span) {
+			try {
+				const out = { context };
+				if (contentEl) {
+					const cs = window.getComputedStyle(contentEl);
+					out.container = {
+						scrollHeight: contentEl.scrollHeight,
+						clientHeight: contentEl.clientHeight,
+						overflowY: cs.overflowY,
+						display: cs.display,
+						transform: cs.transform === 'none' ? null : cs.transform,
+						hasScrollable: contentEl.scrollHeight > contentEl.clientHeight
+					};
+				}
+				if (span) {
+					const sr = span.getBoundingClientRect();
+					out.span = { text: span.textContent.slice(0,40), top: sr.top, bottom: sr.bottom, height: sr.height };
+				}
+				console.debug('BLOG-DIAG', out);
+			} catch (e) { console.debug('BLOG-DIAG-ERR', e); }
+		}
+		// -------------------------
+		// Read Aloud (Speech) — robust per-word highlighting
+		// -------------------------
 		const toggleSpeech = document.getElementById('toggleSpeech');
+		const volumeIcon = document.getElementById('volume-icons');
+
+		const synth = window.speechSynthesis;
+		let speaking = false;
+		let stopRequested = false;
+
+		// Wrap words in the content area with spans so we can highlight per-word reliably
+		function wrapWords(container) {
+			if (!container) return [];
+			if (container.dataset.wordsWrapped === '1') {
+				return Array.from(container.querySelectorAll('span._s_word'));
+			}
+
+			let walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null, false);
+			let node;
+			let index = 0;
+			const wordSpans = [];
+
+			// Match Unicode words (letters/numbers) and include internal apostrophes or hyphens
+			const wordRegex = /[\p{L}\p{N}]+(?:[\u0027\u2019\u2010-\u2015][\p{L}\p{N}]+)*/gu;
+
+			while (node = walker.nextNode()) {
+				// Normalize text node: replace non-breaking spaces and remove zero-width chars
+				if (node.nodeValue) {
+					node.nodeValue = node.nodeValue.replace(/\u00A0/g, ' ').replace(/[\u200B-\u200D\uFEFF]/g, '');
+				}
+				const text = node.nodeValue;
+				if (!text || !text.trim()) continue;
+
+				// skip text nodes that are inside excluded or invisible elements
+				const parentEl = node.parentElement;
+				if (parentEl) {
+					// skip code blocks, preformatted text, scripts, styles, noscript
+					if (parentEl.closest && parentEl.closest('script, style, code, pre, noscript')) continue;
+					// skip elements explicitly hidden
+					if (parentEl.closest && parentEl.closest('[aria-hidden="true"]')) continue;
+					// skip if not rendered (no client rects)
+					try {
+						if (parentEl.getClientRects && parentEl.getClientRects().length === 0) continue;
+					} catch (e) {
+						// ignore errors from getClientRects in some environments
+					}
+				}
+
+				const frag = document.createDocumentFragment();
+				let lastIndex = 0;
+				let match;
+
+				wordRegex.lastIndex = 0;
+				while ((match = wordRegex.exec(text)) !== null) {
+					const word = match[0];
+					const start = match.index;
+					// append text before the match
+					if (start > lastIndex) {
+						frag.appendChild(document.createTextNode(text.slice(lastIndex, start)));
+					}
+					// create span for matched word
+					const span = document.createElement('span');
+					span.className = '_s_word';
+					span.dataset.wordIndex = index++;
+					span.textContent = word;
+					frag.appendChild(span);
+					wordSpans.push(span);
+					lastIndex = wordRegex.lastIndex;
+				}
+
+				// append remaining text
+				if (lastIndex < text.length) {
+					frag.appendChild(document.createTextNode(text.slice(lastIndex)));
+				}
+
+				// replace original text node
+				node.parentNode.replaceChild(frag, node);
+			}
+
+			container.dataset.wordsWrapped = '1';
+			return wordSpans;
+		}
+
+		function clearHighlights(container) {
+			container.querySelectorAll('span._s_word._speaking').forEach(s => s.classList.remove('_speaking'));
+		}
+
+		function stopSpeaking() {
+			stopRequested = true;
+			speaking = false;
+			if (synth && synth.speaking) synth.cancel();
+			const content = document.querySelector('.blog-text-content');
+			if (content) clearHighlights(content);
+			if (volumeIcon) volumeIcon.className = 'fa fa-volume-high text-light';
+		}
+
+		// Speak words sequentially (per-word utterances) — fallback will work across browsers
+		async function speakPerWord(wordSpans, startIndex = 0) {
+			if (!wordSpans || !wordSpans.length) return;
+			stopRequested = false;
+			speaking = true;
+			if (volumeIcon) volumeIcon.className = 'fa fa-pause text-light';
+			for (let i = startIndex; i < wordSpans.length; i++) {
+				if (stopRequested) break;
+				const span = wordSpans[i];
+				const text = span.textContent.trim();
+				if (!text) continue;
+
+				// highlight current word
+				const contentContainer = span.closest('.blog-text-content');
+				clearHighlights(contentContainer || document);
+				span.classList.add('_speaking');
+
+				// Auto-scroll highlighted word into view within its scroll container or window
+				_logBlogDiagnostics('before-scroll', contentContainer, span);
+				try {
+					if (contentContainer && contentContainer.scrollHeight > contentContainer.clientHeight) {
+						const spanRect = span.getBoundingClientRect();
+						const containerRect = contentContainer.getBoundingClientRect();
+						console.debug('BLOG-DIAG scrollRects', { spanRect, containerRect, scrollTop: contentContainer.scrollTop });
+						const padding = 18;
+						const topDelta = spanRect.top - containerRect.top;
+						const bottomDelta = spanRect.bottom - containerRect.bottom;
+
+						// compute desired newTop (relative to contentContainer.scrollTop)
+						let newTop = contentContainer.scrollTop;
+						if (bottomDelta > -padding) {
+							const delta = spanRect.bottom - containerRect.bottom + padding;
+							newTop = Math.max(0, contentContainer.scrollTop + delta);
+						} else if (topDelta < padding) {
+							const delta = topDelta - padding;
+							newTop = Math.max(0, contentContainer.scrollTop + delta);
+						}
+
+						// apply scroll and verify it changed — fallback to scrollIntoView if not
+						const prevTop = contentContainer.scrollTop;
+						try {
+							// prefer smooth scroll when available
+							if (typeof contentContainer.scrollTo === 'function') {
+								contentContainer.scrollTo({ top: newTop, behavior: 'smooth' });
+							} else {
+								contentContainer.scrollTop = newTop;
+							}
+						} catch (e) {
+							contentContainer.scrollTop = newTop;
+						}
+
+						// If the scroll didn't change (some browsers disallow element scroll), fallback to scrollIntoView
+						setTimeout(() => {
+							try {
+								_logBlogDiagnostics('post-scroll-check', contentContainer, span);
+								if (Math.abs((contentContainer.scrollTop || 0) - prevTop) < 1) {
+									// minimal fallback: scroll the specific span into view inside its scrollable ancestor
+									if (typeof span.scrollIntoView === 'function') {
+										span.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+									}
+								}
+							} catch (e) { /* ignore */ }
+						}, 50);
+					} else {
+						// If the article container isn't scrollable, only then scroll the window
+						_logBlogDiagnostics('window-scroll-fallback', contentContainer, span);
+						const header = document.querySelector('.header');
+						const headerOffset = header ? header.offsetHeight : 80;
+						const spanRect = span.getBoundingClientRect();
+						const absoluteTop = window.pageYOffset + spanRect.top - headerOffset - 20;
+						// only scroll window when the span is outside viewport
+						if (spanRect.top < 0 || spanRect.bottom > (window.innerHeight || document.documentElement.clientHeight)) {
+							window.scrollTo({ top: absoluteTop, behavior: 'smooth' });
+						}
+					}
+				} catch (e) {
+					// ignore scrolling errors
+				}
+				// create utterance for the single word
+				const utter = new SpeechSynthesisUtterance(text);
+				utter.lang = navigator.language || 'en-US';
+				utter.rate = 1.0;
+
+				await new Promise((resolve) => {
+					utter.onend = function() { resolve(); };
+					utter.onerror = function() { resolve(); };
+					synth.speak(utter);
+				});
+				// small pause between words to allow highlighting to be noticeable
+				await new Promise(r => setTimeout(r, 25));
+			}
+
+			stopRequested = false;
+			speaking = false;
+			if (volumeIcon) volumeIcon.className = 'fa fa-volume-high text-light';
+			const content = document.querySelector('.blog-text-content');
+			if (content) clearHighlights(content);
+		}
+
 		if (toggleSpeech) {
-			toggleSpeech.addEventListener('click', function() {
-				// Add your read aloud functionality here
-				console.log('Read aloud clicked');
+			const newToggle = toggleSpeech.cloneNode(true);
+			toggleSpeech.parentNode.replaceChild(newToggle, toggleSpeech);
+
+			newToggle.addEventListener('click', async function() {
+				const contentEl = document.querySelector('.blog-text-content');
+				if (!contentEl) return;
+
+				// If already speaking, stop
+				if (speaking) { stopSpeaking(); return; }
+
+				// Ensure reading starts from the very top (first paragraph visible)
+				// Reset scroll position of the article container only
+				try {
+					contentEl.scrollTop = 0;
+				} catch (e) {}
+
+				// Wrap words and get spans
+				const wordSpans = wrapWords(contentEl);
+				if (!wordSpans.length) return;
+
+				// Allow DOM to settle after wrapping before speaking
+				await new Promise(r => requestAnimationFrame(() => r()));
+
+				// Ensure first paragraph/first word is visible before speaking
+				if (wordSpans[0]) {
+					const first = wordSpans[0];
+					// minimal scroll to ensure it's visible with small padding
+					const padding = 12;
+					try {
+						if (first.offsetTop < contentEl.scrollTop + padding) {
+							contentEl.scrollTop = Math.max(0, first.offsetTop - padding);
+						}
+					} catch (e) {
+						// ignore
+					}
+				}
+
+				// Find first visible word span to start from (skip initial punctuation/hidden spans)
+				const firstVisibleIndex = (function() {
+					for (let i = 0; i < wordSpans.length; i++) {
+						const s = wordSpans[i];
+						try {
+							const rects = s.getClientRects();
+							if (rects && rects.length > 0) {
+								// ensure it's inside the article container's visible area
+								const sr = rects[0];
+								const containerRect = contentEl.getBoundingClientRect();
+								if (sr.bottom > containerRect.top + 4 && sr.top < containerRect.bottom - 4) {
+									return i;
+								}
+							}
+						} catch (e) {}
+					}
+					return 0;
+				})();
+
+				// Speak per-word starting at the first visible span
+				await speakPerWord(wordSpans, firstVisibleIndex);
 			});
 		}
-		
-		// Reinitialize social share buttons
+
+		// Stop any speaking when navigating away or loading new content
+		document.addEventListener('visibilitychange', function() {
+			if (document.hidden) stopSpeaking();
+		});
+
+		// -------------------------
+		// Sharing & Clipboard
+		// -------------------------
+		// Utility: copy to clipboard
+		function copyToClipboard(text) {
+			if (navigator.clipboard && navigator.clipboard.writeText) {
+				return navigator.clipboard.writeText(text).catch(() => {
+					const ta = document.createElement('textarea');
+					ta.value = text;
+					document.body.appendChild(ta);
+					ta.select();
+					document.execCommand('copy');
+					document.body.removeChild(ta);
+				});
+			} else {
+				const ta = document.createElement('textarea');
+				ta.value = text;
+				document.body.appendChild(ta);
+				ta.select();
+				document.execCommand('copy');
+				document.body.removeChild(ta);
+				return Promise.resolve();
+			}
+		}
+
+		// Reinitialize social share buttons with Instagram fallback and Web Share support
 		const shareBtns = document.querySelectorAll('.shareBtn');
 		shareBtns.forEach(function(btn) {
-			btn.addEventListener('click', function() {
+			// avoid duplicate listeners by cloning
+			const cloned = btn.cloneNode(true);
+			btn.parentNode.replaceChild(cloned, btn);
+			cloned.addEventListener('click', function() {
 				const social = this.getAttribute('data-social');
 				const url = window.location.href;
-				const title = document.querySelector('.blog-title a').textContent;
-				
-				let shareUrl = '';
+				const title = document.querySelector('.blog-title a') ? document.querySelector('.blog-title a').textContent : document.title;
+
 				switch(social) {
-					case 'facebook':
-						shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
+					case 'facebook': {
+						const shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
+						window.open(shareUrl, '_blank', 'width=600,height=400');
 						break;
-					case 'twitter':
-						shareUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(title)}`;
+					}
+					case 'twitter': {
+						const shareUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(title)}`;
+						window.open(shareUrl, '_blank', 'width=600,height=400');
 						break;
-					case 'linkedin':
-						shareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`;
+					}
+					case 'linkedin': {
+						const shareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`;
+						window.open(shareUrl, '_blank', 'width=600,height=400');
 						break;
-				}
-				
-				if (shareUrl) {
-					window.open(shareUrl, '_blank', 'width=600,height=400');
+					}
+					case 'instagram': {
+						if (navigator.share) {
+							navigator.share({ title: title, text: title, url: url }).catch(() => {
+								copyToClipboard(url).then(()=> alert('Link copied to clipboard. Open Instagram and paste the link.'));
+							});
+						} else {
+							copyToClipboard(url).then(()=> alert('Link copied to clipboard. Open Instagram and paste the link.'));
+						}
+						break;
+					}
 				}
 			});
 		});
-		
-		// Reinitialize scroll more button
+
+		// Reinitialize scroll more button (account for fixed header offset)
 		const showMore = document.getElementById('show-more');
 		if (showMore) {
-			showMore.addEventListener('click', function() {
+			const newShow = showMore.cloneNode(true);
+			showMore.parentNode.replaceChild(newShow, showMore);
+			newShow.addEventListener('click', function() {
 				const content = document.querySelector('.blog-text-content');
 				if (content) {
-					content.scrollIntoView({behavior: 'smooth', block: 'start'});
+					const headerOffset = document.querySelector('.header') ? document.querySelector('.header').offsetHeight : 80;
+					const elementPosition = content.getBoundingClientRect().top + window.pageYOffset;
+					const offsetPosition = elementPosition - headerOffset - 20;
+					window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
 				}
 			});
 		}
@@ -394,6 +714,26 @@ document.addEventListener('DOMContentLoaded', function() {
 			});
 		});
 	}
+
+	// Update head meta tags and title from a fetched document so client-side previews/tools see the latest values
+	function updateHeadMetaFromDoc(doc) {
+		try {
+			const keys = ['og:title','og:description','og:image','og:url','twitter:card','twitter:title','twitter:description','twitter:image'];
+			if (doc.title) document.title = doc.title;
+			keys.forEach(k => {
+				const selector = `meta[property="${k}"], meta[name="${k}"]`;
+				const newMeta = doc.head.querySelector(selector);
+				if (newMeta) {
+					// remove existing meta(s)
+					document.head.querySelectorAll(selector).forEach(n => n.parentNode.removeChild(n));
+					// append clone
+					document.head.appendChild(newMeta.cloneNode(true));
+				}
+			});
+		} catch (e) {
+			console.warn('Failed to update meta tags:', e);
+		}
+	}
 	
 	// Extract blog loading logic into separate function
 	function loadBlogContent(blogId) {
@@ -417,6 +757,8 @@ document.addEventListener('DOMContentLoaded', function() {
 			const newContent = doc.getElementById('blog-main-content');
 			
 			if (newContent) {
+				// Update head meta/title so client-side state reflects the loaded article
+				updateHeadMetaFromDoc(doc);
 				mainContent.style.opacity = '0';
 				
 				setTimeout(() => {

@@ -37,19 +37,28 @@ class BlogController extends Controller
         }
 
         try {
+            // If a specific blog ID was requested, fetch it directly (fast lookup).
+            if ($blogId) {
+                $main = DB::table('blogs')
+                    ->select('blog_id', 'title', 'author', 'date', 'body', 'image_path', 'clicks')
+                    ->where('blog_id', $blogId)
+                    ->first();
+            }
+
+            // Load a limited set of recent posts for the sidebar to avoid scanning a huge table.
             $recent = DB::table('blogs')
                 ->select('blog_id', 'title', 'author', 'date', 'body', 'image_path', 'clicks')
                 ->orderByDesc('id')
+                ->limit(50)
                 ->get();
+
+            // If specific blog wasn't found above (maybe null), fall back to sidebar list's first item
+            if (empty($main) && $recent->count() > 0) {
+                $main = $recent->first();
+            }
         } catch (\Throwable $e) {
             $dbErrorMessage = 'We are temporarily unable to load blogs. Please try again in a few moments.';
             Log::warning('Blog list query failed', ['error' => $e->getMessage()]);
-        }
-
-        if ($blogId && $recent->count() > 0) {
-            $main = $recent->first(fn($b) => $b->blog_id === $blogId) ?: $recent->first();
-        } elseif ($recent->count() > 0) {
-            $main = $recent->first();
         }
 
         // Set cookie for this blog view (expires in 30 days)
