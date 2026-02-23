@@ -25,9 +25,9 @@ class DashboardController extends Controller
             'careers' => $this->safeCountAny(['careers', 'career']),
             'admins' => $this->countActiveAdmins(),
             'unique_authors' => $this->countUniqueBlogAuthors($blogTable),
-            'total_consultations' => $this->safeCount('contacts'), // Changed from consultation to contacts
-            'consultations_today' => $this->safeCountOnDate('contacts', 'sent_date', $today), // Changed column to sent_date
-            'consultations_this_week' => $this->safeCountSince('contacts', 'sent_date', $weekAgo), // Changed column to sent_date
+            'total_consultations' => $this->safeCount('consultation'),
+            'consultations_today' => $this->safeCountOnDate('consultation', 'date_now', $today),
+            'consultations_this_week' => $this->safeCountSince('consultation', 'date_now', $weekAgo),
             'total_contacts' => $this->safeCount('contacts'),
             'contacts_today' => $this->safeCountOnDate('contacts', 'sent_date', $today),
             'total_job_apps' => $this->safeCount('job_applications'),
@@ -37,36 +37,54 @@ class DashboardController extends Controller
             'active_admins' => $this->countActiveAdmins(),
         ];
 
-        [$labels, $consultations, $contacts, $jobApplications] = $this->buildMonthlyTrend();
+        [$labels, $consultations, $contacts, $jobApplications, $campaigns] = $this->buildMonthlyTrend();
 
         $recentActivity = $this->recentActivity();
 
-        $topAuthors = $this->topBlogAuthors($blogTable, 5);
+        $topAuthors = $this->topBlogAuthors($blogTable, 10);
         $topAuthorHighlight = $topAuthors->first();
         
-        // Fetch recent blogs safely with column fallbacks
+        // Fetch recent blogs safely with column fallbacks and author profiles
         $recentBlogs = collect();
         if ($blogTable) {
             $query = DB::table($blogTable);
+            
+            // Try to join with team table for profile pictures
+            if (Schema::hasTable('team')) {
+                $authorCol = $this->resolveBlogAuthorColumn($blogTable);
+                if ($authorCol && Schema::hasColumn('team', 'team_name')) {
+                    $query->leftJoin('team', $blogTable . '.' . $authorCol, '=', 'team.team_name')
+                          ->select($blogTable . '.*', 'team.team_image as author_image');
+                }
+            }
+
             $orderCol = $this->resolveBlogDateColumn($blogTable);
             if ($orderCol) {
-                $query->orderBy($orderCol, 'desc');
+                // Use dateExpression for reliable sorting of string dates
+                $query->orderByRaw($this->dateExpression($blogTable . '.' . $orderCol) . " DESC");
             }
-            $recentBlogs = $query->limit(5)->get();
+            $recentBlogs = $query->limit(10)->get();
+        }
+
+        // Fetch all videos safely
+        $allVideos = collect();
+        if (Schema::hasTable('videos')) {
+            $allVideos = DB::table('videos')->orderBy('id', 'desc')->get();
         }
 
         // Fetch active careers safely with column fallbacks
         $activeCareers = collect();
-        if (Schema::hasTable('careers')) {
-            $query = DB::table('careers');
-            if (Schema::hasColumn('careers', 'status')) {
+        if (Schema::hasTable('career')) {
+            $query = DB::table('career');
+            // If status exists, use it, otherwise show all
+            if (Schema::hasColumn('career', 'status')) {
                 $query->where('status', 'active');
             }
-            $orderCol = Schema::hasColumn('careers', 'id') ? 'id' : (Schema::hasColumn('careers', 'created_at') ? 'created_at' : null);
+            $orderCol = Schema::hasColumn('career', 'id') ? 'id' : (Schema::hasColumn('career', 'created_at') ? 'created_at' : 'job_id');
             if ($orderCol) {
                 $query->orderBy($orderCol, 'desc');
             }
-            $activeCareers = $query->limit(5)->get();
+            $activeCareers = $query->get(); // Pull all active careers
         }
 
         $adminName = $this->resolveAdminName();
@@ -76,6 +94,7 @@ class DashboardController extends Controller
             'recentActivity' => $recentActivity,
             'recentBlogs' => $recentBlogs,
             'activeCareers' => $activeCareers,
+            'allVideos' => $allVideos,
             'topAuthors' => $topAuthors,
             'topAuthorHighlight' => $topAuthorHighlight,
             'monthlyData' => [
@@ -83,6 +102,7 @@ class DashboardController extends Controller
                 'consultations' => $consultations,
                 'contacts' => $contacts,
                 'job_applications' => $jobApplications,
+                'campaigns' => $campaigns,
             ],
             'adminName' => $adminName,
         ]);
@@ -211,25 +231,34 @@ class DashboardController extends Controller
             ->limit($limit)
             ->get();
 
+        $authorImages = collect();
+        if (Schema::hasTable('team') && Schema::hasColumn('team', 'team_name') && Schema::hasColumn('team', 'team_image')) {
+            $names = $results->pluck('author_key')->filter()->unique();
+            $authorImages = DB::table('team')->whereIn('team_name', $names)->pluck('team_image', 'team_name');
+        }
+
         if (in_array($authorCol, ['admin_id', 'user_id']) && Schema::hasTable('admin') && Schema::hasColumn('admin', 'id')) {
             $ids = $results->pluck('author_key')->filter()->unique();
             $adminNames = DB::table('admin')->whereIn('id', $ids)->pluck('name', 'id');
 
-            return $results->map(function ($row) use ($adminNames) {
+            return $results->map(function ($row) use ($adminNames, $authorImages) {
                 $name = $row->author_key !== null
                     ? ($adminNames[$row->author_key] ?? 'Admin #' . $row->author_key)
                     : 'Unknown';
                 return [
                     'name' => $name,
                     'total' => (int) $row->total,
+                    'image' => $authorImages[$name] ?? null,
                 ];
             });
         }
 
-        return $results->map(function ($row) {
+        return $results->map(function ($row) use ($authorImages) {
+            $name = $row->author_key ?? 'Unknown';
             return [
-                'name' => $row->author_key ?? 'Unknown',
+                'name' => $name,
                 'total' => (int) $row->total,
+                'image' => $authorImages[$name] ?? null,
             ];
         });
     }
@@ -240,38 +269,55 @@ class DashboardController extends Controller
         $consultations = [];
         $contacts = [];
         $jobApplications = [];
+        $campaigns = [];
 
         for ($i = 11; $i >= 0; $i--) {
             $start = Carbon::now()->startOfMonth()->subMonths($i);
             $end = Carbon::now()->endOfMonth()->subMonths($i);
 
             $labels[] = $start->format('M');
-            $consultations[] = $this->safeCountBetween('contacts', 'sent_date', $start, $end); // Changed from consultation to contacts
+            $consultations[] = $this->safeCountBetween('consultation', 'date_now', $start, $end);
             $contacts[] = $this->safeCountBetween('contacts', 'sent_date', $start, $end);
             $jobApplications[] = $this->safeCountBetween('job_applications', 'application_date', $start, $end);
+            $campaigns[] = $this->safeCountBetween('campaigns', 'sent_date', $start, $end);
         }
 
-        return [$labels, $consultations, $contacts, $jobApplications];
+        return [$labels, $consultations, $contacts, $jobApplications, $campaigns];
     }
 
     private function recentActivity(): Collection
     {
-        $maxResults = 8;
+        $maxResults = 10;
         $activities = [];
+
+        // Fetch consultations
+        try {
+            $consultations = DB::table('consultation')
+                ->select(DB::raw("'Consultation' as type"), 'name', 'email', 'service_type as detail', 
+                    DB::raw("COALESCE(STR_TO_DATE(date_now, '%d %b %Y'), date_now) as created_at"))
+                ->orderByRaw("COALESCE(STR_TO_DATE(date_now, '%d %b %Y'), date_now) DESC")
+                ->limit(5)
+                ->get()
+                ->map(function($item) { return (array) $item; })
+                ->toArray();
+            $activities = array_merge($activities, $consultations);
+        } catch (\Exception $e) {
+            // Skip
+        }
 
         // Fetch contacts
         try {
             $contacts = DB::table('contacts')
                 ->select(DB::raw("'Contact' as type"), 'name', 'email', 'subject as detail', 
-                    DB::raw("COALESCE(sent_date, DATE(NOW())) as created_at"))
-                ->orderByRaw("COALESCE(sent_date, DATE(NOW())) DESC")
+                    DB::raw("sent_date as created_at"))
+                ->orderBy('sent_date', 'desc')
                 ->limit(5)
                 ->get()
                 ->map(function($item) { return (array) $item; })
                 ->toArray();
             $activities = array_merge($activities, $contacts);
         } catch (\Exception $e) {
-            // Skip if query fails
+            // Skip
         }
 
         // Fetch job applications
@@ -285,51 +331,60 @@ class DashboardController extends Controller
                 ->toArray();
             $activities = array_merge($activities, $applications);
         } catch (\Exception $e) {
-            // Skip if query fails
+            // Skip
+        }
+
+        // Fetch campaigns
+        try {
+            if (Schema::hasTable('campaigns')) {
+                $campaigns = DB::table('campaigns')
+                    ->select(DB::raw("'Campaign' as type"), 'full_name as name', 'business_email as email', 'company_name as detail', 'sent_date as created_at')
+                    ->orderBy('sent_date', 'desc')
+                    ->limit(5)
+                    ->get()
+                    ->map(function($item) { return (array) $item; })
+                    ->toArray();
+                $activities = array_merge($activities, $campaigns);
+            }
+        } catch (\Exception $e) {
+            // Skip
         }
 
         // Fetch admin activities
         try {
             $adminActivities = DB::table('admin_activities')
                 ->leftJoin('admin', 'admin_activities.admin_id', '=', 'admin.id')
-                ->whereNotNull('admin_activities.admin_id') // Only activities from authenticated admins
                 ->select(
                     'admin_activities.created_at', 
-                    DB::raw("CASE 
-                        WHEN admin_activities.action = 'login' THEN 'Login'
-                        WHEN admin_activities.action = 'logout' THEN 'Logout'
-                        WHEN admin_activities.action = 'page_visit' THEN 'Page Visit'
-                        ELSE 'Admin Action'
-                    END as type"),
-                    DB::raw("COALESCE(admin.name, 'Unknown User') as name"),
+                    DB::raw("'Admin Activity' as type"),
+                    DB::raw("COALESCE(admin.name, 'Admin') as name"),
                     DB::raw("COALESCE(admin.email, 'N/A') as email"),
-                    DB::raw("CASE 
-                        WHEN admin_activities.action = 'page_visit' THEN admin_activities.description
-                        ELSE CONCAT(admin_activities.action, ' ', admin_activities.entity_type, 
-                             CASE WHEN admin_activities.entity_id IS NOT NULL THEN CONCAT(' #', admin_activities.entity_id) ELSE '' END,
-                             CASE WHEN admin_activities.description IS NOT NULL THEN CONCAT(' - ', admin_activities.description) ELSE '' END)
-                    END as detail")
+                    DB::raw("CONCAT(admin_activities.action, ' ', COALESCE(admin_activities.description, '')) as detail")
                 )
                 ->orderBy('admin_activities.created_at', 'desc')
-                ->limit(20)
+                ->limit(10)
                 ->get()
                 ->map(function($item) { return (array) $item; })
                 ->toArray();
             $activities = array_merge($activities, $adminActivities);
         } catch (\Exception $e) {
-            // Skip if query fails
+            // Skip
         }
 
         // Sort and limit results
         usort($activities, function($a, $b) {
-            $dateA = strtotime($a['created_at'] ?? '0000-00-00 00:00:00');
-            $dateB = strtotime($b['created_at'] ?? '0000-00-00 00:00:00');
-            return $dateB - $dateA;
+            $dateA = $a['created_at'] ? Carbon::parse($a['created_at']) : Carbon::minValue();
+            $dateB = $b['created_at'] ? Carbon::parse($b['created_at']) : Carbon::minValue();
+            return $dateB->timestamp - $dateA->timestamp;
         });
 
         return collect($activities)
             ->map(function ($item) {
-                $created = isset($item['created_at']) ? Carbon::parse($item['created_at']) : null;
+                try {
+                   $created = $item['created_at'] ? Carbon::parse($item['created_at']) : null;
+                } catch (\Exception $e) {
+                   $created = null;
+                }
 
                 return [
                     'type' => $item['type'] ?? '',
@@ -339,7 +394,6 @@ class DashboardController extends Controller
                     'created_at' => $created,
                 ];
             })
-            ->sortByDesc('created_at')
             ->take($maxResults)
             ->values();
     }
@@ -355,8 +409,12 @@ class DashboardController extends Controller
 
     private function dateExpression(string $column): string
     {
-        $safeColumn = str_replace('`', '', $column);
+        $parts = explode('.', str_replace('`', '', $column));
+        $quotedParts = array_map(function($part) {
+            return "`$part`";
+        }, $parts);
+        $quoted = implode('.', $quotedParts);
 
-        return "DATE(COALESCE(STR_TO_DATE(`{$safeColumn}`, '%d %b %Y'), `{$safeColumn}`))";
+        return "DATE(COALESCE(STR_TO_DATE($quoted, '%d %b %Y'), $quoted))";
     }
 }

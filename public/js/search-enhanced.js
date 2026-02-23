@@ -188,20 +188,28 @@
         },
 
         createResultItem: function (result, index) {
+            let icon = 'fa-file-alt';
+            if (result.page_name.includes('Home')) icon = 'fa-home';
+            else if (result.page_name.includes('Blog')) icon = 'fa-blog';
+            else if (result.page_name.includes('Service')) icon = 'fa-cogs';
+            else if (result.page_name.includes('Contact')) icon = 'fa-envelope';
+            else if (result.page_name.includes('Career') || result.page_name.includes('Job')) icon = 'fa-briefcase';
+            else if (result.page_name.includes('Team')) icon = 'fa-users';
+            else if (result.page_name.includes('Case') || result.page_name.includes('Story')) icon = 'fa-lightbulb';
+
             return `
                 <div class="search-result-item" data-url="${result.page_url}" data-index="${index}" tabindex="0">
                     <div class="search-result-header">
-                        <h4 class="search-result-title">${result.page_name}</h4>
+                        <h4 class="search-result-title"><i class="fa ${icon} result-type-icon"></i> ${result.page_name}</h4>
                         <span class="search-result-page-badge">${result.page_name}</span>
                     </div>
                     <div class="search-result-snippet">${result.snippet}</div>
                     <div class="search-result-meta">
                         <span class="search-result-location">
-                            <i class="fa fa-map-marker-alt"></i>
-                            Position: ${result.position} through page
+                            <i class="fa fa-crosshairs"></i> Exact Match Found
                         </span>
                         <a href="${result.page_url}" class="search-result-link" onclick="event.stopPropagation()">
-                            View Page <i class="fa fa-arrow-right"></i>
+                            Jump to Content <i class="fa fa-bolt"></i>
                         </a>
                     </div>
                 </div>
@@ -538,11 +546,134 @@
     };
 
     // ========================================
+    // CONTENT HIGHLIGHTER (ON PAGE LOAD)
+    // ========================================
+
+    const Highlighter = {
+        init: function () {
+            const urlParams = new URLSearchParams(window.location.search);
+            const query = urlParams.get('highlight');
+
+            if (query && query.length >= 2) {
+                // Remove the parameter from URL without refreshing to keep it clean
+                const newUrl = window.location.pathname + window.location.hash;
+                window.history.replaceState({}, document.title, newUrl);
+
+                // Wait for potential dynamic content to load
+                if (document.readyState === 'complete') {
+                    this.execute(query);
+                } else {
+                    window.addEventListener('load', () => this.execute(query));
+                }
+            }
+        },
+
+        execute: function (query) {
+            setTimeout(() => {
+                this.highlightText(query);
+            }, 600);
+        },
+
+        highlightText: function (text) {
+            const self = this;
+            const term = text.trim();
+            if (!term) return;
+
+            // Handle multiple words by splitting and filtering short ones
+            const words = term.split(/\s+/).filter(word => word.length >= 2);
+            if (words.length === 0) return;
+
+            // Use the full term first, then individual words if needed
+            this.processTerm(term, true);
+        },
+
+        processTerm: function (term, isFullTerm) {
+            const walker = document.createTreeWalker(
+                document.body,
+                NodeFilter.SHOW_TEXT,
+                {
+                    acceptNode: function (node) {
+                        const parent = node.parentElement;
+                        const tagName = parent.tagName.toLowerCase();
+                        
+                        // Skip non-visible or irrelevant elements
+                        if (['script', 'style', 'noscript', 'mark', 'canvas', 'svg'].includes(tagName)) {
+                            return NodeFilter.FILTER_REJECT;
+                        }
+                        
+                        // Check visibility
+                        const style = window.getComputedStyle(parent);
+                        if (style.display === 'none' || style.visibility === 'hidden') {
+                            return NodeFilter.FILTER_REJECT;
+                        }
+
+                        return node.textContent.toLowerCase().includes(term.toLowerCase())
+                            ? NodeFilter.FILTER_ACCEPT
+                            : NodeFilter.FILTER_SKIP;
+                    }
+                },
+                false
+            );
+
+            const nodes = [];
+            while (walker.nextNode()) nodes.push(walker.currentNode);
+
+            if (nodes.length > 0) {
+                let firstHighlight = null;
+
+                nodes.forEach((node) => {
+                    const regex = new RegExp(`(${this.escapeRegExp(term)})`, 'gi');
+                    const span = document.createElement('span');
+                    span.innerHTML = node.textContent.replace(regex, '<mark class="search-highlight">$1</mark>');
+                    
+                    if (!firstHighlight) {
+                        const mark = span.querySelector('.search-highlight');
+                        if (mark) firstHighlight = mark;
+                    }
+                    
+                    node.replaceWith(...span.childNodes);
+                });
+
+                if (firstHighlight) {
+                    this.scrollToElement(firstHighlight);
+                }
+                return true;
+            }
+            return false;
+        },
+
+        scrollToElement: function (el) {
+            setTimeout(() => {
+                const headerOffset = 150;
+                const elementPosition = el.getBoundingClientRect().top;
+                const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+
+                window.scrollTo({
+                    top: offsetPosition,
+                    behavior: 'smooth'
+                });
+
+                el.classList.add('pulse-highlight');
+                
+                // Remove highlight pulse after a while
+                setTimeout(() => {
+                    el.classList.remove('pulse-highlight');
+                }, 5000);
+            }, 300);
+        },
+
+        escapeRegExp: function (string) {
+            return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+    };
+
+    // ========================================
     // INITIALIZATION
     // ========================================
 
     $(document).ready(function () {
         Search.init();
+        Highlighter.init();
         ChatBot.init();
         Banner.init();
         Cookies.init();

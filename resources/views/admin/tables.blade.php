@@ -123,7 +123,12 @@
                                 </tr>
                             </thead>
                             <tbody id="blogsTable">
-                                <tr><td colspan="4" class="text-center"><span class="spinner-border spinner-border-sm"></span></td></tr>
+                                <tr>
+                                    <td class="text-center"><span class="spinner-border spinner-border-sm"></span></td>
+                                    <td>Loading blogs...</td>
+                                    <td></td>
+                                    <td></td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>
@@ -1064,91 +1069,63 @@ $(document).ready(function() {
     
     // Reload blogs table
     function reloadBlogsTable() {
-        $.ajax({
-            url: '/admin/tables/blogs/list?limit=50',
-            type: 'GET',
-            dataType: 'json',
-            timeout: 15000,
-            success: function(response) {
-                const tbody = $('#blogsTable');
-                tbody.empty();
+        if ($.fn.DataTable.isDataTable('#blogsDataTable')) {
+            $('#blogsDataTable').DataTable().ajax.reload();
+        } else {
+            initBlogsDataTable();
+        }
+    }
 
-                // small helpers to validate & escape
-                function safeText(s){ return $('<div/>').text(s || '').html(); }
-                function isValidBlog(b){
-                    if (!b) return false;
-                    const id = b.blog_id || b.id;
-                    // must have an id and at least a title or author
-                    if (!id) return false;
-                    if (!b.title && !b.blog_title && !b.author) return false;
-                    return true;
-                }
+    function initBlogsDataTable() {
+        if ($.fn.DataTable.isDataTable('#blogsDataTable')) {
+            return;
+        }
 
-                // Expected: { success: true, data: [...] }
-                if (response && Array.isArray(response.data)) {
-                    if (response.data.length === 0) {
-                        tbody.html('<tr><td colspan="4" class="text-center text-muted">No blogs found.</td></tr>');
-                        return;
-                    }
-
-                    let validCount = 0;
-                    response.data.forEach(function(blog, idx) {
-                        try {
-                            if (!isValidBlog(blog)) {
-                                console.warn('Skipping invalid blog at index', idx, blog);
-                                return; // skip malformed
-                            }
-
-                            const blogId = blog.blog_id || blog.id;
-                            const title = safeText(blog.title || blog.blog_title || '');
-                            const author = safeText(blog.author || '');
-                            const date = safeText(blog.date || blog.blog_date || '');
-
-                            const btns = `
-                                <div class="action-btns">
-                                    <button class="btn btn-sm btn-info view-blog" data-blog='${JSON.stringify(blog).replace(/'/g, "&apos;")}' title="View">
-                                        <i class="fas fa-eye"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-warning edit-blog" data-blog='${JSON.stringify(blog).replace(/'/g, "&apos;")}' title="Edit">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-danger delete-blog" data-id="${blogId}" title="Delete">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </div>`;
-
-                            const row = `<tr data-id="${blogId}">
-                                <td>${title}</td>
-                                <td>${author}</td>
-                                <td>${date}</td>
-                                <td>${btns}</td>
-                            </tr>`;
-                            tbody.append(row);
-                            validCount++;
-                        } catch (e) {
-                            console.warn('Error rendering blog at index', idx, e, blog);
-                        }
-                    });
-
-                    if (validCount === 0) {
-                        tbody.html('<tr><td colspan="4" class="text-center text-muted">No valid blogs to display.</td></tr>');
-                    }
-                } else {
-                    // Unexpected response (maybe HTML login page on deployed site)
-                    console.warn('Unexpected blogs list response:', response);
-                    tbody.html('<tr><td colspan="4" class="text-center text-danger">Unable to load blogs (unexpected response).</td></tr>');
-                }
+        $('#blogsDataTable').DataTable({
+            processing: true,
+            serverSide: true,
+            ajax: {
+                url: '/admin/tables/blogs/list',
+                type: 'GET'
             },
-            error: function(xhr, status, err) {
-                console.error('Error reloading blogs table:', status, err, xhr);
-                const tbody = $('#blogsTable');
-                let msg = 'Error loading blogs';
-                if (xhr && xhr.status) msg += ': ' + xhr.status + ' ' + (xhr.statusText || '');
-                tbody.html(`<tr><td colspan="4" class="text-center text-danger">${msg}. Check console/network.</td></tr>`);
-            }
+            columns: [
+                { data: null, render: function(data) { return data.title || data.blog_title || 'N/A'; } },
+                { data: 'author', defaultContent: 'N/A' },
+                { data: null, render: function(data) { return data.date || data.blog_date || 'N/A'; } },
+                { 
+                    data: null, 
+                    orderable: false,
+                    render: function(data) {
+                        const blogId = data.blog_id || data.id;
+                        const blogJson = JSON.stringify(data).replace(/'/g, "&apos;");
+                        return `
+                        <div class="action-btns">
+                            <button class="btn btn-sm btn-info view-blog" data-blog='${blogJson}' title="View">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="btn btn-sm btn-warning edit-blog" data-blog='${blogJson}' title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger delete-blog" data-id="${blogId}" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>`;
+                    } 
+                }
+            ],
+            pageLength: 10,
+            lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
+            order: [[0, 'desc']],
+            language: {
+                search: "_INPUT_",
+                searchPlaceholder: "Search blogs...",
+                processing: '<span class="spinner-border spinner-border-sm"></span> Loading...'
+            },
+            responsive: true,
+            autoWidth: false
         });
     }
-    
+
     // Reload videos table
     function reloadVideosTable() {
         $.ajax({
@@ -2440,13 +2417,13 @@ $(document).ready(function() {
     // Initialize DataTables after data loads
     function initializeDataTables() {
         const tables = [
-            { id: '#blogsDataTable', pageLength: 10 },
             { id: '#videosDataTable', pageLength: 10 },
             { id: '#careersDataTable', pageLength: 10 },
             { id: '#socialDataTable', pageLength: 10 },
             { id: '#storiesDataTable', pageLength: 10 },
             { id: '#eventsDataTable', pageLength: 10 },
             { id: '#teamDataTable', pageLength: 10 }
+            // Skip blogsDataTable - initialized separately for Server-Side
             // Skip job application tables - they load via AJAX
         ];
 
@@ -2458,8 +2435,26 @@ $(document).ready(function() {
                 }
                 
                 // Check if table exists and has data
-                if ($(table.id).length && $(table.id).find('tbody tr:not(:empty)').length > 0) {
-                    $(table.id).DataTable({
+                const $target = $(table.id);
+                if ($target.length === 0) return;
+
+                const $tbody = $target.find('tbody');
+                const $rows = $tbody.find('tr').filter(function() {
+                    return $(this).text().trim() !== '' || $(this).find('td').length > 0;
+                });
+
+                if ($rows.length > 0) {
+                    // Validate column count vs header to prevent DT warning (TN18)
+                    const headerCols = $target.find('thead tr:first th').length;
+                    const bodyCols = $rows.first().find('td').length;
+                    const hasColspan = $rows.first().find('td[colspan]').length > 0;
+
+                    if (headerCols > 0 && bodyCols > 0 && (headerCols !== bodyCols || hasColspan)) {
+                        console.warn('Skipping DataTable init for ' + table.id + ' due to column mismatch or colspan.');
+                        return;
+                    }
+
+                    $target.DataTable({
                         pageLength: table.pageLength,
                         lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
                         order: [[0, 'asc']],
@@ -2488,19 +2483,12 @@ $(document).ready(function() {
         });
     }
 
-    // Wrap the original reloadBlogsTable to call DataTables init
-    const originalReloadBlogsTable = window.reloadBlogsTable;
-    window.reloadBlogsTable = function() {
-        if (typeof originalReloadBlogsTable === 'function') {
-            originalReloadBlogsTable();
-            setTimeout(function() {
-                initializeDataTables();
-            }, 300);
-        }
-    };
+    // Initialize DataTables when switching to static content tabs
+    $('#blogs-tab').on('click', function() {
+        reloadBlogsTable();
+    });
 
-    // Initialize DataTables when switching to static content tabs (not job applications)
-    $('#blogs-tab, #videos-tab, #careers-tab, #social-tab, #stories-tab, #events-tab, #team-tab').on('click', function() {
+    $('#videos-tab, #careers-tab, #social-tab, #stories-tab, #events-tab, #team-tab').on('click', function() {
         setTimeout(function() {
             initializeDataTables();
         }, 100);

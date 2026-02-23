@@ -86,7 +86,11 @@
 								<!-- Blog Meta -->
 								<div class="blog-meta">
 									<div class="blog-meta-item">
-										<img src="{{ asset('images/blog/profile.svg') }}" alt="Author">
+										@if(isset($main->author_image) && $main->author_image)
+											<img src="{{ asset('images/team/' . $main->author_image) }}" alt="Author" style="width: 30px; height: 30px; border-radius: 50%; object-fit: cover;">
+										@else
+											<img src="{{ asset('images/blog/profile.svg') }}" alt="Author">
+										@endif
 										<span class="blog-author">{{ $main->author ?? 'Armely Team' }}</span>
 									</div>
 									<div class="blog-meta-item">

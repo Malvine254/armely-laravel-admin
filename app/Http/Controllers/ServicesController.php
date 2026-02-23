@@ -33,19 +33,68 @@ class ServicesController extends Controller
         'Freemiums' => 'freemiums',
     ];
 
+    private array $serviceMap = [
+        'ai' => [
+            'ai consulting', 'ai advisory', 'generative ai', 'ai poc', 'virtual agents'
+        ],
+        'data' => [
+            'estimate your fabric', 'microsoft fabric', 'data science', 'data strategy', 
+            'databricks', 'snowflake', 'sql & data', 'analytics', 'data warehousing',
+            'api data access'
+        ],
+        'digital' => [
+            'powerapps', 'power automate', 'power pages', 'dynamics 365', 
+            'robotic processing', 'sharepoint'
+        ],
+        'managed' => [
+            'sql server support', 'applications support', 'sql support', 'appsupport'
+        ],
+        'advisory' => [
+            'freemium', 'consulting', 'strategy'
+        ]
+    ];
+
     public function index()
     {
-        $services = DB::table('services_lists')
-            ->select('title', 'image', 'body')
-            ->get()
+        $services_query = DB::table('services_lists')
+            ->select('title', 'image', 'body');
+
+        // Note: For now we fetch all since the frontend has a JS-based filter 
+        // that expects all items to be present in the DOM. 
+        // If we want real server-side filtering, we'd need to adjust the JS.
+        $all_services = $services_query->get()
             ->map(function ($service) {
                 $service->url_name = $this->titleToUrl[$service->title] ?? Str::slug($service->title);
+                
+                // Assign category based on title
+                $titleLower = strtolower($service->title);
+                $service->category = 'other';
+                
+                foreach ($this->serviceMap as $cat => $keywords) {
+                    foreach ($keywords as $keyword) {
+                        if (str_contains($titleLower, $keyword)) {
+                            $service->category = $cat;
+                            break 2;
+                        }
+                    }
+                }
+                
                 return $service;
             });
 
+        $counts = [
+            'all' => $all_services->count(),
+            'data' => $all_services->where('category', 'data')->count(),
+            'digital' => $all_services->where('category', 'digital')->count(),
+            'ai' => $all_services->where('category', 'ai')->count(),
+            'managed' => $all_services->where('category', 'managed')->count(),
+            'advisory' => $all_services->where('category', 'advisory')->count(),
+        ];
+
         return view('services', [
-            'services' => $services,
+            'services' => $all_services,
             'titleToUrl' => $this->titleToUrl,
+            'counts' => $counts
         ]);
     }
 

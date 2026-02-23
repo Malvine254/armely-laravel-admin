@@ -76,15 +76,25 @@
     border-radius: 12px;
     padding: 1.5rem;
     box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    height: 420px;
+    height: 480px; /* Increased height for better fit */
+    display: flex;
+    flex-direction: column;
 }
 
 .chart-card h5 {
     color: #2f5597;
     font-weight: 600;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
     border-bottom: 2px solid #e9ecef;
     padding-bottom: 0.75rem;
+    flex-shrink: 0;
+}
+
+.chart-container {
+    position: relative;
+    flex-grow: 1;
+    min-height: 0;
+    width: 100%;
 }
 
 .activity-card {
@@ -226,6 +236,14 @@
     overflow-y: auto;
     padding-right: 0.35rem;
 }
+
+.bg-soft-primary { background-color: rgba(47, 85, 151, 0.1); }
+.bg-soft-info { background-color: rgba(23, 162, 184, 0.1); }
+.bg-soft-success { background-color: rgba(40, 167, 69, 0.1); }
+.bg-soft-warning { background-color: rgba(255, 193, 7, 0.1); }
+.text-primary { color: #2f5597 !important; }
+.text-info { color: #17a2b8 !important; }
+.text-success { color: #28a745 !important; }
 </style>
 @endpush
 
@@ -319,14 +337,18 @@
                 <div class="col-lg-8">
                     <div class="chart-card">
                         <h5><i class="fas fa-chart-line me-2"></i>Activity Trends</h5>
-                        <canvas id="lineChart"></canvas>
+                        <div class="chart-container">
+                            <canvas id="lineChart"></canvas>
+                        </div>
                     </div>
                 </div>
 
                 <div class="col-lg-4">
                     <div class="chart-card">
                         <h5><i class="fas fa-chart-pie me-2"></i>Activity Distribution</h5>
-                        <canvas id="pieChart"></canvas>
+                        <div class="chart-container">
+                            <canvas id="pieChart"></canvas>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -337,9 +359,11 @@
             <!-- Content & Authors Mix -->
             <div class="row g-3 mb-4">
                 <div class="col-lg-12">
-                    <div class="chart-card" style="height: 360px;">
+                    <div class="chart-card" style="height: 380px;">
                         <h5><i class="fas fa-layer-group me-2"></i>Content & Authors Mix</h5>
-                        <canvas id="contentChart"></canvas>
+                        <div class="chart-container">
+                            <canvas id="contentChart"></canvas>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -386,17 +410,28 @@
                                         </div>
                                         <div class="mini-stat">
                                             <h6>Top Author</h6>
-                                            <div class="fw-bold">{{ $topAuthorHighlight['name'] ?? 'N/A' }}</div>
-                                            <div class="text-muted small">{{ $topAuthorHighlight['total'] ?? 0 }} blogs published</div>
+                                            <div class="d-flex align-items-center">
+                                                @if(isset($topAuthorHighlight['image']) && $topAuthorHighlight['image'])
+                                                    <img src="{{ asset('images/team/' . $topAuthorHighlight['image']) }}" class="rounded-circle me-3" width="45" height="45" style="object-fit: cover;" alt="Top Author">
+                                                @else
+                                                    <div class="rounded-circle bg-soft-warning d-flex align-items-center justify-content-center me-3" style="width: 45px; height: 45px;">
+                                                        <i class="fas fa-crown text-warning"></i>
+                                                    </div>
+                                                @endif
+                                                <div>
+                                                    <div class="fw-bold">{{ $topAuthorHighlight['name'] ?? 'N/A' }}</div>
+                                                    <div class="text-muted small">{{ $topAuthorHighlight['total'] ?? 0 }} blogs published</div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                     <div class="col-md-8">
                                         <div class="d-flex justify-content-between align-items-center mb-2">
                                             <strong>Recent Blogs</strong>
-                                            <span class="pill-badge">Latest 5</span>
+                                            <span class="pill-badge">Latest Entries</span>
                                         </div>
                                         @if($recentBlogs->count())
-                                            <div class="list-group list-group-flush">
+                                            <div class="list-group list-group-flush" style="max-height: 400px; overflow-y: auto;">
                                                 @foreach($recentBlogs as $blog)
                                                     @php
                                                         $title = $blog->title ?? $blog->blog_title ?? $blog->name ?? $blog->heading ?? ('Blog #' . ($blog->id ?? ''));
@@ -405,11 +440,22 @@
                                                     @endphp
                                                     <div class="list-group-item px-0">
                                                         <div class="d-flex justify-content-between align-items-center">
-                                                            <div>
-                                                                <div class="fw-bold text-dark">{{ $title }}</div>
-                                                                <div class="text-muted small">
-                                                                    <i class="far fa-user me-1"></i>{{ $author ?? 'Unknown author' }}
-                                                                    <span class="ms-2"><i class="far fa-calendar-alt me-1"></i>{{ $publishedAt ?? 'N/A' }}</span>
+                                                            <div class="d-flex align-items-center">
+                                                                <div class="me-3">
+                                                                    @if(isset($blog->author_image) && $blog->author_image)
+                                                                        <img src="{{ asset('images/team/' . $blog->author_image) }}" class="rounded-circle" width="40" height="40" style="object-fit: cover;" alt="{{ $author }}">
+                                                                    @else
+                                                                        <div class="rounded-circle bg-soft-primary d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                                                            <i class="fas fa-user text-primary"></i>
+                                                                        </div>
+                                                                    @endif
+                                                                </div>
+                                                                <div>
+                                                                    <div class="fw-bold text-dark">{{ $title }}</div>
+                                                                    <div class="text-muted small">
+                                                                        <span class="me-2"><i class="far fa-user me-1"></i>{{ $author ?? 'Unknown author' }}</span>
+                                                                        <span><i class="far fa-calendar-alt me-1"></i>{{ $publishedAt ?? 'N/A' }}</span>
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                             <span class="badge bg-light text-dark">Blog</span>
@@ -426,60 +472,101 @@
 
                             <!-- Authors Tab -->
                             <div class="tab-pane fade" id="pane-authors" role="tabpanel" aria-labelledby="tab-authors">
+                                <div class="mini-stat mb-3">
+                                    <h6>Unique Blog Authors</h6>
+                                    <div class="fs-4 fw-bold text-primary">{{ $stats['unique_authors'] }} authors detected</div>
+                                </div>
                                 @if($topAuthors->count())
-                                    <div class="list-group list-group-flush">
+                                    <div class="list-group list-group-flush" style="max-height: 400px; overflow-y: auto;">
                                         @foreach($topAuthors as $index => $author)
                                             <div class="list-group-item px-0 d-flex justify-content-between align-items-center">
-                                                <div>
-                                                    <span class="pill-badge me-2">#{{ $index + 1 }}</span>
-                                                    <strong>{{ $author['name'] }}</strong>
+                                                <div class="d-flex align-items-center">
+                                                    <span class="pill-badge me-3" style="width: 30px; display: inline-block; text-align: center;">{{ $index + 1 }}</span>
+                                                    <div class="me-3">
+                                                        @if(isset($author['image']) && $author['image'])
+                                                            <img src="{{ asset('images/team/' . $author['image']) }}" class="rounded-circle" width="35" height="35" style="object-fit: cover;" alt="{{ $author['name'] }}">
+                                                        @else
+                                                            <div class="rounded-circle bg-light d-flex align-items-center justify-content-center" style="width: 35px; height: 35px;">
+                                                                <i class="fas fa-user-tie text-muted" style="font-size: 0.8rem;"></i>
+                                                            </div>
+                                                        @endif
+                                                    </div>
+                                                    <strong class="text-dark">{{ $author['name'] }}</strong>
                                                 </div>
-                                                <span class="text-muted">{{ $author['total'] }} blogs</span>
+                                                <span class="badge bg-soft-primary text-primary">{{ $author['total'] }} blogs published</span>
                                             </div>
                                         @endforeach
                                     </div>
                                 @else
-                                    <div class="text-muted">No author data available.</div>
+                                    <div class="text-muted text-center py-4">
+                                        <i class="fas fa-user-edit fa-2x mb-2 opacity-50"></i>
+                                        <p>No author data available.</p>
+                                    </div>
                                 @endif
                             </div>
 
                             <!-- Videos Tab -->
                             <div class="tab-pane fade" id="pane-videos" role="tabpanel" aria-labelledby="tab-videos">
                                 <div class="mini-stat mb-3">
-                                    <h6>Total Videos</h6>
-                                    <div class="fs-3 fw-bold">{{ $stats['videos'] }}</div>
-                                    <div class="text-muted small">Counts from videos/video table</div>
+                                    <h6>Total Video Content</h6>
+                                    <div class="fs-4 fw-bold text-info">{{ $stats['videos'] }} videos found</div>
                                 </div>
-                                <div class="text-muted">Add video performance details once metrics are available.</div>
+                                @if(isset($allVideos) && $allVideos->count())
+                                    <div class="row g-3" style="max-height: 400px; overflow-y: auto; padding: 0.5rem;">
+                                        @foreach($allVideos as $video)
+                                            <div class="col-md-6 mb-3">
+                                                <div class="card h-100 border-0 shadow-sm">
+                                                    <div class="ratio ratio-16x9">
+                                                        {!! str_replace(['width="560"', 'height="315"'], ['', ''], $video->url) !!}
+                                                    </div>
+                                                    <div class="card-footer bg-white py-2">
+                                                        <small class="text-muted">ID: #{{ $video->id }}</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                @else
+                                    <div class="text-muted text-center py-4">
+                                        <i class="fas fa-video-slash fa-2x mb-2 opacity-50"></i>
+                                        <p>No videos found in the database.</p>
+                                    </div>
+                                @endif
                             </div>
 
                             <!-- Careers Tab -->
                             <div class="tab-pane fade" id="pane-careers" role="tabpanel" aria-labelledby="tab-careers">
                                 <div class="mini-stat mb-3">
-                                    <h6>Open Roles</h6>
-                                    <div class="fs-3 fw-bold">{{ $stats['careers'] }}</div>
-                                    <div class="text-muted small">Active positions detected</div>
+                                    <h6>Open Career Opportunities</h6>
+                                    <div class="fs-4 fw-bold text-success">{{ $stats['careers'] }} active positions</div>
                                 </div>
                                 @if($activeCareers->count())
-                                    <div class="list-group list-group-flush">
+                                    <div class="list-group list-group-flush" style="max-height: 400px; overflow-y: auto;">
                                         @foreach($activeCareers as $career)
                                             @php
-                                                $role = $career->title ?? $career->position ?? $career->name ?? ('Role #' . ($career->id ?? ''));
-                                                $location = $career->location ?? $career->city ?? null;
+                                                $role = $career->job_title ?? $career->title ?? $career->position ?? $career->name ?? ('Role #' . ($career->id ?? ''));
+                                                $location = $career->job_location ?? $career->location ?? $career->city ?? 'Remote / N/A';
+                                                $type = $career->job_type ?? $career->type ?? 'N/A';
                                             @endphp
-                                            <div class="list-group-item px-0 d-flex justify-content-between align-items-center">
-                                                <div>
-                                                    <div class="fw-bold text-dark">{{ $role }}</div>
-                                                    @if($location)
-                                                        <div class="text-muted small"><i class="fas fa-map-marker-alt me-1"></i>{{ $location }}</div>
-                                                    @endif
+                                            <div class="list-group-item px-0 py-3">
+                                                <div class="d-flex justify-content-between align-items-start">
+                                                    <div>
+                                                        <div class="fw-bold text-dark fs-5">{{ $role }}</div>
+                                                        <div class="text-muted small mt-1">
+                                                            <span class="me-3"><i class="fas fa-map-marker-alt me-1 text-danger"></i>{{ $location }}</span>
+                                                            <span><i class="fas fa-clock me-1 text-primary"></i>{{ $type }}</span>
+                                                        </div>
+                                                    </div>
+                                                    <span class="badge rounded-pill bg-soft-success text-success px-3">Active</span>
                                                 </div>
-                                                <span class="badge bg-light text-dark">Active</span>
                                             </div>
                                         @endforeach
                                     </div>
                                 @else
-                                    <div class="text-muted">No active career entries found.</div>
+                                    <div class="text-muted text-center py-4">
+                                        <i class="fas fa-briefcase fa-2x mb-2 opacity-50"></i>
+                                        <p>No active career entries found.</p>
+                                    </div>
                                 @endif
                             </div>
                         </div>
@@ -666,18 +753,37 @@
                         pointBackgroundColor: '#ffc107',
                         pointBorderColor: '#fff',
                         pointBorderWidth: 2
+                    },
+                    {
+                        label: 'Campaigns',
+                        data: {!! json_encode($monthlyData['campaigns'] ?? []) !!},
+                        borderColor: '#28a745',
+                        backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        pointBackgroundColor: '#28a745',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2
                     }
                 ]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                layout: {
+                    padding: {
+                        top: 10,
+                        bottom: 10
+                    }
+                },
                 plugins: {
                     legend: {
                         position: 'top',
                         labels: {
                             usePointStyle: true,
-                            padding: 15,
+                            padding: 20,
                             font: { size: 12, weight: '600' }
                         }
                     },
@@ -735,11 +841,14 @@
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                layout: {
+                    padding: 20
+                },
                 plugins: {
                     legend: {
                         position: 'bottom',
                         labels: {
-                            padding: 15,
+                            padding: 25,
                             usePointStyle: true,
                             font: { size: 12, weight: '600' }
                         }

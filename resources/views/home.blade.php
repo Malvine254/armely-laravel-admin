@@ -2,6 +2,535 @@
 
 @php($title = 'Home')
 
+@push('styles')
+<style>
+    .portfolio .section-title h2,
+    .blog .section-title h2,
+    .video-section .section-title h2,
+    .clients-section .section-title h2 {
+        font-size: 2.8rem;
+        font-weight: 800;
+        color: #1a1a1a;
+        margin-bottom: 0;
+    }
+    
+    .portfolio .hr,
+    .blog .hr,
+    .video-section .hr,
+    .clients-section .hr {
+        width: 100px;
+        height: 6px;
+        border: none;
+        border-radius: 5px;
+        margin-top: 15px;
+        background: #2f5597 !important;
+    }
+
+    .portfolio .single-pf {
+        padding: 15px !important;
+    }
+
+    .portfolio .card-wrapper {
+        background: #fff;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+        height: 100%;
+        border: 1px solid rgba(0,0,0,0.03);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .portfolio .card-wrapper:hover {
+        transform: translateY(-12px);
+        box-shadow: 0 20px 50px rgba(47, 85, 151, 0.15);
+        border-color: rgba(47, 85, 151, 0.2);
+    }
+
+    .portfolio .image-container {
+        position: relative;
+        height: 180px;
+        overflow: hidden;
+        margin: 15px;
+        border-radius: 15px;
+    }
+
+    .portfolio .image-container img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.6s ease;
+    }
+
+    .portfolio .card-wrapper:hover .image-container img {
+        transform: scale(1.1);
+    }
+
+    .portfolio .image-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(to top, rgba(0,0,0,0.4) 0%, transparent 100%);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .portfolio .card-wrapper:hover .image-overlay {
+        opacity: 1;
+    }
+
+    .portfolio .card-body {
+        padding: 0 25px 25px;
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .portfolio .label {
+        font-size: 0.7rem;
+        font-weight: 800;
+        color: #2f5597;
+        text-transform: uppercase;
+        letter-spacing: 1.2px;
+        margin-bottom: 8px;
+        display: block;
+        opacity: 0.8;
+    }
+
+    .portfolio .card-body h4 {
+        font-size: 1.3rem;
+        font-weight: 800;
+        color: #1a1a1a;
+        line-height: 1.2;
+        margin-bottom: 15px;
+        transition: color 0.3s ease;
+        min-height: 2.4em;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+    }
+
+    .portfolio .card-wrapper:hover .card-body h4 {
+        color: #2f5597;
+    }
+
+    .portfolio .card-body p {
+        font-size: 0.9rem;
+        color: #555;
+        line-height: 1.5;
+        margin-bottom: 20px;
+        min-height: 4.5em;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+    }
+
+    .portfolio .card-btn {
+        margin-top: auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 24px;
+        border-radius: 12px;
+        font-weight: 700;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        border: none;
+        position: relative;
+        z-index: 10;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+
+    .portfolio .card-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+        color: #fff !important;
+        text-decoration: none;
+    }
+
+    .portfolio .card-wrapper:hover .card-btn {
+        opacity: 1;
+    }
+
+    .portfolio .card-btn i {
+        transition: transform 0.3s ease;
+        font-size: 1.1rem;
+    }
+
+    .portfolio .card-btn:hover i {
+        transform: translateX(5px);
+    }
+
+    .portfolio .explore-btn, 
+    .blog .explore-btn,
+    .video-section .explore-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        color: #2f5597;
+        font-size: 1.1rem;
+        font-weight: 800;
+        text-decoration: none;
+        padding: 15px 0;
+        transition: all 0.3s ease;
+    }
+
+    .portfolio .explore-btn:hover,
+    .blog .explore-btn:hover,
+    .video-section .explore-btn:hover {
+        gap: 15px;
+        color: #1e3a6d;
+    }
+
+    /* Blog Section Enhancements */
+    .blog.section {
+        background: #f8faff;
+        padding: 100px 0;
+    }
+
+    .blog-card-wrapper {
+        background: #fff;
+        border-radius: 28px;
+        overflow: hidden;
+        box-shadow: 0 15px 40px rgba(0,0,0,0.04);
+        transition: all 0.5s cubic-bezier(0.165, 0.84, 0.44, 1);
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 30px;
+        border: 1px solid rgba(0,0,0,0.03);
+        text-align: center;
+    }
+
+    .blog-card-wrapper:hover {
+        transform: translateY(-12px);
+        box-shadow: 0 25px 50px rgba(0,0,0,0.08);
+    }
+
+    .blog-image-box {
+        position: relative;
+        height: 230px;
+        overflow: hidden;
+    }
+
+    .blog-image-box img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 1s ease;
+    }
+
+    .blog-category-tag {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        background: #fff;
+        color: #1a1a1a;
+        padding: 6px 16px;
+        border-radius: 50px;
+        font-size: 0.7rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 1.2px;
+        z-index: 2;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+
+    .blog-content {
+        padding: 40px 30px;
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .blog-author-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+
+    .author-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px; /* Squircle style like screenshot */
+        object-fit: cover;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+
+    .author-details {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 0.95rem;
+        color: #333;
+        font-weight: 700;
+    }
+
+    .author-details span:first-child {
+        color: #1a1a1a;
+    }
+
+    .author-details span:last-child {
+        color: #666;
+        font-size: 0.85rem;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .blog-title {
+        font-size: 1.65rem;
+        font-weight: 700; /* Robust but clean */
+        color: #1a1a1a;
+        line-height: 1.35;
+        margin-bottom: 30px;
+        transition: color 0.3s ease;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        min-height: 2.7em;
+        font-family: 'Poppins', sans-serif; /* Assuming Poppins is available */
+    }
+
+    .blog-card-wrapper:hover .blog-title {
+        color: #2f5597; /* Use brand blue explicitly */
+    }
+
+    .blog-footer {
+        margin-top: auto;
+        padding-top: 30px;
+        border-top: 1px solid #efefef;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+    }
+
+    .blog-date {
+        font-size: 0.95rem;
+        font-weight: 800;
+        color: #777;
+        letter-spacing: -0.1px;
+    }
+
+    .blog-btn-circle {
+        background: #2f5597; /* Explicit brand blue */
+        color: #fff !important; /* Force white arrow */
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        box-shadow: 0 8px 20px rgba(47, 85, 151, 0.25);
+        border: none;
+        text-decoration: none;
+    }
+
+    .blog-btn-circle i {
+        font-weight: 900;
+        font-size: 1.2rem;
+        color: #fff !important;
+    }
+
+    .blog-card-wrapper:hover .blog-btn-circle {
+        background: #111;
+        color: #fff !important;
+        transform: scale(1.15) rotate(-45deg);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    }
+
+    @media (max-width: 768px) {
+        .blog.section { padding: 60px 0; }
+        .blog-card-wrapper { margin-bottom: 25px; }
+        .blog-title { font-size: 1.35rem; }
+    }
+
+    /* Clients/Brands Section */
+    .clients-section {
+        padding: 100px 0;
+        background: #fff;
+    }
+
+    .partner-carousel .m-4 {
+        background: #fff;
+        padding: 35px 25px;
+        border-radius: 20px;
+        transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 160px;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.04);
+        border: 1px solid #f2f4f7;
+        margin: 15px !important; /* Proper spacing between cards */
+    }
+
+    .partner-carousel .m-4:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 20px 40px rgba(47, 85, 151, 0.12);
+        border-color: rgba(47, 85, 151, 0.2);
+        background: #ffffff;
+    }
+
+    .partner-carousel img {
+        filter: none;
+        opacity: 1;
+        transition: all 0.4s ease;
+        max-height: 100px;
+        max-width: 90%;
+        width: auto !important;
+        height: auto !important;
+        margin: 0 auto;
+        object-fit: contain;
+    }
+
+    .partner-carousel .m-4:hover img {
+        transform: scale(1.08);
+    }
+
+    @media (max-width: 768px) {
+        .clients-section {
+            padding: 60px 0;
+        }
+        .clients-section .section-title h2 {
+            font-size: 2.2rem;
+        }
+    }
+
+    /* Video Section Enhancements */
+    .video-section {
+        padding: 100px 0;
+        background: #fcfcfc;
+    }
+
+    .video-card-wrapper {
+        position: relative;
+        background: #fff;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        transition: all 0.4s ease;
+        margin-bottom: 30px;
+        border: 1px solid rgba(0,0,0,0.02);
+    }
+
+    .video-card-wrapper:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 15px 40px rgba(0,0,0,0.12);
+    }
+
+    /* Mobile adjustments for video section */
+    @media (max-width: 768px) {
+        .video-section {
+            padding: 60px 0;
+        }
+        .video-section .section-title h2 {
+            font-size: 2rem;
+        }
+        .video-info {
+            padding: 15px 20px;
+        }
+        .video-title-text {
+            font-size: 1rem !important;
+        }
+        .play-button-modern {
+            width: 55px;
+            height: 55px;
+            font-size: 18px;
+        }
+    }
+
+    .lazy-video {
+        position: relative;
+        aspect-ratio: 16/9;
+        cursor: pointer;
+    }
+
+    .play-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+    }
+
+    .lazy-thumb {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.5s ease;
+    }
+
+    .video-card-wrapper:hover .lazy-thumb {
+        transform: scale(1.05);
+    }
+
+    .play-button-modern {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 70px;
+        height: 70px;
+        background: var(--default-background);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 24px;
+        box-shadow: 0 0 0 0 rgba(47, 85, 151, 0.4);
+        animation: pulse-blue 2s infinite;
+        z-index: 5;
+        transition: all 0.3s ease;
+    }
+
+    .video-card-wrapper:hover .play-button-modern {
+        background: #fff;
+        color: var(--default-background);
+        transform: translate(-50%, -50%) scale(1.1);
+    }
+
+    .video-info {
+        padding: 20px 25px;
+    }
+
+    .video-tag {
+        font-size: 0.7rem;
+        font-weight: 800;
+        color: var(--default-background);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 8px;
+        display: block;
+    }
+
+    .video-title-text {
+        font-size: 1.1rem;
+        font-weight: 800;
+        color: #1a1a1a;
+        line-height: 1.4;
+        margin-bottom: 0;
+    }
+
+    @keyframes pulse-blue {
+        0% { transform: translate(-50%, -50%) scale(0.95); box-shadow: 0 0 0 0 rgba(47, 85, 151, 0.7); }
+        70% { transform: translate(-50%, -50%) scale(1); box-shadow: 0 0 0 15px rgba(47, 85, 151, 0); }
+        100% { transform: translate(-50%, -50%) scale(0.95); box-shadow: 0 0 0 0 rgba(47, 85, 151, 0); }
+    }
+</style>
+@endpush
+
 @section('content')
 <section class="slider">
     <div class="hero-slider">
@@ -59,13 +588,20 @@
     </div></div></div>
 </section>
 
-<section id="clients" class="wow fadeInUp blog">
+<section id="clients" class="clients-section section">
     <div class="container">
-        <div class="section-header">
-            <h2 class="section-title"><b>Brands that Trust Us</b><center><hr class="default-background hr"></center></h2>
-            <p class="text-center">We’re proud to work alongside some truly trusted brands. Together, we’re focused on delivering real value, innovation, and quality. A huge thank you to our partners for their ongoing support and commitment to excellence.</p>
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="section-title text-center mb-5">
+                    <h2>Brands that Trust Us</h2>
+                    <center><hr class="default-background hr"></center>
+                    <p class="text-center mt-3" style="max-width: 800px; margin: 0 auto; color: #666; font-size: 1.1rem; line-height: 1.6;">
+                        We’re proud to work alongside some truly trusted brands. Together, we’re focused on delivering real value, innovation, and quality. A huge thank you to our partners for their ongoing support and commitment to excellence.
+                    </p>
+                </div>
+            </div>
         </div>
-        <div class="owl-carousel clients-carousel partner-carousel" style="content-visibility:auto; contain-intrinsic-size: 1px 320px;">
+        <div class="owl-carousel clients-carousel partner-carousel mt-4">
             <div class="m-4"><a href="{{ asset('images/brand-partners/university_of_nebrask1.png') }}" target="_blank" rel="noopener noreferrer"><img src="https://cdn.freelogovectors.net/wp-content/uploads/2023/07/university_of_nebraska_medical_center_logo-freelogovectors.net_.png" class="img-fluid lazy-img" loading="lazy" decoding="async" alt="University of Nebraska Medical Center logo" width="200" height="80"></a></div>
             <div class="m-4"><a href="{{ asset('images/brand-partners/swope_health.png') }}" target="_blank" rel="noopener noreferrer"><img src="https://swopehealth.org/wp-content/uploads/2024/03/Swope-Health-Services-244462845.png" alt="Swope Health Services logo" class="img-fluid lazy-img" loading="lazy" decoding="async" width="200" height="80"></a></div>
             <div class="m-4"><a href="{{ asset('images/brand-partners/esse_health.jpg') }}" target="_blank" rel="noopener noreferrer"><img src="https://assets.libsyn.com/content/17315963?height=250&width=250&overlay=true" alt="Esse Health logo" class="img-fluid lazy-img" loading="lazy" decoding="async" width="200" height="80"></a></div>
@@ -81,22 +617,47 @@
     </div>
 </section>
 
-<section class="portfolio">
-    <div class="container"><div class="row"><div class="col-lg-12"><div class="section-title mt-5"><h2>Case Studies</h2><center><hr class="default-background hr"></center></div></div></div></div>
-    <div class="container-fluid" style="content-visibility:auto; contain-intrinsic-size: 1px 800px;">
-        <div class="row"><div class="col-lg-12 col-12"><div class="owl-carousel portfolio-slider">
+<section class="portfolio py-5">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="section-title text-center mb-5">
+                    <h2>Case Studies</h2>
+                    <center><hr class="default-background hr"></center>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="owl-carousel portfolio-slider">
             @foreach($industryListings as $listing)
-                <div class="single-pf p-2" style="min-block-size: 360px;">
-                    <div class="p-4 card-shadow shadow">
-                        <img src="{{ $listing->image_path }}" alt="Industry Image" class="img-fluid lazy-img" loading="lazy" decoding="async">
-                        <a href="{{ $listing->pdf_link }}" id="listing-{{ $listing->id }}" class="btn" target="_blank">View Details</a>
-                        <h6 class="mt-2"><strong class="default-color">Industry: {{ $listing->category }}</strong></h6>
-                        <p>{{ $listing->excerpt }}</p>
+                <div class="single-pf">
+                    <div class="card-wrapper">
+                        <div class="image-container">
+                            <img src="{{ $listing->image_path }}" alt="{{ $listing->category }}" class="img-fluid lazy-img" loading="lazy" decoding="async">
+                            <div class="image-overlay"></div>
+                        </div>
+                        <div class="card-body">
+                            <span class="label">Industry: {{ $listing->category }}</span>
+                            <h4>{{ $listing->category }} Transformation Solution</h4>
+                            <p>{{ Str::limit($listing->excerpt, 100) }}</p>
+                            <a href="{{ $listing->pdf_link }}" class="card-btn default-background text-light" target="_blank">
+                                <span>View Details</span>
+                                <i class="fa fa-arrow-right"></i>
+                            </a>
+                        </div>
                     </div>
                 </div>
             @endforeach
-        </div></div></div>
-        <div class="default-color h4 p-2"><a class="animated-text" href="/case-studies"><strong>Explore all Case Studies >>></strong></a></div>
+        </div>
+        
+        <div class="text-center mt-5">
+            <a class="explore-btn" href="/case-studies">
+                <strong>Explore all Case Studies</strong>
+                <i class="fa fa-long-arrow-right"></i>
+            </a>
+        </div>
     </div>
 </section>
 
@@ -114,46 +675,101 @@
 
 <section class="blog section" id="blog">
     <div class="container">
-        <div class="row"><div class="col-lg-12"><div class="section-title"><h2>Our Most Recent Blog Articles</h2><center><hr class="default-background hr"></center></div></div></div>
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="section-title text-center mb-5">
+                    <h2>Our Most Recent Blog Articles</h2>
+                    <center><hr class="default-background hr"></center>
+                </div>
+            </div>
+        </div>
+        
         <div class="row">
             @forelse($blogs as $blog)
-                <div class="col-lg-4 col-md-6 col-12" data-aos="fade-in">
-                    <div class="single-news" style="block-size: 430px; max-block-size: 430px;">
-                        <div class="news-head"><img class="lazy-img" loading="lazy" decoding="async" style="block-size: 200px; max-block-size: 200px;" src="{{ $blog->image_path }}" alt="#"></div>
-                        <div class="news-body"><div class="news-content">
-                            <div class="date">{{ $blog->date }}.</div>
-                            <h6 class="text-muted">{{ $blog->author }} |<span>{{ $blog->reading_time }} min read</span></h6>
-                            <h2><a href="{{ route('blog.index', ['blogId' => $blog->blog_id]) }}">{{ $blog->title }}</a></h2>
-                            <a class="default-color" href="{{ route('blog.index', ['blogId' => $blog->blog_id]) }}">READ MORE<i class="fa fa-long-arrow-right"></i></a>
-                        </div></div>
-                    </div>
+                <div class="col-lg-4 col-md-6 col-12" data-aos="fade-up">
+                    <article class="blog-card-wrapper">
+                        <div class="blog-image-box">
+                            <img class="lazy-img" loading="lazy" src="{{ $blog->image_path }}" alt="{{ $blog->title }}">
+                            <div class="blog-category-tag">Insight</div>
+                        </div>
+                        <div class="blog-content">
+                            <div class="blog-author-info">
+                                <img src="{{ $blog->author_image ? asset('images/team/' . $blog->author_image) : asset('images/defaults/avatar.webp') }}" class="author-avatar" alt="Author">
+                                <div class="author-details">
+                                    <span>{{ $blog->author }}</span>
+                                    <span><i class="fa fa-clock-o"></i> {{ $blog->reading_time }} min</span>
+                                </div>
+                            </div>
+                            <h4 class="blog-title">
+                                <a href="{{ route('blog.index', ['blogId' => $blog->blog_id]) }}">{{ $blog->title }}</a>
+                            </h4>
+                            <div class="blog-footer">
+                                <span class="blog-date">{{ \Carbon\Carbon::parse($blog->date)->format('M d, Y') }}</span>
+                                <a href="{{ route('blog.index', ['blogId' => $blog->blog_id]) }}" class="blog-btn-circle">
+                                    <i class="fa fa-arrow-right"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </article>
                 </div>
             @empty
-                <p>No blog articles found.</p>
+                <div class="col-12 text-center">
+                    <p class="text-muted">No blog articles found at this time.</p>
+                </div>
             @endforelse
         </div>
-        <div class="default-color h4 p-2 mt-4"><a class="animated-text" href="/blog"><strong>Explore all Blogs >>></strong></a></div>
+        
+        <div class="text-center mt-5">
+            <a class="explore-btn" href="/blog">
+                <strong>View All Insights</strong>
+                <i class="fa fa-long-arrow-right"></i>
+            </a>
+        </div>
     </div>
 </section>
 
-<section class="">
+<section class="video-section">
     <div class="container">
-        <div class="row"><div class="col-lg-12"><div class="section-title"><h2>See Our Most Recent Videos</h2><center><hr class="default-background hr"></center></div></div></div>
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="section-title text-center mb-5">
+                    <h2>Our Most Recent Videos</h2>
+                    <center><hr class="default-background hr"></center>
+                </div>
+            </div>
+        </div>
+        
         <div class="row">
             @forelse($videos as $video)
-                <div class="col-lg-4 col-md-12 col-12">
-                    <div class="lazy-video" data-src="https://www.youtube.com/embed/{{ $video->video_id }}?autoplay=1">
-                        <div class="play-overlay">
-                            <img src="https://img.youtube.com/vi/{{ $video->video_id }}/hqdefault.jpg" class="lazy-thumb" alt="Video Thumbnail">
-                            <div class="play-button"></div>
+                <div class="col-lg-4 col-md-6 col-12">
+                    <div class="video-card-wrapper">
+                        <div class="lazy-video" data-src="https://www.youtube.com/embed/{{ $video->video_id }}?autoplay=1">
+                            <div class="play-overlay">
+                                <img src="https://img.youtube.com/vi/{{ $video->video_id }}/hqdefault.jpg" class="lazy-thumb" alt="Video Thumbnail">
+                                <div class="play-button-modern">
+                                    <i class="fa fa-play"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="video-info">
+                            <span class="video-tag">YouTube Series</span>
+                            <h4 class="video-title-text">{{ $video->video_title ?? 'Expert Digital Insights' }}</h4>
                         </div>
                     </div>
                 </div>
             @empty
-                <p>No video was found!</p>
+                <div class="col-12 text-center">
+                    <p class="text-muted">No videos found at this time.</p>
+                </div>
             @endforelse
         </div>
-        <div class="default-color h4 p-2"><a class="animated-text" href="https://www.youtube.com/@armelyarmely"><strong>Explore all Videos >>></strong></a></div>
+        
+        <div class="text-center mt-4">
+            <a class="explore-btn" href="https://www.youtube.com/@armelyarmely" target="_blank">
+                <strong>Explore more on YouTube</strong>
+                <i class="fa fa-long-arrow-right"></i>
+            </a>
+        </div>
     </div>
 </section>
 

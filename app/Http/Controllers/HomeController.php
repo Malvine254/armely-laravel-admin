@@ -729,8 +729,17 @@ class HomeController extends Controller
     {
         return $this->safeDb(function () {
             return DB::table('blogs')
-                ->select('blog_id', 'title', 'author', 'date', 'body', 'image_path')
-                ->orderByDesc('id')
+                ->leftJoin('team', 'blogs.author', '=', 'team.team_name')
+                ->select(
+                    'blogs.blog_id', 
+                    'blogs.title', 
+                    'blogs.author', 
+                    'blogs.date', 
+                    'blogs.body', 
+                    'blogs.image_path',
+                    'team.team_image as author_image'
+                )
+                ->orderByDesc('blogs.id')
                 ->limit(3)
                 ->get()
                 ->map(function ($blog) {

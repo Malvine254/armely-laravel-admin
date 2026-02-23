@@ -473,6 +473,44 @@
 		padding: 1.4rem 1.25rem !important;
 		gap: 0.55rem;
 		text-align: left !important;
+		transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+		border: 1px solid rgba(255, 255, 255, 0.1);
+	}
+
+	.pricing-table .single-table:hover {
+		transform: translateY(-10px);
+		box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3) !important;
+		border-color: rgba(255, 255, 255, 0.3);
+	}
+
+	.pricing-table .single-table .icon {
+		width: 60px;
+		height: 60px;
+		display: flex !important;
+		align-items: center;
+		justify-content: center;
+		margin: 0 0 6px;
+		flex-shrink: 0;
+		border-radius: 12px;
+		transition: transform 0.3s ease;
+		background: rgba(255, 255, 255, 0.1);
+	}
+
+	.pricing-table .single-table:hover .icon {
+		transform: scale(1.1) rotate(5deg);
+		background: rgba(255, 255, 255, 0.2);
+	}
+
+	.pricing-table .single-table .title {
+		margin: 4px 0 0 !important;
+		font-size: 1.15rem !important;
+		letter-spacing: 0.5px;
+		font-weight: 700 !important;
+		line-height: 1.3;
+		flex-shrink: 0;
+		min-height: auto;
+		display: block;
+		text-align: left !important;
 	}
 
 	.pricing-table .single-table .table-head {
@@ -486,17 +524,6 @@
 		gap: 0.4rem;
 	}
 
-	.pricing-table .single-table .icon {
-		width: 60px;
-		height: 60px;
-		display: flex !important;
-		align-items: center;
-		justify-content: center;
-		margin: 0 0 6px;
-		flex-shrink: 0;
-		border-radius: 12px;
-	}
-
 	.pricing-table .single-table .icon i {
 		font-size: 2.2rem !important;
 		line-height: 1 !important;
@@ -504,14 +531,9 @@
 		color: #fff !important;
 	}
 
-	.pricing-table .single-table .title {
-		margin: 4px 0 0 !important;
-		font-size: 1.05rem !important;
-		line-height: 1.3;
+	.pricing-table .single-table .table-list {
+		margin-top: auto;
 		flex-shrink: 0;
-		min-height: auto;
-		display: block;
-		text-align: left !important;
 	}
 
 	.pricing-table .single-table .price {
@@ -547,22 +569,22 @@
 		</div>
 		<div class="category-filters">
 			<button class="filter-btn active" data-filter="all">
-				All <span class="service-count" id="count-all">0</span>
+				All <span class="service-count" id="count-all">{{ $counts['all'] }}</span>
 			</button>
 			<button class="filter-btn" data-filter="data">
-				Data <span class="service-count" id="count-data">0</span>
+				Data <span class="service-count" id="count-data">{{ $counts['data'] }}</span>
 			</button>
 			<button class="filter-btn" data-filter="digital">
-				Digital <span class="service-count" id="count-digital">0</span>
+				Digital <span class="service-count" id="count-digital">{{ $counts['digital'] }}</span>
 			</button>
 			<button class="filter-btn" data-filter="ai">
-				AI & ML <span class="service-count" id="count-ai">0</span>
+				AI & ML <span class="service-count" id="count-ai">{{ $counts['ai'] }}</span>
 			</button>
 			<button class="filter-btn" data-filter="managed">
-				Managed <span class="service-count" id="count-managed">0</span>
+				Managed <span class="service-count" id="count-managed">{{ $counts['managed'] }}</span>
 			</button>
 			<button class="filter-btn" data-filter="advisory">
-				Advisory <span class="service-count" id="count-advisory">0</span>
+				Advisory <span class="service-count" id="count-advisory">{{ $counts['advisory'] }}</span>
 			</button>
 		</div>
 	</div>
@@ -593,9 +615,9 @@
 						@php
 							$iconClass = $service->image && trim($service->image) !== '' ? $service->image : 'icofont-ui-settings';
 						@endphp
-						<div class="col-lg-4 col-md-12 col-12">
-							<div class="single-table card-shadow default-background" style="max-block-size: 350px; min-block-size: 340px;">
-								<a class="text-light" href="{{ route('service-details', ['name' => Str::slug($service->title)]) }}" style="text-decoration: none;">
+						<div class="col-lg-4 col-md-6 col-12 mb-4 service-card-wrapper" data-category="{{ $service->category }}">
+							<div class="single-table card-shadow default-background h-100">
+								<a class="text-light" href="{{ route('service-details', ['name' => $service->url_name]) }}" style="text-decoration: none;">
 									<div class="table-head">
 										<div class="icon text-light">
 											<i class="icofont text-light {{ $iconClass }}"></i>
@@ -772,60 +794,14 @@ document.addEventListener('DOMContentLoaded', function() {
 	}
 
 	function filterServices() {
-		const services = servicesContainer.querySelectorAll('.single-table');
+		const services = servicesContainer.querySelectorAll('.service-card-wrapper');
 		let visibleCount = 0;
-
-		// Service mapping based on exact database titles
-		const serviceMap = {
-			'ai': [
-				'ai consulting',
-				'ai advisory',
-				'generative ai',
-				'ai poc'
-			],
-			'data': [
-				'estimate your fabric',
-				'microsoft fabric',
-				'data science',
-				'data strategy',
-				'databricks',
-				'snowflake',
-				'sql & data'
-			],
-			'digital': [
-				'api data access',
-				'powerapps',
-				'power automate',
-				'power virtual agents',
-				'power pages',
-				'dynamics 365',
-				'robotic processing',
-				'sharepoint'
-			],
-			'managed': [
-				'sql server support',
-				'applications support'
-			],
-			'advisory': [
-				'freemium'
-			]
-		};
 
 		services.forEach(service => {
 			const title = service.querySelector('h4') ? service.querySelector('h4').textContent.toLowerCase() : '';
 			const description = service.querySelector('p') ? service.querySelector('p').textContent.toLowerCase() : '';
-			const fullText = (title + ' ' + description).toLowerCase();
+			const category = service.getAttribute('data-category');
 			
-			// Determine category by checking service map
-			let category = 'other';
-			
-			for (const [cat, keywords] of Object.entries(serviceMap)) {
-				if (keywords.some(keyword => fullText.includes(keyword))) {
-					category = cat;
-					break;
-				}
-			}
-
 			// Check if service matches current filter and search
 			const matchesFilter = currentFilter === 'all' || category === currentFilter;
 			const matchesSearch = searchTerm === '' || 
@@ -846,85 +822,15 @@ document.addEventListener('DOMContentLoaded', function() {
 		// Show/hide no results message
 		if (visibleCount === 0) {
 			noResults.style.display = 'block';
-			noResults.style.animation = 'fadeIn 0.5s ease';
 		} else {
 			noResults.style.display = 'none';
 		}
-
-		// Update counts
-		updateCounts();
 	}
 
 	function updateCounts() {
-		const services = servicesContainer.querySelectorAll('.single-table');
-		const counts = {
-			all: 0,
-			data: 0,
-			digital: 0,
-			ai: 0,
-			managed: 0,
-			advisory: 0
-		};
-
-		// Service mapping based on exact database titles
-		const serviceMap = {
-			'ai': [
-				'ai consulting',
-				'ai advisory',
-				'generative ai',
-				'ai poc'
-			],
-			'data': [
-				'estimate your fabric',
-				'microsoft fabric',
-				'data science',
-				'data strategy',
-				'databricks',
-				'snowflake',
-				'sql & data'
-			],
-			'digital': [
-				'api data access',
-				'powerapps',
-				'power automate',
-				'power virtual agents',
-				'power pages',
-				'dynamics 365',
-				'robotic processing',
-				'sharepoint'
-			],
-			'managed': [
-				'sql server support',
-				'applications support'
-			],
-			'advisory': [
-				'freemium'
-			]
-		};
-
-		services.forEach(service => {
-			const title = service.querySelector('h4') ? service.querySelector('h4').textContent.toLowerCase() : '';
-			const description = service.querySelector('p') ? service.querySelector('p').textContent.toLowerCase() : '';
-			const fullText = (title + ' ' + description).toLowerCase();
-			
-			counts.all++;
-			
-			// Categorize by checking service map
-			for (const [cat, keywords] of Object.entries(serviceMap)) {
-				if (keywords.some(keyword => fullText.includes(keyword))) {
-					counts[cat]++;
-					break;
-				}
-			}
-		});
-
-		// Update count badges
-		Object.keys(counts).forEach(key => {
-			const countElement = document.getElementById(`count-${key}`);
-			if (countElement) {
-				countElement.textContent = counts[key];
-			}
-		});
+		// Counts are now handled by the server for initial state
+		// but we can re-calculate if we want dynamic counts during search
+		// For now we keep the server-provided counts as the baseline
 	}
 
 	// Initial count update

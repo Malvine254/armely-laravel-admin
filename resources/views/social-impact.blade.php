@@ -281,47 +281,53 @@
 
 .gallery-folder {
     background: #fff;
-    border-radius: 12px;
+    border-radius: 15px;
     overflow: hidden;
-    margin-bottom: 20px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    margin-bottom: 25px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.06);
     transition: all 0.3s ease;
+    border: 1px solid rgba(0,0,0,0.03);
 }
 
 .gallery-folder:hover {
-    box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    transform: translateY(-2px);
 }
 
 .folder-header {
-    padding: 20px;
-    background: linear-gradient(135deg, #f8f9fa 0%, #fff 100%);
+    padding: 25px 30px;
+    background: #fff;
     display: flex;
     align-items: center;
-    gap: 20px;
+    gap: 25px;
     cursor: pointer;
     transition: background 0.3s ease;
 }
 
 .folder-header:hover {
-    background: linear-gradient(135deg, #f0f1f3 0%, #f8f9fa 100%);
+    background: #fafafa;
 }
 
 .folder-icon {
     position: relative;
-    font-size: 40px;
-    color: var(--default-color);
+    font-size: 45px;
+    color: #2f5597;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .image-count {
     position: absolute;
-    bottom: -5px;
+    bottom: -2px;
     right: -5px;
-    background: var(--default-background);
+    background: #2f5597;
     color: white;
-    font-size: 12px;
-    font-weight: 700;
-    padding: 2px 8px;
-    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 800;
+    padding: 2px 7px;
+    border-radius: 10px;
+    border: 2px solid #fff;
 }
 
 .folder-info {
@@ -329,15 +335,28 @@
 }
 
 .folder-title {
-    font-size: 1.2rem;
+    font-size: 1.35rem;
     font-weight: 700;
-    color: #222;
-    margin: 0 0 8px 0;
+    color: #1a1a1a;
+    margin: 0 0 6px 0;
+    letter-spacing: -0.3px;
+    line-height: 1.3;
+}
+
+.folder-title a {
+    color: #1a1a1a;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.folder-title a:hover {
+    color: #2f5597;
 }
 
 .folder-meta {
     display: flex;
-    gap: 15px;
+    align-items: center;
+    gap: 12px;
     font-size: 0.9rem;
     color: #666;
 }
@@ -345,38 +364,44 @@
 .folder-date {
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 6px;
 }
 
 .folder-badge {
-    background: var(--default-color);
+    background: #2f5597;
     color: white;
-    padding: 3px 10px;
+    padding: 2px 14px;
     border-radius: 20px;
-    font-size: 0.8rem;
-    font-weight: 600;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
 }
 
 .folder-toggle {
-    background: var(--default-color);
+    background: #2f5597;
     color: white;
     border: none;
     border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    font-size: 18px;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
     cursor: pointer;
     transition: all 0.3s ease;
 }
 
 .folder-toggle:hover {
-    background: #1a3a5c;
-    transform: scale(1.1);
+    background: #1e3a6d;
+    transform: rotate(-5deg);
 }
 
 .folder-content {
     padding: 30px;
-    background: #f8f9fa;
+    background: #fcfcfc;
+    border-top: 1px solid #f0f0f0;
 }
 
 .folder-images-grid {
@@ -750,19 +775,23 @@
         <div class="photo-album-grid">
             @forelse($gallery as $item)
                 <div class="gallery-folder">
-                    <div class="folder-header">
+                    <div class="folder-header" onclick="toggleFolderByHeader(event, this)">
                         <div class="folder-icon">
                             <i class="icofont-folder"></i>
                             <span class="image-count">{{ count(array_filter(array_map('trim', explode(',', $item->image_url)))) }}</span>
                         </div>
                         <div class="folder-info">
-                            <h3 class="folder-title">{{ $item->title }}</h3>
+                            <h3 class="folder-title">
+                                <a href="{{ route('social-impact-details', $item->secure_id) }}" onclick="event.stopPropagation()">
+                                    {{ $item->title }}
+                                </a>
+                            </h3>
                             <div class="folder-meta">
                                 <span class="folder-date"><i class="icofont-calendar"></i> {{ $item->posted_date }}</span>
                                 <span class="folder-badge">{{ strtoupper($item->category) }}</span>
                             </div>
                         </div>
-                        <button class="folder-toggle" onclick="toggleFolder(this)">
+                        <button class="folder-toggle">
                             <i class="icofont-rounded-down"></i>
                         </button>
                     </div>
@@ -857,6 +886,32 @@
 </section>
 
 <script>
+function toggleFolderByHeader(event, header) {
+    // If the click was on the link, don't toggle
+    if (event.target.tagName === 'A' || event.target.closest('a')) {
+        return;
+    }
+    
+    const folder = header.closest('.gallery-folder');
+    const content = folder.querySelector('.folder-content');
+    const button = folder.querySelector('.folder-toggle');
+    const icon = button.querySelector('i');
+    
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        if (icon) {
+            icon.classList.remove('icofont-rounded-down');
+            icon.classList.add('icofont-rounded-up');
+        }
+    } else {
+        content.style.display = 'none';
+        if (icon) {
+            icon.classList.add('icofont-rounded-down');
+            icon.classList.remove('icofont-rounded-up');
+        }
+    }
+}
+
 function toggleFolder(button) {
     const folder = button.closest('.gallery-folder');
     const content = folder.querySelector('.folder-content');

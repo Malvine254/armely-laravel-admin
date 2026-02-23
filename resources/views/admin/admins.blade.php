@@ -5,76 +5,139 @@
 
 @push('styles')
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+<style>
+    .admin-stats-card {
+        border: none;
+        border-radius: 16px;
+        transition: all 0.3s ease;
+        overflow: hidden;
+        height: 100%;
+    }
+    .admin-stats-card .card-body {
+        padding: 1.5rem;
+    }
+    .admin-stats-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 12px 24px rgba(0,0,0,0.08);
+    }
+    .stat-icon-box {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1rem;
+        font-size: 1.25rem;
+    }
+    .table-container-fixed {
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(15, 27, 51, 0.05);
+        border: 1px solid #e4e7ec;
+        overflow: hidden;
+    }
+    .table-responsive {
+        margin: 0;
+        padding: 0;
+    }
+    #adminsDataTable {
+        width: 100% !important;
+        margin: 0 !important;
+    }
+    #adminsDataTable thead th {
+        background: #f8f9fa;
+        color: #475467;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.5px;
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid #e4e7ec;
+    }
+    #adminsDataTable tbody td {
+        padding: 1rem 1.5rem;
+        vertical-align: middle;
+        border-bottom: 1px solid #f2f4f7;
+    }
+</style>
 @endpush
 
 @section('content')
-<div class="page-title">
-    <h1>Admin Users</h1>
-    <p>Manage administrator accounts and permissions</p>
+<div class="mb-4">
+    <h2 class="fw-bold text-dark mb-1">Admin Management</h2>
+    <p class="text-muted">Monitor and manage access levels for your team members</p>
 </div>
 
 <!-- Stats -->
-<div class="row mb-4">
-    <div class="col-md-3">
-        <div class="card">
+<div class="row g-3 mb-4">
+    <div class="col-md-6 col-lg-3">
+        <div class="card admin-stats-card border-start border-4 border-primary">
             <div class="card-body">
-                <p class="text-muted mb-2">Total Admins</p>
-                <h3 class="mb-0">{{ $stats['total'] ?? 0 }}</h3>
+                <div class="stat-icon-box bg-soft-primary text-primary">
+                    <i class="fas fa-users-cog"></i>
+                </div>
+                <p class="text-muted mb-1 fw-bold small uppercase">Total Admins</p>
+                <h3 class="mb-0 fw-bold">{{ $stats['total'] ?? 0 }}</h3>
             </div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card">
+    <div class="col-md-6 col-lg-3">
+        <div class="card admin-stats-card border-start border-4 border-success">
             <div class="card-body">
-                <p class="text-muted mb-2">Active</p>
-                <h3 class="mb-0" style="color: #27ae60;">{{ $stats['active'] ?? 0 }}</h3>
+                <div class="stat-icon-box bg-soft-success text-success">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <p class="text-muted mb-1 fw-bold small uppercase">Active Sessions</p>
+                <h3 class="mb-0 fw-bold text-success">{{ $stats['active'] ?? 0 }}</h3>
             </div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card">
+    <div class="col-md-6 col-lg-3">
+        <div class="card admin-stats-card border-start border-4 border-danger">
             <div class="card-body">
-                <p class="text-muted mb-2">Super Admins</p>
-                <h3 class="mb-0" style="color: #e74c3c;">{{ $stats['super_admins'] ?? 0 }}</h3>
+                <div class="stat-icon-box bg-soft-danger text-danger">
+                    <i class="fas fa-user-shield"></i>
+                </div>
+                <p class="text-muted mb-1 fw-bold small uppercase">Super Admins</p>
+                <h3 class="mb-0 fw-bold text-danger">{{ $stats['super_admins'] ?? 0 }}</h3>
             </div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card">
+    <div class="col-md-6 col-lg-3">
+        <div class="card admin-stats-card border-start border-4 border-secondary">
             <div class="card-body">
-                <p class="text-muted mb-2">Inactive</p>
-                <h3 class="mb-0" style="color: #95a5a6;">{{ $stats['inactive'] ?? 0 }}</h3>
+                <div class="stat-icon-box bg-soft-secondary text-secondary">
+                    <i class="fas fa-user-clock"></i>
+                </div>
+                <p class="text-muted mb-1 fw-bold small uppercase">Inactive</p>
+                <h3 class="mb-0 fw-bold text-secondary">{{ $stats['inactive'] ?? 0 }}</h3>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Add Admin Button -->
-<div class="card mb-4">
-    <div class="card-body">
-        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addAdminModal">
-            <i class="fas fa-user-plus"></i> Add New Admin
-        </button>
-    </div>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h5 class="mb-0 fw-bold"><i class="fas fa-list-ul me-2 text-primary"></i>System Administrators</h5>
+    <button class="btn btn-primary px-4 rounded-pill shadow-sm" data-bs-toggle="modal" data-bs-target="#addAdminModal">
+        <i class="fas fa-plus-circle me-2"></i>Provision New Admin
+    </button>
 </div>
 
 <!-- Admins Table -->
-<div class="card">
-    <div class="card-header">
-        <h5 class="mb-0">Admin List</h5>
-    </div>
+<div class="table-container-fixed">
     <div class="card-body p-0">
         @if($admins->count() > 0)
             <div class="table-responsive">
-                <table class="table" id="adminsDataTable">
+                <table class="table table-hover align-middle mb-0" id="adminsDataTable">
                     <thead>
                         <tr>
-                            <th>Name</th>
-                            <th>Email</th>
-                            <th>Role</th>
+                            <th>Member</th>
+                            <th>Email Identity</th>
+                            <th>Privilege</th>
                             <th>Status</th>
-                            <th>Joined</th>
-                            <th>Actions</th>
+                            <th>Joined On</th>
+                            <th class="text-end px-4">Management</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -82,37 +145,57 @@
                         <tr>
                             <td>
                                 <div class="d-flex align-items-center">
-                                    <div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; margin-right: 10px;">
-                                        {{ substr($admin->name, 0, 1) }}
+                                    <div class="avatar-circle me-3" style="background: linear-gradient(135deg, #2f5597 0%, #4a6fb5 100%); width: 42px; height: 42px; color: #fff;">
+                                        {{ strtoupper(substr($admin->name, 0, 1)) }}
                                     </div>
-                                    {{ $admin->name }}
+                                    <div>
+                                        <div class="fw-bold text-dark">{{ $admin->name }}</div>
+                                        <div class="small text-muted">ID: #{{ str_pad($admin->id, 4, '0', STR_PAD_LEFT) }}</div>
+                                    </div>
                                 </div>
                             </td>
-                            <td>{{ $admin->email }}</td>
                             <td>
-                                <span class="badge {{ $admin->role === 'Super Admin' ? 'bg-danger' : 'bg-primary' }}">
-                                    {{ $admin->role }}
-                                </span>
+                                <div class="text-dark">{{ $admin->email }}</div>
                             </td>
                             <td>
-                                <span class="badge {{ $admin->status === 'active' ? 'bg-success' : 'bg-secondary' }}">
-                                    {{ ucfirst($admin->status) }}
-                                </span>
-                            </td>
-                            <td>{{ $admin->joined_date ? $admin->joined_date->format('M d, Y') : 'N/A' }}</td>
-                            <td>
-                                <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#editAdminModal" onclick='editAdmin(@json($admin))'>
-                                    <i class="fas fa-edit"></i> Edit
-                                </button>
-                                @if(auth('admin')->user()->id !== $admin->id)
-                                    <form action="{{ route('admin.admins.delete', $admin->id) }}" method="POST" style="display:inline;">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?')">
-                                            <i class="fas fa-trash"></i> Delete
-                                        </button>
-                                    </form>
+                                @if($admin->role === 'Super Admin')
+                                    <span class="badge bg-soft-danger text-danger border-0 px-3 py-2 rounded-pill">
+                                        <i class="fas fa-crown me-1"></i> Super Admin
+                                    </span>
+                                @else
+                                    <span class="badge bg-soft-primary text-primary border-0 px-3 py-2 rounded-pill">
+                                        <i class="fas fa-user-lock me-1"></i> Standard Admin
+                                    </span>
                                 @endif
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="pulse-indicator me-2 bg-{{ $admin->status === 'active' ? 'success' : 'secondary' }}"></div>
+                                    <span class="fw-bold text-{{ $admin->status === 'active' ? 'success' : 'secondary' }}">
+                                        {{ ucfirst($admin->status) }}
+                                    </span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="text-muted small">
+                                    <i class="far fa-calendar-alt me-1"></i> {{ $admin->joined_date ? $admin->joined_date->format('d M, Y') : 'N/A' }}
+                                </div>
+                            </td>
+                            <td class="text-end px-4">
+                                <div class="btn-group shadow-sm rounded-pill overflow-hidden">
+                                    <button class="btn btn-sm btn-white border-end" data-bs-toggle="modal" data-bs-target="#editAdminModal" onclick='editAdmin(@json($admin))' title="Settings">
+                                        <i class="fas fa-cog text-primary"></i>
+                                    </button>
+                                    @if(auth('admin')->user()->id !== $admin->id)
+                                        <form action="{{ route('admin.admins.delete', $admin->id) }}" method="POST" class="d-inline">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-sm btn-white" onclick="return confirm('Immediately revoke access for {{ $admin->name }}?')" title="Delete Account">
+                                                <i class="fas fa-trash-alt text-danger"></i>
+                                            </button>
+                                        </form>
+                                    @endif
+                                </div>
                             </td>
                         </tr>
                         @endforeach
@@ -120,7 +203,10 @@
                 </table>
             </div>
         @else
-            <p class="p-4 text-muted mb-0"><i class="fas fa-info-circle"></i> No admins found</p>
+            <div class="text-center py-5">
+                <i class="fas fa-users-slash fa-3x text-muted mb-3 opacity-25"></i>
+                <p class="text-muted">No administrative accounts found in the system</p>
+            </div>
         @endif
     </div>
 </div>

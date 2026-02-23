@@ -40,15 +40,17 @@ class BlogController extends Controller
             // If a specific blog ID was requested, fetch it directly (fast lookup).
             if ($blogId) {
                 $main = DB::table('blogs')
-                    ->select('blog_id', 'title', 'author', 'date', 'body', 'image_path', 'clicks')
-                    ->where('blog_id', $blogId)
+                    ->leftJoin('team', 'blogs.author', '=', 'team.team_name')
+                    ->select('blogs.blog_id', 'blogs.title', 'blogs.author', 'blogs.date', 'blogs.body', 'blogs.image_path', 'blogs.clicks', 'team.team_image as author_image')
+                    ->where('blogs.blog_id', $blogId)
                     ->first();
             }
 
             // Load a limited set of recent posts for the sidebar to avoid scanning a huge table.
             $recent = DB::table('blogs')
-                ->select('blog_id', 'title', 'author', 'date', 'body', 'image_path', 'clicks')
-                ->orderByDesc('id')
+                ->leftJoin('team', 'blogs.author', '=', 'team.team_name')
+                ->select('blogs.blog_id', 'blogs.title', 'blogs.author', 'blogs.date', 'blogs.body', 'blogs.image_path', 'blogs.clicks', 'team.team_image as author_image')
+                ->orderByDesc('blogs.id')
                 ->limit(50)
                 ->get();
 

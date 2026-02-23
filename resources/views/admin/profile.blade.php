@@ -3,415 +3,398 @@
 @section('page-title', 'Profile')
 @section('title', 'Account Profile & Settings')
 
+@push('styles')
+<style>
+    .profile-hero {
+        background: linear-gradient(135deg, #2f5597 0%, #1e3c73 100%);
+        border-radius: 20px;
+        padding: 60px 30px;
+        color: white;
+        margin-bottom: 30px;
+        position: relative;
+        box-shadow: 0 10px 30px rgba(47, 85, 151, 0.15);
+    }
+    .profile-content-wrapper {
+        position: relative;
+    }
+    .profile-sidebar-card {
+        border-radius: 20px;
+        border: 1px solid #e4e7ec;
+        background: #fff;
+    }
+    .profile-avatar-container {
+        position: relative;
+        display: inline-block;
+        margin-bottom: 15px;
+    }
+    .profile-avatar-img {
+        width: 120px;
+        height: 120px;
+        border: 6px solid #fff;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+        object-fit: cover;
+    }
+    .nav-tabs-modern {
+        border-bottom: 2px solid #f2f4f7;
+    }
+    .nav-tabs-modern .nav-item {
+        margin-right: 30px;
+    }
+    .nav-tabs-modern .nav-link {
+        border: none;
+        color: #667085;
+        font-weight: 600;
+        padding: 15px 0;
+        border-bottom: 3px solid transparent;
+        transition: all 0.3s ease;
+    }
+    .nav-tabs-modern .nav-link:hover {
+        color: #2f5597;
+    }
+    .nav-tabs-modern .nav-link.active {
+        color: #2f5597 !important;
+        background: none !important;
+        border-bottom: 3px solid #2f5597 !important;
+    }
+    .profile-stat-box {
+        background: #f9fafb;
+        border-radius: 12px;
+        padding: 1rem;
+        text-align: center;
+        border: 1px solid #f2f4f7;
+    }
+    .activity-timeline-item {
+        position: relative;
+        padding-left: 2rem;
+        padding-bottom: 1.5rem;
+        border-left: 2px solid #eef2ff;
+    }
+    .activity-timeline-item:last-child {
+        border-left: none;
+        padding-bottom: 0;
+    }
+    .timeline-dot {
+        position: absolute;
+        left: -9px;
+        top: 0;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #2f5597;
+        border: 3px solid #fff;
+        box-shadow: 0 0 0 3px #eef2ff;
+    }
+    .session-card {
+        border-radius: 12px;
+        border: 1px solid #e4e7ec;
+        padding: 1rem;
+        transition: all 0.2s;
+    }
+    .session-card:hover {
+        border-color: #2f5597;
+        background: #f5f8ff;
+    }
+    .sticky-sidebar {
+        position: -webkit-sticky;
+        position: sticky;
+        top: 90px;
+        z-index: 10;
+    }
+    .bg-soft-primary { background: #eef2ff !important; }
+    .bg-soft-success { background: #ecfdf5 !important; }
+    .bg-soft-info { background: #f0f9ff !important; }
+    .bg-soft-warning { background: #fffbeb !important; }
+    .text-primary { color: #2f5597 !important; }
+</style>
+@endpush
+
 @section('content')
-<div class="page-title mb-4">
-    <h1>My Account</h1>
-    <p>Manage your profile, security settings, and view your activity history.</p>
-</div>
-
-@if(session('success'))
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
-        <i class="fas fa-check-circle me-2"></i>
-        <strong>Success!</strong> {{ session('success') }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-@endif
-
-@if($errors->any())
-    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-        <i class="fas fa-exclamation-circle me-2"></i>
-        <strong>Error!</strong>
-        <ul class="mb-0 mt-2">
-            @foreach($errors->all() as $error)
-                <li>{{ $error }}</li>
-            @endforeach
-        </ul>
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-@endif
-
-<div class="row">
-    <!-- Sidebar -->
-    <div class="col-lg-3 mb-4">
-        <div class="card profile-card shadow-sm border-0 sticky-top" style="top: 80px;">
-            <div class="card-body text-center">
-                <div class="profile-avatar-wrapper mb-3">
-                    <div class="profile-avatar mx-auto mb-3">
-                        <img src="https://ui-avatars.com/api/?name={{ urlencode($admin->name) }}&background=2f5597&color=fff&bold=true&size=128" 
-                             alt="{{ $admin->name }}" class="rounded-circle img-fluid" width="100" height="100">
-                    </div>
-                    <h5 class="mb-1 fw-bold">{{ $admin->name }}</h5>
-                    <p class="text-muted mb-3">
-                        <span class="badge bg-primary">{{ $admin->role ?? 'Administrator' }}</span>
-                    </p>
-                </div>
-
-                <div class="profile-stats mb-4">
-                    <div class="stat-item pb-2">
-                        <h3 class="mb-0">{{ count($activityHistory) }}</h3>
-                        <small class="text-muted">Activities Logged</small>
-                    </div>
-                    <hr>
-                    <div class="stat-item pb-2">
-                        <h3 class="mb-0">{{ count(array_filter($loginHistory, fn($x) => $x['action'] === 'Login')) }}</h3>
-                        <small class="text-muted">Total Logins</small>
-                    </div>
-                    <hr>
-                    <div class="stat-item">
-                        <h3 class="mb-0">{{ count($pageVisits) }}</h3>
-                        <small class="text-muted">Pages Visited</small>
-                    </div>
-                </div>
-
-                <div class="profile-meta text-start mb-3">
-                    <div class="meta-item mb-2">
-                        <small class="text-muted d-block">Email Address</small>
-                        <span class="d-block text-break">{{ $admin->email }}</span>
-                    </div>
-                    @if($admin->phone)
-                        <div class="meta-item mb-2">
-                            <small class="text-muted d-block">Phone Number</small>
-                            <span class="d-block">{{ $admin->phone }}</span>
-                        </div>
-                    @endif
-                    <div class="meta-item">
-                        <small class="text-muted d-block">Joined Date</small>
-                        <span class="d-block">{{ optional($admin->joined_date)->format('M d, Y') ?? 'N/A' }}</span>
-                    </div>
-                </div>
-
-                <div class="d-grid gap-2">
-                    <a href="{{ route('admin.reports') }}" class="btn btn-outline-primary btn-sm">
-                        <i class="fas fa-chart-line me-1"></i> View Reports
-                    </a>
-                </div>
+<div class="profile-hero mb-4 shadow-sm">
+    <div class="row align-items-center px-lg-3">
+        <div class="col-md-9">
+            <h1 class="font-weight-bold text-white mb-2">Hello, {{ explode(' ', $admin->name)[0] }}!</h1>
+            <p class="text-white-50 mb-0 font-weight-light" style="font-size: 1.1rem;">Welcome to your secure administrative portal. Oversee your profile and security parameters here.</p>
+        </div>
+        <div class="col-md-3 text-md-right d-none d-md-block">
+            <div class="badge badge-light text-primary px-3 py-2 rounded-pill shadow-sm" style="font-size: 0.85rem;">
+                <i class="fas fa-calendar-alt mr-2 text-primary"></i> {{ now()->format('D, d M Y') }}
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Main Content -->
-    <div class="col-lg-9">
-        <!-- Tab Navigation -->
-        <ul class="nav nav-tabs nav-tabs-modern mb-4" id="profileTabs" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile" type="button">
-                    <i class="fas fa-user me-2"></i>Profile Information
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings" type="button">
-                    <i class="fas fa-shield-alt me-2"></i>Security Settings
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="activity-tab" data-bs-toggle="tab" data-bs-target="#activity" type="button">
-                    <i class="fas fa-history me-2"></i>Activity Log
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="sessions-tab" data-bs-toggle="tab" data-bs-target="#sessions" type="button">
-                    <i class="fas fa-sign-in-alt me-2"></i>Session History
-                </button>
-            </li>
-        </ul>
+<div class="profile-content-wrapper">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-lg-4 col-xl-3 mb-4">
+            <div class="card profile-sidebar-card shadow-sm border-0 sticky-sidebar">
+                <div class="card-body text-center p-4">
+                    <div class="profile-avatar-container">
+                        <img src="https://ui-avatars.com/api/?name={{ urlencode($admin->name) }}&background=2f5597&color=fff&bold=true&size=128" 
+                             alt="{{ $admin->name }}" class="profile-avatar-img rounded-circle border-white shadow-sm" style="border-width: 5px !important; border-style: solid;">
+                        <div class="position-absolute bg-success border border-white rounded-circle shadow-sm" style="width: 18px; height: 18px; bottom: 10px; right: 10px; border-width: 3px !important; border-style: solid;" title="Online Status"></div>
+                    </div>
+                    
+                    <h4 class="mb-1 font-weight-bold text-dark">{{ $admin->name }}</h4>
+                    <p class="text-primary font-weight-bold small mb-4">
+                        <i class="fas fa-crown mr-1 text-warning"></i> {{ $admin->role ?? 'Administrator' }}
+                    </p>
 
-        <div class="tab-content" id="profileTabContent">
-        <div class="tab-content" id="profileTabContent">
-            <!-- Profile Information Tab -->
-            <div class="tab-pane fade show active" id="profile" role="tabpanel">
-                <div class="card shadow-sm border-0">
-                    <div class="card-body">
-                        <h6 class="card-title fw-bold mb-4">
-                            <i class="fas fa-edit text-primary me-2"></i>Edit Profile Information
-                        </h6>
-                        
-                        <form method="POST" action="{{ route('admin.profile.update') }}" class="needs-validation" novalidate>
-                            @csrf
-                            
-                            <div class="row g-3 mb-4">
-                                <div class="col-md-12">
-                                    <label class="form-label fw-500">Full Name</label>
-                                    <div class="input-group">
-                                        <span class="input-group-text"><i class="fas fa-user"></i></span>
-                                        <input type="text" name="name" class="form-control @error('name') is-invalid @enderror" 
-                                               value="{{ old('name', $admin->name) }}" required>
-                                    </div>
-                                    @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                                </div>
-
-                                <div class="col-md-6">
-                                    <label class="form-label fw-500">Email Address</label>
-                                    <div class="input-group">
-                                        <span class="input-group-text"><i class="fas fa-envelope"></i></span>
-                                        <input type="email" class="form-control" value="{{ $admin->email }}" disabled>
-                                    </div>
-                                    <small class="text-muted d-block mt-1">Email is managed by administrator</small>
-                                </div>
-
-                                <div class="col-md-6">
-                                    <label class="form-label fw-500">Phone Number</label>
-                                    <div class="input-group">
-                                        <span class="input-group-text"><i class="fas fa-phone"></i></span>
-                                        <input type="text" name="phone" class="form-control @error('phone') is-invalid @enderror" 
-                                               value="{{ old('phone', $admin->phone) }}" placeholder="+1 (555) 000-0000">
-                                    </div>
-                                    @error('phone')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                                </div>
+                    <div class="row mb-4">
+                        <div class="col-6">
+                            <div class="profile-stat-box">
+                                <div class="font-weight-bold h5 mb-0">{{ count($activityHistory) }}</div>
+                                <small class="text-muted small">Actions</small>
                             </div>
-
-                            <hr class="my-4">
-
-                            <h6 class="fw-bold mb-3">Change Password</h6>
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label class="form-label fw-500">New Password</label>
-                                    <div class="input-group">
-                                        <span class="input-group-text"><i class="fas fa-lock"></i></span>
-                                        <input type="password" name="password" class="form-control @error('password') is-invalid @enderror" 
-                                               minlength="8" autocomplete="new-password" placeholder="Leave blank to keep current">
-                                    </div>
-                                    <small class="text-muted d-block mt-1">Minimum 8 characters</small>
-                                    @error('password')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                                </div>
-
-                                <div class="col-md-6">
-                                    <label class="form-label fw-500">Confirm Password</label>
-                                    <div class="input-group">
-                                        <span class="input-group-text"><i class="fas fa-lock"></i></span>
-                                        <input type="password" name="password_confirmation" class="form-control" 
-                                               minlength="8" autocomplete="new-password">
-                                    </div>
-                                </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="profile-stat-box">
+                                <div class="font-weight-bold h5 mb-0">{{ count(array_filter($loginHistory, fn($x) => $x['action'] === 'Login')) }}</div>
+                                <small class="text-muted small">Logins</small>
                             </div>
+                        </div>
+                    </div>
 
-                            <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
-                                <small class="text-muted">Last updated: {{ optional($admin->updated_at)->diffForHumans() ?? 'Never' }}</small>
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="fas fa-save me-1"></i> Save Changes
-                                </button>
+                    <div class="text-left mb-4">
+                        <div class="mb-3 d-flex align-items-center">
+                            <div class="bg-soft-primary text-primary p-2 rounded-circle mr-3">
+                                <i class="fas fa-envelope fa-fw"></i>
                             </div>
-                        </form>
+                            <div>
+                                <small class="text-muted d-block small">Email</small>
+                                <span class="font-weight-bold text-dark text-break small">{{ $admin->email }}</span>
+                            </div>
+                        </div>
+                        <div class="mb-3 d-flex align-items-center">
+                            <div class="bg-soft-info text-info p-2 rounded-circle mr-3">
+                                <i class="fas fa-phone fa-fw"></i>
+                            </div>
+                            <div>
+                                <small class="text-muted d-block small">Mobile</small>
+                                <span class="font-weight-bold text-dark">{{ $admin->phone ?? 'Not set' }}</span>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <div class="bg-soft-success text-success p-2 rounded-circle mr-3">
+                                <i class="fas fa-calendar-check fa-fw"></i>
+                            </div>
+                            <div>
+                                <small class="text-muted d-block small">Member Since</small>
+                                <span class="font-weight-bold text-dark">{{ optional($admin->joined_date)->format('M d, Y') ?? 'N/A' }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <a href="{{ route('admin.dashboard') }}" class="btn btn-primary btn-rounded btn-block font-weight-bold">
+                            <i class="fas fa-home mr-2"></i> Dashboard
+                        </a>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- Security Settings Tab -->
-            <div class="tab-pane fade" id="settings" role="tabpanel">
-                <div class="card shadow-sm border-0">
-                    <div class="card-body">
-                        <h6 class="card-title fw-bold mb-4">
-                            <i class="fas fa-shield-alt text-success me-2"></i>Security & Privacy Settings
-                        </h6>
+        <!-- Main Content -->
+        <div class="col-lg-8 col-xl-9">
+            <div class="card shadow-sm border-0 rounded-4 mb-4">
+                <div class="card-body p-4 p-md-5">
+                    <!-- Tab Navigation -->
+                    <ul class="nav nav-tabs nav-tabs-modern mb-5" id="profileTabs" role="tablist">
+                        <li class="nav-item">
+                            <a class="nav-link active" id="profile-tab" data-bs-toggle="pill" href="#profile" role="tab">
+                                <i class="fas fa-id-card mr-2"></i>Profile
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="settings-tab" data-bs-toggle="pill" href="#settings" role="tab">
+                                <i class="fas fa-fingerprint mr-2"></i>Security
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="activity-tab" data-bs-toggle="pill" href="#activity" role="tab">
+                                <i class="fas fa-stream mr-2"></i>Activity
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="sessions-tab" data-bs-toggle="pill" href="#sessions" role="tab">
+                                <i class="fas fa-history mr-2"></i>History
+                            </a>
+                        </li>
+                    </ul>
 
-                        <div class="security-settings">
-                            <!-- Password Security -->
-                            <div class="setting-item card bg-light border-0 mb-3">
-                                <div class="card-body">
-                                    <div class="d-flex justify-content-between align-items-start">
-                                        <div>
-                                            <h6 class="fw-bold mb-1">
-                                                <i class="fas fa-key text-warning me-2"></i>Password Security
-                                            </h6>
-                                            <p class="text-muted mb-0 small">Ensure you have a strong, unique password</p>
-                                        </div>
-                                        <span class="badge bg-success">Active</span>
-                                    </div>
-                                    <div class="progress mt-2" style="height: 4px;">
-                                        <div class="progress-bar bg-success" style="width: 100%;"></div>
-                                    </div>
+                    <div class="tab-content" id="profileTabContent">
+                        <!-- Profile Information Tab -->
+                        <div class="tab-pane fade show active" id="profile" role="tabpanel" aria-labelledby="profile-tab">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <div>
+                                    <h4 class="font-weight-bold text-dark mb-1">Account Identity</h4>
+                                    <p class="text-muted mb-0">Update your primary information below</p>
                                 </div>
+                                <span class="badge badge-primary px-3 py-2 rounded-pill shadow-none">Status: Verified</span>
                             </div>
-
-                            <!-- Activity Logging -->
-                            <div class="setting-item card bg-light border-0 mb-3">
-                                <div class="card-body">
-                                    <div class="d-flex justify-content-between align-items-start">
-                                        <div>
-                                            <h6 class="fw-bold mb-1">
-                                                <i class="fas fa-history text-info me-2"></i>Activity Logging
-                                            </h6>
-                                            <p class="text-muted mb-0 small">Record all administrative actions for auditing</p>
-                                        </div>
-                                        <div class="form-check form-switch">
-                                            <input class="form-check-input" type="checkbox" id="activityLog" checked disabled>
+                            
+                            <form method="POST" action="{{ route('admin.profile.update') }}">
+                                @csrf
+                                <div class="row mb-5">
+                                    <div class="col-md-12 mb-4">
+                                        <label class="form-label text-dark font-weight-bold">Full Professional Name</label>
+                                        <div class="input-group input-group-lg border rounded overflow-hidden">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text bg-white border-0"><i class="fas fa-user-edit text-muted"></i></span>
+                                            </div>
+                                            <input type="text" name="name" class="form-control border-0 bg-white" value="{{ old('name', $admin->name) }}" required>
                                         </div>
                                     </div>
-                                </div>
-                            </div>
 
-                            <!-- Two-Factor Authentication -->
-                            <div class="setting-item card bg-light border-0 mb-3">
-                                <div class="card-body">
-                                    <div class="d-flex justify-content-between align-items-start">
-                                        <div>
-                                            <h6 class="fw-bold mb-1">
-                                                <i class="fas fa-mobile-alt text-primary me-2"></i>Two-Factor Authentication (2FA)
-                                            </h6>
-                                            <p class="text-muted mb-0 small">Add an extra layer of security to your account</p>
+                                    <div class="col-md-6 mb-4">
+                                        <label class="form-label text-dark font-weight-bold">Corporate Email</label>
+                                        <div class="input-group input-group-lg border rounded overflow-hidden">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text bg-light border-0"><i class="fas fa-envelope-shield text-muted"></i></span>
+                                            </div>
+                                            <input type="email" class="form-control border-0 bg-light" value="{{ $admin->email }}" disabled>
                                         </div>
-                                        <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#twoFactorModal">
-                                            Set Up
-                                        </button>
                                     </div>
-                                </div>
-                            </div>
 
-                            <!-- Login Alerts -->
-                            <div class="setting-item card bg-light border-0 mb-3">
-                                <div class="card-body">
-                                    <div class="d-flex justify-content-between align-items-start">
-                                        <div>
-                                            <h6 class="fw-bold mb-1">
-                                                <i class="fas fa-bell text-warning me-2"></i>Login Notifications
-                                            </h6>
-                                            <p class="text-muted mb-0 small">Get notified of unusual login activity</p>
-                                        </div>
-                                        <div class="form-check form-switch">
-                                            <input class="form-check-input" type="checkbox" id="loginAlerts" checked>
+                                    <div class="col-md-6 mb-4">
+                                        <label class="form-label text-dark font-weight-bold">Contact Number</label>
+                                        <div class="input-group input-group-lg border rounded overflow-hidden">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text bg-white border-0"><i class="fas fa-mobile-alt text-muted"></i></span>
+                                            </div>
+                                            <input type="text" name="phone" class="form-control border-0 bg-white" value="{{ old('phone', $admin->phone) }}" placeholder="+1 (555) 000-0000">
                                         </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            <!-- Session Management -->
-                            <div class="setting-item card bg-light border-0">
-                                <div class="card-body">
-                                    <div class="d-flex justify-content-between align-items-start">
-                                        <div>
-                                            <h6 class="fw-bold mb-1">
-                                                <i class="fas fa-sign-out-alt text-danger me-2"></i>Session Management
-                                            </h6>
-                                            <p class="text-muted mb-0 small">Sign out of all other sessions immediately</p>
+                                <div class="bg-light p-4 rounded mb-4 border-left border-warning border-4">
+                                    <div class="d-flex">
+                                        <i class="fas fa-key fa-2x text-warning mr-3"></i>
+                                        <div class="flex-grow-1">
+                                            <h6 class="font-weight-bold text-dark mb-1">Credential Security</h6>
+                                            <p class="text-muted small mb-3">If you need to update your password, fill in the fields below. Ensure you use a strong, unique combination.</p>
+                                            
+                                            <div class="row">
+                                                <div class="col-md-6 mb-3">
+                                                    <input type="password" name="password" class="form-control" placeholder="New Secret Password" autocomplete="new-password">
+                                                </div>
+                                                <div class="col-md-6 mb-3">
+                                                    <input type="password" name="password_confirmation" class="form-control" placeholder="Confirm Secret Password" autocomplete="new-password">
+                                                </div>
+                                            </div>
                                         </div>
-                                        <button class="btn btn-sm btn-outline-danger" type="button">
-                                            Sign Out All
-                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="text-right mt-4">
+                                    <button type="submit" class="btn btn-primary btn-lg rounded-pill px-5 shadow-sm">
+                                        <i class="fas fa-check-circle mr-2"></i> Apply Updates
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Security Tab -->
+                        <div class="tab-pane fade" id="settings" role="tabpanel" aria-labelledby="settings-tab">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <div>
+                                    <h4 class="font-weight-bold text-dark mb-1">Security & Access</h4>
+                                    <p class="text-muted mb-0">Management of authentication and protection</p>
+                                </div>
+                            </div>
+                            
+                            <div class="row g-4">
+                                <div class="col-md-6">
+                                    <div class="card border-0 bg-soft-info h-100 p-4 rounded-4">
+                                        <div class="d-flex align-items-center mb-3">
+                                            <div class="bg-info text-white p-3 rounded-circle mr-3 shadow-sm">
+                                                <i class="fas fa-shield-alt fa-lg"></i>
+                                            </div>
+                                            <h5 class="font-weight-bold text-dark mb-0">Password Health</h5>
+                                        </div>
+                                        <p class="text-muted small">Your password security status is being monitored.</p>
+                                        <ul class="list-unstyled small text-muted mb-0">
+                                            <li class="mb-2"><i class="fas fa-check-circle text-success mr-2"></i> Min 8 characters</li>
+                                            <li class="mb-2"><i class="fas fa-check-circle text-success mr-2"></i> Case sensitive</li>
+                                            <li><i class="fas fa-check-circle text-success mr-2"></i> Symbols encouraged</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card border-0 bg-soft-primary h-100 p-4 rounded-4">
+                                        <div class="d-flex align-items-center mb-3">
+                                            <div class="bg-primary text-white p-3 rounded-circle mr-3 shadow-sm">
+                                                <i class="fas fa-user-lock fa-lg"></i>
+                                            </div>
+                                            <h5 class="font-weight-bold text-dark mb-0">Role & Access</h5>
+                                        </div>
+                                        <p class="text-muted small">You are currently logged in with <strong>{{ $admin->role ?? 'Primary Administrator' }}</strong> status.</p>
+                                        <div class="p-2 bg-white rounded-3 border border-primary-light">
+                                            <code class="text-primary small">PERMISSIONS: FULL_READ_WRITE</code>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </div>
-            </div>
 
-            <!-- Activity Log Tab -->
-            <div class="tab-pane fade" id="activity" role="tabpanel">
-                <div class="card shadow-sm border-0">
-                    <div class="card-body">
-                        <h6 class="card-title fw-bold mb-4">
-                            <i class="fas fa-history text-primary me-2"></i>Recent Activity
-                        </h6>
+                        <!-- Activity Log Tab -->
+                        <div class="tab-pane fade" id="activity" role="tabpanel" aria-labelledby="activity-tab">
+                            <h4 class="font-weight-bold text-dark mb-4">Recent Audit Trail</h4>
+                            <div class="activity-timeline mt-2">
+                                @forelse($activityHistory as $activity)
+                                    <div class="activity-timeline-item">
+                                        <div class="timeline-dot shadow-sm"></div>
+                                        <div class="d-flex justify-content-between align-items-start mb-1">
+                                            <h6 class="font-weight-bold text-dark mb-0">
+                                                @php
+                                                    $action = is_array($activity) ? ($activity['type'] ?? 'Action') : ($activity->action ?? 'Action');
+                                                    $description = is_array($activity) ? ($activity['description'] ?? '') : ($activity->description ?? '');
+                                                    $timestamp = is_array($activity) ? ($activity['timestamp'] ?? now()) : ($activity->created_at ?? now());
+                                                @endphp
+                                                {{ ucfirst(str_replace('_', ' ', $action)) }}
+                                            </h6>
+                                            <span class="badge badge-light text-muted fw-normal">{{ \Carbon\Carbon::parse($timestamp)->format('H:i A') }}</span>
+                                        </div>
+                                        <p class="text-muted small mb-1">
+                                            {{ Str::limit($description ?: 'Administrative update performed', 120) }}
+                                        </p>
+                                        <small class="text-muted-50 small"><i class="far fa-calendar-alt mr-1"></i> {{ \Carbon\Carbon::parse($timestamp)->format('M d, Y') }}</small>
+                                    </div>
+                                @empty
+                                    <div class="text-center py-5">
+                                        <i class="fas fa-history text-muted fa-3x opacity-25 mb-3"></i>
+                                        <p class="text-muted">No recent activities found.</p>
+                                    </div>
+                                @endforelse
+                            </div>
+                        </div>
 
-                        @if(count($activityHistory) > 0)
-                            <div class="activity-timeline">
-                                @foreach($activityHistory as $activity)
-                                    <div class="activity-item mb-3 pb-3 border-bottom">
-                                        <div class="d-flex">
-                                            <div class="activity-icon me-3">
-                                                @if($activity['type'] === 'page_visit')
-                                                    <i class="fas fa-globe text-info"></i>
-                                                @elseif($activity['type'] === 'login')
-                                                    <i class="fas fa-sign-in-alt text-success"></i>
-                                                @elseif($activity['type'] === 'logout')
-                                                    <i class="fas fa-sign-out-alt text-warning"></i>
-                                                @else
-                                                    <i class="fas fa-cog text-secondary"></i>
-                                                @endif
+                        <!-- Session History Tab -->
+                        <div class="tab-pane fade" id="sessions" role="tabpanel" aria-labelledby="sessions-tab">
+                            <h4 class="font-weight-bold text-dark mb-4">Login Intelligence</h4>
+                            <div class="row">
+                                @forelse($loginHistory as $login)
+                                    <div class="col-md-6 col-lg-4 mb-3">
+                                        <div class="session-card">
+                                            <div class="d-flex align-items-center mb-2">
+                                                <div class="bg-soft-primary p-2 rounded-circle mr-3">
+                                                    <i class="fas fa-laptop text-primary"></i>
+                                                </div>
+                                                <div class="overflow-hidden">
+                                                    <h6 class="font-weight-bold mb-0 text-dark">{{ is_array($login) ? $login['action'] : $login->action }}</h6>
+                                                    <small class="text-muted text-truncate d-block">{{ is_array($login) ? ($login['entity_type'] ?? 'System') : ($login->entity_type ?? 'System') }}</small>
+                                                </div>
                                             </div>
-                                            <div class="flex-grow-1">
-                                                <h6 class="mb-1 fw-500">{{ ucfirst(str_replace('_', ' ', $activity['type'])) }}</h6>
-                                                <p class="text-muted small mb-1">{{ $activity['description'] ?? $activity['entity_type'] }}</p>
-                                                <small class="text-muted">
-                                                    <i class="fas fa-clock me-1"></i>
-                                                    {{ \Carbon\Carbon::parse($activity['timestamp'])->diffForHumans() }}
-                                                </small>
+                                            <div class="badge badge-light text-dark mb-2 w-100 py-2 border shadow-none">
+                                                {{ \Carbon\Carbon::parse(is_array($login) ? ($login['timestamp'] ?? now()) : ($login->created_at ?? now()))->diffForHumans() }}
                                             </div>
                                         </div>
                                     </div>
-                                @endforeach
+                                @empty
+                                    <p class="text-center text-muted col-12 py-4">No login history recorded.</p>
+                                @endforelse
                             </div>
-                        @else
-                            <div class="text-center py-5">
-                                <i class="fas fa-inbox text-muted" style="font-size: 3rem;"></i>
-                                <p class="text-muted mt-3">No activity recorded yet</p>
-                            </div>
-                        @endif
-                    </div>
-                </div>
-            </div>
-
-            <!-- Session History Tab -->
-            <div class="tab-pane fade" id="sessions" role="tabpanel">
-                <div class="card shadow-sm border-0">
-                    <div class="card-body">
-                        <h6 class="card-title fw-bold mb-4">
-                            <i class="fas fa-sign-in-alt text-success me-2"></i>Login & Session History
-                        </h6>
-
-                        @if(count($loginHistory) > 0)
-                            <div class="table-responsive">
-                                <table class="table align-middle table-hover">
-                                    <thead class="table-light">
-                                        <tr>
-                                            <th>Action</th>
-                                            <th>Type</th>
-                                            <th>Time</th>
-                                            <th>Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach($loginHistory as $session)
-                                            <tr>
-                                                <td>
-                                                    <span class="fw-500">
-                                                        @if($session['action'] === 'Login')
-                                                            <i class="fas fa-check-circle text-success me-2"></i>
-                                                        @else
-                                                            <i class="fas fa-times-circle text-warning me-2"></i>
-                                                        @endif
-                                                        {{ $session['action'] }}
-                                                    </span>
-                                                </td>
-                                                <td>
-                                                    <span class="badge bg-light text-dark">{{ $session['entity_type'] }}</span>
-                                                </td>
-                                                <td>
-                                                    <small class="text-muted">
-                                                        {{ \Carbon\Carbon::parse($session['timestamp'])->format('M d, Y H:i') }}
-                                                    </small>
-                                                </td>
-                                                <td>
-                                                    <span class="badge bg-success">Active</span>
-                                                </td>
-                                            </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
-                            </div>
-                        @else
-                            <div class="text-center py-5">
-                                <i class="fas fa-inbox text-muted" style="font-size: 3rem;"></i>
-                                <p class="text-muted mt-3">No login history available</p>
-                            </div>
-                        @endif
-
-                        @if(count($pageVisits) > 0)
-                            <hr class="my-4">
-                            <h6 class="fw-bold mb-3">Recently Visited Pages</h6>
-                            <div class="pages-visited">
-                                @foreach($pageVisits as $visit)
-                                    <div class="visit-item d-flex justify-content-between align-items-center p-2 border-bottom small">
-                                        <span>
-                                            <i class="fas fa-arrow-right text-muted me-2"></i>
-                                            {{ $visit['page'] ?? 'Admin Dashboard' }}
-                                        </span>
-                                        <small class="text-muted">
-                                            {{ \Carbon\Carbon::parse($visit['timestamp'])->diffForHumans() }}
-                                        </small>
-                                    </div>
-                                @endforeach
-                            </div>
-                        @endif
+                        </div>
                     </div>
                 </div>
             </div>
@@ -477,21 +460,21 @@
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content border-0 shadow-lg">
             <div class="modal-header bg-gradient border-0">
-                <h5 class="modal-title fw-bold">
-                    <i class="fas fa-mobile-alt me-2 text-primary"></i>Set Up Two-Factor Authentication
+                <h5 class="modal-title font-weight-bold">
+                    <i class="fas fa-mobile-alt mr-2 text-primary"></i>Set Up Two-Factor Authentication
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body p-4">
                 <div class="alert alert-info alert-dismissible fade show" role="alert">
-                    <i class="fas fa-info-circle me-2"></i>
+                    <i class="fas fa-info-circle mr-2"></i>
                     <strong>Enhanced Security:</strong> Two-factor authentication adds an extra layer of security to your account by requiring both your password and a code from your phone.
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
 
                 <div class="row">
                     <div class="col-md-6">
-                        <h6 class="fw-bold mb-3">Step 1: Scan QR Code</h6>
+                        <h6 class="font-weight-bold mb-3">Step 1: Scan QR Code</h6>
                         <div class="card bg-light border-0 p-3 text-center mb-3">
                             <div class="qr-code-placeholder" style="background: #f8f9fa; width: 200px; height: 200px; margin: 0 auto; display: flex; align-items: center; justify-content: center; border: 2px dashed #2f5597; border-radius: 8px;">
                                 <div class="text-center">
@@ -503,7 +486,7 @@
                         <p class="text-muted small">Use Google Authenticator, Microsoft Authenticator, or Authy</p>
                     </div>
                     <div class="col-md-6">
-                        <h6 class="fw-bold mb-3">Step 2: Enter Verification Code</h6>
+                        <h6 class="font-weight-bold mb-3">Step 2: Enter Verification Code</h6>
                         <form>
                             <div class="mb-3">
                                 <label class="form-label small fw-500">Verification Code</label>
@@ -516,9 +499,9 @@
 
                 <hr class="my-4">
 
-                <h6 class="fw-bold mb-3">Backup Codes</h6>
+                <h6 class="font-weight-bold mb-3">Backup Codes</h6>
                 <div class="alert alert-warning alert-dismissible fade show" role="alert">
-                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <i class="fas fa-exclamation-triangle mr-2"></i>
                     <strong>Important:</strong> Save these backup codes in a secure location. Use them if you lose access to your authenticator app.
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
@@ -529,13 +512,13 @@
                     <div>34AB-5678-9012-CD</div>
                 </div>
                 <button class="btn btn-sm btn-outline-secondary" type="button">
-                    <i class="fas fa-copy me-1"></i>Copy Codes
+                    <i class="fas fa-copy mr-1"></i>Copy Codes
                 </button>
             </div>
             <div class="modal-footer border-0 bg-light">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-primary">
-                    <i class="fas fa-check me-1"></i>Verify & Enable 2FA
+                    <i class="fas fa-check mr-1"></i>Verify & Enable 2FA
                 </button>
             </div>
         </div>
@@ -543,6 +526,26 @@
 </div>
 
 @endsection
+
+@push('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Simple tab state persistence
+        const lastTab = localStorage.getItem('profileActiveTab');
+        if (lastTab) {
+            const tabBootstrap = new bootstrap.Tab(document.querySelector(`#${lastTab}`));
+            tabBootstrap.show();
+        }
+
+        const tabLinks = document.querySelectorAll('button[data-bs-toggle="tab"]');
+        tabLinks.forEach(link => {
+            link.addEventListener('shown.bs.tab', function(e) {
+                localStorage.setItem('profileActiveTab', e.target.id);
+            });
+        });
+    });
+</script>
+@endpush
 
 @push('styles')
 <style>

@@ -108,8 +108,26 @@ class SearchController extends Controller
         try {
             // Check if the view exists
             if (View::exists($page['view'])) {
+                // Pass common empty variables to prevent rendering crashes
+                $fallbackData = [
+                    'offers' => collect(),
+                    'industryListings' => collect(),
+                    'blogs' => collect(),
+                    'videos' => collect(),
+                    'team' => collect(),
+                    'events' => collect(),
+                    'coreValues' => collect(),
+                    'careerListings' => collect(),
+                    'socialImpacts' => collect(),
+                    'caseStudies' => collect(),
+                    'partners' => collect(),
+                    'title' => $page['name'],
+                    'dbErrorMessage' => null,
+                    'recaptchaSiteKey' => ''
+                ];
+
                 // Render the view and get content
-                $content = View::make($page['view'])->render();
+                $content = View::make($page['view'], $fallbackData)->render();
 
                 // Remove inline styles and scripts so search doesn't index CSS/JS
                 // Strip <style>...</style> blocks
@@ -169,7 +187,7 @@ class SearchController extends Controller
 
                 $results[] = [
                     'page_name' => $page['name'],
-                    'page_url' => route($page['route']),
+                    'page_url' => route($page['route']) . '?highlight=' . urlencode($query),
                     'snippet' => $snippet,
                     'position' => $position . '%',
                     'relevance' => $this->calculateRelevance($query, $snippet, $page['name'])

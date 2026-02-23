@@ -229,7 +229,7 @@ class AnalyticsController extends Controller
             ->count();
     }
 
-    private function getTopPages(Carbon $startDate, string $entityType = ''): array
+    private function getTopPages(Carbon $startDate, string $entityType = '')
     {
         $query = DB::table('admin_activities')
             ->where('action', 'page_visit')
@@ -243,11 +243,10 @@ class AnalyticsController extends Controller
             ->select('page_url', DB::raw('COUNT(*) as visits'))
             ->orderByDesc('visits')
             ->limit(10)
-            ->get()
-            ->toArray();
+            ->get();
     }
 
-    private function getTopCountries(Carbon $startDate, string $entityType = ''): array
+    private function getTopCountries(Carbon $startDate, string $entityType = '')
     {
         $query = DB::table('admin_activities')
             ->where('action', 'page_visit')
@@ -262,11 +261,10 @@ class AnalyticsController extends Controller
             ->select('country', DB::raw('COUNT(*) as visits'))
             ->orderByDesc('visits')
             ->limit(10)
-            ->get()
-            ->toArray();
+            ->get();
     }
 
-    private function getTopIPs(Carbon $startDate, string $entityType = ''): array
+    private function getTopIPs(Carbon $startDate, string $entityType = '')
     {
         $query = DB::table('admin_activities')
             ->where('action', 'page_visit')
@@ -287,11 +285,10 @@ class AnalyticsController extends Controller
             )
             ->orderByDesc('visits')
             ->limit(10)
-            ->get()
-            ->toArray();
+            ->get();
     }
 
-    private function getVisitorTimeline(Carbon $startDate): array
+    private function getVisitorTimeline(Carbon $startDate)
     {
         $days = DB::table('admin_activities')
             ->where('action', 'page_visit')
@@ -309,10 +306,10 @@ class AnalyticsController extends Controller
             'date' => $day->date,
             'visits' => $day->visits,
             'unique_visitors' => $day->unique_visitors
-        ])->toArray();
+        ]);
     }
 
-    private function getUserActivity(Carbon $startDate): array
+    private function getUserActivity(Carbon $startDate)
     {
         return DB::table('admin_activities')
             ->where('action', 'page_visit')
@@ -320,11 +317,10 @@ class AnalyticsController extends Controller
             ->select('entity_type', DB::raw('COUNT(*) as count'))
             ->groupBy('entity_type')
             ->get()
-            ->map(fn($item) => ['type' => $item->entity_type, 'count' => $item->count])
-            ->toArray();
+            ->map(fn($item) => ['type' => $item->entity_type, 'count' => $item->count]);
     }
 
-    private function getReferrerSources(Carbon $startDate): array
+    private function getReferrerSources(Carbon $startDate)
     {
         return DB::table('admin_activities')
             ->where('action', 'page_visit')
@@ -334,11 +330,10 @@ class AnalyticsController extends Controller
             ->select('referrer', DB::raw('COUNT(*) as visits'))
             ->orderByDesc('visits')
             ->limit(10)
-            ->get()
-            ->toArray();
+            ->get();
     }
 
-    private function getBrowserStats(Carbon $startDate): array
+    private function getBrowserStats(Carbon $startDate)
     {
         return DB::table('admin_activities')
             ->where('action', 'page_visit')
@@ -351,7 +346,6 @@ class AnalyticsController extends Controller
             ->groupBy('browser')
             ->orderByDesc('visits')
             ->limit(10)
-            ->get()
-            ->toArray();
+            ->get();
     }
 }

@@ -1,308 +1,346 @@
 @extends('admin.layouts.admin')
 
-@section('page-title', 'Reports')
-@section('title', 'Reports - Armely Admin')
+@section('page-title', 'Business Intelligence')
+@section('title', 'Advanced Reports - Armely Admin')
+
+@push('styles')
+<style>
+    .report-hero {
+        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        border-radius: 15px;
+        padding: 40px;
+        color: white;
+        margin-bottom: 30px;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(30, 60, 114, 0.2);
+    }
+    .report-hero::after {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -10%;
+        width: 400px;
+        height: 400px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 50%;
+    }
+    .kpi-card {
+        border-radius: 12px;
+        overflow: hidden;
+        border: none;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        transition: all 0.3s ease;
+    }
+    .kpi-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    }
+    .kpi-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+    .bg-soft-primary { background: #eef2ff !important; color: #2f5597 !important; }
+    .bg-soft-info { background: #e0f2fe !important; color: #0891b2 !important; }
+    .bg-soft-success { background: #f0fdf4 !important; color: #16a34a !important; }
+    .bg-soft-warning { background: #fffbeb !important; color: #d97706 !important; }
+    
+    .chart-container {
+        padding: 20px;
+        background: white;
+        border-radius: 15px;
+    }
+    .activity-feed-item {
+        border-left: 2px solid #eef2ff;
+        padding-left: 20px;
+        padding-bottom: 20px;
+        position: relative;
+    }
+    .activity-feed-item:last-child {
+        padding-bottom: 0;
+    }
+    .activity-feed-item::before {
+        content: '';
+        position: absolute;
+        left: -7px;
+        top: 0;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #2f5597;
+        border: 2px solid white;
+    }
+    .btn-export {
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .indicator-pulse {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #22c55e;
+        display: inline-block;
+        margin-right: 5px;
+        box-shadow: 0 0 0 rgba(34, 197, 94, 0.4);
+        animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+        0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
+        70% { box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+    }
+</style>
+@endpush
 
 @section('content')
-<div class="page-title">
-    <h1>Reports</h1>
-    <p>Dashboard and insights for your business metrics</p>
-</div>
-
-<!-- KPI Cards Row 1 -->
-<div class="row mb-4">
-    <div class="col-md-3 mb-3">
-        <div class="card h-100 shadow-sm">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="flex-grow-1">
-                        <h6 class="text-muted mb-1">Consultations (Week)</h6>
-                        <h2 class="mb-0">{{ $stats['consultations_this_week'] ?? 0 }}</h2>
-                        <small class="text-success"><i class="fas fa-arrow-up"></i> Activity this week</small>
-                    </div>
-                    <div class="ms-3">
-                        <i class="fas fa-calendar text-primary opacity-50 fa-2x"></i>
-                    </div>
-                </div>
-            </div>
+<div class="report-hero shadow">
+    <div class="row align-items-center">
+        <div class="col-md-7">
+            <h5 class="text-white-50 mb-1">INTELLECTUAL INSIGHTS</h5>
+            <h1 class="font-weight-bold mb-2">Business Operations Center</h1>
+            <p class="mb-0 text-white-50">Real-time performance metrics and cross-platform interaction analysis.</p>
         </div>
-    </div>
-    <div class="col-md-3 mb-3">
-        <div class="card h-100 shadow-sm">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="flex-grow-1">
-                        <h6 class="text-muted mb-1">Total Consultations</h6>
-                        <h2 class="mb-0">{{ $stats['total_consultations'] ?? 0 }}</h2>
-                        <small class="text-info">All-time requests</small>
-                    </div>
-                    <div class="ms-3">
-                        <i class="fas fa-comments text-info opacity-50 fa-2x"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3 mb-3">
-        <div class="card h-100 shadow-sm">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="flex-grow-1">
-                        <h6 class="text-muted mb-1">Lead Conversions</h6>
-                        <h2 class="mb-0">{{ $stats['conversions'] ?? 0 }}</h2>
-                        <small class="text-success">Estimated conversion</small>
-                    </div>
-                    <div class="ms-3">
-                        <i class="fas fa-handshake text-success opacity-50 fa-2x"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3 mb-3">
-        <div class="card h-100 shadow-sm">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="flex-grow-1">
-                        <h6 class="text-muted mb-1">Total Applications</h6>
-                        <h2 class="mb-0">{{ $stats['total_job_apps'] ?? 0 }}</h2>
-                        <small class="text-warning">Job applications received</small>
-                    </div>
-                    <div class="ms-3">
-                        <i class="fas fa-file-alt text-warning opacity-50 fa-2x"></i>
-                    </div>
+        <div class="col-md-5 text-md-right mt-3 mt-md-0">
+            <div class="d-inline-flex align-items-center bg-white p-2 rounded-pill shadow-sm">
+                <span class="text-dark font-weight-bold px-3 small">
+                    <span class="indicator-pulse"></span> SYSTEM LIVE
+                </span>
+                <div class="bg-primary px-3 py-1 rounded-pill text-white small font-weight-bold">
+                    {{ now()->format('M Y') }}
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- KPI Cards Row 2 -->
 <div class="row mb-4">
-    <div class="col-md-4 mb-3">
-        <div class="card h-100 shadow-sm">
+    <!-- Main KPIs -->
+    @php
+        $kpis = [
+            ['title' => 'Weekly Consultation', 'val' => $stats['consultations_this_week'], 'icon' => 'fa-calendar-check', 'class' => 'primary', 'desc' => 'Active this week'],
+            ['title' => 'Client Engagement', 'val' => $stats['total_contacts'], 'icon' => 'fa-users', 'class' => 'info', 'desc' => 'Total lead volume'],
+            ['title' => 'Pipeline Conversion', 'val' => $stats['conversions'], 'icon' => 'fa-funnel-dollar', 'class' => 'success', 'desc' => 'Verified prospects'],
+            ['title' => 'Talent Acquisition', 'val' => $stats['total_job_apps'], 'icon' => 'fa-user-tie', 'class' => 'warning', 'desc' => 'Role applications']
+        ];
+    @endphp
+
+    @foreach($kpis as $kpi)
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card kpi-card h-100">
             <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="flex-grow-1">
-                        <h6 class="text-muted mb-1">Messages Received</h6>
-                        <h2 class="mb-0">{{ $stats['total_contacts'] ?? 0 }}</h2>
-                        <small class="text-secondary">Contact form submissions</small>
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div class="kpi-icon bg-soft-{{ $kpi['class'] }}">
+                        <i class="fas {{ $kpi['icon'] }}"></i>
                     </div>
-                    <div class="ms-3">
-                        <i class="fas fa-envelope text-secondary opacity-50 fa-2x"></i>
+                    <div class="text-right">
+                        <span class="badge badge-light text-{{ $kpi['class'] }} font-weight-bold">
+                            <i class="fas fa-chart-line mr-1"></i> Live
+                        </span>
                     </div>
+                </div>
+                <h6 class="text-muted small text-uppercase font-weight-bold mb-1">{{ $kpi['title'] }}</h6>
+                <h2 class="font-weight-bold mb-0 text-dark">{{ number_format($kpi['val']) }}</h2>
+                <div class="mt-2 small text-muted">
+                    <span class="text-{{ $kpi['class'] }} font-weight-bold mr-1">{{ $kpi['desc'] }}</span>
                 </div>
             </div>
         </div>
     </div>
-    <div class="col-md-4 mb-3">
-        <div class="card h-100 shadow-sm">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="flex-grow-1">
-                        <h6 class="text-muted mb-1">Active Campaigns</h6>
-                        <h2 class="mb-0">{{ $stats['total_campaigns'] ?? 0 }}</h2>
-                        <small class="text-primary">Marketing campaigns</small>
-                    </div>
-                    <div class="ms-3">
-                        <i class="fas fa-rocket text-primary opacity-50 fa-2x"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4 mb-3">
-        <div class="card h-100 shadow-sm">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="flex-grow-1">
-                        <h6 class="text-muted mb-1">Conversion Rate</h6>
-                        <h2 class="mb-0">
-                            @if(($stats['total_consultations'] ?? 0) > 0)
-                                {{ round(($stats['conversions'] ?? 0) / ($stats['total_consultations'] ?? 1) * 100, 1) }}%
-                            @else
-                                0%
-                            @endif
-                        </h2>
-                        <small class="text-success">Contact to consultation</small>
-                    </div>
-                    <div class="ms-3">
-                        <i class="fas fa-chart-pie text-success opacity-50 fa-2x"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    @endforeach
 </div>
 
-<!-- Charts and Breakdown -->
 <div class="row mb-4">
-    <div class="col-lg-8 mb-3">
-        <div class="card h-100 shadow-sm">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-                    <h5 class="mb-0">Engagement Overview</h5>
-                    <div class="btn-group btn-group-sm">
-                        <button class="btn btn-outline-secondary" id="timeRange7d">7d</button>
-                        <button class="btn btn-outline-secondary active" id="timeRange30d">30d</button>
-                        <button class="btn btn-outline-secondary" id="timeRange90d">90d</button>
+    <!-- Engagement Chart -->
+    <div class="col-lg-8 mb-4">
+        <div class="card shadow-sm border-0 rounded-4">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h5 class="font-weight-bold mb-1">Growth & Engagement</h5>
+                        <p class="text-muted small mb-0">Cross-channel interaction volume over time</p>
+                    </div>
+                    <div class="btn-group btn-group-sm rounded-pill shadow-none border p-1" style="background: #f8f9fa;">
+                        <button class="btn btn-transparent border-0 px-3 py-1 text-muted" id="timeRange7d">7D</button>
+                        <button class="btn btn-primary border-0 px-3 py-1 rounded-pill shadow-sm" id="timeRange30d">30D</button>
+                        <button class="btn btn-transparent border-0 px-3 py-1 text-muted" id="timeRange90d">90D</button>
                     </div>
                 </div>
-                <canvas id="engagementChart" height="80"></canvas>
+                <div style="height: 350px; width: 100%;">
+                    <canvas id="engagementChart"></canvas>
+                </div>
             </div>
         </div>
     </div>
-    <div class="col-lg-4 mb-3">
-        <div class="card h-100 shadow-sm">
-            <div class="card-body">
-                <h5 class="mb-3">Request Breakdown</h5>
+
+    <!-- Distribution Sidebar -->
+    <div class="col-lg-4 mb-4">
+        <div class="card shadow-sm border-0 rounded-4 h-100">
+            <div class="card-body p-4">
+                <h5 class="font-weight-bold mb-4">Traffic Composition</h5>
                 @php
-                    $total = ($stats['total_consultations'] ?? 0) + ($stats['total_contacts'] ?? 0) + ($stats['total_job_apps'] ?? 0) + ($stats['total_campaigns'] ?? 0);
-                    $consultationPct = $total > 0 ? round((($stats['total_consultations'] ?? 0) / $total) * 100, 1) : 0;
-                    $contactPct = $total > 0 ? round((($stats['total_contacts'] ?? 0) / $total) * 100, 1) : 0;
-                    $jobPct = $total > 0 ? round((($stats['total_job_apps'] ?? 0) / $total) * 100, 1) : 0;
-                    $campaignPct = $total > 0 ? round((($stats['total_campaigns'] ?? 0) / $total) * 100, 1) : 0;
+                    $total = ($stats['total_consultations'] ?? 0) + ($stats['total_contacts'] ?? 0) + ($stats['total_job_apps'] ?? 0);
+                    $dist = [
+                        ['label' => 'Consultations', 'val' => $stats['total_consultations'], 'color' => '#2f5597', 'pct' => $total > 0 ? round(($stats['total_consultations'] / $total) * 100, 1) : 0],
+                        ['label' => 'Messages', 'val' => $stats['total_contacts'], 'color' => '#0891b2', 'pct' => $total > 0 ? round(($stats['total_contacts'] / $total) * 100, 1) : 0],
+                        ['label' => 'Applications', 'val' => $stats['total_job_apps'], 'color' => '#d97706', 'pct' => $total > 0 ? round(($stats['total_job_apps'] / $total) * 100, 1) : 0]
+                    ];
                 @endphp
-                <div class="mb-3">
-                    <div class="d-flex justify-content-between mb-2">
-                        <span class="text-muted">Consultations</span>
-                        <strong>{{ $consultationPct }}%</strong>
+
+                @foreach($dist as $item)
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="font-weight-bold text-dark">{{ $item['label'] }}</span>
+                        <span class="text-muted font-weight-bold">{{ $item['pct'] }}%</span>
                     </div>
-                    <div class="progress" style="height: 8px;">
-                        <div class="progress-bar bg-primary" style="width: {{ $consultationPct }}%"></div>
+                    <div class="progress rounded-pill" style="height: 10px; background: #f1f5f9;">
+                        <div class="progress-bar" style="width: {{ $item['pct'] }}%; background: {{ $item['color'] }};"></div>
                     </div>
-                </div>
-                <div class="mb-3">
-                    <div class="d-flex justify-content-between mb-2">
-                        <span class="text-muted">Messages</span>
-                        <strong>{{ $contactPct }}%</strong>
-                    </div>
-                    <div class="progress" style="height: 8px;">
-                        <div class="progress-bar bg-info" style="width: {{ $contactPct }}%"></div>
+                    <div class="mt-2">
+                        <small class="text-muted">{{ number_format($item['val']) }} incoming items</small>
                     </div>
                 </div>
-                <div class="mb-3">
-                    <div class="d-flex justify-content-between mb-2">
-                        <span class="text-muted">Job Applications</span>
-                        <strong>{{ $jobPct }}%</strong>
-                    </div>
-                    <div class="progress" style="height: 8px;">
-                        <div class="progress-bar bg-warning" style="width: {{ $jobPct }}%"></div>
-                    </div>
-                </div>
-                <div>
-                    <div class="d-flex justify-content-between mb-2">
-                        <span class="text-muted">Campaigns</span>
-                        <strong>{{ $campaignPct }}%</strong>
-                    </div>
-                    <div class="progress" style="height: 8px;">
-                        <div class="progress-bar bg-success" style="width: {{ $campaignPct }}%"></div>
-                    </div>
+                @endforeach
+
+                <div class="mt-4 p-3 bg-soft-primary rounded-4 text-center">
+                    <h6 class="mb-0 font-weight-bold">System Health: Optimal</h6>
+                    <small>All sensors responding normally</small>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Recent Activity -->
-<div class="card mb-4">
-    <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-            <h5 class="mb-0">Recent Activity</h5>
-            <div class="btn-group" role="group">
-                <button class="btn btn-outline-danger btn-sm" type="button" id="exportPdfBtn">
-                    <i class="fas fa-file-pdf me-1"></i>Export PDF
+<div class="card shadow-sm mb-4 border-0 rounded-4">
+    <div class="card-header bg-white border-0 py-4 px-4">
+        <div class="d-flex justify-content-between align-items-center flex-wrap">
+            <div>
+                <h5 class="font-weight-bold mb-1">Operational Activity Log</h5>
+                <p class="text-muted small mb-0">Last 10 intelligence events captured by the system</p>
+            </div>
+            <div class="mt-3 mt-md-0">
+                <button class="btn btn-outline-danger btn-export mr-2" id="exportPdfBtn">
+                    <i class="fas fa-file-pdf"></i> Generate PDF
                 </button>
-                <button class="btn btn-outline-success btn-sm" type="button" id="exportExcelBtn">
-                    <i class="fas fa-file-excel me-1"></i>Export Excel
+                <button class="btn btn-outline-success btn-export" id="exportExcelBtn">
+                    <i class="fas fa-file-excel"></i> Excel Spread
                 </button>
             </div>
         </div>
+    </div>
+    <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table align-middle table-hover">
-                <thead class="table-light">
+            <table class="table table-hover align-middle mb-0">
+                <thead style="background: #f8faff;">
                     <tr>
-                        <th>Time</th>
-                        <th>Type</th>
-                        <th>Person</th>
-                        <th>Email</th>
-                        <th>Detail</th>
+                        <th class="px-4 py-3 text-uppercase small font-weight-bold">Timestamp</th>
+                        <th class="py-3 text-uppercase small font-weight-bold">Channel</th>
+                        <th class="py-3 text-uppercase small font-weight-bold">Entity</th>
+                        <th class="py-3 text-uppercase small font-weight-bold">Reference Info</th>
+                        <th class="py-3 text-uppercase small font-weight-bold">Action</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @if(empty($recentActivity))
+                    @forelse($recentActivity as $activity)
+                        @php
+                            $type = $activity['type'] ?? 'Unknown';
+                            $typeData = match($type) {
+                                'Contact' => ['color' => 'info', 'icon' => 'fa-envelope'],
+                                'Job Application' => ['color' => 'warning', 'icon' => 'fa-file-alt'],
+                                'Login' => ['color' => 'primary', 'icon' => 'fa-key'],
+                                'Page Visit' => ['color' => 'secondary', 'icon' => 'fa-eye'],
+                                default => ['color' => 'dark', 'icon' => 'fa-circle']
+                            };
+                            $date = \Carbon\Carbon::parse($activity['created_at']);
+                        @endphp
                         <tr>
-                            <td colspan="5" class="text-center text-muted py-4">
-                                <i class="fas fa-inbox fa-3x mb-2 opacity-25"></i>
-                                <p class="mb-0">No recent activity found.</p>
+                            <td class="px-4">
+                                <div class="font-weight-bold text-dark">{{ $date->format('H:i') }}</div>
+                                <div class="text-muted small">{{ $date->diffForHumans() }}</div>
+                            </td>
+                            <td>
+                                <span class="badge badge-soft-{{ $typeData['color'] }} p-2 px-3">
+                                    <i class="fas {{ $typeData['icon'] }} mr-1"></i> {{ $type }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="font-weight-bold text-dark">{{ $activity['name'] }}</div>
+                                <div class="text-muted small">{{ $activity['email'] }}</div>
+                            </td>
+                            <td>
+                                <span class="text-dark small"><i class="fas fa-info-circle mr-1 opacity-50"></i> {{ $activity['detail'] }}</span>
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-light border shadow-none rounded-pill px-3">View</button>
                             </td>
                         </tr>
-                    @else
-                        @foreach($recentActivity as $activity)
-                            @php
-                                $type = $activity['type'] ?? 'Unknown';
-                                $typeColor = match($type) {
-                                    'Consultation' => 'bg-primary',
-                                    'Contact' => 'bg-info',
-                                    'Job Application' => 'bg-warning',
-                                    'Campaign' => 'bg-success',
-                                    default => 'bg-secondary'
-                                };
-                                $timeAgo = time() - strtotime($activity['created_at'] ?? date('Y-m-d H:i:s'));
-                                $timeDisplay = $timeAgo < 3600 ? round($timeAgo / 60) . ' min ago' : ($timeAgo < 86400 ? round($timeAgo / 3600) . ' hrs ago' : ($timeAgo < 604800 ? round($timeAgo / 86400) . ' days ago' : date('M d, Y', strtotime($activity['created_at']))));
-                            @endphp
-                            <tr>
-                                <td><small class="text-muted">{{ $timeDisplay }}</small></td>
-                                <td><span class="badge {{ $typeColor }}">{{ htmlspecialchars($type) }}</span></td>
-                                <td><strong>{{ htmlspecialchars($activity['name'] ?? 'Unknown') }}</strong></td>
-                                <td class="text-muted small">{{ htmlspecialchars($activity['email'] ?? '—') }}</td>
-                                <td><small>{{ htmlspecialchars(substr($activity['detail'] ?? '—', 0, 50)) }}{{ strlen($activity['detail'] ?? '') > 50 ? '...' : '' }}</small></td>
-                            </tr>
-                        @endforeach
-                    @endif
+                    @empty
+                        <tr>
+                            <td colspan="5" class="text-center py-5">
+                                <div class="opacity-25 mb-3">
+                                    <i class="fas fa-database fa-4x text-muted"></i>
+                                </div>
+                                <h6 class="text-muted">No activity data available in the selected range.</h6>
+                            </td>
+                        </tr>
+                    @endforelse
                 </tbody>
             </table>
         </div>
     </div>
 </div>
-
-<!-- Scheduled Reports -->
-<div class="card">
-    <div class="card-body">
-        <h5 class="mb-3">Scheduled Reports</h5>
-        <div class="row g-3">
-            <div class="col-md-6">
-                <div class="p-3 border rounded h-100 bg-light">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <div>
-                            <div class="d-flex align-items-center mb-2">
-                                <i class="fas fa-calendar-alt text-primary me-2"></i>
-                                <strong>Weekly Operations</strong>
-                            </div>
-                            <p class="text-muted small mb-0"><i class="fas fa-clock me-1"></i>Every Monday, 8:00 AM</p>
-                        </div>
-                        <button class="btn btn-sm btn-outline-primary" type="button">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                    </div>
-                    <small class="text-muted"><strong>Recipients:</strong> ops@armely.com, cto@armely.com</small>
+<!-- Executive Controls -->
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card shadow-sm border-0 rounded-4 bg-dark text-white overflow-hidden" style="min-height: 180px;">
+            <div class="card-body p-4 position-relative" style="z-index: 2;">
+                <h5 class="font-weight-bold mb-3">Intelligence Automation</h5>
+                <p class="text-white-50 small mb-4">Configure automated distribution of performance payloads to key stakeholders.</p>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-primary rounded-pill px-4 btn-sm font-weight-bold mr-2">Configure Rules</button>
+                    <button class="btn btn-outline-light rounded-pill px-4 btn-sm font-weight-bold">View History</button>
                 </div>
             </div>
-            <div class="col-md-6">
-                <div class="p-3 border rounded h-100 bg-light">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <div>
-                            <div class="d-flex align-items-center mb-2">
-                                <i class="fas fa-chart-bar text-success me-2"></i>
-                                <strong>Monthly Executive</strong>
+            <i class="fas fa-microchip position-absolute" style="bottom: -20px; right: -10px; font-size: 150px; opacity: 0.1; transform: rotate(-15deg);"></i>
+        </div>
+    </div>
+    <div class="col-md-6 mb-4">
+        <div class="card shadow-sm border-0 rounded-4 p-1">
+            <div class="card-body p-3">
+                <h6 class="font-weight-bold mb-3 px-2">Scheduled Transmissions</h6>
+                <div class="list-group list-group-flush">
+                    <div class="list-group-item d-flex justify-content-between align-items-center bg-transparent border-0 px-2 py-2">
+                        <div class="d-flex align-items-center">
+                            <div class="bg-soft-primary p-2 rounded mr-3">
+                                <i class="fas fa-file-invoice text-primary"></i>
                             </div>
-                            <p class="text-muted small mb-0"><i class="fas fa-clock me-1"></i>1st of month, 9:00 AM</p>
+                            <div>
+                                <div class="text-dark font-weight-bold small">Weekly Ops Summary</div>
+                                <div class="text-muted" style="font-size: 10px;">Targets: 4 Recipients</div>
+                            </div>
                         </div>
-                        <button class="btn btn-sm btn-outline-success" type="button">
-                            <i class="fas fa-edit"></i>
-                        </button>
+                        <span class="badge badge-success rounded-pill">Active</span>
                     </div>
-                    <small class="text-muted"><strong>Recipients:</strong> exec@armely.com, leadership@armely.com</small>
+                    <div class="list-group-item d-flex justify-content-between align-items-center bg-transparent border-0 px-2 py-2">
+                        <div class="d-flex align-items-center">
+                            <div class="bg-soft-success p-2 rounded mr-3">
+                                <i class="fas fa-chart-pie text-success"></i>
+                            </div>
+                            <div>
+                                <div class="text-dark font-weight-bold small">Monthly Executive KPI</div>
+                                <div class="text-muted" style="font-size: 10px;">Targets: 2 Recipients</div>
+                            </div>
+                        </div>
+                        <span class="badge badge-success rounded-pill">Active</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -316,251 +354,124 @@
 <script>
     let engagementChart = null;
 
-    // Real chart data from server
-    const serverChartData = @json($chartData);
+    // Initialize Chart
+    function initEngagementChart(labels, consultations, contacts, applications) {
+        const ctx = document.getElementById('engagementChart').getContext('2d');
+        
+        // Create gradients
+        const gradient1 = ctx.createLinearGradient(0, 0, 0, 400);
+        gradient1.addColorStop(0, 'rgba(47, 85, 151, 0.2)');
+        gradient1.addColorStop(1, 'rgba(47, 85, 151, 0)');
 
-    // Function to generate data based on time range
-    function generateChartData(days) {
-        // Return server data for 30 days (initial load)
-        if (days === 30 && serverChartData && serverChartData.labels && serverChartData.labels.length > 0) {
-            return {
-                labels: serverChartData.labels,
-                consultationData: serverChartData.consultations,
-                messageData: serverChartData.contacts,
-                applicationData: serverChartData.applications
-            };
-        }
-
-        // For other ranges, fetch from server dynamically
-        let labels = [];
-        let consultationData = [];
-        let messageData = [];
-        let applicationData = [];
-
-        if (days === 7) {
-            labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-            // Use current week data if available
-            consultationData = serverChartData.consultations.slice(0, 7);
-            messageData = serverChartData.contacts.slice(0, 7);
-            applicationData = serverChartData.applications.slice(0, 7);
-        } else if (days === 90) {
-            labels = ['Week 1-2', 'Week 3-4', 'Week 5-6', 'Week 7-8', 'Week 9-10', 'Week 11-12', 'Week 13'];
-            // Use 90-day data if available
-            consultationData = serverChartData.consultations.slice(0, 7);
-            messageData = serverChartData.contacts.slice(0, 7);
-            applicationData = serverChartData.applications.slice(0, 7);
-        }
-
-        return {
-            labels: labels,
-            consultationData: consultationData,
-            messageData: messageData,
-            applicationData: applicationData
-        };
-    }
-
-    // Initialize Engagement Chart
-    function initEngagementChart(days = 30) {
-        const ctx = document.getElementById('engagementChart');
-        if (!ctx) return;
-
-        const data = generateChartData(days);
+        const gradient2 = ctx.createLinearGradient(0, 0, 0, 400);
+        gradient2.addColorStop(0, 'rgba(8, 145, 178, 0.2)');
+        gradient2.addColorStop(1, 'rgba(8, 145, 178, 0)');
 
         if (engagementChart) {
-            engagementChart.data.labels = data.labels;
-            engagementChart.data.datasets[0].data = data.consultationData;
-            engagementChart.data.datasets[1].data = data.messageData;
-            engagementChart.data.datasets[2].data = data.applicationData;
-            engagementChart.update();
-        } else {
-            engagementChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: data.labels,
-                    datasets: [
-                        {
-                            label: 'Consultations',
-                            data: data.consultationData,
-                            borderColor: '#2f5597',
-                            backgroundColor: 'rgba(47, 85, 151, 0.1)',
-                            tension: 0.3,
-                            fill: true,
-                            borderWidth: 2
-                        },
-                        {
-                            label: 'Messages',
-                            data: data.messageData,
-                            borderColor: '#17a2b8',
-                            backgroundColor: 'rgba(23, 162, 184, 0.1)',
-                            tension: 0.3,
-                            fill: true,
-                            borderWidth: 2
-                        },
-                        {
-                            label: 'Applications',
-                            data: data.applicationData,
-                            borderColor: '#ffc107',
-                            backgroundColor: 'rgba(255, 193, 7, 0.1)',
-                            tension: 0.3,
-                            fill: true,
-                            borderWidth: 2
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: {
-                        legend: {
-                            position: 'top',
+            engagementChart.destroy();
+        }
+
+        engagementChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Consultations',
+                        data: consultations,
+                        borderColor: '#2f5597',
+                        backgroundColor: gradient1,
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 3,
+                        pointBackgroundColor: '#fff',
+                        pointBorderColor: '#2f5597',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    },
+                    {
+                        label: 'Messages',
+                        data: contacts,
+                        borderColor: '#0891b2',
+                        backgroundColor: gradient2,
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 3,
+                        pointBackgroundColor: '#fff',
+                        pointBorderColor: '#0891b2',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 20,
+                            font: { size: 12, weight: '600' }
                         }
                     },
-                    scales: {
-                        y: {
-                            beginAtZero: true
-                        }
+                    tooltip: {
+                        backgroundColor: '#1e293b',
+                        padding: 12,
+                        titleFont: { size: 14 },
+                        bodyFont: { size: 13 },
+                        cornerRadius: 8,
+                        displayColors: true
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: '#64748b', font: { size: 11 } }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: { borderDash: [5, 5], color: '#e2e8f0' },
+                        ticks: { color: '#64748b', font: { size: 11 }, stepSize: 5 }
                     }
                 }
-            });
+            }
+        });
+    }
+
+    // Fetch Data
+    async function updateChart(days, btnId) {
+        // Toggle UI
+        document.querySelectorAll('.btn-group button').forEach(b => {
+            b.classList.remove('btn-primary', 'shadow-sm', 'rounded-pill');
+            b.classList.add('btn-transparent', 'text-muted');
+        });
+        const activeBtn = document.getElementById(btnId);
+        activeBtn.classList.remove('btn-transparent', 'text-muted');
+        activeBtn.classList.add('btn-primary', 'shadow-sm', 'rounded-pill');
+
+        try {
+            const response = await fetch(`{{ route('admin.reports.chart-data') }}?days=${days}`);
+            const data = await response.json();
+            initEngagementChart(data.labels, data.consultations, data.contacts, data.applications);
+        } catch (error) {
+            console.error('Failed to update chart:', error);
         }
     }
 
-    // Initialize chart on page load
-    initEngagementChart(30);
+    // Initial Load
+    document.addEventListener('DOMContentLoaded', () => {
+        const initialData = @json($chartData);
+        initEngagementChart(initialData.labels, initialData.consultations, initialData.contacts, initialData.applications);
 
-    // Time range buttons - NOW FUNCTIONAL WITH AJAX
-    $('#timeRange7d').on('click', function() {
-        $('#timeRange7d, #timeRange30d, #timeRange90d').removeClass('active');
-        $(this).addClass('active');
-        
-        // Fetch real data from server
-        $.ajax({
-            url: '{{ route("admin.reports.chart-data") }}',
-            method: 'GET',
-            data: { days: 7 },
-            success: function(data) {
-                if (engagementChart) {
-                    engagementChart.data.labels = data.labels;
-                    engagementChart.data.datasets[0].data = data.consultations;
-                    engagementChart.data.datasets[1].data = data.contacts;
-                    engagementChart.data.datasets[2].data = data.applications;
-                    engagementChart.update();
-                }
-            },
-            error: function() {
-                console.error('Failed to load chart data');
-            }
-        });
-    });
-
-    $('#timeRange30d').on('click', function() {
-        $('#timeRange7d, #timeRange30d, #timeRange90d').removeClass('active');
-        $(this).addClass('active');
-        
-        // Fetch real data from server
-        $.ajax({
-            url: '{{ route("admin.reports.chart-data") }}',
-            method: 'GET',
-            data: { days: 30 },
-            success: function(data) {
-                if (engagementChart) {
-                    engagementChart.data.labels = data.labels;
-                    engagementChart.data.datasets[0].data = data.consultations;
-                    engagementChart.data.datasets[1].data = data.contacts;
-                    engagementChart.data.datasets[2].data = data.applications;
-                    engagementChart.update();
-                }
-            },
-            error: function() {
-                console.error('Failed to load chart data');
-            }
-        });
-    });
-
-    $('#timeRange90d').on('click', function() {
-        $('#timeRange7d, #timeRange30d, #timeRange90d').removeClass('active');
-        $(this).addClass('active');
-        
-        // Fetch real data from server
-        $.ajax({
-            url: '{{ route("admin.reports.chart-data") }}',
-            method: 'GET',
-            data: { days: 90 },
-            success: function(data) {
-                if (engagementChart) {
-                    engagementChart.data.labels = data.labels;
-                    engagementChart.data.datasets[0].data = data.consultations;
-                    engagementChart.data.datasets[1].data = data.contacts;
-                    engagementChart.data.datasets[2].data = data.applications;
-                    engagementChart.update();
-                }
-            },
-            error: function() {
-                console.error('Failed to load chart data');
-            }
-        });
-    });
-
-    // PDF Export Handler
-    $('#exportPdfBtn').on('click', function(e) {
-        e.preventDefault();
-        
-        // Show loading state
-        var btn = $(this);
-        var originalHtml = btn.html();
-        btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i>Generating...');
-        
-        // Create form and submit for PDF download
-        var form = $('<form/>', {
-            'method': 'POST',
-            'action': '{{ route("admin.reports.export.pdf") }}',
-        });
-        
-        form.append($('<input/>', {
-            'type': 'hidden',
-            'name': '_token',
-            'value': $('meta[name="csrf-token"]').attr('content')
-        }));
-        
-        $('body').append(form);
-        form.submit();
-        form.remove();
-        
-        // Restore button state
-        setTimeout(function() {
-            btn.prop('disabled', false).html(originalHtml);
-        }, 1000);
-    });
-
-    // Excel Export Handler
-    $('#exportExcelBtn').on('click', function(e) {
-        e.preventDefault();
-        
-        // Show loading state
-        var btn = $(this);
-        var originalHtml = btn.html();
-        btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i>Generating...');
-        
-        // Create form and submit for Excel download
-        var form = $('<form/>', {
-            'method': 'POST',
-            'action': '{{ route("admin.reports.export.excel") }}',
-        });
-        
-        form.append($('<input/>', {
-            'type': 'hidden',
-            'name': '_token',
-            'value': $('meta[name="csrf-token"]').attr('content')
-        }));
-        
-        $('body').append(form);
-        form.submit();
-        form.remove();
-        
-        // Restore button state
-        setTimeout(function() {
-            btn.prop('disabled', false).html(originalHtml);
-        }, 1000);
+        // Event Listeners
+        document.getElementById('timeRange7d').addEventListener('click', () => updateChart(7, 'timeRange7d'));
+        document.getElementById('timeRange30d').addEventListener('click', () => updateChart(30, 'timeRange30d'));
+        document.getElementById('timeRange90d').addEventListener('click', () => updateChart(90, 'timeRange90d'));
     });
 </script>
 @endpush

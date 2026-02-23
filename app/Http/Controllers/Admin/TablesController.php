@@ -45,50 +45,77 @@ class TablesController extends Controller
     
     public function listBlogs(Request $request)
     {
+        $blogTable = Schema::hasTable('blogs') ? 'blogs' : 'blog';
+        
+        // Check if it's a DataTables AJAX request
+        if ($request->has('draw')) {
+            $query = DB::table($blogTable);
+            $totalData = $query->count();
+            
+            // Searching
+            $searchValue = $request->input('search.value');
+            if (!empty($searchValue)) {
+                $query->where(function($q) use ($searchValue, $blogTable) {
+                    $q->where(Schema::hasColumn($blogTable, 'title') ? 'title' : 'id', 'like', "%{$searchValue}%")
+                      ->orWhere(Schema::hasColumn($blogTable, 'author') ? 'author' : 'id', 'like', "%{$searchValue}%");
+                    
+                    if (Schema::hasColumn($blogTable, 'blog_title')) {
+                        $q->orWhere('blog_title', 'like', "%{$searchValue}%");
+                    }
+                    if (Schema::hasColumn($blogTable, 'description')) {
+                        $q->orWhere('description', 'like', "%{$searchValue}%");
+                    }
+                });
+            }
+            
+            $totalFiltered = $query->count();
+            
+            // Ordering
+            $orderColIndex = $request->input('order.0.column', 0);
+            $orderDir = $request->input('order.0.dir', 'desc');
+            
+            // Map column indices to actual DB columns
+            $columns = [
+                0 => Schema::hasColumn($blogTable, 'title') ? 'title' : (Schema::hasColumn($blogTable, 'blog_title') ? 'blog_title' : 'id'),
+                1 => Schema::hasColumn($blogTable, 'author') ? 'author' : 'id',
+                2 => Schema::hasColumn($blogTable, 'date') ? 'date' : (Schema::hasColumn($blogTable, 'blog_date') ? 'blog_date' : 'id'),
+                3 => Schema::hasColumn($blogTable, 'id') ? 'id' : 'blog_id'
+            ];
+            
+            $orderBy = $columns[$orderColIndex] ?? $columns[0];
+            
+            // Paging
+            $start = $request->input('start', 0);
+            $length = $request->input('length', 10);
+            
+            $blogs = $query->orderBy($orderBy, $orderDir)
+                ->offset($start)
+                ->limit($length)
+                ->get();
+                
+            return response()->json([
+                "draw"            => intval($request->input('draw')),
+                "recordsTotal"    => intval($totalData),
+                "recordsFiltered" => intval($totalFiltered),
+                "data"            => $blogs
+            ]);
+        }
+
+        // Fallback for non-datatable requests
         $limit = (int) $request->query('limit', 50);
         $limit = max(1, min($limit, 500));
-
+        
         $start = microtime(true);
-        // Temporary fallback debug file (works even if Laravel logging is misconfigured)
-        try {
-            @file_put_contents(storage_path('logs/debug_blogs.txt'), "[".now()."] listBlogs called, limit={$limit}\n", FILE_APPEND | LOCK_EX);
-        } catch (\Throwable $__e) {
-            // suppress - this is only diagnostic
-        }
-        $blogTable = Schema::hasTable('blogs') ? 'blogs' : 'blog';
-
         try {
             $blogs = DB::table($blogTable)
                 ->orderBy(Schema::hasColumn($blogTable, 'blog_id') ? 'blog_id' : 'id', 'desc')
                 ->limit($limit)
                 ->get();
-
-            $duration = round((microtime(true) - $start) * 1000, 2);
-            \Illuminate\Support\Facades\Log::info('listBlogs executed', [
-                'table' => $blogTable,
-                'limit' => $limit,
-                'count' => is_countable($blogs) ? count($blogs) : (method_exists($blogs, 'count') ? $blogs->count() : null),
-                'ms' => $duration,
-            ]);
-            try {
-                @file_put_contents(storage_path('logs/debug_blogs.txt'), "[".now()."] listBlogs succeeded, count=".(is_countable($blogs)?count($blogs):(method_exists($blogs,'count')?$blogs->count():0)).", ms={$duration}\n", FILE_APPEND | LOCK_EX);
-            } catch (\Throwable $__e) {}
-
+            
             return response()->json(['success' => true, 'data' => $blogs, 'limit' => $limit]);
         } catch (\Throwable $e) {
-            $duration = round((microtime(true) - $start) * 1000, 2);
-            \Illuminate\Support\Facades\Log::error('listBlogs failed', [
-                'table' => $blogTable,
-                'limit' => $limit,
-                'ms' => $duration,
-                'error' => $e->getMessage(),
-            ]);
-
-            try {
-                @file_put_contents(storage_path('logs/debug_blogs.txt'), "[".now()."] listBlogs FAILED, error=".$e->getMessage().", ms={$duration}\n", FILE_APPEND | LOCK_EX);
-            } catch (\Throwable $__e) {}
-
-            return response()->json(['success' => false, 'message' => 'Server error loading blogs'], 500);
+            \Illuminate\Support\Facades\Log::error('listBlogs fallback failed', ['error' => $e->getMessage()]);
+            return response()->json(['success' => false, 'message' => 'Server error'], 500);
         }
     }
     
