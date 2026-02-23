@@ -689,12 +689,17 @@
                 <div class="col-lg-4 col-md-6 col-12" data-aos="fade-up">
                     <article class="blog-card-wrapper">
                         <div class="blog-image-box">
-                            <img class="lazy-img" loading="lazy" src="{{ $blog->image_path }}" alt="{{ $blog->title }}">
+                            <img class="lazy-img" loading="lazy" 
+                                 src="{{ $blog->image_path ?: asset('images/blog/default.svg') }}" 
+                                 alt="{{ $blog->title }}"
+                                 onerror="this.src='{{ asset('images/blog/default.svg') }}'">
                             <div class="blog-category-tag">Insight</div>
                         </div>
                         <div class="blog-content">
                             <div class="blog-author-info">
-                                <img src="{{ $blog->author_image ? asset('images/team/' . $blog->author_image) : asset('images/defaults/avatar.webp') }}" class="author-avatar" alt="Author">
+                                <img src="{{ $blog->author_image ? asset('images/team/' . $blog->author_image) : asset('images/blog/profile.svg') }}" 
+                                     class="author-avatar" alt="Author"
+                                     onerror="this.src='{{ asset('images/blog/profile.svg') }}'">
                                 <div class="author-details">
                                     <span>{{ $blog->author }}</span>
                                     <span><i class="fa fa-clock-o"></i> {{ $blog->reading_time }} min</span>
