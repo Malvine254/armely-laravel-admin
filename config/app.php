@@ -86,6 +86,27 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Class Aliases
+    |--------------------------------------------------------------------------
+    |
+    | This array of class aliases will be registered when this application
+    | is started. However, feel free to register as many as you wish as
+    | the aliases are "lazy" loaded so they don't hinder performance.
+    |
+    */
+    'aliases' => [
+        ...(
+            array_merge(
+                class_exists('Illuminate\Foundation\Application') ? Illuminate\Foundation\Application::getAliases() : [],
+                [
+                    'GeoIP' => Torann\GeoIP\Facades\GeoIP::class,
+                ]
+            )
+        ),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Encryption Key
     |--------------------------------------------------------------------------
     |
