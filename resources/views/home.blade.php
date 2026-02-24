@@ -2,6 +2,8 @@
 
 @php($title = 'Home')
 
+@php(use Illuminate\Support\Str;)
+
 @push('styles')
 <style>
     .portfolio .section-title h2,

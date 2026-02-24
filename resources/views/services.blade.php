@@ -624,7 +624,7 @@
 										</div>
 										<h4 class="title text-light">{{ $service->title }}</h4>
 										<div class="price text-light">
-											<p class="text-light">{{ Str::limit($service->body, 150) }}</p>
+											<p class="text-light">{{ \Illuminate\Support\Str::limit($service->body, 150) }}</p>
 										</div>
 									</div>
 								</a>
