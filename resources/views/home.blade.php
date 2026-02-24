@@ -6,24 +6,58 @@
 <style>
     .portfolio .section-title h2,
     .blog .section-title h2,
-    .video-section .section-title h2,
-    .clients-section .section-title h2 {
+    .video-section .section-title h2 {
         font-size: 2.8rem;
         font-weight: 800;
         color: #1a1a1a;
         margin-bottom: 0;
     }
+
+    .clients-section .section-title h2 {
+        font-size: 3.2rem;
+        font-weight: 900;
+        background: linear-gradient(135deg, #1E62AD 0%, #2f5597 50%, #1E62AD 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 0;
+        letter-spacing: -1px;
+        text-shadow: 0 0 80px rgba(30, 98, 173, 0.1);
+        position: relative;
+        display: inline-block;
+    }
+
+    .clients-section .section-title p {
+        color: #475569;
+        font-size: 1.1rem;
+        line-height: 1.7;
+        font-weight: 400;
+    }
     
     .portfolio .hr,
     .blog .hr,
-    .video-section .hr,
-    .clients-section .hr {
+    .video-section .hr {
         width: 100px;
         height: 6px;
         border: none;
         border-radius: 5px;
         margin-top: 15px;
         background: #2f5597 !important;
+    }
+
+    .clients-section .hr {
+        width: 120px;
+        height: 6px;
+        border: none;
+        border-radius: 10px;
+        margin-top: 20px;
+        background: linear-gradient(90deg, 
+            transparent 0%, 
+            rgba(30, 98, 173, 0.3) 20%, 
+            #1E62AD 50%, 
+            rgba(30, 98, 173, 0.3) 80%, 
+            transparent 100%);
+        box-shadow: 0 4px 20px rgba(30, 98, 173, 0.25);
     }
 
     .portfolio .single-pf {
@@ -357,45 +391,247 @@
 
     /* Clients/Brands Section */
     .clients-section {
-        padding: 100px 0;
-        background: #fff;
+        padding: 110px 0;
+        background: 
+            radial-gradient(1200px 600px at 20% 10%, rgba(30, 98, 173, 0.08) 0%, transparent 50%),
+            radial-gradient(1000px 500px at 80% 90%, rgba(255, 152, 0, 0.06) 0%, transparent 50%),
+            linear-gradient(135deg, #f8fafc 0%, #ffffff 50%, #f1f5f9 100%);
+        position: relative;
+        overflow: hidden;
     }
 
+    .clients-section::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: 
+            radial-gradient(circle at 30% 20%, rgba(30, 98, 173, 0.03), transparent 40%),
+            radial-gradient(circle at 70% 80%, rgba(30, 98, 173, 0.03), transparent 40%);
+        pointer-events: none;
+    }
+
+    .clients-section::after {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(30, 98, 173, 0.03) 1px, transparent 1px);
+        background-size: 50px 50px;
+        animation: gridMove 20s linear infinite;
+        pointer-events: none;
+        opacity: 0.4;
+    }
+
+    @keyframes gridMove {
+        0% { transform: translate(0, 0); }
+        100% { transform: translate(50px, 50px); }
+    }
+
+    .partner-carousel {
+        min-height: 100%;
+    }
     .partner-carousel .m-4 {
-        background: #fff;
-        padding: 35px 25px;
-        border-radius: 20px;
-        transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.98) 100%);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        padding: 40px 30px;
+        border-radius: 28px;
+        transition: all 0.5s cubic-bezier(0.165, 0.84, 0.44, 1);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        height: 100%;
+        min-height: 420px;
+        box-shadow: 
+            0 8px 32px rgba(30, 98, 173, 0.08),
+            0 2px 8px rgba(30, 98, 173, 0.04),
+            inset 0 1px 0 rgba(255, 255, 255, 0.9);
+        border: 2px solid transparent;
+        background-clip: padding-box;
+        position: relative;
+        margin: 15px !important;
+    }
+
+    .partner-carousel .m-4::before {
+        content: '';
+        position: absolute;
+        inset: -2px;
+        border-radius: 28px;
+        padding: 2px;
+        background: linear-gradient(135deg, 
+            rgba(30, 98, 173, 0.3) 0%, 
+            rgba(30, 98, 173, 0.1) 25%,
+            rgba(255, 152, 0, 0.1) 50%,
+            rgba(30, 98, 173, 0.1) 75%,
+            rgba(30, 98, 173, 0.3) 100%);
+        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+        pointer-events: none;
+        opacity: 0.6;
+        transition: all 0.5s ease;
+    }
+
+    .partner-carousel .m-4::after {
+        content: '✓';
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        width: 28px;
+        height: 28px;
+        background: linear-gradient(135deg, #1E62AD 0%, #2f5597 100%);
+        color: white;
+        border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        min-height: 160px;
-        box-shadow: 0 8px 25px rgba(0,0,0,0.04);
-        border: 1px solid #f2f4f7;
-        margin: 15px !important; /* Proper spacing between cards */
+        font-size: 14px;
+        font-weight: bold;
+        opacity: 0;
+        transform: scale(0) rotate(-180deg);
+        transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        box-shadow: 0 4px 12px rgba(30, 98, 173, 0.3);
     }
 
     .partner-carousel .m-4:hover {
-        transform: translateY(-10px);
-        box-shadow: 0 20px 40px rgba(47, 85, 151, 0.12);
-        border-color: rgba(47, 85, 151, 0.2);
-        background: #ffffff;
+        transform: translateY(-12px) scale(1.02);
+        box-shadow: 
+            0 24px 48px rgba(30, 98, 173, 0.16),
+            0 12px 24px rgba(30, 98, 173, 0.12),
+            0 0 0 1px rgba(30, 98, 173, 0.1),
+            inset 0 1px 0 rgba(255, 255, 255, 1);
+        background: linear-gradient(135deg, rgba(255, 255, 255, 1) 0%, rgba(248, 250, 252, 1) 100%);
+    }
+
+    .partner-carousel .m-4:hover::before {
+        opacity: 1;
+        background: linear-gradient(135deg, 
+            rgba(30, 98, 173, 0.5) 0%, 
+            rgba(255, 152, 0, 0.3) 50%,
+            rgba(30, 98, 173, 0.5) 100%);
+        animation: borderShine 3s ease-in-out infinite;
+    }
+
+    .partner-carousel .m-4:hover::after {
+        opacity: 1;
+        transform: scale(1) rotate(0deg);
+    }
+
+    @keyframes borderShine {
+        0%, 100% {
+            background: linear-gradient(135deg, 
+                rgba(30, 98, 173, 0.5) 0%, 
+                rgba(255, 152, 0, 0.3) 50%,
+                rgba(30, 98, 173, 0.5) 100%);
+        }
+        50% {
+            background: linear-gradient(135deg, 
+                rgba(255, 152, 0, 0.5) 0%, 
+                rgba(30, 98, 173, 0.3) 50%,
+                rgba(255, 152, 0, 0.5) 100%);
+        }
+    }
+
+    .partner-carousel .partner-logo {
+        width: 100%;
+        height: 150px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        position: relative;
+        padding: 12px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, rgba(30, 98, 173, 0.02) 0%, transparent 100%);
+        transition: all 0.4s ease;
+    }
+
+    .partner-carousel .m-4:hover .partner-logo {
+        background: linear-gradient(135deg, rgba(30, 98, 173, 0.06) 0%, rgba(255, 152, 0, 0.03) 100%);
     }
 
     .partner-carousel img {
-        filter: none;
-        opacity: 1;
-        transition: all 0.4s ease;
-        max-height: 100px;
-        max-width: 90%;
+        filter: grayscale(0%) contrast(1.05) brightness(1);
+        opacity: 0.92;
+        transition: all 0.5s cubic-bezier(0.165, 0.84, 0.44, 1);
+        max-height: 140px;
+        max-width: 100%;
         width: auto !important;
         height: auto !important;
         margin: 0 auto;
         object-fit: contain;
+        position: relative;
+        z-index: 1;
     }
 
     .partner-carousel .m-4:hover img {
-        transform: scale(1.08);
+        transform: scale(1.08) translateZ(0);
+        filter: grayscale(0%) contrast(1.1) brightness(1.05);
+        opacity: 1;
+    }
+
+    .partner-carousel .partner-name {
+        font-size: 15px;
+        font-weight: 700;
+        background: linear-gradient(135deg, #1E62AD 0%, #2f5597 60%, #1E62AD 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        text-align: center;
+        line-height: 1.3;
+        max-width: 200px;
+        letter-spacing: 0.3px;
+        text-transform: capitalize;
+        position: relative;
+        transition: all 0.4s ease;
+    }
+
+    .partner-carousel .m-4:hover .partner-name {
+        transform: translateY(-2px);
+        letter-spacing: 0.5px;
+    }
+
+    /* Card entrance animation */
+    .partner-carousel .m-4 {
+        animation: cardFadeIn 0.6s ease-out backwards;
+    }
+
+    .partner-carousel .m-4:nth-child(1) { animation-delay: 0.1s; }
+    .partner-carousel .m-4:nth-child(2) { animation-delay: 0.15s; }
+    .partner-carousel .m-4:nth-child(3) { animation-delay: 0.2s; }
+    .partner-carousel .m-4:nth-child(4) { animation-delay: 0.25s; }
+    .partner-carousel .m-4:nth-child(5) { animation-delay: 0.3s; }
+    .partner-carousel .m-4:nth-child(6) { animation-delay: 0.35s; }
+    .partner-carousel .m-4:nth-child(7) { animation-delay: 0.4s; }
+    .partner-carousel .m-4:nth-child(8) { animation-delay: 0.45s; }
+
+    @keyframes cardFadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(30px) scale(0.9);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    /* Subtle floating animation on idle */
+    .partner-carousel .m-4 {
+        animation: cardFadeIn 0.6s ease-out backwards, floatCard 6s ease-in-out infinite;
+    }
+
+    @keyframes floatCard {
+        0%, 100% {
+            transform: translateY(0) scale(1);
+        }
+        50% {
+            transform: translateY(-5px) scale(1);
+        }
     }
 
     @media (max-width: 768px) {
@@ -404,6 +640,10 @@
         }
         .clients-section .section-title h2 {
             font-size: 2.2rem;
+        }
+        .partner-carousel .m-4 {
+            height: 240px;
+            padding: 35px 25px;
         }
     }
 
@@ -602,17 +842,17 @@
             </div>
         </div>
         <div class="owl-carousel clients-carousel partner-carousel mt-4">
-            <div class="m-4"><a href="{{ asset('images/brand-partners/university_of_nebrask1.png') }}" target="_blank" rel="noopener noreferrer"><img src="https://cdn.freelogovectors.net/wp-content/uploads/2023/07/university_of_nebraska_medical_center_logo-freelogovectors.net_.png" class="img-fluid lazy-img" loading="lazy" decoding="async" alt="University of Nebraska Medical Center logo" width="200" height="80"></a></div>
-            <div class="m-4"><a href="{{ asset('images/brand-partners/swope_health.png') }}" target="_blank" rel="noopener noreferrer"><img src="https://swopehealth.org/wp-content/uploads/2024/03/Swope-Health-Services-244462845.png" alt="Swope Health Services logo" class="img-fluid lazy-img" loading="lazy" decoding="async" width="200" height="80"></a></div>
-            <div class="m-4"><a href="{{ asset('images/brand-partners/esse_health.jpg') }}" target="_blank" rel="noopener noreferrer"><img src="https://assets.libsyn.com/content/17315963?height=250&width=250&overlay=true" alt="Esse Health logo" class="img-fluid lazy-img" loading="lazy" decoding="async" width="200" height="80"></a></div>
-            <div class="m-4"><a href="{{ asset('images/brand-partners/sage_bute.webp') }}" target="_blank" rel="noopener noreferrer"><img src="https://www.sagebutte.com/wp-content/uploads/2024/01/Sage-Butte-Energy-logo.png" alt="Sage Butte Energy logo" class="img-fluid lazy-img" loading="lazy" decoding="async" width="200" height="80"></a></div>
-            <div class="m-4"><a href="{{ asset('images/brand-partners/qb_energy.jpg') }}" target="_blank" rel="noopener noreferrer"><img src="{{ asset('images/brand-partners/qb_energy.jpg') }}" alt="QB Energy logo" class="img-fluid lazy-img" loading="lazy" decoding="async" width="200" height="80"></a></div>
-            <div class="m-4"><a href="{{ asset('images/brand-partners/frisco.jpeg') }}" target="_blank" rel="noopener noreferrer"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/78/Logo_of_Frisco%2C_Texas.svg/768px-Logo_of_Frisco%2C_Texas.svg.png?20180828011722" alt="City of Frisco Texas logo" class="img-fluid lazy-img" loading="lazy" decoding="async" width="200" height="80"></a></div>
-            <div class="m-4"><a href="{{ asset('images/brand-partners/dallas_county.jpg') }}" target="_blank" rel="noopener noreferrer"><img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSrSzxH_f1lEuzqxEewHFlxbQr6jWb-ISY4eQ&s" alt="Dallas County logo" class="lazy-img" loading="lazy" decoding="async" width="200" height="80"></a></div>
-            <div class="m-4"><a href="{{ asset('images/brand-partners/lambda.png') }}" target="_blank" rel="noopener noreferrer"><img src="https://lambdalegal.org/wp-content/uploads/2023/02/lambda-logo-300x84.png" alt="Lambda Legal logo" class="img-fluid lazy-img" loading="lazy" decoding="async" width="200" height="80"></a></div>
-            <div class="m-4"><a href="{{ asset('images/brand-partners/homeward_bound.png') }}" target="_blank" rel="noopener noreferrer"><img src="https://nfg-sofun.s3.amazonaws.com/uploads/ui_configuration/main_logo/12617/welcome_logo_HBI_LOGO_FINAL_Long_Form.png" alt="Homeward Bound logo" class="img-fluid lazy-img" loading="lazy" decoding="async" width="200" height="80"></a></div>
-            <div class="m-4"><a href="{{ asset('images/brand-partners/mhc.png') }}" target="_blank" rel="noopener noreferrer"><img src="https://www.moblicosolutions.com/wp-content/uploads/2024/09/Image-for-Home-Page-Hero-4-e1726688399270.png" alt="MHC logo" class="img-fluid lazy-img" loading="lazy" decoding="async" width="200" height="80"></a></div>
-            <div class="m-4"><a href="{{ asset('images/brand-partners/bnsf.png') }}" target="_blank" rel="noopener noreferrer"><img src="https://logos-world.net/wp-content/uploads/2024/07/BNSF-Railway-Symbol.png" alt="BNSF Railway logo" class="img-fluid lazy-img" loading="lazy" decoding="async" width="200" height="80"></a></div>
+            <div class="m-4"><a class="partner-logo" href="{{ asset('images/brand-partners/university_of_nebrask1.png') }}" target="_blank" rel="noopener noreferrer"><img src="https://cdn.freelogovectors.net/wp-content/uploads/2023/07/university_of_nebraska_medical_center_logo-freelogovectors.net_.png" class="img-fluid lazy-img" loading="lazy" decoding="async" alt="University of Nebraska Medical Center logo" width="200" height="80"></a><div class="partner-name">University of Nebraska Medical Center</div></div>
+            <div class="m-4"><a class="partner-logo" href="{{ asset('images/brand-partners/swope_health.png') }}" target="_blank" rel="noopener noreferrer"><img src="https://unitedwaygkc.org/wp-content/uploads/2023/11/swope-logo-primary_color-fa-2048x599.jpg" alt="Swope Health Services logo" class="img-fluid lazy-img" loading="lazy" decoding="async" width="200" height="80"></a><div class="partner-name">Swope Health Services</div></div>
+            <div class="m-4"><a class="partner-logo" href="{{ asset('images/brand-partners/esse_health.jpg') }}" target="_blank" rel="noopener noreferrer"><img src="https://assets.libsyn.com/content/17315963?height=250&width=250&overlay=true" alt="Esse Health logo" class="img-fluid lazy-img" loading="lazy" decoding="async" width="200" height="80"></a><div class="partner-name">Esse Health</div></div>
+            <div class="m-4"><a class="partner-logo" href="{{ asset('images/brand-partners/sage_bute.webp') }}" target="_blank" rel="noopener noreferrer"><img src="https://www.sagebutte.com/wp-content/uploads/2024/01/Sage-Butte-Energy-logo.png" alt="Sage Butte Energy logo" class="img-fluid lazy-img" loading="lazy" decoding="async" width="200" height="80"></a><div class="partner-name">Sage Butte Energy</div></div>
+            <div class="m-4"><a class="partner-logo" href="{{ asset('images/brand-partners/qb_energy.jpg') }}" target="_blank" rel="noopener noreferrer"><img src="{{ asset('images/brand-partners/qb_energy.jpg') }}" alt="QB Energy logo" class="img-fluid lazy-img" loading="lazy" decoding="async" width="200" height="80"></a><div class="partner-name">QB Energy</div></div>
+            <div class="m-4"><a class="partner-logo" href="{{ asset('images/brand-partners/frisco.jpeg') }}" target="_blank" rel="noopener noreferrer"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/78/Logo_of_Frisco%2C_Texas.svg/768px-Logo_of_Frisco%2C_Texas.svg.png?20180828011722" alt="City of Frisco Texas logo" class="img-fluid lazy-img" loading="lazy" decoding="async" width="200" height="80"></a><div class="partner-name">City of Frisco</div></div>
+            <div class="m-4"><a class="partner-logo" href="{{ asset('images/brand-partners/dallas_county.jpg') }}" target="_blank" rel="noopener noreferrer"><img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSrSzxH_f1lEuzqxEewHFlxbQr6jWb-ISY4eQ&s" alt="Dallas County logo" class="lazy-img" loading="lazy" decoding="async" width="200" height="80"></a><div class="partner-name">Dallas County</div></div>
+            <div class="m-4"><a class="partner-logo" href="{{ asset('images/brand-partners/lambda.png') }}" target="_blank" rel="noopener noreferrer"><img src="https://lambdalegal.org/wp-content/uploads/2023/02/lambda-logo-300x84.png" alt="Lambda Legal logo" class="img-fluid lazy-img" loading="lazy" decoding="async" width="200" height="80"></a><div class="partner-name">Lambda Legal</div></div>
+            <div class="m-4"><a class="partner-logo" href="{{ asset('images/brand-partners/homeward_bound.png') }}" target="_blank" rel="noopener noreferrer"><img src="https://nfg-sofun.s3.amazonaws.com/uploads/ui_configuration/main_logo/12617/welcome_logo_HBI_LOGO_FINAL_Long_Form.png" alt="Homeward Bound logo" class="img-fluid lazy-img" loading="lazy" decoding="async" width="200" height="80"></a><div class="partner-name">Homeward Bound</div></div>
+            <div class="m-4"><a class="partner-logo" href="{{ asset('images/brand-partners/mhc.png') }}" target="_blank" rel="noopener noreferrer"><img src="https://www.moblicosolutions.com/wp-content/uploads/2024/09/Image-for-Home-Page-Hero-4-e1726688399270.png" alt="MHC logo" class="img-fluid lazy-img" loading="lazy" decoding="async" width="200" height="80"></a><div class="partner-name">MHC</div></div>
+            <div class="m-4"><a class="partner-logo" href="{{ asset('images/brand-partners/bnsf.png') }}" target="_blank" rel="noopener noreferrer"><img src="https://logos-world.net/wp-content/uploads/2024/07/BNSF-Railway-Symbol.png" alt="BNSF Railway logo" class="img-fluid lazy-img" loading="lazy" decoding="async" width="200" height="80"></a><div class="partner-name">BNSF Railway</div></div>
         </div>
     </div>
 </section>
@@ -661,7 +901,7 @@
     </div>
 </section>
 
-<section id="fun-facts" class="fun-facts default-background section col-md-12 mt-5" aria-labelledby="stats-heading">
+<section id="fun-facts" class="fun-facts default-background section col-md-12 mt-5 no-radius" aria-labelledby="stats-heading">
     <div class="container">
         <h2 id="stats-heading" class="sr-only">Customer Statistics</h2>
         <div class="row" style="content-visibility:auto; contain-intrinsic-size: 1px 1200px;">

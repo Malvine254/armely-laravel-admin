@@ -17,42 +17,42 @@
     <link href="https://fonts.googleapis.com/css?family=Poppins:200i,300,300i,400,400i,500,500i,600,600i,700,700i,800,800i,900,900i&display=swap" rel="stylesheet">
     
     <!-- Critical CSS - Load Synchronously -->
-    <link rel="stylesheet" href="{{ asset('css/bootstrap.min.css') }}">
-    <link rel="stylesheet" href="{{ asset('style7.css') }}">
-    <link rel="stylesheet" href="{{ asset('css/custome.css') }}">
-    <link rel="stylesheet" href="{{ asset('css/font-awesome.min.css') }}">
-    <link rel="stylesheet" href="{{ asset('css/icofont.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/bootstrap.min.css') }}?v={{ file_exists(public_path('css/bootstrap.min.css')) ? filemtime(public_path('css/bootstrap.min.css')) : '' }}">
+    <link rel="stylesheet" href="{{ asset('style7.css') }}?v={{ file_exists(public_path('style7.css')) ? filemtime(public_path('style7.css')) : '' }}">
+    <link rel="stylesheet" href="{{ asset('css/custome.css') }}?v={{ file_exists(public_path('css/custome.css')) ? filemtime(public_path('css/custome.css')) : '' }}">
+    <link rel="stylesheet" href="{{ asset('css/font-awesome.min.css') }}?v={{ file_exists(public_path('css/font-awesome.min.css')) ? filemtime(public_path('css/font-awesome.min.css')) : '' }}">
+    <link rel="stylesheet" href="{{ asset('css/icofont.css') }}?v={{ file_exists(public_path('css/icofont.css')) ? filemtime(public_path('css/icofont.css')) : '' }}">
     
     <!-- Enhanced Search & Bot Styles -->
-    <link rel="stylesheet" href="{{ asset('css/search-enhanced.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/search-enhanced.css') }}?v={{ file_exists(public_path('css/search-enhanced.css')) ? filemtime(public_path('css/search-enhanced.css')) : '' }}">
     
     <!-- Font Awesome CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
     
     <!-- Non-Critical CSS - Deferred Loading -->
-    <link rel="preload" href="{{ asset('css/nice-select.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="{{ asset('css/nice-select.css') }}"></noscript>
+    <link rel="preload" href="{{ asset('css/nice-select.css') }}?v={{ file_exists(public_path('css/nice-select.css')) ? filemtime(public_path('css/nice-select.css')) : '' }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="{{ asset('css/nice-select.css') }}?v={{ file_exists(public_path('css/nice-select.css')) ? filemtime(public_path('css/nice-select.css')) : '' }}"></noscript>
     
-    <link rel="preload" href="{{ asset('css/slicknav.min.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="{{ asset('css/slicknav.min.css') }}"></noscript>
+    <link rel="preload" href="{{ asset('css/slicknav.min.css') }}?v={{ file_exists(public_path('css/slicknav.min.css')) ? filemtime(public_path('css/slicknav.min.css')) : '' }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="{{ asset('css/slicknav.min.css') }}?v={{ file_exists(public_path('css/slicknav.min.css')) ? filemtime(public_path('css/slicknav.min.css')) : '' }}"></noscript>
     
-    <link rel="preload" href="{{ asset('css/owl-carousel.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="{{ asset('css/owl-carousel.css') }}"></noscript>
+    <link rel="preload" href="{{ asset('css/owl-carousel.css') }}?v={{ file_exists(public_path('css/owl-carousel.css')) ? filemtime(public_path('css/owl-carousel.css')) : '' }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="{{ asset('css/owl-carousel.css') }}?v={{ file_exists(public_path('css/owl-carousel.css')) ? filemtime(public_path('css/owl-carousel.css')) : '' }}"></noscript>
     
-    <link rel="preload" href="{{ asset('css/datepicker.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="{{ asset('css/datepicker.css') }}"></noscript>
+    <link rel="preload" href="{{ asset('css/datepicker.css') }}?v={{ file_exists(public_path('css/datepicker.css')) ? filemtime(public_path('css/datepicker.css')) : '' }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="{{ asset('css/datepicker.css') }}?v={{ file_exists(public_path('css/datepicker.css')) ? filemtime(public_path('css/datepicker.css')) : '' }}"></noscript>
     
-    <link rel="preload" href="{{ asset('css/animate.min.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="{{ asset('css/animate.min.css') }}"></noscript>
+    <link rel="preload" href="{{ asset('css/animate.min.css') }}?v={{ file_exists(public_path('css/animate.min.css')) ? filemtime(public_path('css/animate.min.css')) : '' }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="{{ asset('css/animate.min.css') }}?v={{ file_exists(public_path('css/animate.min.css')) ? filemtime(public_path('css/animate.min.css')) : '' }}"></noscript>
     
-    <link rel="preload" href="{{ asset('css/magnific-popup.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="{{ asset('css/magnific-popup.css') }}"></noscript>
+    <link rel="preload" href="{{ asset('css/magnific-popup.css') }}?v={{ file_exists(public_path('css/magnific-popup.css')) ? filemtime(public_path('css/magnific-popup.css')) : '' }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="{{ asset('css/magnific-popup.css') }}?v={{ file_exists(public_path('css/magnific-popup.css')) ? filemtime(public_path('css/magnific-popup.css')) : '' }}"></noscript>
     
-    <link rel="preload" href="{{ asset('css/normalize_2.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="{{ asset('css/normalize_2.css') }}"></noscript>
+    <link rel="preload" href="{{ asset('css/normalize_2.css') }}?v={{ file_exists(public_path('css/normalize_2.css')) ? filemtime(public_path('css/normalize_2.css')) : '' }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="{{ asset('css/normalize_2.css') }}?v={{ file_exists(public_path('css/normalize_2.css')) ? filemtime(public_path('css/normalize_2.css')) : '' }}"></noscript>
     
-    <link rel="preload" href="{{ asset('css/responsive.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="{{ asset('css/responsive.css') }}"></noscript>
+    <link rel="preload" href="{{ asset('css/responsive.css') }}?v={{ file_exists(public_path('css/responsive.css')) ? filemtime(public_path('css/responsive.css')) : '' }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="{{ asset('css/responsive.css') }}?v={{ file_exists(public_path('css/responsive.css')) ? filemtime(public_path('css/responsive.css')) : '' }}"></noscript>
     
     <!-- Lozad.js for Lazy Loading -->
         <script src="https://cdn.jsdelivr.net/npm/lozad/dist/lozad.min.js" defer></script>
@@ -150,6 +150,9 @@
 
 {{-- Include Cookies Consent --}}
 @include('partials.cookies-consent')
+
+{{-- Include AI Data Readiness Assessment Pop-up --}}
+@include('partials.ai-readiness-popup')
 
 <div class="announcement-banner default-background mb-4" id="announcementBanner">
     <span class="banner-item">

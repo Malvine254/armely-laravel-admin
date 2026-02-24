@@ -1,0 +1,41 @@
+/* Custom slider button and text visibility improvements */
+.slider-arrow, .owl-carousel .owl-nav button.owl-prev, .owl-carousel .owl-nav button.owl-next {
+  background: rgba(0,0,0,0.7) !important;
+  color: #fff !important;
+  border: 2px solid #fff !important;
+  border-radius: 50% !important;
+  width: 48px !important;
+  height: 48px !important;
+  font-size: 2rem !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important;
+  opacity: 0.95 !important;
+  transition: background 0.2s, color 0.2s, border 0.2s;
+  z-index: 10 !important;
+}
+.slider-arrow:hover, .owl-carousel .owl-nav button.owl-prev:hover, .owl-carousel .owl-nav button.owl-next:hover {
+  background: #fff !important;
+  color: #2f5597 !important;
+  border: 2px solid #2f5597 !important;
+}
+
+.slider-caption, .slider-title, .slider-content, .owl-carousel .item h2, .owl-carousel .item h1 {
+  color: #fff !important;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.7), 0 0 2px #000 !important;
+  background: rgba(0,0,0,0.35);
+  padding: 0.5em 1em;
+  border-radius: 8px;
+  font-weight: 700;
+}
+
+/* Responsive: make sure buttons are visible on mobile */
+@media (max-width: 600px) {
+  .slider-arrow, .owl-carousel .owl-nav button.owl-prev, .owl-carousel .owl-nav button.owl-next {
+    width: 38px !important;
+    height: 38px !important;
+    font-size: 1.3rem !important;
+  }
+  .slider-caption, .slider-title, .slider-content, .owl-carousel .item h2, .owl-carousel .item h1 {
+    font-size: 1.1rem !important;
+    padding: 0.3em 0.7em;
+  }
+}

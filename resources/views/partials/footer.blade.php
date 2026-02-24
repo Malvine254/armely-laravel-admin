@@ -42,11 +42,6 @@
     </div>
 </div>
 
-<div class="linkedin-follow-float">
-    <script src="https://platform.linkedin.com/in.js" type="text/javascript">lang: en_US</script>
-    <script type="IN/FollowCompany" data-id="22310926" data-counter="bottom"></script>
-</div>
-
 <footer id="footer" class="footer">
     <div class="footer-top">
         <div class="container">
@@ -105,25 +100,25 @@
 </footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
-<script src="{{ asset('js/jquery-migrate-3.0.0.js') }}"></script>
-<script src="{{ asset('js/jquery-ui.min.js') }}"></script>
-<script src="{{ asset('js/easing.js') }}"></script>
-<script src="{{ asset('js/colors.js') }}"></script>
-<script src="{{ asset('js/popper.min.js') }}"></script>
-<script src="{{ asset('js/bootstrap-datepicker.js') }}"></script>
-<script src="{{ asset('js/jquery.nav.js') }}"></script>
-<script src="{{ asset('js/slicknav.min.js') }}"></script>
-<script src="{{ asset('js/jquery.scrollUp.min.js') }}"></script>
-<script src="{{ asset('js/niceselect.js') }}"></script>
-<script src="{{ asset('js/tilt.jquery.min.js') }}"></script>
-<script src="{{ asset('js/owl-carousel.js') }}"></script>
+<script src="{{ asset('js/jquery-migrate-3.0.0.js') }}?v={{ file_exists(public_path('js/jquery-migrate-3.0.0.js')) ? filemtime(public_path('js/jquery-migrate-3.0.0.js')) : '' }}"></script>
+<script src="{{ asset('js/jquery-ui.min.js') }}?v={{ file_exists(public_path('js/jquery-ui.min.js')) ? filemtime(public_path('js/jquery-ui.min.js')) : '' }}"></script>
+<script src="{{ asset('js/easing.js') }}?v={{ file_exists(public_path('js/easing.js')) ? filemtime(public_path('js/easing.js')) : '' }}"></script>
+<script src="{{ asset('js/colors.js') }}?v={{ file_exists(public_path('js/colors.js')) ? filemtime(public_path('js/colors.js')) : '' }}"></script>
+<script src="{{ asset('js/popper.min.js') }}?v={{ file_exists(public_path('js/popper.min.js')) ? filemtime(public_path('js/popper.min.js')) : '' }}"></script>
+<script src="{{ asset('js/bootstrap-datepicker.js') }}?v={{ file_exists(public_path('js/bootstrap-datepicker.js')) ? filemtime(public_path('js/bootstrap-datepicker.js')) : '' }}"></script>
+<script src="{{ asset('js/jquery.nav.js') }}?v={{ file_exists(public_path('js/jquery.nav.js')) ? filemtime(public_path('js/jquery.nav.js')) : '' }}"></script>
+<script src="{{ asset('js/slicknav.min.js') }}?v={{ file_exists(public_path('js/slicknav.min.js')) ? filemtime(public_path('js/slicknav.min.js')) : '' }}"></script>
+<script src="{{ asset('js/jquery.scrollUp.min.js') }}?v={{ file_exists(public_path('js/jquery.scrollUp.min.js')) ? filemtime(public_path('js/jquery.scrollUp.min.js')) : '' }}"></script>
+<script src="{{ asset('js/niceselect.js') }}?v={{ file_exists(public_path('js/niceselect.js')) ? filemtime(public_path('js/niceselect.js')) : '' }}"></script>
+<script src="{{ asset('js/tilt.jquery.min.js') }}?v={{ file_exists(public_path('js/tilt.jquery.min.js')) ? filemtime(public_path('js/tilt.jquery.min.js')) : '' }}"></script>
+<script src="{{ asset('js/owl-carousel.js') }}?v={{ file_exists(public_path('js/owl-carousel.js')) ? filemtime(public_path('js/owl-carousel.js')) : '' }}"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/waypoints/2.0.3/waypoints.min.js"></script>
-<script src="{{ asset('js/jquery.counterup.min.js') }}"></script>
-<script src="{{ asset('js/steller.js') }}"></script>
-<script src="{{ asset('js/wow.min.js') }}"></script>
-<script src="{{ asset('js/jquery.magnific-popup.min.js') }}"></script>
+<script src="{{ asset('js/jquery.counterup.min.js') }}?v={{ file_exists(public_path('js/jquery.counterup.min.js')) ? filemtime(public_path('js/jquery.counterup.min.js')) : '' }}"></script>
+<script src="{{ asset('js/steller.js') }}?v={{ file_exists(public_path('js/steller.js')) ? filemtime(public_path('js/steller.js')) : '' }}"></script>
+<script src="{{ asset('js/wow.min.js') }}?v={{ file_exists(public_path('js/wow.min.js')) ? filemtime(public_path('js/wow.min.js')) : '' }}"></script>
+<script src="{{ asset('js/jquery.magnific-popup.min.js') }}?v={{ file_exists(public_path('js/jquery.magnific-popup.min.js')) ? filemtime(public_path('js/jquery.magnific-popup.min.js')) : '' }}"></script>
 <!-- Waypoints loaded earlier (HTTPS) to avoid mixed-content blocking -->
-<script src="{{ asset('js/main.js') }}"></script>
+<script src="{{ asset('js/main.js') }}?v={{ file_exists(public_path('js/main.js')) ? filemtime(public_path('js/main.js')) : '' }}"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.1.4/dist/sweetalert2.all.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-easing/1.4.1/jquery.easing.min.js"></script>
@@ -133,6 +128,6 @@
 <!-- Google reCAPTCHA -->
 <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 <!-- Enhanced Search & Bot JavaScript -->
-<script src="{{ asset('js/search-enhanced.js') }}"></script>
+<script src="{{ asset('js/search-enhanced.js') }}?v={{ file_exists(public_path('js/search-enhanced.js')) ? filemtime(public_path('js/search-enhanced.js')) : '' }}"></script>
 <!-- More Settings (includes legacy features) -->
-<script src="{{ asset('js/more-options10-v2.js') }}"></script>
+<script src="{{ asset('js/more-options10-v2.js') }}?v={{ file_exists(public_path('js/more-options10-v2.js')) ? filemtime(public_path('js/more-options10-v2.js')) : '' }}"></script>

@@ -25,7 +25,9 @@
         <span class="close" aria-label="Close chat">&times;</span>
         
         <iframe 
-            src="https://copilotstudio.preview.microsoft.com/environments/Default-b783208a-8014-4829-9589-5324f76470c8/bots/cr44c_agent/webchat?__version__=2"
+            id="armelyWebchatFrame"
+            src="about:blank"
+            data-src="https://copilotstudio.preview.microsoft.com/environments/Default-b783208a-8014-4829-9589-5324f76470c8/bots/cr44c_agent/webchat?__version__=2"
             frameborder="0"
             style="width: 100%; height: 100%;"
             title="Armely Chat Bot"

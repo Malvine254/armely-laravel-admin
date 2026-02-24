@@ -340,6 +340,10 @@
         },
 
         openChat: function () {
+            const frame = document.getElementById('armelyWebchatFrame');
+            if (frame && frame.dataset && frame.dataset.src && frame.src !== frame.dataset.src) {
+                frame.src = frame.dataset.src;
+            }
             this.$modal.fadeIn(300);
             this.$bubble.hide();
             $('body').css('overflow', 'hidden');
@@ -680,7 +684,6 @@
         LazyLoad.init();
         BlogSearch.init();
 
-        console.log('%c🚀 Armely Enhanced Search & Bot Initialized', 'color: #2f5597; font-size: 14px; font-weight: bold;');
     });
 
 })(jQuery);

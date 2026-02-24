@@ -15,10 +15,12 @@ use App\Http\Controllers\BlogController;
 use App\Http\Controllers\CaseStudiesController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\HtmlPageController;
+use App\Http\Controllers\DataReadinessLeadController;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/contact', [HomeController::class, 'contact'])->name('contact');
 Route::post('/contact', [HomeController::class, 'submitContact'])->name('contact.submit');
+Route::post('/data-readiness/submit', [DataReadinessLeadController::class, 'submit'])->name('data-readiness.submit');
 
 // Services listing page
 Route::get('/services', [ServicesController::class, 'index'])->name('services');

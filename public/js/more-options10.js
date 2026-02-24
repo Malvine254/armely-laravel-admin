@@ -399,13 +399,13 @@ $('#contact-form').submit(function(event) {
     loop: true,
     responsive: {
       0: {
+        items: 1
+      },
+      640: {
         items: 2
       },
-      768: {
+      992: {
         items: 4
-      },
-      900: {
-        items: 6
       }
     }
   });
