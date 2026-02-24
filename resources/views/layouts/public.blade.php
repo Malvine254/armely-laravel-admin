@@ -27,7 +27,7 @@
     <link rel="stylesheet" href="{{ asset('css/search-enhanced.css') }}?v={{ file_exists(public_path('css/search-enhanced.css')) ? filemtime(public_path('css/search-enhanced.css')) : '' }}">
     
     <!-- Font Awesome CDN -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" integrity="sha384-h/hnnw1Bi4nbpD6kE7nYfCXzovi622sY5WBxww8ARKwpdLj5kUWjRuyiXaD1U2JT" crossorigin="anonymous">
     
     <!-- Non-Critical CSS - Deferred Loading -->
     <link rel="preload" href="{{ asset('css/nice-select.css') }}?v={{ file_exists(public_path('css/nice-select.css')) ? filemtime(public_path('css/nice-select.css')) : '' }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
@@ -55,7 +55,7 @@
     <noscript><link rel="stylesheet" href="{{ asset('css/responsive.css') }}?v={{ file_exists(public_path('css/responsive.css')) ? filemtime(public_path('css/responsive.css')) : '' }}"></noscript>
     
     <!-- Lozad.js for Lazy Loading -->
-        <script src="https://cdn.jsdelivr.net/npm/lozad/dist/lozad.min.js" defer></script>
+        <script src="https://cdn.jsdelivr.net/npm/lozad/dist/lozad.min.js" integrity="sha384-cVYgPFZPhwM7B9xTuYXb1bcy5yui7JGXyRJYo2CCTHJT8FS9SDxDsQksUMrmFgwG" crossorigin="anonymous" defer></script>
         <script>
         // Fallback: ensure any .lazy-img without native hints still loads lazily
         document.addEventListener('DOMContentLoaded', function(){
