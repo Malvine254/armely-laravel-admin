@@ -95,14 +95,8 @@ return [
     |
     */
     'aliases' => [
-        ...(
-            array_merge(
-                class_exists('Illuminate\Foundation\Application') ? Illuminate\Foundation\Application::getAliases() : [],
-                [
-                    'GeoIP' => Torann\GeoIP\Facades\GeoIP::class,
-                ]
-            )
-        ),
+        // ...existing aliases...
+        'GeoIP' => Torann\GeoIP\Facades\GeoIP::class,
     ],
 
     /*
