@@ -1,3 +1,6 @@
+@php
+use Illuminate\Support\Str;
+@endphp
 @extends('layouts.public')
 
 @section('title', isset($main) ? $main->title . ' - Armely Blog' : 'Our Insights & Stories - Armely Blog')
