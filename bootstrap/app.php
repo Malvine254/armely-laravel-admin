@@ -14,7 +14,6 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
         ]);
-        
         // Apply web middleware group to all routes in routes/web.php
         $middleware->web(append: [
             \App\Http\Middleware\LogActivity::class,
@@ -26,12 +25,10 @@ return Application::configure(basePath: dirname(__DIR__))
             if (str_contains($e->getMessage(), 'No connection could be made') ||
                 str_contains($e->getMessage(), 'Connection refused') ||
                 str_contains($e->getMessage(), 'SQLSTATE[HY000] [2002]')) {
-                
                 \Illuminate\Support\Facades\Log::error('Database Connection Error', [
                     'message' => $e->getMessage(),
                     'url' => $request->getRequestUri(),
                 ]);
-
                 if ($request->acceptsJson()) {
                     return response()->json([
                         'success' => false,
@@ -39,8 +36,8 @@ return Application::configure(basePath: dirname(__DIR__))
                         'error' => 'database_unavailable',
                     ], 503);
                 }
-
                 return response()->view('errors.service-unavailable', [], 503);
             }
         });
-    })->create();
+    })
+    ->create();
