@@ -2,7 +2,6 @@
 
 @php($title = 'Home')
 
-@php(use Illuminate\Support\Str;)
 
 @push('styles')
 <style>
@@ -883,7 +882,7 @@
                         <div class="card-body">
                             <span class="label">Industry: {{ $listing->category }}</span>
                             <h4>{{ $listing->category }} Transformation Solution</h4>
-                            <p>{{ Str::limit($listing->excerpt, 100) }}</p>
+                            <p>{{ \Illuminate\Support\Str::limit($listing->excerpt, 100) }}</p>
                             <a href="{{ $listing->pdf_link }}" class="card-btn default-background text-light" target="_blank">
                                 <span>View Details</span>
                                 <i class="fa fa-arrow-right"></i>
