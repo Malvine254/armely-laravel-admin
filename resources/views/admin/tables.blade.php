@@ -13,189 +13,64 @@
     .modal-lg {
         max-width: 900px;
     }
+    .modal-xl {
+        max-width: 1140px;
+    }
     .table td {
         vertical-align: middle;
     }
     
-    /* MODAL Z-INDEX OVERRIDE - Force modals to appear above EVERYTHING */
-    .modal {
-        z-index: 999999 !important;
-        pointer-events: auto !important;
-    }
-    .modal-backdrop {
-        z-index: 999998 !important;
-        background-color: rgba(0, 0, 0, 0.7);
-        pointer-events: auto !important;
-    }
-    .modal.show {
-        display: flex !important;
-        align-items: center;
-        justify-content: center;
-    }
-    .modal-dialog {
-        z-index: 1000000 !important;
-        position: relative;
-        pointer-events: auto !important;
-        margin: auto;
-    }
-    
-    /* Ensure modal interactivity - CRITICAL FOR EDITING */
-    .modal,
-    .modal-header,
-    .modal-body,
-    .modal-footer,
+    /* Clean Bootstrap Modal - Remove problematic overrides */
     .modal-content {
-        position: relative;
-        pointer-events: auto !important;
-    }
-    
-    /* Ensure form controls are clickable */
-    .modal .form-control,
-    .modal .form-select,
-    .modal input,
-    .modal textarea,
-    .modal button,
-    .modal .btn,
-    .modal .btn-close {
-        pointer-events: auto !important;
-        position: relative;
-        z-index: 1;
-    }
-    
-    /* CKEditor must be interactive */
-    .modal .cke,
-    .modal .cke_inner,
-    .modal .cke_contents {
-        pointer-events: auto !important;
-    }
-    
-    /* MODERN MODAL STYLING */
-    .modal-content {
+        border-radius: 12px;
         border: none;
-        border-radius: 20px;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-        overflow: hidden;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
     }
     
-    .modal-header {
-        background: linear-gradient(135deg, #2f5597 0%, #1e3a6b 100%);
-        color: white;
-        padding: 1.75rem 2rem;
-        border-bottom: none;
-    }
-    
-    .modal-header .modal-title {
-        font-weight: 600;
-        font-size: 1.5rem;
-        color: white;
-    }
-    
-    .modal-header .btn-close {
-        filter: brightness(0) invert(1);
-        opacity: 0.8;
-        transition: opacity 0.2s;
-    }
-    
-    .modal-header .btn-close:hover {
-        opacity: 1;
-    }
-    
-    .modal-body {
-        padding: 2rem;
-        background: #f8f9fa;
-    }
-    
-    .modal-body form {
-        background: white;
-        padding: 1.5rem;
-        border-radius: 16px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-    }
-    
-    .modal-footer {
-        padding: 1.5rem 2rem;
-        background: white;
-        border-top: 1px solid #e9ecef;
-    }
-    
-    /* Modern Form Controls */
-    .modal .form-label {
-        font-weight: 600;
-        color: #344054;
-        margin-bottom: 0.5rem;
-        font-size: 0.95rem;
+    .modal-header.bg-primary {
+        background: linear-gradient(135deg, #2f5597 0%, #1e3a6b 100%) !important;
     }
     
     .modal .form-control,
     .modal .form-select {
-        border: 2px solid #e5e7eb;
-        border-radius: 12px;
-        padding: 0.75rem 1rem;
-        font-size: 1rem;
-        transition: all 0.2s ease;
+        border: 2px solid #dee2e6;
+        border-radius: 8px;
+        padding: 0.65rem 1rem;
+        transition: border-color 0.2s ease;
     }
     
     .modal .form-control:focus,
     .modal .form-select:focus {
         border-color: #2f5597;
-        box-shadow: 0 0 0 4px rgba(47, 85, 151, 0.1);
-        outline: none;
+        box-shadow: 0 0 0 0.2rem rgba(47, 85, 151, 0.25);
     }
     
-    /* Larger, Better Textareas */
-    .modal textarea.form-control {
-        min-height: 180px;
-        resize: vertical;
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-        line-height: 1.6;
-    }
-    
-    .modal textarea.form-control[rows="4"] {
-        min-height: 120px;
-    }
-    
-    .modal textarea.form-control[rows="6"] {
-        min-height: 150px;
-    }
-    
-    /* Modern Buttons */
-    .modal .btn {
-        padding: 0.75rem 1.5rem;
-        border-radius: 10px;
+    .modal .form-label {
         font-weight: 600;
-        font-size: 0.95rem;
-        transition: all 0.2s ease;
-        border: none;
+        color: #344054;
+        margin-bottom: 0.5rem;
+    }
+    
+    .modal .btn-lg {
+        border-radius: 8px;
+        padding: 0.65rem 1.5rem;
+        font-weight: 500;
     }
     
     .modal .btn-primary {
         background: linear-gradient(135deg, #2f5597 0%, #1e3a6b 100%);
-        box-shadow: 0 4px 12px rgba(47, 85, 151, 0.3);
+        border: none;
     }
     
     .modal .btn-primary:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(47, 85, 151, 0.4);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(47, 85, 151, 0.3);
     }
     
-    .modal .btn-secondary {
-        background: #e5e7eb;
-        color: #6b7280;
-    }
-    
-    .modal .btn-secondary:hover {
-        background: #d1d5db;
-        color: #374151;
-    }
-    
-    .modal .btn-success {
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-    }
-    
-    .modal .btn-danger {
-        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+    /* CKEditor styling */
+    .modal .cke {
+        border: 2px solid #dee2e6 !important;
+        border-radius: 8px !important;
     }
     
     /* Form Helper Text */
@@ -800,43 +675,66 @@
     </div>
 </div>
 
-<!-- Blog Edit/Add Modal -->
-<div class="modal fade" id="blogModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="blogModalTitle">Add New Blog</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+<!-- Blog Edit/Add Modal - Clean Bootstrap 5 Design -->
+<div class="modal fade" id="blogModal" tabindex="-1" aria-labelledby="blogModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-primary text-white border-0">
+                <h5 class="modal-title fw-bold" id="blogModalTitle">
+                    <i class="fas fa-blog me-2"></i>Add New Blog
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body p-4 bg-light">
                 <form id="blogForm">
                     <input type="hidden" id="blogId" name="id">
-                    <div class="mb-3">
-                        <label class="form-label">Title *</label>
-                        <input type="text" class="form-control" id="blogTitle" name="title" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Author *</label>
-                        <input type="text" class="form-control" id="blogAuthor" name="author" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Date *</label>
-                        <input type="date" class="form-control" id="blogDate" name="date" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Content</label>
-                        <textarea class="form-control" id="blogBody" name="body" rows="10"></textarea>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Image</label>
-                        <input type="file" class="form-control" id="blogImage" name="image" accept="image/*">
-                        <small class="text-muted">Current image will be preserved if no new image is uploaded</small>
+                    
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label for="blogTitle" class="form-label fw-semibold">
+                                <i class="fas fa-heading text-primary me-2"></i>Title *
+                            </label>
+                            <input type="text" class="form-control form-control-lg" id="blogTitle" name="title" required placeholder="Enter blog title">
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label for="blogDate" class="form-label fw-semibold">
+                                <i class="fas fa-calendar text-primary me-2"></i>Date *
+                            </label>
+                            <input type="date" class="form-control form-control-lg" id="blogDate" name="date" required>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="blogAuthor" class="form-label fw-semibold">
+                                <i class="fas fa-user text-primary me-2"></i>Author *
+                            </label>
+                            <input type="text" class="form-control form-control-lg" id="blogAuthor" name="author" required placeholder="Author name">
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="blogImage" class="form-label fw-semibold">
+                                <i class="fas fa-image text-primary me-2"></i>Featured Image
+                            </label>
+                            <input type="file" class="form-control form-control-lg" id="blogImage" name="image" accept="image/*">
+                            <small class="text-muted">Current image will be preserved if no new image is uploaded</small>
+                        </div>
+                        
+                        <div class="col-12">
+                            <label for="blogBody" class="form-label fw-semibold">
+                                <i class="fas fa-file-alt text-primary me-2"></i>Content
+                            </label>
+                            <textarea class="form-control" id="blogBody" name="body" rows="15"></textarea>
+                        </div>
                     </div>
                 </form>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="saveBlogBtn">Save Blog</button>
+            <div class="modal-footer border-0 bg-white">
+                <button type="button" class="btn btn-lg btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Cancel
+                </button>
+                <button type="button" class="btn btn-lg btn-primary" id="saveBlogBtn">
+                    <i class="fas fa-save me-2"></i>Save Blog
+                </button>
             </div>
         </div>
     </div>
@@ -1233,86 +1131,20 @@
 <script>
 $(document).ready(function() {
         
-        // ==================== MODAL FIX: Ensure modals can be closed ====================
-        // Fix for modals not closing with CKEditor
+        // ==================== CLEAN MODAL HANDLERS ====================
+        // Bootstrap 5 handles modals naturally - no overrides needed!
+        
+        // Optional: Log modal events for debugging
         $(document).on('show.bs.modal', '.modal', function() {
-            const modal = $(this);
-            
-            // Force extremely high z-index
-            modal.css({
-                'pointer-events': 'auto',
-                'z-index': '999999'
-            });
-            
-            modal.find('.modal-dialog').css({
-                'pointer-events': 'auto',
-                'z-index': '1000000'
-            });
-            
-            modal.find('.modal-content, .modal-header, .modal-body, .modal-footer, .btn-close').css({
-                'pointer-events': 'auto',
-                'position': 'relative',
-                'z-index': '1'
-            });
-            
-            // CRITICAL: Enable all form controls
-            modal.find('input, textarea, select, button').each(function() {
-                $(this).prop('disabled', false).prop('readonly', false);
-                $(this).css({
-                    'pointer-events': 'auto !important',
-                    'cursor': $(this).is('input, textarea, select') ? 'text' : 'pointer',
-                    'position': 'relative',
-                    'z-index': '1'
-                });
-            });
-            
-            // Enable CKEditor elements
-            modal.find('.cke, .cke_inner, .cke_contents, .cke_wysiwyg_frame').css({
-                'pointer-events': 'auto',
-                'position': 'relative',
-                'z-index': '1'
-            });
-            
-            // Force backdrop to correct z-index
-            setTimeout(function() {
-                $('.modal-backdrop').css('z-index', '999998');
-            }, 10);
+            console.log('Modal opening:', this.id);
         });
         
-        // Explicit close button handler
-        $(document).on('click', '.modal .btn-close, [data-bs-dismiss="modal"]', function(e) {
-            const modal = $(this).closest('.modal');
-            const modalInstance = bootstrap.Modal.getInstance(modal[0]);
-            if (modalInstance) {
-                modalInstance.hide();
-            } else {
-                modal.modal('hide');
-            }
+        $(document).on('shown.bs.modal', '.modal', function() {
+            console.log('Modal opened:', this.id);
+            // Focus first input if available
+            $(this).find('input:not([type="hidden"]):first').focus();
         });
-        
-        // Backdrop click handler
-        $(document).on('click', '.modal', function(e) {
-            if ($(e.target).hasClass('modal')) {
-                const modalInstance = bootstrap.Modal.getInstance(this);
-                if (modalInstance) {
-                    modalInstance.hide();
-                }
-            }
-        });
-        
-        // ESC key handler
-        $(document).on('keydown', function(e) {
-            if (e.key === 'Escape' || e.keyCode === 27) {
-                const openModal = $('.modal.show').last();
-                if (openModal.length) {
-                    const modalInstance = bootstrap.Modal.getInstance(openModal[0]);
-                    if (modalInstance) {
-                        modalInstance.hide();
-                    }
-                }
-            }
-        });
-        // ==================== END MODAL FIX ====================
+        // ==================== END MODAL HANDLERS ====================
         
         function loadRejected() {
             $.ajax({
