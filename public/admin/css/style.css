@@ -284,7 +284,7 @@ body {
   left: 0 !important;
   right: 0 !important;
   height: 70px;
-  z-index: 1040 !important; /* Below modals (1060) but above dropdowns (1000) */
+  z-index: 1030 !important; /* Keep low - always below modals */
   display: flex;
   align-items: center;
   padding: 0 20px !important;
@@ -324,14 +324,14 @@ body {
 
 @media (max-width: 991px) {
   .admin-topbar {
-    z-index: 1040 !important; /* Consistent with desktop */
+    z-index: 1030 !important; /* Keep at same low level */
   }
   
   .admin-sidebar {
     top: 70px !important;
     transform: translateX(-100%);
     width: 260px;
-    z-index: 1035 !important; /* Below modals (1060) but above content */
+    z-index: 1029 !important; /* Always below header and modals */
   }
 
   .admin-sidebar.is-open {
@@ -575,12 +575,29 @@ body.modal-open {
   overflow: hidden;
 }
 
-body.modal-open .admin-topbar {
-  z-index: 1030 !important; /* Lower when modal is open */
+/* FORCE HEADER BELOW MODALS */
+body.modal-open .admin-topbar,
+.modal-open .admin-topbar,
+.admin-topbar {
+  z-index: 1030 !important; /* Always below modals */
+  position: fixed !important;
 }
 
 body.modal-open .admin-sidebar {
   z-index: 1029 !important; /* Lower when modal is open */
+}
+
+/* GLOBAL MODAL Z-INDEX OVERRIDE - Highest priority */
+.modal {
+  z-index: 10500 !important;
+}
+
+.modal-backdrop {
+  z-index: 10499 !important;
+}
+
+.modal-dialog {
+  z-index: 10501 !important;
 }
 
 @media (max-width: 991px) {
