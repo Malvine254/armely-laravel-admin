@@ -1275,7 +1275,7 @@ $(document).ready(function() {
             ],
             pageLength: 10,
             lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
-            order: [[0, 'desc']],
+            order: [[2, 'desc']], // Order by date column (most recent first)
             language: {
                 search: "_INPUT_",
                 searchPlaceholder: "Search blogs...",
@@ -1541,8 +1541,8 @@ $(document).ready(function() {
         const blog = $(this).data('blog');
         
         console.log('Full blog object:', blog);
-        console.log('blog.id:', blog.id);
-        console.log('blog.blog_id:', blog.blog_id);
+        console.log('blog.body:', blog.body);
+        console.log('blog.description:', blog.description);
         
         $('#blogModalTitle').text('Edit Blog');
         
@@ -1559,7 +1559,11 @@ $(document).ready(function() {
         if (!blogEditor) {
             blogEditor = CKEDITOR.replace('blogBody');
         }
-        blogEditor.setData(blog.body || blog.content || '');
+        
+        // Try multiple possible field names for the content
+        const content = blog.body || blog.content || blog.description || blog.blog_body || '';
+        console.log('Setting content:', content ? content.substring(0, 100) + '...' : 'EMPTY');
+        blogEditor.setData(content);
         
         $('#blogModal').modal('show');
     });

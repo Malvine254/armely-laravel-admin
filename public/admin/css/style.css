@@ -276,7 +276,8 @@ body {
 
 /* Modern Admin Layout Source of Truth */
 .admin-topbar {
-  background: linear-gradient(90deg, var(--admin-primary), var(--admin-accent));
+  background: #2F5597;
+  background: linear-gradient(90deg, #2F5597, #1e3a6b);
   color: #fff;
   box-shadow: 0 4px 12px rgba(15, 27, 51, 0.1);
   position: fixed !important;
@@ -284,7 +285,7 @@ body {
   left: 0 !important;
   right: 0 !important;
   height: 70px;
-  z-index: 1030 !important; /* Keep low - always below modals */
+  /* No z-index - let modals naturally appear above */
   display: flex;
   align-items: center;
   padding: 0 20px !important;
@@ -302,7 +303,7 @@ body {
   background: #f8f9fa;
   color: #2f5597;
   box-shadow: 4px 0 15px rgba(15, 27, 51, 0.05);
-  z-index: 1000 !important;
+  /* No z-index */
   overflow-y: auto;
   transition: transform 0.3s ease;
 }
@@ -324,14 +325,14 @@ body {
 
 @media (max-width: 991px) {
   .admin-topbar {
-    z-index: 1030 !important; /* Keep at same low level */
+    /* No z-index - let modals naturally appear above */
   }
   
   .admin-sidebar {
     top: 70px !important;
     transform: translateX(-100%);
     width: 260px;
-    z-index: 1029 !important; /* Always below header and modals */
+    /* No z-index */
   }
 
   .admin-sidebar.is-open {
@@ -575,29 +576,17 @@ body.modal-open {
   overflow: hidden;
 }
 
-/* FORCE HEADER BELOW MODALS */
-body.modal-open .admin-topbar,
-.modal-open .admin-topbar,
-.admin-topbar {
-  z-index: 1030 !important; /* Always below modals */
-  position: fixed !important;
-}
-
-body.modal-open .admin-sidebar {
-  z-index: 1029 !important; /* Lower when modal is open */
-}
-
-/* GLOBAL MODAL Z-INDEX OVERRIDE - Highest priority */
+/* Keep modals at default Bootstrap z-index (naturally above content) */
 .modal {
-  z-index: 10500 !important;
+  z-index: 1055 !important;
 }
 
 .modal-backdrop {
-  z-index: 10499 !important;
+  z-index: 1050 !important;
 }
 
 .modal-dialog {
-  z-index: 10501 !important;
+  z-index: 1056 !important;
 }
 
 @media (max-width: 991px) {

@@ -88,7 +88,9 @@ class TablesController extends Controller
             $start = $request->input('start', 0);
             $length = $request->input('length', 10);
             
-            $blogs = $query->orderBy($orderBy, $orderDir)
+            // Select all columns explicitly to ensure body/content is included
+            $blogs = $query->select('*')
+                ->orderBy($orderBy, $orderDir)
                 ->offset($start)
                 ->limit($length)
                 ->get();
