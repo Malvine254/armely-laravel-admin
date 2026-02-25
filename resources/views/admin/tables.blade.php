@@ -30,17 +30,34 @@
         position: relative;
     }
     
-    /* Ensure modal interactivity */
+    /* Ensure modal interactivity - CRITICAL FOR EDITING */
+    .modal,
     .modal-header,
     .modal-body,
-    .modal-footer {
+    .modal-footer,
+    .modal-content {
+        position: relative;
+        pointer-events: auto !important;
+    }
+    
+    /* Ensure form controls are clickable */
+    .modal .form-control,
+    .modal .form-select,
+    .modal input,
+    .modal textarea,
+    .modal button,
+    .modal .btn,
+    .modal .btn-close {
+        pointer-events: auto !important;
         position: relative;
         z-index: 1;
     }
     
-    .modal-header .btn-close {
-        position: relative;
-        z-index: 10;
+    /* CKEditor must be interactive */
+    .modal .cke,
+    .modal .cke_inner,
+    .modal .cke_contents {
+        pointer-events: auto !important;
     }
     
     /* MODERN MODAL STYLING */
@@ -49,8 +66,6 @@
         border-radius: 20px;
         box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
         overflow: hidden;
-        position: relative;
-        z-index: 1;
     }
     
     .modal-header {
@@ -1215,6 +1230,18 @@ $(document).ready(function() {
             const modal = $(this);
             modal.css('pointer-events', 'auto');
             modal.find('.modal-content, .modal-header, .modal-body, .modal-footer, .btn-close').css('pointer-events', 'auto');
+            
+            // CRITICAL: Enable all form controls
+            modal.find('input, textarea, select, button').each(function() {
+                $(this).prop('disabled', false);
+                $(this).css({
+                    'pointer-events': 'auto',
+                    'cursor': $(this).is('input, textarea, select') ? 'text' : 'pointer'
+                });
+            });
+            
+            // Enable CKEditor elements
+            modal.find('.cke, .cke_inner, .cke_contents').css('pointer-events', 'auto');
         });
         
         // Explicit close button handler

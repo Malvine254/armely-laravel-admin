@@ -591,23 +591,43 @@ body.modal-open {
   position: relative;
 }
 
-/* Ensure all modal parts are interactive */
-.modal-content {
-  position: relative;
-  z-index: 1;
-  pointer-events: auto !important;
-}
-
+/* CRITICAL: Ensure all modal parts are interactive and editable */
+.modal,
+.modal-content,
 .modal-header,
 .modal-body,
 .modal-footer {
   position: relative;
-  z-index: 1;
+  pointer-events: auto !important;
 }
 
-.modal-header .btn-close {
+/* Make sure all form controls are editable */
+.modal .form-control,
+.modal .form-select,
+.modal input,
+.modal textarea,
+.modal button,
+.modal .btn,
+.modal .btn-close,
+.modal label {
+  pointer-events: auto !important;
   position: relative;
-  z-index: 10;
+  z-index: 1;
+  cursor: text;
+}
+
+.modal button,
+.modal .btn,
+.modal .btn-close {
+  cursor: pointer !important;
+}
+
+/* CKEditor must be interactive */
+.modal .cke,
+.modal .cke_inner,
+.modal .cke_contents,
+.modal .cke_wysiwyg_frame,
+.modal iframe {
   pointer-events: auto !important;
 }
 
