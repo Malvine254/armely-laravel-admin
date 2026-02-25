@@ -285,7 +285,6 @@ body {
   left: 0 !important;
   right: 0 !important;
   height: 70px;
-  z-index: 100 !important; /* Low z-index - always below modals */
   display: flex;
   align-items: center;
   padding: 0 20px !important;
@@ -303,7 +302,6 @@ body {
   background: #f8f9fa;
   color: #2f5597;
   box-shadow: 4px 0 15px rgba(15, 27, 51, 0.05);
-  z-index: 99 !important; /* Low z-index - always below modals */
   overflow-y: auto;
   transition: transform 0.3s ease;
 }
