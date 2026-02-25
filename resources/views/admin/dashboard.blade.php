@@ -682,7 +682,7 @@
                                         <div class="fw-bold text-dark">{{ $activity['name'] }}</div>
                                         <div class="text-muted small">{{ $activity['email'] }}</div>
                                         <div class="text-secondary small mt-1">
-                                            <i class="fas fa-info-circle me-1"></i>{{ \Str::limit($activity['detail'], 60) }}
+                                            <i class="fas fa-info-circle me-1"></i>{{ \Illuminate\Support\Str::limit($activity['detail'], 60) }}
                                         </div>
                                     </div>
                                 @endforeach

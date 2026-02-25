@@ -48,7 +48,7 @@ class SecurityHeaders
                 . "www.google.com "
                 . "copilotstudio.microsoft.com "
                 . "copilotstudio.preview.microsoft.com",
-            "frame-ancestors 'none'",
+            "frame-ancestors 'self'",
             "connect-src 'self' "
                 . "www.google.com "
                 . "www.googletagmanager.com",
@@ -62,14 +62,14 @@ class SecurityHeaders
         // Referrer Policy
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
 
-        // Strict Transport Security (HSTS) — start with 1 week, increase to 1 year after testing
-        $response->headers->set('Strict-Transport-Security', 'max-age=604800; includeSubDomains');
+        // Strict Transport Security (HSTS)
+        $response->headers->set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
 
         // X-Content-Type-Options
         $response->headers->set('X-Content-Type-Options', 'nosniff');
 
-        // X-Frame-Options (legacy support alongside frame-ancestors in CSP)
-        $response->headers->set('X-Frame-Options', 'DENY');
+        // X-Frame-Options
+        $response->headers->set('X-Frame-Options', 'SAMEORIGIN');
 
         // Cross Origin Resource Policy (CORP)
         $response->headers->set('Cross-Origin-Resource-Policy', 'same-origin');
