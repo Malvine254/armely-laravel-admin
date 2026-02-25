@@ -46,13 +46,31 @@ class SecurityHeaders
             "frame-src 'self' "
                 . "www.youtube.com "
                 . "www.google.com "
+                . "www.googletagmanager.com "
                 . "copilotstudio.microsoft.com "
-                . "copilotstudio.preview.microsoft.com",
+                . "copilotstudio.preview.microsoft.com "
+                . "*.microsoft.com",
             "frame-ancestors 'self'",
             "connect-src 'self' "
                 . "www.google.com "
-                . "www.googletagmanager.com",
-            "media-src 'self'",
+                . "www.googletagmanager.com "
+                . "www.google-analytics.com "
+                . "*.google-analytics.com "
+                . "cdnjs.cloudflare.com "
+                . "cdn.datatables.net "
+                . "cdn.jsdelivr.net "
+                . "stackpath.bootstrapcdn.com "
+                . "copilotstudio.microsoft.com "
+                . "copilotstudio.preview.microsoft.com "
+                . "*.microsoft.com "
+                . "*.azurewebsites.net "
+                . "*.microsoftazure.com",
+            "child-src 'self' "
+                . "copilotstudio.microsoft.com "
+                . "copilotstudio.preview.microsoft.com "
+                . "*.microsoft.com",
+            "worker-src 'self' blob:",
+            "media-src 'self' blob: data:",
             "object-src 'none'",
             "base-uri 'self'",
             "form-action 'self'",
@@ -71,11 +89,11 @@ class SecurityHeaders
         // X-Frame-Options
         $response->headers->set('X-Frame-Options', 'SAMEORIGIN');
 
-        // Cross Origin Resource Policy (CORP)
-        $response->headers->set('Cross-Origin-Resource-Policy', 'same-origin');
+        // Cross Origin Resource Policy (CORP) - use cross-origin to allow external resources
+        $response->headers->set('Cross-Origin-Resource-Policy', 'cross-origin');
 
-        // Permissions Policy — disable browser features not needed
-        $response->headers->set('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+        // Permissions Policy — disable browser features not needed, but allow microphone for chat bot
+        $response->headers->set('Permissions-Policy', 'geolocation=(), camera=()');
 
         return $response;
     }
