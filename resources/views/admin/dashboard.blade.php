@@ -4,6 +4,63 @@
 
 @push('styles')
 <style>
+/* MODAL Z-INDEX OVERRIDE - Force modals to appear above header */
+.modal {
+    z-index: 9999 !important;
+}
+.modal-backdrop {
+    z-index: 9998 !important;
+    background-color: rgba(0, 0, 0, 0.7);
+}
+.modal-dialog {
+    z-index: 10000 !important;
+}
+
+/* MODERN MODAL STYLING */
+.modal-content {
+    border: none;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+}
+
+.modal-header {
+    background: linear-gradient(135deg, #2f5597 0%, #1e3a6b 100%);
+    color: white;
+    padding: 1.75rem 2rem;
+    border-bottom: none;
+}
+
+.modal-header .modal-title {
+    font-weight: 600;
+    font-size: 1.5rem;
+    color: white;
+}
+
+.modal-header .btn-close {
+    filter: brightness(0) invert(1);
+    opacity: 0.8;
+}
+
+.modal-body {
+    padding: 2rem;
+    background: #f8f9fa;
+}
+
+.modal .form-control {
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+}
+
+.modal .btn-primary {
+    background: linear-gradient(135deg, #2f5597 0%, #1e3a6b 100%);
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 10px;
+    font-weight: 600;
+}
+
 .dashboard-header {
     background: linear-gradient(135deg, #2f5597 0%, #1e3a6b 100%);
     color: white;

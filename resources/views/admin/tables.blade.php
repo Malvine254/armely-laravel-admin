@@ -16,6 +16,166 @@
     .table td {
         vertical-align: middle;
     }
+    
+    /* MODAL Z-INDEX OVERRIDE - Force modals to appear above header */
+    .modal {
+        z-index: 9999 !important;
+    }
+    .modal-backdrop {
+        z-index: 9998 !important;
+        background-color: rgba(0, 0, 0, 0.7);
+    }
+    .modal-dialog {
+        z-index: 10000 !important;
+    }
+    
+    /* MODERN MODAL STYLING */
+    .modal-content {
+        border: none;
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        overflow: hidden;
+    }
+    
+    .modal-header {
+        background: linear-gradient(135deg, #2f5597 0%, #1e3a6b 100%);
+        color: white;
+        padding: 1.75rem 2rem;
+        border-bottom: none;
+    }
+    
+    .modal-header .modal-title {
+        font-weight: 600;
+        font-size: 1.5rem;
+        color: white;
+    }
+    
+    .modal-header .btn-close {
+        filter: brightness(0) invert(1);
+        opacity: 0.8;
+        transition: opacity 0.2s;
+    }
+    
+    .modal-header .btn-close:hover {
+        opacity: 1;
+    }
+    
+    .modal-body {
+        padding: 2rem;
+        background: #f8f9fa;
+    }
+    
+    .modal-body form {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 16px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+    
+    .modal-footer {
+        padding: 1.5rem 2rem;
+        background: white;
+        border-top: 1px solid #e9ecef;
+    }
+    
+    /* Modern Form Controls */
+    .modal .form-label {
+        font-weight: 600;
+        color: #344054;
+        margin-bottom: 0.5rem;
+        font-size: 0.95rem;
+    }
+    
+    .modal .form-control,
+    .modal .form-select {
+        border: 2px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 0.75rem 1rem;
+        font-size: 1rem;
+        transition: all 0.2s ease;
+    }
+    
+    .modal .form-control:focus,
+    .modal .form-select:focus {
+        border-color: #2f5597;
+        box-shadow: 0 0 0 4px rgba(47, 85, 151, 0.1);
+        outline: none;
+    }
+    
+    /* Larger, Better Textareas */
+    .modal textarea.form-control {
+        min-height: 180px;
+        resize: vertical;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        line-height: 1.6;
+    }
+    
+    .modal textarea.form-control[rows="4"] {
+        min-height: 120px;
+    }
+    
+    .modal textarea.form-control[rows="6"] {
+        min-height: 150px;
+    }
+    
+    /* Modern Buttons */
+    .modal .btn {
+        padding: 0.75rem 1.5rem;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 0.95rem;
+        transition: all 0.2s ease;
+        border: none;
+    }
+    
+    .modal .btn-primary {
+        background: linear-gradient(135deg, #2f5597 0%, #1e3a6b 100%);
+        box-shadow: 0 4px 12px rgba(47, 85, 151, 0.3);
+    }
+    
+    .modal .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(47, 85, 151, 0.4);
+    }
+    
+    .modal .btn-secondary {
+        background: #e5e7eb;
+        color: #6b7280;
+    }
+    
+    .modal .btn-secondary:hover {
+        background: #d1d5db;
+        color: #374151;
+    }
+    
+    .modal .btn-success {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+    
+    .modal .btn-danger {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+    }
+    
+    /* Form Helper Text */
+    .modal .text-muted {
+        font-size: 0.85rem;
+        color: #6b7280;
+        margin-top: 0.25rem;
+    }
+    
+    /* Input File Styling */
+    .modal input[type="file"] {
+        padding: 0.5rem;
+        cursor: pointer;
+    }
+    
+    /* MB-3 Spacing Override */
+    .modal-body .mb-3 {
+        margin-bottom: 1.5rem !important;
+    }
+    
     /* Icon-only action button layout */
     .action-btns{display:flex;gap:.5rem;align-items:center}
     .action-btns .btn{min-width:36px;padding:6px;display:inline-flex;align-items:center;justify-content:center}
