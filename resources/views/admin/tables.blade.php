@@ -17,17 +17,26 @@
         vertical-align: middle;
     }
     
-    /* MODAL Z-INDEX OVERRIDE - Force modals to appear above header */
+    /* MODAL Z-INDEX OVERRIDE - Force modals to appear above EVERYTHING */
     .modal {
-        z-index: 1055 !important;
+        z-index: 999999 !important;
+        pointer-events: auto !important;
     }
     .modal-backdrop {
-        z-index: 1050 !important;
+        z-index: 999998 !important;
         background-color: rgba(0, 0, 0, 0.7);
+        pointer-events: auto !important;
+    }
+    .modal.show {
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
     }
     .modal-dialog {
-        z-index: 1056 !important;
+        z-index: 1000000 !important;
         position: relative;
+        pointer-events: auto !important;
+        margin: auto;
     }
     
     /* Ensure modal interactivity - CRITICAL FOR EDITING */
@@ -1228,20 +1237,46 @@ $(document).ready(function() {
         // Fix for modals not closing with CKEditor
         $(document).on('show.bs.modal', '.modal', function() {
             const modal = $(this);
-            modal.css('pointer-events', 'auto');
-            modal.find('.modal-content, .modal-header, .modal-body, .modal-footer, .btn-close').css('pointer-events', 'auto');
+            
+            // Force extremely high z-index
+            modal.css({
+                'pointer-events': 'auto',
+                'z-index': '999999'
+            });
+            
+            modal.find('.modal-dialog').css({
+                'pointer-events': 'auto',
+                'z-index': '1000000'
+            });
+            
+            modal.find('.modal-content, .modal-header, .modal-body, .modal-footer, .btn-close').css({
+                'pointer-events': 'auto',
+                'position': 'relative',
+                'z-index': '1'
+            });
             
             // CRITICAL: Enable all form controls
             modal.find('input, textarea, select, button').each(function() {
-                $(this).prop('disabled', false);
+                $(this).prop('disabled', false).prop('readonly', false);
                 $(this).css({
-                    'pointer-events': 'auto',
-                    'cursor': $(this).is('input, textarea, select') ? 'text' : 'pointer'
+                    'pointer-events': 'auto !important',
+                    'cursor': $(this).is('input, textarea, select') ? 'text' : 'pointer',
+                    'position': 'relative',
+                    'z-index': '1'
                 });
             });
             
             // Enable CKEditor elements
-            modal.find('.cke, .cke_inner, .cke_contents').css('pointer-events', 'auto');
+            modal.find('.cke, .cke_inner, .cke_contents, .cke_wysiwyg_frame').css({
+                'pointer-events': 'auto',
+                'position': 'relative',
+                'z-index': '1'
+            });
+            
+            // Force backdrop to correct z-index
+            setTimeout(function() {
+                $('.modal-backdrop').css('z-index', '999998');
+            }, 10);
         });
         
         // Explicit close button handler

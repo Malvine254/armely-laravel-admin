@@ -285,7 +285,7 @@ body {
   left: 0 !important;
   right: 0 !important;
   height: 70px;
-  /* No z-index - let modals naturally appear above */
+  z-index: 100 !important; /* Low z-index - always below modals */
   display: flex;
   align-items: center;
   padding: 0 20px !important;
@@ -303,7 +303,7 @@ body {
   background: #f8f9fa;
   color: #2f5597;
   box-shadow: 4px 0 15px rgba(15, 27, 51, 0.05);
-  /* No z-index */
+  z-index: 99 !important; /* Low z-index - always below modals */
   overflow-y: auto;
   transition: transform 0.3s ease;
 }
@@ -325,14 +325,14 @@ body {
 
 @media (max-width: 991px) {
   .admin-topbar {
-    /* No z-index - let modals naturally appear above */
+    z-index: 100 !important; /* Keep low even on mobile */
   }
   
   .admin-sidebar {
     top: 70px !important;
     transform: translateX(-100%);
     width: 260px;
-    /* No z-index */
+    z-index: 99 !important; /* Keep low even on mobile */
   }
 
   .admin-sidebar.is-open {
@@ -576,19 +576,28 @@ body.modal-open {
   overflow: hidden;
 }
 
-/* Keep modals at default Bootstrap z-index (naturally above content) */
+/* MODALS MUST FLOAT ABOVE EVERYTHING */
 .modal {
-  z-index: 1055 !important;
+  z-index: 999999 !important;
   pointer-events: auto !important;
 }
 
 .modal-backdrop {
-  z-index: 1050 !important;
+  z-index: 999998 !important;
+  pointer-events: auto !important;
+}
+
+.modal.show {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
 }
 
 .modal-dialog {
-  z-index: 1056 !important;
+  z-index: 1000000 !important;
   position: relative;
+  pointer-events: auto !important;
+  margin: auto;
 }
 
 /* CRITICAL: Ensure all modal parts are interactive and editable */
