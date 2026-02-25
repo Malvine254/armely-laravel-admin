@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class ReportsController extends Controller
 {
@@ -46,7 +47,7 @@ class ReportsController extends Controller
             $stats['conversions'] = intval($stats['total_contacts'] * 0.4);
             
         } catch (\Exception $e) {
-            \Log::error('Stats load failed: ' . $e->getMessage());
+            Log::error('Stats load failed: ' . $e->getMessage());
         }
 
         // Load recent activity (public interactions + admin changes)
@@ -100,7 +101,7 @@ class ReportsController extends Controller
                 ->toArray();
             $recentActivity = array_merge($recentActivity, $adminActivities);
 
-            \Log::info('Total activities before sorting: ' . count($recentActivity));
+            Log::info('Total activities before sorting: ' . count($recentActivity));
 
             // Sort by date
             usort($recentActivity, function($a, $b) {
@@ -112,17 +113,17 @@ class ReportsController extends Controller
             // Keep only last 10
             $recentActivity = array_slice($recentActivity, 0, 10);
             
-            \Log::info('Activities after slicing to 10: ' . count($recentActivity));
-            \Log::info('Final activities count: ' . count($recentActivity));
+            Log::info('Activities after slicing to 10: ' . count($recentActivity));
+            Log::info('Final activities count: ' . count($recentActivity));
             
         } catch (\Exception $e) {
-            \Log::error('Activity load failed: ' . $e->getMessage());
-            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            Log::error('Activity load failed: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
         }
 
         // NO SAMPLE DATA - Show real data only
         // If no activity found, the view will display "No recent activity found."
-        \Log::info('Passing to view - activities count: ' . count($recentActivity));
+        Log::info('Passing to view - activities count: ' . count($recentActivity));
 
         // Get chart data from database (last 30 days)
         $chartData = $this->getChartData(30);
@@ -368,7 +369,7 @@ class ReportsController extends Controller
             // Keep only last 50
             $recentActivity = array_slice($recentActivity, 0, 50);
         } catch (\Exception $e) {
-            \Log::error('Activity export PDF failed: ' . $e->getMessage());
+            Log::error('Activity export PDF failed: ' . $e->getMessage());
             // Return empty data on error
             $recentActivity = [];
         }
@@ -593,7 +594,7 @@ class ReportsController extends Controller
             
             $recentActivity = array_slice($recentActivity, 0, 50);
         } catch (\Exception $e) {
-            \Log::error('Activity export Excel failed: ' . $e->getMessage());
+            Log::error('Activity export Excel failed: ' . $e->getMessage());
             // Return empty data on error
             $recentActivity = [];
         }
@@ -712,7 +713,7 @@ class ReportsController extends Controller
 
             return $chartData;
         } catch (\Exception $e) {
-            \Log::error('Chart data load failed: ' . $e->getMessage());
+            Log::error('Chart data load failed: ' . $e->getMessage());
             // Return empty data structure on error
             return [
                 'labels' => [],
