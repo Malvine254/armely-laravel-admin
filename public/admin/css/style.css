@@ -284,7 +284,7 @@ body {
   left: 0 !important;
   right: 0 !important;
   height: 70px;
-  z-index: 2000 !important; /* Extremely high to prevent any overlap */
+  z-index: 1040 !important; /* Below modals (1060) but above dropdowns (1000) */
   display: flex;
   align-items: center;
   padding: 0 20px !important;
@@ -324,14 +324,14 @@ body {
 
 @media (max-width: 991px) {
   .admin-topbar {
-    z-index: 2000 !important;
+    z-index: 1040 !important; /* Consistent with desktop */
   }
   
   .admin-sidebar {
     top: 70px !important;
     transform: translateX(-100%);
     width: 260px;
-    z-index: 2100 !important; /* Above header when open */
+    z-index: 1035 !important; /* Below modals (1060) but above content */
   }
 
   .admin-sidebar.is-open {
