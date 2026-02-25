@@ -19,14 +19,28 @@
     
     /* MODAL Z-INDEX OVERRIDE - Force modals to appear above header */
     .modal {
-        z-index: 9999 !important;
+        z-index: 1055 !important;
     }
     .modal-backdrop {
-        z-index: 9998 !important;
+        z-index: 1050 !important;
         background-color: rgba(0, 0, 0, 0.7);
     }
     .modal-dialog {
-        z-index: 10000 !important;
+        z-index: 1056 !important;
+        position: relative;
+    }
+    
+    /* Ensure modal interactivity */
+    .modal-header,
+    .modal-body,
+    .modal-footer {
+        position: relative;
+        z-index: 1;
+    }
+    
+    .modal-header .btn-close {
+        position: relative;
+        z-index: 10;
     }
     
     /* MODERN MODAL STYLING */
@@ -35,6 +49,8 @@
         border-radius: 20px;
         box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
         overflow: hidden;
+        position: relative;
+        z-index: 1;
     }
     
     .modal-header {
@@ -1192,6 +1208,50 @@
 <script src="{{ asset('ckeditor/ckeditor.js') }}"></script>
 <script>
 $(document).ready(function() {
+        
+        // ==================== MODAL FIX: Ensure modals can be closed ====================
+        // Fix for modals not closing with CKEditor
+        $(document).on('show.bs.modal', '.modal', function() {
+            const modal = $(this);
+            modal.css('pointer-events', 'auto');
+            modal.find('.modal-content, .modal-header, .modal-body, .modal-footer, .btn-close').css('pointer-events', 'auto');
+        });
+        
+        // Explicit close button handler
+        $(document).on('click', '.modal .btn-close, [data-bs-dismiss="modal"]', function(e) {
+            const modal = $(this).closest('.modal');
+            const modalInstance = bootstrap.Modal.getInstance(modal[0]);
+            if (modalInstance) {
+                modalInstance.hide();
+            } else {
+                modal.modal('hide');
+            }
+        });
+        
+        // Backdrop click handler
+        $(document).on('click', '.modal', function(e) {
+            if ($(e.target).hasClass('modal')) {
+                const modalInstance = bootstrap.Modal.getInstance(this);
+                if (modalInstance) {
+                    modalInstance.hide();
+                }
+            }
+        });
+        
+        // ESC key handler
+        $(document).on('keydown', function(e) {
+            if (e.key === 'Escape' || e.keyCode === 27) {
+                const openModal = $('.modal.show').last();
+                if (openModal.length) {
+                    const modalInstance = bootstrap.Modal.getInstance(openModal[0]);
+                    if (modalInstance) {
+                        modalInstance.hide();
+                    }
+                }
+            }
+        });
+        // ==================== END MODAL FIX ====================
+        
         function loadRejected() {
             $.ajax({
                 url: '/admin/career/list-rejected',

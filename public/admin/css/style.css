@@ -579,6 +579,7 @@ body.modal-open {
 /* Keep modals at default Bootstrap z-index (naturally above content) */
 .modal {
   z-index: 1055 !important;
+  pointer-events: auto !important;
 }
 
 .modal-backdrop {
@@ -587,6 +588,27 @@ body.modal-open {
 
 .modal-dialog {
   z-index: 1056 !important;
+  position: relative;
+}
+
+/* Ensure all modal parts are interactive */
+.modal-content {
+  position: relative;
+  z-index: 1;
+  pointer-events: auto !important;
+}
+
+.modal-header,
+.modal-body,
+.modal-footer {
+  position: relative;
+  z-index: 1;
+}
+
+.modal-header .btn-close {
+  position: relative;
+  z-index: 10;
+  pointer-events: auto !important;
 }
 
 @media (max-width: 991px) {
