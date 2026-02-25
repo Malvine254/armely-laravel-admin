@@ -27,6 +27,12 @@
         box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
     }
     
+    /* Ensure modal-dialog is above backdrop */
+    .modal-dialog {
+        position: relative;
+        z-index: 1;
+    }
+    
     .modal-header.bg-primary {
         background: linear-gradient(135deg, #2f5597 0%, #1e3a6b 100%) !important;
     }
@@ -676,7 +682,7 @@
 </div>
 
 <!-- Blog Edit/Add Modal - Clean Bootstrap 5 Design -->
-<div class="modal fade" id="blogModal" tabindex="-1" aria-labelledby="blogModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="true">
+<div class="modal fade" id="blogModal" tabindex="-1" aria-labelledby="blogModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content border-0 shadow-lg">
             <div class="modal-header bg-primary text-white border-0">
@@ -1134,9 +1140,25 @@ $(document).ready(function() {
         // ==================== CLEAN MODAL HANDLERS ====================
         // Bootstrap 5 handles modals naturally - no overrides needed!
         
-        // Optional: Log modal events for debugging
+        // Fix backdrop z-index issue
         $(document).on('show.bs.modal', '.modal', function() {
             console.log('Modal opening:', this.id);
+            
+            // Ensure modal-dialog is interactive
+            setTimeout(() => {
+                const backdrop = $('.modal-backdrop');
+                const modal = $(this);
+                
+                // Force backdrop behind modal
+                backdrop.css('z-index', '1050');
+                modal.css('z-index', '1055');
+                
+                // Ensure modal-dialog is clickable
+                modal.find('.modal-dialog').css({
+                    'position': 'relative',
+                    'z-index': '1'
+                });
+            }, 10);
         });
         
         $(document).on('shown.bs.modal', '.modal', function() {
