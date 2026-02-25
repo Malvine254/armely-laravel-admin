@@ -10,73 +10,73 @@
         max-height: 100px;
         overflow: hidden;
     }
-    .modal-lg {
-        max-width: 900px;
-    }
-    .modal-xl {
-        max-width: 1140px;
-    }
     .table td {
         vertical-align: middle;
     }
     
-    /* Clean Bootstrap Modal - Remove problematic overrides */
-    .modal-content {
-        border-radius: 12px;
-        border: none;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    /* Clean modal styling */
+    .modal-header {
+        background: #2F5597 !important;
+        color: #fff !important;
+        border-bottom: none;
+        padding: 1rem 1.5rem;
     }
     
-    /* Ensure modal-dialog is above backdrop */
-    .modal-dialog {
-        position: relative;
-        z-index: 1;
-    }
-    
-    .modal-header.bg-primary {
-        background: linear-gradient(135deg, #2f5597 0%, #1e3a6b 100%) !important;
-    }
-    
-    .modal .form-control,
-    .modal .form-select {
-        border: 2px solid #dee2e6;
-        border-radius: 8px;
-        padding: 0.65rem 1rem;
-        transition: border-color 0.2s ease;
-    }
-    
-    .modal .form-control:focus,
-    .modal .form-select:focus {
-        border-color: #2f5597;
-        box-shadow: 0 0 0 0.2rem rgba(47, 85, 151, 0.25);
-    }
-    
-    .modal .form-label {
+    .modal-header .modal-title {
+        color: #fff !important;
         font-weight: 600;
-        color: #344054;
+    }
+    
+    .modal-header .btn-close {
+        filter: brightness(0) invert(1);
+        opacity: 0.8;
+    }
+    
+    .modal-header .btn-close:hover {
+        opacity: 1;
+    }
+    
+    .modal-body {
+        background: #fff;
+        padding: 1.5rem;
+    }
+    
+    .modal-body .form-label {
+        color: #2F5597;
+        font-weight: 600;
         margin-bottom: 0.5rem;
     }
     
-    .modal .btn-lg {
-        border-radius: 8px;
-        padding: 0.65rem 1.5rem;
-        font-weight: 500;
+    .modal-body .form-control {
+        border: 1px solid #dee2e6;
+        border-radius: 0.375rem;
+        padding: 0.625rem 0.875rem;
     }
     
-    .modal .btn-primary {
-        background: linear-gradient(135deg, #2f5597 0%, #1e3a6b 100%);
+    .modal-body .form-control:focus {
+        border-color: #2F5597;
+        box-shadow: 0 0 0 0.2rem rgba(47, 85, 151, 0.15);
+    }
+    
+    .modal-footer {
+        background: #fff;
+        border-top: none;
+        padding: 1rem 1.5rem;
+        gap: 0.5rem;
+    }
+    
+    .modal-footer .btn-secondary {
+        background: #6c757d;
         border: none;
     }
     
-    .modal .btn-primary:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(47, 85, 151, 0.3);
+    .modal-footer .btn-primary {
+        background: #2F5597;
+        border: none;
     }
     
-    /* CKEditor styling */
-    .modal .cke {
-        border: 2px solid #dee2e6 !important;
-        border-radius: 8px !important;
+    .modal-footer .btn-primary:hover {
+        background: #1e3a6b;
     }
     
     /* Form Helper Text */
@@ -94,7 +94,12 @@
     
     /* MB-3 Spacing Override */
     .modal-body .mb-3 {
-        margin-bottom: 1.5rem !important;
+        margin-bottom: 1.25rem !important;
+    }
+    
+    /* Remove form label icons - clean look */
+    .modal-body .form-label i {
+        display: none;
     }
     
     /* Icon-only action button layout */
@@ -659,6 +664,7 @@
     </div>
 </div>
 
+@push('modals')
 <!-- MODALS -->
 
 <!-- Blog View Modal -->
@@ -681,64 +687,52 @@
     </div>
 </div>
 
-<!-- Blog Edit/Add Modal - Clean Bootstrap 5 Design -->
-<div class="modal fade" id="blogModal" tabindex="-1" aria-labelledby="blogModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content border-0 shadow-lg">
-            <div class="modal-header bg-primary text-white border-0">
-                <h5 class="modal-title fw-bold" id="blogModalTitle">
-                    <i class="fas fa-blog me-2"></i>Add New Blog
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+<!-- Blog Edit/Add Modal -->
+<div class="modal fade" id="blogModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="blogModalTitle">Add New Blog</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body p-4 bg-light">
+            <div class="modal-body">
                 <form id="blogForm">
                     <input type="hidden" id="blogId" name="id">
                     
                     <div class="row g-3">
                         <div class="col-md-8">
-                            <label for="blogTitle" class="form-label fw-semibold">
-                                <i class="fas fa-heading text-primary me-2"></i>Title *
-                            </label>
-                            <input type="text" class="form-control form-control-lg" id="blogTitle" name="title" required placeholder="Enter blog title">
+                            <label for="blogTitle" class="form-label">Title *</label>
+                            <input type="text" class="form-control" id="blogTitle" name="title" required placeholder="Enter blog title">
                         </div>
                         
                         <div class="col-md-4">
-                            <label for="blogDate" class="form-label fw-semibold">
-                                <i class="fas fa-calendar text-primary me-2"></i>Date *
-                            </label>
-                            <input type="date" class="form-control form-control-lg" id="blogDate" name="date" required>
+                            <label for="blogDate" class="form-label">Date *</label>
+                            <input type="date" class="form-control" id="blogDate" name="date" required>
                         </div>
                         
                         <div class="col-md-6">
-                            <label for="blogAuthor" class="form-label fw-semibold">
-                                <i class="fas fa-user text-primary me-2"></i>Author *
-                            </label>
-                            <input type="text" class="form-control form-control-lg" id="blogAuthor" name="author" required placeholder="Author name">
+                            <label for="blogAuthor" class="form-label">Author *</label>
+                            <input type="text" class="form-control" id="blogAuthor" name="author" required placeholder="Author name">
                         </div>
                         
                         <div class="col-md-6">
-                            <label for="blogImage" class="form-label fw-semibold">
-                                <i class="fas fa-image text-primary me-2"></i>Featured Image
-                            </label>
-                            <input type="file" class="form-control form-control-lg" id="blogImage" name="image" accept="image/*">
+                            <label for="blogImage" class="form-label">Featured Image</label>
+                            <input type="file" class="form-control" id="blogImage" name="image" accept="image/*">
                             <small class="text-muted">Current image will be preserved if no new image is uploaded</small>
                         </div>
                         
                         <div class="col-12">
-                            <label for="blogBody" class="form-label fw-semibold">
-                                <i class="fas fa-file-alt text-primary me-2"></i>Content
-                            </label>
+                            <label for="blogBody" class="form-label">Content</label>
                             <textarea class="form-control" id="blogBody" name="body" rows="15"></textarea>
                         </div>
                     </div>
                 </form>
             </div>
-            <div class="modal-footer border-0 bg-white">
-                <button type="button" class="btn btn-lg btn-secondary" data-bs-dismiss="modal">
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                     <i class="fas fa-times me-2"></i>Cancel
                 </button>
-                <button type="button" class="btn btn-lg btn-primary" id="saveBlogBtn">
+                <button type="button" class="btn btn-primary" id="saveBlogBtn">
                     <i class="fas fa-save me-2"></i>Save Blog
                 </button>
             </div>
@@ -834,7 +828,7 @@
 
 <!-- Career Edit/Add Modal -->
 <div class="modal fade" id="careerModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="careerModalTitle">Add New Career</h5>
@@ -885,7 +879,7 @@
 
 <!-- Social Impact Edit/Add Modal -->
 <div class="modal fade" id="socialModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="socialModalTitle">Add New Social Impact Story</h5>
@@ -932,7 +926,7 @@
 
 <!-- Customer Story Edit/Add Modal -->
 <div class="modal fade" id="storyModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="storyModalTitle">Add New Customer Story</h5>
@@ -971,7 +965,7 @@
 
 <!-- Event Edit/Add Modal -->
 <div class="modal fade" id="eventModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="eventModalTitle">Add New Event</h5>
@@ -1043,7 +1037,7 @@
 
 <!-- Team Edit/Add Modal -->
 <div class="modal fade" id="teamModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="teamModalTitle">Add New Team Member</h5>
@@ -1126,47 +1120,21 @@
         </div>
     </div>
 </div>
+@endpush
 
 @endsection
 
 @push('scripts')
+<!-- DataTables (jQuery is already loaded from layout) -->
 <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js" integrity="sha384-cjmdOgDzOE22dUheI5E6Gzd3upfmReW8N1y/4jwKQE50KYcvFKZJA9JxWgQOzqwQ" crossorigin="anonymous"></script>
 <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js" integrity="sha384-PgPBH0hy6DTJwu7pTf6bkRqPlf/+pjUBExpr/eIfzszlGYFlF9Wi9VTAJODPhgCO" crossorigin="anonymous"></script>
-<script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha384-vtXRMe3mGCbOeY7l30aIg8H9p3GdeSe4IFlP6G8JMa7o7lXvnz3GFKzPxzJdPfGK" crossorigin="anonymous"></script>
+<!-- CKEditor -->
 <script src="{{ asset('ckeditor/ckeditor.js') }}"></script>
 <script>
 $(document).ready(function() {
         
-        // ==================== CLEAN MODAL HANDLERS ====================
-        // Bootstrap 5 handles modals naturally - no overrides needed!
-        
-        // Fix backdrop z-index issue
-        $(document).on('show.bs.modal', '.modal', function() {
-            console.log('Modal opening:', this.id);
-            
-            // Ensure modal-dialog is interactive
-            setTimeout(() => {
-                const backdrop = $('.modal-backdrop');
-                const modal = $(this);
-                
-                // Force backdrop behind modal
-                backdrop.css('z-index', '1050');
-                modal.css('z-index', '1055');
-                
-                // Ensure modal-dialog is clickable
-                modal.find('.modal-dialog').css({
-                    'position': 'relative',
-                    'z-index': '1'
-                });
-            }, 10);
-        });
-        
-        $(document).on('shown.bs.modal', '.modal', function() {
-            console.log('Modal opened:', this.id);
-            // Focus first input if available
-            $(this).find('input:not([type="hidden"]):first').focus();
-        });
-        // ==================== END MODAL HANDLERS ====================
+        // Initialize CKEditor when needed
+        let blogEditor;
         
         function loadRejected() {
             $.ajax({
@@ -1198,8 +1166,6 @@ $(document).ready(function() {
                 }
             });
         }
-    // Initialize CKEditor
-    let blogEditor;
     
     // ==================== TABLE RELOAD FUNCTIONS ====================
     
@@ -2635,6 +2601,4 @@ $(document).ready(function() {
     });
 });
 </script>
-<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js" integrity="sha384-cjmdOgDzOE22dUheI5E6Gzd3upfmReW8N1y/4jwKQE50KYcvFKZJA9JxWgQOzqwQ" crossorigin="anonymous"></script>
-<script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js" integrity="sha384-PgPBH0hy6DTJwu7pTf6bkRqPlf/+pjUBExpr/eIfzszlGYFlF9Wi9VTAJODPhgCO" crossorigin="anonymous"></script>
 @endpush

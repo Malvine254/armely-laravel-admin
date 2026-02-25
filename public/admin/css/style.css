@@ -21,6 +21,31 @@
 	box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
 }
 
+/* Nav tabs styling */
+.nav-tabs .nav-link {
+	color: #2F5597;
+	border: none;
+	border-bottom: 2px solid transparent;
+	font-weight: 500;
+}
+
+.nav-tabs .nav-link:hover {
+	color: #1e3a6e;
+	border-bottom-color: #2F5597;
+}
+
+.nav-tabs .nav-link.active {
+	color: #2F5597;
+	border-bottom: 2px solid #2F5597;
+	background-color: transparent;
+}
+
+.nav-tabs .nav-link i,
+.nav-tabs .nav-link .fas,
+.nav-tabs .nav-link .fa {
+	color: #2F5597;
+}
+
 /* Table improvements */
 .table-hover tbody tr:hover {
 	background-color: rgba(47, 85, 151, 0.05);
@@ -56,6 +81,58 @@
 }
 
 /* Pagination styling */
+.pagination {
+	margin: 20px 0;
+}
+
+.pagination .page-link {
+	color: #2F5597;
+	border-color: #dee2e6;
+	background-color: #fff;
+}
+
+.pagination .page-link:hover {
+	background-color: rgba(47, 85, 151, 0.1);
+	border-color: #2F5597;
+	color: #1e3a6b;
+}
+
+.pagination .page-item.active .page-link {
+	background-color: #2F5597;
+	border-color: #2F5597;
+	color: #fff;
+}
+
+.pagination .page-item.disabled .page-link {
+	color: #6c757d;
+	background-color: #e9ecef;
+	border-color: #dee2e6;
+	cursor: not-allowed;
+}
+
+/* DataTables pagination */
+.dataTables_wrapper .dataTables_paginate .paginate_button.current,
+.dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+	background: #2F5597;
+	border: 1px solid #2F5597;
+	color: #fff;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+	color: #2F5597;
+	border: 1px solid #dee2e6;
+	background: #fff;
+	padding: 0.5rem 0.75rem;
+	margin: 0 2px;
+	border-radius: 0.25rem;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+	background: rgba(47, 85, 151, 0.1);
+	border-color: #2F5597;
+	cursor: pointer;
+}
+
 .btn-group .btn {
 	border-radius: 0;
 }
@@ -285,6 +362,7 @@ body {
   left: 0 !important;
   right: 0 !important;
   height: 70px;
+  z-index: 1040; /* Below Bootstrap modal backdrop (1050) */
   display: flex;
   align-items: center;
   padding: 0 20px !important;
@@ -302,6 +380,7 @@ body {
   background: #f8f9fa;
   color: #2f5597;
   box-shadow: 4px 0 15px rgba(15, 27, 51, 0.05);
+  z-index: 1040; /* Below Bootstrap modal backdrop (1050) */
   overflow-y: auto;
   transition: transform 0.3s ease;
 }
@@ -311,8 +390,7 @@ body {
   margin-left: 260px !important; /* Always right of sidebar */
   padding: 28px;
   min-height: calc(100vh - 70px);
-  position: relative;
-  z-index: 1;
+  /* Remove z-index and position to not create stacking context that traps modals */
 }
 
 /* On desktop, hide the logo in the header and show it in the sidebar */
@@ -517,6 +595,69 @@ body {
    ======================================== */
 body.modal-open {
   overflow: hidden;
+  padding-right: 0 !important;
+}
+
+/* When modal is open, ensure nothing blocks it */
+body.modal-open .admin-topbar,
+body.modal-open .admin-sidebar {
+  z-index: 1 !important;
+}
+
+/* Ensure proper modal stacking above everything */
+.modal-backdrop {
+  z-index: 1040 !important;
+}
+
+.modal {
+  z-index: 1050 !important;
+}
+
+/* CRITICAL FIX: Bootstrap 5 modal needs pointer-events on the right elements */
+.modal.show {
+  pointer-events: auto !important;
+}
+
+.modal-dialog {
+  pointer-events: auto !important;
+  position: relative;
+}
+
+.modal-content {
+  pointer-events: auto !important;
+  position: relative;
+}
+
+/* All interactive elements inside modal */
+.modal-header,
+.modal-body,
+.modal-footer {
+  pointer-events: auto !important;
+  position: relative;
+}
+
+.modal-content input,
+.modal-content textarea,
+.modal-content select,
+.modal-content button,
+.modal-content .form-control,
+.modal-content .form-select,
+.modal-content .btn,
+.modal-content .btn-close,
+.modal-content label {
+  pointer-events: auto !important;
+  position: relative;
+}
+
+/* CKEditor in modals - must be interactive */
+.modal-content .cke,
+.modal-content .cke_inner,
+.modal-content .cke_top,
+.modal-content .cke_contents,
+.modal-content .cke_bottom,
+.modal-content .cke_wysiwyg_frame,
+.modal-content iframe {
+  pointer-events: auto !important;
 }
 
 @media (max-width: 991px) {
