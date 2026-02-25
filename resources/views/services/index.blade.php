@@ -36,7 +36,7 @@
                             <div class="table-head">
                                 <div class="icon text-light"><i class="icofont text-light {{ $service->image }}"></i></div>
                                 <h4 class="title text-light">{{ $service->title }}</h4>
-                                <div class="price text-light"><p class="text-light">{{ Str::limit(strip_tags($service->body), 150) }}</p></div>
+                                <div class="price text-light"><p class="text-light">{{ \Illuminate\Support\Str::limit(strip_tags($service->body), 150) }}</p></div>
                             </div>
                         </a>
                     </div>

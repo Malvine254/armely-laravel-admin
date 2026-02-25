@@ -13,7 +13,7 @@ use Illuminate\Support\Str;
 	<!-- Open Graph Meta Tags for Social Media Sharing -->
 	<meta property="og:type" content="article">
 	<meta property="og:title" content="{{ $main->title }}">
-	<meta property="og:description" content="{{ Str::limit(strip_tags($main->body), 160) }}">
+	<meta property="og:description" content="{{ \Illuminate\Support\Str::limit(strip_tags($main->body), 160) }}">
 	<meta property="og:url" content="{{ request()->url() }}">
 	@if($main->image_path)
 		<meta property="og:image" content="{{ url($main->image_path) }}">
@@ -23,7 +23,7 @@ use Illuminate\Support\Str;
 	@endif
 	<meta name="twitter:card" content="summary_large_image">
 	<meta name="twitter:title" content="{{ $main->title }}">
-	<meta name="twitter:description" content="{{ Str::limit(strip_tags($main->body), 160) }}">
+	<meta name="twitter:description" content="{{ \Illuminate\Support\Str::limit(strip_tags($main->body), 160) }}">
 	@if($main->image_path)
 		<meta name="twitter:image" content="{{ url($main->image_path) }}">
 	@endif

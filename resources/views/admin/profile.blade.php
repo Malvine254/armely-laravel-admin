@@ -356,7 +356,7 @@
                                             <span class="badge badge-light text-muted fw-normal">{{ \Carbon\Carbon::parse($timestamp)->format('H:i A') }}</span>
                                         </div>
                                         <p class="text-muted small mb-1">
-                                            {{ Str::limit($description ?: 'Administrative update performed', 120) }}
+                                            {{ \Illuminate\Support\Str::limit($description ?: 'Administrative update performed', 120) }}
                                         </p>
                                         <small class="text-muted-50 small"><i class="far fa-calendar-alt mr-1"></i> {{ \Carbon\Carbon::parse($timestamp)->format('M d, Y') }}</small>
                                     </div>

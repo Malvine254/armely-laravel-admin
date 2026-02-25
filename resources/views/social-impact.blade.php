@@ -856,7 +856,7 @@
                                 {{ $impact->posted_date }}
                             </div>
                             <h3 class="blog-post-title">{{ $impact->title }}</h3>
-                            <p class="blog-excerpt">{{ Str::limit(strip_tags($impact->body), 150) }}...</p>
+                            <p class="blog-excerpt">{{ \Illuminate\Support\Str::limit(strip_tags($impact->body), 150) }}...</p>
                             <span class="read-article-btn">
                                 Read Full Story
                                 <i class="icofont-long-arrow-right"></i>

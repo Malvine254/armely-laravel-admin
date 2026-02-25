@@ -60,7 +60,7 @@
 					</div>
 					<div class="card-content">
 						<h5 class="card-title">{{ $caseStudy->category }} Solution</h5>
-						<p class="card-description">{{ Str::limit($caseStudy->body, 120) }}</p>
+						<p class="card-description">{{ \Illuminate\Support\Str::limit($caseStudy->body, 120) }}</p>
 						<div class="card-footer">
 							<a class="read-more-btn text-light" target="_blank" href="{{ $caseStudy->pdf_url ? (str_starts_with($caseStudy->pdf_url, 'http') ? $caseStudy->pdf_url : asset('case_docs/' . $caseStudy->pdf_url)) : '#' }}">
 								Read Case Study <i class="fa fa-arrow-right"></i>
@@ -156,7 +156,7 @@
 					</div>
 					<div class="card-content">
 						<h5 class="card-title">{{ $paper->title }}</h5>
-						<p class="card-description">{{ Str::limit($paper->body, 120) }}</p>
+						<p class="card-description">{{ \Illuminate\Support\Str::limit($paper->body, 120) }}</p>
 						<div class="card-footer">
 							<a class="read-more-btn" target="_blank" href="{{ $paper->pdf ? (str_starts_with($paper->pdf, 'http') ? $paper->pdf : asset('white_paper_docs/' . $paper->pdf)) : '#' }}">
 								Download Paper <i class="fa fa-download"></i>
