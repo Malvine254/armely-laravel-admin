@@ -633,19 +633,17 @@
 
     // ── INITIALIZE ───────────────────────────────────────────────────────────
     function initReadiness() {
-        // Trigger logic
+        // Open modal on page load instead of showing floating button
+        const modal = el('aiReadinessModal');
+        if (modal) {
+            $(modal).modal('show');
+        }
+        
+        // Hide floating trigger button
         const trigger = el('aiReadinessTrigger');
-        const closeTrig = el('closeTrigger');
-        if (!trigger) return;
-        // Always show after 2 seconds
-        setTimeout(() => {
-            trigger.setAttribute('style', 'display: block !important');
-        }, 2000);
-        // Only hide on close, but do NOT set localStorage cooldown
-        closeTrig.onclick = (e) => {
-            e.stopPropagation();
-            trigger.style.display = 'none';
-        };
+        if (trigger) {
+            trigger.style.display = 'none !important';
+        }
 
         // Modal Logic
         el('btnStartReadiness').onclick = () => {
