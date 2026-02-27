@@ -5,6 +5,12 @@
 @push('styles')
 <link rel="stylesheet" href="{{ asset('css/company-modern.css') }}">
 <style>
+  /* Theme Variables */
+  :root {
+    --default-color: #2f5597;
+    --default-background: #2f5597;
+  }
+  
   /* Clean modern design */
   body {
     background: #f8f9fa;
@@ -55,7 +61,7 @@
     left: 0;
     width: 5px;
     height: 100%;
-    background: linear-gradient(to bottom, #007bff, #0056b3);
+    background: linear-gradient(to bottom, var(--default-color), var(--default-background));
   }
   
   .story-content p {
@@ -73,7 +79,7 @@
     line-height: 1;
     float: left;
     margin: 5px 12px 0 0;
-    color: #007bff;
+    color: var(--default-color);
   }
   
   .story-header {
@@ -87,13 +93,13 @@
   .story-icon {
     width: 70px;
     height: 70px;
-    background: linear-gradient(135deg, #007bff, #0056b3);
+    background: linear-gradient(135deg, var(--default-color), var(--default-background));
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     margin-right: 20px;
-    box-shadow: 0 4px 15px rgba(0,123,255,0.3);
+    box-shadow: 0 4px 15px rgba(47, 85, 151, 0.3);
   }
   
   .story-icon i {
@@ -137,13 +143,13 @@
     left: 0;
     right: 0;
     height: 4px;
-    background: linear-gradient(90deg, #007bff, #00d4ff);
+    background: linear-gradient(90deg, var(--default-color), var(--default-background));
   }
   
   .modern-card:hover {
     transform: translateY(-8px);
     box-shadow: 0 12px 35px rgba(0,0,0,0.15);
-    border-color: #007bff;
+    border-color: var(--default-color);
   }
   
   .entity-logo-wrapper {

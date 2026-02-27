@@ -121,6 +121,11 @@
     border-radius: 25px;
     box-shadow: 0 5px 30px rgba(0,0,0,0.08);
     margin-bottom: 40px;
+    font-family: 'Poppins', 'Inter', Arial, sans-serif; /* use theme’s clean font */
+}
+
+.blog-body {
+    font-family: 'Poppins', 'Inter', Arial, sans-serif; /* ensure body text uses nice font */
 }
 
 .blog-body {

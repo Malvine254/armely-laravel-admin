@@ -275,9 +275,7 @@
 
 <section class="sqlsupport-section">
 	<div class="container">
-		<h2 class="text-light">SQL Server Support Services</h2>
-		
-		<div class="sqlsupport-grid">
+        <h2>SQL Server Support Services</h2>
 			<div class="support-card">
 				<h4><i class="fas fa-wrench"></i> 24/7 Technical Support</h4>
 				<p>Round-the-clock support for critical issues, troubleshooting, and emergency assistance.</p>
