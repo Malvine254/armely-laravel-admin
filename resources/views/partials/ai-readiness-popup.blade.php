@@ -565,6 +565,8 @@
             });
             const res = await resp.json();
             if (res.success) {
+                // Mark as completed so user doesn't see popup again
+                localStorage.setItem('aiReadinessCompleted', 'true');
                 showResultsScreen();
             } else {
                 alert(res.message || 'Error submitting results.');
@@ -572,6 +574,8 @@
         } catch (err) {
             console.error(err);
             // Fallback: show results even if DB fail so user isn't stuck
+            // Mark as completed
+            localStorage.setItem('aiReadinessCompleted', 'true');
             showResultsScreen();
         } finally {
             G.submitting = false;
@@ -633,6 +637,16 @@
 
     // ── INITIALIZE ───────────────────────────────────────────────────────────
     function initReadiness() {
+        // Check if user already completed assessment
+        if (localStorage.getItem('aiReadinessCompleted') === 'true') {
+            // User already submitted - don't show modal
+            const trigger = el('aiReadinessTrigger');
+            if (trigger) {
+                trigger.style.display = 'none !important';
+            }
+            return;
+        }
+
         // Open modal on page load instead of showing floating button
         const modal = el('aiReadinessModal');
         if (modal) {
