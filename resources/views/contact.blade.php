@@ -84,7 +84,7 @@
                                 <input style="display: none;" type="text" name="website" class="honeypot">
                                 <div class="col-lg-12">
                                     <div class="form-group">
-                                        <div class="g-recaptcha" data-sitekey="{{ env('CAPTURE_SITE_KEY') }}" data-callback="onRecaptchaSuccess"></div>
+                                        <div class="g-recaptcha" data-sitekey="{{ env('CAPTURE_SITE_KEY') }}"></div>
                                     </div>
                                 </div>
                                 <div class="col-md-2 col-sm-6">
