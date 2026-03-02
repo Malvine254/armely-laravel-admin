@@ -130,7 +130,7 @@ class LogActivity
 
         } catch (\Throwable $e) {
             // Silently fail to not interrupt the request
-            \Log::error('LogActivity middleware failed: ' . $e->getMessage());
+            Log::error('LogActivity middleware failed: ' . $e->getMessage());
         }
     }
 
