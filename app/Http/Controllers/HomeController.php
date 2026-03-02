@@ -624,80 +624,93 @@ class HomeController extends Controller
 
     public function submitContact(Request $request)
     {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255'],
-            'organization' => ['nullable', 'string', 'max:255'],
-            'phone' => ['nullable', 'string', 'max:50'],
-            'message' => ['required', 'string'],
-            'subject' => ['nullable', 'string', 'max:255'],
-            'website' => ['nullable', 'string', 'max:255'], // honeypot
-            'g-recaptcha-response' => ['required', 'string'],
-        ], [
-            'name.required' => 'Name is required.',
-            'email.required' => 'Email is required.',
-            'email.email' => 'Invalid email format.',
-            'message.required' => 'Message is required.',
-            'g-recaptcha-response.required' => 'Please verify you are not a robot.',
-        ]);
-
-        // Honeypot trap
-        if (!empty($data['website'])) {
-            if ($request->expectsJson()) {
-                return response()->json(['success' => false, 'message' => 'Spam detected.'], 400);
-            }
-            return back()->withErrors(['form' => 'Spam detected.'])->withInput();
-        }
-
-        if (!$this->verifyRecaptcha($data['g-recaptcha-response'])) {
-            if ($request->expectsJson()) {
-                return response()->json(['success' => false, 'message' => 'reCAPTCHA verification failed. Please try again.'], 400);
-            }
-            return back()->withErrors(['captcha' => 'reCAPTCHA verification failed. Please try again.'])->withInput();
-        }
-
-        $blockedDomains = ['registry.godaddy', 'kr.slembassy.gov.sl'];
-        $email = strtolower($data['email']);
-        foreach ($blockedDomains as $blocked) {
-            if (Str::endsWith($email, '@' . $blocked)) {
-                if ($request->expectsJson()) {
-                    return response()->json(['success' => false, 'message' => 'Email domain is not allowed.'], 400);
-                }
-                return back()->withErrors(['email' => 'Email domain is not allowed.'])->withInput();
-            }
-        }
-
-        $now = Carbon::now()->toIso8601String();
-
-        DB::table('contacts')->insert([
-            'name' => $data['name'],
-            'email' => $email,
-            'organization' => $data['organization'] ?? '',
-            'phone' => $data['phone'] ?? '',
-            'message' => $data['message'],
-            'subject' => $data['subject'] ?? '',
-            'sent_date' => $now,
-        ]);
-
-        $this->notifyViaGraph($data['name'], $email, $data['message'], $data['organization'] ?? '', $data['phone'] ?? '', $data['subject'] ?? '');
-
-        $successMessage = 'Your message has been sent successfully. We will contact you soon.';
-        
-        // Generate unique token for thank you page access
-        $thankYouToken = bin2hex(random_bytes(16));
-        session(['contact_thank_you_token' => $thankYouToken, 'contact_thank_you_time' => time()]);
-        
-        // Force save the session immediately
-        session()->save();
-        
-        if ($request->expectsJson()) {
-            return response()->json([
-                'success' => true, 
-                'message' => $successMessage,
-                'redirect_url' => '/contact/thank-you?token=' . $thankYouToken
+        try {
+            $data = $request->validate([
+                'name' => ['required', 'string', 'max:255'],
+                'email' => ['required', 'email', 'max:255'],
+                'organization' => ['nullable', 'string', 'max:255'],
+                'phone' => ['nullable', 'string', 'max:50'],
+                'message' => ['required', 'string'],
+                'subject' => ['nullable', 'string', 'max:255'],
+                'website' => ['nullable', 'string', 'max:255'], // honeypot
+                'g-recaptcha-response' => ['required', 'string'],
+            ], [
+                'name.required' => 'Name is required.',
+                'email.required' => 'Email is required.',
+                'email.email' => 'Invalid email format.',
+                'message.required' => 'Message is required.',
+                'g-recaptcha-response.required' => 'Please verify you are not a robot.',
             ]);
+
+            // Honeypot trap
+            if (!empty($data['website'])) {
+                if ($request->expectsJson()) {
+                    return response()->json(['success' => false, 'message' => 'Spam detected.'], 400);
+                }
+                return back()->withErrors(['form' => 'Spam detected.'])->withInput();
+            }
+
+            if (!$this->verifyRecaptcha($data['g-recaptcha-response'])) {
+                if ($request->expectsJson()) {
+                    return response()->json(['success' => false, 'message' => 'reCAPTCHA verification failed. Please try again.'], 400);
+                }
+                return back()->withErrors(['captcha' => 'reCAPTCHA verification failed. Please try again.'])->withInput();
+            }
+
+            $blockedDomains = ['registry.godaddy', 'kr.slembassy.gov.sl'];
+            $email = strtolower($data['email']);
+            foreach ($blockedDomains as $blocked) {
+                if (Str::endsWith($email, '@' . $blocked)) {
+                    if ($request->expectsJson()) {
+                        return response()->json(['success' => false, 'message' => 'Email domain is not allowed.'], 400);
+                    }
+                    return back()->withErrors(['email' => 'Email domain is not allowed.'])->withInput();
+                }
+            }
+
+            $now = Carbon::now()->toIso8601String();
+
+            DB::table('contacts')->insert([
+                'name' => $data['name'],
+                'email' => $email,
+                'organization' => $data['organization'] ?? '',
+                'phone' => $data['phone'] ?? '',
+                'message' => $data['message'],
+                'subject' => $data['subject'] ?? '',
+                'sent_date' => $now,
+            ]);
+
+            try {
+                $this->notifyViaGraph($data['name'], $email, $data['message'], $data['organization'] ?? '', $data['phone'] ?? '', $data['subject'] ?? '');
+            } catch (\Exception $e) {
+                Log::warning('Failed to send notification email', ['error' => $e->getMessage()]);
+                // Continue anyway, the contact was saved
+            }
+
+            $successMessage = 'Your message has been sent successfully. We will contact you soon.';
+            
+            // Generate unique token for thank you page access
+            $thankYouToken = bin2hex(random_bytes(16));
+            session(['contact_thank_you_token' => $thankYouToken, 'contact_thank_you_time' => time()]);
+            
+            // Force save the session immediately
+            session()->save();
+            
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => true, 
+                    'message' => $successMessage,
+                    'redirect_url' => '/contact/thank-you?token=' . $thankYouToken
+                ]);
+            }
+            return back()->with('status', $successMessage);
+        } catch (\Throwable $e) {
+            Log::error('Contact form submission failed', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'An error occurred. Please try again later.'], 500);
+            }
+            return back()->withErrors(['form' => 'An error occurred. Please try again later.'])->withInput();
         }
-        return back()->with('status', $successMessage);
     }
 
     public function industries()
