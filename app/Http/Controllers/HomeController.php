@@ -668,7 +668,7 @@ class HomeController extends Controller
                 }
             }
 
-            $now = Carbon::now()->toIso8601String();
+            $now = now()->format('Y-m-d H:i:s');
 
             DB::table('contacts')->insert([
                 'name' => $data['name'],
