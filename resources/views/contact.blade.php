@@ -198,12 +198,27 @@ document.addEventListener('DOMContentLoaded', function() {
                 messageDiv.classList.add('alert-success');
                 messageDiv.textContent = '✅ ' + data.message;
                 
-                // Google Ads Conversion Tracking
+                // Google Analytics Event Tracking (GA4)
                 if (typeof gtag === 'function') {
+                    gtag('event', 'contact_form_submit', {
+                        'event_category': 'engagement',
+                        'event_label': 'contact_page_form',
+                        'form_name': 'Contact Us Form',
+                        'organization': formData.get('organization') || 'Not specified',
+                        'subject': formData.get('subject') || 'Not specified'
+                    });
+                    
+                    // Google Ads Conversion Tracking
                     gtag('event', 'conversion', {
                         'send_to': '{{ env("GOOGLE_ADS_ID") }}/contact_form_submit',
                         'event_callback': function() {
                             console.log('Contact form conversion tracked');
+                            // Redirect after tracking is confirmed
+                            if (data.redirect_url) {
+                                setTimeout(function() {
+                                    window.location.href = data.redirect_url;
+                                }, 500);
+                            }
                         }
                     });
                 }
@@ -211,6 +226,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Reset form and reCAPTCHA
                 form.reset();
                 grecaptcha.reset();
+                
+                // Fallback redirect (in case gtag didn't fire the event_callback)
+                setTimeout(function() {
+                    if (window.location.pathname === '/contact' && data.redirect_url) {
+                        window.location.href = data.redirect_url;
+                    }
+                }, 2000);
             } else {
                 messageDiv.classList.add('alert-danger');
                 messageDiv.textContent = '❌ ' + (data.message || 'An error occurred. Please try again.');

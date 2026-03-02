@@ -1,6 +1,8 @@
 @extends('layouts.public')
 
-@php($title = 'Home')
+@php
+    $title = 'Home';
+@endphp
 
 
 @push('styles')
@@ -249,23 +251,28 @@
 
     .blog-image-box {
         position: relative;
-        height: 230px;
+        height: 240px;
         overflow: hidden;
     }
 
     .blog-image-box img {
-        width: 100%;
-        height: 100%;
+        width: 110%; /* slightly zoomed in by default */
+        height: 110%;
         object-fit: cover;
-        transition: transform 1s ease;
+        transition: transform 0.8s ease;
+        transform: scale(1.1);
+    }
+
+    .blog-card-wrapper:hover .blog-image-box img {
+        transform: scale(1); /* zoom out on hover */
     }
 
     .blog-category-tag {
         position: absolute;
         top: 20px;
         left: 20px;
-        background: #fff;
-        color: #1a1a1a;
+        background: var(--default-background);
+        color: #fff;
         padding: 6px 16px;
         border-radius: 50px;
         font-size: 0.7rem;
@@ -274,6 +281,27 @@
         letter-spacing: 1.2px;
         z-index: 2;
         box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+
+    /* title overlay inside image */
+    .blog-image-overlay {
+        position: absolute;
+        bottom: 20px;
+        left: 20px;
+        right: 20px;
+        color: #fff;
+        z-index: 3;
+        text-shadow: 0 2px 8px rgba(0,0,0,0.6);
+        font-size: 1.4rem;
+        font-weight: 800;
+        line-height: 1.2;
+        overflow: hidden;
+        max-height: 3em;
+    }
+
+    .blog-image-overlay a {
+        color: #fff;
+        text-decoration: none;
     }
 
     .blog-content {
@@ -321,11 +349,11 @@
     }
 
     .blog-title {
-        font-size: 1.65rem;
-        font-weight: 700; /* Robust but clean */
+        font-size: 1.5rem; /* slightly smaller */
+        font-weight: 800; /* bolder */
         color: #1a1a1a;
         line-height: 1.35;
-        margin-bottom: 30px;
+        margin-bottom: 10px;
         transition: color 0.3s ease;
         display: -webkit-box;
         -webkit-line-clamp: 2;
@@ -335,13 +363,25 @@
         font-family: 'Poppins', sans-serif; /* Assuming Poppins is available */
     }
 
+    .blog-snippet {
+        font-size: 0.95rem;
+        color: #444;
+        line-height: 1.5;
+        margin-bottom: 22px;
+        flex-grow: 1;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
     .blog-card-wrapper:hover .blog-title {
         color: #2f5597; /* Use brand blue explicitly */
     }
 
     .blog-footer {
         margin-top: auto;
-        padding-top: 30px;
+        padding-top: 20px;
         border-top: 1px solid #efefef;
         display: flex;
         align-items: center;
@@ -949,6 +989,16 @@
                             <h4 class="blog-title">
                                 <a href="{{ route('blog.index', ['blogId' => $blog->blog_id]) }}">{{ $blog->title }}</a>
                             </h4>
+                            @php
+                                $raw = strip_tags($blog->excerpt ?? $blog->title);
+                                $snippet = \Illuminate\Support\Str::limit($raw, 100, '');
+                                // pad to exactly 100 characters so all cards equal height
+                                if (strlen($snippet) < 100) {
+                                    $snippet = str_pad($snippet, 100, ' ');
+                                }
+                                $more = strlen($raw) > 100 ? '...' : '';
+@endphp
+                            <p class="blog-snippet">{{ $snippet }}{{ $more }}</p>
                             <div class="blog-footer">
                                 <span class="blog-date">{{ \Carbon\Carbon::parse($blog->date)->format('M d, Y') }}</span>
                                 <a href="{{ route('blog.index', ['blogId' => $blog->blog_id]) }}" class="blog-btn-circle">
@@ -1146,8 +1196,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 messageDiv.classList.add('alert-success');
                 messageDiv.textContent = '✅ ' + data.message;
                 
-                // Google Ads Conversion Tracking
+                // Google Analytics Event Tracking (GA4)
                 if (typeof gtag === 'function') {
+                    gtag('event', 'consultation_submit', {
+                        'event_category': 'engagement',
+                        'event_label': 'home_page_consultation',
+                        'form_name': 'Request Consultation Form',
+                        'service': form.querySelector('select[name="service"]')?.value || 'Not specified'
+                    });
+                    
+                    // Google Ads Conversion Tracking
                     gtag('event', 'conversion', {
                         'send_to': '{{ env("GOOGLE_ADS_ID") }}/contact_form_submit',
                         'event_callback': function() {

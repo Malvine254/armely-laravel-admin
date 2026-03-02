@@ -41,6 +41,11 @@ class HomeController extends Controller
         ]);
     }
 
+    public function contactThankYou()
+    {
+        return view('contact-thank-you');
+    }
+
     public function allPartners()
     {
         return view('partners');
@@ -678,8 +683,19 @@ class HomeController extends Controller
 
         $successMessage = 'Your message has been sent successfully. We will contact you soon.';
         
+        // Generate unique token for thank you page access
+        $thankYouToken = bin2hex(random_bytes(16));
+        session(['contact_thank_you_token' => $thankYouToken, 'contact_thank_you_time' => time()]);
+        
+        // Force save the session immediately
+        session()->save();
+        
         if ($request->expectsJson()) {
-            return response()->json(['success' => true, 'message' => $successMessage]);
+            return response()->json([
+                'success' => true, 
+                'message' => $successMessage,
+                'redirect_url' => '/contact/thank-you?token=' . $thankYouToken
+            ]);
         }
         return back()->with('status', $successMessage);
     }

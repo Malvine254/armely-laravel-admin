@@ -20,6 +20,12 @@ use App\Http\Controllers\DataReadinessLeadController;
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/contact', [HomeController::class, 'contact'])->name('contact');
 Route::post('/contact', [HomeController::class, 'submitContact'])->name('contact.submit');
+
+// Thank you page - only accessible via form submission with valid session token
+Route::get('/contact/thank-you', [HomeController::class, 'contactThankYou'])
+    ->middleware(\App\Http\Middleware\ContactSubmissionMiddleware::class)
+    ->name('contact.thank-you');
+
 Route::post('/data-readiness/submit', [DataReadinessLeadController::class, 'submit'])->name('data-readiness.submit');
 
 // Services listing page

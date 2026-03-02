@@ -340,8 +340,16 @@ $(function() {
 			success: function(resp) {
 				messageBox.addClass('alert alert-success').text(resp.message || 'Application submitted successfully!').show();
 				
-				// Google Ads Conversion Tracking
+				// Google Analytics Event Tracking (GA4)
 				if (typeof gtag === 'function') {
+					gtag('event', 'job_application_submit', {
+						'event_category': 'engagement',
+						'event_label': 'job_board_application',
+						'form_name': 'Job Application Form',
+						'job_id': form.find('input[name="job_id"]').val() || 'Not specified'
+					});
+					
+					// Google Ads Conversion Tracking
 					gtag('event', 'conversion', {
 						'send_to': '{{ env("GOOGLE_ADS_ID") }}/job_application_submit',
 						'event_callback': function() {

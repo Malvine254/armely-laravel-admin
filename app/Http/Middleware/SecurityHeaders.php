@@ -26,6 +26,7 @@ class SecurityHeaders
                 . "stackpath.bootstrapcdn.com "
                 . "www.google.com "
                 . "www.googletagmanager.com "
+                . "www.recaptcha.net "
                 . "copilotstudio.microsoft.com "
                 . "copilotstudio.preview.microsoft.com "
                 . "fonts.bunny.net",
@@ -35,7 +36,8 @@ class SecurityHeaders
                 . "cdnjs.cloudflare.com "
                 . "stackpath.bootstrapcdn.com "
                 . "fonts.googleapis.com "
-                . "fonts.bunny.net",
+                . "fonts.bunny.net "
+                . "www.recaptcha.net",
             "img-src 'self' data: blob: https:",
             "font-src 'self' "
                 . "fonts.googleapis.com "
@@ -47,6 +49,7 @@ class SecurityHeaders
                 . "www.youtube.com "
                 . "www.google.com "
                 . "www.googletagmanager.com "
+                . "www.recaptcha.net "
                 . "copilotstudio.microsoft.com "
                 . "copilotstudio.preview.microsoft.com "
                 . "*.microsoft.com",
@@ -56,6 +59,7 @@ class SecurityHeaders
                 . "www.googletagmanager.com "
                 . "www.google-analytics.com "
                 . "*.google-analytics.com "
+                . "www.recaptcha.net "
                 . "cdnjs.cloudflare.com "
                 . "cdn.datatables.net "
                 . "cdn.jsdelivr.net "
