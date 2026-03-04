@@ -1,7 +1,7 @@
 
 (function($) {
     "use strict";
-     $(document).on('ready', function() {
+     $(function() {
 	
         jQuery(window).on('scroll', function() {
 			if ($(this).scrollTop() > 200) {
@@ -41,6 +41,16 @@
 			duration: 300,
 			closeOnClick:true,
 		});
+
+		// Hide fallback hamburger once slicknav has initialized
+		$('.mobile-nav-fallback').hide();
+
+		// Fallback: if slicknav didn't create the menu, wire up the fallback button
+		if ($('.mobile-nav .slicknav_menu').length === 0) {
+			$('.mobile-nav-fallback').show().on('click', function() {
+				$('.main-menu').toggle();
+			});
+		}
 		
 		/*===============================
 			Hero Slider JS

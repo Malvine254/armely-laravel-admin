@@ -4416,17 +4416,10 @@ input:checked+.slider-two:before {
 }
 
 /* ============================================
-   TRIGGER MOBILE MENU EARLIER (700px)
+   MOBILE MENU (handled by public.blade.php)
    ============================================ */
 
-@media (max-width: 700px) {
-    .main-menu {
-        display: none !important;
-    }
-    .slicknav_menu {
-        display: block !important;
-    }
-}
+/* Removed: slicknav trigger at 700px - now handled by pure HTML/CSS hamburger at 1300px */
 
 /* ============================================
    DESKTOP DROPDOWN FIXES (TOP LEVEL)

@@ -35,8 +35,7 @@
     <link rel="preload" href="{{ asset('css/slicknav.min.css') }}?v={{ file_exists(public_path('css/slicknav.min.css')) ? filemtime(public_path('css/slicknav.min.css')) : '' }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="{{ asset('css/slicknav.min.css') }}?v={{ file_exists(public_path('css/slicknav.min.css')) ? filemtime(public_path('css/slicknav.min.css')) : '' }}"></noscript>
     
-    <link rel="preload" href="{{ asset('css/owl-carousel.css') }}?v={{ file_exists(public_path('css/owl-carousel.css')) ? filemtime(public_path('css/owl-carousel.css')) : '' }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="{{ asset('css/owl-carousel.css') }}?v={{ file_exists(public_path('css/owl-carousel.css')) ? filemtime(public_path('css/owl-carousel.css')) : '' }}"></noscript>
+    <link rel="stylesheet" href="{{ asset('css/owl-carousel.css') }}?v={{ file_exists(public_path('css/owl-carousel.css')) ? filemtime(public_path('css/owl-carousel.css')) : '' }}">
     
     <link rel="preload" href="{{ asset('css/datepicker.css') }}?v={{ file_exists(public_path('css/datepicker.css')) ? filemtime(public_path('css/datepicker.css')) : '' }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="{{ asset('css/datepicker.css') }}?v={{ file_exists(public_path('css/datepicker.css')) ? filemtime(public_path('css/datepicker.css')) : '' }}"></noscript>
@@ -50,8 +49,7 @@
     <link rel="preload" href="{{ asset('css/normalize_2.css') }}?v={{ file_exists(public_path('css/normalize_2.css')) ? filemtime(public_path('css/normalize_2.css')) : '' }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="{{ asset('css/normalize_2.css') }}?v={{ file_exists(public_path('css/normalize_2.css')) ? filemtime(public_path('css/normalize_2.css')) : '' }}"></noscript>
     
-    <link rel="preload" href="{{ asset('css/responsive.css') }}?v={{ file_exists(public_path('css/responsive.css')) ? filemtime(public_path('css/responsive.css')) : '' }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="{{ asset('css/responsive.css') }}?v={{ file_exists(public_path('css/responsive.css')) ? filemtime(public_path('css/responsive.css')) : '' }}"></noscript>
+    <link rel="stylesheet" href="{{ asset('css/responsive.css') }}?v={{ file_exists(public_path('css/responsive.css')) ? filemtime(public_path('css/responsive.css')) : '' }}">
     
     <!-- Lozad.js for Lazy Loading -->
         <script src="https://cdn.jsdelivr.net/npm/lozad/dist/lozad.min.js" integrity="sha384-cVYgPFZPhwM7B9xTuYXb1bcy5yui7JGXyRJYo2CCTHJT8FS9SDxDsQksUMrmFgwG" crossorigin="anonymous" defer></script>
@@ -94,49 +92,146 @@
     </script>
 
     <style>
-/* Force mobile menu earlier to prevent menu overflow */
+/* ============================================
+   Mobile Menu - Show/Hide Logic
+   ============================================ */
+
+/* DEFAULT: Hide mobile hamburger on large screens */
+.mobile-hamburger {
+    display: none;
+    background: transparent;
+    border: none;
+    padding: 10px;
+    cursor: pointer;
+    flex-direction: column;
+    gap: 5px;
+    align-items: center;
+    margin-left: auto;
+    z-index: 9999;
+}
+.mobile-hamburger .bar {
+    display: block;
+    width: 28px;
+    height: 3px;
+    background-color: #2f5597;
+    border-radius: 2px;
+    transition: 0.3s;
+}
+
+/* Mobile dropdown panel */
+.mobile-dropdown-menu {
+    display: none;
+    position: fixed;
+    left: 0;
+    right: 0;
+    background: #fff;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 9998;
+    max-height: 80vh;
+    overflow-y: auto;
+    padding: 15px 0;
+}
+.mobile-dropdown-menu.open {
+    display: block;
+}
+/* FORCE hide on desktop - prevent it from ever showing on large screens */
+@media (min-width: 1301px) {
+    .mobile-dropdown-menu,
+    .mobile-dropdown-menu.open {
+        display: none !important;
+    }
+}
+.mobile-dropdown-menu ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+.mobile-dropdown-menu > ul > li {
+    border-bottom: 1px solid #eee;
+}
+.mobile-dropdown-menu a {
+    display: block;
+    padding: 12px 20px;
+    color: #333;
+    text-decoration: none;
+    font-size: 15px;
+}
+.mobile-dropdown-menu a:hover {
+    background: #f5f5f5;
+    color: #2f5597;
+}
+.mobile-dropdown-menu .sub-toggle {
+    cursor: pointer;
+}
+.mobile-dropdown-menu .dropdown {
+    display: none;
+    background: #f9f9f9;
+}
+.mobile-dropdown-menu .dropdown.open {
+    display: block;
+}
+.mobile-dropdown-menu .dropdown a {
+    padding-left: 35px;
+    font-size: 14px;
+}
+.mobile-dropdown-menu .dropdown .dropdown a {
+    padding-left: 50px;
+    font-size: 13px;
+}
+
+/* Hide old slicknav and mobile-nav */
+.mobile-nav {
+    display: none !important;
+}
+
+/* On screens <= 1300px: show hamburger, hide desktop menu */
 @media (max-width: 1300px) {
-	.main-menu {
-		display: none !important;
-	}
-	
-	.mobile-nav {
-		display: block !important;
-	}
-	
-	.slicknav_menu {
-		display: block !important;
-		background: transparent !important;
-	}
-	
-	.slicknav_btn {
-		background: transparent !important;
-	}
-	
-	.slicknav_icon-bar {
-		background-color: #2f5597 !important;
-		height: 4px !important;
-		border-radius: 2px !important;
-	}
-	
-	.slicknav_nav a,
-	.slicknav_nav .slicknav_item a {
-		color: #000000 !important;
-	}
-	
-	.slicknav_nav a:hover {
-		color: #2f5597 !important;
-	}
+    .main-menu {
+        display: none !important;
+    }
+    .mobile-hamburger {
+        display: flex !important;
+    }
+    .header-inner {
+        position: relative;
+    }
+    /* Keep logo and hamburger on one line */
+    .header-inner .inner > .row {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        align-items: center;
+    }
+    /* Prevent columns from being full-width in header */
+    .header-inner .inner > .row > [class*="col-"] {
+        width: auto !important;
+        flex: 0 0 auto !important;
+        max-width: none !important;
+    }
+    .header-inner .inner > .row > [class*="col-"]:first-child {
+        flex: 1 1 auto !important;
+    }
+    /* Hide empty get-quote column */
+    .header-inner .inner > .row > .col-lg-2 {
+        display: none !important;
+    }
+}
+
+/* Extra small screens */
+@media (max-width: 576px) {
+    .topbar {
+        display: none !important;
+    }
+    .mobile-dropdown-menu a {
+        font-size: 14px;
+        padding: 10px 15px;
+    }
 }
 
 /* Add padding to menu items */
 .navigation .nav.menu > li > a {
-	padding: 20px 0 !important;
+    padding: 20px 0 !important;
 }
 
-/* Ensure mobile menu icon vertically centers next to logo */
-.mobile-nav { display: flex; align-items: center; }
-.mobile-nav .slicknav_menu { display: inline-flex; align-items: center; }
 </style>
 </head>
 <body>
@@ -190,7 +285,13 @@
                         </div>
                     </div>
                     <div class="col-lg-9 col-md-9 col-12 d-flex align-items-center justify-content-end">
-                        <div class="mobile-nav d-lg-none"></div>
+                        {{-- Pure HTML/CSS hamburger - no JS dependency --}}
+                        <button class="mobile-hamburger" id="mobileHamburger" aria-label="Open menu">
+                            <span class="bar"></span>
+                            <span class="bar"></span>
+                            <span class="bar"></span>
+                        </button>
+                        <div class="mobile-nav"></div>
                         <div class="main-menu d-none d-lg-flex align-items-center justify-content-end w-100" style="height: 100%;">
                             <nav class="navigation w-100 d-flex align-items-center" style="height: 100%;">
                                 <ul class="nav menu">
@@ -270,6 +371,106 @@
     </div>
 </header>
 
+{{-- Mobile navigation dropdown (rendered outside header for z-index stacking) --}}
+<div class="mobile-dropdown-menu" id="mobileDropdownMenu">
+    <ul>
+        <li>
+            <a class="sub-toggle">Who We Are &#9660;</a>
+            <ul class="dropdown">
+                <li><a href="{{ route('company.index') }}">Company</a></li>
+                <li><a href="{{ route('career.index') }}">Career</a></li>
+                <li><a href="{{ route('social-impact.index') }}">Social Impact</a></li>
+            </ul>
+        </li>
+        <li>
+            <a class="sub-toggle">What We Do &#9660;</a>
+            <ul class="dropdown">
+                <li><a href="{{ route('services') }}">All Services</a></li>
+                <li><a href="{{ route('service-details', ['name' => 'ai-consulting']) }}">AI Consulting</a></li>
+                <li><a href="{{ route('service-details', ['name' => 'ai-advisory']) }}">AI Advisory</a></li>
+                <li><a href="{{ route('service-details', ['name' => 'generative-ai']) }}">Generative AI</a></li>
+                <li><a href="{{ route('service-details', ['name' => 'ai-poc-starter']) }}">AI PoC Starter</a></li>
+                <li><a href="{{ route('service-details', ['name' => 'estimate-your-fabric-capacity']) }}">Estimate your Fabric Capacity</a></li>
+                <li><a href="{{ route('service-details', ['name' => 'microsoft-fabric']) }}">Microsoft Fabric</a></li>
+                <li><a href="{{ route('service-details', ['name' => 'data-science-and-analytics']) }}">Data Science and Analytics</a></li>
+                <li><a href="{{ route('service-details', ['name' => 'data-strategy']) }}">Data Strategy</a></li>
+                <li><a href="{{ route('service-details', ['name' => 'databricks']) }}">Databricks</a></li>
+                <li><a href="{{ route('service-details', ['name' => 'snowflake']) }}">Snowflake</a></li>
+                <li><a href="{{ route('service-details', ['name' => 'sql-&-data-warehousing']) }}">SQL & Data Warehousing</a></li>
+                <li><a href="{{ route('service-details', ['name' => 'api-data-access']) }}">API Data Access</a></li>
+                <li><a href="{{ route('service-details', ['name' => 'microsoft-powerapps']) }}">Microsoft Powerapps</a></li>
+                <li><a href="{{ route('service-details', ['name' => 'microsoft-power-automate']) }}">Microsoft Power Automate</a></li>
+                <li><a href="{{ route('service-details', ['name' => 'microsoft-dynamics-365']) }}">Microsoft Dynamics 365</a></li>
+                <li><a href="{{ route('service-details', ['name' => 'sharepoint-online']) }}">Sharepoint Online</a></li>
+                <li><a href="{{ route('service-details', ['name' => 'sql-server-support']) }}">SQL Server Support</a></li>
+                <li><a href="{{ route('service-details', ['name' => 'applications-support']) }}">Applications Support</a></li>
+            </ul>
+        </li>
+        <li><a href="{{ route('industries.index') }}">Who We Serve</a></li>
+        <li>
+            <a class="sub-toggle">Knowledge Hub &#9660;</a>
+            <ul class="dropdown">
+                <li><a href="{{ route('blog.index') }}">Blog Articles</a></li>
+                <li><a href="{{ route('customer-stories.index') }}">Customer Stories</a></li>
+                <li><a href="{{ route('case-studies.index') }}">Case Studies</a></li>
+                <li><a href="{{ route('case-studies.index') }}#white-papers">White Papers</a></li>
+            </ul>
+        </li>
+        <li><a href="{{ route('events.index') }}">Events</a></li>
+        <li><a href="{{ route('partners.index') }}">Partners</a></li>
+        <li><a href="{{ route('contact') }}">Let's Talk</a></li>
+    </ul>
+</div>
+
+<script>
+// Mobile hamburger toggle - runs immediately, no jQuery dependency
+(function() {
+    var btn = document.getElementById('mobileHamburger');
+    var menu = document.getElementById('mobileDropdownMenu');
+    if (btn && menu) {
+        // Position menu below header on open
+        function positionMenu() {
+            var header = document.querySelector('header.header');
+            if (header) {
+                menu.style.top = header.getBoundingClientRect().bottom + 'px';
+            }
+        }
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            positionMenu();
+            menu.classList.toggle('open');
+        });
+        // Reposition on scroll
+        window.addEventListener('scroll', function() {
+            if (menu.classList.contains('open')) positionMenu();
+        });
+        // Reposition on resize; close if resized to desktop
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 1300) {
+                menu.classList.remove('open');
+            } else if (menu.classList.contains('open')) {
+                positionMenu();
+            }
+        });
+        // Close when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!menu.contains(e.target) && !btn.contains(e.target)) {
+                menu.classList.remove('open');
+            }
+        });
+        // Sub-menu toggles
+        var toggles = menu.querySelectorAll('.sub-toggle');
+        for (var i = 0; i < toggles.length; i++) {
+            toggles[i].addEventListener('click', function(e) {
+                e.preventDefault();
+                var dd = this.nextElementSibling;
+                if (dd) dd.classList.toggle('open');
+            });
+        }
+    }
+})();
+</script>
+
 <main>
     @yield('content')
 </main>
@@ -286,6 +487,7 @@
 <script src="{{ asset('js/niceselect.js') }}?v={{ file_exists(public_path('js/niceselect.js')) ? filemtime(public_path('js/niceselect.js')) : '' }}" defer></script>
 <script src="{{ asset('js/slicknav.min.js') }}?v={{ file_exists(public_path('js/slicknav.min.js')) ? filemtime(public_path('js/slicknav.min.js')) : '' }}" defer></script>
 <script src="{{ asset('js/owl-carousel.js') }}?v={{ file_exists(public_path('js/owl-carousel.js')) ? filemtime(public_path('js/owl-carousel.js')) : '' }}" defer></script>
+<script src="{{ asset('js/waypoints.min.js') }}?v={{ file_exists(public_path('js/waypoints.min.js')) ? filemtime(public_path('js/waypoints.min.js')) : '' }}" defer></script>
 <script src="{{ asset('js/jquery.counterup.min.js') }}?v={{ file_exists(public_path('js/jquery.counterup.min.js')) ? filemtime(public_path('js/jquery.counterup.min.js')) : '' }}" defer></script>
 <script src="{{ asset('js/easing.js') }}?v={{ file_exists(public_path('js/easing.js')) ? filemtime(public_path('js/easing.js')) : '' }}" defer></script>
 <script src="{{ asset('js/wow.min.js') }}?v={{ file_exists(public_path('js/wow.min.js')) ? filemtime(public_path('js/wow.min.js')) : '' }}" defer></script>

@@ -439,6 +439,30 @@
         .blog.section { padding: 60px 0; }
         .blog-card-wrapper { margin-bottom: 25px; }
         .blog-title { font-size: 1.35rem; }
+        .blog-image-box {
+            height: 220px;
+            min-height: 220px;
+            max-height: 220px;
+        }
+        .blog-content {
+            padding: 15px 20px;
+        }
+        .blog-btn-circle {
+            width: 40px;
+            height: 40px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .blog.section { padding: 40px 0; }
+        .blog-image-box {
+            height: 180px;
+            min-height: 180px;
+            max-height: 180px;
+        }
+        .blog-title { font-size: 1.1rem; min-height: auto; }
+        .blog-snippet { font-size: 0.85rem; -webkit-line-clamp: 2; min-height: auto; }
+        .blog-content { padding: 12px 15px; }
     }
 
     /* Clients/Brands Section */
@@ -593,6 +617,8 @@
     .partner-carousel .partner-logo {
         width: 100%;
         height: 110px;
+        min-height: 110px;
+        max-height: 110px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -602,6 +628,7 @@
         border-radius: 14px;
         background: linear-gradient(135deg, rgba(30, 98, 173, 0.02) 0%, transparent 100%);
         transition: all 0.4s ease;
+        flex-shrink: 0;
     }
 
     .partner-carousel .m-4:hover .partner-logo {
@@ -612,10 +639,10 @@
         filter: grayscale(15%) contrast(1.1) brightness(0.98);
         opacity: 0.9;
         transition: all 0.5s cubic-bezier(0.165, 0.84, 0.44, 1);
-        max-height: 100px;
+        max-height: 100%;
+        height: 100%;
         max-width: 100%;
-        width: auto !important;
-        height: auto !important;
+        width: 100%;
         margin: 0 auto;
         object-fit: contain;
         position: relative;
@@ -693,11 +720,35 @@
             padding: 60px 0;
         }
         .clients-section .section-title h2 {
-            font-size: 2.2rem;
+            font-size: 1.8rem;
         }
         .partner-carousel .m-4 {
             height: 240px;
-            padding: 35px 25px;
+            min-height: 240px;
+            max-height: 240px;
+            padding: 20px 15px;
+            margin: 8px !important;
+        }
+        .partner-carousel .partner-logo {
+            height: 90px;
+            min-height: 90px;
+            max-height: 90px;
+        }
+        .partner-carousel .partner-name {
+            font-size: 11px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .clients-section { padding: 40px 0; }
+        .clients-section .section-title h2 { font-size: 1.5rem; }
+        .clients-section .section-title p { font-size: 0.9rem; }
+        .partner-carousel .m-4 {
+            height: 200px;
+            min-height: 200px;
+            max-height: 200px;
+            padding: 15px 10px;
+            margin: 5px !important;
         }
     }
 
@@ -729,7 +780,7 @@
             padding: 60px 0;
         }
         .video-section .section-title h2 {
-            font-size: 2rem;
+            font-size: 1.6rem;
         }
         .video-info {
             padding: 15px 20px;
@@ -742,6 +793,93 @@
             height: 55px;
             font-size: 18px;
         }
+        .video-card-wrapper {
+            margin-bottom: 20px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .video-section { padding: 40px 0; }
+        .video-section .section-title h2 { font-size: 1.3rem; }
+        .play-button-modern {
+            width: 45px;
+            height: 45px;
+            font-size: 16px;
+        }
+        .video-title-text { font-size: 0.9rem !important; }
+    }
+
+    /* Portfolio / Case Studies responsive */
+    @media (max-width: 768px) {
+        .portfolio .section-title h2,
+        .blog .section-title h2,
+        .video-section .section-title h2 {
+            font-size: 1.6rem;
+        }
+        .portfolio .image-container {
+            height: 150px;
+        }
+        .portfolio .card-body {
+            padding: 0 20px 20px;
+        }
+        .portfolio .card-body h4 {
+            font-size: 1.1rem;
+            min-height: auto;
+        }
+        .portfolio .card-body p {
+            font-size: 0.85rem;
+            min-height: auto;
+            -webkit-line-clamp: 2;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .portfolio .section-title h2,
+        .blog .section-title h2,
+        .video-section .section-title h2 {
+            font-size: 1.3rem;
+        }
+        .portfolio .image-container {
+            height: 120px;
+            margin: 10px;
+            border-radius: 10px;
+        }
+        .portfolio .card-body {
+            padding: 0 15px 15px;
+        }
+    }
+
+    /* General mobile layout fixes */
+    @media (max-width: 768px) {
+        .section { padding: 50px 0; }
+        .section-title { padding: 0 15px; margin-bottom: 25px; }
+        .section-title h2 { font-size: 1.5rem; }
+        .container { padding-left: 15px; padding-right: 15px; }
+        .schedule .single-schedule { margin-bottom: 20px; }
+        .appointment .form { padding: 25px !important; }
+        .fun-facts .single-fun { margin: 15px 0; }
+        .explore-btn { font-size: 1rem; }
+    }
+
+    @media (max-width: 480px) {
+        .section { padding: 35px 0; }
+        .section-title h2 { font-size: 1.3rem; }
+        .schedule .single-schedule { min-block-size: auto !important; }
+        .appointment .form { padding: 15px !important; }
+        .appointment label { font-size: 0.85rem; }
+        .appointment input, .appointment textarea { font-size: 0.9rem; }
+    }
+
+    /* Slider responsive */
+    @media (max-width: 768px) {
+        .slider .single-slider h1 { font-size: 1.5rem; line-height: 1.3; }
+        .slider .single-slider p { font-size: 0.9rem; }
+        .slider .single-slider .button .btn { padding: 8px 16px; font-size: 0.85rem; }
+    }
+
+    @media (max-width: 480px) {
+        .slider .single-slider h1 { font-size: 1.2rem; }
+        .slider .single-slider .button .btn { padding: 6px 12px; font-size: 0.8rem; }
     }
 
     .lazy-video {
@@ -958,7 +1096,7 @@
 <section id="fun-facts" class="fun-facts default-background section col-md-12 mt-5 no-radius" aria-labelledby="stats-heading">
     <div class="container">
         <h2 id="stats-heading" class="sr-only">Customer Statistics</h2>
-        <div class="row" style="content-visibility:auto; contain-intrinsic-size: 1px 1200px;">
+        <div class="row" style="content-visibility:auto; contain-intrinsic-size: auto 300px;">
             <div class="col-lg-4 col-md-6 col-12"><div class="single-fun"><i class="icofont icofont-ui-user-group"></i><div class="content"><span class="counter plus">72</span><p>Customer Retention Rate</p></div></div></div>
             <div class="col-lg-4 col-md-6 col-12"><div class="single-fun"><i class="icofont icofont-users-social"></i><div class="content"><span class="counter percent">82</span><p>Customer Satisfaction</p></div></div></div>
             <div class="col-lg-4 col-md-6 col-12"><div class="single-fun"><i class="icofont-simple-smile"></i><div class="content"><span>Very Easy</span><p>Customer Effort Score</p></div></div></div>
