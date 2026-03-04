@@ -10,7 +10,7 @@
     .portfolio .section-title h2,
     .blog .section-title h2,
     .video-section .section-title h2 {
-        font-size: 2.8rem;
+        font-size: 2rem;
         font-weight: 800;
         color: #1a1a1a;
         margin-bottom: 0;
@@ -239,7 +239,7 @@
         height: 100%;
         display: flex;
         flex-direction: column;
-        margin-bottom: 30px;
+        margin-bottom: 15px;
         border: 1px solid rgba(0,0,0,0.03);
         text-align: center;
     }
@@ -251,16 +251,23 @@
 
     .blog-image-box {
         position: relative;
-        height: 240px;
+        height: 320px;
         overflow: hidden;
+        background: #f5f5f5;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 0;
     }
 
     .blog-image-box img {
         width: 100%;
         height: 100%;
-        object-fit: cover;
+        object-fit: contain;
         transition: transform 0.8s ease;
         transform: scale(1);
+        padding: 15px;
+        box-sizing: border-box;
     }
 
     .blog-card-wrapper:hover .blog-image-box img {
@@ -305,7 +312,7 @@
     }
 
     .blog-content {
-        padding: 40px 30px;
+        padding: 20px 30px;
         flex-grow: 1;
         display: flex;
         flex-direction: column;
