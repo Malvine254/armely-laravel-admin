@@ -496,8 +496,10 @@
         align-items: center;
         justify-content: center;
         gap: 10px;
-        height: 100%;
+        height: 280px;
         min-height: 280px;
+        max-height: 280px;
+        flex-shrink: 0;
         box-shadow: 
             0 8px 32px rgba(30, 98, 173, 0.08),
             0 2px 8px rgba(30, 98, 173, 0.04),
