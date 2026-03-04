@@ -14,8 +14,9 @@
                     </div>
 
                     <!-- Header with Logo -->
-                    <div class="p-3 text-center border-bottom bg-light">
-                        <img src="{{ asset('images/logo/logo-replace.png') }}" alt="Armely" style="max-height: 40px;">
+                    <div class="readiness-head text-center">
+                        <img src="{{ asset('images/logo/logo-replace.png') }}" alt="Armely" class="readiness-logo">
+                        <span class="readiness-kicker">AI Data Readiness Assessment</span>
                     </div>
 
                     <!-- SCREEN: INTRO -->
@@ -30,6 +31,7 @@
                                 <div class="stat-item"><div class="stat-n">~3</div><div class="stat-l">Minutes</div></div>
                             </div>
                             <button class="btn-start-readiness" id="btnStartReadiness">Start Assessment &rarr;</button>
+                            <button type="button" class="btn-dismiss-readiness" id="btnDismissReadiness">No thanks</button>
                         </div>
                     </div>
 
@@ -151,7 +153,7 @@
 <!-- Floating Trigger Button (appears as a pop-up ad) -->
 <div class="ai-readiness-trigger" id="aiReadinessTrigger">
     <div class="trigger-close" id="closeTrigger">&times;</div>
-    <div class="trigger-content" data-toggle="modal" data-target="#aiReadinessModal">
+    <div class="trigger-content">
         <div class="trigger-icon">🧠</div>
         <div class="trigger-text">
             <strong>Check Your AI Readiness</strong>
@@ -212,22 +214,58 @@
 .trigger-text span { font-size: 12px; color: #666; }
 
 /* Modal Content Styling */
-.readiness-modal-content { border-radius: 20px; overflow: hidden; border: none; }
+.readiness-modal-content {
+    border-radius: 24px;
+    overflow: hidden;
+    border: none;
+    box-shadow: 0 24px 60px rgba(13, 31, 60, 0.2);
+}
+
+.readiness-head {
+    padding: 16px 20px;
+    background: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.readiness-logo { max-height: 40px; }
+
+.readiness-kicker {
+    font-size: 10px;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: #64748b;
+}
+
 .close-readiness {
     position: absolute;
-    top: 15px;
-    right: 20px;
+    top: 12px;
+    right: 14px;
     z-index: 10;
-    font-size: 30px;
-    color: #999;
-    border: none;
-    background: none;
+    font-size: 24px;
+    color: #64748b;
+    border: 1px solid #e2e8f0;
+    background: #ffffff;
+    width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
     outline: none !important;
 }
 
+.close-readiness:hover { color: var(--armely-blue); border-color: #bfdbfe; }
+
 .readiness-wrap {
     min-height: 500px;
-    background: white;
+    background: #ffffff;
     position: relative;
     font-family: 'Inter', sans-serif;
 }
@@ -252,23 +290,77 @@
 .score-val { font-weight: 800; color: var(--armely-blue); font-size: 18px; }
 
 /* Intro screen */
-.intro-hero-box { text-align: center; }
-.intro-h { font-weight: 800; font-size: 36px; margin-top: 20px; }
+.intro-hero-box {
+    text-align: center;
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 24px;
+    border-radius: 20px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 12px 28px rgba(30, 98, 173, 0.08);
+}
+
+.intro-h { font-weight: 850; font-size: 42px; margin-top: 16px; line-height: 1.1; color: var(--armely-ink); }
 .intro-h .hl { color: var(--armely-blue); }
-.big-emoji { font-size: 60px; display: block; }
-.stats-row { display: flex; justify-content: center; gap: 30px; margin: 30px 0; }
-.stat-item .stat-n { font-weight: 800; font-size: 24px; color: var(--armely-blue); }
-.stat-item .stat-l { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #888; }
+.intro-p { font-size: 16px; color: #475569; max-width: 640px; margin: 14px auto 4px; line-height: 1.6; }
+.big-emoji {
+    font-size: 44px;
+    display: inline-flex;
+    width: 82px;
+    height: 82px;
+    border-radius: 50%;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle at 35% 35%, #ffd1eb 0%, #f9a8d4 45%, #f472b6 100%);
+    box-shadow: 0 10px 22px rgba(244, 114, 182, 0.25);
+}
+
+.stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(110px, 1fr));
+    gap: 12px;
+    margin: 26px 0;
+}
+
+.stat-item {
+    background: #ffffff;
+    border: 1px solid #dbeafe;
+    border-radius: 12px;
+    padding: 12px 8px;
+    box-shadow: 0 6px 16px rgba(30, 98, 173, 0.08);
+}
+
+.stat-item .stat-n { font-weight: 800; font-size: 40px; line-height: 1; color: var(--armely-blue); }
+.stat-item .stat-l { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: #64748b; margin-top: 4px; }
 .btn-start-readiness {
-    background: var(--armely-blue);
+    background: linear-gradient(135deg, #2f67b4 0%, #1E62AD 55%, #155191 100%);
     color: white;
     border: none;
-    padding: 15px 40px;
-    border-radius: 12px;
-    font-weight: 700;
+    padding: 17px 44px;
+    border-radius: 14px;
+    font-weight: 800;
     font-size: 18px;
-    box-shadow: 0 5px 15px rgba(30, 98, 173, 0.3);
+    box-shadow: 0 12px 24px rgba(30, 98, 173, 0.28);
+    transition: all 0.2s ease;
 }
+
+.btn-start-readiness:hover { transform: translateY(-2px); box-shadow: 0 16px 28px rgba(30, 98, 173, 0.34); }
+
+.btn-dismiss-readiness {
+    margin-top: 14px;
+    background: transparent;
+    border: none;
+    color: #6b7280;
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+    padding: 6px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.btn-dismiss-readiness:hover { color: #334155; background: #f1f5f9; }
 
 /* Game Elements */
 .prog-wrap { margin-bottom: 25px; }
@@ -431,13 +523,27 @@
 /* Responsive */
 @media (max-width: 576px) {
     .ai-readiness-trigger { width: calc(100% - 40px); }
-    .intro-h { font-size: 28px; }
+    .intro-hero-box { padding: 18px 14px; }
+    .intro-h { font-size: 32px; }
+    .intro-p { font-size: 15px; }
+    .stat-item .stat-n { font-size: 30px; }
+    .stat-item .stat-l { font-size: 10px; }
+    .btn-start-readiness { font-size: 17px; padding: 14px 26px; }
     .readiness-screen { padding: 25px; }
 }
 </style>
 
 <script>
 (function() {
+    const KEY_COMPLETED = 'aiReadinessCompleted';
+    const KEY_DISMISSED_FOREVER = 'aiReadinessDismissedForever';
+    const KEY_NEXT_ELIGIBLE_AT = 'aiReadinessNextEligibleAt';
+    const KEY_WEEKLY_IMPRESSIONS = 'aiReadinessWeeklyImpressions';
+    const KEY_SESSION_IMPRESSIONS = 'aiReadinessSessionImpressions';
+    const KEY_SESSION_PAGE_VIEWS = 'aiReadinessSessionPageViews';
+    const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+    const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+
     // ── DATA ──────────────────────────────────────────────────────────────────
     const PHASES = ["Collection", "Quality", "Infra", "Governance", "AI Ready"];
     const QUESTIONS = [
@@ -635,28 +741,156 @@
         el('rDimGrid').innerHTML = dimHtml;
     }
 
+    function dismissReadinessForever() {
+        localStorage.setItem(KEY_DISMISSED_FOREVER, 'true');
+        $('#aiReadinessModal').modal('hide');
+        const trigger = el('aiReadinessTrigger');
+        if (trigger) {
+            trigger.style.display = 'none';
+        }
+    }
+
+    function getWeeklyImpressions() {
+        const now = Date.now();
+        let raw = [];
+        try {
+            raw = JSON.parse(localStorage.getItem(KEY_WEEKLY_IMPRESSIONS) || '[]');
+        } catch (_) {
+            raw = [];
+        }
+        const filtered = Array.isArray(raw)
+            ? raw.filter(ts => Number.isFinite(ts) && now - ts < SEVEN_DAYS_MS)
+            : [];
+        localStorage.setItem(KEY_WEEKLY_IMPRESSIONS, JSON.stringify(filtered));
+        return filtered;
+    }
+
+    function recordImpression() {
+        const sessionCount = parseInt(sessionStorage.getItem(KEY_SESSION_IMPRESSIONS) || '0', 10) + 1;
+        sessionStorage.setItem(KEY_SESSION_IMPRESSIONS, String(sessionCount));
+
+        const weekly = getWeeklyImpressions();
+        weekly.push(Date.now());
+        localStorage.setItem(KEY_WEEKLY_IMPRESSIONS, JSON.stringify(weekly));
+    }
+
+    function snoozeReadiness(days = 30) {
+        const nextAt = Date.now() + (days * 24 * 60 * 60 * 1000);
+        localStorage.setItem(KEY_NEXT_ELIGIBLE_AT, String(nextAt));
+    }
+
+    function isEligibleForAutoOpen() {
+        if (localStorage.getItem(KEY_COMPLETED) === 'true') return false;
+        if (localStorage.getItem(KEY_DISMISSED_FOREVER) === 'true') return false;
+
+        const nextEligibleAt = parseInt(localStorage.getItem(KEY_NEXT_ELIGIBLE_AT) || '0', 10);
+        if (nextEligibleAt && Date.now() < nextEligibleAt) return false;
+
+        const sessionImpressions = parseInt(sessionStorage.getItem(KEY_SESSION_IMPRESSIONS) || '0', 10);
+        if (sessionImpressions >= 1) return false;
+
+        if (getWeeklyImpressions().length >= 2) return false;
+
+        return true;
+    }
+
+    function openReadinessModal(trackImpression = false) {
+        const modal = el('aiReadinessModal');
+        if (!modal) return;
+        $(modal).modal('show');
+        if (trackImpression) {
+            recordImpression();
+        }
+    }
+
+    function closeAndSnoozeReadiness() {
+        $('#aiReadinessModal').modal('hide');
+        snoozeReadiness(30);
+
+        const trigger = el('aiReadinessTrigger');
+        if (trigger && localStorage.getItem(KEY_DISMISSED_FOREVER) !== 'true') {
+            trigger.style.display = 'block';
+        }
+    }
+
     // ── INITIALIZE ───────────────────────────────────────────────────────────
     function initReadiness() {
-        // Check if user already completed assessment
-        if (localStorage.getItem('aiReadinessCompleted') === 'true') {
-            // User already submitted - don't show modal
-            const trigger = el('aiReadinessTrigger');
+        const modal = el('aiReadinessModal');
+        const trigger = el('aiReadinessTrigger');
+
+        const completed = localStorage.getItem(KEY_COMPLETED) === 'true';
+        const dismissedForever = localStorage.getItem(KEY_DISMISSED_FOREVER) === 'true';
+
+        // Never disturb completed or permanently dismissed users
+        if (completed || dismissedForever) {
             if (trigger) {
-                trigger.style.display = 'none !important';
+                trigger.style.display = 'none';
             }
             return;
         }
 
-        // Open modal on page load instead of showing floating button
-        const modal = el('aiReadinessModal');
-        if (modal) {
-            $(modal).modal('show');
-        }
-        
-        // Hide floating trigger button
-        const trigger = el('aiReadinessTrigger');
+        // Keep a lightweight manual trigger available
         if (trigger) {
-            trigger.style.display = 'none !important';
+            trigger.style.display = 'block';
+        }
+
+        // Track in-session page views for engagement rule
+        const pageViews = parseInt(sessionStorage.getItem(KEY_SESSION_PAGE_VIEWS) || '0', 10) + 1;
+        sessionStorage.setItem(KEY_SESSION_PAGE_VIEWS, String(pageViews));
+
+        // Engagement-based auto-open: 25s, 40% scroll, or second page in this session
+        let autoOpened = false;
+        const tryAutoOpen = () => {
+            if (autoOpened) return;
+            if (!isEligibleForAutoOpen()) return;
+            autoOpened = true;
+            openReadinessModal(true);
+        };
+
+        if (pageViews >= 2) {
+            tryAutoOpen();
+        }
+
+        setTimeout(tryAutoOpen, 25000);
+
+        const onScroll = () => {
+            const scrollTop = window.scrollY || document.documentElement.scrollTop || 0;
+            const viewport = window.innerHeight || document.documentElement.clientHeight || 1;
+            const fullHeight = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight, viewport);
+            const progress = (scrollTop + viewport) / fullHeight;
+            if (progress >= 0.4) {
+                tryAutoOpen();
+                window.removeEventListener('scroll', onScroll);
+            }
+        };
+        window.addEventListener('scroll', onScroll, { passive: true });
+
+        // Trigger controls
+        const triggerContent = trigger ? trigger.querySelector('.trigger-content') : null;
+        if (triggerContent) {
+            triggerContent.addEventListener('click', function(evt) {
+                evt.preventDefault();
+                openReadinessModal(false);
+            });
+        }
+
+        const closeTriggerBtn = el('closeTrigger');
+        if (closeTriggerBtn) {
+            closeTriggerBtn.addEventListener('click', function(evt) {
+                evt.preventDefault();
+                evt.stopPropagation();
+                if (trigger) {
+                    trigger.style.display = 'none';
+                }
+                snoozeReadiness(30);
+            });
+        }
+
+        if (modal) {
+            $(modal).on('show.bs.modal', function() {
+                showScreen('rIntro');
+                el('readinessScoreHud').style.display = 'none';
+            });
         }
 
         // Modal Logic
@@ -665,6 +899,19 @@
             el('readinessScoreHud').style.display = 'block';
             renderQ();
         };
+
+        const dismissBtn = el('btnDismissReadiness');
+        if (dismissBtn) {
+            dismissBtn.onclick = dismissReadinessForever;
+        }
+
+        const closeBtn = document.querySelector('#aiReadinessModal .close-readiness');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', function(evt) {
+                evt.preventDefault();
+                closeAndSnoozeReadiness();
+            });
+        }
 
         el('rBtnNext').onclick = () => {
             G.qi++;

@@ -112,13 +112,12 @@
 <script src="{{ asset('js/niceselect.js') }}?v={{ file_exists(public_path('js/niceselect.js')) ? filemtime(public_path('js/niceselect.js')) : '' }}"></script>
 <script src="{{ asset('js/tilt.jquery.min.js') }}?v={{ file_exists(public_path('js/tilt.jquery.min.js')) ? filemtime(public_path('js/tilt.jquery.min.js')) : '' }}"></script>
 <script src="{{ asset('js/owl-carousel.js') }}?v={{ file_exists(public_path('js/owl-carousel.js')) ? filemtime(public_path('js/owl-carousel.js')) : '' }}"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/waypoints/2.0.3/waypoints.min.js" integrity="sha384-GYlJ9cMQEycWhcDZVRaW1RaEO2h1bEV6H2wzz0kKqs3YgSbQ/9UgOd1EZLbwCaTs" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/waypoints/4.0.1/jquery.waypoints.min.js" integrity="sha384-hKAOvu4SRkR5UhOl+rvozhqPNh0VgjTz0sydNTzye3vkV6VzpbLACSgthC2bhXeV" crossorigin="anonymous"></script>
 <script src="{{ asset('js/jquery.counterup.min.js') }}?v={{ file_exists(public_path('js/jquery.counterup.min.js')) ? filemtime(public_path('js/jquery.counterup.min.js')) : '' }}"></script>
 <script src="{{ asset('js/steller.js') }}?v={{ file_exists(public_path('js/steller.js')) ? filemtime(public_path('js/steller.js')) : '' }}"></script>
 <script src="{{ asset('js/wow.min.js') }}?v={{ file_exists(public_path('js/wow.min.js')) ? filemtime(public_path('js/wow.min.js')) : '' }}"></script>
 <script src="{{ asset('js/jquery.magnific-popup.min.js') }}?v={{ file_exists(public_path('js/jquery.magnific-popup.min.js')) ? filemtime(public_path('js/jquery.magnific-popup.min.js')) : '' }}"></script>
 <!-- Waypoints loaded earlier (HTTPS) to avoid mixed-content blocking -->
-<script src="{{ asset('js/main.js') }}?v={{ file_exists(public_path('js/main.js')) ? filemtime(public_path('js/main.js')) : '' }}"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.1.4/dist/sweetalert2.all.min.js" integrity="sha384-b6c4uUbNdZMyaIj7NBFb/VbMINhwXEsc58mJj3uSWsn3Wg9JV/cgBVQFaaZuRqnK" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.5.2/js/bootstrap.bundle.min.js" integrity="sha384-LtrjvnR4Twt/qOuYxE721u19sVFLVSA4hf/rRt6PrZTmiPltdZcI7q7PXQBYTKyf" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-easing/1.4.1/jquery.easing.min.js" integrity="sha384-leGYpHE9Tc4N9OwRd98xg6YFpB9shlc/RkilpFi0ljr3QD4tFoFptZvgnnzzwG4Q" crossorigin="anonymous"></script>

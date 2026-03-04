@@ -9,7 +9,6 @@
     <title>{{ $title ?? 'Armely' }}</title>
 
     <link rel="icon" href="{{ asset('images/logo/logo1.png') }}">
-    <link rel="preload" as="image" href="{{ asset('images/sliders/slider-1.webp') }}">
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -191,8 +190,8 @@
                         </div>
                     </div>
                     <div class="col-lg-9 col-md-9 col-12 d-flex align-items-center justify-content-end">
-                        <div class="mobile-nav d-lg-none ms-3 me-2 align-self-center"></div>
-                        <div class="main-menu d-flex align-items-center justify-content-end w-100" style="height: 100%;">
+                        <div class="mobile-nav d-lg-none"></div>
+                        <div class="main-menu d-none d-lg-flex align-items-center justify-content-end w-100" style="height: 100%;">
                             <nav class="navigation w-100 d-flex align-items-center" style="height: 100%;">
                                 <ul class="nav menu">
                                     <li class="{{ request()->is('company','career','job-board','applications','social-impact','social-impact-details') ? 'active' : '' }}"><a>Who We Are <i class="icofont-rounded-down"></i></a>
@@ -276,6 +275,33 @@
 </main>
 
 @include('partials.footer')
+
+<!-- Core jQuery and Bootstrap Dependencies -->
+<script src="{{ asset('js/jquery.min.js') }}?v={{ file_exists(public_path('js/jquery.min.js')) ? filemtime(public_path('js/jquery.min.js')) : '' }}" defer></script>
+<script src="{{ asset('js/popper.min.js') }}?v={{ file_exists(public_path('js/popper.min.js')) ? filemtime(public_path('js/popper.min.js')) : '' }}" defer></script>
+<script src="{{ asset('js/bootstrap.min.js') }}?v={{ file_exists(public_path('js/bootstrap.min.js')) ? filemtime(public_path('js/bootstrap.min.js')) : '' }}" defer></script>
+
+<!-- jQuery Plugins -->
+<script src="{{ asset('js/jquery-migrate-3.0.0.js') }}?v={{ file_exists(public_path('js/jquery-migrate-3.0.0.js')) ? filemtime(public_path('js/jquery-migrate-3.0.0.js')) : '' }}" defer></script>
+<script src="{{ asset('js/niceselect.js') }}?v={{ file_exists(public_path('js/niceselect.js')) ? filemtime(public_path('js/niceselect.js')) : '' }}" defer></script>
+<script src="{{ asset('js/slicknav.min.js') }}?v={{ file_exists(public_path('js/slicknav.min.js')) ? filemtime(public_path('js/slicknav.min.js')) : '' }}" defer></script>
+<script src="{{ asset('js/owl-carousel.js') }}?v={{ file_exists(public_path('js/owl-carousel.js')) ? filemtime(public_path('js/owl-carousel.js')) : '' }}" defer></script>
+<script src="{{ asset('js/jquery.counterup.min.js') }}?v={{ file_exists(public_path('js/jquery.counterup.min.js')) ? filemtime(public_path('js/jquery.counterup.min.js')) : '' }}" defer></script>
+<script src="{{ asset('js/easing.js') }}?v={{ file_exists(public_path('js/easing.js')) ? filemtime(public_path('js/easing.js')) : '' }}" defer></script>
+<script src="{{ asset('js/wow.min.js') }}?v={{ file_exists(public_path('js/wow.min.js')) ? filemtime(public_path('js/wow.min.js')) : '' }}" defer></script>
+<script src="{{ asset('js/jquery.nav.js') }}?v={{ file_exists(public_path('js/jquery.nav.js')) ? filemtime(public_path('js/jquery.nav.js')) : '' }}" defer></script>
+<script src="{{ asset('js/jquery.scrollUp.min.js') }}?v={{ file_exists(public_path('js/jquery.scrollUp.min.js')) ? filemtime(public_path('js/jquery.scrollUp.min.js')) : '' }}" defer></script>
+<script src="{{ asset('js/jquery.magnific-popup.min.js') }}?v={{ file_exists(public_path('js/jquery.magnific-popup.min.js')) ? filemtime(public_path('js/jquery.magnific-popup.min.js')) : '' }}" defer></script>
+<script src="{{ asset('js/tilt.jquery.min.js') }}?v={{ file_exists(public_path('js/tilt.jquery.min.js')) ? filemtime(public_path('js/tilt.jquery.min.js')) : '' }}" defer></script>
+<script src="{{ asset('js/steller.js') }}?v={{ file_exists(public_path('js/steller.js')) ? filemtime(public_path('js/steller.js')) : '' }}" defer></script>
+<script src="{{ asset('js/bootstrap-datepicker.js') }}?v={{ file_exists(public_path('js/bootstrap-datepicker.js')) ? filemtime(public_path('js/bootstrap-datepicker.js')) : '' }}" defer></script>
+
+<!-- Google reCAPTCHA v2 -->
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+
+<!-- Main Scripts -->
+<script src="{{ asset('js/main.js') }}?v={{ file_exists(public_path('js/main.js')) ? filemtime(public_path('js/main.js')) : '' }}" defer></script>
+
 @stack('scripts')
 </body>
 </html>

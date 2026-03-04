@@ -9,13 +9,13 @@
         <button id="chatNowBtn" class="popup-btn main">Chat now</button>
         <button id="noThanksBtn" class="popup-btn secondary">No thanks</button>
         
-        <img src="https://i.gifer.com/9Pa3.gif" alt="AI Agent" class="agent-img">
+        <img src="{{ asset('images/bot-image/bot.png') }}" alt="AI Agent" class="agent-img">
     </div>
 </div>
 
 {{-- Small Floating Bubble ("Need help? Let's chat") --}}
 <div id="chatBubble" class="chat-bubble">
-    <img src="https://i.gifer.com/9Pa3.gif" alt="AI Agent" class="agent-img-small">
+    <img src="{{ asset('images/bot-image/bot.png') }}" alt="AI Agent" class="agent-img-small">
     <span>Need help? <br> Let's chat</span>
 </div>
 

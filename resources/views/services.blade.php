@@ -737,7 +737,11 @@
 						<div class="col-lg-12">
 							<div class="form-group">
 								<label class="text-start text-light">Confirm you are not a robot *</label>
-								<div class="g-recaptcha" data-sitekey="{{ env('CAPTURE_SITE_KEY') }}"></div>
+								@if(!empty($recaptchaSiteKey))
+									<div id="consultationRecaptcha" class="g-recaptcha" data-sitekey="{{ $recaptchaSiteKey }}"></div>
+								@else
+									<div class="alert alert-warning">reCAPTCHA is not configured. Please set <strong>CAPTURE_SITE_KEY</strong> in your environment.</div>
+								@endif
 							</div>
 						</div>
 						<div class="form-group ml-3">
@@ -756,10 +760,7 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-	console.log('Services page loaded');
 	const servicesContainer = document.getElementById('servicesContainer');
-	console.log('Services container found:', servicesContainer);
-	console.log('Number of services:', servicesContainer ? servicesContainer.querySelectorAll('.single-table').length : 0);
 	
 	const searchInput = document.getElementById('serviceSearch');
 	const filterBtns = document.querySelectorAll('.filter-btn');
@@ -852,8 +853,6 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<script src="https://www.google.com/recaptcha/api.js" async defer></script>
-
 <script>
 document.addEventListener('DOMContentLoaded', function() {
 	const form = document.getElementById('consultation-form-action');
@@ -861,6 +860,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
 	const messageDiv = document.getElementById('ConsultationMessage');
 	const submitBtn = form.querySelector('button[name="submit_form"]');
+	const recaptchaEl = document.getElementById('consultationRecaptcha');
+
+	if (recaptchaEl && typeof grecaptcha !== 'undefined' && recaptchaEl.childElementCount === 0) {
+		try {
+			grecaptcha.render(recaptchaEl, {
+				sitekey: recaptchaEl.getAttribute('data-sitekey')
+			});
+		} catch (e) {
+			// ignore if already rendered by auto-render
+		}
+	}
 
 	form.addEventListener('submit', function(e) {
 		e.preventDefault();
@@ -870,6 +880,14 @@ document.addEventListener('DOMContentLoaded', function() {
 		messageDiv.textContent = '';
 		messageDiv.className = 'p-3 alert';
 		messageDiv.style.display = 'none';
+
+		if (!recaptchaEl) {
+			messageDiv.className = 'p-3 alert alert-danger alert-dismissible fade show';
+			messageDiv.innerHTML = '<strong>Error:</strong> reCAPTCHA is not configured. Please contact support.' +
+				'<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>';
+			messageDiv.style.display = 'block';
+			return;
+		}
 
 		const recaptchaResponse = typeof grecaptcha !== 'undefined' ? grecaptcha.getResponse() : '';
 		if (!recaptchaResponse) {

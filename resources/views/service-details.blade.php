@@ -29,7 +29,7 @@
 
 @section('content')
 
-<!-- Breadcrumbs -->
+{{-- <!-- Breadcrumbs -->
 <div class="breadcrumbs overlay">
 	<div class="container">
 		<div class="bread-inner">
@@ -48,7 +48,7 @@
 		</div>
 	</div>
 </div>
-<!-- End Breadcrumbs -->
+<!-- End Breadcrumbs --> --}}
 
 @if($serviceName)
 	<!-- Start Portfolio Details Area -->
@@ -195,35 +195,48 @@
 				<div class="col-lg-12 col-md-6 col-12 d-flex default-background mb-5">
 					<form class="form p-5" id="contact-form" method="post" action="{{ route('submit-consultation') }}">
 						@csrf
+						<div id="ServiceDetailsMessage" style="display: none;"></div>
 						<div class="row">
+							<input type="hidden" name="service_type" value="{{ isset($service) && !empty($service->title) ? $service->title : ($serviceName ?? 'Service Inquiry') }}">
+							<input type="text" name="website" class="honeypot" style="display:none;" tabindex="-1" autocomplete="off">
 							<div class="col-lg-6 col-md-6 col-12">
 								<label class="text-start text-light">Name *</label>
 								<div class="form-group input-with-background">
-									<input required class="remove-input-background" name="name" type="text" placeholder="Name">
+									<input required class="remove-input-background" name="name" type="text" placeholder="Name" value="{{ old('name') }}">
 								</div>
 							</div>
 							<div class="col-lg-6 col-md-6 col-12">
 								<label class="text-start text-light">Email *</label>
 								<div class="form-group">
-									<input required class="remove-input-background" name="email" type="email" placeholder="Email">
+									<input required class="remove-input-background" name="email" type="email" placeholder="Email" value="{{ old('email') }}">
 								</div> 
 							</div>
 							<div class="col-lg-6 col-md-6 col-12">
 								<label class="text-start text-light">Phone Number *</label>
 								<div class="form-group">
-									<input required class="remove-input-background" name="phone" type="text" placeholder="Phone">
+									<input required class="remove-input-background" name="phone" type="text" placeholder="Phone" value="{{ old('phone') }}">
 								</div>
 							</div>
 							<div class="col-lg-6 col-md-6 col-12">
 								<label class="text-start text-light">Organization Name *</label>
 								<div class="form-group">
-									<input required class="remove-input-background" name="organization" type="text" placeholder="Organization Name">
+									<input required class="remove-input-background" name="organization" type="text" placeholder="Organization Name" value="{{ old('organization') }}">
 								</div>
 							</div>
 							<div class="col-lg-12 col-md-12 col-12">
 								<label class="text-start text-light">Message *</label>
 								<div class="form-group">
-									<textarea required class="remove-input-background" name="message" placeholder="Write Your Message Here....."></textarea>
+									<textarea required class="remove-input-background" name="message" placeholder="Write Your Message Here.....">{{ old('message') }}</textarea>
+								</div>
+							</div>
+							<div class="col-lg-12 col-md-12 col-12">
+								<label class="text-start text-light">Confirm you are not a robot *</label>
+								<div class="form-group">
+									@if(!empty($recaptchaSiteKey))
+										<div class="g-recaptcha" data-sitekey="{{ $recaptchaSiteKey }}"></div>
+									@else
+										<div class="alert alert-warning">reCAPTCHA is not configured. Please set <strong>CAPTURE_SITE_KEY</strong>.</div>
+									@endif
 								</div>
 							</div>
 							<div class="form-group ml-3">
@@ -263,6 +276,98 @@
 		</div>
 	</div>
 </section>
+
+
+@push('scripts')
+<script>
+	document.addEventListener('DOMContentLoaded', function() {
+		const form = document.getElementById('contact-form');
+		if (!form) return;
+
+		const messageDiv = document.getElementById('ServiceDetailsMessage');
+		const submitBtn = form.querySelector('button[type="submit"]');
+		const recaptchaEl = form.querySelector('.g-recaptcha');
+
+		if (recaptchaEl && typeof grecaptcha !== 'undefined' && recaptchaEl.childElementCount === 0) {
+			try {
+				grecaptcha.render(recaptchaEl, {
+					sitekey: recaptchaEl.getAttribute('data-sitekey')
+				});
+			} catch (e) {
+				// ignore if already rendered by auto-render
+			}
+		}
+
+		form.addEventListener('submit', function(e) {
+			e.preventDefault();
+			e.stopPropagation();
+
+			const originalBtnText = submitBtn.textContent;
+			messageDiv.textContent = '';
+			messageDiv.className = 'p-3 alert';
+			messageDiv.style.display = 'none';
+
+			if (!recaptchaEl) {
+				messageDiv.className = 'p-3 alert alert-danger alert-dismissible fade show';
+				messageDiv.innerHTML = '<strong>Error:</strong> reCAPTCHA is not configured. Please contact support.' +
+					'<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>';
+				messageDiv.style.display = 'block';
+				return;
+			}
+
+			const recaptchaResponse = typeof grecaptcha !== 'undefined' ? grecaptcha.getResponse() : '';
+			if (!recaptchaResponse) {
+				messageDiv.className = 'p-3 alert alert-danger alert-dismissible fade show';
+				messageDiv.innerHTML = '<strong>Error:</strong> Please verify that you are not a robot.' +
+					'<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>';
+				messageDiv.style.display = 'block';
+				return;
+			}
+
+			submitBtn.disabled = true;
+			submitBtn.textContent = 'Sending...';
+
+			const formData = new FormData(form);
+			formData.append('g-recaptcha-response', recaptchaResponse);
+
+			fetch('{{ route("submit-consultation") }}', {
+				method: 'POST',
+				headers: {
+					'X-CSRF-TOKEN': form.querySelector('input[name="_token"]').value,
+					'Accept': 'application/json'
+				},
+				body: formData
+			})
+			.then(response => response.json())
+			.then(data => {
+				messageDiv.className = 'p-3 alert';
+				if (data.success) {
+					messageDiv.classList.add('alert-success');
+					messageDiv.textContent = '✅ ' + data.message;
+					form.reset();
+					if (typeof grecaptcha !== 'undefined') {
+						grecaptcha.reset();
+					}
+				} else {
+					messageDiv.classList.add('alert-danger');
+					messageDiv.textContent = '❌ ' + (data.message || 'An error occurred. Please try again.');
+				}
+				messageDiv.style.display = 'block';
+			})
+			.catch(error => {
+				console.error('Error:', error);
+				messageDiv.className = 'p-3 alert alert-danger';
+				messageDiv.textContent = '❌ An error occurred. Please try again.';
+				messageDiv.style.display = 'block';
+			})
+			.finally(() => {
+				submitBtn.disabled = false;
+				submitBtn.textContent = originalBtnText;
+			});
+		}, true);
+	});
+</script>
+@endpush
 
 @push('scripts')
 <script>

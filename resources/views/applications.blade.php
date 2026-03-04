@@ -189,7 +189,11 @@
 						<div class="col-lg-12">
 							<div class="form-group">
 								<label class="text-start text-light">Confirm you are not a robot *</label>
-								<div class="g-recaptcha" data-sitekey="{{ $recaptchaSiteKey ?? env('CAPTURE_SITE_KEY', '') }}"></div>
+								@if(!empty($recaptchaSiteKey ?? config('services.recaptcha.site_key')))
+									<div class="g-recaptcha" data-sitekey="{{ $recaptchaSiteKey ?? config('services.recaptcha.site_key') }}"></div>
+								@else
+									<div class="alert alert-warning">reCAPTCHA is not configured. Please set <strong>CAPTURE_SITE_KEY</strong>.</div>
+								@endif
 							</div>
 						</div>
 						<div class="col-lg-12 form-group mt-3">

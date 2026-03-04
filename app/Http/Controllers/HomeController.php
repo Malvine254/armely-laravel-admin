@@ -29,7 +29,7 @@ class HomeController extends Controller
             'industryListings' => $industryListings,
             'blogs' => $blogs,
             'videos' => $videos,
-            'recaptchaSiteKey' => env('CAPTURE_SITE_KEY', ''),
+            'recaptchaSiteKey' => config('services.recaptcha.site_key', ''),
             'dbErrorMessage' => $dbErrorMessage,
         ]);
     }
@@ -37,7 +37,7 @@ class HomeController extends Controller
     public function contact()
     {
         return view('contact', [
-            'recaptchaSiteKey' => env('CAPTURE_SITE_KEY', ''),
+            'recaptchaSiteKey' => config('services.recaptcha.site_key', ''),
         ]);
     }
 
@@ -237,6 +237,7 @@ class HomeController extends Controller
             'relatedServices' => $relatedServices,
             'serviceName' => $name,
             'dbErrorMessage' => $dbErrorMessage,
+            'recaptchaSiteKey' => config('services.recaptcha.site_key', ''),
         ]);
     }
 
@@ -422,7 +423,7 @@ class HomeController extends Controller
             'jobId' => $jobId,
             'jobTitle' => $jobTitle,
             'applicationFlag' => $application,
-            'recaptchaSiteKey' => env('CAPTURE_SITE_KEY', ''),
+            'recaptchaSiteKey' => config('services.recaptcha.site_key', ''),
         ]);
     }
 
@@ -835,12 +836,12 @@ class HomeController extends Controller
         ]);
 
         // Opt-in bypass for debugging/local scenarios
-        if (env('RECAPTCHA_BYPASS', false)) {
+        if (config('services.recaptcha.bypass', false)) {
             Log::warning('reCAPTCHA bypass enabled via RECAPTCHA_BYPASS. Skipping verification.');
             return true;
         }
 
-        $secret = env('CAPTURE_SERVER_SIDE_KEY');
+        $secret = config('services.recaptcha.secret_key');
 
         // If no secret key is configured, skip verification (for testing/development)
         if (!$secret) {
