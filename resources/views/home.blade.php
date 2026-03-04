@@ -17,7 +17,7 @@
     }
 
     .clients-section .section-title h2 {
-        font-size: 3.2rem;
+        font-size: 2.2rem;
         font-weight: 900;
         background: linear-gradient(135deg, #1E62AD 0%, #2f5597 50%, #1E62AD 100%);
         -webkit-background-clip: text;
@@ -252,12 +252,15 @@
     .blog-image-box {
         position: relative;
         height: 320px;
+        min-height: 320px;
+        max-height: 320px;
         overflow: hidden;
         background: #f5f5f5;
         display: flex;
         align-items: center;
         justify-content: center;
         margin-bottom: 0;
+        flex-shrink: 0;
     }
 
     .blog-image-box img {
@@ -268,6 +271,7 @@
         transform: scale(1);
         padding: 15px;
         box-sizing: border-box;
+        display: block;
     }
 
     .blog-card-wrapper:hover .blog-image-box img {
@@ -484,16 +488,16 @@
         background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.98) 100%);
         backdrop-filter: blur(10px);
         -webkit-backdrop-filter: blur(10px);
-        padding: 40px 30px;
-        border-radius: 28px;
+        padding: 25px 20px;
+        border-radius: 20px;
         transition: all 0.5s cubic-bezier(0.165, 0.84, 0.44, 1);
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 16px;
+        gap: 10px;
         height: 100%;
-        min-height: 420px;
+        min-height: 280px;
         box-shadow: 
             0 8px 32px rgba(30, 98, 173, 0.08),
             0 2px 8px rgba(30, 98, 173, 0.04),
@@ -586,14 +590,14 @@
 
     .partner-carousel .partner-logo {
         width: 100%;
-        height: 150px;
+        height: 110px;
         display: flex;
         align-items: center;
         justify-content: center;
         text-decoration: none;
         position: relative;
-        padding: 12px;
-        border-radius: 16px;
+        padding: 8px;
+        border-radius: 14px;
         background: linear-gradient(135deg, rgba(30, 98, 173, 0.02) 0%, transparent 100%);
         transition: all 0.4s ease;
     }
@@ -603,10 +607,10 @@
     }
 
     .partner-carousel img {
-        filter: grayscale(0%) contrast(1.05) brightness(1);
-        opacity: 0.92;
+        filter: grayscale(15%) contrast(1.1) brightness(0.98);
+        opacity: 0.9;
         transition: all 0.5s cubic-bezier(0.165, 0.84, 0.44, 1);
-        max-height: 140px;
+        max-height: 100px;
         max-width: 100%;
         width: auto !important;
         height: auto !important;
@@ -623,16 +627,16 @@
     }
 
     .partner-carousel .partner-name {
-        font-size: 15px;
+        font-size: 13px;
         font-weight: 700;
         background: linear-gradient(135deg, #1E62AD 0%, #2f5597 60%, #1E62AD 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
         text-align: center;
-        line-height: 1.3;
-        max-width: 200px;
-        letter-spacing: 0.3px;
+        line-height: 1.2;
+        max-width: 160px;
+        letter-spacing: 0.2px;
         text-transform: capitalize;
         position: relative;
         transition: all 0.4s ease;
