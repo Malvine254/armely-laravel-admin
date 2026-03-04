@@ -256,15 +256,15 @@
     }
 
     .blog-image-box img {
-        width: 110%; /* slightly zoomed in by default */
-        height: 110%;
+        width: 100%;
+        height: 100%;
         object-fit: cover;
         transition: transform 0.8s ease;
-        transform: scale(1.1);
+        transform: scale(1);
     }
 
     .blog-card-wrapper:hover .blog-image-box img {
-        transform: scale(1); /* zoom out on hover */
+        transform: scale(1.05); /* slight zoom on hover */
     }
 
     .blog-category-tag {
