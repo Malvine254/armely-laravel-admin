@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -116,7 +117,7 @@ class TablesController extends Controller
             
             return response()->json(['success' => true, 'data' => $blogs, 'limit' => $limit]);
         } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::error('listBlogs fallback failed', ['error' => $e->getMessage()]);
+            Log::error('listBlogs fallback failed', ['error' => $e->getMessage()]);
             return response()->json(['success' => false, 'message' => 'Server error'], 500);
         }
     }
@@ -688,7 +689,7 @@ class TablesController extends Controller
     
     public function updateBlog(Request $request, $id)
     {
-        \Log::info('UpdateBlog called', [
+        Log::info('UpdateBlog called', [
             'id' => $id,
             'request_data' => $request->all(),
             'has_file' => $request->hasFile('image')
@@ -697,7 +698,7 @@ class TablesController extends Controller
         $blogTable = Schema::hasTable('blogs') ? 'blogs' : 'blog';
         $idColumn = Schema::hasColumn($blogTable, 'blog_id') ? 'blog_id' : 'id';
         
-        \Log::info('Table info', [
+        Log::info('Table info', [
             'table' => $blogTable,
             'id_column' => $idColumn
         ]);
@@ -732,26 +733,26 @@ class TablesController extends Controller
             $data[$imageColumn] = 'images/blog/' . $filename;
         }
         
-        \Log::info('Data to update', ['data' => $data]);
+        Log::info('Data to update', ['data' => $data]);
         
         if (!empty($data)) {
             // Check if the record exists first
             $exists = DB::table($blogTable)->where($idColumn, $id)->exists();
-            \Log::info('Record exists check', [
+            Log::info('Record exists check', [
                 'exists' => $exists,
                 'where_column' => $idColumn,
                 'where_value' => $id
             ]);
             
             if (!$exists) {
-                \Log::error('Record not found with given ID');
+                Log::error('Record not found with given ID');
                 return response()->json(['success' => false, 'message' => 'Blog not found'], 404);
             }
             
             $affected = DB::table($blogTable)->where($idColumn, $id)->update($data);
-            \Log::info('Update executed', ['rows_affected' => $affected]);
+            Log::info('Update executed', ['rows_affected' => $affected]);
         } else {
-            \Log::warning('No data to update');
+            Log::warning('No data to update');
         }
         
         return response()->json(['success' => true, 'message' => 'Blog updated successfully']);

@@ -381,9 +381,10 @@
         margin-bottom: 22px;
         flex-grow: 1;
         display: -webkit-box;
-        -webkit-line-clamp: 3;
+        -webkit-line-clamp: 4;
         -webkit-box-orient: vertical;
         overflow: hidden;
+        min-height: 90px;
     }
 
     .blog-card-wrapper:hover .blog-title {
@@ -1141,15 +1142,10 @@
                                 <a href="{{ route('blog.index', ['blogId' => $blog->blog_id]) }}">{{ $blog->title }}</a>
                             </h4>
                             @php
-                                $raw = strip_tags($blog->excerpt ?? $blog->title);
-                                $snippet = \Illuminate\Support\Str::limit($raw, 100, '');
-                                // pad to exactly 100 characters so all cards equal height
-                                if (strlen($snippet) < 100) {
-                                    $snippet = str_pad($snippet, 100, ' ');
-                                }
-                                $more = strlen($raw) > 100 ? '...' : '';
-@endphp
-                            <p class="blog-snippet">{{ $snippet }}{{ $more }}</p>
+                                $raw = strip_tags($blog->excerpt ?? $blog->body);
+                                $snippet = \Illuminate\Support\Str::limit($raw, 150, '...');
+                            @endphp
+                            <p class="blog-snippet">{{ $snippet }}</p>
                             <div class="blog-footer">
                                 <span class="blog-date">{{ \Carbon\Carbon::parse($blog->date)->format('M d, Y') }}</span>
                                 <a href="{{ route('blog.index', ['blogId' => $blog->blog_id]) }}" class="blog-btn-circle">

@@ -118,6 +118,7 @@ Route::prefix('admin')->middleware(['admin'])->group(function () {
     // Blogs
     Route::get('/tables/blogs/{id}', [TablesController::class, 'showBlog'])->name('admin.tables.blogs.show');
     Route::post('/tables/blogs', [TablesController::class, 'storeOrUpdateBlog'])->name('admin.tables.blogs.store');
+    Route::post('/tables/blogs/{id}', [TablesController::class, 'updateBlog'])->name('admin.tables.blogs.update.post');
     Route::put('/tables/blogs/{id}', [TablesController::class, 'updateBlog'])->name('admin.tables.blogs.update');
     Route::delete('/tables/blogs/{id}', [TablesController::class, 'deleteBlog'])->name('admin.tables.blogs.delete');
     
