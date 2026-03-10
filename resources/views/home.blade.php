@@ -267,7 +267,8 @@
     .blog-image-box img {
         width: 100%;
         height: 100%;
-        object-fit: cover;
+        object-fit: contain;
+        object-position: center;
         transition: transform 0.8s ease;
         transform: scale(1);
         padding: 0;
@@ -277,7 +278,7 @@
     }
 
     .blog-card-wrapper:hover .blog-image-box img {
-        transform: scale(1.05); /* slight zoom on hover */
+        transform: scale(1);
     }
 
     .blog-category-tag {
