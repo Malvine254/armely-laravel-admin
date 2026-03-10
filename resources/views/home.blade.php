@@ -1141,11 +1141,7 @@
                             <h4 class="blog-title">
                                 <a href="{{ route('blog.index', ['blogId' => $blog->blog_id]) }}">{{ $blog->title }}</a>
                             </h4>
-                            @php
-                                $raw = strip_tags($blog->excerpt ?? $blog->body);
-                                $snippet = \Illuminate\Support\Str::limit($raw, 150, '...');
-                            @endphp
-                            <p class="blog-snippet">{{ $snippet }}</p>
+                            <p class="blog-snippet">{{ $blog->preview ?? '' }}</p>
                             <div class="blog-footer">
                                 <span class="blog-date">{{ \Carbon\Carbon::parse($blog->date)->format('M d, Y') }}</span>
                                 <a href="{{ route('blog.index', ['blogId' => $blog->blog_id]) }}" class="blog-btn-circle">

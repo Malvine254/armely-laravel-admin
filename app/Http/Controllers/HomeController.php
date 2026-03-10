@@ -774,9 +774,21 @@ class HomeController extends Controller
                 ->get()
                 ->map(function ($blog) {
                     $blog->reading_time = $this->estimateReadingTime($blog->body ?? '');
+                    $blog->preview = $this->makePreviewText((string) ($blog->body ?? ''), 150);
                     return $blog;
                 });
         }, $dbErrorMessage);
+    }
+
+    private function makePreviewText(string $html, int $limit = 150): string
+    {
+        // Remove script/style blocks completely so their content never leaks into snippets.
+        $withoutBlocks = preg_replace('/<\s*(script|style)\b[^>]*>.*?<\s*\/\s*\1\s*>/is', ' ', $html) ?? $html;
+
+        $plainText = html_entity_decode(strip_tags($withoutBlocks), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $normalized = preg_replace('/\s+/u', ' ', $plainText) ?? $plainText;
+
+        return Str::limit(trim($normalized), $limit, '...');
     }
 
     private function recentVideos(?string &$dbErrorMessage = null)
