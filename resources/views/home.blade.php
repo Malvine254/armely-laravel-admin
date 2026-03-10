@@ -267,7 +267,7 @@
     .blog-image-box img {
         width: 100%;
         height: 100%;
-        object-fit: contain;
+        object-fit: fill;
         object-position: center;
         transition: transform 0.8s ease;
         transform: scale(1);
@@ -283,11 +283,11 @@
 
     .blog-category-tag {
         position: absolute;
-        top: 20px;
-        left: 20px;
-        background: var(--default-background);
+        top: 14px;
+        left: 14px;
+        background: rgba(15, 38, 78, 0.9);
         color: #fff;
-        padding: 6px 16px;
+        padding: 6px 14px;
         border-radius: 50px;
         font-size: 0.7rem;
         font-weight: 800;
@@ -295,6 +295,7 @@
         letter-spacing: 1.2px;
         z-index: 2;
         box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        backdrop-filter: blur(2px);
     }
 
     /* title overlay inside image */
