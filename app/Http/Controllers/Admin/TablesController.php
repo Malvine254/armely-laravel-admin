@@ -77,10 +77,11 @@ class TablesController extends Controller
             
             // Map column indices to actual DB columns
             $columns = [
-                0 => Schema::hasColumn($blogTable, 'title') ? 'title' : (Schema::hasColumn($blogTable, 'blog_title') ? 'blog_title' : 'id'),
-                1 => Schema::hasColumn($blogTable, 'author') ? 'author' : 'id',
-                2 => Schema::hasColumn($blogTable, 'date') ? 'date' : (Schema::hasColumn($blogTable, 'blog_date') ? 'blog_date' : 'id'),
-                3 => Schema::hasColumn($blogTable, 'id') ? 'id' : 'blog_id'
+                0 => Schema::hasColumn($blogTable, 'blog_id') ? 'blog_id' : 'id',
+                1 => Schema::hasColumn($blogTable, 'title') ? 'title' : (Schema::hasColumn($blogTable, 'blog_title') ? 'blog_title' : 'id'),
+                2 => Schema::hasColumn($blogTable, 'author') ? 'author' : 'id',
+                3 => Schema::hasColumn($blogTable, 'date') ? 'date' : (Schema::hasColumn($blogTable, 'blog_date') ? 'blog_date' : 'id'),
+                4 => Schema::hasColumn($blogTable, 'id') ? 'id' : 'blog_id'
             ];
             
             $orderBy = $columns[$orderColIndex] ?? $columns[0];

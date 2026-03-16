@@ -307,7 +307,8 @@
                                     <li class="{{ request()->is('services','service-details*') ? 'active' : '' }}"><a>What We Do <i class="icofont-rounded-down"></i></a>
                                         <ul class="dropdown">
                                             <li><a href="{{ route('services') }}">All Services</a></li>
-                                            <li><a>AI Services <i class="icofont-rounded-right"></i></a>
+                                            {{-- Services sub-dropdowns hidden per request --}}
+                                            {{-- <li><a>AI Services <i class="icofont-rounded-right"></i></a>
                                                 <ul class="dropdown">
                                                     <li><a href="{{ route('service-details', ['name' => 'ai-consulting']) }}">AI Consulting</a></li>
                                                     <li><a href="{{ route('service-details', ['name' => 'ai-advisory']) }}">AI Advisory</a></li>
@@ -338,14 +339,13 @@
                                                     <li><a href="{{ route('service-details', ['name' => 'sharepoint-online']) }}">Sharepoint Online</a></li>
                                                 </ul>
                                             </li>
-                                            {{-- Hidden per request --}}
-                                            {{-- <li><a href="{{ route('service-details', ['name' => 'freemiums']) }}">Freemiums</a></li> --}}
+                                            <li><a href="{{ route('service-details', ['name' => 'freemiums']) }}">Freemiums</a></li>
                                             <li><a>Managed Services <i class="icofont-rounded-right"></i></a>
                                                 <ul class="dropdown">
                                                     <li><a href="{{ route('service-details', ['name' => 'sql-server-support']) }}">SQL Server Support</a></li>
                                                     <li><a href="{{ route('service-details', ['name' => 'applications-support']) }}">Applications Support</a></li>
                                                 </ul>
-                                            </li>
+                                            </li> --}}
                                         </ul>
                                     </li>
                                     <li class="{{ request()->is('industries') ? 'active' : '' }}"><a href="{{ route('industries.index') }}">Who We Serve</a></li>
@@ -386,7 +386,8 @@
             <a class="sub-toggle">What We Do &#9660;</a>
             <ul class="dropdown">
                 <li><a href="{{ route('services') }}">All Services</a></li>
-                <li><a href="{{ route('service-details', ['name' => 'ai-consulting']) }}">AI Consulting</a></li>
+                {{-- Individual service links hidden per request --}}
+                {{-- <li><a href="{{ route('service-details', ['name' => 'ai-consulting']) }}">AI Consulting</a></li>
                 <li><a href="{{ route('service-details', ['name' => 'ai-advisory']) }}">AI Advisory</a></li>
                 <li><a href="{{ route('service-details', ['name' => 'generative-ai']) }}">Generative AI</a></li>
                 <li><a href="{{ route('service-details', ['name' => 'ai-poc-starter']) }}">AI PoC Starter</a></li>
@@ -403,7 +404,7 @@
                 <li><a href="{{ route('service-details', ['name' => 'microsoft-dynamics-365']) }}">Microsoft Dynamics 365</a></li>
                 <li><a href="{{ route('service-details', ['name' => 'sharepoint-online']) }}">Sharepoint Online</a></li>
                 <li><a href="{{ route('service-details', ['name' => 'sql-server-support']) }}">SQL Server Support</a></li>
-                <li><a href="{{ route('service-details', ['name' => 'applications-support']) }}">Applications Support</a></li>
+                <li><a href="{{ route('service-details', ['name' => 'applications-support']) }}">Applications Support</a></li> --}}
             </ul>
         </li>
         <li><a href="{{ route('industries.index') }}">Who We Serve</a></li>

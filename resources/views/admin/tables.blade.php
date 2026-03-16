@@ -1191,6 +1191,7 @@ $(document).ready(function() {
                 type: 'GET'
             },
             columns: [
+                { data: null, render: function(data) { return data.blog_id || data.id || ''; }, visible: false },
                 { data: null, render: function(data) { return data.title || data.blog_title || 'N/A'; } },
                 { data: 'author', defaultContent: 'N/A' },
                 { data: null, render: function(data) { return data.date || data.blog_date || 'N/A'; } },
@@ -1217,7 +1218,7 @@ $(document).ready(function() {
             ],
             pageLength: 10,
             lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
-            order: [[2, 'desc']], // Order by date column (most recent first)
+            order: [[0, 'desc']], // Order by ID column (most recent first)
             language: {
                 search: "_INPUT_",
                 searchPlaceholder: "Search blogs...",
@@ -1454,9 +1455,28 @@ $(document).ready(function() {
     
     // ==================== END TABLE RELOAD FUNCTIONS ====================
     
+    function getBlogDataFromButton($button) {
+        const direct = $button.data('blog');
+        if (direct && typeof direct === 'object') {
+            return direct;
+        }
+
+        const raw = $button.attr('data-blog');
+        if (!raw) {
+            return {};
+        }
+
+        try {
+            return JSON.parse(raw.replace(/&apos;/g, "'"));
+        } catch (error) {
+            console.error('Unable to parse blog payload from data-blog:', error, raw);
+            return {};
+        }
+    }
+
     // Blog View
     $(document).on('click', '.view-blog', function() {
-        const blog = $(this).data('blog');
+        const blog = getBlogDataFromButton($(this));
         $('#viewBlogTitle').text(blog.title || blog.blog_title || '');
         $('#viewBlogAuthor').text(blog.author || 'Admin');
         $('#viewBlogDate').text(blog.date || blog.blog_date || '');
@@ -1480,17 +1500,11 @@ $(document).ready(function() {
 
     // Blog Edit
     $(document).on('click', '.edit-blog', function() {
-        const blog = $(this).data('blog');
-        
-        console.log('Full blog object:', blog);
-        console.log('blog.body:', blog.body);
-        console.log('blog.description:', blog.description);
+        const blog = getBlogDataFromButton($(this));
         
         $('#blogModalTitle').text('Edit Blog');
         
-        // Use blog_id if it exists, otherwise use id
-        const blogId = blog.blog_id || blog.id;
-        console.log('Using blog ID:', blogId);
+        const blogId = blog.blog_id || blog.id || '';
         
         $('#blogId').val(blogId);
         $('#blogTitle').val(blog.title || blog.blog_title || '');
@@ -1502,9 +1516,7 @@ $(document).ready(function() {
             blogEditor = CKEDITOR.replace('blogBody');
         }
         
-        // Try multiple possible field names for the content
         const content = blog.body || blog.content || blog.description || blog.blog_body || '';
-        console.log('Setting content:', content ? content.substring(0, 100) + '...' : 'EMPTY');
         blogEditor.setData(content);
         
         $('#blogModal').modal('show');

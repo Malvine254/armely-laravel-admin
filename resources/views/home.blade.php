@@ -267,7 +267,7 @@
     .blog-image-box img {
         width: 100%;
         height: 100%;
-        object-fit: fill;
+        object-fit: cover;
         object-position: center;
         transition: transform 0.8s ease;
         transform: scale(1);
