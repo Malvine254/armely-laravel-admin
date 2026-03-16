@@ -1178,6 +1178,9 @@ $(document).ready(function() {
         }
     }
 
+    // In-memory cache for blog row data (keyed by blog_id/id)
+    var blogDataCache = {};
+
     function initBlogsDataTable() {
         if ($.fn.DataTable.isDataTable('#blogsDataTable')) {
             return;
@@ -1188,7 +1191,17 @@ $(document).ready(function() {
             serverSide: true,
             ajax: {
                 url: '/admin/tables/blogs/list',
-                type: 'GET'
+                type: 'GET',
+                dataSrc: function(json) {
+                    // Cache each blog row so we don't need data-blog attributes
+                    if (json.data) {
+                        json.data.forEach(function(row) {
+                            var key = row.blog_id || row.id;
+                            if (key) blogDataCache[key] = row;
+                        });
+                    }
+                    return json.data;
+                }
             },
             columns: [
                 { data: null, render: function(data) { return data.blog_id || data.id || ''; }, visible: false },
@@ -1200,13 +1213,12 @@ $(document).ready(function() {
                     orderable: false,
                     render: function(data) {
                         const blogId = data.blog_id || data.id;
-                        const blogJson = JSON.stringify(data).replace(/'/g, "&apos;");
                         return `
                         <div class="action-btns">
-                            <button class="btn btn-sm btn-info view-blog" data-blog='${blogJson}' title="View">
+                            <button class="btn btn-sm btn-info view-blog" data-blog-id="${blogId}" title="View">
                                 <i class="fas fa-eye"></i>
                             </button>
-                            <button class="btn btn-sm btn-warning edit-blog" data-blog='${blogJson}' title="Edit">
+                            <button class="btn btn-sm btn-warning edit-blog" data-blog-id="${blogId}" title="Edit">
                                 <i class="fas fa-edit"></i>
                             </button>
                             <button class="btn btn-sm btn-danger delete-blog" data-id="${blogId}" title="Delete">
@@ -1456,22 +1468,11 @@ $(document).ready(function() {
     // ==================== END TABLE RELOAD FUNCTIONS ====================
     
     function getBlogDataFromButton($button) {
-        const direct = $button.data('blog');
-        if (direct && typeof direct === 'object') {
-            return direct;
+        var blogId = $button.attr('data-blog-id');
+        if (blogId && blogDataCache[blogId]) {
+            return blogDataCache[blogId];
         }
-
-        const raw = $button.attr('data-blog');
-        if (!raw) {
-            return {};
-        }
-
-        try {
-            return JSON.parse(raw.replace(/&apos;/g, "'"));
-        } catch (error) {
-            console.error('Unable to parse blog payload from data-blog:', error, raw);
-            return {};
-        }
+        return {};
     }
 
     // Blog View
@@ -1501,6 +1502,10 @@ $(document).ready(function() {
     // Blog Edit
     $(document).on('click', '.edit-blog', function() {
         const blog = getBlogDataFromButton($(this));
+        if (!blog || !Object.keys(blog).length) {
+            alert('Could not load blog data. Please refresh the page and try again.');
+            return;
+        }
         
         $('#blogModalTitle').text('Edit Blog');
         
