@@ -68,11 +68,11 @@
                                 <div class="bg-white rounded-circle d-flex align-items-center justify-content-center shadow-sm mr-3" style="width:50px; height:50px; font-size:24px;">🔒</div>
                                 <div class="text-left">
                                     <div style="font-size:11px; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:1px;">Assessment Complete</div>
-                                    <div id="rCapScoreHint" style="font-weight:800; font-size:18px; color:var(--armely-blue);">Unlock your results &rarr;</div>
+                                    <div id="rCapScoreHint" style="font-weight:800; font-size:18px; color:var(--armely-blue);">Your report is ready</div>
                                 </div>
                             </div>
                             
-                            <h2 class="cap-h mb-3">Where should we send your results & strategy plan?</h2>
+                            <h2 class="cap-h mb-3">Where should we send your results and strategy plan?</h2>
                             <p class="cap-p mb-4 px-lg-5">Enter your details to reveal your personalized AI data roadmap &mdash; plus tips from the Armely team.</p>
 
                             <form id="rCaptureForm" class="text-left mx-auto" style="max-width:480px;">
@@ -918,7 +918,7 @@
             if (G.qi < QUESTIONS.length) renderQ();
             else {
                 const pct = Math.round((G.score / (QUESTIONS.length * 30)) * 100);
-                el('rCapScoreHint').innerText = `Your score: ${pct}/100 — unlock report &rarr;`;
+                el('rCapScoreHint').innerText = `Your score: ${pct}/100 — your report is ready`;
                 showScreen('rCapture');
                 el('readinessScoreHud').style.display = 'none';
             }
