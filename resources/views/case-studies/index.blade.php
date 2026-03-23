@@ -273,6 +273,7 @@
 			<form class="form lead-form" method="post" action="{{ route('case-studies.lead.submit') }}">
 				@csrf
 				<input type="hidden" name="interest" value="case-studies">
+				<input type="hidden" name="white_paper_id" id="whitePaperId" value="">
 				<input type="hidden" name="case_study_id" id="caseStudyId" value="">
 				<input type="hidden" name="requested_resource" id="caseStudyRequestedResource" value="">
 				<input style="display:none;" type="text" name="website" class="honeypot">
@@ -331,7 +332,7 @@
 					</div>
 					<div class="col-md-5 col-sm-8">
 						<div class="form-group login-btn submit-btn-wrap">
-							<button class="btn default-background" type="submit">Submit & Open Case Study</button>
+							<button class="btn default-background" id="resourceSubmitBtn" type="submit">Submit & Open Resource</button>
 						</div>
 					</div>
 				</div>
@@ -360,6 +361,10 @@
 <div class="container">
 	<div class="row">
 		@forelse($whitePapers as $paper)
+			@php
+				$whitePaperAccessUrl = route('white-papers.access', ['paper' => $paper->id]);
+				$whitePaperUnlocked = in_array((int) $paper->id, $grantedWhitePaperIds ?? [], true);
+			@endphp
 			<div class="col-md-4 mb-4">
 				<div class="white-paper-card">
 					<div class="card-image-wrapper">
@@ -379,7 +384,13 @@
 						<h5 class="card-title">{{ $paper->title }}</h5>
 						<p class="card-description">{{ $paper->preview ?? '' }}</p>
 						<div class="card-footer">
-							<a class="read-more-btn" target="_blank" href="{{ $paper->pdf ? (str_starts_with($paper->pdf, 'http') ? $paper->pdf : asset('white_paper_docs/' . $paper->pdf)) : '#' }}">
+							<a class="read-more-btn white-paper-gated-link"
+							   href="{{ $whitePaperAccessUrl }}"
+							   data-access-url="{{ $whitePaperAccessUrl }}"
+							   data-white-paper-id="{{ $paper->id }}"
+							   data-is-unlocked="{{ $whitePaperUnlocked ? '1' : '0' }}"
+							   data-resource-type="white-paper"
+							   data-resource-title="{{ $paper->title }}">
 								Download Paper <i class="fa fa-download"></i>
 							</a>
 						</div>
@@ -447,16 +458,32 @@
 
 	var label = document.getElementById('selectedCaseStudyLabel');
 	var caseStudyIdInput = document.getElementById('caseStudyId');
+	var whitePaperIdInput = document.getElementById('whitePaperId');
 	var hiddenResource = document.getElementById('caseStudyRequestedResource');
+	var interestInput = document.querySelector('input[name="interest"]');
+	var submitBtn = document.getElementById('resourceSubmitBtn');
 	var closeBtn = document.getElementById('caseModalCloseBtn');
 
-	function openModal(accessUrl, caseStudyId, resourceTitle) {
-		if (!accessUrl || !caseStudyId) {
+	function openModal(resourceType, resourceId, resourceTitle) {
+		if (!resourceId) {
 			return;
 		}
-		caseStudyIdInput.value = caseStudyId;
-		hiddenResource.value = resourceTitle || 'Case Study';
-		label.textContent = 'Selected: ' + (resourceTitle || 'Case Study');
+
+		caseStudyIdInput.value = '';
+		whitePaperIdInput.value = '';
+
+		if (resourceType === 'white-paper') {
+			whitePaperIdInput.value = resourceId;
+			interestInput.value = 'white-papers';
+			submitBtn.textContent = 'Submit & Open White Paper';
+		} else {
+			caseStudyIdInput.value = resourceId;
+			interestInput.value = 'case-studies';
+			submitBtn.textContent = 'Submit & Open Case Study';
+		}
+
+		hiddenResource.value = resourceTitle || 'Resource';
+		label.textContent = 'Selected: ' + (resourceTitle || 'Resource');
 		modal.classList.add('is-open');
 		modal.setAttribute('aria-hidden', 'false');
 		document.body.style.overflow = 'hidden';
@@ -481,7 +508,24 @@
 			}
 
 			event.preventDefault();
-			openModal(accessUrl, caseStudyId, link.getAttribute('data-resource-title') || 'Case Study');
+			openModal('case-study', caseStudyId, link.getAttribute('data-resource-title') || 'Case Study');
+		});
+	});
+
+	document.querySelectorAll('.white-paper-gated-link').forEach(function (link) {
+		link.addEventListener('click', function (event) {
+			var isUnlocked = link.getAttribute('data-is-unlocked') === '1';
+			var accessUrl = link.getAttribute('data-access-url') || '';
+			var whitePaperId = link.getAttribute('data-white-paper-id') || '';
+
+			if (isUnlocked && accessUrl) {
+				event.preventDefault();
+				window.open(accessUrl, '_blank', 'noopener');
+				return;
+			}
+
+			event.preventDefault();
+			openModal('white-paper', whitePaperId, link.getAttribute('data-resource-title') || 'White Paper');
 		});
 	});
 

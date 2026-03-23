@@ -43,6 +43,7 @@ class CaseStudiesController extends Controller
             'whitePapers' => $whitePapers,
             'recaptchaSiteKey' => config('services.recaptcha.site_key', ''),
             'grantedCaseStudyIds' => $this->getGrantedCaseStudyIds($request),
+            'grantedWhitePaperIds' => $this->getGrantedWhitePaperIds($request),
         ]);
     }
 
@@ -60,6 +61,7 @@ class CaseStudiesController extends Controller
             'website' => ['nullable', 'string', 'max:255'],
             'requested_resource' => ['nullable', 'string', 'max:255'],
             'case_study_id' => ['nullable', 'integer', 'exists:industry_listings,id'],
+            'white_paper_id' => ['nullable', 'integer', 'exists:white_paper,id'],
             'g-recaptcha-response' => ['required', 'string'],
         ], [
             'name.required' => 'Name is required.',
@@ -92,6 +94,7 @@ class CaseStudiesController extends Controller
             "Interest: {$interestLabel}\n" .
             "Requested Resource: " . ($data['requested_resource'] ?? 'N/A') . "\n" .
             "Requested Case Study ID: " . ($data['case_study_id'] ?? 'N/A') . "\n" .
+            "Requested White Paper ID: " . ($data['white_paper_id'] ?? 'N/A') . "\n" .
             "Job Title: " . ($data['job_title'] ?? '') . "\n" .
             "Country/Region: " . ($data['country'] ?? '') . "\n" .
             "Lead Source: Case Studies Modal\n\n" .
@@ -107,6 +110,7 @@ class CaseStudiesController extends Controller
             'interest' => $data['interest'],
             'requested_resource' => $data['requested_resource'] ?? null,
             'case_study_id' => $data['case_study_id'] ?? null,
+            'white_paper_id' => $data['white_paper_id'] ?? null,
             'message' => $notes !== '' ? $notes : null,
             'ip_address' => $request->ip(),
             'user_agent' => Str::limit((string) $request->userAgent(), 1000),
@@ -134,6 +138,7 @@ class CaseStudiesController extends Controller
             'interest' => $interestLabel,
             'requested_resource' => $data['requested_resource'] ?? '',
             'case_study_id' => (string) ($data['case_study_id'] ?? ''),
+            'white_paper_id' => (string) ($data['white_paper_id'] ?? ''),
             'message' => $notes,
         ]);
 
@@ -143,6 +148,14 @@ class CaseStudiesController extends Controller
             $this->grantCaseStudyAccess($request, $email, $caseStudyId);
 
             return redirect()->route('case-studies.access', ['caseStudy' => $caseStudyId]);
+        }
+
+        $whitePaperId = (int) ($data['white_paper_id'] ?? 0);
+        if ($whitePaperId > 0) {
+            $email = strtolower(trim($data['email']));
+            $this->grantWhitePaperAccess($request, $email, $whitePaperId);
+
+            return redirect()->route('white-papers.access', ['paper' => $whitePaperId]);
         }
 
         return back()->with('status', 'Thanks! We will share the relevant case studies and white papers shortly.');
@@ -206,6 +219,64 @@ class CaseStudiesController extends Controller
         return redirect()->route('case-studies.access', ['caseStudy' => (int) $caseStudy->id]);
     }
 
+    public function accessWhitePaper(Request $request, int $paper)
+    {
+        if (!$this->hasWhitePaperAccess($request, $paper)) {
+            return redirect()->route('case-studies.index')
+                ->withErrors(['access' => 'Please complete the form to unlock this white paper first.']);
+        }
+
+        $item = DB::table('white_paper')
+            ->select('id', 'pdf')
+            ->where('id', $paper)
+            ->first();
+
+        if (!$item || empty($item->pdf)) {
+            abort(404);
+        }
+
+        $pdfValue = (string) $item->pdf;
+        if (str_starts_with($pdfValue, 'http://') || str_starts_with($pdfValue, 'https://')) {
+            return redirect()->away($pdfValue);
+        }
+
+        $fileName = basename($pdfValue);
+        $privatePath = storage_path('app/private/white_paper_docs/' . $fileName);
+        $publicPath = public_path('white_paper_docs/' . $fileName);
+
+        if (is_file($privatePath)) {
+            return response()->file($privatePath, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="' . $fileName . '"',
+            ]);
+        }
+
+        if (is_file($publicPath)) {
+            return response()->file($publicPath, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="' . $fileName . '"',
+            ]);
+        }
+
+        abort(404);
+    }
+
+    public function legacyWhitePaperDoc(Request $request, string $file)
+    {
+        $paper = DB::table('white_paper')
+            ->select('id')
+            ->where('pdf', $file)
+            ->orWhere('pdf', 'like', '%/' . $file)
+            ->first();
+
+        if (!$paper) {
+            return redirect()->route('case-studies.index')
+                ->withErrors(['access' => 'This white paper document is not available.']);
+        }
+
+        return redirect()->route('white-papers.access', ['paper' => (int) $paper->id]);
+    }
+
     private function makePreviewText(string $value, int $limit): string
     {
         $decoded = html_entity_decode($value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
@@ -266,6 +337,7 @@ class CaseStudiesController extends Controller
                 '<strong>Interest:</strong> ' . e($payload['interest']) . '<br>' .
                 '<strong>Requested Resource:</strong> ' . e($payload['requested_resource']) . '<br>' .
                 '<strong>Requested Case Study ID:</strong> ' . e($payload['case_study_id']) . '<br>' .
+                '<strong>Requested White Paper ID:</strong> ' . e($payload['white_paper_id']) . '<br>' .
                 '<strong>Lead Source:</strong> Case Studies Modal</p>' .
                 '<p><strong>Additional Notes:</strong><br>' . nl2br(e($payload['message'] ?: 'N/A')) . '</p>';
 
@@ -343,5 +415,64 @@ class CaseStudiesController extends Controller
     private function caseStudyAccessCacheKey(string $email): string
     {
         return 'case_study_access:' . sha1(strtolower(trim($email)));
+    }
+
+    private function grantWhitePaperAccess(Request $request, string $email, int $whitePaperId): void
+    {
+        $normalizedEmail = strtolower(trim($email));
+        $sessionIds = array_values(array_unique(array_map('intval', (array) $request->session()->get('white_papers_access_ids', []))));
+        if (!in_array($whitePaperId, $sessionIds, true)) {
+            $sessionIds[] = $whitePaperId;
+        }
+
+        $request->session()->put('white_papers_access_ids', $sessionIds);
+        $request->session()->put('case_studies_access_email', $normalizedEmail);
+
+        $cacheKey = $this->whitePaperAccessCacheKey($normalizedEmail);
+        $cachedIds = array_values(array_unique(array_map('intval', (array) Cache::get($cacheKey, []))));
+        if (!in_array($whitePaperId, $cachedIds, true)) {
+            $cachedIds[] = $whitePaperId;
+        }
+
+        Cache::put($cacheKey, $cachedIds, now()->addDays(30));
+    }
+
+    private function hasWhitePaperAccess(Request $request, int $whitePaperId): bool
+    {
+        $sessionIds = array_map('intval', (array) $request->session()->get('white_papers_access_ids', []));
+        if (in_array($whitePaperId, $sessionIds, true)) {
+            return true;
+        }
+
+        $email = strtolower(trim((string) $request->session()->get('case_studies_access_email', '')));
+        if ($email === '') {
+            return false;
+        }
+
+        $cachedIds = array_map('intval', (array) Cache::get($this->whitePaperAccessCacheKey($email), []));
+        if (in_array($whitePaperId, $cachedIds, true)) {
+            $request->session()->put('white_papers_access_ids', array_values(array_unique(array_merge($sessionIds, $cachedIds))));
+            return true;
+        }
+
+        return false;
+    }
+
+    private function getGrantedWhitePaperIds(Request $request): array
+    {
+        $sessionIds = array_map('intval', (array) $request->session()->get('white_papers_access_ids', []));
+        $email = strtolower(trim((string) $request->session()->get('case_studies_access_email', '')));
+
+        if ($email === '') {
+            return array_values(array_unique($sessionIds));
+        }
+
+        $cachedIds = array_map('intval', (array) Cache::get($this->whitePaperAccessCacheKey($email), []));
+        return array_values(array_unique(array_merge($sessionIds, $cachedIds)));
+    }
+
+    private function whitePaperAccessCacheKey(string $email): string
+    {
+        return 'white_paper_access:' . sha1(strtolower(trim($email)));
     }
 }
