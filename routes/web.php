@@ -13,25 +13,7 @@ use App\Http\Controllers\Admin\AnalyticsController;
 use App\Http\Controllers\ServicesController;
 use App\Http\Controllers\BlogController;
 use App\Http\Controllers\CaseStudiesController;
- 
-Route::get('/store', function (\Illuminate\Http\Request $request) {
-    $configuredStoreUrl = env('STORE_URL');
-    
-    if (!empty($configuredStoreUrl)) {
-        return redirect()->away($configuredStoreUrl);
-    }
-    
-    // Local fallback for the standalone store app under XAMPP.
-    if (in_array($request->getPort(), [8000, 8001], true)) {
-        return redirect()->away('http://localhost/armely-laravel-admin/store/public');
-    }
-    
-    return redirect()->away($request->getScheme() . '://' . $request->getHttpHost() . '/store/public');
-})->name('armely-store');
 use App\Http\Controllers\SearchController;
-Route::get('/armely-store', function () {
-    return redirect()->route('armely-store');
-});
 use App\Http\Controllers\HtmlPageController;
 use App\Http\Controllers\DataReadinessLeadController;
 
@@ -95,14 +77,32 @@ Route::get('/visit/cloudflare', [\App\Http\Controllers\VisitController::class, '
 Route::get('/social-impact-details/{secure_id}', [HomeController::class, 'socialImpactDetails'])->name('social-impact-details');
 Route::get('/industries', [HomeController::class, 'industries'])->name('industries.index');
 Route::get('/mela-ai', [HomeController::class, 'melaAi'])->name('mela-ai');
-$storeBaseUrl = rtrim(env('STORE_URL', 'http://127.0.0.1:8001'), '/');
+
+$storeBaseUrl = trim((string) env('STORE_URL', ''));
 
 Route::get('/store', function () use ($storeBaseUrl) {
-    return redirect()->away($storeBaseUrl);
+    if ($storeBaseUrl === '') {
+        return redirect('/');
+    }
+
+    if (str_starts_with($storeBaseUrl, 'http://') || str_starts_with($storeBaseUrl, 'https://')) {
+        return redirect()->away(rtrim($storeBaseUrl, '/'));
+    }
+
+    return redirect($storeBaseUrl);
 })->name('armely-store');
 
 Route::get('/store/{path}', function (string $path) use ($storeBaseUrl) {
-    return redirect()->away($storeBaseUrl . '/' . ltrim($path, '/'));
+    if ($storeBaseUrl === '') {
+        return redirect('/');
+    }
+
+    $path = ltrim($path, '/');
+    if (str_starts_with($storeBaseUrl, 'http://') || str_starts_with($storeBaseUrl, 'https://')) {
+        return redirect()->away(rtrim($storeBaseUrl, '/') . '/' . $path);
+    }
+
+    return redirect(rtrim($storeBaseUrl, '/') . '/' . $path);
 })->where('path', '.*');
 
 Route::get('/armely-store', function () {
