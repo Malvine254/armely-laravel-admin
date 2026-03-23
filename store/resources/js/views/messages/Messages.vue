@@ -166,6 +166,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useToastStore } from '../../stores/toastStore'
+import { API_BASE_URL } from '../../services/runtimeConfig'
 import Navbar from '../../components/Navbar.vue'
 
 const toastStore = useToastStore()
@@ -193,7 +194,7 @@ const fetchMessages = async () => {
   loading.value = true
   try {
     const token = localStorage.getItem('auth_token')
-    const response = await fetch('http://127.0.0.1:8000/api/v1/messages', {
+    const response = await fetch(`${API_BASE_URL}/messages`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -220,7 +221,7 @@ const fetchMessages = async () => {
 const markAsRead = async (id) => {
   try {
     const token = localStorage.getItem('auth_token')
-    const response = await fetch(`http://127.0.0.1:8000/api/v1/messages/${id}/read`, {
+    const response = await fetch(`${API_BASE_URL}/messages/${id}/read`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -250,7 +251,7 @@ const markAsRead = async (id) => {
 const markAllAsRead = async () => {
   try {
     const token = localStorage.getItem('auth_token')
-    const response = await fetch('http://127.0.0.1:8000/api/v1/messages/mark-all-read', {
+    const response = await fetch(`${API_BASE_URL}/messages/mark-all-read`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -281,7 +282,7 @@ const deleteMessage = async (id) => {
 
   try {
     const token = localStorage.getItem('auth_token')
-    const response = await fetch(`http://127.0.0.1:8000/api/v1/messages/${id}`, {
+    const response = await fetch(`${API_BASE_URL}/messages/${id}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${token}`,
