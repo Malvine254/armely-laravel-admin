@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '../stores/authStore.js';
 import { useToastStore } from '../stores/toastStore.js';
+import { APP_BASE_PATH } from '../services/runtimeConfig.js';
 
 // Import views
 import Login from '../views/auth/Login.vue';
@@ -180,7 +181,7 @@ const routes = [
 ];
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHistory(APP_BASE_PATH),
   routes,
 });
 

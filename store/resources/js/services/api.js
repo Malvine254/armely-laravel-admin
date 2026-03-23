@@ -1,6 +1,5 @@
 import axios from 'axios'
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1'
+import { API_BASE_URL, buildStoreUrl } from './runtimeConfig'
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -35,7 +34,7 @@ api.interceptors.response.use(
       sessionStorage.removeItem('auth_session_expiry')
       sessionStorage.removeItem('auth_restricted')
       sessionStorage.removeItem('auth_remember')
-      window.location.href = '/login'
+      window.location.href = buildStoreUrl('login')
     }
     return Promise.reject(error)
   }
