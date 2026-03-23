@@ -41,5 +41,18 @@ export const buildStoreUrl = (path = '') => {
   return normalizedPath ? `${APP_BASE_PATH}${normalizedPath}` : APP_BASE_PATH
 }
 
-export const API_BASE_URL = (import.meta.env.VITE_API_URL || `${window.location.origin}${buildStoreUrl('api/v1')}`)
+const detectRuntimeApiBaseUrl = () => {
+  if (typeof window === 'undefined') {
+    return '/api/v1'
+  }
+
+  const pathname = window.location.pathname || '/'
+  if (pathname === '/store' || pathname.startsWith('/store/')) {
+    return `${window.location.origin}/store/public/api/v1`
+  }
+
+  return `${window.location.origin}/api/v1`
+}
+
+export const API_BASE_URL = (import.meta.env.VITE_API_URL || detectRuntimeApiBaseUrl())
   .replace(/\/+$/, '')
