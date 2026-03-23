@@ -232,6 +232,68 @@
     padding: 20px 0 !important;
 }
 
+/* Desktop header: keep ALL menu items on one row, original sizes */
+@media (min-width: 1301px) {
+    /* Turn the Bootstrap row into a non-wrapping flex row */
+    .header .header-inner .inner > .row {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+    }
+
+    /* Logo column: keep original size */
+    .header .header-inner .inner > .row > .col-lg-3 {
+        flex: 0 0 auto !important;
+        width: auto !important;
+        max-width: none !important;
+    }
+
+    /* Menu column: fill remaining space */
+    .header .header-inner .inner > .row > .col-lg-9 {
+        flex: 1 1 0% !important;
+        width: auto !important;
+        max-width: none !important;
+        min-width: 0 !important;
+    }
+
+    /* Kill the theme float on .logo so the column doesn't collapse */
+    .header .logo {
+        float: none !important;
+        display: block !important;
+    }
+
+    /* Kill float on nav items, use flexbox instead */
+    .header .nav li {
+        float: none !important;
+    }
+
+    /* Slightly larger nav font */
+    .header .nav li a {
+        font-size: 15px !important;
+    }
+
+    /* The nav list itself: single-line flex */
+    .header .main-menu .nav.menu {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        justify-content: flex-end !important;
+        align-items: center !important;
+        white-space: nowrap !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        list-style: none !important;
+    }
+
+    .header .main-menu .nav.menu > li {
+        flex: 0 0 auto !important;
+    }
+
+    /* Hide the empty get-quote column to reclaim space */
+    .header .header-inner .inner > .row > .col-lg-2 {
+        display: none !important;
+    }
+}
+
 </style>
 </head>
 <body>
@@ -359,6 +421,8 @@
                                     </li>
                                         <li class="{{ request()->is('events') ? 'active' : '' }}"><a href="{{ route('events.index') }}">Events</a></li>
                                     <li class="{{ request()->is('all-partners') ? 'active' : '' }}"><a href="{{ route('partners.index') }}">Partners</a></li>
+                                    <li class="{{ request()->is('mela-ai') ? 'active' : '' }}"><a href="{{ route('mela-ai') }}">Mela AI</a></li>
+                                    <li class="{{ request()->is('store') || request()->is('armely-store') ? 'active' : '' }}"><a href="{{ route('armely-store') }}" target="_blank" rel="noopener noreferrer">Armely Store</a></li>
                                     <li class="{{ request()->is('contact') ? 'active' : '' }}"><a href="{{ route('contact') }}">Let's Talk</a></li>
                                 </ul>
                             </nav>
@@ -419,6 +483,8 @@
         </li>
         <li><a href="{{ route('events.index') }}">Events</a></li>
         <li><a href="{{ route('partners.index') }}">Partners</a></li>
+        <li><a href="{{ route('mela-ai') }}">Mela AI</a></li>
+        <li><a href="{{ route('armely-store') }}" target="_blank" rel="noopener noreferrer">Armely Store</a></li>
         <li><a href="{{ route('contact') }}">Let's Talk</a></li>
     </ul>
 </div>

@@ -1,0 +1,406 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Services\TDSynnexService;
+use App\Exceptions\TDSynnexApiException;
+use App\Models\Product;
+use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Cache;
+
+class ProductController extends Controller
+{
+    protected TDSynnexService $tdsynnexService;
+
+    public function __construct(TDSynnexService $tdsynnexService)
+    {
+        $this->tdsynnexService = $tdsynnexService;
+    }
+
+    /**
+     * Get list of products with pagination and filters (optimized with caching)
+     */
+    public function index(Request $request): JsonResponse
+    {
+        try {
+            // Get filter parameters
+            $vendorId = $request->query('vendor', 'Microsoft');
+            $vendors = $request->query('vendors'); // comma-separated list
+            $pageNo = (int)$request->query('page', 1);
+            $pageSize = (int)$request->query('per_page', 20);
+            $search = $request->query('search');
+            $minPrice = $request->query('min_price');
+            $maxPrice = $request->query('max_price');
+            $billingModels = $request->query('billing_models'); // comma-separated list
+            $useDbCache = $request->query('use_db_cache', true); // Use database cache by default
+            // hide items with zero reseller price by default; set ?hide_zero_price=false to disable
+            $hideZero = filter_var($request->query('hide_zero_price', true), FILTER_VALIDATE_BOOLEAN);
+
+            \Log::info('ProductController.index called', [
+                'vendor' => $vendorId,
+                'vendors' => $vendors,
+                'page' => $pageNo,
+                'per_page' => $pageSize,
+                'search' => $search,
+                'use_db_cache' => $useDbCache,
+                'query_params' => $request->query()
+            ]);
+
+            // Use single vendor if no vendor list specified
+            if (!$vendors) {
+                $vendors = [$vendorId];
+            } else {
+                $vendors = explode(',', $vendors);
+                $vendors = array_map('trim', $vendors);
+            }
+
+            // Try to fetch from database cache first if enabled and no search
+            $allProducts = [];
+            $apiTotal = 0;
+            $fromCache = false;
+
+            if ($useDbCache && empty($search) && empty($minPrice) && empty($maxPrice)) {
+                $allProducts = $this->fetchFromDatabaseCache($vendors, $hideZero);
+                if (!empty($allProducts)) {
+                    $fromCache = true;
+                    $apiTotal = count($allProducts);
+                    \Log::info('Products loaded from database cache', ['count' => count($allProducts)]);
+                }
+            }
+
+            // Fetch from API if not in database cache
+            if (empty($allProducts)) {
+                foreach ($vendors as $vendor) {
+                    try {
+                        $products = $this->tdsynnexService->getProducts(
+                            $vendor,
+                            $pageNo,
+                            $pageSize,
+                            $search
+                        );
+
+                        if ($products['data']['records'] ?? false) {
+                            // Enrich with product images
+                            $records = $products['data']['records'];
+                            
+                            // Convert `media` property if returned inline (sample format)
+                            foreach ($records as &$p) {
+                                if (isset($p['media']) && is_array($p['media'])) {
+                                    $imgs = [];
+                                    // primary/large/thumbnail
+                                    if (!empty($p['media']['primaryImageUrl'])) {
+                                        $imgs[] = $p['media']['primaryImageUrl'];
+                                    }
+                                    if (!empty($p['media']['largeImageUrl'])) {
+                                        $imgs[] = $p['media']['largeImageUrl'];
+                                    }
+                                    if (!empty($p['media']['thumbnailUrl'])) {
+                                        $imgs[] = $p['media']['thumbnailUrl'];
+                                    }
+                                    // additionalImages array
+                                    if (!empty($p['media']['additionalImages']) && is_array($p['media']['additionalImages'])) {
+                                        foreach ($p['media']['additionalImages'] as $add) {
+                                            if (isset($add['url'])) {
+                                                $imgs[] = $add['url'];
+                                            }
+                                        }
+                                    }
+
+                                    if (!empty($imgs)) {
+                                        $p['productImages'] = $imgs;
+                                    }
+                                }
+                            }
+                            unset($p);
+                            
+                            // Try to fetch images via dedicated endpoint for small result sets
+                            if (count($records) <= 10) {
+                                foreach ($records as &$product) {
+                                    if (empty($product['productImages'])) {
+                                        try {
+                                            $images = $this->tdsynnexService->getProductImages($product['productId'] ?? 0);
+                                            if (!isset($product['productImages']) || empty($product['productImages'])) {
+                                                $product['productImages'] = $images['data']['images'] ?? [];
+                                            }
+                                        } catch (\Exception $e) {
+                                            \Log::debug("Could not fetch images for product {$product['productId']}: " . $e->getMessage());
+                                        }
+                                    }
+                                }
+                                unset($product);
+                            }
+                            
+                            $allProducts = array_merge($allProducts, $records);
+                            // Accumulate the original API total
+                            $apiTotal += $products['data']['total'] ?? count($products['data']['records']);
+                        }
+                    } catch (\Exception $e) {
+                        \Log::warning("Failed to fetch products for vendor {$vendor}: " . $e->getMessage());
+                        continue;
+                    }
+                }
+            }
+
+            // Optionally hide zero‑priced products
+            if ($hideZero) {
+                $allProducts = array_filter($allProducts, function ($product) {
+                    return ($product['productPrice'][0]['rsPrice'] ?? 0) > 0;
+                });
+            }
+
+            // Apply price filter if specified
+            if ($minPrice !== null || $maxPrice !== null) {
+                $minPrice = (float)($minPrice ?? 0);
+                $maxPrice = (float)($maxPrice ?? PHP_INT_MAX);
+
+                $allProducts = array_filter($allProducts, function ($product) use ($minPrice, $maxPrice) {
+                    $price = $product['productPrice'][0]['rsPrice'] ?? 0;
+                    return $price >= $minPrice && $price <= $maxPrice;
+                });
+            }
+
+            // Apply billing model filter if specified
+            if ($billingModels) {
+                $billingModelsArray = explode(',', $billingModels);
+                $billingModelsArray = array_map('trim', $billingModelsArray);
+
+                $allProducts = array_filter($allProducts, function ($product) use ($billingModelsArray) {
+                    return in_array($product['billingModel'] ?? '', $billingModelsArray);
+                });
+            }
+
+            // Reset array keys after filtering
+            $allProducts = array_values($allProducts);
+
+            // Get total and prepare response
+            $total = count($allProducts);
+            $records = array_slice($allProducts, ($pageNo - 1) * $pageSize, $pageSize);
+
+            \Log::info('ProductController.index successful', [
+                'total_products' => $total,
+                'api_total' => $apiTotal,
+                'returned_count' => count($records),
+                'vendors' => implode(',', $vendors),
+                'from_cache' => $fromCache
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'records' => $records,
+                    'total' => $total,
+                    'apiTotal' => $apiTotal,
+                    'pageNo' => $pageNo,
+                    'pageSize' => $pageSize,
+                    'vendors' => $vendors,
+                    'cached' => $fromCache
+                ],
+                'message' => 'Products retrieved successfully'
+            ])->header('Cache-Control', 'public, max-age=3600'); // 1 hour client-side cache
+
+        } catch (TDSynnexApiException $e) {
+            \Log::error('ProductController.index TDSynnexApiException', [
+                'message' => $e->getMessage(),
+                'code' => $e->getCode()
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'error' => 'API_ERROR'
+            ], 400);
+        } catch (\Exception $e) {
+            \Log::error('ProductController.index Exception', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve products: ' . $e->getMessage(),
+                'error' => 'SERVER_ERROR',
+                'debug' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
+    }
+
+    /**
+     * Fetch products from database cache
+     */
+    private function fetchFromDatabaseCache(array $vendors, bool $hideZero = true): array
+    {
+        try {
+            // Check if we have recent products in database
+            $query = Product::whereIn('vendor_id', $vendors)
+                ->where('is_available', true)
+                ->where('updated_at', '>=', now()->subHours(2)); // Products updated within last 2 hours
+
+            // If requested, only include products that have a non-zero price
+            if ($hideZero) {
+                $query->where(function ($q) {
+                    $q->where(function ($q2) {
+                        $q2->whereNotNull('base_price')->where('base_price', '>', 0);
+                    })->orWhere(function ($q3) {
+                        $q3->whereNotNull('retail_price')->where('retail_price', '>', 0);
+                    });
+                });
+            }
+
+            $products = $query->select([
+                    'id',
+                    'tdsynnex_product_id as productId',
+                    'tdsynnex_sku_no as mfgPartNo',
+                    'vendor_id as vendorId',
+                    'product_name as productName',
+                    'base_price',
+                    'retail_price',
+                    'billing_model as billingModel',
+                    'billing_frequency as billingFrequency',
+                    'is_discontinued as discontinueProduct',
+                    'specifications',
+                    'images'
+                ])
+                ->limit(1000)
+                ->get();
+
+            return $products->map(function ($product) {
+                return [
+                    'productId' => $product->tdsynnex_product_id,
+                    'productName' => $product->product_name,
+                    'mfgPartNo' => $product->tdsynnex_sku_no,
+                    'vendorId' => $product->vendor_id,
+                    'billingModel' => $product->billing_model,
+                    'billingFrequency' => $product->billing_frequency,
+                    'discontinueProduct' => $product->is_discontinued,
+                    'productPrice' => [
+                        [
+                            'rsPrice' => $product->base_price ?? $product->retail_price,
+                            'minQty' => 1
+                        ]
+                    ],
+                    'specifications' => $product->specifications ?? [],
+                    'images' => $product->images ?? []
+                ];
+            })->toArray();
+        } catch (\Exception $e) {
+            \Log::warning('Database cache fetch failed: ' . $e->getMessage());
+            return [];
+        }
+    }
+    /**
+     * Get product details by product ID
+     */
+    public function show(string $productId): JsonResponse
+    {
+        try {
+            $product = $this->tdsynnexService->getProductDetails($productId);
+
+            return response()->json([
+                'success' => true,
+                'data' => $product['data'] ?? $product,
+                'message' => 'Product details retrieved successfully'
+            ]);
+
+        } catch (TDSynnexApiException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'error' => 'API_ERROR'
+            ], 400);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve product: ' . $e->getMessage(),
+                'error' => 'SERVER_ERROR'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get product by SKU number
+     */
+    public function getBySku(string $skuNo): JsonResponse
+    {
+        try {
+            $product = $this->tdsynnexService->getProductBySku($skuNo);
+
+            return response()->json([
+                'success' => true,
+                'data' => $product['data'] ?? $product,
+                'message' => 'Product retrieved by SKU successfully'
+            ]);
+
+        } catch (TDSynnexApiException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'error' => 'API_ERROR'
+            ], 400);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve product: ' . $e->getMessage(),
+                'error' => 'SERVER_ERROR'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get related products for a product
+     */
+    public function related(string $productId): JsonResponse
+    {
+        try {
+            $relatedProducts = $this->tdsynnexService->getRelatedProducts((int)$productId);
+
+            return response()->json([
+                'success' => true,
+                'data' => $relatedProducts['data'] ?? $relatedProducts,
+                'message' => 'Related products retrieved successfully'
+            ]);
+
+        } catch (TDSynnexApiException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'error' => 'API_ERROR'
+            ], 400);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve related products: ' . $e->getMessage(),
+                'error' => 'SERVER_ERROR'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get list of vendors
+     */
+    public function vendors(): JsonResponse
+    {
+        try {
+            $vendors = $this->tdsynnexService->getVendors();
+
+            return response()->json([
+                'success' => true,
+                'data' => $vendors['data'] ?? [],
+                'message' => 'Vendors retrieved successfully'
+            ]);
+
+        } catch (TDSynnexApiException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'error' => 'API_ERROR'
+            ], 400);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve vendors: ' . $e->getMessage(),
+                'error' => 'SERVER_ERROR'
+            ], 500);
+        }
+    }
+}

@@ -87,6 +87,17 @@ class HomeController extends Controller
         ]);
     }
 
+    public function melaAi()
+    {
+        $dbErrorMessage = null;
+        $demoVideos = $this->recentVideos($dbErrorMessage);
+
+        return view('mela-ai', [
+            'demoVideos' => $demoVideos,
+            'dbErrorMessage' => $dbErrorMessage,
+        ]);
+    }
+
     public function career()
     {
         $dbErrorMessage = null;

@@ -430,7 +430,7 @@
         </div>
         <div class="row g-4">
           <!-- Mela Card -->
-          <div class="col-md-6">
+          <div class="col-md-6" id="mela-ai">
             <div class="modern-card h-100">
               <div class="d-flex align-items-start mb-4">
                 <div class="entity-logo-wrapper me-3">
@@ -454,7 +454,7 @@
             </div>
           </div>
           <!-- Step & Sip Card -->
-          <div class="col-md-6">
+          <div class="col-md-6" id="armely-store">
             <div class="modern-card h-100">
               <div class="d-flex align-items-start mb-4">
                 <div class="entity-logo-wrapper me-3">

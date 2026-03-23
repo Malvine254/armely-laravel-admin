@@ -13,7 +13,25 @@ use App\Http\Controllers\Admin\AnalyticsController;
 use App\Http\Controllers\ServicesController;
 use App\Http\Controllers\BlogController;
 use App\Http\Controllers\CaseStudiesController;
+ 
+Route::get('/store', function (\Illuminate\Http\Request $request) {
+    $configuredStoreUrl = env('STORE_URL');
+    
+    if (!empty($configuredStoreUrl)) {
+        return redirect()->away($configuredStoreUrl);
+    }
+    
+    // Local fallback for the standalone store app under XAMPP.
+    if (in_array($request->getPort(), [8000, 8001], true)) {
+        return redirect()->away('http://localhost/armely-laravel-admin/store/public');
+    }
+    
+    return redirect()->away($request->getScheme() . '://' . $request->getHttpHost() . '/store/public');
+})->name('armely-store');
 use App\Http\Controllers\SearchController;
+Route::get('/armely-store', function () {
+    return redirect()->route('armely-store');
+});
 use App\Http\Controllers\HtmlPageController;
 use App\Http\Controllers\DataReadinessLeadController;
 
@@ -45,6 +63,11 @@ Route::get('/service-details/{name}', [HomeController::class, 'serviceDetails'])
 Route::post('/submit-consultation', [HomeController::class, 'submitConsultation'])->name('submit-consultation');
 
 Route::get('/case-studies', [CaseStudiesController::class, 'index'])->name('case-studies.index');
+Route::post('/case-studies/lead', [CaseStudiesController::class, 'submitLead'])->name('case-studies.lead.submit');
+Route::get('/case-studies/access/{caseStudy}', [CaseStudiesController::class, 'accessCaseStudy'])->name('case-studies.access');
+Route::get('/case_docs/{file}', [CaseStudiesController::class, 'legacyCaseDoc'])
+    ->where('file', '.*')
+    ->name('case-studies.legacy-doc');
 
 Route::get('/blog/{blogId?}', [BlogController::class, 'index'])->name('blog.index');
 Route::post('/blog/{blogId}/increment-clicks', [BlogController::class, 'incrementClicks'])->name('blog.increment-clicks');
@@ -71,6 +94,26 @@ Route::get('/visit/ipapi', [\App\Http\Controllers\VisitController::class, 'ipapi
 Route::get('/visit/cloudflare', [\App\Http\Controllers\VisitController::class, 'cloudflare'])->name('visit.cloudflare');
 Route::get('/social-impact-details/{secure_id}', [HomeController::class, 'socialImpactDetails'])->name('social-impact-details');
 Route::get('/industries', [HomeController::class, 'industries'])->name('industries.index');
+Route::get('/mela-ai', [HomeController::class, 'melaAi'])->name('mela-ai');
+$storeBaseUrl = rtrim(env('STORE_URL', 'http://127.0.0.1:8001'), '/');
+
+Route::get('/store', function () use ($storeBaseUrl) {
+    return redirect()->away($storeBaseUrl);
+})->name('armely-store');
+
+Route::get('/store/{path}', function (string $path) use ($storeBaseUrl) {
+    return redirect()->away($storeBaseUrl . '/' . ltrim($path, '/'));
+})->where('path', '.*');
+
+Route::get('/armely-store', function () {
+    return redirect()->route('armely-store');
+});
+
+Route::get('/store/public/{path?}', function (?string $path = null) {
+    return $path
+        ? redirect('/store/' . ltrim($path, '/'))
+        : redirect('/store');
+})->where('path', '.*');
 Route::get('/job-board', [HomeController::class, 'jobBoard'])->name('job-board.index');
 Route::get('/applications', [HomeController::class, 'applications'])->name('applications.index');
 Route::post('/applications', [HomeController::class, 'submitApplication'])->name('applications.submit');

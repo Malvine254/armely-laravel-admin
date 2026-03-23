@@ -1,6 +1,7 @@
 *.log
 .DS_Store
 .env
+.env.*
 .env.backup
 .env.production
 .phpactor.json
@@ -26,5 +27,7 @@ Thumbs.db
 # (useful when the server cannot run Composer or download the MaxMind DB)
 !composer.lock
 !vendor/
+!.env.example
+!**/.env.example
 !storage/app/geoip/
 !storage/app/geoip/GeoLite2-Country.mmdb
