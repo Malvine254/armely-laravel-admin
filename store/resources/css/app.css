@@ -9,3 +9,8 @@
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
+
+/* Build marker to ensure a fresh main CSS filename for deployment cache misses. */
+:root {
+    --armely-store-build: '2026-03-23';
+}
