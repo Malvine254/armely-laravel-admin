@@ -34,7 +34,7 @@
                 <p class="font-semibold text-slate-900">Card Payment</p>
                 <p class="text-sm text-slate-600">Use Visa, Mastercard, or AMEX via secure checkout.</p>
                 <img
-                  src="/images/payments/card-payment.svg"
+                  :src="buildStoreUrl('images/payments/card-payment.svg')"
                   alt="Card payment gateways"
                   class="mt-2 h-12 w-auto rounded-md border border-slate-200"
                 />
@@ -48,7 +48,7 @@
                 <p class="font-semibold text-slate-900">Bank Account</p>
                 <p class="text-sm text-slate-600">Pay directly using bank transfer options in checkout.</p>
                 <img
-                  src="/images/payments/bank-payment.svg"
+                  :src="buildStoreUrl('images/payments/bank-payment.svg')"
                   alt="Bank transfer gateway"
                   class="mt-2 h-12 w-auto rounded-md border border-slate-200"
                 />
@@ -62,7 +62,7 @@
                 <p class="font-semibold text-slate-900">Wallet / Alternative</p>
                 <p class="text-sm text-slate-600">Use available wallet or alternative methods at checkout.</p>
                 <img
-                  src="/images/payments/wallet-payment.svg"
+                  :src="buildStoreUrl('images/payments/wallet-payment.svg')"
                   alt="Wallet payment options"
                   class="mt-2 h-12 w-auto rounded-md border border-slate-200"
                 />
@@ -74,7 +74,7 @@
         <div class="rounded-xl border border-[#d9e6f7] bg-[#f8fbff] p-4 mb-6">
           <div class="flex flex-col sm:flex-row sm:items-center gap-3">
             <img
-              src="/images/payments/secure-checkout.svg"
+              :src="buildStoreUrl('images/payments/secure-checkout.svg')"
               alt="Secure checkout"
               class="h-12 w-auto"
             />
@@ -112,6 +112,7 @@ import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import { useToastStore } from '../../stores/toastStore'
+import { buildStoreUrl } from '../../services/runtimeConfig'
 import Navbar from '../../components/Navbar.vue'
 
 const route = useRoute()
