@@ -5,7 +5,7 @@
         <!-- Logo Section -->
         <button type="button" class="flex items-center gap-3 flex-shrink-0 cursor-pointer" @click="goToProducts">
           <div class="w-10 h-10 rounded-lg bg-white overflow-hidden flex items-center justify-center">
-            <img src="/images/logo/armely-store-logo.png" alt="Armely Store" class="w-9 h-9 object-contain">
+            <img :src="buildStoreUrl('images/logo/armely-store-logo.png')" alt="Armely Store" class="w-9 h-9 object-contain">
           </div>
           <div class="text-left">
             <div class="font-bold text-lg">Armely Store</div>
@@ -130,7 +130,7 @@ import { useCartStore } from '../stores/cartStore'
 import { useFavoritesStore } from '../stores/favoritesStore'
 import { useAuthStore } from '../stores/authStore'
 import { useToastStore } from '../stores/toastStore'
-import { API_BASE_URL } from '../services/runtimeConfig'
+import { API_BASE_URL, buildStoreUrl } from '../services/runtimeConfig'
 
 const router = useRouter()
 const cartStore = useCartStore()
