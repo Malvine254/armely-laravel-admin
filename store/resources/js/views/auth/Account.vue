@@ -313,6 +313,7 @@ import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/authStore'
 import { useToastStore } from '../../stores/toastStore'
+import { API_BASE_URL } from '../../services/runtimeConfig'
 import Navbar from '../../components/Navbar.vue'
 
 const router = useRouter()
@@ -418,7 +419,7 @@ const fetchActivities = async () => {
   loading.value = true
   try {
     const token = localStorage.getItem('auth_token')
-    const response = await fetch('http://127.0.0.1:8000/api/v1/activities?limit=5', {
+    const response = await fetch(`${API_BASE_URL}/activities?limit=5`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -469,7 +470,7 @@ const submitEditProfile = async () => {
   editFormLoading.value = true
   try {
     const token = localStorage.getItem('auth_token')
-    const response = await fetch('http://127.0.0.1:8000/api/v1/auth/update-profile', {
+    const response = await fetch(`${API_BASE_URL}/auth/update-profile`, {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -537,7 +538,7 @@ const submitChangePassword = async () => {
   passwordFormLoading.value = true
   try {
     const token = localStorage.getItem('auth_token')
-    const response = await fetch('http://127.0.0.1:8000/api/v1/auth/change-password', {
+    const response = await fetch(`${API_BASE_URL}/auth/change-password`, {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -591,7 +592,7 @@ const saveNotificationSettings = () => {
 const logActivity = async (type, action, description) => {
   try {
     const token = localStorage.getItem('auth_token')
-    await fetch('http://127.0.0.1:8000/api/v1/activities/log', {
+    await fetch(`${API_BASE_URL}/activities/log`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,

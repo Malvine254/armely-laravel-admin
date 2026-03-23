@@ -130,6 +130,7 @@ import { useCartStore } from '../stores/cartStore'
 import { useFavoritesStore } from '../stores/favoritesStore'
 import { useAuthStore } from '../stores/authStore'
 import { useToastStore } from '../stores/toastStore'
+import { API_BASE_URL } from '../services/runtimeConfig'
 
 const router = useRouter()
 const cartStore = useCartStore()
@@ -185,7 +186,7 @@ const fetchUnreadCount = async () => {
     const token = localStorage.getItem('auth_token')
     if (!token) return
     
-    const response = await fetch('http://127.0.0.1:8000/api/v1/messages/unread-count', {
+    const response = await fetch(`${API_BASE_URL}/messages/unread-count`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
