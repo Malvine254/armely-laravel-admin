@@ -2,12 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\AzureMailService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class CaseStudiesController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         // Paginate case studies (6 per page)
         $caseStudies = DB::table('industry_listings')
@@ -36,7 +41,169 @@ class CaseStudiesController extends Controller
         return view('case-studies.index', [
             'caseStudies' => $caseStudies,
             'whitePapers' => $whitePapers,
+            'recaptchaSiteKey' => config('services.recaptcha.site_key', ''),
+            'grantedCaseStudyIds' => $this->getGrantedCaseStudyIds($request),
         ]);
+    }
+
+    public function submitLead(Request $request)
+    {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email:rfc,dns', 'max:255'],
+            'phone' => ['required', 'string', 'max:50'],
+            'organization' => ['required', 'string', 'max:255'],
+            'job_title' => ['nullable', 'string', 'max:255'],
+            'country' => ['nullable', 'string', 'max:120'],
+            'interest' => ['required', 'in:case-studies,white-papers,both'],
+            'message' => ['nullable', 'string'],
+            'website' => ['nullable', 'string', 'max:255'],
+            'requested_resource' => ['nullable', 'string', 'max:255'],
+            'case_study_id' => ['nullable', 'integer', 'exists:industry_listings,id'],
+            'g-recaptcha-response' => ['required', 'string'],
+        ], [
+            'name.required' => 'Name is required.',
+            'email.required' => 'Email is required.',
+            'email.email' => 'Please enter a valid work email with a valid domain.',
+            'phone.required' => 'Phone number is required.',
+            'organization.required' => 'Organization name is required.',
+            'interest.required' => 'Please select what you are interested in.',
+            'g-recaptcha-response.required' => 'Please verify that you are not a robot.',
+        ]);
+
+        if (!empty($data['website'])) {
+            return back()->withErrors(['form' => 'Spam detected.'])->withInput();
+        }
+
+        if (!$this->verifyRecaptcha($data['g-recaptcha-response'])) {
+            return back()->withErrors(['captcha' => 'reCAPTCHA verification failed. Please try again.'])->withInput();
+        }
+
+        $interestLabel = match ($data['interest']) {
+            'case-studies' => 'Case Studies',
+            'white-papers' => 'White Papers',
+            default => 'Case Studies & White Papers',
+        };
+
+        $notes = trim((string) ($data['message'] ?? ''));
+        $subject = 'Case Studies & White Papers Request';
+
+        $composedMessage =
+            "Interest: {$interestLabel}\n" .
+            "Requested Resource: " . ($data['requested_resource'] ?? 'N/A') . "\n" .
+            "Requested Case Study ID: " . ($data['case_study_id'] ?? 'N/A') . "\n" .
+            "Job Title: " . ($data['job_title'] ?? '') . "\n" .
+            "Country/Region: " . ($data['country'] ?? '') . "\n" .
+            "Lead Source: Case Studies Modal\n\n" .
+            "Additional Notes:\n" . ($notes !== '' ? $notes : 'N/A');
+
+        DB::table('case_study_lead_requests')->insert([
+            'name' => $data['name'],
+            'email' => strtolower($data['email']),
+            'phone' => $data['phone'],
+            'organization' => $data['organization'],
+            'job_title' => $data['job_title'] ?? null,
+            'country' => $data['country'] ?? null,
+            'interest' => $data['interest'],
+            'requested_resource' => $data['requested_resource'] ?? null,
+            'case_study_id' => $data['case_study_id'] ?? null,
+            'message' => $notes !== '' ? $notes : null,
+            'ip_address' => $request->ip(),
+            'user_agent' => Str::limit((string) $request->userAgent(), 1000),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::table('contacts')->insert([
+            'name' => $data['name'],
+            'email' => strtolower($data['email']),
+            'organization' => $data['organization'],
+            'phone' => $data['phone'],
+            'message' => $composedMessage,
+            'subject' => $subject,
+            'sent_date' => now()->format('Y-m-d H:i:s'),
+        ]);
+
+        $this->sendCaseStudyLeadEmail([
+            'name' => $data['name'],
+            'email' => strtolower($data['email']),
+            'phone' => $data['phone'],
+            'organization' => $data['organization'],
+            'job_title' => $data['job_title'] ?? '',
+            'country' => $data['country'] ?? '',
+            'interest' => $interestLabel,
+            'requested_resource' => $data['requested_resource'] ?? '',
+            'case_study_id' => (string) ($data['case_study_id'] ?? ''),
+            'message' => $notes,
+        ]);
+
+        $caseStudyId = (int) ($data['case_study_id'] ?? 0);
+        if ($caseStudyId > 0) {
+            $email = strtolower(trim($data['email']));
+            $this->grantCaseStudyAccess($request, $email, $caseStudyId);
+
+            return redirect()->route('case-studies.access', ['caseStudy' => $caseStudyId]);
+        }
+
+        return back()->with('status', 'Thanks! We will share the relevant case studies and white papers shortly.');
+    }
+
+    public function accessCaseStudy(Request $request, int $caseStudy)
+    {
+        if (!$this->hasCaseStudyAccess($request, $caseStudy)) {
+            return redirect()->route('case-studies.index')
+                ->withErrors(['access' => 'Please complete the form to unlock this case study first.']);
+        }
+
+        $item = DB::table('industry_listings')
+            ->select('id', 'pdf_url')
+            ->where('id', $caseStudy)
+            ->first();
+
+        if (!$item || empty($item->pdf_url)) {
+            abort(404);
+        }
+
+        $pdfUrl = (string) $item->pdf_url;
+        if (str_starts_with($pdfUrl, 'http://') || str_starts_with($pdfUrl, 'https://')) {
+            return redirect()->away($pdfUrl);
+        }
+
+        $fileName = basename($pdfUrl);
+        $privatePath = storage_path('app/private/case_docs/' . $fileName);
+        $publicPath = public_path('case_docs/' . $fileName);
+
+        if (is_file($privatePath)) {
+            return response()->file($privatePath, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="' . $fileName . '"',
+            ]);
+        }
+
+        if (is_file($publicPath)) {
+            return response()->file($publicPath, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="' . $fileName . '"',
+            ]);
+        }
+
+        abort(404);
+    }
+
+    public function legacyCaseDoc(Request $request, string $file)
+    {
+        $caseStudy = DB::table('industry_listings')
+            ->select('id')
+            ->where('pdf_url', $file)
+            ->orWhere('pdf_url', 'like', '%/' . $file)
+            ->first();
+
+        if (!$caseStudy) {
+            return redirect()->route('case-studies.index')
+                ->withErrors(['access' => 'This case study document is not available.']);
+        }
+
+        return redirect()->route('case-studies.access', ['caseStudy' => (int) $caseStudy->id]);
     }
 
     private function makePreviewText(string $value, int $limit): string
@@ -50,5 +217,131 @@ class CaseStudiesController extends Controller
             ->trim();
 
         return Str::limit((string) $cleaned, $limit);
+    }
+
+    private function verifyRecaptcha(string $token): bool
+    {
+        if (config('services.recaptcha.bypass', false)) {
+            return true;
+        }
+
+        $secret = config('services.recaptcha.secret_key', env('CAPTURE_SECRET_KEY'));
+        if (!$secret) {
+            Log::warning('Case studies lead: missing reCAPTCHA secret key');
+            return false;
+        }
+
+        try {
+            $response = Http::asForm()->timeout(10)->post('https://www.google.com/recaptcha/api/siteverify', [
+                'secret' => $secret,
+                'response' => $token,
+                'remoteip' => request()->ip(),
+            ]);
+
+            return (bool) data_get($response->json(), 'success', false);
+        } catch (\Throwable $e) {
+            Log::error('Case studies lead reCAPTCHA exception', ['error' => $e->getMessage()]);
+            return false;
+        }
+    }
+
+    private function sendCaseStudyLeadEmail(array $payload): void
+    {
+        try {
+            $fromEmail = env('FROM_EMAIL', env('MAIL_FROM_ADDRESS'));
+            $adminEmail = env('ADMIN_EMAIL', $fromEmail);
+            if (!$fromEmail || !$adminEmail) {
+                Log::warning('Case studies lead email skipped: missing FROM_EMAIL/ADMIN_EMAIL');
+                return;
+            }
+
+            $html =
+                '<p><strong>New resource request from Case Studies page</strong></p>' .
+                '<p><strong>Name:</strong> ' . e($payload['name']) . '<br>' .
+                '<strong>Email:</strong> ' . e($payload['email']) . '<br>' .
+                '<strong>Phone:</strong> ' . e($payload['phone']) . '<br>' .
+                '<strong>Organization:</strong> ' . e($payload['organization']) . '<br>' .
+                '<strong>Job Title:</strong> ' . e($payload['job_title']) . '<br>' .
+                '<strong>Country/Region:</strong> ' . e($payload['country']) . '<br>' .
+                '<strong>Interest:</strong> ' . e($payload['interest']) . '<br>' .
+                '<strong>Requested Resource:</strong> ' . e($payload['requested_resource']) . '<br>' .
+                '<strong>Requested Case Study ID:</strong> ' . e($payload['case_study_id']) . '<br>' .
+                '<strong>Lead Source:</strong> Case Studies Modal</p>' .
+                '<p><strong>Additional Notes:</strong><br>' . nl2br(e($payload['message'] ?: 'N/A')) . '</p>';
+
+            $mailer = new AzureMailService();
+            $mailer->sendEmail($fromEmail, $adminEmail, 'Case Studies Lead: ' . $payload['interest'], $html);
+
+            if (strtolower($adminEmail) !== 'ask.me@armely.com') {
+                $mailer->sendEmail($fromEmail, 'ask.me@armely.com', 'Case Studies Lead: ' . $payload['interest'], $html);
+            }
+
+            $userHtml =
+                '<p>Hi ' . e($payload['name']) . ',</p>' .
+                '<p>Thanks for your interest in Armely resources. We received your request for <strong>' . e($payload['interest']) . '</strong> and our team will share the relevant materials soon.</p>' .
+                '<p>Best regards,<br>Armely Team</p>';
+            $mailer->sendEmail($fromEmail, $payload['email'], 'Your Armely resource request', $userHtml);
+        } catch (\Throwable $e) {
+            Log::warning('Case studies lead email failed', ['error' => $e->getMessage()]);
+        }
+    }
+
+    private function grantCaseStudyAccess(Request $request, string $email, int $caseStudyId): void
+    {
+        $normalizedEmail = strtolower(trim($email));
+        $sessionIds = array_values(array_unique(array_map('intval', (array) $request->session()->get('case_studies_access_ids', []))));
+        if (!in_array($caseStudyId, $sessionIds, true)) {
+            $sessionIds[] = $caseStudyId;
+        }
+
+        $request->session()->put('case_studies_access_ids', $sessionIds);
+        $request->session()->put('case_studies_access_email', $normalizedEmail);
+
+        $cacheKey = $this->caseStudyAccessCacheKey($normalizedEmail);
+        $cachedIds = array_values(array_unique(array_map('intval', (array) Cache::get($cacheKey, []))));
+        if (!in_array($caseStudyId, $cachedIds, true)) {
+            $cachedIds[] = $caseStudyId;
+        }
+
+        Cache::put($cacheKey, $cachedIds, now()->addDays(30));
+    }
+
+    private function hasCaseStudyAccess(Request $request, int $caseStudyId): bool
+    {
+        $sessionIds = array_map('intval', (array) $request->session()->get('case_studies_access_ids', []));
+        if (in_array($caseStudyId, $sessionIds, true)) {
+            return true;
+        }
+
+        $email = strtolower(trim((string) $request->session()->get('case_studies_access_email', '')));
+        if ($email === '') {
+            return false;
+        }
+
+        $cachedIds = array_map('intval', (array) Cache::get($this->caseStudyAccessCacheKey($email), []));
+        if (in_array($caseStudyId, $cachedIds, true)) {
+            $request->session()->put('case_studies_access_ids', array_values(array_unique(array_merge($sessionIds, $cachedIds))));
+            return true;
+        }
+
+        return false;
+    }
+
+    private function getGrantedCaseStudyIds(Request $request): array
+    {
+        $sessionIds = array_map('intval', (array) $request->session()->get('case_studies_access_ids', []));
+        $email = strtolower(trim((string) $request->session()->get('case_studies_access_email', '')));
+
+        if ($email === '') {
+            return array_values(array_unique($sessionIds));
+        }
+
+        $cachedIds = array_map('intval', (array) Cache::get($this->caseStudyAccessCacheKey($email), []));
+        return array_values(array_unique(array_merge($sessionIds, $cachedIds)));
+    }
+
+    private function caseStudyAccessCacheKey(string $email): string
+    {
+        return 'case_study_access:' . sha1(strtolower(trim($email)));
     }
 }
