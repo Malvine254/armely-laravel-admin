@@ -164,7 +164,7 @@ hr {
 .hero-cta:hover { background: rgba(255,255,255,0.12); }
 .hero-logo { max-width: 260px; filter: drop-shadow(0 12px 32px rgba(0,0,0,0.4)) drop-shadow(0 4px 12px rgba(0,0,0,0.3)); opacity: 0.95; transition: all 0.3s ease; border-radius: 16px; }
 @media(max-width: 992px){ .hero-grid { grid-template-columns: 1fr; text-align: center; } .hero-logo { margin: 20px auto 0; } }
-.container { padding: 50px 24px; }
+.partner-page-wrapper .container { padding: 50px 24px; }
 
 </style>
 
