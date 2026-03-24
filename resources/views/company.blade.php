@@ -424,9 +424,9 @@
     <div class="row">
       <div class="col-lg-12">
         <div class="section-title">
-          <h2 class="text-light">Our Demo Entities</h2>
+          <h2 class="text-light">Our Innovation Brands</h2>
           <hr class="default-background">
-          <p style="font-size: 1.1rem;  margin-top: 15px; max-width: 800px; margin-left: auto; margin-right: auto;" class="text-light">Explore our innovative demo brands that showcase cutting-edge technology solutions in action</p>
+          <p style="font-size: 1.1rem;  margin-top: 15px; max-width: 800px; margin-left: auto; margin-right: auto;" class="text-light">Explore the brands and solution experiences we use to showcase cutting-edge technology in action</p>
         </div>
         <div class="row g-4">
           <!-- Mela Card -->
@@ -438,10 +438,10 @@
                 </div>
                 <div>
                   <h5 class="mb-2">Mela – Your AI CoPilot</h5>
-                  <span class="badge" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; padding: 5px 12px; border-radius: 20px; font-size: 0.8rem;">AI & Machine Learning</span>
+                  <span class="badge" style="background: linear-gradient(135deg, #2f5597 0%, #1e3a6d 100%); color: #fff; padding: 5px 12px; border-radius: 20px; font-size: 0.8rem;">AI & Machine Learning</span>
                 </div>
               </div>
-              <p><strong>Mela</strong> is a fictitious representative of an Artificial Intelligence organization used by <strong>Armely</strong> to demonstrate technical examples.</p>
+              <p><strong>Mela</strong> represents Armely's AI experience for demonstrating how intelligent copilots, automation, and generative AI can be embedded into modern business workflows.</p>
               <p>It showcases how organizations embed AI in workflows—from building copilots with <strong>Copilot Studio</strong> to deploying machine learning and generative AI solutions.</p>
               <h6 class="mt-4 mb-3" style="color: #2c3e50; font-weight: 600; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px;">Use Cases Demonstrated:</h6>
               <ul class="list-unstyled">
@@ -462,10 +462,10 @@
                 </div>
                 <div>
                   <h5 class="mb-2">Step & Sip – Data-Driven Coffee</h5>
-                  <span class="badge" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: #fff; padding: 5px 12px; border-radius: 20px; font-size: 0.8rem;">Data Analytics & BI</span>
+                  <span class="badge" style="background: linear-gradient(135deg, #2f5597 0%, #1e3a6d 100%); color: #fff; padding: 5px 12px; border-radius: 20px; font-size: 0.8rem;">Data Analytics & BI</span>
                 </div>
               </div>
-              <p><strong>Step & Sip</strong> is a fictitious brand used by <strong>Armely</strong> to showcase modern data practices through a retail lens.</p>
+              <p><strong>Step & Sip</strong> represents Armely's data and analytics experience, showing how modern retail operations can be improved through connected insights, forecasting, and automation.</p>
               <p>We demonstrate how coffee and data blend through real-time insights, automation, and intelligence—powered by <strong>Microsoft Fabric</strong> and <strong>Power Platform</strong>.</p>
               <h6 class="mt-4 mb-3" style="color: #2c3e50; font-weight: 600; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px;">Use Cases Demonstrated:</h6>
               <ul class="list-unstyled">
