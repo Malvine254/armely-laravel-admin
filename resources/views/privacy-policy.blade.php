@@ -29,7 +29,6 @@
 .section-heading-modern { font-weight: 800; letter-spacing: .3px; }
 .title-divider { width: 80px; height: 4px; background: var(--pp-accent); border-radius: 2px; margin: 12px 0 0; }
 
-.action-links { display:flex; gap: 12px; margin-top: 18px; }
 </style>
 @endpush
 
@@ -143,10 +142,7 @@
 					<p>Armely is a data management and portal consulting firm in North Texas with a global reach. We help clients transform and achieve competitive advantage through data, analytics, visualization, and predictions.</p>
 				</div>
 
-				<div class="action-links">
-					<a href="#overview" class="btn default-button text-light"><i class="icofont-simple-up"></i> Back to top</a>
-					<a href="https://armely.com/privacy-policy" target="_blank" rel="noopener" class="btn btn-outline-primary">Canonical Policy</a>
-				</div>
+
 			</div>
 		</div>
 	</div>

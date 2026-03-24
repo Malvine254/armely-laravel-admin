@@ -23,7 +23,7 @@
     width: 200%;
     height: 200%;
     background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
-    animation: rotateGlow 20s linear infinite;
+    transform: rotate(8deg);
     z-index: 1;
     pointer-events: none;
 }
@@ -41,25 +41,29 @@
 }
 
 .carousel-item {
-    transition: opacity 1s cubic-bezier(0.4, 0, 0.2, 1) !important;
     position: relative;
     min-height: 550px;
-    opacity: 0;
-}
-
-.carousel-item.active,
-.carousel-item.pre-active {
-    opacity: 1;
 }
 
 .carousel-item.active {
     display: block;
 }
 
-/* Ensure smooth cross-fade */
+/* Layer slides so outgoing/incoming overlap and never expose wrapper background */
+.carousel-inner {
+    min-height: 550px;
+}
+
 .carousel-fade .carousel-item {
     opacity: 0;
-    transition: opacity 1s ease-in-out;
+    transition: opacity 0.85s ease-in-out;
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 0;
+    pointer-events: none;
 }
 
 .carousel-fade .carousel-item.active,
@@ -67,14 +71,13 @@
 .carousel-fade .carousel-item-prev.carousel-item-end {
     opacity: 1;
     z-index: 1;
+    pointer-events: auto;
 }
 
-.carousel-fade .carousel-item-next:not(.carousel-item-start),
-.carousel-fade .carousel-item-prev:not(.carousel-item-end),
 .carousel-fade .active.carousel-item-start,
 .carousel-fade .active.carousel-item-end {
     opacity: 0;
-    transition: opacity 0s 1s;
+    z-index: 0;
 }
 
 /* Prevent flash on load */
@@ -94,6 +97,8 @@
 }
 
 .carousel-item img {
+    width: 100%;
+    display: block;
     height: 550px;
     object-fit: cover;
     filter: brightness(0.7) contrast(1.15) saturate(1.2);
@@ -105,7 +110,7 @@
 }
 
 .carousel-item.active img {
-    animation: slideZoom 20s ease-out forwards;
+    animation: slideZoom 8s ease-out forwards;
 }
 
 @keyframes slideZoom {
@@ -354,6 +359,19 @@
         width: 35px;
         height: 35px;
         display: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .carousel-item,
+    .carousel-fade .carousel-item,
+    .carousel-item img,
+    .carousel-caption,
+    .carousel-caption h3,
+    .carousel-caption p,
+    .carousel-caption .caption-cta {
+        animation: none !important;
+        transition: none !important;
     }
 }
 
@@ -687,7 +705,7 @@
 
 @section('content')
 <div class="modern-carousel-wrapper">
-  <div id="modernFadeCarousel" class="carousel slide carousel-fade" data-ride="carousel" data-interval="8000">
+    <div id="modernFadeCarousel" class="carousel slide carousel-fade" data-ride="carousel" data-interval="6500" data-pause="hover">
 
     <ol class="carousel-indicators">
       <li data-target="#modernFadeCarousel" data-slide-to="0" class="active"></li>
@@ -1085,50 +1103,40 @@
 
 @push('scripts')
 <script>
-// Smooth Carousel Transition Fix
+// Smooth and lightweight carousel initialization
 (function() {
     'use strict';
-    
+
     var carousel = document.getElementById('modernFadeCarousel');
-    
+
     if (carousel) {
-        // Prevent default Bootstrap fade behavior issues
         var items = carousel.querySelectorAll('.carousel-item');
-        
-        // Preload all images to prevent flashing
+
+        // Preload slide images to avoid first-transition flash
         items.forEach(function(item) {
             var img = item.querySelector('img');
-            if (img && img.complete) {
-                img.style.opacity = '1';
-            } else if (img) {
+            if (img) {
                 img.addEventListener('load', function() {
                     img.style.opacity = '1';
                 });
+                if (img.complete) {
+                    img.style.opacity = '1';
+                }
             }
         });
-        
-        // Enhanced fade transition with proper timing
-        $(carousel).on('slide.bs.carousel', function(e) {
-            var $animatingItem = $(e.relatedTarget);
-            var $activeItem = $(carousel).find('.carousel-item.active');
-            
-            // Ensure smooth transition
-            $animatingItem.addClass('pre-active');
-            
-            setTimeout(function() {
-                $animatingItem.removeClass('pre-active');
-            }, 50);
+
+        // Initialize with a calmer interval and hover pause
+        $(carousel).carousel({
+            interval: 6500,
+            pause: 'hover',
+            wrap: true,
+            keyboard: true
         });
-        
-        // Clean up after transition
-        $(carousel).on('slid.bs.carousel', function(e) {
-            $(carousel).find('.carousel-item').removeClass('pre-active');
-        });
-        
-        // Ensure first load doesn't flash
-        setTimeout(function() {
+
+        // Mark loaded after first paint to prevent non-active slide flash
+        requestAnimationFrame(function() {
             carousel.classList.add('carousel-loaded');
-        }, 100);
+        });
     }
 })();
 </script>

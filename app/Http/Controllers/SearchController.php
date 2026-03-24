@@ -3,302 +3,506 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\View;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Str;
 
 class SearchController extends Controller
 {
     /**
-     * Search through all pages and return results
+     * Database-driven sources to search.
      *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function search(Request $request)
-    {
-        $query = $request->input('query', '');
-        $maxResults = $request->input('max_results', 20);
-
-        if (strlen($query) < 2) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Search query must be at least 2 characters',
-                'results' => []
-            ]);
-        }
-
-        $results = [];
-        $searchablePages = $this->getSearchablePages();
-
-        foreach ($searchablePages as $page) {
-            try {
-                // Get the content of each page
-                $content = $this->getPageContent($page);
-                
-                if ($content) {
-                    // Search for the query in the content
-                    $matches = $this->searchInContent($content, $query, $page);
-                    
-                    if (!empty($matches)) {
-                        $results = array_merge($results, $matches);
-                    }
-                }
-
-                // Limit results
-                if (count($results) >= $maxResults) {
-                    break;
-                }
-            } catch (\Exception $e) {
-                // Log error but continue searching other pages
-                Log::error("Search error for page {$page['name']}: " . $e->getMessage());
-            }
-        }
-
-        // Sort results by relevance
-        usort($results, function ($a, $b) {
-            return $b['relevance'] <=> $a['relevance'];
-        });
-
-        // Limit to max results
-        $results = array_slice($results, 0, $maxResults);
-
-        return response()->json([
-            'success' => true,
-            'query' => $query,
-            'total_results' => count($results),
-            'results' => $results
-        ]);
-    }
-
-    /**
-     * Get list of searchable pages
+     * To make a new page/section searchable, add its table definition here.
+     * New database records are automatically included — no further code changes needed.
      *
-     * @return array
+     * Required keys per source:
+     *   type          – human-readable label shown in results (e.g. "Blog Post")
+     *   table         – database table name
+     *   columns       – columns to search with LIKE (first match provides the snippet)
+     *   label_column  – column used as the result title
+     *   extra_select  – additional columns needed by url_builder (e.g. IDs)
+     *   url_builder   – closure that receives a DB row and returns the page URL
      */
-    private function getSearchablePages()
+    private function getDbSources(): array
     {
         return [
-            ['name' => 'Home', 'route' => 'home', 'view' => 'home'],
-            ['name' => 'Company', 'route' => 'company.index', 'view' => 'company'],
-            ['name' => 'Services', 'route' => 'services', 'view' => 'services'],
-            ['name' => 'Industries', 'route' => 'industries.index', 'view' => 'industries'],
-            ['name' => 'Blog', 'route' => 'blog.index', 'view' => 'blog.index'],
-            ['name' => 'Career', 'route' => 'career.index', 'view' => 'career'],
-            ['name' => 'Contact', 'route' => 'contact', 'view' => 'contact'],
-            ['name' => 'Team', 'route' => 'team.index', 'view' => 'team'],
-            ['name' => 'Events', 'route' => 'events.index', 'view' => 'events'],
-            ['name' => 'Customer Stories', 'route' => 'customer-stories.index', 'view' => 'customer-stories'],
-            ['name' => 'Case Studies', 'route' => 'case-studies.index', 'view' => 'case-studies.index'],
-            ['name' => 'Social Impact', 'route' => 'social-impact.index', 'view' => 'social-impact'],
-            ['name' => 'Partners', 'route' => 'partners.index', 'view' => 'partners'],
-            ['name' => 'Job Board', 'route' => 'job-board.index', 'view' => 'job-board'],
+            [
+                'type'         => 'Blog Post',
+                'table'        => 'blogs',
+                'columns'      => ['title', 'body', 'author'],
+                'label_column' => 'title',
+                'extra_select' => ['blog_id'],
+                'url_builder'  => fn ($row) => url('/blog/' . ($row->blog_id ?? '')),
+            ],
+            [
+                'type'         => 'Event',
+                'table'        => 'events',
+                'columns'      => ['title', 'body'],
+                'label_column' => 'title',
+                'extra_select' => [],
+                'url_builder'  => fn ($row) => url('/events'),
+            ],
+            [
+                'type'         => 'Career Opportunity',
+                'table'        => 'career',
+                'columns'      => ['job_title', 'job_location', 'job_type'],
+                'label_column' => 'job_title',
+                'extra_select' => ['job_id'],
+                'url_builder'  => fn ($row) => url('/job-board') . '?id=' . ($row->job_id ?? ''),
+            ],
+            [
+                'type'         => 'Customer Story',
+                'table'        => 'customer_stories',
+                'columns'      => ['name', 'position', 'body_content'],
+                'label_column' => 'name',
+                'extra_select' => [],
+                'url_builder'  => fn ($row) => url('/customer-stories'),
+            ],
+            [
+                'type'         => 'Social Impact',
+                'table'        => 'social_impact',
+                'columns'      => ['title', 'body', 'snippet'],
+                'label_column' => 'title',
+                'extra_select' => ['secure_id'],
+                'url_builder'  => fn ($row) => url('/social-impact-details/' . ($row->secure_id ?? '')),
+            ],
+            [
+                'type'         => 'Service',
+                'table'        => 'services_lists',
+                'columns'      => ['title', 'body'],
+                'label_column' => 'title',
+                'extra_select' => [],
+                'url_builder'  => fn ($row) => url('/service-details/' . Str::slug($row->title ?? '')),
+            ],
+            [
+                'type'         => 'Case Study',
+                'table'        => 'industry_listings',
+                'columns'      => ['category', 'body'],
+                'label_column' => 'category',
+                'extra_select' => [],
+                'url_builder'  => fn ($row) => url('/case-studies'),
+            ],
+            [
+                'type'         => 'White Paper',
+                'table'        => 'white_paper',
+                'columns'      => ['title', 'body'],
+                'label_column' => 'title',
+                'extra_select' => [],
+                'url_builder'  => fn ($row) => url('/case-studies'),
+            ],
+            [
+                'type'         => 'Team Member',
+                'table'        => 'team',
+                'columns'      => ['team_name', 'team_title', 'team_body'],
+                'label_column' => 'team_name',
+                'extra_select' => [],
+                'url_builder'  => fn ($row) => url('/company'),
+            ],
         ];
     }
 
+    // -------------------------------------------------------------------------
+    // STATIC VIEW AUTO-DISCOVERY
+    // -------------------------------------------------------------------------
+
     /**
-     * Get page content by rendering the view
-     *
-     * @param array $page
-     * @return string|null
+     * View sub-folders and file name patterns that are NOT public pages.
+     * Everything else is treated as a searchable page automatically.
      */
-    private function getPageContent($page)
+    private const VIEW_EXCLUDES = [
+        'admin',        // admin panel templates
+        'layouts',      // base layout wrappers
+        'partials',     // reusable components
+        'errors',       // error pages
+        'emails',       // mail templates
+        'vendor',       // vendor/package views
+        'welcome',      // Laravel default welcome page
+    ];
+
+    /**
+     * Explicit URL overrides for views whose URL cannot be inferred from their
+     * file name alone.  Key = dot-notation view name.
+     *
+     * Add an entry here when a new view's URL differs from /view-name.
+     * For everything else, the URL is inferred automatically.
+     */
+    private const VIEW_URL_MAP = [
+        'home'                  => '/',
+        'partners'              => '/all-partners',
+        'social-impact-details' => '/social-impact',   // detail pages share parent URL
+        'service-details'       => '/services',
+        'job-board'             => '/career',
+        'applications'          => '/career',
+        'contact-thank-you'     => '/contact',
+        'partner-page'          => '/all-partners',
+        'team'                  => '/company',
+    ];
+
+    /**
+     * Auto-discover every public Blade view under resources/views/ and map
+     * each one to its URL.  New views are picked up with zero code changes.
+     *
+     * Returns: array of ['name'=>…, 'view'=>…, 'url'=>…]
+     */
+    private function discoverStaticViews(): array
     {
-        try {
-            // Check if the view exists
-            if (View::exists($page['view'])) {
-                // Pass common empty variables to prevent rendering crashes
-                $fallbackData = [
-                    'offers' => collect(),
-                    'industryListings' => collect(),
-                    'blogs' => collect(),
-                    'videos' => collect(),
-                    'team' => collect(),
-                    'events' => collect(),
-                    'coreValues' => collect(),
-                    'careerListings' => collect(),
-                    'socialImpacts' => collect(),
-                    'caseStudies' => collect(),
-                    'partners' => collect(),
-                    'title' => $page['name'],
-                    'dbErrorMessage' => null,
-                    'recaptchaSiteKey' => ''
-                ];
+        $viewsBase = resource_path('views');
+        $pages     = [];
 
-                // Render the view and get content
-                $content = View::make($page['view'], $fallbackData)->render();
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($viewsBase, \RecursiveDirectoryIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::LEAVES_ONLY
+        );
 
-                // Remove inline styles and scripts so search doesn't index CSS/JS
-                // Strip <style>...</style> blocks
-                $content = preg_replace('/<style\b[^>]*>.*?<\/style>/is', '', $content);
-                // Strip <script>...</script> blocks
-                $content = preg_replace('/<script\b[^>]*>.*?<\/script>/is', '', $content);
-                // Also remove noscript blocks
-                $content = preg_replace('/<noscript\b[^>]*>.*?<\/noscript>/is', '', $content);
-                
-                // Strip HTML tags but preserve spacing
-                $content = strip_tags($content);
-                
-                // Remove extra whitespace
-                $content = preg_replace('/\s+/', ' ', $content);
-                
-                return trim($content);
+        foreach ($iterator as $file) {
+            /** @var \SplFileInfo $file */
+            if ($file->getExtension() !== 'php') {
+                continue;
             }
-        } catch (\Exception $e) {
-            Log::error("Error getting content for {$page['name']}: " . $e->getMessage());
+
+            // Convert absolute path → dot-notation view name
+            $relative = str_replace($viewsBase . DIRECTORY_SEPARATOR, '', $file->getPathname());
+            $relative = str_replace(DIRECTORY_SEPARATOR, '.', $relative);
+            $dotName  = Str::beforeLast($relative, '.blade');  // strip .blade.php
+
+            // Skip excluded folders
+            $firstSegment = Str::before($dotName, '.');
+            if (in_array($firstSegment, self::VIEW_EXCLUDES, true)) {
+                continue;
+            }
+
+            // Also skip any file named exactly as an excluded folder
+            if (in_array($dotName, self::VIEW_EXCLUDES, true)) {
+                continue;
+            }
+
+            // Resolve URL
+            $url = self::VIEW_URL_MAP[$dotName] ?? null;
+
+            if ($url === null) {
+                // Infer URL: replace dots with slashes, prefix with /
+                // e.g. "blog.index" → "/blog", "privacy-policy" → "/privacy-policy"
+                $slug = str_replace('.', '/', $dotName);
+                // Strip trailing /index
+                $slug = rtrim(preg_replace('/\/index$/', '', $slug), '/');
+                $url  = '/' . ltrim($slug, '/');
+            }
+
+            // Human-readable name from the last segment of the dot-name
+            $lastName = Str::afterLast($dotName, '.');
+            $name     = Str::title(str_replace(['-', '_'], ' ', $lastName));
+
+            $pages[] = [
+                'name' => $name,
+                'view' => $dotName,
+                'url'  => url($url),
+            ];
         }
 
-        return null;
+        return $pages;
     }
 
     /**
-     * Search for query in content and extract relevant snippets
-     *
-     * @param string $content
-     * @param string $query
-     * @param array $page
-     * @return array
+     * Read a Blade view file as plain text by stripping all markup, Blade
+     * directives, inline CSS/JS, and PHP so only human-readable prose remains.
      */
-    private function searchInContent($content, $query, $page)
+    private function extractViewText(string $viewDotName): string
+    {
+        $relativePath = str_replace('.', DIRECTORY_SEPARATOR, $viewDotName) . '.blade.php';
+        $filePath     = resource_path('views' . DIRECTORY_SEPARATOR . $relativePath);
+
+        if (! file_exists($filePath)) {
+            return '';
+        }
+
+        $raw = file_get_contents($filePath);
+
+        // Remove <style> and <script> blocks entirely
+        $raw = preg_replace('/<style\b[^>]*>.*?<\/style>/is', '', $raw);
+        $raw = preg_replace('/<script\b[^>]*>.*?<\/script>/is', '', $raw);
+        // Remove Blade block directives with bodies  (@section … @endsection handled below)
+        $raw = preg_replace('/@push\b.*?@endpush/is', '', $raw);
+        $raw = preg_replace('/@php\b.*?@endphp/is', '', $raw);
+        // Remove single-line Blade directives
+        $raw = preg_replace('/@[a-zA-Z]+\s*(\([^)]*\))?/', '', $raw);
+        // Remove Blade / PHP expressions
+        $raw = preg_replace('/\{\{.*?\}\}/s', '', $raw);
+        $raw = preg_replace('/\{!!.*?!!\}/s', '', $raw);
+        $raw = preg_replace('/<\?php.*?\?>/s', '', $raw);
+        // Strip all remaining HTML tags
+        $raw = strip_tags($raw);
+        // Decode HTML entities so "&amp;" etc. don't appear in snippets
+        $raw = html_entity_decode($raw, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        // Collapse whitespace
+        $raw = preg_replace('/\s+/', ' ', $raw);
+
+        return trim($raw);
+    }
+
+    /**
+     * Search all auto-discovered static view pages against the query.
+     */
+    private function searchStaticViewSources(string $query): array
     {
         $results = [];
-        $query = strtolower($query);
-        $contentLower = strtolower($content);
 
-        // Find all occurrences
-        $offset = 0;
-        $maxSnippets = 3;
-        $snippetCount = 0;
-        $relevanceScore = 0;
+        foreach ($this->discoverStaticViews() as $page) {
+            try {
+                $text = $this->extractViewText($page['view']);
 
-        while (($pos = strpos($contentLower, $query, $offset)) !== false && $snippetCount < $maxSnippets) {
-            // Extract snippet around the match
-            $snippetLength = 200;
-            $start = max(0, $pos - $snippetLength / 2);
-            $snippet = substr($content, $start, $snippetLength * 2);
+                if ($text === '' || stripos($text, $query) === false) {
+                    continue;
+                }
 
-            // Clean up snippet
-            $snippet = $this->cleanSnippet($snippet, $query);
+                $snippet   = $this->extractSnippet($text, $query);
+                $relevance = $this->scoreColumn($text, $query, false);
 
-            if (!empty($snippet)) {
-                // Calculate position as percentage for exact location
-                $position = round(($pos / strlen($content)) * 100, 2);
+                if (stripos($page['name'], $query) !== false) {
+                    $relevance += 50;
+                }
 
                 $results[] = [
+                    'type'      => 'Page',
                     'page_name' => $page['name'],
-                    'page_url' => route($page['route']) . '?highlight=' . urlencode($query),
-                    'snippet' => $snippet,
-                    'position' => $position . '%',
-                    'relevance' => $this->calculateRelevance($query, $snippet, $page['name'])
+                    'page_url'  => $page['url'] . '?highlight=' . urlencode($query),
+                    'snippet'   => $snippet,
+                    'relevance' => $relevance,
                 ];
-
-                $snippetCount++;
-                $relevanceScore++;
+            } catch (\Throwable $e) {
+                Log::warning("Search: skipping static view '{$page['view']}': " . $e->getMessage());
             }
-
-            $offset = $pos + strlen($query);
         }
 
         return $results;
     }
 
     /**
-     * Clean and format snippet
-     *
-     * @param string $snippet
-     * @param string $query
-     * @return string
+     * Search through all pages and return results.
      */
-    private function cleanSnippet($snippet, $query)
+    public function search(Request $request)
     {
-        // Trim snippet at word boundaries
-        $snippet = trim($snippet);
-        
-        // Find first and last space for clean cut
-        $firstSpace = strpos($snippet, ' ');
-        $lastSpace = strrpos($snippet, ' ');
-        
-        if ($firstSpace !== false && $lastSpace !== false) {
-            $snippet = substr($snippet, $firstSpace, $lastSpace - $firstSpace);
+        $query      = trim((string) $request->input('query', ''));
+        $maxResults = min((int) $request->input('max_results', 20), 100);
+
+        if (strlen($query) < 2) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Search query must be at least 2 characters',
+                'results' => [],
+            ]);
         }
 
-        // Highlight the search term (case insensitive)
-        $snippet = preg_replace('/(' . preg_quote($query, '/') . ')/i', '<mark>$1</mark>', $snippet);
+        $results = [];
 
-        // Add ellipsis
-        $snippet = '...' . trim($snippet) . '...';
+        // 1. Search each database-driven source
+        foreach ($this->getDbSources() as $source) {
+            try {
+                $rows    = $this->searchDbSource($source, $query);
+                $results = array_merge($results, $rows);
+            } catch (\Throwable $e) {
+                Log::warning("Search: skipping table '{$source['table']}': " . $e->getMessage());
+            }
+        }
 
-        return $snippet;
+        // 2. Search static view pages by reading their actual file content
+        $results = array_merge($results, $this->searchStaticViewSources($query));
+
+        // Sort by relevance descending
+        usort($results, fn ($a, $b) => $b['relevance'] <=> $a['relevance']);
+
+        $results = array_slice($results, 0, $maxResults);
+
+        return response()->json([
+            'success'       => true,
+            'query'         => $query,
+            'total_results' => count($results),
+            'results'       => $results,
+        ]);
     }
 
     /**
-     * Calculate relevance score
-     *
-     * @param string $query
-     * @param string $snippet
-     * @param string $pageName
-     * @return int
+     * Query a single database source and return matching result items.
      */
-    private function calculateRelevance($query, $snippet, $pageName)
+    private function searchDbSource(array $source, string $query): array
     {
-        $score = 0;
+        // Columns to SELECT: content columns + any extra columns needed for URL building
+        $selectCols = array_unique(array_merge($source['columns'], $source['extra_select']));
 
-        // Count occurrences in snippet
-        $occurrences = substr_count(strtolower($snippet), strtolower($query));
-        $score += $occurrences * 10;
+        $rows = DB::table($source['table'])
+            ->select($selectCols)
+            ->where(function ($q) use ($source, $query) {
+                foreach ($source['columns'] as $col) {
+                    $q->orWhere($col, 'LIKE', '%' . $query . '%');
+                }
+            })
+            ->limit(10)
+            ->get();
 
-        // Boost if query is in page name
-        if (stripos($pageName, $query) !== false) {
-            $score += 50;
+        $results = [];
+
+        foreach ($rows as $row) {
+            $url       = ($source['url_builder'])($row);
+            $labelCol  = $source['label_column'];
+            $label     = Str::limit(strip_tags((string) ($row->$labelCol ?? $source['type'])), 80);
+            $snippet   = '';
+            $relevance = 0;
+
+            // Accumulate relevance from every matching column; use first match for snippet
+            foreach ($source['columns'] as $col) {
+                $plainText = strip_tags((string) ($row->$col ?? ''));
+
+                if (stripos($plainText, $query) === false) {
+                    continue;
+                }
+
+                if ($snippet === '') {
+                    $snippet = $this->extractSnippet($plainText, $query);
+                }
+
+                $isTitleColumn = ($col === $labelCol);
+                $relevance    += $this->scoreColumn($plainText, $query, $isTitleColumn);
+            }
+
+            if ($snippet === '') {
+                continue; // safety guard — shouldn't happen
+            }
+
+            $results[] = [
+                'type'      => $source['type'],
+                'page_name' => $source['type'] . ': ' . $label,
+                'page_url'  => $url . '?highlight=' . urlencode($query),
+                'snippet'   => $snippet,
+                'relevance' => $relevance,
+            ];
         }
 
-        // Boost for exact matches
-        if (stripos($snippet, $query) !== false) {
-            $score += 20;
+        return $results;
+    }
+
+    /**
+     * Extract a readable snippet centred around the first occurrence of $query.
+     */
+    private function extractSnippet(string $text, string $query, int $length = 200): string
+    {
+        $pos = stripos($text, $query);
+
+        if ($pos === false) {
+            return $this->highlight(Str::limit($text, $length), $query);
+        }
+
+        $start   = max(0, $pos - intval($length / 2));
+        $snippet = substr($text, $start, $length);
+
+        // Trim to word boundaries
+        if ($start > 0 && ($boundary = strpos($snippet, ' ')) !== false) {
+            $snippet = substr($snippet, $boundary + 1);
+        }
+
+        if (($lastSpace = strrpos($snippet, ' ')) !== false && $lastSpace > strlen($snippet) - 20) {
+            $snippet = substr($snippet, 0, $lastSpace);
+        }
+
+        $prefix = $start > 0 ? '...' : '';
+        $suffix = strlen($text) > ($start + $length) ? '...' : '';
+
+        return $prefix . $this->highlight($snippet, $query) . $suffix;
+    }
+
+    /**
+     * Wrap all occurrences of $query in <mark> tags.
+     */
+    private function highlight(string $text, string $query): string
+    {
+        return preg_replace('/(' . preg_quote($query, '/') . ')/i', '<mark>$1</mark>', $text);
+    }
+
+    /**
+     * Score a single column's content for relevance.
+     * Title/label columns get a significant boost.
+     */
+    private function scoreColumn(string $text, string $query, bool $isTitleColumn): int
+    {
+        $score = substr_count(strtolower($text), strtolower($query)) * 10;
+        $score += 20; // base bonus for any match
+
+        if ($isTitleColumn) {
+            $score += 50;
         }
 
         return $score;
     }
 
     /**
-     * Get search suggestions based on partial query
-     *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     * Return autocomplete suggestions based on a partial query.
+     * Pulls live titles from the database so new content is immediately discoverable.
      */
     public function suggestions(Request $request)
     {
-        $query = $request->input('query', '');
+        $query = trim((string) $request->input('query', ''));
 
         if (strlen($query) < 2) {
-            return response()->json([
-                'suggestions' => []
-            ]);
+            return response()->json(['suggestions' => []]);
         }
 
-        // Common search terms and page names
-        $suggestions = [
-            'AI Services', 'AI Consulting', 'AI Advisory', 'Generative AI',
-            'Data Services', 'Data Science', 'Data Analytics', 'Microsoft Fabric',
-            'Digital Transformation', 'Cloud Solutions', 'Power Apps',
-            'Microsoft Azure', 'Databricks', 'Snowflake',
-            'Company Overview', 'Career Opportunities', 'Job Board',
-            'Case Studies', 'Customer Stories', 'Blog Articles',
-            'Contact Us', 'Social Impact', 'Partners',
-            'Industries', 'Services', 'Team', 'Events'
+        $suggestions = [];
+
+        // Live DB suggestions — pulled from title-like columns
+        $dbSuggestionSources = [
+            ['table' => 'blogs',             'col' => 'title'],
+            ['table' => 'events',            'col' => 'title'],
+            ['table' => 'services_lists',    'col' => 'title'],
+            ['table' => 'social_impact',     'col' => 'title'],
+            ['table' => 'white_paper',       'col' => 'title'],
+            ['table' => 'career',            'col' => 'job_title'],
+            ['table' => 'industry_listings', 'col' => 'category'],
+            ['table' => 'customer_stories',  'col' => 'name'],
         ];
 
-        // Filter suggestions based on query
-        $filtered = array_filter($suggestions, function ($suggestion) use ($query) {
-            return stripos($suggestion, $query) !== false;
-        });
+        foreach ($dbSuggestionSources as $src) {
+            try {
+                $rows = DB::table($src['table'])
+                    ->where($src['col'], 'LIKE', '%' . $query . '%')
+                    ->limit(2)
+                    ->pluck($src['col']);
 
-        // Limit to 5 suggestions
-        $filtered = array_slice(array_values($filtered), 0, 5);
+                foreach ($rows as $val) {
+                    $plain = Str::limit(strip_tags((string) $val), 60);
+
+                    if ($plain !== '' && ! in_array($plain, $suggestions)) {
+                        $suggestions[] = $plain;
+                    }
+                }
+            } catch (\Throwable $e) {
+                // Table unavailable — skip silently
+            }
+        }
+
+        // Static page name suggestions from auto-discovered views
+        foreach ($this->discoverStaticViews() as $page) {
+            if (stripos($page['name'], $query) !== false && ! in_array($page['name'], $suggestions)) {
+                $suggestions[] = $page['name'];
+            }
+        }
+
+        // Common topic fallbacks
+        $staticTerms = [
+            'AI Services', 'AI Consulting', 'Generative AI', 'Data Services',
+            'Data Science', 'Microsoft Fabric', 'Digital Transformation',
+            'Cloud Solutions', 'Power Apps', 'Microsoft Azure', 'Databricks',
+            'Snowflake', 'Career Opportunities', 'Case Studies', 'White Papers',
+            'Customer Stories', 'Blog', 'Contact Us', 'Social Impact',
+            'Partners', 'Industries', 'Services', 'Events', 'Mela AI',
+        ];
+
+        foreach ($staticTerms as $term) {
+            if (stripos($term, $query) !== false && ! in_array($term, $suggestions)) {
+                $suggestions[] = $term;
+            }
+        }
 
         return response()->json([
-            'suggestions' => $filtered
+            'suggestions' => array_slice($suggestions, 0, 8),
         ]);
     }
 }
