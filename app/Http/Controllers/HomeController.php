@@ -213,9 +213,25 @@ class HomeController extends Controller
 
     public function serviceDetails($name)
     {
-        // Block access to freemiums service
+        // Freemiums is a valid service-details page backed by a dedicated partial.
         if (strtolower($name) === 'freemiums') {
-            abort(404);
+            $dbErrorMessage = null;
+
+            $freemiums = $this->safeDb(function () {
+                return DB::table('freemium')
+                    ->select('title', 'body', 'image_url', 'url_get_name', 'snippet')
+                    ->orderByDesc('id')
+                    ->get();
+            }, $dbErrorMessage);
+
+            return view('service-details', [
+                'service' => (object) ['title' => 'Freemiums'],
+                'relatedServices' => collect(),
+                'freemiums' => $freemiums ?? collect(),
+                'serviceName' => $name,
+                'dbErrorMessage' => $dbErrorMessage,
+                'recaptchaSiteKey' => config('services.recaptcha.site_key', ''),
+            ]);
         }
 
         $dbErrorMessage = null;

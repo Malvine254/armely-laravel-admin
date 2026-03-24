@@ -366,50 +366,7 @@
                                             <li><a href="{{ route('social-impact.index') }}">Social Impact</a></li>
                                         </ul>
                                     </li>
-                                    <li class="{{ request()->is('services','service-details*') ? 'active' : '' }}"><a>What We Do <i class="icofont-rounded-down"></i></a>
-                                        <ul class="dropdown">
-                                            <li><a href="{{ route('services') }}">All Services</a></li>
-                                            {{-- Services sub-dropdowns hidden per request --}}
-                                            {{-- <li><a>AI Services <i class="icofont-rounded-right"></i></a>
-                                                <ul class="dropdown">
-                                                    <li><a href="{{ route('service-details', ['name' => 'ai-consulting']) }}">AI Consulting</a></li>
-                                                    <li><a href="{{ route('service-details', ['name' => 'ai-advisory']) }}">AI Advisory</a></li>
-                                                    <li><a href="{{ route('service-details', ['name' => 'generative-ai']) }}">Generative AI</a></li>
-                                                    <li><a href="{{ route('service-details', ['name' => 'ai-poc-starter']) }}">AI PoC Starter</a></li>
-                                                </ul>
-                                            </li>
-                                            <li><a>Data Services <i class="icofont-rounded-right"></i></a>
-                                                <ul class="dropdown">
-                                                    <li><a href="{{ route('service-details', ['name' => 'estimate-your-fabric-capacity']) }}">Estimate your Fabric Capacity</a></li>
-                                                    <li><a href="{{ route('service-details', ['name' => 'microsoft-fabric']) }}">Microsoft Fabric</a></li>
-                                                    <li><a href="{{ route('service-details', ['name' => 'data-science-and-analytics']) }}">Data Science and Analytics</a></li>
-                                                    <li><a href="{{ route('service-details', ['name' => 'data-strategy']) }}">Data Strategy</a></li>
-                                                    <li><a href="{{ route('service-details', ['name' => 'databricks']) }}">Databricks</a></li>
-                                                    <li><a href="{{ route('service-details', ['name' => 'snowflake']) }}">Snowflake</a></li>
-                                                    <li><a href="{{ route('service-details', ['name' => 'sql-&-data-warehousing']) }}">SQL & Data Warehousing</a></li>
-                                                </ul>
-                                            </li>
-                                            <li><a>Digital Transformation <i class="icofont-rounded-right"></i></a>
-                                                <ul class="dropdown">
-                                                    <li><a href="{{ route('service-details', ['name' => 'api-data-access']) }}">API Data Access</a></li>
-                                                    <li><a href="{{ route('service-details', ['name' => 'microsoft-powerapps']) }}">Microsoft Powerapps</a></li>
-                                                    <li><a href="{{ route('service-details', ['name' => 'microsoft-power-automate']) }}">Microsoft Power Automate</a></li>
-                                                    <li><a href="{{ route('service-details', ['name' => 'microsoft-power-virtual-agents']) }}">Microsoft Power Virtual Agents</a></li>
-                                                    <li><a href="{{ route('service-details', ['name' => 'microsoft-power-pages']) }}">Microsoft Power Pages</a></li>
-                                                    <li><a href="{{ route('service-details', ['name' => 'microsoft-dynamics-365']) }}">Microsoft Dynamics 365</a></li>
-                                                    <li><a href="{{ route('service-details', ['name' => 'robotic-processing-automation']) }}">Robotic Processing Automation</a></li>
-                                                    <li><a href="{{ route('service-details', ['name' => 'sharepoint-online']) }}">Sharepoint Online</a></li>
-                                                </ul>
-                                            </li>
-                                            <li><a href="{{ route('service-details', ['name' => 'freemiums']) }}">Freemiums</a></li>
-                                            <li><a>Managed Services <i class="icofont-rounded-right"></i></a>
-                                                <ul class="dropdown">
-                                                    <li><a href="{{ route('service-details', ['name' => 'sql-server-support']) }}">SQL Server Support</a></li>
-                                                    <li><a href="{{ route('service-details', ['name' => 'applications-support']) }}">Applications Support</a></li>
-                                                </ul>
-                                            </li> --}}
-                                        </ul>
-                                    </li>
+                                    <li class="{{ request()->is('services','service-details*') ? 'active' : '' }}"><a href="{{ route('services') }}">What We Do</a></li>
                                     <li class="{{ request()->is('industries') ? 'active' : '' }}"><a href="{{ route('industries.index') }}">Who We Serve</a></li>
                                     <li class="{{ request()->is('blog','customer-stories','case-studies') ? 'active' : '' }}"><a>Knowledge Hub <i class="icofont-rounded-down"></i></a>
                                         <ul class="dropdown">
@@ -446,31 +403,7 @@
                 <li><a href="{{ route('social-impact.index') }}">Social Impact</a></li>
             </ul>
         </li>
-        <li>
-            <a class="sub-toggle">What We Do &#9660;</a>
-            <ul class="dropdown">
-                <li><a href="{{ route('services') }}">All Services</a></li>
-                {{-- Individual service links hidden per request --}}
-                {{-- <li><a href="{{ route('service-details', ['name' => 'ai-consulting']) }}">AI Consulting</a></li>
-                <li><a href="{{ route('service-details', ['name' => 'ai-advisory']) }}">AI Advisory</a></li>
-                <li><a href="{{ route('service-details', ['name' => 'generative-ai']) }}">Generative AI</a></li>
-                <li><a href="{{ route('service-details', ['name' => 'ai-poc-starter']) }}">AI PoC Starter</a></li>
-                <li><a href="{{ route('service-details', ['name' => 'estimate-your-fabric-capacity']) }}">Estimate your Fabric Capacity</a></li>
-                <li><a href="{{ route('service-details', ['name' => 'microsoft-fabric']) }}">Microsoft Fabric</a></li>
-                <li><a href="{{ route('service-details', ['name' => 'data-science-and-analytics']) }}">Data Science and Analytics</a></li>
-                <li><a href="{{ route('service-details', ['name' => 'data-strategy']) }}">Data Strategy</a></li>
-                <li><a href="{{ route('service-details', ['name' => 'databricks']) }}">Databricks</a></li>
-                <li><a href="{{ route('service-details', ['name' => 'snowflake']) }}">Snowflake</a></li>
-                <li><a href="{{ route('service-details', ['name' => 'sql-&-data-warehousing']) }}">SQL & Data Warehousing</a></li>
-                <li><a href="{{ route('service-details', ['name' => 'api-data-access']) }}">API Data Access</a></li>
-                <li><a href="{{ route('service-details', ['name' => 'microsoft-powerapps']) }}">Microsoft Powerapps</a></li>
-                <li><a href="{{ route('service-details', ['name' => 'microsoft-power-automate']) }}">Microsoft Power Automate</a></li>
-                <li><a href="{{ route('service-details', ['name' => 'microsoft-dynamics-365']) }}">Microsoft Dynamics 365</a></li>
-                <li><a href="{{ route('service-details', ['name' => 'sharepoint-online']) }}">Sharepoint Online</a></li>
-                <li><a href="{{ route('service-details', ['name' => 'sql-server-support']) }}">SQL Server Support</a></li>
-                <li><a href="{{ route('service-details', ['name' => 'applications-support']) }}">Applications Support</a></li> --}}
-            </ul>
-        </li>
+        <li><a href="{{ route('services') }}">What We Do</a></li>
         <li><a href="{{ route('industries.index') }}">Who We Serve</a></li>
         <li>
             <a class="sub-toggle">Knowledge Hub &#9660;</a>
