@@ -35,11 +35,11 @@
       <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 sm:py-32">
         <div class="text-center">
           <h2 class="text-5xl sm:text-6xl font-bold text-slate-900 mb-6 leading-tight">
-            Your B2B Hardware
-            <span class="bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent"> Procurement Hub</span>
+            B2B Procurements
+            <span class="bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent"> Hub</span>
           </h2>
           <p class="text-xl text-slate-600 mb-8 max-w-2xl mx-auto leading-relaxed">
-            Find quality hardware products, manage quotes, and streamline your B2B procurement process.
+            Find quality solutions, manage quotes, and streamline your B2B procurement process.
           </p>
           <div class="flex flex-col sm:flex-row justify-center gap-4">
             <router-link to="/products" class="px-8 py-4 text-base font-semibold text-white bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg hover:shadow-xl hover:shadow-blue-500/30 transition transform hover:scale-105 active:scale-95">
@@ -102,7 +102,7 @@
         <div class="grid grid-cols-1 md:grid-cols-3 gap-12 text-center">
           <div>
             <div class="text-4xl font-bold text-white mb-2">50K+</div>
-            <p class="text-blue-100">Hardware Products</p>
+            <p class="text-blue-100">B2B Procurements</p>
           </div>
           <div>
             <div class="text-4xl font-bold text-white mb-2">100+</div>

@@ -77,16 +77,22 @@
 .thankyou-actions .btn {
     min-width: 200px;
     margin: 6px;
+    color: #ffffff !important;
+}
+
+.thankyou-actions .btn:hover,
+.thankyou-actions .btn:focus {
+    color: #ffffff !important;
 }
 
 .thankyou-actions .btn-secondary-custom {
     background: #0d1f3c;
-    color: #ffffff;
+    color: #ffffff !important;
 }
 
 .thankyou-actions .btn-secondary-custom:hover {
     background: #1E62AD;
-    color: #ffffff;
+    color: #ffffff !important;
 }
 
 @media (max-width: 576px) {
@@ -116,15 +122,6 @@
                         <h2 class="thankyou-title">Thank You!</h2>
                         <p class="thankyou-subtitle">Your message has been sent successfully.</p>
                         <p class="thankyou-desc">We have received your inquiry and appreciate you reaching out to us. Our team will review your message and get back to you as soon as possible.</p>
-                        
-                        <div class="thankyou-next">
-                            <h4>What happens next?</h4>
-                            <ul>
-                                <li><strong>Review:</strong> Our team will carefully review your message</li>
-                                <li><strong>Response:</strong> We'll reach out within 24-48 business hours</li>
-                                <li><strong>Follow-up:</strong> We'll discuss your needs and find the best solution</li>
-                            </ul>
-                        </div>
 
                         <div class="thankyou-actions">
                             <a href="/" class="btn default-background">Return to Home</a>

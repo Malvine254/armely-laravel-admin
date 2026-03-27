@@ -107,25 +107,31 @@
 		=================================*/ 
 		$('.portfolio-slider').owlCarousel({
 			autoplay:true,
-			autoplayTimeout:4000,
-			margin:15,
-			smartSpeed:300,
+			autoplayTimeout:5200,
+			margin:18,
+			smartSpeed:550,
 			autoplayHoverPause:true,
 			loop:true,
-			nav:true,
+			nav:false,
 			dots:false,
+			mouseDrag:true,
+			touchDrag:true,
 			responsive:{
 				300: {
 					items:1,
+					margin:12,
 				},
 				480: {
-					items:2,
+					items:1,
+					margin:14,
 				},
 				768: {
 					items:2,
+					margin:16,
 				},
 				1170: {
 					items:3,
+					margin:18,
 				},
 			}
 		});

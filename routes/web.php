@@ -84,29 +84,39 @@ Route::get('/mela-ai', [HomeController::class, 'melaAi'])->name('mela-ai');
 
 $storeBaseUrl = trim((string) env('STORE_URL', ''));
 
-Route::get('/store', function () use ($storeBaseUrl) {
-    if ($storeBaseUrl === '') {
+$buildStoreTarget = function (string $baseUrl, string $path = '', ?string $queryString = null): ?string {
+    if ($baseUrl === '') {
+        return null;
+    }
+
+    $baseUrl = rtrim($baseUrl, '/');
+    $path = ltrim($path, '/');
+
+    $target = $path !== '' ? $baseUrl . '/' . $path : $baseUrl;
+
+    if ($queryString !== null && $queryString !== '') {
+        $target .= (str_contains($target, '?') ? '&' : '?') . $queryString;
+    }
+
+    return $target;
+};
+
+Route::get('/store', function (\Illuminate\Http\Request $request) use ($storeBaseUrl, $buildStoreTarget) {
+    $targetUrl = $buildStoreTarget($storeBaseUrl, '', $request->getQueryString());
+    if ($targetUrl === null) {
         return redirect('/');
     }
 
-    if (str_starts_with($storeBaseUrl, 'http://') || str_starts_with($storeBaseUrl, 'https://')) {
-        return redirect()->away(rtrim($storeBaseUrl, '/'));
-    }
-
-    return redirect($storeBaseUrl);
+    return response()->view('store-bridge', ['targetUrl' => $targetUrl]);
 })->name('armely-store');
 
-Route::get('/store/{path}', function (string $path) use ($storeBaseUrl) {
-    if ($storeBaseUrl === '') {
+Route::get('/store/{path}', function (\Illuminate\Http\Request $request, string $path) use ($storeBaseUrl, $buildStoreTarget) {
+    $targetUrl = $buildStoreTarget($storeBaseUrl, $path, $request->getQueryString());
+    if ($targetUrl === null) {
         return redirect('/');
     }
 
-    $path = ltrim($path, '/');
-    if (str_starts_with($storeBaseUrl, 'http://') || str_starts_with($storeBaseUrl, 'https://')) {
-        return redirect()->away(rtrim($storeBaseUrl, '/') . '/' . $path);
-    }
-
-    return redirect(rtrim($storeBaseUrl, '/') . '/' . $path);
+    return response()->view('store-bridge', ['targetUrl' => $targetUrl]);
 })->where('path', '.*');
 
 Route::get('/armely-store', function () {

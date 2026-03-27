@@ -1,37 +1,40 @@
 <template>
-  <nav class="bg-gradient-to-r from-blue-900 to-blue-800 text-white shadow-lg sticky top-0 z-50" style="background: linear-gradient(to right, #2F5597, #1f4788)">
+  <nav class="bg-gradient-to-r from-blue-900 to-blue-800 text-white shadow-lg sticky top-0 z-50" style="background: linear-gradient(to right, #183a72, #0f2a54)">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex items-center justify-between h-20">
         <!-- Logo Section -->
-        <button type="button" class="flex items-center gap-3 flex-shrink-0 cursor-pointer" @click="goToProducts">
+        <button type="button" class="flex items-center gap-2 sm:gap-3 flex-shrink-0 cursor-pointer" @click="goToProducts">
           <div class="w-10 h-10 rounded-lg bg-white overflow-hidden flex items-center justify-center">
             <img :src="buildStoreUrl('images/logo/armely-store-logo.png')" alt="Armely Store" class="w-9 h-9 object-contain">
           </div>
           <div class="text-left">
-            <div class="font-bold text-lg">Armely Store</div>
-            <div class="text-xs" style="color: #cce4f4;">B2B Hardware Procurement</div>
+            <div class="font-bold text-base sm:text-lg">Armely Store</div>
+            <div class="hidden sm:block text-xs" style="color: #cce4f4;">B2B Procurements</div>
           </div>
         </button>
 
         <!-- Search Bar - Hidden on mobile -->
         <div class="hidden md:block flex-1 mx-8">
           <div class="relative">
-            <svg class="absolute left-3 top-3.5 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: #a8d1f5;">
+            <svg class="absolute left-3 top-3.5 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: #ffffff;">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
             </svg>
             <input
               v-model="searchTerm"
               type="text"
               placeholder="Search products, vendors, solutions..."
-              class="w-full pl-10 pr-4 py-2.5 rounded-lg text-white outline-none focus:ring-2 transition" style="background-color: #3d6ba8; color: white;" :style="{color: 'white'}" @keyup.enter="submitSearch" @focus="$event.target.style.backgroundColor='#2F5597'" @blur="$event.target.style.backgroundColor='#3d6ba8'" placeholder-style="color: #a8d1f5;"
+              class="w-full pl-10 pr-4 py-2.5 rounded-lg text-white outline-none focus:ring-2 transition border border-white placeholder-white/90"
+              style="background-color: transparent; color: #ffffff;"
+              @keyup.enter="submitSearch"
+              @input="searchTerm = $event.target.value"
             >
           </div>
         </div>
 
         <!-- Right Section Icons -->
-        <div class="flex items-center gap-2 md:gap-4">
+        <div class="flex items-center gap-1 sm:gap-2 md:gap-4">
           <!-- Cart Icon - Always visible (guest + authenticated) -->
-          <button type="button" class="relative p-2 rounded-lg transition group cursor-pointer" style="color: white;" @click="goToCart" @mouseenter="$event.currentTarget.style.backgroundColor='#3d6ba8'" @mouseleave="$event.currentTarget.style.backgroundColor='transparent'">
+          <button type="button" class="relative p-1.5 sm:p-2 rounded-lg transition group cursor-pointer" style="color: white;" @click="goToCart" @mouseenter="$event.currentTarget.style.backgroundColor='#3d6ba8'" @mouseleave="$event.currentTarget.style.backgroundColor='transparent'">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 9m10-9l2 9m-9 0h14m-5-9v9"></path>
             </svg>
@@ -42,7 +45,7 @@
           <!-- Authenticated User Features -->
           <template v-if="authStore.isAuthenticated">
             <!-- Messages Icon -->
-            <button v-if="authStore.hasFeatureAccess('messages')" @click="goToMessages" class="relative p-2 rounded-lg transition group" style="color: white;" @mouseenter="$event.target.style.backgroundColor='#3d6ba8'" @mouseleave="$event.target.style.backgroundColor='transparent'">
+            <button v-if="authStore.hasFeatureAccess('messages')" @click="goToMessages" class="hidden md:flex relative p-2 rounded-lg transition group" style="color: white;" @mouseenter="$event.target.style.backgroundColor='#3d6ba8'" @mouseleave="$event.target.style.backgroundColor='transparent'">
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
               </svg>
@@ -51,21 +54,19 @@
             </button>
 
             <!-- Favorites Icon - Only for authenticated users -->
-            <button type="button" v-if="authStore.isAuthenticated" class="relative p-2 rounded-lg transition group cursor-pointer" style="color: white;" @click="goToFavorites" @mouseenter="$event.currentTarget.style.backgroundColor='#3d6ba8'" @mouseleave="$event.currentTarget.style.backgroundColor='transparent'">
+            <button type="button" v-if="authStore.isAuthenticated" class="hidden md:flex relative p-2 rounded-lg transition group cursor-pointer" style="color: white;" @click="goToFavorites" @mouseenter="$event.currentTarget.style.backgroundColor='#3d6ba8'" @mouseleave="$event.currentTarget.style.backgroundColor='transparent'">
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
               </svg>
-              <span class="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-semibold">{{ favoritesStore.favoriteCount }}</span>
+              <span v-if="favoritesStore.favoriteCount > 0" class="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-semibold">{{ favoritesStore.favoriteCount }}</span>
               <span class="hidden group-hover:block absolute top-12 right-0 bg-white px-2 py-1 rounded text-xs whitespace-nowrap" style="color: #2F5597;">Favorites</span>
             </button>
 
             <!-- Authenticated Account Menu -->
-            <div class="relative group">
+            <div class="hidden md:block relative group">
               <button class="p-2 rounded-lg transition flex items-center gap-2" style="color: white;" @mouseenter="$event.currentTarget.style.backgroundColor='#3d6ba8'" @mouseleave="$event.currentTarget.style.backgroundColor='transparent'">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A9 9 0 1118.88 6.196 9 9 0 015.12 17.804z"></path>
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20a7 7 0 0110 0"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.982 18.725A7.488 7.488 0 0012 15.75a7.488 7.488 0 00-5.982 2.975m11.963 0a9 9 0 10-11.963 0m11.963 0A8.966 8.966 0 0112 21a8.966 8.966 0 01-5.982-2.275M15 9.75a3 3 0 11-6 0 3 3 0 016 0z"></path>
                 </svg>
                 <span class="text-sm font-medium">Hi, {{ userFirstName }}</span>
               </button>
@@ -79,7 +80,6 @@
                 <router-link to="/account" class="block w-full px-4 py-2 text-left hover:bg-gray-100 transition">My Account</router-link>
                 <router-link to="/quotes" v-if="authStore.isAuthenticated" class="block w-full px-4 py-2 text-left hover:bg-gray-100 transition">My Quotes</router-link>
                 <router-link to="/invoices" v-if="authStore.hasFeatureAccess('invoices')" class="block w-full px-4 py-2 text-left hover:bg-gray-100 transition">Invoices</router-link>
-                <button @click="goToSavedSearches" class="w-full px-4 py-2 text-left hover:bg-gray-100 transition">Saved Searches</button>
                 <div class="border-t border-gray-200 my-2"></div>
                 <button @click="handleLogout" class="w-full px-4 py-2 text-left hover:bg-gray-100 transition text-red-600"><strong>Sign Out</strong></button>
               </div>
@@ -88,18 +88,29 @@
 
           <!-- Unauthenticated User - Login/Sign Up Buttons -->
           <template v-else>
-            <router-link to="/login" class="px-4 py-2 rounded-lg font-semibold transition text-sm" style="background-color: transparent; border: 2px solid white; color: white;" @mouseenter="$event.target.style.backgroundColor='#3d6ba8'" @mouseleave="$event.target.style.backgroundColor='transparent'">
+            <router-link to="/login" class="hidden md:inline-block px-4 py-2 rounded-lg font-semibold transition text-sm" style="background-color: transparent; border: 2px solid white; color: white;" @mouseenter="$event.target.style.backgroundColor='#3d6ba8'" @mouseleave="$event.target.style.backgroundColor='transparent'">
               Log In
             </router-link>
-            <router-link to="/register" class="px-4 py-2 rounded-lg font-semibold transition text-sm text-white" style="background-color: #4CAF50;" @mouseenter="$event.target.style.backgroundColor='#45a049'" @mouseleave="$event.target.style.backgroundColor='#4CAF50'">
+            <router-link to="/register" class="hidden md:inline-block px-4 py-2 rounded-lg font-semibold transition text-sm text-white" style="background-color: #2F5597;" @mouseenter="$event.target.style.backgroundColor='#1f4788'" @mouseleave="$event.target.style.backgroundColor='#2F5597'">
               Sign Up
             </router-link>
           </template>
 
           <!-- Mobile Menu Button -->
-          <button class="md:hidden p-2 rounded-lg transition" style="color: white;" @mouseenter="$event.target.style.backgroundColor='#3d6ba8'" @mouseleave="$event.target.style.backgroundColor='transparent'">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <button
+            class="md:hidden p-2 rounded-lg transition"
+            style="color: white;"
+            @click="toggleMobileMenu"
+            @mouseenter="$event.target.style.backgroundColor='#3d6ba8'"
+            @mouseleave="$event.target.style.backgroundColor='transparent'"
+            :aria-expanded="mobileMenuOpen ? 'true' : 'false'"
+            aria-label="Toggle mobile menu"
+          >
+            <svg v-if="!mobileMenuOpen" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+            </svg>
+            <svg v-else class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
             </svg>
           </button>
         </div>
@@ -108,15 +119,39 @@
       <!-- Mobile Search Bar -->
       <div class="md:hidden pb-4">
         <div class="relative">
-          <svg class="absolute left-3 top-3.5 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: #a8d1f5;">
+          <svg class="absolute left-3 top-3.5 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: #ffffff;">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
           </svg>
           <input
             v-model="searchTerm"
             type="text"
             placeholder="Search products..."
-            class="w-full pl-10 pr-4 py-2.5 rounded-lg text-white outline-none focus:ring-2 transition" style="background-color: #3d6ba8;" @keyup.enter="submitSearch" @focus="$event.target.style.backgroundColor='#2F5597'" @blur="$event.target.style.backgroundColor='#3d6ba8'"
+            class="w-full pl-10 pr-4 py-2.5 rounded-lg text-white outline-none focus:ring-2 transition border border-white placeholder-white/90"
+            style="background-color: transparent; color: #ffffff;"
+            @keyup.enter="submitSearch"
+            @input="searchTerm = $event.target.value"
           >
+        </div>
+      </div>
+
+      <!-- Mobile Dropdown Menu -->
+      <div v-if="mobileMenuOpen" class="md:hidden pb-4">
+        <div class="rounded-lg border border-white/20 overflow-hidden" style="background-color: rgba(15, 42, 84, 0.9);">
+          <template v-if="authStore.isAuthenticated">
+            <div class="px-4 py-3 border-b border-white/20">
+              <div class="font-semibold text-white">{{ authStore.user?.name }}</div>
+              <div class="text-xs" style="color: #cce4f4;">{{ authStore.user?.email }}</div>
+            </div>
+            <button type="button" @click="goToAccount" class="w-full text-left px-4 py-3 text-sm text-white transition" @mouseenter="$event.currentTarget.style.backgroundColor='rgba(255,255,255,0.08)'" @mouseleave="$event.currentTarget.style.backgroundColor='transparent'">My Account</button>
+            <button type="button" @click="goToCart" class="w-full text-left px-4 py-3 text-sm text-white transition" @mouseenter="$event.currentTarget.style.backgroundColor='rgba(255,255,255,0.08)'" @mouseleave="$event.currentTarget.style.backgroundColor='transparent'">My Quote / Cart</button>
+            <button type="button" @click="goToMessages" v-if="authStore.hasFeatureAccess('messages')" class="w-full text-left px-4 py-3 text-sm text-white transition" @mouseenter="$event.currentTarget.style.backgroundColor='rgba(255,255,255,0.08)'" @mouseleave="$event.currentTarget.style.backgroundColor='transparent'">Messages</button>
+            <button type="button" @click="goToFavorites" class="w-full text-left px-4 py-3 text-sm text-white transition" @mouseenter="$event.currentTarget.style.backgroundColor='rgba(255,255,255,0.08)'" @mouseleave="$event.currentTarget.style.backgroundColor='transparent'">Favorites</button>
+            <button type="button" @click="handleLogout" class="w-full text-left px-4 py-3 text-sm font-semibold text-red-200 transition" @mouseenter="$event.currentTarget.style.backgroundColor='rgba(220,38,38,0.18)'" @mouseleave="$event.currentTarget.style.backgroundColor='transparent'">Sign Out</button>
+          </template>
+          <template v-else>
+            <router-link to="/login" @click="closeMobileMenu" class="block w-full text-left px-4 py-3 text-sm text-white transition" @mouseenter="$event.currentTarget.style.backgroundColor='rgba(255,255,255,0.08)'" @mouseleave="$event.currentTarget.style.backgroundColor='transparent'">Log In</router-link>
+            <router-link to="/register" @click="closeMobileMenu" class="block w-full text-left px-4 py-3 text-sm text-white transition" @mouseenter="$event.currentTarget.style.backgroundColor='rgba(255,255,255,0.08)'" @mouseleave="$event.currentTarget.style.backgroundColor='transparent'">Sign Up</router-link>
+          </template>
         </div>
       </div>
     </div>
@@ -124,13 +159,14 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCartStore } from '../stores/cartStore'
 import { useFavoritesStore } from '../stores/favoritesStore'
 import { useAuthStore } from '../stores/authStore'
 import { useToastStore } from '../stores/toastStore'
 import { API_BASE_URL, buildStoreUrl } from '../services/runtimeConfig'
+import { trackSearchTerm } from '../services/searchInsights'
 
 const router = useRouter()
 const cartStore = useCartStore()
@@ -139,6 +175,16 @@ const authStore = useAuthStore()
 const toastStore = useToastStore()
 const searchTerm = ref('')
 const unreadCount = ref(0)
+const mobileMenuOpen = ref(false)
+const unreadIntervalId = ref(null)
+
+const closeMobileMenu = () => {
+  mobileMenuOpen.value = false
+}
+
+const toggleMobileMenu = () => {
+  mobileMenuOpen.value = !mobileMenuOpen.value
+}
 
 const userFirstName = computed(() => {
   if (!authStore.user?.name) return 'User'
@@ -148,36 +194,41 @@ const userFirstName = computed(() => {
 
 const goToMessages = () => {
   router.push({ name: 'messages' })
+  closeMobileMenu()
 }
 
 const goToFavorites = () => {
   router.push({ name: 'favorites' })
+  closeMobileMenu()
 }
 
 const goToCart = () => {
   router.push({ name: 'cart' })
+  closeMobileMenu()
 }
 
 const goToAccount = () => {
   router.push({ name: 'account' })
+  closeMobileMenu()
 }
 
 const goToProducts = () => {
   router.push({ name: 'products' })
-}
-
-const goToSavedSearches = () => {
-  toastStore.addToast('Saved Searches feature coming soon', 'info')
+  closeMobileMenu()
 }
 
 const handleLogout = async () => {
   await authStore.logout()
   toastStore.addToast('Logged out successfully', 'success')
   router.push({ name: 'login' })
+  closeMobileMenu()
 }
 
 const submitSearch = () => {
   const query = searchTerm.value.trim()
+  if (query) {
+    trackSearchTerm(query)
+  }
   router.push({ name: 'products', query: query ? { q: query } : {} })
 }
 
@@ -206,7 +257,14 @@ const fetchUnreadCount = async () => {
 
 onMounted(() => {
   fetchUnreadCount()
+
   // Refresh unread count every 30 seconds
-  setInterval(fetchUnreadCount, 30000)
+  unreadIntervalId.value = setInterval(fetchUnreadCount, 30000)
+})
+
+onBeforeUnmount(() => {
+  if (unreadIntervalId.value) {
+    clearInterval(unreadIntervalId.value)
+  }
 })
 </script>

@@ -3,7 +3,9 @@
 namespace App\Services;
 
 use GuzzleHttp\Client;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class AzureMailService
 {
@@ -45,13 +47,28 @@ class AzureMailService
     public function sendEmail(string $fromEmail, string $toEmail, string $subject, string $htmlBody, bool $saveToSent = true): bool
     {
         try {
+            $resolvedFromEmail = self::normalizeEmail($fromEmail !== '' ? $fromEmail : self::outboundFromEmail());
+            $normalizedToEmail = self::normalizeEmail($toEmail);
+            if (!self::isDeliverableEmail($normalizedToEmail)) {
+                Log::warning('AzureMailService: blocked send to undeliverable recipient', [
+                    'to' => $normalizedToEmail,
+                    'subject' => $subject,
+                ]);
+                return false;
+            }
+
+            if ($resolvedFromEmail === '') {
+                Log::warning('AzureMailService: missing outbound sender address');
+                return false;
+            }
+
             $token = $this->getAccessToken();
             if (!$token) {
                 Log::error('AzureMailService: Failed to obtain access token');
                 return false;
             }
 
-            $endpoint = "https://graph.microsoft.com/v1.0/users/" . rawurlencode($fromEmail) . "/sendMail";
+            $endpoint = "https://graph.microsoft.com/v1.0/users/" . rawurlencode($resolvedFromEmail) . "/sendMail";
 
             $payload = [
                 'message' => [
@@ -61,17 +78,22 @@ class AzureMailService
                         'content' => $htmlBody,
                     ],
                     'from' => [
-                        'emailAddress' => ['address' => $fromEmail],
+                        'emailAddress' => ['address' => $resolvedFromEmail],
                     ],
                     'sender' => [
-                        'emailAddress' => ['address' => $fromEmail],
+                        'emailAddress' => ['address' => $resolvedFromEmail],
                     ],
                     'toRecipients' => [
-                        ['emailAddress' => ['address' => $toEmail]],
+                        ['emailAddress' => ['address' => $normalizedToEmail]],
                     ],
                 ],
                 'saveToSentItems' => $saveToSent,
             ];
+
+            $replyTo = self::graphReplyToRecipients();
+            if ($replyTo !== []) {
+                $payload['message']['replyTo'] = $replyTo;
+            }
 
             $resp = $this->http->post($endpoint, [
                 'headers' => [
@@ -84,9 +106,97 @@ class AzureMailService
             // Graph returns 202 Accepted on success
             return $resp->getStatusCode() >= 200 && $resp->getStatusCode() < 300;
         } catch (\Throwable $e) {
+            self::markEmailAsSuppressed($toEmail);
             Log::error('AzureMailService sendEmail error: ' . $e->getMessage(), ['exception' => $e]);
             return false;
         }
+    }
+
+    public static function normalizeEmail(string $email): string
+    {
+        return strtolower(trim($email));
+    }
+
+    public static function outboundFromEmail(): string
+    {
+        return self::normalizeEmail((string) (env('NO_REPLY_EMAIL') ?: env('FROM_EMAIL', env('MAIL_FROM_ADDRESS', ''))));
+    }
+
+    public static function replyToEmail(): ?string
+    {
+        $replyTo = self::normalizeEmail((string) env('REPLY_TO_EMAIL', ''));
+
+        return $replyTo !== '' ? $replyTo : null;
+    }
+
+    public static function graphReplyToRecipients(): array
+    {
+        $replyTo = self::replyToEmail();
+
+        return $replyTo !== null
+            ? [['emailAddress' => ['address' => $replyTo]]]
+            : [];
+    }
+
+    public static function isDeliverableEmail(string $email): bool
+    {
+        $email = self::normalizeEmail($email);
+        if ($email === '') {
+            return false;
+        }
+
+        if (Cache::get(self::suppressionKey($email), false) === true) {
+            return false;
+        }
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return false;
+        }
+
+        if (!str_contains($email, '@')) {
+            return false;
+        }
+
+        $domain = (string) Str::after($email, '@');
+        if ($domain === '') {
+            return false;
+        }
+
+        $disposableDomains = [
+            'mailinator.com',
+            'tempmail.com',
+            'guerrillamail.com',
+            '10minutemail.com',
+            'yopmail.com',
+            'trashmail.com',
+            'sharklasers.com',
+            'dispostable.com',
+        ];
+
+        if (in_array($domain, $disposableDomains, true)) {
+            return false;
+        }
+
+        if (!checkdnsrr($domain, 'MX') && !checkdnsrr($domain, 'A')) {
+            return false;
+        }
+
+        return true;
+    }
+
+    public static function markEmailAsSuppressed(string $email, int $hours = 24): void
+    {
+        $normalized = self::normalizeEmail($email);
+        if ($normalized === '') {
+            return;
+        }
+
+        Cache::put(self::suppressionKey($normalized), true, now()->addHours($hours));
+    }
+
+    private static function suppressionKey(string $email): string
+    {
+        return 'mail_suppressed:' . sha1(self::normalizeEmail($email));
     }
 
     /**
@@ -94,7 +204,7 @@ class AzureMailService
      */
     public function sendResetEmail(string $toEmail, string $resetLink): bool
     {
-        $fromEmail = env('FROM_EMAIL', env('MAIL_FROM_ADDRESS'));
+        $fromEmail = self::outboundFromEmail();
         $subject = 'Reset Your Armely Admin Password';
         $htmlBody = view('admin.auth.reset-email', ['resetLink' => $resetLink])->render();
 
@@ -106,7 +216,7 @@ class AzureMailService
      */
     public function sendWelcomeAdminEmail(string $toEmail, string $activationLink, ?string $name = null): bool
     {
-        $fromEmail = env('FROM_EMAIL', env('MAIL_FROM_ADDRESS'));
+        $fromEmail = self::outboundFromEmail();
         $subject = 'Your Armely Admin Access';
         $htmlBody = view('admin.auth.welcome-admin', [
             'activationLink' => $activationLink,
