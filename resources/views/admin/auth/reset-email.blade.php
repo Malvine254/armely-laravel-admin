@@ -1,153 +1,51 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            background-color: #f4f7fa;
-            margin: 0;
-            padding: 20px;
-        }
-        .email-container {
-            max-width: 600px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-        }
-        .email-header {
-            background: linear-gradient(135deg, #2f5597 0%, #1e3a6d 100%);
-            padding: 40px 30px;
-            text-align: center;
-        }
-        .email-header .logo {
-            width: 70px;
-            height: 70px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 12px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 15px;
-        }
-        .email-header .logo-text {
-            font-size: 32px;
-            color: white;
-            font-weight: 700;
-            letter-spacing: -1px;
-        }
-        .email-header h1 {
-            color: white;
-            margin: 0;
-            font-size: 24px;
-            font-weight: 600;
-        }
-        .email-body {
-            padding: 40px 30px;
-        }
-        .email-body p {
-            margin: 0 0 20px 0;
-            font-size: 16px;
-            line-height: 1.8;
-        }
-        .reset-button {
-            display: inline-block;
-            padding: 16px 36px;
-            background: linear-gradient(135deg, #2f5597 0%, #1e3a6d 100%);
-            color: white;
-            text-decoration: none;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 16px;
-            margin: 20px 0;
-            box-shadow: 0 4px 15px rgba(47, 85, 151, 0.3);
-            transition: all 0.3s ease;
-        }
-        .reset-button:hover {
-            box-shadow: 0 6px 20px rgba(47, 85, 151, 0.4);
-        }
-        .button-container {
-            text-align: center;
-            margin: 30px 0;
-        }
-        .email-footer {
-            background: #f8fafc;
-            padding: 30px;
-            text-align: center;
-            border-top: 1px solid #e8eef5;
-        }
-        .email-footer p {
-            color: #666;
-            font-size: 14px;
-            margin: 5px 0;
-        }
-        .alternative-link {
-            margin-top: 25px;
-            padding-top: 25px;
-            border-top: 1px solid #e8eef5;
-            font-size: 13px;
-            color: #666;
-        }
-        .alternative-link a {
-            color: #2f5597;
-            word-break: break-all;
-        }
-        .warning-box {
-            background: #fff3cd;
-            border-left: 4px solid #ffc107;
-            padding: 15px 20px;
-            margin: 25px 0;
-            border-radius: 6px;
-        }
-        .warning-box p {
-            margin: 0;
-            color: #856404;
-            font-size: 14px;
-        }
-    </style>
+    <title>Reset Your Armely Admin Password</title>
 </head>
-<body>
-    <div class="email-container">
-        <div class="email-header">
-            <div class="logo">
-                <span class="logo-text">armely</span>
-            </div>
-            <h1>Password Reset Request</h1>
-        </div>
-        
-        <div class="email-body">
-            <p>Hello,</p>
-            
-            <p>We received a request to reset your Armely Admin password. Click the button below to create a new password:</p>
-            
-            <div class="button-container">
-                <a href="{{ $resetLink }}" class="reset-button">Reset Your Password</a>
-            </div>
-            
-            <div class="warning-box">
-                <p><strong>⚠️ Security Notice:</strong> This link will expire in 60 minutes for security reasons.</p>
-            </div>
-            
-            <p>If you didn't request a password reset, please ignore this email or contact support if you have concerns about your account security.</p>
-            
-            <div class="alternative-link">
-                <p><strong>Button not working?</strong> Copy and paste this link into your browser:</p>
-                <p><a href="{{ $resetLink }}">{{ $resetLink }}</a></p>
-            </div>
-        </div>
-        
-        <div class="email-footer">
-            <p><strong>Armely Admin Panel</strong></p>
-            <p>This is an automated email. Please do not reply to this message.</p>
-            <p style="margin-top: 15px; font-size: 12px; color: #999;">
-                © {{ date('Y') }} Armely. All rights reserved.
-            </p>
-        </div>
-    </div>
+<body style="margin:0;padding:0;background:#eef2fa;font-family:'Segoe UI',Arial,sans-serif;color:#1e2f4d;">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#eef2fa;padding:28px 14px;">
+    <tr>
+        <td align="center">
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:640px;background:#ffffff;border-radius:18px;overflow:hidden;border:1px solid #d6e1f7;">
+                <tr>
+                    <td style="background:linear-gradient(135deg,#153462 0%,#2f5597 100%);padding:28px 30px;">
+                        <p style="margin:0;color:#9cc8ff;font-size:12px;letter-spacing:1.2px;text-transform:uppercase;font-weight:700;">Armely Admin Security</p>
+                        <h1 style="margin:10px 0 0;color:#ffffff;font-size:24px;line-height:1.2;">Password Reset Request</h1>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:28px 30px 22px;">
+                        <p style="margin:0 0 14px;font-size:16px;line-height:1.6;">Hello,</p>
+                        <p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#324a73;">We received a request to reset your Armely Admin password. Use the button below to securely set a new password.</p>
+                        <table role="presentation" cellspacing="0" cellpadding="0" style="margin:0 0 18px;">
+                            <tr>
+                                <td align="center" style="border-radius:10px;background:#1f4d99;">
+                                    <a href="{{ $resetLink }}" style="display:inline-block;padding:14px 22px;color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;border-radius:10px;">Reset Your Password</a>
+                                </td>
+                            </tr>
+                        </table>
+                        <div style="margin:0 0 14px;padding:12px 14px;background:#fff7df;border:1px solid #f6dda5;border-radius:10px;">
+                            <p style="margin:0;color:#7a5a13;font-size:13px;line-height:1.6;"><strong>Security notice:</strong> This reset link expires in 60 minutes.</p>
+                        </div>
+                        <p style="margin:0 0 12px;font-size:14px;line-height:1.7;color:#4f6690;">If you did not request this reset, you can safely ignore this message.</p>
+                        <div style="margin-top:18px;padding-top:18px;border-top:1px solid #e5edff;">
+                            <p style="margin:0 0 6px;font-size:13px;color:#5e7399;"><strong>Button not working?</strong> Copy this secure link into your browser:</p>
+                            <p style="margin:0;font-size:13px;line-height:1.6;word-break:break-all;"><a href="{{ $resetLink }}" style="color:#2f5597;">{{ $resetLink }}</a></p>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:18px 30px 24px;background:#f7faff;border-top:1px solid #e5edff;">
+                        <p style="margin:0;color:#6d81a4;font-size:12px;line-height:1.6;">Armely Admin Panel | Automated notification. Please do not reply.</p>
+                        <p style="margin:8px 0 0;color:#96a7c0;font-size:12px;line-height:1.5;">© {{ date('Y') }} Armely. All rights reserved.</p>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
 </body>
 </html>

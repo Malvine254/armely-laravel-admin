@@ -76,7 +76,7 @@
             <button @click="handleChangePassword" :disabled="isRestricted" class="w-full px-4 py-3 border-2 font-semibold rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed" style="border-color: #2F5597; color: #2F5597;" @mouseenter="$event.target.style.backgroundColor='#cce4f4'" @mouseleave="$event.target.style.backgroundColor='transparent'">
               Change Password
             </button>
-            <button @click="handleManageNotifications" :disabled="isRestricted" class="w-full px-4 py-3 border border-gray-300 text-gray-700 font-semibold rounded-lg transition hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">
+            <button @click="handleManageNotifications" class="w-full px-4 py-3 border border-gray-300 text-gray-700 font-semibold rounded-lg transition hover:bg-gray-100">
               Manage Notifications
             </button>
             <button @click="handleSignOut" class="w-full px-4 py-3 border border-red-300 text-red-600 font-semibold rounded-lg transition hover:bg-red-50">
@@ -361,6 +361,11 @@ const notificationSettings = ref({
   invoices: true
 })
 
+const getNotificationStorageKey = () => {
+  const userId = authStore.user?.id
+  return userId ? `notification_preferences_${userId}` : 'notification_preferences'
+}
+
 const userName = computed(() => authStore.user?.name || '')
 const userEmail = computed(() => authStore.user?.email || '')
 const userPhone = computed(() => authStore.user?.phone || 'Not set')
@@ -570,21 +575,32 @@ const submitChangePassword = async () => {
 }
 
 const handleManageNotifications = () => {
-  if (isRestricted.value) {
-    toastStore.addToast('Your account is restricted. Notification changes are disabled.', 'warning')
-    return
+  const saved = localStorage.getItem(getNotificationStorageKey())
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved)
+      notificationSettings.value = {
+        email: parsed.email !== false,
+        quotes: parsed.quotes !== false,
+        orders: parsed.orders !== false,
+        invoices: parsed.invoices !== false,
+      }
+    } catch (error) {
+      console.warn('Invalid notification preferences in localStorage, resetting to defaults.', error)
+      notificationSettings.value = {
+        email: true,
+        quotes: true,
+        orders: true,
+        invoices: true,
+      }
+    }
   }
 
-  // Load saved preferences from localStorage
-  const saved = localStorage.getItem('notification_preferences')
-  if (saved) {
-    notificationSettings.value = JSON.parse(saved)
-  }
   showNotificationsModal.value = true
 }
 
 const saveNotificationSettings = () => {
-  localStorage.setItem('notification_preferences', JSON.stringify(notificationSettings.value))
+  localStorage.setItem(getNotificationStorageKey(), JSON.stringify(notificationSettings.value))
   toastStore.addToast('Notification preferences saved!', 'success')
   showNotificationsModal.value = false
 }

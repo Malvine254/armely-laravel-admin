@@ -7,6 +7,7 @@ use App\Models\Admin;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use App\Services\AzureMailService;
 use App\Services\ActivityLogger;
@@ -31,7 +32,7 @@ class AdminsController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:admin,email',
+            'email' => 'required|email:rfc,dns,filter|unique:admin,email',
             'password' => 'required|string|min:8|confirmed',
             'role' => 'required|in:Super Admin,Admin',
             'status' => 'required|in:active,inactive',
@@ -71,7 +72,7 @@ class AdminsController extends Controller
                 : 'Admin created, but failed to send activation email.';
             return redirect()->route('admin.admins')->with($sent ? 'success' : 'error', $msg);
         } catch (\Throwable $e) {
-            \Log::error('Failed to send admin activation email: ' . $e->getMessage(), ['exception' => $e]);
+            Log::error('Failed to send admin activation email: ' . $e->getMessage(), ['exception' => $e]);
             return redirect()->route('admin.admins')->with('error', 'Admin created, but failed to send activation email.');
         }
     }
@@ -82,7 +83,7 @@ class AdminsController extends Controller
         
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:admin,email,' . $id,
+            'email' => 'required|email:rfc,dns,filter|unique:admin,email,' . $id,
             'password' => 'nullable|string|min:8|confirmed',
             'role' => 'required|in:Super Admin,Admin',
             'status' => 'required|in:active,inactive',

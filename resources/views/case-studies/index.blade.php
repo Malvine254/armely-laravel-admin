@@ -32,6 +32,9 @@
 	color: #6a768a;
 	margin-top: 12px;
 }
+#white-papers {
+	scroll-margin-top: 110px;
+}
 .lead-form .field-label {
 	display: block;
 	font-size: 0.9rem;
@@ -119,12 +122,55 @@
 	font-size: 0.85rem;
 	font-weight: 700;
 }
+.case-toast-stack {
+	position: fixed;
+	top: 18px;
+	right: 18px;
+	z-index: 10020;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	max-width: 360px;
+}
+.case-toast {
+	padding: 12px 14px;
+	border-radius: 12px;
+	font-size: 0.92rem;
+	font-weight: 600;
+	box-shadow: 0 12px 30px rgba(18, 40, 77, 0.22);
+	animation: caseToastIn .25s ease;
+}
+.case-toast-success {
+	background: #e9f9ef;
+	border: 1px solid #98ddb0;
+	color: #1f6b39;
+}
+.case-toast-error {
+	background: #fff2f2;
+	border: 1px solid #f0b2b2;
+	color: #942c2c;
+}
+@keyframes caseToastIn {
+	from {
+		opacity: 0;
+		transform: translateY(-6px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
 @media (max-width: 767px) {
 	.case-lead-card {
 		padding: 22px 16px;
 	}
 	.case-lead-title {
 		font-size: 1.45rem;
+	}
+	.case-toast-stack {
+		left: 12px;
+		right: 12px;
+		max-width: none;
 	}
 }
 </style>
@@ -169,10 +215,6 @@
 <div class="container">
 	<div class="row">
 		@forelse($caseStudies as $caseStudy)
-			@php
-				$caseStudyAccessUrl = route('case-studies.access', ['caseStudy' => $caseStudy->id]);
-				$caseStudyUnlocked = in_array((int) $caseStudy->id, $grantedCaseStudyIds ?? [], true);
-			@endphp
 			<div class="col-md-4 mb-4">
 				<div class="case-study-card">
 					<div class="card-image-wrapper">
@@ -191,12 +233,10 @@
 						<p class="card-description">{{ $caseStudy->preview ?? '' }}</p>
 						<div class="card-footer">
 							<a class="read-more-btn text-light case-study-gated-link"
-							   href="{{ $caseStudyAccessUrl }}"
-							   data-access-url="{{ $caseStudyAccessUrl }}"
+							   href="#"
 							   data-case-study-id="{{ $caseStudy->id }}"
-							   data-is-unlocked="{{ $caseStudyUnlocked ? '1' : '0' }}"
 							   data-resource-title="{{ $caseStudy->category }} Solution">
-								Read Case Study <i class="fa fa-arrow-right"></i>
+								Request Download Link <i class="fa fa-envelope"></i>
 							</a>
 						</div>
 					</div>
@@ -256,18 +296,20 @@
 @if(session('status'))
 	<section class="case-lead-section" id="resource-request-form">
 		<div class="container col-12 col-lg-9 col-md-11 col-sm-12">
-			<div class="alert alert-success">{{ session('status') }}</div>
+			<div class="alert alert-success" style="display:none;">{{ session('status') }}</div>
 		</div>
 	</section>
 @endif
+
+<div id="caseToastStack" class="case-toast-stack" aria-live="polite" aria-atomic="true"></div>
 
 <!-- Case Study Lead Modal -->
 <div id="caseStudyLeadModal" class="case-download-modal" aria-hidden="true" role="dialog" aria-labelledby="caseStudyModalTitle">
 	<div class="case-download-modal-dialog">
 		<div class="case-lead-card">
 			<button type="button" class="case-modal-close" id="caseModalCloseBtn" aria-label="Close">&times;</button>
-			<h2 class="case-lead-title" id="caseStudyModalTitle">Access This Case Study</h2>
-			<p class="case-lead-subtitle">Please complete this short form to unlock the selected case study.</p>
+			<h2 class="case-lead-title" id="caseStudyModalTitle">Request Secure Download Link</h2>
+			<p class="case-lead-subtitle">Complete this form and we will email a secure link that expires in 1 hour.</p>
 			<div class="case-modal-selected" id="selectedCaseStudyLabel">Selected: Case Study</div>
 
 			<form class="form lead-form" method="post" action="{{ route('case-studies.lead.submit') }}">
@@ -332,7 +374,7 @@
 					</div>
 					<div class="col-md-5 col-sm-8">
 						<div class="form-group login-btn submit-btn-wrap">
-							<button class="btn default-background" id="resourceSubmitBtn" type="submit">Submit & Open Resource</button>
+							<button class="btn default-background" id="resourceSubmitBtn" type="submit">Submit & Email Download Link</button>
 						</div>
 					</div>
 				</div>
@@ -343,7 +385,7 @@
 </div>
 
 <!-- White Papers Section -->
-<section class="white-papers-section">
+<section id="white-papers" class="white-papers-section">
 <div class="container">
 	<div class="row">
 		<div class="col-lg-12">
@@ -361,10 +403,6 @@
 <div class="container">
 	<div class="row">
 		@forelse($whitePapers as $paper)
-			@php
-				$whitePaperAccessUrl = route('white-papers.access', ['paper' => $paper->id]);
-				$whitePaperUnlocked = in_array((int) $paper->id, $grantedWhitePaperIds ?? [], true);
-			@endphp
 			<div class="col-md-4 mb-4">
 				<div class="white-paper-card">
 					<div class="card-image-wrapper">
@@ -385,13 +423,11 @@
 						<p class="card-description">{{ $paper->preview ?? '' }}</p>
 						<div class="card-footer">
 							<a class="read-more-btn white-paper-gated-link"
-							   href="{{ $whitePaperAccessUrl }}"
-							   data-access-url="{{ $whitePaperAccessUrl }}"
+							   href="#"
 							   data-white-paper-id="{{ $paper->id }}"
-							   data-is-unlocked="{{ $whitePaperUnlocked ? '1' : '0' }}"
 							   data-resource-type="white-paper"
 							   data-resource-title="{{ $paper->title }}">
-								Download Paper <i class="fa fa-download"></i>
+								Request Download Link <i class="fa fa-envelope"></i>
 							</a>
 						</div>
 					</div>
@@ -463,6 +499,26 @@
 	var interestInput = document.querySelector('input[name="interest"]');
 	var submitBtn = document.getElementById('resourceSubmitBtn');
 	var closeBtn = document.getElementById('caseModalCloseBtn');
+	var toastStack = document.getElementById('caseToastStack');
+	var leadForm = modal.querySelector('form.lead-form');
+	var originalBtnText = submitBtn ? submitBtn.textContent : 'Submit & Email Download Link';
+
+	function showToast(message, type) {
+		if (!toastStack || !message) {
+			return;
+		}
+
+		var toast = document.createElement('div');
+		toast.className = 'case-toast ' + (type === 'error' ? 'case-toast-error' : 'case-toast-success');
+		toast.textContent = message;
+		toastStack.appendChild(toast);
+
+		window.setTimeout(function () {
+			if (toast.parentNode) {
+				toast.parentNode.removeChild(toast);
+			}
+		}, 5200);
+	}
 
 	function openModal(resourceType, resourceId, resourceTitle) {
 		if (!resourceId) {
@@ -475,11 +531,11 @@
 		if (resourceType === 'white-paper') {
 			whitePaperIdInput.value = resourceId;
 			interestInput.value = 'white-papers';
-			submitBtn.textContent = 'Submit & Open White Paper';
+			submitBtn.textContent = 'Submit & Email White Paper Link';
 		} else {
 			caseStudyIdInput.value = resourceId;
 			interestInput.value = 'case-studies';
-			submitBtn.textContent = 'Submit & Open Case Study';
+			submitBtn.textContent = 'Submit & Email Case Study Link';
 		}
 
 		hiddenResource.value = resourceTitle || 'Resource';
@@ -495,17 +551,17 @@
 		document.body.style.overflow = '';
 	}
 
+	function setSubmitting(isSubmitting) {
+		if (!submitBtn) {
+			return;
+		}
+		submitBtn.disabled = isSubmitting;
+		submitBtn.textContent = isSubmitting ? 'Submitting...' : originalBtnText;
+	}
+
 	document.querySelectorAll('.case-study-gated-link').forEach(function (link) {
 		link.addEventListener('click', function (event) {
-			var isUnlocked = link.getAttribute('data-is-unlocked') === '1';
-			var accessUrl = link.getAttribute('data-access-url') || '';
 			var caseStudyId = link.getAttribute('data-case-study-id') || '';
-
-			if (isUnlocked && accessUrl) {
-				event.preventDefault();
-				window.open(accessUrl, '_blank', 'noopener');
-				return;
-			}
 
 			event.preventDefault();
 			openModal('case-study', caseStudyId, link.getAttribute('data-resource-title') || 'Case Study');
@@ -514,15 +570,7 @@
 
 	document.querySelectorAll('.white-paper-gated-link').forEach(function (link) {
 		link.addEventListener('click', function (event) {
-			var isUnlocked = link.getAttribute('data-is-unlocked') === '1';
-			var accessUrl = link.getAttribute('data-access-url') || '';
 			var whitePaperId = link.getAttribute('data-white-paper-id') || '';
-
-			if (isUnlocked && accessUrl) {
-				event.preventDefault();
-				window.open(accessUrl, '_blank', 'noopener');
-				return;
-			}
 
 			event.preventDefault();
 			openModal('white-paper', whitePaperId, link.getAttribute('data-resource-title') || 'White Paper');
@@ -531,6 +579,58 @@
 
 	if (closeBtn) {
 		closeBtn.addEventListener('click', closeModal);
+	}
+
+	if (leadForm) {
+		leadForm.addEventListener('submit', function (event) {
+			event.preventDefault();
+			setSubmitting(true);
+
+			var formData = new FormData(leadForm);
+			fetch(leadForm.action, {
+				method: 'POST',
+				headers: {
+					'Accept': 'application/json',
+					'X-Requested-With': 'XMLHttpRequest'
+				},
+				body: formData,
+				credentials: 'same-origin'
+			})
+				.then(function (response) {
+					return response.json().catch(function () {
+						return {};
+					}).then(function (json) {
+						return { ok: response.ok, status: response.status, json: json };
+					});
+				})
+				.then(function (result) {
+					if (!result.ok) {
+						if (result.status === 422 && result.json && result.json.errors) {
+							var firstField = Object.keys(result.json.errors)[0];
+							var firstMessage = firstField && result.json.errors[firstField] && result.json.errors[firstField][0]
+								? result.json.errors[firstField][0]
+								: 'Please check the form fields and try again.';
+							showToast(firstMessage, 'error');
+						} else {
+							showToast('Unable to submit right now. Please try again.', 'error');
+						}
+						return;
+					}
+
+					showToast((result.json && result.json.message) || 'Download link sent successfully.', 'success');
+					leadForm.reset();
+					if (window.grecaptcha && typeof window.grecaptcha.reset === 'function') {
+						window.grecaptcha.reset();
+					}
+					closeModal();
+				})
+				.catch(function () {
+					showToast('Network issue. Please try again.', 'error');
+				})
+				.finally(function () {
+					setSubmitting(false);
+				});
+		});
 	}
 
 	modal.addEventListener('click', function (event) {

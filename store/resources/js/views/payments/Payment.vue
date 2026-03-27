@@ -108,7 +108,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import { useToastStore } from '../../stores/toastStore'
@@ -133,9 +133,19 @@ const invoiceNumbers = computed(() => {
   return raw.split(',').map(v => v.trim()).filter(Boolean)
 })
 
-const estimatedAmount = computed(() => {
-  const amount = Number(route.query.amount || 0)
+const resolvedInvoiceAmount = ref(null)
+
+const parseAmount = (value) => {
+  const amount = Number(value)
   return Number.isFinite(amount) ? amount : 0
+}
+
+const estimatedAmount = computed(() => {
+  if (resolvedInvoiceAmount.value !== null) {
+    return resolvedInvoiceAmount.value
+  }
+
+  return parseAmount(route.query.amount || 0)
 })
 
 const modeLabel = computed(() => {
@@ -161,6 +171,37 @@ const referenceLabel = computed(() => {
 const formatCurrency = (amount) => {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(amount || 0))
 }
+
+const resolveInvoiceAmount = async () => {
+  resolvedInvoiceAmount.value = null
+
+  if (mode.value !== 'invoice' || !invoiceNumber.value) {
+    return
+  }
+
+  try {
+    const response = await axios.get(`/api/v1/invoices/${invoiceNumber.value}`)
+    const invoice = response?.data?.data
+
+    if (!invoice) {
+      return
+    }
+
+    const totalAmount = parseAmount(invoice.total_amount)
+    const paidAmount = parseAmount(invoice.paid_amount)
+    resolvedInvoiceAmount.value = Math.max(0, totalAmount - paidAmount)
+  } catch (error) {
+    console.error('Unable to resolve invoice amount from API:', error)
+  }
+}
+
+watch(
+  [mode, invoiceNumber],
+  () => {
+    resolveInvoiceAmount()
+  },
+  { immediate: true }
+)
 
 const goBack = () => {
   const from = String(route.query.from || '').trim()

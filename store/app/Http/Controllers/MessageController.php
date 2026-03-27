@@ -30,6 +30,8 @@ class MessageController extends Controller
             ->limit($limit)
             ->get()
             ->map(function ($message) {
+                $action = $this->resolveMessageAction($message);
+
                 return [
                     'id' => $message->id,
                     'type' => $message->type,
@@ -42,6 +44,8 @@ class MessageController extends Controller
                     'read_at' => $message->read_at,
                     'created_at' => $message->created_at,
                     'time_ago' => $this->getTimeAgo($message->created_at),
+                    'action_link' => $action['link'],
+                    'action_label' => $action['label'],
                 ];
             });
 
@@ -145,5 +149,54 @@ class MessageController extends Controller
             return $diff->i . ' minute' . ($diff->i > 1 ? 's' : '') . ' ago';
         }
         return 'just now';
+    }
+
+    /**
+     * Resolve a user-facing deep link for a message.
+     */
+    private function resolveMessageAction($message): array
+    {
+        $referenceId = trim((string) ($message->reference_id ?? ''));
+        $title = strtolower((string) ($message->title ?? ''));
+        $body = strtolower((string) ($message->message ?? ''));
+
+        if ($message->type === 'invoice' && $referenceId !== '') {
+            $isPaymentDue = str_contains($title, 'ready for payment')
+                || str_contains($title, 'due')
+                || str_contains($body, 'ready for payment')
+                || str_contains($body, 'pay')
+                || str_contains($body, 'due');
+
+            if ($isPaymentDue) {
+                return [
+                    'link' => '/payment?mode=invoice&invoiceNumber=' . urlencode($referenceId) . '&from=' . urlencode('/messages'),
+                    'label' => 'Pay now',
+                ];
+            }
+
+            return [
+                'link' => '/invoices?invoiceNumber=' . urlencode($referenceId),
+                'label' => 'View invoice',
+            ];
+        }
+
+        if ($message->type === 'quote' && $referenceId !== '') {
+            return [
+                'link' => '/quotes?view=' . urlencode($referenceId),
+                'label' => 'View quote',
+            ];
+        }
+
+        if ($message->type === 'order' && $referenceId !== '') {
+            return [
+                'link' => '/orders?view=' . urlencode($referenceId),
+                'label' => 'View order',
+            ];
+        }
+
+        return [
+            'link' => null,
+            'label' => null,
+        ];
     }
 }

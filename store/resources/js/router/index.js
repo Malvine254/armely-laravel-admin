@@ -26,6 +26,8 @@ import Payment from '../views/payments/Payment.vue';
 import Favorites from '../views/auth/Favorites.vue';
 import Account from '../views/auth/Account.vue';
 import Messages from '../views/messages/Messages.vue';
+import Privacy from '../views/Privacy.vue';
+import CookieSettings from '../views/CookieSettings.vue';
 
 const routes = [
   {
@@ -178,6 +180,18 @@ const routes = [
     component: Messages,
     meta: { requiresAuth: true },
   },
+  {
+    path: '/privacy',
+    name: 'privacy',
+    component: Privacy,
+    meta: { requiresAuth: false },
+  },
+  {
+    path: '/cookie-settings',
+    name: 'cookie-settings',
+    component: CookieSettings,
+    meta: { requiresAuth: false },
+  },
 ];
 
 const router = createRouter({
@@ -225,7 +239,7 @@ router.beforeEach((to, from, next) => {
 
   // Activation pending users should stay on public/account pages until email is verified.
   if (authStore.isActivationPending) {
-    const allowedNames = ['home', 'products', 'product-detail', 'account', 'activate-account', 'login'];
+    const allowedNames = ['home', 'products', 'product-detail', 'account', 'activate-account', 'login', 'privacy', 'cookie-settings'];
     if (to.name && !allowedNames.includes(to.name)) {
       const toastStore = useToastStore();
       toastStore.addToast('Please activate your account from the email link before accessing this page.', 'warning');
@@ -236,7 +250,7 @@ router.beforeEach((to, from, next) => {
 
   // Restricted users can sign in but are limited to read-only friendly pages.
   if (authStore.isRestricted) {
-    const allowedNames = ['home', 'products', 'product-detail', 'account', 'login'];
+    const allowedNames = ['home', 'products', 'product-detail', 'account', 'login', 'privacy', 'cookie-settings'];
     if (to.name && !allowedNames.includes(to.name)) {
       const toastStore = useToastStore();
       toastStore.addToast('Your account is restricted. Please contact your administrator.', 'warning');

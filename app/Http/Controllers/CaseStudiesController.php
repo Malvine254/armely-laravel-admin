@@ -3,11 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Services\AzureMailService;
+use Illuminate\Database\QueryException;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 
 class CaseStudiesController extends Controller
@@ -15,10 +19,7 @@ class CaseStudiesController extends Controller
     public function index(Request $request)
     {
         // Paginate case studies (6 per page)
-        $caseStudies = DB::table('industry_listings')
-            ->select('id', 'category', 'listing_image', 'body', 'pdf_url')
-            ->orderByDesc('id')
-            ->paginate(6, ['*'], 'case_page');
+        $caseStudies = $this->paginateCaseStudies($request);
 
         $caseStudies->getCollection()->transform(function ($caseStudy) {
             $caseStudy->preview = $this->makePreviewText((string) ($caseStudy->body ?? ''), 120);
@@ -42,16 +43,14 @@ class CaseStudiesController extends Controller
             'caseStudies' => $caseStudies,
             'whitePapers' => $whitePapers,
             'recaptchaSiteKey' => config('services.recaptcha.site_key', ''),
-            'grantedCaseStudyIds' => $this->getGrantedCaseStudyIds($request),
-            'grantedWhitePaperIds' => $this->getGrantedWhitePaperIds($request),
         ]);
     }
 
     public function submitLead(Request $request)
     {
-        $data = $request->validate([
+        $rules = [
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email:rfc,dns', 'max:255'],
+            'email' => ['required', 'email:rfc,dns,spoof,filter', 'max:255'],
             'phone' => ['required', 'string', 'max:50'],
             'organization' => ['required', 'string', 'max:255'],
             'job_title' => ['nullable', 'string', 'max:255'],
@@ -60,10 +59,16 @@ class CaseStudiesController extends Controller
             'message' => ['nullable', 'string'],
             'website' => ['nullable', 'string', 'max:255'],
             'requested_resource' => ['nullable', 'string', 'max:255'],
-            'case_study_id' => ['nullable', 'integer', 'exists:industry_listings,id'],
+            'case_study_id' => ['nullable', 'integer'],
             'white_paper_id' => ['nullable', 'integer', 'exists:white_paper,id'],
             'g-recaptcha-response' => ['required', 'string'],
-        ], [
+        ];
+
+        if ($this->isTableQueryable('industry_listings')) {
+            $rules['case_study_id'][] = 'exists:industry_listings,id';
+        }
+
+        $data = $request->validate($rules, [
             'name.required' => 'Name is required.',
             'email.required' => 'Email is required.',
             'email.email' => 'Please enter a valid work email with a valid domain.',
@@ -79,6 +84,16 @@ class CaseStudiesController extends Controller
 
         if (!$this->verifyRecaptcha($data['g-recaptcha-response'])) {
             return back()->withErrors(['captcha' => 'reCAPTCHA verification failed. Please try again.'])->withInput();
+        }
+
+        $normalizedEmail = strtolower(trim((string) ($data['email'] ?? '')));
+        if (!$this->isDeliverableEmail($normalizedEmail)) {
+            return back()->withErrors(['email' => 'Please provide a valid business email that can receive messages.'])->withInput();
+        }
+
+        $downloadDetails = $this->buildDownloadDetails($data, $normalizedEmail);
+        if ($downloadDetails === null) {
+            return back()->withErrors(['resource' => 'The requested resource is unavailable. Please choose another resource.'])->withInput();
         }
 
         $interestLabel = match ($data['interest']) {
@@ -102,7 +117,7 @@ class CaseStudiesController extends Controller
 
         DB::table('case_study_lead_requests')->insert([
             'name' => $data['name'],
-            'email' => strtolower($data['email']),
+            'email' => $normalizedEmail,
             'phone' => $data['phone'],
             'organization' => $data['organization'],
             'job_title' => $data['job_title'] ?? null,
@@ -120,7 +135,7 @@ class CaseStudiesController extends Controller
 
         DB::table('contacts')->insert([
             'name' => $data['name'],
-            'email' => strtolower($data['email']),
+            'email' => $normalizedEmail,
             'organization' => $data['organization'],
             'phone' => $data['phone'],
             'message' => $composedMessage,
@@ -130,7 +145,7 @@ class CaseStudiesController extends Controller
 
         $this->sendCaseStudyLeadEmail([
             'name' => $data['name'],
-            'email' => strtolower($data['email']),
+            'email' => $normalizedEmail,
             'phone' => $data['phone'],
             'organization' => $data['organization'],
             'job_title' => $data['job_title'] ?? '',
@@ -140,32 +155,38 @@ class CaseStudiesController extends Controller
             'case_study_id' => (string) ($data['case_study_id'] ?? ''),
             'white_paper_id' => (string) ($data['white_paper_id'] ?? ''),
             'message' => $notes,
+            'resource_title' => $downloadDetails['resource_title'],
+            'resource_type_label' => $downloadDetails['resource_type_label'],
+            'download_url' => $downloadDetails['download_url'],
+            'expires_at' => $downloadDetails['expires_at'],
         ]);
 
-        $caseStudyId = (int) ($data['case_study_id'] ?? 0);
-        if ($caseStudyId > 0) {
-            $email = strtolower(trim($data['email']));
-            $this->grantCaseStudyAccess($request, $email, $caseStudyId);
+        $message = 'Thanks! Your secure download link has been sent by email. It expires in 1 hour.';
 
-            return redirect()->route('case-studies.access', ['caseStudy' => $caseStudyId]);
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'ok' => true,
+                'message' => $message,
+            ]);
         }
 
-        $whitePaperId = (int) ($data['white_paper_id'] ?? 0);
-        if ($whitePaperId > 0) {
-            $email = strtolower(trim($data['email']));
-            $this->grantWhitePaperAccess($request, $email, $whitePaperId);
-
-            return redirect()->route('white-papers.access', ['paper' => $whitePaperId]);
-        }
-
-        return back()->with('status', 'Thanks! We will share the relevant case studies and white papers shortly.');
+        return back()->with('status', $message);
     }
 
     public function accessCaseStudy(Request $request, int $caseStudy)
     {
-        if (!$this->hasCaseStudyAccess($request, $caseStudy)) {
+        if ($normalized = $this->normalizeAmpEncodedSignatureQuery($request)) {
+            return redirect()->to($normalized);
+        }
+
+        if (!$request->hasValidSignature()) {
             return redirect()->route('case-studies.index')
-                ->withErrors(['access' => 'Please complete the form to unlock this case study first.']);
+                ->withErrors(['access' => 'This download link is invalid or has expired. Please request a new one.']);
+        }
+
+        if (!$this->isTableQueryable('industry_listings')) {
+            return redirect()->route('case-studies.index')
+                ->withErrors(['access' => 'Case studies are temporarily unavailable.']);
         }
 
         $item = DB::table('industry_listings')
@@ -179,7 +200,7 @@ class CaseStudiesController extends Controller
 
         $pdfUrl = (string) $item->pdf_url;
         if (str_starts_with($pdfUrl, 'http://') || str_starts_with($pdfUrl, 'https://')) {
-            return redirect()->away($pdfUrl);
+            return $this->downloadRemotePdf($pdfUrl, 'case-study-' . $caseStudy . '.pdf');
         }
 
         $fileName = basename($pdfUrl);
@@ -187,16 +208,14 @@ class CaseStudiesController extends Controller
         $publicPath = public_path('case_docs/' . $fileName);
 
         if (is_file($privatePath)) {
-            return response()->file($privatePath, [
+            return response()->download($privatePath, $fileName, [
                 'Content-Type' => 'application/pdf',
-                'Content-Disposition' => 'inline; filename="' . $fileName . '"',
             ]);
         }
 
         if (is_file($publicPath)) {
-            return response()->file($publicPath, [
+            return response()->download($publicPath, $fileName, [
                 'Content-Type' => 'application/pdf',
-                'Content-Disposition' => 'inline; filename="' . $fileName . '"',
             ]);
         }
 
@@ -205,25 +224,19 @@ class CaseStudiesController extends Controller
 
     public function legacyCaseDoc(Request $request, string $file)
     {
-        $caseStudy = DB::table('industry_listings')
-            ->select('id')
-            ->where('pdf_url', $file)
-            ->orWhere('pdf_url', 'like', '%/' . $file)
-            ->first();
-
-        if (!$caseStudy) {
-            return redirect()->route('case-studies.index')
-                ->withErrors(['access' => 'This case study document is not available.']);
-        }
-
-        return redirect()->route('case-studies.access', ['caseStudy' => (int) $caseStudy->id]);
+        return redirect()->route('case-studies.index')
+            ->withErrors(['access' => 'Direct document links are disabled. Please request a secure download link from the form.']);
     }
 
     public function accessWhitePaper(Request $request, int $paper)
     {
-        if (!$this->hasWhitePaperAccess($request, $paper)) {
+        if ($normalized = $this->normalizeAmpEncodedSignatureQuery($request)) {
+            return redirect()->to($normalized);
+        }
+
+        if (!$request->hasValidSignature()) {
             return redirect()->route('case-studies.index')
-                ->withErrors(['access' => 'Please complete the form to unlock this white paper first.']);
+                ->withErrors(['access' => 'This download link is invalid or has expired. Please request a new one.']);
         }
 
         $item = DB::table('white_paper')
@@ -237,7 +250,7 @@ class CaseStudiesController extends Controller
 
         $pdfValue = (string) $item->pdf;
         if (str_starts_with($pdfValue, 'http://') || str_starts_with($pdfValue, 'https://')) {
-            return redirect()->away($pdfValue);
+            return $this->downloadRemotePdf($pdfValue, 'white-paper-' . $paper . '.pdf');
         }
 
         $fileName = basename($pdfValue);
@@ -245,16 +258,14 @@ class CaseStudiesController extends Controller
         $publicPath = public_path('white_paper_docs/' . $fileName);
 
         if (is_file($privatePath)) {
-            return response()->file($privatePath, [
+            return response()->download($privatePath, $fileName, [
                 'Content-Type' => 'application/pdf',
-                'Content-Disposition' => 'inline; filename="' . $fileName . '"',
             ]);
         }
 
         if (is_file($publicPath)) {
-            return response()->file($publicPath, [
+            return response()->download($publicPath, $fileName, [
                 'Content-Type' => 'application/pdf',
-                'Content-Disposition' => 'inline; filename="' . $fileName . '"',
             ]);
         }
 
@@ -263,18 +274,8 @@ class CaseStudiesController extends Controller
 
     public function legacyWhitePaperDoc(Request $request, string $file)
     {
-        $paper = DB::table('white_paper')
-            ->select('id')
-            ->where('pdf', $file)
-            ->orWhere('pdf', 'like', '%/' . $file)
-            ->first();
-
-        if (!$paper) {
-            return redirect()->route('case-studies.index')
-                ->withErrors(['access' => 'This white paper document is not available.']);
-        }
-
-        return redirect()->route('white-papers.access', ['paper' => (int) $paper->id]);
+        return redirect()->route('case-studies.index')
+            ->withErrors(['access' => 'Direct document links are disabled. Please request a secure download link from the form.']);
     }
 
     private function makePreviewText(string $value, int $limit): string
@@ -319,27 +320,27 @@ class CaseStudiesController extends Controller
     private function sendCaseStudyLeadEmail(array $payload): void
     {
         try {
-            $fromEmail = env('FROM_EMAIL', env('MAIL_FROM_ADDRESS'));
+            $fromEmail = AzureMailService::outboundFromEmail();
             $adminEmail = env('ADMIN_EMAIL', $fromEmail);
             if (!$fromEmail || !$adminEmail) {
-                Log::warning('Case studies lead email skipped: missing FROM_EMAIL/ADMIN_EMAIL');
+                Log::warning('Case studies lead email skipped: missing NO_REPLY_EMAIL/FROM_EMAIL/ADMIN_EMAIL');
                 return;
             }
 
-            $html =
-                '<p><strong>New resource request from Case Studies page</strong></p>' .
-                '<p><strong>Name:</strong> ' . e($payload['name']) . '<br>' .
-                '<strong>Email:</strong> ' . e($payload['email']) . '<br>' .
-                '<strong>Phone:</strong> ' . e($payload['phone']) . '<br>' .
-                '<strong>Organization:</strong> ' . e($payload['organization']) . '<br>' .
-                '<strong>Job Title:</strong> ' . e($payload['job_title']) . '<br>' .
-                '<strong>Country/Region:</strong> ' . e($payload['country']) . '<br>' .
-                '<strong>Interest:</strong> ' . e($payload['interest']) . '<br>' .
-                '<strong>Requested Resource:</strong> ' . e($payload['requested_resource']) . '<br>' .
-                '<strong>Requested Case Study ID:</strong> ' . e($payload['case_study_id']) . '<br>' .
-                '<strong>Requested White Paper ID:</strong> ' . e($payload['white_paper_id']) . '<br>' .
-                '<strong>Lead Source:</strong> Case Studies Modal</p>' .
-                '<p><strong>Additional Notes:</strong><br>' . nl2br(e($payload['message'] ?: 'N/A')) . '</p>';
+            $html = view('emails.case-studies.admin-lead-notification', [
+                'name' => (string) ($payload['name'] ?? ''),
+                'email' => (string) ($payload['email'] ?? ''),
+                'phone' => (string) ($payload['phone'] ?? ''),
+                'organization' => (string) ($payload['organization'] ?? ''),
+                'jobTitle' => (string) ($payload['job_title'] ?? ''),
+                'country' => (string) ($payload['country'] ?? ''),
+                'interest' => (string) ($payload['interest'] ?? ''),
+                'requestedResource' => (string) ($payload['requested_resource'] ?? ''),
+                'caseStudyId' => (string) ($payload['case_study_id'] ?? ''),
+                'whitePaperId' => (string) ($payload['white_paper_id'] ?? ''),
+                'expiresAt' => (string) ($payload['expires_at'] ?? ''),
+                'message' => (string) ($payload['message'] ?? ''),
+            ])->render();
 
             $mailer = new AzureMailService();
             $mailer->sendEmail($fromEmail, $adminEmail, 'Case Studies Lead: ' . $payload['interest'], $html);
@@ -348,14 +349,127 @@ class CaseStudiesController extends Controller
                 $mailer->sendEmail($fromEmail, 'ask.me@armely.com', 'Case Studies Lead: ' . $payload['interest'], $html);
             }
 
-            $userHtml =
-                '<p>Hi ' . e($payload['name']) . ',</p>' .
-                '<p>Thanks for your interest in Armely resources. We received your request for <strong>' . e($payload['interest']) . '</strong> and our team will share the relevant materials soon.</p>' .
-                '<p>Best regards,<br>Armely Team</p>';
-            $mailer->sendEmail($fromEmail, $payload['email'], 'Your Armely resource request', $userHtml);
+            if (!$this->isDeliverableEmail((string) $payload['email'])) {
+                Log::warning('Case studies lead user email skipped due to deliverability verification failure', [
+                    'email' => $payload['email'],
+                ]);
+                return;
+            }
+
+            $userHtml = view('emails.case-studies.resource-download', [
+                'name' => $payload['name'],
+                'resourceTitle' => $payload['resource_title'],
+                'resourceTypeLabel' => $payload['resource_type_label'],
+                'downloadUrl' => $payload['download_url'],
+                'expiresAt' => $payload['expires_at'],
+            ])->render();
+
+            $sent = $mailer->sendEmail($fromEmail, $payload['email'], 'Your secure Armely download link', $userHtml);
+            if (!$sent) {
+                AzureMailService::markEmailAsSuppressed((string) $payload['email']);
+            }
         } catch (\Throwable $e) {
             Log::warning('Case studies lead email failed', ['error' => $e->getMessage()]);
         }
+    }
+
+    private function buildDownloadDetails(array $data, string $email): ?array
+    {
+        $expiresAt = now()->addHour();
+        $caseStudyId = (int) ($data['case_study_id'] ?? 0);
+        if ($caseStudyId > 0 && $this->isTableQueryable('industry_listings')) {
+            $record = DB::table('industry_listings')
+                ->select('id', 'category')
+                ->where('id', $caseStudyId)
+                ->first();
+
+            if ($record) {
+                return [
+                    'resource_title' => (string) ($record->category ?? ('Case Study #' . $caseStudyId)),
+                    'resource_type_label' => 'Case Study',
+                    'download_url' => URL::temporarySignedRoute('case-studies.access', $expiresAt, ['caseStudy' => $caseStudyId, 'em' => sha1($email)]),
+                    'expires_at' => $expiresAt->format('M d, Y h:i A T'),
+                ];
+            }
+        }
+
+        $whitePaperId = (int) ($data['white_paper_id'] ?? 0);
+        if ($whitePaperId > 0) {
+            $record = DB::table('white_paper')
+                ->select('id', 'title')
+                ->where('id', $whitePaperId)
+                ->first();
+
+            if ($record) {
+                return [
+                    'resource_title' => (string) ($record->title ?? ('White Paper #' . $whitePaperId)),
+                    'resource_type_label' => 'White Paper',
+                    'download_url' => URL::temporarySignedRoute('white-papers.access', $expiresAt, ['paper' => $whitePaperId, 'em' => sha1($email)]),
+                    'expires_at' => $expiresAt->format('M d, Y h:i A T'),
+                ];
+            }
+        }
+
+        return null;
+    }
+
+    private function downloadRemotePdf(string $url, string $fallbackName)
+    {
+        try {
+            $response = Http::timeout(20)->get($url);
+            if (!$response->successful()) {
+                abort(404);
+            }
+
+            $filename = basename(parse_url($url, PHP_URL_PATH) ?: $fallbackName);
+            if ($filename === '' || $filename === '/') {
+                $filename = $fallbackName;
+            }
+
+            return response($response->body(), 200, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+                'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('Failed to proxy remote PDF download', ['url' => $url, 'error' => $e->getMessage()]);
+            abort(404);
+        }
+    }
+
+    private function isDeliverableEmail(string $email): bool
+    {
+        return AzureMailService::isDeliverableEmail($email);
+    }
+
+    private function normalizeAmpEncodedSignatureQuery(Request $request): ?string
+    {
+        $query = $request->query();
+        $normalized = [];
+        $changed = false;
+
+        foreach ($query as $key => $value) {
+            $targetKey = (string) $key;
+            if (str_starts_with($targetKey, 'amp;')) {
+                $targetKey = substr($targetKey, 4);
+                $changed = true;
+            }
+
+            if ($targetKey === '') {
+                $changed = true;
+                continue;
+            }
+
+            if (!array_key_exists($targetKey, $normalized)) {
+                $normalized[$targetKey] = $value;
+            }
+        }
+
+        if (!$changed) {
+            return null;
+        }
+
+        return $request->url() . '?' . http_build_query($normalized);
     }
 
     private function grantCaseStudyAccess(Request $request, string $email, int $caseStudyId): void
@@ -474,5 +588,75 @@ class CaseStudiesController extends Controller
     private function whitePaperAccessCacheKey(string $email): string
     {
         return 'white_paper_access:' . sha1(strtolower(trim($email)));
+    }
+
+    private function paginateCaseStudies(Request $request): LengthAwarePaginator
+    {
+        if (!$this->isTableQueryable('industry_listings')) {
+            return $this->emptyPaginator($request, 6, 'case_page');
+        }
+
+        try {
+            return DB::table('industry_listings')
+                ->select('id', 'category', 'listing_image', 'body', 'pdf_url')
+                ->orderByDesc('id')
+                ->paginate(6, ['*'], 'case_page');
+        } catch (QueryException $e) {
+            if ($this->isMissingTableException($e)) {
+                Log::warning('Case studies table unavailable in database engine', [
+                    'table' => 'industry_listings',
+                    'error' => $e->getMessage(),
+                ]);
+
+                return $this->emptyPaginator($request, 6, 'case_page');
+            }
+
+            throw $e;
+        }
+    }
+
+    private function isTableQueryable(string $table): bool
+    {
+        try {
+            return Schema::hasTable($table);
+        } catch (QueryException $e) {
+            if ($this->isMissingTableException($e)) {
+                Log::warning('Database table unavailable during schema check', [
+                    'table' => $table,
+                    'error' => $e->getMessage(),
+                ]);
+
+                return false;
+            }
+
+            throw $e;
+        }
+    }
+
+    private function isMissingTableException(QueryException $e): bool
+    {
+        $message = strtolower($e->getMessage());
+
+        return str_contains($message, 'sqlstate[42s02]')
+            || str_contains($message, 'base table or view not found')
+            || str_contains($message, "doesn't exist in engine")
+            || str_contains($message, 'error 1932');
+    }
+
+    private function emptyPaginator(Request $request, int $perPage, string $pageName): LengthAwarePaginator
+    {
+        $currentPage = max((int) $request->query($pageName, 1), 1);
+
+        return new LengthAwarePaginator(
+            collect(),
+            0,
+            $perPage,
+            $currentPage,
+            [
+                'path' => $request->url(),
+                'query' => $request->query(),
+                'pageName' => $pageName,
+            ]
+        );
     }
 }

@@ -503,7 +503,6 @@
         <div class="row align-items-center">
             <div class="col-lg-7 col-md-7">
                 <div class="mela-hero-content">
-                    <span class="badge-ai"><i class="fa fa-robot"></i> AI-Powered Intelligence</span>
                     <h1>Meet <span class="highlight">Mela AI</span> &mdash; Your Intelligent AI Agent</h1>
                     <p>Mela is Armely's AI-powered virtual agent, built to help you explore our services, get instant answers, and experience the power of conversational AI &mdash; available 24/7.</p>
                     <a href="#try-mela" class="btn" style="background: #fff; color: #2f5597; padding: 12px 30px; border-radius: 8px; font-weight: 600; margin-top: 20px; display: inline-block; text-decoration: none; transition: all 0.3s;">

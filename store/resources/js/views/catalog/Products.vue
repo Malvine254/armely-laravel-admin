@@ -7,8 +7,8 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <!-- Page Title -->
       <div class="mb-8">
-        <h1 class="text-4xl font-bold text-gray-900 mb-2">Hardware Products</h1>
-        <p class="text-gray-600 text-lg">Browse our complete catalog of quality hardware solutions</p>
+        <h1 class="text-4xl font-bold text-gray-900 mb-2">B2B Procurements</h1>
+        <p class="text-gray-600 text-lg">Browse our complete catalog of enterprise solutions</p>
       </div>
 
       <!-- Search Bar -->
@@ -216,6 +216,7 @@ import { useToastStore } from '../../stores/toastStore'
 import { useCartStore } from '../../stores/cartStore'
 import { useFavoritesStore } from '../../stores/favoritesStore'
 import { useAuthStore } from '../../stores/authStore'
+import { trackSearchTerm, hasTrackingConsent, getSearchProfileTerms } from '../../services/searchInsights'
 import Navbar from '../../components/Navbar.vue'
 import FilterSidebar from '../../components/FilterSidebar.vue'
 
@@ -226,12 +227,16 @@ const cartStore = useCartStore()
 const favoritesStore = useFavoritesStore()
 const authStore = useAuthStore()
 const ITEMS_PER_PAGE = 9
+const SEARCH_TRACK_DEBOUNCE_MS = 15000
+const PROFILE_TERM_LIMIT = 25
 
 const products = ref([])
 const loading = ref(false)
 const error = ref('')
 const searchQuery = ref('')
 const currentPage = ref(1)
+const lastTrackedTerm = ref('')
+const lastTrackedAt = ref(0)
 
 const availableVendors = ref([])
 const availableCategories = ref([])
@@ -243,6 +248,93 @@ const currentFilters = ref({
   categories: [],
   billingModels: []
 })
+
+const normalizeSearchText = (value) => String(value || '').toLowerCase().trim().replace(/\s+/g, ' ')
+
+const getProductSearchBlob = (product) => {
+  const categories = Array.isArray(product.productCategories)
+    ? product.productCategories
+      .map((cat) => (typeof cat === 'object' ? cat.categoryName : cat))
+      .filter(Boolean)
+      .join(' ')
+    : ''
+
+  return normalizeSearchText([
+    product.productName,
+    product.vendorId,
+    product.mfgPartNo,
+    product.billingModel,
+    product.billingFrequency,
+    categories,
+  ].join(' '))
+}
+
+const computePersonalizationWeight = (entry) => {
+  const now = new Date()
+  const hour = String(now.getHours())
+  const day = String(now.getDay())
+  const countWeight = Math.log1p(Number(entry.count || 0)) * 2.5
+
+  let recencyWeight = 0
+  if (entry.lastSearched) {
+    const daysAgo = Math.max(0, (Date.now() - new Date(entry.lastSearched).getTime()) / (1000 * 60 * 60 * 24))
+    recencyWeight = Math.max(0, 6 - daysAgo / 5)
+  }
+
+  const timeContextWeight = (Number(entry.hourWeights?.[hour] || 0) * 0.6) + (Number(entry.dayWeights?.[day] || 0) * 0.4)
+  return countWeight + recencyWeight + timeContextWeight
+}
+
+const rankProductsByPersonalization = (items) => {
+  if (!Array.isArray(items) || items.length <= 1) return items
+  if (!hasTrackingConsent()) return items
+
+  const profileTerms = getSearchProfileTerms(PROFILE_TERM_LIMIT)
+  if (!profileTerms.length) return items
+
+  const queryTokens = normalizeSearchText(searchQuery.value)
+    .split(' ')
+    .filter((token) => token.length > 1)
+
+  const ranked = items.map((product, index) => {
+    const productName = normalizeSearchText(product.productName)
+    const haystack = getProductSearchBlob(product)
+    let score = 0
+
+    profileTerms.forEach((entry) => {
+      const term = normalizeSearchText(entry.termKey)
+      if (!term || !haystack.includes(term)) return
+
+      const baseWeight = computePersonalizationWeight(entry)
+      score += baseWeight
+
+      if (productName.includes(term)) {
+        score += baseWeight * 0.9
+      }
+    })
+
+    queryTokens.forEach((token) => {
+      if (!haystack.includes(token)) return
+      score += 6
+      if (productName.includes(token)) {
+        score += 4
+      }
+    })
+
+    return { product, index, score }
+  })
+
+  if (!ranked.some((entry) => entry.score > 0)) {
+    return items
+  }
+
+  ranked.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score
+    return a.index - b.index
+  })
+
+  return ranked.map((entry) => entry.product)
+}
 
 const filteredProducts = computed(() => {
   // Access currentFilters.value to establish dependency
@@ -288,7 +380,7 @@ const filteredProducts = computed(() => {
     })
   }
   
-  return filtered
+  return rankProductsByPersonalization(filtered)
 })
 
 const totalProducts = computed(() => filteredProducts.value.length)
@@ -345,6 +437,17 @@ const performSearch = async () => {
   error.value = ''
   currentPage.value = 1
   products.value = [] // Clear products while loading
+
+  const normalizedQuery = normalizeSearchText(searchQuery.value)
+  if (normalizedQuery) {
+    const now = Date.now()
+    const canTrack = normalizedQuery !== lastTrackedTerm.value || (now - lastTrackedAt.value) > SEARCH_TRACK_DEBOUNCE_MS
+    if (canTrack) {
+      trackSearchTerm(searchQuery.value)
+      lastTrackedTerm.value = normalizedQuery
+      lastTrackedAt.value = now
+    }
+  }
 
   const cacheKey = getCacheKey(currentFilters.value)
 

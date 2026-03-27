@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\AzureMailService;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -272,7 +273,7 @@ class HomeController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255'],
+            'email' => ['required', 'email:rfc,dns,filter', 'max:255'],
             'organization' => ['required', 'string', 'max:255'],
             'phone' => ['required', 'string', 'max:50'],
             'service_type' => ['required', 'string', 'max:255'],
@@ -311,6 +312,12 @@ class HomeController extends Controller
                     ? response()->json(['success' => false, 'message' => 'Email domain is not allowed.'], 400)
                     : back()->withErrors(['email' => 'Email domain is not allowed.'])->withInput();
             }
+        }
+
+        if (!AzureMailService::isDeliverableEmail($email)) {
+            return $request->expectsJson()
+                ? response()->json(['success' => false, 'message' => 'Please provide a valid email that can receive messages.'], 422)
+                : back()->withErrors(['email' => 'Please provide a valid email that can receive messages.'])->withInput();
         }
 
         $now = Carbon::now()->toIso8601String();
@@ -458,7 +465,7 @@ class HomeController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255'],
+            'email' => ['required', 'email:rfc,dns,filter', 'max:255'],
             'phone' => ['required', 'string', 'max:50'],
             'address' => ['required', 'string', 'max:255'],
             'city' => ['required', 'string', 'max:100'],
@@ -492,6 +499,14 @@ class HomeController extends Controller
                 return response()->json(['success' => false, 'message' => 'reCAPTCHA verification failed. Please try again.'], 400);
             }
             return back()->withErrors(['captcha' => 'reCAPTCHA verification failed. Please try again.'])->withInput();
+        }
+
+        $normalizedEmail = AzureMailService::normalizeEmail((string) ($data['email'] ?? ''));
+        if (!AzureMailService::isDeliverableEmail($normalizedEmail)) {
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Please provide a valid email that can receive messages.'], 422);
+            }
+            return back()->withErrors(['email' => 'Please provide a valid email that can receive messages.'])->withInput();
         }
 
         $cvPath = null;
@@ -535,7 +550,7 @@ class HomeController extends Controller
                 // Verify file exists at the expected location
                 $fullPath = storage_path('app/public/' . $cvPath);
                 if (!file_exists($fullPath)) {
-                    \Log::error('CV file not found after upload', [
+                    Log::error('CV file not found after upload', [
                         'expected_path' => $fullPath,
                         'cv_path' => $cvPath,
                         'file_name' => $cvFile->getClientOriginalName(),
@@ -546,7 +561,7 @@ class HomeController extends Controller
                 // Generate accessible URL
                 $cvUrl = asset('storage/' . $cvPath);
                 
-                \Log::info('CV file uploaded successfully', [
+                Log::info('CV file uploaded successfully', [
                     'cv_path' => $cvPath,
                     'full_path' => $fullPath,
                     'file_size' => $cvFile->getSize(),
@@ -554,7 +569,7 @@ class HomeController extends Controller
                     'url' => $cvUrl,
                 ]);
             } catch (\Exception $e) {
-                \Log::error('CV file upload failed', [
+                Log::error('CV file upload failed', [
                     'error' => $e->getMessage(),
                     'file_name' => $cvFile->getClientOriginalName(),
                     'file_size' => $cvFile->getSize(),
@@ -573,7 +588,7 @@ class HomeController extends Controller
         // Store values needed for email notification before building DB payload
         $emailData = [
             'name' => $data['name'],
-            'email' => strtolower($data['email']),
+            'email' => $normalizedEmail,
             'phone' => $data['phone'],
             'city' => $data['city'],
             'address' => $data['address'],
@@ -587,7 +602,7 @@ class HomeController extends Controller
         // Build payload with flexible column mapping
         $payload = [
             'name' => $data['name'],
-            'email' => strtolower($data['email']),
+            'email' => $normalizedEmail,
             'city' => $data['city'],
             'phone' => $data['phone'],
             'address' => $data['address'],
@@ -655,7 +670,7 @@ class HomeController extends Controller
         try {
             $data = $request->validate([
                 'name' => ['required', 'string', 'max:255'],
-                'email' => ['required', 'email', 'max:255'],
+                'email' => ['required', 'email:rfc,dns,filter', 'max:255'],
                 'organization' => ['nullable', 'string', 'max:255'],
                 'phone' => ['nullable', 'string', 'max:50'],
                 'message' => ['required', 'string'],
@@ -694,6 +709,13 @@ class HomeController extends Controller
                     }
                     return back()->withErrors(['email' => 'Email domain is not allowed.'])->withInput();
                 }
+            }
+
+            if (!AzureMailService::isDeliverableEmail($email)) {
+                if ($request->expectsJson()) {
+                    return response()->json(['success' => false, 'message' => 'Please provide a valid email that can receive messages.'], 422);
+                }
+                return back()->withErrors(['email' => 'Please provide a valid email that can receive messages.'])->withInput();
             }
 
             $now = now()->format('Y-m-d H:i:s');
@@ -821,13 +843,34 @@ class HomeController extends Controller
     private function recentVideos(?string &$dbErrorMessage = null)
     {
         return $this->safeDb(function () {
-            return DB::table('videos')
-                ->select('url')
+            $videoTable = Schema::hasTable('videos') ? 'videos' : (Schema::hasTable('video') ? 'video' : null);
+
+            if (!$videoTable) {
+                return collect();
+            }
+
+            $selectColumns = ['url'];
+
+            if (Schema::hasColumn($videoTable, 'video_title')) {
+                $selectColumns[] = 'video_title';
+            }
+
+            if (Schema::hasColumn($videoTable, 'title')) {
+                $selectColumns[] = 'title';
+            }
+
+            if (Schema::hasColumn($videoTable, 'video_name')) {
+                $selectColumns[] = 'video_name';
+            }
+
+            return DB::table($videoTable)
+                ->select($selectColumns)
                 ->orderByDesc('id')
                 ->limit(3)
                 ->get()
                 ->map(function ($video) {
                     $video->video_id = $this->extractYouTubeId($video->url ?? '');
+                    $video->video_title = trim((string) ($video->video_title ?? $video->title ?? $video->video_name ?? ''));
                     return $video;
                 })
                 ->filter(fn ($video) => !empty($video->video_id))
@@ -940,11 +983,17 @@ class HomeController extends Controller
         $tenantId = env('AZURE_TENANT_ID');
         $clientId = env('AZURE_CLIENT_ID');
         $clientSecret = env('AZURE_CLIENT_SECRET');
-        $fromEmail = env('FROM_EMAIL');
+        $fromEmail = AzureMailService::outboundFromEmail();
         $adminEmail = env('ADMIN_EMAIL', $fromEmail);
+        $replyTo = AzureMailService::graphReplyToRecipients();
 
         if (!$tenantId || !$clientId || !$clientSecret || !$fromEmail) {
             Log::warning('Graph email not sent: missing env configuration.');
+            return;
+        }
+
+        if (!AzureMailService::isDeliverableEmail((string) $adminEmail)) {
+            Log::warning('Graph admin email skipped: undeliverable admin address', ['email' => $adminEmail]);
             return;
         }
 
@@ -968,13 +1017,14 @@ class HomeController extends Controller
             }
 
             // Admin notification
-            $adminBody = "<p><strong>New contact submission</strong></p>" .
-                "<p><strong>Name:</strong> {$name}<br>" .
-                "<strong>Email:</strong> {$email}<br>" .
-                "<strong>Organization:</strong> {$organization}<br>" .
-                "<strong>Phone:</strong> {$phone}<br>" .
-                "<strong>Subject:</strong> {$subject}</p>" .
-                "<p><strong>Message:</strong><br>" . nl2br(e($message)) . "</p>";
+            $adminBody = view('emails.contact.admin-notification', [
+                'name' => $name,
+                'email' => $email,
+                'organization' => $organization,
+                'phone' => $phone,
+                'subject' => $subject,
+                'message' => $message,
+            ])->render();
 
             $adminPayload = [
                 'message' => [
@@ -994,14 +1044,19 @@ class HomeController extends Controller
                 'saveToSentItems' => true,
             ];
 
+            if ($replyTo !== []) {
+                $adminPayload['message']['replyTo'] = $replyTo;
+            }
+
             Http::withToken($accessToken)
                 ->withHeaders(['Content-Type' => 'application/json'])
                 ->post("https://graph.microsoft.com/v1.0/users/{$fromEmail}/sendMail", $adminPayload);
 
             // User confirmation
-            $userBody = "<p>Dear {$name},</p><p>We’ve received your message and will get back to you soon.</p>" .
-                "<p><strong>Your message:</strong><br>" . nl2br(e($message)) . "</p>" .
-                "<p>Best regards,<br>Team Armely</p>";
+            $userBody = view('emails.contact.user-confirmation', [
+                'name' => $name,
+                'message' => $message,
+            ])->render();
 
             $userPayload = [
                 'message' => [
@@ -1017,9 +1072,17 @@ class HomeController extends Controller
                 'saveToSentItems' => true,
             ];
 
-            Http::withToken($accessToken)
-                ->withHeaders(['Content-Type' => 'application/json'])
-                ->post("https://graph.microsoft.com/v1.0/users/{$fromEmail}/sendMail", $userPayload);
+            if ($replyTo !== []) {
+                $userPayload['message']['replyTo'] = $replyTo;
+            }
+
+            if (AzureMailService::isDeliverableEmail($email)) {
+                Http::withToken($accessToken)
+                    ->withHeaders(['Content-Type' => 'application/json'])
+                    ->post("https://graph.microsoft.com/v1.0/users/{$fromEmail}/sendMail", $userPayload);
+            } else {
+                Log::warning('Contact user confirmation email skipped: undeliverable address', ['email' => $email]);
+            }
         } catch (\Throwable $e) {
             Log::error('Graph email send failed', ['error' => $e->getMessage()]);
         }
@@ -1030,11 +1093,17 @@ class HomeController extends Controller
         $tenantId = env('AZURE_TENANT_ID');
         $clientId = env('AZURE_CLIENT_ID');
         $clientSecret = env('AZURE_CLIENT_SECRET');
-        $fromEmail = env('FROM_EMAIL');
+        $fromEmail = AzureMailService::outboundFromEmail();
         $adminEmail = env('ADMIN_EMAIL', $fromEmail);
+        $replyTo = AzureMailService::graphReplyToRecipients();
 
         if (!$tenantId || !$clientId || !$clientSecret || !$fromEmail) {
             Log::warning('Consultation email not sent: missing env configuration.');
+            return;
+        }
+
+        if (!AzureMailService::isDeliverableEmail((string) $adminEmail)) {
+            Log::warning('Consultation admin email skipped: undeliverable admin address', ['email' => $adminEmail]);
             return;
         }
 
@@ -1057,13 +1126,14 @@ class HomeController extends Controller
                 return;
             }
 
-            $adminBody = "<p><strong>New consultation request</strong></p>" .
-                "<p><strong>Name:</strong> {$name}<br>" .
-                "<strong>Email:</strong> {$email}<br>" .
-                "<strong>Organization:</strong> {$organization}<br>" .
-                "<strong>Phone:</strong> {$phone}<br>" .
-                "<strong>Service of interest:</strong> {$serviceType}</p>" .
-                "<p><strong>Message:</strong><br>" . nl2br(e($message)) . "</p>";
+            $adminBody = view('emails.consultation.admin-notification', [
+                'name' => $name,
+                'email' => $email,
+                'organization' => $organization,
+                'phone' => $phone,
+                'serviceType' => $serviceType,
+                'message' => $message,
+            ])->render();
 
             $adminPayload = [
                 'message' => [
@@ -1083,13 +1153,19 @@ class HomeController extends Controller
                 'saveToSentItems' => true,
             ];
 
+            if ($replyTo !== []) {
+                $adminPayload['message']['replyTo'] = $replyTo;
+            }
+
             Http::withToken($accessToken)
                 ->withHeaders(['Content-Type' => 'application/json'])
                 ->post("https://graph.microsoft.com/v1.0/users/{$fromEmail}/sendMail", $adminPayload);
 
-            $userBody = "<p>Dear {$name},</p><p>We’ve received your consultation request for <strong>{$serviceType}</strong>.</p>" .
-                "<p><strong>Your message:</strong><br>" . nl2br(e($message)) . "</p>" .
-                "<p>We will get back to you shortly.</p><p>Best regards,<br>Team Armely</p>";
+            $userBody = view('emails.consultation.user-confirmation', [
+                'name' => $name,
+                'serviceType' => $serviceType,
+                'message' => $message,
+            ])->render();
 
             $userPayload = [
                 'message' => [
@@ -1105,9 +1181,17 @@ class HomeController extends Controller
                 'saveToSentItems' => true,
             ];
 
-            Http::withToken($accessToken)
-                ->withHeaders(['Content-Type' => 'application/json'])
-                ->post("https://graph.microsoft.com/v1.0/users/{$fromEmail}/sendMail", $userPayload);
+            if ($replyTo !== []) {
+                $userPayload['message']['replyTo'] = $replyTo;
+            }
+
+            if (AzureMailService::isDeliverableEmail($email)) {
+                Http::withToken($accessToken)
+                    ->withHeaders(['Content-Type' => 'application/json'])
+                    ->post("https://graph.microsoft.com/v1.0/users/{$fromEmail}/sendMail", $userPayload);
+            } else {
+                Log::warning('Consultation user confirmation email skipped: undeliverable address', ['email' => $email]);
+            }
         } catch (\Throwable $e) {
             Log::error('Consultation Graph email send failed', ['error' => $e->getMessage()]);
         }
@@ -1118,11 +1202,17 @@ class HomeController extends Controller
         $tenantId = env('AZURE_TENANT_ID');
         $clientId = env('AZURE_CLIENT_ID');
         $clientSecret = env('AZURE_CLIENT_SECRET');
-        $fromEmail = env('FROM_EMAIL');
+        $fromEmail = AzureMailService::outboundFromEmail();
         $adminEmail = env('ADMIN_EMAIL', $fromEmail);
+        $replyTo = AzureMailService::graphReplyToRecipients();
 
         if (!$tenantId || !$clientId || !$clientSecret || !$fromEmail) {
             Log::warning('Job application email not sent: missing env configuration.');
+            return;
+        }
+
+        if (!AzureMailService::isDeliverableEmail((string) $adminEmail)) {
+            Log::warning('Job application admin email skipped: undeliverable admin address', ['email' => $adminEmail]);
             return;
         }
 
@@ -1158,20 +1248,19 @@ class HomeController extends Controller
             
             $cvSectionForEmail = $cvUrlForEmail ? "<p><b>Your uploaded CV:</b> <a href='{$cvUrlForEmail}' target='_blank'>Download</a></p>" : '';
 
-            $adminBody = "<p><strong>New Job Application Submitted</strong></p>" .
-                "<ul>" .
-                "<li><b>Name:</b> {$payload['name']}</li>" .
-                "<li><b>Email:</b> {$payload['email']}</li>" .
-                "<li><b>Phone:</b> {$payload['phone']}</li>" .
-                "<li><b>City:</b> {$payload['city']}</li>" .
-                "<li><b>Address:</b> {$payload['address']}</li>" .
-                "<li><b>State:</b> {$payload['state']}</li>" .
-                "<li><b>Zip:</b> {$payload['zip']}</li>" .
-                "<li><b>Job Type:</b> {$jobType}</li>" .
-                "<li><b>Position:</b> {$payload['position']}</li>" .
-                "<li><b>Job ID:</b> {$jobId}</li>" .
-                ($cvUrl ? "<li><b>CV:</b> <a href='{$cvUrlForEmail}' target='_blank'>Download</a></li>" : '') .
-                "</ul>";
+            $adminBody = view('emails.jobs.admin-application-notification', [
+                'name' => (string) ($payload['name'] ?? ''),
+                'email' => (string) ($payload['email'] ?? ''),
+                'phone' => (string) ($payload['phone'] ?? ''),
+                'city' => (string) ($payload['city'] ?? ''),
+                'address' => (string) ($payload['address'] ?? ''),
+                'state' => (string) ($payload['state'] ?? ''),
+                'zip' => (string) ($payload['zip'] ?? ''),
+                'jobType' => (string) $jobType,
+                'position' => (string) ($payload['position'] ?? ''),
+                'jobId' => (string) $jobId,
+                'cvUrl' => (string) ($cvUrlForEmail ?? ''),
+            ])->render();
 
             $adminPayload = [
                 'message' => [
@@ -1191,14 +1280,19 @@ class HomeController extends Controller
                 'saveToSentItems' => true,
             ];
 
+            if ($replyTo !== []) {
+                $adminPayload['message']['replyTo'] = $replyTo;
+            }
+
             Http::withToken($accessToken)
                 ->withHeaders(['Content-Type' => 'application/json'])
                 ->post("https://graph.microsoft.com/v1.0/users/{$fromEmail}/sendMail", $adminPayload);
 
-            $userBody = "<p>Dear {$payload['name']},</p>" .
-                "<p>Thank you for applying to Armely. We have received your application for <strong>{$payload['position']}</strong>.</p>" .
-                "<p>Our team will review your CV and reach out within one month if you are shortlisted.</p>" .
-                "<p>Best regards,<br>HR Team</p>";
+            $userBody = view('emails.jobs.user-application-confirmation', [
+                'name' => (string) ($payload['name'] ?? 'Candidate'),
+                'position' => (string) ($payload['position'] ?? 'the selected role'),
+                'jobId' => (string) $jobId,
+            ])->render();
 
             $userPayload = [
                 'message' => [
@@ -1214,9 +1308,19 @@ class HomeController extends Controller
                 'saveToSentItems' => true,
             ];
 
-            Http::withToken($accessToken)
-                ->withHeaders(['Content-Type' => 'application/json'])
-                ->post("https://graph.microsoft.com/v1.0/users/{$fromEmail}/sendMail", $userPayload);
+            if ($replyTo !== []) {
+                $userPayload['message']['replyTo'] = $replyTo;
+            }
+
+            if (AzureMailService::isDeliverableEmail((string) ($payload['email'] ?? ''))) {
+                Http::withToken($accessToken)
+                    ->withHeaders(['Content-Type' => 'application/json'])
+                    ->post("https://graph.microsoft.com/v1.0/users/{$fromEmail}/sendMail", $userPayload);
+            } else {
+                Log::warning('Job application user confirmation email skipped: undeliverable address', [
+                    'email' => $payload['email'] ?? null,
+                ]);
+            }
         } catch (\Throwable $e) {
             Log::error('Job application Graph email send failed', ['error' => $e->getMessage()]);
         }

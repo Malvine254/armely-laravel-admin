@@ -72,7 +72,7 @@
         border-radius: 20px;
         overflow: hidden;
         box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-        transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+        transition: box-shadow 0.25s ease, border-color 0.25s ease;
         height: 100%;
         border: 1px solid rgba(0,0,0,0.03);
         display: flex;
@@ -80,8 +80,8 @@
     }
 
     .portfolio .card-wrapper:hover {
-        transform: translateY(-12px);
-        box-shadow: 0 20px 50px rgba(47, 85, 151, 0.15);
+        transform: none;
+        box-shadow: 0 14px 34px rgba(47, 85, 151, 0.14);
         border-color: rgba(47, 85, 151, 0.2);
     }
 
@@ -97,11 +97,11 @@
         width: 100%;
         height: 100%;
         object-fit: cover;
-        transition: transform 0.6s ease;
+        transition: none;
     }
 
     .portfolio .card-wrapper:hover .image-container img {
-        transform: scale(1.1);
+        transform: none;
     }
 
     .portfolio .image-overlay {
@@ -171,12 +171,17 @@
         margin-top: auto;
         display: flex;
         align-items: center;
-        justify-content: space-between;
+        justify-content: center;
+        gap: 10px;
+        flex-wrap: nowrap;
+        white-space: nowrap;
+        width: 100%;
+        min-height: 48px;
         padding: 12px 24px;
         border-radius: 12px;
         font-weight: 700;
         text-decoration: none;
-        transition: all 0.3s ease;
+        transition: background-color 0.2s ease, box-shadow 0.2s ease;
         border: none;
         position: relative;
         z-index: 10;
@@ -184,26 +189,205 @@
     }
 
     .portfolio .card-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+        transform: none;
+        box-shadow: 0 5px 12px rgba(0,0,0,0.16);
         color: #fff !important;
         text-decoration: none;
+    }
+
+    .portfolio .card-btn:active {
+        transform: none;
     }
 
     .portfolio .card-wrapper:hover .card-btn {
         opacity: 1;
     }
 
-    .portfolio .card-btn i {
-        transition: transform 0.3s ease;
+    .portfolio .card-btn .card-btn-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 14px;
+        height: 14px;
+        flex-shrink: 0;
+        transform: translateY(0.5px);
+    }
+
+    .portfolio .card-btn .card-btn-icon svg {
+        width: 14px;
+        height: 14px;
+        display: block;
+        stroke: currentColor;
+        stroke-width: 2.4;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        fill: none;
+    }
+
+    .portfolio .owl-nav,
+    .portfolio .owl-dots {
+        display: none !important;
+    }
+
+    .home-case-download-modal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        background: rgba(10, 21, 45, 0.62);
+        padding: 24px 12px;
+        overflow-y: auto;
+    }
+
+    .home-case-download-modal.is-open {
+        display: block;
+    }
+
+    .home-case-download-modal-dialog {
+        max-width: 880px;
+        margin: 24px auto;
+    }
+
+    .home-case-lead-card {
+        background: #fff;
+        border: 1px solid #e3ebfa;
+        border-radius: 16px;
+        box-shadow: 0 14px 34px rgba(47, 85, 151, 0.12);
+        padding: 28px 24px;
+        position: relative;
+    }
+
+    .home-case-modal-close {
+        position: absolute;
+        top: 14px;
+        right: 14px;
+        width: 34px;
+        height: 34px;
+        border: 0;
+        border-radius: 50%;
+        background: #eef3ff;
+        color: #1e3a6d;
         font-size: 1.1rem;
+        font-weight: 700;
+        line-height: 1;
+        cursor: pointer;
     }
 
-    .portfolio .card-btn:hover i {
-        transform: translateX(5px);
+    .home-case-lead-title {
+        font-size: 1.7rem;
+        color: #1e3a6d;
+        font-weight: 800;
+        margin-bottom: 10px;
     }
 
-    .portfolio .explore-btn, 
+    .home-case-lead-subtitle {
+        font-size: 1.02rem;
+        color: #55657d;
+        margin-bottom: 20px;
+    }
+
+    .home-case-modal-selected {
+        display: inline-block;
+        margin: 6px 0 18px;
+        padding: 8px 12px;
+        background: #edf3ff;
+        border: 1px solid #d8e5ff;
+        border-radius: 999px;
+        color: #25447a;
+        font-size: 0.85rem;
+        font-weight: 700;
+    }
+
+    .home-case-lead-form .field-label {
+        display: block;
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: #294a84;
+        margin-bottom: 8px;
+    }
+
+    .home-case-lead-form .form-group {
+        margin-bottom: 16px;
+    }
+
+    .home-case-lead-form .lead-field,
+    .home-case-lead-form textarea.lead-field {
+        width: 100%;
+        border: 1px solid #c9d8f3;
+        background: #f7faff;
+        border-radius: 12px;
+        height: 50px;
+        padding: 0 14px;
+        color: #1e3357;
+        font-size: 0.95rem;
+        transition: all .2s ease;
+    }
+
+    .home-case-lead-form textarea.lead-field {
+        min-height: 130px;
+        height: auto;
+        padding: 12px 14px;
+        resize: vertical;
+    }
+
+    .home-case-lead-form .lead-field:focus {
+        outline: none;
+        border-color: #2f5597;
+        box-shadow: 0 0 0 4px rgba(47, 85, 151, 0.13);
+        background: #fff;
+    }
+
+    .home-case-lead-form .btn {
+        border-radius: 12px;
+        padding: 12px 22px;
+        font-weight: 700;
+        min-width: 180px;
+    }
+
+    .home-case-lead-note {
+        font-size: 0.9rem;
+        color: #6a768a;
+        margin-top: 12px;
+    }
+
+    .home-case-toast-stack {
+        position: fixed;
+        top: 18px;
+        right: 18px;
+        z-index: 10020;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        max-width: 360px;
+    }
+
+    .home-case-toast {
+        padding: 12px 14px;
+        border-radius: 12px;
+        font-size: 0.92rem;
+        font-weight: 600;
+        box-shadow: 0 12px 30px rgba(18, 40, 77, 0.22);
+        animation: homeCaseToastIn .25s ease;
+    }
+
+    .home-case-toast-success {
+        background: #e9f9ef;
+        border: 1px solid #98ddb0;
+        color: #1f6b39;
+    }
+
+    .home-case-toast-error {
+        background: #fff2f2;
+        border: 1px solid #f0b2b2;
+        color: #942c2c;
+    }
+
+    @keyframes homeCaseToastIn {
+        from { opacity: 0; transform: translateY(-6px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .portfolio .explore-btn,
     .blog .explore-btn,
     .video-section .explore-btn {
         display: inline-flex;
@@ -251,13 +435,13 @@
 
     .blog-image-box {
         position: relative;
-        height: 260px;
-        min-height: 260px;
-        max-height: 260px;
+        height: 230px;
+        min-height: 230px;
+        max-height: 230px;
         overflow: hidden;
-        background: #f5f5f5;
+        background: #ffffff;
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         justify-content: center;
         margin-bottom: 0;
         flex-shrink: 0;
@@ -267,8 +451,8 @@
     .blog-image-box img {
         width: 100%;
         height: 100%;
-        object-fit: cover;
-        object-position: center;
+        object-fit: contain;
+        object-position: top center;
         transition: transform 0.8s ease;
         transform: scale(1);
         padding: 0;
@@ -279,23 +463,6 @@
 
     .blog-card-wrapper:hover .blog-image-box img {
         transform: scale(1);
-    }
-
-    .blog-category-tag {
-        position: absolute;
-        top: 14px;
-        left: 14px;
-        background: rgba(15, 38, 78, 0.9);
-        color: #fff;
-        padding: 6px 14px;
-        border-radius: 50px;
-        font-size: 0.7rem;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 1.2px;
-        z-index: 2;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-        backdrop-filter: blur(2px);
     }
 
     /* title overlay inside image */
@@ -455,9 +622,9 @@
         .blog-card-wrapper { margin-bottom: 25px; }
         .blog-title { font-size: 1.15rem; }
         .blog-image-box {
-            height: 210px;
-            min-height: 210px;
-            max-height: 210px;
+            height: 185px;
+            min-height: 185px;
+            max-height: 185px;
         }
         .blog-content {
             padding: 14px 18px 18px;
@@ -471,9 +638,9 @@
     @media (max-width: 480px) {
         .blog.section { padding: 40px 0; }
         .blog-image-box {
-            height: 190px;
-            min-height: 190px;
-            max-height: 190px;
+            height: 165px;
+            min-height: 165px;
+            max-height: 165px;
         }
         .blog-title { font-size: 1.05rem; min-height: auto; }
         .blog-snippet { font-size: 0.85rem; -webkit-line-clamp: 2; min-height: auto; }
@@ -483,157 +650,84 @@
     /* Clients/Brands Section */
     .clients-section {
         padding: 110px 0;
-        background: 
-            radial-gradient(1200px 600px at 20% 10%, rgba(30, 98, 173, 0.08) 0%, transparent 50%),
-            radial-gradient(1000px 500px at 80% 90%, rgba(255, 152, 0, 0.06) 0%, transparent 50%),
-            linear-gradient(135deg, #f8fafc 0%, #ffffff 50%, #f1f5f9 100%);
         position: relative;
         overflow: hidden;
+        background:
+            radial-gradient(820px 460px at 8% 8%, rgba(30, 98, 173, 0.16) 0%, rgba(30, 98, 173, 0) 62%),
+            radial-gradient(760px 430px at 92% 88%, rgba(15, 38, 78, 0.12) 0%, rgba(15, 38, 78, 0) 65%),
+            linear-gradient(145deg, #f4f8ff 0%, #eef4fd 42%, #f8fbff 100%);
+    }
+
+    .clients-section .container {
+        position: relative;
+        z-index: 2;
     }
 
     .clients-section::before {
         content: '';
         position: absolute;
         inset: 0;
-        background: 
-            radial-gradient(circle at 30% 20%, rgba(30, 98, 173, 0.03), transparent 40%),
-            radial-gradient(circle at 70% 80%, rgba(30, 98, 173, 0.03), transparent 40%);
+        background:
+            linear-gradient(120deg, rgba(30, 98, 173, 0.07) 0%, rgba(30, 98, 173, 0) 35%),
+            linear-gradient(300deg, rgba(47, 85, 151, 0.06) 0%, rgba(47, 85, 151, 0) 40%);
         pointer-events: none;
     }
 
     .clients-section::after {
         content: '';
         position: absolute;
-        top: -50%;
-        left: -50%;
-        width: 200%;
-        height: 200%;
-        background: radial-gradient(circle, rgba(30, 98, 173, 0.03) 1px, transparent 1px);
-        background-size: 50px 50px;
-        animation: gridMove 20s linear infinite;
+        inset: 0;
+        background-image: linear-gradient(rgba(15, 38, 78, 0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(15, 38, 78, 0.04) 1px, transparent 1px);
+        background-size: 64px 64px;
+        opacity: 0.25;
         pointer-events: none;
-        opacity: 0.4;
-    }
-
-    @keyframes gridMove {
-        0% { transform: translate(0, 0); }
-        100% { transform: translate(50px, 50px); }
+        mask-image: radial-gradient(circle at center, #000 18%, transparent 85%);
     }
 
     .partner-carousel {
         min-height: 100%;
     }
+
     .partner-carousel .m-4 {
-        background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.98) 100%);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        padding: 25px 20px;
+        background: #ffffff;
+        border: 1px solid #dbe7fb;
         border-radius: 20px;
-        transition: all 0.5s cubic-bezier(0.165, 0.84, 0.44, 1);
+        padding: 24px 18px;
+        transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 10px;
-        height: 280px;
-        min-height: 280px;
-        max-height: 280px;
+        gap: 12px;
+        height: 260px;
+        min-height: 260px;
+        max-height: 260px;
         flex-shrink: 0;
-        box-shadow: 
-            0 8px 32px rgba(30, 98, 173, 0.08),
-            0 2px 8px rgba(30, 98, 173, 0.04),
-            inset 0 1px 0 rgba(255, 255, 255, 0.9);
-        border: 2px solid transparent;
-        background-clip: padding-box;
+        box-shadow: 0 10px 24px rgba(16, 34, 66, 0.08);
         position: relative;
-        margin: 15px !important;
+        margin: 12px !important;
     }
 
     .partner-carousel .m-4::before {
         content: '';
         position: absolute;
-        inset: -2px;
-        border-radius: 28px;
-        padding: 2px;
-        background: linear-gradient(135deg, 
-            rgba(30, 98, 173, 0.3) 0%, 
-            rgba(30, 98, 173, 0.1) 25%,
-            rgba(255, 152, 0, 0.1) 50%,
-            rgba(30, 98, 173, 0.1) 75%,
-            rgba(30, 98, 173, 0.3) 100%);
-        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-        -webkit-mask-composite: xor;
-        mask-composite: exclude;
+        inset: 0;
+        border-radius: 20px;
         pointer-events: none;
-        opacity: 0.6;
-        transition: all 0.5s ease;
-    }
-
-    .partner-carousel .m-4::after {
-        content: '✓';
-        position: absolute;
-        top: 16px;
-        right: 16px;
-        width: 28px;
-        height: 28px;
-        background: linear-gradient(135deg, #1E62AD 0%, #2f5597 100%);
-        color: white;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 14px;
-        font-weight: bold;
-        opacity: 0;
-        transform: scale(0) rotate(-180deg);
-        transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-        box-shadow: 0 4px 12px rgba(30, 98, 173, 0.3);
+        background: linear-gradient(160deg, rgba(30, 98, 173, 0.07) 0%, rgba(30, 98, 173, 0) 58%);
     }
 
     .partner-carousel .m-4:hover {
-        transform: translateY(-12px) scale(1.02);
-        box-shadow: 
-            0 24px 48px rgba(30, 98, 173, 0.16),
-            0 12px 24px rgba(30, 98, 173, 0.12),
-            0 0 0 1px rgba(30, 98, 173, 0.1),
-            inset 0 1px 0 rgba(255, 255, 255, 1);
-        background: linear-gradient(135deg, rgba(255, 255, 255, 1) 0%, rgba(248, 250, 252, 1) 100%);
-    }
-
-    .partner-carousel .m-4:hover::before {
-        opacity: 1;
-        background: linear-gradient(135deg, 
-            rgba(30, 98, 173, 0.5) 0%, 
-            rgba(255, 152, 0, 0.3) 50%,
-            rgba(30, 98, 173, 0.5) 100%);
-        animation: borderShine 3s ease-in-out infinite;
-    }
-
-    .partner-carousel .m-4:hover::after {
-        opacity: 1;
-        transform: scale(1) rotate(0deg);
-    }
-
-    @keyframes borderShine {
-        0%, 100% {
-            background: linear-gradient(135deg, 
-                rgba(30, 98, 173, 0.5) 0%, 
-                rgba(255, 152, 0, 0.3) 50%,
-                rgba(30, 98, 173, 0.5) 100%);
-        }
-        50% {
-            background: linear-gradient(135deg, 
-                rgba(255, 152, 0, 0.5) 0%, 
-                rgba(30, 98, 173, 0.3) 50%,
-                rgba(255, 152, 0, 0.5) 100%);
-        }
+        transform: translateY(-4px);
+        border-color: #aec7ef;
+        box-shadow: 0 16px 32px rgba(16, 34, 66, 0.12);
     }
 
     .partner-carousel .partner-logo {
         width: 100%;
-        height: 110px;
-        min-height: 110px;
-        max-height: 110px;
+        height: 106px;
+        min-height: 106px;
+        max-height: 106px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -641,19 +735,21 @@
         position: relative;
         padding: 8px;
         border-radius: 14px;
-        background: linear-gradient(135deg, rgba(30, 98, 173, 0.02) 0%, transparent 100%);
-        transition: all 0.4s ease;
+        background: #f7faff;
+        border: 1px solid #e4eefc;
+        transition: background-color 0.25s ease, border-color 0.25s ease;
         flex-shrink: 0;
     }
 
     .partner-carousel .m-4:hover .partner-logo {
-        background: linear-gradient(135deg, rgba(30, 98, 173, 0.06) 0%, rgba(255, 152, 0, 0.03) 100%);
+        background: #ffffff;
+        border-color: #bfd6f6;
     }
 
     .partner-carousel img {
-        filter: grayscale(15%) contrast(1.1) brightness(0.98);
-        opacity: 0.9;
-        transition: all 0.5s cubic-bezier(0.165, 0.84, 0.44, 1);
+        filter: grayscale(8%) contrast(1.05);
+        opacity: 0.96;
+        transition: filter 0.25s ease, opacity 0.25s ease;
         max-height: 100%;
         height: 100%;
         max-width: 100%;
@@ -665,105 +761,71 @@
     }
 
     .partner-carousel .m-4:hover img {
-        transform: scale(1.08) translateZ(0);
-        filter: grayscale(0%) contrast(1.1) brightness(1.05);
+        filter: grayscale(0%) contrast(1.08);
         opacity: 1;
     }
 
     .partner-carousel .partner-name {
-        font-size: 13px;
-        font-weight: 700;
-        background: linear-gradient(135deg, #1E62AD 0%, #2f5597 60%, #1E62AD 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
+        font-size: 12px;
+        font-weight: 800;
+        color: #1f3e73;
         text-align: center;
-        line-height: 1.2;
-        max-width: 160px;
-        letter-spacing: 0.2px;
+        line-height: 1.25;
+        max-width: 172px;
+        letter-spacing: 0.25px;
         text-transform: capitalize;
         position: relative;
-        transition: all 0.4s ease;
-    }
-
-    .partner-carousel .m-4:hover .partner-name {
-        transform: translateY(-2px);
-        letter-spacing: 0.5px;
-    }
-
-    /* Card entrance animation */
-    .partner-carousel .m-4 {
-        animation: cardFadeIn 0.6s ease-out backwards;
-    }
-
-    .partner-carousel .m-4:nth-child(1) { animation-delay: 0.1s; }
-    .partner-carousel .m-4:nth-child(2) { animation-delay: 0.15s; }
-    .partner-carousel .m-4:nth-child(3) { animation-delay: 0.2s; }
-    .partner-carousel .m-4:nth-child(4) { animation-delay: 0.25s; }
-    .partner-carousel .m-4:nth-child(5) { animation-delay: 0.3s; }
-    .partner-carousel .m-4:nth-child(6) { animation-delay: 0.35s; }
-    .partner-carousel .m-4:nth-child(7) { animation-delay: 0.4s; }
-    .partner-carousel .m-4:nth-child(8) { animation-delay: 0.45s; }
-
-    @keyframes cardFadeIn {
-        from {
-            opacity: 0;
-            transform: translateY(30px) scale(0.9);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-        }
-    }
-
-    /* Subtle floating animation on idle */
-    .partner-carousel .m-4 {
-        animation: cardFadeIn 0.6s ease-out backwards, floatCard 6s ease-in-out infinite;
-    }
-
-    @keyframes floatCard {
-        0%, 100% {
-            transform: translateY(0) scale(1);
-        }
-        50% {
-            transform: translateY(-5px) scale(1);
-        }
     }
 
     @media (max-width: 768px) {
         .clients-section {
-            padding: 60px 0;
+            padding: 72px 0;
         }
+
         .clients-section .section-title h2 {
-            font-size: 1.8rem;
+            font-size: 1.9rem;
         }
+
         .partner-carousel .m-4 {
-            height: 240px;
-            min-height: 240px;
-            max-height: 240px;
-            padding: 20px 15px;
+            height: 226px;
+            min-height: 226px;
+            max-height: 226px;
+            padding: 18px 14px;
             margin: 8px !important;
         }
+
         .partner-carousel .partner-logo {
             height: 90px;
             min-height: 90px;
             max-height: 90px;
         }
+
         .partner-carousel .partner-name {
             font-size: 11px;
+            max-width: 150px;
         }
     }
 
     @media (max-width: 480px) {
-        .clients-section { padding: 40px 0; }
-        .clients-section .section-title h2 { font-size: 1.5rem; }
-        .clients-section .section-title p { font-size: 0.9rem; }
+        .clients-section {
+            padding: 54px 0;
+        }
+
+        .clients-section .section-title h2 {
+            font-size: 1.55rem;
+        }
+
+        .clients-section .section-title p {
+            font-size: 0.92rem;
+            line-height: 1.55;
+        }
+
         .partner-carousel .m-4 {
-            height: 200px;
-            min-height: 200px;
-            max-height: 200px;
-            padding: 15px 10px;
-            margin: 5px !important;
+            height: 206px;
+            min-height: 206px;
+            max-height: 206px;
+            padding: 14px 10px;
+            margin: 6px !important;
         }
     }
 
@@ -846,6 +908,20 @@
             min-height: auto;
             -webkit-line-clamp: 2;
         }
+
+        .home-case-lead-card {
+            padding: 22px 16px;
+        }
+
+        .home-case-lead-title {
+            font-size: 1.4rem;
+        }
+
+        .home-case-toast-stack {
+            left: 12px;
+            right: 12px;
+            max-width: none;
+        }
     }
 
     @media (max-width: 480px) {
@@ -895,6 +971,50 @@
     @media (max-width: 480px) {
         .slider .single-slider h1 { font-size: 1.2rem; }
         .slider .single-slider .button .btn { padding: 6px 12px; font-size: 0.8rem; }
+    }
+
+    /* Ensure stats icon ring stays fully visible and not clipped */
+    .fun-facts .single-fun {
+        position: relative;
+        padding-left: 98px;
+        min-height: 84px;
+    }
+
+    .fun-facts .single-fun i {
+        width: 76px;
+        height: 76px;
+        margin-top: -38px;
+        line-height: 1;
+        padding: 14px;
+        box-sizing: border-box;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .fun-facts .single-fun .content {
+        padding-left: 0;
+    }
+
+    .fun-facts.no-radius,
+    #fun-facts.no-radius {
+        border-radius: 0 !important;
+        overflow: visible;
+    }
+
+    @media (max-width: 768px) {
+        .fun-facts .single-fun {
+            padding-left: 0;
+            min-height: auto;
+        }
+
+        .fun-facts .single-fun i {
+            width: 74px;
+            height: 74px;
+            margin-top: 0;
+            padding: 13px;
+            top: 0;
+        }
     }
 
     .lazy-video {
@@ -1079,6 +1199,8 @@
     <div class="container">
         <div class="owl-carousel portfolio-slider">
             @foreach($industryListings as $listing)
+                @php($fullCaseStudyTitle = trim(($listing->category ?? 'Case Study') . ' Transformation Solution'))
+                @php($cardCaseStudyTitle = \Illuminate\Support\Str::limit($fullCaseStudyTitle, 44, '...'))
                 <div class="single-pf">
                     <div class="card-wrapper">
                         <div class="image-container">
@@ -1086,12 +1208,17 @@
                             <div class="image-overlay"></div>
                         </div>
                         <div class="card-body">
-                            <span class="label">Industry: {{ $listing->category }}</span>
-                            <h4>{{ $listing->category }} Transformation Solution</h4>
+                            <h4 title="{{ $fullCaseStudyTitle }}">{{ $cardCaseStudyTitle }}</h4>
                             <p>{{ \Illuminate\Support\Str::limit($listing->excerpt, 100) }}</p>
-                            <a href="{{ $listing->pdf_link }}" class="card-btn default-background text-light" target="_blank">
-                                <span>View Details</span>
-                                <i class="fa fa-arrow-right"></i>
+                            <a href="#" class="card-btn default-background text-light home-case-study-gated-link"
+                               data-case-study-id="{{ $listing->id }}"
+                               data-resource-title="{{ $fullCaseStudyTitle }}">
+                                <span>See Case Study</span>
+                                    <span class="card-btn-icon" aria-hidden="true">
+                                        <svg viewBox="0 0 16 16" focusable="false" aria-hidden="true">
+                                            <path d="M6 3.5L10.5 8L6 12.5"></path>
+                                        </svg>
+                                    </span>
                             </a>
                         </div>
                     </div>
@@ -1108,6 +1235,87 @@
     </div>
 </section>
 
+<div id="homeCaseToastStack" class="home-case-toast-stack" aria-live="polite" aria-atomic="true"></div>
+
+<div id="homeCaseLeadModal" class="home-case-download-modal" aria-hidden="true" role="dialog" aria-labelledby="homeCaseModalTitle">
+    <div class="home-case-download-modal-dialog">
+        <div class="home-case-lead-card">
+            <button type="button" class="home-case-modal-close" id="homeCaseModalCloseBtn" aria-label="Close">&times;</button>
+            <h2 class="home-case-lead-title" id="homeCaseModalTitle">See Case Study</h2>
+            <p class="home-case-lead-subtitle">Complete this form and we will email a secure link that expires in 1 hour.</p>
+            <div class="home-case-modal-selected" id="homeSelectedCaseStudyLabel">Selected: Case Study</div>
+
+            <form class="form home-case-lead-form" id="homeCaseLeadForm" method="post" action="{{ route('case-studies.lead.submit') }}">
+                @csrf
+                <input type="hidden" name="interest" value="case-studies">
+                <input type="hidden" name="case_study_id" id="homeCaseStudyId" value="">
+                <input type="hidden" name="requested_resource" id="homeCaseRequestedResource" value="">
+                <input style="display:none;" type="text" name="website" class="honeypot">
+
+                <div class="row">
+                    <div class="col-lg-6">
+                        <label class="field-label text-start">Name *</label>
+                        <div class="form-group">
+                            <input class="lead-field" type="text" name="name" placeholder="Name" required>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <label class="field-label text-start">Work email *</label>
+                        <div class="form-group">
+                            <input class="lead-field" type="email" name="email" placeholder="Work email" required>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <label class="field-label text-start">Work phone number *</label>
+                        <div class="form-group">
+                            <input class="lead-field" type="text" name="phone" placeholder="Phone number" required>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <label class="field-label text-start">Company name *</label>
+                        <div class="form-group">
+                            <input class="lead-field" type="text" name="organization" placeholder="Company name" required>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <label class="field-label text-start">Job title</label>
+                        <div class="form-group">
+                            <input class="lead-field" type="text" name="job_title" placeholder="Job title">
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <label class="field-label text-start">Country/Region</label>
+                        <div class="form-group">
+                            <input class="lead-field" type="text" name="country" placeholder="Country/Region">
+                        </div>
+                    </div>
+                    <div class="col-lg-12">
+                        <label class="field-label text-start">Additional notes</label>
+                        <div class="form-group">
+                            <textarea class="lead-field" name="message" placeholder="Tell us what topics or industries you want to explore"></textarea>
+                        </div>
+                    </div>
+                    <div class="col-lg-12">
+                        <div class="form-group">
+                            @if(!empty($recaptchaSiteKey ?? config('services.recaptcha.site_key')))
+                                <div class="g-recaptcha" data-sitekey="{{ $recaptchaSiteKey ?? config('services.recaptcha.site_key') }}"></div>
+                            @else
+                                <div class="alert alert-warning">reCAPTCHA is not configured. Please set <strong>CAPTURE_SITE_KEY</strong>.</div>
+                            @endif
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-sm-8">
+                        <div class="form-group">
+                            <button class="btn default-background" id="homeCaseSubmitBtn" type="submit">Email Me The Case Study</button>
+                        </div>
+                    </div>
+                </div>
+                <p class="home-case-lead-note">By submitting this form, you agree to be contacted by Armely about relevant resources.</p>
+            </form>
+        </div>
+    </div>
+</div>
+
 <section id="fun-facts" class="fun-facts default-background section col-md-12 mt-5 no-radius" aria-labelledby="stats-heading">
     <div class="container">
         <h2 id="stats-heading" class="sr-only">Customer Statistics</h2>
@@ -1119,6 +1327,141 @@
         </div>
     </div>
 </section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var modal = document.getElementById('homeCaseLeadModal');
+    var caseStudyIdInput = document.getElementById('homeCaseStudyId');
+    var hiddenResource = document.getElementById('homeCaseRequestedResource');
+    var label = document.getElementById('homeSelectedCaseStudyLabel');
+    var submitBtn = document.getElementById('homeCaseSubmitBtn');
+    var closeBtn = document.getElementById('homeCaseModalCloseBtn');
+    var toastStack = document.getElementById('homeCaseToastStack');
+    var leadForm = document.getElementById('homeCaseLeadForm');
+    var originalBtnText = submitBtn ? submitBtn.textContent : 'Email Me The Case Study';
+
+    if (!modal || !leadForm || !submitBtn || !caseStudyIdInput || !hiddenResource || !label) {
+        return;
+    }
+
+    function showToast(message, type) {
+        if (!toastStack || !message) {
+            return;
+        }
+
+        var toast = document.createElement('div');
+        toast.className = 'home-case-toast ' + (type === 'error' ? 'home-case-toast-error' : 'home-case-toast-success');
+        toast.textContent = message;
+        toastStack.appendChild(toast);
+
+        window.setTimeout(function () {
+            if (toast.parentNode) {
+                toast.parentNode.removeChild(toast);
+            }
+        }, 5200);
+    }
+
+    function openModal(resourceId, resourceTitle) {
+        if (!resourceId) {
+            return;
+        }
+
+        caseStudyIdInput.value = resourceId;
+        hiddenResource.value = resourceTitle || 'Case Study';
+        label.textContent = 'Selected: ' + (resourceTitle || 'Case Study');
+        submitBtn.textContent = originalBtnText;
+
+        modal.classList.add('is-open');
+        modal.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal() {
+        modal.classList.remove('is-open');
+        modal.setAttribute('aria-hidden', 'true');
+        document.body.style.overflow = '';
+    }
+
+    function setSubmitting(isSubmitting) {
+        submitBtn.disabled = isSubmitting;
+        submitBtn.textContent = isSubmitting ? 'Submitting...' : originalBtnText;
+    }
+
+    document.querySelectorAll('.home-case-study-gated-link').forEach(function (link) {
+        link.addEventListener('click', function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+            openModal(link.getAttribute('data-case-study-id') || '', link.getAttribute('data-resource-title') || 'Case Study');
+        });
+    });
+
+    if (closeBtn) {
+        closeBtn.addEventListener('click', closeModal);
+    }
+
+    leadForm.addEventListener('submit', function (event) {
+        event.preventDefault();
+        setSubmitting(true);
+
+        var formData = new FormData(leadForm);
+        fetch(leadForm.action, {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: formData,
+            credentials: 'same-origin'
+        })
+            .then(function (response) {
+                return response.json().catch(function () {
+                    return {};
+                }).then(function (json) {
+                    return { ok: response.ok, status: response.status, json: json };
+                });
+            })
+            .then(function (result) {
+                if (!result.ok) {
+                    if (result.status === 422 && result.json && result.json.errors) {
+                        var firstField = Object.keys(result.json.errors)[0];
+                        var firstMessage = firstField && result.json.errors[firstField] && result.json.errors[firstField][0]
+                            ? result.json.errors[firstField][0]
+                            : 'Please check the form fields and try again.';
+                        showToast(firstMessage, 'error');
+                    } else {
+                        showToast('Unable to submit right now. Please try again.', 'error');
+                    }
+                    return;
+                }
+
+                showToast((result.json && result.json.message) || 'Download link sent successfully.', 'success');
+                leadForm.reset();
+                if (window.grecaptcha && typeof window.grecaptcha.reset === 'function') {
+                    window.grecaptcha.reset();
+                }
+                closeModal();
+            })
+            .catch(function () {
+                showToast('Network issue. Please try again.', 'error');
+            })
+            .finally(function () {
+                setSubmitting(false);
+            });
+    });
+
+    modal.addEventListener('click', function (event) {
+        if (event.target === modal) {
+            closeModal();
+        }
+    });
+
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' && modal.classList.contains('is-open')) {
+            closeModal();
+        }
+    });
+});
+</script>
 
 <section class="blog section" id="blog">
     <div class="container">
@@ -1140,7 +1483,6 @@
                                  src="{{ $blog->image_path ?: asset('images/blog/default.svg') }}" 
                                  alt="{{ $blog->title }}"
                                  onerror="this.src='{{ asset('images/blog/default.svg') }}'">
-                            <div class="blog-category-tag">Insight</div>
                         </div>
                         <div class="blog-content">
                             <div class="blog-author-info">
@@ -1206,7 +1548,7 @@
                         </div>
                         <div class="video-info">
                             <span class="video-tag">YouTube Series</span>
-                            <h4 class="video-title-text">{{ $video->video_title ?? 'Expert Digital Insights' }}</h4>
+                            <h4 class="video-title-text">{{ $video->video_title }}</h4>
                         </div>
                     </div>
                 </div>
@@ -1290,7 +1632,7 @@
 <!-- Lazy-load Google reCAPTCHA when contact form enters viewport -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const recaptchaEl = document.querySelector('.g-recaptcha');
+    const recaptchaEl = document.querySelector('#contact-form .g-recaptcha');
     if (!recaptchaEl) return;
     let scriptLoaded = false;
     const loadRecaptcha = () => {

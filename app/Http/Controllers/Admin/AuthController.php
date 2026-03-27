@@ -11,6 +11,7 @@ use App\Services\AzureMailService;
 use Illuminate\Support\Str;
 use App\Models\Admin;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Database\QueryException;
 
 class AuthController extends Controller
@@ -26,7 +27,7 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $credentials = $request->validate([
-            'email' => 'required|email',
+            'email' => 'required|email:rfc,filter',
             'password' => 'required',
         ], [
             'email.required' => 'Email is required',
@@ -41,7 +42,7 @@ class AuthController extends Controller
             }
         } catch (\Exception $e) {
             // Handle bcrypt errors (usually plain text passwords)
-            \Log::error('Admin login error: ' . $e->getMessage());
+            Log::error('Admin login error: ' . $e->getMessage());
             
             // Check if admin exists to give targeted error
             $admin = \App\Models\Admin::where('email', $credentials['email'])->first();
@@ -74,10 +75,15 @@ class AuthController extends Controller
     public function sendResetLink(Request $request)
     {
         $request->validate([
-            'email' => 'required|email|exists:admin,email',
+            'email' => 'required|email:rfc,dns,filter|exists:admin,email',
         ], [
             'email.exists' => 'We could not find an admin account with that email address.',
         ]);
+
+        $email = AzureMailService::normalizeEmail((string) $request->email);
+        if (!AzureMailService::isDeliverableEmail($email)) {
+            return back()->withErrors(['email' => 'Please provide a valid email that can receive messages.'])->withInput();
+        }
 
         // Generate reset token
         $token = Str::random(64);
@@ -86,7 +92,7 @@ class AuthController extends Controller
         $resetTable = config('auth.passwords.users.table', 'password_reset_tokens');
         try {
             DB::table($resetTable)->updateOrInsert(
-                ['email' => $request->email],
+                ['email' => $email],
                 [
                     'token' => Hash::make($token),
                     'created_at' => now()
@@ -94,15 +100,15 @@ class AuthController extends Controller
             );
         } catch (QueryException $e) {
             // If the underlying table doesn't exist, log and return a helpful error
-            \Log::error('Password reset storage error: ' . $e->getMessage());
+            Log::error('Password reset storage error: ' . $e->getMessage());
             return back()->withErrors(['email' => 'Password reset is currently unavailable. Please contact the site administrator.']);
         }
 
         // Send email with reset link
-        $resetLink = route('admin.password.reset', ['token' => $token, 'email' => $request->email]);
+        $resetLink = route('admin.password.reset', ['token' => $token, 'email' => $email]);
         
         $mailer = new AzureMailService();
-        $sent = $mailer->sendResetEmail($request->email, $resetLink);
+        $sent = $mailer->sendResetEmail($email, $resetLink);
 
         if ($sent) {
             return back()->with('success', 'Password reset link has been sent to your email!');
@@ -123,7 +129,7 @@ class AuthController extends Controller
     {
         $request->validate([
             'token' => 'required',
-            'email' => 'required|email|exists:admin,email',
+            'email' => 'required|email:rfc,filter|exists:admin,email',
             'password' => 'required|min:8|confirmed',
         ]);
 
@@ -134,7 +140,7 @@ class AuthController extends Controller
                 ->where('email', $request->email)
                 ->first();
         } catch (QueryException $e) {
-            \Log::error('Password reset lookup error: ' . $e->getMessage());
+            Log::error('Password reset lookup error: ' . $e->getMessage());
             return back()->withErrors(['email' => 'Password reset is currently unavailable. Please contact the site administrator.']);
         }
 
@@ -152,7 +158,7 @@ class AuthController extends Controller
             DB::table($resetTable)->where('email', $request->email)->delete();
         } catch (QueryException $e) {
             // Log and continue
-            \Log::warning('Failed to delete password reset token: ' . $e->getMessage());
+            Log::warning('Failed to delete password reset token: ' . $e->getMessage());
         }
 
         return redirect()->route('admin.login')->with('success', 'Your password has been reset successfully!');

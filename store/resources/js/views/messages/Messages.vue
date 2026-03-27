@@ -1,85 +1,111 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <div class="min-h-screen bg-gradient-to-b from-[#eef3fb] via-[#f8fbff] to-[#f3f6fb] relative">
     <Navbar />
 
-    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <!-- Header -->
-      <div class="mb-8">
-        <h1 class="text-4xl font-bold text-gray-900 mb-2">Messages</h1>
-        <p class="text-gray-600 text-lg">Stay updated on your orders, quotes, and invoices</p>
-      </div>
+    <div class="pointer-events-none absolute inset-0">
+      <div class="absolute -top-24 -right-20 w-80 h-80 rounded-full blur-3xl opacity-30" style="background: radial-gradient(circle, #7fb3e8 0%, transparent 70%);"></div>
+      <div class="absolute top-64 -left-24 w-72 h-72 rounded-full blur-3xl opacity-25" style="background: radial-gradient(circle, #b7d7f2 0%, transparent 70%);"></div>
+    </div>
 
-      <!-- Filter Tabs -->
-      <div class="bg-white rounded-lg shadow-md p-4 mb-6">
-        <div class="flex flex-wrap gap-2 items-center justify-between">
-          <div class="flex flex-wrap gap-2">
-            <button 
-              @click="filterType = null" 
-              :class="filterType === null ? 'text-white' : 'text-gray-700 bg-gray-100 hover:bg-gray-200'"
-              class="px-4 py-2 rounded-lg font-semibold transition"
-              :style="filterType === null ? 'background-color: #2F5597;' : ''"
-            >
-              All Messages
-            </button>
-            <button 
-              @click="filterType = 'order'" 
-              :class="filterType === 'order' ? 'text-white' : 'text-gray-700 bg-gray-100 hover:bg-gray-200'"
-              class="px-4 py-2 rounded-lg font-semibold transition"
-              :style="filterType === 'order' ? 'background-color: #2F5597;' : ''"
-            >
-              Orders
-            </button>
-            <button 
-              @click="filterType = 'quote'" 
-              :class="filterType === 'quote' ? 'text-white' : 'text-gray-700 bg-gray-100 hover:bg-gray-200'"
-              class="px-4 py-2 rounded-lg font-semibold transition"
-              :style="filterType === 'quote' ? 'background-color: #2F5597;' : ''"
-            >
-              Quotes
-            </button>
-            <button 
-              @click="filterType = 'invoice'" 
-              :class="filterType === 'invoice' ? 'text-white' : 'text-gray-700 bg-gray-100 hover:bg-gray-200'"
-              class="px-4 py-2 rounded-lg font-semibold transition"
-              :style="filterType === 'invoice' ? 'background-color: #2F5597;' : ''"
-            >
-              Invoices
-            </button>
+    <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
+      <div class="rounded-3xl text-white p-6 sm:p-8 mb-6 shadow-lg" style="background: linear-gradient(130deg, #234a87 0%, #2F5597 48%, #4f86c6 100%);">
+        <div class="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p class="text-xs uppercase tracking-[0.18em] text-blue-100 mb-2">Communication Center</p>
+            <h1 class="text-3xl sm:text-4xl font-bold leading-tight">Messages</h1>
+            <p class="text-blue-100 mt-2 max-w-2xl">Track quote updates, payment reminders, and system notifications in one place.</p>
           </div>
-          <button 
+          <button
             v-if="unreadCount > 0"
-            @click="markAllAsRead" 
-            class="px-4 py-2 text-sm text-blue-600 hover:text-blue-800 font-semibold transition"
+            @click="markAllAsRead"
+            class="px-4 py-2 rounded-xl bg-white/15 hover:bg-white/25 transition font-semibold text-sm"
           >
             Mark All as Read
           </button>
         </div>
-      </div>
 
-      <!-- Loading State -->
-      <div v-if="loading" class="text-center py-12">
-        <div class="inline-block">
-          <div class="w-12 h-12 border-4 rounded-full" style="border-color: #2F5597; border-top-color: transparent; animation: spin 1s linear infinite;"></div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-6">
+          <div class="rounded-2xl bg-white/10 backdrop-blur p-4 border border-white/15">
+            <p class="text-xs text-blue-100 uppercase tracking-wide">Total</p>
+            <p class="text-2xl font-bold mt-1">{{ totalCount }}</p>
+          </div>
+          <div class="rounded-2xl bg-white/10 backdrop-blur p-4 border border-white/15">
+            <p class="text-xs text-blue-100 uppercase tracking-wide">Unread</p>
+            <p class="text-2xl font-bold mt-1">{{ unreadCount }}</p>
+          </div>
+          <div class="rounded-2xl bg-white/10 backdrop-blur p-4 border border-white/15">
+            <p class="text-xs text-blue-100 uppercase tracking-wide">Action Required</p>
+            <p class="text-2xl font-bold mt-1">{{ actionableCount }}</p>
+          </div>
         </div>
       </div>
 
-      <!-- Messages List -->
+      <div class="bg-white/95 rounded-2xl shadow-md border border-[#dbe5f3] p-4 sm:p-5 mb-6 backdrop-blur">
+        <div class="flex flex-col lg:flex-row gap-4 lg:items-center lg:justify-between">
+          <div class="flex flex-wrap gap-2">
+            <button
+              @click="filterType = null"
+              :class="filterType === null ? 'text-white' : 'text-[#2d3d59] bg-[#eef2f8] hover:bg-[#e4ebf4]'"
+              class="px-4 py-2 rounded-xl font-semibold text-sm transition"
+              :style="filterType === null ? 'background-color: #2F5597;' : ''"
+            >All</button>
+            <button
+              @click="filterType = 'order'"
+              :class="filterType === 'order' ? 'text-white' : 'text-[#2d3d59] bg-[#eef2f8] hover:bg-[#e4ebf4]'"
+              class="px-4 py-2 rounded-xl font-semibold text-sm transition"
+              :style="filterType === 'order' ? 'background-color: #2F5597;' : ''"
+            >Orders</button>
+            <button
+              @click="filterType = 'quote'"
+              :class="filterType === 'quote' ? 'text-white' : 'text-[#2d3d59] bg-[#eef2f8] hover:bg-[#e4ebf4]'"
+              class="px-4 py-2 rounded-xl font-semibold text-sm transition"
+              :style="filterType === 'quote' ? 'background-color: #2F5597;' : ''"
+            >Quotes</button>
+            <button
+              @click="filterType = 'invoice'"
+              :class="filterType === 'invoice' ? 'text-white' : 'text-[#2d3d59] bg-[#eef2f8] hover:bg-[#e4ebf4]'"
+              class="px-4 py-2 rounded-xl font-semibold text-sm transition"
+              :style="filterType === 'invoice' ? 'background-color: #2F5597;' : ''"
+            >Invoices</button>
+          </div>
+
+          <div class="w-full lg:w-80">
+            <div class="relative">
+              <svg class="absolute left-3 top-3.5 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M16 10.5a5.5 5.5 0 11-11 0 5.5 5.5 0 0111 0z"></path>
+              </svg>
+              <input
+                v-model="searchQuery"
+                type="text"
+                placeholder="Search message title or text..."
+                class="w-full pl-9 pr-3 py-2.5 rounded-xl border border-[#d4deec] focus:outline-none focus:ring-2 focus:ring-[#95b5df]"
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="loading" class="space-y-4">
+        <div v-for="n in 4" :key="n" class="bg-white rounded-2xl border border-[#dfe7f3] p-6 shadow-sm">
+          <div class="animate-pulse">
+            <div class="h-4 w-48 bg-slate-200 rounded mb-3"></div>
+            <div class="h-3 w-full bg-slate-100 rounded mb-2"></div>
+            <div class="h-3 w-3/4 bg-slate-100 rounded"></div>
+          </div>
+        </div>
+      </div>
+
       <div v-else-if="filteredMessages.length > 0" class="space-y-4">
-        <div 
-          v-for="message in filteredMessages" 
+        <article
+          v-for="message in filteredMessages"
           :key="message.id"
-          class="bg-white rounded-lg shadow-md hover:shadow-lg transition overflow-hidden"
-          :class="message.status === 'unread' ? 'border-l-4' : ''"
-          :style="message.status === 'unread' ? 'border-color: #2F5597;' : ''"
+          class="group bg-white rounded-2xl border border-[#dde5f2] shadow-sm hover:shadow-lg transition overflow-hidden"
+          :class="message.status === 'unread' ? 'ring-1 ring-[#cedef2]' : ''"
         >
-          <div class="p-6">
-            <div class="flex items-start justify-between mb-3">
-              <div class="flex items-start gap-3">
-                <!-- Icon -->
-                <div 
-                  class="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0"
-                  :style="getTypeStyle(message.type)"
-                >
+          <div class="p-5 sm:p-6">
+            <div class="flex items-start justify-between gap-4">
+              <div class="flex items-start gap-4 min-w-0">
+                <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" :style="getTypeStyle(message.type)">
                   <svg v-if="message.type === 'order'" class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
                   </svg>
@@ -94,33 +120,61 @@
                   </svg>
                 </div>
 
-                <!-- Content -->
-                <div class="flex-1">
-                  <div class="flex items-center gap-2 mb-1">
-                    <h3 class="text-lg font-bold text-gray-900">{{ message.title }}</h3>
-                    <span 
+                <div class="min-w-0">
+                  <div class="flex flex-wrap items-center gap-2 mb-2">
+                    <span class="text-xs font-semibold px-2.5 py-1 rounded-full" :style="getTypeBadgeStyle(message.type)">
+                      {{ getTypeLabel(message.type) }}
+                    </span>
+                    <span
                       v-if="message.priority === 'high' || message.priority === 'urgent'"
-                      class="px-2 py-1 text-xs font-semibold rounded"
+                      class="text-xs font-semibold px-2.5 py-1 rounded-full"
                       :class="message.priority === 'urgent' ? 'bg-red-100 text-red-800' : 'bg-orange-100 text-orange-800'"
                     >
                       {{ message.priority }}
                     </span>
+                    <span v-if="message.status === 'unread'" class="text-xs font-semibold px-2.5 py-1 rounded-full bg-[#dfeafb] text-[#234a87]">
+                      unread
+                    </span>
                   </div>
-                  <p class="text-gray-700 mb-2">{{ message.message }}</p>
-                  <div class="flex items-center gap-3 text-sm text-gray-500">
+
+                  <h3 class="text-lg font-bold text-slate-900 truncate">{{ message.title }}</h3>
+                  <p class="text-slate-600 mt-1 leading-relaxed">{{ message.message }}</p>
+
+                  <div
+                    class="flex flex-wrap items-center gap-3 mt-3 text-sm"
+                    :class="message.type === 'invoice' ? 'text-[#2F5597]' : 'text-slate-500'"
+                  >
                     <span>{{ message.time_ago }}</span>
-                    <span v-if="message.reference_id" class="font-mono text-xs bg-gray-100 px-2 py-1 rounded">
+                    <span
+                      v-if="message.reference_id"
+                      class="font-mono text-xs px-2 py-1 rounded"
+                      :class="message.type === 'invoice' ? 'bg-[#e5efff] text-[#2F5597]' : 'bg-slate-100 text-slate-600'"
+                    >
                       {{ message.reference_id }}
                     </span>
                   </div>
+
+                  <button
+                    v-if="message.action_link"
+                    @click="openMessageTarget(message)"
+                    class="inline-flex items-center gap-2 mt-4 px-3 py-2 rounded-lg text-sm font-semibold border transition"
+                    :class="message.type === 'invoice'
+                      ? 'border-[#b9d1ec] bg-[#eaf2ff] hover:bg-[#deebff] text-[#1f4788]'
+                      : 'border-[#c9d9ef] bg-[#f5f9ff] hover:bg-[#edf4ff] text-[#2F5597]'"
+                  >
+                    <span>{{ message.action_label || 'Open' }}</span>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5h5m0 0v5m0-5L10 14"></path>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12v7a2 2 0 002 2h7"></path>
+                    </svg>
+                  </button>
                 </div>
               </div>
 
-              <!-- Actions -->
-              <div class="flex items-center gap-2 ml-4">
-                <button 
+              <div class="flex items-center gap-2">
+                <button
                   v-if="message.status === 'unread'"
-                  @click="markAsRead(message.id)"
+                  @click.stop="markAsRead(message.id)"
                   class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
                   title="Mark as read"
                 >
@@ -128,8 +182,8 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                   </svg>
                 </button>
-                <button 
-                  @click="deleteMessage(message.id)"
+                <button
+                  @click.stop="deleteMessage(message.id)"
                   class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
                   title="Delete message"
                 >
@@ -140,16 +194,15 @@
               </div>
             </div>
           </div>
-        </div>
+        </article>
       </div>
 
-      <!-- Empty State -->
-      <div v-else class="bg-white rounded-lg shadow-md p-12 text-center">
-        <svg class="w-20 h-20 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+      <div v-else class="bg-white rounded-2xl border border-[#dde5f2] shadow-sm p-12 text-center">
+        <svg class="w-20 h-20 mx-auto mb-4 text-[#b7c7dd]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
         </svg>
-        <h3 class="text-xl font-bold text-gray-900 mb-2">No Messages</h3>
-        <p class="text-gray-600">You're all caught up! No messages to display.</p>
+        <h3 class="text-xl font-bold text-slate-900 mb-2">{{ searchQuery ? 'No matching messages' : 'No messages yet' }}</h3>
+        <p class="text-slate-600">{{ searchQuery ? 'Try a different keyword or clear filters.' : 'You are all caught up for now.' }}</p>
       </div>
     </div>
   </div>
@@ -165,29 +218,69 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useToastStore } from '../../stores/toastStore'
 import { API_BASE_URL } from '../../services/runtimeConfig'
 import Navbar from '../../components/Navbar.vue'
 
 const toastStore = useToastStore()
+const router = useRouter()
 const messages = ref([])
 const loading = ref(false)
 const filterType = ref(null)
 const unreadCount = ref(0)
+const searchQuery = ref('')
+
+const totalCount = computed(() => messages.value.length)
+const actionableCount = computed(() => messages.value.filter(msg => Boolean(msg.action_link)).length)
 
 const filteredMessages = computed(() => {
-  if (!filterType.value) return messages.value
-  return messages.value.filter(msg => msg.type === filterType.value)
+  const query = searchQuery.value.trim().toLowerCase()
+
+  return messages.value.filter((msg) => {
+    const matchesType = !filterType.value || msg.type === filterType.value
+    if (!matchesType) return false
+
+    if (!query) return true
+
+    const haystack = [msg.title, msg.message, msg.reference_id, msg.type]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase()
+
+    return haystack.includes(query)
+  })
 })
 
 const getTypeStyle = (type) => {
   const styles = {
-    order: 'background-color: #2F5597;',
-    quote: 'background-color: #10b981;',
-    invoice: 'background-color: #f59e0b;',
-    system: 'background-color: #6b7280;'
+    order: 'background: linear-gradient(145deg, #2f5597 0%, #4f86c6 100%);',
+    quote: 'background: linear-gradient(145deg, #0f9f8f 0%, #14b8a6 100%);',
+    invoice: 'background: linear-gradient(145deg, #2f5597 0%, #5a8fcb 100%);',
+    system: 'background: linear-gradient(145deg, #55637a 0%, #718096 100%);'
   }
   return styles[type] || styles.system
+}
+
+const getTypeBadgeStyle = (type) => {
+  const styles = {
+    order: 'background-color: #e5efff; color: #2F5597;',
+    quote: 'background-color: #dcf8f3; color: #0f766e;',
+    invoice: 'background-color: #e5efff; color: #2F5597;',
+    system: 'background-color: #edf2f7; color: #4a5568;'
+  }
+  return styles[type] || styles.system
+}
+
+const getTypeLabel = (type) => {
+  const labels = {
+    order: 'Order',
+    quote: 'Quote',
+    invoice: 'Invoice',
+    system: 'System'
+  }
+
+  return labels[type] || 'Message'
 }
 
 const fetchMessages = async () => {
@@ -326,6 +419,23 @@ const formatCurrency = (amount) => {
     style: 'currency',
     currency: 'USD'
   }).format(amount)
+}
+
+const openMessageTarget = async (message) => {
+  if (!message?.action_link) {
+    return
+  }
+
+  if (message.status === 'unread') {
+    await markAsRead(message.id)
+  }
+
+  try {
+    await router.push(message.action_link)
+  } catch (error) {
+    console.error('Error opening message target:', error)
+    toastStore.addToast('Unable to open message link', 'error')
+  }
 }
 
 onMounted(() => {

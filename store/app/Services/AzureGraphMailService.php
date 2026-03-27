@@ -4,6 +4,8 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class AzureGraphMailService
 {
@@ -498,6 +500,15 @@ class AzureGraphMailService
     private function sendEmail(string $toEmail, string $subject, string $htmlBody, string $textBody): bool
     {
         try {
+            $normalizedToEmail = $this->normalizeEmail($toEmail);
+            if (!$this->isDeliverableEmail($normalizedToEmail)) {
+                Log::warning('Azure Graph send blocked: undeliverable recipient', [
+                    'to' => $normalizedToEmail,
+                    'subject' => $subject,
+                ]);
+                return false;
+            }
+
             $token = $this->getAccessToken();
             if (!$token) {
                 return false;
@@ -518,7 +529,7 @@ class AzureGraphMailService
                         'toRecipients' => [
                             [
                                 'emailAddress' => [
-                                    'address' => $toEmail,
+                                    'address' => $normalizedToEmail,
                                 ],
                             ],
                         ],
@@ -530,16 +541,79 @@ class AzureGraphMailService
                 return true;
             }
 
-            \Log::warning('Azure Graph sendMail failed', [
+            Log::warning('Azure Graph sendMail failed', [
                 'status' => $response->status(),
                 'body' => $response->body(),
             ]);
 
+            $this->markEmailAsSuppressed($normalizedToEmail);
+
             return false;
         } catch (\Throwable $e) {
-            \Log::warning('Azure Graph email send exception: ' . $e->getMessage());
+            $this->markEmailAsSuppressed($toEmail);
+            Log::warning('Azure Graph email send exception: ' . $e->getMessage());
             return false;
         }
+    }
+
+    private function normalizeEmail(string $email): string
+    {
+        return strtolower(trim($email));
+    }
+
+    private function isDeliverableEmail(string $email): bool
+    {
+        $email = $this->normalizeEmail($email);
+        if ($email === '') {
+            return false;
+        }
+
+        if (Cache::get($this->suppressionKey($email), false) === true) {
+            return false;
+        }
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return false;
+        }
+
+        $domain = (string) Str::after($email, '@');
+        if ($domain === '' || !str_contains($email, '@')) {
+            return false;
+        }
+
+        $disposableDomains = [
+            'mailinator.com',
+            'tempmail.com',
+            'guerrillamail.com',
+            '10minutemail.com',
+            'yopmail.com',
+            'trashmail.com',
+        ];
+
+        if (in_array($domain, $disposableDomains, true)) {
+            return false;
+        }
+
+        if (!checkdnsrr($domain, 'MX') && !checkdnsrr($domain, 'A')) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private function markEmailAsSuppressed(string $email, int $hours = 24): void
+    {
+        $normalized = $this->normalizeEmail($email);
+        if ($normalized === '') {
+            return;
+        }
+
+        Cache::put($this->suppressionKey($normalized), true, now()->addHours($hours));
+    }
+
+    private function suppressionKey(string $email): string
+    {
+        return 'store_mail_suppressed:' . sha1($this->normalizeEmail($email));
     }
 
     private function getAccessToken(): ?string
@@ -562,7 +636,7 @@ class AzureGraphMailService
                     ]);
 
                 if (!$response->successful()) {
-                    \Log::warning('Azure Graph token request failed', [
+                    Log::warning('Azure Graph token request failed', [
                         'status' => $response->status(),
                         'body' => $response->body(),
                     ]);
@@ -571,7 +645,7 @@ class AzureGraphMailService
 
                 return $response->json('access_token');
             } catch (\Throwable $e) {
-                \Log::warning('Azure Graph token exception: ' . $e->getMessage());
+                Log::warning('Azure Graph token exception: ' . $e->getMessage());
                 return null;
             }
         });
