@@ -4,6 +4,15 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Product Catalog Source
+    |--------------------------------------------------------------------------
+    | streamone: legacy StreamOne product APIs
+    | priceavailability: XML PriceAvailability API (customerNo/userName/password)
+    */
+    'products_source' => env('TDSYNNEX_PRODUCTS_SOURCE', 'priceavailability'),
+
+    /*
+    |--------------------------------------------------------------------------
     | TD SYNNEX StreamOne Ion API Configuration
     |--------------------------------------------------------------------------
     |
@@ -134,6 +143,38 @@ return [
             ],
         ],
         'use_test_by_default' => env('TDSYNNEX_XML_USE_TEST', true),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | PriceAvailability Product Feed Settings
+    |--------------------------------------------------------------------------
+    */
+    'price_availability' => [
+        'customer_no' => env('SYNNEX_CUSTOMER_NO'),
+        'username' => env('SYNNEX_USERNAME'),
+        'password' => env('SYNNEX_PASSWORD'),
+        'region' => env('SYNNEX_REGION', 'us'),
+        'batch_size' => env('SYNNEX_BATCH_SIZE', 50),
+        'max_skus' => env('SYNNEX_MAX_SKUS', 0),
+        'cache_ttl' => env('SYNNEX_PRICE_AVAILABILITY_CACHE_TTL', 900),
+        'flat_file_path' => env('SYNNEX_FLAT_FILE_PATH', ''),
+        'flat_files_dir' => env('SYNNEX_FLAT_FILES_DIR', 'flat-files'),
+        'skus_csv' => env('SYNNEX_SKUS', ''),
+        'skus_file' => env('SYNNEX_SKUS_FILE', ''),
+    ],
+
+    'icecat' => [
+        'enabled' => env('ICECAT_ENABLED', true),
+        'persist_to_db' => env('ICECAT_PERSIST_TO_DB', true),
+        'username' => env('ICECAT_USERNAME', ''),
+        'password' => env('ICECAT_PASSWORD', ''),
+        'app_key' => env('ICECAT_APP_KEY', ''),
+        'endpoint' => env('ICECAT_ENDPOINT', 'https://live.icecat.biz/api'),
+        'language' => env('ICECAT_LANGUAGE', 'en'),
+        'cache_ttl' => env('ICECAT_CACHE_TTL', 86400),
+        'timeout' => env('ICECAT_TIMEOUT', 6),
+        'max_lookups_per_request' => env('ICECAT_MAX_LOOKUPS_PER_REQUEST', 24),
     ],
 
     'allow_submit_po' => env('TDSYNNEX_ALLOW_SUBMIT_PO', false),

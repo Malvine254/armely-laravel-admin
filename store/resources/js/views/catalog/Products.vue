@@ -227,6 +227,7 @@ const cartStore = useCartStore()
 const favoritesStore = useFavoritesStore()
 const authStore = useAuthStore()
 const ITEMS_PER_PAGE = 9
+const API_PAGE_SIZE = 100
 const SEARCH_TRACK_DEBOUNCE_MS = 15000
 const PROFILE_TERM_LIMIT = 25
 
@@ -346,6 +347,7 @@ const filteredProducts = computed(() => {
   if (filters.categories && filters.categories.length > 0) {
     filtered = filtered.filter(product => {
       const selectedCategory = filters.categories[0]
+      const selectedCategoryValue = availableCategories.value.find(c => c.name === selectedCategory)?.value || selectedCategory
       
       // Check if it's a billing model category
       if (selectedCategory.startsWith('Billing: ')) {
@@ -363,8 +365,13 @@ const filteredProducts = computed(() => {
       if (product.productCategories && Array.isArray(product.productCategories)) {
         return product.productCategories.some(cat => {
           const categoryName = typeof cat === 'object' ? cat.categoryName : cat
-          return categoryName === selectedCategory
+          return categoryName === selectedCategoryValue
         })
+      }
+
+      // PriceAvailability products use categoryCode
+      if (product.categoryCode) {
+        return String(product.categoryCode).trim() === String(selectedCategoryValue).trim()
       }
       
       return false
@@ -432,6 +439,56 @@ const getCacheKey = (filters) => {
   })
 }
 
+const fetchAllProductPages = async (baseParams) => {
+  const firstResponse = await axios.get('/api/v1/products', {
+    params: {
+      ...baseParams,
+      page: 1,
+      per_page: API_PAGE_SIZE,
+      hide_zero_price: false
+    }
+  })
+
+  if (!firstResponse.data?.success) {
+    return []
+  }
+
+  const firstData = firstResponse.data.data || {}
+  const firstRecords = Array.isArray(firstData.records)
+    ? firstData.records
+    : (Array.isArray(firstData) ? firstData : [])
+
+  const total = Number(firstData.total || firstRecords.length || 0)
+  const totalPages = Math.max(1, Math.ceil(total / API_PAGE_SIZE))
+  if (totalPages <= 1) {
+    return firstRecords
+  }
+
+  const pagePromises = []
+  for (let page = 2; page <= totalPages; page++) {
+    pagePromises.push(
+      axios.get('/api/v1/products', {
+        params: {
+          ...baseParams,
+          page,
+          per_page: API_PAGE_SIZE,
+          hide_zero_price: false
+        }
+      }).then((res) => {
+        if (!res.data?.success) {
+          return []
+        }
+
+        const pageData = res.data.data || {}
+        return Array.isArray(pageData.records) ? pageData.records : []
+      }).catch(() => [])
+    )
+  }
+
+  const remaining = await Promise.all(pagePromises)
+  return [...firstRecords, ...remaining.flat()]
+}
+
 const performSearch = async () => {
   loading.value = true
   error.value = ''
@@ -480,8 +537,6 @@ const performSearch = async () => {
   const requestPromise = (async () => {
     try {
       const params = {
-        page: 1,
-        per_page: 100,
         hide_zero_price: false // include zero-priced products
       }
 
@@ -515,30 +570,11 @@ const performSearch = async () => {
         hide_zero_price: params.hide_zero_price
       })
 
-      const response = await axios.get('/api/v1/products', { params })
-      
-      if (response.data.success) {
-        const data = response.data.data
-        
-        if (data.records) {
-          products.value = data.records
-        } else if (Array.isArray(data)) {
-          products.value = data
-        } else if (data && typeof data === 'object') {
-          products.value = []
-        } else {
-          products.value = []
-        }
+      products.value = await fetchAllProductPages(params)
+      if (Array.isArray(products.value)) {
         
         // Log cache status
-        if (data.cached) {
-          console.log('✅ Products loaded from API cache:', products.value.length)
-        } else {
-          console.log('✅ Products loaded from API:', products.value.length, {
-            total: data.total,
-            apiTotal: data.apiTotal
-          })
-        }
+        console.log('✅ Products loaded from API:', products.value.length)
         
         // Log first product structure for debugging
         if (products.value.length > 0) {
@@ -559,7 +595,7 @@ const performSearch = async () => {
         
         return products.value
       } else {
-        error.value = response.data.message || 'Failed to fetch products'
+        error.value = 'Failed to fetch products'
         return []
       }
     } catch (err) {
@@ -701,6 +737,7 @@ const updateVendorCounts = () => {
 const extractCategories = () => {
   // Extract unique categories from products
   const categoryMap = new Map()
+  const codeBuckets = new Map()
   
   products.value.forEach(product => {
     // Check for productCategories array
@@ -734,13 +771,52 @@ const extractCategories = () => {
         categoryMap.set(normalizedFreqCategory, count + 1)
       }
     }
+
+    // Extract categoryCode for PriceAvailability products
+    if (product.categoryCode) {
+      const categoryCode = String(product.categoryCode || '').trim()
+      if (categoryCode) {
+        const bucket = codeBuckets.get(categoryCode) || { count: 0, terms: new Map() }
+        bucket.count += 1
+
+        const tokens = String(product.productName || '')
+          .toLowerCase()
+          .replace(/[^a-z0-9\s]/g, ' ')
+          .split(/\s+/)
+          .filter(Boolean)
+
+        tokens.forEach(token => {
+          if (token.length < 4) return
+          if (['with', 'from', 'that', 'this', 'kit', 'model', 'module', 'system', 'pack', 'each'].includes(token)) return
+          bucket.terms.set(token, (bucket.terms.get(token) || 0) + 1)
+        })
+
+        codeBuckets.set(categoryCode, bucket)
+      }
+    }
+  })
+
+  // Add readable labels for numeric category codes while preserving code as filter value
+  codeBuckets.forEach((bucket, code) => {
+    let bestTerm = 'Category'
+    let bestCount = 0
+    bucket.terms.forEach((count, term) => {
+      if (count > bestCount) {
+        bestCount = count
+        bestTerm = term
+      }
+    })
+
+    const label = `${bestTerm.charAt(0).toUpperCase()}${bestTerm.slice(1)} (${code})`
+    categoryMap.set(label, { count: bucket.count, value: code })
   })
   
   // Convert map to array format and sort by count
   availableCategories.value = Array.from(categoryMap.entries())
-    .map(([name, count]) => ({
+    .map(([name, data]) => ({
       name: String(name || '').trim(),
-      count: Number(count || 0)
+      count: Number((typeof data === 'object' ? data.count : data) || 0),
+      value: typeof data === 'object' ? (data.value || name) : name
     }))
     .filter(cat => cat.name.length > 0 && cat.count > 0)
     .sort((a, b) => b.count - a.count)

@@ -7,7 +7,7 @@ use App\Exceptions\TDSynnexApiException;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 class ProductController extends Controller
 {
@@ -37,7 +37,7 @@ class ProductController extends Controller
             // hide items with zero reseller price by default; set ?hide_zero_price=false to disable
             $hideZero = filter_var($request->query('hide_zero_price', true), FILTER_VALIDATE_BOOLEAN);
 
-            \Log::info('ProductController.index called', [
+            Log::info('ProductController.index called', [
                 'vendor' => $vendorId,
                 'vendors' => $vendors,
                 'page' => $pageNo,
@@ -46,6 +46,10 @@ class ProductController extends Controller
                 'use_db_cache' => $useDbCache,
                 'query_params' => $request->query()
             ]);
+
+            if ($this->tdsynnexService->usesPriceAvailabilityAsProductSource()) {
+                return $this->indexFromPriceAvailability($search, $minPrice, $maxPrice, $billingModels, $hideZero, $pageNo, $pageSize);
+            }
 
             // Use single vendor if no vendor list specified
             if (!$vendors) {
@@ -65,7 +69,7 @@ class ProductController extends Controller
                 if (!empty($allProducts)) {
                     $fromCache = true;
                     $apiTotal = count($allProducts);
-                    \Log::info('Products loaded from database cache', ['count' => count($allProducts)]);
+                    Log::info('Products loaded from database cache', ['count' => count($allProducts)]);
                 }
             }
 
@@ -124,7 +128,7 @@ class ProductController extends Controller
                                                 $product['productImages'] = $images['data']['images'] ?? [];
                                             }
                                         } catch (\Exception $e) {
-                                            \Log::debug("Could not fetch images for product {$product['productId']}: " . $e->getMessage());
+                                            Log::debug("Could not fetch images for product {$product['productId']}: " . $e->getMessage());
                                         }
                                     }
                                 }
@@ -136,7 +140,7 @@ class ProductController extends Controller
                             $apiTotal += $products['data']['total'] ?? count($products['data']['records']);
                         }
                     } catch (\Exception $e) {
-                        \Log::warning("Failed to fetch products for vendor {$vendor}: " . $e->getMessage());
+                        Log::warning("Failed to fetch products for vendor {$vendor}: " . $e->getMessage());
                         continue;
                     }
                 }
@@ -177,7 +181,7 @@ class ProductController extends Controller
             $total = count($allProducts);
             $records = array_slice($allProducts, ($pageNo - 1) * $pageSize, $pageSize);
 
-            \Log::info('ProductController.index successful', [
+            Log::info('ProductController.index successful', [
                 'total_products' => $total,
                 'api_total' => $apiTotal,
                 'returned_count' => count($records),
@@ -200,7 +204,7 @@ class ProductController extends Controller
             ])->header('Cache-Control', 'public, max-age=3600'); // 1 hour client-side cache
 
         } catch (TDSynnexApiException $e) {
-            \Log::error('ProductController.index TDSynnexApiException', [
+            Log::error('ProductController.index TDSynnexApiException', [
                 'message' => $e->getMessage(),
                 'code' => $e->getCode()
             ]);
@@ -210,7 +214,7 @@ class ProductController extends Controller
                 'error' => 'API_ERROR'
             ], 400);
         } catch (\Exception $e) {
-            \Log::error('ProductController.index Exception', [
+            Log::error('ProductController.index Exception', [
                 'message' => $e->getMessage(),
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
@@ -222,6 +226,140 @@ class ProductController extends Controller
                 'error' => 'SERVER_ERROR',
                 'debug' => config('app.debug') ? $e->getMessage() : null
             ], 500);
+        }
+    }
+
+    private function indexFromPriceAvailability(
+        ?string $search,
+        $minPrice,
+        $maxPrice,
+        ?string $billingModels,
+        bool $hideZero,
+        int $pageNo,
+        int $pageSize
+    ): JsonResponse {
+        $allProducts = $this->tdsynnexService->getPriceAvailabilityCatalog();
+
+        $apiTotal = count($allProducts);
+
+        if (!empty($search)) {
+            $needle = strtolower(trim($search));
+            $allProducts = array_values(array_filter($allProducts, function (array $product) use ($needle) {
+                $haystack = implode(' ', [
+                    (string) ($product['sku'] ?? ''),
+                    (string) ($product['mfgPartNo'] ?? ''),
+                    (string) ($product['productName'] ?? ''),
+                    (string) ($product['description'] ?? ''),
+                    (string) ($product['categoryCode'] ?? ''),
+                    (string) ($product['status'] ?? ''),
+                ]);
+
+                return str_contains(strtolower($haystack), $needle);
+            }));
+        }
+
+        if ($hideZero) {
+            $allProducts = array_values(array_filter($allProducts, function ($product) {
+                return (float) ($product['productPrice'][0]['rsPrice'] ?? 0) > 0;
+            }));
+        }
+
+        if ($minPrice !== null || $maxPrice !== null) {
+            $min = (float) ($minPrice ?? 0);
+            $max = (float) ($maxPrice ?? PHP_INT_MAX);
+            $allProducts = array_values(array_filter($allProducts, function ($product) use ($min, $max) {
+                $price = (float) ($product['productPrice'][0]['rsPrice'] ?? 0);
+                return $price >= $min && $price <= $max;
+            }));
+        }
+
+        if (!empty($billingModels)) {
+            $billingModelsArray = array_map('trim', explode(',', (string) $billingModels));
+            $allProducts = array_values(array_filter($allProducts, function ($product) use ($billingModelsArray) {
+                return in_array((string) ($product['billingModel'] ?? ''), $billingModelsArray, true);
+            }));
+        }
+
+        $total = count($allProducts);
+        $records = array_slice($allProducts, ($pageNo - 1) * $pageSize, $pageSize);
+        $records = $this->tdsynnexService->enrichProductsWithIcecatImages(array_values($records));
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+            'records' => $records,
+                'total' => $total,
+                'apiTotal' => $apiTotal,
+                'pageNo' => $pageNo,
+                'pageSize' => $pageSize,
+                'vendors' => ['TD SYNNEX'],
+                'cached' => true,
+                'source' => 'priceavailability',
+            ],
+            'message' => 'Products retrieved successfully',
+        ])->header('Cache-Control', 'public, max-age=300');
+    }
+
+    private function fetchPriceAvailabilityFromDatabase(bool $hideZero): array
+    {
+        try {
+            $query = Product::query()
+                ->where('vendor_id', 'TD SYNNEX');
+
+            if ($hideZero) {
+                $query->where(function ($q) {
+                    $q->where(function ($q2) {
+                        $q2->whereNotNull('base_price')->where('base_price', '>', 0);
+                    })->orWhere(function ($q3) {
+                        $q3->whereNotNull('retail_price')->where('retail_price', '>', 0);
+                    });
+                });
+            }
+
+            $products = $query->orderBy('product_name')->limit(50000)->get();
+
+            return $products->map(function (Product $product) {
+                $spec = is_array($product->specifications) ? $product->specifications : [];
+                $sku = (string) ($spec['sku'] ?? $product->tdsynnex_sku_no ?? $product->tdsynnex_product_id);
+                $price = (float) ($product->base_price ?? $product->retail_price ?? 0);
+                $images = $this->normalizeSavedProductImages($product->images);
+                $primaryImage = (string) ($images[0]['imageUrl'] ?? '');
+
+                return [
+                    'productId' => $sku,
+                    'sku' => $sku,
+                    'mfgPartNo' => (string) ($product->mfg_part_no ?? $sku),
+                    'vendorId' => (string) ($product->vendor_id ?? 'TD SYNNEX'),
+                    'vendorName' => (string) ($product->vendor_id ?? 'TD SYNNEX'),
+                    'productName' => (string) ($product->product_name ?? $sku),
+                    'description' => (string) ($product->description ?? ''),
+                    'status' => (string) ($spec['status'] ?? ''),
+                    'availableQuantity' => (int) ($spec['availableQuantity'] ?? 0),
+                    'qty' => (string) ($spec['availableQuantity'] ?? 0),
+                    'categoryCode' => (string) ($spec['categoryCode'] ?? '-'),
+                    'upc' => (string) ($spec['upc'] ?? ''),
+                    'manufacturer' => (string) ($spec['manufacturer'] ?? ''),
+                    'billingModel' => (string) ($product->billing_model ?? ''),
+                    'billingFrequency' => (string) ($product->billing_frequency ?? ''),
+                    'discontinueProduct' => (bool) ($product->is_discontinued ?? false),
+                    'productPrice' => [
+                        [
+                            'rsPrice' => $price,
+                            'minQty' => 1,
+                        ],
+                    ],
+                    'productImages' => $images,
+                    'images' => $images,
+                    'image_url' => $primaryImage,
+                    'icecat_title' => '',
+                ];
+            })->toArray();
+        } catch (\Throwable $e) {
+            Log::warning('Failed to fetch PriceAvailability products from database cache', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return [];
         }
     }
 
@@ -265,6 +403,8 @@ class ProductController extends Controller
                 ->get();
 
             return $products->map(function ($product) {
+                $images = $this->normalizeSavedProductImages($product->images ?? []);
+
                 return [
                     'productId' => $product->tdsynnex_product_id,
                     'productName' => $product->product_name,
@@ -280,13 +420,44 @@ class ProductController extends Controller
                         ]
                     ],
                     'specifications' => $product->specifications ?? [],
-                    'images' => $product->images ?? []
+                    'images' => $images,
+                    'productImages' => $images,
+                    'image_url' => (string) ($images[0]['imageUrl'] ?? ''),
                 ];
             })->toArray();
         } catch (\Exception $e) {
-            \Log::warning('Database cache fetch failed: ' . $e->getMessage());
+            Log::warning('Database cache fetch failed: ' . $e->getMessage());
             return [];
         }
+    }
+
+    private function normalizeSavedProductImages($images): array
+    {
+        if (!is_array($images)) {
+            return [];
+        }
+
+        $normalized = [];
+        $seen = [];
+
+        foreach ($images as $image) {
+            $url = '';
+
+            if (is_string($image)) {
+                $url = trim($image);
+            } elseif (is_array($image)) {
+                $url = trim((string) ($image['imageUrl'] ?? $image['url'] ?? ''));
+            }
+
+            if ($url === '' || isset($seen[$url])) {
+                continue;
+            }
+
+            $seen[$url] = true;
+            $normalized[] = ['imageUrl' => $url];
+        }
+
+        return $normalized;
     }
     /**
      * Get product details by product ID
@@ -294,6 +465,27 @@ class ProductController extends Controller
     public function show(string $productId): JsonResponse
     {
         try {
+            if ($this->tdsynnexService->usesPriceAvailabilityAsProductSource()) {
+                $product = $this->tdsynnexService->getPriceAvailabilityProductBySku($productId);
+
+                if (!$product) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Product not found',
+                        'error' => 'NOT_FOUND',
+                    ], 404);
+                }
+
+                $enriched = $this->tdsynnexService->enrichProductsWithIcecatImages([$product], 1);
+                $product = $enriched[0] ?? $product;
+
+                return response()->json([
+                    'success' => true,
+                    'data' => $product,
+                    'message' => 'Product details retrieved successfully',
+                ]);
+            }
+
             $product = $this->tdsynnexService->getProductDetails($productId);
 
             return response()->json([
@@ -323,6 +515,24 @@ class ProductController extends Controller
     public function getBySku(string $skuNo): JsonResponse
     {
         try {
+            if ($this->tdsynnexService->usesPriceAvailabilityAsProductSource()) {
+                $product = $this->tdsynnexService->getPriceAvailabilityProductBySku($skuNo);
+
+                if (!$product) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Product not found',
+                        'error' => 'NOT_FOUND',
+                    ], 404);
+                }
+
+                return response()->json([
+                    'success' => true,
+                    'data' => $product,
+                    'message' => 'Product retrieved by SKU successfully',
+                ]);
+            }
+
             $product = $this->tdsynnexService->getProductBySku($skuNo);
 
             return response()->json([
@@ -352,6 +562,20 @@ class ProductController extends Controller
     public function related(string $productId): JsonResponse
     {
         try {
+            if ($this->tdsynnexService->usesPriceAvailabilityAsProductSource()) {
+                $relatedProducts = $this->tdsynnexService->getPriceAvailabilityRelatedProducts($productId);
+                $relatedProducts = $this->tdsynnexService->enrichProductsWithIcecatImages($relatedProducts, count($relatedProducts));
+
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'records' => $relatedProducts,
+                        'total' => count($relatedProducts),
+                    ],
+                    'message' => 'Related products retrieved successfully',
+                ]);
+            }
+
             $relatedProducts = $this->tdsynnexService->getRelatedProducts((int)$productId);
 
             return response()->json([
@@ -381,6 +605,14 @@ class ProductController extends Controller
     public function vendors(): JsonResponse
     {
         try {
+            if ($this->tdsynnexService->usesPriceAvailabilityAsProductSource()) {
+                return response()->json([
+                    'success' => true,
+                    'data' => $this->tdsynnexService->getPriceAvailabilityVendors(),
+                    'message' => 'Vendors retrieved successfully',
+                ]);
+            }
+
             $vendors = $this->tdsynnexService->getVendors();
 
             return response()->json([
