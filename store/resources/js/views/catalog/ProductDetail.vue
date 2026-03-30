@@ -18,8 +18,16 @@
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 p-6 lg:p-10">
           <!-- Product Image Section -->
           <div class="flex flex-col">
-            <div class="flex-1 bg-gradient-to-br from-gray-200 to-gray-300 rounded-lg p-8 flex items-center justify-center mb-4" style="background: linear-gradient(135deg, rgb(229, 231, 235), rgb(209, 213, 219));">
-              <div class="text-center">
+            <div class="flex-1 bg-gradient-to-br from-gray-200 to-gray-300 rounded-lg p-3 flex items-center justify-center mb-4 overflow-hidden" style="background: linear-gradient(135deg, rgb(229, 231, 235), rgb(209, 213, 219)); min-height: 22rem;">
+              <img
+                v-if="selectedImage"
+                :src="selectedImage"
+                :alt="product.productName"
+                class="w-full h-full object-contain rounded"
+                loading="eager"
+                @error="selectedImage = ''"
+              />
+              <div v-else class="text-center">
                 <svg v-if="getProductIcon(product.productName) === 'server'" class="w-24 h-24 mx-auto text-gray-500" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M20 13H4c-.55 0-1 .45-1 1v6c0 .55.45 1 1 1h16c.55 0 1-.45 1-1v-6c0-.55-.45-1-1-1zM7 19c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zM20 3H4c-.55 0-1 .45-1 1v6c0 .55.45 1 1 1h16c.55 0 1-.45 1-1V4c0-.55-.45-1-1-1zm-3 8h-2V5h2v6z"/>
                 </svg>
@@ -34,6 +42,19 @@
                 </svg>
               </div>
             </div>
+
+            <div v-if="normalizedImages.length > 1" class="grid grid-cols-5 gap-2">
+              <button
+                v-for="(image, idx) in normalizedImages"
+                :key="`thumb-${idx}`"
+                class="h-16 rounded border overflow-hidden"
+                :class="selectedImage === image ? 'border-blue-600 ring-2 ring-blue-200' : 'border-gray-300'"
+                @click="selectedImage = image"
+                type="button"
+              >
+                <img :src="image" :alt="`Image ${idx + 1}`" class="w-full h-full object-cover" loading="lazy" />
+              </button>
+            </div>
           </div>
 
           <!-- Product Details Section -->
@@ -46,6 +67,7 @@
 
             <!-- Product Name -->
             <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ product.productName }}</h1>
+            <p v-if="product.description" class="text-sm text-gray-700 mb-4">{{ product.description }}</p>
 
             <!-- Basic Info -->
             <div class="grid grid-cols-2 gap-4 mb-6 pb-6 border-b border-gray-200">
@@ -208,7 +230,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useToastStore } from '../../stores/toastStore'
 import { useCartStore } from '../../stores/cartStore'
@@ -224,6 +246,7 @@ const toastStore = useToastStore()
 const cartStore = useCartStore()
 const favoritesStore = useFavoritesStore()
 const authStore = useAuthStore()
+const selectedImage = ref('')
 
 onMounted(async () => {
   // Fetch product from API using product ID from route params
@@ -293,6 +316,48 @@ const getProductIcon = (productName) => {
   if (name.includes('database') || name.includes('sql')) return 'database'
   return 'default'
 }
+
+const normalizeImages = (source) => {
+  if (!Array.isArray(source)) return []
+
+  const seen = new Set()
+  const urls = []
+
+  source.forEach((entry) => {
+    let url = ''
+    if (typeof entry === 'string') {
+      url = entry.trim()
+    } else if (entry && typeof entry === 'object') {
+      url = String(entry.imageUrl || entry.url || '').trim()
+    }
+
+    if (!url || seen.has(url)) return
+    seen.add(url)
+    urls.push(url)
+  })
+
+  return urls
+}
+
+const normalizedImages = computed(() => {
+  if (!product.value) return []
+
+  const urls = normalizeImages(product.value.productImages)
+  if (urls.length > 0) return urls
+
+  const imageFallback = normalizeImages(product.value.images)
+  if (imageFallback.length > 0) return imageFallback
+
+  if (product.value.image_url) {
+    return [String(product.value.image_url)]
+  }
+
+  return []
+})
+
+watch(normalizedImages, (images) => {
+  selectedImage.value = images[0] || ''
+}, { immediate: true })
 
 const productDetails = computed(() => {
   if (!product.value) return {}
