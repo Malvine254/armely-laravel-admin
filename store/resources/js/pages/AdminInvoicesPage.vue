@@ -129,7 +129,7 @@
           </thead>
           <tbody>
             <tr v-if="invoices.length === 0" class="border-b border-gray-200 hover:bg-gray-50">
-              <td :colspan="7" class="px-6 py-12 text-center text-gray-500">
+              <td :colspan="7" class="px-6 py-9 text-center text-gray-500">
                 <i class="fas fa-inbox text-4xl mb-3 block opacity-30"></i>
                 <p>No invoices found</p>
               </td>

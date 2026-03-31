@@ -1,6 +1,6 @@
 <template>
   <nav class="bg-gradient-to-r from-blue-900 to-blue-800 text-white shadow-lg sticky top-0 z-50" style="background: linear-gradient(to right, #183a72, #0f2a54)">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-5">
       <div class="flex items-center justify-between h-20">
         <!-- Logo Section -->
         <button type="button" class="flex items-center gap-2 sm:gap-3 flex-shrink-0 cursor-pointer" @click="goToProducts">

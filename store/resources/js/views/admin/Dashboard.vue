@@ -2,7 +2,7 @@
   <div class="min-h-screen bg-gray-50">
     <Navbar />
 
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-5 py-8">
       <!-- Page Header -->
       <div class="mb-8">
         <h1 class="text-4xl font-bold text-gray-900 mb-2">Admin Dashboard</h1>
@@ -108,7 +108,7 @@
         <div class="px-6 py-4 border-b border-gray-200">
           <h3 class="text-lg font-bold text-gray-900">Pending Quote Reviews</h3>
         </div>
-        <div v-if="pendingQuotes.length === 0" class="px-6 py-12 text-center">
+        <div v-if="pendingQuotes.length === 0" class="px-6 py-9 text-center">
           <p class="text-gray-600">No pending quotes to review</p>
         </div>
         <table v-else class="min-w-full">
@@ -142,7 +142,7 @@
         <div class="px-6 py-4 border-b border-gray-200">
           <h3 class="text-lg font-bold text-gray-900">Recent Orders</h3>
         </div>
-        <div v-if="recentOrders.length === 0" class="px-6 py-12 text-center">
+        <div v-if="recentOrders.length === 0" class="px-6 py-9 text-center">
           <p class="text-gray-600">No recent orders</p>
         </div>
         <table v-else class="min-w-full">

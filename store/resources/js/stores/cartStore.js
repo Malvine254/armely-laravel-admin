@@ -8,6 +8,29 @@ export const useCartStore = defineStore('cart', () => {
   const USER_STORAGE_PREFIX = 'armely_cart_user_'
   const authStore = useAuthStore()
 
+  const resolveItemKey = (item) => {
+    if (!item) return null
+    return item.productId ?? item.id ?? item.mfgPartNo ?? item.sku ?? item.partNumber ?? null
+  }
+
+  const normalizeCartItem = (item) => {
+    if (!item || typeof item !== 'object') {
+      return null
+    }
+
+    const normalizedProductId = resolveItemKey(item)
+    if (normalizedProductId === null || normalizedProductId === undefined || normalizedProductId === '') {
+      return null
+    }
+
+    return {
+      ...item,
+      productId: normalizedProductId,
+      quantity: Math.max(1, Number(item.quantity || 1)),
+      addedAt: item.addedAt || new Date().toISOString(),
+    }
+  }
+
   const getCurrentUserId = () => {
     const user = authStore.user
     return user?.id || user?.user_id || null
@@ -41,7 +64,11 @@ export const useCartStore = defineStore('cart', () => {
   }
 
   const loadCart = () => {
-    items.value = readCartByKey(getCurrentStorageKey())
+    const loaded = readCartByKey(getCurrentStorageKey())
+      .map(normalizeCartItem)
+      .filter(Boolean)
+
+    items.value = loaded
   }
 
   // Save cart for the current auth context (guest or logged-in user)
@@ -68,15 +95,22 @@ export const useCartStore = defineStore('cart', () => {
     const mergedByProduct = new Map()
 
     userItems.forEach((item) => {
-      mergedByProduct.set(item.productId, { ...item })
+      const normalized = normalizeCartItem(item)
+      if (!normalized) return
+      const key = normalized.productId
+      mergedByProduct.set(key, normalized)
     })
 
     guestItems.forEach((item) => {
-      const existing = mergedByProduct.get(item.productId)
+      const normalized = normalizeCartItem(item)
+      if (!normalized) return
+
+      const key = normalized.productId
+      const existing = mergedByProduct.get(key)
       if (existing) {
-        existing.quantity = Number(existing.quantity || 0) + Number(item.quantity || 0)
+        existing.quantity = Number(existing.quantity || 0) + Number(normalized.quantity || 0)
       } else {
-        mergedByProduct.set(item.productId, { ...item })
+        mergedByProduct.set(key, normalized)
       }
     })
 
@@ -113,16 +147,22 @@ export const useCartStore = defineStore('cart', () => {
       return false
     }
 
-    const existingItem = items.value.find(item => item.productId === product.productId)
+    const normalizedProduct = normalizeCartItem({
+      ...product,
+      quantity,
+    })
+
+    if (!normalizedProduct) {
+      console.error('Unable to add item to cart: missing product identifier', product)
+      return false
+    }
+
+    const existingItem = items.value.find(item => item.productId === normalizedProduct.productId)
     
     if (existingItem) {
-      existingItem.quantity += quantity
+      existingItem.quantity += normalizedProduct.quantity
     } else {
-      items.value.push({
-        ...product,
-        quantity,
-        addedAt: new Date().toISOString()
-      })
+      items.value.push(normalizedProduct)
     }
     saveCart()
     return true

@@ -4,7 +4,7 @@
     <Navbar />
 
     <!-- Main Content -->
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-5 py-8">
       <!-- Page Title -->
       <div class="mb-8">
         <h1 class="text-4xl font-bold text-gray-900 mb-2">My Quote</h1>
@@ -36,7 +36,10 @@
         <!-- Items List -->
         <div class="lg:col-span-2">
           <div class="bg-white rounded-lg shadow-lg overflow-hidden">
-            <div class="divide-y divide-gray-200">
+            <div
+              class="divide-y divide-gray-200"
+              :class="cartStore.items.length > 3 ? 'max-h-[34rem] overflow-y-auto' : ''"
+            >
               <div v-for="item in cartStore.items" :key="item.productId" class="p-6 flex gap-4 hover:bg-gray-50 transition">
                 <!-- Product Image / Icon -->
                 <div class="w-24 h-24 rounded-lg bg-gray-100 border border-gray-200 overflow-hidden flex-shrink-0 flex items-center justify-center">
@@ -70,8 +73,10 @@
                   <div class="flex items-start justify-between mb-2">
                     <div>
                       <h3 class="text-lg font-bold text-gray-900">{{ item.productName }}</h3>
-                      <p class="text-sm text-gray-600">SKU: {{ item.mfgPartNo || 'N/A' }}</p>
-                      <p class="text-sm text-gray-600">Vendor: {{ item.vendorId }}</p>
+                      <div class="flex items-center justify-between gap-3 text-sm text-gray-600 whitespace-nowrap">
+                        <p class="truncate">SKU: {{ item.mfgPartNo || 'N/A' }}</p>
+                        <p class="truncate text-right">Vendor: {{ item.vendorId || 'N/A' }}</p>
+                      </div>
                     </div>
                     <button @click="removeFromCart(item.productId)" class="text-red-500 hover:text-red-700 font-semibold text-sm">
                       Remove
@@ -305,11 +310,20 @@ const requestQuote = async () => {
   }
 
   try {
+    const quoteItems = cartStore.items
+      .map(item => ({
+        product_id: Number(item.productId ?? item.id),
+        quantity: Number(item.quantity || 1)
+      }))
+      .filter(item => Number.isInteger(item.product_id) && item.product_id > 0 && item.quantity > 0)
+
+    if (quoteItems.length !== cartStore.items.length) {
+      toastStore.addToast('Some cart items are missing valid product IDs. Please re-add those items and try again.', 'error')
+      return
+    }
+
     const response = await axios.post('/api/v1/quotes', {
-      items: cartStore.items.map(item => ({
-        product_id: item.productId,
-        quantity: item.quantity
-      })),
+      items: quoteItems,
       description: null
     })
 

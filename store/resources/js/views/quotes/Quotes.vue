@@ -2,30 +2,38 @@
   <div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
     <Navbar />
 
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-5 py-8">
       <!-- Page Header -->
-      <div class="mb-12">
+      <div class="mb-8">
         <h1 class="text-4xl font-bold text-gray-900 mb-2">Your Quotes</h1>
         <p class="text-gray-600 text-lg">Track and review your quote history</p>
       </div>
 
       <!-- Quick Stats -->
       <div v-if="quotes.length > 0" class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-        <div class="bg-white rounded-lg p-6 border transition duration-200" style="border-color: #d9e6f7; box-shadow: 0 6px 18px rgba(47,85,151,0.08);">
-          <p class="text-gray-600 text-sm font-medium">Total Quotes</p>
+        <div class="group relative overflow-hidden rounded-2xl border p-5 sm:p-6 transition duration-300 hover:-translate-y-0.5" style="background: linear-gradient(160deg, #ffffff 0%, #f7fbff 62%, #eef4ff 100%); border-color: #d9e6f7; box-shadow: 0 12px 26px rgba(47,85,151,0.1);">
+          <div class="pointer-events-none absolute -right-6 -top-6 h-16 w-16 rounded-full" style="background: radial-gradient(circle, rgba(47,85,151,0.2) 0%, rgba(47,85,151,0) 70%);"></div>
+          <p class="text-gray-600 text-xs font-semibold uppercase tracking-wide">Total Quotes</p>
           <p class="text-3xl font-bold text-gray-900 mt-2">{{ quotes.length }}</p>
+          <div class="mt-4 h-1.5 w-16 rounded-full" style="background: linear-gradient(90deg, #2F5597, #7fa2d8);"></div>
         </div>
-        <div class="bg-white rounded-lg p-6 border transition duration-200" style="border-color: #d9e6f7; box-shadow: 0 6px 18px rgba(47,85,151,0.08);">
-          <p class="text-gray-600 text-sm font-medium">Pending</p>
-          <p class="text-3xl font-bold text-blue-600">{{ getQuotesCountByStatus('pending_review') }}</p>
+        <div class="group relative overflow-hidden rounded-2xl border p-5 sm:p-6 transition duration-300 hover:-translate-y-0.5" style="background: linear-gradient(160deg, #ffffff 0%, #f7fbff 62%, #eef4ff 100%); border-color: #d9e6f7; box-shadow: 0 12px 26px rgba(47,85,151,0.1);">
+          <div class="pointer-events-none absolute -right-6 -top-6 h-16 w-16 rounded-full" style="background: radial-gradient(circle, rgba(47,85,151,0.2) 0%, rgba(47,85,151,0) 70%);"></div>
+          <p class="text-gray-600 text-xs font-semibold uppercase tracking-wide">Pending</p>
+          <p class="text-3xl font-bold text-blue-600 mt-2">{{ getQuotesCountByStatus('pending_review') }}</p>
+          <div class="mt-4 h-1.5 w-16 rounded-full" style="background: linear-gradient(90deg, #2F5597, #7fa2d8);"></div>
         </div>
-        <div class="bg-white rounded-lg p-6 border transition duration-200" style="border-color: #d9e6f7; box-shadow: 0 6px 18px rgba(47,85,151,0.08);">
-          <p class="text-gray-600 text-sm font-medium">Approved</p>
-          <p class="text-3xl font-bold text-green-600">{{ getQuotesCountByStatus('approved') }}</p>
+        <div class="group relative overflow-hidden rounded-2xl border p-5 sm:p-6 transition duration-300 hover:-translate-y-0.5" style="background: linear-gradient(160deg, #ffffff 0%, #f6fff9 62%, #edfff3 100%); border-color: #cce9d6; box-shadow: 0 12px 24px rgba(22,163,74,0.1);">
+          <div class="pointer-events-none absolute -right-6 -top-6 h-16 w-16 rounded-full" style="background: radial-gradient(circle, rgba(34,197,94,0.22) 0%, rgba(34,197,94,0) 70%);"></div>
+          <p class="text-gray-600 text-xs font-semibold uppercase tracking-wide">Approved</p>
+          <p class="text-3xl font-bold text-green-600 mt-2">{{ getQuotesCountByStatus('approved') }}</p>
+          <div class="mt-4 h-1.5 w-16 rounded-full" style="background: linear-gradient(90deg, #16a34a, #86efac);"></div>
         </div>
-        <div class="bg-white rounded-lg p-6 border transition duration-200" style="border-color: #d9e6f7; box-shadow: 0 6px 18px rgba(47,85,151,0.08);">
-          <p class="text-gray-600 text-sm font-medium">Converted</p>
-          <p class="text-3xl font-bold" style="color: #6366f1;">{{ getQuotesCountByStatus('converted') }}</p>
+        <div class="group relative overflow-hidden rounded-2xl border p-5 sm:p-6 transition duration-300 hover:-translate-y-0.5" style="background: linear-gradient(160deg, #ffffff 0%, #f6f5ff 62%, #eeecff 100%); border-color: #dcd9ff; box-shadow: 0 12px 24px rgba(99,102,241,0.1);">
+          <div class="pointer-events-none absolute -right-6 -top-6 h-16 w-16 rounded-full" style="background: radial-gradient(circle, rgba(99,102,241,0.2) 0%, rgba(99,102,241,0) 70%);"></div>
+          <p class="text-gray-600 text-xs font-semibold uppercase tracking-wide">Converted</p>
+          <p class="text-3xl font-bold mt-2" style="color: #6366f1;">{{ getQuotesCountByStatus('converted') }}</p>
+          <div class="mt-4 h-1.5 w-16 rounded-full" style="background: linear-gradient(90deg, #6366f1, #a5b4fc);"></div>
         </div>
       </div>
 
@@ -76,7 +84,7 @@
       <!-- Loading State -->
       <div v-if="loading" class="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
         <div class="inline-block">
-          <div class="w-16 h-16 border-4 rounded-full animate-spin mb-4" style="border-color: #e5ebf2; border-top-color: #2F5597;"></div>
+          <div class="w-16 h-16 border-4 rounded-full animate-spin mb-4" style="border-color: #e5ebf2; border-block-start-color: #2F5597;"></div>
           <p class="text-gray-600 font-medium">Loading your quotes...</p>
         </div>
       </div>
@@ -107,105 +115,196 @@
         </router-link>
       </div>
 
-      <!-- Quotes Grid (Card Layout) -->
-      <div v-else class="space-y-4">
-        <div v-for="quote in filteredQuotes" :key="quote.id" class="bg-white rounded-xl shadow-sm border transition duration-300 overflow-hidden cursor-pointer" style="border-color: #d9e6f7;" @mouseenter="$event.currentTarget.style.boxShadow='0 10px 24px rgba(47,85,151,0.12)'" @mouseleave="$event.currentTarget.style.boxShadow=''" @click="viewQuote(quote)">
-          <!-- Card Header with Status -->
-          <div class="px-6 py-4 border-b flex items-center justify-between" style="background: linear-gradient(90deg, #f7fbff, #edf4fc); border-color: #d9e6f7;">
-            <div class="flex items-center gap-4 flex-1">
-              <div>
-                <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Quote ID</p>
-                <p class="text-xl font-bold text-gray-900 font-mono">{{ quote.quote_id }}</p>
-              </div>
-            </div>
-            <span :class="getStatusBadge(quote.status)" class="px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap">
-              {{ formatStatus(quote.status) }}
-            </span>
-          </div>
-
-          <!-- Card Body -->
-          <div class="px-6 py-5">
-            <div class="grid grid-cols-2 sm:grid-cols-3 gap-6 mb-5">
-              <div>
-                <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Created Date</p>
-                <p class="text-gray-900 font-semibold mt-1">{{ formatDate(quote.created_at) }}</p>
-              </div>
-              <div>
-                <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Total Amount</p>
-                <p class="text-2xl font-bold text-gray-900 mt-1">{{ formatCurrency(quote.total_amount) }}</p>
-              </div>
-              <div v-if="quote.expires_at">
-                <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Expires On</p>
-                <p class="text-gray-900 font-semibold mt-1">{{ formatDate(quote.expires_at) }}</p>
-              </div>
-            </div>
-
-            <!-- Progress Bar (for pending/approved quotes) -->
-            <div v-if="['draft', 'pending_review', 'approved'].includes(quote.status)" class="mb-5">
-              <div class="flex items-center justify-between mb-2">
-                <p class="text-xs font-semibold text-gray-700">Quote Status Progress</p>
-                <p class="text-xs text-gray-600">{{ getQuoteProgress(quote.status) }}%</p>
-              </div>
-              <div class="w-full rounded-full h-2" style="background-color: #d9e6f7;">
-                <div class="h-2 rounded-full transition duration-500" style="background-color: #2F5597;" :style="{ width: getQuoteProgress(quote.status) + '%' }"></div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Card Footer with Actions -->
-          <div class="border-t px-6 py-4 flex items-center justify-between" style="background-color: #f8fbff; border-color: #d9e6f7;">
-            <button @click.stop="viewQuote(quote)" class="flex items-center gap-2 font-semibold transition duration-200 hover:opacity-75" style="color: #2F5597;">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-              </svg>
-              View Details
+      <!-- Quotes Table -->
+      <div v-else class="bg-white rounded-xl shadow-sm border overflow-hidden" style="border-color: #d9e6f7;">
+        <div class="px-4 sm:px-5 py-3 border-b flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3" style="border-color: #d9e6f7; background: #f9fcff;">
+          <p class="text-sm font-medium text-gray-700">
+            {{ selectedQuoteIds.length }} selected
+          </p>
+          <div class="flex flex-wrap items-center gap-2">
+            <button
+              @click="downloadSelectedPdfs"
+              :disabled="selectedQuoteIds.length === 0"
+              class="px-3 py-1.5 text-xs rounded-md font-semibold transition duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+              style="color: #2F5597; border: 1px solid #2F5597;"
+              @mouseenter="$event.target.style.backgroundColor='#edf3fb'"
+              @mouseleave="$event.target.style.backgroundColor='transparent'"
+            >
+              Download Selected PDFs
             </button>
-            <div class="flex gap-2">
-              <button
-                @click.stop="downloadQuotePdf(quote)"
-                class="flex items-center gap-2 font-semibold px-4 py-2 rounded-lg transition duration-200"
-                style="color: #2F5597; border: 1px solid #2F5597;"
-                @mouseenter="$event.target.style.backgroundColor='#edf3fb'"
-                @mouseleave="$event.target.style.backgroundColor='transparent'"
+            <button
+              @click="cancelSelectedQuotes"
+              :disabled="selectedCancellableQuotes.length === 0"
+              class="px-3 py-1.5 text-xs rounded-md font-semibold transition duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+              style="color: #e74c3c; border: 1px solid #e74c3c;"
+              @mouseenter="$event.target.style.backgroundColor='#fadbd8'"
+              @mouseleave="$event.target.style.backgroundColor='transparent'"
+            >
+              Cancel Selected
+            </button>
+            <button
+              @click="clearSelection"
+              :disabled="selectedQuoteIds.length === 0"
+              class="px-3 py-1.5 text-xs rounded-md font-semibold transition duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+              style="color: #6b7280; border: 1px solid #d1d5db;"
+              @mouseenter="$event.target.style.backgroundColor='#f3f4f6'"
+              @mouseleave="$event.target.style.backgroundColor='transparent'"
+            >
+              Clear Selection
+            </button>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="min-w-full">
+            <thead>
+              <tr class="border-b" style="background: linear-gradient(90deg, #f7fbff, #edf4fc); border-color: #d9e6f7;">
+                <th class="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">
+                  <input
+                    type="checkbox"
+                    :checked="allOnPageSelected"
+                    @change="toggleSelectAllOnPage($event.target.checked)"
+                    class="h-4 w-4 rounded border-gray-300"
+                  />
+                </th>
+                <th class="px-5 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Quote ID</th>
+                <th class="px-5 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Status</th>
+                <th class="px-5 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Created</th>
+                <th class="px-5 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Expires</th>
+                <th class="px-5 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Amount</th>
+                <th class="px-5 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Progress</th>
+                <th class="px-5 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="quote in paginatedQuotes"
+                :key="quote.id"
+                class="border-b last:border-b-0 hover:bg-[#f8fbff] transition duration-200"
+                style="border-color: #ecf3fb;"
               >
-                PDF
-              </button>
-              <button
-                v-if="getLinkedOrder(quote)"
-                @click.stop="viewLinkedOrder(quote)"
-                class="flex items-center gap-2 font-semibold px-4 py-2 rounded-lg transition duration-200"
-                style="color: #7c3aed; border: 1px solid #7c3aed;"
-                @mouseenter="$event.target.style.backgroundColor='#f3e8ff'"
-                @mouseleave="$event.target.style.backgroundColor='transparent'"
+                <td class="px-4 py-4 align-top">
+                  <input
+                    type="checkbox"
+                    :checked="selectedQuoteIds.includes(quote.quote_id)"
+                    @change="toggleQuoteSelection(quote.quote_id, $event.target.checked)"
+                    class="h-4 w-4 rounded border-gray-300"
+                  />
+                </td>
+                <td class="px-5 py-4 align-top">
+                  <button
+                    @click="viewQuote(quote)"
+                    class="text-left font-semibold font-mono transition duration-200 hover:opacity-80"
+                    style="color: #2F5597;"
+                  >
+                    {{ quote.quote_id }}
+                  </button>
+                </td>
+                <td class="px-5 py-4 align-top">
+                  <span :class="getStatusBadge(quote.status)" class="inline-flex px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap">
+                    {{ formatStatus(quote.status) }}
+                  </span>
+                </td>
+                <td class="px-5 py-4 text-sm text-gray-700 align-top">{{ formatDate(quote.created_at) }}</td>
+                <td class="px-5 py-4 text-sm text-gray-700 align-top">{{ quote.expires_at ? formatDate(quote.expires_at) : 'N/A' }}</td>
+                <td class="px-5 py-4 align-top">
+                  <p class="text-sm font-bold text-gray-900">{{ formatCurrency(quote.total_amount) }}</p>
+                  <p v-if="getLinkedOrder(quote)" class="text-xs text-gray-500 mt-1">Order: {{ getLinkedOrder(quote).order_number }}</p>
+                </td>
+                <td class="px-5 py-4 align-top">
+                  <div v-if="['draft', 'pending_review', 'approved'].includes(quote.status)" class="w-36">
+                    <div class="w-full rounded-full h-2 mb-1" style="background-color: #d9e6f7;">
+                      <div class="h-2 rounded-full" style="background-color: #2F5597;" :style="{ inlineSize: getQuoteProgress(quote.status) + '%' }"></div>
+                    </div>
+                    <p class="text-xs text-gray-600">{{ getQuoteProgress(quote.status) }}%</p>
+                  </div>
+                  <p v-else class="text-xs text-gray-500">-</p>
+                </td>
+                <td class="px-5 py-4 align-top">
+                  <div class="flex flex-nowrap items-center gap-2 whitespace-nowrap">
+                    <button
+                      @click="downloadQuotePdf(quote)"
+                      class="px-3 py-1.5 text-xs rounded-md font-semibold transition duration-200"
+                      style="color: #2F5597; border: 1px solid #2F5597;"
+                      @mouseenter="$event.target.style.backgroundColor='#edf3fb'"
+                      @mouseleave="$event.target.style.backgroundColor='transparent'"
+                    >
+                      PDF
+                    </button>
+                    <button
+                      v-if="canPayQuote(quote)"
+                      @click="payQuoteInvoice(quote)"
+                      class="px-3 py-1.5 text-xs rounded-md text-white font-semibold transition duration-200"
+                      style="background-color: #2F5597;"
+                      @mouseenter="$event.target.style.backgroundColor='#1f4788'"
+                      @mouseleave="$event.target.style.backgroundColor='#2F5597'"
+                    >
+                      Pay Now
+                    </button>
+                    <button
+                      v-if="canCancelQuote(quote)"
+                      @click="cancelQuote(quote)"
+                      :disabled="processingQuoteId === quote.quote_id"
+                      class="px-3 py-1.5 text-xs rounded-md font-semibold transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      style="color: #e74c3c; border: 1px solid #e74c3c;"
+                      @mouseenter="$event.target.style.backgroundColor='#fadbd8'"
+                      @mouseleave="$event.target.style.backgroundColor='transparent'"
+                    >
+                      {{ processingQuoteId === quote.quote_id ? 'Cancelling...' : 'Cancel' }}
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="border-t px-4 sm:px-5 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4" style="border-color: #d9e6f7; background: #f9fcff;">
+          <div class="flex items-center gap-3 text-sm text-gray-700">
+            <span class="font-medium">Showing {{ paginationStart }}-{{ paginationEnd }} of {{ filteredQuotes.length }}</span>
+            <div class="flex items-center gap-2">
+              <label class="text-xs font-semibold uppercase tracking-wide text-gray-600">Rows</label>
+              <select
+                v-model.number="pageSize"
+                class="px-2 py-1.5 text-sm border border-gray-300 rounded-md bg-white text-gray-900 focus:outline-none"
+                style="border-color: #d9e6f7;"
               >
-                View Order
-              </button>
-              <button
-                v-if="canPayQuote(quote)"
-                @click.stop="payQuoteInvoice(quote)"
-                class="flex items-center gap-2 font-semibold px-4 py-2 rounded-lg text-white transition duration-200"
-                style="background-color: #2F5597;"
-                @mouseenter="$event.target.style.backgroundColor='#1f4788'"
-                @mouseleave="$event.target.style.backgroundColor='#2F5597'"
-              >
-                Pay Now
-              </button>
-              <button
-                v-if="canCancelQuote(quote)"
-                @click.stop="cancelQuote(quote)"
-                :disabled="processingQuoteId === quote.quote_id"
-                class="flex items-center gap-2 font-semibold px-4 py-2 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                style="color: #e74c3c; border: 1px solid #e74c3c;"
-                @mouseenter="$event.target.style.backgroundColor='#fadbd8'"
-                @mouseleave="$event.target.style.backgroundColor='transparent'"
-              >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-                {{ processingQuoteId === quote.quote_id ? 'Cancelling...' : 'Cancel' }}
-              </button>
+                <option :value="10">10</option>
+                <option :value="25">25</option>
+                <option :value="50">50</option>
+              </select>
             </div>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button
+              @click="goToPreviousPage"
+              :disabled="currentPage === 1"
+              class="px-3 py-1.5 text-xs sm:text-sm rounded-md border font-semibold transition duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+              style="border-color: #d9e6f7; color: #2F5597;"
+            >
+              Previous
+            </button>
+
+            <button
+              v-for="page in visiblePageNumbers"
+              :key="`page-${page}`"
+              @click="goToPage(page)"
+              class="px-3 py-1.5 text-xs sm:text-sm rounded-md border font-semibold transition duration-200"
+              :class="page === currentPage ? 'text-white' : 'text-[#2F5597] bg-white hover:bg-[#edf3fb]'"
+              :style="page === currentPage ? 'background-color: #2F5597; border-color: #2F5597;' : 'border-color: #d9e6f7;'"
+            >
+              {{ page }}
+            </button>
+
+            <button
+              @click="goToNextPage"
+              :disabled="currentPage === totalPages"
+              class="px-3 py-1.5 text-xs sm:text-sm rounded-md border font-semibold transition duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+              style="border-color: #d9e6f7; color: #2F5597;"
+            >
+              Next
+            </button>
           </div>
         </div>
       </div>
@@ -239,7 +338,7 @@
             </div>
             <div v-if="['draft', 'pending_review', 'approved'].includes(selectedQuote.status)">
               <div class="w-full rounded-full h-2 mb-2" style="background-color: #d9e6f7;">
-                <div class="h-2 rounded-full" style="background-color: #2F5597;" :style="{ width: getQuoteProgress(selectedQuote.status) + '%' }"></div>
+                <div class="h-2 rounded-full" style="background-color: #2F5597;" :style="{ inlineSize: getQuoteProgress(selectedQuote.status) + '%' }"></div>
               </div>
               <p class="text-xs text-gray-600">{{ getQuoteProgress(selectedQuote.status) }}% Complete</p>
             </div>
@@ -316,7 +415,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/authStore'
 import { useToastStore } from '../../stores/toastStore'
@@ -335,6 +434,9 @@ export default {
     const selectedStatus = ref('')
     const searchQuery = ref('')
     const sortBy = ref('created_desc')
+    const currentPage = ref(1)
+    const pageSize = ref(10)
+    const selectedQuoteIds = ref([])
     const selectedQuote = ref(null)
     const processingQuoteId = ref(null)
     const ordersByQuoteId = ref({})
@@ -374,6 +476,62 @@ export default {
       }
 
       return sorted
+    })
+
+    const totalPages = computed(() => {
+      const pages = Math.ceil(filteredQuotes.value.length / pageSize.value)
+      return Math.max(1, pages)
+    })
+
+    const paginatedQuotes = computed(() => {
+      const safePage = Math.min(currentPage.value, totalPages.value)
+      const start = (safePage - 1) * pageSize.value
+      const end = start + pageSize.value
+      return filteredQuotes.value.slice(start, end)
+    })
+
+    const paginationStart = computed(() => {
+      if (filteredQuotes.value.length === 0) return 0
+      return (Math.min(currentPage.value, totalPages.value) - 1) * pageSize.value + 1
+    })
+
+    const paginationEnd = computed(() => {
+      if (filteredQuotes.value.length === 0) return 0
+      const end = Math.min(currentPage.value, totalPages.value) * pageSize.value
+      return Math.min(end, filteredQuotes.value.length)
+    })
+
+    const visiblePageNumbers = computed(() => {
+      const safePage = Math.min(currentPage.value, totalPages.value)
+      const maxVisible = 5
+      let start = Math.max(1, safePage - 2)
+      let end = Math.min(totalPages.value, start + maxVisible - 1)
+
+      if (end - start + 1 < maxVisible) {
+        start = Math.max(1, end - maxVisible + 1)
+      }
+
+      const pages = []
+      for (let page = start; page <= end; page += 1) {
+        pages.push(page)
+      }
+
+      return pages
+    })
+
+    const selectedQuotes = computed(() => {
+      if (!selectedQuoteIds.value.length) return []
+      const ids = new Set(selectedQuoteIds.value)
+      return filteredQuotes.value.filter((quote) => ids.has(quote.quote_id))
+    })
+
+    const selectedCancellableQuotes = computed(() => {
+      return selectedQuotes.value.filter((quote) => canCancelQuote(quote))
+    })
+
+    const allOnPageSelected = computed(() => {
+      if (!paginatedQuotes.value.length) return false
+      return paginatedQuotes.value.every((quote) => selectedQuoteIds.value.includes(quote.quote_id))
     })
 
     const indexBy = (list, key) => {
@@ -575,6 +733,92 @@ export default {
         from: '/quotes',
       })
     }
+
+    const toggleQuoteSelection = (quoteId, checked) => {
+      if (!quoteId) return
+
+      if (checked) {
+        if (!selectedQuoteIds.value.includes(quoteId)) {
+          selectedQuoteIds.value = [...selectedQuoteIds.value, quoteId]
+        }
+      } else {
+        selectedQuoteIds.value = selectedQuoteIds.value.filter((id) => id !== quoteId)
+      }
+    }
+
+    const toggleSelectAllOnPage = (checked) => {
+      const pageIds = paginatedQuotes.value.map((quote) => quote.quote_id).filter(Boolean)
+
+      if (checked) {
+        selectedQuoteIds.value = Array.from(new Set([...selectedQuoteIds.value, ...pageIds]))
+      } else {
+        selectedQuoteIds.value = selectedQuoteIds.value.filter((id) => !pageIds.includes(id))
+      }
+    }
+
+    const clearSelection = () => {
+      selectedQuoteIds.value = []
+    }
+
+    const downloadSelectedPdfs = async () => {
+      if (!selectedQuotes.value.length) {
+        toastStore.addToast('No quotes selected', 'warning')
+        return
+      }
+
+      for (const quote of selectedQuotes.value) {
+        // Sequential downloads avoid browser throttling all requests at once.
+        await downloadQuotePdf(quote)
+      }
+
+      toastStore.addToast(`Downloaded ${selectedQuotes.value.length} quote PDF${selectedQuotes.value.length > 1 ? 's' : ''}`, 'success')
+    }
+
+    const cancelSelectedQuotes = async () => {
+      if (!selectedCancellableQuotes.value.length) {
+        toastStore.addToast('No cancellable quotes selected', 'warning')
+        return
+      }
+
+      if (authStore.isRestricted) {
+        toastStore.addToast('Account suspended: cancelling quotes is disabled', 'error')
+        return
+      }
+
+      const confirmed = window.confirm(`Cancel ${selectedCancellableQuotes.value.length} selected quote${selectedCancellableQuotes.value.length > 1 ? 's' : ''}?`)
+      if (!confirmed) {
+        return
+      }
+
+      let successCount = 0
+
+      for (const quote of selectedCancellableQuotes.value) {
+        processingQuoteId.value = quote.quote_id
+
+        try {
+          const response = await axios.post(`/api/v1/quotes/${quote.quote_id}/cancel`, {
+            reason: 'Cancelled by customer (bulk action)',
+          })
+
+          if (response.data?.success) {
+            successCount += 1
+          }
+        } catch (bulkError) {
+          console.error(`Bulk cancel failed for quote ${quote.quote_id}:`, bulkError)
+        } finally {
+          processingQuoteId.value = null
+        }
+      }
+
+      if (successCount > 0) {
+        toastStore.addToast(`Cancelled ${successCount} quote${successCount > 1 ? 's' : ''}`, 'success')
+        await fetchQuotes()
+      } else {
+        toastStore.addToast('Failed to cancel selected quotes', 'error')
+      }
+
+      clearSelection()
+    }
     
     const cancelQuote = async (quote) => {
       if (!canCancelQuote(quote)) return
@@ -634,8 +878,37 @@ export default {
       selectedStatus.value = ''
       searchQuery.value = ''
       sortBy.value = 'created_desc'
+      currentPage.value = 1
+      pageSize.value = 10
       fetchQuotes()
     }
+
+    const goToPage = (page) => {
+      currentPage.value = Math.min(Math.max(1, page), totalPages.value)
+    }
+
+    const goToPreviousPage = () => {
+      if (currentPage.value > 1) {
+        currentPage.value -= 1
+      }
+    }
+
+    const goToNextPage = () => {
+      if (currentPage.value < totalPages.value) {
+        currentPage.value += 1
+      }
+    }
+
+    watch([selectedStatus, searchQuery, sortBy, pageSize], () => {
+      currentPage.value = 1
+      clearSelection()
+    })
+
+    watch(totalPages, (pages) => {
+      if (currentPage.value > pages) {
+        currentPage.value = pages
+      }
+    })
 
     onMounted(() => fetchQuotes())
 
@@ -646,11 +919,21 @@ export default {
       selectedStatus, 
       searchQuery, 
       sortBy,
+      currentPage,
+      pageSize,
+      selectedQuoteIds,
       selectedQuote, 
       processingQuoteId, 
       ordersByQuoteId,
       invoicesByOrderNumber,
-      filteredQuotes, 
+      filteredQuotes,
+      paginatedQuotes,
+      totalPages,
+      paginationStart,
+      paginationEnd,
+      visiblePageNumbers,
+      selectedCancellableQuotes,
+      allOnPageSelected,
       fetchQuotes, 
       formatDate, 
       formatStatus, 
@@ -665,7 +948,15 @@ export default {
       payQuoteInvoice,
       canCancelQuote, 
       cancelQuote, 
+      toggleQuoteSelection,
+      toggleSelectAllOnPage,
+      clearSelection,
+      downloadSelectedPdfs,
+      cancelSelectedQuotes,
       resetFilters,
+      goToPage,
+      goToPreviousPage,
+      goToNextPage,
       getQuotesCountByStatus,
       getQuoteProgress,
     }

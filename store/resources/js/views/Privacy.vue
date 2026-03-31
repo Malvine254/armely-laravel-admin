@@ -2,7 +2,7 @@
   <div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100">
     <Navbar />
 
-    <main class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
+    <main class="relative max-w-7xl mx-auto px-3 sm:px-4 lg:px-5 py-8 sm:py-9">
       <div class="absolute -top-8 -left-6 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: #2F5597;"></div>
       <div class="absolute top-16 -right-6 w-40 h-40 rounded-full blur-3xl opacity-20" style="background: #1f4788;"></div>
 

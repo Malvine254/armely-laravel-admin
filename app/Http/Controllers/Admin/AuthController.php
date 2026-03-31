@@ -19,7 +19,7 @@ class AuthController extends Controller
     public function showLogin()
     {
         if (Auth::guard('admin')->check()) {
-            return redirect()->route('admin.dashboard');
+            return redirect('/store/products');
         }
         return view('admin.auth.login');
     }
@@ -38,7 +38,7 @@ class AuthController extends Controller
         try {
             if (Auth::guard('admin')->attempt($credentials, $request->filled('remember'))) {
                 $request->session()->regenerate();
-                return redirect()->intended(route('admin.dashboard'));
+                return redirect()->intended('/store/products');
             }
         } catch (\Exception $e) {
             // Handle bcrypt errors (usually plain text passwords)

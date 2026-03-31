@@ -2,28 +2,36 @@
   <div class="min-h-screen" style="background: linear-gradient(180deg, #f5f8fd 0%, #eef4fb 100%);">
     <Navbar />
 
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-5 py-8">
       <div class="mb-8">
         <h1 class="text-4xl font-bold text-gray-900 mb-2">Invoices</h1>
         <p class="text-gray-600 text-lg">Track balances, download PDFs, and pay one or many invoices</p>
       </div>
 
       <div v-if="invoices.length > 0" class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-        <div class="bg-white rounded-lg p-6 border transition duration-200" style="border-color: #d9e6f7; box-shadow: 0 6px 18px rgba(47,85,151,0.08);">
-          <p class="text-gray-600 text-sm font-medium">Total Invoices</p>
-          <p class="text-3xl font-bold text-gray-900">{{ invoices.length }}</p>
+        <div class="group relative overflow-hidden rounded-2xl border p-5 sm:p-6 transition duration-300 hover:-translate-y-0.5" style="background: linear-gradient(160deg, #ffffff 0%, #f7fbff 62%, #eef4ff 100%); border-color: #d9e6f7; box-shadow: 0 12px 26px rgba(47,85,151,0.1);">
+          <div class="pointer-events-none absolute -right-6 -top-6 h-16 w-16 rounded-full" style="background: radial-gradient(circle, rgba(47,85,151,0.2) 0%, rgba(47,85,151,0) 70%);"></div>
+          <p class="text-gray-600 text-xs font-semibold uppercase tracking-wide">Total Invoices</p>
+          <p class="text-3xl font-bold text-gray-900 mt-2">{{ invoices.length }}</p>
+          <div class="mt-4 h-1.5 w-16 rounded-full" style="background: linear-gradient(90deg, #2F5597, #7fa2d8);"></div>
         </div>
-        <div class="bg-white rounded-lg p-6 border transition duration-200" style="border-color: #d9e6f7; box-shadow: 0 6px 18px rgba(47,85,151,0.08);">
-          <p class="text-gray-600 text-sm font-medium">Outstanding</p>
-          <p class="text-3xl font-bold" style="color: #2F5597;">{{ formatCurrency(totalOutstanding) }}</p>
+        <div class="group relative overflow-hidden rounded-2xl border p-5 sm:p-6 transition duration-300 hover:-translate-y-0.5" style="background: linear-gradient(160deg, #ffffff 0%, #f7fbff 62%, #eef4ff 100%); border-color: #d9e6f7; box-shadow: 0 12px 26px rgba(47,85,151,0.1);">
+          <div class="pointer-events-none absolute -right-6 -top-6 h-16 w-16 rounded-full" style="background: radial-gradient(circle, rgba(47,85,151,0.2) 0%, rgba(47,85,151,0) 70%);"></div>
+          <p class="text-gray-600 text-xs font-semibold uppercase tracking-wide">Outstanding</p>
+          <p class="text-3xl font-bold mt-2" style="color: #2F5597;">{{ formatCurrency(totalOutstanding) }}</p>
+          <div class="mt-4 h-1.5 w-16 rounded-full" style="background: linear-gradient(90deg, #2F5597, #7fa2d8);"></div>
         </div>
-        <div class="bg-white rounded-lg p-6 border transition duration-200" style="border-color: #d9e6f7; box-shadow: 0 6px 18px rgba(47,85,151,0.08);">
-          <p class="text-gray-600 text-sm font-medium">Paid</p>
-          <p class="text-3xl font-bold text-green-600">{{ formatCurrency(totalPaid) }}</p>
+        <div class="group relative overflow-hidden rounded-2xl border p-5 sm:p-6 transition duration-300 hover:-translate-y-0.5" style="background: linear-gradient(160deg, #ffffff 0%, #f6fff9 62%, #edfff3 100%); border-color: #cce9d6; box-shadow: 0 12px 24px rgba(22,163,74,0.1);">
+          <div class="pointer-events-none absolute -right-6 -top-6 h-16 w-16 rounded-full" style="background: radial-gradient(circle, rgba(34,197,94,0.22) 0%, rgba(34,197,94,0) 70%);"></div>
+          <p class="text-gray-600 text-xs font-semibold uppercase tracking-wide">Paid</p>
+          <p class="text-3xl font-bold text-green-600 mt-2">{{ formatCurrency(totalPaid) }}</p>
+          <div class="mt-4 h-1.5 w-16 rounded-full" style="background: linear-gradient(90deg, #16a34a, #86efac);"></div>
         </div>
-        <div class="bg-white rounded-lg p-6 border transition duration-200" style="border-color: #d9e6f7; box-shadow: 0 6px 18px rgba(47,85,151,0.08);">
-          <p class="text-gray-600 text-sm font-medium">Overdue</p>
-          <p class="text-3xl font-bold text-red-600">{{ overdueCount }}</p>
+        <div class="group relative overflow-hidden rounded-2xl border p-5 sm:p-6 transition duration-300 hover:-translate-y-0.5" style="background: linear-gradient(160deg, #ffffff 0%, #fff8f8 62%, #fff0f0 100%); border-color: #f7d4d4; box-shadow: 0 12px 24px rgba(239,68,68,0.1);">
+          <div class="pointer-events-none absolute -right-6 -top-6 h-16 w-16 rounded-full" style="background: radial-gradient(circle, rgba(239,68,68,0.2) 0%, rgba(239,68,68,0) 70%);"></div>
+          <p class="text-gray-600 text-xs font-semibold uppercase tracking-wide">Overdue</p>
+          <p class="text-3xl font-bold text-red-600 mt-2">{{ overdueCount }}</p>
+          <div class="mt-4 h-1.5 w-16 rounded-full" style="background: linear-gradient(90deg, #dc2626, #fca5a5);"></div>
         </div>
       </div>
 
@@ -110,7 +118,7 @@
 
       <div v-if="loading" class="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
         <div class="inline-block">
-          <div class="w-16 h-16 border-4 rounded-full animate-spin mb-4" style="border-color: #e5ebf2; border-top-color: #2F5597;"></div>
+          <div class="w-16 h-16 border-4 rounded-full animate-spin mb-4" style="border-color: #e5ebf2; border-block-start-color: #2F5597;"></div>
           <p class="text-gray-600 font-medium">Loading your invoices...</p>
         </div>
       </div>
@@ -136,175 +144,158 @@
         <p class="text-gray-600">Adjust your filters or wait for new billing activity.</p>
       </div>
 
-      <div v-else class="space-y-8">
-        <section v-if="unpaidInvoices.length > 0" class="space-y-4">
-          <div class="flex items-center justify-between">
-            <h2 class="text-xl font-bold text-gray-900">Unpaid Invoices</h2>
-            <p class="text-sm text-gray-600">{{ unpaidInvoices.length }} invoice(s) due for payment</p>
-          </div>
-
-          <div v-for="invoice in unpaidInvoices" :key="`unpaid-${invoice.id}`" class="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition duration-300 overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-100" style="background: linear-gradient(90deg, #f3f8ff 0%, #eef4fb 100%);">
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-3">
+      <div v-else class="bg-white rounded-xl shadow-sm border overflow-hidden" style="border-color: #d9e6f7;">
+        <div class="overflow-x-auto">
+          <table class="min-w-full">
+            <thead>
+              <tr class="border-b" style="background: linear-gradient(90deg, #f7fbff, #edf4fc); border-color: #d9e6f7;">
+                <th class="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">
+                  <input
+                    type="checkbox"
+                    :checked="allOnPageSelected"
+                    @change="toggleSelectAllOnPage($event.target.checked)"
+                    class="h-4 w-4 rounded border-gray-300"
+                    style="accent-color: #2F5597;"
+                  />
+                </th>
+                <th class="px-5 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Invoice</th>
+                <th class="px-5 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Status</th>
+                <th class="px-5 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Issued</th>
+                <th class="px-5 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Due</th>
+                <th class="px-5 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Total</th>
+                <th class="px-5 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Outstanding</th>
+                <th class="px-5 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Progress</th>
+                <th class="px-5 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="invoice in paginatedInvoices"
+                :key="invoice.id"
+                class="border-b last:border-b-0 hover:bg-[#f8fbff] transition duration-200"
+                style="border-color: #ecf3fb;"
+              >
+                <td class="px-4 py-4 align-top">
                   <input
                     type="checkbox"
                     :checked="isSelected(invoice)"
                     :disabled="!canPayInvoice(invoice)"
                     @change="toggleInvoiceSelection(invoice)"
-                    class="w-4 h-4 rounded border-gray-300"
+                    class="h-4 w-4 rounded border-gray-300 disabled:opacity-40"
                     style="accent-color: #2F5597;"
+                  />
+                </td>
+                <td class="px-5 py-4 align-top">
+                  <button
+                    @click="viewInvoice(invoice)"
+                    class="text-left font-semibold font-mono transition duration-200 hover:opacity-80"
+                    style="color: #2F5597;"
                   >
-                  <div>
-                    <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Invoice Number</p>
-                    <p class="text-xl font-bold text-gray-900 font-mono">{{ invoice.invoice_number }}</p>
+                    {{ invoice.invoice_number }}
+                  </button>
+                  <p v-if="invoice.order_number" class="text-xs text-gray-500 mt-1">Order: {{ invoice.order_number }}</p>
+                </td>
+                <td class="px-5 py-4 align-top">
+                  <span :class="getStatusBadge(invoice.status)" class="inline-flex px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap">
+                    {{ formatStatus(invoice.status) }}
+                  </span>
+                </td>
+                <td class="px-5 py-4 text-sm text-gray-700 align-top">{{ formatDate(invoice.issued_at) }}</td>
+                <td class="px-5 py-4 text-sm text-gray-700 align-top">{{ formatDate(invoice.due_at) }}</td>
+                <td class="px-5 py-4 align-top">
+                  <p class="text-sm font-bold text-gray-900">{{ formatCurrency(invoice.total_amount) }}</p>
+                  <p class="text-xs text-green-700 mt-1">Paid: {{ formatCurrency(invoice.paid_amount) }}</p>
+                </td>
+                <td class="px-5 py-4 align-top">
+                  <p class="text-sm font-semibold" :class="getOutstanding(invoice) > 0 ? 'text-red-600' : 'text-gray-900'">
+                    {{ formatCurrency(getOutstanding(invoice)) }}
+                  </p>
+                </td>
+                <td class="px-5 py-4 align-top">
+                  <div class="w-36">
+                    <div class="w-full rounded-full h-2 mb-1" style="background-color: #d9e6f7;">
+                      <div class="h-2 rounded-full" style="background-color: #2F5597;" :style="{ inlineSize: calculatePercent(invoice.paid_amount, invoice.total_amount) + '%' }"></div>
+                    </div>
+                    <p class="text-xs text-gray-600">{{ calculatePercent(invoice.paid_amount, invoice.total_amount) }}%</p>
                   </div>
-                </div>
-                <span :class="getStatusBadge(invoice.status)" class="px-4 py-2 rounded-full text-sm font-semibold">
-                  {{ formatStatus(invoice.status) }}
-                </span>
-              </div>
-            </div>
+                </td>
+                <td class="px-5 py-4 align-top">
+                  <div class="flex flex-nowrap items-center gap-2 whitespace-nowrap">
+                    <button
+                      @click="downloadPDF(invoice)"
+                      class="px-3 py-1.5 text-xs rounded-md font-semibold transition duration-200"
+                      style="color: #2F5597; border: 1px solid #2F5597;"
+                      @mouseenter="$event.target.style.backgroundColor='#edf3fb'"
+                      @mouseleave="$event.target.style.backgroundColor='transparent'"
+                    >
+                      PDF
+                    </button>
+                    <button
+                      v-if="canPayInvoice(invoice)"
+                      @click="startPayment(invoice)"
+                      :disabled="payingInvoiceNumber === invoice.invoice_number"
+                      class="px-3 py-1.5 text-xs rounded-md text-white font-semibold transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      style="background-color: #2F5597;"
+                      @mouseenter="$event.target.style.backgroundColor='#1f4788'"
+                      @mouseleave="$event.target.style.backgroundColor='#2F5597'"
+                    >
+                      {{ payingInvoiceNumber === invoice.invoice_number ? 'Starting...' : 'Pay Now' }}
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
 
-            <div class="px-6 py-5">
-              <div class="grid grid-cols-2 sm:grid-cols-5 gap-6 mb-5">
-                <div>
-                  <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Issued Date</p>
-                  <p class="text-gray-900 font-semibold mt-1">{{ formatDate(invoice.issued_at) }}</p>
-                </div>
-                <div>
-                  <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Due Date</p>
-                  <p class="text-gray-900 font-semibold mt-1">{{ formatDate(invoice.due_at) }}</p>
-                </div>
-                <div>
-                  <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Total</p>
-                  <p class="text-gray-900 font-semibold mt-1">{{ formatCurrency(invoice.total_amount) }}</p>
-                </div>
-                <div>
-                  <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Paid</p>
-                  <p class="text-green-700 font-semibold mt-1">{{ formatCurrency(invoice.paid_amount) }}</p>
-                </div>
-                <div>
-                  <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Outstanding</p>
-                  <p class="font-semibold mt-1" :class="getOutstanding(invoice) > 0 ? 'text-red-600' : 'text-gray-900'">{{ formatCurrency(getOutstanding(invoice)) }}</p>
-                </div>
-              </div>
-
-              <div class="mb-5">
-                <div class="flex items-center justify-between mb-2">
-                  <p class="text-xs font-semibold text-gray-700">Payment Progress</p>
-                  <p class="text-xs text-gray-600">{{ calculatePercent(invoice.paid_amount, invoice.total_amount) }}%</p>
-                </div>
-                <div class="w-full rounded-full h-2" style="background-color: #d9e6f7;">
-                  <div class="h-2 rounded-full transition duration-500" style="background-color: #2F5597;" :style="{ width: calculatePercent(invoice.paid_amount, invoice.total_amount) + '%' }"></div>
-                </div>
-              </div>
-            </div>
-
-            <div class="border-t border-gray-100 bg-gray-50 px-6 py-4 flex items-center justify-between">
-              <button @click="viewInvoice(invoice)" class="flex items-center gap-2 font-semibold transition duration-200 hover:opacity-75" style="color: #2F5597;">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                </svg>
-                View Details
-              </button>
-              <div class="flex gap-2">
-                <button
-                  @click="downloadPDF(invoice)"
-                  class="px-4 py-2 rounded-lg font-semibold border border-[#2F5597] text-[#2F5597] hover:bg-[#edf3fb] transition duration-200"
-                >
-                  PDF
-                </button>
-                <button
-                  v-if="canPayInvoice(invoice)"
-                  @click="startPayment(invoice)"
-                  :disabled="payingInvoiceNumber === invoice.invoice_number"
-                  class="px-4 py-2 rounded-lg text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition duration-200"
-                  style="background-color: #2F5597;"
-                  @mouseenter="$event.target.style.backgroundColor='#1f4788'"
-                  @mouseleave="$event.target.style.backgroundColor='#2F5597'"
-                >
-                  {{ payingInvoiceNumber === invoice.invoice_number ? 'Starting...' : 'Pay Now' }}
-                </button>
-              </div>
+        <div class="border-t px-4 sm:px-5 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4" style="border-color: #d9e6f7; background: #f9fcff;">
+          <div class="flex items-center gap-3 text-sm text-gray-700">
+            <span class="font-medium">Showing {{ paginationStart }}-{{ paginationEnd }} of {{ filteredInvoices.length }}</span>
+            <div class="flex items-center gap-2">
+              <label class="text-xs font-semibold uppercase tracking-wide text-gray-600">Rows</label>
+              <select
+                v-model.number="pageSize"
+                class="px-2 py-1.5 text-sm border border-gray-300 rounded-md bg-white text-gray-900 focus:outline-none"
+                style="border-color: #d9e6f7;"
+              >
+                <option :value="10">10</option>
+                <option :value="25">25</option>
+                <option :value="50">50</option>
+              </select>
             </div>
           </div>
-        </section>
 
-        <section v-if="paidInvoices.length > 0" class="space-y-4">
-          <div class="flex items-center justify-between">
-            <h2 class="text-xl font-bold text-gray-900">Paid Invoices</h2>
-            <p class="text-sm text-gray-600">{{ paidInvoices.length }} invoice(s) paid</p>
+          <div class="flex items-center gap-2">
+            <button
+              @click="goToPreviousPage"
+              :disabled="currentPage === 1"
+              class="px-3 py-1.5 text-xs sm:text-sm rounded-md border font-semibold transition duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+              style="border-color: #d9e6f7; color: #2F5597;"
+            >
+              Previous
+            </button>
+
+            <button
+              v-for="page in visiblePageNumbers"
+              :key="`invoice-page-${page}`"
+              @click="goToPage(page)"
+              class="px-3 py-1.5 text-xs sm:text-sm rounded-md border font-semibold transition duration-200"
+              :class="page === currentPage ? 'text-white' : 'text-[#2F5597] bg-white hover:bg-[#edf3fb]'"
+              :style="page === currentPage ? 'background-color: #2F5597; border-color: #2F5597;' : 'border-color: #d9e6f7;'"
+            >
+              {{ page }}
+            </button>
+
+            <button
+              @click="goToNextPage"
+              :disabled="currentPage === totalPages"
+              class="px-3 py-1.5 text-xs sm:text-sm rounded-md border font-semibold transition duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+              style="border-color: #d9e6f7; color: #2F5597;"
+            >
+              Next
+            </button>
           </div>
-
-          <div v-for="invoice in paidInvoices" :key="`paid-${invoice.id}`" class="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition duration-300 overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-100" style="background: linear-gradient(90deg, #f3f8ff 0%, #eef4fb 100%);">
-              <div class="flex items-center justify-between">
-                <div>
-                  <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Invoice Number</p>
-                  <p class="text-xl font-bold text-gray-900 font-mono">{{ invoice.invoice_number }}</p>
-                </div>
-                <span :class="getStatusBadge(invoice.status)" class="px-4 py-2 rounded-full text-sm font-semibold">
-                  {{ formatStatus(invoice.status) }}
-                </span>
-              </div>
-            </div>
-
-            <div class="px-6 py-5">
-              <div class="grid grid-cols-2 sm:grid-cols-5 gap-6 mb-5">
-                <div>
-                  <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Issued Date</p>
-                  <p class="text-gray-900 font-semibold mt-1">{{ formatDate(invoice.issued_at) }}</p>
-                </div>
-                <div>
-                  <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Due Date</p>
-                  <p class="text-gray-900 font-semibold mt-1">{{ formatDate(invoice.due_at) }}</p>
-                </div>
-                <div>
-                  <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Total</p>
-                  <p class="text-gray-900 font-semibold mt-1">{{ formatCurrency(invoice.total_amount) }}</p>
-                </div>
-                <div>
-                  <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Paid</p>
-                  <p class="text-green-700 font-semibold mt-1">{{ formatCurrency(invoice.paid_amount) }}</p>
-                </div>
-                <div>
-                  <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Outstanding</p>
-                  <p class="font-semibold mt-1" :class="getOutstanding(invoice) > 0 ? 'text-red-600' : 'text-gray-900'">{{ formatCurrency(getOutstanding(invoice)) }}</p>
-                </div>
-              </div>
-
-              <div class="mb-5">
-                <div class="flex items-center justify-between mb-2">
-                  <p class="text-xs font-semibold text-gray-700">Payment Progress</p>
-                  <p class="text-xs text-gray-600">{{ calculatePercent(invoice.paid_amount, invoice.total_amount) }}%</p>
-                </div>
-                <div class="w-full rounded-full h-2" style="background-color: #d9e6f7;">
-                  <div class="h-2 rounded-full transition duration-500" style="background-color: #2F5597;" :style="{ width: calculatePercent(invoice.paid_amount, invoice.total_amount) + '%' }"></div>
-                </div>
-              </div>
-            </div>
-
-            <div class="border-t border-gray-100 bg-gray-50 px-6 py-4 flex items-center justify-between">
-              <button @click="viewInvoice(invoice)" class="flex items-center gap-2 font-semibold transition duration-200 hover:opacity-75" style="color: #2F5597;">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                </svg>
-                View Details
-              </button>
-              <div class="flex gap-2">
-                <button
-                  @click="downloadPDF(invoice)"
-                  class="px-4 py-2 rounded-lg font-semibold border border-[#2F5597] text-[#2F5597] hover:bg-[#edf3fb] transition duration-200"
-                >
-                  PDF
-                </button>
-              </div>
-            </div>
-          </div>
-        </section>
+        </div>
       </div>
     </div>
 
@@ -331,7 +322,7 @@
               </span>
             </div>
             <div class="w-full rounded-full h-2 mb-2" style="background-color: #d9e6f7;">
-              <div class="h-2 rounded-full" style="background-color: #2F5597;" :style="{ width: calculatePercent(selectedInvoice.paid_amount, selectedInvoice.total_amount) + '%' }"></div>
+              <div class="h-2 rounded-full" style="background-color: #2F5597;" :style="{ inlineSize: calculatePercent(selectedInvoice.paid_amount, selectedInvoice.total_amount) + '%' }"></div>
             </div>
             <p class="text-xs text-gray-600">{{ calculatePercent(selectedInvoice.paid_amount, selectedInvoice.total_amount) }}% Paid</p>
           </div>
@@ -419,7 +410,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/authStore'
 import { useToastStore } from '../../stores/toastStore'
@@ -440,6 +431,8 @@ export default {
     const selectedStatus = ref('')
     const searchQuery = ref('')
     const sortBy = ref('due_asc')
+    const currentPage = ref(1)
+    const pageSize = ref(10)
     const selectedInvoice = ref(null)
     const productNameMap = ref({})
     const selectedInvoices = ref([])
@@ -505,6 +498,53 @@ export default {
       }
 
       return sorted
+    })
+
+    const totalPages = computed(() => {
+      const pages = Math.ceil(filteredInvoices.value.length / pageSize.value)
+      return Math.max(1, pages)
+    })
+
+    const paginatedInvoices = computed(() => {
+      const safePage = Math.min(currentPage.value, totalPages.value)
+      const start = (safePage - 1) * pageSize.value
+      const end = start + pageSize.value
+      return filteredInvoices.value.slice(start, end)
+    })
+
+    const paginationStart = computed(() => {
+      if (filteredInvoices.value.length === 0) return 0
+      return (Math.min(currentPage.value, totalPages.value) - 1) * pageSize.value + 1
+    })
+
+    const paginationEnd = computed(() => {
+      if (filteredInvoices.value.length === 0) return 0
+      const end = Math.min(currentPage.value, totalPages.value) * pageSize.value
+      return Math.min(end, filteredInvoices.value.length)
+    })
+
+    const visiblePageNumbers = computed(() => {
+      const safePage = Math.min(currentPage.value, totalPages.value)
+      const maxVisible = 5
+      let start = Math.max(1, safePage - 2)
+      let end = Math.min(totalPages.value, start + maxVisible - 1)
+
+      if (end - start + 1 < maxVisible) {
+        start = Math.max(1, end - maxVisible + 1)
+      }
+
+      const pages = []
+      for (let page = start; page <= end; page += 1) {
+        pages.push(page)
+      }
+
+      return pages
+    })
+
+    const allOnPageSelected = computed(() => {
+      const payableRows = paginatedInvoices.value.filter((invoice) => canPayInvoice(invoice))
+      if (payableRows.length === 0) return false
+      return payableRows.every((invoice) => selectedInvoices.value.includes(invoice.invoice_number))
     })
 
     const activeInvoices = computed(() => invoices.value.filter(inv => inv.status !== 'merged'))
@@ -766,6 +806,18 @@ export default {
       }
     }
 
+    const toggleSelectAllOnPage = (checked) => {
+      const pagePayable = paginatedInvoices.value
+        .filter((invoice) => canPayInvoice(invoice))
+        .map((invoice) => invoice.invoice_number)
+
+      if (checked) {
+        selectedInvoices.value = Array.from(new Set([...selectedInvoices.value, ...pagePayable]))
+      } else {
+        selectedInvoices.value = selectedInvoices.value.filter((id) => !pagePayable.includes(id))
+      }
+    }
+
     const clearSelection = () => {
       selectedInvoices.value = []
       combinedBundle.value = null
@@ -994,7 +1046,35 @@ export default {
       selectedStatus.value = ''
       searchQuery.value = ''
       sortBy.value = 'due_asc'
+      currentPage.value = 1
+      pageSize.value = 10
     }
+
+    const goToPage = (page) => {
+      currentPage.value = Math.min(Math.max(1, page), totalPages.value)
+    }
+
+    const goToPreviousPage = () => {
+      if (currentPage.value > 1) {
+        currentPage.value -= 1
+      }
+    }
+
+    const goToNextPage = () => {
+      if (currentPage.value < totalPages.value) {
+        currentPage.value += 1
+      }
+    }
+
+    watch([selectedStatus, searchQuery, sortBy, pageSize], () => {
+      currentPage.value = 1
+    })
+
+    watch(totalPages, (pages) => {
+      if (currentPage.value > pages) {
+        currentPage.value = pages
+      }
+    })
 
     onMounted(async () => {
       await fetchInvoices()
@@ -1018,6 +1098,8 @@ export default {
       selectedStatus,
       searchQuery,
       sortBy,
+      currentPage,
+      pageSize,
       selectedInvoice,
       selectedInvoices,
       combinedBundle,
@@ -1025,6 +1107,12 @@ export default {
       bulkPaying,
       pagination,
       filteredInvoices,
+      paginatedInvoices,
+      totalPages,
+      paginationStart,
+      paginationEnd,
+      visiblePageNumbers,
+      allOnPageSelected,
       unpaidInvoices,
       paidInvoices,
       totalOutstanding,
@@ -1037,6 +1125,7 @@ export default {
       startPayment,
       isSelected,
       toggleInvoiceSelection,
+      toggleSelectAllOnPage,
       clearSelection,
       selectAllUnpaid,
       combineSelectedInvoices,
@@ -1051,6 +1140,9 @@ export default {
       getSourceInvoices,
       calculatePercent,
       resetFilters,
+      goToPage,
+      goToPreviousPage,
+      goToNextPage,
       getOutstanding,
       canPayInvoice,
     }

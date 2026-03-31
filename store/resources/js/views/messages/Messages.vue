@@ -7,7 +7,7 @@
       <div class="absolute top-64 -left-24 w-72 h-72 rounded-full blur-3xl opacity-25" style="background: radial-gradient(circle, #b7d7f2 0%, transparent 70%);"></div>
     </div>
 
-    <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
+    <div class="relative max-w-7xl mx-auto px-3 sm:px-4 lg:px-5 py-8 sm:py-8">
       <div class="rounded-3xl text-white p-6 sm:p-8 mb-6 shadow-lg" style="background: linear-gradient(130deg, #234a87 0%, #2F5597 48%, #4f86c6 100%);">
         <div class="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
           <div>

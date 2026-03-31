@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100 flex items-center justify-center px-4 py-12">
+  <div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100 flex items-center justify-center px-4 py-9">
     <div class="w-full max-w-md">
       <!-- Card -->
       <div class="bg-white rounded-2xl shadow-xl border border-slate-200 p-8">
@@ -32,8 +32,12 @@
             <router-link to="/forgot-password" class="text-sm font-medium" style="color: #2F5597;">Forgot password?</router-link>
           </div>
 
-          <button type="submit" class="w-full px-6 py-3 text-white font-semibold rounded-lg transition transform hover:scale-105 active:scale-95" style="background: linear-gradient(90deg, #2F5597, #1f4788);">
-            Sign In
+          <button type="submit" :disabled="loading" class="w-full px-6 py-3 text-white font-semibold rounded-lg transition transform hover:scale-105 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2" style="background: linear-gradient(90deg, #2F5597, #1f4788);">
+            <svg v-if="loading" class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+            </svg>
+            {{ loading ? 'Signing in…' : 'Sign In' }}
           </button>
         </form>
 
@@ -78,6 +82,7 @@ const email = ref(route.query.email ? String(route.query.email) : '')
 const password = ref('')
 const rememberMe = ref(false)
 const showResendActivation = ref(false)
+const loading = ref(false)
 
 const resolvePostLoginRoute = () => {
   const redirectFromQuery = route.query.redirect ? String(route.query.redirect) : ''
@@ -99,7 +104,7 @@ const resolvePostLoginRoute = () => {
   return '/products'
 }
 
-const handleLogin = () => {
+const handleLogin = async () => {
   if (!email.value || !password.value) {
     toastStore.addToast('Please enter email and password', 'warning')
     return
@@ -115,28 +120,30 @@ const handleLogin = () => {
     return
   }
 
-  authStore.login({ email: email.value, password: password.value, remember: rememberMe.value })
-    .then((result) => {
-      if (result.ok) {
-        cartStore.mergeGuestCartIntoCurrentUser()
-        showResendActivation.value = false
-        if (result.restricted) {
-          toastStore.addToast(result.message || 'Your account is restricted. You have read-only access.', 'warning')
-          router.push({ name: 'account' })
-        } else {
-          toastStore.addToast('Welcome back!', 'success')
-          router.push(resolvePostLoginRoute())
-        }
+  loading.value = true
+  try {
+    const result = await authStore.login({ email: email.value, password: password.value, remember: rememberMe.value })
+    if (result.ok) {
+      cartStore.mergeGuestCartIntoCurrentUser()
+      showResendActivation.value = false
+      if (result.restricted) {
+        toastStore.addToast(result.message || 'Your account is restricted. You have read-only access.', 'warning')
+        router.push({ name: 'account' })
       } else {
-        if ((result.message || '').toLowerCase().includes('activate your account')) {
-          showResendActivation.value = true
-        }
-        toastStore.addToast(result.message || 'Login failed', 'warning')
+        toastStore.addToast('Welcome back!', 'success')
+        router.push(resolvePostLoginRoute())
       }
-    })
-    .catch((error) => {
-      toastStore.addToast(error.response?.data?.message || 'Login failed', 'warning')
-    })
+    } else {
+      if ((result.message || '').toLowerCase().includes('activate your account')) {
+        showResendActivation.value = true
+      }
+      toastStore.addToast(result.message || 'Login failed', 'warning')
+    }
+  } catch (error) {
+    toastStore.addToast(error.response?.data?.message || 'Login failed', 'warning')
+  } finally {
+    loading.value = false
+  }
 }
 
 const handleResendActivation = async () => {

@@ -4,7 +4,7 @@
     <Navbar />
 
     <!-- Main Content -->
-    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-5 py-8">
       <!-- Page Title -->
       <div class="mb-8">
         <h1 class="text-4xl font-bold text-gray-900 mb-2">Account</h1>
@@ -79,7 +79,7 @@
             <button @click="handleManageNotifications" class="w-full px-4 py-3 border border-gray-300 text-gray-700 font-semibold rounded-lg transition hover:bg-gray-100">
               Manage Notifications
             </button>
-            <button @click="handleSignOut" class="w-full px-4 py-3 border border-red-300 text-red-600 font-semibold rounded-lg transition hover:bg-red-50">
+            <button @click="showSignOutModal = true" class="w-full px-4 py-3 border border-red-300 text-red-600 font-semibold rounded-lg transition hover:bg-red-50">
               Sign Out
             </button>
           </div>
@@ -91,7 +91,7 @@
         <h3 class="text-lg font-bold text-gray-900 mb-4">Recent Activity</h3>
         <div v-if="loading" class="text-center py-8">
           <div class="inline-block">
-            <div class="w-8 h-8 border-4 rounded-full" style="border-color: #2F5597; border-top-color: transparent; animation: spin 1s linear infinite;"></div>
+            <div class="w-8 h-8 border-4 rounded-full" style="border-color: #2F5597; border-block-start-color: transparent; animation: spin 1s linear infinite;"></div>
           </div>
         </div>
         <div v-else-if="activities.length > 0" class="space-y-3">
@@ -111,8 +111,8 @@
 
     <!-- Edit Profile Modal -->
     <div v-if="showEditProfileModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
-      <div class="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-        <div class="p-6">
+      <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[92vh] overflow-y-auto">
+        <div class="p-8">
           <div class="flex justify-between items-center mb-4">
             <h3 class="text-xl font-bold text-gray-900">Edit Profile</h3>
             <button @click="showEditProfileModal = false" class="text-gray-500 hover:text-gray-700">
@@ -297,6 +297,29 @@
         </div>
       </div>
     </div>
+
+    <!-- Sign Out Confirmation Modal -->
+    <div v-if="showSignOutModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
+      <div class="bg-white rounded-lg shadow-xl max-w-sm w-full p-6">
+        <div class="flex flex-col items-center text-center gap-3">
+          <div class="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center">
+            <svg class="w-7 h-7 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+          </div>
+          <h3 class="text-lg font-bold text-gray-900">Sign Out</h3>
+          <p class="text-sm text-gray-500">Are you sure you want to sign out of your account?</p>
+        </div>
+        <div class="flex gap-3 mt-6">
+          <button @click="handleSignOut" class="flex-1 px-4 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition">
+            Yes, Sign Out
+          </button>
+          <button @click="showSignOutModal = false" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -326,6 +349,7 @@ const loading = ref(false)
 const showEditProfileModal = ref(false)
 const showChangePasswordModal = ref(false)
 const showNotificationsModal = ref(false)
+const showSignOutModal = ref(false)
 
 // Form states
 const editFormLoading = ref(false)

@@ -105,7 +105,7 @@
           </thead>
           <tbody class="divide-y divide-gray-200">
             <tr v-if="customers.length === 0">
-              <td colspan="8" class="px-6 py-12 text-center text-gray-500">
+              <td colspan="8" class="px-6 py-9 text-center text-gray-500">
                 <i class="fas fa-users text-3xl mb-3 block text-gray-300"></i>
                 No customers found
               </td>

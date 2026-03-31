@@ -309,7 +309,7 @@
                             class="form-control @error('email') is-invalid @enderror" 
                             id="email" 
                             name="email" 
-                            placeholder="admin@armely.com"
+                            placeholder="admin@yourcompany.com"
                             value="{{ old('email') }}"
                             required 
                             autofocus

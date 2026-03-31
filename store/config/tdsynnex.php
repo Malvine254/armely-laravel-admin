@@ -158,6 +158,9 @@ return [
         'batch_size' => env('SYNNEX_BATCH_SIZE', 50),
         'max_skus' => env('SYNNEX_MAX_SKUS', 0),
         'cache_ttl' => env('SYNNEX_PRICE_AVAILABILITY_CACHE_TTL', 900),
+        // Keep API requests below PHP max_execution_time in web requests.
+        'request_timeout' => env('SYNNEX_PRICE_AVAILABILITY_TIMEOUT', 8),
+        'max_runtime_seconds' => env('SYNNEX_PRICE_AVAILABILITY_MAX_RUNTIME', 45),
         'flat_file_path' => env('SYNNEX_FLAT_FILE_PATH', ''),
         'flat_files_dir' => env('SYNNEX_FLAT_FILES_DIR', 'flat-files'),
         'skus_csv' => env('SYNNEX_SKUS', ''),
@@ -166,15 +169,16 @@ return [
 
     'icecat' => [
         'enabled' => env('ICECAT_ENABLED', true),
-        'persist_to_db' => env('ICECAT_PERSIST_TO_DB', true),
+        // Optional: persistence may stall when DB is unavailable; keep off by default.
+        'persist_to_db' => env('ICECAT_PERSIST_TO_DB', false),
         'username' => env('ICECAT_USERNAME', ''),
         'password' => env('ICECAT_PASSWORD', ''),
         'app_key' => env('ICECAT_APP_KEY', ''),
         'endpoint' => env('ICECAT_ENDPOINT', 'https://live.icecat.biz/api'),
         'language' => env('ICECAT_LANGUAGE', 'en'),
         'cache_ttl' => env('ICECAT_CACHE_TTL', 86400),
-        'timeout' => env('ICECAT_TIMEOUT', 6),
-        'max_lookups_per_request' => env('ICECAT_MAX_LOOKUPS_PER_REQUEST', 24),
+        'timeout' => env('ICECAT_TIMEOUT', 4),
+        'max_lookups_per_request' => env('ICECAT_MAX_LOOKUPS_PER_REQUEST', 8),
     ],
 
     'allow_submit_po' => env('TDSYNNEX_ALLOW_SUBMIT_PO', false),
