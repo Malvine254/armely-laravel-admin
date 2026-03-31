@@ -4,9 +4,9 @@
     <Navbar />
 
     <!-- Main Content -->
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-5 py-8">
       <!-- Page Header -->
-      <div class="mb-12">
+      <div class="mb-8">
         <h1 class="text-5xl font-bold text-gray-900 mb-2">Your Orders</h1>
         <p class="text-gray-600 text-lg">Track and manage all your purchases</p>
       </div>
@@ -66,7 +66,7 @@
       <!-- Loading State -->
       <div v-if="loading" class="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
         <div class="inline-block">
-          <div class="w-16 h-16 border-4 rounded-full animate-spin mb-4" style="border-color: #e5ebf2; border-top-color: #2F5597;"></div>
+          <div class="w-16 h-16 border-4 rounded-full animate-spin mb-4" style="border-color: #e5ebf2; border-block-start-color: #2F5597;"></div>
           <p class="text-gray-600 font-medium">Loading your orders...</p>
         </div>
       </div>
@@ -141,7 +141,7 @@
                 <p class="text-xs text-gray-600">{{ getStatusProgress(order.status) }}%</p>
               </div>
               <div class="w-full bg-gray-200 rounded-full h-2">
-                <div class="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition duration-500" :style="{ width: getStatusProgress(order.status) + '%' }"></div>
+                <div class="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition duration-500" :style="{ inlineSize: getStatusProgress(order.status) + '%' }"></div>
               </div>
             </div>
           </div>
@@ -227,7 +227,7 @@
               </span>
             </div>
             <div class="w-full bg-gray-200 rounded-full h-2 mb-2">
-              <div class="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full" :style="{ width: getStatusProgress(selectedOrder.status) + '%' }"></div>
+              <div class="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full" :style="{ inlineSize: getStatusProgress(selectedOrder.status) + '%' }"></div>
             </div>
             <p class="text-xs text-gray-600">{{ getStatusProgress(selectedOrder.status) }}% Complete</p>
           </div>

@@ -48,7 +48,7 @@ class ProductController extends Controller
             ]);
 
             if ($this->tdsynnexService->usesPriceAvailabilityAsProductSource()) {
-                return $this->indexFromPriceAvailability($search, $minPrice, $maxPrice, $billingModels, $hideZero, $pageNo, $pageSize);
+                return $this->indexFromPriceAvailability($request, $search, $minPrice, $maxPrice, $billingModels, $hideZero, $pageNo, $pageSize, (bool) $useDbCache);
             }
 
             // Use single vendor if no vendor list specified
@@ -230,15 +230,81 @@ class ProductController extends Controller
     }
 
     private function indexFromPriceAvailability(
+        Request $request,
         ?string $search,
         $minPrice,
         $maxPrice,
         ?string $billingModels,
         bool $hideZero,
         int $pageNo,
-        int $pageSize
+        int $pageSize,
+        bool $useDbCache = true
     ): JsonResponse {
-        $allProducts = $this->tdsynnexService->getPriceAvailabilityCatalog();
+        $selectedVendors = [];
+        $vendorsCsv = trim((string) $request->query('vendors', ''));
+        if ($vendorsCsv !== '') {
+            $selectedVendors = array_values(array_filter(array_map('trim', explode(',', $vendorsCsv)), fn ($v) => $v !== ''));
+        } else {
+            $singleVendor = trim((string) $request->query('vendor', ''));
+            if ($singleVendor !== '' && strcasecmp($singleVendor, 'Microsoft') !== 0) {
+                $selectedVendors = [$singleVendor];
+            }
+        }
+
+        $allProducts = [];
+        $fromDbCache = false;
+
+        if ($useDbCache && $this->tdsynnexService->hasFreshPriceAvailabilityDatabaseCache()) {
+            $dbPage = $this->fetchPriceAvailabilityPageFromDatabase(
+                $search,
+                $minPrice,
+                $maxPrice,
+                $billingModels,
+                $hideZero,
+                $pageNo,
+                $pageSize,
+                $selectedVendors,
+            );
+
+            if (($dbPage['total'] ?? 0) > 0) {
+                $fromDbCache = true;
+
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'records' => $dbPage['records'],
+                        'total' => $dbPage['total'],
+                        'apiTotal' => $dbPage['total'],
+                        'pageNo' => $pageNo,
+                        'pageSize' => $pageSize,
+                        'vendors' => !empty($selectedVendors) ? array_values($selectedVendors) : array_values(array_unique(array_map(
+                            fn ($item) => $this->resolvePriceAvailabilityVendorName((array) $item),
+                            $dbPage['records']
+                        ))),
+                        'cached' => true,
+                        'dbCached' => $fromDbCache,
+                        'source' => 'priceavailability-db',
+                    ],
+                    'message' => 'Products retrieved successfully',
+                ])->header('Cache-Control', 'public, max-age=300');
+            }
+        }
+
+        if (!empty($search)) {
+            $maxMatches = min(300, max(100, $pageSize * max(1, $pageNo) * 5));
+            $allProducts = $this->tdsynnexService->searchPriceAvailabilityCatalog((string) $search, $maxMatches);
+        } else {
+            $allProducts = $this->tdsynnexService->getPriceAvailabilityCatalog();
+        }
+
+        // In PriceAvailability mode, expose manufacturer as the filter/display vendor when present.
+        $allProducts = array_map(function (array $product) {
+            $vendor = $this->resolvePriceAvailabilityVendorName($product);
+            $product['vendorId'] = $vendor;
+            $product['vendorName'] = $vendor;
+
+            return $product;
+        }, $allProducts);
 
         $apiTotal = count($allProducts);
 
@@ -255,6 +321,14 @@ class ProductController extends Controller
                 ]);
 
                 return str_contains(strtolower($haystack), $needle);
+            }));
+        }
+
+        if (!empty($selectedVendors)) {
+            $vendorLookup = array_fill_keys(array_map('strtolower', $selectedVendors), true);
+            $allProducts = array_values(array_filter($allProducts, function (array $product) use ($vendorLookup) {
+                $vendor = strtolower($this->resolvePriceAvailabilityVendorName($product));
+                return isset($vendorLookup[$vendor]);
             }));
         }
 
@@ -282,7 +356,13 @@ class ProductController extends Controller
 
         $total = count($allProducts);
         $records = array_slice($allProducts, ($pageNo - 1) * $pageSize, $pageSize);
-        $records = $this->tdsynnexService->enrichProductsWithIcecatImages(array_values($records));
+
+        // Keep list endpoint fast; opt in to image enrichment when needed.
+        $enrichImages = filter_var($request->query('enrich_images', false), FILTER_VALIDATE_BOOLEAN);
+        if ($enrichImages) {
+            $maxLookups = max(0, (int) $request->query('image_lookups', 4));
+            $records = $this->tdsynnexService->enrichProductsWithIcecatImages(array_values($records), $maxLookups);
+        }
 
         return response()->json([
             'success' => true,
@@ -292,8 +372,12 @@ class ProductController extends Controller
                 'apiTotal' => $apiTotal,
                 'pageNo' => $pageNo,
                 'pageSize' => $pageSize,
-                'vendors' => ['TD SYNNEX'],
+                'vendors' => !empty($selectedVendors) ? array_values($selectedVendors) : array_values(array_unique(array_map(
+                    fn ($item) => $this->resolvePriceAvailabilityVendorName((array) $item),
+                    $records
+                ))),
                 'cached' => true,
+                'dbCached' => $fromDbCache,
                 'source' => 'priceavailability',
             ],
             'message' => 'Products retrieved successfully',
@@ -324,13 +408,17 @@ class ProductController extends Controller
                 $price = (float) ($product->base_price ?? $product->retail_price ?? 0);
                 $images = $this->normalizeSavedProductImages($product->images);
                 $primaryImage = (string) ($images[0]['imageUrl'] ?? '');
+                $vendor = trim((string) ($spec['manufacturer'] ?? $product->vendor_id ?? 'TD SYNNEX'));
+                if ($vendor === '') {
+                    $vendor = 'TD SYNNEX';
+                }
 
                 return [
                     'productId' => $sku,
                     'sku' => $sku,
                     'mfgPartNo' => (string) ($product->mfg_part_no ?? $sku),
-                    'vendorId' => (string) ($product->vendor_id ?? 'TD SYNNEX'),
-                    'vendorName' => (string) ($product->vendor_id ?? 'TD SYNNEX'),
+                    'vendorId' => $vendor,
+                    'vendorName' => $vendor,
                     'productName' => (string) ($product->product_name ?? $sku),
                     'description' => (string) ($product->description ?? ''),
                     'status' => (string) ($spec['status'] ?? ''),
@@ -361,6 +449,154 @@ class ProductController extends Controller
 
             return [];
         }
+    }
+
+    private function resolvePriceAvailabilityVendorName(array $product): string
+    {
+        $manufacturer = trim((string) ($product['manufacturer'] ?? ''));
+        if ($manufacturer !== '') {
+            return $manufacturer;
+        }
+
+        $vendorName = trim((string) ($product['vendorName'] ?? $product['vendorId'] ?? 'TD SYNNEX'));
+        return $vendorName !== '' ? $vendorName : 'TD SYNNEX';
+    }
+
+    private function fetchPriceAvailabilityPageFromDatabase(
+        ?string $search,
+        $minPrice,
+        $maxPrice,
+        ?string $billingModels,
+        bool $hideZero,
+        int $pageNo,
+        int $pageSize,
+        array $selectedVendors = []
+    ): array {
+        $query = Product::query()->where('vendor_id', 'TD SYNNEX');
+
+        if ($hideZero) {
+            $query->where(function ($q) {
+                $q->where(function ($q2) {
+                    $q2->whereNotNull('base_price')->where('base_price', '>', 0);
+                })->orWhere(function ($q3) {
+                    $q3->whereNotNull('retail_price')->where('retail_price', '>', 0);
+                });
+            });
+        }
+
+        if (!empty($search)) {
+            $like = '%' . trim((string) $search) . '%';
+            $query->where(function ($q) use ($like) {
+                $q->where('product_name', 'like', $like)
+                    ->orWhere('description', 'like', $like)
+                    ->orWhere('mfg_part_no', 'like', $like)
+                    ->orWhere('tdsynnex_sku_no', 'like', $like)
+                    ->orWhere('specifications->sku', 'like', $like)
+                    ->orWhere('specifications->manufacturer', 'like', $like)
+                    ->orWhere('specifications->upc', 'like', $like)
+                    ->orWhere('specifications->categoryCode', 'like', $like);
+            });
+        }
+
+        if (!empty($selectedVendors)) {
+            $query->where(function ($q) use ($selectedVendors) {
+                foreach ($selectedVendors as $vendor) {
+                    $q->orWhere('specifications->manufacturer', '=', $vendor);
+                }
+            });
+        }
+
+        if ($minPrice !== null) {
+            $query->whereRaw('COALESCE(base_price, retail_price, 0) >= ?', [(float) $minPrice]);
+        }
+
+        if ($maxPrice !== null) {
+            $query->whereRaw('COALESCE(base_price, retail_price, 0) <= ?', [(float) $maxPrice]);
+        }
+
+        if (!empty($billingModels)) {
+            $query->whereIn('billing_model', array_map('trim', explode(',', (string) $billingModels)));
+        }
+
+        $total = (clone $query)->count();
+        $products = $query
+            ->orderBy('product_name')
+            ->forPage(max(1, $pageNo), max(1, $pageSize))
+            ->get();
+
+        return [
+            'records' => $products->map(fn (Product $product) => $this->mapPriceAvailabilityDatabaseProduct($product))->toArray(),
+            'total' => $total,
+        ];
+    }
+
+    private function mapPriceAvailabilityDatabaseProduct(Product $product): array
+    {
+        $spec = is_array($product->specifications) ? $product->specifications : [];
+        $sku = (string) ($spec['sku'] ?? $product->tdsynnex_sku_no ?? $product->tdsynnex_product_id);
+        $price = (float) ($product->base_price ?? $product->retail_price ?? 0);
+        $images = $this->normalizeSavedProductImages($product->images);
+        $primaryImage = (string) ($images[0]['imageUrl'] ?? '');
+        $vendor = trim((string) ($spec['manufacturer'] ?? $product->vendor_id ?? 'TD SYNNEX'));
+        if ($vendor === '') {
+            $vendor = 'TD SYNNEX';
+        }
+
+        return [
+            'productId' => $sku,
+            'sku' => $sku,
+            'mfgPartNo' => (string) ($product->mfg_part_no ?? $sku),
+            'vendorId' => $vendor,
+            'vendorName' => $vendor,
+            'productName' => (string) ($product->product_name ?? $sku),
+            'description' => (string) ($product->description ?? ''),
+            'status' => (string) ($spec['status'] ?? ''),
+            'availableQuantity' => (int) ($spec['availableQuantity'] ?? 0),
+            'qty' => (string) ($spec['availableQuantity'] ?? 0),
+            'categoryCode' => (string) ($spec['categoryCode'] ?? '-'),
+            'upc' => (string) ($spec['upc'] ?? ''),
+            'manufacturer' => (string) ($spec['manufacturer'] ?? ''),
+            'billingModel' => (string) ($product->billing_model ?? ''),
+            'billingFrequency' => (string) ($product->billing_frequency ?? ''),
+            'discontinueProduct' => (bool) ($product->is_discontinued ?? false),
+            'productPrice' => [
+                [
+                    'rsPrice' => $price,
+                    'minQty' => 1,
+                ],
+            ],
+            'productImages' => $images,
+            'images' => $images,
+            'image_url' => $primaryImage,
+            'icecat_title' => '',
+        ];
+    }
+
+    private function getPriceAvailabilityProductFromDatabase(string $skuOrProductId): ?array
+    {
+        $needle = trim($skuOrProductId);
+        if ($needle === '') {
+            return null;
+        }
+
+        $query = Product::query()->where('vendor_id', 'TD SYNNEX');
+        $query->where(function ($q) use ($needle) {
+            if (ctype_digit($needle)) {
+                $numeric = (int) $needle;
+                $q->orWhere('tdsynnex_sku_no', $numeric)
+                    ->orWhere('tdsynnex_product_id', $numeric);
+            }
+
+            $q->orWhere('specifications->sku', $needle)
+                ->orWhere('mfg_part_no', $needle);
+        });
+
+        $product = $query->first();
+        if (!$product) {
+            return null;
+        }
+
+        return $this->mapPriceAvailabilityDatabaseProduct($product);
     }
 
     /**
@@ -466,7 +702,8 @@ class ProductController extends Controller
     {
         try {
             if ($this->tdsynnexService->usesPriceAvailabilityAsProductSource()) {
-                $product = $this->tdsynnexService->getPriceAvailabilityProductBySku($productId);
+                $product = $this->getPriceAvailabilityProductFromDatabase($productId)
+                    ?? $this->tdsynnexService->getPriceAvailabilityProductBySku($productId);
 
                 if (!$product) {
                     return response()->json([
@@ -476,8 +713,16 @@ class ProductController extends Controller
                     ], 404);
                 }
 
-                $enriched = $this->tdsynnexService->enrichProductsWithIcecatImages([$product], 1);
-                $product = $enriched[0] ?? $product;
+                // Never block product details on optional image enrichment.
+                try {
+                    $enriched = $this->tdsynnexService->enrichProductsWithIcecatImages([$product], 1);
+                    $product = $enriched[0] ?? $product;
+                } catch (\Throwable $enrichError) {
+                    Log::warning('Product detail enrichment failed; returning base product data.', [
+                        'product_id' => $productId,
+                        'error' => $enrichError->getMessage(),
+                    ]);
+                }
 
                 return response()->json([
                     'success' => true,
@@ -500,7 +745,12 @@ class ProductController extends Controller
                 'message' => $e->getMessage(),
                 'error' => 'API_ERROR'
             ], 400);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
+            Log::error('ProductController.show failed', [
+                'product_id' => $productId,
+                'error' => $e->getMessage(),
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve product: ' . $e->getMessage(),
@@ -516,7 +766,8 @@ class ProductController extends Controller
     {
         try {
             if ($this->tdsynnexService->usesPriceAvailabilityAsProductSource()) {
-                $product = $this->tdsynnexService->getPriceAvailabilityProductBySku($skuNo);
+                $product = $this->getPriceAvailabilityProductFromDatabase($skuNo)
+                    ?? $this->tdsynnexService->getPriceAvailabilityProductBySku($skuNo);
 
                 if (!$product) {
                     return response()->json([
@@ -547,7 +798,12 @@ class ProductController extends Controller
                 'message' => $e->getMessage(),
                 'error' => 'API_ERROR'
             ], 400);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
+            Log::error('ProductController.getBySku failed', [
+                'sku' => $skuNo,
+                'error' => $e->getMessage(),
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve product: ' . $e->getMessage(),
@@ -563,8 +819,7 @@ class ProductController extends Controller
     {
         try {
             if ($this->tdsynnexService->usesPriceAvailabilityAsProductSource()) {
-                $relatedProducts = $this->tdsynnexService->getPriceAvailabilityRelatedProducts($productId);
-                $relatedProducts = $this->tdsynnexService->enrichProductsWithIcecatImages($relatedProducts, count($relatedProducts));
+                $relatedProducts = $this->getPriceAvailabilityRelatedFromDatabase($productId, 8);
 
                 return response()->json([
                     'success' => true,
@@ -590,13 +845,57 @@ class ProductController extends Controller
                 'message' => $e->getMessage(),
                 'error' => 'API_ERROR'
             ], 400);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
+            Log::error('ProductController.related failed', [
+                'product_id' => $productId,
+                'error' => $e->getMessage(),
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve related products: ' . $e->getMessage(),
                 'error' => 'SERVER_ERROR'
             ], 500);
         }
+    }
+
+    private function getPriceAvailabilityRelatedFromDatabase(string $skuOrProductId, int $limit = 8): array
+    {
+        $target = $this->getPriceAvailabilityProductFromDatabase($skuOrProductId);
+        if (!$target) {
+            return [];
+        }
+
+        $targetSku = strtoupper(trim((string) ($target['sku'] ?? $target['productId'] ?? '')));
+        $targetCategory = trim((string) ($target['categoryCode'] ?? ''));
+
+        $query = Product::query()->where('vendor_id', 'TD SYNNEX');
+
+        if ($targetCategory !== '' && $targetCategory !== '-') {
+            $query->where('specifications->categoryCode', $targetCategory);
+        }
+
+        $candidates = $query
+            ->orderBy('updated_at', 'desc')
+            ->limit(max(1, $limit) * 4)
+            ->get();
+
+        $related = [];
+        foreach ($candidates as $candidate) {
+            $mapped = $this->mapPriceAvailabilityDatabaseProduct($candidate);
+            $candidateSku = strtoupper(trim((string) ($mapped['sku'] ?? $mapped['productId'] ?? '')));
+
+            if ($candidateSku === '' || $candidateSku === $targetSku) {
+                continue;
+            }
+
+            $related[] = $mapped;
+            if (count($related) >= max(1, $limit)) {
+                break;
+            }
+        }
+
+        return $related;
     }
 
     /**

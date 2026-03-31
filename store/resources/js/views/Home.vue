@@ -2,7 +2,7 @@
   <div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100">
     <!-- Navigation -->
     <nav class="sticky top-0 z-50 backdrop-blur-md bg-white/80 border-b border-blue-100 shadow-sm">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-5">
         <div class="flex justify-between items-center h-16">
           <div class="flex items-center space-x-3">
             <div class="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-800 rounded-lg flex items-center justify-center">
@@ -32,7 +32,7 @@
         <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse" style="animation-delay: 2s;"></div>
       </div>
 
-      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 sm:py-32">
+      <div class="relative max-w-7xl mx-auto px-3 sm:px-4 lg:px-5 py-24 sm:py-32">
         <div class="text-center">
           <h2 class="text-5xl sm:text-6xl font-bold text-slate-900 mb-6 leading-tight">
             B2B Procurements
@@ -54,7 +54,7 @@
     </div>
 
     <!-- Features Section -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+    <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-5 py-20">
       <div class="text-center mb-16">
         <h3 class="text-4xl font-bold text-slate-900 mb-4">Why Choose Armely?</h3>
         <p class="text-lg text-slate-600">Everything you need for efficient B2B procurement</p>
@@ -98,7 +98,7 @@
 
     <!-- Stats Section -->
     <div class="bg-gradient-to-r from-blue-600 to-blue-800 py-16">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-5">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-12 text-center">
           <div>
             <div class="text-4xl font-bold text-white mb-2">50K+</div>
@@ -117,7 +117,7 @@
     </div>
 
     <!-- CTA Section -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+    <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-5 py-20">
       <div class="bg-gradient-to-r from-blue-50 to-slate-50 rounded-2xl border border-blue-200 p-12 text-center">
         <h3 class="text-3xl font-bold text-slate-900 mb-4">Ready to Transform Your Procurement?</h3>
         <p class="text-lg text-slate-600 mb-8">Join hundreds of businesses using Armely for efficient hardware procurement</p>
@@ -128,8 +128,8 @@
     </div>
 
     <!-- Footer -->
-    <footer class="bg-slate-900 text-slate-300 py-12">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <footer class="bg-slate-900 text-slate-300 py-9">
+      <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-5">
         <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
           <div>
             <h4 class="text-white font-bold mb-4">Armely Store</h4>

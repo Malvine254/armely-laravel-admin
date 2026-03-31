@@ -4,7 +4,7 @@
     <Navbar />
 
     <!-- Main Content -->
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-5 py-8">
       <!-- Back Button -->
       <button @click="goBack" class="mb-6 flex items-center gap-2 text-sm transition" style="color: #2F5597;" @mouseenter="$event.target.style.opacity='0.7'" @mouseleave="$event.target.style.opacity='1'">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -18,12 +18,12 @@
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 p-6 lg:p-10">
           <!-- Product Image Section -->
           <div class="flex flex-col">
-            <div class="flex-1 bg-gradient-to-br from-gray-200 to-gray-300 rounded-lg p-3 flex items-center justify-center mb-4 overflow-hidden" style="background: linear-gradient(135deg, rgb(229, 231, 235), rgb(209, 213, 219)); min-height: 22rem;">
+            <div class="flex-1 bg-gradient-to-br from-gray-200 to-gray-300 rounded-lg flex items-center justify-center mb-4 overflow-hidden" style="background: linear-gradient(135deg, rgb(229, 231, 235), rgb(209, 213, 219)); min-block-size: 22rem;">
               <img
                 v-if="selectedImage"
                 :src="selectedImage"
                 :alt="product.productName"
-                class="w-full h-full object-contain rounded"
+                class="w-full h-full object-cover object-center"
                 loading="eager"
                 @error="selectedImage = ''"
               />
@@ -67,7 +67,6 @@
 
             <!-- Product Name -->
             <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ product.productName }}</h1>
-            <p v-if="product.description" class="text-sm text-gray-700 mb-4">{{ product.description }}</p>
 
             <!-- Basic Info -->
             <div class="grid grid-cols-2 gap-4 mb-6 pb-6 border-b border-gray-200">
@@ -150,27 +149,31 @@
           </div>
         </div>
 
-        <!-- Additional Details Section -->
-        <div class="bg-gray-50 px-6 lg:px-10 py-8 border-t border-gray-200">
-          <h2 class="text-lg font-bold text-gray-900 mb-6">Complete Product Information</h2>
-          
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <!-- Details Grid -->
-            <div v-for="(value, key) in productDetails" :key="key" class="bg-white p-4 rounded-lg border border-gray-200">
-              <p class="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2">{{ formatKey(key) }}</p>
-              <p class="text-sm text-gray-900 break-words">
-                {{ value === null || value === undefined || value === '' ? 'N/A' : String(value).substring(0, 100) }}
-                <span v-if="String(value).length > 100">...</span>
-              </p>
-            </div>
-          </div>
-        </div>
       </div>
 
       <!-- Loading State -->
-      <div v-else class="bg-white rounded-lg shadow-lg p-12 text-center">
-        <div class="w-12 h-12 border-4 border-gray-200 rounded-full animate-spin mx-auto mb-4" style="border-top-color: #2F5597;"></div>
+      <div v-else-if="isLoading" class="bg-white rounded-lg shadow-lg p-12 text-center">
+        <div class="w-12 h-12 border-4 border-gray-200 rounded-full animate-spin mx-auto mb-4" style="border-block-start-color: #2F5597;"></div>
         <p class="text-gray-600 font-semibold">Loading product details...</p>
+      </div>
+
+      <!-- Error State -->
+      <div v-else class="bg-white rounded-lg shadow-lg p-12 text-center">
+        <div class="mx-auto mb-4 w-14 h-14 rounded-full bg-red-50 flex items-center justify-center text-red-600">
+          <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M4.93 19h14.14c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.2 16c-.77 1.33.19 3 1.73 3z"></path>
+          </svg>
+        </div>
+        <p class="text-gray-900 font-semibold mb-2">Unable to load product details</p>
+        <p class="text-gray-600 mb-6">{{ loadError || 'The product could not be loaded at this time.' }}</p>
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
+          <button @click="retryLoadProduct" class="px-5 py-2.5 text-white font-semibold rounded-lg transition" style="background-color: #2F5597;" @mouseenter="$event.target.style.backgroundColor='#1f4788'" @mouseleave="$event.target.style.backgroundColor='#2F5597'">
+            Try Again
+          </button>
+          <button @click="goBack" class="px-5 py-2.5 border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition">
+            Back to Products
+          </button>
+        </div>
       </div>
 
       <!-- Related Products Section -->
@@ -203,12 +206,12 @@
             </h3>
             
             <!-- Product Details -->
-            <div class="space-y-1 mb-3">
-              <p class="text-xs text-gray-600">
-                <span class="font-semibold">Vendor:</span> {{ relatedProduct.vendorId || 'N/A' }}
-              </p>
-              <p class="text-xs text-gray-600">
+            <div class="mb-3 flex items-center justify-between gap-3 text-xs text-gray-600 whitespace-nowrap">
+              <p class="truncate">
                 <span class="font-semibold">SKU:</span> {{ relatedProduct.mfgPartNo || 'N/A' }}
+              </p>
+              <p class="truncate text-right">
+                <span class="font-semibold">Vendor:</span> {{ relatedProduct.vendorId || 'N/A' }}
               </p>
             </div>
             
@@ -230,7 +233,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useToastStore } from '../../stores/toastStore'
 import { useCartStore } from '../../stores/cartStore'
@@ -247,47 +250,103 @@ const cartStore = useCartStore()
 const favoritesStore = useFavoritesStore()
 const authStore = useAuthStore()
 const selectedImage = ref('')
+const isLoading = ref(false)
+const loadError = ref('')
 
-onMounted(async () => {
-  // Fetch product from API using product ID from route params
-  const productId = route.params.id
-  if (productId) {
-    try {
-      const response = await fetch(`/api/v1/products/${productId}`)
-      if (response.ok) {
-        const json = await response.json()
-        // Extract product data from API response wrapper
-        product.value = json.data || json
-        
-        // Fetch related products after main product is loaded
-        fetchRelatedProducts(productId)
-      } else {
-        console.error('Failed to fetch product')
-      }
-    } catch (error) {
-      console.error('Error fetching product:', error)
-    }
+const productDetailCache = new Map()
+const relatedProductsCache = new Map()
+
+const loadRelatedProducts = async (productId, cacheKey, cachedRelated) => {
+  if (cachedRelated) {
+    relatedProducts.value = cachedRelated
+    return
   }
-})
 
-const fetchRelatedProducts = async (productId) => {
   try {
     const response = await fetch(`/api/v1/products/${productId}/related`)
-    if (response.ok) {
-      const json = await response.json()
-      // Extract related products data from API response
-      const data = json.data || json
-      relatedProducts.value = data.records || data || []
-      console.log('Related products fetched:', relatedProducts.value.length)
-    } else {
-      console.warn('Failed to fetch related products')
+    if (!response.ok) {
       relatedProducts.value = []
+      relatedProductsCache.set(cacheKey, [])
+      return
     }
-  } catch (error) {
-    console.error('Error fetching related products:', error)
+
+    const json = await response.json()
+    const data = json.data || json
+    const loadedRelated = data.records || data || []
+    relatedProducts.value = loadedRelated
+    relatedProductsCache.set(cacheKey, loadedRelated)
+  } catch (relatedError) {
+    console.warn('Related products fetch failed:', relatedError)
     relatedProducts.value = []
   }
 }
+
+const loadProductDetail = async (productId) => {
+  if (!productId) return
+
+  const cacheKey = String(productId)
+  const cachedProduct = productDetailCache.get(cacheKey)
+  const cachedRelated = relatedProductsCache.get(cacheKey)
+  isLoading.value = true
+  loadError.value = ''
+
+  if (cachedProduct) {
+    product.value = cachedProduct
+  } else {
+    product.value = null
+    selectedImage.value = ''
+  }
+
+  if (cachedRelated) {
+    relatedProducts.value = cachedRelated
+  } else {
+    relatedProducts.value = []
+  }
+
+  try {
+    if (!cachedProduct) {
+      const response = await fetch(`/api/v1/products/${productId}`)
+      if (!response.ok) {
+        throw new Error(response.status === 404 ? 'Product not found.' : `Failed to fetch product (${response.status}).`)
+      }
+
+      const json = await response.json()
+      const loadedProduct = json.data || json
+      if (!loadedProduct || (typeof loadedProduct === 'object' && Object.keys(loadedProduct).length === 0)) {
+        throw new Error('Product not found.')
+      }
+
+      product.value = loadedProduct
+      productDetailCache.set(cacheKey, loadedProduct)
+    }
+
+  } catch (error) {
+    console.error('Error loading product detail:', error)
+    product.value = null
+    loadError.value = error instanceof Error ? error.message : 'Unable to load this product.'
+  } finally {
+    isLoading.value = false
+  }
+
+  if (product.value) {
+    void loadRelatedProducts(productId, cacheKey, cachedRelated)
+  }
+}
+
+const retryLoadProduct = () => {
+  const productId = route.params.id
+  if (!productId) return
+  loadProductDetail(productId)
+}
+
+watch(
+  () => route.params.id,
+  (productId) => {
+    if (!productId) return
+    loadProductDetail(productId)
+  },
+  { immediate: true }
+)
 
 const navigateToProduct = (productId) => {
   router.push({ name: 'product-detail', params: { id: productId } })
@@ -299,14 +358,6 @@ const goBack = () => {
 
 const formatPrice = (price) => {
   return parseFloat(price || 0).toFixed(2)
-}
-
-const formatKey = (key) => {
-  // Convert camelCase to Title Case
-  return key
-    .replace(/([A-Z])/g, ' $1')
-    .replace(/^./, str => str.toUpperCase())
-    .trim()
 }
 
 const getProductIcon = (productName) => {
@@ -358,35 +409,6 @@ const normalizedImages = computed(() => {
 watch(normalizedImages, (images) => {
   selectedImage.value = images[0] || ''
 }, { immediate: true })
-
-const productDetails = computed(() => {
-  if (!product.value) return {}
-  
-  const details = {}
-  const excludeKeys = ['productName', 'productId', 'vendorId', 'productPrice', 'productCategories', 'billingModel', 'billingFrequency', 'billingTerm', 'isTier', 'discontinueProduct', 'mfgPartNo']
-  
-  Object.keys(product.value).forEach(key => {
-    if (!excludeKeys.includes(key) && product.value[key]) {
-      const value = product.value[key]
-      const valueType = typeof value
-      
-      // Only include strict scalar values
-      if (valueType === 'string' && !value.startsWith('{') && !value.startsWith('[')) {
-        details[key] = value
-      } else if (valueType === 'number' || valueType === 'boolean') {
-        details[key] = value
-      } else if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'string') {
-        // Only include if all items are strings
-        if (value.every(item => typeof item === 'string')) {
-          details[key] = value.join(', ')
-        }
-      }
-      // Skip all object types and mixed arrays
-    }
-  })
-  
-  return details
-})
 
 const isFavorite = computed(() => {
   if (!product.value) return false

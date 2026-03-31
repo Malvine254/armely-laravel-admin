@@ -92,6 +92,7 @@ Route::prefix('v1')->group(function () {
     // Activities endpoints (protected)
     Route::middleware(['auth:sanctum', 'active.user'])->group(function () {
         Route::get('/activities', [ActivityController::class, 'getActivities']);
+        Route::post('/activities/log', [ActivityController::class, 'logActivity']);
     });
 
     // Messages endpoints (protected)

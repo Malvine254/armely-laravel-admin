@@ -26,6 +26,10 @@ class NotificationService
                 $this->mailer->sendQuoteCreatedAdminEmail($admin->email, $admin->name, $quote);
             }
 
+            if ($quote->user && !empty($quote->user->email)) {
+                $this->mailer->sendQuoteSubmittedCustomerEmail($quote);
+            }
+
             Log::info("Quote created notification sent for quote {$quote->quote_id}");
         } catch (\Exception $e) {
             Log::error("Failed to send quote created notification: " . $e->getMessage());

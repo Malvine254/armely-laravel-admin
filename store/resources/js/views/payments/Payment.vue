@@ -2,7 +2,7 @@
   <div class="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100">
     <Navbar />
 
-    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-5 py-8">
       <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8">
         <div class="mb-6">
           <h1 class="text-3xl font-bold text-slate-900">Payment</h1>

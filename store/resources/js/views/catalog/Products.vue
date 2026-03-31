@@ -4,7 +4,7 @@
     <Navbar />
 
     <!-- Main Content -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-5 py-8">
       <!-- Page Title -->
       <div class="mb-8">
         <h1 class="text-4xl font-bold text-gray-900 mb-2">B2B Procurements</h1>
@@ -42,6 +42,8 @@
           <FilterSidebar 
             :vendors="availableVendors" 
             :categories="availableCategories"
+            :lifecycle-options="lifecycleOptions"
+            :media-options="mediaOptions"
             @filter-change="handleFilterChange"
           />
         </div>
@@ -49,7 +51,7 @@
         <!-- Products Section -->
         <div class="flex-1 min-w-0">
           <!-- Loading State -->
-          <div v-if="loading" class="text-center py-12">
+          <div v-if="loading" class="text-center py-9">
             <div class="inline-block">
               <div class="w-12 h-12 border-4 border-gray-200 rounded-full animate-spin" style="border-top-color: #2F5597;"></div>
               <p class="mt-4 text-gray-600 font-semibold">Loading products...</p>
@@ -80,7 +82,7 @@
             </div>
 
             <!-- Empty State -->
-            <div v-if="totalProducts === 0" class="text-center py-12 bg-white rounded-xl border border-gray-200">
+            <div v-if="totalProducts === 0" class="text-center py-9 bg-white rounded-xl border border-gray-200">
               <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
               </svg>
@@ -139,8 +141,10 @@
                     <span v-if="product.discontinueProduct" class="ml-2 px-2 py-1 bg-red-100 text-red-700 text-xs font-semibold rounded">EOL</span>
                     <span v-else class="ml-2 px-2 py-1 text-xs font-semibold rounded" style="background-color: #cce4f4; color: #2F5597;">Active</span>
                   </div>
-                  <p class="text-xs text-gray-600 mb-2">SKU: {{ product.mfgPartNo || 'N/A' }}</p>
-                  <p class="text-xs text-gray-600 mb-3">Vendor: {{ product.vendorId }}</p>
+                  <div class="flex items-center justify-between gap-3 text-xs text-gray-600 mb-3">
+                    <p class="truncate">SKU: {{ product.mfgPartNo || 'N/A' }}</p>
+                    <p class="truncate text-right">Vendor: {{ product.vendorId || 'N/A' }}</p>
+                  </div>
                   
                   <!-- Pricing -->
                   <div v-if="product.productPrice && product.productPrice.length > 0" class="mb-4">
@@ -232,6 +236,8 @@ const SEARCH_TRACK_DEBOUNCE_MS = 15000
 const PROFILE_TERM_LIMIT = 25
 
 const products = ref([])
+const serverTotal = ref(0)
+const serverPaged = ref(false)
 const loading = ref(false)
 const error = ref('')
 const searchQuery = ref('')
@@ -245,9 +251,77 @@ const availableCategories = ref([])
 const currentFilters = ref({
   priceMin: 0,
   priceMax: 10000,
+  partNumber: '',
   vendors: [],
   categories: [],
-  billingModels: []
+  lifecycleStatuses: [],
+  mediaStatuses: []
+})
+
+const requiresClientForFilters = (filters) => {
+  return (
+    (Array.isArray(filters?.categories) && filters.categories.length > 0)
+    || String(filters?.partNumber || '').trim().length > 0
+    || (Array.isArray(filters?.lifecycleStatuses) && filters.lifecycleStatuses.length > 0)
+    || (Array.isArray(filters?.mediaStatuses) && filters.mediaStatuses.length > 0)
+  )
+}
+
+const isEolProduct = (product) => {
+  const value = product?.discontinueProduct
+  if (typeof value === 'boolean') return value
+  const normalized = String(value || '').toLowerCase().trim()
+  return normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'y'
+}
+
+const hasProductImage = (product) => {
+  const images = product?.productImages
+  if (!Array.isArray(images) || images.length === 0) return false
+
+  return images.some((image) => {
+    if (typeof image === 'string') {
+      return image.trim().length > 0
+    }
+
+    const url = String(image?.imageUrl || image?.url || '').trim()
+    return url.length > 0
+  })
+}
+
+const lifecycleOptions = computed(() => {
+  let activeCount = 0
+  let eolCount = 0
+
+  products.value.forEach((product) => {
+    if (isEolProduct(product)) {
+      eolCount += 1
+    } else {
+      activeCount += 1
+    }
+  })
+
+  return [
+    { name: 'Active', count: activeCount },
+    { name: 'End of Life', count: eolCount }
+  ]
+})
+
+const mediaOptions = computed(() => {
+  let hasImageCount = 0
+  let noImageCount = 0
+
+  products.value.forEach((product) => {
+    if (hasProductImage(product)) {
+      hasImageCount += 1
+    } else {
+      noImageCount += 1
+    }
+  })
+
+  return [
+    { name: 'Has Image', count: hasImageCount },
+    { name: 'No Image', count: noImageCount }
+  ]
 })
 
 const normalizeSearchText = (value) => String(value || '').toLowerCase().trim().replace(/\s+/g, ' ')
@@ -342,6 +416,12 @@ const filteredProducts = computed(() => {
   const filters = currentFilters.value
   
   let filtered = products.value
+
+  // Filter by part number
+  if (filters.partNumber && String(filters.partNumber).trim().length > 0) {
+    const partQuery = String(filters.partNumber).toLowerCase().trim()
+    filtered = filtered.filter((product) => String(product.mfgPartNo || '').toLowerCase().includes(partQuery))
+  }
   
   // Filter by category
   if (filters.categories && filters.categories.length > 0) {
@@ -378,23 +458,52 @@ const filteredProducts = computed(() => {
     })
   }
   
-  // Filter by billing models (if not already filtered by category)
-  if (filters.billingModels && filters.billingModels.length > 0 && !filters.categories?.length) {
+  // Filter by lifecycle status
+  if (filters.lifecycleStatuses && filters.lifecycleStatuses.length > 0) {
     filtered = filtered.filter(product => {
-      return filters.billingModels.some(model => 
-        product.billingModel && product.billingModel.includes(model)
-      )
+      const eol = isEolProduct(product)
+      return filters.lifecycleStatuses.some((status) => {
+        if (status === 'End of Life') return eol
+        if (status === 'Active') return !eol
+        return false
+      })
+    })
+  }
+
+  // Filter by image availability
+  if (filters.mediaStatuses && filters.mediaStatuses.length > 0) {
+    filtered = filtered.filter((product) => {
+      const hasImage = hasProductImage(product)
+      return filters.mediaStatuses.some((status) => {
+        if (status === 'Has Image') return hasImage
+        if (status === 'No Image') return !hasImage
+        return false
+      })
     })
   }
   
   return rankProductsByPersonalization(filtered)
 })
 
-const totalProducts = computed(() => filteredProducts.value.length)
+const requiresClientSideFiltering = computed(() => {
+  return requiresClientForFilters(currentFilters.value)
+})
+
+const totalProducts = computed(() => {
+  if (serverPaged.value) {
+    return Number(serverTotal.value || 0)
+  }
+
+  return filteredProducts.value.length
+})
 
 const totalPages = computed(() => Math.ceil(totalProducts.value / ITEMS_PER_PAGE))
 
 const paginatedProducts = computed(() => {
+  if (serverPaged.value) {
+    return filteredProducts.value
+  }
+
   const start = (currentPage.value - 1) * ITEMS_PER_PAGE
   const end = start + ITEMS_PER_PAGE
   return filteredProducts.value.slice(start, end)
@@ -402,7 +511,7 @@ const paginatedProducts = computed(() => {
 
 const pageNumbers = computed(() => {
   const pages = []
-  const maxPagesToShow = 5
+  const maxPagesToShow = 10
   let startPage = Math.max(1, currentPage.value - Math.floor(maxPagesToShow / 2))
   let endPage = Math.min(totalPages.value, startPage + maxPagesToShow - 1)
 
@@ -429,13 +538,18 @@ const resolveVendorApiValues = (selectedVendorNames = []) => {
     .filter(Boolean)
 }
 
-const getCacheKey = (filters) => {
+const getCacheKey = (filters, page = 1, useServerPaged = false) => {
   return JSON.stringify({
     vendors: filters.vendors,
     search: searchQuery.value,
     minPrice: filters.priceMin,
     maxPrice: filters.priceMax,
-    billingModels: filters.billingModels
+    partNumber: filters.partNumber,
+    lifecycleStatuses: filters.lifecycleStatuses,
+    mediaStatuses: filters.mediaStatuses,
+    categories: filters.categories,
+    page: useServerPaged ? page : 1,
+    mode: useServerPaged ? 'server' : 'client'
   })
 }
 
@@ -489,11 +603,15 @@ const fetchAllProductPages = async (baseParams) => {
   return [...firstRecords, ...remaining.flat()]
 }
 
-const performSearch = async () => {
+const performSearch = async (resetPage = true) => {
   loading.value = true
   error.value = ''
-  currentPage.value = 1
-  products.value = [] // Clear products while loading
+  if (resetPage) {
+    currentPage.value = 1
+  }
+
+  const useServerPaged = !requiresClientSideFiltering.value
+  serverPaged.value = useServerPaged
 
   const normalizedQuery = normalizeSearchText(searchQuery.value)
   if (normalizedQuery) {
@@ -506,7 +624,7 @@ const performSearch = async () => {
     }
   }
 
-  const cacheKey = getCacheKey(currentFilters.value)
+  const cacheKey = getCacheKey(currentFilters.value, currentPage.value, useServerPaged)
 
   // Check if results are already cached (cache for 5 minutes)
   if (requestCache.has(cacheKey)) {
@@ -514,7 +632,11 @@ const performSearch = async () => {
     if (Date.now() - cached.timestamp < 5 * 60 * 1000) {
       console.log('📦 Loading from local cache')
       products.value = cached.data
-      extractCategories()
+      serverTotal.value = Number(cached.total || cached.data?.length || 0)
+      serverPaged.value = Boolean(cached.serverPaged)
+      if (!useServerPaged || availableCategories.value.length === 0) {
+        extractCategories()
+      }
       loading.value = false
       return
     }
@@ -525,8 +647,12 @@ const performSearch = async () => {
     console.log('⏳ Waiting for in-progress request...')
     try {
       const result = await pendingRequests.get(cacheKey)
-      products.value = result
-      extractCategories()
+      products.value = result.data
+      serverTotal.value = Number(result.total || result.data?.length || 0)
+      serverPaged.value = Boolean(result.serverPaged)
+      if (!useServerPaged || availableCategories.value.length === 0) {
+        extractCategories()
+      }
     } finally {
       loading.value = false
     }
@@ -549,8 +675,6 @@ const performSearch = async () => {
         if (selectedVendorValues.length > 0) {
           params.vendors = selectedVendorValues.join(',')
         }
-      } else {
-        params.vendor = 'Microsoft'
       }
 
       if (currentFilters.value.priceMin > 0) {
@@ -560,17 +684,43 @@ const performSearch = async () => {
         params.max_price = currentFilters.value.priceMax
       }
 
-      if (currentFilters.value.billingModels.length > 0) {
-        params.billing_models = currentFilters.value.billingModels.join(',')
+      let loadedProducts = []
+      let loadedTotal = 0
+
+      if (useServerPaged) {
+        const response = await axios.get('/api/v1/products', {
+          params: {
+            ...params,
+            page: currentPage.value,
+            per_page: ITEMS_PER_PAGE,
+            hide_zero_price: false
+          }
+        })
+
+        if (!response.data?.success) {
+          error.value = 'Failed to fetch products'
+          return { data: [], total: 0, serverPaged: true }
+        }
+
+        const payload = response.data.data || {}
+        loadedProducts = Array.isArray(payload.records)
+          ? payload.records
+          : (Array.isArray(payload) ? payload : [])
+        loadedTotal = Number(payload.total || loadedProducts.length || 0)
+      } else {
+        loadedProducts = await fetchAllProductPages(params)
+        loadedTotal = loadedProducts.length
       }
 
       console.log('🔍 Fetching products with filters:', {
         vendors: currentFilters.value.vendors,
         cached: params.cached ?? false,
-        hide_zero_price: params.hide_zero_price
+        hide_zero_price: params.hide_zero_price,
+        mode: useServerPaged ? 'server-paged' : 'client-full'
       })
 
-      products.value = await fetchAllProductPages(params)
+      products.value = loadedProducts
+      serverTotal.value = loadedTotal
       if (Array.isArray(products.value)) {
         
         // Log cache status
@@ -587,21 +737,29 @@ const performSearch = async () => {
         // Cache results locally
         requestCache.set(cacheKey, {
           data: products.value,
+          total: loadedTotal,
+          serverPaged: useServerPaged,
           timestamp: Date.now()
         })
         
         // Extract categories from loaded products
-        extractCategories()
+        if (!useServerPaged || availableCategories.value.length === 0) {
+          extractCategories()
+        }
         
-        return products.value
+        return {
+          data: products.value,
+          total: loadedTotal,
+          serverPaged: useServerPaged
+        }
       } else {
         error.value = 'Failed to fetch products'
-        return []
+        return { data: [], total: 0, serverPaged: useServerPaged }
       }
     } catch (err) {
       error.value = err.response?.data?.message || err.message || 'Failed to fetch products'
       console.error('❌ Product fetch error:', err)
-      return []
+      return { data: [], total: 0, serverPaged: useServerPaged }
     }
   })()
 
@@ -621,7 +779,7 @@ const clearSearch = async () => {
   }
 
   searchQuery.value = ''
-  await performSearch()
+  await performSearch(true)
 }
 
 const fetchVendors = async () => {
@@ -680,20 +838,22 @@ const fetchVendorCounts = async () => {
       
       if (response.data.success) {
         const data = response.data.data
-        // Use apiTotal if available, otherwise fall back to total
+        // Vendor count must come from filtered total, not overall apiTotal.
         return {
           name: vendor.name,
-          count: data.apiTotal || data.total || 0
+          count: Number(data.total || data.apiTotal || 0),
+          ok: true
         }
       }
     } catch (err) {
       console.error(`Error fetching count for ${vendor.name}:`, err)
-      return { name: vendor.name, count: 0 }
+      return { name: vendor.name, count: 0, ok: false }
     }
-    return { name: vendor.name, count: 0 }
+    return { name: vendor.name, count: 0, ok: false }
   })
   
   const counts = await Promise.all(countPromises)
+  const successfulCountRequests = counts.filter(item => item.ok).length
   
   // Update vendor counts
   counts.forEach(({ name, count }) => {
@@ -703,7 +863,15 @@ const fetchVendorCounts = async () => {
     }
   })
 
-  // Only show vendors that actually have products, ordered ascending by count.
+  // Keep vendor list visible even when count lookups fail intermittently.
+  if (successfulCountRequests === 0) {
+    availableVendors.value = availableVendors.value
+      .filter(vendor => String(vendor.name || '').trim().length > 0)
+      .sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')))
+    return
+  }
+
+  // When counts are available, keep only vendors with products.
   availableVendors.value = availableVendors.value
     .filter(vendor => {
       const hasName = String(vendor.name || '').trim().length > 0
@@ -830,11 +998,17 @@ const extractCategories = () => {
 }
 
 const handleFilterChange = (filters) => {
+  const previousFilters = { ...currentFilters.value }
+  const previousRequiresClient = requiresClientForFilters(previousFilters)
+  const nextRequiresClient = requiresClientForFilters(filters)
+
   const previousVendors = [...currentFilters.value.vendors]
   const previousPriceMin = currentFilters.value.priceMin
   const previousPriceMax = currentFilters.value.priceMax
+  const previousPartNumber = currentFilters.value.partNumber
   const previousCategories = [...currentFilters.value.categories]
-  const previousBillingModels = [...currentFilters.value.billingModels]
+  const previousLifecycleStatuses = [...currentFilters.value.lifecycleStatuses]
+  const previousMediaStatuses = [...currentFilters.value.mediaStatuses]
   
   currentPage.value = 1 // Reset to first page when filters change
   
@@ -846,14 +1020,24 @@ const handleFilterChange = (filters) => {
   const priceChanged = 
     previousPriceMin !== filters.priceMin ||
     previousPriceMax !== filters.priceMax
+
+  const partNumberChanged = previousPartNumber !== filters.partNumber
   
   const categoriesChanged =
     previousCategories.length !== filters.categories.length ||
     previousCategories.some((c, i) => c !== filters.categories[i])
   
-  const billingModelsChanged =
-    previousBillingModels.length !== filters.billingModels.length ||
-    previousBillingModels.some((b, i) => b !== filters.billingModels[i])
+  const lifecycleChanged =
+    previousLifecycleStatuses.length !== filters.lifecycleStatuses.length ||
+    previousLifecycleStatuses.some((b, i) => b !== filters.lifecycleStatuses[i])
+
+  const mediaChanged =
+    previousMediaStatuses.length !== filters.mediaStatuses.length ||
+    previousMediaStatuses.some((m, i) => m !== filters.mediaStatuses[i])
+
+  const serverScopedFiltersChanged = vendorsChanged || priceChanged
+  const clientOnlyFiltersChanged = partNumberChanged || categoriesChanged || lifecycleChanged || mediaChanged
+  const modeChanged = previousRequiresClient !== nextRequiresClient
   
   // Always update the filters - this ensures the computed property recalculates
   currentFilters.value = { ...filters }
@@ -864,12 +1048,16 @@ const handleFilterChange = (filters) => {
     vendors: filters.vendors
   })
   
-  // Re-fetch if vendor or price changed (API filters)
-  if (vendorsChanged || priceChanged) {
-    performSearch()
+  // Only re-fetch when server-scoped filters change or when switching between server/client filter mode.
+  if (serverScopedFiltersChanged || modeChanged) {
+    performSearch(true)
+    return
   }
-  // If only categories or billing models changed, compute will handle it automatically
-  // since currentFilters.value is now updated and will trigger the computed property
+
+  // Client-only filters are applied locally once full dataset is loaded.
+  if (clientOnlyFiltersChanged && nextRequiresClient) {
+    loading.value = false
+  }
 }
 
 const resetFilters = () => {
@@ -878,16 +1066,21 @@ const resetFilters = () => {
   currentFilters.value = {
     priceMin: 0,
     priceMax: 10000,
+    partNumber: '',
     vendors: [],
     categories: [],
-    billingModels: []
+    lifecycleStatuses: [],
+    mediaStatuses: []
   }
-  performSearch()
+  performSearch(true)
 }
 
 const nextPage = () => {
   if (currentPage.value < totalPages.value) {
     currentPage.value++
+    if (serverPaged.value) {
+      performSearch(false)
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 }
@@ -895,12 +1088,18 @@ const nextPage = () => {
 const previousPage = () => {
   if (currentPage.value > 1) {
     currentPage.value--
+    if (serverPaged.value) {
+      performSearch(false)
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 }
 
 const goToPage = (page) => {
   currentPage.value = page
+  if (serverPaged.value) {
+    performSearch(false)
+  }
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
@@ -962,7 +1161,7 @@ watch(
   () => route.query.q,
   (newQuery) => {
     searchQuery.value = newQuery ? String(newQuery) : ''
-    performSearch()
+    performSearch(true)
   },
   { immediate: true }
 )

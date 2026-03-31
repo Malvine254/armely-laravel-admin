@@ -84,7 +84,7 @@ class AzureGraphMailService
         $safeName  = e($adminName ?: 'Admin');
         $quoteId   = e($quote->quote_id);
         $customer  = e($quote->user->name ?? 'Unknown');
-        $amount    = number_format($quote->total_amount, 2);
+        $amount    = number_format((float) ($quote->total_amount ?? 0), 2);
         $appUrl    = config('app.url');
 
         $html = "
@@ -110,6 +110,53 @@ class AzureGraphMailService
         return $this->sendEmail($adminEmail, "New Quote Request: {$quoteId}", $html, $text);
     }
 
+    public function sendQuoteSubmittedCustomerEmail(\App\Models\Quote $quote): bool
+    {
+        if (!$this->isConfigured()) {
+            return false;
+        }
+
+        $customer = $quote->user;
+        if (!$customer || !$customer->email) {
+            return false;
+        }
+
+        $safeName = e($customer->name ?? 'Customer');
+        $quoteId = e($quote->quote_id);
+        $amount = number_format((float) ($quote->total_amount ?? 0), 2);
+        $itemCount = is_countable($quote->items) ? count($quote->items) : 0;
+        $status = 'Pending Review';
+        $appUrl = config('app.url');
+
+        $html = "
+            <div style='font-family:Segoe UI,Arial,sans-serif;line-height:1.5;color:#1f2937'>
+                <h2 style='margin:0 0 12px;color:#2F5597'>Quote Submitted Successfully</h2>
+                <p>Hello {$safeName},</p>
+                <p>Thank you for your request. We have received your quote and our team will review it shortly.</p>
+                <div style='border:1px solid #d9e6f7;background:#edf3fb;border-radius:8px;padding:14px;margin:16px 0'>
+                    <p style='margin:0 0 6px'><strong>Quote ID:</strong> {$quoteId}</p>
+                    <p style='margin:0 0 6px'><strong>Status:</strong> {$status}</p>
+                    <p style='margin:0 0 6px'><strong>Items:</strong> {$itemCount}</p>
+                    <p style='margin:0'><strong>Estimated Total:</strong> \${$amount}</p>
+                </div>
+                <p style='margin:24px 0'>
+                    <a href='{$appUrl}/quotes/{$quote->id}' style='background:#2F5597;color:#ffffff;padding:10px 16px;border-radius:6px;text-decoration:none;display:inline-block'>
+                        View Quote
+                    </a>
+                </p>
+                <p>You will receive another email once your quote is approved or if additional details are needed.</p>
+            </div>
+        ";
+
+        $text = "Hello {$safeName},\n\n"
+            . "Your quote {$quoteId} has been submitted and is pending review.\n"
+            . "Items: {$itemCount}\n"
+            . "Estimated total: \${$amount}\n"
+            . "View quote: {$appUrl}/quotes/{$quote->id}";
+
+        return $this->sendEmail($customer->email, "Quote Submitted: {$quoteId}", $html, $text);
+    }
+
     public function sendQuoteApprovedEmail(\App\Models\Quote $quote): bool
     {
         if (!$this->isConfigured()) {
@@ -119,7 +166,7 @@ class AzureGraphMailService
         $customer  = $quote->user;
         $safeName  = e($customer->name ?? 'Customer');
         $quoteId   = e($quote->quote_id);
-        $amount    = number_format($quote->total_amount, 2);
+        $amount    = number_format((float) ($quote->total_amount ?? 0), 2);
         $items     = count($quote->items ?? []);
         $validUntil = $quote->expires_at?->format('M d, Y') ?? 'N/A';
         $appUrl    = config('app.url');

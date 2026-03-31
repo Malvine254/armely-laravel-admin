@@ -38,7 +38,7 @@
       class="mt-12 border-t border-white/20"
       style="background: linear-gradient(to right, #183a72, #0f2a54);"
     >
-      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 text-white">
+      <div class="mx-auto max-w-7xl px-3 sm:px-4 lg:px-5 py-8 text-white">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
           <div>
             <p class="font-semibold">Armely Store</p>

@@ -4,7 +4,7 @@
     <Navbar />
 
     <!-- Main Content -->
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-5 py-8">
       <!-- Page Title -->
       <div class="mb-8">
         <h1 class="text-4xl font-bold text-gray-900 mb-2">My Favorites</h1>
@@ -39,6 +39,14 @@
             <svg class="w-16 h-16 text-gray-500" fill="currentColor" viewBox="0 0 24 24">
               <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
             </svg>
+            <img
+              v-if="getFavoriteImageUrl(product)"
+              :src="getFavoriteImageUrl(product)"
+              :alt="product.productName"
+              class="absolute inset-0 w-full h-full object-cover"
+              loading="lazy"
+              @error="event => event.target.style.display = 'none'"
+            />
             <!-- Remove from Favorites Button -->
             <button @click="removeFromFavorites(product.productId)" class="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition shadow-md">
               <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
@@ -71,12 +79,12 @@
             </div>
 
             <!-- Action Buttons -->
-            <div class="space-y-2">
-              <button @click="viewDetails(product)" class="w-full px-3 py-2 text-white text-sm font-semibold rounded-lg transition" style="background-color: #2F5597;" @mouseenter="$event.target.style.backgroundColor='#1f4788'" @mouseleave="$event.target.style.backgroundColor='#2F5597'">
+            <div class="flex gap-2 w-full">
+              <button @click="viewDetails(product)" class="flex-1 px-3 py-2 text-white text-sm font-semibold rounded-lg transition" style="background-color: #2F5597;" @mouseenter="$event.target.style.backgroundColor='#1f4788'" @mouseleave="$event.target.style.backgroundColor='#2F5597'">
                 View Details
               </button>
-              <button @click="addToQuote(product)" class="w-full px-3 py-2 text-sm font-semibold rounded-lg border-2 transition" style="border-color: #2F5597; color: #2F5597;" @mouseenter="$event.target.style.backgroundColor='#cce4f4'" @mouseleave="$event.target.style.backgroundColor='transparent'">
-                + Add to Quote
+              <button @click="addToQuote(product)" class="px-3 py-2 text-white text-sm font-semibold rounded-lg transition" style="background-color: #2F5597;" @mouseenter="$event.target.style.backgroundColor='#1f4788'" @mouseleave="$event.target.style.backgroundColor='#2F5597'" title="Add to Quote">
+                +
               </button>
             </div>
           </div>
@@ -104,6 +112,35 @@ const goBack = () => {
 
 const formatPrice = (price) => {
   return parseFloat(price || 0).toFixed(2)
+}
+
+const getFavoriteImageUrl = (product) => {
+  const direct = [
+    product?.favoriteImageUrl,
+    product?.imageUrl,
+    product?.thumbnailUrl,
+    product?.image,
+    product?.thumbnail,
+  ]
+
+  for (const value of direct) {
+    const url = String(value || '').trim()
+    if (url.length > 0) return url
+  }
+
+  const images = Array.isArray(product?.productImages) ? product.productImages : []
+  for (const image of images) {
+    if (typeof image === 'string') {
+      const url = image.trim()
+      if (url.length > 0) return url
+      continue
+    }
+
+    const url = String(image?.imageUrl || image?.url || image?.thumbnailUrl || '').trim()
+    if (url.length > 0) return url
+  }
+
+  return ''
 }
 
 const removeFromFavorites = (productId) => {

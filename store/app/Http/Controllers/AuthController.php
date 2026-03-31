@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Activity;
 use App\Models\Company;
 use App\Models\User;
 use App\Models\Address;
@@ -171,6 +172,8 @@ class AuthController extends Controller
         $shippingAddress = $this->resolveDefaultShippingAddress($company);
         $userPayload = $user->toArray();
         $userPayload['shipping_address'] = $shippingAddress;
+
+        Activity::log($user->id, 'login', 'logged_in', 'Signed in to account');
 
         return response()->json([
             'success' => true,
@@ -427,6 +430,8 @@ class AuthController extends Controller
         $freshUser = $user->fresh()?->toArray() ?? [];
         $freshUser['shipping_address'] = $this->resolveDefaultShippingAddress($company);
 
+        Activity::log($user->id, 'profile', 'updated', 'Updated account profile');
+
         return response()->json([
             'success' => true,
             'message' => 'Profile updated successfully',
@@ -463,6 +468,8 @@ class AuthController extends Controller
         $user->update([
             'password' => Hash::make($data['new_password']),
         ]);
+
+        Activity::log($user->id, 'profile', 'password_changed', 'Changed account password');
 
         return response()->json([
             'success' => true,

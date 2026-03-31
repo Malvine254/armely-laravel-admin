@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Jobs\EnrichPriceAvailabilityProductImageJob;
 use App\Models\Product;
 use App\Services\TDSynnexService;
 use Illuminate\Console\Command;
@@ -13,14 +14,14 @@ class EnrichPriceAvailabilityImagesCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'tdsynnex:enrich-priceavailability-images {--chunk=25 : Number of products per batch} {--limit=0 : Max products to process (0 = all)}';
+    protected $signature = 'tdsynnex:enrich-priceavailability-images {--chunk=25 : Number of products per batch} {--limit=0 : Max products to process (0 = all)} {--sync : Run inline and block until complete} {--descriptions : Backfill Icecat descriptions for products with missing or name-only descriptions}';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Fetch Icecat images for PriceAvailability products and persist them to products.images by SKU';
+    protected $description = 'Fetch Icecat images (and optionally descriptions) for PriceAvailability products from Icecat and persist to DB';
 
     public function handle(TDSynnexService $service): int
     {
@@ -32,28 +33,70 @@ class EnrichPriceAvailabilityImagesCommand extends Command
 
             $chunk = max(1, (int) $this->option('chunk'));
             $limit = max(0, (int) $this->option('limit'));
+            $descriptionMode = (bool) $this->option('descriptions');
 
-            $this->info('Loading PriceAvailability catalog...');
-            $catalog = $service->getPriceAvailabilityCatalog();
+            if (!$this->option('sync')) {
+                if ($descriptionMode) {
+                    $this->warn('Description backfill currently supports sync mode only. Use --sync --descriptions.');
+                    return self::FAILURE;
+                }
 
-            if ($limit > 0) {
-                $catalog = array_slice($catalog, 0, $limit);
-            }
+                $query = Product::query()
+                    ->where('vendor_id', 'TD SYNNEX')
+                    ->where(function ($q) {
+                        $q->whereNull('images')
+                            ->orWhere('images', '[]');
+                    })
+                    ->orderBy('id')
+                    ->select('id');
 
-            $total = count($catalog);
-            if ($total === 0) {
-                $this->warn('No products found in catalog.');
+                if ($limit > 0) {
+                    $query->limit($limit);
+                }
+
+                $productIds = $query->pluck('id');
+                foreach ($productIds as $productId) {
+                    EnrichPriceAvailabilityProductImageJob::dispatch((int) $productId);
+                }
+
+                $this->info('PriceAvailability image enrichment queued. Processing will continue in the background.');
+                $this->line('Products queued: ' . $productIds->count());
+                $this->line('Queue connection: database');
+                $this->line('Queue name: products-sync');
+                $this->line('Run multiple workers for parallelism, for example: php artisan queue:work database --queue=products-sync --sleep=1 --timeout=120');
+
                 return self::SUCCESS;
             }
 
-            $this->info("Enriching images for {$total} products in chunks of {$chunk}...");
+            if ($descriptionMode) {
+                $this->info('Backfilling Icecat descriptions for products missing descriptions...');
+                $result = $service->syncPriceAvailabilityDescriptionsFromDatabase($chunk, $limit);
 
-            $processed = 0;
-            foreach (array_chunk($catalog, $chunk) as $batch) {
-                // Override lookup cap so this batch is fully processed.
-                $service->enrichProductsWithIcecatImages($batch, count($batch));
-                $processed += count($batch);
-                $this->line("Processed {$processed}/{$total}");
+                if ((int) ($result['processed'] ?? 0) === 0) {
+                    $this->warn('No database products found that need description enrichment.');
+                    return self::SUCCESS;
+                }
+
+                $withDesc = Product::query()
+                    ->where('vendor_id', 'TD SYNNEX')
+                    ->whereNotNull('description')
+                    ->where('description', '!=', '')
+                    ->count();
+
+                $this->info('Description enrichment complete.');
+                $this->line('Products processed: ' . (int) ($result['processed'] ?? 0));
+                $this->line('Products updated:   ' . (int) ($result['updated'] ?? 0));
+                $this->line('Products with descriptions: ' . $withDesc);
+
+                return self::SUCCESS;
+            }
+
+            $this->info('Enriching images from cached database products...');
+            $result = $service->syncPriceAvailabilityImagesFromDatabase($chunk, $limit);
+
+            if ((int) ($result['processed'] ?? 0) === 0) {
+                $this->warn('No database products found that need image enrichment.');
+                return self::SUCCESS;
             }
 
             $withImages = Product::query()
@@ -63,6 +106,8 @@ class EnrichPriceAvailabilityImagesCommand extends Command
                 ->count();
 
             $this->info('Image enrichment complete.');
+            $this->line('Products processed: ' . (int) ($result['processed'] ?? 0));
+            $this->line('Products updated: ' . (int) ($result['updated'] ?? 0));
             $this->line('Products with saved images: ' . $withImages);
 
             return self::SUCCESS;

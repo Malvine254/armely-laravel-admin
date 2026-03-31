@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Jobs\SyncPriceAvailabilityCatalogJob;
 use App\Services\TDSynnexService;
 use Illuminate\Console\Command;
 
@@ -12,7 +13,7 @@ class SyncPriceAvailabilityProductsCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'tdsynnex:sync-priceavailability-products {--force : Ignore cached catalog and refetch from source}';
+    protected $signature = 'tdsynnex:sync-priceavailability-products {--force : Ignore cached catalog and refetch from source} {--sync : Run inline and block until complete}';
 
     /**
      * The console command description.
@@ -29,8 +30,21 @@ class SyncPriceAvailabilityProductsCommand extends Command
                 return self::SUCCESS;
             }
 
+            $force = (bool) $this->option('force');
+
+            if (!$this->option('sync')) {
+                SyncPriceAvailabilityCatalogJob::dispatch($force);
+
+                $this->info('PriceAvailability catalog sync queued. Processing will continue in the background.');
+                $this->line('Queue connection: database');
+                $this->line('Queue name: products-sync');
+                $this->line('Run a worker if needed: php artisan queue:work --queue=products-sync');
+
+                return self::SUCCESS;
+            }
+
             $this->info('Syncing PriceAvailability catalog into products table...');
-            $result = $service->syncPriceAvailabilityCatalogToDatabase((bool) $this->option('force'));
+            $result = $service->syncPriceAvailabilityCatalogToDatabase($force);
 
             $this->info('Sync complete.');
             $this->line('Source products: ' . (int) ($result['source_count'] ?? 0));

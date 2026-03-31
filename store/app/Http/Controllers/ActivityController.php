@@ -38,6 +38,32 @@ class ActivityController extends Controller
     }
 
     /**
+     * Log an activity for the authenticated user (called from frontend)
+     */
+    public function logActivity(Request $request)
+    {
+        $data = $request->validate([
+            'type'        => 'required|string|max:50',
+            'action'      => 'required|string|max:50',
+            'description' => 'required|string|max:500',
+            'metadata'    => 'nullable|array',
+        ]);
+
+        $activity = Activity::log(
+            $request->user()->id,
+            $data['type'],
+            $data['action'],
+            $data['description'],
+            $data['metadata'] ?? null
+        );
+
+        return response()->json([
+            'success' => true,
+            'data'    => $activity,
+        ], 201);
+    }
+
+    /**
      * Convert timestamp to human-readable "time ago" format
      */
     private function getTimeAgo($date)

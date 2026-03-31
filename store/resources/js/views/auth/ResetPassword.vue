@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100 flex items-center justify-center px-4 py-12">
+  <div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100 flex items-center justify-center px-4 py-9">
     <div class="w-full max-w-md">
       <div class="bg-white rounded-2xl shadow-xl border border-slate-200 p-8">
         <div class="text-center mb-8">

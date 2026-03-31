@@ -102,8 +102,10 @@ class TDSynnexService
 
         while ($attempt < $maxAttempts) {
             try {
+                $timeout = max(1, (int) config('tdsynnex.timeout', 30));
                 $response = Http::withHeaders($this->getAuthHeaders())
-                    ->timeout(config('tdsynnex.timeout', 30))
+                    ->connectTimeout(min(5, $timeout))
+                    ->timeout($timeout)
                     ->{$method}($url, $method === 'get' ? $params : $body);
 
                 // Token expired, re-authenticate
@@ -112,8 +114,10 @@ class TDSynnexService
                     $this->authenticate();
                     
                     // Retry request
+                    $timeout = max(1, (int) config('tdsynnex.timeout', 30));
                     $response = Http::withHeaders($this->getAuthHeaders())
-                        ->timeout(config('tdsynnex.timeout', 30))
+                        ->connectTimeout(min(5, $timeout))
+                        ->timeout($timeout)
                         ->{$method}($url, $method === 'get' ? $params : $body);
                 }
 
@@ -182,9 +186,11 @@ class TDSynnexService
                 $headers = $this->getAuthHeaders();
                 $headers['Accept'] = 'application/xml';
                 $headers['Content-Type'] = 'application/xml';
+                $timeout = max(1, (int) config('tdsynnex.timeout', 30));
 
                 $response = Http::withHeaders($headers)
-                    ->timeout(config('tdsynnex.timeout', 30))
+                    ->connectTimeout(min(5, $timeout))
+                    ->timeout($timeout)
                     ->{$method}($url, $xmlBody);
 
                 // Token expired, re-authenticate
@@ -196,9 +202,11 @@ class TDSynnexService
                     $headers = $this->getAuthHeaders();
                     $headers['Accept'] = 'application/xml';
                     $headers['Content-Type'] = 'application/xml';
+                    $timeout = max(1, (int) config('tdsynnex.timeout', 30));
                     
                     $response = Http::withHeaders($headers)
-                        ->timeout(config('tdsynnex.timeout', 30))
+                        ->connectTimeout(min(5, $timeout))
+                        ->timeout($timeout)
                         ->{$method}($url, $xmlBody);
                 }
 
@@ -579,6 +587,72 @@ class TDSynnexService
         });
     }
 
+    public function hasFreshPriceAvailabilityDatabaseCache(int $maxAgeHours = 24): bool
+    {
+        return Product::query()
+            ->where('vendor_id', 'TD SYNNEX')
+            ->where('updated_at', '>=', now()->subHours(max(1, $maxAgeHours)))
+            ->exists();
+    }
+
+    /**
+     * Search PriceAvailability catalog without loading the entire SKU universe.
+     */
+    public function searchPriceAvailabilityCatalog(string $search, int $maxMatches = 800): array
+    {
+        $needle = strtolower(trim($search));
+        if ($needle === '') {
+            return $this->getPriceAvailabilityCatalog();
+        }
+
+        $maxMatches = max(1, $maxMatches);
+        $cacheKey = 'tdsynnex:xml:priceavailability:search:' . md5(json_encode([
+            'search-v1',
+            $needle,
+            $maxMatches,
+            (string) config('tdsynnex.price_availability.flat_file_path', ''),
+            (string) config('tdsynnex.price_availability.flat_files_dir', 'flat-files'),
+            (bool) config('tdsynnex.xml.use_test_by_default', true),
+        ]));
+
+        return Cache::remember($cacheKey, now()->addSeconds(600), function () use ($needle, $maxMatches) {
+            $matchedSkus = $this->findMatchingSkusInApFiles($needle, $maxMatches);
+            if (empty($matchedSkus)) {
+                return [];
+            }
+
+            $metadata = $this->readApMetadata($matchedSkus);
+            $batchSize = max(1, (int) config('tdsynnex.price_availability.batch_size', 50));
+            $region = (string) config('tdsynnex.price_availability.region', 'us');
+            $useTest = (bool) config('tdsynnex.xml.use_test_by_default', true);
+
+            $allProducts = [];
+            foreach (array_chunk($matchedSkus, $batchSize) as $skuBatch) {
+                $xmlPayload = $this->buildPriceAvailabilityXmlPayload($skuBatch);
+                $response = $this->postPriceAvailabilityXml($xmlPayload, $region, $useTest);
+                $rows = $this->extractPriceAvailabilityRows($response);
+
+                foreach ($rows as $row) {
+                    $normalized = $this->normalizePriceAvailabilityProduct($row, $metadata);
+                    if (!empty($normalized)) {
+                        $allProducts[] = $normalized;
+                    }
+                }
+            }
+
+            $unique = [];
+            foreach ($allProducts as $item) {
+                $key = (string) ($item['productId'] ?? '');
+                if ($key === '') {
+                    continue;
+                }
+                $unique[$key] = $item;
+            }
+
+            return array_values($unique);
+        });
+    }
+
     /**
      * Persist PriceAvailability catalog rows into local products table.
      */
@@ -588,11 +662,8 @@ class TDSynnexService
             Cache::forget($this->priceAvailabilityCatalogCacheKey());
         }
 
-        $catalog = $forceRefresh
-            ? $this->fetchPriceAvailabilityCatalogUncached()
-            : $this->getPriceAvailabilityCatalog();
-
-        if (empty($catalog)) {
+        $skus = $this->buildSkuListFromConfig();
+        if (empty($skus)) {
             return [
                 'synced' => 0,
                 'updated' => 0,
@@ -600,80 +671,190 @@ class TDSynnexService
             ];
         }
 
-        $rows = [];
-        foreach ($catalog as $product) {
-            $sku = trim((string) ($product['sku'] ?? $product['productId'] ?? ''));
-            if ($sku === '') {
+        $batchSize = max(1, (int) config('tdsynnex.price_availability.batch_size', 50));
+        $region = (string) config('tdsynnex.price_availability.region', 'us');
+        $useTest = (bool) config('tdsynnex.xml.use_test_by_default', true);
+        $synced = 0;
+        $sourceCount = 0;
+
+        foreach (array_chunk($skus, $batchSize) as $skuBatch) {
+            $metadata = $this->readApMetadata($skuBatch);
+            $xmlPayload = $this->buildPriceAvailabilityXmlPayload($skuBatch);
+            $response = $this->postPriceAvailabilityXml($xmlPayload, $region, $useTest);
+            $items = [];
+
+            foreach ($this->extractPriceAvailabilityRows($response) as $row) {
+                $normalized = $this->normalizePriceAvailabilityProduct($row, $metadata);
+                if (empty($normalized)) {
+                    continue;
+                }
+
+                $dbRow = $this->priceAvailabilityProductToDatabaseRow($normalized);
+                if ($dbRow === null) {
+                    continue;
+                }
+
+                $items[] = $dbRow;
+                $sourceCount++;
+            }
+
+            if (empty($items)) {
                 continue;
             }
 
-            $dbProductId = $this->normalizeProductDbId($sku);
-            if ($dbProductId <= 0) {
-                continue;
-            }
+            Product::upsert(
+                $items,
+                ['tdsynnex_product_id'],
+                [
+                    'tdsynnex_sku_no',
+                    'vendor_id',
+                    'product_name',
+                    'mfg_part_no',
+                    'description',
+                    'base_price',
+                    'retail_price',
+                    'billing_model',
+                    'billing_frequency',
+                    'is_available',
+                    'is_discontinued',
+                    'specifications',
+                    'images',
+                    'last_synced_at',
+                    'updated_at',
+                ]
+            );
 
-            $rows[] = [
-                'tdsynnex_product_id' => $dbProductId,
-                'tdsynnex_sku_no' => ctype_digit($sku) ? (int) $sku : null,
-                'vendor_id' => (string) ($product['vendorId'] ?? 'TD SYNNEX'),
-                'product_name' => (string) ($product['productName'] ?? $sku),
-                'mfg_part_no' => (string) ($product['mfgPartNo'] ?? $sku),
-                'description' => (string) ($product['description'] ?? ''),
-                'base_price' => (float) ($product['productPrice'][0]['rsPrice'] ?? 0),
-                'retail_price' => (float) ($product['productPrice'][0]['rsPrice'] ?? 0),
-                'billing_model' => (string) ($product['billingModel'] ?? ''),
-                'billing_frequency' => (string) ($product['billingFrequency'] ?? ''),
-                'is_available' => !((bool) ($product['discontinueProduct'] ?? false)),
-                'is_discontinued' => (bool) ($product['discontinueProduct'] ?? false),
-                'specifications' => json_encode([
-                    'sku' => $sku,
-                    'status' => (string) ($product['status'] ?? ''),
-                    'categoryCode' => (string) ($product['categoryCode'] ?? '-'),
-                    'availableQuantity' => (int) ($product['availableQuantity'] ?? 0),
-                    'upc' => (string) ($product['upc'] ?? ''),
-                    'manufacturer' => (string) ($product['manufacturer'] ?? ''),
-                ], JSON_UNESCAPED_UNICODE),
-                'images' => json_encode((array) ($product['productImages'] ?? []), JSON_UNESCAPED_UNICODE),
-                'last_synced_at' => now(),
-                'updated_at' => now(),
-                'created_at' => now(),
-            ];
+            $synced += count($items);
         }
 
-        if (empty($rows)) {
-            return [
-                'synced' => 0,
-                'updated' => 0,
-                'source_count' => count($catalog),
-            ];
-        }
-
-        Product::upsert(
-            $rows,
-            ['tdsynnex_product_id'],
-            [
-                'tdsynnex_sku_no',
-                'vendor_id',
-                'product_name',
-                'mfg_part_no',
-                'description',
-                'base_price',
-                'retail_price',
-                'billing_model',
-                'billing_frequency',
-                'is_available',
-                'is_discontinued',
-                'specifications',
-                'images',
-                'last_synced_at',
-                'updated_at',
-            ]
-        );
+        Cache::forget('tdsynnex:priceavailability:vendors:list');
+        Cache::forget($this->priceAvailabilityCatalogCacheKey());
 
         return [
-            'synced' => count($rows),
-            'updated' => count($rows),
-            'source_count' => count($catalog),
+            'synced' => $synced,
+            'updated' => $synced,
+            'source_count' => $sourceCount,
+        ];
+    }
+
+    private function priceAvailabilityProductToDatabaseRow(array $product): ?array
+    {
+        $sku = trim((string) ($product['sku'] ?? $product['productId'] ?? ''));
+        if ($sku === '') {
+            return null;
+        }
+
+        $dbProductId = $this->normalizeProductDbId($sku);
+        if ($dbProductId <= 0) {
+            return null;
+        }
+
+        $timestamp = now();
+
+        return [
+            'tdsynnex_product_id' => $dbProductId,
+            'tdsynnex_sku_no' => ctype_digit($sku) ? (int) $sku : null,
+            'vendor_id' => (string) ($product['vendorId'] ?? 'TD SYNNEX'),
+            'product_name' => (string) ($product['productName'] ?? $sku),
+            'mfg_part_no' => (string) ($product['mfgPartNo'] ?? $sku),
+            'description' => (string) ($product['description'] ?? ''),
+            'base_price' => (float) ($product['productPrice'][0]['rsPrice'] ?? 0),
+            'retail_price' => (float) ($product['productPrice'][0]['rsPrice'] ?? 0),
+            'billing_model' => (string) ($product['billingModel'] ?? ''),
+            'billing_frequency' => (string) ($product['billingFrequency'] ?? ''),
+            'is_available' => !((bool) ($product['discontinueProduct'] ?? false)),
+            'is_discontinued' => (bool) ($product['discontinueProduct'] ?? false),
+            'specifications' => json_encode([
+                'sku' => $sku,
+                'status' => (string) ($product['status'] ?? ''),
+                'categoryCode' => (string) ($product['categoryCode'] ?? '-'),
+                'availableQuantity' => (int) ($product['availableQuantity'] ?? 0),
+                'upc' => (string) ($product['upc'] ?? ''),
+                'manufacturer' => (string) ($product['manufacturer'] ?? ''),
+            ], JSON_UNESCAPED_UNICODE),
+            'images' => json_encode((array) ($product['productImages'] ?? []), JSON_UNESCAPED_UNICODE),
+            'last_synced_at' => $timestamp,
+            'updated_at' => $timestamp,
+            'created_at' => $timestamp,
+        ];
+    }
+
+    public function syncPriceAvailabilityImagesFromDatabase(int $chunk = 25, int $limit = 0): array
+    {
+        $chunk = max(1, $chunk);
+        $limit = max(0, $limit);
+
+        $query = Product::query()
+            ->where('vendor_id', 'TD SYNNEX')
+            ->where(function ($q) {
+                $q->whereNull('images')
+                    ->orWhere('images', '[]');
+            })
+            ->orderBy('id');
+
+        if ($limit > 0) {
+            $query->limit($limit);
+        }
+
+        $products = $query->get();
+        $processed = 0;
+        $updated = 0;
+
+        foreach ($products->chunk($chunk) as $batch) {
+            $batchSkus = [];
+            foreach ($batch as $product) {
+                $spec = is_array($product->specifications) ? $product->specifications : [];
+                $sku = trim((string) ($spec['sku'] ?? $product->tdsynnex_sku_no ?? $product->tdsynnex_product_id));
+                if ($sku !== '') {
+                    $batchSkus[] = $sku;
+                }
+            }
+
+            $batchMetadata = $this->readApMetadata($batchSkus);
+
+            foreach ($batch as $product) {
+                $spec = is_array($product->specifications) ? $product->specifications : [];
+                $sku = trim((string) ($spec['sku'] ?? $product->tdsynnex_sku_no ?? $product->tdsynnex_product_id));
+                if ($sku === '') {
+                    continue;
+                }
+
+                $apMeta = $batchMetadata[$sku] ?? [];
+
+                $meta = [
+                    'mpn' => (string) ($product->mfg_part_no ?? $apMeta['mpn'] ?? ''),
+                    'manufacturer' => (string) ($spec['manufacturer'] ?? $apMeta['manufacturer'] ?? ''),
+                    'upc' => (string) ($spec['upc'] ?? $apMeta['upc'] ?? ''),
+                    'image_url' => (string) ($apMeta['image_url'] ?? ''),
+                ];
+
+                $assets = $this->resolveProductAssetsForSku($sku, $meta, (string) ($product->description ?? ''));
+                $images = (array) ($assets['images'] ?? []);
+                $longDescription = trim((string) ($assets['description'] ?? ''));
+
+                $didUpdate = false;
+                if (!empty($images)) {
+                    $product->images = $images;
+                    $didUpdate = true;
+                }
+
+                if ($longDescription !== '' && trim((string) $product->description) === '') {
+                    $product->description = $longDescription;
+                    $didUpdate = true;
+                }
+
+                if ($didUpdate) {
+                    $product->save();
+                    $updated++;
+                }
+
+                $processed++;
+            }
+        }
+
+        return [
+            'processed' => $processed,
+            'updated' => $updated,
         ];
     }
 
@@ -728,16 +909,48 @@ class TDSynnexService
     }
 
     /**
-     * Return single vendor option for PriceAvailability mode.
+     * Return vendor options for PriceAvailability mode.
+     * We expose manufacturers as vendor filters because distributor is always TD SYNNEX.
      */
     public function getPriceAvailabilityVendors(): array
     {
-        return [
-            [
-                'vendorId' => 'TD SYNNEX',
-                'vendorName' => 'TD SYNNEX',
-            ],
-        ];
+        $cacheKey = 'tdsynnex:priceavailability:vendors:list';
+
+        return Cache::remember($cacheKey, now()->addMinutes(30), function () {
+            $rows = Product::query()
+                ->where('vendor_id', 'TD SYNNEX')
+                ->select(['vendor_id', 'specifications'])
+                ->limit(60000)
+                ->get();
+
+            $names = [];
+            foreach ($rows as $row) {
+                $spec = is_array($row->specifications) ? $row->specifications : [];
+                $name = trim((string) ($spec['manufacturer'] ?? $row->vendor_id ?? ''));
+                if ($name !== '') {
+                    $names[$name] = true;
+                }
+            }
+
+            if (empty($names)) {
+                return [
+                    [
+                        'vendorId' => 'TD SYNNEX',
+                        'vendorName' => 'TD SYNNEX',
+                    ],
+                ];
+            }
+
+            $vendorNames = array_keys($names);
+            natcasesort($vendorNames);
+
+            return array_map(function ($name) {
+                return [
+                    'vendorId' => $name,
+                    'vendorName' => $name,
+                ];
+            }, array_values($vendorNames));
+        });
     }
 
     private function fetchPriceAvailabilityCatalogUncached(): array
@@ -753,9 +966,19 @@ class TDSynnexService
         $batchSize = max(1, (int) config('tdsynnex.price_availability.batch_size', 50));
         $region = (string) config('tdsynnex.price_availability.region', 'us');
         $useTest = (bool) config('tdsynnex.xml.use_test_by_default', true);
+        $maxRuntimeSeconds = max(5, (int) config('tdsynnex.price_availability.max_runtime_seconds', 45));
+        $startTime = microtime(true);
 
         $allProducts = [];
         foreach (array_chunk($skus, $batchSize) as $skuBatch) {
+            if ((microtime(true) - $startTime) >= $maxRuntimeSeconds) {
+                Log::warning('PriceAvailability catalog build stopped due to runtime budget', [
+                    'max_runtime_seconds' => $maxRuntimeSeconds,
+                    'processed_products' => count($allProducts),
+                ]);
+                break;
+            }
+
             $xmlPayload = $this->buildPriceAvailabilityXmlPayload($skuBatch);
             $response = $this->postPriceAvailabilityXml($xmlPayload, $region, $useTest);
             $rows = $this->extractPriceAvailabilityRows($response);
@@ -944,6 +1167,81 @@ class TDSynnexService
      * Persist only image payload for an existing product row identified by SKU.
      * This avoids full product DB sync while enabling durable image caching.
      */
+    public function syncPriceAvailabilityDescriptionsFromDatabase(int $chunk = 25, int $limit = 0): array
+    {
+        $chunk = max(1, $chunk);
+        $limit = max(0, $limit);
+
+        $query = Product::query()
+            ->where('vendor_id', 'TD SYNNEX')
+            ->where(function ($q) {
+                $q->whereNull('description')
+                    ->orWhere('description', '')
+                    ->orWhereRaw('TRIM(description) = TRIM(product_name)');
+            })
+            ->orderBy('id');
+
+        if ($limit > 0) {
+            $query->limit($limit);
+        }
+
+        $products = $query->get();
+        $processed = 0;
+        $updated = 0;
+
+        foreach ($products->chunk($chunk) as $batch) {
+            $batchSkus = [];
+            foreach ($batch as $product) {
+                $spec = is_array($product->specifications) ? $product->specifications : [];
+                $sku = trim((string) ($spec['sku'] ?? $product->tdsynnex_sku_no ?? $product->tdsynnex_product_id));
+                if ($sku !== '') {
+                    $batchSkus[] = $sku;
+                }
+            }
+
+            $batchMetadata = $this->readApMetadata($batchSkus);
+
+            foreach ($batch as $product) {
+                $spec = is_array($product->specifications) ? $product->specifications : [];
+                $sku = trim((string) ($spec['sku'] ?? $product->tdsynnex_sku_no ?? $product->tdsynnex_product_id));
+                if ($sku === '') {
+                    continue;
+                }
+
+                $apMeta = $batchMetadata[$sku] ?? [];
+                $meta = [
+                    'mpn'          => (string) ($product->mfg_part_no ?? $apMeta['mpn'] ?? ''),
+                    'manufacturer' => (string) ($spec['manufacturer'] ?? $apMeta['manufacturer'] ?? ''),
+                    'upc'          => (string) ($spec['upc'] ?? $apMeta['upc'] ?? ''),
+                    'image_url'    => (string) ($apMeta['image_url'] ?? ''),
+                ];
+
+                $assets = $this->resolveProductAssetsForSku($sku, $meta, '');
+                $longDescription = trim((string) ($assets['description'] ?? ''));
+
+                if ($longDescription !== '') {
+                    $product->description = $longDescription;
+
+                    // Also save images if we got them and they were missing
+                    $images = (array) ($assets['images'] ?? []);
+                    if (!empty($images) && (empty($product->images) || $product->images === '[]')) {
+                        $product->images = $images;
+                    }
+
+                    $product->save();
+                    $updated++;
+                }
+
+                $processed++;
+            }
+        }
+
+        return [
+            'processed' => $processed,
+            'updated'   => $updated,
+        ];
+    }
+
     private function persistProductImagesBySku(string $sku, array $images): void
     {
         if ($sku === '' || empty($images)) {
@@ -1118,6 +1416,61 @@ class TDSynnexService
         return $skus;
     }
 
+    private function findMatchingSkusInApFiles(string $needle, int $maxMatches): array
+    {
+        $matches = [];
+        $seen = [];
+
+        foreach ($this->discoverApFiles() as $apFile) {
+            $file = new \SplFileObject($apFile, 'r');
+            while (!$file->eof()) {
+                $line = trim((string) $file->fgets());
+                if ($line === '') {
+                    continue;
+                }
+
+                $parts = explode('~', $line);
+                if (count($parts) <= 7) {
+                    continue;
+                }
+
+                $recordType = strtoupper(trim((string) ($parts[1] ?? '')));
+                if ($recordType !== 'DTL') {
+                    continue;
+                }
+
+                $sku = trim((string) ($parts[4] ?? ''));
+                if ($sku === '' || isset($seen[$sku])) {
+                    continue;
+                }
+
+                $haystack = strtolower(implode(' ', array_filter([
+                    $sku,
+                    trim((string) ($parts[2] ?? '')),  // MPN
+                    trim((string) ($parts[6] ?? '')),  // Description
+                    trim((string) ($parts[7] ?? '')),  // Manufacturer
+                    trim((string) ($parts[24] ?? '')), // Category code
+                    trim((string) ($parts[35] ?? '')), // Category/segment
+                    trim((string) ($parts[36] ?? '')), // Family
+                    trim((string) ($parts[33] ?? '')), // UPC
+                ])));
+
+                if (!str_contains($haystack, $needle)) {
+                    continue;
+                }
+
+                $seen[$sku] = true;
+                $matches[] = $sku;
+
+                if (count($matches) >= $maxMatches) {
+                    return $matches;
+                }
+            }
+        }
+
+        return $matches;
+    }
+
     private function readApMetadata(array $targetSkus = []): array
     {
         $metadata = [];
@@ -1200,9 +1553,72 @@ class TDSynnexService
 
     private function resolveProductImagesForSku(string $sku, array $meta, string $description = ''): array
     {
+        return $this->resolveProductAssetsForSku($sku, $meta, $description)['images'] ?? [];
+    }
+
+    public function syncPriceAvailabilityImageForProductId(int $productId): array
+    {
+        $product = Product::query()
+            ->where('vendor_id', 'TD SYNNEX')
+            ->find($productId);
+
+        if (!$product) {
+            return ['processed' => 0, 'updated' => 0, 'reason' => 'not_found'];
+        }
+
+        $existingImages = is_array($product->images) ? $product->images : [];
+        if (!empty($existingImages)) {
+            return ['processed' => 1, 'updated' => 0, 'reason' => 'already_has_images'];
+        }
+
+        $spec = is_array($product->specifications) ? $product->specifications : [];
+        $sku = trim((string) ($spec['sku'] ?? $product->tdsynnex_sku_no ?? $product->tdsynnex_product_id));
+        if ($sku === '') {
+            return ['processed' => 1, 'updated' => 0, 'reason' => 'missing_sku'];
+        }
+
+        $apMeta = $this->readApMetadata([$sku])[$sku] ?? [];
+
+        $meta = [
+            'mpn' => (string) ($product->mfg_part_no ?? $apMeta['mpn'] ?? ''),
+            'manufacturer' => (string) ($spec['manufacturer'] ?? $apMeta['manufacturer'] ?? ''),
+            'upc' => (string) ($spec['upc'] ?? $apMeta['upc'] ?? ''),
+            'image_url' => (string) ($apMeta['image_url'] ?? ''),
+        ];
+
+        $assets = $this->resolveProductAssetsForSku($sku, $meta, (string) ($product->description ?? ''));
+        $images = (array) ($assets['images'] ?? []);
+        $longDescription = trim((string) ($assets['description'] ?? ''));
+
+        $didUpdate = false;
+        if (!empty($images)) {
+            $product->images = $images;
+            $didUpdate = true;
+        }
+
+        if ($longDescription !== '' && trim((string) $product->description) === '') {
+            $product->description = $longDescription;
+            $didUpdate = true;
+        }
+
+        if ($didUpdate) {
+            $product->save();
+        }
+
+        return [
+            'processed' => 1,
+            'updated' => $didUpdate ? 1 : 0,
+            'reason' => $didUpdate ? 'updated' : 'no_assets',
+            'sku' => $sku,
+        ];
+    }
+
+    private function resolveProductAssetsForSku(string $sku, array $meta, string $description = ''): array
+    {
         $ttl = max(60, (int) config('tdsynnex.icecat.cache_ttl', 86400));
-        $cacheKey = 'tdsynnex:images:' . md5(json_encode([
-            'icecat-v2',
+        $cacheKey = 'tdsynnex:assets:' . md5(json_encode([
+            // Cache version bump forces re-evaluation of older no-match entries.
+            'icecat-v4',
             $sku,
             (string) ($meta['mpn'] ?? ''),
             (string) ($meta['manufacturer'] ?? ''),
@@ -1212,6 +1628,7 @@ class TDSynnexService
 
         return Cache::remember($cacheKey, now()->addSeconds($ttl), function () use ($sku, $meta, $description) {
             $images = [];
+            $resolvedDescription = '';
 
             $flatFileImage = trim((string) ($meta['image_url'] ?? ''));
             if ($flatFileImage !== '' && $this->isValidImageUrl($flatFileImage)) {
@@ -1219,13 +1636,23 @@ class TDSynnexService
                     'imageUrl' => $flatFileImage,
                     'source' => 'flat-file',
                 ];
+
+                Log::info('Icecat MATCH', [
+                    'sku' => $sku,
+                    'upc' => (string) ($meta['upc'] ?? ''),
+                    'mpn' => (string) ($meta['mpn'] ?? ''),
+                    'used' => 'flat-file-image',
+                ]);
             }
 
-            $icecatImage = $this->fetchIcecatPrimaryImageUrl($sku, $meta, $description);
+            $icecatData = $this->fetchIcecatProductData($sku, $meta, $description);
+            $icecatImage = trim((string) ($icecatData['image_url'] ?? ''));
+            $resolvedDescription = trim((string) ($icecatData['description'] ?? ''));
             if ($icecatImage !== '' && $this->isValidImageUrl($icecatImage)) {
+                $matchReason = trim((string) ($icecatData['match_reason'] ?? ''));
                 $images[] = [
                     'imageUrl' => $icecatImage,
-                    'source' => 'icecat',
+                    'source' => $matchReason !== '' ? 'icecat:' . $matchReason : 'icecat',
                 ];
             }
 
@@ -1241,34 +1668,41 @@ class TDSynnexService
                 $unique[] = $item;
             }
 
-            return $unique;
+            return [
+                'images' => $unique,
+                'description' => $resolvedDescription,
+            ];
         });
     }
 
-    private function fetchIcecatPrimaryImageUrl(string $sku, array $meta, string $description = ''): string
+    private function fetchIcecatProductData(string $sku, array $meta, string $description = ''): array
     {
         if (!config('tdsynnex.icecat.enabled', true)) {
-            return '';
+            return ['image_url' => '', 'description' => ''];
         }
 
         $username = trim((string) config('tdsynnex.icecat.username', env('ICECAT_USERNAME', '')));
         $password = trim((string) config('tdsynnex.icecat.password', env('ICECAT_PASSWORD', '')));
         $endpoint = trim((string) config('tdsynnex.icecat.endpoint', 'https://live.icecat.biz/api'));
         $appKey = trim((string) config('tdsynnex.icecat.app_key', env('ICECAT_APP_KEY', '')));
-        $language = trim((string) config('tdsynnex.icecat.language', 'en'));
+        $language = $this->normalizeIcecatLanguage((string) config('tdsynnex.icecat.language', 'en'));
         $timeout = max(2, (int) config('tdsynnex.icecat.timeout', 6));
+        $maxLookups = max(3, (int) config('tdsynnex.icecat.max_lookups_per_request', 8));
 
         if ($username === '' || $password === '' || $endpoint === '') {
-            return '';
+            return ['image_url' => '', 'description' => ''];
         }
 
         $upc = trim((string) ($meta['upc'] ?? ''));
         $mpn = trim((string) ($meta['mpn'] ?? ''));
         $brand = trim((string) ($meta['manufacturer'] ?? ''));
+        $candidateCodes = $this->buildIcecatCandidateCodes($sku, $mpn, $description);
+        $brandCandidates = $this->buildIcecatBrandCandidates($brand, $sku, $mpn, $description);
+        $gtinCandidates = $this->normalizeGtinCandidates($upc);
 
         $baseParams = [
             'shopname' => $username,
-            'lang' => $language !== '' ? $language : 'en',
+            'lang' => $language,
             'content_type' => 'json',
         ];
 
@@ -1277,41 +1711,87 @@ class TDSynnexService
         }
 
         $queryAttempts = [];
+        $seenAttempts = [];
 
-        // Strategy 1: GTIN (UPC/EAN)
-        if ($upc !== '' && trim($upc, '-0') !== '') {
-            $queryAttempts[] = array_merge($baseParams, ['GTIN' => $upc]);
+        // Strategy 1: GTIN (UPC/EAN) with normalized variants.
+        foreach ($gtinCandidates as $index => $gtin) {
+            $queryAttempts[] = [
+                'params' => array_merge($baseParams, ['GTIN' => $gtin]),
+                'used' => $index === 0 ? 'GTIN' : 'GTIN_NORMALIZED',
+                'mpn' => '',
+                'brand' => '',
+                'code' => $gtin,
+            ];
         }
 
-        // Strategy 2: Brand + ProductCode (MPN)
-        if ($brand !== '' && $mpn !== '') {
-            $queryAttempts[] = array_merge($baseParams, [
-                'Brand' => $brand,
-                'ProductCode' => $mpn,
-            ]);
-        }
+        foreach ($candidateCodes as $code) {
+            foreach ($brandCandidates as $candidateBrand) {
+                $queryAttempts[] = [
+                    'params' => array_merge($baseParams, [
+                        'Brand' => $candidateBrand,
+                        'ProductCode' => $code,
+                    ]),
+                    'used' => 'BRAND_CODE',
+                    'mpn' => $code,
+                    'brand' => $candidateBrand,
+                    'code' => $code,
+                ];
+            }
 
-        // Strategy 3: ProductCode only fallback
-        if ($mpn !== '') {
-            $queryAttempts[] = array_merge($baseParams, ['ProductCode' => $mpn]);
+            $queryAttempts[] = [
+                'params' => array_merge($baseParams, ['ProductCode' => $code]),
+                'used' => 'CODE',
+                'mpn' => $code,
+                'brand' => '',
+                'code' => $code,
+            ];
         }
 
         if (empty($queryAttempts)) {
-            return '';
+            Log::info('Icecat NO MATCH', [
+                'sku' => $sku,
+                'upc' => $upc,
+                'mpn' => $mpn,
+                'used' => 'NO_UPC_OR_MPN',
+            ]);
+
+            return [
+                'image_url' => '',
+                'description' => '',
+                'match_reason' => 'NO_UPC_OR_MPN',
+                'matched_brand' => '',
+                'matched_code' => '',
+            ];
         }
 
         try {
-            foreach ($queryAttempts as $params) {
+            $attemptsTried = 0;
+            foreach ($queryAttempts as $attempt) {
+                $attemptKey = md5(json_encode($attempt['params']));
+                if (isset($seenAttempts[$attemptKey])) {
+                    continue;
+                }
+                $seenAttempts[$attemptKey] = true;
+
+                if ($attemptsTried >= $maxLookups) {
+                    break;
+                }
+                $attemptsTried++;
+
                 $response = Http::withBasicAuth($username, $password)
                     ->acceptJson()
                     ->timeout($timeout)
-                    ->get($endpoint, $params);
+                    ->get($endpoint, $attempt['params']);
 
                 if ($response->failed()) {
                     Log::debug('Icecat image lookup failed', [
                         'sku' => $sku,
                         'status' => $response->status(),
-                        'query' => array_keys($params),
+                        'query' => array_keys($attempt['params']),
+                        'used' => $attempt['used'],
+                        'mpn' => $attempt['mpn'],
+                        'brand' => (string) ($attempt['brand'] ?? ''),
+                        'code' => (string) ($attempt['code'] ?? ''),
                     ]);
                     continue;
                 }
@@ -1328,8 +1808,25 @@ class TDSynnexService
                 }
 
                 $image = $this->extractPrimaryImageFromIcecatData($json);
-                if ($image !== '') {
-                    return $image;
+                $longDescription = $this->extractLongDescriptionFromIcecatData($json);
+                if ($image !== '' || $longDescription !== '') {
+                    Log::info('Icecat MATCH', [
+                        'sku' => $sku,
+                        'upc' => $upc,
+                        'mpn' => $mpn,
+                        'used' => $attempt['used'],
+                        'matched_mpn' => $attempt['mpn'],
+                        'matched_brand' => (string) ($attempt['brand'] ?? ''),
+                        'matched_code' => (string) ($attempt['code'] ?? ''),
+                    ]);
+
+                    return [
+                        'image_url' => $image,
+                        'description' => $longDescription,
+                        'match_reason' => (string) $attempt['used'],
+                        'matched_brand' => (string) ($attempt['brand'] ?? ''),
+                        'matched_code' => (string) ($attempt['code'] ?? ''),
+                    ];
                 }
             }
         } catch (\Throwable $e) {
@@ -1337,6 +1834,241 @@ class TDSynnexService
                 'sku' => $sku,
                 'error' => $e->getMessage(),
             ]);
+        }
+
+        Log::info('Icecat NO MATCH', [
+            'sku' => $sku,
+            'upc' => $upc,
+            'mpn' => $mpn,
+            'used' => 'ALL_FALLBACKS_EXHAUSTED',
+        ]);
+
+        return [
+            'image_url' => '',
+            'description' => '',
+            'match_reason' => 'ALL_FALLBACKS_EXHAUSTED',
+            'matched_brand' => '',
+            'matched_code' => '',
+        ];
+    }
+
+    private function cleanMpn(string $mpn): string
+    {
+        $normalized = strtoupper(trim($mpn));
+        return preg_replace('/[^A-Z0-9]+/', '', $normalized) ?? '';
+    }
+
+    private function generateMpnVariants(string $mpn): array
+    {
+        $cleaned = $this->cleanMpn($mpn);
+        if ($cleaned === '') {
+            return [];
+        }
+
+        $variants = [$cleaned];
+
+        if (strlen($cleaned) > 1) {
+            $variants[] = substr($cleaned, 0, -1);
+        }
+
+        if (strlen($cleaned) > 2) {
+            $variants[] = substr($cleaned, 0, -2);
+        }
+
+        foreach (['RPC', 'DLX', 'KIT'] as $suffix) {
+            if (str_ends_with($cleaned, $suffix) && strlen($cleaned) > strlen($suffix)) {
+                $variants[] = substr($cleaned, 0, -strlen($suffix));
+            }
+        }
+
+        $unique = [];
+        foreach ($variants as $variant) {
+            $variant = trim((string) $variant);
+            if ($variant !== '' && strlen($variant) >= 3) {
+                $unique[$variant] = true;
+            }
+        }
+
+        return array_keys($unique);
+    }
+
+    private function normalizeGtinCandidates(string $upc): array
+    {
+        $raw = trim($upc);
+        if ($raw === '') {
+            return [];
+        }
+
+        $digits = preg_replace('/\D+/', '', $raw) ?? '';
+        if ($digits === '') {
+            return [];
+        }
+
+        $candidates = [$digits];
+
+        $withoutLeadingZero = ltrim($digits, '0');
+        if ($withoutLeadingZero !== '' && $withoutLeadingZero !== $digits) {
+            $candidates[] = $withoutLeadingZero;
+        }
+
+        if (strlen($digits) > 12) {
+            $candidates[] = substr($digits, -12);
+        }
+
+        return array_values(array_unique(array_filter($candidates, function ($value) {
+            return strlen((string) $value) >= 8;
+        })));
+    }
+
+    private function buildIcecatBrandCandidates(string $brand, string $sku, string $mpn, string $title = ''): array
+    {
+        $candidates = [];
+
+        $add = static function (array &$bag, string $value): void {
+            $candidate = trim($value);
+            if ($candidate === '' || strlen($candidate) < 2) {
+                return;
+            }
+
+            $bag[$candidate] = true;
+        };
+
+        $normalized = strtoupper(trim($brand));
+        if ($normalized !== '') {
+            $add($candidates, $brand);
+        }
+
+        $aliases = [
+            'HEWLETT PACKARD' => ['HP', 'HEWLETT-PACKARD'],
+            'HP' => ['HEWLETT PACKARD', 'HEWLETT-PACKARD'],
+            'LENOVO GROUP' => ['LENOVO'],
+            'IBM LENOVO' => ['LENOVO'],
+            'MICROSOFT CORPORATION' => ['MICROSOFT'],
+            'HPE' => ['HEWLETT PACKARD ENTERPRISE'],
+            'HEWLETT PACKARD ENTERPRISE' => ['HPE'],
+            'APC BY SCHNEIDER ELECTRIC' => ['APC', 'SCHNEIDER ELECTRIC'],
+        ];
+
+        if ($normalized !== '' && isset($aliases[$normalized])) {
+            foreach ($aliases[$normalized] as $alias) {
+                $add($candidates, $alias);
+            }
+        }
+
+        foreach ([$title, $sku, $mpn] as $source) {
+            $upper = strtoupper($source);
+            foreach (array_keys($aliases) as $knownBrand) {
+                if ($upper !== '' && str_contains($upper, $knownBrand)) {
+                    $add($candidates, $knownBrand);
+                    foreach ($aliases[$knownBrand] as $alias) {
+                        $add($candidates, $alias);
+                    }
+                }
+            }
+        }
+
+        return array_slice(array_keys($candidates), 0, 4);
+    }
+
+    private function generateCodeSegments(string $value): array
+    {
+        $segments = preg_split('/[^A-Z0-9]+/', strtoupper($value)) ?: [];
+        $results = [];
+
+        foreach ($segments as $segment) {
+            $segment = trim((string) $segment);
+            if ($segment === '' || strlen($segment) < 4) {
+                continue;
+            }
+
+            if (!preg_match('/[A-Z]/', $segment) || !preg_match('/\d/', $segment)) {
+                continue;
+            }
+
+            $results[$segment] = true;
+        }
+
+        return array_keys($results);
+    }
+
+    private function buildIcecatCandidateCodes(string $sku, string $mpn, string $title = ''): array
+    {
+        $scored = [];
+
+        $add = function (string $code, int $score) use (&$scored): void {
+            $normalized = $this->cleanMpn($code);
+            if ($normalized === '' || strlen($normalized) < 4) {
+                return;
+            }
+
+            if (!isset($scored[$normalized]) || $score > $scored[$normalized]) {
+                $scored[$normalized] = $score;
+            }
+        };
+
+        $cleanedMpn = $this->cleanMpn($mpn);
+        if ($cleanedMpn !== '') {
+            $add($cleanedMpn, 100);
+            foreach ($this->generateMpnVariants($mpn) as $idx => $variant) {
+                $add($variant, 95 - $idx);
+            }
+        }
+
+        $cleanedSku = $this->cleanMpn($sku);
+        if ($cleanedSku !== '' && $cleanedSku !== $cleanedMpn) {
+            $add($cleanedSku, 90);
+            foreach ($this->generateMpnVariants($sku) as $idx => $variant) {
+                $add($variant, 85 - $idx);
+            }
+        }
+
+        foreach ($this->generateCodeSegments($mpn) as $idx => $segment) {
+            $add($segment, 82 - $idx);
+        }
+
+        foreach ($this->generateCodeSegments($sku) as $idx => $segment) {
+            $add($segment, 80 - $idx);
+        }
+
+        // Allow title-based rescue for SKUs embedded in names like "Model ABC-1234".
+        $titleTokens = preg_split('/[^A-Z0-9]+/', strtoupper($title)) ?: [];
+        foreach ($titleTokens as $token) {
+            $token = trim((string) $token);
+            if ($token === '' || strlen($token) < 5) {
+                continue;
+            }
+
+            if (!preg_match('/[A-Z]/', $token) || !preg_match('/\d/', $token)) {
+                continue;
+            }
+
+            $add($token, 70);
+        }
+
+        arsort($scored);
+        return array_keys($scored);
+    }
+
+    private function extractLongDescriptionFromIcecatData(array $payload): string
+    {
+        $data = (is_array($payload['data'] ?? null)) ? $payload['data'] : $payload;
+
+        $candidates = [
+            data_get($data, 'GeneralInfo.Description.LongDesc'),
+            data_get($data, 'GeneralInfo.SummaryDescription.LongSummaryDescription'),
+            data_get($data, 'GeneralInfo.Description.MiddleDesc'),
+            data_get($data, 'GeneralInfo.SummaryDescription.ShortSummaryDescription'),
+            data_get($data, 'Description.LongDesc'),
+            data_get($data, 'SummaryDescription.LongSummaryDescription'),
+            data_get($data, 'LongDesc'),
+            data_get($data, 'longDesc'),
+        ];
+
+        foreach ($candidates as $candidate) {
+            $value = trim((string) ($candidate ?? ''));
+            if ($value !== '') {
+                return $value;
+            }
         }
 
         return '';
@@ -1347,9 +2079,11 @@ class TDSynnexService
         $data = (is_array($payload['data'] ?? null)) ? $payload['data'] : $payload;
 
         $candidates = [
-            data_get($data, 'HighPic'),
             data_get($data, 'Image.HighPic'),
             data_get($data, 'Image.LowPic'),
+            data_get($data, 'Image.ThumbPic'),
+            data_get($data, 'Gallery.0.Original.pic'),
+            data_get($data, 'HighPic'),
             data_get($data, 'highPic'),
             data_get($data, 'highPicUrl'),
         ];
@@ -1362,6 +2096,17 @@ class TDSynnexService
         }
 
         return '';
+    }
+
+    private function normalizeIcecatLanguage(string $language): string
+    {
+        $value = strtolower(trim($language));
+
+        if ($value === '' || $value === 'english' || str_starts_with($value, 'en-')) {
+            return 'en';
+        }
+
+        return $value;
     }
 
     private function extractPrimaryImageFromIcecatPayload(string $body): string
@@ -1762,8 +2507,10 @@ XML;
         }
 
         try {
+            $timeout = max(1, (int) config('tdsynnex.price_availability.request_timeout', config('tdsynnex.timeout', 30)));
             $response = Http::withHeaders(['Content-Type' => 'application/xml', 'Accept' => 'application/xml'])
-                ->timeout(config('tdsynnex.timeout', 30))
+                ->connectTimeout(min(5, $timeout))
+                ->timeout($timeout)
                 ->withBody($xml, 'application/xml')
                 ->post($url);
 

@@ -2,7 +2,7 @@
   <div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100">
     <Navbar />
 
-    <main class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <main class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-5 py-8">
       <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8">
         <h1 class="text-3xl font-bold text-slate-900 mb-2">Cookie Settings</h1>
         <p class="text-slate-600 mb-8">Choose which optional cookies you want to enable.</p>

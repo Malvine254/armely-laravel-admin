@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Console\Scheduling\Schedule;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -22,6 +23,39 @@ return Application::configure(basePath: dirname(__DIR__))
             'api/v1/admin/*',
             'admin/*',
         ]);
+    })
+    ->withSchedule(function (Schedule $schedule): void {
+        $schedule->job(\App\Jobs\CheckExpiringQuotesJob::class)
+            ->hourly()
+            ->name('check-expiring-quotes')
+            ->withoutOverlapping();
+
+        $schedule->job(\App\Jobs\SyncProductPricesJob::class)
+            ->everyThirtyMinutes()
+            ->name('sync-product-prices')
+            ->withoutOverlapping();
+
+        $schedule->job(new \App\Jobs\SyncPriceAvailabilityCatalogJob(true), 'products-sync', 'database')
+            ->hourly()
+            ->name('sync-priceavailability-catalog')
+            ->withoutOverlapping();
+
+        $schedule->job(new \App\Jobs\EnrichPriceAvailabilityImagesJob(25, 0), 'products-sync', 'database')
+            ->everyTwoHours()
+            ->name('enrich-priceavailability-images')
+            ->withoutOverlapping();
+
+        $schedule->call(function () {
+            $orders = \App\Models\Order::whereIn('status', ['pending', 'processing', 'shipped'])
+                ->get();
+
+            foreach ($orders as $order) {
+                \App\Jobs\UpdateOrderStatusJob::dispatch($order);
+            }
+        })
+            ->everyThirtyMinutes()
+            ->name('update-order-statuses')
+            ->withoutOverlapping();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (Throwable $e, $request) {

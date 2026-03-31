@@ -24,6 +24,18 @@ class Kernel extends ConsoleKernel
             ->name('sync-product-prices')
             ->withoutOverlapping();
 
+        // Keep PriceAvailability catalog cached in local DB for fast storefront queries.
+        $schedule->job(new \App\Jobs\SyncPriceAvailabilityCatalogJob(true), 'products-sync', 'database')
+            ->hourly()
+            ->name('sync-priceavailability-catalog')
+            ->withoutOverlapping();
+
+        // Backfill missing product images from Icecat/flat-file sources without blocking requests.
+        $schedule->job(new \App\Jobs\EnrichPriceAvailabilityImagesJob(25, 0), 'products-sync', 'database')
+            ->everyTwoHours()
+            ->name('enrich-priceavailability-images')
+            ->withoutOverlapping();
+
         // Update order statuses every 30 minutes
         $schedule->call(function () {
             $orders = \App\Models\Order::whereIn('status', ['pending', 'processing', 'shipped'])
