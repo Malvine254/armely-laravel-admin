@@ -43,10 +43,37 @@ echo "<hr>";
 
 // Test Store Database
 echo "<h2>🔍 Store App Database Connection Test</h2>";
+
+// Load store .env file
+$storeEnvPath = __DIR__ . '/../store/.env';
+if (!file_exists($storeEnvPath)) {
+    $storeEnvPath = __DIR__ . '/../store/.env.production';
+}
+
 $storeHost = 'localhost';
 $storeDB = 'armely_store';
-$storeUser = 'armely_db';
-$storePass = 'x8_jWiv8NW*[';
+$storeUser = 'armely_store';
+$storePass = '';
+
+// Parse store .env file if it exists
+if (file_exists($storeEnvPath)) {
+    $envLines = file($storeEnvPath);
+    foreach ($envLines as $line) {
+        if (strpos(trim($line), 'DB_HOST=') === 0) {
+            $storeHost = trim(str_replace('DB_HOST=', '', $line));
+        }
+        if (strpos(trim($line), 'DB_DATABASE=') === 0) {
+            $storeDB = trim(str_replace('DB_DATABASE=', '', $line));
+        }
+        if (strpos(trim($line), 'DB_USERNAME=') === 0) {
+            $storeUser = trim(str_replace('DB_USERNAME=', '', $line));
+        }
+        if (strpos(trim($line), 'DB_PASSWORD=') === 0) {
+            $storePass = trim(str_replace('DB_PASSWORD=', '', $line));
+            $storePass = trim($storePass, '"\'');
+        }
+    }
+}
 
 try {
     $connStore = new mysqli($storeHost, $storeUser, $storePass, $storeDB);
