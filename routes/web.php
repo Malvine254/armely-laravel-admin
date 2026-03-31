@@ -84,6 +84,20 @@ Route::get('/mela-ai', [HomeController::class, 'melaAi'])->name('mela-ai');
 
 $storeBaseUrl = trim((string) env('STORE_URL', ''));
 
+// Path-based deployments (e.g. https://armely.com/store or http://localhost/store)
+// should be handled by the web server directly, not by the iframe bridge routes below.
+$storeBridgeDisabledForPathMode = false;
+if ($storeBaseUrl !== '') {
+    $parsedStoreUrl = parse_url($storeBaseUrl);
+    $storeHost = strtolower((string) ($parsedStoreUrl['host'] ?? ''));
+    $storePath = '/' . trim((string) ($parsedStoreUrl['path'] ?? ''), '/');
+
+    $isPathBasedStore = str_starts_with($storePath, '/store');
+    $isLocalOrMainHost = in_array($storeHost, ['', 'localhost', '127.0.0.1', 'armely.com', 'www.armely.com'], true);
+
+    $storeBridgeDisabledForPathMode = $isPathBasedStore && $isLocalOrMainHost;
+}
+
 $buildStoreTarget = function (string $baseUrl, string $path = '', ?string $queryString = null): ?string {
     if ($baseUrl === '') {
         return null;
@@ -101,23 +115,25 @@ $buildStoreTarget = function (string $baseUrl, string $path = '', ?string $query
     return $target;
 };
 
-Route::get('/store', function (\Illuminate\Http\Request $request) use ($storeBaseUrl, $buildStoreTarget) {
-    $targetUrl = $buildStoreTarget($storeBaseUrl, '', $request->getQueryString());
-    if ($targetUrl === null) {
-        return redirect('/');
-    }
+if (!$storeBridgeDisabledForPathMode) {
+    Route::get('/store', function (\Illuminate\Http\Request $request) use ($storeBaseUrl, $buildStoreTarget) {
+        $targetUrl = $buildStoreTarget($storeBaseUrl, '', $request->getQueryString());
+        if ($targetUrl === null) {
+            return redirect('/');
+        }
 
-    return response()->view('store-bridge', ['targetUrl' => $targetUrl]);
-})->name('armely-store');
+        return response()->view('store-bridge', ['targetUrl' => $targetUrl]);
+    })->name('armely-store');
 
-Route::get('/store/{path}', function (\Illuminate\Http\Request $request, string $path) use ($storeBaseUrl, $buildStoreTarget) {
-    $targetUrl = $buildStoreTarget($storeBaseUrl, $path, $request->getQueryString());
-    if ($targetUrl === null) {
-        return redirect('/');
-    }
+    Route::get('/store/{path}', function (\Illuminate\Http\Request $request, string $path) use ($storeBaseUrl, $buildStoreTarget) {
+        $targetUrl = $buildStoreTarget($storeBaseUrl, $path, $request->getQueryString());
+        if ($targetUrl === null) {
+            return redirect('/');
+        }
 
-    return response()->view('store-bridge', ['targetUrl' => $targetUrl]);
-})->where('path', '.*');
+        return response()->view('store-bridge', ['targetUrl' => $targetUrl]);
+    })->where('path', '.*');
+}
 
 Route::get('/armely-store', function () {
     return redirect()->route('armely-store');

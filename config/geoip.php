@@ -12,7 +12,7 @@ return [
     |
     */
 
-    'log_failures' => true,
+    'log_failures' => env('GEOIP_LOG_FAILURES', false),
 
     /*
     |--------------------------------------------------------------------------
