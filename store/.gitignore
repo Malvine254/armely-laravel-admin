@@ -21,6 +21,8 @@
 /vendor
 /flat-files/*.ap
 /flat-files/*.AP
+/flat-files/*.sql
+/flat-files/*.zip
 Homestead.json
 Homestead.yaml
 Thumbs.db
