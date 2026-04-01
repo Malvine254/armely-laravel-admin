@@ -196,6 +196,9 @@ class AuthController extends Controller
             'token' => ['required', 'string'],
         ]);
 
+        $data['email'] = trim((string) $data['email']);
+        $data['token'] = trim((string) $data['token']);
+
         $wantsJson = $request->expectsJson();
 
         $user = User::where('email', $data['email'])->first();
@@ -208,6 +211,17 @@ class AuthController extends Controller
                 'success' => false,
                 'message' => 'Invalid activation request.',
             ], 422);
+        }
+
+        if ($user->email_verified_at) {
+            if (!$wantsJson) {
+                return $this->activationRedirect(true, 'Account is already activated. You can now log in.');
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Account is already activated. You can now log in.',
+            ]);
         }
 
         $record = DB::table('email_activation_tokens')
@@ -238,7 +252,8 @@ class AuthController extends Controller
             ], 422);
         }
 
-        if (!Hash::check($data['token'], $record->token)) {
+        $normalizedToken = str_replace(' ', '+', $data['token']);
+        if (!Hash::check($normalizedToken, $record->token)) {
             if (!$wantsJson) {
                 return $this->activationRedirect(false, 'Activation token is invalid.');
             }
