@@ -605,6 +605,59 @@ class TDSynnexService
             return $this->getPriceAvailabilityCatalog();
         }
 
+        // When DB has fresh data, search there instead of parsing flat files
+        if ($this->hasFreshPriceAvailabilityDatabaseCache()) {
+            $like = '%' . $search . '%';
+            $products = Product::query()
+                ->where('vendor_id', 'TD SYNNEX')
+                ->where(function ($q) use ($like) {
+                    $q->where('product_name', 'like', $like)
+                        ->orWhere('description', 'like', $like)
+                        ->orWhere('mfg_part_no', 'like', $like)
+                        ->orWhere('tdsynnex_sku_no', 'like', $like)
+                        ->orWhere('specifications->sku', 'like', $like)
+                        ->orWhere('specifications->manufacturer', 'like', $like)
+                        ->orWhere('specifications->upc', 'like', $like);
+                })
+                ->orderBy('product_name')
+                ->limit($maxMatches)
+                ->get();
+
+            if ($products->count() > 0) {
+                return $products->map(function (Product $product) {
+                    $spec = is_array($product->specifications) ? $product->specifications : [];
+                    $sku = (string) ($spec['sku'] ?? $product->tdsynnex_sku_no ?? $product->tdsynnex_product_id);
+                    $price = (float) ($product->base_price ?? $product->retail_price ?? 0);
+                    $images = is_array($product->images) ? $product->images : [];
+                    $vendor = trim((string) ($spec['manufacturer'] ?? $product->vendor_id ?? 'TD SYNNEX'));
+
+                    return [
+                        'productId' => $sku,
+                        'sku' => $sku,
+                        'mfgPartNo' => (string) ($product->mfg_part_no ?? $sku),
+                        'vendorId' => $vendor !== '' ? $vendor : 'TD SYNNEX',
+                        'vendorName' => $vendor !== '' ? $vendor : 'TD SYNNEX',
+                        'productName' => (string) ($product->product_name ?? $sku),
+                        'description' => (string) ($product->description ?? ''),
+                        'status' => (string) ($spec['status'] ?? ''),
+                        'availableQuantity' => (int) ($spec['availableQuantity'] ?? 0),
+                        'qty' => (string) ($spec['availableQuantity'] ?? 0),
+                        'categoryCode' => (string) ($spec['categoryCode'] ?? '-'),
+                        'upc' => (string) ($spec['upc'] ?? ''),
+                        'manufacturer' => (string) ($spec['manufacturer'] ?? ''),
+                        'billingModel' => (string) ($product->billing_model ?? ''),
+                        'billingFrequency' => (string) ($product->billing_frequency ?? ''),
+                        'discontinueProduct' => (bool) $product->is_discontinued,
+                        'productPrice' => [['rsPrice' => $price, 'minQty' => 1]],
+                        'productImages' => $images,
+                        'images' => $images,
+                        'image_url' => (string) ($images[0]['imageUrl'] ?? ''),
+                        'icecat_title' => '',
+                    ];
+                })->toArray();
+            }
+        }
+
         $maxMatches = max(1, $maxMatches);
         $cacheKey = 'tdsynnex:xml:priceavailability:search:' . md5(json_encode([
             'search-v1',
@@ -955,10 +1008,53 @@ class TDSynnexService
 
     private function fetchPriceAvailabilityCatalogUncached(): array
     {
+        // Prefer database when it has fresh data — avoids parsing large flat files
+        if ($this->hasFreshPriceAvailabilityDatabaseCache()) {
+            $products = Product::query()
+                ->where('vendor_id', 'TD SYNNEX')
+                ->orderBy('product_name')
+                ->get();
+
+            if ($products->count() > 0) {
+                Log::info('PriceAvailability catalog loaded from database', ['count' => $products->count()]);
+                return $products->map(function (Product $product) {
+                    $spec = is_array($product->specifications) ? $product->specifications : [];
+                    $sku = (string) ($spec['sku'] ?? $product->tdsynnex_sku_no ?? $product->tdsynnex_product_id);
+                    $price = (float) ($product->base_price ?? $product->retail_price ?? 0);
+                    $images = is_array($product->images) ? $product->images : [];
+                    $vendor = trim((string) ($spec['manufacturer'] ?? $product->vendor_id ?? 'TD SYNNEX'));
+
+                    return [
+                        'productId' => $sku,
+                        'sku' => $sku,
+                        'mfgPartNo' => (string) ($product->mfg_part_no ?? $sku),
+                        'vendorId' => $vendor !== '' ? $vendor : 'TD SYNNEX',
+                        'vendorName' => $vendor !== '' ? $vendor : 'TD SYNNEX',
+                        'productName' => (string) ($product->product_name ?? $sku),
+                        'description' => (string) ($product->description ?? ''),
+                        'status' => (string) ($spec['status'] ?? ''),
+                        'availableQuantity' => (int) ($spec['availableQuantity'] ?? 0),
+                        'qty' => (string) ($spec['availableQuantity'] ?? 0),
+                        'categoryCode' => (string) ($spec['categoryCode'] ?? '-'),
+                        'upc' => (string) ($spec['upc'] ?? ''),
+                        'manufacturer' => (string) ($spec['manufacturer'] ?? ''),
+                        'billingModel' => (string) ($product->billing_model ?? ''),
+                        'billingFrequency' => (string) ($product->billing_frequency ?? ''),
+                        'discontinueProduct' => (bool) $product->is_discontinued,
+                        'productPrice' => [['rsPrice' => $price, 'minQty' => 1]],
+                        'productImages' => $images,
+                        'images' => $images,
+                        'image_url' => (string) ($images[0]['imageUrl'] ?? ''),
+                        'icecat_title' => '',
+                    ];
+                })->toArray();
+            }
+        }
+
         $skus = $this->buildSkuListFromConfig();
         if (empty($skus)) {
             throw new TDSynnexApiException(
-                'No SKUs found for PriceAvailability. Set SYNNEX_SKUS, SYNNEX_SKUS_FILE, SYNNEX_FLAT_FILE_PATH, or SYNNEX_FLAT_FILES_DIR.'
+                'No SKUs found for PriceAvailability. Set SYNNEX_SKUS, SYNNEX_SKUS_FILE, SYNNEX_FLAT_FILE_PATH, or SYNNEX_FLAT_FILES_DIR, or run: php artisan tdsynnex:import-flatfile'
             );
         }
 
