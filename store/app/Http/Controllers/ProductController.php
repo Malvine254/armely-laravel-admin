@@ -254,7 +254,7 @@ class ProductController extends Controller
         $allProducts = [];
         $fromDbCache = false;
 
-        if ($useDbCache && $this->tdsynnexService->hasFreshPriceAvailabilityDatabaseCache()) {
+        if ($useDbCache && $this->tdsynnexService->hasPriceAvailabilityDatabaseCache()) {
             $dbPage = $this->fetchPriceAvailabilityPageFromDatabase(
                 $search,
                 $minPrice,

@@ -595,6 +595,13 @@ class TDSynnexService
             ->exists();
     }
 
+    public function hasPriceAvailabilityDatabaseCache(): bool
+    {
+        return Product::query()
+            ->where('vendor_id', 'TD SYNNEX')
+            ->exists();
+    }
+
     /**
      * Search PriceAvailability catalog without loading the entire SKU universe.
      */
@@ -605,8 +612,8 @@ class TDSynnexService
             return $this->getPriceAvailabilityCatalog();
         }
 
-        // When DB has fresh data, search there instead of parsing flat files
-        if ($this->hasFreshPriceAvailabilityDatabaseCache()) {
+        // When DB has data, search there instead of parsing flat files
+        if ($this->hasPriceAvailabilityDatabaseCache()) {
             $like = '%' . $search . '%';
             $products = Product::query()
                 ->where('vendor_id', 'TD SYNNEX')
@@ -1008,8 +1015,8 @@ class TDSynnexService
 
     private function fetchPriceAvailabilityCatalogUncached(): array
     {
-        // Prefer database when it has fresh data — avoids parsing large flat files
-        if ($this->hasFreshPriceAvailabilityDatabaseCache()) {
+        // Prefer database when it has data — avoids parsing large flat files
+        if ($this->hasPriceAvailabilityDatabaseCache()) {
             $products = Product::query()
                 ->where('vendor_id', 'TD SYNNEX')
                 ->orderBy('product_name')
