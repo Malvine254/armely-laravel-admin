@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Jobs\EnrichPriceAvailabilityProductImageJob;
 use App\Models\Product;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
@@ -12,7 +13,8 @@ class ImportFlatFileProductsCommand extends Command
     protected $signature = 'tdsynnex:import-flatfile
         {path? : Path to .ap file or directory (defaults to SYNNEX_FLAT_FILE_PATH / flat-files)}
         {--chunk=500 : Number of rows per DB upsert batch}
-        {--limit=0 : Max rows to import (0 = unlimited)}';
+        {--limit=0 : Max rows to import (0 = unlimited)}
+        {--enrich-images : After import, dispatch image enrichment jobs for all products without images}';
 
     protected $description = 'Import TD SYNNEX .ap flat file data directly into the products table';
 
@@ -46,7 +48,34 @@ class ImportFlatFileProductsCommand extends Command
 
         $this->info("Done. Total imported: {$totalImported}, Total skipped: {$totalSkipped}");
 
+        if ($this->option('enrich-images')) {
+            $this->dispatchImageEnrichmentJobs();
+        }
+
         return self::SUCCESS;
+    }
+
+    private function dispatchImageEnrichmentJobs(): void
+    {
+        $this->info('Queuing image enrichment jobs for products without images...');
+
+        $productIds = Product::query()
+            ->where('vendor_id', 'TD SYNNEX')
+            ->where(function ($q) {
+                $q->whereNull('images')->orWhere('images', '[]');
+            })
+            ->orderBy('id')
+            ->pluck('id');
+
+        $dispatched = 0;
+        foreach ($productIds as $productId) {
+            EnrichPriceAvailabilityProductImageJob::dispatch((int) $productId);
+            $dispatched++;
+        }
+
+        $this->info("Queued {$dispatched} image enrichment jobs.");
+        $this->line('Run workers to process them:');
+        $this->line('  php artisan queue:work database --queue=products-sync --sleep=1 --timeout=120');
     }
 
     private function importFile(string $filePath, int $chunkSize, int $limit): array
@@ -133,6 +162,8 @@ class ImportFlatFileProductsCommand extends Command
         $familyCode = trim((string) ($parts[36] ?? ''));
 
         $isActive = strtoupper($status) === 'A';
+        $imageUrl = $this->extractImageUrlFromParts($parts);
+        $images = $imageUrl !== '' ? [['imageUrl' => $imageUrl, 'source' => 'flat-file']] : [];
         $timestamp = now();
 
         return [
@@ -158,7 +189,7 @@ class ImportFlatFileProductsCommand extends Command
                 'categoryName' => $categoryName,
                 'familyCode' => $familyCode,
             ], JSON_UNESCAPED_UNICODE),
-            'images' => json_encode([], JSON_UNESCAPED_UNICODE),
+            'images' => json_encode($images, JSON_UNESCAPED_UNICODE),
             'last_synced_at' => $timestamp,
             'updated_at' => $timestamp,
             'created_at' => $timestamp,
@@ -183,10 +214,27 @@ class ImportFlatFileProductsCommand extends Command
                 'is_available',
                 'is_discontinued',
                 'specifications',
+                'images',
                 'last_synced_at',
                 'updated_at',
             ]
         );
+    }
+
+    private function extractImageUrlFromParts(array $parts): string
+    {
+        foreach ($parts as $part) {
+            $candidate = trim((string) $part);
+            if ($candidate === '') {
+                continue;
+            }
+
+            if (preg_match('/^https?:\/\/[^\s]+\.(?:jpg|jpeg|png|webp|gif)(?:\?.*)?$/i', $candidate)) {
+                return $candidate;
+            }
+        }
+
+        return '';
     }
 
     private function resolveApFiles(): array
