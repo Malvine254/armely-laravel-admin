@@ -21,8 +21,25 @@ const detectRuntimeBasePath = () => {
   }
 
   const pathname = window.location.pathname || '/'
+  if (pathname === '/store/public' || pathname.startsWith('/store/public/')) {
+    return '/store/public/'
+  }
+
   if (pathname === '/store' || pathname.startsWith('/store/')) {
     return '/store/'
+  }
+
+  // Support nested local paths like /armely-laravel-admin/store/public/... in XAMPP.
+  const publicMarker = '/store/public/'
+  const publicIndex = pathname.indexOf(publicMarker)
+  if (publicIndex >= 0) {
+    return pathname.slice(0, publicIndex + publicMarker.length)
+  }
+
+  const storeMarker = '/store/'
+  const storeIndex = pathname.indexOf(storeMarker)
+  if (storeIndex >= 0) {
+    return pathname.slice(0, storeIndex + storeMarker.length)
   }
 
   return '/'
@@ -47,15 +64,20 @@ const detectRuntimeApiBaseUrl = () => {
   }
 
   const { origin, hostname, port } = window.location
-  const pathname = window.location.pathname || '/'
+  const basePath = APP_BASE_PATH
 
   // Local dev: root app runs on :8000 while store API is served on :8001.
   if ((hostname === '127.0.0.1' || hostname === 'localhost') && port === '8000') {
     return `http://${hostname}:8001/api/v1`
   }
 
-  if (pathname === '/store' || pathname.startsWith('/store/')) {
-    return `${origin}/store/public/api/v1`
+  // Local store app served directly on :8001 keeps API at root /api/v1.
+  if ((hostname === '127.0.0.1' || hostname === 'localhost') && port === '8001') {
+    return `${origin}/api/v1`
+  }
+
+  if (basePath !== '/') {
+    return `${origin}${basePath}api/v1`
   }
 
   return `${origin}/api/v1`

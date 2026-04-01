@@ -8,6 +8,7 @@
           <div class="w-16 h-16 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg" style="background: linear-gradient(135deg, #2F5597, #1f4788);">
             <span class="text-white font-bold text-2xl">A</span>
           </div>
+          <p class="text-sm font-semibold tracking-wide uppercase" style="color: #2F5597;">Armely Store</p>
           <h2 class="text-3xl font-bold text-slate-900 mb-2">Create Account</h2>
           <p class="text-slate-600">Join Armely Store today</p>
         </div>
@@ -32,7 +33,7 @@
           <div>
             <label class="block text-sm font-semibold text-slate-700 mb-2">Password</label>
             <input v-model="password" type="password" placeholder="••••••••" class="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent transition" style="--tw-ring-color: #2F5597;">
-            <p class="text-xs text-slate-500 mt-1">Use at least 12 chars with upper/lowercase, number, and symbol</p>
+            <p class="text-xs text-slate-500 mt-1">Use at least 8 chars with upper/lowercase, number, and symbol</p>
 
             <div v-if="password" class="mt-2">
               <div class="flex items-center justify-between mb-1">
@@ -49,7 +50,7 @@
             </div>
 
             <ul class="mt-2 space-y-1 text-xs">
-              <li :class="passwordChecks.minLength ? 'text-green-700' : 'text-slate-500'">{{ passwordChecks.minLength ? 'OK' : 'X' }} At least 12 characters</li>
+              <li :class="passwordChecks.minLength ? 'text-green-700' : 'text-slate-500'">{{ passwordChecks.minLength ? 'OK' : 'X' }} At least 8 characters</li>
               <li :class="passwordChecks.hasUpper ? 'text-green-700' : 'text-slate-500'">{{ passwordChecks.hasUpper ? 'OK' : 'X' }} One uppercase letter</li>
               <li :class="passwordChecks.hasLower ? 'text-green-700' : 'text-slate-500'">{{ passwordChecks.hasLower ? 'OK' : 'X' }} One lowercase letter</li>
               <li :class="passwordChecks.hasNumber ? 'text-green-700' : 'text-slate-500'">{{ passwordChecks.hasNumber ? 'OK' : 'X' }} One number</li>
@@ -111,7 +112,7 @@ const isValidEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value || '')
 const passwordChecks = computed(() => {
   const value = password.value || ''
   return {
-    minLength: value.length >= 12,
+    minLength: value.length >= 8,
     hasUpper: /[A-Z]/.test(value),
     hasLower: /[a-z]/.test(value),
     hasNumber: /\d/.test(value),
@@ -171,7 +172,7 @@ const canSubmit = computed(() => {
 })
 
 const isStrongPassword = (value) => {
-  if (!value || value.length < 12) return false
+  if (!value || value.length < 8) return false
   const hasUpper = /[A-Z]/.test(value)
   const hasLower = /[a-z]/.test(value)
   const hasNumber = /\d/.test(value)
@@ -191,7 +192,7 @@ const handleRegister = () => {
   }
 
   if (!isStrongPassword(password.value)) {
-    toastStore.addToast('Password must be at least 12 characters and include uppercase, lowercase, number, and symbol', 'warning')
+    toastStore.addToast('Password must be at least 8 characters and include uppercase, lowercase, number, and symbol', 'warning')
     return
   }
 

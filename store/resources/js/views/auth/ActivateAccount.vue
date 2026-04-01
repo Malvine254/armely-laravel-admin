@@ -6,6 +6,8 @@
           <span class="text-white font-bold text-2xl">A</span>
         </div>
 
+        <p class="text-sm font-semibold tracking-wide uppercase" style="color: #2F5597;">Armely Store</p>
+
         <h2 class="text-2xl font-bold text-slate-900 mb-2">Account Activation</h2>
 
         <div v-if="loading" class="py-4">
