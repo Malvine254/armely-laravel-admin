@@ -246,6 +246,7 @@ const lastTrackedTerm = ref('')
 const lastTrackedAt = ref(0)
 
 const availableVendors = ref([])
+const allVendors = ref([])
 const availableCategories = ref([])
 
 const currentFilters = ref({
@@ -342,6 +343,38 @@ const getProductSearchBlob = (product) => {
     product.billingFrequency,
     categories,
   ].join(' '))
+}
+
+const normalizeVendorKey = (value) => String(value || '')
+  .toUpperCase()
+  .replace(/[^A-Z0-9\s]/g, ' ')
+  .replace(/\s+/g, ' ')
+  .trim()
+
+const getVendorCountForKey = (vendorKey, vendorCountMap) => {
+  if (!vendorKey) {
+    return 0
+  }
+
+  const exact = vendorCountMap.get(vendorKey)
+  if (typeof exact === 'number') {
+    return exact
+  }
+
+  // Fallback for naming variants, e.g. "MICROSOFT" vs "MICROSOFT CORPORATION".
+  let count = 0
+  for (const [productVendorKey, productVendorCount] of vendorCountMap.entries()) {
+    if (productVendorKey.startsWith(`${vendorKey} `) || vendorKey.startsWith(`${productVendorKey} `)) {
+      count += productVendorCount
+      continue
+    }
+
+    if (vendorKey.length >= 8 && productVendorKey.includes(vendorKey)) {
+      count += productVendorCount
+    }
+  }
+
+  return count
 }
 
 const computePersonalizationWeight = (entry) => {
@@ -532,7 +565,11 @@ const pendingRequests = new Map()
 const resolveVendorApiValues = (selectedVendorNames = []) => {
   return selectedVendorNames
     .map((selectedName) => {
-      const vendor = availableVendors.value.find(v => v.name === selectedName)
+      const normalizedSelected = normalizeVendorKey(selectedName)
+      const vendor = availableVendors.value.find((v) => (
+        normalizeVendorKey(v.name) === normalizedSelected
+        || normalizeVendorKey(v.value) === normalizedSelected
+      ))
       return vendor?.value || selectedName
     })
     .filter(Boolean)
@@ -553,57 +590,10 @@ const getCacheKey = (filters, page = 1, useServerPaged = false) => {
   })
 }
 
-const fetchAllProductPages = async (baseParams) => {
-  const firstResponse = await api.get('/products', {
-    params: {
-      ...baseParams,
-      page: 1,
-      per_page: API_PAGE_SIZE,
-      hide_zero_price: false
-    }
-  })
 
-  if (!firstResponse.data?.success) {
-    return []
-  }
-
-  const firstData = firstResponse.data.data || {}
-  const firstRecords = Array.isArray(firstData.records)
-    ? firstData.records
-    : (Array.isArray(firstData) ? firstData : [])
-
-  const total = Number(firstData.total || firstRecords.length || 0)
-  const totalPages = Math.max(1, Math.ceil(total / API_PAGE_SIZE))
-  if (totalPages <= 1) {
-    return firstRecords
-  }
-
-  const pagePromises = []
-  for (let page = 2; page <= totalPages; page++) {
-    pagePromises.push(
-      api.get('/products', {
-        params: {
-          ...baseParams,
-          page,
-          per_page: API_PAGE_SIZE,
-          hide_zero_price: false
-        }
-      }).then((res) => {
-        if (!res.data?.success) {
-          return []
-        }
-
-        const pageData = res.data.data || {}
-        return Array.isArray(pageData.records) ? pageData.records : []
-      }).catch(() => [])
-    )
-  }
-
-  const remaining = await Promise.all(pagePromises)
-  return [...firstRecords, ...remaining.flat()]
-}
 
 const performSearch = async (resetPage = true) => {
+  console.log('🔍 performSearch started')
   loading.value = true
   error.value = ''
   if (resetPage) {
@@ -634,10 +624,8 @@ const performSearch = async (resetPage = true) => {
       products.value = cached.data
       serverTotal.value = Number(cached.total || cached.data?.length || 0)
       serverPaged.value = Boolean(cached.serverPaged)
-      updateVendorCounts()
-      if (!useServerPaged || availableCategories.value.length === 0) {
-        extractCategories()
-      }
+      updateVendorCounts(cached.data)
+      extractCategories(cached.data)
       loading.value = false
       return
     }
@@ -651,10 +639,8 @@ const performSearch = async (resetPage = true) => {
       products.value = result.data
       serverTotal.value = Number(result.total || result.data?.length || 0)
       serverPaged.value = Boolean(result.serverPaged)
-      updateVendorCounts()
-      if (!useServerPaged || availableCategories.value.length === 0) {
-        extractCategories()
-      }
+      updateVendorCounts(result.data)
+      extractCategories(result.data)
     } finally {
       loading.value = false
     }
@@ -724,7 +710,10 @@ const performSearch = async (resetPage = true) => {
       products.value = loadedProducts
       serverTotal.value = loadedTotal
       if (Array.isArray(products.value)) {
-        updateVendorCounts()
+        // Use loaded products for facet extraction (not all pages)
+        console.log('🎯 Updating vendor counts...')
+        updateVendorCounts(loadedProducts)
+        console.log('✅ Vendor counts updated')
         
         // Log cache status
         console.log('✅ Products loaded from API:', products.value.length)
@@ -745,10 +734,15 @@ const performSearch = async (resetPage = true) => {
           timestamp: Date.now()
         })
         
-        // Extract categories from loaded products
-        if (!useServerPaged || availableCategories.value.length === 0) {
-          extractCategories()
+        // Extract categories from current page products only (with error handling)
+        console.log('🏷️ Extracting categories...')
+        try {
+          extractCategories(loadedProducts)
+          console.log('✅ Categories extracted:', availableCategories.value.length)
+        } catch (err) {
+          console.error('❌ Category extraction error:', err)
         }
+        console.log('✨ performSearch completed successfully')
         
         return {
           data: products.value,
@@ -796,7 +790,7 @@ const fetchVendors = async () => {
         : (rawVendorData.records || [])
 
       // Transform API response to match frontend format and drop invalid/empty vendor rows
-      availableVendors.value = vendors
+      const mappedVendors = vendors
         .map(vendor => {
           const name = String(vendor.vendorName || vendor.vendorId || '').trim()
           const value = String(vendor.vendorId || vendor.vendorName || '').trim()
@@ -813,6 +807,9 @@ const fetchVendors = async () => {
         })
         .filter(Boolean)
 
+      allVendors.value = mappedVendors
+      availableVendors.value = mappedVendors
+
       // Initialize counts from already-loaded product data and avoid request bursts.
       updateVendorCounts()
     }
@@ -826,32 +823,39 @@ const fetchVendors = async () => {
   }
 }
 
-const updateVendorCounts = () => {
+const updateVendorCounts = (sourceProducts = products.value) => {
   // Count products per vendor
   const vendorCountMap = new Map()
   
-  products.value.forEach(product => {
-    if (product.vendorId) {
-      const count = vendorCountMap.get(product.vendorId) || 0
-      vendorCountMap.set(product.vendorId, count + 1)
+  sourceProducts.forEach(product => {
+    const rawVendor = product.vendorId || product.vendorName
+    const key = normalizeVendorKey(rawVendor)
+    if (key) {
+      const count = vendorCountMap.get(key) || 0
+      vendorCountMap.set(key, count + 1)
     }
   })
-  
-  // Update vendor counts from the current dataset only (no extra API calls).
-  availableVendors.value = availableVendors.value.map(vendor => ({
-    ...vendor,
-    // Match API vendorId values used by products.
-    count: vendorCountMap.get(vendor.value) || 0
-  }))
+
+  const sourceVendors = allVendors.value.length > 0 ? allVendors.value : availableVendors.value
+
+  // Keep full vendor list visible and provide counts from the facet dataset.
+  availableVendors.value = sourceVendors
+    .map(vendor => ({
+      ...vendor,
+      count: getVendorCountForKey(normalizeVendorKey(vendor.value || vendor.name), vendorCountMap)
+    }))
+    .sort((a, b) => {
+      if (b.count !== a.count) return b.count - a.count
+      return a.name.localeCompare(b.name)
+    })
 }
 
-const extractCategories = () => {
+const extractCategories = (sourceProducts = products.value) => {
   // Extract unique categories from products
   const categoryMap = new Map()
-  const codeBuckets = new Map()
-  const codeNameBuckets = new Map()
+  const categoryCodeMap = new Map()
   
-  products.value.forEach(product => {
+  sourceProducts.forEach(product => {
     // Check for productCategories array
     if (product.productCategories && Array.isArray(product.productCategories)) {
       product.productCategories.forEach(category => {
@@ -861,13 +865,6 @@ const extractCategories = () => {
           const count = categoryMap.get(normalizedCategoryName) || 0
           categoryMap.set(normalizedCategoryName, count + 1)
 
-          // If this product also has a numeric category code, remember readable names per code.
-          const categoryCode = String(product.categoryCode || '').trim()
-          if (categoryCode) {
-            const names = codeNameBuckets.get(categoryCode) || new Map()
-            names.set(normalizedCategoryName, (names.get(normalizedCategoryName) || 0) + 1)
-            codeNameBuckets.set(categoryCode, names)
-          }
         }
       })
     }
@@ -892,67 +889,21 @@ const extractCategories = () => {
       }
     }
 
-    // Extract categoryCode for PriceAvailability products
+    // Keep numeric category codes as a safe fallback when no descriptive categories exist.
     if (product.categoryCode) {
-      const categoryCode = String(product.categoryCode || '').trim()
-      if (categoryCode) {
-        const bucket = codeBuckets.get(categoryCode) || { count: 0, terms: new Map() }
-        bucket.count += 1
-
-        const tokens = [
-          String(product.productName || ''),
-          String(product.vendorId || ''),
-          String(product.billingModel || ''),
-          String(product.billingFrequency || '')
-        ]
-          .join(' ')
-          .toLowerCase()
-          .replace(/[^a-z0-9\s]/g, ' ')
-          .split(/\s+/)
-          .filter(Boolean)
-
-        tokens.forEach(token => {
-          if (token.length < 4) return
-          if (['with', 'from', 'that', 'this', 'kit', 'model', 'module', 'system', 'pack', 'each', 'inc', 'corp', 'corporation', 'company'].includes(token)) return
-          bucket.terms.set(token, (bucket.terms.get(token) || 0) + 1)
-        })
-
-        codeBuckets.set(categoryCode, bucket)
+      const code = String(product.categoryCode || '').trim()
+      if (code) {
+        categoryCodeMap.set(code, (categoryCodeMap.get(code) || 0) + 1)
       }
     }
+
   })
 
-  // Add readable labels for numeric category codes while preserving code as filter value
-  codeBuckets.forEach((bucket, code) => {
-    let bestName = ''
-    let bestNameCount = 0
-    const readableNames = codeNameBuckets.get(code)
-    if (readableNames) {
-      readableNames.forEach((count, name) => {
-        if (count > bestNameCount) {
-          bestNameCount = count
-          bestName = name
-        }
-      })
-    }
-
-    let bestTerm = 'Category'
-    let bestCount = 0
-    bucket.terms.forEach((count, term) => {
-      if (count > bestCount) {
-        bestCount = count
-        bestTerm = term
-      }
+  if (categoryMap.size === 0 && categoryCodeMap.size > 0) {
+    categoryCodeMap.forEach((count, code) => {
+      categoryMap.set(`UNSPSC ${code}`, { count, value: code })
     })
-
-    const fallbackLabel = bestTerm !== 'Category'
-      ? `${bestTerm.charAt(0).toUpperCase()}${bestTerm.slice(1)}`
-      : `Code ${code}`
-
-    const labelBase = bestName || fallbackLabel
-    const label = `${labelBase} (${code})`
-    categoryMap.set(label, { count: bucket.count, value: code })
-  })
+  }
   
   // Convert map to array format and sort by count
   availableCategories.value = Array.from(categoryMap.entries())
