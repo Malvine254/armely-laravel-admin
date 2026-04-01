@@ -631,8 +631,8 @@ class AuthController extends Controller
 
     private function buildActivationUrl(string $email, string $token): string
     {
-        $backendBaseUrl = rtrim((string) config('app.url'), '/');
-        return $backendBaseUrl . '/api/v1/auth/activate?token=' . urlencode($token) . '&email=' . urlencode($email);
+        $frontendBaseUrl = rtrim((string) env('FRONTEND_URL', config('app.url')), '/');
+        return $frontendBaseUrl . '/activate-account?token=' . urlencode($token) . '&email=' . urlencode($email);
     }
 
     private function activationRedirect(bool $success, string $message)
