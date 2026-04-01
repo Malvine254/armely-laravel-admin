@@ -1108,6 +1108,16 @@ watch(
 )
 
 onMounted(() => {
+  if (route.query.next === 'login') {
+    const query = {}
+    if (route.query.email) query.email = String(route.query.email)
+    if (route.query.activation) query.activation = String(route.query.activation)
+    if (route.query.message) query.message = String(route.query.message)
+
+    router.replace({ name: 'login', query })
+    return
+  }
+
   fetchVendors()
 })
 </script>

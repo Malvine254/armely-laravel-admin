@@ -66,7 +66,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/authStore'
 import { useCartStore } from '../../stores/cartStore'
@@ -155,4 +155,19 @@ const handleResendActivation = async () => {
   const result = await authStore.resendActivation(email.value)
   toastStore.addToast(result.message, result.ok ? 'success' : 'warning')
 }
+
+onMounted(() => {
+  if (!route.query.activation) {
+    return
+  }
+
+  const status = String(route.query.activation)
+  const message = route.query.message ? String(route.query.message) : ''
+
+  if (status === 'success') {
+    toastStore.addToast(message || 'Account activated successfully. You can now log in.', 'success')
+  } else {
+    toastStore.addToast(message || 'Activation failed. Please request a new activation link.', 'warning')
+  }
+})
 </script>
