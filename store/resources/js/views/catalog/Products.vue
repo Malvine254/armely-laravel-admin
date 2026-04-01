@@ -214,13 +214,13 @@
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
-import axios from 'axios'
 import { useRouter, useRoute } from 'vue-router'
 import { useToastStore } from '../../stores/toastStore'
 import { useCartStore } from '../../stores/cartStore'
 import { useFavoritesStore } from '../../stores/favoritesStore'
 import { useAuthStore } from '../../stores/authStore'
 import { trackSearchTerm, hasTrackingConsent, getSearchProfileTerms } from '../../services/searchInsights'
+import api from '../../services/api'
 import Navbar from '../../components/Navbar.vue'
 import FilterSidebar from '../../components/FilterSidebar.vue'
 
@@ -554,7 +554,7 @@ const getCacheKey = (filters, page = 1, useServerPaged = false) => {
 }
 
 const fetchAllProductPages = async (baseParams) => {
-  const firstResponse = await axios.get('/api/v1/products', {
+  const firstResponse = await api.get('/products', {
     params: {
       ...baseParams,
       page: 1,
@@ -581,7 +581,7 @@ const fetchAllProductPages = async (baseParams) => {
   const pagePromises = []
   for (let page = 2; page <= totalPages; page++) {
     pagePromises.push(
-      axios.get('/api/v1/products', {
+      api.get('/products', {
         params: {
           ...baseParams,
           page,
@@ -634,6 +634,7 @@ const performSearch = async (resetPage = true) => {
       products.value = cached.data
       serverTotal.value = Number(cached.total || cached.data?.length || 0)
       serverPaged.value = Boolean(cached.serverPaged)
+      updateVendorCounts()
       if (!useServerPaged || availableCategories.value.length === 0) {
         extractCategories()
       }
@@ -650,6 +651,7 @@ const performSearch = async (resetPage = true) => {
       products.value = result.data
       serverTotal.value = Number(result.total || result.data?.length || 0)
       serverPaged.value = Boolean(result.serverPaged)
+      updateVendorCounts()
       if (!useServerPaged || availableCategories.value.length === 0) {
         extractCategories()
       }
@@ -688,7 +690,7 @@ const performSearch = async (resetPage = true) => {
       let loadedTotal = 0
 
       if (useServerPaged) {
-        const response = await axios.get('/api/v1/products', {
+        const response = await api.get('/products', {
           params: {
             ...params,
             page: currentPage.value,
@@ -722,6 +724,7 @@ const performSearch = async (resetPage = true) => {
       products.value = loadedProducts
       serverTotal.value = loadedTotal
       if (Array.isArray(products.value)) {
+        updateVendorCounts()
         
         // Log cache status
         console.log('✅ Products loaded from API:', products.value.length)
@@ -784,7 +787,7 @@ const clearSearch = async () => {
 
 const fetchVendors = async () => {
   try {
-    const response = await axios.get('/api/v1/vendors')
+    const response = await api.get('/vendors')
     
     if (response.data.success) {
       const rawVendorData = response.data.data || []
@@ -809,9 +812,9 @@ const fetchVendors = async () => {
           }
         })
         .filter(Boolean)
-      
-      // Fetch product counts for all vendors
-      await fetchVendorCounts()
+
+      // Initialize counts from already-loaded product data and avoid request bursts.
+      updateVendorCounts()
     }
   } catch (err) {
     console.error('Error fetching vendors:', err)
@@ -821,67 +824,6 @@ const fetchVendors = async () => {
       { name: 'Google', value: 'Google', count: 0 }
     ]
   }
-}
-
-const fetchVendorCounts = async () => {
-  // Fetch product counts for each vendor (just first page to get total)
-  const countPromises = availableVendors.value.map(async (vendor) => {
-    try {
-      const response = await axios.get('/api/v1/products', {
-        params: {
-          vendor: vendor.value || vendor.name,
-          page: 1,
-          per_page: 1 // Just need the total count, not all products
-              , hide_zero_price: false
-        }
-      })
-      
-      if (response.data.success) {
-        const data = response.data.data
-        // Vendor count must come from filtered total, not overall apiTotal.
-        return {
-          name: vendor.name,
-          count: Number(data.total || data.apiTotal || 0),
-          ok: true
-        }
-      }
-    } catch (err) {
-      console.error(`Error fetching count for ${vendor.name}:`, err)
-      return { name: vendor.name, count: 0, ok: false }
-    }
-    return { name: vendor.name, count: 0, ok: false }
-  })
-  
-  const counts = await Promise.all(countPromises)
-  const successfulCountRequests = counts.filter(item => item.ok).length
-  
-  // Update vendor counts
-  counts.forEach(({ name, count }) => {
-    const vendor = availableVendors.value.find(v => v.name === name)
-    if (vendor) {
-      vendor.count = Number(count || 0)
-    }
-  })
-
-  // Keep vendor list visible even when count lookups fail intermittently.
-  if (successfulCountRequests === 0) {
-    availableVendors.value = availableVendors.value
-      .filter(vendor => String(vendor.name || '').trim().length > 0)
-      .sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')))
-    return
-  }
-
-  // When counts are available, keep only vendors with products.
-  availableVendors.value = availableVendors.value
-    .filter(vendor => {
-      const hasName = String(vendor.name || '').trim().length > 0
-      return hasName && Number(vendor.count || 0) > 0
-    })
-    .sort((a, b) => {
-      const countDiff = Number(a.count || 0) - Number(b.count || 0)
-      if (countDiff !== 0) return countDiff
-      return String(a.name || '').localeCompare(String(b.name || ''))
-    })
 }
 
 const updateVendorCounts = () => {
@@ -895,7 +837,7 @@ const updateVendorCounts = () => {
     }
   })
   
-  // Update vendor counts
+  // Update vendor counts from the current dataset only (no extra API calls).
   availableVendors.value = availableVendors.value.map(vendor => ({
     ...vendor,
     count: vendorCountMap.get(vendor.name) || 0
@@ -989,8 +931,7 @@ const extractCategories = () => {
     .filter(cat => cat.name.length > 0 && cat.count > 0)
     .sort((a, b) => b.count - a.count)
   
-  // DO NOT update vendor counts here - they should remain static from initial API fetch
-  // Vendor counts are set by fetchVendorCounts() and should not change based on filters
+  // Vendor counts are updated from currently loaded products.
   
   // Log for verification
   console.log('Categories extracted:', availableCategories.value.length)
