@@ -70,6 +70,7 @@ const routes = [
     path: '/admin/login',
     name: 'admin-login',
     component: AdminLogin,
+    alias: ['/admin-login'],
     meta: { requiresAuth: false },
   },
   {

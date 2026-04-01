@@ -9,31 +9,33 @@ Route::get('/dashboard', function () {
     abort(404);
 });
 
-// Admin Authentication Routes (store admin - guest only)
-Route::prefix('store/admin')->name('store.admin.')->group(function () {
-    Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
-    Route::post('/login', [AuthController::class, 'login'])->name('login.post');
-    Route::get('/forgot-password', [AuthController::class, 'showReset'])->name('reset');
-    Route::post('/forgot-password', [AuthController::class, 'sendResetLink'])->name('reset.post');
-    Route::get('/reset-password/{token}', [AuthController::class, 'showResetForm'])->name('password.reset');
-    Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('password.update');
-});
-
 // Lightweight public ping for deployment health checks (no auth)
 Route::get('/store/admin/ping', [AdminController::class, 'ping'])->name('store.admin.ping');
 
-// Store Admin Protected Routes
-Route::prefix('store/admin')->middleware(['auth:admin'])->name('store.admin.')->group(function () {
-    Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
-    Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
-    Route::get('/logout', [AuthController::class, 'logout'])->name('logout.get');
-});
+// Store admin is handled by the Vue SPA. Authentication is token-based via
+// /api/v1/auth/*, so these paths should render the SPA entrypoint instead of
+// relying on undefined session guards or legacy controller actions.
+Route::get('/store/admin', function () {
+    return view('app');
+})->name('store.admin.entry');
 
-// Company Website Admin - serve from main app
+Route::get('/store/admin-login', function () {
+    return view('app');
+})->name('store.admin.login.alias');
+
+Route::get('/store/admin/{any}', function () {
+    return view('app');
+})->where('any', '.*');
+
+// Company Website Admin - redirect to main admin portal
 Route::prefix('admin')->group(function () {
-    Route::get('/{any}', function () {
-        // Proxy to the admin app or serve admin views
-        return redirect(env('ADMIN_URL', 'http://127.0.0.1:8000') . '/admin/' . request()->path());
+    Route::get('/{any?}', function () {
+        // Extract path after /admin/ prefix
+        $path = request()->path();
+        $pathAfterAdmin = preg_replace('~^admin/?~', '', $path);
+        
+        $adminUrl = env('ADMIN_URL', 'http://127.0.0.1:8000');
+        return redirect($adminUrl . '/admin/' . $pathAfterAdmin);
     })->where('any', '.*');
 });
 
@@ -42,9 +44,14 @@ Route::get('/store', function () {
     return view('app');
 })->name('store.home');
 
+// Store user SPA routes when deployed under the /store base path.
+Route::get('/store/{any}', function () {
+    return view('app');
+})->where('any', '.*');
+
 // Store SPA catch-all - serve the Vue.js SPA for all unmatched routes
 // BUT exclude API routes and system routes
 Route::get('/{any}', function () {
     return view('app');
-})->where('any', '^(?!api|upload|store/admin).*$')->name('store.catchall');
+})->where('any', '^(?!api|upload|store(?:/|$)).*$')->name('store.catchall');
 

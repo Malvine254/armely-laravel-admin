@@ -3,18 +3,20 @@ import { APP_BASE_PATH } from './services/runtimeConfig';
 window.axios = axios;
 
 const appOrigin = typeof window !== 'undefined' ? window.location.origin : '';
-const normalizedAppBasePath = APP_BASE_PATH.replace(/\/+$/, '');
 const isLocalStoreServer =
 	typeof window !== 'undefined' &&
 	(window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost') &&
 	window.location.port === '8001';
 
-// Ensure axios requests like "/api/v1/..." resolve under "/store/public" in
-// subpath deployments where Apache serves Laravel from the public directory.
+// For production deployments where the store app is at /store/public,
+// we need to use /store/public as the base URL for API requests
+const basePathNormalized = APP_BASE_PATH.replace(/\/+$/, ''); // Remove trailing slashes
+const isStoreSubpath = basePathNormalized === '/store';
+
 window.axios.defaults.baseURL =
 	isLocalStoreServer
 		? appOrigin
-		: normalizedAppBasePath === '/store'
+		: isStoreSubpath
 		? `${appOrigin}/store/public`
 		: appOrigin;
 window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';

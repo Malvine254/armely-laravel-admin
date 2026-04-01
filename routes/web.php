@@ -133,6 +133,24 @@ if (!$storeBridgeDisabledForPathMode) {
 
         return response()->view('store-bridge', ['targetUrl' => $targetUrl]);
     })->where('path', '.*');
+} else {
+    Route::get('/store', function (\Illuminate\Http\Request $request) use ($storeBaseUrl, $buildStoreTarget) {
+        $targetUrl = $buildStoreTarget($storeBaseUrl, '', $request->getQueryString());
+        if ($targetUrl === null) {
+            return redirect('/');
+        }
+
+        return redirect()->away($targetUrl);
+    })->name('armely-store');
+
+    Route::get('/store/{path}', function (\Illuminate\Http\Request $request, string $path) use ($storeBaseUrl, $buildStoreTarget) {
+        $targetUrl = $buildStoreTarget($storeBaseUrl, $path, $request->getQueryString());
+        if ($targetUrl === null) {
+            return redirect('/');
+        }
+
+        return redirect()->away($targetUrl);
+    })->where('path', '.*');
 }
 
 Route::get('/armely-store', function () {
@@ -156,6 +174,15 @@ Route::get('/api/search/suggestions', [SearchController::class, 'suggestions'])-
 Route::get('/api/analytics/summary', [AnalyticsController::class, 'apiSummary'])->name('api.analytics.summary')->middleware('auth:admin');
 
 // Admin Authentication Routes (guest only)
+Route::get('/admin', function () {
+    return auth('admin')->check()
+        ? redirect()->route('admin.dashboard')
+    : redirect('/admin-login');
+});
+
+// Alias route to avoid local php artisan serve collision with public/admin/* assets path.
+Route::get('/admin-login', [AuthController::class, 'showLogin'])->name('admin.login.alias');
+
 Route::prefix('admin')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('admin.login');
     Route::post('/login', [AuthController::class, 'login'])->name('admin.login.post');
