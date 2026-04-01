@@ -641,9 +641,11 @@ class AuthController extends Controller
         $query = http_build_query([
             'activation' => $success ? 'success' : 'failed',
             'message' => $message,
+            'next' => 'login',
         ]);
 
-        return redirect()->to($frontendBaseUrl . '/login?' . $query);
+        // Use store root to avoid web-server deep-link issues on /store/login.
+        return redirect()->to($frontendBaseUrl . '/?' . $query);
     }
 
     private function sendActivationEmail(User $user, string $activationUrl): void
