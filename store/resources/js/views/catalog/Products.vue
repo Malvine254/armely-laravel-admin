@@ -840,7 +840,8 @@ const updateVendorCounts = () => {
   // Update vendor counts from the current dataset only (no extra API calls).
   availableVendors.value = availableVendors.value.map(vendor => ({
     ...vendor,
-    count: vendorCountMap.get(vendor.name) || 0
+    // Match API vendorId values used by products.
+    count: vendorCountMap.get(vendor.value) || 0
   }))
 }
 
@@ -848,6 +849,7 @@ const extractCategories = () => {
   // Extract unique categories from products
   const categoryMap = new Map()
   const codeBuckets = new Map()
+  const codeNameBuckets = new Map()
   
   products.value.forEach(product => {
     // Check for productCategories array
@@ -858,6 +860,14 @@ const extractCategories = () => {
         if (normalizedCategoryName) {
           const count = categoryMap.get(normalizedCategoryName) || 0
           categoryMap.set(normalizedCategoryName, count + 1)
+
+          // If this product also has a numeric category code, remember readable names per code.
+          const categoryCode = String(product.categoryCode || '').trim()
+          if (categoryCode) {
+            const names = codeNameBuckets.get(categoryCode) || new Map()
+            names.set(normalizedCategoryName, (names.get(normalizedCategoryName) || 0) + 1)
+            codeNameBuckets.set(categoryCode, names)
+          }
         }
       })
     }
@@ -889,7 +899,13 @@ const extractCategories = () => {
         const bucket = codeBuckets.get(categoryCode) || { count: 0, terms: new Map() }
         bucket.count += 1
 
-        const tokens = String(product.productName || '')
+        const tokens = [
+          String(product.productName || ''),
+          String(product.vendorId || ''),
+          String(product.billingModel || ''),
+          String(product.billingFrequency || '')
+        ]
+          .join(' ')
           .toLowerCase()
           .replace(/[^a-z0-9\s]/g, ' ')
           .split(/\s+/)
@@ -897,7 +913,7 @@ const extractCategories = () => {
 
         tokens.forEach(token => {
           if (token.length < 4) return
-          if (['with', 'from', 'that', 'this', 'kit', 'model', 'module', 'system', 'pack', 'each'].includes(token)) return
+          if (['with', 'from', 'that', 'this', 'kit', 'model', 'module', 'system', 'pack', 'each', 'inc', 'corp', 'corporation', 'company'].includes(token)) return
           bucket.terms.set(token, (bucket.terms.get(token) || 0) + 1)
         })
 
@@ -908,6 +924,18 @@ const extractCategories = () => {
 
   // Add readable labels for numeric category codes while preserving code as filter value
   codeBuckets.forEach((bucket, code) => {
+    let bestName = ''
+    let bestNameCount = 0
+    const readableNames = codeNameBuckets.get(code)
+    if (readableNames) {
+      readableNames.forEach((count, name) => {
+        if (count > bestNameCount) {
+          bestNameCount = count
+          bestName = name
+        }
+      })
+    }
+
     let bestTerm = 'Category'
     let bestCount = 0
     bucket.terms.forEach((count, term) => {
@@ -917,7 +945,12 @@ const extractCategories = () => {
       }
     })
 
-    const label = `${bestTerm.charAt(0).toUpperCase()}${bestTerm.slice(1)} (${code})`
+    const fallbackLabel = bestTerm !== 'Category'
+      ? `${bestTerm.charAt(0).toUpperCase()}${bestTerm.slice(1)}`
+      : `Code ${code}`
+
+    const labelBase = bestName || fallbackLabel
+    const label = `${labelBase} (${code})`
     categoryMap.set(label, { count: bucket.count, value: code })
   })
   
