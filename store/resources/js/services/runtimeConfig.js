@@ -46,12 +46,19 @@ const detectRuntimeApiBaseUrl = () => {
     return '/api/v1'
   }
 
+  const { origin, hostname, port } = window.location
   const pathname = window.location.pathname || '/'
-  if (pathname === '/store' || pathname.startsWith('/store/')) {
-    return `${window.location.origin}/store/public/api/v1`
+
+  // Local dev: root app runs on :8000 while store API is served on :8001.
+  if ((hostname === '127.0.0.1' || hostname === 'localhost') && port === '8000') {
+    return `http://${hostname}:8001/api/v1`
   }
 
-  return `${window.location.origin}/api/v1`
+  if (pathname === '/store' || pathname.startsWith('/store/')) {
+    return `${origin}/store/public/api/v1`
+  }
+
+  return `${origin}/api/v1`
 }
 
 export const API_BASE_URL = (import.meta.env.VITE_API_URL || detectRuntimeApiBaseUrl())
