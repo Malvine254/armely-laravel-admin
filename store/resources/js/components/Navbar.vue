@@ -5,7 +5,14 @@
         <!-- Logo Section -->
         <button type="button" class="flex items-center gap-2 sm:gap-3 flex-shrink-0 cursor-pointer" @click="goToProducts">
           <div class="w-10 h-10 rounded-lg bg-white overflow-hidden flex items-center justify-center">
-            <img :src="buildStoreUrl('images/logo/armely-store-logo.png')" alt="Armely Store" class="w-9 h-9 object-contain">
+            <img
+              v-if="showLogoImage"
+              :src="logoSrc"
+              alt="Armely Store"
+              class="w-9 h-9 object-contain"
+              @error="handleLogoError"
+            >
+            <span v-else class="text-blue-900 font-bold text-lg">A</span>
           </div>
           <div class="text-left">
             <div class="font-bold text-base sm:text-lg">Armely Store</div>
@@ -177,6 +184,41 @@ const searchTerm = ref('')
 const unreadCount = ref(0)
 const mobileMenuOpen = ref(false)
 const unreadIntervalId = ref(null)
+
+const logoCandidates = (() => {
+  const relativePath = 'images/logo/armely-store-logo.png'
+  const candidates = [
+    buildStoreUrl(relativePath),
+    '/store/images/logo/armely-store-logo.png',
+    '/store/public/images/logo/armely-store-logo.png',
+    '/images/logo/armely-store-logo.png',
+  ]
+
+  if (typeof window !== 'undefined') {
+    const origin = window.location.origin
+    candidates.push(
+      `${origin}/store/images/logo/armely-store-logo.png`,
+      `${origin}/store/public/images/logo/armely-store-logo.png`,
+      `${origin}/images/logo/armely-store-logo.png`
+    )
+  }
+
+  return [...new Set(candidates)]
+})()
+
+const logoCandidateIndex = ref(0)
+const logoSrc = ref(logoCandidates[0])
+const showLogoImage = ref(Boolean(logoSrc.value))
+
+const handleLogoError = () => {
+  logoCandidateIndex.value += 1
+  if (logoCandidateIndex.value < logoCandidates.length) {
+    logoSrc.value = logoCandidates[logoCandidateIndex.value]
+    return
+  }
+
+  showLogoImage.value = false
+}
 
 const closeMobileMenu = () => {
   mobileMenuOpen.value = false

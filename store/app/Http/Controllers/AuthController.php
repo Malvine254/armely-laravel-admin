@@ -50,7 +50,7 @@ class AuthController extends Controller
 
     private function strongPasswordRule(): Password
     {
-        return Password::min(12)
+        return Password::min(8)
             ->mixedCase()
             ->numbers()
             ->symbols()

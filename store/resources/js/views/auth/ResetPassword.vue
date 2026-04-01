@@ -6,6 +6,7 @@
           <div class="w-16 h-16 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg" style="background: linear-gradient(135deg, #2F5597, #1f4788);">
             <span class="text-white font-bold text-2xl">A</span>
           </div>
+          <p class="text-sm font-semibold tracking-wide uppercase" style="color: #2F5597;">Armely Store</p>
           <h2 class="text-3xl font-bold text-slate-900 mb-2">Reset Password</h2>
           <p class="text-slate-600">Create a new secure password for your account</p>
         </div>
@@ -79,8 +80,8 @@ const handleSubmit = async () => {
     return
   }
 
-  if (password.value.length < 12) {
-    toastStore.addToast('Password must be at least 12 characters', 'warning')
+  if (password.value.length < 8) {
+    toastStore.addToast('Password must be at least 8 characters', 'warning')
     return
   }
 
