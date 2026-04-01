@@ -1354,15 +1354,16 @@ class TDSynnexService
         if ($flatFilePath !== '') {
             $path = $this->resolvePath($flatFilePath);
             if (!$path || !File::exists($path)) {
-                throw new TDSynnexApiException('SYNNEX_FLAT_FILE_PATH not found: ' . $flatFilePath);
-            }
-
-            if (File::isDirectory($path)) {
+                Log::warning('SYNNEX_FLAT_FILE_PATH not found, falling back to flat-files dir: ' . $flatFilePath);
+                $flatFilePath = '';
+            } elseif (File::isDirectory($path)) {
                 $candidates = array_merge($candidates, File::glob($path . DIRECTORY_SEPARATOR . '*.ap'), File::glob($path . DIRECTORY_SEPARATOR . '*.AP'));
             } else {
                 $candidates[] = $path;
             }
-        } else {
+        }
+
+        if ($flatFilePath === '') {
             $flatFilesDir = $this->resolvePath((string) config('tdsynnex.price_availability.flat_files_dir', 'flat-files'));
             if ($flatFilesDir && File::isDirectory($flatFilesDir)) {
                 $candidates = array_merge($candidates, File::glob($flatFilesDir . DIRECTORY_SEPARATOR . '*.ap'), File::glob($flatFilesDir . DIRECTORY_SEPARATOR . '*.AP'));

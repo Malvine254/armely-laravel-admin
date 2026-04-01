@@ -240,6 +240,7 @@ import { useCartStore } from '../../stores/cartStore'
 import { useFavoritesStore } from '../../stores/favoritesStore'
 import { useAuthStore } from '../../stores/authStore'
 import Navbar from '../../components/Navbar.vue'
+import { API_BASE_URL } from '../../services/runtimeConfig'
 
 const router = useRouter()
 const route = useRoute()
@@ -263,7 +264,7 @@ const loadRelatedProducts = async (productId, cacheKey, cachedRelated) => {
   }
 
   try {
-    const response = await fetch(`/api/v1/products/${productId}/related`)
+    const response = await fetch(`${API_BASE_URL}/products/${productId}/related`)
     if (!response.ok) {
       relatedProducts.value = []
       relatedProductsCache.set(cacheKey, [])
@@ -305,7 +306,7 @@ const loadProductDetail = async (productId) => {
 
   try {
     if (!cachedProduct) {
-      const response = await fetch(`/api/v1/products/${productId}`)
+      const response = await fetch(`${API_BASE_URL}/products/${productId}`)
       if (!response.ok) {
         throw new Error(response.status === 404 ? 'Product not found.' : `Failed to fetch product (${response.status}).`)
       }
