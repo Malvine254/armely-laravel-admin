@@ -16,20 +16,42 @@ if (file_exists($maintenance = $storeBasePath . '/storage/framework/maintenance.
 // Register the store app's Composer autoloader...
 require $storeBasePath . '/vendor/autoload.php';
 
+// ---------------------------------------------------------------------------
+// Strip the /store prefix from the request so the store Laravel app sees
+// clean paths identical to running on its own port (e.g. localhost:8001).
+//
+// Production flow:
+//   Browser requests  /store/api/v1/products
+//   Apache rewrites → public/store/index.php
+//   We strip /store → Laravel routes see /api/v1/products
+// ---------------------------------------------------------------------------
+$prefix = '/store';
+$prefixLen = 6; // strlen('/store')
+
+// Fix REQUEST_URI: /store/api/v1/products → /api/v1/products
+$requestUri = $_SERVER['REQUEST_URI'] ?? '/';
+if (substr($requestUri, 0, $prefixLen) === $prefix) {
+    $rest = substr($requestUri, $prefixLen);
+    // Only strip if next char is /, ?, or end of string
+    if ($rest === '' || $rest === false || $rest[0] === '/' || $rest[0] === '?') {
+        $_SERVER['REQUEST_URI'] = ($rest === '' || $rest === false) ? '/' : $rest;
+    }
+}
+
+// Fix SCRIPT_NAME: /store/index.php → /index.php
+// This ensures Symfony computes the correct basePath
+if (isset($_SERVER['SCRIPT_NAME'])) {
+    $sn = $_SERVER['SCRIPT_NAME'];
+    if (substr($sn, 0, $prefixLen) === $prefix) {
+        $_SERVER['SCRIPT_NAME'] = substr($sn, $prefixLen) ?: '/index.php';
+    }
+}
+
+// Fix SCRIPT_FILENAME if it references the bridge instead of store's index
+$_SERVER['SCRIPT_FILENAME'] = $storeBasePath . DIRECTORY_SEPARATOR . 'public' . DIRECTORY_SEPARATOR . 'index.php';
+
 // Bootstrap the store Laravel app and handle the request...
 /** @var Application $app */
 $app = require_once $storeBasePath . '/bootstrap/app.php';
 
-// Capture the request and strip the /store prefix for routing
-$request = Request::capture();
-$uri = $request->getRequestUri();
-if (str_starts_with($uri, '/store')) {
-    $uri = substr($uri, 6); // Remove '/store'
-    if ($uri === '' || $uri[0] !== '/') {
-        $uri = '/' . $uri;
-    }
-    $_SERVER['REQUEST_URI'] = $uri;
-    $request = Request::capture(); // Re-capture with modified URI
-}
-
-$app->handleRequest($request);
+$app->handleRequest(Request::capture());
