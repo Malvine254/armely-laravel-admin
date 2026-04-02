@@ -225,13 +225,22 @@ router.beforeEach((to, from, next) => {
   }
 
   if (to.name === 'admin-login' && authStore.isAuthenticated) {
-    next({ name: authStore.isAdmin ? 'admin-dashboard' : 'products' });
+    if (authStore.isAdmin) {
+      next({ name: 'admin-dashboard' });
+    } else {
+      // Non-admin user trying to reach admin login — clear their session
+      // so they can sign in with admin credentials instead of being blocked.
+      authStore.logout();
+      next();
+    }
     return;
   }
   
   // Check admin requirement
   if (to.meta.requiresAdmin && !authStore.isAdmin) {
-    next({ name: 'products' });
+    // Clear the non-admin session and send to admin login
+    authStore.logout();
+    next({ name: 'admin-login' });
     return;
   }
   
