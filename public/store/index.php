@@ -1,25 +1,20 @@
 <?php
 
-// ── Temporary diagnostic – remove after debugging ──────────────
-// Path-based: visit /store/_diag  (no query string needed)
-$rawUri = $_SERVER['REQUEST_URI'] ?? '/';
-$rawPath = parse_url($rawUri, PHP_URL_PATH) ?: '/';
-if ($rawPath === '/store/_diag' || $rawPath === '/_diag') {
-    header('Content-Type: application/json');
-    echo json_encode([
-        'REQUEST_URI_raw'   => $rawUri,
-        'PATH_parsed'       => $rawPath,
-        'SCRIPT_NAME'       => $_SERVER['SCRIPT_NAME'] ?? null,
-        'SCRIPT_FILENAME'   => $_SERVER['SCRIPT_FILENAME'] ?? null,
-        'PHP_SELF'          => $_SERVER['PHP_SELF'] ?? null,
-        'DOCUMENT_ROOT'     => $_SERVER['DOCUMENT_ROOT'] ?? null,
-        'REDIRECT_URL'      => $_SERVER['REDIRECT_URL'] ?? null,
-        'cwd'               => getcwd(),
-        'bridge_file'       => __FILE__,
-    ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
-    exit;
-}
-// ── End diagnostic ─────────────────────────────────────────────
+// ── TEMPORARY: unconditional dump to prove bridge runs ─────────
+header('Content-Type: application/json');
+echo json_encode([
+    'BRIDGE_REACHED'    => true,
+    'REQUEST_URI'       => $_SERVER['REQUEST_URI'] ?? null,
+    'SCRIPT_NAME'       => $_SERVER['SCRIPT_NAME'] ?? null,
+    'SCRIPT_FILENAME'   => $_SERVER['SCRIPT_FILENAME'] ?? null,
+    'PHP_SELF'          => $_SERVER['PHP_SELF'] ?? null,
+    'REDIRECT_URL'      => $_SERVER['REDIRECT_URL'] ?? null,
+    'DOCUMENT_ROOT'     => $_SERVER['DOCUMENT_ROOT'] ?? null,
+    'cwd'               => getcwd(),
+    'bridge_file'       => __FILE__,
+], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+exit;
+// ── END TEMPORARY ──────────────────────────────────────────────
 
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
