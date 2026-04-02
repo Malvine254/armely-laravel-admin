@@ -174,11 +174,7 @@ Route::get('/api/search/suggestions', [SearchController::class, 'suggestions'])-
 Route::get('/api/analytics/summary', [AnalyticsController::class, 'apiSummary'])->name('api.analytics.summary')->middleware('auth:admin');
 
 // Admin Authentication Routes (guest only)
-Route::get('/admin', function () {
-    return auth('admin')->check()
-        ? redirect()->route('admin.dashboard')
-    : redirect('/admin-login');
-});
+Route::get('/admin', [AuthController::class, 'showLogin']);
 
 // Alias route to avoid local php artisan serve collision with public/admin/* assets path.
 Route::get('/admin-login', [AuthController::class, 'showLogin'])->name('admin.login.alias');

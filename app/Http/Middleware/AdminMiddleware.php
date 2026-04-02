@@ -12,14 +12,14 @@ class AdminMiddleware
     public function handle(Request $request, Closure $next): Response
     {
         if (!Auth::guard('admin')->check()) {
-            return redirect()->route('admin.login')->with('error', 'Please login to access the admin panel.');
+            return redirect('/admin/login')->with('error', 'Please login to access the admin panel.');
         }
 
         $admin = Auth::guard('admin')->user();
-        
+
         if (!$admin->isActive()) {
             Auth::guard('admin')->logout();
-            return redirect()->route('admin.login')->with('error', 'Your account is not active.');
+            return redirect('/admin/login')->with('error', 'Your account is not active.');
         }
 
         return $next($request);
