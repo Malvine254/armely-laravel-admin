@@ -19,7 +19,8 @@ class AuthController extends Controller
     public function showLogin()
     {
         if (Auth::guard('admin')->check()) {
-            return redirect()->route('admin.dashboard');
+            // Keep redirects host-relative to avoid localhost/127.0.0.1 session cookie mismatches.
+            return redirect('/admin/dashboard');
         }
         return view('admin.auth.login');
     }
@@ -35,24 +36,33 @@ class AuthController extends Controller
             'password.required' => 'Password is required',
         ]);
 
+        Log::debug('Admin login attempt', ['email' => $credentials['email']]);
+
         try {
-            if (Auth::guard('admin')->attempt($credentials, $request->filled('remember'))) {
+            $attemptResult = Auth::guard('admin')->attempt($credentials, $request->filled('remember'));
+            Log::debug('Auth attempt result', ['result' => $attemptResult, 'email' => $credentials['email']]);
+            
+            if ($attemptResult) {
+                Log::info('Admin logged in successfully', ['email' => $credentials['email']]);
                 $request->session()->regenerate();
-                return redirect()->intended(route('admin.dashboard'));
+                // Keep intended fallback host-relative to preserve session cookies across local hostnames.
+                return redirect()->intended('/admin/dashboard');
             }
         } catch (\Exception $e) {
             // Handle bcrypt errors (usually plain text passwords)
-            Log::error('Admin login error: ' . $e->getMessage());
+            Log::error('Admin login error: ' . $e->getMessage(), ['email' => $credentials['email'], 'trace' => $e->getTraceAsString()]);
             
             // Check if admin exists to give targeted error
             $admin = \App\Models\Admin::where('email', $credentials['email'])->first();
             if ($admin && !Hash::check($credentials['password'], $admin->password)) {
+                Log::debug('Password mismatch for existing admin', ['email' => $credentials['email']]);
                 return back()->withErrors([
                     'email' => 'The password is incorrect.',
                 ])->onlyInput('email');
             }
         }
 
+        Log::warning('Admin login failed', ['email' => $credentials['email']]);
         return back()->withErrors([
             'email' => 'The provided credentials do not match our records.',
         ])->onlyInput('email');
@@ -63,8 +73,8 @@ class AuthController extends Controller
         Auth::guard('admin')->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
-        
-        return redirect()->route('admin.login');
+
+        return redirect('/admin/login');
     }
 
     public function showReset()
