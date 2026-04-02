@@ -96,13 +96,20 @@ const resolvePostLoginRoute = () => {
 
   if (authStore.isAdmin) {
     // Force admin users to admin area unless an explicit admin route was requested.
-    if (redirectTarget.startsWith('/admin')) return redirectTarget
-    return '/admin/dashboard'
+    if (redirectTarget === '/admin' || redirectTarget === '/admin/') return { name: 'admin-dashboard' }
+    if (redirectTarget === '/admin/dashboard' || redirectTarget.startsWith('/admin/dashboard?')) return { name: 'admin-dashboard-page' }
+    if (redirectTarget.startsWith('/admin/quotes')) return { name: 'admin-quotes' }
+    if (redirectTarget.startsWith('/admin/orders')) return { name: 'admin-orders' }
+    if (redirectTarget.startsWith('/admin/customers')) return { name: 'admin-customers' }
+    if (redirectTarget.startsWith('/admin/reports')) return { name: 'admin-reports' }
+    if (redirectTarget.startsWith('/admin/settings')) return { name: 'admin-settings' }
+    if (redirectTarget.startsWith('/admin/invoices')) return { name: 'admin-invoices' }
+    return { name: 'admin-dashboard-page' }
   }
 
   // Prevent non-admin users from being routed into admin-only pages.
   if (redirectTarget && !redirectTarget.startsWith('/admin')) return redirectTarget
-  return '/products'
+  return { name: 'products' }
 }
 
 const handleLogin = async () => {

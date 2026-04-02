@@ -21,6 +21,7 @@ const detectRuntimeBasePath = () => {
   }
 
   const pathname = window.location.pathname || '/'
+  const hostname = (window.location.hostname || '').toLowerCase()
   if (pathname === '/store/public' || pathname.startsWith('/store/public/')) {
     return '/store/public/'
   }
@@ -40,6 +41,13 @@ const detectRuntimeBasePath = () => {
   const storeIndex = pathname.indexOf(storeMarker)
   if (storeIndex >= 0) {
     return pathname.slice(0, storeIndex + storeMarker.length)
+  }
+
+  // Production safety net: store is mounted under /store on armely.com.
+  // Some reverse-proxy rewrites can expose paths like /admin/* to the SPA,
+  // which would otherwise make the router base resolve to '/'.
+  if (hostname === 'armely.com' || hostname === 'www.armely.com') {
+    return '/store/'
   }
 
   return '/'
