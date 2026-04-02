@@ -19,6 +19,12 @@ Route::get('/store/admin', function () {
     return view('app');
 })->name('store.admin.entry');
 
+// When the store app is mounted under /store, some server rewrites can expose
+// the internal path as /admin. Treat it as store admin (not company admin).
+Route::get('/admin', function () {
+    return view('app');
+})->name('store.admin.entry.alias');
+
 Route::get('/store/admin-login', function () {
     return view('app');
 })->name('store.admin.login.alias');
@@ -27,19 +33,9 @@ Route::get('/store/admin/{any}', function () {
     return view('app');
 })->where('any', '.*');
 
-// Company Website Admin - redirect to main admin portal
-Route::prefix('admin')->group(function () {
-    Route::get('/{any?}', function () {
-        // Extract path after /admin/ prefix
-        $path = request()->path();
-        $pathAfterAdmin = preg_replace('~^admin/?~', '', $path);
-
-        // In production, never fall back to localhost. If ADMIN_URL is not set,
-        // use the current request host/scheme as the company admin base.
-        $adminUrl = rtrim((string) env('ADMIN_URL', request()->getSchemeAndHttpHost()), '/');
-        return redirect($adminUrl . '/admin/' . ltrim((string) $pathAfterAdmin, '/'));
-    })->where('any', '.*');
-});
+Route::get('/admin/{any}', function () {
+    return view('app');
+})->where('any', '.*');
 
 // Store user page - serve SPA at root and /store
 Route::get('/store', function () {
