@@ -1,9 +1,27 @@
 <?php
 
+// ── Temporary diagnostic – remove after debugging ──────────────
+if (isset($_GET['_diag']) && $_GET['_diag'] === 'server') {
+    header('Content-Type: application/json');
+    echo json_encode([
+        'REQUEST_URI'     => $_SERVER['REQUEST_URI'] ?? null,
+        'SCRIPT_NAME'     => $_SERVER['SCRIPT_NAME'] ?? null,
+        'SCRIPT_FILENAME' => $_SERVER['SCRIPT_FILENAME'] ?? null,
+        'PHP_SELF'        => $_SERVER['PHP_SELF'] ?? null,
+        'DOCUMENT_ROOT'   => $_SERVER['DOCUMENT_ROOT'] ?? null,
+        'REDIRECT_URL'    => $_SERVER['REDIRECT_URL'] ?? null,
+        'cwd'             => getcwd(),
+    ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    exit;
+}
+// ── End diagnostic ─────────────────────────────────────────────
+
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
 
-define('LARAVEL_START', microtime(true));
+if (!defined('LARAVEL_START')) {
+    define('LARAVEL_START', microtime(true));
+}
 
 // Point to the store app (two levels up from public/store/, then into store/)
 $storeBasePath = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'store';
