@@ -20,4 +20,16 @@ require $storeBasePath . '/vendor/autoload.php';
 /** @var Application $app */
 $app = require_once $storeBasePath . '/bootstrap/app.php';
 
-$app->handleRequest(Request::capture());
+// Capture the request and strip the /store prefix for routing
+$request = Request::capture();
+$uri = $request->getRequestUri();
+if (str_starts_with($uri, '/store')) {
+    $uri = substr($uri, 6); // Remove '/store'
+    if ($uri === '' || $uri[0] !== '/') {
+        $uri = '/' . $uri;
+    }
+    $_SERVER['REQUEST_URI'] = $uri;
+    $request = Request::capture(); // Re-capture with modified URI
+}
+
+$app->handleRequest($request);
