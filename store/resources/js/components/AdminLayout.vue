@@ -36,7 +36,7 @@
       <nav class="sidebar-nav mt-6 flex-1 overflow-y-auto pb-4">
         <!-- Dashboard -->
         <router-link
-          to="/admin/dashboard"
+          :to="{ name: 'admin-dashboard-page' }"
           :class="[
             'flex items-center px-6 py-3 border-l-4 transition',
             isActive('dashboard')
@@ -55,7 +55,7 @@
           <p class="text-xs font-semibold text-[#c5d6ef] uppercase tracking-wider">Quotes</p>
         </div>
         <router-link
-          to="/admin/quotes/pending"
+          :to="{ name: 'admin-quotes' }"
           :class="[
             'flex items-center px-6 py-3 border-l-4 transition',
             isActive('quotes')
@@ -77,7 +77,7 @@
           <p class="text-xs font-semibold text-[#c5d6ef] uppercase tracking-wider">Orders</p>
         </div>
         <router-link
-          to="/admin/orders"
+          :to="{ name: 'admin-orders' }"
           :class="[
             'flex items-center px-6 py-3 border-l-4 transition',
             isActive('orders')
@@ -99,7 +99,7 @@
           <p class="text-xs font-semibold text-[#c5d6ef] uppercase tracking-wider">Customers</p>
         </div>
         <router-link
-          to="/admin/customers"
+          :to="{ name: 'admin-customers' }"
           :class="[
             'flex items-center px-6 py-3 border-l-4 transition',
             isActive('customers')
@@ -118,7 +118,7 @@
           <p class="text-xs font-semibold text-[#c5d6ef] uppercase tracking-wider">Analytics</p>
         </div>
         <router-link
-          to="/admin/reports"
+          :to="{ name: 'admin-reports' }"
           :class="[
             'flex items-center px-6 py-3 border-l-4 transition',
             isActive('reports')
@@ -137,7 +137,7 @@
           <p class="text-xs font-semibold text-[#c5d6ef] uppercase tracking-wider">Billing</p>
         </div>
         <router-link
-          to="/admin/invoices"
+          :to="{ name: 'admin-invoices' }"
           :class="[
             'flex items-center px-6 py-3 border-l-4 transition',
             isActive('invoices')
@@ -156,7 +156,7 @@
           <p class="text-xs font-semibold text-[#c5d6ef] uppercase tracking-wider">System</p>
         </div>
         <router-link
-          to="/admin/settings"
+          :to="{ name: 'admin-settings' }"
           :class="[
             'flex items-center px-6 py-3 border-l-4 transition',
             isActive('settings')

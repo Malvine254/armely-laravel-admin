@@ -142,7 +142,7 @@
       <div class="lg:col-span-2 bg-white rounded-lg shadow p-6">
         <div class="flex justify-between items-center mb-4">
           <h3 class="text-lg font-bold text-gray-800">Recent Pending Quotes</h3>
-          <router-link to="/admin/quotes/pending" class="text-blue-600 text-sm font-medium hover:underline">
+          <router-link :to="{ name: 'admin-quotes' }" class="text-blue-600 text-sm font-medium hover:underline">
             View All
           </router-link>
         </div>
@@ -216,7 +216,7 @@
     <div class="bg-white rounded-lg shadow p-6">
       <div class="flex justify-between items-center mb-4">
         <h3 class="text-lg font-bold text-gray-800">Recent Orders</h3>
-        <router-link to="/admin/orders" class="text-blue-600 text-sm font-medium hover:underline">
+        <router-link :to="{ name: 'admin-orders' }" class="text-blue-600 text-sm font-medium hover:underline">
           View All
         </router-link>
       </div>
