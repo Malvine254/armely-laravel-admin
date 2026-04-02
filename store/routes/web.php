@@ -37,6 +37,21 @@ Route::get('/admin/{any}', function () {
     return view('app');
 })->where('any', '.*');
 
+// Canonicalize leaked /store/public URLs back to /store.
+Route::get('/store/public/{any?}', function (?string $any = null) {
+    $target = '/store';
+    if ($any !== null && $any !== '') {
+        $target .= '/' . ltrim($any, '/');
+    }
+
+    $query = request()->getQueryString();
+    if ($query) {
+        $target .= '?' . $query;
+    }
+
+    return redirect($target, 301);
+})->where('any', '.*');
+
 // Store user page - serve SPA at root and /store
 Route::get('/store', function () {
     return view('app');

@@ -92,22 +92,7 @@ const detectRuntimeApiBaseUrl = () => {
 }
 
 const normalizeApiBaseUrl = (value) => {
-  let normalized = String(value || '').replace(/\/+$/, '')
-
-  if (typeof window === 'undefined') {
-    return normalized
-  }
-
-  const isLocalhost =
-    window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost'
-
-  // Some production servers route /store/api/v1 to the SPA HTML entrypoint.
-  // Force the known working API path for non-local /store deployments.
-  if (!isLocalhost && normalized.endsWith('/store/api/v1')) {
-    normalized = normalized.replace(/\/store\/api\/v1$/, '/store/public/api/v1')
-  }
-
-  return normalized
+  return String(value || '').replace(/\/+$/, '')
 }
 
 export const API_BASE_URL = normalizeApiBaseUrl(
