@@ -32,8 +32,8 @@ Route::get('/', function () {
 })->name('store.home');
 
 // Store SPA catch-all - serve the Vue.js SPA for all unmatched routes
-// BUT exclude API routes and system routes
+// BUT exclude API routes (both /api and /store/api) and system routes
 Route::get('/{any}', function () {
     return view('app');
-})->where('any', '^(?!api|upload).*$')->name('store.catchall');
+})->where('any', '^(?!api/|store/api/|upload/).*$')->name('store.catchall');
 
