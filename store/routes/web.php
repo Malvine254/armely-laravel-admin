@@ -60,7 +60,7 @@ Route::get('/store', function () {
 // Store user SPA routes when deployed under the /store base path.
 Route::get('/store/{any}', function () {
     return view('app');
-})->where('any', '.*');
+})->where('any', '^(?!api(?:/|$)).*$');
 
 // Store SPA catch-all - serve the Vue.js SPA for all unmatched routes
 // BUT exclude API routes and system routes
