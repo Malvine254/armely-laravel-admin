@@ -206,11 +206,14 @@ router.beforeEach((to, from, next) => {
   
   // Redirect to login if accessing protected route while unauthenticated
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
-    localStorage.setItem('redirectAfterLogin', to.fullPath);
     if (to.meta.requiresAdmin) {
-      next({ name: 'admin-login', query: { redirect: to.fullPath } });
+      // Keep admin login URL clean and deterministic.
+      localStorage.removeItem('redirectAfterLogin');
+      next({ name: 'admin-login' });
       return;
     }
+
+    localStorage.setItem('redirectAfterLogin', to.fullPath);
     next({ name: 'login', query: { redirect: to.fullPath } });
     return;
   }
