@@ -33,11 +33,6 @@ class RouteServiceProvider extends ServiceProvider
                 ->prefix('api')
                 ->group(base_path('routes/api.php'));
 
-            // Support deployments where the store app is mounted under /store.
-            Route::middleware('api')
-                ->prefix('store/api')
-                ->group(base_path('routes/api.php'));
-
             Route::middleware('web')
                 ->group(base_path('routes/web.php'));
         });
