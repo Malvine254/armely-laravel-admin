@@ -5,8 +5,11 @@
 
     RewriteEngine On
 
-    # Route exact /admin through Laravel instead of the public/admin asset folder.
-    RewriteRule ^admin/?$ index.php [L]
+    # Route all /admin paths through Laravel EXCEPT static asset folders
+    # (css, js, images). This prevents the public/admin/ directory from
+    # hijacking admin routes like /admin/login, /admin/dashboard, etc.
+    RewriteCond %{REQUEST_URI} !^/admin/(css|js|images)/ [NC]
+    RewriteRule ^admin(/.*)?$ index.php [L]
 
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
