@@ -33,9 +33,11 @@ Route::prefix('admin')->group(function () {
         // Extract path after /admin/ prefix
         $path = request()->path();
         $pathAfterAdmin = preg_replace('~^admin/?~', '', $path);
-        
-        $adminUrl = env('ADMIN_URL', 'http://127.0.0.1:8000');
-        return redirect($adminUrl . '/admin/' . $pathAfterAdmin);
+
+        // In production, never fall back to localhost. If ADMIN_URL is not set,
+        // use the current request host/scheme as the company admin base.
+        $adminUrl = rtrim((string) env('ADMIN_URL', request()->getSchemeAndHttpHost()), '/');
+        return redirect($adminUrl . '/admin/' . ltrim((string) $pathAfterAdmin, '/'));
     })->where('any', '.*');
 });
 
