@@ -25,6 +25,13 @@
     RewriteCond %{REQUEST_URI} (.+)/$
     RewriteRule ^ %1 [L,R=301]
 
+    # Route all /store/* requests to the store bridge.
+    # Without this rule, /store/api/v1/products falls through to the
+    # main app's catch-all because it is not a physical file or directory.
+    RewriteCond %{REQUEST_URI} ^/store(/|$)
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^ store/index.php [L]
+
     # Send Requests To Front Controller...
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_FILENAME} !-f
