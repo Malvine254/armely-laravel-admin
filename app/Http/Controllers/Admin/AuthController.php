@@ -45,8 +45,8 @@ class AuthController extends Controller
             if ($attemptResult) {
                 Log::info('Admin logged in successfully', ['email' => $credentials['email']]);
                 $request->session()->regenerate();
-                // Keep intended fallback host-relative to preserve session cookies across local hostnames.
-                return redirect()->intended('/admin/dashboard');
+                // Always land on admin dashboard to avoid stale intended URLs from store browsing session.
+                return redirect('/admin/dashboard');
             }
         } catch (\Exception $e) {
             // Handle bcrypt errors (usually plain text passwords)
