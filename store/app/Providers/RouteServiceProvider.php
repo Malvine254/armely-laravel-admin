@@ -33,6 +33,12 @@ class RouteServiceProvider extends ServiceProvider
                 ->prefix('api')
                 ->group(base_path('routes/api.php'));
 
+            // Mirror API routes under /store/api so they work on production
+            // even when the /store prefix is not stripped from the URI.
+            Route::middleware('api')
+                ->prefix('store/api')
+                ->group(base_path('routes/api.php'));
+
             Route::middleware('web')
                 ->group(base_path('routes/web.php'));
         });
