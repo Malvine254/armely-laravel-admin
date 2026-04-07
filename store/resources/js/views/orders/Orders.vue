@@ -13,28 +13,36 @@
 
       <!-- Quick Stats -->
       <div v-if="orders.length > 0" class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-        <div class="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
-          <p class="text-gray-600 text-sm font-medium">Total Orders</p>
+        <div class="group relative overflow-hidden rounded-2xl border p-5 sm:p-6 transition duration-300 hover:-translate-y-0.5" style="background: linear-gradient(160deg, #ffffff 0%, #f7fbff 62%, #eef4ff 100%); border-color: #d9e6f7; box-shadow: 0 12px 26px rgba(47,85,151,0.1);">
+          <div class="pointer-events-none absolute -right-6 -top-6 h-16 w-16 rounded-full" style="background: radial-gradient(circle, rgba(47,85,151,0.2) 0%, rgba(47,85,151,0) 70%);"></div>
+          <p class="text-gray-600 text-xs font-semibold uppercase tracking-wide">Total Orders</p>
           <p class="text-3xl font-bold text-gray-900 mt-2">{{ pagination.total }}</p>
+          <div class="mt-4 h-1.5 w-16 rounded-full" style="background: linear-gradient(90deg, #2F5597, #7fa2d8);"></div>
         </div>
-        <div class="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
-          <p class="text-gray-600 text-sm font-medium">Processing</p>
-          <p class="text-3xl font-bold" style="color: #ff9800;">{{ getOrdersCountByStatus('processing') }}</p>
+        <div class="group relative overflow-hidden rounded-2xl border p-5 sm:p-6 transition duration-300 hover:-translate-y-0.5" style="background: linear-gradient(160deg, #ffffff 0%, #fffaf2 62%, #fff3df 100%); border-color: #f6dec0; box-shadow: 0 12px 24px rgba(245,158,11,0.12);">
+          <div class="pointer-events-none absolute -right-6 -top-6 h-16 w-16 rounded-full" style="background: radial-gradient(circle, rgba(245,158,11,0.2) 0%, rgba(245,158,11,0) 70%);"></div>
+          <p class="text-gray-600 text-xs font-semibold uppercase tracking-wide">Processing</p>
+          <p class="text-3xl font-bold mt-2" style="color: #d97706;">{{ getOrdersCountByStatus('processing') }}</p>
+          <div class="mt-4 h-1.5 w-16 rounded-full" style="background: linear-gradient(90deg, #f59e0b, #fcd34d);"></div>
         </div>
-        <div class="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
-          <p class="text-gray-600 text-sm font-medium">Delivered</p>
-          <p class="text-3xl font-bold text-green-600">{{ getOrdersCountByStatus('delivered') }}</p>
+        <div class="group relative overflow-hidden rounded-2xl border p-5 sm:p-6 transition duration-300 hover:-translate-y-0.5" style="background: linear-gradient(160deg, #ffffff 0%, #f6fff9 62%, #edfff3 100%); border-color: #cce9d6; box-shadow: 0 12px 24px rgba(22,163,74,0.1);">
+          <div class="pointer-events-none absolute -right-6 -top-6 h-16 w-16 rounded-full" style="background: radial-gradient(circle, rgba(34,197,94,0.22) 0%, rgba(34,197,94,0) 70%);"></div>
+          <p class="text-gray-600 text-xs font-semibold uppercase tracking-wide">Delivered</p>
+          <p class="text-3xl font-bold text-green-600 mt-2">{{ getOrdersCountByStatus('delivered') }}</p>
+          <div class="mt-4 h-1.5 w-16 rounded-full" style="background: linear-gradient(90deg, #16a34a, #86efac);"></div>
         </div>
-        <div class="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
-          <p class="text-gray-600 text-sm font-medium">Cancelled</p>
-          <p class="text-3xl font-bold text-red-600">{{ getOrdersCountByStatus('cancelled') }}</p>
+        <div class="group relative overflow-hidden rounded-2xl border p-5 sm:p-6 transition duration-300 hover:-translate-y-0.5" style="background: linear-gradient(160deg, #ffffff 0%, #fff6f6 62%, #ffeded 100%); border-color: #f4cccc; box-shadow: 0 12px 24px rgba(220,38,38,0.1);">
+          <div class="pointer-events-none absolute -right-6 -top-6 h-16 w-16 rounded-full" style="background: radial-gradient(circle, rgba(220,38,38,0.2) 0%, rgba(220,38,38,0) 70%);"></div>
+          <p class="text-gray-600 text-xs font-semibold uppercase tracking-wide">Cancelled</p>
+          <p class="text-3xl font-bold text-red-600 mt-2">{{ getOrdersCountByStatus('cancelled') }}</p>
+          <div class="mt-4 h-1.5 w-16 rounded-full" style="background: linear-gradient(90deg, #dc2626, #fca5a5);"></div>
         </div>
       </div>
 
       <!-- Filter Bar -->
       <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div class="relative">
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+          <div class="relative md:col-span-3">
             <label class="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">Filter by Status</label>
             <select v-model="selectedStatus" class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-0 transition duration-200" style="focus:ring-color: #2F5597; border-color: #e5e7eb;">
               <option value="">All Statuses</option>
@@ -46,15 +54,23 @@
               <option value="cancelled">Cancelled</option>
             </select>
           </div>
-          <div class="relative">
+          <div class="relative md:col-span-4">
             <label class="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">Search Orders</label>
             <input v-model="searchQuery" type="text" placeholder="Enter order number..." class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-0 transition duration-200" style="focus:ring-color: #2F5597; border-color: #e5e7eb;">
           </div>
-          <div class="flex gap-2 items-end">
+          <div class="md:col-span-3">
+            <label class="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">Sort By</label>
+            <select v-model="sortBy" class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-0 transition duration-200" style="focus:ring-color: #2F5597; border-color: #e5e7eb;">
+              <option value="created_desc">Newest First</option>
+              <option value="created_asc">Oldest First</option>
+              <option value="amount_desc">Highest Amount</option>
+              <option value="amount_asc">Lowest Amount</option>
+              <option value="status_asc">Status (A-Z)</option>
+            </select>
+          </div>
+          <div class="md:col-span-2 flex gap-2">
             <button @click="fetchOrders" class="flex-1 px-4 py-3 text-white rounded-lg font-semibold transition duration-200 hover:shadow-lg" style="background-color: #2F5597;" @mouseenter="$event.target.style.backgroundColor='#1f4788'" @mouseleave="$event.target.style.backgroundColor='#2F5597'">
-              <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>Search
+              Search
             </button>
             <button @click="resetFilters" class="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition duration-200">
               Reset
@@ -97,103 +113,108 @@
         </router-link>
       </div>
 
-      <!-- Orders Grid (Card Layout) -->
-      <div v-else class="space-y-4">
-        <div v-for="order in filteredOrders" :key="order.id" class="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition duration-300 overflow-hidden cursor-pointer" @click="viewOrder(order)">
-          <!-- Card Header with Status -->
-          <div class="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-            <div class="flex items-center gap-4 flex-1">
-              <div>
-                <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Order Number</p>
-                <p class="text-xl font-bold text-gray-900 font-mono">{{ order.order_number }}</p>
-              </div>
-            </div>
-            <span :class="getStatusBadge(order.status)" class="px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap">
-              {{ formatStatus(order.status) }}
-            </span>
-          </div>
-
-          <!-- Card Body -->
-          <div class="px-6 py-5">
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-6 mb-5">
-              <div>
-                <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Order Date</p>
-                <p class="text-gray-900 font-semibold mt-1">{{ formatDate(order.created_at) }}</p>
-              </div>
-              <div>
-                <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Total Amount</p>
-                <p class="text-2xl font-bold text-gray-900 mt-1">{{ formatCurrency(order.total_amount) }}</p>
-              </div>
-              <div v-if="order.tracking_number">
-                <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Tracking Number</p>
-                <p class="text-gray-900 font-mono font-semibold mt-1 truncate">{{ order.tracking_number }}</p>
-              </div>
-              <div v-if="order.estimated_delivery">
-                <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Est. Delivery</p>
-                <p class="text-gray-900 font-semibold mt-1">{{ formatDate(order.estimated_delivery) }}</p>
-              </div>
-            </div>
-
-            <!-- Progress Bar -->
-            <div class="mb-5">
-              <div class="flex items-center justify-between mb-2">
-                <p class="text-xs font-semibold text-gray-700">Order Status Progress</p>
-                <p class="text-xs text-gray-600">{{ getStatusProgress(order.status) }}%</p>
-              </div>
-              <div class="w-full bg-gray-200 rounded-full h-2">
-                <div class="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition duration-500" :style="{ inlineSize: getStatusProgress(order.status) + '%' }"></div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Card Footer with Actions -->
-          <div class="border-t border-gray-100 bg-gray-50 px-6 py-4 flex items-center justify-between">
-            <button @click.stop="viewOrder(order)" class="flex items-center gap-2 font-semibold transition duration-200 hover:opacity-75" style="color: #2F5597;">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-              </svg>
-              View Details
-            </button>
-            <button
-              v-if="canCancelOrder(order)"
-              @click.stop="cancelOrder(order)"
-              :disabled="processingOrderNumber === order.order_number"
-              class="flex items-center gap-2 font-semibold px-4 py-2 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              style="color: #e74c3c; border: 1px solid #e74c3c;"
-              @mouseenter="$event.target.style.backgroundColor='#fadbd8'"
-              @mouseleave="$event.target.style.backgroundColor='transparent'"
-            >
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-              {{ processingOrderNumber === order.order_number ? 'Cancelling...' : 'Cancel' }}
-            </button>
-          </div>
+      <!-- Orders Table -->
+      <div v-else class="bg-white rounded-xl shadow-sm border overflow-hidden" style="border-color: #d9e6f7;">
+        <div class="overflow-x-auto">
+          <table class="min-w-full">
+            <thead>
+              <tr class="border-b" style="background: linear-gradient(90deg, #f7fbff, #edf4fc); border-color: #d9e6f7;">
+                <th class="px-5 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Order Number</th>
+                <th class="px-5 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Status</th>
+                <th class="px-5 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Created</th>
+                <th class="px-5 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Amount</th>
+                <th class="px-5 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Progress</th>
+                <th class="px-5 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="order in filteredOrders"
+                :key="order.id"
+                class="border-b last:border-b-0 hover:bg-[#f8fbff] transition duration-200"
+                style="border-color: #ecf3fb;"
+              >
+                <td class="px-5 py-4 align-top">
+                  <button
+                    @click="viewOrder(order)"
+                    class="text-left font-semibold font-mono transition duration-200 hover:opacity-80"
+                    style="color: #2F5597;"
+                  >
+                    {{ order.order_number }}
+                  </button>
+                  <p v-if="order.tracking_number" class="text-xs text-gray-500 mt-1">Tracking: {{ order.tracking_number }}</p>
+                </td>
+                <td class="px-5 py-4 align-top">
+                  <span :class="getStatusBadge(order.status)" class="inline-flex px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap">
+                    {{ formatStatus(order.status) }}
+                  </span>
+                </td>
+                <td class="px-5 py-4 text-sm text-gray-700 align-top">{{ formatDate(order.created_at) }}</td>
+                <td class="px-5 py-4 align-top">
+                  <p class="text-sm font-bold text-gray-900">{{ formatCurrency(order.total_amount) }}</p>
+                  <p v-if="order.estimated_delivery" class="text-xs text-gray-500 mt-1">ETA: {{ formatDate(order.estimated_delivery) }}</p>
+                </td>
+                <td class="px-5 py-4 align-top">
+                  <div class="w-36">
+                    <div class="w-full rounded-full h-2 mb-1" style="background-color: #d9e6f7;">
+                      <div class="h-2 rounded-full" style="background-color: #2F5597;" :style="{ inlineSize: getStatusProgress(order.status) + '%' }"></div>
+                    </div>
+                    <p class="text-xs text-gray-600">{{ getStatusProgress(order.status) }}%</p>
+                  </div>
+                </td>
+                <td class="px-5 py-4 align-top">
+                  <div class="flex flex-nowrap items-center gap-2 whitespace-nowrap">
+                    <button
+                      @click="viewOrder(order)"
+                      class="px-3 py-1.5 text-xs rounded-md font-semibold transition duration-200"
+                      style="color: #2F5597; border: 1px solid #2F5597;"
+                      @mouseenter="$event.target.style.backgroundColor='#edf3fb'"
+                      @mouseleave="$event.target.style.backgroundColor='transparent'"
+                    >
+                      View
+                    </button>
+                    <button
+                      v-if="canCancelOrder(order)"
+                      @click="cancelOrder(order)"
+                      :disabled="processingOrderNumber === order.order_number"
+                      class="px-3 py-1.5 text-xs rounded-md font-semibold transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      style="color: #e74c3c; border: 1px solid #e74c3c;"
+                      @mouseenter="$event.target.style.backgroundColor='#fadbd8'"
+                      @mouseleave="$event.target.style.backgroundColor='transparent'"
+                    >
+                      {{ processingOrderNumber === order.order_number ? 'Cancelling...' : 'Cancel' }}
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
 
         <!-- Pagination -->
-        <div v-if="pagination.total > pagination.per_page" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mt-8 flex items-center justify-between">
-          <div class="text-sm text-gray-600">
-            Showing <span class="font-semibold">{{ pagination.from }}</span> to <span class="font-semibold">{{ pagination.to }}</span> of <span class="font-semibold">{{ pagination.total }}</span> orders
+        <div v-if="pagination.total > pagination.per_page" class="border-t px-4 sm:px-5 py-4 flex items-center justify-between" style="border-color: #d9e6f7; background: #f9fcff;">
+          <div class="text-sm text-gray-700 font-medium">
+            Showing {{ pagination.from }}-{{ pagination.to }} of {{ pagination.total }}
           </div>
-          <div class="flex gap-3">
+          <div class="flex items-center gap-2">
             <button 
               @click="previousPage" 
               :disabled="pagination.current_page === 1"
-              class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-semibold hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200"
+              class="px-3 py-1.5 text-xs sm:text-sm rounded-md border font-semibold transition duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+              style="border-color: #d9e6f7; color: #2F5597;"
             >
-              ← Previous
+              Previous
             </button>
-            <div class="flex items-center gap-2">
-              <span class="text-sm text-gray-600">Page <span class="font-semibold">{{ pagination.current_page }}</span> of <span class="font-semibold">{{ pagination.last_page }}</span></span>
-            </div>
+            <span class="px-3 py-1.5 text-xs sm:text-sm rounded-md border font-semibold text-white" style="background-color: #2F5597; border-color: #2F5597;">
+              {{ pagination.current_page }}
+            </span>
             <button 
               @click="nextPage" 
               :disabled="pagination.current_page === pagination.last_page"
-              class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-semibold hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200"
+              class="px-3 py-1.5 text-xs sm:text-sm rounded-md border font-semibold transition duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+              style="border-color: #d9e6f7; color: #2F5597;"
             >
-              Next →
+              Next
             </button>
           </div>
         </div>

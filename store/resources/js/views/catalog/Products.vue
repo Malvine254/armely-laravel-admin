@@ -43,15 +43,15 @@
             :vendors="availableVendors" 
             :categories="availableCategories"
             :lifecycle-options="lifecycleOptions"
-            :media-options="mediaOptions"
+            :media-options="reviewRatingOptions"
             @filter-change="handleFilterChange"
           />
         </div>
 
         <!-- Products Section -->
         <div class="flex-1 min-w-0">
-          <!-- Loading State -->
-          <div v-if="loading" class="text-center py-9">
+          <!-- Loading State (full load only, not page changes) -->
+          <div v-if="loading && !pageLoading" class="text-center py-9">
             <div class="inline-block">
               <div class="w-12 h-12 border-4 border-gray-200 rounded-full animate-spin" style="border-top-color: #2F5597;"></div>
               <p class="mt-4 text-gray-600 font-semibold">Loading products...</p>
@@ -75,7 +75,13 @@
           </div>
 
           <!-- Results Summary -->
-          <div v-else-if="!loading" class="">
+          <div v-else-if="!loading || pageLoading" class="">
+            <!-- Page loading overlay -->
+            <div v-if="pageLoading" class="fixed top-0 left-0 right-0 z-50">
+              <div class="h-1 bg-gray-200 w-full">
+                <div class="h-1 rounded-r animate-pulse" style="background-color: #2F5597; width: 100%;"></div>
+              </div>
+            </div>
             <div class="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
               <p class="text-gray-600 font-medium">Showing <span class="font-bold" style="color: #2F5597;">{{ paginatedProducts.length }}</span> of <span class="font-bold" style="color: #2F5597;">{{ totalProducts }}</span> products</p>
               <span class="text-gray-600 text-sm">Page <span class="font-bold" style="color: #2F5597;">{{ currentPage }}</span> of <span class="font-bold" style="color: #2F5597;">{{ totalPages }}</span></span>
@@ -94,7 +100,7 @@
             </div>
 
             <!-- Products Grid (3 columns on desktop, 2 on tablet, 1 on mobile) -->
-            <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8 transition-opacity duration-200" :class="{ 'opacity-50 pointer-events-none': pageLoading }">
               <div v-for="product in paginatedProducts" :key="product.productId" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden group hover:shadow-lg transition" style="border: 1px solid rgb(229, 231, 235);" @mouseenter="$event.currentTarget.style.borderColor='#cce4f5'" @mouseleave="$event.currentTarget.style.borderColor='rgb(229, 231, 235)'">
                 <!-- Product Image -->
                 <div class="bg-gradient-to-br from-gray-200 to-gray-300 h-40 flex items-center justify-center transition relative overflow-hidden" style="background: linear-gradient(135deg, rgb(229, 231, 235), rgb(209, 213, 219));">
@@ -144,6 +150,25 @@
                   <div class="flex items-center justify-between gap-3 text-xs text-gray-600 mb-3">
                     <p class="truncate">SKU: {{ product.mfgPartNo || 'N/A' }}</p>
                     <p class="truncate text-right">Vendor: {{ product.vendorId || 'N/A' }}</p>
+                  </div>
+
+                  <!-- Reviews -->
+                  <div class="flex items-center gap-1 mb-3">
+                    <svg
+                      v-for="star in 5"
+                      :key="`rating-${product.productId}-${star}`"
+                      class="w-3.5 h-3.5"
+                      :class="star <= Math.round(getReviewStatsForProduct(product.productId).average) ? 'text-yellow-400' : 'text-gray-300'"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                    <span class="text-xs text-gray-500 ml-1">
+                      {{ getReviewStatsForProduct(product.productId).total > 0
+                        ? `${getReviewStatsForProduct(product.productId).average.toFixed(1)} (${getReviewStatsForProduct(product.productId).total})`
+                        : 'No reviews' }}
+                    </span>
                   </div>
                   
                   <!-- Pricing -->
@@ -239,11 +264,13 @@ const products = ref([])
 const serverTotal = ref(0)
 const serverPaged = ref(false)
 const loading = ref(false)
+const pageLoading = ref(false)
 const error = ref('')
 const searchQuery = ref('')
 const currentPage = ref(1)
 const lastTrackedTerm = ref('')
 const lastTrackedAt = ref(0)
+const reviewStatsByProduct = ref({})
 
 const availableVendors = ref([])
 const allVendors = ref([])
@@ -275,20 +302,6 @@ const isEolProduct = (product) => {
   return normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'y'
 }
 
-const hasProductImage = (product) => {
-  const images = product?.productImages
-  if (!Array.isArray(images) || images.length === 0) return false
-
-  return images.some((image) => {
-    if (typeof image === 'string') {
-      return image.trim().length > 0
-    }
-
-    const url = String(image?.imageUrl || image?.url || '').trim()
-    return url.length > 0
-  })
-}
-
 const lifecycleOptions = computed(() => {
   let activeCount = 0
   let eolCount = 0
@@ -307,21 +320,46 @@ const lifecycleOptions = computed(() => {
   ]
 })
 
-const mediaOptions = computed(() => {
-  let hasImageCount = 0
-  let noImageCount = 0
+const getProductReviewStats = (productId) => {
+  const key = String(productId || '')
+  const stats = reviewStatsByProduct.value[key]
+  if (!stats) {
+    return { total: 0, average: 0 }
+  }
+
+  return {
+    total: Number(stats.total || 0),
+    average: Number(stats.average || 0)
+  }
+}
+
+const reviewRatingOptions = computed(() => {
+  let fiveStar = 0
+  let fourPlus = 0
+  let threePlus = 0
+  let hasReviews = 0
 
   products.value.forEach((product) => {
-    if (hasProductImage(product)) {
-      hasImageCount += 1
-    } else {
-      noImageCount += 1
+    const stats = getProductReviewStats(product.productId)
+    if (stats.total > 0) {
+      hasReviews += 1
+    }
+    if (stats.average >= 4.5) {
+      fiveStar += 1
+    }
+    if (stats.average >= 4) {
+      fourPlus += 1
+    }
+    if (stats.average >= 3) {
+      threePlus += 1
     }
   })
 
   return [
-    { name: 'Has Image', count: hasImageCount },
-    { name: 'No Image', count: noImageCount }
+    { name: '5 Stars', count: fiveStar },
+    { name: '4 Stars & Up', count: fourPlus },
+    { name: '3 Stars & Up', count: threePlus },
+    { name: 'Has Reviews', count: hasReviews },
   ]
 })
 
@@ -482,6 +520,17 @@ const filteredProducts = computed(() => {
         })
       }
 
+      // Check readable flat category names from PriceAvailability payloads
+      const flatCategoryName = String(product.flatCategoryName || product.categoryName || product.category || '').trim()
+      if (flatCategoryName) {
+        return flatCategoryName === selectedCategoryValue
+      }
+
+      const specCategoryName = String(product.specifications?.categoryName || '').trim()
+      if (specCategoryName) {
+        return specCategoryName === selectedCategoryValue
+      }
+
       // PriceAvailability products use categoryCode
       if (product.categoryCode) {
         return String(product.categoryCode).trim() === String(selectedCategoryValue).trim()
@@ -503,13 +552,15 @@ const filteredProducts = computed(() => {
     })
   }
 
-  // Filter by image availability
+  // Filter by review rating
   if (filters.mediaStatuses && filters.mediaStatuses.length > 0) {
     filtered = filtered.filter((product) => {
-      const hasImage = hasProductImage(product)
+      const stats = getProductReviewStats(product.productId)
       return filters.mediaStatuses.some((status) => {
-        if (status === 'Has Image') return hasImage
-        if (status === 'No Image') return !hasImage
+        if (status === '5 Stars') return stats.average >= 4.5
+        if (status === '4 Stars & Up') return stats.average >= 4
+        if (status === '3 Stars & Up') return stats.average >= 3
+        if (status === 'Has Reviews') return stats.total > 0
         return false
       })
     })
@@ -561,6 +612,77 @@ const pageNumbers = computed(() => {
 // Add request deduplication and caching
 const requestCache = new Map()
 const pendingRequests = new Map()
+const pendingReviewStats = new Set()
+
+const getReviewStatsForProduct = (productId) => getProductReviewStats(productId)
+
+const loadReviewStatsForProducts = async (items = []) => {
+  const uniqueIds = Array.from(new Set(
+    (Array.isArray(items) ? items : [])
+      .map((item) => String(item?.productId || '').trim())
+      .filter(Boolean)
+  ))
+
+  const idsToFetch = uniqueIds.filter((id) => {
+    if (reviewStatsByProduct.value[id]) return false
+    if (pendingReviewStats.has(id)) return false
+    return true
+  })
+
+  if (idsToFetch.length === 0) return
+
+  await Promise.all(idsToFetch.map(async (id) => {
+    pendingReviewStats.add(id)
+    try {
+      const response = await api.get(`/products/${encodeURIComponent(id)}/reviews`, {
+        params: {
+          per_page: 1,
+        }
+      })
+
+      const stats = response.data?.stats || {}
+      reviewStatsByProduct.value = {
+        ...reviewStatsByProduct.value,
+        [id]: {
+          total: Number(stats.total || 0),
+          average: Number(stats.average || 0),
+        }
+      }
+    } catch (statsError) {
+      reviewStatsByProduct.value = {
+        ...reviewStatsByProduct.value,
+        [id]: {
+          total: 0,
+          average: 0,
+        }
+      }
+      console.warn('Failed to load review stats for product:', id, statsError)
+    } finally {
+      pendingReviewStats.delete(id)
+    }
+  }))
+}
+
+const fetchAllProductPages = async (params) => {
+  // Fetch a large batch for client-side filtering (categories, partNumber, lifecycle, media)
+  const response = await api.get('/products', {
+    params: {
+      ...params,
+      page: 1,
+      per_page: 500,
+      hide_zero_price: true
+    }
+  })
+
+  if (!response.data?.success) {
+    return []
+  }
+
+  const payload = response.data.data || {}
+  return Array.isArray(payload.records)
+    ? payload.records
+    : (Array.isArray(payload) ? payload : [])
+}
 
 const resolveVendorApiValues = (selectedVendorNames = []) => {
   return selectedVendorNames
@@ -593,11 +715,12 @@ const getCacheKey = (filters, page = 1, useServerPaged = false) => {
 
 
 const performSearch = async (resetPage = true) => {
-  console.log('🔍 performSearch started')
-  loading.value = true
   error.value = ''
   if (resetPage) {
     currentPage.value = 1
+    loading.value = true
+  } else {
+    pageLoading.value = true
   }
 
   const useServerPaged = !requiresClientSideFiltering.value
@@ -620,29 +743,33 @@ const performSearch = async (resetPage = true) => {
   if (requestCache.has(cacheKey)) {
     const cached = requestCache.get(cacheKey)
     if (Date.now() - cached.timestamp < 5 * 60 * 1000) {
-      console.log('📦 Loading from local cache')
       products.value = cached.data
       serverTotal.value = Number(cached.total || cached.data?.length || 0)
       serverPaged.value = Boolean(cached.serverPaged)
-      updateVendorCounts(cached.data)
-      extractCategories(cached.data)
+      if (!Boolean(cached.serverPaged)) {
+        updateVendorCounts(cached.data)
+        extractCategories(cached.data)
+      }
       loading.value = false
+      pageLoading.value = false
       return
     }
   }
 
   // Check if request is already in progress (prevent duplicate requests)
   if (pendingRequests.has(cacheKey)) {
-    console.log('⏳ Waiting for in-progress request...')
     try {
       const result = await pendingRequests.get(cacheKey)
       products.value = result.data
       serverTotal.value = Number(result.total || result.data?.length || 0)
       serverPaged.value = Boolean(result.serverPaged)
-      updateVendorCounts(result.data)
-      extractCategories(result.data)
+      if (!Boolean(result.serverPaged)) {
+        updateVendorCounts(result.data)
+        extractCategories(result.data)
+      }
     } finally {
       loading.value = false
+      pageLoading.value = false
     }
     return
   }
@@ -651,7 +778,7 @@ const performSearch = async (resetPage = true) => {
   const requestPromise = (async () => {
     try {
       const params = {
-        hide_zero_price: false // include zero-priced products
+        hide_zero_price: true
       }
 
       if (searchQuery.value) {
@@ -681,7 +808,7 @@ const performSearch = async (resetPage = true) => {
             ...params,
             page: currentPage.value,
             per_page: ITEMS_PER_PAGE,
-            hide_zero_price: false
+            hide_zero_price: true
           }
         })
 
@@ -700,30 +827,19 @@ const performSearch = async (resetPage = true) => {
         loadedTotal = loadedProducts.length
       }
 
-      console.log('🔍 Fetching products with filters:', {
-        vendors: currentFilters.value.vendors,
-        cached: params.cached ?? false,
-        hide_zero_price: params.hide_zero_price,
-        mode: useServerPaged ? 'server-paged' : 'client-full'
-      })
-
       products.value = loadedProducts
       serverTotal.value = loadedTotal
       if (Array.isArray(products.value)) {
-        // Use loaded products for facet extraction (not all pages)
-        console.log('🎯 Updating vendor counts...')
-        updateVendorCounts(loadedProducts)
-        console.log('✅ Vendor counts updated')
-        
-        // Log cache status
-        console.log('✅ Products loaded from API:', products.value.length)
-        
-        // Log first product structure for debugging
-        if (products.value.length > 0) {
-          console.log('📦 First product structure:', {
-            ...products.value[0],
-            productImages: products.value[0].productImages ? `${products.value[0].productImages.length} images` : 'No images'
-          })
+        // Only compute facet counts from loaded products when we have the full dataset
+        // (client-paged mode). In server-paged mode the page has only 9 items — use
+        // server-provided vendor counts from fetchVendors() instead.
+        if (!useServerPaged) {
+          updateVendorCounts(loadedProducts)
+          try {
+            extractCategories(loadedProducts)
+          } catch (err) {
+            console.error('Category extraction error:', err)
+          }
         }
         
         // Cache results locally
@@ -733,16 +849,12 @@ const performSearch = async (resetPage = true) => {
           serverPaged: useServerPaged,
           timestamp: Date.now()
         })
-        
-        // Extract categories from current page products only (with error handling)
-        console.log('🏷️ Extracting categories...')
-        try {
-          extractCategories(loadedProducts)
-          console.log('✅ Categories extracted:', availableCategories.value.length)
-        } catch (err) {
-          console.error('❌ Category extraction error:', err)
+
+        // Prefetch adjacent pages for instant pagination
+        if (useServerPaged) {
+          prefetchPage(currentPage.value + 1)
+          if (currentPage.value > 1) prefetchPage(currentPage.value - 1)
         }
-        console.log('✨ performSearch completed successfully')
         
         return {
           data: products.value,
@@ -766,6 +878,7 @@ const performSearch = async (resetPage = true) => {
     await requestPromise
   } finally {
     loading.value = false
+    pageLoading.value = false
     pendingRequests.delete(cacheKey)
   }
 }
@@ -802,16 +915,17 @@ const fetchVendors = async () => {
           return {
             name,
             value,
-            count: 0 // Will be updated below
+            count: Number(vendor.count || 0)
           }
         })
         .filter(Boolean)
+        .sort((a, b) => {
+          if (b.count !== a.count) return b.count - a.count
+          return a.name.localeCompare(b.name)
+        })
 
       allVendors.value = mappedVendors
       availableVendors.value = mappedVendors
-
-      // Initialize counts from already-loaded product data and avoid request bursts.
-      updateVendorCounts()
     }
   } catch (err) {
     console.error('Error fetching vendors:', err)
@@ -853,57 +967,47 @@ const updateVendorCounts = (sourceProducts = products.value) => {
 const extractCategories = (sourceProducts = products.value) => {
   // Extract unique categories from products
   const categoryMap = new Map()
-  const categoryCodeMap = new Map()
+  
+  const addCategory = (name, value = name) => {
+    const normalizedName = String(name || '').trim()
+    const normalizedValue = String(value || normalizedName).trim()
+    if (!normalizedName) return
+
+    const existing = categoryMap.get(normalizedName)
+    if (existing && typeof existing === 'object') {
+      existing.count += 1
+      return
+    }
+
+    categoryMap.set(normalizedName, { count: 1, value: normalizedValue })
+  }
   
   sourceProducts.forEach(product => {
     // Check for productCategories array
     if (product.productCategories && Array.isArray(product.productCategories)) {
       product.productCategories.forEach(category => {
         const categoryName = typeof category === 'object' ? category.categoryName : category
-        const normalizedCategoryName = String(categoryName || '').trim()
-        if (normalizedCategoryName) {
-          const count = categoryMap.get(normalizedCategoryName) || 0
-          categoryMap.set(normalizedCategoryName, count + 1)
-
-        }
+        addCategory(categoryName)
       })
     }
+
+    // PriceAvailability and flat file category names
+    addCategory(product.flatCategoryName || product.categoryName || product.category)
+    addCategory(product.specifications?.categoryName)
     
     // Also extract from billing model as a fallback category
     if (product.billingModel) {
       const billingCategory = `Billing: ${product.billingModel}`
-      const normalizedBillingCategory = String(billingCategory).trim()
-      if (normalizedBillingCategory) {
-        const count = categoryMap.get(normalizedBillingCategory) || 0
-        categoryMap.set(normalizedBillingCategory, count + 1)
-      }
+      addCategory(billingCategory)
     }
     
     // Extract from billing frequency
     if (product.billingFrequency) {
       const freqCategory = `Frequency: ${product.billingFrequency}`
-      const normalizedFreqCategory = String(freqCategory).trim()
-      if (normalizedFreqCategory) {
-        const count = categoryMap.get(normalizedFreqCategory) || 0
-        categoryMap.set(normalizedFreqCategory, count + 1)
-      }
-    }
-
-    // Keep numeric category codes as a safe fallback when no descriptive categories exist.
-    if (product.categoryCode) {
-      const code = String(product.categoryCode || '').trim()
-      if (code) {
-        categoryCodeMap.set(code, (categoryCodeMap.get(code) || 0) + 1)
-      }
+      addCategory(freqCategory)
     }
 
   })
-
-  if (categoryMap.size === 0 && categoryCodeMap.size > 0) {
-    categoryCodeMap.forEach((count, code) => {
-      categoryMap.set(`UNSPSC ${code}`, { count, value: code })
-    })
-  }
   
   // Convert map to array format and sort by count
   availableCategories.value = Array.from(categoryMap.entries())
@@ -918,8 +1022,6 @@ const extractCategories = (sourceProducts = products.value) => {
   // Vendor counts are updated from currently loaded products.
   
   // Log for verification
-  console.log('Categories extracted:', availableCategories.value.length)
-  console.log('Total products:', products.value.length)
 }
 
 const handleFilterChange = (filters) => {
@@ -966,12 +1068,6 @@ const handleFilterChange = (filters) => {
   
   // Always update the filters - this ensures the computed property recalculates
   currentFilters.value = { ...filters }
-  
-  console.log('📋 Filter changed:', {
-    vendorsChanged: vendorsChanged ? `${previousVendors.join(',')} → ${filters.vendors.join(',')}` : 'No',
-    categoriesChanged: categoriesChanged ? 'Yes' : 'No',
-    vendors: filters.vendors
-  })
   
   // Only re-fetch when server-scoped filters change or when switching between server/client filter mode.
   if (serverScopedFiltersChanged || modeChanged) {
@@ -1028,6 +1124,55 @@ const goToPage = (page) => {
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
+// Prefetch adjacent pages silently for instant pagination
+const prefetchPage = (page) => {
+  if (page < 1 || !serverPaged.value) return
+
+  const params = {}
+  if (searchQuery.value) params.search = searchQuery.value
+  if (currentFilters.value.vendors.length > 0) {
+    const selectedVendorValues = resolveVendorApiValues(currentFilters.value.vendors)
+    if (selectedVendorValues.length > 0) params.vendors = selectedVendorValues.join(',')
+  }
+  if (currentFilters.value.priceMin > 0) params.min_price = currentFilters.value.priceMin
+  if (currentFilters.value.priceMax < 10000) params.max_price = currentFilters.value.priceMax
+
+  const tempFilters = { ...currentFilters.value }
+  const cacheKey = JSON.stringify({
+    vendors: tempFilters.vendors,
+    search: searchQuery.value,
+    minPrice: tempFilters.priceMin,
+    maxPrice: tempFilters.priceMax,
+    partNumber: tempFilters.partNumber,
+    lifecycleStatuses: tempFilters.lifecycleStatuses,
+    mediaStatuses: tempFilters.mediaStatuses,
+    categories: tempFilters.categories,
+    page: page,
+    mode: 'server'
+  })
+
+  // Skip if already cached
+  if (requestCache.has(cacheKey)) return
+
+  // Fire-and-forget prefetch
+  api.get('/products', {
+    params: { ...params, page, per_page: ITEMS_PER_PAGE, hide_zero_price: true }
+  }).then((response) => {
+    if (response.data?.success) {
+      const payload = response.data.data || {}
+      const records = Array.isArray(payload.records) ? payload.records : []
+      requestCache.set(cacheKey, {
+        data: records,
+        total: Number(payload.total || records.length || 0),
+        serverPaged: true,
+        timestamp: Date.now()
+      })
+    }
+  }).catch(() => {
+    // Silently ignore prefetch errors
+  })
+}
+
 const viewProductDetails = (product) => {
   router.push({
     name: 'product-detail',
@@ -1081,6 +1226,14 @@ const getProductIcon = (productName) => {
   if (name.includes('database') || name.includes('sql')) return 'database'
   return 'default'
 }
+
+watch(
+  paginatedProducts,
+  (visibleProducts) => {
+    void loadReviewStatsForProducts(visibleProducts)
+  },
+  { immediate: true }
+)
 
 watch(
   () => route.query.q,

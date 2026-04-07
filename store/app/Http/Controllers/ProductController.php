@@ -7,6 +7,7 @@ use App\Exceptions\TDSynnexApiException;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 class ProductController extends Controller
@@ -266,28 +267,26 @@ class ProductController extends Controller
                 $selectedVendors,
             );
 
-            if (($dbPage['total'] ?? 0) > 0) {
-                $fromDbCache = true;
+            $fromDbCache = true;
 
-                return response()->json([
-                    'success' => true,
-                    'data' => [
-                        'records' => $dbPage['records'],
-                        'total' => $dbPage['total'],
-                        'apiTotal' => $dbPage['total'],
-                        'pageNo' => $pageNo,
-                        'pageSize' => $pageSize,
-                        'vendors' => !empty($selectedVendors) ? array_values($selectedVendors) : array_values(array_unique(array_map(
-                            fn ($item) => $this->resolvePriceAvailabilityVendorName((array) $item),
-                            $dbPage['records']
-                        ))),
-                        'cached' => true,
-                        'dbCached' => $fromDbCache,
-                        'source' => 'priceavailability-db',
-                    ],
-                    'message' => 'Products retrieved successfully',
-                ])->header('Cache-Control', 'public, max-age=300');
-            }
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'records' => $dbPage['records'],
+                    'total' => $dbPage['total'],
+                    'apiTotal' => $dbPage['total'],
+                    'pageNo' => $pageNo,
+                    'pageSize' => $pageSize,
+                    'vendors' => !empty($selectedVendors) ? array_values($selectedVendors) : array_values(array_unique(array_map(
+                        fn ($item) => $this->resolvePriceAvailabilityVendorName((array) $item),
+                        $dbPage['records']
+                    ))),
+                    'cached' => true,
+                    'dbCached' => $fromDbCache,
+                    'source' => 'priceavailability-db',
+                ],
+                'message' => 'Products retrieved successfully',
+            ])->header('Cache-Control', 'public, max-age=300');
         }
 
         if (!empty($search)) {
@@ -474,28 +473,20 @@ class ProductController extends Controller
     ): array {
         $query = Product::query()->where('vendor_id', 'TD SYNNEX');
 
+        $hasFilters = !empty($search) || !empty($selectedVendors) || $minPrice !== null || $maxPrice !== null || !empty($billingModels);
+
         if ($hideZero) {
-            $query->where(function ($q) {
-                $q->where(function ($q2) {
-                    $q2->whereNotNull('base_price')->where('base_price', '>', 0);
-                })->orWhere(function ($q3) {
-                    $q3->whereNotNull('retail_price')->where('retail_price', '>', 0);
-                });
-            });
+            $query->where('base_price', '>', 0);
         }
 
         if (!empty($search)) {
-            $like = '%' . trim((string) $search) . '%';
-            $query->where(function ($q) use ($like) {
-                $q->where('product_name', 'like', $like)
-                    ->orWhere('description', 'like', $like)
-                    ->orWhere('mfg_part_no', 'like', $like)
-                    ->orWhere('tdsynnex_sku_no', 'like', $like)
-                    ->orWhere('specifications->sku', 'like', $like)
-                    ->orWhere('specifications->manufacturer', 'like', $like)
-                    ->orWhere('specifications->upc', 'like', $like)
-                    ->orWhere('specifications->categoryCode', 'like', $like);
-            });
+            $searchTerm = trim((string) $search);
+            // Pure FULLTEXT search — OR clauses with btree columns prevent FULLTEXT index usage
+            // (10s+ vs <1s). Exact SKU/part lookups use the show/getBySku endpoints instead.
+            $query->whereRaw(
+                'MATCH(product_name, description, mfg_part_no) AGAINST(? IN BOOLEAN MODE)',
+                [$searchTerm . '*']
+            );
         }
 
         if (!empty($selectedVendors)) {
@@ -507,22 +498,52 @@ class ProductController extends Controller
         }
 
         if ($minPrice !== null) {
-            $query->whereRaw('COALESCE(base_price, retail_price, 0) >= ?', [(float) $minPrice]);
+            $query->where('base_price', '>=', (float) $minPrice);
         }
 
         if ($maxPrice !== null) {
-            $query->whereRaw('COALESCE(base_price, retail_price, 0) <= ?', [(float) $maxPrice]);
+            $query->where('base_price', '<=', (float) $maxPrice);
         }
 
         if (!empty($billingModels)) {
             $query->whereIn('billing_model', array_map('trim', explode(',', (string) $billingModels)));
         }
 
-        $total = (clone $query)->count();
+        // Fetch one extra row to detect if there are more pages (avoids expensive COUNT)
+        $perPage = max(1, $pageSize);
+        $currentPage = max(1, $pageNo);
+
+        // Skip ORDER BY for search queries — FULLTEXT returns results by relevance,
+        // and ORDER BY forces MySQL to collect ALL matches before limiting (0.1s vs 3-8s).
+        if (empty($search)) {
+            $query->orderBy('id');
+        }
+
         $products = $query
-            ->orderBy('product_name')
-            ->forPage(max(1, $pageNo), max(1, $pageSize))
+            ->offset(($currentPage - 1) * $perPage)
+            ->limit($perPage + 1)
             ->get();
+
+        $hasMore = $products->count() > $perPage;
+        if ($hasMore) {
+            $products = $products->slice(0, $perPage);
+        }
+
+        // For default listing, use cached table estimate; for filtered/search, estimate from page
+        if (!$hasFilters) {
+            $total = (int) Cache::remember('pa_products_total_' . ($hideZero ? '1' : '0'), 300, function () {
+                $row = \Illuminate\Support\Facades\DB::selectOne(
+                    "SELECT TABLE_ROWS FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'products'"
+                );
+                return $row->TABLE_ROWS ?? 0;
+            });
+        } else {
+            // N+1 estimate: fast, avoids expensive COUNT on FULLTEXT results.
+            // The hasMore flag tells us there are more pages; frontend prefetches make this smooth.
+            $total = $hasMore
+                ? max(($currentPage * $perPage) * 3, 200) // estimate ~3x displayed pages
+                : ($currentPage - 1) * $perPage + $products->count();
+        }
 
         return [
             'records' => $products->map(fn (Product $product) => $this->mapPriceAvailabilityDatabaseProduct($product))->toArray(),
@@ -579,19 +600,22 @@ class ProductController extends Controller
             return null;
         }
 
-        $query = Product::query()->where('vendor_id', 'TD SYNNEX');
-        $query->where(function ($q) use ($needle) {
-            if (ctype_digit($needle)) {
-                $numeric = (int) $needle;
-                $q->orWhere('tdsynnex_sku_no', $numeric)
-                    ->orWhere('tdsynnex_product_id', $numeric);
+        $baseQuery = fn() => Product::query()->where('vendor_id', 'TD SYNNEX');
+
+        // Fast path: try indexed numeric columns first (tdsynnex_product_id, tdsynnex_sku_no)
+        if (ctype_digit($needle)) {
+            $numeric = (int) $needle;
+            $product = $baseQuery()->where('tdsynnex_product_id', $numeric)->first()
+                ?? $baseQuery()->where('tdsynnex_sku_no', $numeric)->first();
+            if ($product) {
+                return $this->mapPriceAvailabilityDatabaseProduct($product);
             }
+        }
 
-            $q->orWhere('specifications->sku', $needle)
-                ->orWhere('mfg_part_no', $needle);
-        });
+        // Fallback: indexed mfg_part_no, then unindexed specifications->sku
+        $product = $baseQuery()->where('mfg_part_no', $needle)->first()
+            ?? $baseQuery()->where('specifications->sku', $needle)->first();
 
-        $product = $query->first();
         if (!$product) {
             return null;
         }
@@ -713,17 +737,6 @@ class ProductController extends Controller
                     ], 404);
                 }
 
-                // Never block product details on optional image enrichment.
-                try {
-                    $enriched = $this->tdsynnexService->enrichProductsWithIcecatImages([$product], 1);
-                    $product = $enriched[0] ?? $product;
-                } catch (\Throwable $enrichError) {
-                    Log::warning('Product detail enrichment failed; returning base product data.', [
-                        'product_id' => $productId,
-                        'error' => $enrichError->getMessage(),
-                    ]);
-                }
-
                 return response()->json([
                     'success' => true,
                     'data' => $product,
@@ -819,7 +832,7 @@ class ProductController extends Controller
     {
         try {
             if ($this->tdsynnexService->usesPriceAvailabilityAsProductSource()) {
-                $relatedProducts = $this->getPriceAvailabilityRelatedFromDatabase($productId, 8);
+                $relatedProducts = $this->getPriceAvailabilityRelatedFromDatabase($productId, 16);
 
                 return response()->json([
                     'success' => true,
@@ -867,17 +880,28 @@ class ProductController extends Controller
         }
 
         $targetSku = strtoupper(trim((string) ($target['sku'] ?? $target['productId'] ?? '')));
-        $targetCategory = trim((string) ($target['categoryCode'] ?? ''));
+        $targetName = trim((string) ($target['productName'] ?? ''));
+
+        // Use the first significant word from product name for FULLTEXT related lookup
+        $searchWord = '';
+        if ($targetName !== '') {
+            $words = preg_split('/\s+/', $targetName);
+            foreach ($words as $w) {
+                if (mb_strlen($w) >= 4) {
+                    $searchWord = $w;
+                    break;
+                }
+            }
+        }
 
         $query = Product::query()->where('vendor_id', 'TD SYNNEX');
 
-        if ($targetCategory !== '' && $targetCategory !== '-') {
-            $query->where('specifications->categoryCode', $targetCategory);
+        if ($searchWord !== '') {
+            $query->whereRaw('MATCH(product_name, description, mfg_part_no) AGAINST(? IN BOOLEAN MODE)', [$searchWord . '*']);
         }
 
         $candidates = $query
-            ->orderBy('updated_at', 'desc')
-            ->limit(max(1, $limit) * 4)
+            ->limit(max(1, $limit) + 1)
             ->get();
 
         $related = [];

@@ -6,7 +6,10 @@ export const useCartStore = defineStore('cart', () => {
   const items = ref([])
   const GUEST_STORAGE_KEY = 'armely_cart_guest'
   const USER_STORAGE_PREFIX = 'armely_cart_user_'
+  const GUEST_REVISION_KEY = 'armely_quote_revision_guest'
+  const USER_REVISION_PREFIX = 'armely_quote_revision_user_'
   const authStore = useAuthStore()
+  const revisionSourceQuoteId = ref(null)
 
   const resolveItemKey = (item) => {
     if (!item) return null
@@ -37,6 +40,7 @@ export const useCartStore = defineStore('cart', () => {
   }
 
   const getStorageKeyForUser = (userId) => `${USER_STORAGE_PREFIX}${userId}`
+  const getRevisionKeyForUser = (userId) => `${USER_REVISION_PREFIX}${userId}`
 
   const getCurrentStorageKey = () => {
     const userId = getCurrentUserId()
@@ -44,6 +48,14 @@ export const useCartStore = defineStore('cart', () => {
       return getStorageKeyForUser(userId)
     }
     return GUEST_STORAGE_KEY
+  }
+
+  const getCurrentRevisionKey = () => {
+    const userId = getCurrentUserId()
+    if (authStore.isAuthenticated && userId) {
+      return getRevisionKeyForUser(userId)
+    }
+    return GUEST_REVISION_KEY
   }
 
   const readCartByKey = (storageKey) => {
@@ -71,9 +83,23 @@ export const useCartStore = defineStore('cart', () => {
     items.value = loaded
   }
 
+  const loadRevisionSource = () => {
+    const saved = localStorage.getItem(getCurrentRevisionKey())
+    revisionSourceQuoteId.value = saved && String(saved).trim() ? String(saved).trim() : null
+  }
+
   // Save cart for the current auth context (guest or logged-in user)
   const saveCart = () => {
     writeCartByKey(getCurrentStorageKey(), items.value)
+  }
+
+  const saveRevisionSource = () => {
+    const key = getCurrentRevisionKey()
+    if (revisionSourceQuoteId.value) {
+      localStorage.setItem(key, String(revisionSourceQuoteId.value))
+    } else {
+      localStorage.removeItem(key)
+    }
   }
 
   const mergeGuestCartIntoCurrentUser = () => {
@@ -134,10 +160,12 @@ export const useCartStore = defineStore('cart', () => {
 
     if (wasGuest && nextScope.startsWith('user:')) {
       mergeGuestCartIntoCurrentUser()
+      loadRevisionSource()
       return
     }
 
     loadCart()
+    loadRevisionSource()
   }
 
   // Add item to cart
@@ -196,6 +224,26 @@ export const useCartStore = defineStore('cart', () => {
   const clearCart = () => {
     items.value = []
     saveCart()
+    revisionSourceQuoteId.value = null
+    saveRevisionSource()
+  }
+
+  const replaceCartItems = (nextItems = []) => {
+    const normalizedItems = (Array.isArray(nextItems) ? nextItems : [])
+      .map(normalizeCartItem)
+      .filter(Boolean)
+    items.value = normalizedItems
+    saveCart()
+  }
+
+  const setRevisionSource = (quoteId) => {
+    revisionSourceQuoteId.value = quoteId ? String(quoteId) : null
+    saveRevisionSource()
+  }
+
+  const clearRevisionSource = () => {
+    revisionSourceQuoteId.value = null
+    saveRevisionSource()
   }
 
   // Computed properties
@@ -215,6 +263,7 @@ export const useCartStore = defineStore('cart', () => {
   // Load cart on store creation
   activeCartScope = authStore.isAuthenticated && getCurrentUserId() ? `user:${getCurrentUserId()}` : 'guest'
   loadCart()
+  loadRevisionSource()
 
   watch(
     () => [authStore.isAuthenticated, getCurrentUserId()],
@@ -225,6 +274,7 @@ export const useCartStore = defineStore('cart', () => {
 
   return {
     items,
+    revisionSourceQuoteId,
     cartCount,
     cartTotal,
     isEmpty,
@@ -232,6 +282,9 @@ export const useCartStore = defineStore('cart', () => {
     removeItem,
     updateQuantity,
     clearCart,
+    replaceCartItems,
+    setRevisionSource,
+    clearRevisionSource,
     mergeGuestCartIntoCurrentUser
   }
 })

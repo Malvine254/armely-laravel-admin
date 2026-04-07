@@ -839,7 +839,7 @@ class TDSynnexService
         ];
     }
 
-    public function syncPriceAvailabilityImagesFromDatabase(int $chunk = 25, int $limit = 0): array
+    public function syncPriceAvailabilityImagesFromDatabase(int $chunk = 25, int $limit = 0, ?callable $onProgress = null): array
     {
         $chunk = max(1, $chunk);
         $limit = max(0, $limit);
@@ -898,7 +898,9 @@ class TDSynnexService
                     $didUpdate = true;
                 }
 
-                if ($longDescription !== '' && trim((string) $product->description) === '') {
+                $currentDesc = trim((string) $product->description);
+                $currentName = trim((string) $product->product_name);
+                if ($longDescription !== '' && ($currentDesc === '' || $currentDesc === $currentName)) {
                     $product->description = $longDescription;
                     $didUpdate = true;
                 }
@@ -909,6 +911,10 @@ class TDSynnexService
                 }
 
                 $processed++;
+
+                if ($onProgress) {
+                    $onProgress($processed, $updated, $product, $didUpdate, $images);
+                }
             }
         }
 
@@ -974,42 +980,36 @@ class TDSynnexService
      */
     public function getPriceAvailabilityVendors(): array
     {
-        $cacheKey = 'tdsynnex:priceavailability:vendors:list';
+        $cacheKey = 'tdsynnex:priceavailability:vendors:list_with_counts';
 
         return Cache::remember($cacheKey, now()->addMinutes(30), function () {
             $rows = Product::query()
                 ->where('vendor_id', 'TD SYNNEX')
-                ->select(['vendor_id', 'specifications'])
-                ->limit(60000)
+                ->where('base_price', '>', 0)
+                ->selectRaw("TRIM(JSON_UNQUOTE(JSON_EXTRACT(specifications, '$.manufacturer'))) as manufacturer, COUNT(*) as cnt")
+                ->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(specifications, '$.manufacturer')) IS NOT NULL")
+                ->whereRaw("TRIM(JSON_UNQUOTE(JSON_EXTRACT(specifications, '$.manufacturer'))) != ''")
+                ->groupByRaw("TRIM(JSON_UNQUOTE(JSON_EXTRACT(specifications, '$.manufacturer')))")
+                ->orderByDesc('cnt')
                 ->get();
 
-            $names = [];
-            foreach ($rows as $row) {
-                $spec = is_array($row->specifications) ? $row->specifications : [];
-                $name = trim((string) ($spec['manufacturer'] ?? $row->vendor_id ?? ''));
-                if ($name !== '') {
-                    $names[$name] = true;
-                }
-            }
-
-            if (empty($names)) {
+            if ($rows->isEmpty()) {
                 return [
                     [
                         'vendorId' => 'TD SYNNEX',
                         'vendorName' => 'TD SYNNEX',
+                        'count' => 0,
                     ],
                 ];
             }
 
-            $vendorNames = array_keys($names);
-            natcasesort($vendorNames);
-
-            return array_map(function ($name) {
+            return $rows->map(function ($row) {
                 return [
-                    'vendorId' => $name,
-                    'vendorName' => $name,
+                    'vendorId' => $row->manufacturer,
+                    'vendorName' => $row->manufacturer,
+                    'count' => (int) $row->cnt,
                 ];
-            }, array_values($vendorNames));
+            })->values()->toArray();
         });
     }
 
@@ -1791,7 +1791,6 @@ class TDSynnexService
         $appKey = trim((string) config('tdsynnex.icecat.app_key', env('ICECAT_APP_KEY', '')));
         $language = $this->normalizeIcecatLanguage((string) config('tdsynnex.icecat.language', 'en'));
         $timeout = max(2, (int) config('tdsynnex.icecat.timeout', 6));
-        $maxLookups = max(3, (int) config('tdsynnex.icecat.max_lookups_per_request', 8));
 
         if ($username === '' || $password === '' || $endpoint === '') {
             return ['image_url' => '', 'description' => ''];
@@ -1815,39 +1814,29 @@ class TDSynnexService
         }
 
         $queryAttempts = [];
-        $seenAttempts = [];
 
-        // Strategy 1: GTIN (UPC/EAN) with normalized variants.
-        foreach ($gtinCandidates as $index => $gtin) {
+        // Strategy 1: GTIN (UPC/EAN) — single best candidate only.
+        if (!empty($gtinCandidates)) {
             $queryAttempts[] = [
-                'params' => array_merge($baseParams, ['GTIN' => $gtin]),
-                'used' => $index === 0 ? 'GTIN' : 'GTIN_NORMALIZED',
+                'params' => array_merge($baseParams, ['GTIN' => $gtinCandidates[0]]),
+                'used' => 'GTIN',
                 'mpn' => '',
                 'brand' => '',
-                'code' => $gtin,
+                'code' => $gtinCandidates[0],
             ];
         }
 
-        foreach ($candidateCodes as $code) {
-            foreach ($brandCandidates as $candidateBrand) {
-                $queryAttempts[] = [
-                    'params' => array_merge($baseParams, [
-                        'Brand' => $candidateBrand,
-                        'ProductCode' => $code,
-                    ]),
-                    'used' => 'BRAND_CODE',
-                    'mpn' => $code,
-                    'brand' => $candidateBrand,
-                    'code' => $code,
-                ];
-            }
-
+        // Strategy 2: Brand + MPN — single attempt with primary brand and first candidate code.
+        if (!empty($candidateCodes) && !empty($brandCandidates)) {
             $queryAttempts[] = [
-                'params' => array_merge($baseParams, ['ProductCode' => $code]),
-                'used' => 'CODE',
-                'mpn' => $code,
-                'brand' => '',
-                'code' => $code,
+                'params' => array_merge($baseParams, [
+                    'Brand' => $brandCandidates[0],
+                    'ProductCode' => $candidateCodes[0],
+                ]),
+                'used' => 'BRAND_CODE',
+                'mpn' => $candidateCodes[0],
+                'brand' => $brandCandidates[0],
+                'code' => $candidateCodes[0],
             ];
         }
 
@@ -1869,18 +1858,7 @@ class TDSynnexService
         }
 
         try {
-            $attemptsTried = 0;
             foreach ($queryAttempts as $attempt) {
-                $attemptKey = md5(json_encode($attempt['params']));
-                if (isset($seenAttempts[$attemptKey])) {
-                    continue;
-                }
-                $seenAttempts[$attemptKey] = true;
-
-                if ($attemptsTried >= $maxLookups) {
-                    break;
-                }
-                $attemptsTried++;
 
                 $response = Http::withBasicAuth($username, $password)
                     ->acceptJson()

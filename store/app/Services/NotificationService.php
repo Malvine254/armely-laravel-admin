@@ -37,6 +37,30 @@ class NotificationService
     }
 
     /**
+     * Send quote revision submitted notification to admin and customer.
+     */
+    public function sendQuoteRevisionNotification(Quote $quote, string $revisedFromQuoteId): void
+    {
+        try {
+            $admins = User::where('role', 'admin')
+                ->where('status', 'active')
+                ->get();
+
+            foreach ($admins as $admin) {
+                $this->mailer->sendQuoteRevisionAdminEmail($admin->email, $admin->name, $quote, $revisedFromQuoteId);
+            }
+
+            if ($quote->user && !empty($quote->user->email)) {
+                $this->mailer->sendQuoteRevisionCustomerEmail($quote, $revisedFromQuoteId);
+            }
+
+            Log::info("Quote revision notification sent for quote {$quote->quote_id} (source {$revisedFromQuoteId})");
+        } catch (\Exception $e) {
+            Log::error("Failed to send quote revision notification: " . $e->getMessage());
+        }
+    }
+
+    /**
      * Send quote approved notification to customer
      */
     public function sendQuoteApprovedNotification(Quote $quote): void

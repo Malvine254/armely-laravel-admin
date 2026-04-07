@@ -21,6 +21,7 @@ import Products from '../views/catalog/Products.vue';
 import ProductDetail from '../views/catalog/ProductDetail.vue';
 import Cart from '../views/quotes/Cart.vue';
 import Quotes from '../views/quotes/Quotes.vue';
+import Orders from '../views/orders/Orders.vue';
 import Invoices from '../views/invoices/Invoices.vue';
 import Payment from '../views/payments/Payment.vue';
 import Favorites from '../views/auth/Favorites.vue';
@@ -172,7 +173,7 @@ const routes = [
   {
     path: '/orders',
     name: 'orders',
-    redirect: { name: 'quotes' },
+    component: Orders,
     meta: { requiresAuth: true },
   },
   {
