@@ -9,6 +9,7 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\StripeController;
 use App\Services\TDSynnexService;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ReviewController;
 
 /*
 |--------------------------------------------------------------------------
@@ -61,6 +62,13 @@ Route::prefix('v1')->group(function () {
     
     // Vendors endpoints
     Route::get('/vendors', [ProductController::class, 'vendors']);
+
+    // Reviews endpoints (public read, auth write)
+    Route::get('/products/{productId}/reviews', [ReviewController::class, 'index']);
+    Route::middleware(['auth:sanctum', 'active.user'])->group(function () {
+        Route::post('/products/{productId}/reviews', [ReviewController::class, 'store']);
+        Route::delete('/products/{productId}/reviews/{reviewId}', [ReviewController::class, 'destroy']);
+    });
 
     // Quotes endpoints (protected)
     Route::middleware(['auth:sanctum', 'active.user'])->group(function () {

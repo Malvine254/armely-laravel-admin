@@ -26,7 +26,6 @@ Route::get('/admin/{any}', function () {
     return view('app');
 })->where('any', '.*');
 
-// Store user page - serve SPA at root
 Route::get('/', function () {
     return view('app');
 })->name('store.home');

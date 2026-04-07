@@ -72,20 +72,27 @@
             <!-- Authenticated Account Menu -->
             <div class="hidden md:block relative group">
               <button class="p-2 rounded-lg transition flex items-center gap-2" style="color: white;" @mouseenter="$event.currentTarget.style.backgroundColor='#3d6ba8'" @mouseleave="$event.currentTarget.style.backgroundColor='transparent'">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.982 18.725A7.488 7.488 0 0012 15.75a7.488 7.488 0 00-5.982 2.975m11.963 0a9 9 0 10-11.963 0m11.963 0A8.966 8.966 0 0112 21a8.966 8.966 0 01-5.982-2.275M15 9.75a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                </svg>
+                <!-- Profile Picture or Initials -->
+                <img v-if="userProfilePictureUrl" :src="userProfilePictureUrl" :alt="authStore.user?.name" class="w-8 h-8 rounded-full object-cover border border-white">
+                <div v-else class="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-xs" style="background-color: #2F5597;">{{ userInitials }}</div>
                 <span class="text-sm font-medium">Hi, {{ userFirstName }}</span>
               </button>
               <!-- Authenticated Dropdown Menu -->
               <div class="hidden group-hover:block absolute right-0 mt-0 w-56 bg-white rounded-lg shadow-xl py-2 z-10" style="color: #2F5597;">
                 <div class="px-4 py-2 border-b border-gray-200">
-                  <div class="font-semibold">{{ authStore.user?.name }}</div>
-                  <div class="text-xs text-gray-500">{{ authStore.user?.email }}</div>
-                  <div v-if="authStore.user?.company_name" class="text-xs text-gray-600 mt-1">{{ authStore.user?.company_name }}</div>
+                  <div class="flex items-center gap-3 mb-2">
+                    <img v-if="userProfilePictureUrl" :src="userProfilePictureUrl" :alt="authStore.user?.name" class="w-10 h-10 rounded-full object-cover border border-gray-300">
+                    <div v-else class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold" style="background-color: #2F5597;">{{ userInitials }}</div>
+                    <div>
+                      <div class="font-semibold text-sm">{{ authStore.user?.name }}</div>
+                      <div class="text-xs text-gray-500">{{ authStore.user?.email }}</div>
+                    </div>
+                  </div>
+                  <div v-if="authStore.user?.company_name" class="text-xs text-gray-600">{{ authStore.user?.company_name }}</div>
                 </div>
                 <router-link to="/account" class="block w-full px-4 py-2 text-left hover:bg-gray-100 transition">My Account</router-link>
                 <router-link to="/quotes" v-if="authStore.isAuthenticated" class="block w-full px-4 py-2 text-left hover:bg-gray-100 transition">My Quotes</router-link>
+                <router-link to="/orders" v-if="authStore.isAuthenticated" class="block w-full px-4 py-2 text-left hover:bg-gray-100 transition">My Orders</router-link>
                 <router-link to="/invoices" v-if="authStore.hasFeatureAccess('invoices')" class="block w-full px-4 py-2 text-left hover:bg-gray-100 transition">Invoices</router-link>
                 <div class="border-t border-gray-200 my-2"></div>
                 <button @click="handleLogout" class="w-full px-4 py-2 text-left hover:bg-gray-100 transition text-red-600"><strong>Sign Out</strong></button>
@@ -151,6 +158,7 @@
             </div>
             <button type="button" @click="goToAccount" class="w-full text-left px-4 py-3 text-sm text-white transition" @mouseenter="$event.currentTarget.style.backgroundColor='rgba(255,255,255,0.08)'" @mouseleave="$event.currentTarget.style.backgroundColor='transparent'">My Account</button>
             <button type="button" @click="goToCart" class="w-full text-left px-4 py-3 text-sm text-white transition" @mouseenter="$event.currentTarget.style.backgroundColor='rgba(255,255,255,0.08)'" @mouseleave="$event.currentTarget.style.backgroundColor='transparent'">My Quote / Cart</button>
+            <button type="button" @click="goToOrders" class="w-full text-left px-4 py-3 text-sm text-white transition" @mouseenter="$event.currentTarget.style.backgroundColor='rgba(255,255,255,0.08)'" @mouseleave="$event.currentTarget.style.backgroundColor='transparent'">My Orders</button>
             <button type="button" @click="goToMessages" v-if="authStore.hasFeatureAccess('messages')" class="w-full text-left px-4 py-3 text-sm text-white transition" @mouseenter="$event.currentTarget.style.backgroundColor='rgba(255,255,255,0.08)'" @mouseleave="$event.currentTarget.style.backgroundColor='transparent'">Messages</button>
             <button type="button" @click="goToFavorites" class="w-full text-left px-4 py-3 text-sm text-white transition" @mouseenter="$event.currentTarget.style.backgroundColor='rgba(255,255,255,0.08)'" @mouseleave="$event.currentTarget.style.backgroundColor='transparent'">Favorites</button>
             <button type="button" @click="handleLogout" class="w-full text-left px-4 py-3 text-sm font-semibold text-red-200 transition" @mouseenter="$event.currentTarget.style.backgroundColor='rgba(220,38,38,0.18)'" @mouseleave="$event.currentTarget.style.backgroundColor='transparent'">Sign Out</button>
@@ -234,6 +242,16 @@ const userFirstName = computed(() => {
   return nameParts[0] || 'User'
 })
 
+const userInitials = computed(() => {
+  if (!authStore.user?.name) return ''
+  const parts = authStore.user.name.split(' ').filter(Boolean)
+  return parts.slice(0, 2).map(p => p[0].toUpperCase()).join('')
+})
+
+const userProfilePictureUrl = computed(() => {
+  return authStore.user?.profile_picture_url || null
+})
+
 const goToMessages = () => {
   router.push({ name: 'messages' })
   closeMobileMenu()
@@ -251,6 +269,11 @@ const goToCart = () => {
 
 const goToAccount = () => {
   router.push({ name: 'account' })
+  closeMobileMenu()
+}
+
+const goToOrders = () => {
+  router.push({ name: 'orders' })
   closeMobileMenu()
 }
 

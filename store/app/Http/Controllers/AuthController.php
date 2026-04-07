@@ -327,6 +327,13 @@ class AuthController extends Controller
     {
         $user = $request->user();
         $company = $user?->company;
+                // Debug: Log incoming request parts
+                \Log::debug('Update profile request', [
+                    'has_profile_picture' => $request->hasFile('profile_picture'),
+                    'request_files' => array_keys($request->allFiles()),
+                    'request_inputs' => array_keys($request->except(['profile_picture'])),
+                ]);
+
         $shippingAddress = $this->resolveDefaultShippingAddress($company);
 
         $restricted = !$user || !$company || !$user->email_verified_at || $user->status !== 'active' || $company->status !== 'approved';
@@ -346,16 +353,39 @@ class AuthController extends Controller
             }
         }
 
+        // Detect incomplete profile sections
+        $incompleteFields = [];
+        if ($user && !$user->phone) {
+            $incompleteFields[] = 'phone';
+        }
+        if (!$shippingAddress) {
+            $incompleteFields[] = 'shipping_address';
+        }
+        if ($user && !$user->profile_picture) {
+            $incompleteFields[] = 'profile_picture';
+        }
+
+        $userData = $user?->toArray() ?? [];
+        if ($user && $user->profile_picture) {
+            // If it already starts with /, just use it as is
+            if (str_starts_with($user->profile_picture, '/')) {
+                $userData['profile_picture_url'] = $user->profile_picture;
+            } else {
+                $userData['profile_picture_url'] = url('storage/' . $user->profile_picture);
+            }
+        }
+
         return response()->json([
             'success' => true,
             'data' => [
-                'user' => array_merge($user?->toArray() ?? [], [
+                'user' => array_merge($userData, [
                     'shipping_address' => $shippingAddress,
                 ]),
                 'company' => $company,
                 'shipping_address' => $shippingAddress,
                 'restricted' => $restricted,
                 'restriction_reason' => $restrictionReason,
+                'incomplete_fields' => $incompleteFields,
             ],
         ]);
     }
@@ -386,6 +416,7 @@ class AuthController extends Controller
             'name' => ['sometimes', 'string', 'max:255'],
             'email' => ['sometimes', 'email', 'max:255', 'unique:users,email,' . $user->id],
             'phone' => ['sometimes', 'string', 'max:50'],
+            'profile_picture' => ['sometimes', 'image', 'max:2048', 'mimes:jpeg,png,jpg,gif'],
             'shipping_address' => ['sometimes', 'array'],
             'shipping_address.label' => ['nullable', 'string', 'max:255'],
             'shipping_address.contact_name' => ['nullable', 'string', 'max:255'],
@@ -397,6 +428,49 @@ class AuthController extends Controller
             'shipping_address.postal_code' => ['nullable', 'string', 'max:20'],
             'shipping_address.country' => ['nullable', 'string', 'size:2'],
         ]);
+
+        // Handle profile picture upload
+        if ($request->hasFile('profile_picture')) {
+            try {
+                $file = $request->file('profile_picture');
+                $filename = 'profile_' . $user->id . '_' . time() . '.' . $file->getClientOriginalExtension();
+                
+                // Store the file - storeAs returns the path or throws an exception
+                $storagePath = $file->storeAs('profile-pictures', $filename, 'public');
+                
+                if ($storagePath === false) {
+                    \Log::error('Profile picture storage failed', [
+                        'user_id' => $user->id,
+                        'filename' => $filename,
+                        'error' => 'storeAs returned false'
+                    ]);
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Failed to save profile picture',
+                    ], 400);
+                }
+                
+                $fullPath = '/storage/profile-pictures/' . $filename;
+                $data['profile_picture'] = $fullPath;
+                
+                \Log::info('Profile picture uploaded successfully', [
+                    'user_id' => $user->id,
+                    'filename' => $filename,
+                    'storage_path' => $storagePath,
+                    'full_path' => $fullPath
+                ]);
+            } catch (\Exception $e) {
+                \Log::error('Profile picture upload exception', [
+                    'user_id' => $user->id,
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error uploading profile picture: ' . $e->getMessage(),
+                ], 400);
+            }
+        }
 
         $shippingAddressPayload = $data['shipping_address'] ?? null;
         unset($data['shipping_address']);
@@ -443,6 +517,16 @@ class AuthController extends Controller
         }
 
         $freshUser = $user->fresh()?->toArray() ?? [];
+        
+        // Add profile picture URL if available
+        if ($user->profile_picture) {
+            if (str_starts_with($user->profile_picture, '/')) {
+                $freshUser['profile_picture_url'] = $user->profile_picture;
+            } else {
+                $freshUser['profile_picture_url'] = url('storage/' . $user->profile_picture);
+            }
+        }
+        
         $freshUser['shipping_address'] = $this->resolveDefaultShippingAddress($company);
 
         Activity::log($user->id, 'profile', 'updated', 'Updated account profile');

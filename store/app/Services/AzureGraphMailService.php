@@ -87,23 +87,25 @@ class AzureGraphMailService
         $amount    = number_format((float) ($quote->total_amount ?? 0), 2);
         $appUrl    = config('app.url');
 
-        $html = "
-            <div style='font-family:Segoe UI,Arial,sans-serif;line-height:1.5;color:#1f2937'>
-                <h2 style='margin:0 0 12px;color:#2F5597'>New Quote Request</h2>
-                <p>Hello {$safeName},</p>
-                <p>A new quote has been submitted and requires your review.</p>
-                <div style='border:1px solid #d9e6f7;background:#edf3fb;border-radius:8px;padding:14px;margin:16px 0'>
-                    <p style='margin:0 0 6px'><strong>Quote ID:</strong> {$quoteId}</p>
-                    <p style='margin:0 0 6px'><strong>Customer:</strong> {$customer}</p>
-                    <p style='margin:0'><strong>Total Amount:</strong> \${$amount}</p>
-                </div>
-                <p style='margin:24px 0'>
-                    <a href='{$appUrl}/admin/quotes' style='background:#2F5597;color:#ffffff;padding:10px 16px;border-radius:6px;text-decoration:none;display:inline-block'>
-                        Review Quote
-                    </a>
-                </p>
-            </div>
-        ";
+        $summaryHtml = $this->buildQuoteSummaryCard([
+            ['label' => 'Quote ID', 'value' => $quoteId],
+            ['label' => 'Customer', 'value' => $customer],
+            ['label' => 'Estimated Total', 'value' => '$' . $amount],
+        ]);
+        $itemsHtml = $this->buildQuoteItemsTable($quote->items, $quote->total_amount);
+
+        $html = $this->buildModernNotificationEmail(
+            'New Quote Request',
+            "
+                <p style='margin:0 0 14px;font-size:16px;color:#1f2937'>Hello {$safeName},</p>
+                <p style='margin:0 0 18px;color:#4b5563'>A new quote has been submitted and requires your review.</p>
+                {$summaryHtml}
+                {$itemsHtml}
+            ",
+            'Review Quote',
+            $appUrl . '/admin/quotes',
+            'Please review this quote as soon as possible to keep response times fast.'
+        );
 
         $text = "Hello {$adminName},\n\nA new quote {$quoteId} from {$customer} requires your review.\n{$appUrl}/admin/quotes";
 
@@ -128,25 +130,26 @@ class AzureGraphMailService
         $status = 'Pending Review';
         $appUrl = config('app.url');
 
-        $html = "
-            <div style='font-family:Segoe UI,Arial,sans-serif;line-height:1.5;color:#1f2937'>
-                <h2 style='margin:0 0 12px;color:#2F5597'>Quote Submitted Successfully</h2>
-                <p>Hello {$safeName},</p>
-                <p>Thank you for your request. We have received your quote and our team will review it shortly.</p>
-                <div style='border:1px solid #d9e6f7;background:#edf3fb;border-radius:8px;padding:14px;margin:16px 0'>
-                    <p style='margin:0 0 6px'><strong>Quote ID:</strong> {$quoteId}</p>
-                    <p style='margin:0 0 6px'><strong>Status:</strong> {$status}</p>
-                    <p style='margin:0 0 6px'><strong>Items:</strong> {$itemCount}</p>
-                    <p style='margin:0'><strong>Estimated Total:</strong> \${$amount}</p>
-                </div>
-                <p style='margin:24px 0'>
-                    <a href='{$appUrl}/quotes/{$quote->id}' style='background:#2F5597;color:#ffffff;padding:10px 16px;border-radius:6px;text-decoration:none;display:inline-block'>
-                        View Quote
-                    </a>
-                </p>
-                <p>You will receive another email once your quote is approved or if additional details are needed.</p>
-            </div>
-        ";
+        $summaryHtml = $this->buildQuoteSummaryCard([
+            ['label' => 'Quote ID', 'value' => $quoteId],
+            ['label' => 'Status', 'value' => $status],
+            ['label' => 'Items', 'value' => (string) $itemCount],
+            ['label' => 'Estimated Total', 'value' => '$' . $amount],
+        ]);
+        $itemsHtml = $this->buildQuoteItemsTable($quote->items, $quote->total_amount);
+
+        $html = $this->buildModernNotificationEmail(
+            'Quote Submitted Successfully',
+            "
+                <p style='margin:0 0 14px;font-size:16px;color:#1f2937'>Hello {$safeName},</p>
+                <p style='margin:0 0 18px;color:#4b5563'>Thank you for your request. We have received your quote and our team will review it shortly.</p>
+                {$summaryHtml}
+                {$itemsHtml}
+            ",
+            'View Quote',
+            $appUrl . '/quotes/' . $quote->id,
+            'You will receive another email once your quote is approved or if additional details are needed.'
+        );
 
         $text = "Hello {$safeName},\n\n"
             . "Your quote {$quoteId} has been submitted and is pending review.\n"
@@ -155,6 +158,104 @@ class AzureGraphMailService
             . "View quote: {$appUrl}/quotes/{$quote->id}";
 
         return $this->sendEmail($customer->email, "Quote Submitted: {$quoteId}", $html, $text);
+    }
+
+    public function sendQuoteRevisionAdminEmail(string $adminEmail, string $adminName, \App\Models\Quote $quote, string $revisedFromQuoteId): bool
+    {
+        if (!$this->isConfigured()) {
+            return false;
+        }
+
+        $safeName = e($adminName ?: 'Admin');
+        $quoteId = e($quote->quote_id);
+        $sourceQuoteId = e($revisedFromQuoteId);
+        $customer = e($quote->user->name ?? 'Unknown');
+        $amount = number_format((float) ($quote->total_amount ?? 0), 2);
+        $itemCount = is_countable($quote->items) ? count($quote->items) : 0;
+        $appUrl = config('app.url');
+
+        $summaryHtml = $this->buildQuoteSummaryCard([
+            ['label' => 'New Quote ID', 'value' => $quoteId],
+            ['label' => 'Revised From', 'value' => $sourceQuoteId],
+            ['label' => 'Customer', 'value' => $customer],
+            ['label' => 'Items', 'value' => (string) $itemCount],
+            ['label' => 'Estimated Total', 'value' => '$' . $amount],
+        ]);
+        $itemsHtml = $this->buildQuoteItemsTable($quote->items, $quote->total_amount);
+
+        $html = $this->buildModernNotificationEmail(
+            'Quote Revision Request',
+            "
+                <p style='margin:0 0 14px;font-size:16px;color:#1f2937'>Hello {$safeName},</p>
+                <p style='margin:0 0 18px;color:#4b5563'>A customer submitted a revision request for an existing quote.</p>
+                {$summaryHtml}
+                {$itemsHtml}
+            ",
+            'Review Revision',
+            $appUrl . '/admin/quotes',
+            'Please review this revision and update the quote decision when ready.'
+        );
+
+        $text = "Hello {$adminName},\n\n"
+            . "A quote revision was submitted.\n"
+            . "New quote: {$quote->quote_id}\n"
+            . "Revised from: {$revisedFromQuoteId}\n"
+            . "Customer: {$customer}\n"
+            . "Review: {$appUrl}/admin/quotes";
+
+        return $this->sendEmail($adminEmail, "Quote Revision Request: {$quoteId}", $html, $text);
+    }
+
+    public function sendQuoteRevisionCustomerEmail(\App\Models\Quote $quote, string $revisedFromQuoteId): bool
+    {
+        if (!$this->isConfigured()) {
+            return false;
+        }
+
+        $customer = $quote->user;
+        if (!$customer || !$customer->email) {
+            return false;
+        }
+
+        $safeName = e($customer->name ?? 'Customer');
+        $quoteId = e($quote->quote_id);
+        $sourceQuoteId = e($revisedFromQuoteId);
+        $amount = number_format((float) ($quote->total_amount ?? 0), 2);
+        $itemCount = is_countable($quote->items) ? count($quote->items) : 0;
+        $status = 'Pending Review';
+        $appUrl = config('app.url');
+
+        $summaryHtml = $this->buildQuoteSummaryCard([
+            ['label' => 'New Quote ID', 'value' => $quoteId],
+            ['label' => 'Revised From', 'value' => $sourceQuoteId],
+            ['label' => 'Status', 'value' => $status],
+            ['label' => 'Items', 'value' => (string) $itemCount],
+            ['label' => 'Estimated Total', 'value' => '$' . $amount],
+        ]);
+        $itemsHtml = $this->buildQuoteItemsTable($quote->items, $quote->total_amount);
+
+        $html = $this->buildModernNotificationEmail(
+            'Quote Revision Submitted',
+            "
+                <p style='margin:0 0 14px;font-size:16px;color:#1f2937'>Hello {$safeName},</p>
+                <p style='margin:0 0 18px;color:#4b5563'>Your quote revision has been submitted successfully and is now under review.</p>
+                {$summaryHtml}
+                {$itemsHtml}
+            ",
+            'View Quotes',
+            $appUrl . '/quotes',
+            'You will receive another email once your revised quote is reviewed.'
+        );
+
+        $text = "Hello {$safeName},\n\n"
+            . "Your quote revision has been submitted.\n"
+            . "New quote: {$quote->quote_id}\n"
+            . "Revised from: {$revisedFromQuoteId}\n"
+            . "Items: {$itemCount}\n"
+            . "Estimated total: \${$amount}\n"
+            . "View quotes: {$appUrl}/quotes";
+
+        return $this->sendEmail($customer->email, "Quote Revision Submitted: {$quoteId}", $html, $text);
     }
 
     public function sendQuoteApprovedEmail(\App\Models\Quote $quote): bool
@@ -367,6 +468,143 @@ class AzureGraphMailService
         $text = "Hello {$safeName},\n\nPayment reminder: Invoice #{$invNumber} has an outstanding balance of \${$balance}.\n{$appUrl}/invoices";
 
         return $this->sendEmail($recipient->email, "Payment Reminder: Invoice #{$invNumber}", $html, $text);
+    }
+
+    private function buildModernNotificationEmail(
+        string $title,
+        string $contentHtml,
+        string $buttonLabel,
+        string $buttonUrl,
+        ?string $footerNote = null
+    ): string {
+        $safeTitle = e($title);
+        $safeButtonLabel = e($buttonLabel);
+        $safeButtonUrl = e($buttonUrl);
+        $safeFooterNote = $footerNote ? e($footerNote) : '';
+        $footerNoteHtml = $footerNote
+            ? "<p style='margin:0;color:#4b5563;font-size:14px;line-height:1.55'>{$safeFooterNote}</p>"
+            : '';
+
+        return "
+            <div style='margin:0;padding:28px 16px;background:#eef3fa;font-family:Segoe UI,Arial,sans-serif'>
+                <div style='max-width:720px;margin:0 auto;background:#ffffff;border:1px solid #d7e2f2;border-radius:14px;overflow:hidden;box-shadow:0 18px 36px rgba(20,42,84,0.12)'>
+                    <div style='padding:20px 24px;background:#0f2f63;color:#ffffff;border-bottom:4px solid #2f5597'>
+                        <p style='margin:0 0 8px;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;opacity:0.9'>Armely Store</p>
+                        <h2 style='margin:0;font-size:32px;line-height:1.1;font-weight:700'>{$safeTitle}</h2>
+                    </div>
+                    <div style='padding:24px'>
+                        {$contentHtml}
+                        <p style='margin:20px 0 0'>
+                            <a href='{$safeButtonUrl}' style='background:#2f5597;color:#ffffff;padding:12px 20px;border-radius:8px;text-decoration:none;display:inline-block;font-weight:600'>
+                                {$safeButtonLabel}
+                            </a>
+                        </p>
+                    </div>
+                    <div style='padding:16px 24px;background:#f8fbff;border-top:1px solid #e3ebf8'>
+                        {$footerNoteHtml}
+                    </div>
+                </div>
+            </div>
+        ";
+    }
+
+    private function buildQuoteSummaryCard(array $rows): string
+    {
+        $rowsHtml = '';
+        $lastIndex = count($rows) - 1;
+
+        foreach ($rows as $index => $row) {
+            $label = e((string) ($row['label'] ?? ''));
+            $value = e((string) ($row['value'] ?? ''));
+            $border = $index === $lastIndex ? 'none' : '1px solid #e5ebf6';
+
+            $rowsHtml .= "
+                <div style='display:block;padding:10px 0;border-bottom:{$border}'>
+                    <p style='margin:0 0 4px;font-size:12px;letter-spacing:0.03em;text-transform:uppercase;color:#6b7280'>{$label}</p>
+                    <p style='margin:0;font-size:18px;color:#111827;font-weight:600'>{$value}</p>
+                </div>
+            ";
+        }
+
+        return "
+            <div style='border:1px solid #d8e4f6;background:#f4f8ff;border-radius:12px;padding:12px 16px;margin:0 0 8px'>
+                {$rowsHtml}
+            </div>
+        ";
+    }
+
+    private function buildQuoteItemsTable($items, $quoteTotal = null): string
+    {
+        $normalizedItems = is_array($items) ? $items : [];
+        if (!count($normalizedItems)) {
+            return "
+                <div style='margin:14px 0 10px;border:1px solid #d8e4f6;border-radius:12px;overflow:hidden;background:#ffffff'>
+                    <div style='padding:12px 14px;background:#f4f8ff;border-bottom:1px solid #d8e4f6'>
+                        <p style='margin:0;font-size:13px;font-weight:700;color:#1e3a6e'>Submitted Items</p>
+                    </div>
+                    <p style='margin:0;padding:14px;color:#6b7280;font-size:13px'>No item details were attached to this quote.</p>
+                </div>
+            ";
+        }
+
+        $rows = '';
+        $runningTotal = 0.0;
+
+        foreach ($normalizedItems as $index => $item) {
+            $line = is_array($item) ? $item : [];
+            $name = (string) ($line['productName'] ?? $line['product_name'] ?? $line['name'] ?? 'Product ' . ($index + 1));
+            $productRef = (string) ($line['mfgPartNo'] ?? $line['mfg_part_no'] ?? $line['sku'] ?? $line['product_id'] ?? 'N/A');
+            $quantity = max(1, (int) ($line['quantity'] ?? 1));
+            $unitPrice = (float) ($line['unitPrice'] ?? $line['unit_price'] ?? 0);
+            $lineTotal = isset($line['lineTotal']) || isset($line['line_total'])
+                ? (float) ($line['lineTotal'] ?? $line['line_total'])
+                : ($quantity * $unitPrice);
+            $runningTotal += $lineTotal;
+
+            $safeName = e($name);
+            $safeProductRef = e($productRef);
+            $displayUnit = '$' . number_format($unitPrice, 2);
+            $displayLineTotal = '$' . number_format($lineTotal, 2);
+
+            $rows .= "
+                <tr>
+                    <td style='padding:10px;border-bottom:1px solid #edf2fb;color:#111827;font-size:13px'>
+                        <p style='margin:0 0 2px;font-weight:600'>{$safeName}</p>
+                        <p style='margin:0;color:#6b7280;font-size:12px'>Ref: {$safeProductRef}</p>
+                    </td>
+                    <td style='padding:10px;border-bottom:1px solid #edf2fb;color:#111827;font-size:13px;text-align:center'>{$quantity}</td>
+                    <td style='padding:10px;border-bottom:1px solid #edf2fb;color:#111827;font-size:13px;text-align:right'>{$displayUnit}</td>
+                    <td style='padding:10px;border-bottom:1px solid #edf2fb;color:#111827;font-size:13px;text-align:right;font-weight:700'>{$displayLineTotal}</td>
+                </tr>
+            ";
+        }
+
+        $displayTotal = '$' . number_format((float) ($quoteTotal ?? $runningTotal), 2);
+
+        return "
+            <div style='margin:14px 0 10px;border:1px solid #d8e4f6;border-radius:12px;overflow:hidden;background:#ffffff'>
+                <div style='padding:12px 14px;background:#f4f8ff;border-bottom:1px solid #d8e4f6'>
+                    <p style='margin:0;font-size:13px;font-weight:700;color:#1e3a6e'>Submitted Items</p>
+                </div>
+                <table role='presentation' cellpadding='0' cellspacing='0' width='100%' style='border-collapse:collapse'>
+                    <thead>
+                        <tr>
+                            <th style='padding:10px;text-align:left;font-size:12px;color:#6b7280;border-bottom:1px solid #edf2fb'>Item</th>
+                            <th style='padding:10px;text-align:center;font-size:12px;color:#6b7280;border-bottom:1px solid #edf2fb'>Qty</th>
+                            <th style='padding:10px;text-align:right;font-size:12px;color:#6b7280;border-bottom:1px solid #edf2fb'>Unit</th>
+                            <th style='padding:10px;text-align:right;font-size:12px;color:#6b7280;border-bottom:1px solid #edf2fb'>Line Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {$rows}
+                    </tbody>
+                </table>
+                <div style='padding:12px 14px;background:#f8fbff;border-top:1px solid #d8e4f6;text-align:right'>
+                    <p style='margin:0;font-size:12px;color:#6b7280'>Estimated Total</p>
+                    <p style='margin:2px 0 0;font-size:20px;font-weight:700;color:#1e3a6e'>{$displayTotal}</p>
+                </div>
+            </div>
+        ";
     }
 
     private function buildFullInvoiceHtml(\App\Models\Invoice $invoice, \App\Models\User $user, bool $isReminder): string

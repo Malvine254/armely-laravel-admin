@@ -10,11 +10,11 @@
       </div>
 
       <!-- Quick Stats -->
-      <div v-if="quotes.length > 0" class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+      <div v-if="visibleQuotes.length > 0" class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
         <div class="group relative overflow-hidden rounded-2xl border p-5 sm:p-6 transition duration-300 hover:-translate-y-0.5" style="background: linear-gradient(160deg, #ffffff 0%, #f7fbff 62%, #eef4ff 100%); border-color: #d9e6f7; box-shadow: 0 12px 26px rgba(47,85,151,0.1);">
           <div class="pointer-events-none absolute -right-6 -top-6 h-16 w-16 rounded-full" style="background: radial-gradient(circle, rgba(47,85,151,0.2) 0%, rgba(47,85,151,0) 70%);"></div>
           <p class="text-gray-600 text-xs font-semibold uppercase tracking-wide">Total Quotes</p>
-          <p class="text-3xl font-bold text-gray-900 mt-2">{{ quotes.length }}</p>
+          <p class="text-3xl font-bold text-gray-900 mt-2">{{ visibleQuotes.length }}</p>
           <div class="mt-4 h-1.5 w-16 rounded-full" style="background: linear-gradient(90deg, #2F5597, #7fa2d8);"></div>
         </div>
         <div class="group relative overflow-hidden rounded-2xl border p-5 sm:p-6 transition duration-300 hover:-translate-y-0.5" style="background: linear-gradient(160deg, #ffffff 0%, #f7fbff 62%, #eef4ff 100%); border-color: #d9e6f7; box-shadow: 0 12px 26px rgba(47,85,151,0.1);">
@@ -123,6 +123,16 @@
           </p>
           <div class="flex flex-wrap items-center gap-2">
             <button
+              @click="reviseSelectedQuotes"
+              :disabled="selectedQuoteIds.length !== 1 || hasCancelledSelectedQuote || !!processingQuoteId"
+              class="px-3 py-1.5 text-xs rounded-md font-semibold transition duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+              style="color: #2F5597; border: 1px solid #2F5597;"
+              @mouseenter="$event.target.style.backgroundColor='#edf3fb'"
+              @mouseleave="$event.target.style.backgroundColor='transparent'"
+            >
+              {{ hasCancelledSelectedQuote ? 'Cancelled Not Revisable' : (selectedQuoteIds.length > 1 ? 'Select 1 Quote' : 'Revise Selected') }}
+            </button>
+            <button
               @click="downloadSelectedPdfs"
               :disabled="selectedQuoteIds.length === 0"
               class="px-3 py-1.5 text-xs rounded-md font-semibold transition duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
@@ -167,7 +177,7 @@
                     class="h-4 w-4 rounded border-gray-300"
                   />
                 </th>
-                <th class="px-5 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Quote ID</th>
+                <th class="px-5 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Quote Hierarchy</th>
                 <th class="px-5 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Status</th>
                 <th class="px-5 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Created</th>
                 <th class="px-5 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Expires</th>
@@ -199,6 +209,34 @@
                   >
                     {{ quote.quote_id }}
                   </button>
+                  <p class="mt-1 text-xs text-gray-500">
+                    {{ getQuoteItemCount(quote) }} item{{ getQuoteItemCount(quote) === 1 ? '' : 's' }}
+                    <span v-if="getQuoteItemPreview(quote)">- {{ getQuoteItemPreview(quote) }}</span>
+                  </p>
+                  <div v-if="isCancelledFamilyRow(quote)" class="mt-1">
+                    <span class="inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap bg-red-100 text-red-700">
+                      Cancelled Group
+                    </span>
+                  </div>
+                  <div v-if="getQuoteChildren(quote).length" class="mt-2 space-y-1">
+                    <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Revisions</p>
+                    <div
+                      v-for="child in getQuoteChildren(quote)"
+                      :key="`child-${child.quote_id}`"
+                      class="flex items-center gap-2 text-xs"
+                    >
+                      <span class="text-gray-400">↳</span>
+                      <button
+                        @click="viewQuote(child)"
+                        class="font-mono text-left text-gray-600 hover:text-[#2F5597] transition duration-200"
+                      >
+                        {{ child.quote_id }}
+                      </button>
+                      <span :class="getStatusBadge(child.status)" class="inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap">
+                        {{ formatStatus(child.status) }}
+                      </span>
+                    </div>
+                  </div>
                 </td>
                 <td class="px-5 py-4 align-top">
                   <span :class="getStatusBadge(quote.status)" class="inline-flex px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap">
@@ -251,6 +289,16 @@
                       @mouseleave="$event.target.style.backgroundColor='transparent'"
                     >
                       {{ processingQuoteId === quote.quote_id ? 'Cancelling...' : 'Cancel' }}
+                    </button>
+                    <button
+                      @click="reviseQuote(quote)"
+                      :disabled="processingQuoteId === quote.quote_id || !canReviseQuote(quote)"
+                      class="px-3 py-1.5 text-xs rounded-md font-semibold transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      style="color: #2F5597; border: 1px solid #2F5597;"
+                      @mouseenter="$event.target.style.backgroundColor='#edf3fb'"
+                      @mouseleave="$event.target.style.backgroundColor='transparent'"
+                    >
+                      {{ !canReviseQuote(quote) ? 'Not Revisable' : (processingQuoteId === quote.quote_id ? 'Preparing...' : 'Revise') }}
                     </button>
                   </div>
                 </td>
@@ -311,7 +359,7 @@
     </div>
 
     <!-- Quote Detail Modal -->
-    <div v-if="selectedQuote" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[9999]" @click="selectedQuote = null">
+    <div v-if="selectedQuote" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[9999]" @click="closeSelectedQuoteModal">
       <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" @click.stop>
         <!-- Modal Header -->
         <div class="sticky top-0 text-white px-6 py-6 flex items-center justify-between rounded-t-2xl" style="background: linear-gradient(90deg, #2F5597, #1f4788);">
@@ -319,7 +367,7 @@
             <p class="text-sm font-semibold text-gray-200 uppercase tracking-wide">Quote</p>
             <h2 class="text-2xl font-bold text-white">{{ selectedQuote.quote_id }}</h2>
           </div>
-          <button @click="selectedQuote = null" class="text-gray-300 hover:text-white transition duration-200">
+          <button @click="closeSelectedQuoteModal" class="text-gray-300 hover:text-white transition duration-200">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -370,7 +418,7 @@
 
           <!-- Actions -->
           <div class="flex gap-3 pt-4 border-t border-gray-200">
-            <button @click="selectedQuote = null" class="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition duration-200">
+            <button @click="closeSelectedQuoteModal" class="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition duration-200">
               Close
             </button>
             <button
@@ -407,6 +455,14 @@
             >
               {{ processingQuoteId === selectedQuote.quote_id ? 'Cancelling...' : 'Cancel Quote' }}
             </button>
+            <button
+              v-if="canReviseQuote(selectedQuote)"
+              @click="reviseQuote(selectedQuote)"
+              :disabled="processingQuoteId === selectedQuote.quote_id"
+              class="flex-1 px-4 py-3 border border-[#2F5597] text-[#2F5597] rounded-lg font-semibold hover:bg-[#edf3fb] transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {{ processingQuoteId === selectedQuote.quote_id ? 'Preparing...' : 'Revise Quote' }}
+            </button>
           </div>
         </div>
       </div>
@@ -419,6 +475,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/authStore'
 import { useToastStore } from '../../stores/toastStore'
+import { useCartStore } from '../../stores/cartStore'
 import Navbar from '../../components/Navbar.vue'
 import axios from 'axios'
 
@@ -428,6 +485,7 @@ export default {
     const router = useRouter()
     const authStore = useAuthStore()
     const toastStore = useToastStore()
+    const cartStore = useCartStore()
     const quotes = ref([])
     const loading = ref(false)
     const error = ref(null)
@@ -442,63 +500,200 @@ export default {
     const ordersByQuoteId = ref({})
     const invoicesByOrderNumber = ref({})
 
-    const filteredQuotes = computed(() => {
-      const filtered = quotes.value.filter(q => {
-        const statusMatch = !selectedStatus.value || q.status === selectedStatus.value
-        const term = (searchQuery.value || '').toLowerCase()
-        const linkedOrder = getLinkedOrder(q)
-        const linkedInvoice = getLinkedInvoice(q)
-        const searchMatch = !term
-          || String(q.quote_id || '').toLowerCase().includes(term)
-          || String(linkedOrder?.order_number || '').toLowerCase().includes(term)
-          || String(linkedInvoice?.invoice_number || '').toLowerCase().includes(term)
-        return statusMatch && searchMatch
+    const visibleQuotes = computed(() => {
+      const revisionSource = String(cartStore.revisionSourceQuoteId || '').trim()
+      if (!revisionSource) return quotes.value
+
+      return quotes.value.filter((quote) => String(quote?.quote_id || '').trim() !== revisionSource)
+    })
+
+    const normalizeQuoteId = (value) => String(value || '').trim().toUpperCase()
+
+    const getRevisedFromQuoteId = (quote, knownQuoteIds = null) => {
+      const currentId = normalizeQuoteId(quote?.quote_id)
+      const direct = normalizeQuoteId(quote?.revised_from_quote_id)
+      if (direct && direct !== currentId) return direct
+
+      const raw = normalizeQuoteId(quote?.raw_data?.revised_from_quote_id)
+      if (raw && raw !== currentId) return raw
+
+      // Fallback for legacy rows where only description text carries linkage.
+      const description = String(quote?.description || '')
+      const match = description.match(/revision\s+of\s+quote\s+([a-z0-9\-]+)/i)
+      const inferred = normalizeQuoteId(match ? match[1] : '')
+      if (!inferred || inferred === currentId) return ''
+      if (knownQuoteIds && !knownQuoteIds.has(inferred)) return ''
+
+      return inferred
+    }
+
+    const quoteFamilies = computed(() => {
+      const byId = new Map()
+      const grouped = new Map()
+
+      visibleQuotes.value.forEach((quote) => {
+        const normalizedId = normalizeQuoteId(quote?.quote_id)
+        if (normalizedId) {
+          byId.set(normalizedId, quote)
+        }
+      })
+
+      const resolveRootId = (quote) => {
+        let cursor = quote
+        const seen = new Set()
+
+        while (cursor) {
+          const currentId = normalizeQuoteId(cursor?.quote_id)
+          if (!currentId || seen.has(currentId)) {
+            break
+          }
+
+          seen.add(currentId)
+          const parentId = getRevisedFromQuoteId(cursor, byId)
+          if (!parentId || !byId.has(parentId)) {
+            return currentId
+          }
+
+          cursor = byId.get(parentId)
+        }
+
+        return normalizeQuoteId(quote?.quote_id)
+      }
+
+      visibleQuotes.value.forEach((quote) => {
+        const rootId = resolveRootId(quote)
+        const list = grouped.get(rootId) || []
+        list.push(quote)
+        grouped.set(rootId, list)
+      })
+
+      return Array.from(grouped.entries()).map(([rootId, chain]) => {
+        const sortedChain = [...chain].sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0))
+        const primary = sortedChain[sortedChain.length - 1]
+
+        return {
+          rootId,
+          chain: sortedChain,
+          primary,
+        }
+      })
+    })
+
+    const quoteFamilyRows = computed(() => {
+      const rows = []
+
+      quoteFamilies.value.forEach((family) => {
+        const activeChain = family.chain.filter((quote) => String(quote?.status || '').toLowerCase() !== 'cancelled')
+        const cancelledChain = family.chain.filter((quote) => String(quote?.status || '').toLowerCase() === 'cancelled')
+
+        if (activeChain.length) {
+          const primary = activeChain[activeChain.length - 1]
+          rows.push({
+            rowId: `${family.rootId}-active`,
+            rootId: family.rootId,
+            category: 'active',
+            chain: activeChain,
+            primary,
+            children: activeChain.filter((quote) => quote.quote_id !== primary.quote_id),
+          })
+        }
+
+        if (cancelledChain.length) {
+          const primary = cancelledChain[cancelledChain.length - 1]
+          rows.push({
+            rowId: `${family.rootId}-cancelled`,
+            rootId: family.rootId,
+            category: 'cancelled',
+            chain: cancelledChain,
+            primary,
+            children: cancelledChain.filter((quote) => quote.quote_id !== primary.quote_id),
+          })
+        }
+      })
+
+      return rows
+    })
+
+    const filteredQuoteFamilies = computed(() => {
+      const term = (searchQuery.value || '').toLowerCase()
+
+      const filtered = quoteFamilyRows.value.filter((family) => {
+        const statusMatch = !selectedStatus.value || family.chain.some((quote) => quote.status === selectedStatus.value)
+
+        if (!statusMatch) return false
+        if (!term) return true
+
+        return family.chain.some((quote) => {
+          const linkedOrder = getLinkedOrder(quote)
+          const linkedInvoice = getLinkedInvoice(quote)
+          return String(quote.quote_id || '').toLowerCase().includes(term)
+            || String(linkedOrder?.order_number || '').toLowerCase().includes(term)
+            || String(linkedInvoice?.invoice_number || '').toLowerCase().includes(term)
+        })
       })
 
       const sorted = [...filtered]
       switch (sortBy.value) {
         case 'created_asc':
-          sorted.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0))
+          sorted.sort((a, b) => new Date(a.primary?.created_at || 0) - new Date(b.primary?.created_at || 0))
           break
         case 'amount_desc':
-          sorted.sort((a, b) => Number(b.total_amount || 0) - Number(a.total_amount || 0))
+          sorted.sort((a, b) => Number(b.primary?.total_amount || 0) - Number(a.primary?.total_amount || 0))
           break
         case 'amount_asc':
-          sorted.sort((a, b) => Number(a.total_amount || 0) - Number(b.total_amount || 0))
+          sorted.sort((a, b) => Number(a.primary?.total_amount || 0) - Number(b.primary?.total_amount || 0))
           break
         case 'status_asc':
-          sorted.sort((a, b) => String(a.status || '').localeCompare(String(b.status || '')))
+          sorted.sort((a, b) => String(a.primary?.status || '').localeCompare(String(b.primary?.status || '')))
           break
         case 'created_desc':
         default:
-          sorted.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
+          sorted.sort((a, b) => new Date(b.primary?.created_at || 0) - new Date(a.primary?.created_at || 0))
           break
       }
 
       return sorted
     })
 
+    const quoteFamilyByPrimaryId = computed(() => {
+      return filteredQuoteFamilies.value.reduce((acc, family) => {
+        const primaryId = normalizeQuoteId(family?.primary?.quote_id)
+        if (primaryId) {
+          acc[primaryId] = family
+        }
+        return acc
+      }, {})
+    })
+
+    const filteredQuotes = computed(() => {
+      return filteredQuoteFamilies.value.map((family) => family.primary)
+    })
+
     const totalPages = computed(() => {
-      const pages = Math.ceil(filteredQuotes.value.length / pageSize.value)
+      const pages = Math.ceil(filteredQuoteFamilies.value.length / pageSize.value)
       return Math.max(1, pages)
     })
 
-    const paginatedQuotes = computed(() => {
+    const paginatedQuoteFamilies = computed(() => {
       const safePage = Math.min(currentPage.value, totalPages.value)
       const start = (safePage - 1) * pageSize.value
       const end = start + pageSize.value
-      return filteredQuotes.value.slice(start, end)
+      return filteredQuoteFamilies.value.slice(start, end)
+    })
+
+    const paginatedQuotes = computed(() => {
+      return paginatedQuoteFamilies.value.map((family) => family.primary)
     })
 
     const paginationStart = computed(() => {
-      if (filteredQuotes.value.length === 0) return 0
+      if (filteredQuoteFamilies.value.length === 0) return 0
       return (Math.min(currentPage.value, totalPages.value) - 1) * pageSize.value + 1
     })
 
     const paginationEnd = computed(() => {
-      if (filteredQuotes.value.length === 0) return 0
+      if (filteredQuoteFamilies.value.length === 0) return 0
       const end = Math.min(currentPage.value, totalPages.value) * pageSize.value
-      return Math.min(end, filteredQuotes.value.length)
+      return Math.min(end, filteredQuoteFamilies.value.length)
     })
 
     const visiblePageNumbers = computed(() => {
@@ -522,17 +717,37 @@ export default {
     const selectedQuotes = computed(() => {
       if (!selectedQuoteIds.value.length) return []
       const ids = new Set(selectedQuoteIds.value)
-      return filteredQuotes.value.filter((quote) => ids.has(quote.quote_id))
+      return filteredQuoteFamilies.value
+        .map((family) => family.primary)
+        .filter((quote) => ids.has(quote.quote_id))
     })
 
     const selectedCancellableQuotes = computed(() => {
       return selectedQuotes.value.filter((quote) => canCancelQuote(quote))
     })
 
+    const hasCancelledSelectedQuote = computed(() => {
+      return selectedQuotes.value.some((quote) => String(quote?.status || '').toLowerCase() === 'cancelled')
+    })
+
     const allOnPageSelected = computed(() => {
       if (!paginatedQuotes.value.length) return false
       return paginatedQuotes.value.every((quote) => selectedQuoteIds.value.includes(quote.quote_id))
     })
+
+    const getQuoteChildren = (quote) => {
+      const quoteId = normalizeQuoteId(quote?.quote_id)
+      if (!quoteId) return []
+
+      return quoteFamilyByPrimaryId.value[quoteId]?.children || []
+    }
+
+    const isCancelledFamilyRow = (quote) => {
+      const quoteId = normalizeQuoteId(quote?.quote_id)
+      if (!quoteId) return false
+      const family = quoteFamilyByPrimaryId.value[quoteId]
+      return String(family?.category || '').toLowerCase() === 'cancelled'
+    }
 
     const indexBy = (list, key) => {
       return (list || []).reduce((acc, item) => {
@@ -627,6 +842,13 @@ export default {
     const canCancelQuote = (quote) => {
       if (!quote) return false
       return ['draft', 'pending_review', 'approved'].includes(quote.status)
+    }
+
+    const canReviseQuote = (quote) => {
+      if (!quote) return false
+      if (String(quote.status || '').toLowerCase() === 'cancelled') return false
+      if (String(quote.status || '').toLowerCase() === 'converted') return false
+      return true
     }
 
     const getLinkedOrder = (quote) => {
@@ -819,6 +1041,30 @@ export default {
 
       clearSelection()
     }
+
+    const reviseSelectedQuotes = async () => {
+      if (!selectedQuotes.value.length) {
+        toastStore.addToast('No quote selected for revision', 'warning')
+        return
+      }
+
+      if (selectedQuotes.value.length > 1) {
+        toastStore.addToast('Select only one quote to revise', 'warning')
+        return
+      }
+
+      const quote = selectedQuotes.value[0]
+      if (!canReviseQuote(quote)) {
+        toastStore.addToast('Cancelled quotes cannot be revised', 'warning')
+        return
+      }
+
+      await reviseQuote(quote)
+    }
+
+    const closeSelectedQuoteModal = () => {
+      selectedQuote.value = null
+    }
     
     const cancelQuote = async (quote) => {
       if (!canCancelQuote(quote)) return
@@ -857,8 +1103,113 @@ export default {
       }
     }
 
+    const toNumericProductId = (value) => {
+      const parsed = Number(value)
+      return Number.isInteger(parsed) && parsed > 0 ? parsed : null
+    }
+
+    const extractQuoteItems = (quote) => {
+      const items = Array.isArray(quote?.items) ? quote.items : []
+      return items
+        .map((item) => {
+          const productId = toNumericProductId(item?.product_id ?? item?.productId ?? item?.id)
+          const quantity = Math.max(1, Number(item?.quantity || 1))
+          if (!productId) return null
+          return {
+            productId,
+            quantity,
+            fallbackName: item?.productName || item?.product_name || `Product ${productId}`,
+            fallbackVendor: item?.vendorId || item?.vendor_id || 'N/A',
+            fallbackMfgPartNo: item?.mfgPartNo || item?.mfg_part_no || 'N/A',
+            fallbackPrice: Number(item?.unitPrice ?? item?.unit_price ?? 0) || 0,
+          }
+        })
+        .filter(Boolean)
+    }
+
+    const getQuoteItemCount = (quote) => {
+      return Array.isArray(quote?.items) ? quote.items.length : 0
+    }
+
+    const getQuoteItemPreview = (quote) => {
+      const items = Array.isArray(quote?.items) ? quote.items : []
+      if (!items.length) return ''
+
+      const names = items
+        .map((item) => String(item?.productName || item?.product_name || item?.name || '').trim())
+        .filter(Boolean)
+
+      if (!names.length) return ''
+      if (names.length <= 2) return names.join(', ')
+
+      return `${names[0]}, ${names[1]} +${names.length - 2} more`
+    }
+
+    const reviseQuote = async (quote) => {
+      if (!quote?.quote_id) {
+        toastStore.addToast('Unable to revise this quote', 'error')
+        return
+      }
+
+      if (!canReviseQuote(quote)) {
+        if (String(quote.status || '').toLowerCase() === 'cancelled') {
+          toastStore.addToast('Cancelled quotes cannot be revised. Create a new quote from products instead.', 'warning')
+        } else {
+          toastStore.addToast('This quote cannot be revised.', 'warning')
+        }
+        return
+      }
+
+      if (authStore.isRestricted) {
+        toastStore.addToast('Account suspended: revising quotes is disabled', 'error')
+        return
+      }
+
+      const quoteItems = extractQuoteItems(quote)
+      if (!quoteItems.length) {
+        toastStore.addToast('This quote has no revisable items', 'warning')
+        return
+      }
+
+      processingQuoteId.value = quote.quote_id
+
+      try {
+        const revisedItems = await Promise.all(quoteItems.map(async (line) => {
+          try {
+            const response = await axios.get(`/api/v1/products/${line.productId}`)
+            const product = response.data?.data || response.data || {}
+            return {
+              ...product,
+              productId: product.productId ?? line.productId,
+              quantity: line.quantity,
+            }
+          } catch (fetchError) {
+            return {
+              productId: line.productId,
+              productName: line.fallbackName,
+              vendorId: line.fallbackVendor,
+              mfgPartNo: line.fallbackMfgPartNo,
+              productPrice: [{ rsPrice: line.fallbackPrice || 0, minQty: 1 }],
+              quantity: line.quantity,
+            }
+          }
+        }))
+
+        cartStore.replaceCartItems(revisedItems)
+        cartStore.setRevisionSource(quote.quote_id)
+        selectedQuote.value = null
+        toastStore.addToast(`Quote ${quote.quote_id} loaded for revision`, 'success')
+        router.push({ name: 'cart' })
+      } catch (reviseError) {
+        console.error('Error preparing quote revision:', reviseError)
+        toastStore.addToast('Failed to prepare quote revision', 'error')
+      } finally {
+        processingQuoteId.value = null
+      }
+    }
+
     const getQuotesCountByStatus = (status) => {
-      return quotes.value.filter(quote => quote.status === status).length
+      return visibleQuotes.value.filter(quote => quote.status === status).length
     }
 
     const getQuoteProgress = (status) => {
@@ -926,6 +1277,7 @@ export default {
       processingQuoteId, 
       ordersByQuoteId,
       invoicesByOrderNumber,
+      visibleQuotes,
       filteredQuotes,
       paginatedQuotes,
       totalPages,
@@ -933,6 +1285,7 @@ export default {
       paginationEnd,
       visiblePageNumbers,
       selectedCancellableQuotes,
+      hasCancelledSelectedQuote,
       allOnPageSelected,
       fetchQuotes, 
       formatDate, 
@@ -944,10 +1297,18 @@ export default {
       viewLinkedOrder,
       getLinkedOrder,
       getLinkedInvoice,
+      getQuoteChildren,
+      isCancelledFamilyRow,
       canPayQuote,
       payQuoteInvoice,
       canCancelQuote, 
+      canReviseQuote,
+      getQuoteItemCount,
+      getQuoteItemPreview,
       cancelQuote, 
+      reviseQuote,
+      reviseSelectedQuotes,
+      closeSelectedQuoteModal,
       toggleQuoteSelection,
       toggleSelectAllOnPage,
       clearSelection,

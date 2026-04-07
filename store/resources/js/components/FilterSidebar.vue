@@ -34,7 +34,7 @@
           <span>{{ status }}</span>
           <button @click="toggleLifecycleStatus(status)" class="hover:font-semibold">×</button>
         </div>
-        <!-- Image Availability Filter Badges -->
+        <!-- Review Rating Filter Badges -->
         <div v-for="status in filters.mediaStatuses" :key="`media-${status}`" class="flex items-center gap-1 px-3 py-1 rounded-full text-sm" style="background-color: #eef7ec; color: #1f6e3e;">
           <span>{{ status }}</span>
           <button @click="toggleMediaStatus(status)" class="hover:font-semibold">×</button>
@@ -210,10 +210,10 @@
       </div>
     </div>
 
-    <!-- Image Availability Filter -->
+    <!-- Review Rating Filter -->
     <div class="mb-6 pb-6 border-b border-gray-200">
       <button @click="toggleSection('media')" class="flex items-center justify-between w-full mb-3">
-        <h4 class="font-semibold text-gray-900">Image Availability</h4>
+        <h4 class="font-semibold text-gray-900">Review Rating</h4>
         <svg class="w-4 h-4 text-gray-500" :class="{ 'rotate-180': openSections.media }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
         </svg>
@@ -221,22 +221,31 @@
       <div v-show="openSections.media" class="space-y-3">
         <div class="flex flex-wrap gap-2">
           <button
-            @click="setWithImage"
+            @click="setFiveStar"
             class="px-3 py-1.5 text-xs font-semibold rounded-full border transition"
             style="border-color: #1f6e3e; color: #1f6e3e;"
             @mouseenter="$event.target.style.backgroundColor='#edf8f2'"
             @mouseleave="$event.target.style.backgroundColor='transparent'"
           >
-            Has Image
+            5 Stars
           </button>
           <button
-            @click="setWithoutImage"
+            @click="setFourStarPlus"
             class="px-3 py-1.5 text-xs font-semibold rounded-full border transition"
             style="border-color: #1f6e3e; color: #1f6e3e;"
             @mouseenter="$event.target.style.backgroundColor='#edf8f2'"
             @mouseleave="$event.target.style.backgroundColor='transparent'"
           >
-            No Image
+            4+ Stars
+          </button>
+          <button
+            @click="setHasReviews"
+            class="px-3 py-1.5 text-xs font-semibold rounded-full border transition"
+            style="border-color: #1f6e3e; color: #1f6e3e;"
+            @mouseenter="$event.target.style.backgroundColor='#edf8f2'"
+            @mouseleave="$event.target.style.backgroundColor='transparent'"
+          >
+            Has Reviews
           </button>
           <button
             @click="clearMedia"
@@ -288,8 +297,10 @@ const props = defineProps({
   mediaOptions: {
     type: Array,
     default: () => [
-      { name: 'Has Image', count: 0 },
-      { name: 'No Image', count: 0 }
+      { name: '5 Stars', count: 0 },
+      { name: '4 Stars & Up', count: 0 },
+      { name: '3 Stars & Up', count: 0 },
+      { name: 'Has Reviews', count: 0 }
     ]
   }
 })
@@ -329,7 +340,7 @@ const hasDisplayableCount = (item) => {
 }
 
 const normalizedVendors = computed(() => {
-  return (props.vendors || []).filter(vendor => vendor?.name)
+  return (props.vendors || []).filter(vendor => vendor?.name && hasDataCount(vendor))
 })
 
 const normalizedCategories = computed(() => {
@@ -430,13 +441,18 @@ const toggleMediaStatus = (status) => {
   applyFilters()
 }
 
-const setWithImage = () => {
-  filters.value.mediaStatuses = ['Has Image']
+const setFiveStar = () => {
+  filters.value.mediaStatuses = ['5 Stars']
   applyFilters()
 }
 
-const setWithoutImage = () => {
-  filters.value.mediaStatuses = ['No Image']
+const setFourStarPlus = () => {
+  filters.value.mediaStatuses = ['4 Stars & Up']
+  applyFilters()
+}
+
+const setHasReviews = () => {
+  filters.value.mediaStatuses = ['Has Reviews']
   applyFilters()
 }
 

@@ -91,13 +91,62 @@ class EnrichPriceAvailabilityImagesCommand extends Command
                 return self::SUCCESS;
             }
 
-            $this->info('Enriching images from cached database products...');
-            $result = $service->syncPriceAvailabilityImagesFromDatabase($chunk, $limit);
+            // Count total products to process for progress display
+            $totalQuery = Product::query()
+                ->where('vendor_id', 'TD SYNNEX')
+                ->where(function ($q) {
+                    $q->whereNull('images')
+                        ->orWhere('images', '[]');
+                });
+            if ($limit > 0) {
+                $totalToProcess = min($limit, $totalQuery->count());
+            } else {
+                $totalToProcess = $totalQuery->count();
+            }
 
-            if ((int) ($result['processed'] ?? 0) === 0) {
+            if ($totalToProcess === 0) {
                 $this->warn('No database products found that need image enrichment.');
                 return self::SUCCESS;
             }
+
+            $this->info("Enriching images for {$totalToProcess} products...");
+            $this->newLine();
+
+            $startTime = microtime(true);
+            $command = $this;
+
+            $result = $service->syncPriceAvailabilityImagesFromDatabase($chunk, $limit, function (
+                int $processed,
+                int $updated,
+                $product,
+                bool $didUpdate,
+                array $images
+            ) use ($command, $totalToProcess, $startTime) {
+                $elapsed = microtime(true) - $startTime;
+                $rate = $processed > 0 ? round($elapsed / $processed, 1) : 0;
+                $pct = $totalToProcess > 0 ? round(($processed / $totalToProcess) * 100, 1) : 0;
+
+                $name = mb_substr(trim((string) ($product->name ?? $product->description ?? '—')), 0, 50);
+                $sku = trim((string) ($product->tdsynnex_sku_no ?? $product->tdsynnex_product_id ?? ''));
+                $status = $didUpdate ? '<fg=green>✓ image saved</>' : '<fg=yellow>✗ no image</>';
+                $imageCount = count($images);
+
+                $command->line(
+                    sprintf(
+                        '  [%s%%] %d/%d  %s  SKU:%s  %s (%d img)  %.1fs/product',
+                        str_pad((string) $pct, 5, ' ', STR_PAD_LEFT),
+                        $processed,
+                        $totalToProcess,
+                        $status,
+                        $sku,
+                        $name,
+                        $imageCount,
+                        $rate
+                    )
+                );
+            });
+
+            $elapsed = round(microtime(true) - $startTime, 1);
 
             $withImages = Product::query()
                 ->where('vendor_id', 'TD SYNNEX')
@@ -105,10 +154,12 @@ class EnrichPriceAvailabilityImagesCommand extends Command
                 ->where('images', '!=', '[]')
                 ->count();
 
+            $this->newLine();
             $this->info('Image enrichment complete.');
-            $this->line('Products processed: ' . (int) ($result['processed'] ?? 0));
-            $this->line('Products updated: ' . (int) ($result['updated'] ?? 0));
-            $this->line('Products with saved images: ' . $withImages);
+            $this->line("Products processed:          " . (int) ($result['processed'] ?? 0));
+            $this->line("Products updated:            " . (int) ($result['updated'] ?? 0));
+            $this->line("Total products with images:  " . $withImages);
+            $this->line("Time elapsed:                {$elapsed}s");
 
             return self::SUCCESS;
         } catch (\Throwable $e) {

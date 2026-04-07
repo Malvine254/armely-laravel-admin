@@ -23,12 +23,32 @@
 
       <!-- Profile Overview -->
       <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
-        <div class="flex items-center gap-4">
-          <div class="w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-xl" style="background-color: #2F5597;">{{ initials }}</div>
-          <div>
-            <h2 class="text-xl font-bold text-gray-900">{{ userName }}</h2>
+        <div class="flex flex-col sm:flex-row items-center gap-6">
+          <!-- Profile Picture -->
+          <div class="relative">
+            <img v-if="userProfilePictureUrl" :src="userProfilePictureUrl" :alt="userName" class="w-24 h-24 rounded-full object-cover border-2" style="border-color: #2F5597;">
+            <div v-else class="w-24 h-24 rounded-full flex items-center justify-center text-white font-bold text-xl" style="background-color: #2F5597;">{{ initials }}</div>
+            <button @click="triggerProfilePictureUpload" class="absolute bottom-0 right-0 bg-white rounded-full p-2 shadow-lg hover:shadow-xl transition border border-gray-300">
+              <svg class="w-4 h-4 text-gray-700" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M9 4.5a1.5 1.5 0 00-1.342.829L6.882 6.9A1.5 1.5 0 015.54 7.7H4.5A2.5 2.5 0 002 10.2v7.3A2.5 2.5 0 004.5 20h15a2.5 2.5 0 002.5-2.5v-7.3a2.5 2.5 0 00-2.5-2.5h-1.04a1.5 1.5 0 01-1.343-.8l-.775-1.571A1.5 1.5 0 0015 4.5H9zm3 12.25a3.75 3.75 0 100-7.5 3.75 3.75 0 000 7.5z"></path>
+              </svg>
+            </button>
+            <input ref="profilePictureInput" type="file" accept="image/*" class="hidden" @change="handleProfilePictureUpload">
+          </div>
+          <!-- Profile Info -->
+          <div class="flex-1 text-center sm:text-left">
+            <h2 class="text-2xl font-bold text-gray-900">{{ userName }}</h2>
             <p class="text-gray-600">{{ userEmail }}</p>
-            <p class="text-sm text-gray-500">Company: {{ companyName }}</p>
+            <p class="text-sm text-gray-500 mb-3">Company: {{ companyName }}</p>
+            <!-- Incomplete Fields Indicator -->
+            <div v-if="incompleteFields.length > 0" class="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <p class="text-sm font-medium text-amber-900">Complete your profile:</p>
+              <ul class="text-sm text-amber-800 mt-1 list-disc list-inside">
+                <li v-if="incompleteFields.includes('phone')">Add phone number</li>
+                <li v-if="incompleteFields.includes('shipping_address')">Add shipping address</li>
+                <li v-if="incompleteFields.includes('profile_picture')">Add profile picture</li>
+              </ul>
+            </div>
           </div>
         </div>
       </div>
@@ -110,8 +130,8 @@
     </div>
 
     <!-- Edit Profile Modal -->
-    <div v-if="showEditProfileModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
-      <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[92vh] overflow-y-auto">
+    <div v-if="showEditProfileModal" class="fixed inset-0 bg-gray-400/20 backdrop-blur-sm flex items-center justify-center z-[9999] p-4" @click.self="showEditProfileModal = false">
+      <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[92vh] overflow-y-auto">
         <div class="p-8">
           <div class="flex justify-between items-center mb-4">
             <h3 class="text-xl font-bold text-gray-900">Edit Profile</h3>
@@ -121,63 +141,80 @@
               </svg>
             </button>
           </div>
-          <form @submit.prevent="submitEditProfile" class="space-y-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Name</label>
-              <input v-model="editForm.name" type="text" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <form @submit.prevent="submitEditProfile" class="space-y-5">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                <input v-model="editForm.name" type="text" required placeholder="Enter your full name" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <input v-model="editForm.email" type="email" required placeholder="name@company.com" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                <input v-model="editForm.phone" type="tel" placeholder="e.g. +254 700 000 000" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+              </div>
             </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-              <input v-model="editForm.email" type="email" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-              <input v-model="editForm.phone" type="tel" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <div class="md:col-span-3">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Profile Picture</label>
+              <div class="flex items-center gap-4">
+                <img v-if="profilePicturePreview" :src="profilePicturePreview" alt="Preview" class="w-16 h-16 rounded-full object-cover border-2 border-gray-300">
+                <div v-else-if="userProfilePictureUrl" class="w-16 h-16 rounded-full flex items-center justify-center text-white font-bold" style="background-color: #2F5597;">
+                  <img :src="userProfilePictureUrl" alt="Profile" class="w-16 h-16 rounded-full object-cover">
+                </div>
+                <div v-else class="w-16 h-16 rounded-full flex items-center justify-center text-white font-bold" style="background-color: #e5e7eb;">
+                  <svg class="w-8 h-8 text-gray-400" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M9 4.5a1.5 1.5 0 00-1.342.829L6.882 6.9A1.5 1.5 0 015.54 7.7H4.5A2.5 2.5 0 002 10.2v7.3A2.5 2.5 0 004.5 20h15a2.5 2.5 0 002.5-2.5v-7.3a2.5 2.5 0 00-2.5-2.5h-1.04a1.5 1.5 0 01-1.343-.8l-.775-1.571A1.5 1.5 0 0015 4.5H9zm3 12.25a3.75 3.75 0 100-7.5 3.75 3.75 0 000 7.5z"></path>
+                  </svg>
+                </div>
+                <input ref="editProfilePictureInput" type="file" accept="image/*" class="hidden" @change="handleEditProfilePictureChange">
+                <button type="button" @click="$refs.editProfilePictureInput.click()" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium flex items-center gap-2">
+                  <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M9 4.5a1.5 1.5 0 00-1.342.829L6.882 6.9A1.5 1.5 0 015.54 7.7H4.5A2.5 2.5 0 002 10.2v7.3A2.5 2.5 0 004.5 20h15a2.5 2.5 0 002.5-2.5v-7.3a2.5 2.5 0 00-2.5-2.5h-1.04a1.5 1.5 0 01-1.343-.8l-.775-1.571A1.5 1.5 0 0015 4.5H9zm3 12.25a3.75 3.75 0 100-7.5 3.75 3.75 0 000 7.5z"></path>
+                  </svg>
+                  Upload Picture
+                </button>
+              </div>
             </div>
             <div class="pt-2 border-t border-gray-200">
               <h4 class="text-sm font-semibold text-gray-900 mb-2">Shipping Details</h4>
-              <div class="space-y-3">
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">Label</label>
-                  <input v-model="editForm.shipping.label" type="text" placeholder="Main Office" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Contact Name</label>
-                    <input v-model="editForm.shipping.contact_name" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Contact Phone</label>
-                    <input v-model="editForm.shipping.contact_phone" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  </div>
+                  <input v-model="editForm.shipping.label" type="text" placeholder="Default Shipping" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">Street 1</label>
-                  <input v-model="editForm.shipping.street_1" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <input v-model="editForm.shipping.street_1" type="text" placeholder="Building, street, area" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">Street 2</label>
-                  <input v-model="editForm.shipping.street_2" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <input v-model="editForm.shipping.street_2" type="text" placeholder="Apartment, suite, landmark" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">City</label>
-                    <input v-model="editForm.shipping.city" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">State</label>
-                    <input v-model="editForm.shipping.state" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Contact Name</label>
+                  <input v-model="editForm.shipping.contact_name" type="text" placeholder="Who receives deliveries?" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Postal Code</label>
-                    <input v-model="editForm.shipping.postal_code" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Country</label>
-                    <input v-model="editForm.shipping.country" type="text" maxlength="2" placeholder="US" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase">
-                  </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Contact Phone</label>
+                  <input v-model="editForm.shipping.contact_phone" type="text" placeholder="Delivery contact number" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">City</label>
+                  <input v-model="editForm.shipping.city" type="text" placeholder="City" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">State</label>
+                  <input v-model="editForm.shipping.state" type="text" placeholder="State or county" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Postal Code</label>
+                  <input v-model="editForm.shipping.postal_code" type="text" placeholder="Postal / ZIP code" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Country</label>
+                  <input v-model="editForm.shipping.country" type="text" maxlength="2" placeholder="US" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase">
                 </div>
               </div>
             </div>
@@ -195,7 +232,7 @@
     </div>
 
     <!-- Change Password Modal -->
-    <div v-if="showChangePasswordModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
+    <div v-if="showChangePasswordModal" class="fixed inset-0 bg-gray-400/20 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
       <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
         <div class="p-6">
           <div class="flex justify-between items-center mb-4">
@@ -233,7 +270,7 @@
     </div>
 
     <!-- Manage Notifications Modal -->
-    <div v-if="showNotificationsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
+    <div v-if="showNotificationsModal" class="fixed inset-0 bg-gray-400/20 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
       <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
         <div class="p-6">
           <div class="flex justify-between items-center mb-4">
@@ -299,7 +336,7 @@
     </div>
 
     <!-- Sign Out Confirmation Modal -->
-    <div v-if="showSignOutModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
+    <div v-if="showSignOutModal" class="fixed inset-0 bg-gray-400/20 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
       <div class="bg-white rounded-lg shadow-xl max-w-sm w-full p-6">
         <div class="flex flex-col items-center text-center gap-3">
           <div class="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center">
@@ -385,6 +422,14 @@ const notificationSettings = ref({
   invoices: true
 })
 
+// Profile picture handling
+const profilePictureInput = ref(null)
+const editProfilePictureInput = ref(null)
+const profilePicturePreview = ref(null)
+const profilePictureFile = ref(null)
+const incompleteFields = ref([])
+const showCompleteProfileModal = ref(false)
+
 const getNotificationStorageKey = () => {
   const userId = authStore.user?.id
   return userId ? `notification_preferences_${userId}` : 'notification_preferences'
@@ -433,6 +478,16 @@ const initials = computed(() => {
   return parts.slice(0, 2).map(p => p[0].toUpperCase()).join('')
 })
 
+const userProfilePictureUrl = computed(() => {
+  if (profilePicturePreview.value) {
+    return profilePicturePreview.value
+  }
+  if (authStore.user?.profile_picture_url) {
+    return authStore.user.profile_picture_url
+  }
+  return null
+})
+
 const getActivityIcon = (type) => {
   const icons = {
     'quote': 'Q',
@@ -442,6 +497,89 @@ const getActivityIcon = (type) => {
     'invoice': 'I'
   }
   return icons[type] || type.charAt(0).toUpperCase()
+}
+
+const triggerProfilePictureUpload = () => {
+  profilePictureInput.value?.click()
+}
+
+const handleProfilePictureUpload = (event) => {
+  const file = event.target.files?.[0]
+  if (!file) return
+
+  profilePictureFile.value = file
+  
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    profilePicturePreview.value = e.target?.result
+  }
+  reader.readAsDataURL(file)
+
+  // Auto-submit the profile picture upload
+  submitProfilePictureUpload()
+}
+
+const handleEditProfilePictureChange = (event) => {
+  const file = event.target.files?.[0]
+  if (!file) return
+
+  profilePictureFile.value = file
+  
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    profilePicturePreview.value = e.target?.result
+  }
+  reader.readAsDataURL(file)
+}
+
+const submitProfilePictureUpload = async () => {
+  if (!profilePictureFile.value) {
+    console.warn('No profile picture file selected')
+    return
+  }
+
+  try {
+    const formData = new FormData()
+    formData.append('profile_picture', profilePictureFile.value)
+
+    const token = localStorage.getItem('auth_token')
+    console.log('Uploading profile picture...')
+    const response = await fetch(`${API_BASE_URL}/auth/update-profile`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json'
+      },
+      body: formData
+    })
+
+    const data = await response.json()
+    console.log('Upload response:', data)
+
+    if (!response.ok) {
+      throw new Error(data.message || `Failed to upload profile picture (${response.status})`)
+    }
+
+    // Update auth store with fresh user data
+    if (data.user) {
+      authStore.user = {
+        ...authStore.user,
+        ...data.user
+      }
+      localStorage.setItem('armely_user', JSON.stringify(authStore.user))
+      console.log('User updated with profile picture:', authStore.user.profile_picture_url)
+    }
+
+    toastStore.addToast('Profile picture updated successfully!', 'success')
+    profilePictureFile.value = null
+    profilePicturePreview.value = null
+    if (profilePictureInput.value) {
+      profilePictureInput.value.value = ''
+    }
+  } catch (error) {
+    console.error('Error uploading profile picture:', error)
+    toastStore.addToast(error.message || 'Failed to upload profile picture', 'error')
+  }
 }
 
 const fetchActivities = async () => {
@@ -499,22 +637,43 @@ const submitEditProfile = async () => {
   editFormLoading.value = true
   try {
     const token = localStorage.getItem('auth_token')
+    
+    // Use FormData to support file uploads
+    const formData = new FormData()
+    formData.append('name', editForm.value.name)
+    formData.append('email', editForm.value.email)
+    formData.append('phone', editForm.value.phone)
+    
+    // Add shipping address as JSON string
+    const shippingAddress = {
+      label: editForm.value.shipping.label,
+      contact_name: editForm.value.shipping.contact_name,
+      contact_phone: editForm.value.shipping.contact_phone,
+      street_1: editForm.value.shipping.street_1,
+      street_2: editForm.value.shipping.street_2,
+      city: editForm.value.shipping.city,
+      state: editForm.value.shipping.state,
+      postal_code: editForm.value.shipping.postal_code,
+      country: (editForm.value.shipping.country || 'US').toUpperCase()
+    }
+    
+    // Append shipping address
+    Object.entries(shippingAddress).forEach(([key, value]) => {
+      formData.append(`shipping_address[${key}]`, value || '')
+    })
+    
+    // Add profile picture if selected
+    if (profilePictureFile.value) {
+      formData.append('profile_picture', profilePictureFile.value)
+    }
+    
     const response = await fetch(`${API_BASE_URL}/auth/update-profile`, {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
         'Accept': 'application/json'
       },
-      body: JSON.stringify({
-        name: editForm.value.name,
-        email: editForm.value.email,
-        phone: editForm.value.phone,
-        shipping_address: {
-          ...editForm.value.shipping,
-          country: (editForm.value.shipping.country || 'US').toUpperCase()
-        }
-      })
+      body: formData
     })
 
     const data = await response.json()
@@ -527,10 +686,17 @@ const submitEditProfile = async () => {
     if (data.user) {
       authStore.user = data.user
       localStorage.setItem('armely_user', JSON.stringify(data.user))
+      // Update incomplete fields
+      incompleteFields.value = data.incomplete_fields || []
     }
 
     toastStore.addToast('Profile updated successfully!', 'success')
     showEditProfileModal.value = false
+    profilePictureFile.value = null
+    profilePicturePreview.value = null
+    if (editProfilePictureInput.value) {
+      editProfilePictureInput.value.value = ''
+    }
     
     // Log activity
     await logActivity('profile', 'updated', 'Updated account profile')
@@ -659,6 +825,12 @@ onMounted(() => {
     router.push({ name: 'login' })
     return
   }
+  
+  // Load incomplete fields from auth store
+  if (authStore.user?.incomplete_fields) {
+    incompleteFields.value = authStore.user.incomplete_fields
+  }
+  
   fetchActivities()
   authStore.refreshUser()
 })

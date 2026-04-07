@@ -6,6 +6,7 @@ use App\Models\Quote;
 use App\Models\Order;
 use App\Models\Invoice;
 use App\Models\Activity;
+use App\Jobs\SendQuoteNotificationJob;
 use App\Services\TDSynnexService;
 use App\Services\PdfService;
 use App\Services\NotificationService;
@@ -340,7 +341,32 @@ class QuoteOrderInvoiceController extends Controller
                 'items.*.product_id' => 'required|integer',
                 'items.*.quantity' => 'required|integer|min:1',
                 'description' => 'nullable|string',
+                'revised_from_quote_id' => 'nullable|string|max:255',
             ]);
+
+            $revisedFromQuoteId = isset($validated['revised_from_quote_id'])
+                ? trim((string) $validated['revised_from_quote_id'])
+                : null;
+
+            if ($revisedFromQuoteId) {
+                    $sourceQuote = Quote::where('user_id', $user->id)
+                        ->where('quote_id', $revisedFromQuoteId)
+                        ->first();
+
+                    if (!$sourceQuote) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Source quote not found for revision',
+                    ], 422);
+                }
+
+                    if (strtolower((string) $sourceQuote->status) === 'cancelled') {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Cancelled quotes cannot be revised',
+                        ], 422);
+                    }
+            }
 
             $quoteId = 'LOCAL-QUOTE-' . strtoupper(uniqid());
             $totalAmount = array_reduce($validated['items'], function ($carry, $item) {
@@ -360,6 +386,7 @@ class QuoteOrderInvoiceController extends Controller
                 'raw_data' => [
                     'source' => 'local_only',
                     'submitted_items' => $validated['items'],
+                    'revised_from_quote_id' => $revisedFromQuoteId,
                 ],
                 'submitted_at' => now(),
                 'expires_at' => now()->addDays(30),
@@ -370,12 +397,19 @@ class QuoteOrderInvoiceController extends Controller
                 $user->id,
                 'quote',
                 'created',
-                "Quote requested for " . count($validated['items']) . " item" . (count($validated['items']) > 1 ? 's' : ''),
-                ['quote_id' => $quoteId, 'item_count' => count($validated['items'])]
+                ($revisedFromQuoteId
+                    ? "Quote revision requested from {$revisedFromQuoteId} for "
+                    : "Quote requested for ")
+                . count($validated['items']) . " item" . (count($validated['items']) > 1 ? 's' : ''),
+                [
+                    'quote_id' => $quoteId,
+                    'item_count' => count($validated['items']),
+                    'revised_from_quote_id' => $revisedFromQuoteId,
+                ]
             );
 
-            // Send notification to admin
-            $this->notificationService->sendQuoteCreatedNotification($quote);
+            // Send notifications asynchronously after response for faster UX.
+            SendQuoteNotificationJob::dispatchAfterResponse($quote->id, $revisedFromQuoteId);
 
             return response()->json([
                 'success' => true,

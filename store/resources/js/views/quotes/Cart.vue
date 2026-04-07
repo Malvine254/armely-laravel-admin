@@ -19,6 +19,18 @@
         Back to Products
       </button>
 
+      <div v-if="cartStore.revisionSourceQuoteId" class="mb-6 rounded-xl border px-4 py-3 flex items-center justify-between" style="border-color: #cfe0f5; background-color: #f6faff;">
+        <p class="text-sm font-semibold" style="color: #2F5597;">
+          Revising quote {{ cartStore.revisionSourceQuoteId }}
+        </p>
+        <button
+          @click="clearRevisionMode"
+          class="text-xs font-semibold px-3 py-1.5 rounded border border-gray-300 text-gray-700 hover:bg-white transition"
+        >
+          Clear Revision
+        </button>
+      </div>
+
       <!-- Empty State -->
       <div v-if="cartStore.isEmpty" class="bg-white rounded-lg shadow-lg p-12 text-center">
         <svg class="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -139,11 +151,11 @@
                 </svg>
                 <span>Download Quote</span>
               </button>
-              <button @click="requestQuote" class="w-full px-4 py-3 border-2 font-semibold rounded-lg transition inline-flex items-center justify-center gap-2" style="border-color: #2F5597; color: #2F5597;" @mouseenter="$event.target.style.backgroundColor='#cce4f4'" @mouseleave="$event.target.style.backgroundColor='transparent'">
+              <button @click="requestQuote" :disabled="isSubmittingQuote" class="w-full px-4 py-3 border-2 font-semibold rounded-lg transition inline-flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed" style="border-color: #2F5597; color: #2F5597;" @mouseenter="!isSubmittingQuote && ($event.target.style.backgroundColor='#cce4f4')" @mouseleave="$event.target.style.backgroundColor='transparent'">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
                 </svg>
-                <span>Request Quote</span>
+                <span>{{ isSubmittingQuote ? 'Submitting Quote...' : 'Request Quote' }}</span>
               </button>
               <button @click="clearAllItems" class="w-full px-4 py-3 border border-red-300 text-red-600 font-semibold rounded-lg transition hover:bg-red-50 inline-flex items-center justify-center gap-2">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -175,6 +187,7 @@ const quotesStore = useQuotesStore()
 const toastStore = useToastStore()
 const authStore = useAuthStore()
 const failedImageIds = ref([])
+const isSubmittingQuote = ref(false)
 
 const goBack = () => {
   router.push({ name: 'products' })
@@ -291,6 +304,8 @@ const downloadQuote = () => {
 }
 
 const requestQuote = async () => {
+  if (isSubmittingQuote.value) return
+
   if (authStore.isRestricted) {
     toastStore.addToast('Account suspended: requesting quotes is disabled', 'error')
     return
@@ -309,7 +324,13 @@ const requestQuote = async () => {
     return
   }
 
+  let slowRequestTimer = null
   try {
+    isSubmittingQuote.value = true
+    slowRequestTimer = setTimeout(() => {
+      toastStore.addToast('Still submitting your quote. Please wait...', 'info')
+    }, 4000)
+
     const quoteItems = cartStore.items
       .map(item => ({
         product_id: Number(item.productId ?? item.id),
@@ -324,23 +345,42 @@ const requestQuote = async () => {
 
     const response = await axios.post('/api/v1/quotes', {
       items: quoteItems,
-      description: null
+      description: cartStore.revisionSourceQuoteId
+        ? `Revision of quote ${cartStore.revisionSourceQuoteId}`
+        : null,
+      revised_from_quote_id: cartStore.revisionSourceQuoteId || null,
+    }, {
+      timeout: 45000,
     })
+
+    if (slowRequestTimer) {
+      clearTimeout(slowRequestTimer)
+      slowRequestTimer = null
+    }
 
     if (response.data?.success) {
       toastStore.addToast(`Quote #${response.data.data.quote_id} created successfully`, 'success')
       cartStore.clearCart()
-      
-      // Navigate to quotes page after a short delay
-      setTimeout(() => {
-        router.push({ name: 'quotes' })
-      }, 1000)
+
+      // Navigate immediately after success for faster UX
+      router.push({ name: 'quotes' })
     } else {
       toastStore.addToast(response.data?.message || 'Failed to create quote', 'error')
     }
   } catch (error) {
+    if (slowRequestTimer) {
+      clearTimeout(slowRequestTimer)
+      slowRequestTimer = null
+    }
     console.error('Error creating quote:', error)
     toastStore.addToast(error.response?.data?.message || 'Failed to create quote', 'error')
+  } finally {
+    isSubmittingQuote.value = false
   }
+}
+
+const clearRevisionMode = () => {
+  cartStore.clearRevisionSource()
+  toastStore.addToast('Revision mode cleared', 'info')
 }
 </script>
