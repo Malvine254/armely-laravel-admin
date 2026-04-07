@@ -317,6 +317,7 @@ export default {
     const error = ref(null);
     const selectedStatus = ref('');
     const searchQuery = ref('');
+    const sortBy = ref('created_desc');
     const selectedOrder = ref(null);
     const processingOrderNumber = ref(null);
     const pagination = ref({
@@ -329,11 +330,33 @@ export default {
     });
 
     const filteredOrders = computed(() => {
-      return orders.value.filter(order => {
+      const filtered = orders.value.filter(order => {
         const statusMatch = !selectedStatus.value || order.status === selectedStatus.value;
         const searchMatch = !searchQuery.value || order.order_number.toLowerCase().includes(searchQuery.value.toLowerCase());
         return statusMatch && searchMatch;
       });
+
+      const sorted = [...filtered];
+      switch (sortBy.value) {
+        case 'created_asc':
+          sorted.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+          break;
+        case 'amount_desc':
+          sorted.sort((a, b) => Number(b.total_amount || 0) - Number(a.total_amount || 0));
+          break;
+        case 'amount_asc':
+          sorted.sort((a, b) => Number(a.total_amount || 0) - Number(b.total_amount || 0));
+          break;
+        case 'status_asc':
+          sorted.sort((a, b) => String(a.status || '').localeCompare(String(b.status || '')));
+          break;
+        case 'created_desc':
+        default:
+          sorted.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+          break;
+      }
+
+      return sorted;
     });
 
     const fetchOrders = async () => {
@@ -440,6 +463,7 @@ export default {
     const resetFilters = () => {
       selectedStatus.value = '';
       searchQuery.value = '';
+      sortBy.value = 'created_desc';
       pagination.value.current_page = 1;
       fetchOrders();
     };
@@ -508,6 +532,7 @@ export default {
       error,
       selectedStatus,
       searchQuery,
+      sortBy,
       selectedOrder,
       processingOrderNumber,
       pagination,
