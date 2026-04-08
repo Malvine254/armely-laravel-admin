@@ -36,8 +36,17 @@ return [
     ],
 
     'stripe' => [
+        'key' => env('STRIPE_KEY'),
         'secret' => env('STRIPE_SECRET'),
         'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
+    ],
+
+    'quickbooks' => [
+        'client_id' => env('QUICKBOOKS_CLIENT_ID'),
+        'client_secret' => env('QUICKBOOKS_CLIENT_SECRET'),
+        'company_id' => env('QUICKBOOKS_COMPANY_ID'),
+        'payment_url_template' => env('QUICKBOOKS_PAYMENT_URL_TEMPLATE'),
+        'bulk_payment_url_template' => env('QUICKBOOKS_BULK_PAYMENT_URL_TEMPLATE'),
     ],
 
     'azure' => [
@@ -45,6 +54,13 @@ return [
         'client_id' => env('AZURE_CLIENT_ID'),
         'client_secret' => env('AZURE_CLIENT_SECRET'),
         'from_email' => env('NO_REPLY_EMAIL', env('FROM_EMAIL', env('MAIL_FROM_ADDRESS'))),
+    ],
+
+    'azure_openai' => [
+        'endpoint' => env('AZURE_OPENAI_ENDPOINT'),
+        'api_key' => env('AZURE_OPENAI_API_KEY'),
+        'deployment' => env('AZURE_OPENAI_DEPLOYMENT'),
+        'api_version' => env('AZURE_OPENAI_API_VERSION', '2024-10-21'),
     ],
 
 ];

@@ -5,7 +5,7 @@
     <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-5 py-8">
       <div class="mb-8">
         <h1 class="text-4xl font-bold text-gray-900 mb-2">Invoices</h1>
-        <p class="text-gray-600 text-lg">Track balances, download PDFs, and pay one or many invoices</p>
+        <p class="text-gray-600 text-lg">Track balances, download PDFs, and pay invoices through QuickBooks</p>
       </div>
 
       <div v-if="invoices.length > 0" class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
@@ -77,7 +77,7 @@
         </div>
         <div class="flex gap-2">
           <button @click="combineSelectedInvoices" class="px-4 py-2 rounded-lg font-semibold border border-[#2F5597] text-[#2F5597] hover:bg-[#edf3fb] transition duration-200">
-            Combine Selected
+            Combine for QuickBooks
           </button>
           <button @click="selectAllUnpaid" class="px-4 py-2 rounded-lg font-semibold border border-[#2563eb] text-[#2563eb] hover:bg-[#eff6ff] transition duration-200">
             Select All Unpaid
@@ -86,7 +86,7 @@
             Download PDFs
           </button>
           <button @click="paySelectedInvoices" :disabled="bulkPaying" class="px-4 py-2 rounded-lg text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition duration-200" style="background-color: #2F5597;" @mouseenter="$event.target.style.backgroundColor='#1f4788'" @mouseleave="$event.target.style.backgroundColor='#2F5597'">
-            {{ bulkPaying ? 'Starting Checkout...' : 'Pay Selected (Combined)' }}
+            {{ bulkPaying ? 'Opening QuickBooks...' : 'Pay Selected in QuickBooks' }}
           </button>
           <button @click="clearSelection" class="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 transition duration-200">
             Clear
@@ -194,6 +194,9 @@
                     {{ invoice.invoice_number }}
                   </button>
                   <p v-if="invoice.order_number" class="text-xs text-gray-500 mt-1">Order: {{ invoice.order_number }}</p>
+                  <p v-if="getInvoiceItemPreview(invoice)" class="text-xs text-gray-500 mt-1">
+                    {{ getInvoiceItemPreview(invoice) }}
+                  </p>
                 </td>
                 <td class="px-5 py-4 align-top">
                   <span :class="getStatusBadge(invoice.status)" class="inline-flex px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap">
@@ -229,6 +232,15 @@
                       @mouseleave="$event.target.style.backgroundColor='transparent'"
                     >
                       PDF
+                    </button>
+                    <button
+                      v-if="canPayInvoice(invoice)"
+                      @click="payWithDefaultCard(invoice)"
+                      :disabled="payingInvoiceNumber === invoice.invoice_number || !hasDefaultCard"
+                      class="px-3 py-1.5 text-xs rounded-md text-white font-semibold transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      style="background-color: #2563eb;"
+                    >
+                      {{ payingInvoiceNumber === invoice.invoice_number ? 'Processing...' : 'Pay Default' }}
                     </button>
                     <button
                       v-if="canPayInvoice(invoice)"
@@ -368,8 +380,8 @@
                     <th class="px-3 py-2 text-left font-semibold text-gray-700">Product</th>
                     <th class="px-3 py-2 text-left font-semibold text-gray-700">Part/SKU</th>
                     <th class="px-3 py-2 text-right font-semibold text-gray-700">Qty</th>
-                    <th class="px-3 py-2 text-right font-semibold text-gray-700">Unit</th>
-                    <th class="px-3 py-2 text-right font-semibold text-gray-700">Line Total</th>
+                    <th class="px-3 py-2 text-right font-semibold text-gray-700">Unit (Incl. Tax)</th>
+                    <th class="px-3 py-2 text-right font-semibold text-gray-700">Line Total (Incl. Tax)</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -377,8 +389,8 @@
                     <td class="px-3 py-2 text-gray-900">{{ item.name }}</td>
                     <td class="px-3 py-2 text-gray-600 font-mono">{{ item.partNumber || '-' }}</td>
                     <td class="px-3 py-2 text-right text-gray-800">{{ item.quantity }}</td>
-                    <td class="px-3 py-2 text-right text-gray-800">{{ formatCurrency(item.unitPrice) }}</td>
-                    <td class="px-3 py-2 text-right font-semibold text-gray-900">{{ formatCurrency(item.extendedPrice) }}</td>
+                    <td class="px-3 py-2 text-right text-gray-800">{{ formatCurrency(item.unitPriceWithTax) }}</td>
+                    <td class="px-3 py-2 text-right font-semibold text-gray-900">{{ formatCurrency(item.extendedPriceWithTax) }}</td>
                   </tr>
                 </tbody>
               </table>
@@ -400,7 +412,7 @@
               @mouseenter="$event.target.style.backgroundColor='#1f4788'"
               @mouseleave="$event.target.style.backgroundColor='#2F5597'"
             >
-              Pay Invoice
+              Pay in QuickBooks
             </button>
           </div>
         </div>
@@ -416,6 +428,7 @@ import { useAuthStore } from '../../stores/authStore'
 import { useToastStore } from '../../stores/toastStore'
 import axios from 'axios'
 import Navbar from '../../components/Navbar.vue'
+import { usePricingSettings } from '../../composables/usePricingSettings'
 
 export default {
   components: { Navbar },
@@ -424,6 +437,7 @@ export default {
     const router = useRouter()
     const authStore = useAuthStore()
     const toastStore = useToastStore()
+    const { loadPricingSettings, formatUsdUsingCurrentCurrency } = usePricingSettings()
 
     const invoices = ref([])
     const loading = ref(false)
@@ -441,7 +455,7 @@ export default {
     const bulkPaying = ref(false)
     const pagination = ref({
       current_page: 1,
-      per_page: 100,
+      per_page: 10,
       total: 0,
       from: 0,
       to: 0,
@@ -462,65 +476,28 @@ export default {
     }
 
     const filteredInvoices = computed(() => {
-      const term = (searchQuery.value || '').toLowerCase()
-      const filtered = invoices.value.filter((inv) => {
-        const includeMerged = selectedStatus.value === 'merged'
-        if (!includeMerged && inv.status === 'merged') {
-          return false
-        }
-
-        const statusMatch = !selectedStatus.value || inv.status === selectedStatus.value
-        const searchMatch = !term
-          || String(inv.invoice_number || '').toLowerCase().includes(term)
-          || String(inv.order_number || '').toLowerCase().includes(term)
-
-        return statusMatch && searchMatch
-      })
-
-      const sorted = [...filtered]
-      switch (sortBy.value) {
-        case 'due_desc':
-          sorted.sort((a, b) => new Date(b.due_at || 0) - new Date(a.due_at || 0))
-          break
-        case 'amount_desc':
-          sorted.sort((a, b) => Number(b.total_amount || 0) - Number(a.total_amount || 0))
-          break
-        case 'amount_asc':
-          sorted.sort((a, b) => Number(a.total_amount || 0) - Number(b.total_amount || 0))
-          break
-        case 'issued_desc':
-          sorted.sort((a, b) => new Date(b.issued_at || b.created_at || 0) - new Date(a.issued_at || a.created_at || 0))
-          break
-        case 'due_asc':
-        default:
-          sorted.sort((a, b) => new Date(a.due_at || 0) - new Date(b.due_at || 0))
-          break
+      const includeMerged = selectedStatus.value === 'merged'
+      if (includeMerged) {
+        return invoices.value
       }
 
-      return sorted
+      return invoices.value.filter((inv) => inv.status !== 'merged')
     })
 
     const totalPages = computed(() => {
-      const pages = Math.ceil(filteredInvoices.value.length / pageSize.value)
-      return Math.max(1, pages)
+      return Math.max(1, Number(pagination.value.last_page || 1))
     })
 
     const paginatedInvoices = computed(() => {
-      const safePage = Math.min(currentPage.value, totalPages.value)
-      const start = (safePage - 1) * pageSize.value
-      const end = start + pageSize.value
-      return filteredInvoices.value.slice(start, end)
+      return filteredInvoices.value
     })
 
     const paginationStart = computed(() => {
-      if (filteredInvoices.value.length === 0) return 0
-      return (Math.min(currentPage.value, totalPages.value) - 1) * pageSize.value + 1
+      return Number(pagination.value.from || 0)
     })
 
     const paginationEnd = computed(() => {
-      if (filteredInvoices.value.length === 0) return 0
-      const end = Math.min(currentPage.value, totalPages.value) * pageSize.value
-      return Math.min(end, filteredInvoices.value.length)
+      return Number(pagination.value.to || 0)
     })
 
     const visiblePageNumbers = computed(() => {
@@ -567,28 +544,6 @@ export default {
       }, 0)
     })
 
-    const fetchAllPages = async (endpoint, pageSize = 100) => {
-      let page = 1
-      let lastPage = 1
-      const records = []
-
-      while (page <= lastPage) {
-        const response = await axios.get(`${endpoint}?page=${page}&pageSize=${pageSize}`)
-        if (!response.data?.success) {
-          break
-        }
-
-        const pageItems = response.data.data || []
-        records.push(...pageItems)
-
-        const pageInfo = response.data.pagination || {}
-        lastPage = Number(pageInfo.last_page || 1)
-        page += 1
-      }
-
-      return records
-    }
-
     const fetchInvoices = async () => {
       loading.value = true
       error.value = null
@@ -600,12 +555,31 @@ export default {
           return
         }
 
-        const allInvoices = await fetchAllPages('/api/v1/invoices', 150)
-        invoices.value = Array.isArray(allInvoices) ? allInvoices : []
+        const response = await axios.get('/api/v1/invoices', {
+          params: {
+            page: currentPage.value,
+            pageSize: pageSize.value,
+            status: selectedStatus.value || undefined,
+            search: searchQuery.value || undefined,
+            sort: sortBy.value || undefined,
+          },
+        })
 
-        pagination.value.total = invoices.value.length
-        pagination.value.from = invoices.value.length > 0 ? 1 : 0
-        pagination.value.to = invoices.value.length
+        if (!response.data?.success) {
+          throw new Error(response.data?.message || 'Failed to load invoices')
+        }
+
+        invoices.value = Array.isArray(response.data.data) ? response.data.data : []
+        const pageInfo = response.data.pagination || {}
+        pagination.value = {
+          current_page: Number(pageInfo.current_page || currentPage.value || 1),
+          per_page: Number(pageInfo.per_page || pageSize.value || 10),
+          total: Number(pageInfo.total || 0),
+          from: Number(pageInfo.from || ((pageInfo.total || 0) > 0 ? ((Number(pageInfo.current_page || currentPage.value || 1) - 1) * Number(pageInfo.per_page || pageSize.value || 10)) + 1 : 0)),
+          to: Number(pageInfo.to || Math.min(Number(pageInfo.total || 0), Number(pageInfo.current_page || currentPage.value || 1) * Number(pageInfo.per_page || pageSize.value || 10))),
+          last_page: Number(pageInfo.last_page || 1),
+        }
+        currentPage.value = pagination.value.current_page
 
         selectedInvoices.value = selectedInvoices.value.filter((invoiceNumber) => {
           const found = invoices.value.find(inv => inv.invoice_number === invoiceNumber)
@@ -714,10 +688,46 @@ export default {
       return request
     }
 
+    const resolveInvoiceItemDisplayName = (item, index = 0) => {
+      const productId = String(item?.product_id || item?.productId || item?.id || '').trim()
+      const sku = String(item?.sku || item?.partNumber || item?.mfg_part_number || item?.mfgPartNo || '').trim()
+
+      const directName = item?.partDescription
+        || item?.productName
+        || item?.product_name
+        || item?.name
+        || item?.description
+
+      if (directName && String(directName).trim().length > 0) {
+        return String(directName).trim()
+      }
+
+      if (productId && productNameMap.value[productId]) {
+        return productNameMap.value[productId]
+      }
+
+      if (sku && productNameMap.value[sku]) {
+        return productNameMap.value[sku]
+      }
+
+      if (sku) {
+        return `Unknown Product (${sku})`
+      }
+
+      if (productId) {
+        return `Unknown Product (${productId})`
+      }
+
+      return `Unknown Product ${index + 1}`
+    }
+
     const hydrateInvoiceProductNames = async (invoice) => {
       const rows = Array.isArray(invoice?.items) ? invoice.items : []
       const ids = Array.from(new Set(rows
-        .map((item) => String(item?.product_id || item?.productId || item?.id || '').trim())
+        .flatMap((item) => [
+          String(item?.product_id || item?.productId || item?.id || '').trim(),
+          String(item?.sku || item?.partNumber || item?.mfg_part_number || item?.mfgPartNo || '').trim(),
+        ])
         .filter(Boolean)
       ))
 
@@ -897,13 +907,18 @@ export default {
         return sum + getOutstanding(found)
       }, 0)
 
-      await navigateToPayment({
-        mode: 'bulk',
-        invoiceNumbers: payableNumbers.join(','),
-        amount: totalOutstanding,
-        count: payableNumbers.length,
-        from: '/invoices',
-      })
+      bulkPaying.value = true
+      try {
+        await navigateToPayment({
+          mode: 'bulk',
+          invoiceNumbers: payableNumbers.join(','),
+          amount: totalOutstanding,
+          count: payableNumbers.length,
+          from: '/invoices',
+        })
+      } finally {
+        bulkPaying.value = false
+      }
     }
 
     const formatDate = (dateString) => {
@@ -938,7 +953,7 @@ export default {
     }
 
     const formatCurrency = (amount) => {
-      return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(amount || 0))
+      return formatUsdUsingCurrentCurrency(Number(amount || 0))
     }
 
     const toNumber = (value, fallback = 0) => {
@@ -960,17 +975,14 @@ export default {
 
         return {
           productId,
-          name: item?.partDescription
-            || item?.productName
-            || item?.product_name
-            || item?.name
-            || item?.description
-            || productNameMap.value[productId]
-            || `Item ${idx + 1}`,
+          name: resolveInvoiceItemDisplayName(item, idx),
           partNumber: item?.partNumber || item?.sku || productId || '',
           quantity,
           unitPrice,
           extendedPrice,
+          taxAmount: 0,
+          unitPriceWithTax: unitPrice,
+          extendedPriceWithTax: extendedPrice,
         }
       })
 
@@ -1019,20 +1031,63 @@ export default {
         }
       })
 
-      return Array.from(grouped.values()).map((item) => {
+      const groupedItems = Array.from(grouped.values()).map((item) => {
         const qty = Math.max(1, Number(item.quantity || 1))
         const extended = Number(item.extendedPrice || 0)
         return {
           ...item,
           unitPrice: Number((extended / qty).toFixed(2)),
           extendedPrice: Number(extended.toFixed(2)),
+          taxAmount: 0,
+          unitPriceWithTax: Number((extended / qty).toFixed(2)),
+          extendedPriceWithTax: Number(extended.toFixed(2)),
         }
       })
+
+      const invoiceTax = Math.max(0, toNumber(invoice?.tax_amount, 0))
+      const preTaxSubtotal = groupedItems.reduce((sum, item) => sum + Math.max(0, toNumber(item.extendedPrice, 0)), 0)
+
+      if (invoiceTax > 0 && groupedItems.length > 0) {
+        let runningTax = 0
+
+        groupedItems.forEach((item, idx) => {
+          const qty = Math.max(1, toNumber(item.quantity, 1))
+          const preTaxLine = Math.max(0, toNumber(item.extendedPrice, 0))
+          const isLast = idx === groupedItems.length - 1
+
+          const lineTax = isLast
+            ? Number((invoiceTax - runningTax).toFixed(2))
+            : Number((preTaxSubtotal > 0
+              ? (invoiceTax * preTaxLine) / preTaxSubtotal
+              : invoiceTax / groupedItems.length
+            ).toFixed(2))
+
+          runningTax = Number((runningTax + lineTax).toFixed(2))
+          item.taxAmount = lineTax
+          item.extendedPriceWithTax = Number((preTaxLine + lineTax).toFixed(2))
+          item.unitPriceWithTax = Number((item.extendedPriceWithTax / qty).toFixed(2))
+        })
+      }
+
+      return groupedItems
     }
 
     const getSourceInvoices = (invoice) => {
       const source = invoice?.raw_data?.source_invoice_numbers
       return Array.isArray(source) ? source : []
+    }
+
+    const getInvoiceItemPreview = (invoice) => {
+      const items = getInvoiceItems(invoice)
+      if (!items.length) return ''
+
+      const names = items
+        .map((item) => String(item?.name || '').trim())
+        .filter((name) => name.length > 0)
+
+      if (!names.length) return ''
+      if (names.length <= 2) return names.join(', ')
+      return `${names[0]}, ${names[1]} +${names.length - 2} more`
     }
 
     const calculatePercent = (paid, total) => {
@@ -1042,32 +1097,100 @@ export default {
       return Math.max(0, Math.min(100, percent))
     }
 
+    const parseRouteInvoiceSelection = () => {
+      const raw = route.query?.selectInvoices
+      if (!raw) return []
+
+      const list = Array.isArray(raw) ? raw : [raw]
+      return Array.from(new Set(
+        list
+          .flatMap((value) => String(value || '').split(','))
+          .map((value) => value.trim())
+          .filter(Boolean)
+      ))
+    }
+
+    const clearSelectionQueryParams = async () => {
+      const nextQuery = { ...route.query }
+      delete nextQuery.selectInvoices
+      delete nextQuery.focusInvoice
+      delete nextQuery.from
+
+      await router.replace({ path: route.path, query: nextQuery })
+    }
+
+    const applyRouteInvoiceSelection = async () => {
+      const requested = parseRouteInvoiceSelection()
+      if (!requested.length) return
+
+      const focusInvoice = String(route.query?.focusInvoice || requested[0] || '').trim()
+
+      let available = invoices.value
+      if (focusInvoice && !available.some((inv) => inv.invoice_number === focusInvoice)) {
+        searchQuery.value = focusInvoice
+        selectedStatus.value = ''
+        sortBy.value = 'due_asc'
+        currentPage.value = 1
+        await fetchInvoices()
+        available = invoices.value
+      }
+
+      const selectable = requested.filter((invoiceNumber) => {
+        const found = available.find((inv) => inv.invoice_number === invoiceNumber)
+        return !!found && canPayInvoice(found)
+      })
+
+      if (selectable.length > 0) {
+        selectedInvoices.value = Array.from(new Set([...selectedInvoices.value, ...selectable]))
+      }
+
+      const target = available.find((inv) => inv.invoice_number === focusInvoice)
+      if (target) {
+        selectedInvoice.value = target
+      }
+
+      if (selectable.length > 0) {
+        toastStore.addToast(`Selected ${selectable.length} invoice${selectable.length > 1 ? 's' : ''} for payment`, 'info')
+      } else if (!target) {
+        toastStore.addToast('Selected invoice was not found. Try refreshing invoices.', 'warning')
+      }
+
+      await clearSelectionQueryParams()
+    }
+
     const resetFilters = () => {
       selectedStatus.value = ''
       searchQuery.value = ''
       sortBy.value = 'due_asc'
       currentPage.value = 1
       pageSize.value = 10
+      fetchInvoices()
     }
 
     const goToPage = (page) => {
-      currentPage.value = Math.min(Math.max(1, page), totalPages.value)
+      const nextPage = Math.min(Math.max(1, page), totalPages.value)
+      if (nextPage === currentPage.value) return
+      currentPage.value = nextPage
+      fetchInvoices()
     }
 
     const goToPreviousPage = () => {
       if (currentPage.value > 1) {
         currentPage.value -= 1
+        fetchInvoices()
       }
     }
 
     const goToNextPage = () => {
       if (currentPage.value < totalPages.value) {
         currentPage.value += 1
+        fetchInvoices()
       }
     }
 
-    watch([selectedStatus, searchQuery, sortBy, pageSize], () => {
+    watch(pageSize, () => {
       currentPage.value = 1
+      fetchInvoices()
     })
 
     watch(totalPages, (pages) => {
@@ -1077,16 +1200,20 @@ export default {
     })
 
     onMounted(async () => {
+      await loadPricingSettings()
       await fetchInvoices()
+      await applyRouteInvoiceSelection()
 
-      if (route.query?.stripe === 'success') {
+      const paymentStatus = String(route.query?.quickbooks || route.query?.payment || route.query?.stripe || '').trim()
+
+      if (paymentStatus === 'success') {
         toastStore.addToast('Payment completed successfully.', 'success')
       }
-      if (route.query?.stripe === 'cancel') {
+      if (paymentStatus === 'cancel') {
         toastStore.addToast('Payment was canceled.', 'warning')
       }
 
-      if (route.query?.stripe) {
+      if (paymentStatus) {
         router.replace({ path: route.path, query: {} })
       }
     })
@@ -1137,6 +1264,8 @@ export default {
       getStatusBadge,
       formatCurrency,
       getInvoiceItems,
+      resolveInvoiceItemDisplayName,
+      getInvoiceItemPreview,
       getSourceInvoices,
       calculatePercent,
       resetFilters,

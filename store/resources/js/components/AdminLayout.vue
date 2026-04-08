@@ -113,6 +113,28 @@
           <span>Customers</span>
         </router-link>
 
+        <!-- Support / Chat Escalations -->
+        <div class="mt-4 px-4">
+          <p class="text-xs font-semibold text-[#c5d6ef] uppercase tracking-wider">Support</p>
+        </div>
+        <router-link
+          :to="{ name: 'admin-chat' }"
+          :class="[
+            'flex items-center px-6 py-3 border-l-4 transition',
+            isActive('chat')
+              ? 'bg-[#2f5597] border-white'
+              : 'border-transparent hover:bg-[#2f5597] hover:border-white'
+          ]"
+        >
+          <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-3 3v-3z" />
+          </svg>
+          <span>Chat Escalations</span>
+          <span v-if="escalatedChatCount > 0" class="ml-auto bg-red-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center">
+            {{ escalatedChatCount }}
+          </span>
+        </router-link>
+
         <!-- Reports -->
         <div class="mt-4 px-4">
           <p class="text-xs font-semibold text-[#c5d6ef] uppercase tracking-wider">Analytics</p>
@@ -262,6 +284,7 @@ const stats = ref({
 })
 
 const unreadNotifications = ref(0)
+const escalatedChatCount = ref(0)
 
 const isActive = (section) => {
   return route.path.includes(`/admin/${section}`)
@@ -315,6 +338,17 @@ const fetchStats = async () => {
   }
 }
 
+const fetchEscalatedCount = async () => {
+  try {
+    const res = await api.get('/admin/chats/unread-count')
+    if (res.data?.success) {
+      escalatedChatCount.value = Number(res.data.count || 0)
+    }
+  } catch {
+    // non-critical
+  }
+}
+
 const logout = async () => {
   try {
     await api.post('/auth/logout')
@@ -332,8 +366,10 @@ const logout = async () => {
 onMounted(() => {
   fetchCurrentUser()
   fetchStats()
+  fetchEscalatedCount()
   // Optionally refresh stats every 30 seconds
   setInterval(fetchStats, 30000)
+  setInterval(fetchEscalatedCount, 30000)
 })
 </script>
 

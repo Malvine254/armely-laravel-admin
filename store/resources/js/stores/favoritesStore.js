@@ -11,6 +11,11 @@ export const useFavoritesStore = defineStore('favorites', () => {
     const direct = [
       product?.favoriteImageUrl,
       product?.imageUrl,
+      product?.imageURL,
+      product?.image_url,
+      product?.heroImageUrl,
+      product?.primaryImageUrl,
+      product?.productImage,
       product?.thumbnailUrl,
       product?.image,
       product?.thumbnail,
@@ -29,11 +34,33 @@ export const useFavoritesStore = defineStore('favorites', () => {
         continue
       }
 
-      const url = String(image?.imageUrl || image?.url || image?.thumbnailUrl || '').trim()
+      const url = String(
+        image?.imageUrl
+        || image?.imageURL
+        || image?.image_url
+        || image?.url
+        || image?.source
+        || image?.thumbnailUrl
+        || ''
+      ).trim()
       if (url.length > 0) return url
     }
 
     return ''
+  }
+
+  const normalizeProductForFavorite = (product) => {
+    const imageUrl = resolveImageUrl(product)
+    const existingImages = Array.isArray(product?.productImages) ? [...product.productImages] : []
+    const productImages = existingImages.length > 0
+      ? existingImages
+      : (imageUrl ? [{ imageUrl }] : [])
+
+    return {
+      ...product,
+      favoriteImageUrl: imageUrl,
+      productImages,
+    }
   }
 
   // Load favorites from localStorage on init
@@ -43,10 +70,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
       try {
         const parsed = JSON.parse(saved)
         items.value = Array.isArray(parsed)
-          ? parsed.map((item) => ({
-              ...item,
-              favoriteImageUrl: resolveImageUrl(item),
-            }))
+          ? parsed.map((item) => normalizeProductForFavorite(item))
           : []
       } catch (e) {
         console.error('Failed to load favorites:', e)
@@ -70,8 +94,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
     
     if (!exists) {
       items.value.push({
-        ...product,
-        favoriteImageUrl: resolveImageUrl(product),
+        ...normalizeProductForFavorite(product),
         addedAt: new Date().toISOString()
       })
       saveFavorites()

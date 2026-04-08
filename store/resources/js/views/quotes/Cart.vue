@@ -99,7 +99,7 @@
                   <div class="flex items-center gap-4 mt-4">
                     <div>
                       <p class="text-xs text-gray-600 font-semibold">Unit Price</p>
-                      <p class="text-lg font-bold" style="color: #2F5597;">${{ formatPrice(item.productPrice?.[0]?.rsPrice || 0) }}</p>
+                      <p class="text-lg font-bold" style="color: #2F5597;">{{ formatAdjustedCurrency(getAdjustedUnitUsd(item)) }}</p>
                     </div>
                     <div>
                       <p class="text-xs text-gray-600 font-semibold">Quantity</p>
@@ -111,7 +111,7 @@
                     </div>
                     <div>
                       <p class="text-xs text-gray-600 font-semibold">Line Total</p>
-                      <p class="text-lg font-bold" style="color: #2F5597;">${{ formatPrice((item.productPrice?.[0]?.rsPrice || 0) * item.quantity) }}</p>
+                      <p class="text-lg font-bold" style="color: #2F5597;">{{ formatAdjustedCurrency(getAdjustedUnitUsd(item) * item.quantity) }}</p>
                     </div>
                   </div>
                 </div>
@@ -132,14 +132,14 @@
               </div>
               <div class="flex justify-between">
                 <span class="text-gray-600">Subtotal:</span>
-                <span class="font-semibold text-gray-900">${{ formatPrice(cartStore.cartTotal) }}</span>
+                <span class="font-semibold text-gray-900">{{ formatAdjustedCurrency(quoteSubtotalUsd) }}</span>
               </div>
             </div>
 
             <div class="mb-6">
               <div class="text-lg font-bold text-gray-900 flex justify-between mb-4">
                 <span>Total:</span>
-                <span style="color: #2F5597;">${{ formatPrice(cartStore.cartTotal) }}</span>
+                <span style="color: #2F5597;">{{ formatAdjustedCurrency(quoteSubtotalUsd) }}</span>
               </div>
             </div>
 
@@ -172,13 +172,14 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
 import { useRouter } from 'vue-router'
 import { useCartStore } from '../../stores/cartStore'
 import { useQuotesStore } from '../../stores/quotesStore'
 import { useToastStore } from '../../stores/toastStore'
 import { useAuthStore } from '../../stores/authStore'
+import { usePricingSettings } from '../../composables/usePricingSettings'
 import Navbar from '../../components/Navbar.vue'
 
 const router = useRouter()
@@ -188,6 +189,22 @@ const toastStore = useToastStore()
 const authStore = useAuthStore()
 const failedImageIds = ref([])
 const isSubmittingQuote = ref(false)
+const { loadPricingSettings, getCatalogPriceWithRules, convertFromUsd, formatWithCurrency } = usePricingSettings()
+
+const getAdjustedUnitUsd = (item) => {
+  const base = Number(item?.productPrice?.[0]?.rsPrice || 0)
+  return getCatalogPriceWithRules(base)
+}
+
+const quoteSubtotalUsd = computed(() => {
+  return cartStore.items.reduce((sum, item) => {
+    return sum + (getAdjustedUnitUsd(item) * Number(item.quantity || 0))
+  }, 0)
+})
+
+const formatAdjustedCurrency = (amountUsd) => {
+  return formatWithCurrency(convertFromUsd(amountUsd))
+}
 
 const goBack = () => {
   router.push({ name: 'products' })
@@ -196,6 +213,10 @@ const goBack = () => {
 const formatPrice = (price) => {
   return parseFloat(price || 0).toFixed(2)
 }
+
+onMounted(() => {
+  loadPricingSettings()
+})
 
 const getProductImageUrl = (item) => {
   const firstImage = item?.productImages?.[0]
@@ -265,7 +286,7 @@ const downloadQuote = () => {
 
     cartStore.items.forEach((item) => {
       const quantity = Number(item.quantity || 0)
-      const unitPrice = Number(item.productPrice?.[0]?.rsPrice || 0)
+      const unitPrice = Number(getAdjustedUnitUsd(item) || 0)
       const lineTotal = quantity * unitPrice
 
       rows.push([
@@ -280,7 +301,7 @@ const downloadQuote = () => {
 
     rows.push([])
     rows.push(['Total Items', cartStore.cartCount])
-    rows.push(['Quote Total', formatPrice(cartStore.cartTotal)])
+    rows.push(['Quote Total', formatPrice(quoteSubtotalUsd.value)])
 
     const csvContent = rows
       .map((row) => row.map(escapeCsvValue).join(','))

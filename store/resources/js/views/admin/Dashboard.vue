@@ -116,6 +116,7 @@
             <tr>
               <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Quote ID</th>
               <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Customer</th>
+              <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Company</th>
               <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Amount</th>
               <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Items</th>
               <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Date</th>
@@ -126,11 +127,29 @@
             <tr v-for="quote in pendingQuotes" :key="quote.id" class="hover:bg-gray-50">
               <td class="px-6 py-4 text-sm font-mono text-gray-900">{{ quote.quote_id }}</td>
               <td class="px-6 py-4 text-sm text-gray-900">{{ quote.user?.name || 'Unknown' }}</td>
+              <td class="px-6 py-4 text-sm text-gray-700">{{ quote.user?.company?.name || 'N/A' }}</td>
               <td class="px-6 py-4 text-sm font-semibold text-gray-900">${{ formatCurrency(quote.total_amount) }}</td>
               <td class="px-6 py-4 text-sm text-gray-600">{{ quote.items?.length || 0 }} items</td>
               <td class="px-6 py-4 text-sm text-gray-600">{{ formatDate(quote.created_at) }}</td>
               <td class="px-6 py-4 text-sm">
-                <button class="text-blue-600 hover:text-blue-900 font-semibold">Review</button>
+                <div class="flex items-center gap-2">
+                  <button
+                    @click="approveQuote(quote)"
+                    :disabled="processingQuoteId === quote.id"
+                    class="px-3 py-1.5 rounded-md text-xs font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                    style="background-color:#16a34a;"
+                  >
+                    {{ processingQuoteId === quote.id ? 'Approving...' : 'Approve' }}
+                  </button>
+                  <button
+                    @click="rejectQuote(quote)"
+                    :disabled="processingQuoteId === quote.id"
+                    class="px-3 py-1.5 rounded-md text-xs font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                    style="background-color:#dc2626;"
+                  >
+                    Reject
+                  </button>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -142,6 +161,30 @@
         <div class="px-6 py-4 border-b border-gray-200">
           <h3 class="text-lg font-bold text-gray-900">Recent Orders</h3>
         </div>
+        <div class="px-6 py-4 border-b border-gray-100 bg-gray-50/60">
+          <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+            <div class="rounded-lg bg-white border border-gray-200 px-3 py-2">
+              <p class="text-[11px] uppercase tracking-wide text-gray-500">Pending</p>
+              <p class="text-lg font-bold text-yellow-700">{{ categorizedOrders.pending.length }}</p>
+            </div>
+            <div class="rounded-lg bg-white border border-gray-200 px-3 py-2">
+              <p class="text-[11px] uppercase tracking-wide text-gray-500">Processing</p>
+              <p class="text-lg font-bold text-blue-700">{{ categorizedOrders.processing.length }}</p>
+            </div>
+            <div class="rounded-lg bg-white border border-gray-200 px-3 py-2">
+              <p class="text-[11px] uppercase tracking-wide text-gray-500">Shipped</p>
+              <p class="text-lg font-bold text-purple-700">{{ categorizedOrders.shipped.length }}</p>
+            </div>
+            <div class="rounded-lg bg-white border border-gray-200 px-3 py-2">
+              <p class="text-[11px] uppercase tracking-wide text-gray-500">Delivered</p>
+              <p class="text-lg font-bold text-green-700">{{ categorizedOrders.delivered.length }}</p>
+            </div>
+            <div class="rounded-lg bg-white border border-gray-200 px-3 py-2">
+              <p class="text-[11px] uppercase tracking-wide text-gray-500">Cancelled</p>
+              <p class="text-lg font-bold text-red-700">{{ categorizedOrders.cancelled.length }}</p>
+            </div>
+          </div>
+        </div>
         <div v-if="recentOrders.length === 0" class="px-6 py-9 text-center">
           <p class="text-gray-600">No recent orders</p>
         </div>
@@ -150,7 +193,9 @@
             <tr>
               <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Order Number</th>
               <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Customer</th>
+              <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Primary Item</th>
               <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Amount</th>
+              <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Payment</th>
               <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Status</th>
               <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Date</th>
             </tr>
@@ -159,7 +204,15 @@
             <tr v-for="order in recentOrders" :key="order.id" class="hover:bg-gray-50">
               <td class="px-6 py-4 text-sm font-mono text-gray-900">{{ order.order_number }}</td>
               <td class="px-6 py-4 text-sm text-gray-900">{{ order.user?.name || 'Unknown' }}</td>
+              <td class="px-6 py-4 text-sm text-gray-800 max-w-[320px] truncate" :title="resolvePrimaryItemName(order)">
+                {{ truncateText(resolvePrimaryItemName(order), 58) }}
+              </td>
               <td class="px-6 py-4 text-sm font-semibold text-gray-900">${{ formatCurrency(order.total_amount) }}</td>
+              <td class="px-6 py-4 text-sm">
+                <span :class="paymentBadge(order)" class="px-3 py-1 rounded-full text-xs font-semibold">
+                  {{ normalizePaymentStatus(order) }}
+                </span>
+              </td>
               <td class="px-6 py-4 text-sm">
                 <span :class="getStatusBadge(order.status)" class="px-3 py-1 rounded-full text-xs font-semibold">
                   {{ formatStatus(order.status) }}
@@ -175,15 +228,18 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/authStore'
+import { useToastStore } from '../../stores/toastStore'
 import Navbar from '../../components/Navbar.vue'
 import axios from 'axios'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const toastStore = useToastStore()
 const activeTab = ref('pending-quotes')
+const processingQuoteId = ref(null)
 
 const stats = ref({
   totalQuotes: 0,
@@ -197,6 +253,25 @@ const stats = ref({
 const pendingQuotes = ref([])
 const recentOrders = ref([])
 
+const categorizedOrders = computed(() => {
+  const byStatus = {
+    pending: [],
+    processing: [],
+    shipped: [],
+    delivered: [],
+    cancelled: [],
+  }
+
+  recentOrders.value.forEach((order) => {
+    const key = String(order?.status || '').toLowerCase()
+    if (Object.prototype.hasOwnProperty.call(byStatus, key)) {
+      byStatus[key].push(order)
+    }
+  })
+
+  return byStatus
+})
+
 const formatCurrency = (amount) => {
   return parseFloat(amount || 0).toFixed(2)
 }
@@ -207,6 +282,48 @@ const formatDate = (dateString) => {
 }
 
 const formatStatus = (status) => status.charAt(0).toUpperCase() + status.slice(1)
+
+const truncateText = (value, maxLength = 56) => {
+  const text = String(value || 'Item details unavailable').trim()
+  if (text.length <= maxLength) return text
+  return `${text.slice(0, Math.max(1, maxLength - 1)).trimEnd()}…`
+}
+
+const resolvePrimaryItemName = (order) => {
+  const direct = String(order?.primary_item_name || '').trim()
+  if (direct) return direct
+
+  const items = Array.isArray(order?.items) ? order.items : []
+  if (!items.length) return 'Item details unavailable'
+
+  const first = items[0] || {}
+  const fallback = String(
+    first.product_name
+    || first.productName
+    || first.partDescription
+    || first.description
+    || first.name
+    || first.sku
+    || first.partNumber
+    || 'Item details unavailable'
+  ).trim()
+
+  return fallback || 'Item details unavailable'
+}
+
+const normalizePaymentStatus = (order) => {
+  const status = String(order?.payment_status || '').trim().toLowerCase()
+  if (status === 'completed') return 'Completed'
+  if (status === 'paid') return 'Paid'
+  if (!status) return 'Pending'
+  return status.charAt(0).toUpperCase() + status.slice(1)
+}
+
+const paymentBadge = (order) => {
+  const status = String(order?.payment_status || '').trim().toLowerCase()
+  if (status === 'completed' || status === 'paid') return 'bg-green-100 text-green-800'
+  return 'bg-yellow-100 text-yellow-800'
+}
 
 const getStatusBadge = (status) => {
   const badges = {
@@ -221,42 +338,88 @@ const getStatusBadge = (status) => {
 
 const loadDashboardData = async () => {
   try {
-    // Load pending quotes
-    const quotesRes = await axios.get('/api/v1/quotes?status=draft&pageSize=100')
+    const [statsRes, quotesRes, ordersRes] = await Promise.all([
+      axios.get('/api/v1/admin/dashboard/stats'),
+      axios.get('/api/v1/admin/quotes/pending?pageSize=100'),
+      axios.get('/api/v1/admin/orders?pageSize=25'),
+    ])
+
+    if (statsRes.data?.success) {
+      const data = statsRes.data.data || {}
+      stats.value.totalQuotes = Number(data.total_quotes || 0)
+      stats.value.pendingQuotes = Number(data.pending_quotes || 0)
+      stats.value.totalOrders = Number(data.total_orders || 0)
+      stats.value.processingOrders = Number(data.processing_orders || 0)
+      stats.value.monthlyRevenue = Number(data.monthly_revenue || 0)
+      stats.value.activeCustomers = Number(data.active_customers || 0)
+    }
+
     if (quotesRes.data?.success) {
-      pendingQuotes.value = quotesRes.data.data
-      stats.value.pendingQuotes = quotesRes.data.pagination?.total || 0
+      pendingQuotes.value = Array.isArray(quotesRes.data.data) ? quotesRes.data.data : []
     }
 
-    // Load recent orders
-    const ordersRes = await axios.get('/api/v1/orders?pageSize=10')
     if (ordersRes.data?.success) {
-      recentOrders.value = ordersRes.data.data
-      stats.value.totalOrders = ordersRes.data.pagination?.total || 0
-      stats.value.processingOrders = recentOrders.value.filter(o => o.status === 'processing').length
-      
-      // Calculate revenue
-      stats.value.monthlyRevenue = recentOrders.value.reduce((sum, order) => {
-        const orderDate = new Date(order.created_at)
-        const now = new Date()
-        if (orderDate.getMonth() === now.getMonth() && orderDate.getFullYear() === now.getFullYear()) {
-          return sum + (parseFloat(order.total_amount) || 0)
-        }
-        return sum
-      }, 0)
+      recentOrders.value = Array.isArray(ordersRes.data.data) ? ordersRes.data.data : []
     }
-
-    // Load stats
-    stats.value.totalQuotes = stats.value.pendingQuotes
-    stats.value.activeCustomers = 12 // Placeholder
   } catch (error) {
     console.error('Error loading dashboard:', error)
+    toastStore.addToast(error.response?.data?.message || 'Failed to load admin dashboard data', 'error')
+  }
+}
+
+const approveQuote = async (quote) => {
+  if (!quote?.id) return
+
+  processingQuoteId.value = quote.id
+  try {
+    const response = await axios.post(`/api/v1/admin/quotes/${quote.id}/approve`, {
+      admin_notes: 'Approved via admin dashboard',
+    })
+
+    if (response.data?.success) {
+      toastStore.addToast(`Quote ${quote.quote_id} approved`, 'success')
+      await loadDashboardData()
+      return
+    }
+
+    toastStore.addToast(response.data?.message || 'Failed to approve quote', 'error')
+  } catch (error) {
+    toastStore.addToast(error.response?.data?.message || 'Failed to approve quote', 'error')
+  } finally {
+    processingQuoteId.value = null
+  }
+}
+
+const rejectQuote = async (quote) => {
+  if (!quote?.id) return
+
+  const reason = window.prompt('Enter rejection reason', 'Rejected by admin')
+  if (reason === null) return
+
+  processingQuoteId.value = quote.id
+  try {
+    const response = await axios.post(`/api/v1/admin/quotes/${quote.id}/reject`, {
+      reason: reason || 'Rejected by admin',
+    })
+
+    if (response.data?.success) {
+      toastStore.addToast(`Quote ${quote.quote_id} rejected`, 'success')
+      await loadDashboardData()
+      return
+    }
+
+    toastStore.addToast(response.data?.message || 'Failed to reject quote', 'error')
+  } catch (error) {
+    toastStore.addToast(error.response?.data?.message || 'Failed to reject quote', 'error')
+  } finally {
+    processingQuoteId.value = null
   }
 }
 
 onMounted(() => {
   if (!authStore.isAuthenticated) {
     router.push({ name: 'login' })
+    return
   }
   loadDashboardData()
 })

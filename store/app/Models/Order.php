@@ -36,6 +36,7 @@ class Order extends Model
     protected $casts = [
         'items' => 'array',
         'raw_data' => 'array',
+        'tracking_info' => 'array',
         'ordered_at' => 'datetime',
         'shipped_at' => 'datetime',
         'delivered_at' => 'datetime',

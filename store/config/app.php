@@ -123,4 +123,13 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Commerce Lifecycle Settings
+    |--------------------------------------------------------------------------
+    */
+
+    'quote_expiry_days' => (int) env('QUOTE_EXPIRY_DAYS', 30),
+    'order_payment_expiry_hours' => (int) env('ORDER_PAYMENT_EXPIRY_HOURS', 72),
+
 ];

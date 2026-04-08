@@ -233,23 +233,66 @@
         <!-- Items Table -->
         <div class="section">
             <h3>Invoice Items</h3>
+            @php
+                $invoiceItems = is_array($invoice->items) ? $invoice->items : [];
+                $breakdown = is_array($invoice->raw_data) ? ($invoice->raw_data['invoice_charge_breakdown'] ?? []) : [];
+                $shippingAmount = (float) ($breakdown['shipping_amount'] ?? 0);
+                $targetSubtotal = (float) ($breakdown['subtotal'] ?? max(0, ($invoice->total_amount ?? 0) - ($invoice->tax_amount ?? 0) - $shippingAmount));
+
+                $normalizedItems = array_map(function ($item, $idx) {
+                    $qty = max(1, (int) ($item['quantity'] ?? 1));
+                    $unit = (float) ($item['unit_price'] ?? $item['unitPrice'] ?? $item['price'] ?? 0);
+                    $line = (float) ($item['line_total'] ?? $item['lineTotal'] ?? $item['extendedPrice'] ?? ($unit * $qty));
+
+                    return [
+                        'name' => $item['product_name'] ?? $item['productName'] ?? $item['name'] ?? $item['description'] ?? ('Product ' . ($idx + 1)),
+                        'part_number' => $item['mfg_part_number'] ?? $item['mfgPartNo'] ?? $item['partNumber'] ?? $item['sku'] ?? '',
+                        'quantity' => $qty,
+                        'unit_price' => round($unit, 2),
+                        'line_total' => round($line, 2),
+                    ];
+                }, $invoiceItems, array_keys($invoiceItems));
+
+                $hasPricing = collect($normalizedItems)->contains(function ($row) {
+                    return ((float) ($row['unit_price'] ?? 0)) > 0 || ((float) ($row['line_total'] ?? 0)) > 0;
+                });
+
+                if (!$hasPricing && $targetSubtotal > 0 && count($normalizedItems) > 0) {
+                    $totalQty = array_reduce($normalizedItems, function ($sum, $row) {
+                        return $sum + max(1, (int) ($row['quantity'] ?? 1));
+                    }, 0);
+
+                    if ($totalQty > 0) {
+                        $running = 0.0;
+                        foreach ($normalizedItems as $idx => &$row) {
+                            $qty = max(1, (int) ($row['quantity'] ?? 1));
+                            $isLast = $idx === count($normalizedItems) - 1;
+                            $line = $isLast ? round($targetSubtotal - $running, 2) : round(($targetSubtotal * $qty) / $totalQty, 2);
+                            $row['line_total'] = $line;
+                            $row['unit_price'] = round($line / $qty, 2);
+                            $running = round($running + $line, 2);
+                        }
+                        unset($row);
+                    }
+                }
+            @endphp
             <table>
                 <thead>
                     <tr>
                         <th>Description</th>
                         <th class="text-right">Qty</th>
-                        <th class="text-right">Unit Price</th>
-                        <th class="text-right">Line Total</th>
+                        <th class="text-right">Unit Price (Incl. Tax)</th>
+                        <th class="text-right">Line Total (Incl. Tax)</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @if($invoice->items && is_array($invoice->items))
-                        @foreach($invoice->items as $item)
+                    @if(count($normalizedItems) > 0)
+                        @foreach($normalizedItems as $item)
                             <tr>
-                                <td>{{ $item['product_name'] ?? $item['name'] ?? 'Product' }}</td>
+                                <td>{{ $item['name'] ?? 'Product' }}</td>
                                 <td class="text-right">{{ $item['quantity'] ?? 1 }}</td>
                                 <td class="text-right">${{ number_format($item['unit_price'] ?? 0, 2) }}</td>
-                                <td class="text-right"><strong>${{ number_format($item['line_total'] ?? ($item['unit_price'] * $item['quantity'] ?? 0), 2) }}</strong></td>
+                                <td class="text-right"><strong>${{ number_format($item['line_total'] ?? 0, 2) }}</strong></td>
                             </tr>
                         @endforeach
                     @else
@@ -263,12 +306,37 @@
 
         <!-- Totals -->
         <div class="totals-section">
+            @php
+                $breakdown = is_array($invoice->raw_data) ? ($invoice->raw_data['invoice_charge_breakdown'] ?? []) : [];
+                $baseSubtotal = (float) ($breakdown['base_subtotal'] ?? max(0, ($invoice->total_amount ?? 0) - ($invoice->tax_amount ?? 0)));
+                $profitAmount = (float) ($breakdown['profit_amount'] ?? 0);
+                $profitRate = (float) ($breakdown['profit_rate_percent'] ?? 0);
+                $shippingAmount = (float) ($breakdown['shipping_amount'] ?? 0);
+                $subtotalAmount = (float) ($breakdown['subtotal'] ?? max(0, ($invoice->total_amount ?? 0) - ($invoice->tax_amount ?? 0) - $shippingAmount));
+                $taxRate = (float) ($breakdown['tax_rate_percent'] ?? 0);
+            @endphp
+            @if($profitAmount > 0)
             <div class="total-row">
-                <span>Subtotal:</span>
-                <span>${{ number_format($invoice->total_amount - $invoice->tax_amount, 2) }}</span>
+                <span>Base Subtotal:</span>
+                <span>${{ number_format($baseSubtotal, 2) }}</span>
             </div>
             <div class="total-row">
-                <span>Tax ({{ $invoice->tax_amount > 0 ? round(($invoice->tax_amount / ($invoice->total_amount - $invoice->tax_amount)) * 100) : 0 }}%):</span>
+                <span>Profit ({{ number_format($profitRate, 2) }}%):</span>
+                <span>${{ number_format($profitAmount, 2) }}</span>
+            </div>
+            @endif
+            <div class="total-row">
+                <span>Subtotal:</span>
+                <span>${{ number_format($subtotalAmount, 2) }}</span>
+            </div>
+            @if($shippingAmount > 0)
+            <div class="total-row">
+                <span>Shipping:</span>
+                <span>${{ number_format($shippingAmount, 2) }}</span>
+            </div>
+            @endif
+            <div class="total-row">
+                <span>Tax ({{ number_format($taxRate > 0 ? $taxRate : ($invoice->tax_amount > 0 && $subtotalAmount > 0 ? (($invoice->tax_amount / $subtotalAmount) * 100) : 0), 2) }}%):</span>
                 <span>${{ number_format($invoice->tax_amount, 2) }}</span>
             </div>
             <div class="total-row grand-total">

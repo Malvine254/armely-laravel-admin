@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\QuickBooksPaymentController;
 use App\Http\Controllers\QuoteOrderInvoiceController;
 use App\Http\Controllers\ActivityController;
 use App\Http\Controllers\MessageController;
@@ -51,7 +52,8 @@ Route::prefix('v1')->group(function () {
     Route::get('/auth/activate', [AuthController::class, 'activateAccount']);
     Route::post('/auth/resend-activation', [AuthController::class, 'resendActivation']);
     Route::get('/auth/me', [AuthController::class, 'me'])->middleware(['auth:sanctum', 'active.user']);
-    Route::put('/auth/update-profile', [AuthController::class, 'updateProfile'])->middleware(['auth:sanctum', 'active.user']);
+    Route::match(['put', 'post'], '/auth/update-profile', [AuthController::class, 'updateProfile'])->middleware(['auth:sanctum', 'active.user']);
+    Route::delete('/auth/account', [AuthController::class, 'deleteAccount'])->middleware(['auth:sanctum', 'active.user']);
     Route::put('/auth/change-password', [AuthController::class, 'changePassword'])->middleware(['auth:sanctum', 'active.user']);
 
     // Products endpoints
@@ -62,6 +64,7 @@ Route::prefix('v1')->group(function () {
     
     // Vendors endpoints
     Route::get('/vendors', [ProductController::class, 'vendors']);
+    Route::get('/pricing/settings', [QuoteOrderInvoiceController::class, 'getPricingSettings']);
 
     // Reviews endpoints (public read, auth write)
     Route::get('/products/{productId}/reviews', [ReviewController::class, 'index']);
@@ -83,6 +86,7 @@ Route::prefix('v1')->group(function () {
     // Orders endpoints (protected)
     Route::middleware(['auth:sanctum', 'active.user'])->group(function () {
         Route::get('/orders', [QuoteOrderInvoiceController::class, 'getOrders']);
+        Route::get('/orders/shipping/live', [QuoteOrderInvoiceController::class, 'getLiveShipping']);
         Route::get('/orders/{orderNumber}', [QuoteOrderInvoiceController::class, 'getOrder']);
         Route::post('/orders/{orderNumber}/cancel', [QuoteOrderInvoiceController::class, 'cancelOrder']);
     });
@@ -93,8 +97,20 @@ Route::prefix('v1')->group(function () {
         Route::get('/invoices/{invoiceNumber}', [QuoteOrderInvoiceController::class, 'getInvoice']);
         Route::get('/invoices/{invoiceNumber}/pdf', [QuoteOrderInvoiceController::class, 'downloadInvoicePdf']);
         Route::post('/invoices/combine', [QuoteOrderInvoiceController::class, 'combineInvoices']);
-        Route::post('/invoices/{invoiceNumber}/pay', [StripeController::class, 'createInvoiceCheckoutSession']);
-        Route::post('/invoices/pay-multiple', [StripeController::class, 'createBulkInvoiceCheckoutSession']);
+        Route::post('/invoices/{invoiceNumber}/pay', [QuickBooksPaymentController::class, 'createInvoiceCheckoutSession']);
+        Route::post('/invoices/{invoiceNumber}/pay-default', [QuickBooksPaymentController::class, 'payInvoiceWithDefaultCard']);
+        Route::post('/invoices/pay-multiple', [QuickBooksPaymentController::class, 'createBulkInvoiceCheckoutSession']);
+        Route::post('/invoices/pay-multiple-default', [QuickBooksPaymentController::class, 'payBulkInvoicesWithDefaultCard']);
+    });
+
+    // Saved payment methods (protected)
+    Route::middleware(['auth:sanctum', 'active.user'])->group(function () {
+        Route::get('/payment-methods', [QuickBooksPaymentController::class, 'listSavedPaymentMethods']);
+        Route::post('/payment-methods/consent', [QuickBooksPaymentController::class, 'updatePaymentMethodConsent']);
+        Route::post('/payment-methods/setup-intent', [QuickBooksPaymentController::class, 'createSetupIntent']);
+        Route::post('/payment-methods/attach', [QuickBooksPaymentController::class, 'attachPaymentMethod']);
+        Route::put('/payment-methods/default', [QuickBooksPaymentController::class, 'updateDefaultPaymentMethod']);
+        Route::delete('/payment-methods/{paymentMethodId}', [QuickBooksPaymentController::class, 'removePaymentMethod']);
     });
 
     // Activities endpoints (protected)
@@ -106,6 +122,11 @@ Route::prefix('v1')->group(function () {
     // Messages endpoints (protected)
     Route::middleware(['auth:sanctum', 'active.user'])->group(function () {
         Route::get('/messages', [MessageController::class, 'getMessages']);
+        Route::get('/messages/chats', [MessageController::class, 'getChatSessions']);
+        Route::post('/messages/chats', [MessageController::class, 'createChatSession']);
+        Route::get('/messages/chats/{chatSessionId}', [MessageController::class, 'getChatSessionMessages']);
+        Route::post('/messages/chats/{chatSessionId}/escalate', [MessageController::class, 'escalateChatSession']);
+        Route::post('/messages/assistant/chat', [MessageController::class, 'assistantChat']);
         Route::get('/messages/unread-count', [MessageController::class, 'getUnreadCount']);
         Route::post('/messages/{id}/read', [MessageController::class, 'markAsRead']);
         Route::post('/messages/mark-all-read', [MessageController::class, 'markAllAsRead']);
@@ -130,6 +151,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/admin/quotes/approved', [AdminController::class, 'getApprovedQuotes']);
         Route::get('/admin/quotes/rejected', [AdminController::class, 'getRejectedQuotes']);
         Route::get('/admin/quotes', [AdminController::class, 'getQuotes']);
+        Route::get('/admin/quotes/{quoteId}', [AdminController::class, 'getQuoteDetails']);
         Route::post('/admin/quotes/{quoteId}/approve', [AdminController::class, 'approveQuote']);
         Route::post('/admin/quotes/{quoteId}/reject', [AdminController::class, 'rejectQuote']);
         Route::post('/admin/quotes/bulk-delete', [AdminController::class, 'bulkDeleteQuotes']);
@@ -158,9 +180,19 @@ Route::prefix('v1')->group(function () {
         Route::post('/admin/users/{userId}/activate', [AdminController::class, 'activateAdminUser']);
         Route::delete('/admin/users/{userId}', [AdminController::class, 'deleteAdminUser']);
 
+        // Admin Chat (escalated sessions inbox)
+        Route::get('/admin/chats', [MessageController::class, 'adminGetEscalatedChats']);
+        Route::get('/admin/chats/unread-count', [MessageController::class, 'adminGetEscalatedCount']);
+        Route::get('/admin/chats/{chatSessionId}', [MessageController::class, 'adminGetChatSession']);
+        Route::post('/admin/chats/{chatSessionId}/reply', [MessageController::class, 'adminReplyToChat']);
+        Route::post('/admin/chats/{chatSessionId}/resolve', [MessageController::class, 'adminResolveChat']);
+
         // Invoice Management
         Route::get('/admin/invoices/stats', [AdminController::class, 'getInvoiceStats']);
         Route::get('/admin/invoices', [AdminController::class, 'getInvoices']);
+        Route::post('/admin/invoices/bulk-delete', [AdminController::class, 'bulkDeleteInvoices']);
+        Route::post('/admin/invoices/bulk-mark-paid', [AdminController::class, 'bulkMarkInvoicesPaid']);
+        Route::post('/admin/invoices/bulk-cancel', [AdminController::class, 'bulkCancelInvoices']);
         Route::get('/admin/invoices/{status}', [AdminController::class, 'getInvoicesByStatus']);
         Route::post('/admin/invoices/{invoiceId}/mark-paid', [AdminController::class, 'markInvoiceAsPaid']);
         Route::post('/admin/invoices/{invoiceId}/send-reminder', [AdminController::class, 'sendInvoiceReminder']);

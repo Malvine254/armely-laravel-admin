@@ -17,6 +17,15 @@ return Application::configure(basePath: dirname(__DIR__))
             'active.user' => \App\Http\Middleware\EnsureUserIsActive::class,
         ]);
 
+        // API routes are token-based and should never redirect to a web login route.
+        $middleware->redirectGuestsTo(function ($request) {
+            if ($request->is('api/*') || $request->expectsJson()) {
+                return null;
+            }
+
+            return '/login';
+        });
+
         // Allow admin routes to bypass maintenance mode
         $middleware->preventRequestsDuringMaintenance(except: [
             'api/v1/auth/login',

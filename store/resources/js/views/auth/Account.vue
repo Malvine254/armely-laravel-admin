@@ -102,7 +102,32 @@
             <button @click="showSignOutModal = true" class="w-full px-4 py-3 border border-red-300 text-red-600 font-semibold rounded-lg transition hover:bg-red-50">
               Sign Out
             </button>
+            <button @click="handleDeleteAccount" class="w-full px-4 py-3 bg-red-600 text-white font-semibold rounded-lg transition hover:bg-red-700">
+              Delete Account
+            </button>
           </div>
+        </div>
+      </div>
+
+      <!-- QuickBooks Payments -->
+      <div class="bg-white rounded-lg shadow-lg p-6 mt-8">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+          <div>
+            <h3 class="text-lg font-bold text-gray-900">QuickBooks Payments</h3>
+            <p class="text-sm text-gray-600">Invoice payments now open in QuickBooks hosted checkout instead of using saved cards in Armely.</p>
+          </div>
+          <button
+            @click="router.push({ name: 'invoices' })"
+            :disabled="isRestricted"
+            class="px-4 py-2 bg-[#2F5597] text-white rounded-lg font-semibold hover:bg-[#1f4788] transition disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            View Invoices
+          </button>
+        </div>
+
+        <div class="rounded-lg border border-[#d9e6f7] bg-[#f7fbff] p-4 text-sm text-gray-700 space-y-2">
+          <p>Pay invoice actions now redirect you to QuickBooks, where card and bank payment methods are managed securely.</p>
+          <p>If you need to pay multiple balances together, combine the invoices first and then open the combined invoice in QuickBooks.</p>
         </div>
       </div>
 
@@ -142,10 +167,14 @@
             </button>
           </div>
           <form @submit.prevent="submitEditProfile" class="space-y-5">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Name</label>
                 <input v-model="editForm.name" type="text" required placeholder="Enter your full name" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Company Name</label>
+                <input v-model="editForm.company_name" type="text" required placeholder="Enter your company name" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
@@ -335,6 +364,41 @@
       </div>
     </div>
 
+    <!-- Delete Account Modal -->
+    <div v-if="showDeleteAccountModal" class="fixed inset-0 bg-gray-400/30 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
+      <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+        <div class="p-6">
+          <div class="flex flex-col items-center text-center gap-2 mb-4">
+            <div class="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center">
+              <svg class="w-7 h-7 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+              </svg>
+            </div>
+            <h3 class="text-lg font-bold text-gray-900">Delete Account Permanently</h3>
+            <p class="text-sm text-gray-500">This action <strong>cannot be undone</strong>. All your quotes, orders, and data will be permanently removed.</p>
+          </div>
+          <form @submit.prevent="submitDeleteAccount" class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Confirm your password</label>
+              <input v-model="deleteForm.password" type="password" required placeholder="Enter your current password" class="w-full px-3 py-2 border border-red-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-400">
+            </div>
+            <label class="flex items-start gap-3 cursor-pointer">
+              <input v-model="deleteForm.confirmed" type="checkbox" class="mt-1 w-4 h-4 rounded border-gray-300 text-red-600 focus:ring-red-400">
+              <span class="text-sm text-gray-700">I understand this will permanently delete my account and all associated data.</span>
+            </label>
+            <div class="flex gap-3 pt-2">
+              <button type="submit" :disabled="deleteAccountLoading || !deleteForm.confirmed || !deleteForm.password" class="flex-1 px-4 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition disabled:opacity-40 disabled:cursor-not-allowed">
+                {{ deleteAccountLoading ? 'Deleting...' : 'Permanently Delete' }}
+              </button>
+              <button type="button" @click="showDeleteAccountModal = false" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition">
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
     <!-- Sign Out Confirmation Modal -->
     <div v-if="showSignOutModal" class="fixed inset-0 bg-gray-400/20 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
       <div class="bg-white rounded-lg shadow-xl max-w-sm w-full p-6">
@@ -387,15 +451,24 @@ const showEditProfileModal = ref(false)
 const showChangePasswordModal = ref(false)
 const showNotificationsModal = ref(false)
 const showSignOutModal = ref(false)
+const showDeleteAccountModal = ref(false)
+const showAddCardModal = ref(false)
 
 // Form states
 const editFormLoading = ref(false)
 const passwordFormLoading = ref(false)
+const deleteAccountLoading = ref(false)
+
+const deleteForm = ref({
+  password: '',
+  confirmed: false
+})
 
 const editForm = ref({
   name: '',
   email: '',
   phone: '',
+  company_name: '',
   shipping: {
     label: '',
     contact_name: '',
@@ -427,8 +500,41 @@ const profilePictureInput = ref(null)
 const editProfilePictureInput = ref(null)
 const profilePicturePreview = ref(null)
 const profilePictureFile = ref(null)
-const incompleteFields = ref([])
+const incompleteFields = computed(() => authStore.user?.incomplete_fields || [])
 const showCompleteProfileModal = ref(false)
+const paymentMethodsLoading = ref(false)
+const consentLoading = ref(false)
+const paymentConsent = ref(false)
+const savedCards = ref([])
+const settingDefaultCardId = ref('')
+const removingCardId = ref('')
+const savingCard = ref(false)
+const cardSetupError = ref('')
+const stripeReady = ref(false)
+const stripePublishableKey = ref('')
+const setupClientSecret = ref('')
+const cardElementFocused = ref(false)
+const cardElementComplete = ref(false)
+
+let stripe = null
+let stripeElements = null
+let cardElement = null
+
+const stripeCardElementClass = computed(() => {
+  if (cardSetupError.value) {
+    return 'border border-red-300 ring-2 ring-red-100'
+  }
+
+  if (cardElementFocused.value) {
+    return 'border border-blue-400 ring-4 ring-blue-100 shadow-sm'
+  }
+
+  if (cardElementComplete.value) {
+    return 'border border-emerald-400 ring-2 ring-emerald-100'
+  }
+
+  return 'border border-gray-300 hover:border-gray-400'
+})
 
 const getNotificationStorageKey = () => {
   const userId = authStore.user?.id
@@ -545,7 +651,7 @@ const submitProfilePictureUpload = async () => {
     const token = localStorage.getItem('auth_token')
     console.log('Uploading profile picture...')
     const response = await fetch(`${API_BASE_URL}/auth/update-profile`, {
-      method: 'PUT',
+      method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
         'Accept': 'application/json'
@@ -554,7 +660,6 @@ const submitProfilePictureUpload = async () => {
     })
 
     const data = await response.json()
-    console.log('Upload response:', data)
 
     if (!response.ok) {
       throw new Error(data.message || `Failed to upload profile picture (${response.status})`)
@@ -616,9 +721,11 @@ const handleEditProfile = () => {
   }
 
   const shipping = authStore.user?.shipping_address || {}
+  const company = authStore.user?.company
   editForm.value.name = authStore.user?.name || ''
   editForm.value.email = authStore.user?.email || ''
   editForm.value.phone = authStore.user?.phone || ''
+  editForm.value.company_name = typeof company === 'object' ? (company?.name || '') : ''
   editForm.value.shipping = {
     label: shipping.label || 'Default Shipping',
     contact_name: shipping.contact_name || authStore.user?.name || '',
@@ -643,6 +750,7 @@ const submitEditProfile = async () => {
     formData.append('name', editForm.value.name)
     formData.append('email', editForm.value.email)
     formData.append('phone', editForm.value.phone)
+    formData.append('company_name', editForm.value.company_name)
     
     // Add shipping address as JSON string
     const shippingAddress = {
@@ -668,7 +776,7 @@ const submitEditProfile = async () => {
     }
     
     const response = await fetch(`${API_BASE_URL}/auth/update-profile`, {
-      method: 'PUT',
+      method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
         'Accept': 'application/json'
@@ -684,10 +792,8 @@ const submitEditProfile = async () => {
 
     // Update auth store
     if (data.user) {
-      authStore.user = data.user
-      localStorage.setItem('armely_user', JSON.stringify(data.user))
-      // Update incomplete fields
-      incompleteFields.value = data.incomplete_fields || []
+      authStore.user = { ...data.user, incomplete_fields: data.incomplete_fields || [] }
+      localStorage.setItem('armely_user', JSON.stringify(authStore.user))
     }
 
     toastStore.addToast('Profile updated successfully!', 'success')
@@ -795,6 +901,286 @@ const saveNotificationSettings = () => {
   showNotificationsModal.value = false
 }
 
+const fetchSavedPaymentMethods = async () => {
+  paymentMethodsLoading.value = true
+  try {
+    const token = localStorage.getItem('auth_token')
+    const response = await fetch(`${API_BASE_URL}/payment-methods`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/json'
+      }
+    })
+
+    const data = await response.json()
+    if (!response.ok || !data.success) {
+      throw new Error(data.message || 'Failed to load payment methods')
+    }
+
+    paymentConsent.value = !!data.data?.consent
+    stripePublishableKey.value = data.data?.publishable_key || ''
+    savedCards.value = Array.isArray(data.data?.cards) ? data.data.cards : []
+
+    if (authStore.user) {
+      authStore.user = {
+        ...authStore.user,
+        payment_methods_consent: paymentConsent.value
+      }
+    }
+  } catch (error) {
+    console.error('Failed to fetch payment methods:', error)
+    toastStore.addToast(error.message || 'Failed to load payment methods', 'error')
+  } finally {
+    paymentMethodsLoading.value = false
+  }
+}
+
+const savePaymentConsent = async () => {
+  consentLoading.value = true
+  try {
+    const token = localStorage.getItem('auth_token')
+    const response = await fetch(`${API_BASE_URL}/payment-methods/consent`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        Accept: 'application/json'
+      },
+      body: JSON.stringify({ consent: paymentConsent.value })
+    })
+
+    const data = await response.json()
+    if (!response.ok || !data.success) {
+      throw new Error(data.message || 'Failed to update payment consent')
+    }
+
+    if (authStore.user) {
+      authStore.user = {
+        ...authStore.user,
+        payment_methods_consent: paymentConsent.value
+      }
+    }
+
+    toastStore.addToast('Payment consent updated.', 'success')
+  } catch (error) {
+    paymentConsent.value = !paymentConsent.value
+    console.error('Failed to save payment consent:', error)
+    toastStore.addToast(error.message || 'Failed to update payment consent', 'error')
+  } finally {
+    consentLoading.value = false
+  }
+}
+
+const destroyStripeElements = () => {
+  if (cardElement) {
+    cardElement.unmount()
+    cardElement = null
+  }
+  stripeElements = null
+  setupClientSecret.value = ''
+  stripeReady.value = false
+  cardElementFocused.value = false
+  cardElementComplete.value = false
+}
+
+const openAddCardModal = async () => {
+  if (!paymentConsent.value) {
+    toastStore.addToast('Please provide consent before saving card details.', 'warning')
+    return
+  }
+
+  showAddCardModal.value = true
+  cardSetupError.value = ''
+  await initializeStripeCardSetup()
+}
+
+const initializeStripeCardSetup = async () => {
+  try {
+    const token = localStorage.getItem('auth_token')
+    const response = await fetch(`${API_BASE_URL}/payment-methods/setup-intent`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        Accept: 'application/json'
+      },
+      body: JSON.stringify({ consent: true })
+    })
+
+    const data = await response.json()
+    if (!response.ok || !data.success) {
+      throw new Error(data.message || 'Failed to initialize card setup')
+    }
+
+    stripePublishableKey.value = data.data?.publishable_key || stripePublishableKey.value
+    setupClientSecret.value = data.data?.client_secret || ''
+
+    if (!stripePublishableKey.value) {
+      throw new Error('Stripe publishable key is missing. Set STRIPE_KEY in env.')
+    }
+
+    stripe = await loadStripe(stripePublishableKey.value)
+    stripeElements = stripe.elements()
+
+    await nextTick()
+    destroyStripeElements()
+    stripeElements = stripe.elements()
+    cardElement = stripeElements.create('card', {
+      style: {
+        base: {
+          fontSize: '15px',
+          color: '#0f172a',
+          fontFamily: 'Segoe UI, system-ui, -apple-system, sans-serif',
+          '::placeholder': {
+            color: '#94a3b8'
+          }
+        },
+        invalid: {
+          color: '#b91c1c',
+          iconColor: '#b91c1c'
+        }
+      }
+    })
+    cardElement.on('focus', () => {
+      cardElementFocused.value = true
+    })
+    cardElement.on('blur', () => {
+      cardElementFocused.value = false
+    })
+    cardElement.on('change', (event) => {
+      cardElementComplete.value = !!event.complete
+      if (event.error?.message) {
+        cardSetupError.value = event.error.message
+      } else if (cardSetupError.value && stripeReady.value) {
+        cardSetupError.value = ''
+      }
+    })
+    cardElement.mount('#stripe-card-element')
+    stripeReady.value = true
+  } catch (error) {
+    cardSetupError.value = error.message || 'Unable to initialize card setup.'
+    stripeReady.value = false
+  }
+}
+
+const closeAddCardModal = () => {
+  showAddCardModal.value = false
+  cardSetupError.value = ''
+  destroyStripeElements()
+}
+
+const saveCard = async () => {
+  if (!stripe || !cardElement || !setupClientSecret.value) {
+    cardSetupError.value = 'Card form is not ready yet.'
+    return
+  }
+
+  savingCard.value = true
+  cardSetupError.value = ''
+  try {
+    const { setupIntent, error } = await stripe.confirmCardSetup(setupClientSecret.value, {
+      payment_method: {
+        card: cardElement,
+        billing_details: {
+          name: userName.value,
+          email: userEmail.value,
+        },
+      },
+    })
+
+    if (error) {
+      throw new Error(error.message || 'Failed to confirm card setup')
+    }
+
+    const paymentMethodId = setupIntent?.payment_method
+    if (!paymentMethodId) {
+      throw new Error('Stripe did not return a payment method.')
+    }
+
+    const token = localStorage.getItem('auth_token')
+    const attachResponse = await fetch(`${API_BASE_URL}/payment-methods/attach`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        Accept: 'application/json'
+      },
+      body: JSON.stringify({
+        payment_method_id: paymentMethodId,
+        set_default: savedCards.value.length === 0,
+        consent: true
+      })
+    })
+
+    const attachData = await attachResponse.json()
+    if (!attachResponse.ok || !attachData.success) {
+      throw new Error(attachData.message || 'Failed to save card')
+    }
+
+    savedCards.value = Array.isArray(attachData.data?.cards) ? attachData.data.cards : []
+    toastStore.addToast('Card saved securely.', 'success')
+    closeAddCardModal()
+  } catch (error) {
+    cardSetupError.value = error.message || 'Failed to save card.'
+  } finally {
+    savingCard.value = false
+  }
+}
+
+const setDefaultCard = async (paymentMethodId) => {
+  settingDefaultCardId.value = paymentMethodId
+  try {
+    const token = localStorage.getItem('auth_token')
+    const response = await fetch(`${API_BASE_URL}/payment-methods/default`, {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        Accept: 'application/json'
+      },
+      body: JSON.stringify({ payment_method_id: paymentMethodId })
+    })
+
+    const data = await response.json()
+    if (!response.ok || !data.success) {
+      throw new Error(data.message || 'Failed to set default card')
+    }
+
+    savedCards.value = Array.isArray(data.data?.cards) ? data.data.cards : []
+    toastStore.addToast('Default payment method updated.', 'success')
+  } catch (error) {
+    toastStore.addToast(error.message || 'Failed to set default card', 'error')
+  } finally {
+    settingDefaultCardId.value = ''
+  }
+}
+
+const removeCard = async (paymentMethodId) => {
+  removingCardId.value = paymentMethodId
+  try {
+    const token = localStorage.getItem('auth_token')
+    const response = await fetch(`${API_BASE_URL}/payment-methods/${paymentMethodId}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/json'
+      }
+    })
+
+    const data = await response.json()
+    if (!response.ok || !data.success) {
+      throw new Error(data.message || 'Failed to remove card')
+    }
+
+    savedCards.value = Array.isArray(data.data?.cards) ? data.data.cards : []
+    toastStore.addToast('Card removed.', 'info')
+  } catch (error) {
+    toastStore.addToast(error.message || 'Failed to remove card', 'error')
+  } finally {
+    removingCardId.value = ''
+  }
+}
+
 const logActivity = async (type, action, description) => {
   try {
     const token = localStorage.getItem('auth_token')
@@ -812,6 +1198,43 @@ const logActivity = async (type, action, description) => {
   }
 }
 
+const handleDeleteAccount = () => {
+  deleteForm.value = { password: '', confirmed: false }
+  showDeleteAccountModal.value = true
+}
+
+const submitDeleteAccount = async () => {
+  deleteAccountLoading.value = true
+  try {
+    const token = localStorage.getItem('auth_token')
+    const response = await fetch(`${API_BASE_URL}/auth/account`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({ password: deleteForm.value.password })
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to delete account')
+    }
+
+    toastStore.addToast('Your account has been permanently deleted.', 'info')
+    showDeleteAccountModal.value = false
+    authStore.logout()
+    router.push({ name: 'login' })
+  } catch (error) {
+    console.error('Error deleting account:', error)
+    toastStore.addToast(error.message || 'Failed to delete account', 'error')
+  } finally {
+    deleteAccountLoading.value = false
+  }
+}
+
 const handleSignOut = () => {
   authStore.logout()
   toastStore.addToast('Signed out successfully', 'info')
@@ -824,11 +1247,6 @@ onMounted(() => {
     toastStore.addToast('Please log in to access your account', 'error')
     router.push({ name: 'login' })
     return
-  }
-  
-  // Load incomplete fields from auth store
-  if (authStore.user?.incomplete_fields) {
-    incompleteFields.value = authStore.user.incomplete_fields
   }
   
   fetchActivities()

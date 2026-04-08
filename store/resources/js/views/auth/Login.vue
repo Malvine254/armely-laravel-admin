@@ -33,7 +33,7 @@
             <router-link to="/forgot-password" class="text-sm font-medium" style="color: #2F5597;">Forgot password?</router-link>
           </div>
 
-          <button type="submit" :disabled="loading" class="w-full px-6 py-3 text-white font-semibold rounded-lg transition transform hover:scale-105 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2" style="background: linear-gradient(90deg, #2F5597, #1f4788);">
+          <button type="submit" :disabled="loading || !isFormValid" class="w-full px-6 py-3 text-white font-semibold rounded-lg transition transform hover:scale-105 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2" style="background: linear-gradient(90deg, #2F5597, #1f4788);">
             <svg v-if="loading" class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
@@ -67,7 +67,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/authStore'
 import { useCartStore } from '../../stores/cartStore'
@@ -85,6 +85,12 @@ const rememberMe = ref(false)
 const showResendActivation = ref(false)
 const loading = ref(false)
 
+const isFormValid = computed(() => {
+  const emailValue = email.value.trim()
+  const passwordValue = password.value
+  return emailValue.includes('@') && passwordValue.length >= 8
+})
+
 const resolvePostLoginRoute = () => {
   const redirectFromQuery = route.query.redirect ? String(route.query.redirect) : ''
   const redirectFromStorage = localStorage.getItem('redirectAfterLogin') || ''
@@ -94,8 +100,12 @@ const resolvePostLoginRoute = () => {
     localStorage.removeItem('redirectAfterLogin')
   }
 
-  if (authStore.isAdmin) {
-    // Force admin users to admin area unless an explicit admin route was requested.
+  // Route to admin only when the redirect target explicitly asks for an admin page.
+  if (redirectTarget.startsWith('/admin')) {
+    if (!authStore.isAdmin) {
+      return { name: 'products' }
+    }
+
     if (redirectTarget === '/admin' || redirectTarget === '/admin/') return { name: 'admin-dashboard' }
     if (redirectTarget === '/admin/dashboard' || redirectTarget.startsWith('/admin/dashboard?')) return { name: 'admin-dashboard-page' }
     if (redirectTarget.startsWith('/admin/quotes')) return { name: 'admin-quotes' }
@@ -107,8 +117,7 @@ const resolvePostLoginRoute = () => {
     return { name: 'admin-dashboard-page' }
   }
 
-  // Prevent non-admin users from being routed into admin-only pages.
-  if (redirectTarget && !redirectTarget.startsWith('/admin')) return redirectTarget
+  if (redirectTarget) return redirectTarget
   return { name: 'products' }
 }
 

@@ -179,8 +179,7 @@
                 </th>
                 <th class="px-5 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Quote Hierarchy</th>
                 <th class="px-5 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Status</th>
-                <th class="px-5 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Created</th>
-                <th class="px-5 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Expires</th>
+                <th class="px-5 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Created / Expires</th>
                 <th class="px-5 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Amount</th>
                 <th class="px-5 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Progress</th>
                 <th class="px-5 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Actions</th>
@@ -243,8 +242,10 @@
                     {{ formatStatus(quote.status) }}
                   </span>
                 </td>
-                <td class="px-5 py-4 text-sm text-gray-700 align-top">{{ formatDate(quote.created_at) }}</td>
-                <td class="px-5 py-4 text-sm text-gray-700 align-top">{{ quote.expires_at ? formatDate(quote.expires_at) : 'N/A' }}</td>
+                <td class="px-5 py-4 text-sm text-gray-700 align-top">
+                  <p class="font-medium text-gray-900">{{ formatDate(quote.created_at) }}</p>
+                  <p class="text-xs text-gray-500 mt-1">Expires: {{ getQuoteExpiryDisplay(quote) }}</p>
+                </td>
                 <td class="px-5 py-4 align-top">
                   <p class="text-sm font-bold text-gray-900">{{ formatCurrency(quote.total_amount) }}</p>
                   <p v-if="getLinkedOrder(quote)" class="text-xs text-gray-500 mt-1">Order: {{ getLinkedOrder(quote).order_number }}</p>
@@ -270,14 +271,14 @@
                       PDF
                     </button>
                     <button
-                      v-if="canPayQuote(quote)"
-                      @click="payQuoteInvoice(quote)"
+                      v-if="canViewLinkedInvoice(quote)"
+                      @click="viewLinkedInvoice(quote)"
                       class="px-3 py-1.5 text-xs rounded-md text-white font-semibold transition duration-200"
                       style="background-color: #2F5597;"
                       @mouseenter="$event.target.style.backgroundColor='#1f4788'"
                       @mouseleave="$event.target.style.backgroundColor='#2F5597'"
                     >
-                      Pay Now
+                      View Invoice
                     </button>
                     <button
                       v-if="canCancelQuote(quote)"
@@ -298,7 +299,7 @@
                       @mouseenter="$event.target.style.backgroundColor='#edf3fb'"
                       @mouseleave="$event.target.style.backgroundColor='transparent'"
                     >
-                      {{ !canReviseQuote(quote) ? 'Not Revisable' : (processingQuoteId === quote.quote_id ? 'Preparing...' : 'Revise') }}
+                      {{ !canReviseQuote(quote) ? 'Not Revisable' : (processingQuoteId === quote.quote_id ? 'Preparing...' : (isQuoteLockedForPayment(quote) ? 'Re-open Quote' : 'Revise')) }}
                     </button>
                   </div>
                 </td>
@@ -404,7 +405,7 @@
             </div>
             <div v-if="selectedQuote.expires_at">
               <p class="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2">Expires On</p>
-              <p class="text-lg font-semibold text-gray-900">{{ formatDate(selectedQuote.expires_at) }}</p>
+              <p class="text-lg font-semibold text-gray-900">{{ getQuoteExpiryDisplay(selectedQuote) }}</p>
             </div>
             <div v-if="getLinkedOrder(selectedQuote)">
               <p class="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2">Linked Order</p>
@@ -435,14 +436,14 @@
               View Order
             </button>
             <button
-              v-if="canPayQuote(selectedQuote)"
-              @click="payQuoteInvoice(selectedQuote)"
+              v-if="canViewLinkedInvoice(selectedQuote)"
+              @click="viewLinkedInvoice(selectedQuote)"
               class="flex-1 px-4 py-3 text-white rounded-lg font-semibold transition duration-200"
               style="background-color: #2F5597;"
               @mouseenter="$event.target.style.backgroundColor='#1f4788'"
               @mouseleave="$event.target.style.backgroundColor='#2F5597'"
             >
-              Pay Invoice
+              View Invoice
             </button>
             <button
               v-if="canCancelQuote(selectedQuote)"
@@ -461,7 +462,7 @@
               :disabled="processingQuoteId === selectedQuote.quote_id"
               class="flex-1 px-4 py-3 border border-[#2F5597] text-[#2F5597] rounded-lg font-semibold hover:bg-[#edf3fb] transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {{ processingQuoteId === selectedQuote.quote_id ? 'Preparing...' : 'Revise Quote' }}
+              {{ processingQuoteId === selectedQuote.quote_id ? 'Preparing...' : (isQuoteLockedForPayment(selectedQuote) ? 'Re-open Quote' : 'Revise Quote') }}
             </button>
           </div>
         </div>
@@ -471,13 +472,14 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/authStore'
 import { useToastStore } from '../../stores/toastStore'
 import { useCartStore } from '../../stores/cartStore'
 import Navbar from '../../components/Navbar.vue'
 import axios from 'axios'
+import { usePricingSettings } from '../../composables/usePricingSettings'
 
 export default {
   components: { Navbar },
@@ -486,6 +488,7 @@ export default {
     const authStore = useAuthStore()
     const toastStore = useToastStore()
     const cartStore = useCartStore()
+    const { loadPricingSettings, formatUsdUsingCurrentCurrency } = usePricingSettings()
     const quotes = ref([])
     const loading = ref(false)
     const error = ref(null)
@@ -499,6 +502,10 @@ export default {
     const processingQuoteId = ref(null)
     const ordersByQuoteId = ref({})
     const invoicesByOrderNumber = ref({})
+    const productNameMap = ref({})
+    const productLookupPromises = new Map()
+    const nowTick = ref(Date.now())
+    let countdownTimer = null
 
     const visibleQuotes = computed(() => {
       const revisionSource = String(cartStore.revisionSourceQuoteId || '').trim()
@@ -781,6 +788,137 @@ export default {
       return records
     }
 
+    const extractProductName = (data) => {
+      if (!data || typeof data !== 'object') return null
+
+      return data.productName
+        || data.partDescription
+        || data.description
+        || data.name
+        || data.product_name
+        || data.shortDescription
+        || null
+    }
+
+    const fetchProductNameById = async (productId) => {
+      const id = String(productId || '').trim()
+      if (!id) return null
+
+      if (productNameMap.value[id]) {
+        return productNameMap.value[id]
+      }
+
+      if (productLookupPromises.has(id)) {
+        return productLookupPromises.get(id)
+      }
+
+      const request = (async () => {
+        let resolved = null
+
+        try {
+          const byId = await axios.get(`/api/v1/products/${encodeURIComponent(id)}`)
+          resolved = extractProductName(byId?.data?.data)
+        } catch (_) {
+          // Continue to SKU/search fallbacks.
+        }
+
+        if (!resolved) {
+          try {
+            const bySku = await axios.get(`/api/v1/products/sku/${encodeURIComponent(id)}`)
+            resolved = extractProductName(bySku?.data?.data)
+          } catch (_) {
+            // Continue to search fallback.
+          }
+        }
+
+        if (!resolved) {
+          try {
+            const searched = await axios.get('/api/v1/products', {
+              params: {
+                search: id,
+                page: 1,
+                per_page: 20,
+                hide_zero_price: false,
+              },
+            })
+
+            const records = searched?.data?.data?.records
+            if (Array.isArray(records) && records.length > 0) {
+              const exact = records.find((row) => {
+                const productId = String(row?.productId || '').trim()
+                const sku = String(row?.mfgPartNo || row?.sku || '').trim()
+                return productId === id || sku === id
+              })
+
+              resolved = extractProductName(exact || records[0])
+            }
+          } catch (_) {
+            // No-op if search fails.
+          }
+        }
+
+        if (resolved) {
+          productNameMap.value = {
+            ...productNameMap.value,
+            [id]: resolved,
+          }
+        }
+
+        return resolved
+      })()
+        .catch(() => null)
+        .finally(() => {
+          productLookupPromises.delete(id)
+        })
+
+      productLookupPromises.set(id, request)
+      return request
+    }
+
+    const resolveQuoteItemName = (item, index = 0) => {
+      const direct = String(item?.productName || item?.product_name || item?.partDescription || item?.name || item?.description || '').trim()
+      if (direct) return direct
+
+      const productId = String(item?.product_id || item?.productId || item?.id || '').trim()
+      const sku = String(item?.sku || item?.partNumber || item?.mfg_part_number || item?.mfgPartNo || '').trim()
+
+      if (productId && productNameMap.value[productId]) {
+        return productNameMap.value[productId]
+      }
+
+      if (sku && productNameMap.value[sku]) {
+        return productNameMap.value[sku]
+      }
+
+      if (productId) return `Unknown Product (${productId})`
+      if (sku) return `Unknown Product (${sku})`
+      return `Unknown Product ${index + 1}`
+    }
+
+    const hydrateQuoteItemNames = async (quoteRows) => {
+      const rows = Array.isArray(quoteRows) ? quoteRows : []
+      const ids = Array.from(new Set(rows
+        .flatMap((quote) => {
+          const items = Array.isArray(quote?.items) ? quote.items : []
+          return items
+            .filter((item) => {
+              const direct = String(item?.productName || item?.product_name || item?.partDescription || item?.name || item?.description || '').trim()
+              return direct.length === 0
+            })
+            .flatMap((item) => [
+              String(item?.product_id || item?.productId || item?.id || '').trim(),
+              String(item?.sku || item?.partNumber || item?.mfg_part_number || item?.mfgPartNo || '').trim(),
+            ])
+        })
+        .filter(Boolean)
+      ))
+
+      const missingIds = ids.filter((id) => !productNameMap.value[id])
+      if (!missingIds.length) return
+
+      await Promise.all(missingIds.map((id) => fetchProductNameById(id)))
+    }
+
     const fetchQuotes = async () => {
       loading.value = true
       error.value = null
@@ -800,6 +938,7 @@ export default {
 
         if (Array.isArray(allQuotes)) {
           quotes.value = allQuotes
+          await hydrateQuoteItemNames(allQuotes)
 
           const orders = Array.isArray(allOrders) ? allOrders : []
           const invoices = Array.isArray(allInvoices) ? allInvoices : []
@@ -841,6 +980,7 @@ export default {
 
     const canCancelQuote = (quote) => {
       if (!quote) return false
+      if (isQuoteLockedForPayment(quote)) return false
       return ['draft', 'pending_review', 'approved'].includes(quote.status)
     }
 
@@ -862,10 +1002,70 @@ export default {
       return invoicesByOrderNumber.value[linkedOrder.order_number] || null
     }
 
-    const canPayQuote = (quote) => {
+    const getInvoiceOutstanding = (invoice) => {
+      const total = Number(invoice?.total_amount || 0)
+      const paid = Number(invoice?.paid_amount || 0)
+      return Math.max(0, total - paid)
+    }
+
+    const isQuoteApprovedUnpaid = (quote) => {
+      const status = String(quote?.status || '').toLowerCase()
+      if (status !== 'approved' && status !== 'expired') return false
+
       const invoice = getLinkedInvoice(quote)
       if (!invoice) return false
-      return invoice.status !== 'paid' && Number(invoice.total_amount || 0) > Number(invoice.paid_amount || 0)
+
+      return String(invoice.status || '').toLowerCase() !== 'paid' && getInvoiceOutstanding(invoice) > 0
+    }
+
+    const isQuotePaymentWindowExpired = (quote) => {
+      if (!isQuoteApprovedUnpaid(quote)) return false
+      if (!quote?.expires_at) return false
+
+      const expiresAtMs = new Date(quote.expires_at).getTime()
+      if (!Number.isFinite(expiresAtMs)) return false
+
+      return expiresAtMs <= nowTick.value
+    }
+
+    const isQuoteLockedForPayment = (quote) => {
+      return isQuoteApprovedUnpaid(quote) && isQuotePaymentWindowExpired(quote)
+    }
+
+    const canViewLinkedInvoice = (quote) => {
+      return !!getLinkedInvoice(quote) && !isQuoteLockedForPayment(quote)
+    }
+
+    const formatCountdown = (msRemaining) => {
+      const totalSeconds = Math.max(0, Math.floor(msRemaining / 1000))
+      const days = Math.floor(totalSeconds / 86400)
+      const hours = Math.floor((totalSeconds % 86400) / 3600)
+      const minutes = Math.floor((totalSeconds % 3600) / 60)
+      const seconds = totalSeconds % 60
+
+      if (days > 0) return `${days}d ${hours}h ${minutes}m`
+      if (hours > 0) return `${hours}h ${minutes}m ${seconds}s`
+      return `${minutes}m ${seconds}s`
+    }
+
+    const getQuoteExpiryDisplay = (quote) => {
+      if (!quote?.expires_at) return 'N/A'
+
+      if (!isQuoteApprovedUnpaid(quote)) {
+        return formatDate(quote.expires_at)
+      }
+
+      const expiresAtMs = new Date(quote.expires_at).getTime()
+      if (!Number.isFinite(expiresAtMs)) {
+        return formatDate(quote.expires_at)
+      }
+
+      const remaining = expiresAtMs - nowTick.value
+      if (remaining <= 0) {
+        return 'Expired - Re-open required'
+      }
+
+      return `Expires in ${formatCountdown(remaining)}`
     }
 
     const getStatusBadge = (status) => {
@@ -881,7 +1081,7 @@ export default {
       return badges[status] || 'bg-gray-100 text-gray-800'
     }
 
-    const formatCurrency = (amount) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount || 0)
+    const formatCurrency = (amount) => formatUsdUsingCurrentCurrency(Number(amount || 0))
 
     const viewQuote = (quote) => selectedQuote.value = quote
 
@@ -918,42 +1118,28 @@ export default {
       toastStore.addToast(`Showing quote linked to order ${order.order_number}`, 'info')
     }
 
-    const toPaymentUrl = (query) => {
-      const params = new URLSearchParams()
-      Object.entries(query || {}).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && String(value).length > 0) {
-          params.set(key, String(value))
-        }
-      })
-      return `/payment?${params.toString()}`
-    }
-
-    const navigateToPayment = async (query) => {
-      try {
-        await router.push({ name: 'payment', query })
-        if (router.currentRoute.value?.name !== 'payment') {
-          window.location.assign(toPaymentUrl(query))
-        }
-      } catch (err) {
-        console.error('Router payment navigation failed, using hard redirect:', err)
-        window.location.assign(toPaymentUrl(query))
+    const viewLinkedInvoice = async (quote) => {
+      if (isQuoteLockedForPayment(quote)) {
+        toastStore.addToast('Quote has expired for payment. Re-open quote to submit for approval again.', 'warning')
+        return
       }
-    }
 
-    const payQuoteInvoice = async (quote) => {
       const invoice = getLinkedInvoice(quote)
       if (!invoice) {
         toastStore.addToast('No invoice available yet for this quote.', 'warning')
         return
       }
 
-      await navigateToPayment({
-        mode: 'quote',
-        invoiceNumber: invoice.invoice_number,
-        quoteId: quote.quote_id,
-        amount: Number(invoice.total_amount || 0),
-        from: '/quotes',
+      selectedQuote.value = null
+      await router.push({
+        name: 'invoices',
+        query: {
+          selectInvoices: invoice.invoice_number,
+          focusInvoice: invoice.invoice_number,
+          from: 'quotes',
+        },
       })
+      toastStore.addToast(`Invoice ${invoice.invoice_number} is ready for payment`, 'info')
     }
 
     const toggleQuoteSelection = (quoteId, checked) => {
@@ -1136,7 +1322,7 @@ export default {
       if (!items.length) return ''
 
       const names = items
-        .map((item) => String(item?.productName || item?.product_name || item?.name || '').trim())
+        .map((item, idx) => String(resolveQuoteItemName(item, idx)).trim())
         .filter(Boolean)
 
       if (!names.length) return ''
@@ -1261,7 +1447,21 @@ export default {
       }
     })
 
-    onMounted(() => fetchQuotes())
+    onMounted(() => {
+      countdownTimer = window.setInterval(() => {
+        nowTick.value = Date.now()
+      }, 1000)
+
+      loadPricingSettings()
+      fetchQuotes()
+    })
+
+    onUnmounted(() => {
+      if (countdownTimer) {
+        window.clearInterval(countdownTimer)
+        countdownTimer = null
+      }
+    })
 
     return { 
       quotes, 
@@ -1295,12 +1495,14 @@ export default {
       viewQuote, 
       downloadQuotePdf,
       viewLinkedOrder,
+      viewLinkedInvoice,
       getLinkedOrder,
       getLinkedInvoice,
+      canViewLinkedInvoice,
+      isQuoteLockedForPayment,
+      getQuoteExpiryDisplay,
       getQuoteChildren,
       isCancelledFamilyRow,
-      canPayQuote,
-      payQuoteInvoice,
       canCancelQuote, 
       canReviseQuote,
       getQuoteItemCount,

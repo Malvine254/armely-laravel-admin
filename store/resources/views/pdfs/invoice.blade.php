@@ -244,12 +244,33 @@
                     <th style="width: 10%;">Item #</th>
                     <th style="width: 40%;">Product</th>
                     <th style="width: 15%;" class="text-right">Qty</th>
-                    <th style="width: 17.5%;" class="text-right">Unit Price</th>
-                    <th style="width: 17.5%;" class="text-right">Total</th>
+                    <th style="width: 17.5%;" class="text-right">Unit Price (Incl. Tax)</th>
+                    <th style="width: 17.5%;" class="text-right">Total (Incl. Tax)</th>
                 </tr>
             </thead>
             <tbody>
+                @php
+                    $invoiceTax = (float) ($invoice->tax_amount ?? 0);
+                    $preTaxSubtotal = collect($items)->sum(function ($item) {
+                        return (float) ($item['line_total'] ?? 0);
+                    });
+                    $runningTax = 0.0;
+                @endphp
                 @foreach($items as $index => $item)
+                @php
+                    $qty = max(1, (int) ($item['quantity'] ?? 1));
+                    $linePreTax = (float) ($item['line_total'] ?? (($item['quantity'] ?? 1) * ($item['unit_price'] ?? 0)));
+                    $isLast = $index === count($items) - 1;
+                    $lineTax = $invoiceTax > 0
+                        ? ($isLast
+                            ? round($invoiceTax - $runningTax, 2)
+                            : round(($preTaxSubtotal > 0 ? ($invoiceTax * $linePreTax) / $preTaxSubtotal : ($invoiceTax / max(1, count($items)))), 2)
+                        )
+                        : 0.0;
+                    $runningTax = round($runningTax + $lineTax, 2);
+                    $lineTotalWithTax = round($linePreTax + $lineTax, 2);
+                    $unitWithTax = round($lineTotalWithTax / $qty, 2);
+                @endphp
                 <tr>
                     <td>{{ $index + 1 }}</td>
                     <td>
@@ -258,9 +279,9 @@
                         <div class="item-sku">SKU: {{ $item['mfg_part_number'] }}</div>
                         @endif
                     </td>
-                    <td class="text-right">{{ $item['quantity'] ?? 1 }}</td>
-                    <td class="text-right">${{ number_format($item['unit_price'] ?? 0, 2) }}</td>
-                    <td class="text-right">${{ number_format($item['line_total'] ?? (($item['quantity'] ?? 1) * ($item['unit_price'] ?? 0)), 2) }}</td>
+                    <td class="text-right">{{ $qty }}</td>
+                    <td class="text-right">${{ number_format($unitWithTax, 2) }}</td>
+                    <td class="text-right">${{ number_format($lineTotalWithTax, 2) }}</td>
                 </tr>
                 @endforeach
             </tbody>

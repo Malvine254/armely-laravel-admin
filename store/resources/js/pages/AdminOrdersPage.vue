@@ -91,12 +91,12 @@
                 />
               </th>
               <th class="px-6 py-4 text-left font-semibold text-gray-700">Order ID</th>
-              <th class="px-6 py-4 text-left font-semibold text-gray-700">TD SYNNEX Status</th>
+              <th class="px-6 py-4 text-left font-semibold text-gray-700">Status</th>
               <th class="px-6 py-4 text-left font-semibold text-gray-700">Customer</th>
               <th class="px-6 py-4 text-left font-semibold text-gray-700">Company</th>
+              <th class="px-6 py-4 text-left font-semibold text-gray-700">Tracking</th>
               <th class="px-6 py-4 text-right font-semibold text-gray-700">Amount</th>
-              <th class="px-6 py-4 text-left font-semibold text-gray-700">Local Status</th>
-              <th class="px-6 py-4 text-left font-semibold text-gray-700">Order Date</th>
+              <th class="px-6 py-4 text-left font-semibold text-gray-700">Date</th>
               <th class="px-6 py-4 text-center font-semibold text-gray-700">Actions</th>
             </tr>
           </thead>
@@ -120,15 +120,20 @@
                 <span class="font-medium text-[#2f5597]">{{ order.order_number }}</span>
               </td>
               <td class="px-6 py-4">
-                <span v-if="isLocalOrder(order.order_number)" class="px-2 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">
-                  <i class="fas fa-database mr-1"></i>Local Order
-                </span>
-                <span v-else-if="order.td_synnex_status" class="px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
-                  <i class="fas fa-check-circle mr-1"></i>{{ getStatusDisplay(order.td_synnex_status) }}
-                </span>
-                <span v-else class="text-gray-500 text-sm">
-                  <i class="fas fa-spinner fa-spin mr-1"></i>Checking...
-                </span>
+                <ul class="space-y-1 text-xs">
+                  <li class="flex items-center gap-1.5">
+                    <span class="w-1.5 h-1.5 rounded-full bg-gray-400 shrink-0"></span>
+                    <span class="text-gray-400 shrink-0">Local:</span>
+                    <span :class="['px-2 py-0.5 rounded-full font-semibold text-white', statusClass(order.status)]">{{ order.status }}</span>
+                  </li>
+                  <li class="flex items-center gap-1.5">
+                    <span class="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0"></span>
+                    <span class="text-gray-400 shrink-0">TD:</span>
+                    <span v-if="getTdStatusLabel(order)" class="px-2 py-0.5 rounded-full font-semibold bg-blue-100 text-blue-800">{{ getTdStatusLabel(order) }}</span>
+                    <span v-else-if="tdStatusLoading[order.order_number]" class="text-gray-400 italic"><i class="fas fa-spinner fa-spin mr-0.5"></i>checking…</span>
+                    <span v-else class="text-gray-300">—</span>
+                  </li>
+                </ul>
               </td>
               <td class="px-6 py-4">
                 <p class="font-medium text-gray-900">{{ getUserName(order) }}</p>
@@ -137,14 +142,31 @@
               <td class="px-6 py-4">
                 <p class="text-gray-900">{{ getCompanyName(order) }}</p>
               </td>
+              <td class="px-6 py-4">
+                <ul class="space-y-1 text-xs">
+                  <li>
+                    <span :class="['inline-flex items-center px-2 py-0.5 rounded-full font-semibold', shippingStatusClass(order)]">
+                      {{ getShippingStatusLabel(order) }}
+                    </span>
+                  </li>
+                  <li class="flex items-center gap-1.5">
+                    <span class="w-1.5 h-1.5 rounded-full shrink-0"
+                      :class="getTrackingNumber(order) !== 'Unavailable' ? 'bg-blue-400' : 'bg-gray-300'"></span>
+                    <span class="text-gray-400 shrink-0">Track:</span>
+                    <span v-if="getTrackingNumber(order) !== 'Unavailable'" class="font-mono text-gray-800">{{ getTrackingNumber(order) }}</span>
+                    <span v-else class="text-gray-300">—</span>
+                  </li>
+                  <li class="flex items-center gap-1.5">
+                    <span class="w-1.5 h-1.5 rounded-full shrink-0"
+                      :class="getFreightAmount(order) !== '$0.00' ? 'bg-green-400' : 'bg-gray-300'"></span>
+                    <span class="text-gray-400 shrink-0">Freight:</span>
+                    <span :class="getFreightAmount(order) !== '$0.00' ? 'text-gray-800 font-medium' : 'text-gray-300'">{{ getFreightAmount(order) }}</span>
+                  </li>
+                </ul>
+              </td>
               <td class="px-6 py-4 text-right">
                 <p class="font-bold text-gray-900">${{ formatCurrency(order.total_amount) }}</p>
                 <p class="text-xs text-gray-500">Tax: ${{ formatCurrency(order.tax_amount) }}</p>
-              </td>
-              <td class="px-6 py-4">
-                <span :class="['px-3 py-1 rounded-full text-xs font-semibold text-white', statusClass(order.status)]">
-                  {{ order.status }}
-                </span>
               </td>
               <td class="px-6 py-4 text-sm text-gray-600">
                 {{ formatDate(order.created_at) }}
@@ -156,6 +178,13 @@
                     class="text-[#2f5597] hover:text-[#274a82] font-medium"
                   >
                     <i class="fas fa-eye mr-1"></i>View
+                  </button>
+                  <button
+                    @click="trackOrderStatus(order)"
+                    :disabled="tdStatusLoading[order.order_number]"
+                    class="text-indigo-600 hover:text-indigo-800 font-medium disabled:opacity-50"
+                  >
+                    <i class="fas fa-location-arrow mr-1"></i>Track Status
                   </button>
                 </div>
               </td>
@@ -222,10 +251,16 @@
               <span :class="['px-4 py-2 rounded-full text-sm font-semibold text-white', statusClass(selectedOrder.status)]">
                 {{ selectedOrder.status.toUpperCase() }}
               </span>
+              <span :class="['px-4 py-2 rounded-full text-sm font-semibold', shippingStatusClass(selectedOrder)]">
+                {{ getShippingStatusLabel(selectedOrder) }}
+              </span>
               <p class="text-sm text-gray-600">
                 Last updated: {{ formatDate(selectedOrder.updated_at) }}
               </p>
             </div>
+            <p class="text-sm text-gray-600 mt-2">
+              Tracking Number: <span class="font-semibold text-gray-800">{{ getTrackingNumber(selectedOrder) }}</span>
+            </p>
           </div>
 
           <hr />
@@ -379,6 +414,11 @@ const isSubmitting = ref(false)
 const showDeleteConfirm = ref(false)
 const companyId = ref(route.query.company_id || null)
 const companyName = ref(route.query.company_name || null)
+const tdStatusByOrder = ref({})
+const tdStatusLoading = ref({})
+const tdApiStatusByOrder = ref({})
+const tdStatusSourceByOrder = ref({})
+const tdStatusDetailsByOrder = ref({})
 
 const allSelected = computed(() => {
   return orders.value.length > 0 && orders.value.every(order => selectedOrders.value.includes(order.id))
@@ -456,6 +496,134 @@ const getCompanyName = (row) => {
   return row?.user?.company?.name || row?.company?.name || 'Unknown company'
 }
 
+const parseTrackingInfo = (order) => {
+  const trackingInfo = order?.tracking_info
+  if (!trackingInfo) return {}
+
+  if (typeof trackingInfo === 'string') {
+    try {
+      return JSON.parse(trackingInfo)
+    } catch {
+      return { tracking_number: trackingInfo }
+    }
+  }
+
+  if (typeof trackingInfo === 'object') {
+    return trackingInfo
+  }
+
+  return {}
+}
+
+const getTrackingNumber = (order) => {
+  const normalized = tdStatusDetailsByOrder.value[order?.order_number] || null
+  if (normalized?.tracking_number) {
+    return String(normalized.tracking_number)
+  }
+
+  const apiStatus = tdApiStatusByOrder.value[order?.order_number] || null
+  const apiTracking = apiStatus?.tracking_number
+    || apiStatus?.trackingNumber
+    || apiStatus?.carrierTrackingNumber
+    || apiStatus?.shipmentTrackingNumber
+    || apiStatus?.shipment?.trackingNumber
+    || apiStatus?.shipments?.[0]?.trackingNumber
+
+  if (apiTracking) {
+    return String(apiTracking)
+  }
+
+  const localTracking = parseTrackingInfo(order)?.tracking_number || parseTrackingInfo(order)?.trackingNumber
+  if (localTracking) {
+    return String(localTracking)
+  }
+
+  return 'Unavailable'
+}
+
+const getShippingStatusLabel = (order) => {
+  const normalized = tdStatusDetailsByOrder.value[order?.order_number] || null
+  if (normalized?.shipping_status) {
+    return formatStatusLabel(normalized.shipping_status)
+  }
+
+  const apiStatus = tdApiStatusByOrder.value[order?.order_number] || null
+  const apiShippingStatus = apiStatus?.shippingStatus
+    || apiStatus?.shipping_status
+    || apiStatus?.shipmentStatus
+    || apiStatus?.deliveryStatus
+    || apiStatus?.status
+    || apiStatus?.shipments?.[0]?.status
+
+  if (apiShippingStatus) {
+    return formatStatusLabel(String(apiShippingStatus))
+  }
+
+  return formatStatusLabel(order?.status || 'Unavailable')
+}
+
+const getFreightAmount = (order) => {
+  const normalized = tdStatusDetailsByOrder.value[order?.order_number] || null
+  const raw = normalized?.freight_amount ?? order?.shipping_amount
+  if (raw === null || raw === undefined || raw === '') {
+    return '$0.00'
+  }
+
+  const value = Number(raw)
+  if (!Number.isFinite(value)) {
+    return '$0.00'
+  }
+
+  return `$${formatCurrency(value)}`
+}
+
+const shippingStatusClass = (order) => {
+  const status = String(getShippingStatusLabel(order) || '').toLowerCase()
+
+  if (status.includes('deliver')) return 'bg-green-100 text-green-700'
+  if (status.includes('ship') || status.includes('transit')) return 'bg-blue-100 text-blue-700'
+  if (status.includes('cancel') || status.includes('failed')) return 'bg-red-100 text-red-700'
+  return 'bg-yellow-100 text-yellow-700'
+}
+
+const getTdStatusLabel = (order) => {
+  const orderNumber = order?.order_number
+  if (!orderNumber) return ''
+
+  if (tdStatusByOrder.value[orderNumber]) {
+    return tdStatusByOrder.value[orderNumber]
+  }
+
+  if (isLocalOrder(orderNumber)) {
+    return formatStatusLabel(order?.status || 'pending')
+  }
+
+  return ''
+}
+
+const getTdStatusSource = (order) => {
+  const orderNumber = order?.order_number
+  if (!orderNumber) return ''
+
+  if (tdStatusSourceByOrder.value[orderNumber]) {
+    return tdStatusSourceByOrder.value[orderNumber]
+  }
+
+  if (isLocalOrder(orderNumber)) {
+    return 'local-order'
+  }
+
+  return ''
+}
+
+const formatStatusLabel = (value) => {
+  return String(value || 'Unknown')
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
 const canCancelOrder = (order) => {
   const sevenDaysAgo = new Date()
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
@@ -481,34 +649,103 @@ const fetchOrders = async () => {
       orders.value = response.data.data
       totalOrders.value = response.data.pagination.total
       lastPage.value = response.data.pagination.last_page
-      
-      // Fetch TD SYNNEX status for each order
-      await fetchAllOrderStatuses(orders.value)
+
+      const retainedStatuses = {}
+      const retainedLoading = {}
+      const retainedApiStatuses = {}
+      const retainedStatusSources = {}
+      const retainedStatusDetails = {}
+      for (const order of orders.value) {
+        if (tdStatusByOrder.value[order.order_number]) {
+          retainedStatuses[order.order_number] = tdStatusByOrder.value[order.order_number]
+        }
+        if (tdStatusLoading.value[order.order_number]) {
+          retainedLoading[order.order_number] = tdStatusLoading.value[order.order_number]
+        }
+        if (tdApiStatusByOrder.value[order.order_number]) {
+          retainedApiStatuses[order.order_number] = tdApiStatusByOrder.value[order.order_number]
+        }
+        if (tdStatusSourceByOrder.value[order.order_number]) {
+          retainedStatusSources[order.order_number] = tdStatusSourceByOrder.value[order.order_number]
+        }
+        if (tdStatusDetailsByOrder.value[order.order_number]) {
+          retainedStatusDetails[order.order_number] = tdStatusDetailsByOrder.value[order.order_number]
+        }
+      }
+      tdStatusByOrder.value = retainedStatuses
+      tdStatusLoading.value = retainedLoading
+      tdApiStatusByOrder.value = retainedApiStatuses
+      tdStatusSourceByOrder.value = retainedStatusSources
+      tdStatusDetailsByOrder.value = retainedStatusDetails
+
+      await fetchVisibleOrderStatusesFromApi()
     }
   } catch (error) {
     console.error('Failed to fetch orders:', error)
   }
 }
 
-const fetchAllOrderStatuses = async (ordersData) => {
+const fetchVisibleOrderStatusesFromApi = async () => {
+  const candidates = orders.value.filter((order) => !isLocalOrder(order.order_number))
+  await Promise.all(candidates.map((order) => trackOrderStatus(order, true)))
+}
+
+const trackOrderStatus = async (order, silent = false) => {
+  if (!order?.order_number) return
+
+  tdStatusLoading.value = {
+    ...tdStatusLoading.value,
+    [order.order_number]: true
+  }
+
   try {
-    for (const order of ordersData) {
-      // Skip local orders (they don't exist in TD SYNNEX)
-      if (isLocalOrder(order.order_number)) {
-        continue
-      }
-      
-      try {
-        const statusResponse = await api.get(`/admin/orders/${order.order_number}/status`)
-        if (statusResponse.data.success) {
-          order.td_synnex_status = statusResponse.data.data.td_synnex_status
+    const statusResponse = await api.get(`/admin/orders/${order.order_number}/status`)
+    if (statusResponse.data.success) {
+      const payload = statusResponse.data.data || {}
+      const rawApiStatus = payload?.td_synnex_status
+      const normalizedStatus = formatStatusLabel(payload?.normalized_status || getStatusDisplay(rawApiStatus))
+      const sourceLabel = payload?.status_source || 'api'
+
+      tdStatusDetailsByOrder.value = {
+        ...tdStatusDetailsByOrder.value,
+        [order.order_number]: {
+          normalized_status: payload?.normalized_status || null,
+          raw_status: payload?.raw_status || null,
+          shipping_status: payload?.shipping_status || null,
+          tracking_number: payload?.tracking_number || null,
+          freight_amount: payload?.freight_amount || null,
+          estimated_delivery_date: payload?.estimated_delivery_date || null,
         }
-      } catch (err) {
-        console.warn(`Failed to fetch status for order ${order.order_number}:`, err.message)
+      }
+
+      tdApiStatusByOrder.value = {
+        ...tdApiStatusByOrder.value,
+        [order.order_number]: rawApiStatus || {}
+      }
+
+      tdStatusSourceByOrder.value = {
+        ...tdStatusSourceByOrder.value,
+        [order.order_number]: sourceLabel
+      }
+
+      tdStatusByOrder.value = {
+        ...tdStatusByOrder.value,
+        [order.order_number]: normalizedStatus
       }
     }
-  } catch (error) {
-    console.error('Error fetching order statuses:', error)
+  } catch (err) {
+    if (!silent) {
+      console.warn(`Failed to fetch status for order ${order.order_number}:`, err.message)
+    }
+    tdStatusByOrder.value = {
+      ...tdStatusByOrder.value,
+      [order.order_number]: 'Status Unavailable'
+    }
+  } finally {
+    tdStatusLoading.value = {
+      ...tdStatusLoading.value,
+      [order.order_number]: false
+    }
   }
 }
 
@@ -517,7 +754,7 @@ const isLocalOrder = (orderNumber) => {
 }
 
 const getStatusDisplay = (statusData) => {
-  if (!statusData) return 'Unknown'
+  if (!statusData) return 'Unavailable'
   
   // Handle error responses
   if (statusData.error || statusData.success === false) {
@@ -526,7 +763,7 @@ const getStatusDisplay = (statusData) => {
   
   // Handle different response formats from TD SYNNEX
   if (typeof statusData === 'string') {
-    return statusData
+    return formatStatusLabel(statusData)
   }
   
   if (typeof statusData === 'object') {
@@ -541,21 +778,29 @@ const getStatusDisplay = (statusData) => {
                    statusData.orderStatus || 
                    statusData.Status || 
                    statusData.POStatus ||
-                   statusData.OrderStatus
+                   statusData.OrderStatus ||
+                   statusData.shippingStatus ||
+                   statusData.deliveryStatus ||
+                   statusData?.shipment?.status ||
+                   statusData?.shipments?.[0]?.status
     
-    if (status) return status
+    if (status) return formatStatusLabel(status)
     
     // If response is empty or unknown format
     if (Object.keys(statusData).length === 0 || Array.isArray(statusData) && statusData.length === 0) {
-      return 'Pending'
+      return 'Unavailable'
     }
   }
   
-  return 'Processing'
+  return 'Unavailable'
 }
 
 const viewOrderDetails = (order) => {
   selectedOrder.value = order
+
+  if (!tdStatusByOrder.value[order.order_number]) {
+    trackOrderStatus(order)
+  }
 }
 
 const cancelOrder = async () => {
