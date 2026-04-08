@@ -183,11 +183,37 @@ class MessageController extends Controller
             'title' => 'nullable|string|max:120',
         ]);
 
+        $requestedTitle = trim((string) ($validated['title'] ?? ''));
+        $normalizedTitle = $requestedTitle !== '' ? $requestedTitle : 'New chat';
+
+        // Prevent creating multiple empty sessions for the same user.
+        // Reuse the most recently updated empty thread instead.
+        $existingEmpty = ChatSession::where('user_id', $request->user()->id)
+            ->whereDoesntHave('messages')
+            ->orderByDesc('updated_at')
+            ->first();
+
+        if ($existingEmpty) {
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'id' => $existingEmpty->id,
+                    'title' => $existingEmpty->title,
+                    'updated_at' => $existingEmpty->updated_at,
+                    'last_message_at' => $existingEmpty->last_message_at,
+                    'last_message_preview' => null,
+                    'last_message_role' => null,
+                    'escalated_to_human' => (bool) $existingEmpty->escalated_to_human,
+                    'escalated_at' => $existingEmpty->escalated_at,
+                    'resolved_at' => $existingEmpty->resolved_at,
+                ],
+                'reused_empty_session' => true,
+            ]);
+        }
+
         $session = ChatSession::create([
             'user_id' => $request->user()->id,
-            'title' => trim((string) ($validated['title'] ?? '')) !== ''
-                ? trim((string) $validated['title'])
-                : 'New chat',
+            'title' => $normalizedTitle,
             'last_message_at' => null,
             'escalated_to_human' => false,
             'escalated_at' => null,
@@ -217,14 +243,23 @@ class MessageController extends Controller
         $messages = ChatMessage::where('chat_session_id', $session->id)
             ->orderBy('id')
             ->get()
-            ->map(fn (ChatMessage $message) => [
-                'id' => $message->id,
-                'role' => $message->role,
-                'text' => $message->content,
-                'actions' => $message->actions ?? [],
-                'product_suggestions' => (array) data_get($message->metadata, 'product_suggestions', []),
-                'created_at' => $message->created_at,
-            ]);
+            ->map(function (ChatMessage $message) {
+                $senderName = null;
+
+                if ($message->role === 'admin') {
+                    $senderName = (string) data_get($message->metadata, 'admin_name', 'Support Team');
+                }
+
+                return [
+                    'id' => $message->id,
+                    'role' => $message->role,
+                    'text' => $message->content,
+                    'actions' => $message->actions ?? [],
+                    'product_suggestions' => (array) data_get($message->metadata, 'product_suggestions', []),
+                    'sender_name' => $senderName,
+                    'created_at' => $message->created_at,
+                ];
+            });
 
         return response()->json([
             'success' => true,
@@ -1815,10 +1850,14 @@ class MessageController extends Controller
         ChatMessage::create([
             'chat_session_id' => $session->id,
             'user_id' => $request->user()->id,
-            'role' => 'assistant',
+            'role' => 'admin',
             'content' => 'This support conversation has been marked as resolved by our team. Feel free to start a new chat if you need further assistance.',
             'actions' => [],
-            'metadata' => ['source' => 'admin_resolved'],
+            'metadata' => [
+                'source' => 'admin_resolved',
+                'admin_id' => $request->user()->id,
+                'admin_name' => $request->user()->name,
+            ],
         ]);
 
         $session->forceFill(['last_message_at' => now()])->save();

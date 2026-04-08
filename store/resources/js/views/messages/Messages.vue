@@ -171,7 +171,7 @@
                   </button>
                 </div>
                 <p class="mt-2 text-[10px] uppercase tracking-wide" :class="chat.role === 'user' ? 'text-blue-200' : 'text-slate-400'">
-                  {{ chat.role === 'user' ? 'You' : 'Mela AI' }}
+                  {{ getMessageSenderLabel(chat) }}
                 </p>
               </div>
             </div>
@@ -306,6 +306,7 @@ const refreshChatMessages = async () => {
       id: item.id,
       role: item.role,
       text: item.text,
+      senderName: item.sender_name || null,
       actions: item.actions || [],
       productSuggestions: item.product_suggestions || []
     }))
@@ -362,6 +363,12 @@ const fetchChatSessions = async () => {
 
 const createNewChatSession = async () => {
   try {
+    const existingEmpty = chatSessions.value.find((session) => !session.last_message_preview)
+    if (existingEmpty?.id) {
+      await selectChatSession(existingEmpty.id)
+      return
+    }
+
     const token = localStorage.getItem('auth_token')
     const response = await fetch(`${API_BASE_URL}/messages/chats`, {
       method: 'POST',
@@ -387,6 +394,7 @@ const createNewChatSession = async () => {
     chatMessages.value = []
     ensureChatWelcome()
     await fetchChatSessions()
+    await selectChatSession(created.id)
     await scrollChatToBottom()
   } catch (error) {
     console.error('Error creating chat session:', error)
@@ -421,6 +429,7 @@ const selectChatSession = async (sessionId) => {
       id: item.id,
       role: item.role,
       text: item.text,
+      senderName: item.sender_name || null,
       actions: item.actions || [],
       productSuggestions: item.product_suggestions || []
     }))
@@ -523,6 +532,16 @@ const openActionLink = async (link) => {
 
 const formatCurrency = (value) => {
   return formatUsdUsingCurrentCurrency(Number(value || 0))
+}
+
+const getMessageSenderLabel = (chat) => {
+  if (!chat) return 'Support Team'
+  if (chat.role === 'user') return 'You'
+  if (chat.role === 'admin') {
+    const name = String(chat.senderName || '').trim()
+    return name ? `Support: ${name}` : 'Support Team'
+  }
+  return 'Assistant'
 }
 
 const escapeHtml = (text) => {
