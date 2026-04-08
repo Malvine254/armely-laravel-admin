@@ -23,7 +23,7 @@
               @click="tab = 'resolved'"
               :class="['flex-1 py-1.5 text-xs font-semibold rounded-md transition',
                 tab === 'resolved' ? 'bg-[#2f5597] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200']"
-            >Resolved</button>
+            >History</button>
           </div>
         </div>
 
@@ -56,7 +56,7 @@
           </button>
 
           <div v-if="!displayedSessions.length" class="px-4 py-8 text-center text-sm text-gray-500">
-            {{ tab === 'open' ? 'No open escalations' : 'No resolved chats' }}
+            {{ tab === 'open' ? 'No open escalations' : 'No chat history yet' }}
           </div>
         </div>
       </div>
@@ -209,7 +209,7 @@ const loadSessions = async () => {
   try {
     const [openRes, resolvedRes] = await Promise.all([
       api.get('/admin/chats', { params: { resolved: false, limit: 60 } }),
-      api.get('/admin/chats', { params: { resolved: true, limit: 40 } }),
+      api.get('/admin/chats', { params: { resolved: true, limit: 200 } }),
     ])
     allSessions.value = openRes.data?.data || []
     resolvedSessions.value = resolvedRes.data?.data || []

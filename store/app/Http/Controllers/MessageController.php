@@ -1654,19 +1654,30 @@ class MessageController extends Controller
         ])
             ->where(function ($q) {
                 $q->where('escalated_to_human', true)
-                    ->orWhereNotNull('resolved_at');
+                    ->orWhereNotNull('resolved_at')
+                    ->orWhereHas('messages', function ($messageQuery) {
+                        $messageQuery->where('role', 'admin');
+                    });
             });
 
         if ($resolved) {
-            $query->whereNotNull('resolved_at');
+            // History tab: include resolved sessions and any thread where an admin has replied.
+            $query->where(function ($q) {
+                $q->whereNotNull('resolved_at')
+                    ->orWhereHas('messages', function ($messageQuery) {
+                        $messageQuery->where('role', 'admin');
+                    });
+            });
         } else {
+            // Open tab: only currently escalated and unresolved sessions.
             $query->where(function ($q) {
                 $q->whereNull('resolved_at')->orWhere('resolved_at', '');
-            });
+            })->where('escalated_to_human', true);
         }
 
         $sessions = $query
-            ->orderByDesc('escalated_at')
+            ->orderByRaw('COALESCE(last_message_at, updated_at, escalated_at) DESC')
+            ->orderByDesc('id')
             ->limit($limit)
             ->get();
 
