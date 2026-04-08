@@ -191,7 +191,8 @@ class TDSynnexService
                 $response = Http::withHeaders($headers)
                     ->connectTimeout(min(5, $timeout))
                     ->timeout($timeout)
-                    ->{$method}($url, $xmlBody);
+                    ->withBody($xmlBody, 'application/xml')
+                    ->{$method}($url);
 
                 // Token expired, re-authenticate
                 if ($response->status() === 401) {
@@ -207,7 +208,8 @@ class TDSynnexService
                     $response = Http::withHeaders($headers)
                         ->connectTimeout(min(5, $timeout))
                         ->timeout($timeout)
-                        ->{$method}($url, $xmlBody);
+                        ->withBody($xmlBody, 'application/xml')
+                        ->{$method}($url);
                 }
 
                 if ($response->failed()) {
@@ -235,7 +237,7 @@ class TDSynnexService
                     Log::debug('TD SYNNEX XML API request', [
                         'method' => $method,
                         'endpoint' => $endpoint,
-                        'body' => $xmlBody,
+                        'body' => $this->sanitizeXmlForLogs($xmlBody),
                     ]);
                 }
 
@@ -245,40 +247,48 @@ class TDSynnexService
                     'headers' => $response->headers(),
                 ]);
 
-                // Try to parse as JSON first, fall back to XML
-                try {
-                    $jsonResponse = $response->json() ?? [];
-                    Log::debug('TD SYNNEX response parsed as JSON', ['response' => $jsonResponse]);
-                    return $jsonResponse;
-                } catch (\Exception $e) {
-                    // Response might be XML, convert to array
+                $responseBody = (string) $response->body();
+                $contentTypeHeader = strtolower((string) ($response->header('Content-Type') ?? ''));
+
+                if (str_contains($contentTypeHeader, 'application/xml') || str_contains(trim($responseBody), '<')) {
                     try {
-                        $responseBody = $response->body();
                         Log::debug('Attempting XML parse', ['body' => $responseBody]);
-                        
+
                         $xml = simplexml_load_string($responseBody);
                         if ($xml === false) {
                             Log::warning('Failed to parse XML response, returning raw body', ['body' => $responseBody]);
                             return ['response' => $responseBody, 'raw_body' => $responseBody];
                         }
+
                         $decoded = json_decode(json_encode($xml), true);
+                        $decoded = is_array($decoded) ? $decoded : [];
                         Log::debug('Successfully parsed XML', ['decoded' => $decoded]);
-                        
-                        // Check if response contains an error message
+
                         if (isset($decoded['errorMessage'])) {
+                            $detail = trim((string) ($decoded['errorDetail'] ?? ''));
+                            $message = trim((string) ($decoded['errorMessage'] ?? 'TD SYNNEX XML error'));
                             Log::error('TD SYNNEX API error in response', [
-                                'errorMessage' => $decoded['errorMessage'] ?? '',
-                                'errorDetail' => $decoded['errorDetail'] ?? '',
+                                'errorMessage' => $message,
+                                'errorDetail' => $detail,
                                 'full_response' => $decoded,
                             ]);
+
+                            throw new TDSynnexApiException($message . ($detail !== '' ? ': ' . $detail : ''));
                         }
-                        
-                        return is_array($decoded) ? $decoded : [];
+
+                        return $decoded;
+                    } catch (TDSynnexApiException $e) {
+                        throw $e;
                     } catch (\Exception $xmlError) {
-                        Log::warning('XML parsing error', ['error' => $xmlError->getMessage(), 'body' => $response->body()]);
-                        return ['response' => $response->body()];
+                        Log::warning('XML parsing error', ['error' => $xmlError->getMessage(), 'body' => $responseBody]);
+                        return ['response' => $responseBody];
                     }
                 }
+
+                $jsonResponse = $response->json();
+                $jsonResponse = is_array($jsonResponse) ? $jsonResponse : [];
+                Log::debug('TD SYNNEX response parsed as JSON', ['response' => $jsonResponse]);
+                return $jsonResponse;
 
             } catch (TDSynnexApiException $e) {
                 throw $e;
@@ -2284,6 +2294,16 @@ class TDSynnexService
         return htmlspecialchars($value, ENT_QUOTES | ENT_XML1, 'UTF-8');
     }
 
+    /**
+     * Remove sensitive credential values from XML before logging.
+     */
+    private function sanitizeXmlForLogs(string $xml): string
+    {
+        $sanitized = preg_replace('/<UserID>.*?<\/UserID>/is', '<UserID>***REDACTED***</UserID>', $xml);
+        $sanitized = preg_replace('/<Password>.*?<\/Password>/is', '<Password>***REDACTED***</Password>', (string) $sanitized);
+        return (string) $sanitized;
+    }
+
     private function priceAvailabilityCatalogCacheKey(): string
     {
         return 'tdsynnex:xml:priceavailability:catalog:' . md5(json_encode([
@@ -2386,21 +2406,174 @@ class TDSynnexService
             Cache::forget("tdsynnex:product:{$orderData['productId']}");
         }
         
-        // Convert order data to XML and wrap in SynnexB2B
-        $innerXml = $this->arrayToXml($orderData, 'PurchaseOrder');
-        
-        // Remove XML declaration from inner XML
-        $innerXml = preg_replace('/<\?xml[^?]+\?>/', '', $innerXml);
-        
-        // Wrap in SynnexB2B root element
-        $xmlBody = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<SynnexB2B>\n{$innerXml}\n</SynnexB2B>";
+        // Build XML in TD SYNNEX PO Submission schema (Credential + OrderRequest + Items)
+        $xmlBody = $this->buildPoSubmissionXmlPayload($orderData);
         
         $response = $this->requestXml('post', '/api/v1/SynnexXML/PO', $xmlBody);
+
+        // Normalize XML OrderResponse shape so existing callers can read order number/status.
+        $orderResponse = is_array($response['OrderResponse'] ?? null) ? $response['OrderResponse'] : [];
+        if (!empty($orderResponse)) {
+            $item = $orderResponse['Items']['Item'] ?? null;
+            if (is_array($item) && isset($item[0]) && is_array($item[0])) {
+                $item = $item[0];
+            }
+
+            $response['orderNumber'] = (string) (
+                $orderResponse['OrderNumber']
+                ?? (is_array($item) ? ($item['OrderNumber'] ?? '') : '')
+            );
+            $response['status'] = (string) (
+                $orderResponse['Code']
+                ?? (is_array($item) ? ($item['Code'] ?? '') : '')
+            );
+            $response['poNumber'] = (string) ($orderResponse['PONumber'] ?? ($orderData['poNumber'] ?? ''));
+        }
         
         // Log the full response for debugging
         Log::debug('TD SYNNEX order response', ['response' => $response, 'response_type' => gettype($response)]);
         
         return $response;
+    }
+
+    /**
+     * Build TD SYNNEX XML PO submission payload.
+     *
+     * Expected envelope per XML PO Submission spec:
+     * SynnexB2B > Credential + OrderRequest > Items > Item(lineNumber)
+     */
+    private function buildPoSubmissionXmlPayload(array $orderData): string
+    {
+        $customerNo = trim((string) config('tdsynnex.price_availability.customer_no', ''));
+        $username = trim((string) config('tdsynnex.price_availability.username', ''));
+        $password = trim((string) config('tdsynnex.price_availability.password', ''));
+
+        if ($customerNo === '' || $username === '' || $password === '') {
+            throw new TDSynnexApiException(
+                'Missing XML PO credentials. Please set SYNNEX_CUSTOMER_NO, SYNNEX_USERNAME and SYNNEX_PASSWORD in store/.env.'
+            );
+        }
+
+        $poNumber = trim((string) ($orderData['poNumber'] ?? ''));
+        if ($poNumber === '') {
+            throw new TDSynnexApiException('Missing required PO number for XML submission.');
+        }
+
+        $poDateTime = trim((string) ($orderData['poDateTime'] ?? ''));
+        if ($poDateTime === '') {
+            $date = trim((string) ($orderData['poDate'] ?? now()->format('Y-m-d')));
+            $poDateTime = preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)
+                ? ($date . 'T00:00:00')
+                : now()->format('Y-m-d\\TH:i:s');
+        }
+
+        $shipDate = trim((string) ($orderData['shipDate'] ?? ''));
+        $shipTo = is_array($orderData['shipTo'] ?? null) ? $orderData['shipTo'] : [];
+        $billTo = is_array($orderData['billTo'] ?? null) ? $orderData['billTo'] : [];
+        $lineItems = is_array($orderData['poLine'] ?? null) ? $orderData['poLine'] : [];
+
+        if (empty($lineItems)) {
+            throw new TDSynnexApiException('Missing required PO items for XML submission.');
+        }
+
+        $itemsXml = '';
+        foreach ($lineItems as $index => $item) {
+            $item = is_array($item) ? $item : [];
+            $lineNumber = (string) ($item['lineNumber'] ?? ($index + 1));
+            $sku = trim((string) ($item['partNumber'] ?? ''));
+            $quantity = max(1, (int) ($item['quantity'] ?? 1));
+            $unitPrice = number_format((float) ($item['unitPrice'] ?? 0), 2, '.', '');
+            $description = trim((string) ($item['partDescription'] ?? ''));
+
+            if ($sku === '') {
+                throw new TDSynnexApiException('Missing required SKU/partNumber in one or more PO lines.');
+            }
+
+            $itemsXml .= '        <Item lineNumber="' . $this->xmlEscape($lineNumber) . '">' . "\n";
+            $itemsXml .= '            <SKU>' . $this->xmlEscape($sku) . '</SKU>' . "\n";
+            if ($description !== '') {
+                $itemsXml .= '            <ProductName>' . $this->xmlEscape($description) . '</ProductName>' . "\n";
+            }
+            $itemsXml .= '            <UnitPrice>' . $this->xmlEscape($unitPrice) . '</UnitPrice>' . "\n";
+            $itemsXml .= '            <OrderQuantity>' . $quantity . '</OrderQuantity>' . "\n";
+            $itemsXml .= "        </Item>\n";
+        }
+
+        $shipToName1 = trim((string) ($shipTo['companyName'] ?? $billTo['companyName'] ?? ''));
+        $shipToLine1 = trim((string) ($shipTo['address1'] ?? $billTo['address1'] ?? ''));
+        $shipToLine2 = trim((string) ($shipTo['address2'] ?? $billTo['address2'] ?? ''));
+        $shipToCity = trim((string) ($shipTo['city'] ?? $billTo['city'] ?? ''));
+        $shipToState = trim((string) ($shipTo['state'] ?? $billTo['state'] ?? ''));
+        $shipToPostal = trim((string) ($shipTo['postalCode'] ?? $billTo['postalCode'] ?? ''));
+        $shipToCountry = trim((string) ($shipTo['country'] ?? $billTo['country'] ?? 'US'));
+        $contactName = trim((string) ($shipTo['contactName'] ?? $billTo['contactName'] ?? $shipToName1));
+        $contactPhone = trim((string) ($shipTo['contactPhone'] ?? $billTo['contactPhone'] ?? ''));
+        $contactEmail = trim((string) ($shipTo['contactEmail'] ?? $billTo['contactEmail'] ?? ''));
+        $shipMethodCode = trim((string) ($orderData['shipMethodCode'] ?? ''));
+
+        $xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+        $xml .= "<SynnexB2B>\n";
+        $xml .= "    <Credential>\n";
+        $xml .= '        <UserID>' . $this->xmlEscape($username) . "</UserID>\n";
+        $xml .= '        <Password>' . $this->xmlEscape($password) . "</Password>\n";
+        $xml .= "    </Credential>\n";
+        $xml .= "    <OrderRequest>\n";
+        $xml .= '        <CustomerNumber>' . $this->xmlEscape($customerNo) . "</CustomerNumber>\n";
+        $xml .= '        <PONumber>' . $this->xmlEscape($poNumber) . "</PONumber>\n";
+        $xml .= '        <PODateTime>' . $this->xmlEscape($poDateTime) . "</PODateTime>\n";
+        if ($shipDate !== '') {
+            $xml .= '        <ExpectedShipDate>' . $this->xmlEscape($shipDate) . "</ExpectedShipDate>\n";
+        }
+        $xml .= "        <DropShipFlag>N</DropShipFlag>\n";
+        $xml .= "        <Shipment>\n";
+        $xml .= "            <ShipTo>\n";
+        if ($shipToName1 !== '') {
+            $xml .= '                <AddressName1>' . $this->xmlEscape($shipToName1) . "</AddressName1>\n";
+        }
+        if ($shipToLine1 !== '') {
+            $xml .= '                <AddressLine1>' . $this->xmlEscape($shipToLine1) . "</AddressLine1>\n";
+        }
+        if ($shipToLine2 !== '') {
+            $xml .= '                <AddressLine2>' . $this->xmlEscape($shipToLine2) . "</AddressLine2>\n";
+        }
+        if ($shipToCity !== '') {
+            $xml .= '                <City>' . $this->xmlEscape($shipToCity) . "</City>\n";
+        }
+        if ($shipToState !== '') {
+            $xml .= '                <State>' . $this->xmlEscape($shipToState) . "</State>\n";
+        }
+        if ($shipToPostal !== '') {
+            $xml .= '                <ZipCode>' . $this->xmlEscape($shipToPostal) . "</ZipCode>\n";
+        }
+        $xml .= '                <Country>' . $this->xmlEscape($shipToCountry) . "</Country>\n";
+        $xml .= "            </ShipTo>\n";
+        $xml .= "            <ShipToContact>\n";
+        if ($contactName !== '') {
+            $xml .= '                <ContactName>' . $this->xmlEscape($contactName) . "</ContactName>\n";
+        }
+        if ($contactPhone !== '') {
+            $xml .= '                <PhoneNumber>' . $this->xmlEscape($contactPhone) . "</PhoneNumber>\n";
+        }
+        if ($contactEmail !== '') {
+            $xml .= '                <EmailAddress>' . $this->xmlEscape($contactEmail) . "</EmailAddress>\n";
+        }
+        $xml .= "            </ShipToContact>\n";
+        if ($shipMethodCode !== '') {
+            $xml .= "            <ShipMethod>\n";
+            $xml .= '                <Code>' . $this->xmlEscape($shipMethodCode) . "</Code>\n";
+            $xml .= "            </ShipMethod>\n";
+        }
+        $xml .= "        </Shipment>\n";
+        $xml .= "        <Payment>\n";
+        $xml .= '            <BillTo code="' . $this->xmlEscape($customerNo) . '"></BillTo>' . "\n";
+        $xml .= "        </Payment>\n";
+        $xml .= "        <Items>\n";
+        $xml .= $itemsXml;
+        $xml .= "        </Items>\n";
+        $xml .= "    </OrderRequest>\n";
+        $xml .= "</SynnexB2B>";
+
+        return $xml;
     }
 
     /**

@@ -99,8 +99,8 @@
     <!-- API Configuration -->
     <div v-if="activeTab === 'api'" class="bg-white rounded-lg shadow">
       <div class="p-6 border-b border-gray-200">
-        <h3 class="text-lg font-semibold text-gray-900">TD SYNNEX API Configuration</h3>
-        <p class="text-sm text-gray-600 mt-1">Manage your TD SYNNEX API credentials</p>
+        <h3 class="text-lg font-semibold text-gray-900">Integrations Configuration</h3>
+        <p class="text-sm text-gray-600 mt-1">Manage TD SYNNEX and QuickBooks credentials and payment URL templates</p>
       </div>
       
       <div class="p-6 space-y-6">
@@ -108,13 +108,16 @@
           <div class="flex items-start gap-3">
             <i class="fas fa-info-circle text-blue-600 mt-1"></i>
             <div class="text-sm text-blue-800">
-              <p class="font-medium">API Status: <span class="text-green-600">Connected</span></p>
-              <p class="mt-1 text-blue-700">Your TD SYNNEX API credentials are configured and working properly.</p>
+              <p class="font-medium">Integration Settings</p>
+              <p class="mt-1 text-blue-700">These values are stored in app settings so production changes can be done from admin without editing code or .env.</p>
             </div>
           </div>
         </div>
 
         <div class="grid grid-cols-1 gap-6">
+          <div class="border rounded-lg border-gray-200 p-4">
+            <h4 class="font-semibold text-gray-900 mb-4">TD SYNNEX</h4>
+            <div class="grid grid-cols-1 gap-6">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">API Client ID</label>
             <input
@@ -151,6 +154,74 @@
               <option value="sandbox">Sandbox (Testing)</option>
               <option value="production">Production</option>
             </select>
+          </div>
+            </div>
+          </div>
+
+          <div class="border rounded-lg border-gray-200 p-4">
+            <h4 class="font-semibold text-gray-900 mb-4">QuickBooks</h4>
+            <div class="grid grid-cols-1 gap-6">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">QuickBooks Client ID</label>
+                <input
+                  v-model="apiConfig.quickbooks_client_id"
+                  type="text"
+                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2f5597]"
+                  placeholder="Enter QuickBooks Client ID"
+                />
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">QuickBooks Client Secret</label>
+                <div class="relative">
+                  <input
+                    v-model="apiConfig.quickbooks_client_secret"
+                    :type="showQuickBooksSecret ? 'text' : 'password'"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2f5597] pr-12"
+                    placeholder="••••••••••••••••"
+                  />
+                  <button
+                    @click="showQuickBooksSecret = !showQuickBooksSecret"
+                    type="button"
+                    class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  >
+                    <i :class="['fas', showQuickBooksSecret ? 'fa-eye-slash' : 'fa-eye']"></i>
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">QuickBooks Company ID</label>
+                <input
+                  v-model="apiConfig.quickbooks_company_id"
+                  type="text"
+                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2f5597]"
+                  placeholder="Enter QuickBooks Company ID"
+                />
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">QuickBooks Payment URL Template</label>
+                <input
+                  v-model="apiConfig.quickbooks_payment_url_template"
+                  type="url"
+                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2f5597]"
+                  placeholder="https://.../{invoice_number}?amount={amount}&company={quickbooks_company_id}"
+                />
+                <p class="text-xs text-gray-500 mt-1">Supports placeholders like {invoice_number}, {amount}, {success_url}, {cancel_url}, {quickbooks_company_id}.</p>
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">QuickBooks Bulk Payment URL Template</label>
+                <input
+                  v-model="apiConfig.quickbooks_bulk_payment_url_template"
+                  type="url"
+                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2f5597]"
+                  placeholder="https://.../bulk?invoices={invoice_numbers}&amount={amount}"
+                />
+                <p class="text-xs text-gray-500 mt-1">Used when paying multiple invoices directly. If blank, users can combine invoices first and pay the combined invoice.</p>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -308,6 +379,18 @@
             </select>
           </div>
           <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Currency Rate (vs USD)</label>
+            <input
+              v-model.number="systemSettings.currency_rate"
+              type="number"
+              min="0.0001"
+              step="0.0001"
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2f5597]"
+              placeholder="e.g. 4.44"
+            />
+            <p class="text-xs text-gray-500 mt-1">Example: set 4.44 to convert 1 USD to 4.44 in selected currency.</p>
+          </div>
+          <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Timezone</label>
             <select
               v-model="systemSettings.timezone"
@@ -318,6 +401,32 @@
               <option value="America/Denver">Mountain Time (MT)</option>
               <option value="America/Los_Angeles">Pacific Time (PT)</option>
             </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Default Tax Rate (%)</label>
+            <input
+              v-model.number="systemSettings.tax_rate_percent"
+              type="number"
+              min="0"
+              max="100"
+              step="0.01"
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2f5597]"
+              placeholder="e.g. 7.50"
+            />
+            <p class="text-xs text-gray-500 mt-1">Applied when building invoice tax if quote/order tax is not explicitly provided.</p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Default Profit Per Item (%)</label>
+            <input
+              v-model.number="systemSettings.profit_rate_percent"
+              type="number"
+              min="0"
+              max="500"
+              step="0.01"
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2f5597]"
+              placeholder="e.g. 12.00"
+            />
+            <p class="text-xs text-gray-500 mt-1">Markup used to compute invoice subtotal and per-item unit prices.</p>
           </div>
         </div>
 
@@ -509,6 +618,7 @@ import api from '@/services/api'
 const activeTab = ref('profile')
 const isSaving = ref(false)
 const showSecret = ref(false)
+const showQuickBooksSecret = ref(false)
 const showAddAdminModal = ref(false)
 const currentUserId = ref(null)
 
@@ -533,7 +643,12 @@ const passwords = ref({
 const apiConfig = ref({
   client_id: '',
   client_secret: '',
-  environment: 'sandbox'
+  environment: 'sandbox',
+  quickbooks_client_id: '',
+  quickbooks_client_secret: '',
+  quickbooks_company_id: '',
+  quickbooks_payment_url_template: '',
+  quickbooks_bulk_payment_url_template: ''
 })
 
 const emailSettings = ref({
@@ -550,8 +665,11 @@ const systemSettings = ref({
   company_name: 'Armely Store',
   support_email: 'support@armely.com',
   currency: 'USD',
+  currency_rate: 1,
   timezone: 'America/New_York',
-  maintenance_mode: false
+  maintenance_mode: false,
+  tax_rate_percent: 0,
+  profit_rate_percent: 0,
 })
 
 const adminUsers = ref([])

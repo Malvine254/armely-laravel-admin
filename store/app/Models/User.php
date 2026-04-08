@@ -28,6 +28,8 @@ class User extends Authenticatable
         'role',
         'status',
         'profile_picture',
+        'stripe_customer_id',
+        'payment_methods_consent',
     ];
 
     /**
@@ -50,6 +52,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'payment_methods_consent' => 'boolean',
         ];
     }
 

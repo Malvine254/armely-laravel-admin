@@ -5,6 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Quote;
 use App\Models\Order;
 use App\Models\Invoice;
+use App\Models\Product;
+use App\Models\AppSetting;
+use App\Models\Shipment;
 use App\Models\Activity;
 use App\Jobs\SendQuoteNotificationJob;
 use App\Services\TDSynnexService;
@@ -13,6 +16,7 @@ use App\Services\NotificationService;
 use App\Services\InvoiceService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 class QuoteOrderInvoiceController extends Controller
@@ -37,42 +41,12 @@ class QuoteOrderInvoiceController extends Controller
 
     /**
      * Ensure consistency for customer-facing pages:
-     * approved quote -> order, and order -> invoice.
+     * order -> invoice.
      */
     private function ensureApprovedQuotesHaveOrdersAndInvoices($user): void
     {
-        // 1) Backfill orders for approved quotes missing an order.
-        $approvedQuotes = Quote::where('user_id', $user->id)
-            ->where('status', 'approved')
-            ->get();
-
-        foreach ($approvedQuotes as $quote) {
-            $existingOrder = Order::where('user_id', $user->id)
-                ->where('quote_id', $quote->quote_id)
-                ->first();
-
-            if (!$existingOrder) {
-                $orderNumber = $this->generateLocalOrderNumber();
-
-                Order::create([
-                    'user_id' => $user->id,
-                    'order_number' => $orderNumber,
-                    'quote_id' => $quote->quote_id,
-                    'status' => 'pending',
-                    'total_amount' => $quote->total_amount,
-                    'tax_amount' => $quote->tax_amount,
-                    'discount_amount' => $quote->discount_amount,
-                    'items' => $quote->items,
-                    'raw_data' => [
-                        'source' => 'auto-backfill-approved-quote',
-                        'quote_id' => $quote->quote_id,
-                    ],
-                    'ordered_at' => now(),
-                ]);
-            }
-        }
-
-        // 2) Backfill invoices for orders missing an invoice.
+        // Backfill invoices for orders missing an invoice.
+        // Order creation is admin-controlled and performed through TD SYNNEX.
         $orders = Order::where('user_id', $user->id)->get();
         $invoiceOrderNumbers = Invoice::where('user_id', $user->id)
             ->pluck('order_number')
@@ -81,6 +55,7 @@ class QuoteOrderInvoiceController extends Controller
             ->all();
 
         foreach ($orders as $order) {
+            /** @var Order $order */
             if (!in_array($order->order_number, $invoiceOrderNumbers, true)) {
                 try {
                     $this->invoiceService->generateInvoiceForOrder($order);
@@ -92,6 +67,22 @@ class QuoteOrderInvoiceController extends Controller
                 }
             }
         }
+    }
+
+    private function ensureApprovedQuotesHaveOrdersAndInvoicesThrottled($user, string $scope = 'default', int $ttlSeconds = 120): void
+    {
+        $userId = $user?->id;
+        if (!$userId) {
+            return;
+        }
+
+        $cacheKey = "quote-order-invoice-sync:{$scope}:user:{$userId}";
+        if (Cache::has($cacheKey)) {
+            return;
+        }
+
+        $this->ensureApprovedQuotesHaveOrdersAndInvoices($user);
+        Cache::put($cacheKey, true, now()->addSeconds($ttlSeconds));
     }
 
     private function generateLocalOrderNumber(): string
@@ -171,12 +162,29 @@ class QuoteOrderInvoiceController extends Controller
 
         $resolvedName = null;
 
-        try {
-            $product = $this->tdsynnexService->getProductDetails($key);
-            $payload = is_array($product['data'] ?? null) ? $product['data'] : $product;
-            $resolvedName = $this->extractProductNameFromPayload((array) $payload);
-        } catch (\Throwable $e) {
-            Log::debug("Product detail lookup failed for key {$key}: {$e->getMessage()}");
+        $localProductQuery = Product::query()
+            ->select('product_name')
+            ->where('tdsynnex_product_id', $key)
+            ->orWhere('tdsynnex_sku_no', $key)
+            ->orWhere('mfg_part_no', $key);
+
+        if (ctype_digit($key)) {
+            $localProductQuery->orWhere('id', (int) $key);
+        }
+
+        $localProductName = $localProductQuery->value('product_name');
+        if (is_string($localProductName) && trim($localProductName) !== '') {
+            $resolvedName = trim($localProductName);
+        }
+
+        if (!$resolvedName) {
+            try {
+                $product = $this->tdsynnexService->getProductDetails($key);
+                $payload = is_array($product['data'] ?? null) ? $product['data'] : $product;
+                $resolvedName = $this->extractProductNameFromPayload((array) $payload);
+            } catch (\Throwable $e) {
+                Log::debug("Product detail lookup failed for key {$key}: {$e->getMessage()}");
+            }
         }
 
         if (!$resolvedName) {
@@ -208,8 +216,10 @@ class QuoteOrderInvoiceController extends Controller
             $lookupKey = (string) (
                 $item['product_id']
                 ?? $item['productId']
+                ?? $item['id']
                 ?? $item['mfg_part_number']
                 ?? $item['mfgPartNo']
+                ?? $item['partNumber']
                 ?? $item['sku']
                 ?? ''
             );
@@ -217,6 +227,7 @@ class QuoteOrderInvoiceController extends Controller
             $resolvedName = $this->resolveProductNameByLookupKey($lookupKey);
             if ($resolvedName) {
                 $item['product_name'] = $resolvedName;
+                $item['productName'] = $resolvedName;
             }
 
             return $item;
@@ -238,6 +249,37 @@ class QuoteOrderInvoiceController extends Controller
         }
 
         return null;
+    }
+
+    private function loadPricingSettings(): array
+    {
+        $taxRatePercent = max(0, AppSetting::getNumber('pricing.tax_rate_percent', 0));
+        $profitRatePercent = max(0, AppSetting::getNumber('pricing.profit_rate_percent', 0));
+        $currencyCode = strtoupper((string) AppSetting::getValue('pricing.currency_code', 'USD'));
+        $currencyRate = max(0.0001, AppSetting::getNumber('pricing.currency_rate', 1));
+
+        return [
+            'tax_rate_percent' => $taxRatePercent,
+            'profit_rate_percent' => $profitRatePercent,
+            'currency_code' => $currencyCode !== '' ? $currencyCode : 'USD',
+            'currency_rate' => $currencyRate,
+        ];
+    }
+
+    public function getPricingSettings(Request $request): JsonResponse
+    {
+        try {
+            return response()->json([
+                'success' => true,
+                'data' => $this->loadPricingSettings(),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to get pricing settings: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to load pricing settings',
+            ], 500);
+        }
     }
 
     // ============ QUOTES ============
@@ -369,9 +411,64 @@ class QuoteOrderInvoiceController extends Controller
             }
 
             $quoteId = 'LOCAL-QUOTE-' . strtoupper(uniqid());
-            $totalAmount = array_reduce($validated['items'], function ($carry, $item) {
-                return $carry + ($item['quantity'] * 100);
-            }, 0);
+            $pricing = $this->loadPricingSettings();
+
+            $enrichedItems = [];
+            $baseSubtotal = 0.0;
+
+            foreach ($validated['items'] as $item) {
+                $productId = (int) $item['product_id'];
+                $qty = max(1, (int) $item['quantity']);
+
+                $product = Product::query()->find($productId);
+
+                $baseUnitPrice = 0.0;
+                if ($product) {
+                    $baseUnitPrice = (float) (
+                        $product->customer_price
+                        ?? $product->retail_price
+                        ?? $product->price
+                        ?? 0
+                    );
+                }
+
+                $lineBase = round($baseUnitPrice * $qty, 2);
+                $baseSubtotal = round($baseSubtotal + $lineBase, 2);
+
+                $enrichedItems[] = [
+                    'product_id' => $productId,
+                    'quantity' => $qty,
+                    'product_name' => $product?->product_name,
+                    'mfg_part_number' => $product?->mfg_part_no,
+                    'unit_price' => round($baseUnitPrice, 2),
+                    'line_total' => $lineBase,
+                ];
+            }
+
+            $profitAmount = round(($baseSubtotal * ((float) $pricing['profit_rate_percent'])) / 100, 2);
+            $subtotal = round($baseSubtotal + $profitAmount, 2);
+            $taxAmount = round(($subtotal * ((float) $pricing['tax_rate_percent'])) / 100, 2);
+            $totalAmount = round($subtotal + $taxAmount, 2);
+
+            if ($baseSubtotal > 0 && !empty($enrichedItems)) {
+                $runningDelta = 0.0;
+                foreach ($enrichedItems as $idx => &$enrichedItem) {
+                    $lineBase = (float) ($enrichedItem['line_total'] ?? 0);
+                    $isLast = $idx === count($enrichedItems) - 1;
+
+                    $lineDelta = $isLast
+                        ? round(($totalAmount - $baseSubtotal) - $runningDelta, 2)
+                        : round((($totalAmount - $baseSubtotal) * $lineBase) / $baseSubtotal, 2);
+
+                    $runningDelta = round($runningDelta + $lineDelta, 2);
+                    $lineTotalFinal = round($lineBase + $lineDelta, 2);
+                    $qty = max(1, (int) ($enrichedItem['quantity'] ?? 1));
+
+                    $enrichedItem['line_total'] = $lineTotalFinal;
+                    $enrichedItem['unit_price'] = round($lineTotalFinal / $qty, 2);
+                }
+                unset($enrichedItem);
+            }
 
             // Store in local database
             $quote = Quote::create([
@@ -380,16 +477,27 @@ class QuoteOrderInvoiceController extends Controller
                 'status' => 'pending_review',
                 'description' => $validated['description'] ?? null,
                 'total_amount' => $totalAmount,
-                'tax_amount' => 0,
+                'tax_amount' => $taxAmount,
                 'discount_amount' => 0,
-                'items' => $validated['items'],
+                'items' => $enrichedItems,
                 'raw_data' => [
                     'source' => 'local_only',
-                    'submitted_items' => $validated['items'],
+                    'submitted_items' => $enrichedItems,
                     'revised_from_quote_id' => $revisedFromQuoteId,
+                    'pricing' => [
+                        'base_subtotal' => $baseSubtotal,
+                        'profit_rate_percent' => (float) $pricing['profit_rate_percent'],
+                        'profit_amount' => $profitAmount,
+                        'tax_rate_percent' => (float) $pricing['tax_rate_percent'],
+                        'tax_amount' => $taxAmount,
+                        'subtotal' => $subtotal,
+                        'total_amount' => $totalAmount,
+                        'currency_code' => $pricing['currency_code'],
+                        'currency_rate' => (float) $pricing['currency_rate'],
+                    ],
                 ],
                 'submitted_at' => now(),
-                'expires_at' => now()->addDays(30),
+                'expires_at' => now()->addDays(max(1, (int) config('app.quote_expiry_days', 30))),
             ]);
 
             // Log activity
@@ -442,6 +550,7 @@ class QuoteOrderInvoiceController extends Controller
             $status = $request->get('status');
 
             $query = Order::where('user_id', $user->id)
+                ->with('invoice')
                 ->when($status, fn ($q) => $q->where('status', $status))
                 ->orderByDesc('created_at');
 
@@ -450,8 +559,16 @@ class QuoteOrderInvoiceController extends Controller
             // Map the response to ensure frontend field names match
             $mappedOrders = $orders->items();
             $mappedOrders = array_map(function ($order) {
+                $itemPreview = $this->buildOrderItemPreview($order);
                 $order->tracking_number = $order->tracking_info;
                 $order->estimated_delivery = $order->delivered_at;
+                $order->primary_item_name = $itemPreview['primary_item_name'];
+                $order->additional_items_count = $itemPreview['additional_items_count'];
+                $order->linked_invoice_number = $order->invoice?->invoice_number;
+                $order->linked_invoice_status = $order->invoice?->status;
+                $order->linked_invoice_due = $order->invoice
+                    ? Number_format((float) (($order->invoice->total_amount ?? 0) - ($order->invoice->paid_amount ?? 0)), 2, '.', '')
+                    : null;
                 return $order;
             }, $mappedOrders);
 
@@ -475,6 +592,245 @@ class QuoteOrderInvoiceController extends Controller
                 'error' => $e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * Get live shipping snapshots for the authenticated user's recent orders.
+     */
+    public function getLiveShipping(Request $request): JsonResponse
+    {
+        try {
+            $user = $request->user();
+            $this->ensureApprovedQuotesHaveOrdersAndInvoices($user);
+
+            $orders = Order::where('user_id', $user->id)
+                ->whereNotIn('status', ['cancelled'])
+                ->where(function ($query) {
+                    $query->whereIn('payment_status', ['paid', 'completed'])
+                        ->orWhereIn('status', ['shipped', 'in_transit', 'delivered'])
+                        ->orWhereNotNull('tracking_info')
+                        ->orWhereHas('shipments');
+                })
+                ->with(['shipments' => fn ($q) => $q->latest('updated_at')])
+                ->latest('created_at')
+                ->limit(12)
+                ->get();
+
+            $snapshots = $orders
+                ->map(fn (Order $order) => $this->buildShippingSnapshot($order))
+                ->values();
+
+            return response()->json([
+                'success' => true,
+                'data' => $snapshots,
+                'meta' => [
+                    'server_time' => now()->toIso8601String(),
+                    'refresh_after_seconds' => 20,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to fetch live shipping snapshots: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch shipping tracker data',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    private function buildShippingSnapshot(Order $order): array
+    {
+        $latestShipment = $order->shipments->first();
+        $itemPreview = $this->buildOrderItemPreview($order);
+        $paymentStatus = strtolower((string) ($order->payment_status ?? ''));
+        $trackingEligible = in_array($paymentStatus, ['paid', 'completed'], true)
+            || in_array((string) $order->status, ['shipped', 'in_transit', 'delivered'], true)
+            || $latestShipment !== null
+            || !empty($order->tracking_info);
+
+        $status = $latestShipment?->status ?? $order->status ?? 'pending';
+        if ($status === 'confirmed') {
+            $status = 'processing';
+        }
+
+        $trackingNumber = $latestShipment?->tracking_number ?? $order->tracking_info;
+        $carrier = $latestShipment?->carrier ?? $this->guessCarrierFromTrackingNumber($trackingNumber);
+        $trackingUrl = $latestShipment?->getTrackingUrl();
+
+        if (!$trackingUrl && $trackingNumber) {
+            $trackingUrl = $this->fallbackTrackingUrl($carrier, $trackingNumber);
+        }
+
+        $orderedAt = $order->ordered_at ?? $order->created_at;
+        $shippedAt = $latestShipment?->shipped_at ?? $order->shipped_at;
+        $etaAt = $latestShipment?->expected_delivery_at ?? $order->delivered_at;
+        $deliveredAt = $latestShipment?->delivered_at ?? ($status === 'delivered' ? $order->delivered_at : null);
+
+        return [
+            'order_number' => $order->order_number,
+            'primary_item_name' => $itemPreview['primary_item_name'],
+            'additional_items_count' => $itemPreview['additional_items_count'],
+            'tracking_eligible' => $trackingEligible,
+            'payment_status' => $order->payment_status,
+            'status' => $status,
+            'progress' => $this->shippingProgressForStatus($status),
+            'carrier' => $carrier,
+            'tracking_number' => $trackingNumber,
+            'tracking_url' => $trackingUrl,
+            'ordered_at' => optional($orderedAt)?->toIso8601String(),
+            'shipped_at' => optional($shippedAt)?->toIso8601String(),
+            'estimated_delivery_at' => optional($etaAt)?->toIso8601String(),
+            'delivered_at' => optional($deliveredAt)?->toIso8601String(),
+            'last_updated_at' => optional($latestShipment?->updated_at ?? $order->updated_at)?->toIso8601String(),
+            'milestones' => [
+                [
+                    'label' => 'Order Confirmed',
+                    'time' => optional($orderedAt)?->toIso8601String(),
+                    'done' => true,
+                ],
+                [
+                    'label' => 'Picked & Packed',
+                    'time' => optional($shippedAt)?->toIso8601String(),
+                    'done' => in_array($status, ['shipped', 'in_transit', 'delivered'], true),
+                ],
+                [
+                    'label' => 'In Transit',
+                    'time' => optional($shippedAt)?->toIso8601String(),
+                    'done' => in_array($status, ['in_transit', 'delivered'], true),
+                ],
+                [
+                    'label' => 'Delivered',
+                    'time' => optional($deliveredAt)?->toIso8601String(),
+                    'done' => $status === 'delivered',
+                ],
+            ],
+        ];
+    }
+
+    private function buildOrderItemPreview(Order $order): array
+    {
+        $items = is_array($order->items) ? $order->items : [];
+
+        $names = collect($items)
+            ->map(function ($item) {
+                if (!is_array($item)) {
+                    return null;
+                }
+                return $this->resolveOrderItemName($item);
+            })
+            ->filter(fn ($name) => is_string($name) && trim($name) !== '')
+            ->map(fn ($name) => trim((string) $name))
+            ->unique()
+            ->values();
+
+        if ($names->isEmpty()) {
+            return [
+                'primary_item_name' => 'Item details unavailable',
+                'additional_items_count' => 0,
+            ];
+        }
+
+        return [
+            'primary_item_name' => (string) $names->first(),
+            'additional_items_count' => max($names->count() - 1, 0),
+        ];
+    }
+
+    private function resolveOrderItemName(array $item): ?string
+    {
+        $inlineName = $item['product_name']
+            ?? $item['productName']
+            ?? $item['name']
+            ?? $item['partDescription']
+            ?? $item['description']
+            ?? null;
+
+        if (is_string($inlineName) && trim($inlineName) !== '') {
+            return trim($inlineName);
+        }
+
+        $lookupKey = trim((string) (
+            $item['product_id']
+            ?? $item['productId']
+            ?? $item['sku']
+            ?? $item['mfg_part_number']
+            ?? $item['mfgPartNo']
+            ?? ''
+        ));
+
+        if ($lookupKey === '') {
+            return null;
+        }
+
+        if (array_key_exists($lookupKey, $this->productNameCache) && $this->productNameCache[$lookupKey] !== '') {
+            return $this->productNameCache[$lookupKey];
+        }
+
+        $productName = Product::query()
+            ->where('tdsynnex_product_id', $lookupKey)
+            ->orWhere('tdsynnex_sku_no', $lookupKey)
+            ->value('product_name');
+
+        if (is_string($productName) && trim($productName) !== '') {
+            $this->productNameCache[$lookupKey] = trim($productName);
+            return $this->productNameCache[$lookupKey];
+        }
+
+        return null;
+    }
+
+    private function shippingProgressForStatus(?string $status): int
+    {
+        return match ($status) {
+            'pending' => 15,
+            'processing', 'confirmed' => 35,
+            'shipped' => 65,
+            'in_transit' => 80,
+            'delivered' => 100,
+            'returned' => 100,
+            default => 20,
+        };
+    }
+
+    private function guessCarrierFromTrackingNumber(?string $trackingNumber): ?string
+    {
+        if (!$trackingNumber) {
+            return null;
+        }
+
+        $digits = preg_replace('/\D+/', '', $trackingNumber);
+        $len = strlen((string) $digits);
+
+        if ($len === 12 || $len === 15) {
+            return 'fedex';
+        }
+
+        if ($len === 18) {
+            return 'ups';
+        }
+
+        if ($len >= 20 && $len <= 22) {
+            return 'usps';
+        }
+
+        return null;
+    }
+
+    private function fallbackTrackingUrl(?string $carrier, string $trackingNumber): ?string
+    {
+        $templates = [
+            'fedex' => 'https://tracking.fedex.com/track?tracknumbers=%s',
+            'ups' => 'https://www.ups.com/track?tracknum=%s',
+            'usps' => 'https://tools.usps.com/go/TrackConfirmAction?tLabels=%s',
+            'dhl' => 'https://www.dhl.com/en/en/home/tracking/tracking-express.html?submit=1&tracking-id=%s',
+        ];
+
+        if (!$carrier || !isset($templates[strtolower($carrier)])) {
+            return null;
+        }
+
+        return sprintf($templates[strtolower($carrier)], urlencode($trackingNumber));
     }
 
     /**
@@ -535,95 +891,10 @@ class QuoteOrderInvoiceController extends Controller
      */
     public function convertQuoteToOrder(Request $request, string $quoteId): JsonResponse
     {
-        try {
-            $user = $request->user();
-
-            if ($denied = $this->ensureWriteAccess($user)) {
-                return $denied;
-            }
-
-            $quote = Quote::where('user_id', $user->id)
-                ->where('quote_id', $quoteId)
-                ->firstOrFail();
-
-            $existingOrder = Order::where('user_id', $user->id)
-                ->where('quote_id', $quoteId)
-                ->first();
-
-            if ($existingOrder) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Quote has already been converted to an order',
-                    'data' => $existingOrder,
-                ]);
-            }
-
-            if (!$quote->canConvert()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Quote cannot be converted. It may be expired or not approved.',
-                ], 400);
-            }
-
-            // Convert quote to order in TD SYNNEX
-            $orderData = [
-                'quoteId' => $quoteId,
-                'items' => $quote->items,
-            ];
-
-            $tdResponse = $this->tdsynnexService->placeOrder($orderData);
-            $orderNumber = $tdResponse['orderNumber'] ?? $tdResponse['orderId'] ?? null;
-
-            if (!$orderNumber) {
-                throw new \Exception('Failed to create order: No order number returned');
-            }
-
-            // Store in local database
-            $order = Order::create([
-                'user_id' => $user->id,
-                'order_number' => $orderNumber,
-                'quote_id' => $quoteId,
-                'status' => $tdResponse['status'] ?? 'pending',
-                'total_amount' => $quote->total_amount,
-                'tax_amount' => $quote->tax_amount,
-                'discount_amount' => $quote->discount_amount,
-                'items' => $quote->items,
-                'raw_data' => $tdResponse,
-                'ordered_at' => now(),
-            ]);
-
-            // Update quote status
-            $quote->update(['status' => 'converted']);
-
-            // Log activity
-            Activity::log(
-                $user->id,
-                'order',
-                'created',
-                "Converted quote to order #" . $orderNumber,
-                ['quote_id' => $quoteId, 'order_number' => $orderNumber]
-            );
-
-            // Dispatch background jobs
-            \App\Jobs\GenerateInvoiceJob::dispatch($order);
-            \App\Jobs\UpdateOrderStatusJob::dispatch($order);
-
-            // Send confirmation notification  
-            $this->notificationService->sendOrderConfirmationNotification($order);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Quote converted to order successfully',
-                'data' => $order,
-            ], 201);
-        } catch (\Exception $e) {
-            Log::error("Failed to convert quote {$quoteId}: " . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to convert quote to order',
-                'error' => $e->getMessage(),
-            ], 500);
-        }
+        return response()->json([
+            'success' => false,
+            'message' => 'Order creation is handled by admin approval only.',
+        ], 403);
     }
 
     /**
@@ -699,26 +970,55 @@ class QuoteOrderInvoiceController extends Controller
     {
         try {
             $user = $request->user();
-            $this->ensureApprovedQuotesHaveOrdersAndInvoices($user);
+            $this->ensureApprovedQuotesHaveOrdersAndInvoicesThrottled($user, 'invoices');
             $page = $request->get('page', 1);
             $pageSize = $request->get('pageSize', 50);
             $status = $request->get('status');
+            $search = trim((string) $request->get('search', ''));
+            $sort = trim((string) $request->get('sort', 'due_asc'));
 
-            $invoices = Invoice::where('user_id', $user->id)
+            $query = Invoice::where('user_id', $user->id)
                 ->when($status, fn ($q) => $q->where('status', $status))
-                ->orderByDesc('created_at')
-                ->paginate($pageSize, ['*'], 'page', $page);
+                ->when($search !== '', function ($q) use ($search) {
+                    $q->where(function ($subQuery) use ($search) {
+                        $subQuery->where('invoice_number', 'like', '%' . $search . '%')
+                            ->orWhere('order_number', 'like', '%' . $search . '%');
+                    });
+                });
 
-            $invoiceRows = $invoices->items();
-            foreach ($invoiceRows as $invoiceRow) {
-                $invoiceItems = is_array($invoiceRow->items) ? $invoiceRow->items : [];
-                $enrichedItems = $this->enrichInvoiceItemsWithProductNames($invoiceItems);
-                $invoiceRow->items = $enrichedItems;
-
-                if ($enrichedItems !== $invoiceItems) {
-                    $invoiceRow->update(['items' => $enrichedItems]);
-                }
+            switch ($sort) {
+                case 'due_desc':
+                    $query->orderByDesc('due_at')->orderByDesc('created_at');
+                    break;
+                case 'amount_desc':
+                    $query->orderByDesc('total_amount')->orderByDesc('created_at');
+                    break;
+                case 'amount_asc':
+                    $query->orderBy('total_amount')->orderByDesc('created_at');
+                    break;
+                case 'issued_desc':
+                    $query->orderByDesc('issued_at')->orderByDesc('created_at');
+                    break;
+                case 'due_asc':
+                default:
+                    $query->orderBy('due_at')->orderByDesc('created_at');
+                    break;
             }
+
+            $invoices = $query->paginate($pageSize, ['*'], 'page', $page);
+            $invoiceRows = $invoices->items();
+
+            $invoiceRows = array_map(function ($invoice) {
+                $existingItems = is_array($invoice->items) ? $invoice->items : [];
+                $enrichedItems = $this->enrichInvoiceItemsWithProductNames($existingItems);
+                $invoice->items = $enrichedItems;
+
+                if ($enrichedItems !== $existingItems) {
+                    $invoice->update(['items' => $enrichedItems]);
+                }
+
+                return $invoice;
+            }, $invoiceRows);
 
             return response()->json([
                 'success' => true,

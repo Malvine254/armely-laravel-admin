@@ -56,7 +56,6 @@
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
               </svg>
-              <span v-if="unreadCount > 0" class="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">{{ unreadCount }}</span>
               <span class="hidden group-hover:block absolute top-12 right-0 bg-white px-2 py-1 rounded text-xs whitespace-nowrap" style="color: #2F5597;">Messages</span>
             </button>
 
@@ -174,13 +173,13 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCartStore } from '../stores/cartStore'
 import { useFavoritesStore } from '../stores/favoritesStore'
 import { useAuthStore } from '../stores/authStore'
 import { useToastStore } from '../stores/toastStore'
-import { API_BASE_URL, buildStoreUrl } from '../services/runtimeConfig'
+import { buildStoreUrl } from '../services/runtimeConfig'
 import { trackSearchTerm } from '../services/searchInsights'
 
 const router = useRouter()
@@ -189,9 +188,7 @@ const favoritesStore = useFavoritesStore()
 const authStore = useAuthStore()
 const toastStore = useToastStore()
 const searchTerm = ref('')
-const unreadCount = ref(0)
 const mobileMenuOpen = ref(false)
-const unreadIntervalId = ref(null)
 
 const logoCandidates = (() => {
   const relativePath = 'images/logo/armely-store-logo.png'
@@ -297,39 +294,4 @@ const submitSearch = () => {
   router.push({ name: 'products', query: query ? { q: query } : {} })
 }
 
-const fetchUnreadCount = async () => {
-  try {
-    const token = localStorage.getItem('auth_token')
-    if (!token) return
-    
-    const response = await fetch(`${API_BASE_URL}/messages/unread-count`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      }
-    })
-
-    if (response.ok) {
-      const data = await response.json()
-      unreadCount.value = data.count ?? data.unread_count ?? 0
-    }
-  } catch (error) {
-    console.error('Error fetching unread count:', error)
-  }
-}
-
-onMounted(() => {
-  fetchUnreadCount()
-
-  // Refresh unread count every 30 seconds
-  unreadIntervalId.value = setInterval(fetchUnreadCount, 30000)
-})
-
-onBeforeUnmount(() => {
-  if (unreadIntervalId.value) {
-    clearInterval(unreadIntervalId.value)
-  }
-})
 </script>

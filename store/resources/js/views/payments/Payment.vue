@@ -6,7 +6,7 @@
       <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8">
         <div class="mb-6">
           <h1 class="text-3xl font-bold text-slate-900">Payment</h1>
-          <p class="text-slate-600 mt-1">Choose a payment option and continue to secure checkout.</p>
+          <p class="text-slate-600 mt-1">Review the invoice amount and continue to QuickBooks secure checkout.</p>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
@@ -24,50 +24,18 @@
           </div>
         </div>
 
-        <div class="mb-6">
-          <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-600 mb-3">Select Payment Option</h2>
-          <div class="space-y-3">
-            <label class="flex items-start gap-3 p-4 border rounded-xl cursor-pointer transition"
-              :class="selectedOption === 'card' ? 'border-[#2F5597] bg-[#edf3fb]' : 'border-slate-200 hover:border-slate-300'">
-              <input v-model="selectedOption" value="card" type="radio" class="mt-1" style="accent-color: #2F5597;" />
-              <div>
-                <p class="font-semibold text-slate-900">Card Payment</p>
-                <p class="text-sm text-slate-600">Use Visa, Mastercard, or AMEX via secure checkout.</p>
-                <img
-                  :src="buildStoreUrl('images/payments/card-payment.svg')"
-                  alt="Card payment gateways"
-                  class="mt-2 h-12 w-auto rounded-md border border-slate-200"
-                />
-              </div>
-            </label>
-
-            <label class="flex items-start gap-3 p-4 border rounded-xl cursor-pointer transition"
-              :class="selectedOption === 'bank' ? 'border-[#2F5597] bg-[#edf3fb]' : 'border-slate-200 hover:border-slate-300'">
-              <input v-model="selectedOption" value="bank" type="radio" class="mt-1" style="accent-color: #2F5597;" />
-              <div>
-                <p class="font-semibold text-slate-900">Bank Account</p>
-                <p class="text-sm text-slate-600">Pay directly using bank transfer options in checkout.</p>
-                <img
-                  :src="buildStoreUrl('images/payments/bank-payment.svg')"
-                  alt="Bank transfer gateway"
-                  class="mt-2 h-12 w-auto rounded-md border border-slate-200"
-                />
-              </div>
-            </label>
-
-            <label class="flex items-start gap-3 p-4 border rounded-xl cursor-pointer transition"
-              :class="selectedOption === 'wallet' ? 'border-[#2F5597] bg-[#edf3fb]' : 'border-slate-200 hover:border-slate-300'">
-              <input v-model="selectedOption" value="wallet" type="radio" class="mt-1" style="accent-color: #2F5597;" />
-              <div>
-                <p class="font-semibold text-slate-900">Wallet / Alternative</p>
-                <p class="text-sm text-slate-600">Use available wallet or alternative methods at checkout.</p>
-                <img
-                  :src="buildStoreUrl('images/payments/wallet-payment.svg')"
-                  alt="Wallet payment options"
-                  class="mt-2 h-12 w-auto rounded-md border border-slate-200"
-                />
-              </div>
-            </label>
+        <div class="mb-6 rounded-xl border border-slate-200 bg-slate-50 p-4">
+          <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-600 mb-2">Checkout Provider</h2>
+          <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+            <img
+              :src="buildStoreUrl('images/payments/secure-checkout.svg')"
+              alt="QuickBooks secure checkout"
+              class="h-12 w-auto"
+            />
+            <div>
+              <p class="font-semibold text-slate-900">QuickBooks Payments</p>
+              <p class="text-sm text-slate-600">Card and bank options are presented in the hosted QuickBooks payment page for the invoice you selected.</p>
+            </div>
           </div>
         </div>
 
@@ -79,7 +47,7 @@
               class="h-12 w-auto"
             />
             <p class="text-sm text-slate-700">
-              You will be redirected to secure payment checkout. Final available methods may vary based on invoice and region.
+              You will be redirected to QuickBooks secure checkout. Final available methods may vary based on invoice and region.
             </p>
           </div>
         </div>
@@ -99,7 +67,7 @@
             class="px-5 py-3 rounded-lg text-white font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed"
             style="background-color: #2F5597;"
           >
-            {{ processing ? 'Starting Checkout...' : 'Continue to Payment' }}
+            {{ processing ? 'Starting QuickBooks...' : 'Continue to QuickBooks' }}
           </button>
         </div>
       </div>
@@ -114,16 +82,14 @@ import axios from 'axios'
 import { useToastStore } from '../../stores/toastStore'
 import { buildStoreUrl } from '../../services/runtimeConfig'
 import Navbar from '../../components/Navbar.vue'
+import { usePricingSettings } from '../../composables/usePricingSettings'
 
 const route = useRoute()
 const router = useRouter()
 const toastStore = useToastStore()
+const { loadPricingSettings, formatUsdUsingCurrentCurrency } = usePricingSettings()
 
 const processing = ref(false)
-const PAYMENT_OPTION_KEY = 'armely_preferred_payment_option'
-const allowedPaymentOptions = ['card', 'bank', 'wallet']
-const preferredOption = String(localStorage.getItem(PAYMENT_OPTION_KEY) || 'card')
-const selectedOption = ref(allowedPaymentOptions.includes(preferredOption) ? preferredOption : 'card')
 
 const mode = computed(() => String(route.query.mode || 'invoice'))
 const invoiceNumber = computed(() => String(route.query.invoiceNumber || '').trim())
@@ -169,8 +135,10 @@ const referenceLabel = computed(() => {
 })
 
 const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(amount || 0))
+  return formatUsdUsingCurrentCurrency(Number(amount || 0))
 }
+
+loadPricingSettings()
 
 const resolveInvoiceAmount = async () => {
   resolvedInvoiceAmount.value = null
@@ -219,7 +187,6 @@ const continueToCheckout = async () => {
   }
 
   processing.value = true
-  localStorage.setItem(PAYMENT_OPTION_KEY, selectedOption.value)
 
   try {
     let response

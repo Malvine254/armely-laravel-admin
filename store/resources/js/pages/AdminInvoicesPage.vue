@@ -112,12 +112,59 @@
       </div>
     </div>
 
+    <!-- Bulk Action Toolbar -->
+    <transition name="slide-down">
+      <div v-if="selectedIds.size > 0" class="bg-[#1e3a6e] text-white rounded-lg shadow px-5 py-3 mb-4 flex flex-wrap items-center gap-3">
+        <span class="font-semibold text-sm mr-2">{{ selectedIds.size }} selected</span>
+
+        <button
+          @click="bulkMarkPaid"
+          :disabled="bulkLoading"
+          class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-green-500 hover:bg-green-400 text-white transition disabled:opacity-50"
+        >
+          <i class="fas fa-check"></i> Mark Paid
+        </button>
+
+        <button
+          @click="bulkCancel"
+          :disabled="bulkLoading"
+          class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-yellow-500 hover:bg-yellow-400 text-white transition disabled:opacity-50"
+        >
+          <i class="fas fa-ban"></i> Cancel
+        </button>
+
+        <button
+          @click="bulkDelete"
+          :disabled="bulkLoading"
+          class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-red-500 hover:bg-red-400 text-white transition disabled:opacity-50"
+        >
+          <i :class="bulkLoading ? 'fas fa-spinner fa-spin' : 'fas fa-trash'"></i> Delete
+        </button>
+
+        <button
+          @click="clearSelection"
+          class="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-white/20 hover:bg-white/30 transition"
+        >
+          <i class="fas fa-times"></i> Clear
+        </button>
+      </div>
+    </transition>
+
     <!-- Invoices List -->
     <div class="bg-white rounded-lg shadow overflow-hidden">
       <div class="overflow-x-auto">
         <table class="w-full">
           <thead class="bg-gray-50 border-b border-gray-200">
             <tr>
+              <th class="px-4 py-4 w-10">
+                <input
+                  type="checkbox"
+                  :checked="allPageSelected"
+                  :indeterminate="somePageSelected"
+                  @change="toggleSelectAll"
+                  class="w-4 h-4 rounded border-gray-300 text-[#2f5597] cursor-pointer"
+                />
+              </th>
               <th class="px-6 py-4 text-left font-semibold text-gray-700">Invoice #</th>
               <th class="px-6 py-4 text-left font-semibold text-gray-700">Customer</th>
               <th class="px-6 py-4 text-left font-semibold text-gray-700">Company</th>
@@ -129,12 +176,20 @@
           </thead>
           <tbody>
             <tr v-if="invoices.length === 0" class="border-b border-gray-200 hover:bg-gray-50">
-              <td :colspan="7" class="px-6 py-9 text-center text-gray-500">
+              <td :colspan="8" class="px-6 py-9 text-center text-gray-500">
                 <i class="fas fa-inbox text-4xl mb-3 block opacity-30"></i>
                 <p>No invoices found</p>
               </td>
             </tr>
             <tr v-for="invoice in invoices" :key="invoice.id" class="border-b border-gray-200 hover:bg-gray-50 transition">
+              <td class="px-4 py-4">
+                <input
+                  type="checkbox"
+                  :checked="selectedIds.has(invoice.id)"
+                  @change="toggleSelect(invoice.id)"
+                  class="w-4 h-4 rounded border-gray-300 text-[#2f5597] cursor-pointer"
+                />
+              </td>
               <td class="px-6 py-4">
                 <span class="font-medium text-[#2f5597]">{{ invoice.invoice_number }}</span>
               </td>
@@ -362,6 +417,9 @@ import api from '@/services/api'
 
 const invoices = ref([])
 const selectedInvoice = ref(null)
+const selectedIds = ref(new Set())
+const bulkLoading = ref(false)
+
 const searchQuery = ref('')
 const sortBy = ref('newest')
 const statusFilter = ref('')
@@ -385,6 +443,14 @@ const statusTabs = computed(() => [
   { label: 'Paid', value: 'paid', count: stats.value.paid },
   { label: 'Overdue', value: 'overdue', count: stats.value.overdue }
 ])
+
+const allPageSelected = computed(() =>
+  invoices.value.length > 0 && invoices.value.every(inv => selectedIds.value.has(inv.id))
+)
+
+const somePageSelected = computed(() =>
+  invoices.value.some(inv => selectedIds.value.has(inv.id)) && !allPageSelected.value
+)
 
 const pageNumbers = computed(() => {
   const total = lastPage.value
@@ -442,6 +508,98 @@ const statusBadgeClass = (status) => {
 
 const isOverdue = (dueDate) => {
   return new Date(dueDate) < new Date() && selectedInvoice.value?.status === 'pending'
+}
+
+const toggleSelect = (id) => {
+  const next = new Set(selectedIds.value)
+  if (next.has(id)) next.delete(id)
+  else next.add(id)
+  selectedIds.value = next
+}
+
+const toggleSelectAll = () => {
+  if (allPageSelected.value) {
+    const next = new Set(selectedIds.value)
+    invoices.value.forEach(inv => next.delete(inv.id))
+    selectedIds.value = next
+  } else {
+    const next = new Set(selectedIds.value)
+    invoices.value.forEach(inv => next.add(inv.id))
+    selectedIds.value = next
+  }
+}
+
+const clearSelection = () => {
+  selectedIds.value = new Set()
+}
+
+const bulkDelete = async () => {
+  if (selectedIds.value.size === 0) return
+  if (!confirm(`Delete ${selectedIds.value.size} invoice(s)? This cannot be undone.`)) return
+
+  bulkLoading.value = true
+  try {
+    const response = await api.post('/admin/invoices/bulk-delete', { invoice_ids: [...selectedIds.value] })
+    if (response.data.success) {
+      alert(response.data.message)
+      clearSelection()
+      fetchInvoices()
+      fetchStats()
+    } else {
+      alert(response.data.message || 'Delete failed')
+    }
+  } catch (error) {
+    alert(error.response?.data?.message || 'Failed to delete invoices')
+  } finally {
+    bulkLoading.value = false
+  }
+}
+
+const bulkMarkPaid = async () => {
+  if (selectedIds.value.size === 0) return
+  if (!confirm(`Mark ${selectedIds.value.size} invoice(s) as paid?`)) return
+
+  bulkLoading.value = true
+  try {
+    const response = await api.post('/admin/invoices/bulk-mark-paid', {
+      invoice_ids: [...selectedIds.value],
+      payment_date: new Date().toISOString().split('T')[0],
+    })
+    if (response.data.success) {
+      alert(response.data.message)
+      clearSelection()
+      fetchInvoices()
+      fetchStats()
+    } else {
+      alert(response.data.message || 'Failed to mark as paid')
+    }
+  } catch (error) {
+    alert(error.response?.data?.message || 'Failed to mark invoices as paid')
+  } finally {
+    bulkLoading.value = false
+  }
+}
+
+const bulkCancel = async () => {
+  if (selectedIds.value.size === 0) return
+  if (!confirm(`Cancel ${selectedIds.value.size} invoice(s)?`)) return
+
+  bulkLoading.value = true
+  try {
+    const response = await api.post('/admin/invoices/bulk-cancel', { invoice_ids: [...selectedIds.value] })
+    if (response.data.success) {
+      alert(response.data.message)
+      clearSelection()
+      fetchInvoices()
+      fetchStats()
+    } else {
+      alert(response.data.message || 'Failed to cancel invoices')
+    }
+  } catch (error) {
+    alert(error.response?.data?.message || 'Failed to cancel invoices')
+  } finally {
+    bulkLoading.value = false
+  }
 }
 
 const fetchInvoices = async () => {

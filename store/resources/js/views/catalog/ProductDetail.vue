@@ -75,7 +75,7 @@
               <!-- Price highlight card -->
               <div v-if="product.productPrice && product.productPrice.length > 0" class="rounded-xl p-5 mb-5" style="background: linear-gradient(135deg, #eef5fc 0%, #f8fbff 100%); border: 1px solid #d6e8f7;">
                 <div class="flex items-baseline gap-2 mb-1">
-                  <span class="text-3xl font-extrabold" style="color: #2F5597;">${{ formatPrice(product.productPrice[0].rsPrice) }}</span>
+                  <span class="text-3xl font-extrabold" style="color: #2F5597;">{{ formatAdjustedCurrency(product.productPrice[0].rsPrice) }}</span>
                   <span class="text-sm text-gray-500">/ unit</span>
                 </div>
                 <div v-if="product.productPrice.length > 1" class="mt-3 pt-3 border-t border-blue-100">
@@ -85,7 +85,7 @@
                       <span class="text-gray-600">
                         Qty {{ price.minQty }}<span v-if="price.maxQty"> – {{ price.maxQty }}</span>+
                       </span>
-                      <span class="font-semibold text-gray-800">${{ formatPrice(price.rsPrice) }}</span>
+                      <span class="font-semibold text-gray-800">{{ formatAdjustedCurrency(price.rsPrice) }}</span>
                     </div>
                   </div>
                   <p v-if="product.productPrice.length > 4" class="text-xs text-gray-400 mt-2">+{{ product.productPrice.length - 4 }} more tiers</p>
@@ -496,7 +496,7 @@
 
               <!-- Pricing -->
               <div v-if="relatedProduct.productPrice && relatedProduct.productPrice.length > 0" class="mb-4">
-                <p class="text-2xl font-bold" style="color: #2F5597;">${{ formatPrice(relatedProduct.productPrice[0].rsPrice) }}</p>
+                <p class="text-2xl font-bold" style="color: #2F5597;">{{ formatAdjustedCurrency(relatedProduct.productPrice[0].rsPrice) }}</p>
                 <p class="text-xs text-gray-600">Min Qty: {{ relatedProduct.productPrice[0].minQty }}</p>
               </div>
               <div v-else class="mb-4">
@@ -557,7 +557,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useToastStore } from '../../stores/toastStore'
 import { useCartStore } from '../../stores/cartStore'
@@ -565,6 +565,7 @@ import { useFavoritesStore } from '../../stores/favoritesStore'
 import { useAuthStore } from '../../stores/authStore'
 import Navbar from '../../components/Navbar.vue'
 import { API_BASE_URL } from '../../services/runtimeConfig'
+import { usePricingSettings } from '../../composables/usePricingSettings'
 
 const router = useRouter()
 const route = useRoute()
@@ -579,6 +580,7 @@ const isLoading = ref(false)
 const activeTab = ref('description')
 const loadError = ref('')
 const descriptionExpanded = ref(false)
+const { loadPricingSettings, getCatalogPriceWithRules, convertFromUsd, formatWithCurrency } = usePricingSettings()
 
 // Reviews state
 const reviews = ref([])
@@ -701,8 +703,9 @@ const goBack = () => {
   router.push({ name: 'products' })
 }
 
-const formatPrice = (price) => {
-  return parseFloat(price || 0).toFixed(2)
+const formatAdjustedCurrency = (baseUsdPrice) => {
+  const adjustedUsd = getCatalogPriceWithRules(Number(baseUsdPrice || 0))
+  return formatWithCurrency(convertFromUsd(adjustedUsd))
 }
 
 const getProductIcon = (productName) => {
@@ -768,6 +771,10 @@ watch(normalizedImages, (images) => {
 watch(productDescription, (desc) => {
   activeTab.value = desc ? 'description' : 'specs'
 }, { immediate: true })
+
+onMounted(() => {
+  loadPricingSettings()
+})
 
 const isFavorite = computed(() => {
   if (!product.value) return false

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Product;
 use App\Models\ProductReview;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -20,6 +21,44 @@ class ReviewController extends Controller
             ->orderByDesc('created_at')
             ->paginate($request->integer('per_page', 10));
 
+        $reviewItems = $reviews->items();
+        $productIds = collect($reviewItems)
+            ->pluck('product_id')
+            ->filter()
+            ->map(fn ($id) => (string) $id)
+            ->unique()
+            ->values();
+
+        $productNameLookup = [];
+        if ($productIds->isNotEmpty()) {
+            $products = Product::query()
+                ->whereIn('tdsynnex_product_id', $productIds)
+                ->orWhereIn('tdsynnex_sku_no', $productIds)
+                ->get(['tdsynnex_product_id', 'tdsynnex_sku_no', 'product_name']);
+
+            foreach ($products as $product) {
+                $name = (string) ($product->product_name ?? '');
+                if ($name === '') {
+                    continue;
+                }
+
+                if ($product->tdsynnex_product_id !== null) {
+                    $productNameLookup[(string) $product->tdsynnex_product_id] = $name;
+                }
+
+                if (!empty($product->tdsynnex_sku_no)) {
+                    $productNameLookup[(string) $product->tdsynnex_sku_no] = $name;
+                }
+            }
+        }
+
+        $reviewItems = array_map(function ($review) use ($productNameLookup) {
+            $reviewData = $review->toArray();
+            $id = (string) ($reviewData['product_id'] ?? '');
+            $reviewData['product_name'] = $productNameLookup[$id] ?? ($id !== '' ? ('Product ' . $id) : 'Unknown Product');
+            return $reviewData;
+        }, $reviewItems);
+
         // Build summary stats
         $stats = ProductReview::where('product_id', $productId)
             ->selectRaw('COUNT(*) as total, AVG(rating) as average, ' .
@@ -31,7 +70,7 @@ class ReviewController extends Controller
             ->first();
 
         return response()->json([
-            'data' => $reviews->items(),
+            'data' => $reviewItems,
             'meta' => [
                 'current_page' => $reviews->currentPage(),
                 'last_page'    => $reviews->lastPage(),
@@ -95,9 +134,17 @@ class ReviewController extends Controller
 
         $review->load('user:id,name,email,profile_picture');
 
+        $productName = Product::query()
+            ->where('tdsynnex_product_id', $productId)
+            ->orWhere('tdsynnex_sku_no', $productId)
+            ->value('product_name');
+
+        $reviewData = $review->toArray();
+        $reviewData['product_name'] = $productName ?: ('Product ' . $productId);
+
         return response()->json([
             'message' => 'Review submitted successfully.',
-            'data'    => $review,
+            'data'    => $reviewData,
         ], 201);
     }
 

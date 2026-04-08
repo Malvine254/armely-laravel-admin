@@ -173,7 +173,7 @@
                   
                   <!-- Pricing -->
                   <div v-if="product.productPrice && product.productPrice.length > 0" class="mb-4">
-                    <p class="text-2xl font-bold" style="color: #2F5597;">${{ formatPrice(product.productPrice[0].rsPrice) }}</p>
+                    <p class="text-2xl font-bold" style="color: #2F5597;">{{ formatCatalogPrice(product.productPrice[0].rsPrice) }}</p>
                     <p class="text-xs text-gray-600">Min Qty: {{ product.productPrice[0].minQty }}</p>
                   </div>
 
@@ -244,6 +244,7 @@ import { useToastStore } from '../../stores/toastStore'
 import { useCartStore } from '../../stores/cartStore'
 import { useFavoritesStore } from '../../stores/favoritesStore'
 import { useAuthStore } from '../../stores/authStore'
+import { usePricingSettings } from '../../composables/usePricingSettings'
 import { trackSearchTerm, hasTrackingConsent, getSearchProfileTerms } from '../../services/searchInsights'
 import api from '../../services/api'
 import Navbar from '../../components/Navbar.vue'
@@ -255,10 +256,71 @@ const toastStore = useToastStore()
 const cartStore = useCartStore()
 const favoritesStore = useFavoritesStore()
 const authStore = useAuthStore()
+const { loadPricingSettings, getCatalogPriceWithRules, convertFromUsd, formatWithCurrency } = usePricingSettings()
 const ITEMS_PER_PAGE = 9
 const API_PAGE_SIZE = 100
 const SEARCH_TRACK_DEBOUNCE_MS = 15000
 const PROFILE_TERM_LIMIT = 25
+const TOP_VENDOR_DISPLAY_LIMIT = 40
+const DEFAULT_VENDOR_SCOPE_LIMIT = 12
+// Only vendors matching a term below will appear in the sidebar.
+// To add a new brand, append its uppercase display name here.
+const PREFERRED_VENDOR_TERMS = [
+  'MICROSOFT',
+  'CISCO',
+  'HEWLETT PACKARD',
+  'HP INC',
+  'LENOVO',
+  'DELL',
+  'NVIDIA',
+  'FORTINET',
+  'VEEAM',
+  'STARTECH',
+  'LOGITECH',
+  'APPLE',
+  'AMD',
+  'INTEL',
+  'SAMSUNG',
+  'UBIQUITI',
+  'NETGEAR',
+  'PALO ALTO',
+  'JUNIPER',
+  'ARUBA',
+  'CROWDSTRIKE',
+  'VMWARE',
+  'BROADCOM',
+  'ACER',
+  'ASUS',
+  'JABRA',
+  'PLANTRONICS',
+  'POLY ',
+  'SEAGATE',
+  'WESTERN DIGITAL',
+  'KINGSTON',
+  'CRUCIAL',
+  'CORSAIR',
+  'BELKIN',
+  'KENSINGTON',
+  'APC BY',
+  'APC ',
+]
+
+// Vendors used for implicit browse scope when user has not selected a vendor
+// and the live vendor list has not loaded yet.
+const FALLBACK_VENDOR_SCOPE = [
+  'CISCO SYSTEMS',
+  'HEWLETT PACKARD ENTERPRISE',
+  'NVIDIA CORPORATION',
+  'LENOVO DATA CENTER',
+  'MICROSOFT CORPORATION',
+  'HP INC.',
+  'VEEAM SOFTWARE CORPORATION',
+  'FORTINET INC.',
+  'STARTECH.COM',
+  'LOGITECH',
+  'DELL MARKETING L.P.',
+  'LENOVO',
+]
 
 const products = ref([])
 const serverTotal = ref(0)
@@ -413,6 +475,47 @@ const getVendorCountForKey = (vendorKey, vendorCountMap) => {
   }
 
   return count
+}
+
+const selectTopDisplayVendors = (vendors = [], selected = []) => {
+  const source = Array.isArray(vendors) ? [...vendors] : []
+  const selectedSet = new Set((selected || []).map((name) => normalizeVendorKey(name)))
+
+  source.sort((a, b) => {
+    if (b.count !== a.count) return b.count - a.count
+    return a.name.localeCompare(b.name)
+  })
+
+  const chosen = []
+  const chosenKeys = new Set()
+
+  const tryPush = (vendor) => {
+    const key = normalizeVendorKey(vendor?.name || vendor?.value)
+    if (!key || chosenKeys.has(key)) return
+    chosen.push(vendor)
+    chosenKeys.add(key)
+  }
+
+  // Show only vendors that match a preferred brand term.
+  // This prevents niche/high-volume vendors (SOPHOS, EXTREME, ADD-ON, etc.)
+  // from flooding the sidebar.
+  source.forEach((vendor) => {
+    const vendorKey = normalizeVendorKey(vendor.name || vendor.value)
+    if (!vendorKey) return
+    if (PREFERRED_VENDOR_TERMS.some((term) => vendorKey.includes(term.toUpperCase()))) {
+      tryPush(vendor)
+    }
+  })
+
+  // Always keep any already-selected vendor visible even if not in preferred list.
+  source.forEach((vendor) => {
+    const vendorKey = normalizeVendorKey(vendor.name || vendor.value)
+    if (selectedSet.has(vendorKey)) {
+      tryPush(vendor)
+    }
+  })
+
+  return chosen
 }
 
 const computePersonalizationWeight = (entry) => {
@@ -670,7 +773,8 @@ const fetchAllProductPages = async (params) => {
       ...params,
       page: 1,
       per_page: 500,
-      hide_zero_price: true
+      hide_zero_price: true,
+      catalog_clean: true,
     }
   })
 
@@ -695,6 +799,25 @@ const resolveVendorApiValues = (selectedVendorNames = []) => {
       return vendor?.value || selectedName
     })
     .filter(Boolean)
+}
+
+const getImplicitVendorScope = () => {
+  if (currentFilters.value.vendors.length > 0) {
+    return resolveVendorApiValues(currentFilters.value.vendors)
+  }
+
+  if (allVendors.value.length > 0) {
+    const topVendors = selectTopDisplayVendors(allVendors.value, [])
+      .slice(0, DEFAULT_VENDOR_SCOPE_LIMIT)
+      .map((vendor) => String(vendor.value || vendor.name || '').trim())
+      .filter(Boolean)
+
+    if (topVendors.length > 0) {
+      return topVendors
+    }
+  }
+
+  return [...FALLBACK_VENDOR_SCOPE]
 }
 
 const getCacheKey = (filters, page = 1, useServerPaged = false) => {
@@ -778,7 +901,8 @@ const performSearch = async (resetPage = true) => {
   const requestPromise = (async () => {
     try {
       const params = {
-        hide_zero_price: true
+        hide_zero_price: true,
+        catalog_clean: true,
       }
 
       if (searchQuery.value) {
@@ -789,6 +913,12 @@ const performSearch = async (resetPage = true) => {
         const selectedVendorValues = resolveVendorApiValues(currentFilters.value.vendors)
         if (selectedVendorValues.length > 0) {
           params.vendors = selectedVendorValues.join(',')
+        }
+      } else if (!searchQuery.value) {
+        // Only scope to top vendors when browsing (no search term); searches cover all vendors
+        const scopedVendors = getImplicitVendorScope()
+        if (scopedVendors.length > 0) {
+          params.vendors = scopedVendors.join(',')
         }
       }
 
@@ -808,7 +938,8 @@ const performSearch = async (resetPage = true) => {
             ...params,
             page: currentPage.value,
             per_page: ITEMS_PER_PAGE,
-            hide_zero_price: true
+            hide_zero_price: true,
+            catalog_clean: true,
           }
         })
 
@@ -828,7 +959,21 @@ const performSearch = async (resetPage = true) => {
       }
 
       products.value = loadedProducts
-      serverTotal.value = loadedTotal
+
+      // When browsing in default mode (no search, no explicit vendor filter) the backend
+      // returns an N+1 estimate. Sum the real vendor counts we already have for accuracy.
+      if (useServerPaged && !searchQuery.value && currentFilters.value.vendors.length === 0 && allVendors.value.length > 0) {
+        const scopedVendors = getImplicitVendorScope()
+        const vendorTotal = scopedVendors.reduce((sum, vendorName) => {
+          const key = normalizeVendorKey(vendorName)
+          const found = allVendors.value.find((v) => normalizeVendorKey(v.name) === key || normalizeVendorKey(v.value) === key)
+          return sum + (found?.count || 0)
+        }, 0)
+        serverTotal.value = vendorTotal > loadedTotal ? vendorTotal : loadedTotal
+      } else {
+        serverTotal.value = loadedTotal
+      }
+
       if (Array.isArray(products.value)) {
         // Only compute facet counts from loaded products when we have the full dataset
         // (client-paged mode). In server-paged mode the page has only 9 items — use
@@ -925,7 +1070,7 @@ const fetchVendors = async () => {
         })
 
       allVendors.value = mappedVendors
-      availableVendors.value = mappedVendors
+      availableVendors.value = selectTopDisplayVendors(mappedVendors, currentFilters.value.vendors)
     }
   } catch (err) {
     console.error('Error fetching vendors:', err)
@@ -962,6 +1107,8 @@ const updateVendorCounts = (sourceProducts = products.value) => {
       if (b.count !== a.count) return b.count - a.count
       return a.name.localeCompare(b.name)
     })
+
+  availableVendors.value = selectTopDisplayVendors(availableVendors.value, currentFilters.value.vendors)
 }
 
 const extractCategories = (sourceProducts = products.value) => {
@@ -1133,6 +1280,10 @@ const prefetchPage = (page) => {
   if (currentFilters.value.vendors.length > 0) {
     const selectedVendorValues = resolveVendorApiValues(currentFilters.value.vendors)
     if (selectedVendorValues.length > 0) params.vendors = selectedVendorValues.join(',')
+  } else if (!searchQuery.value) {
+    // Only scope to top vendors when browsing; searches cover all vendors
+    const scopedVendors = getImplicitVendorScope()
+    if (scopedVendors.length > 0) params.vendors = scopedVendors.join(',')
   }
   if (currentFilters.value.priceMin > 0) params.min_price = currentFilters.value.priceMin
   if (currentFilters.value.priceMax < 10000) params.max_price = currentFilters.value.priceMax
@@ -1156,7 +1307,7 @@ const prefetchPage = (page) => {
 
   // Fire-and-forget prefetch
   api.get('/products', {
-    params: { ...params, page, per_page: ITEMS_PER_PAGE, hide_zero_price: true }
+    params: { ...params, page, per_page: ITEMS_PER_PAGE, hide_zero_price: true, catalog_clean: true }
   }).then((response) => {
     if (response.data?.success) {
       const payload = response.data.data || {}
@@ -1219,6 +1370,12 @@ const formatPrice = (price) => {
   return parseFloat(price || 0).toFixed(2)
 }
 
+const formatCatalogPrice = (baseUsdPrice) => {
+  const adjustedUsd = getCatalogPriceWithRules(baseUsdPrice)
+  const converted = convertFromUsd(adjustedUsd)
+  return formatWithCurrency(converted)
+}
+
 const getProductIcon = (productName) => {
   const name = productName.toLowerCase()
   if (name.includes('server') || name.includes('instance')) return 'server'
@@ -1244,7 +1401,7 @@ watch(
   { immediate: true }
 )
 
-onMounted(() => {
+onMounted(async () => {
   if (route.query.next === 'login') {
     const query = {}
     if (route.query.email) query.email = String(route.query.email)
@@ -1255,6 +1412,7 @@ onMounted(() => {
     return
   }
 
+  await loadPricingSettings(true)
   fetchVendors()
 })
 </script>

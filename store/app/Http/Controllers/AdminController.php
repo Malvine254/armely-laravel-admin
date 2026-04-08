@@ -7,6 +7,8 @@ use App\Models\Order;
 use App\Models\Invoice;
 use App\Models\User;
 use App\Models\Company;
+use App\Models\Product;
+use App\Models\AppSetting;
 use App\Services\NotificationService;
 use App\Services\TDSynnexService;
 use App\Models\Message;
@@ -21,10 +23,21 @@ use Illuminate\Support\Facades\Hash;
 class AdminController extends Controller
 {
     private NotificationService $notificationService;
+    private array $productNameCache = [];
 
     public function __construct(NotificationService $notificationService)
     {
         $this->notificationService = $notificationService;
+    }
+
+    private function getIntegrationSetting(string $key, mixed $fallback = ''): mixed
+    {
+        $value = AppSetting::getValue($key, null);
+        if ($value === null || $value === '') {
+            return $fallback;
+        }
+
+        return $value;
     }
 
     /**
@@ -66,6 +79,470 @@ class AdminController extends Controller
         }
         
         return null;
+    }
+
+    private function generateQuotePaymentInvoiceNumber(): string
+    {
+        do {
+            $invoiceNumber = sprintf(
+                'INV-QP-%s-%05d',
+                now()->format('Ym'),
+                random_int(1, 99999)
+            );
+        } while (Invoice::where('invoice_number', $invoiceNumber)->exists());
+
+        return $invoiceNumber;
+    }
+
+    private function extractQuoteShippingAmount(Quote $quote): float
+    {
+        $raw = is_array($quote->raw_data) ? $quote->raw_data : [];
+
+        $candidates = [
+            $raw['shippingAmount'] ?? null,
+            $raw['shipping_amount'] ?? null,
+            $raw['freightAmount'] ?? null,
+            $raw['freight_amount'] ?? null,
+            $raw['quoteSummary']['shippingAmount'] ?? null,
+            $raw['quoteSummary']['freightAmount'] ?? null,
+        ];
+
+        foreach ($candidates as $candidate) {
+            if ($candidate === null || $candidate === '') {
+                continue;
+            }
+
+            $value = (float) $candidate;
+            if ($value > 0) {
+                return $value;
+            }
+        }
+
+        return 0.0;
+    }
+
+    private function getPricingSettings(): array
+    {
+        $taxRatePercent = max(0, AppSetting::getNumber('pricing.tax_rate_percent', 0));
+        $profitRatePercent = max(0, AppSetting::getNumber('pricing.profit_rate_percent', 0));
+
+        return [
+            'tax_rate_percent' => $taxRatePercent,
+            'profit_rate_percent' => $profitRatePercent,
+        ];
+    }
+
+    private function normalizeInvoiceLineItems(array $rows, float $targetSubtotal = 0): array
+    {
+        $mapped = array_map(function ($item, $idx) {
+            if (!is_array($item)) {
+                $item = [];
+            }
+
+            $quantity = max(1, (int) ($item['quantity'] ?? 1));
+            $unitPrice = (float) ($item['unit_price'] ?? $item['unitPrice'] ?? $item['price'] ?? $item['customer_price'] ?? 0);
+            $lineTotal = (float) ($item['line_total'] ?? $item['lineTotal'] ?? $item['extendedPrice'] ?? ($unitPrice * $quantity));
+
+            return [
+                'product_id' => (string) ($item['product_id'] ?? $item['productId'] ?? $item['id'] ?? ''),
+                'product_name' => $item['product_name']
+                    ?? $item['productName']
+                    ?? $item['partDescription']
+                    ?? $item['name']
+                    ?? $item['description']
+                    ?? ('Item ' . ($idx + 1)),
+                'mfg_part_number' => $item['mfg_part_number']
+                    ?? $item['mfgPartNo']
+                    ?? $item['partNumber']
+                    ?? $item['sku']
+                    ?? '',
+                'quantity' => $quantity,
+                'unit_price' => round($unitPrice, 2),
+                'line_total' => round($lineTotal, 2),
+            ];
+        }, $rows, array_keys($rows));
+
+        $hasPricing = collect($mapped)->contains(function ($item) {
+            return ((float) ($item['unit_price'] ?? 0)) > 0 || ((float) ($item['line_total'] ?? 0)) > 0;
+        });
+
+        if (!$hasPricing && $targetSubtotal > 0 && count($mapped) > 0) {
+            $totalQty = array_reduce($mapped, function ($sum, $item) {
+                return $sum + max(1, (int) ($item['quantity'] ?? 1));
+            }, 0);
+
+            if ($totalQty > 0) {
+                $running = 0.0;
+                foreach ($mapped as $idx => &$item) {
+                    $qty = max(1, (int) ($item['quantity'] ?? 1));
+                    $isLast = $idx === count($mapped) - 1;
+                    $lineTotal = $isLast
+                        ? round($targetSubtotal - $running, 2)
+                        : round(($targetSubtotal * $qty) / $totalQty, 2);
+
+                    $item['line_total'] = $lineTotal;
+                    $item['unit_price'] = round($lineTotal / $qty, 2);
+                    $running = round($running + $lineTotal, 2);
+                }
+                unset($item);
+            }
+        }
+
+        return $mapped;
+    }
+
+    private function createQuotePaymentInvoice(Quote $quote): Invoice
+    {
+        $pricing = $this->getPricingSettings();
+        $baseSubtotal = (float) ($quote->total_amount ?? 0);
+        $profitRate = (float) ($pricing['profit_rate_percent'] ?? 0);
+        $taxRate = (float) ($pricing['tax_rate_percent'] ?? 0);
+
+        $profitAmount = round(($baseSubtotal * $profitRate) / 100, 2);
+        $subtotal = round($baseSubtotal + $profitAmount, 2);
+        $tax = $taxRate > 0
+            ? round(($subtotal * $taxRate) / 100, 2)
+            : (float) ($quote->tax_amount ?? 0);
+        $discount = (float) ($quote->discount_amount ?? 0);
+        $shipping = $this->extractQuoteShippingAmount($quote);
+        $payableTotal = max(0, $subtotal + $tax + $shipping - $discount);
+        $items = $this->normalizeInvoiceLineItems(is_array($quote->items) ? $quote->items : [], $subtotal);
+
+        return Invoice::create([
+            'user_id' => $quote->user_id,
+            'invoice_number' => $this->generateQuotePaymentInvoiceNumber(),
+            'order_number' => null,
+            'status' => 'pending',
+            'total_amount' => $payableTotal,
+            'tax_amount' => $tax,
+            'paid_amount' => 0,
+            'items' => $items,
+            'raw_data' => [
+                'source' => 'quote-payment-gate',
+                'quote_id' => $quote->quote_id,
+                'base_subtotal' => $baseSubtotal,
+                'profit_rate_percent' => $profitRate,
+                'profit_amount' => $profitAmount,
+                'tax_rate_percent' => $taxRate,
+                'subtotal' => $subtotal,
+                'tax_amount' => $tax,
+                'shipping_amount' => $shipping,
+                'discount_amount' => $discount,
+                'payable_total' => $payableTotal,
+            ],
+            'issued_at' => now(),
+            'due_at' => now()->addDays(7),
+            'paid_at' => null,
+            'notes' => "QUOTE:{$quote->quote_id} | Payment required before final approval",
+        ]);
+    }
+
+    private function buildOrderItemPreview(Order $order): array
+    {
+        $items = is_array($order->items) ? $order->items : [];
+
+        $names = collect($items)
+            ->map(function ($item) {
+                if (!is_array($item)) {
+                    return null;
+                }
+                return $this->resolveOrderItemName($item);
+            })
+            ->filter(fn ($name) => is_string($name) && trim($name) !== '')
+            ->map(fn ($name) => trim((string) $name))
+            ->unique()
+            ->values();
+
+        if ($names->isEmpty()) {
+            return [
+                'primary_item_name' => 'Item details unavailable',
+                'additional_items_count' => 0,
+            ];
+        }
+
+        return [
+            'primary_item_name' => (string) $names->first(),
+            'additional_items_count' => max($names->count() - 1, 0),
+        ];
+    }
+
+    private function resolveOrderItemName(array $item): ?string
+    {
+        $inlineName = $item['product_name']
+            ?? $item['productName']
+            ?? $item['name']
+            ?? $item['partDescription']
+            ?? $item['description']
+            ?? null;
+
+        if (is_string($inlineName) && trim($inlineName) !== '') {
+            return trim($inlineName);
+        }
+
+        $lookupKey = trim((string) (
+            $item['product_id']
+            ?? $item['productId']
+            ?? $item['id']
+            ?? $item['sku']
+            ?? $item['partNumber']
+            ?? $item['mfg_part_number']
+            ?? $item['mfgPartNo']
+            ?? ''
+        ));
+
+        if ($lookupKey === '') {
+            return null;
+        }
+
+        if (array_key_exists($lookupKey, $this->productNameCache) && $this->productNameCache[$lookupKey] !== '') {
+            return $this->productNameCache[$lookupKey];
+        }
+
+        $productQuery = Product::query()
+            ->select('product_name')
+            ->where('tdsynnex_product_id', $lookupKey)
+            ->orWhere('tdsynnex_sku_no', $lookupKey)
+            ->orWhere('mfg_part_no', $lookupKey);
+
+        if (ctype_digit($lookupKey)) {
+            $productQuery->orWhere('id', (int) $lookupKey);
+        }
+
+        $productName = $productQuery->value('product_name');
+
+        if (is_string($productName) && trim($productName) !== '') {
+            $this->productNameCache[$lookupKey] = trim($productName);
+            return $this->productNameCache[$lookupKey];
+        }
+
+        return null;
+    }
+
+    private function resolveTdPartNumber(array $item): string
+    {
+        $directCandidates = [
+            $item['partNumber'] ?? null,
+            $item['sku'] ?? null,
+            $item['mfgPartNo'] ?? null,
+            $item['mfg_part_number'] ?? null,
+            $item['tdsynnex_sku_no'] ?? null,
+            is_array($item['specifications'] ?? null) ? ($item['specifications']['sku'] ?? null) : null,
+        ];
+
+        foreach ($directCandidates as $candidate) {
+            $value = trim((string) ($candidate ?? ''));
+            if ($value !== '' && !str_starts_with(strtoupper($value), 'PART-')) {
+                return $value;
+            }
+        }
+
+        $lookupValues = [
+            (string) ($item['product_id'] ?? ''),
+            (string) ($item['productId'] ?? ''),
+            (string) ($item['id'] ?? ''),
+            (string) ($item['sku'] ?? ''),
+            (string) ($item['partNumber'] ?? ''),
+        ];
+
+        foreach ($lookupValues as $lookup) {
+            $lookup = trim($lookup);
+            if ($lookup === '') {
+                continue;
+            }
+
+            $productQuery = Product::query()
+                ->select(['tdsynnex_sku_no', 'mfg_part_no', 'specifications'])
+                ->where('tdsynnex_product_id', $lookup)
+                ->orWhere('tdsynnex_sku_no', $lookup)
+                ->orWhere('mfg_part_no', $lookup);
+
+            if (ctype_digit($lookup)) {
+                $productQuery->orWhere('id', (int) $lookup);
+            }
+
+            $product = $productQuery->first();
+            if (!$product) {
+                continue;
+            }
+
+            $specifications = is_array($product->specifications ?? null) ? $product->specifications : [];
+            $resolvedCandidates = [
+                $product->tdsynnex_sku_no ?? null,
+                $specifications['sku'] ?? null,
+                $product->mfg_part_no ?? null,
+            ];
+
+            foreach ($resolvedCandidates as $resolved) {
+                $resolvedValue = trim((string) ($resolved ?? ''));
+                if ($resolvedValue !== '') {
+                    return $resolvedValue;
+                }
+            }
+        }
+
+        return '';
+    }
+
+    private function resolveTdUnitPrice(array $item): float
+    {
+        $price = (float) ($item['price'] ?? $item['unitPrice'] ?? 0);
+        if ($price > 0) {
+            return $price;
+        }
+
+        $productId = (int) ($item['product_id'] ?? $item['productId'] ?? 0);
+        if ($productId > 0) {
+            $product = Product::query()
+                ->select(['base_price', 'retail_price'])
+                ->where('id', $productId)
+                ->orWhere('tdsynnex_product_id', $productId)
+                ->first();
+
+            $fallbackPrice = (float) ($product?->base_price ?? $product?->retail_price ?? 0);
+            if ($fallbackPrice > 0) {
+                return $fallbackPrice;
+            }
+        }
+
+        return 0.0;
+    }
+
+    private function parseTrackingInfoValue(mixed $trackingInfo): array
+    {
+        if (is_array($trackingInfo)) {
+            return $trackingInfo;
+        }
+
+        if (!is_string($trackingInfo) || trim($trackingInfo) === '') {
+            return [];
+        }
+
+        try {
+            $decoded = json_decode($trackingInfo, true, 512, JSON_THROW_ON_ERROR);
+            return is_array($decoded) ? $decoded : [];
+        } catch (\Throwable $e) {
+            return [
+                'tracking_number' => trim($trackingInfo),
+            ];
+        }
+    }
+
+    private function deepFindFirstByKeys(mixed $data, array $keys): mixed
+    {
+        if (!is_array($data)) {
+            return null;
+        }
+
+        foreach ($keys as $key) {
+            if (array_key_exists($key, $data) && $data[$key] !== null && $data[$key] !== '') {
+                return $data[$key];
+            }
+        }
+
+        foreach ($data as $value) {
+            if (is_array($value)) {
+                $found = $this->deepFindFirstByKeys($value, $keys);
+                if ($found !== null && $found !== '') {
+                    return $found;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private function normalizeCanonicalOrderStatus(?string $rawStatus): string
+    {
+        $value = strtolower(trim((string) $rawStatus));
+        if ($value === '') {
+            return 'unknown';
+        }
+
+        if (str_contains($value, 'deliver')) return 'delivered';
+        if (str_contains($value, 'ship') || str_contains($value, 'transit')) return 'shipped';
+        if (str_contains($value, 'invoice')) return 'invoiced';
+        if (str_contains($value, 'accept') || str_contains($value, 'confirm')) return 'confirmed';
+        if (str_contains($value, 'backorder')) return 'backorder';
+        if (str_contains($value, 'manual')) return 'manual_review';
+        if (str_contains($value, 'reject') || str_contains($value, 'delete') || str_contains($value, 'fail')) return 'failed';
+        if (str_contains($value, 'cancel')) return 'cancelled';
+        if (str_contains($value, 'pending') || str_contains($value, 'create')) return 'pending';
+
+        return $value;
+    }
+
+    private function toMoneyString(mixed $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        $numeric = preg_replace('/[^0-9.\-]/', '', (string) $value);
+        if ($numeric === null || $numeric === '' || !is_numeric($numeric)) {
+            return null;
+        }
+
+        return number_format((float) $numeric, 2, '.', '');
+    }
+
+    private function normalizeTdOrderStatusPayload(mixed $payload, ?Order $order = null): array
+    {
+        $normalized = [
+            'normalized_status' => 'unknown',
+            'raw_status' => null,
+            'shipping_status' => null,
+            'tracking_number' => null,
+            'freight_amount' => null,
+            'estimated_delivery_date' => null,
+        ];
+
+        if (!is_array($payload)) {
+            if ($order) {
+                $trackingInfo = $this->parseTrackingInfoValue($order->tracking_info ?? null);
+                $normalized['normalized_status'] = strtolower((string) ($order->status ?? 'unknown'));
+                $normalized['shipping_status'] = (string) ($trackingInfo['shipping_status'] ?? $order->status ?? '');
+                $normalized['tracking_number'] = (string) ($trackingInfo['tracking_number'] ?? $trackingInfo['trackingNumber'] ?? '');
+                $normalized['freight_amount'] = $this->toMoneyString($order->shipping_amount ?? null);
+            }
+
+            return $normalized;
+        }
+
+        $rawStatus = $this->deepFindFirstByKeys($payload, ['status', 'Status', 'code', 'Code', 'orderStatus', 'OrderStatus', 'poStatus', 'POStatus']);
+        $shippingStatus = $this->deepFindFirstByKeys($payload, ['shippingStatus', 'shipping_status', 'shipmentStatus', 'deliveryStatus', 'ShipmentStatus', 'DeliveryStatus', 'status', 'Status']);
+        $trackingNumber = $this->deepFindFirstByKeys($payload, ['tracking_number', 'trackingNumber', 'TrackingNumber', 'carrierTrackingNumber', 'shipmentTrackingNumber', 'proNumber', 'ProNumber']);
+        $freight = $this->deepFindFirstByKeys($payload, ['freight', 'Freight', 'freightAmount', 'poFreight', 'shippingAmount', 'shipping_amount', 'totalFreight', 'TotalFreight']);
+        $estimatedDelivery = $this->deepFindFirstByKeys($payload, ['estimatedDeliveryDate', 'EstimatedDeliveryDate', 'estimatedShipDate', 'EstimatedShipDate', 'estimatedArrivalDate', 'EstimatedArrivalDate']);
+
+        $normalized['raw_status'] = $rawStatus !== null ? (string) $rawStatus : null;
+        $normalized['normalized_status'] = $this->normalizeCanonicalOrderStatus($normalized['raw_status']);
+        $normalized['shipping_status'] = $shippingStatus !== null ? (string) $shippingStatus : null;
+        $normalized['tracking_number'] = $trackingNumber !== null ? (string) $trackingNumber : null;
+        $normalized['freight_amount'] = $this->toMoneyString($freight);
+        $normalized['estimated_delivery_date'] = $estimatedDelivery !== null ? (string) $estimatedDelivery : null;
+
+        if ($order) {
+            $trackingInfo = $this->parseTrackingInfoValue($order->tracking_info ?? null);
+            $normalized['tracking_number'] = $normalized['tracking_number'] ?: (string) ($trackingInfo['tracking_number'] ?? $trackingInfo['trackingNumber'] ?? '');
+            $normalized['shipping_status'] = $normalized['shipping_status'] ?: (string) ($trackingInfo['shipping_status'] ?? $order->status ?? '');
+            $normalized['freight_amount'] = $normalized['freight_amount'] ?: $this->toMoneyString($order->shipping_amount ?? null);
+        }
+
+        return $normalized;
+    }
+
+    private function mapCanonicalToLocalOrderStatus(?string $canonical): string
+    {
+        $value = strtolower(trim((string) $canonical));
+
+        return match ($value) {
+            'delivered' => 'delivered',
+            'shipped', 'invoiced' => 'shipped',
+            'confirmed', 'backorder', 'manual_review' => 'processing',
+            'cancelled' => 'cancelled',
+            'failed' => 'failed',
+            default => 'pending',
+        };
     }
 
     /**
@@ -137,12 +614,7 @@ class AdminController extends Controller
             $search = $request->get('search');
             $sortBy = $request->get('sortBy', 'newest');
 
-            $query = Company::query()
-                // Customer list should include companies that have at least one customer user.
-                // This keeps pure admin-only companies out while avoiding accidental full-table filtering.
-                ->whereHas('users', function ($userQuery) {
-                    $userQuery->whereNotIn('role', ['admin', 'super_admin']);
-                });
+            $query = Company::query();
 
             if ($status) {
                 $query->where('status', $status);
@@ -277,7 +749,10 @@ class AdminController extends Controller
                 'admin_notes' => 'nullable|string|max:1000',
             ]);
 
-            $quote = Quote::with('user', 'user.company')->find($quoteId);
+            $quote = Quote::with('user', 'user.company.addresses', 'order')
+                ->where('id', $quoteId)
+                ->orWhere('quote_id', $quoteId)
+                ->first();
             if (!$quote) {
                 return response()->json([
                     'success' => false,
@@ -285,24 +760,120 @@ class AdminController extends Controller
                 ], 404);
             }
 
-            if (!$quote->canApprove()) {
+            $quoteInvoiceMarker = 'QUOTE:' . $quote->quote_id;
+            $quoteInvoiceQuery = Invoice::where('user_id', $quote->user_id)
+                ->where('notes', 'like', '%' . $quoteInvoiceMarker . '%')
+                ->orderByDesc('id');
+
+            $paidQuoteInvoice = (clone $quoteInvoiceQuery)
+                ->where('status', 'paid')
+                ->first();
+
+            if (!$paidQuoteInvoice) {
+                $pendingQuoteInvoice = (clone $quoteInvoiceQuery)
+                    ->where('status', '!=', 'paid')
+                    ->first();
+
+                if (!$pendingQuoteInvoice) {
+                    $pendingQuoteInvoice = $this->createQuotePaymentInvoice($quote);
+
+                    Message::createMessage(
+                        $quote->user_id,
+                        'invoice',
+                        'Quote accepted - payment required',
+                        "Quote {$quote->quote_id} has been accepted. Please complete payment for invoice {$pendingQuoteInvoice->invoice_number} to continue order processing.",
+                        $pendingQuoteInvoice->invoice_number,
+                        'normal',
+                        [
+                            'quote_id' => $quote->quote_id,
+                            'invoice_id' => $pendingQuoteInvoice->id,
+                            'invoice_number' => $pendingQuoteInvoice->invoice_number,
+                        ]
+                    );
+
+                    $this->notificationService->sendInvoiceReminderNotification($pendingQuoteInvoice);
+                }
+
+                if ($quote->status !== 'approved') {
+                    $quote->update([
+                        'status' => 'approved',
+                        'approved_by' => $user->id,
+                        'approved_at' => now(),
+                        'admin_notes' => $validated['admin_notes'] ?? $quote->admin_notes,
+                    ]);
+                }
+
                 return response()->json([
-                    'success' => false,
-                    'message' => 'Quote cannot be approved in its current state',
-                ], 400);
+                    'success' => true,
+                    'message' => "Payment is required before final approval. Customer can now proceed with invoice {$pendingQuoteInvoice->invoice_number}.",
+                    'data' => [
+                        'payment_required' => true,
+                        'quote' => $quote,
+                        'invoice' => $pendingQuoteInvoice,
+                    ],
+                ]);
             }
 
-            // Prevent duplicate orders for the same quote
+            // Admin endpoint no longer submits orders directly.
+            // Orders are created automatically when invoice payment is captured.
             $existingOrder = Order::where('quote_id', $quote->quote_id)->first();
-            if ($existingOrder) {
+            if ($existingOrder && $existingOrder->status !== 'failed') {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Quote is already converted to an order automatically after payment.',
+                    'data' => [
+                        'quote' => $quote,
+                        'order' => $existingOrder,
+                        'status' => $quote->status,
+                        'auto_conversion' => true,
+                    ],
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Payment is complete. Order conversion is automatic and will be processed shortly.',
+                'data' => [
+                    'quote' => $quote,
+                    'invoice' => $paidQuoteInvoice,
+                    'auto_conversion' => true,
+                ],
+            ]);
+
+            // Prevent duplicate orders for the same quote (unless the previous attempt failed at TD)
+            $existingOrder = Order::where('quote_id', $quote->quote_id)->first();
+            if ($existingOrder && $existingOrder->status !== 'failed') {
                 return response()->json([
                     'success' => true,
                     'message' => 'Quote already approved and submitted',
                     'data' => [
                         'quote' => $quote,
                         'order' => $existingOrder,
+                        'status' => $quote->status,
                     ],
                 ]);
+            }
+
+            if ($quote->status === 'approved') {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Quote is already approved',
+                    'data' => [
+                        'quote' => $quote,
+                        'status' => $quote->status,
+                    ],
+                ]);
+            }
+
+            if (!$quote->canApprove()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Quote cannot be approved in its current state',
+                    'data' => [
+                        'status' => $quote->status,
+                        'is_expired' => $quote->isExpired(),
+                    ],
+                ], 400);
             }
 
             // Ensure items are properly decoded
@@ -314,17 +885,52 @@ class AdminController extends Controller
                 $items = [];
             }
             
-            // Build line items with proper structure
+            // Build line items with proper structure and enforce real SKU resolution.
             $lineItems = array_map(function($item, $index) {
+                if (!is_array($item)) {
+                    $item = [];
+                }
+
+                $item['_line_index'] = $index + 1;
+                $quantity = max(1, (int) ($item['quantity'] ?? 1));
+                $partNumber = trim($this->resolveTdPartNumber($item));
+                $description = (string) ($item['name'] ?? $item['description'] ?? $this->resolveOrderItemName($item) ?? 'Product');
+                $unitPrice = $this->resolveTdUnitPrice($item);
+
                 return [
                     'lineNumber' => (string)($index + 1),
-                    'partNumber' => (string)($item['partNumber'] ?? $item['id'] ?? $item['sku'] ?? 'PART-' . ($index + 1)),
-                    'partDescription' => (string)($item['name'] ?? $item['description'] ?? 'Product'),
-                    'quantity' => (int)($item['quantity'] ?? 1),
-                    'unitPrice' => (string)number_format((float)($item['price'] ?? $item['unitPrice'] ?? 0), 2, '.', ''),
-                    'extendedPrice' => (string)number_format((float)(($item['price'] ?? $item['unitPrice'] ?? 0) * ($item['quantity'] ?? 1)), 2, '.', ''),
+                    'partNumber' => $partNumber,
+                    'partDescription' => $description,
+                    'quantity' => $quantity,
+                    'unitPrice' => (string) number_format($unitPrice, 2, '.', ''),
+                    'extendedPrice' => (string) number_format(($unitPrice * $quantity), 2, '.', ''),
                 ];
             }, $items, array_keys($items));
+
+            $invalidSkuLines = array_values(array_filter($lineItems, function ($line) {
+                $sku = trim((string) ($line['partNumber'] ?? ''));
+                return $sku === '' || str_starts_with(strtoupper($sku), 'PART-');
+            }));
+
+            if (!empty($invalidSkuLines)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cannot submit quote: one or more items are missing a real TD SYNNEX SKU.',
+                    'data' => [
+                        'invalid_lines' => array_map(fn ($line) => [
+                            'lineNumber' => $line['lineNumber'] ?? null,
+                            'partDescription' => $line['partDescription'] ?? null,
+                            'partNumber' => $line['partNumber'] ?? null,
+                        ], $invalidSkuLines),
+                    ],
+                ], 422);
+            }
+
+            $orderCompany = $quote->user->company ?? null;
+            $orderShipAddr = $orderCompany ? $orderCompany->getDefaultShippingAddress() : null;
+            $orderBillAddr = $orderCompany ? $orderCompany->getDefaultBillingAddress() : null;
+            $effectiveShipAddr = $orderShipAddr ?? $orderBillAddr;
+            $effectiveBillAddr = $orderBillAddr ?? $orderShipAddr;
 
             $orderData = [
                 'poNumber' => $quote->quote_id,
@@ -335,22 +941,26 @@ class AdminController extends Controller
                     'vendorName' => 'Armely Store',
                 ],
                 'billTo' => [
-                    'companyName' => $quote->user->company->name ?? 'Company',
-                    'address1' => $quote->user->company->address ?? '123 Main St',
-                    'city' => $quote->user->company->city ?? 'City',
-                    'state' => $quote->user->company->state ?? 'State',
-                    'postalCode' => $quote->user->company->postal_code ?? '12345',
-                    'country' => $quote->user->company->country ?? 'US',
+                    'companyName' => $orderCompany->name ?? 'Company',
+                    'address1' => $effectiveBillAddr->street_1 ?? '',
+                    'address2' => $effectiveBillAddr->street_2 ?? '',
+                    'city' => $effectiveBillAddr->city ?? '',
+                    'state' => $effectiveBillAddr->state ?? '',
+                    'postalCode' => $effectiveBillAddr->postal_code ?? '',
+                    'country' => $effectiveBillAddr->country ?? 'US',
                     'contactEmail' => $quote->user->email ?? '',
-                    'contactPhone' => $quote->user->phone ?? '',
+                    'contactPhone' => $effectiveBillAddr->contact_phone ?? $quote->user->phone ?? '',
                 ],
                 'shipTo' => [
-                    'companyName' => $quote->user->company->name ?? 'Company',
-                    'address1' => $quote->user->company->address ?? '123 Main St',
-                    'city' => $quote->user->company->city ?? 'City',
-                    'state' => $quote->user->company->state ?? 'State',
-                    'postalCode' => $quote->user->company->postal_code ?? '12345',
-                    'country' => $quote->user->company->country ?? 'US',
+                    'companyName' => $orderCompany->name ?? 'Company',
+                    'address1' => $effectiveShipAddr->street_1 ?? '',
+                    'address2' => $effectiveShipAddr->street_2 ?? '',
+                    'city' => $effectiveShipAddr->city ?? '',
+                    'state' => $effectiveShipAddr->state ?? '',
+                    'postalCode' => $effectiveShipAddr->postal_code ?? '',
+                    'country' => $effectiveShipAddr->country ?? 'US',
+                    'contactName' => $effectiveShipAddr->contact_name ?? $quote->user->name ?? '',
+                    'contactPhone' => $effectiveShipAddr->contact_phone ?? $quote->user->phone ?? '',
                 ],
                 'poLine' => $lineItems,
                 'poTotal' => (string)number_format((float)($quote->total_amount ?? 0), 2, '.', ''),
@@ -388,18 +998,56 @@ class AdminController extends Controller
                 $orderNumber = 'ORD-' . now()->format('Y') . '-' . strtoupper(substr(md5($quote->quote_id . time()), 0, 6));
             }
 
-            $order = Order::create([
+            $normalizedOrderData = $this->normalizeTdOrderStatusPayload($tdResponse);
+            $localStatus = $this->mapCanonicalToLocalOrderStatus($normalizedOrderData['normalized_status'] ?? null);
+
+            // Extract TD rejection reason if present
+            $tdRejectionReason = null;
+            $orderResponse = is_array($tdResponse['OrderResponse'] ?? null) ? $tdResponse['OrderResponse'] : [];
+            if (!empty($orderResponse)) {
+                $tdRejectionReason = $orderResponse['Reason'] ?? null;
+                if (!$tdRejectionReason) {
+                    $item = $orderResponse['Items']['Item'] ?? null;
+                    if (is_array($item) && isset($item[0])) {
+                        $tdRejectionReason = $item[0]['Reason'] ?? null;
+                    } elseif (is_array($item)) {
+                        $tdRejectionReason = $item['Reason'] ?? null;
+                    }
+                }
+            }
+
+            $orderCreateData = [
                 'user_id' => $quote->user_id,
                 'order_number' => $orderNumber,
                 'quote_id' => $quote->quote_id,
-                'status' => 'pending',
+                'tdsynnex_order_id' => $orderNumber,
+                'status' => $localStatus,
                 'total_amount' => $quote->total_amount,
                 'tax_amount' => $quote->tax_amount,
                 'discount_amount' => $quote->discount_amount,
+                'payment_status' => 'paid',
                 'items' => $quote->items,
                 'raw_data' => $tdResponse,
+                'shipping_amount' => (float) ($normalizedOrderData['freight_amount'] ?? 0),
+                'tracking_info' => [
+                    'tracking_number' => $normalizedOrderData['tracking_number'] ?? null,
+                    'shipping_status' => $normalizedOrderData['shipping_status'] ?? null,
+                    'td_rejection_reason' => $tdRejectionReason,
+                ],
                 'ordered_at' => now(),
-            ]);
+            ];
+
+            if ($localStatus === 'failed' && $tdRejectionReason) {
+                $orderCreateData['cancellation_reason'] = $tdRejectionReason;
+            }
+
+            // Update existing failed order instead of creating a new one
+            if ($existingOrder && $existingOrder->status === 'failed') {
+                $existingOrder->update($orderCreateData);
+                $order = $existingOrder;
+            } else {
+                $order = Order::create($orderCreateData);
+            }
 
             $quote->update([
                 'status' => 'approved',
@@ -425,14 +1073,14 @@ class AdminController extends Controller
             Log::error("TD SYNNEX order submission failed: " . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Order submission failed. Please try again later.',
+                'message' => 'Order submission failed: ' . $e->getMessage(),
                 'error' => $e->getMessage(),
             ], 502);
         } catch (\Exception $e) {
             Log::error("Failed to approve quote: " . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to approve quote',
+                'message' => 'Failed to approve quote: ' . $e->getMessage(),
             ], 500);
         }
     }
@@ -557,6 +1205,54 @@ class AdminController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to fetch quotes',
+            ], 500);
+        }
+    }
+
+    /**
+     * Get a single quote with full details for admin review modal.
+     */
+    public function getQuoteDetails(Request $request, string $quoteId): JsonResponse
+    {
+        try {
+            $user = $request->user();
+
+            if ($user->role !== 'admin' && $user->role !== 'super_admin') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized',
+                ], 403);
+            }
+
+            $quote = Quote::query()
+                ->with([
+                    'user',
+                    'user.company',
+                    'approver:id,name,email',
+                    'order',
+                    'order.invoice',
+                    'lineItems',
+                ])
+                ->where('id', $quoteId)
+                ->orWhere('quote_id', $quoteId)
+                ->first();
+
+            if (!$quote) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Quote not found',
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => $quote,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to fetch quote details: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch quote details',
             ], 500);
         }
     }
@@ -723,7 +1419,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Get order status from TD SYNNEX
+     * Get order status from TD SYNNEX eSolution API.
      */
     public function getOrderStatus(Request $request, string $orderNumber): JsonResponse
     {
@@ -740,14 +1436,55 @@ class AdminController extends Controller
             // Get order to verify it exists
             $order = Order::where('order_number', $orderNumber)->firstOrFail();
 
+            if (str_starts_with((string) $order->order_number, 'ORD-')) {
+                $localNormalized = $this->normalizeTdOrderStatusPayload(null, $order);
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'order_number' => $order->order_number,
+                        'queried_order_id' => null,
+                        'td_synnex_status' => null,
+                        'normalized_status' => $localNormalized['normalized_status'],
+                        'raw_status' => $localNormalized['raw_status'],
+                        'shipping_status' => $localNormalized['shipping_status'],
+                        'tracking_number' => $localNormalized['tracking_number'],
+                        'freight_amount' => $localNormalized['freight_amount'],
+                        'estimated_delivery_date' => $localNormalized['estimated_delivery_date'],
+                        'status_source' => 'local-order',
+                    ],
+                ]);
+            }
+
             $tdsynnexService = app(TDSynnexService::class);
-            $statusResponse = $tdsynnexService->checkPoStatus($orderNumber);
+            $externalOrderId = (string) ($order->tdsynnex_order_id ?: $orderNumber);
+
+            $statusResponse = null;
+            $statusSource = 'esolution-api';
+            try {
+                $statusResponse = $tdsynnexService->getOrderStatus($externalOrderId);
+                $normalized = $this->normalizeTdOrderStatusPayload($statusResponse, $order);
+            } catch (\Exception $apiEx) {
+                // XML-PO orders cannot be looked up via the REST eSolution API.
+                // Fall back to the TD response we stored locally at submission time.
+                Log::debug('TD SYNNEX REST status lookup failed for ' . $externalOrderId . ', using local raw_data: ' . $apiEx->getMessage());
+                $rawData = is_array($order->raw_data) ? $order->raw_data : [];
+                $normalized = $this->normalizeTdOrderStatusPayload($rawData ?: null, $order);
+                $statusSource = 'local-raw-data';
+            }
 
             return response()->json([
                 'success' => true,
                 'data' => [
                     'order_number' => $orderNumber,
+                    'queried_order_id' => $externalOrderId,
                     'td_synnex_status' => $statusResponse,
+                    'normalized_status' => $normalized['normalized_status'],
+                    'raw_status' => $normalized['raw_status'],
+                    'shipping_status' => $normalized['shipping_status'],
+                    'tracking_number' => $normalized['tracking_number'],
+                    'freight_amount' => $normalized['freight_amount'],
+                    'estimated_delivery_date' => $normalized['estimated_delivery_date'],
+                    'status_source' => $statusSource,
                 ],
             ]);
         } catch (\Exception $e) {
@@ -782,7 +1519,7 @@ class AdminController extends Controller
             $dateRange = $request->get('dateRange', 'all');
             $companyId = $request->get('company_id');
 
-            $query = Order::query()->with('user', 'user.company');
+            $query = Order::query()->with('user', 'user.company', 'invoice');
 
             if ($companyId) {
                 $query->whereHas('user', function ($userQuery) use ($companyId) {
@@ -815,9 +1552,27 @@ class AdminController extends Controller
             $orders = $query->orderBy('created_at', 'desc')
                 ->paginate($pageSize, ['*'], 'page', $page);
 
+            $orderRows = $orders->items();
+            $orderRows = array_map(function ($order) {
+                $itemPreview = $this->buildOrderItemPreview($order);
+                $remainingDue = $order->invoice
+                    ? max(0, (float) ($order->invoice->total_amount ?? 0) - (float) ($order->invoice->paid_amount ?? 0))
+                    : 0;
+
+                $order->primary_item_name = $itemPreview['primary_item_name'];
+                $order->additional_items_count = $itemPreview['additional_items_count'];
+                $order->linked_invoice_number = $order->invoice?->invoice_number;
+                $order->linked_invoice_status = $order->invoice?->status;
+                $order->linked_invoice_due = number_format($remainingDue, 2, '.', '');
+                $order->payment_status = $order->payment_status
+                    ?: (($order->invoice && (string) $order->invoice->status === 'paid') ? 'completed' : 'pending');
+
+                return $order;
+            }, $orderRows);
+
             return response()->json([
                 'success' => true,
-                'data' => $orders->items(),
+                'data' => $orderRows,
                 'pagination' => [
                     'total' => $orders->total(),
                     'per_page' => $orders->perPage(),
@@ -1362,8 +2117,14 @@ class AdminController extends Controller
                         'email' => $user->email,
                     ],
                     'api_config' => [
-                        'client_id' => config('tdsynnex.client_id', ''),
-                        'environment' => config('tdsynnex.environment', 'sandbox'),
+                        'client_id' => (string) $this->getIntegrationSetting('integrations.tdsynnex.client_id', config('tdsynnex.client_id', '')),
+                        'client_secret' => (string) $this->getIntegrationSetting('integrations.tdsynnex.client_secret', ''),
+                        'environment' => (string) $this->getIntegrationSetting('integrations.tdsynnex.environment', config('tdsynnex.environment', 'sandbox')),
+                        'quickbooks_client_id' => (string) $this->getIntegrationSetting('integrations.quickbooks.client_id', config('services.quickbooks.client_id', '')),
+                        'quickbooks_client_secret' => (string) $this->getIntegrationSetting('integrations.quickbooks.client_secret', config('services.quickbooks.client_secret', '')),
+                        'quickbooks_company_id' => (string) $this->getIntegrationSetting('integrations.quickbooks.company_id', config('services.quickbooks.company_id', '')),
+                        'quickbooks_payment_url_template' => (string) $this->getIntegrationSetting('integrations.quickbooks.payment_url_template', config('services.quickbooks.payment_url_template', '')),
+                        'quickbooks_bulk_payment_url_template' => (string) $this->getIntegrationSetting('integrations.quickbooks.bulk_payment_url_template', config('services.quickbooks.bulk_payment_url_template', '')),
                     ],
                     'email_settings' => [
                         'new_orders' => true,
@@ -1376,9 +2137,12 @@ class AdminController extends Controller
                     'system_settings' => [
                         'company_name' => 'Armely Store',
                         'support_email' => config('mail.from.address', 'support@armely.com'),
-                        'currency' => 'USD',
+                        'currency' => strtoupper((string) AppSetting::getValue('pricing.currency_code', 'USD')),
+                        'currency_rate' => AppSetting::getNumber('pricing.currency_rate', 1),
                         'timezone' => config('app.timezone', 'America/New_York'),
                         'maintenance_mode' => app()->isDownForMaintenance(),
+                        'tax_rate_percent' => AppSetting::getNumber('pricing.tax_rate_percent', 0),
+                        'profit_rate_percent' => AppSetting::getNumber('pricing.profit_rate_percent', 0),
                     ],
                 ],
             ]);
@@ -1455,10 +2219,60 @@ class AdminController extends Controller
                 ], 403);
             }
 
-            // In a real implementation, you would save these to a settings table or .env file
+            $validated = $request->validate([
+                'client_id' => 'sometimes|nullable|string|max:255',
+                'client_secret' => 'sometimes|nullable|string|max:2048',
+                'environment' => 'sometimes|nullable|in:sandbox,production',
+                'quickbooks_client_id' => 'sometimes|nullable|string|max:255',
+                'quickbooks_client_secret' => 'sometimes|nullable|string|max:2048',
+                'quickbooks_company_id' => 'sometimes|nullable|string|max:255',
+                'quickbooks_payment_url_template' => 'sometimes|nullable|url|max:2048',
+                'quickbooks_bulk_payment_url_template' => 'sometimes|nullable|url|max:2048',
+            ]);
+
+            if (array_key_exists('client_id', $validated)) {
+                AppSetting::setValue('integrations.tdsynnex.client_id', trim((string) ($validated['client_id'] ?? '')));
+            }
+
+            if (array_key_exists('client_secret', $validated)) {
+                AppSetting::setValue('integrations.tdsynnex.client_secret', trim((string) ($validated['client_secret'] ?? '')));
+            }
+
+            if (array_key_exists('environment', $validated)) {
+                AppSetting::setValue('integrations.tdsynnex.environment', trim((string) ($validated['environment'] ?? 'sandbox')) ?: 'sandbox');
+            }
+
+            if (array_key_exists('quickbooks_client_id', $validated)) {
+                AppSetting::setValue('integrations.quickbooks.client_id', trim((string) ($validated['quickbooks_client_id'] ?? '')));
+            }
+
+            if (array_key_exists('quickbooks_client_secret', $validated)) {
+                AppSetting::setValue('integrations.quickbooks.client_secret', trim((string) ($validated['quickbooks_client_secret'] ?? '')));
+            }
+
+            if (array_key_exists('quickbooks_company_id', $validated)) {
+                AppSetting::setValue('integrations.quickbooks.company_id', trim((string) ($validated['quickbooks_company_id'] ?? '')));
+            }
+
+            if (array_key_exists('quickbooks_payment_url_template', $validated)) {
+                AppSetting::setValue('integrations.quickbooks.payment_url_template', trim((string) ($validated['quickbooks_payment_url_template'] ?? '')));
+            }
+
+            if (array_key_exists('quickbooks_bulk_payment_url_template', $validated)) {
+                AppSetting::setValue('integrations.quickbooks.bulk_payment_url_template', trim((string) ($validated['quickbooks_bulk_payment_url_template'] ?? '')));
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => 'API configuration updated successfully',
+                'data' => [
+                    'client_id' => (string) AppSetting::getValue('integrations.tdsynnex.client_id', ''),
+                    'environment' => (string) AppSetting::getValue('integrations.tdsynnex.environment', 'sandbox'),
+                    'quickbooks_client_id' => (string) AppSetting::getValue('integrations.quickbooks.client_id', ''),
+                    'quickbooks_company_id' => (string) AppSetting::getValue('integrations.quickbooks.company_id', ''),
+                    'quickbooks_payment_url_template' => (string) AppSetting::getValue('integrations.quickbooks.payment_url_template', ''),
+                    'quickbooks_bulk_payment_url_template' => (string) AppSetting::getValue('integrations.quickbooks.bulk_payment_url_template', ''),
+                ],
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to update API config: ' . $e->getMessage());
@@ -1548,6 +2362,14 @@ class AdminController extends Controller
                 ], 403);
             }
 
+            $validated = $request->validate([
+                'maintenance_mode' => 'sometimes|boolean',
+                'tax_rate_percent' => 'sometimes|numeric|min:0|max:100',
+                'profit_rate_percent' => 'sometimes|numeric|min:0|max:500',
+                'currency' => 'sometimes|string|max:10',
+                'currency_rate' => 'sometimes|numeric|min:0.0001|max:1000000',
+            ]);
+
             // Handle maintenance mode
             if ($request->has('maintenance_mode')) {
                 $maintenanceMode = $request->boolean('maintenance_mode');
@@ -1564,12 +2386,34 @@ class AdminController extends Controller
                 }
             }
 
+            if (array_key_exists('tax_rate_percent', $validated)) {
+                AppSetting::setValue('pricing.tax_rate_percent', (float) $validated['tax_rate_percent']);
+            }
+
+            if (array_key_exists('profit_rate_percent', $validated)) {
+                AppSetting::setValue('pricing.profit_rate_percent', (float) $validated['profit_rate_percent']);
+            }
+
+            if (array_key_exists('currency', $validated)) {
+                AppSetting::setValue('pricing.currency_code', strtoupper((string) $validated['currency']));
+            }
+
+            if (array_key_exists('currency_rate', $validated)) {
+                AppSetting::setValue('pricing.currency_rate', (float) $validated['currency_rate']);
+            }
+
             // In a real implementation, save other settings to database
             // For now, just save to config (you may want to use Settings model)
             
             return response()->json([
                 'success' => true,
                 'message' => 'System settings updated successfully',
+                'data' => [
+                    'tax_rate_percent' => AppSetting::getNumber('pricing.tax_rate_percent', 0),
+                    'profit_rate_percent' => AppSetting::getNumber('pricing.profit_rate_percent', 0),
+                    'currency' => strtoupper((string) AppSetting::getValue('pricing.currency_code', 'USD')),
+                    'currency_rate' => AppSetting::getNumber('pricing.currency_rate', 1),
+                ],
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to update system settings: ' . $e->getMessage());
@@ -2148,6 +2992,106 @@ EOT;
                 'success' => false,
                 'message' => 'Failed to generate invoice PDF',
             ], 500);
+        }
+    }
+
+    /**
+     * Bulk delete invoices
+     */
+    public function bulkDeleteInvoices(Request $request): JsonResponse
+    {
+        try {
+            $user = $request->user();
+            if ($user->role !== 'admin' && $user->role !== 'super_admin') {
+                return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+            }
+
+            $request->validate([
+                'invoice_ids' => 'required|array|min:1',
+                'invoice_ids.*' => 'required|integer|exists:invoices,id',
+            ]);
+
+            $deletedCount = Invoice::whereIn('id', $request->invoice_ids)->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => "$deletedCount invoice(s) deleted successfully",
+                'deleted_count' => $deletedCount,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Bulk delete invoices failed: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Failed to delete invoices'], 500);
+        }
+    }
+
+    /**
+     * Bulk mark invoices as paid
+     */
+    public function bulkMarkInvoicesPaid(Request $request): JsonResponse
+    {
+        try {
+            $user = $request->user();
+            if ($user->role !== 'admin' && $user->role !== 'super_admin') {
+                return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+            }
+
+            $request->validate([
+                'invoice_ids' => 'required|array|min:1',
+                'invoice_ids.*' => 'required|integer|exists:invoices,id',
+            ]);
+
+            $paymentDate = $request->input('payment_date', now()->toDateString());
+
+            $updatedCount = Invoice::whereIn('id', $request->invoice_ids)
+                ->where('status', 'pending')
+                ->update([
+                    'status' => 'paid',
+                    'paid_at' => $paymentDate,
+                    'updated_at' => now(),
+                ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => "$updatedCount invoice(s) marked as paid",
+                'updated_count' => $updatedCount,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Bulk mark invoices paid failed: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Failed to mark invoices as paid'], 500);
+        }
+    }
+
+    /**
+     * Bulk cancel invoices
+     */
+    public function bulkCancelInvoices(Request $request): JsonResponse
+    {
+        try {
+            $user = $request->user();
+            if ($user->role !== 'admin' && $user->role !== 'super_admin') {
+                return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+            }
+
+            $request->validate([
+                'invoice_ids' => 'required|array|min:1',
+                'invoice_ids.*' => 'required|integer|exists:invoices,id',
+            ]);
+
+            $updatedCount = Invoice::whereIn('id', $request->invoice_ids)
+                ->whereNotIn('status', ['paid', 'cancelled'])
+                ->update([
+                    'status' => 'cancelled',
+                    'updated_at' => now(),
+                ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => "$updatedCount invoice(s) cancelled",
+                'updated_count' => $updatedCount,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Bulk cancel invoices failed: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Failed to cancel invoices'], 500);
         }
     }
 

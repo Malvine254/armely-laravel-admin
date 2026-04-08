@@ -17,6 +17,7 @@ import AdminCustomersPage from '../pages/AdminCustomersPage.vue';
 import AdminReportsPage from '../pages/AdminReportsPage.vue';
 import AdminSettingsPage from '../pages/AdminSettingsPage.vue';
 import AdminInvoicesPage from '../pages/AdminInvoicesPage.vue';
+import AdminChatPage from '../pages/AdminChatPage.vue';
 import Products from '../views/catalog/Products.vue';
 import ProductDetail from '../views/catalog/ProductDetail.vue';
 import Cart from '../views/quotes/Cart.vue';
@@ -120,6 +121,12 @@ const routes = [
     path: '/admin/invoices',
     name: 'admin-invoices',
     component: AdminInvoicesPage,
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/admin/chat',
+    name: 'admin-chat',
+    component: AdminChatPage,
     meta: { requiresAuth: true, requiresAdmin: true },
   },
   {

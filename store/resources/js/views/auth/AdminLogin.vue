@@ -67,11 +67,17 @@
           <!-- Submit Button -->
           <button
             type="submit"
-            :disabled="loading"
+            :disabled="loading || !isFormValid"
             class="w-full text-white py-3 px-4 rounded-lg font-semibold hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-[#2f5597] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-lg"
             style="background: linear-gradient(90deg, #2f5597, #1f4788);"
           >
-            <span v-if="loading">Signing in...</span>
+            <span v-if="loading" class="inline-flex items-center gap-2">
+              <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+              </svg>
+              Signing in...
+            </span>
             <span v-else>Sign In to Admin Portal</span>
           </button>
         </form>
@@ -93,7 +99,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import { useCartStore } from '@/stores/cartStore'
@@ -110,6 +116,12 @@ const form = ref({
 
 const loading = ref(false)
 const errorMessage = ref('')
+
+const isFormValid = computed(() => {
+  const emailValue = form.value.email.trim()
+  const passwordValue = form.value.password
+  return emailValue.includes('@') && passwordValue.length >= 8
+})
 
 const handleLogin = async () => {
   loading.value = true

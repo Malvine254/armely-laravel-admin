@@ -30,6 +30,11 @@ Route::get('/', function () {
     return view('app');
 })->name('store.home');
 
+// Named login route fallback for framework auth redirects.
+Route::get('/login', function () {
+    return view('app');
+})->name('login');
+
 // Store SPA catch-all - serve the Vue.js SPA for all unmatched routes
 // BUT exclude API routes (both /api and /store/api) and system routes
 Route::get('/{any}', function () {

@@ -415,7 +415,8 @@ class AuthController extends Controller
         $data = $request->validate([
             'name' => ['sometimes', 'string', 'max:255'],
             'email' => ['sometimes', 'email', 'max:255', 'unique:users,email,' . $user->id],
-            'phone' => ['sometimes', 'string', 'max:50'],
+            'phone' => ['sometimes', 'nullable', 'string', 'max:50'],
+            'company_name' => ['sometimes', 'string', 'max:255'],
             'profile_picture' => ['sometimes', 'image', 'max:2048', 'mimes:jpeg,png,jpg,gif'],
             'shipping_address' => ['sometimes', 'array'],
             'shipping_address.label' => ['nullable', 'string', 'max:255'],
@@ -473,9 +474,14 @@ class AuthController extends Controller
         }
 
         $shippingAddressPayload = $data['shipping_address'] ?? null;
-        unset($data['shipping_address']);
+        $companyName = isset($data['company_name']) ? trim((string) $data['company_name']) : null;
+        unset($data['shipping_address'], $data['company_name']);
 
         $user->update($data);
+
+        if ($companyName !== null && $companyName !== '') {
+            $company->update(['name' => $companyName]);
+        }
 
         $shippingAddress = $this->resolveDefaultShippingAddress($company);
         if (is_array($shippingAddressPayload)) {
@@ -527,15 +533,59 @@ class AuthController extends Controller
             }
         }
         
+        $freshUser['company'] = $company->fresh()?->toArray();
         $freshUser['shipping_address'] = $this->resolveDefaultShippingAddress($company);
 
         Activity::log($user->id, 'profile', 'updated', 'Updated account profile');
 
+        $incompleteFields = [];
+        if (empty($user->fresh()->phone)) {
+            $incompleteFields[] = 'phone';
+        }
+        if (!$this->resolveDefaultShippingAddress($company)) {
+            $incompleteFields[] = 'shipping_address';
+        }
+        if (empty($user->fresh()->profile_picture)) {
+            $incompleteFields[] = 'profile_picture';
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Profile updated successfully',
-            'user' => $freshUser,
+            'user' => array_merge($freshUser, ['incomplete_fields' => $incompleteFields]),
+            'company' => $freshUser['company'],
             'shipping_address' => $freshUser['shipping_address'],
+            'incomplete_fields' => $incompleteFields,
+        ]);
+    }
+
+    public function deleteAccount(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $data = $request->validate([
+            'password' => ['required', 'string'],
+        ]);
+
+        if (!Hash::check($data['password'], $user->password)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Incorrect password. Please try again.',
+            ], 422);
+        }
+
+        // Revoke all API tokens
+        $user->tokens()->delete();
+
+        // Remove activity records
+        $user->activities()->delete();
+
+        // Hard-delete the user
+        $user->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Your account has been permanently deleted.',
         ]);
     }
 

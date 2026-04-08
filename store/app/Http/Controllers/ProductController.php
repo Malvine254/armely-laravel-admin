@@ -37,6 +37,8 @@ class ProductController extends Controller
             $useDbCache = $request->query('use_db_cache', true); // Use database cache by default
             // hide items with zero reseller price by default; set ?hide_zero_price=false to disable
             $hideZero = filter_var($request->query('hide_zero_price', true), FILTER_VALIDATE_BOOLEAN);
+            // Optional catalog-only cleanup to hide obviously irrelevant line items.
+            $catalogClean = filter_var($request->query('catalog_clean', false), FILTER_VALIDATE_BOOLEAN);
 
             Log::info('ProductController.index called', [
                 'vendor' => $vendorId,
@@ -45,11 +47,12 @@ class ProductController extends Controller
                 'per_page' => $pageSize,
                 'search' => $search,
                 'use_db_cache' => $useDbCache,
+                'catalog_clean' => $catalogClean,
                 'query_params' => $request->query()
             ]);
 
             if ($this->tdsynnexService->usesPriceAvailabilityAsProductSource()) {
-                return $this->indexFromPriceAvailability($request, $search, $minPrice, $maxPrice, $billingModels, $hideZero, $pageNo, $pageSize, (bool) $useDbCache);
+                return $this->indexFromPriceAvailability($request, $search, $minPrice, $maxPrice, $billingModels, $hideZero, $pageNo, $pageSize, (bool) $useDbCache, $catalogClean);
             }
 
             // Use single vendor if no vendor list specified
@@ -175,6 +178,10 @@ class ProductController extends Controller
                 });
             }
 
+            if ($catalogClean) {
+                $allProducts = $this->filterCatalogNoiseProducts($allProducts);
+            }
+
             // Reset array keys after filtering
             $allProducts = array_values($allProducts);
 
@@ -239,7 +246,8 @@ class ProductController extends Controller
         bool $hideZero,
         int $pageNo,
         int $pageSize,
-        bool $useDbCache = true
+        bool $useDbCache = true,
+        bool $catalogClean = false
     ): JsonResponse {
         $selectedVendors = [];
         $vendorsCsv = trim((string) $request->query('vendors', ''));
@@ -265,6 +273,7 @@ class ProductController extends Controller
                 $pageNo,
                 $pageSize,
                 $selectedVendors,
+                $catalogClean,
             );
 
             $fromDbCache = true;
@@ -351,6 +360,10 @@ class ProductController extends Controller
             $allProducts = array_values(array_filter($allProducts, function ($product) use ($billingModelsArray) {
                 return in_array((string) ($product['billingModel'] ?? ''), $billingModelsArray, true);
             }));
+        }
+
+        if ($catalogClean) {
+            $allProducts = $this->filterCatalogNoiseProducts($allProducts);
         }
 
         $total = count($allProducts);
@@ -469,7 +482,8 @@ class ProductController extends Controller
         bool $hideZero,
         int $pageNo,
         int $pageSize,
-        array $selectedVendors = []
+        array $selectedVendors = [],
+        bool $catalogClean = false
     ): array {
         $query = Product::query()->where('vendor_id', 'TD SYNNEX');
 
@@ -509,6 +523,13 @@ class ProductController extends Controller
             $query->whereIn('billing_model', array_map('trim', explode(',', (string) $billingModels)));
         }
 
+        if ($catalogClean) {
+            // Drop shipping/support-like line items that are usually placeholder-priced.
+            $query->whereRaw("LOWER(COALESCE(mfg_part_no, '')) <> 'shipping'")
+                ->whereRaw("LOWER(COALESCE(product_name, '')) NOT LIKE '%shipping%'")
+                ->whereRaw("NOT ((COALESCE(base_price, 0) <= 0.05) AND (LOWER(COALESCE(product_name, '')) LIKE '%support%' OR LOWER(COALESCE(product_name, '')) LIKE '%warranty%' OR LOWER(COALESCE(product_name, '')) LIKE '%consulting%' OR LOWER(COALESCE(product_name, '')) LIKE '%implementation%' OR LOWER(COALESCE(product_name, '')) LIKE '%annual fee%' OR LOWER(COALESCE(product_name, '')) LIKE '%training%'))");
+        }
+
         // Fetch one extra row to detect if there are more pages (avoids expensive COUNT)
         $perPage = max(1, $pageSize);
         $currentPage = max(1, $pageNo);
@@ -537,11 +558,33 @@ class ProductController extends Controller
                 );
                 return $row->TABLE_ROWS ?? 0;
             });
+        } elseif (!empty($selectedVendors) && $hasMore) {
+            // For vendor-filtered browse, cache the COUNT per vendor combination so pagination
+            // shows the real product count instead of the misleading "200" minimum.
+            $vendorCacheKey = 'pa_vendor_total_' . md5(implode(',', array_map('strtolower', $selectedVendors))) . '_' . ($hideZero ? '1' : '0') . '_' . ($catalogClean ? 'c' : 'r');
+            $total = (int) Cache::remember($vendorCacheKey, 600, function () use ($selectedVendors, $hideZero, $catalogClean) {
+                $countQuery = Product::query()->where('vendor_id', 'TD SYNNEX');
+                if ($hideZero) {
+                    $countQuery->where('base_price', '>', 0);
+                }
+                $countQuery->where(function ($q) use ($selectedVendors) {
+                    foreach ($selectedVendors as $vendor) {
+                        $q->orWhere('specifications->manufacturer', '=', $vendor);
+                    }
+                });
+                if ($catalogClean) {
+                    $countQuery
+                        ->whereRaw("LOWER(COALESCE(mfg_part_no, '')) <> 'shipping'")
+                        ->whereRaw("LOWER(COALESCE(product_name, '')) NOT LIKE '%shipping%'")
+                        ->whereRaw("NOT ((COALESCE(base_price, 0) <= 0.05) AND (LOWER(COALESCE(product_name, '')) LIKE '%support%' OR LOWER(COALESCE(product_name, '')) LIKE '%warranty%' OR LOWER(COALESCE(product_name, '')) LIKE '%consulting%' OR LOWER(COALESCE(product_name, '')) LIKE '%implementation%' OR LOWER(COALESCE(product_name, '')) LIKE '%annual fee%' OR LOWER(COALESCE(product_name, '')) LIKE '%training%'))");
+                }
+                return $countQuery->count();
+            });
         } else {
             // N+1 estimate: fast, avoids expensive COUNT on FULLTEXT results.
             // The hasMore flag tells us there are more pages; frontend prefetches make this smooth.
             $total = $hasMore
-                ? max(($currentPage * $perPage) * 3, 200) // estimate ~3x displayed pages
+                ? max(($currentPage * $perPage) * 3, ($currentPage * $perPage) + $perPage + 1) // always implies at least one more page
                 : ($currentPage - 1) * $perPage + $products->count();
         }
 
@@ -591,6 +634,45 @@ class ProductController extends Controller
             'image_url' => $primaryImage,
             'icecat_title' => '',
         ];
+    }
+
+    private function filterCatalogNoiseProducts(array $products): array
+    {
+        return array_values(array_filter($products, function ($product) {
+            $name = strtolower(trim((string) ($product['productName'] ?? '')));
+            $sku = strtolower(trim((string) ($product['mfgPartNo'] ?? $product['sku'] ?? '')));
+            $price = (float) ($product['productPrice'][0]['rsPrice'] ?? 0);
+
+            if ($name === '' || preg_match('/^[\W_]+$/', $name)) {
+                return false;
+            }
+
+            if ($sku === 'shipping' || str_contains($name, 'shipping')) {
+                return false;
+            }
+
+            if ($price <= 0.05) {
+                $serviceKeywords = [
+                    'support',
+                    'warranty',
+                    'consulting',
+                    'implementation',
+                    'annual fee',
+                    'training',
+                    'subscription of',
+                    'onsite support',
+                    'prepaid cloud hosting',
+                ];
+
+                foreach ($serviceKeywords as $keyword) {
+                    if (str_contains($name, $keyword)) {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }));
     }
 
     private function getPriceAvailabilityProductFromDatabase(string $skuOrProductId): ?array
@@ -906,6 +988,10 @@ class ProductController extends Controller
 
         $related = [];
         foreach ($candidates as $candidate) {
+            if (!$candidate instanceof Product) {
+                continue;
+            }
+
             $mapped = $this->mapPriceAvailabilityDatabaseProduct($candidate);
             $candidateSku = strtoupper(trim((string) ($mapped['sku'] ?? $mapped['productId'] ?? '')));
 

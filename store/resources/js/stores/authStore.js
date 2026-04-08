@@ -226,6 +226,9 @@ export const useAuthStore = defineStore('auth', () => {
             nextUser.company_name = payload.company.name
           }
         }
+        if (typeof nextUser === 'object' && payload?.incomplete_fields) {
+          nextUser.incomplete_fields = payload.incomplete_fields
+        }
         user.value = nextUser
         saveUser()
         setRestricted(!!payload?.restricted)

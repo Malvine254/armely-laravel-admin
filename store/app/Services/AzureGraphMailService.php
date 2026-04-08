@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Product;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -9,6 +10,8 @@ use Illuminate\Support\Str;
 
 class AzureGraphMailService
 {
+    private array $productNameLookupCache = [];
+
     public function sendActivationEmail(string $recipientEmail, string $recipientName, string $activationUrl): bool
     {
         if (!$this->isConfigured()) {
@@ -552,7 +555,7 @@ class AzureGraphMailService
 
         foreach ($normalizedItems as $index => $item) {
             $line = is_array($item) ? $item : [];
-            $name = (string) ($line['productName'] ?? $line['product_name'] ?? $line['name'] ?? 'Product ' . ($index + 1));
+            $name = $this->resolveLineItemName($line, 'Unknown Product');
             $productRef = (string) ($line['mfgPartNo'] ?? $line['mfg_part_no'] ?? $line['sku'] ?? $line['product_id'] ?? 'N/A');
             $quantity = max(1, (int) ($line['quantity'] ?? 1));
             $unitPrice = (float) ($line['unitPrice'] ?? $line['unit_price'] ?? 0);
@@ -659,7 +662,8 @@ class AzureGraphMailService
         $items = $invoice->items;
         if ($items && is_array($items) && count($items)) {
             foreach ($items as $item) {
-                $n  = e($item['product_name'] ?? $item['name'] ?? 'Product');
+                $line = is_array($item) ? $item : [];
+                $n  = e($this->resolveLineItemName($line, 'Unknown Product'));
                 $q  = (int)($item['quantity'] ?? 1);
                 $up = number_format((float)($item['unit_price'] ?? 0), 2);
                 $lt = number_format((float)($item['line_total'] ?? (($item['unit_price'] ?? 0) * ($item['quantity'] ?? 1))), 2);
@@ -770,6 +774,62 @@ class AzureGraphMailService
             . "<p style='margin:0;'>Thank you for your business! | www.armely.com | support@armely.com</p>"
             . "</div>"
             . "</div></div></body></html>";
+    }
+
+    private function resolveLineItemName(array $line, string $fallback = 'Unknown Product'): string
+    {
+        $inlineName = $line['productName']
+            ?? $line['product_name']
+            ?? $line['partDescription']
+            ?? $line['productDescription']
+            ?? $line['name']
+            ?? $line['description']
+            ?? null;
+
+        if (is_string($inlineName) && trim($inlineName) !== '') {
+            return trim($inlineName);
+        }
+
+        $lookupKey = trim((string) (
+            $line['product_id']
+            ?? $line['productId']
+            ?? $line['id']
+            ?? $line['sku']
+            ?? $line['partNumber']
+            ?? $line['mfg_part_no']
+            ?? $line['mfg_part_number']
+            ?? $line['mfgPartNo']
+            ?? ''
+        ));
+
+        if ($lookupKey !== '') {
+            if (array_key_exists($lookupKey, $this->productNameLookupCache)) {
+                return $this->productNameLookupCache[$lookupKey] ?: "{$fallback} ({$lookupKey})";
+            }
+
+            $productQuery = Product::query()
+                ->select('product_name')
+                ->where('tdsynnex_product_id', $lookupKey)
+                ->orWhere('tdsynnex_sku_no', $lookupKey)
+                ->orWhere('mfg_part_no', $lookupKey);
+
+            if (ctype_digit($lookupKey)) {
+                $productQuery->orWhere('id', (int) $lookupKey);
+            }
+
+            $name = $productQuery->value('product_name');
+
+            $resolved = is_string($name) ? trim($name) : '';
+            $this->productNameLookupCache[$lookupKey] = $resolved;
+
+            if ($resolved !== '') {
+                return $resolved;
+            }
+
+            return "{$fallback} ({$lookupKey})";
+        }
+
+        return $fallback;
     }
 
     private function isConfigured(): bool

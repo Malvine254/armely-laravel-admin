@@ -506,7 +506,7 @@ const fetchCustomers = async () => {
   try {
     const params = {
       page: currentPage.value,
-      pageSize: 6
+      pageSize: 100
     }
 
     if (statusFilter.value) params.status = statusFilter.value

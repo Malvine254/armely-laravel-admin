@@ -39,6 +39,131 @@
         </div>
       </div>
 
+      <!-- View Tabs -->
+      <div class="mb-6">
+        <div class="inline-flex rounded-xl border border-gray-200 bg-white p-1 shadow-sm">
+          <button
+            @click="activeTab = 'orders'"
+            :class="activeTab === 'orders' ? 'text-white shadow-sm' : 'text-gray-700 hover:bg-gray-100'"
+            class="px-4 py-2 rounded-lg text-sm font-semibold transition duration-200"
+            :style="activeTab === 'orders' ? 'background-color: #2F5597;' : ''"
+          >
+            Orders Table
+          </button>
+          <button
+            @click="activeTab = 'tracking'"
+            :class="activeTab === 'tracking' ? 'text-white shadow-sm' : 'text-gray-700 hover:bg-gray-100'"
+            class="px-4 py-2 rounded-lg text-sm font-semibold transition duration-200 flex items-center gap-2"
+            :style="activeTab === 'tracking' ? 'background-color: #2F5597;' : ''"
+          >
+            Order Tracking
+            <span class="inline-flex items-center justify-center min-w-[1.2rem] h-5 px-1.5 rounded-full text-xs font-bold"
+              :class="activeTab === 'tracking' ? 'bg-white text-[#2F5597]' : 'bg-[#2F5597] text-white'"
+            >
+              {{ activeShipmentsCount }}
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Order Tracking -->
+      <div v-if="activeTab === 'tracking'" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-8">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+          <div>
+            <h3 class="text-xl font-bold text-gray-900">Order Tracking</h3>
+            <p class="text-sm text-gray-600">Real-time tracking snapshots for your latest orders</p>
+          </div>
+          <span class="text-xs text-gray-500">Auto-updates in background</span>
+        </div>
+
+        <div v-if="liveShippingLoading" class="py-8 text-center">
+          <div class="inline-block w-8 h-8 border-4 rounded-full animate-spin" style="border-color: #d9e6f7; border-block-start-color: #2F5597;"></div>
+          <p class="text-sm text-gray-600 mt-2">Syncing latest shipment updates...</p>
+        </div>
+
+        <div v-else-if="liveShippingError" class="rounded-lg border border-amber-200 bg-amber-50 p-4">
+          <p class="text-sm font-semibold text-amber-900">Could not load live tracker</p>
+          <p class="text-sm text-amber-800 mt-1">{{ liveShippingError }}</p>
+        </div>
+
+        <div v-else-if="liveShipments.length === 0" class="rounded-lg border border-dashed border-gray-300 p-6 text-center">
+          <p class="text-sm text-gray-600">No active shipments yet. Once an order ships, tracking appears here.</p>
+        </div>
+
+        <div v-else class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          <article
+            v-for="shipment in liveShipments"
+            :key="shipment.order_number"
+            class="rounded-xl border p-4"
+            style="border-color: #d9e6f7; background: linear-gradient(160deg, #ffffff 0%, #f8fbff 100%);"
+          >
+            <div class="flex items-start justify-between gap-3 mb-3">
+              <div>
+                <p class="text-xs uppercase tracking-wide text-gray-500">Order</p>
+                <p class="font-mono font-semibold text-gray-900">{{ shipment.order_number }}</p>
+                <p
+                  class="text-sm text-gray-800 mt-1 font-medium max-w-[280px] truncate"
+                  :title="shipment.primary_item_name || 'Item details unavailable'"
+                >
+                  {{ truncateProductName(shipment.primary_item_name) }}
+                </p>
+                <p v-if="shipment.additional_items_count > 0" class="text-xs text-gray-500">+{{ shipment.additional_items_count }} more item(s)</p>
+              </div>
+              <span :class="liveStatusBadge(shipment.status)" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold">
+                <span class="w-2 h-2 rounded-full animate-pulse" :style="{ backgroundColor: liveStatusDot(shipment.status) }"></span>
+                {{ formatStatus(shipment.status) }}
+              </span>
+            </div>
+
+            <div class="mb-3">
+              <div class="w-full rounded-full h-2 mb-1" style="background-color: #d9e6f7;">
+                <div class="h-2 rounded-full" style="background-color: #2F5597;" :style="{ inlineSize: shipment.progress + '%' }"></div>
+              </div>
+              <p class="text-xs text-gray-600">{{ shipment.progress }}% complete</p>
+            </div>
+
+            <div class="space-y-1 mb-3 text-xs text-gray-700">
+              <p><span class="font-semibold">Carrier:</span> {{ shipment.carrier ? shipment.carrier.toUpperCase() : 'TBD' }}</p>
+              <p><span class="font-semibold">Tracking:</span> {{ shipment.tracking_number || 'Pending assignment' }}</p>
+              <p><span class="font-semibold">ETA:</span> {{ shipment.estimated_delivery_at ? formatDate(shipment.estimated_delivery_at) : 'Awaiting update' }}</p>
+            </div>
+
+            <div
+              v-if="shipment.tracking_eligible && !shipment.tracking_number"
+              class="mb-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2"
+            >
+              <p class="text-xs font-medium text-blue-800">
+                Payment confirmed. Tracking will appear once the carrier dispatch scan is available.
+              </p>
+            </div>
+
+            <div class="mb-3">
+              <p class="text-xs font-semibold text-gray-700 mb-2">Timeline</p>
+              <ul class="space-y-1.5">
+                <li v-for="milestone in shipment.milestones" :key="milestone.label" class="flex items-center gap-2 text-xs">
+                  <span class="w-2 h-2 rounded-full" :class="milestone.done ? 'bg-green-500' : 'bg-gray-300'"></span>
+                  <span :class="milestone.done ? 'text-gray-900 font-medium' : 'text-gray-500'">{{ milestone.label }}</span>
+                </li>
+              </ul>
+            </div>
+
+            <button
+              v-if="shipment.tracking_url"
+              @click="openTracking(shipment.tracking_url)"
+              class="w-full px-3 py-2 text-xs font-semibold text-white rounded-md transition duration-200"
+              style="background-color: #2F5597;"
+              @mouseenter="$event.target.style.backgroundColor='#1f4788'"
+              @mouseleave="$event.target.style.backgroundColor='#2F5597'"
+            >
+              Open Carrier Tracking
+            </button>
+
+            <p v-if="shipment.last_updated_at" class="text-[11px] text-gray-500 mt-2">Updated {{ formatDate(shipment.last_updated_at) }}</p>
+          </article>
+        </div>
+      </div>
+
+      <template v-if="activeTab === 'orders'">
       <!-- Filter Bar -->
       <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
         <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
@@ -142,6 +267,18 @@
                   >
                     {{ order.order_number }}
                   </button>
+                  <p
+                    class="text-sm text-gray-800 mt-1 font-medium max-w-[260px] truncate"
+                    :title="order.primary_item_name || 'Item details unavailable'"
+                  >
+                    {{ truncateProductName(order.primary_item_name) }}
+                  </p>
+                  <p
+                    v-if="order.additional_items_count > 0"
+                    class="text-xs text-gray-500"
+                  >
+                    +{{ order.additional_items_count }} more item(s)
+                  </p>
                   <p v-if="order.tracking_number" class="text-xs text-gray-500 mt-1">Tracking: {{ order.tracking_number }}</p>
                 </td>
                 <td class="px-5 py-4 align-top">
@@ -172,6 +309,16 @@
                       @mouseleave="$event.target.style.backgroundColor='transparent'"
                     >
                       View
+                    </button>
+                    <button
+                      v-if="hasPayableInvoice(order)"
+                      @click="payViaInvoice(order)"
+                      class="px-3 py-1.5 text-xs rounded-md text-white font-semibold transition duration-200"
+                      style="background-color: #2F5597;"
+                      @mouseenter="$event.target.style.backgroundColor='#1f4788'"
+                      @mouseleave="$event.target.style.backgroundColor='#2F5597'"
+                    >
+                      Pay via Invoice
                     </button>
                     <button
                       v-if="canCancelOrder(order)"
@@ -219,6 +366,7 @@
           </div>
         </div>
       </div>
+      </template>
     </div>
 
     <!-- Order Detail Modal -->
@@ -279,6 +427,16 @@
               Close
             </button>
             <button
+              v-if="hasPayableInvoice(selectedOrder)"
+              @click="payViaInvoice(selectedOrder)"
+              class="flex-1 px-4 py-3 text-white rounded-lg font-semibold transition duration-200"
+              style="background-color: #2F5597;"
+              @mouseenter="$event.target.style.backgroundColor='#1f4788'"
+              @mouseleave="$event.target.style.backgroundColor='#2F5597'"
+            >
+              Pay via Invoice
+            </button>
+            <button
               v-if="canCancelOrder(selectedOrder)"
               @click="cancelOrder(selectedOrder)"
               :disabled="processingOrderNumber === selectedOrder.order_number"
@@ -297,12 +455,13 @@
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../../stores/authStore';
 import { useToastStore } from '../../stores/toastStore';
 import axios from 'axios';
 import Navbar from '../../components/Navbar.vue';
+import { usePricingSettings } from '../../composables/usePricingSettings';
 
 export default {
   components: {
@@ -312,12 +471,14 @@ export default {
     const router = useRouter();
     const authStore = useAuthStore();
     const toastStore = useToastStore();
+    const { loadPricingSettings, formatUsdUsingCurrentCurrency } = usePricingSettings();
     const orders = ref([]);
     const loading = ref(false);
     const error = ref(null);
     const selectedStatus = ref('');
     const searchQuery = ref('');
     const sortBy = ref('created_desc');
+    const activeTab = ref('orders');
     const selectedOrder = ref(null);
     const processingOrderNumber = ref(null);
     const pagination = ref({
@@ -328,6 +489,10 @@ export default {
       to: 0,
       last_page: 1,
     });
+    const liveShipments = ref([]);
+    const liveShippingLoading = ref(false);
+    const liveShippingError = ref(null);
+    let liveRefreshTimer = null;
 
     const filteredOrders = computed(() => {
       const filtered = orders.value.filter(order => {
@@ -357,6 +522,10 @@ export default {
       }
 
       return sorted;
+    });
+
+    const activeShipmentsCount = computed(() => {
+      return liveShipments.value.filter((shipment) => shipment.status !== 'delivered').length;
     });
 
     const fetchOrders = async () => {
@@ -499,11 +668,15 @@ export default {
     };
 
     const formatCurrency = (amount) => {
-      if (!amount) return '$0.00';
-      return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD',
-      }).format(amount);
+      return formatUsdUsingCurrentCurrency(Number(amount || 0));
+    };
+
+    const truncateProductName = (name, maxLength = 56) => {
+      const text = String(name || 'Item details unavailable').trim();
+      if (text.length <= maxLength) {
+        return text;
+      }
+      return `${text.slice(0, Math.max(1, maxLength - 1)).trimEnd()}…`;
     };
 
     const getOrdersCountByStatus = (status) => {
@@ -522,8 +695,115 @@ export default {
       return statusProgress[status] || 0;
     };
 
+    const liveStatusBadge = (status) => {
+      const badges = {
+        pending: 'bg-yellow-100 text-yellow-800',
+        processing: 'bg-blue-100 text-blue-800',
+        confirmed: 'bg-blue-100 text-blue-800',
+        shipped: 'bg-indigo-100 text-indigo-800',
+        in_transit: 'bg-indigo-100 text-indigo-800',
+        delivered: 'bg-green-100 text-green-800',
+        returned: 'bg-red-100 text-red-800',
+      };
+      return badges[status] || 'bg-gray-100 text-gray-800';
+    };
+
+    const liveStatusDot = (status) => {
+      const dots = {
+        pending: '#f59e0b',
+        processing: '#2563eb',
+        confirmed: '#2563eb',
+        shipped: '#4f46e5',
+        in_transit: '#4f46e5',
+        delivered: '#16a34a',
+        returned: '#dc2626',
+      };
+      return dots[status] || '#6b7280';
+    };
+
+    const openTracking = (trackingUrl) => {
+      if (!trackingUrl) {
+        return;
+      }
+      window.open(trackingUrl, '_blank', 'noopener,noreferrer');
+    };
+
+    const hasPayableInvoice = (order) => {
+      if (!order) return false;
+      const invoiceNumber = String(order.linked_invoice_number || '').trim();
+      if (!invoiceNumber) return false;
+      const status = String(order.linked_invoice_status || '').toLowerCase();
+      return status !== 'paid';
+    };
+
+    const payViaInvoice = async (order) => {
+      if (!hasPayableInvoice(order)) {
+        toastStore.addToast('No payable invoice linked to this order yet.', 'warning');
+        return;
+      }
+
+      selectedOrder.value = null;
+      await router.push({
+        name: 'invoices',
+        query: {
+          selectInvoices: order.linked_invoice_number,
+          focusInvoice: order.linked_invoice_number,
+          from: 'orders',
+        },
+      });
+      toastStore.addToast(`Invoice ${order.linked_invoice_number} is ready for payment`, 'info');
+    };
+
+    const fetchLiveShipping = async () => {
+      if (!authStore.isAuthenticated) {
+        return;
+      }
+
+      if (liveShipments.value.length === 0) {
+        liveShippingLoading.value = true;
+      }
+      liveShippingError.value = null;
+
+      try {
+        const response = await axios.get('/api/v1/orders/shipping/live');
+        if (response.data?.success) {
+          liveShipments.value = response.data.data || [];
+        } else {
+          liveShippingError.value = response.data?.message || 'Failed to load live shipping data';
+        }
+      } catch (err) {
+        liveShippingError.value = err.response?.data?.message || err.message || 'Failed to load live shipping data';
+      } finally {
+        liveShippingLoading.value = false;
+      }
+    };
+
+    const startLiveShippingRefresh = () => {
+      if (liveRefreshTimer) {
+        clearInterval(liveRefreshTimer);
+      }
+
+      liveRefreshTimer = setInterval(() => {
+        fetchLiveShipping();
+      }, 20000);
+    };
+
+    const stopLiveShippingRefresh = () => {
+      if (liveRefreshTimer) {
+        clearInterval(liveRefreshTimer);
+        liveRefreshTimer = null;
+      }
+    };
+
     onMounted(() => {
+      loadPricingSettings();
       fetchOrders();
+      fetchLiveShipping();
+      startLiveShippingRefresh();
+    });
+
+    onUnmounted(() => {
+      stopLiveShippingRefresh();
     });
 
     return {
@@ -533,6 +813,7 @@ export default {
       selectedStatus,
       searchQuery,
       sortBy,
+      activeTab,
       selectedOrder,
       processingOrderNumber,
       pagination,
@@ -548,8 +829,19 @@ export default {
       formatStatus,
       getStatusBadge,
       formatCurrency,
+      truncateProductName,
       getOrdersCountByStatus,
       getStatusProgress,
+      liveShipments,
+      activeShipmentsCount,
+      liveShippingLoading,
+      liveShippingError,
+      fetchLiveShipping,
+      liveStatusBadge,
+      liveStatusDot,
+      openTracking,
+      hasPayableInvoice,
+      payViaInvoice,
     };
   },
 };

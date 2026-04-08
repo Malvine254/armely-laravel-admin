@@ -50,33 +50,11 @@
       </div>
     </div>
 
-    <!-- Status Tabs -->
-    <div class="bg-white rounded-lg shadow mb-6">
-      <div class="border-b border-gray-200">
-        <nav class="flex -mb-px">
-          <button
-            v-for="tab in statusTabs"
-            :key="tab.value"
-            @click="statusFilter = tab.value; applyFilters()"
-            :class="[
-              'px-6 py-4 text-sm font-semibold border-b-2 transition',
-              statusFilter === tab.value
-                ? 'border-[#2f5597] text-[#2f5597]'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            ]"
-          >
-            {{ tab.label }}
-            <span v-if="tab.count !== undefined" :class="[
-              'ml-2 px-2 py-1 text-xs rounded-full',
-              statusFilter === tab.value
-                ? 'bg-[#2f5597] text-white'
-                : 'bg-gray-200 text-gray-600'
-            ]">
-              {{ tab.count }}
-            </span>
-          </button>
-        </nav>
-      </div>
+    <div class="bg-[#edf3fb] border border-[#dbe7f8] rounded-lg p-4 mb-6">
+      <p class="text-sm text-[#274a82] font-medium">
+        Pending approvals queue powered by the new admin API.
+        Only key fields are shown below. Use Review to view full quote details.
+      </p>
     </div>
 
     <!-- Filters and Search -->
@@ -137,23 +115,20 @@
                   class="w-4 h-4 text-[#2f5597] border-gray-300 rounded focus:ring-[#2f5597]"
                 />
               </th>
-              <th class="px-6 py-4 text-left font-semibold text-gray-700">Quote ID</th>
-              <th class="px-6 py-4 text-left font-semibold text-gray-700">Order ID</th>
-              <th class="px-6 py-4 text-left font-semibold text-gray-700">Order Status</th>
+              <th class="px-6 py-4 text-left font-semibold text-gray-700">Quote</th>
+              <th class="px-6 py-4 text-left font-semibold text-gray-700">Status</th>
               <th class="px-6 py-4 text-left font-semibold text-gray-700">Customer</th>
               <th class="px-6 py-4 text-left font-semibold text-gray-700">Company</th>
               <th class="px-6 py-4 text-right font-semibold text-gray-700">Amount</th>
-              <th v-if="!statusFilter" class="px-6 py-4 text-left font-semibold text-gray-700">Status</th>
               <th class="px-6 py-4 text-left font-semibold text-gray-700">Submitted</th>
-              <th class="px-6 py-4 text-left font-semibold text-gray-700">Expires</th>
               <th class="px-6 py-4 text-center font-semibold text-gray-700">Actions</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="quotes.length === 0" class="border-b border-gray-200 hover:bg-gray-50">
-              <td :colspan="statusFilter ? 9 : 10" class="px-6 py-9 text-center text-gray-500">
+              <td colspan="7" class="px-6 py-9 text-center text-gray-500">
                 <i class="fas fa-inbox text-4xl mb-3 block opacity-30"></i>
-                <p>No quotes found</p>
+                <p>No pending quotes found</p>
               </td>
             </tr>
             <tr v-for="quote in quotes" :key="quote.id" class="border-b border-gray-200 hover:bg-gray-50 transition">
@@ -166,24 +141,24 @@
                 />
               </td>
               <td class="px-6 py-4">
-                <span class="font-medium text-[#2f5597]">{{ quote.quote_id }}</span>
+                <p class="text-sm font-semibold text-gray-900 max-w-[320px] truncate" :title="getQuoteDisplayName(quote)">
+                  {{ getQuoteDisplayName(quote) }}
+                </p>
+                <p class="text-xs text-[#2f5597] mt-0.5">{{ quote.quote_id }}</p>
               </td>
               <td class="px-6 py-4">
-                <span class="text-gray-900">{{ quote.order?.order_number || '-' }}</span>
-              </td>
-              <td class="px-6 py-4">
-                <span v-if="quote.order?.order_number">
-                  <span v-if="isLocalOrder(quote.order.order_number)" class="px-2 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">
-                    <i class="fas fa-database mr-1"></i>Local Order
-                  </span>
-                  <span v-else-if="quote.order.td_synnex_status" class="px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
-                    <i class="fas fa-check-circle mr-1"></i>{{ getStatusDisplay(quote.order.td_synnex_status) }}
-                  </span>
-                  <span v-else class="text-gray-500 text-sm">
-                    <i class="fas fa-spinner fa-spin mr-1"></i>Fetching...
-                  </span>
+                <span
+                  :class="[
+                    'inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold',
+                    quote.status === 'approved'
+                      ? 'bg-green-100 text-green-700'
+                      : quote.status === 'rejected'
+                        ? 'bg-red-100 text-red-700'
+                        : 'bg-yellow-100 text-yellow-700'
+                  ]"
+                >
+                  {{ formatStatus(quote.status) }}
                 </span>
-                <span v-else class="text-gray-400">-</span>
               </td>
               <td class="px-6 py-4">
                 <p class="font-medium text-gray-900">{{ getUserName(quote) }}</p>
@@ -196,18 +171,8 @@
                 <p class="font-bold text-gray-900">${{ formatCurrency(quote.total_amount) }}</p>
                 <p class="text-xs text-gray-500">Tax: ${{ formatCurrency(quote.tax_amount) }}</p>
               </td>
-              <td v-if="!statusFilter" class="px-6 py-4">
-                <span :class="statusBadgeClass(quote.status)">
-                  {{ formatStatus(quote.status) }}
-                </span>
-              </td>
               <td class="px-6 py-4 text-sm text-gray-600">
                 {{ formatDate(quote.submitted_at) }}
-              </td>
-              <td class="px-6 py-4 text-sm">
-                <span :class="isExpiringSoon(quote.expires_at) ? 'text-red-600 font-semibold' : 'text-gray-600'">
-                  {{ formatDate(quote.expires_at) }}
-                </span>
               </td>
               <td class="px-6 py-4">
                 <div class="flex justify-center space-x-3">
@@ -215,7 +180,7 @@
                     @click="selectQuote(quote)"
                     class="text-[#2f5597] hover:text-[#274a82] font-medium"
                   >
-                    <i class="fas fa-eye mr-1"></i>Review
+                    <i class="fas fa-eye mr-1"></i>Review Full
                   </button>
                 </div>
               </td>
@@ -263,53 +228,131 @@
     </div>
 
     <!-- Quote Review Modal -->
-    <div v-if="selectedQuote" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div class="bg-white rounded-lg shadow-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div class="sticky top-0 text-white p-6 border-b" style="background: linear-gradient(90deg, #2f5597, #1f4788);">
+    <div v-if="selectedQuote" class="fixed inset-0 z-[9999] bg-black/50 backdrop-blur-[2px] flex items-center justify-center p-4" @click="selectedQuote = null">
+      <div class="bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[94vh] overflow-y-auto" @click.stop>
+        <div class="sticky top-0 text-white p-6 border-b border-white/15" style="background: linear-gradient(90deg, #2f5597, #1f4788);">
           <div class="flex justify-between items-center">
-            <h3 class="text-xl font-bold">Quote Review: {{ selectedQuote.quote_id }}</h3>
-            <button @click="selectedQuote = null" class="text-white hover:text-gray-200">
+            <div>
+              <p class="text-xs uppercase tracking-wide text-blue-100 font-semibold">Quote Approval</p>
+              <h3 class="text-2xl font-bold">{{ selectedQuote.quote_id }}</h3>
+            </div>
+            <button @click="selectedQuote = null" class="text-white hover:text-gray-200 transition">
               <i class="fas fa-times text-xl"></i>
             </button>
           </div>
         </div>
 
-        <div class="p-6 space-y-4">
+        <div class="p-6 sm:p-8 space-y-6">
+          <div v-if="isLoadingQuoteDetails" class="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-sm text-blue-800">
+            <i class="fas fa-spinner fa-spin mr-2"></i>Loading full quote details...
+          </div>
+
           <!-- Quote Details -->
-          <div class="grid grid-cols-2 gap-6">
-            <div>
-              <p class="text-sm text-gray-500 font-medium">Customer</p>
-              <p class="text-lg font-semibold text-gray-900">{{ getUserName(selectedQuote) }}</p>
+          <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
+            <div class="xl:col-span-2 bg-gradient-to-br from-slate-50 to-blue-50 border border-blue-100 rounded-xl p-4">
+              <p class="text-xs uppercase tracking-wide text-blue-700 font-semibold">Quote Summary</p>
+              <p class="text-xl font-bold text-slate-900 mt-1">{{ getQuoteDisplayName(selectedQuote) }}</p>
+              <p class="text-sm text-slate-600 mt-1">Quote ID: {{ selectedQuote.quote_id }}</p>
+              <div class="mt-3 flex flex-wrap gap-2">
+                <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">{{ formatStatus(selectedQuote.status) }}</span>
+                <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-200 text-slate-700">Submitted: {{ formatDate(selectedQuote.submitted_at || selectedQuote.created_at) }}</span>
+                <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-200 text-slate-700">Expires: {{ formatDate(selectedQuote.expires_at) }}</span>
+              </div>
+            </div>
+
+            <div class="bg-white border border-gray-200 rounded-xl p-4">
+              <p class="text-xs uppercase tracking-wide text-gray-500 font-semibold mb-1">Financial</p>
+              <p class="text-3xl font-extrabold text-slate-900 leading-tight">${{ formatCurrency(selectedQuote.total_amount) }}</p>
+              <p class="text-sm text-gray-600 mt-1">Tax: ${{ formatCurrency(selectedQuote.tax_amount) }}</p>
+              <p class="text-sm text-gray-600">Discount: ${{ formatCurrency(selectedQuote.discount_amount) }}</p>
+              <p class="text-sm text-gray-600">Items: {{ normalizedQuoteItems.length }}</p>
+            </div>
+
+            <div class="bg-white border border-gray-200 rounded-xl p-4">
+              <p class="text-xs uppercase tracking-wide text-gray-500 font-semibold mb-1">Customer</p>
+              <p class="text-base font-semibold text-slate-900">{{ getUserName(selectedQuote) }}</p>
               <p class="text-sm text-gray-600">{{ getUserEmail(selectedQuote) }}</p>
+              <p class="text-sm text-gray-600 mt-2">Company: {{ getCompanyName(selectedQuote) }}</p>
             </div>
-            <div>
-              <p class="text-sm text-gray-500 font-medium">Company</p>
-              <p class="text-lg font-semibold text-gray-900">{{ getCompanyName(selectedQuote) }}</p>
-            </div>
-            <div>
-              <p class="text-sm text-gray-500 font-medium">Amount</p>
-              <p class="text-2xl font-bold text-gray-900">${{ formatCurrency(selectedQuote.total_amount) }}</p>
-            </div>
-            <div>
-              <p class="text-sm text-gray-500 font-medium">Tax</p>
-              <p class="text-lg font-semibold text-gray-900">${{ formatCurrency(selectedQuote.tax_amount) }}</p>
-            </div>
-            <div v-if="selectedQuote.order">
-              <p class="text-sm text-gray-500 font-medium">Order ID</p>
-              <p class="text-lg font-semibold text-gray-900">{{ selectedQuote.order.order_number }}</p>
-              <p class="text-xs text-gray-500">Status: {{ selectedQuote.order.status }}</p>
+
+            <div class="bg-white border border-gray-200 rounded-xl p-4" v-if="selectedQuote.order">
+              <p class="text-xs uppercase tracking-wide text-gray-500 font-semibold mb-1">Linked Order</p>
+              <p class="text-base font-semibold text-slate-900">{{ selectedQuote.order.order_number || 'N/A' }}</p>
+              <p class="text-sm text-gray-600">Status: {{ selectedQuote.order.status || 'N/A' }}</p>
             </div>
           </div>
 
-          <hr class="my-4" />
+          <hr class="my-2" />
 
           <!-- Quote Items -->
           <div>
-            <p class="text-sm font-semibold text-gray-700 mb-3">Items</p>
-            <div class="space-y-2 bg-gray-50 p-4 rounded-lg max-h-48 overflow-y-auto">
-              <div v-for="(item, index) in selectedQuote.items" :key="index" class="text-sm">
-                <p class="font-medium text-gray-900">{{ item.name || 'Item ' + (index + 1) }}</p>
-                <p class="text-xs text-gray-600">Qty: {{ item.quantity }} × ${{ formatCurrency(item.price) }}</p>
+            <div class="flex items-center justify-between mb-3">
+              <p class="text-sm font-semibold text-gray-700">Items</p>
+              <span class="text-xs font-semibold px-2 py-1 rounded-full bg-gray-100 text-gray-700">{{ normalizedQuoteItems.length }} item(s)</span>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 bg-gray-50 p-4 rounded-lg max-h-[26rem] overflow-y-auto border border-gray-200">
+              <div v-for="(item, index) in normalizedQuoteItems" :key="index" class="text-sm bg-white border border-gray-200 rounded-lg p-3">
+                <p class="font-semibold text-slate-900 leading-snug">{{ item.name }}</p>
+                <p class="text-xs text-gray-600 mt-1" v-if="item.sku">SKU: {{ item.sku }}</p>
+                <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-700">
+                  <span>Qty: {{ item.quantity }}</span>
+                  <span>Unit: ${{ formatCurrency(item.price) }}</span>
+                  <span class="font-semibold text-slate-900">Line: ${{ formatCurrency(item.lineTotal) }}</span>
+                </div>
+              </div>
+              <p v-if="normalizedQuoteItems.length === 0" class="text-sm text-gray-500">No item details available.</p>
+            </div>
+          </div>
+
+          <!-- Full Row Details -->
+          <div class="border rounded-lg">
+            <button
+              @click="showFullRowDetails = !showFullRowDetails"
+              class="w-full px-4 py-3 flex items-center justify-between text-left font-semibold text-gray-800 hover:bg-gray-50 transition"
+            >
+              <span>Full Row Details</span>
+              <i :class="showFullRowDetails ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
+            </button>
+            <div v-if="showFullRowDetails" class="px-4 pb-4 pt-3 border-t bg-gray-50">
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div class="bg-white rounded-lg border border-gray-200 p-3 space-y-1">
+                  <p class="font-semibold text-gray-800">Quote Metadata</p>
+                  <p><span class="font-medium text-gray-700">Internal ID:</span> {{ selectedQuote.id }}</p>
+                  <p><span class="font-medium text-gray-700">Quote ID:</span> {{ selectedQuote.quote_id }}</p>
+                  <p><span class="font-medium text-gray-700">Status:</span> {{ formatStatus(selectedQuote.status) }}</p>
+                  <p><span class="font-medium text-gray-700">Created:</span> {{ formatDate(selectedQuote.created_at) }}</p>
+                  <p><span class="font-medium text-gray-700">Submitted:</span> {{ formatDate(selectedQuote.submitted_at || selectedQuote.created_at) }}</p>
+                  <p><span class="font-medium text-gray-700">Expires:</span> {{ formatDate(selectedQuote.expires_at) }}</p>
+                </div>
+
+                <div class="bg-white rounded-lg border border-gray-200 p-3 space-y-1">
+                  <p class="font-semibold text-gray-800">Financial</p>
+                  <p><span class="font-medium text-gray-700">Subtotal:</span> ${{ formatCurrency(selectedQuote.total_amount) }}</p>
+                  <p><span class="font-medium text-gray-700">Tax:</span> ${{ formatCurrency(selectedQuote.tax_amount) }}</p>
+                  <p><span class="font-medium text-gray-700">Discount:</span> ${{ formatCurrency(selectedQuote.discount_amount) }}</p>
+                  <p><span class="font-medium text-gray-700">Items Count:</span> {{ selectedQuote.items?.length || 0 }}</p>
+                </div>
+
+                <div class="bg-white rounded-lg border border-gray-200 p-3 space-y-1">
+                  <p class="font-semibold text-gray-800">Approval Trail</p>
+                  <p><span class="font-medium text-gray-700">Approved At:</span> {{ formatDate(selectedQuote.approved_at) }}</p>
+                  <p><span class="font-medium text-gray-700">Rejected At:</span> {{ formatDate(selectedQuote.rejected_at) }}</p>
+                  <p><span class="font-medium text-gray-700">Rejected Reason:</span> {{ selectedQuote.rejection_reason || 'N/A' }}</p>
+                  <p><span class="font-medium text-gray-700">Admin Notes:</span> {{ selectedQuote.admin_notes || adminNotes || 'N/A' }}</p>
+                </div>
+              </div>
+
+              <div class="mt-4 bg-white rounded-lg border border-gray-200 p-3 text-sm" v-if="selectedQuote.order?.invoice">
+                <p class="font-semibold text-gray-800 mb-1">Invoice</p>
+                <p><span class="font-medium text-gray-700">Invoice #:</span> {{ selectedQuote.order.invoice.invoice_number || 'N/A' }}</p>
+                <p><span class="font-medium text-gray-700">Status:</span> {{ selectedQuote.order.invoice.status || 'N/A' }}</p>
+                <p><span class="font-medium text-gray-700">Due Date:</span> {{ formatDate(selectedQuote.order.invoice.due_date) }}</p>
+                <p><span class="font-medium text-gray-700">Amount:</span> ${{ formatCurrency(selectedQuote.order.invoice.total_amount) }}</p>
+              </div>
+
+              <div class="mt-4 bg-white rounded-lg border border-gray-200 p-3 text-sm">
+                <p class="font-semibold text-gray-800 mb-1">Description</p>
+                <p class="text-gray-700 whitespace-pre-wrap">{{ selectedQuote.description || 'N/A' }}</p>
               </div>
             </div>
           </div>
@@ -404,8 +447,8 @@
     </div>
 
     <!-- Delete Confirmation Modal -->
-    <div v-if="showDeleteConfirm" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div class="bg-white rounded-lg shadow-lg max-w-md w-full">
+    <div v-if="showDeleteConfirm" class="fixed inset-0 z-[9999] bg-black/50 backdrop-blur-[2px] flex items-center justify-center p-4" @click="showDeleteConfirm = false">
+      <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full" @click.stop>
         <div class="p-6">
           <div class="flex items-center mb-4">
             <div class="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mr-4">
@@ -445,7 +488,6 @@ const selectedQuote = ref(null)
 const selectedQuotes = ref([])
 const searchQuery = ref('')
 const sortBy = ref('newest')
-const statusFilter = ref('')
 const currentPage = ref(1)
 const totalQuotes = ref(0)
 const lastPage = ref(1)
@@ -453,6 +495,8 @@ const adminNotes = ref('')
 const rejectionReason = ref('')
 const showRejectionReason = ref(false)
 const showDeleteConfirm = ref(false)
+const showFullRowDetails = ref(false)
+const isLoadingQuoteDetails = ref(false)
 const isSubmitting = ref(false)
 const stats = ref({
   total: 0,
@@ -464,13 +508,6 @@ const stats = ref({
 const allSelected = computed(() => {
   return quotes.value.length > 0 && quotes.value.every(quote => selectedQuotes.value.includes(quote.id))
 })
-
-const statusTabs = computed(() => [
-  { label: 'All Quotes', value: '', count: stats.value.total },
-  { label: 'Pending', value: 'pending', count: stats.value.pending },
-  { label: 'Approved', value: 'approved', count: stats.value.approved },
-  { label: 'Rejected', value: 'rejected', count: stats.value.rejected }
-])
 
 const pageNumbers = computed(() => {
   const total = lastPage.value
@@ -491,6 +528,70 @@ const pageNumbers = computed(() => {
   return pages
 })
 
+const normalizedQuoteItems = computed(() => {
+  const rawItems = Array.isArray(selectedQuote.value?.items) ? selectedQuote.value.items : []
+  const lineItems = Array.isArray(selectedQuote.value?.lineItems) ? selectedQuote.value.lineItems : []
+  const sourceItems = rawItems.length > 0 ? rawItems : lineItems
+
+  if (sourceItems.length === 0) return []
+
+  return sourceItems.map((item, index) => {
+    const lineItem = lineItems[index] || {}
+    const quantity = Number(
+      item?.quantity
+      || item?.qty
+      || lineItem?.quantity
+      || lineItem?.qty
+      || 0
+    )
+
+    const price = Number(
+      item?.price
+      || item?.unit_price
+      || item?.unitPrice
+      || lineItem?.unit_price
+      || lineItem?.price
+      || 0
+    )
+
+    const name = String(
+      item?.product_name
+      || item?.productName
+      || item?.partDescription
+      || item?.item_name
+      || item?.name
+      || item?.description
+      || lineItem?.product_name
+      || lineItem?.item_name
+      || lineItem?.name
+      || lineItem?.description
+      || item?.sku
+      || item?.product_id
+      || lineItem?.sku
+      || lineItem?.product_id
+      || 'Unknown Product'
+    ).trim()
+
+    const sku = String(
+      item?.sku
+      || item?.sku_no
+      || item?.partNumber
+      || lineItem?.sku
+      || lineItem?.sku_no
+      || lineItem?.part_number
+      || ''
+    ).trim()
+
+    return {
+      name,
+      sku,
+      quantity,
+      price,
+      lineTotal: quantity * price
+    }
+  })
+})
+
 const formatCurrency = (amount) => {
   return parseFloat(amount || 0).toLocaleString('en-US', {
     minimumFractionDigits: 2,
@@ -499,31 +600,20 @@ const formatCurrency = (amount) => {
 }
 
 const formatDate = (date) => {
-  return new Date(date).toLocaleDateString('en-US', {
+  if (!date) {
+    return 'N/A'
+  }
+
+  const parsed = new Date(date)
+  if (Number.isNaN(parsed.getTime())) {
+    return 'N/A'
+  }
+
+  return parsed.toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric'
   })
-}
-
-const formatStatus = (status) => {
-  const statusMap = {
-    'pending_review': 'Pending',
-    'approved': 'Approved',
-    'rejected': 'Rejected',
-    'draft': 'Draft'
-  }
-  return statusMap[status] || status
-}
-
-const statusBadgeClass = (status) => {
-  const classes = {
-    'pending_review': 'px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800',
-    'approved': 'px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800',
-    'rejected': 'px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800',
-    'draft': 'px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-800'
-  }
-  return classes[status] || 'px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-800'
 }
 
 const getUserName = (row) => {
@@ -538,60 +628,39 @@ const getCompanyName = (row) => {
   return row?.user?.company?.name || row?.company?.name || 'Unknown company'
 }
 
-const getStatusDisplay = (statusData) => {
-  if (!statusData) return 'Unknown'
-  
-  // Handle error responses
-  if (statusData.error || statusData.success === false) {
-    return 'Error'
-  }
-  
-  // Handle different response formats from TD SYNNEX
-  if (typeof statusData === 'string') {
-    return statusData
-  }
-  
-  if (typeof statusData === 'object') {
-    // Check for error in response
-    if (statusData.BizError || statusData.bizError) {
-      return 'API Error'
-    }
-    
-    // Try common field names for status
-    const status = statusData.status || 
-                   statusData.poStatus || 
-                   statusData.orderStatus || 
-                   statusData.Status || 
-                   statusData.POStatus ||
-                   statusData.OrderStatus
-    
-    if (status) return status
-    
-    // If response is empty or unknown format
-    if (Object.keys(statusData).length === 0 || Array.isArray(statusData) && statusData.length === 0) {
-      return 'Pending'
+const getQuoteDisplayName = (quote) => {
+  const fromDescription = String(quote?.description || '').trim()
+  if (fromDescription) return fromDescription
+
+  const items = Array.isArray(quote?.items) ? quote.items : []
+  if (items.length > 0) {
+    const first = items[0] || {}
+    const firstName = String(
+      first.product_name
+      || first.productName
+      || first.partDescription
+      || first.name
+      || first.description
+      || ''
+    ).trim()
+
+    if (firstName) {
+      const extra = Math.max(items.length - 1, 0)
+      return extra > 0 ? `${firstName} +${extra} more` : firstName
     }
   }
-  
-  return 'Processing'
+
+  return `Quote ${quote?.quote_id || quote?.id || ''}`.trim()
 }
 
-const isLocalOrder = (orderNumber) => {
-  return orderNumber && orderNumber.startsWith('ORD-')
-}
-
-const isExpiringSoon = (expiryDate) => {
-  const daysUntilExpiry = Math.ceil((new Date(expiryDate) - new Date()) / (1000 * 60 * 60 * 24))
-  return daysUntilExpiry <= 3
+const formatStatus = (status) => {
+  if (!status) return 'N/A'
+  return String(status).replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
 }
 
 const fetchQuotes = async () => {
   try {
-    const endpoint = statusFilter.value ? `/admin/quotes/${statusFilter.value}` : '/admin/quotes'
-    console.log('[fetchQuotes] Fetching from endpoint:', endpoint)
-    console.log('[fetchQuotes] Current statusFilter:', statusFilter.value)
-    
-    const response = await api.get(endpoint, {
+    const response = await api.get('/admin/quotes/pending', {
       params: {
         page: currentPage.value,
         pageSize: 10,
@@ -599,54 +668,15 @@ const fetchQuotes = async () => {
         sortBy: sortBy.value || undefined
       }
     })
-
-    console.log('[fetchQuotes] Response received:', response.data)
     
     if (response.data.success) {
-      const newQuotes = response.data.data
-      console.log('[fetchQuotes] Setting quotes array. Before:', quotes.value.length, 'After:', newQuotes.length)
-      quotes.value = newQuotes
+      quotes.value = response.data.data
       totalQuotes.value = response.data.pagination.total
       lastPage.value = response.data.pagination.last_page
-      
-      // Fetch order status for each quote that has an order
-      await fetchAllOrderStatuses(newQuotes)
-    } else {
-      console.error('[fetchQuotes] Response not successful:', response.data)
     }
   } catch (error) {
-    console.error('[fetchQuotes] Failed to fetch quotes:', error)
+    console.error('[fetchQuotes] Failed to fetch pending quotes:', error)
     alert('Failed to fetch quotes: ' + error.message)
-  }
-}
-
-const fetchAllOrderStatuses = async (quotesData) => {
-  try {
-    console.log('[fetchAllOrderStatuses] Checking statuses for', quotesData.length, 'quotes')
-    
-    for (const quote of quotesData) {
-      if (quote.order && quote.order.order_number) {
-        // Skip fetching status for local orders (they don't exist in TD SYNNEX)
-        if (isLocalOrder(quote.order.order_number)) {
-          console.log(`[fetchAllOrderStatuses] Skipping local order ${quote.order.order_number}`)
-          continue
-        }
-        
-        try {
-          const statusResponse = await api.get(`/admin/orders/${quote.order.order_number}/status`)
-          if (statusResponse.data.success) {
-            // Update the order with TD SYNNEX status
-            quote.order.td_synnex_status = statusResponse.data.data.td_synnex_status
-            console.log(`[fetchAllOrderStatuses] Status for order ${quote.order.order_number}:`, quote.order.td_synnex_status)
-          }
-        } catch (err) {
-          console.warn(`[fetchAllOrderStatuses] Failed to fetch status for order ${quote.order.order_number}:`, err.message)
-          // Continue with next order even if one fails
-        }
-      }
-    }
-  } catch (error) {
-    console.error('[fetchAllOrderStatuses] Error fetching order statuses:', error)
   }
 }
 
@@ -661,11 +691,25 @@ const fetchStats = async () => {
   }
 }
 
-const selectQuote = (quote) => {
+const selectQuote = async (quote) => {
   selectedQuote.value = quote
   adminNotes.value = quote.admin_notes || ''
   rejectionReason.value = ''
   showRejectionReason.value = false
+  showFullRowDetails.value = false
+
+  isLoadingQuoteDetails.value = true
+  try {
+    const response = await api.get(`/admin/quotes/${quote.id}`)
+    if (response.data?.success && response.data?.data) {
+      selectedQuote.value = response.data.data
+      adminNotes.value = response.data.data.admin_notes || ''
+    }
+  } catch (error) {
+    console.error('Failed to fetch full quote details:', error)
+  } finally {
+    isLoadingQuoteDetails.value = false
+  }
 }
 
 const approveQuote = async () => {
@@ -682,8 +726,11 @@ const approveQuote = async () => {
     console.log('[approveQuote] Approval response:', response.data)
     
     if (response.data.success) {
-      alert('Quote approved successfully!')
-      selectedQuote.value = null
+      alert(response.data.message || 'Quote action completed successfully!')
+
+      if (!response.data?.data?.payment_required) {
+        selectedQuote.value = null
+      }
       
       console.log('[approveQuote] Calling fetchQuotes after approval...')
       await fetchQuotes()
@@ -691,10 +738,15 @@ const approveQuote = async () => {
       
       await fetchStats()
       console.log('[approveQuote] fetchStats completed')
+    } else {
+      alert(response.data.message || 'Failed to process quote approval')
     }
   } catch (error) {
     console.error('Failed to approve quote:', error)
-    alert('Failed to approve quote: ' + (error.response?.data?.message || error.message))
+    const responseMessage = error.response?.data?.message || error.message
+    const responseStatus = error.response?.data?.data?.status
+    const statusNote = responseStatus ? ` (Current status: ${formatStatus(responseStatus)})` : ''
+    alert('Failed to approve quote: ' + responseMessage + statusNote)
   } finally {
     isSubmitting.value = false
   }
