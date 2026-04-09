@@ -92,7 +92,11 @@ const detectRuntimeApiBaseUrl = () => {
 }
 
 const normalizeApiBaseUrl = (value) => {
-  return String(value || '').replace(/\/+$/, '')
+  const normalized = String(value || '').trim().replace(/\/+$/, '')
+
+  // Guard against misconfigured env values that point to a specific endpoint
+  // instead of the API base, e.g. /api/v1/products.
+  return normalized.replace(/\/api\/v1\/products$/i, '/api/v1')
 }
 
 export const API_BASE_URL = normalizeApiBaseUrl(
