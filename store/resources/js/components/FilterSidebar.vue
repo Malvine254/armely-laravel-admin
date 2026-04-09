@@ -151,7 +151,7 @@
               name="category"
               class="w-4 h-4 rounded-full border-gray-300 cursor-pointer" style="accent-color: #2F5597;"
             />
-            <span class="text-sm text-gray-700">{{ category.name }} <span class="text-gray-500">({{ category.count }})</span></span>
+            <span class="text-sm text-gray-700">{{ category.name }}</span>
           </label>
         </div>
       </div>

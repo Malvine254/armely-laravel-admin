@@ -91,8 +91,33 @@ const detectRuntimeApiBaseUrl = () => {
   return `${origin}/api/v1`
 }
 
+const shouldUseConfiguredApiBaseUrl = (value) => {
+  const configured = String(value || '').trim()
+  if (!configured) {
+    return false
+  }
+
+  if (typeof window === 'undefined') {
+    return true
+  }
+
+  const hostname = (window.location.hostname || '').toLowerCase()
+  const isLocalHost = hostname === '127.0.0.1' || hostname === 'localhost'
+
+  // On local/XAMPP, ignore production API env values so the app keeps using
+  // runtime detection for the local backend.
+  if (isLocalHost && /armely\.com/i.test(configured)) {
+    return false
+  }
+
+  return true
+}
+
 const normalizeApiBaseUrl = (value) => {
-  const normalized = String(value || '').trim().replace(/\/+$/, '')
+  const normalized = String(value || '')
+    .trim()
+    .replace(/([^:]\/)\/+/g, '$1')
+    .replace(/\/+$/, '')
 
   // Guard against misconfigured env values that point to a specific endpoint
   // instead of the API base, e.g. /api/v1/products.
@@ -100,5 +125,7 @@ const normalizeApiBaseUrl = (value) => {
 }
 
 export const API_BASE_URL = normalizeApiBaseUrl(
-  import.meta.env.VITE_API_URL || detectRuntimeApiBaseUrl()
+  shouldUseConfiguredApiBaseUrl(import.meta.env.VITE_API_URL)
+    ? import.meta.env.VITE_API_URL
+    : detectRuntimeApiBaseUrl()
 )

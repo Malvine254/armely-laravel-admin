@@ -874,9 +874,13 @@ class TDSynnexService
             $batchSkus = [];
             foreach ($batch as $product) {
                 $spec = is_array($product->specifications) ? $product->specifications : [];
-                $sku = trim((string) ($spec['sku'] ?? $product->tdsynnex_sku_no ?? $product->tdsynnex_product_id));
-                if ($sku !== '') {
-                    $batchSkus[] = $sku;
+                $lookupKey = trim((string) ($spec['sku'] ?? $product->tdsynnex_sku_no ?? $product->tdsynnex_product_id));
+                if ($lookupKey === '') {
+                    $lookupKey = trim((string) ($product->mfg_part_no ?? ''));
+                }
+
+                if ($lookupKey !== '') {
+                    $batchSkus[] = $lookupKey;
                 }
             }
 
@@ -884,12 +888,16 @@ class TDSynnexService
 
             foreach ($batch as $product) {
                 $spec = is_array($product->specifications) ? $product->specifications : [];
-                $sku = trim((string) ($spec['sku'] ?? $product->tdsynnex_sku_no ?? $product->tdsynnex_product_id));
-                if ($sku === '') {
+                $lookupKey = trim((string) ($spec['sku'] ?? $product->tdsynnex_sku_no ?? $product->tdsynnex_product_id));
+                if ($lookupKey === '') {
+                    $lookupKey = trim((string) ($product->mfg_part_no ?? ''));
+                }
+
+                if ($lookupKey === '') {
                     continue;
                 }
 
-                $apMeta = $batchMetadata[$sku] ?? [];
+                $apMeta = $batchMetadata[$lookupKey] ?? [];
 
                 $meta = [
                     'mpn' => (string) ($product->mfg_part_no ?? $apMeta['mpn'] ?? ''),
@@ -898,7 +906,7 @@ class TDSynnexService
                     'image_url' => (string) ($apMeta['image_url'] ?? ''),
                 ];
 
-                $assets = $this->resolveProductAssetsForSku($sku, $meta, (string) ($product->description ?? ''));
+                $assets = $this->resolveProductAssetsForSku($lookupKey, $meta, (string) ($product->description ?? ''));
                 $images = (array) ($assets['images'] ?? []);
                 $longDescription = trim((string) ($assets['description'] ?? ''));
 
@@ -1686,12 +1694,16 @@ class TDSynnexService
         }
 
         $spec = is_array($product->specifications) ? $product->specifications : [];
-        $sku = trim((string) ($spec['sku'] ?? $product->tdsynnex_sku_no ?? $product->tdsynnex_product_id));
-        if ($sku === '') {
-            return ['processed' => 1, 'updated' => 0, 'reason' => 'missing_sku'];
+        $lookupKey = trim((string) ($spec['sku'] ?? $product->tdsynnex_sku_no ?? $product->tdsynnex_product_id));
+        if ($lookupKey === '') {
+            $lookupKey = trim((string) ($product->mfg_part_no ?? ''));
         }
 
-        $apMeta = $this->readApMetadata([$sku])[$sku] ?? [];
+        if ($lookupKey === '') {
+            return ['processed' => 1, 'updated' => 0, 'reason' => 'missing_sku_and_mpn'];
+        }
+
+        $apMeta = $this->readApMetadata([$lookupKey])[$lookupKey] ?? [];
 
         $meta = [
             'mpn' => (string) ($product->mfg_part_no ?? $apMeta['mpn'] ?? ''),
@@ -1700,7 +1712,7 @@ class TDSynnexService
             'image_url' => (string) ($apMeta['image_url'] ?? ''),
         ];
 
-        $assets = $this->resolveProductAssetsForSku($sku, $meta, (string) ($product->description ?? ''));
+        $assets = $this->resolveProductAssetsForSku($lookupKey, $meta, (string) ($product->description ?? ''));
         $images = (array) ($assets['images'] ?? []);
         $longDescription = trim((string) ($assets['description'] ?? ''));
 
@@ -1723,7 +1735,7 @@ class TDSynnexService
             'processed' => 1,
             'updated' => $didUpdate ? 1 : 0,
             'reason' => $didUpdate ? 'updated' : 'no_assets',
-            'sku' => $sku,
+            'sku' => $lookupKey,
         ];
     }
 
@@ -1800,7 +1812,7 @@ class TDSynnexService
         $endpoint = trim((string) config('tdsynnex.icecat.endpoint', 'https://live.icecat.biz/api'));
         $appKey = trim((string) config('tdsynnex.icecat.app_key', env('ICECAT_APP_KEY', '')));
         $language = $this->normalizeIcecatLanguage((string) config('tdsynnex.icecat.language', 'en'));
-        $timeout = max(2, (int) config('tdsynnex.icecat.timeout', 6));
+        $timeout = min(3, max(2, (int) config('tdsynnex.icecat.timeout', 3)));
 
         if ($username === '' || $password === '' || $endpoint === '') {
             return ['image_url' => '', 'description' => ''];
@@ -1866,6 +1878,11 @@ class TDSynnexService
                 'matched_code' => '',
             ];
         }
+
+        // Release the DB connection before making external HTTP calls.
+        // This frees the MySQL connection slot while the request is in-flight
+        // (or timing out), preventing web page requests from being starved.
+        \Illuminate\Support\Facades\DB::disconnect();
 
         try {
             foreach ($queryAttempts as $attempt) {

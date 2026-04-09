@@ -263,6 +263,96 @@ const SEARCH_TRACK_DEBOUNCE_MS = 15000
 const PROFILE_TERM_LIMIT = 25
 const TOP_VENDOR_DISPLAY_LIMIT = 40
 const DEFAULT_VENDOR_SCOPE_LIMIT = 12
+const DEFAULT_BROWSE_MIN_PRICE = 200
+const CURATED_BROWSE_MAX_TOTAL = 1000
+const CURATED_CACHE_VERSION = 2
+const ENABLE_SERVER_PREFETCH = false
+const CURATED_VENDOR_ALLOWLIST = [
+  'CISCO SYSTEMS',
+  'HEWLETT PACKARD ENTERPRISE',
+  'NVIDIA CORPORATION',
+  'LENOVO DATA CENTER',
+  'MICROSOFT CORPORATION',
+  'HP INC.',
+  'VEEAM SOFTWARE CORPORATION',
+  'LENOVO',
+  'FORTINET INC.',
+  'APC BY SCHNEIDER ELECTRIC',
+  'STARTECH.COM',
+  'BELKIN INTERNATIONAL INC',
+  'SAMSUNG',
+  'DELL MARKETING L.P.',
+  'ASUS',
+  'INTEL',
+  'INTELLINET',
+  'LOGITECH',
+  'JABRA',
+  'KINGSTON',
+  'KENSINGTON COMPUTER',
+  'ASUS SBG COMMERCIAL',
+  'INTELLIGENT SECURITY SYSTEMS C',
+  'NETGEAR',
+  'WESTERN DIGITAL',
+  'AMD',
+  'ACER AMERICA CORPORATION',
+  'BROADCOM',
+  'INTELLIGENT COMPUTER SOLUTIONS',
+  'CROWDSTRIKE, INC.',
+  'ASUSTOR AMERICA INC',
+  'Q6 INTELLIGENCE, LLC',
+  'SEAGATE TECHNOLOGY LLC',
+  'PALO ALTO NETWORKS',
+]
+
+const CURATED_VENDOR_ALIAS_MAP = {
+  'HEWLETT PACKARD ENTERPRISE': ['HEWLETT PACKARD ENTERPRISE COM'],
+  'MICROSOFT CORPORATION': ['MICROSOFT', 'MICROSOFT CORP', 'MICROSOFT RETAIL'],
+  SAMSUNG: [
+    'SAMSUNG ELECTRONICS AMERICA, I',
+    'SAMSUNG ELECTRONICS AMERICA',
+    'SAMSUNG ELECTRONICS CO.',
+    'SAMSUNG ELECTRONICS AMERICA IN',
+    'SAMSUNG ELECTRONICS AMERICA (W',
+  ],
+  'CISCO SYSTEMS': ['CISCO SYSTEMS CAPITAL REMARKET'],
+  'DELL MARKETING L.P.': ['DELL MARKETING LP'],
+  'ACER AMERICA CORPORATION': ['ACER', 'ACER AMERICA'],
+  'SEAGATE TECHNOLOGY LLC': ['STRATEGIC SOURCING -SEAGATE'],
+}
+
+const CATEGORY_GROUP_DEFINITIONS = [
+  {
+    name: 'Laptops & PCs',
+    value: 'Laptops & PCs',
+    keywords: ['laptop', 'notebook', 'desktop', 'workstation', 'all-in-one', 'mini pc'],
+  },
+  {
+    name: 'Monitors & Docks',
+    value: 'Monitors & Docks',
+    keywords: ['monitor', 'display', 'dock', 'docking', 'usb-c hub', 'port replicator'],
+  },
+  {
+    name: 'Printing & Supplies',
+    value: 'Printing & Supplies',
+    keywords: ['printer', 'toner', 'ink', 'cartridge', 'drum', 'laserjet', 'deskjet'],
+  },
+  {
+    name: 'Networking Gear',
+    value: 'Networking Gear',
+    keywords: ['router', 'switch', 'access point', 'wifi', 'firewall', 'gateway', 'mesh'],
+  },
+  {
+    name: 'Peripherals',
+    value: 'Peripherals',
+    keywords: ['keyboard', 'mouse', 'headset', 'webcam', 'speakerphone', 'microphone'],
+  },
+  {
+    name: 'Software & Services',
+    value: 'Software & Services',
+    keywords: ['license', 'software', 'subscription', 'antivirus', 'security', 'backup', 'microsoft 365', 'office 365'],
+  },
+]
+
 // Only vendors matching a term below will appear in the sidebar.
 // To add a new brand, append its uppercase display name here.
 const PREFERRED_VENDOR_TERMS = [
@@ -451,6 +541,23 @@ const normalizeVendorKey = (value) => String(value || '')
   .replace(/\s+/g, ' ')
   .trim()
 
+const curatedVendorAliasLookup = (() => {
+  const lookup = new Map()
+  Object.entries(CURATED_VENDOR_ALIAS_MAP).forEach(([canonical, aliases]) => {
+    const canonicalKey = normalizeVendorKey(canonical)
+    lookup.set(canonicalKey, canonicalKey)
+    ;(aliases || []).forEach((alias) => {
+      lookup.set(normalizeVendorKey(alias), canonicalKey)
+    })
+  })
+  return lookup
+})()
+
+const toCanonicalVendorKey = (value) => {
+  const key = normalizeVendorKey(value)
+  return curatedVendorAliasLookup.get(key) || key
+}
+
 const getVendorCountForKey = (vendorKey, vendorCountMap) => {
   if (!vendorKey) {
     return 0
@@ -480,6 +587,7 @@ const getVendorCountForKey = (vendorKey, vendorCountMap) => {
 const selectTopDisplayVendors = (vendors = [], selected = []) => {
   const source = Array.isArray(vendors) ? [...vendors] : []
   const selectedSet = new Set((selected || []).map((name) => normalizeVendorKey(name)))
+  const curatedVendorSet = new Set(CURATED_VENDOR_ALLOWLIST.map((name) => normalizeVendorKey(name)))
 
   source.sort((a, b) => {
     if (b.count !== a.count) return b.count - a.count
@@ -502,10 +610,21 @@ const selectTopDisplayVendors = (vendors = [], selected = []) => {
   source.forEach((vendor) => {
     const vendorKey = normalizeVendorKey(vendor.name || vendor.value)
     if (!vendorKey) return
-    if (PREFERRED_VENDOR_TERMS.some((term) => vendorKey.includes(term.toUpperCase()))) {
+    if (curatedVendorSet.has(vendorKey)) {
       tryPush(vendor)
     }
   })
+
+  // Backward-compatible fallback for legacy vendor naming variations.
+  if (chosen.length === 0) {
+    source.forEach((vendor) => {
+      const vendorKey = normalizeVendorKey(vendor.name || vendor.value)
+      if (!vendorKey) return
+      if (PREFERRED_VENDOR_TERMS.some((term) => vendorKey.includes(term.toUpperCase()))) {
+        tryPush(vendor)
+      }
+    })
+  }
 
   // Always keep any already-selected vendor visible even if not in preferred list.
   source.forEach((vendor) => {
@@ -516,6 +635,29 @@ const selectTopDisplayVendors = (vendors = [], selected = []) => {
   })
 
   return chosen
+}
+
+const getCuratedCategoryForProduct = (product) => {
+  const haystack = normalizeSearchText([
+    product?.productName,
+    product?.description,
+    product?.category,
+    product?.categoryName,
+    product?.flatCategoryName,
+    product?.categoryCode,
+    product?.specifications?.categoryName,
+    product?.mfgPartNo,
+  ].join(' '))
+
+  if (!haystack) return null
+
+  for (const group of CATEGORY_GROUP_DEFINITIONS) {
+    if (group.keywords.some((keyword) => haystack.includes(normalizeSearchText(keyword)))) {
+      return group
+    }
+  }
+
+  return null
 }
 
 const computePersonalizationWeight = (entry) => {
@@ -614,6 +756,12 @@ const filteredProducts = computed(() => {
         const frequency = selectedCategory.replace('Frequency: ', '')
         return product.billingFrequency === frequency
       }
+
+      const groupedCategory = CATEGORY_GROUP_DEFINITIONS.find((group) => group.name === selectedCategory)
+      if (groupedCategory) {
+        const match = getCuratedCategoryForProduct(product)
+        return match?.name === groupedCategory.name
+      }
       
       // Check in productCategories
       if (product.productCategories && Array.isArray(product.productCategories)) {
@@ -678,7 +826,12 @@ const requiresClientSideFiltering = computed(() => {
 
 const totalProducts = computed(() => {
   if (serverPaged.value) {
-    return Number(serverTotal.value || 0)
+    const total = Number(serverTotal.value || 0)
+    if (isDefaultCuratedBrowse(currentFilters.value)) {
+      return Math.min(CURATED_BROWSE_MAX_TOTAL, total)
+    }
+
+    return total
   }
 
   return filteredProducts.value.length
@@ -822,6 +975,7 @@ const getImplicitVendorScope = () => {
 
 const getCacheKey = (filters, page = 1, useServerPaged = false) => {
   return JSON.stringify({
+    curatedVersion: CURATED_CACHE_VERSION,
     vendors: filters.vendors,
     search: searchQuery.value,
     minPrice: filters.priceMin,
@@ -833,6 +987,11 @@ const getCacheKey = (filters, page = 1, useServerPaged = false) => {
     page: useServerPaged ? page : 1,
     mode: useServerPaged ? 'server' : 'client'
   })
+}
+
+const isDefaultCuratedBrowse = (filters = currentFilters.value) => {
+  const hasClientOnlyFilters = requiresClientForFilters(filters)
+  return !searchQuery.value && (filters?.vendors || []).length === 0 && !hasClientOnlyFilters
 }
 
 
@@ -867,7 +1026,11 @@ const performSearch = async (resetPage = true) => {
     const cached = requestCache.get(cacheKey)
     if (Date.now() - cached.timestamp < 5 * 60 * 1000) {
       products.value = cached.data
-      serverTotal.value = Number(cached.total || cached.data?.length || 0)
+      let cachedTotal = Number(cached.total || cached.data?.length || 0)
+      if (isDefaultCuratedBrowse(currentFilters.value)) {
+        cachedTotal = Math.min(CURATED_BROWSE_MAX_TOTAL, Math.max((cached.data || []).length, cachedTotal))
+      }
+      serverTotal.value = cachedTotal
       serverPaged.value = Boolean(cached.serverPaged)
       if (!Boolean(cached.serverPaged)) {
         updateVendorCounts(cached.data)
@@ -884,7 +1047,11 @@ const performSearch = async (resetPage = true) => {
     try {
       const result = await pendingRequests.get(cacheKey)
       products.value = result.data
-      serverTotal.value = Number(result.total || result.data?.length || 0)
+      let pendingTotal = Number(result.total || result.data?.length || 0)
+      if (isDefaultCuratedBrowse(currentFilters.value)) {
+        pendingTotal = Math.min(CURATED_BROWSE_MAX_TOTAL, Math.max((result.data || []).length, pendingTotal))
+      }
+      serverTotal.value = pendingTotal
       serverPaged.value = Boolean(result.serverPaged)
       if (!Boolean(result.serverPaged)) {
         updateVendorCounts(result.data)
@@ -900,9 +1067,21 @@ const performSearch = async (resetPage = true) => {
   // Create promise for this request
   const requestPromise = (async () => {
     try {
+      const hasClientOnlyFilters = requiresClientForFilters(currentFilters.value)
+      const isDefaultBrowse =
+        !searchQuery.value
+        && currentFilters.value.vendors.length === 0
+        && !hasClientOnlyFilters
+
       const params = {
         hide_zero_price: true,
         catalog_clean: true,
+        curated_it_mix: true,
+      }
+
+      // Keep default catalog focused on higher-value IT items unless user explicitly sets pricing.
+      if (isDefaultBrowse && Number(currentFilters.value.priceMin || 0) <= 0) {
+        params.min_price = DEFAULT_BROWSE_MIN_PRICE
       }
 
       if (searchQuery.value) {
@@ -913,12 +1092,6 @@ const performSearch = async (resetPage = true) => {
         const selectedVendorValues = resolveVendorApiValues(currentFilters.value.vendors)
         if (selectedVendorValues.length > 0) {
           params.vendors = selectedVendorValues.join(',')
-        }
-      } else if (!searchQuery.value) {
-        // Only scope to top vendors when browsing (no search term); searches cover all vendors
-        const scopedVendors = getImplicitVendorScope()
-        if (scopedVendors.length > 0) {
-          params.vendors = scopedVendors.join(',')
         }
       }
 
@@ -953,38 +1126,35 @@ const performSearch = async (resetPage = true) => {
           ? payload.records
           : (Array.isArray(payload) ? payload : [])
         loadedTotal = Number(payload.total || loadedProducts.length || 0)
+
+        // Hard cap curated browse totals so pagination never expands to the full raw catalog.
+        if (isDefaultBrowse) {
+          loadedTotal = Math.min(CURATED_BROWSE_MAX_TOTAL, Math.max(loadedProducts.length, loadedTotal))
+        }
       } else {
         loadedProducts = await fetchAllProductPages(params)
         loadedTotal = loadedProducts.length
+
+        if (isDefaultBrowse) {
+          loadedTotal = Math.min(CURATED_BROWSE_MAX_TOTAL, loadedTotal)
+        }
       }
 
       products.value = loadedProducts
 
-      // When browsing in default mode (no search, no explicit vendor filter) the backend
-      // returns an N+1 estimate. Sum the real vendor counts we already have for accuracy.
-      if (useServerPaged && !searchQuery.value && currentFilters.value.vendors.length === 0 && allVendors.value.length > 0) {
-        const scopedVendors = getImplicitVendorScope()
-        const vendorTotal = scopedVendors.reduce((sum, vendorName) => {
-          const key = normalizeVendorKey(vendorName)
-          const found = allVendors.value.find((v) => normalizeVendorKey(v.name) === key || normalizeVendorKey(v.value) === key)
-          return sum + (found?.count || 0)
-        }, 0)
-        serverTotal.value = vendorTotal > loadedTotal ? vendorTotal : loadedTotal
-      } else {
-        serverTotal.value = loadedTotal
-      }
+      serverTotal.value = loadedTotal
 
       if (Array.isArray(products.value)) {
-        // Only compute facet counts from loaded products when we have the full dataset
-        // (client-paged mode). In server-paged mode the page has only 9 items — use
-        // server-provided vendor counts from fetchVendors() instead.
+        // Always refresh categories from current results so sidebar categories are never empty.
+        try {
+          extractCategories(loadedProducts)
+        } catch (err) {
+          console.error('Category extraction error:', err)
+        }
+
+        // Vendor counts should only be recomputed from full client-side datasets.
         if (!useServerPaged) {
           updateVendorCounts(loadedProducts)
-          try {
-            extractCategories(loadedProducts)
-          } catch (err) {
-            console.error('Category extraction error:', err)
-          }
         }
         
         // Cache results locally
@@ -995,8 +1165,8 @@ const performSearch = async (resetPage = true) => {
           timestamp: Date.now()
         })
 
-        // Prefetch adjacent pages for instant pagination
-        if (useServerPaged) {
+        // Prefetch is disabled to avoid extra concurrent API pressure.
+        if (useServerPaged && ENABLE_SERVER_PREFETCH) {
           prefetchPage(currentPage.value + 1)
           if (currentPage.value > 1) prefetchPage(currentPage.value - 1)
         }
@@ -1038,47 +1208,65 @@ const clearSearch = async () => {
 }
 
 const fetchVendors = async () => {
+  // Build count lookup from API, then map CURATED_VENDOR_ALLOWLIST as the authoritative list
+  const buildFromAllowlist = (apiVendors = []) => {
+    const countLookup = new Map()
+    apiVendors.forEach((vendor) => {
+      const name = String(vendor.vendorName || vendor.vendorId || '').trim()
+      const key = toCanonicalVendorKey(name)
+      if (key) countLookup.set(key, (countLookup.get(key) || 0) + Number(vendor.count || 0))
+    })
+
+    return CURATED_VENDOR_ALLOWLIST.map((vendorName) => {
+      const key = toCanonicalVendorKey(vendorName)
+      const apiCount = countLookup.get(key) || 0
+      return {
+        name: vendorName,
+        value: vendorName,
+        count: apiCount,
+      }
+    }).sort((a, b) => {
+      if (b.count !== a.count) return b.count - a.count
+      return a.name.localeCompare(b.name)
+    })
+  }
+
   try {
-    const response = await api.get('/vendors')
-    
-    if (response.data.success) {
-      const rawVendorData = response.data.data || []
-      const vendors = Array.isArray(rawVendorData)
-        ? rawVendorData
-        : (rawVendorData.records || [])
+    const isDefaultBrowse =
+      !searchQuery.value
+      && currentFilters.value.vendors.length === 0
+      && !requiresClientForFilters(currentFilters.value)
 
-      // Transform API response to match frontend format and drop invalid/empty vendor rows
-      const mappedVendors = vendors
-        .map(vendor => {
-          const name = String(vendor.vendorName || vendor.vendorId || '').trim()
-          const value = String(vendor.vendorId || vendor.vendorName || '').trim()
-
-          if (!name || !value) {
-            return null
-          }
-
-          return {
-            name,
-            value,
-            count: Number(vendor.count || 0)
-          }
-        })
-        .filter(Boolean)
-        .sort((a, b) => {
-          if (b.count !== a.count) return b.count - a.count
-          return a.name.localeCompare(b.name)
-        })
-
-      allVendors.value = mappedVendors
-      availableVendors.value = selectTopDisplayVendors(mappedVendors, currentFilters.value.vendors)
+    const vendorParams = {
+      curated_it_mix: true,
+      hide_zero_price: true,
+      catalog_clean: true,
     }
+
+    if (isDefaultBrowse && Number(currentFilters.value.priceMin || 0) <= 0) {
+      vendorParams.min_price = DEFAULT_BROWSE_MIN_PRICE
+    } else if (Number(currentFilters.value.priceMin || 0) > 0) {
+      vendorParams.min_price = currentFilters.value.priceMin
+    }
+
+    if (Number(currentFilters.value.priceMax || 10000) < 10000) {
+      vendorParams.max_price = currentFilters.value.priceMax
+    }
+
+    const response = await api.get('/vendors', { params: vendorParams })
+
+    const rawVendorData = response.data?.data || []
+    const apiVendors = Array.isArray(rawVendorData) ? rawVendorData : (rawVendorData.records || [])
+    const mappedVendors = buildFromAllowlist(apiVendors)
+
+    allVendors.value = mappedVendors
+    availableVendors.value = mappedVendors
   } catch (err) {
     console.error('Error fetching vendors:', err)
-    // Fallback to some default vendors if API fails
-    availableVendors.value = [
-      { name: 'Microsoft', value: 'Microsoft', count: 0 },
-      { name: 'Google', value: 'Google', count: 0 }
-    ]
+    // Fallback: still show all 26 curated brands with nominal count
+    const fallback = buildFromAllowlist([])
+    allVendors.value = fallback
+    availableVendors.value = fallback
   }
 }
 
@@ -1088,7 +1276,7 @@ const updateVendorCounts = (sourceProducts = products.value) => {
   
   sourceProducts.forEach(product => {
     const rawVendor = product.vendorId || product.vendorName
-    const key = normalizeVendorKey(rawVendor)
+    const key = toCanonicalVendorKey(rawVendor)
     if (key) {
       const count = vendorCountMap.get(key) || 0
       vendorCountMap.set(key, count + 1)
@@ -1101,7 +1289,7 @@ const updateVendorCounts = (sourceProducts = products.value) => {
   availableVendors.value = sourceVendors
     .map(vendor => ({
       ...vendor,
-      count: getVendorCountForKey(normalizeVendorKey(vendor.value || vendor.name), vendorCountMap)
+      count: getVendorCountForKey(toCanonicalVendorKey(vendor.value || vendor.name), vendorCountMap)
     }))
     .sort((a, b) => {
       if (b.count !== a.count) return b.count - a.count
@@ -1112,59 +1300,21 @@ const updateVendorCounts = (sourceProducts = products.value) => {
 }
 
 const extractCategories = (sourceProducts = products.value) => {
-  // Extract unique categories from products
-  const categoryMap = new Map()
-  
-  const addCategory = (name, value = name) => {
-    const normalizedName = String(name || '').trim()
-    const normalizedValue = String(value || normalizedName).trim()
-    if (!normalizedName) return
+  const counts = new Map(CATEGORY_GROUP_DEFINITIONS.map((group) => [group.name, 0]))
 
-    const existing = categoryMap.get(normalizedName)
-    if (existing && typeof existing === 'object') {
-      existing.count += 1
-      return
+  sourceProducts.forEach((product) => {
+    const match = getCuratedCategoryForProduct(product)
+    if (match) {
+      counts.set(match.name, Number(counts.get(match.name) || 0) + 1)
     }
-
-    categoryMap.set(normalizedName, { count: 1, value: normalizedValue })
-  }
-  
-  sourceProducts.forEach(product => {
-    // Check for productCategories array
-    if (product.productCategories && Array.isArray(product.productCategories)) {
-      product.productCategories.forEach(category => {
-        const categoryName = typeof category === 'object' ? category.categoryName : category
-        addCategory(categoryName)
-      })
-    }
-
-    // PriceAvailability and flat file category names
-    addCategory(product.flatCategoryName || product.categoryName || product.category)
-    addCategory(product.specifications?.categoryName)
-    
-    // Also extract from billing model as a fallback category
-    if (product.billingModel) {
-      const billingCategory = `Billing: ${product.billingModel}`
-      addCategory(billingCategory)
-    }
-    
-    // Extract from billing frequency
-    if (product.billingFrequency) {
-      const freqCategory = `Frequency: ${product.billingFrequency}`
-      addCategory(freqCategory)
-    }
-
   })
-  
-  // Convert map to array format and sort by count
-  availableCategories.value = Array.from(categoryMap.entries())
-    .map(([name, data]) => ({
-      name: String(name || '').trim(),
-      count: Number((typeof data === 'object' ? data.count : data) || 0),
-      value: typeof data === 'object' ? (data.value || name) : name
-    }))
-    .filter(cat => cat.name.length > 0 && cat.count > 0)
-    .sort((a, b) => b.count - a.count)
+
+  availableCategories.value = CATEGORY_GROUP_DEFINITIONS.map((group) => ({
+    name: group.name,
+    value: group.value,
+    // Keep each curated category visible in sidebar even when current page has sparse matches.
+    count: Math.max(1, Number(counts.get(group.name) || 0)),
+  }))
   
   // Vendor counts are updated from currently loaded products.
   
@@ -1273,17 +1423,25 @@ const goToPage = (page) => {
 
 // Prefetch adjacent pages silently for instant pagination
 const prefetchPage = (page) => {
-  if (page < 1 || !serverPaged.value) return
+  if (!ENABLE_SERVER_PREFETCH || page < 1 || !serverPaged.value) return
 
-  const params = {}
+  const params = {
+    curated_it_mix: true,
+  }
+
+  const hasClientOnlyFilters = requiresClientForFilters(currentFilters.value)
+  const isDefaultBrowse =
+    !searchQuery.value
+    && currentFilters.value.vendors.length === 0
+    && !hasClientOnlyFilters
+
   if (searchQuery.value) params.search = searchQuery.value
   if (currentFilters.value.vendors.length > 0) {
     const selectedVendorValues = resolveVendorApiValues(currentFilters.value.vendors)
     if (selectedVendorValues.length > 0) params.vendors = selectedVendorValues.join(',')
-  } else if (!searchQuery.value) {
-    // Only scope to top vendors when browsing; searches cover all vendors
-    const scopedVendors = getImplicitVendorScope()
-    if (scopedVendors.length > 0) params.vendors = scopedVendors.join(',')
+  }
+  if (isDefaultBrowse && Number(currentFilters.value.priceMin || 0) <= 0) {
+    params.min_price = DEFAULT_BROWSE_MIN_PRICE
   }
   if (currentFilters.value.priceMin > 0) params.min_price = currentFilters.value.priceMin
   if (currentFilters.value.priceMax < 10000) params.max_price = currentFilters.value.priceMax
@@ -1312,9 +1470,14 @@ const prefetchPage = (page) => {
     if (response.data?.success) {
       const payload = response.data.data || {}
       const records = Array.isArray(payload.records) ? payload.records : []
+      let prefetchedTotal = Number(payload.total || records.length || 0)
+      if (isDefaultBrowse) {
+        prefetchedTotal = Math.min(CURATED_BROWSE_MAX_TOTAL, Math.max(records.length, prefetchedTotal))
+      }
+
       requestCache.set(cacheKey, {
         data: records,
-        total: Number(payload.total || records.length || 0),
+        total: prefetchedTotal,
         serverPaged: true,
         timestamp: Date.now()
       })

@@ -1,5 +1,5 @@
 <template>
-  <div class="h-screen overflow-hidden bg-[radial-gradient(circle_at_top_right,_#dce9fb_0%,_#eef4fd_35%,_#f6f9ff_100%)]">
+  <div class="min-h-screen bg-[radial-gradient(circle_at_top_right,_#dce9fb_0%,_#eef4fd_35%,_#f6f9ff_100%)]">
     <Navbar />
 
     <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-5 py-4 sm:py-5 h-[calc(100dvh-4rem)] flex flex-col overflow-hidden">
