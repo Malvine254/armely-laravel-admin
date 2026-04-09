@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import axios from 'axios'
+import { API_BASE_URL } from '../services/runtimeConfig'
 
 export const useAuthStore = defineStore('auth', () => {
   const initialToken = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token') || null
@@ -85,7 +86,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   const login = async ({ email, password, remember = false }) => {
     try {
-      const response = await axios.post('/api/v1/auth/login', { email, password })
+      const response = await axios.post(`${API_BASE_URL}/auth/login`, { email, password })
       if (response.data?.success) {
         const payload = response.data.data
         
@@ -114,7 +115,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   const register = async ({ fullName, email, companyName, password, confirmPassword }) => {
     try {
-      const response = await axios.post('/api/v1/auth/register', {
+      const response = await axios.post(`${API_BASE_URL}/auth/register`, {
         full_name: fullName,
         email,
         password,
@@ -143,7 +144,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   const resendActivation = async (email) => {
     try {
-      const response = await axios.post('/api/v1/auth/resend-activation', { email })
+      const response = await axios.post(`${API_BASE_URL}/auth/resend-activation`, { email })
       return {
         ok: !!response.data?.success,
         message: response.data?.message || 'If the account exists, an activation email has been sent.'
@@ -159,7 +160,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   const forgotPassword = async (email) => {
     try {
-      const response = await axios.post('/api/v1/auth/forgot-password', { email })
+      const response = await axios.post(`${API_BASE_URL}/auth/forgot-password`, { email })
       return {
         ok: !!response.data?.success,
         message: response.data?.message || 'If the email exists, a password reset link has been sent.'
@@ -175,7 +176,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   const resetPassword = async ({ email, token, password, passwordConfirmation }) => {
     try {
-      const response = await axios.post('/api/v1/auth/reset-password', {
+      const response = await axios.post(`${API_BASE_URL}/auth/reset-password`, {
         email,
         token,
         password,
@@ -199,7 +200,7 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       // Call backend logout endpoint to invalidate token
       if (token.value) {
-        await axios.post('/api/v1/auth/logout')
+        await axios.post(`${API_BASE_URL}/auth/logout`)
       }
     } catch (error) {
       console.warn('Logout error (continuing anyway):', error)
@@ -216,7 +217,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   const refreshUser = async () => {
     try {
-      const response = await axios.get('/api/v1/auth/me')
+      const response = await axios.get(`${API_BASE_URL}/auth/me`)
       if (response.data?.success) {
         const payload = response.data.data
         const nextUser = payload?.user || payload
