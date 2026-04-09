@@ -181,6 +181,34 @@ return [
         'max_lookups_per_request' => env('ICECAT_MAX_LOOKUPS_PER_REQUEST', 8),
     ],
 
+    'scraping' => [
+        'enabled' => env('IMAGE_SCRAPING_ENABLED', true),
+        'timeout' => env('IMAGE_SCRAPING_TIMEOUT', 4),
+        'connect_timeout' => env('IMAGE_SCRAPING_CONNECT_TIMEOUT', 2),
+        'max_candidates' => env('IMAGE_SCRAPING_MAX_CANDIDATES', 3),
+        'user_agent' => env('IMAGE_SCRAPING_USER_AGENT', 'ArmelyImageBot/1.0 (+support@armely.com)'),
+        'allowed_domains' => array_values(array_filter(array_map('trim', explode(',', (string) env(
+            'IMAGE_SCRAPING_ALLOWED_DOMAINS',
+            'hp.com,dell.com,lenovo.com,cisco.com,belkin.com,apc.com,fortinet.com,veeam.com,logitech.com,startech.com,netgear.com'
+        ))))),
+        'allowed_image_domains' => array_values(array_filter(array_map('trim', explode(',', (string) env(
+            'IMAGE_SCRAPING_ALLOWED_IMAGE_DOMAINS',
+            'hp.com,dell.com,lenovo.com,cisco.com,belkin.com,apc.com,fortinet.com,veeam.com,logitech.com,startech.com,netgear.com,scene7.com,akamaihd.net,cloudfront.net'
+        ))))),
+        'license' => [
+            // Skip scraping results when pages explicitly prohibit automated extraction/reuse.
+            'deny_keywords' => array_values(array_filter(array_map('trim', explode(',', (string) env(
+                'IMAGE_SCRAPING_LICENSE_DENY_KEYWORDS',
+                'no scraping,automated access prohibited,do not reproduce,no hotlink,no hot-link'
+            ))))),
+            // Require at least one legal signal before accepting scraped media.
+            'required_keywords' => array_values(array_filter(array_map('trim', explode(',', (string) env(
+                'IMAGE_SCRAPING_LICENSE_REQUIRED_KEYWORDS',
+                'terms,copyright,legal,trademark,license'
+            ))))),
+        ],
+    ],
+
     'allow_submit_po' => env('TDSYNNEX_ALLOW_SUBMIT_PO', false),
 
 ];
