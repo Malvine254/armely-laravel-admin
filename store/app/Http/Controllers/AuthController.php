@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
@@ -46,6 +47,32 @@ class AuthController extends Controller
             ->where('is_default', true)
             ->whereIn('type', ['shipping', 'both'])
             ->first();
+    }
+
+    private function normalizeStoredProfilePicturePath(?string $path): ?string
+    {
+        $value = trim((string) $path);
+        if ($value === '') {
+            return null;
+        }
+
+        $value = ltrim($value, '/');
+        if (str_starts_with($value, 'storage/')) {
+            $value = substr($value, strlen('storage/'));
+        }
+
+        return $value !== '' ? $value : null;
+    }
+
+    private function buildProfilePictureUrl(?string $path): ?string
+    {
+        $normalizedPath = $this->normalizeStoredProfilePicturePath($path);
+        if (!$normalizedPath) {
+            return null;
+        }
+
+        $frontendBaseUrl = rtrim((string) env('FRONTEND_URL', config('app.url')), '/');
+        return $frontendBaseUrl . '/storage/' . ltrim($normalizedPath, '/');
     }
 
     private function strongPasswordRule(): Password
@@ -171,6 +198,7 @@ class AuthController extends Controller
 
         $shippingAddress = $this->resolveDefaultShippingAddress($company);
         $userPayload = $user->toArray();
+        $userPayload['profile_picture_url'] = $this->buildProfilePictureUrl($user->profile_picture);
         $userPayload['shipping_address'] = $shippingAddress;
 
         Activity::log($user->id, 'login', 'logged_in', 'Signed in to account');
@@ -366,14 +394,7 @@ class AuthController extends Controller
         }
 
         $userData = $user?->toArray() ?? [];
-        if ($user && $user->profile_picture) {
-            // If it already starts with /, just use it as is
-            if (str_starts_with($user->profile_picture, '/')) {
-                $userData['profile_picture_url'] = $user->profile_picture;
-            } else {
-                $userData['profile_picture_url'] = url('storage/' . $user->profile_picture);
-            }
-        }
+        $userData['profile_picture_url'] = $this->buildProfilePictureUrl($user?->profile_picture);
 
         return response()->json([
             'success' => true,
@@ -434,6 +455,7 @@ class AuthController extends Controller
         if ($request->hasFile('profile_picture')) {
             try {
                 $file = $request->file('profile_picture');
+                $oldProfilePicturePath = $this->normalizeStoredProfilePicturePath($user->profile_picture);
                 $filename = 'profile_' . $user->id . '_' . time() . '.' . $file->getClientOriginalExtension();
                 
                 // Store the file - storeAs returns the path or throws an exception
@@ -450,15 +472,18 @@ class AuthController extends Controller
                         'message' => 'Failed to save profile picture',
                     ], 400);
                 }
+
+                if ($oldProfilePicturePath && Storage::disk('public')->exists($oldProfilePicturePath)) {
+                    Storage::disk('public')->delete($oldProfilePicturePath);
+                }
                 
-                $fullPath = '/storage/profile-pictures/' . $filename;
-                $data['profile_picture'] = $fullPath;
+                $data['profile_picture'] = $storagePath;
                 
                 \Log::info('Profile picture uploaded successfully', [
                     'user_id' => $user->id,
                     'filename' => $filename,
                     'storage_path' => $storagePath,
-                    'full_path' => $fullPath
+                    'public_url' => $this->buildProfilePictureUrl($storagePath)
                 ]);
             } catch (\Exception $e) {
                 \Log::error('Profile picture upload exception', [
@@ -523,15 +548,7 @@ class AuthController extends Controller
         }
 
         $freshUser = $user->fresh()?->toArray() ?? [];
-        
-        // Add profile picture URL if available
-        if ($user->profile_picture) {
-            if (str_starts_with($user->profile_picture, '/')) {
-                $freshUser['profile_picture_url'] = $user->profile_picture;
-            } else {
-                $freshUser['profile_picture_url'] = url('storage/' . $user->profile_picture);
-            }
-        }
+        $freshUser['profile_picture_url'] = $this->buildProfilePictureUrl($user->fresh()?->profile_picture);
         
         $freshUser['company'] = $company->fresh()?->toArray();
         $freshUser['shipping_address'] = $this->resolveDefaultShippingAddress($company);
