@@ -190,13 +190,22 @@ class ExportProductsToCsvCommand extends Command
             }
 
             $url = trim((string) ($image['imageUrl'] ?? $image['url'] ?? ''));
-            if ($url !== '') {
+            if ($this->isValidImageUrl($url)) {
                 return $url;
             }
         }
 
         $specImage = trim((string) ($spec['image_url'] ?? $spec['imageUrl'] ?? ''));
-        return $specImage;
+        return $this->isValidImageUrl($specImage) ? $specImage : '';
+    }
+
+    private function isValidImageUrl(string $url): bool
+    {
+        if ($url === '' || !filter_var($url, FILTER_VALIDATE_URL)) {
+            return false;
+        }
+
+        return (bool) preg_match('/\.(?:jpg|jpeg|png|webp|gif|avif)(?:\?.*)?$/i', $url);
     }
 
     private function detectDatasheetUrl(array $spec): array

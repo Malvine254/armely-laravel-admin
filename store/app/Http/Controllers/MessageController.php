@@ -1623,18 +1623,30 @@ class MessageController extends Controller
 
         foreach ($images as $image) {
             if (is_string($image) && trim($image) !== '') {
-                return trim($image);
+                $url = trim($image);
+                if ($this->isValidImageUrl($url)) {
+                    return $url;
+                }
             }
 
             if (is_array($image)) {
                 $url = trim((string) ($image['imageUrl'] ?? $image['url'] ?? ''));
-                if ($url !== '') {
+                if ($this->isValidImageUrl($url)) {
                     return $url;
                 }
             }
         }
 
         return null;
+    }
+
+    private function isValidImageUrl(string $url): bool
+    {
+        if ($url === '' || !filter_var($url, FILTER_VALIDATE_URL)) {
+            return false;
+        }
+
+        return (bool) preg_match('/\.(?:jpg|jpeg|png|webp|gif|avif)(?:\?.*)?$/i', $url);
     }
 
     private function resolveOrCreateChatSession(int $userId, mixed $chatSessionId): ChatSession

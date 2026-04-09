@@ -1056,7 +1056,7 @@ class ProductController extends Controller
                 $url = trim((string) ($image['imageUrl'] ?? $image['url'] ?? ''));
             }
 
-            if ($url === '' || isset($seen[$url])) {
+            if (!$this->isValidImageUrl($url) || isset($seen[$url])) {
                 continue;
             }
 
@@ -1066,6 +1066,16 @@ class ProductController extends Controller
 
         return $normalized;
     }
+
+    private function isValidImageUrl(string $url): bool
+    {
+        if ($url === '' || !filter_var($url, FILTER_VALIDATE_URL)) {
+            return false;
+        }
+
+        return (bool) preg_match('/\.(?:jpg|jpeg|png|webp|gif|avif)(?:\?.*)?$/i', $url);
+    }
+
     /**
      * Get product details by product ID
      */
