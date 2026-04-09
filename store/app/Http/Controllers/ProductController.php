@@ -52,7 +52,19 @@ class ProductController extends Controller
             ]);
 
             if ($this->tdsynnexService->usesPriceAvailabilityAsProductSource()) {
-                return $this->indexFromPriceAvailability($request, $search, $minPrice, $maxPrice, $billingModels, $hideZero, $pageNo, $pageSize, (bool) $useDbCache, $catalogClean);
+                $hasPriceAvailabilityDbCache = $this->tdsynnexService->hasPriceAvailabilityDatabaseCache();
+                $shouldFallbackToStreamOneBrowse = !$hasPriceAvailabilityDbCache && empty($search);
+
+                if (!$shouldFallbackToStreamOneBrowse) {
+                    return $this->indexFromPriceAvailability($request, $search, $minPrice, $maxPrice, $billingModels, $hideZero, $pageNo, $pageSize, (bool) $useDbCache, $catalogClean);
+                }
+
+                Log::warning('PriceAvailability source selected without DB cache; falling back to paginated StreamOne browse', [
+                    'page' => $pageNo,
+                    'per_page' => $pageSize,
+                    'vendor' => $vendorId,
+                    'vendors' => $vendors,
+                ]);
             }
 
             // Use single vendor if no vendor list specified
@@ -182,11 +194,27 @@ class ProductController extends Controller
                 $allProducts = $this->filterCatalogNoiseProducts($allProducts);
             }
 
+            $curatedItMix = filter_var($request->query('curated_it_mix', true), FILTER_VALIDATE_BOOLEAN);
+            $hasExplicitVendorFilter = trim((string) $request->query('vendors', '')) !== ''
+                || trim((string) $request->query('vendor', '')) !== '';
+            $isDefaultCuratedBrowse = $curatedItMix
+                && empty($search)
+                && !$hasExplicitVendorFilter
+                && empty($billingModels);
+
+            if ($isDefaultCuratedBrowse) {
+                $allProducts = $this->buildCuratedItCatalogMix($allProducts, 1000);
+            }
+
             // Reset array keys after filtering
             $allProducts = array_values($allProducts);
 
             // Get total and prepare response
             $total = count($allProducts);
+            if ($isDefaultCuratedBrowse) {
+                $total = min(1000, $total);
+                $apiTotal = min(1000, (int) $apiTotal);
+            }
             $records = array_slice($allProducts, ($pageNo - 1) * $pageSize, $pageSize);
 
             Log::info('ProductController.index successful', [
@@ -260,6 +288,13 @@ class ProductController extends Controller
             }
         }
 
+        if (!empty($selectedVendors)) {
+            $normalized = array_map(fn ($vendor) => $this->normalizeCuratedVendorName((string) $vendor), $selectedVendors);
+            $selectedVendors = array_values(array_unique(array_filter($normalized, fn ($vendor) => trim((string) $vendor) !== '')));
+        }
+
+        $curatedItMix = filter_var($request->query('curated_it_mix', true), FILTER_VALIDATE_BOOLEAN);
+
         $allProducts = [];
         $fromDbCache = false;
 
@@ -274,6 +309,7 @@ class ProductController extends Controller
                 $pageSize,
                 $selectedVendors,
                 $catalogClean,
+                $curatedItMix,
             );
 
             $fromDbCache = true;
@@ -364,6 +400,18 @@ class ProductController extends Controller
 
         if ($catalogClean) {
             $allProducts = $this->filterCatalogNoiseProducts($allProducts);
+        }
+
+        if (
+            $curatedItMix
+            && empty($search)
+            && empty($selectedVendors)
+            && $minPrice === null
+            && $maxPrice === null
+            && empty($billingModels)
+        ) {
+            $allProducts = $this->buildCuratedItCatalogMix($allProducts, 1000);
+            $apiTotal = count($allProducts);
         }
 
         $total = count($allProducts);
@@ -483,11 +531,24 @@ class ProductController extends Controller
         int $pageNo,
         int $pageSize,
         array $selectedVendors = [],
-        bool $catalogClean = false
+        bool $catalogClean = false,
+        bool $curatedItMix = true
     ): array {
         $query = Product::query()->where('vendor_id', 'TD SYNNEX');
 
-        $hasFilters = !empty($search) || !empty($selectedVendors) || $minPrice !== null || $maxPrice !== null || !empty($billingModels);
+        $isDefaultBrowse =
+            $curatedItMix
+            && empty($search)
+            && empty($selectedVendors)
+            && empty($billingModels);
+
+        $hasFilters =
+            !empty($search)
+            || !empty($selectedVendors)
+            || $minPrice !== null
+            || $maxPrice !== null
+            || !empty($billingModels)
+            || $isDefaultBrowse;
 
         if ($hideZero) {
             $query->where('base_price', '>', 0);
@@ -495,20 +556,49 @@ class ProductController extends Controller
 
         if (!empty($search)) {
             $searchTerm = trim((string) $search);
-            // Pure FULLTEXT search — OR clauses with btree columns prevent FULLTEXT index usage
-            // (10s+ vs <1s). Exact SKU/part lookups use the show/getBySku endpoints instead.
-            $query->whereRaw(
-                'MATCH(product_name, description, mfg_part_no) AGAINST(? IN BOOLEAN MODE)',
-                [$searchTerm . '*']
-            );
+            if ($this->hasProductsFullTextIndex()) {
+                // Pure FULLTEXT search — OR clauses with btree columns prevent FULLTEXT index usage
+                // (10s+ vs <1s). Exact SKU/part lookups use the show/getBySku endpoints instead.
+                $query->whereRaw(
+                    'MATCH(product_name, description, mfg_part_no) AGAINST(? IN BOOLEAN MODE)',
+                    [$searchTerm . '*']
+                );
+            } else {
+                $like = '%' . strtolower($searchTerm) . '%';
+                $query->where(function ($q) use ($like) {
+                    $q->orWhereRaw("LOWER(COALESCE(product_name, '')) LIKE ?", [$like])
+                        ->orWhereRaw("LOWER(COALESCE(description, '')) LIKE ?", [$like])
+                        ->orWhereRaw("LOWER(COALESCE(mfg_part_no, '')) LIKE ?", [$like]);
+                });
+            }
         }
 
         if (!empty($selectedVendors)) {
-            $query->where(function ($q) use ($selectedVendors) {
-                foreach ($selectedVendors as $vendor) {
-                    $q->orWhere('specifications->manufacturer', '=', $vendor);
+            $vendorNames = [];
+            foreach ($selectedVendors as $vendor) {
+                $canonical = $this->normalizeCuratedVendorName((string) $vendor);
+                if ($canonical === '') {
+                    continue;
                 }
-            });
+
+                $vendorNames[] = strtolower($canonical);
+
+                $aliasMap = $this->getCuratedVendorAliasMap();
+                if (isset($aliasMap[$canonical])) {
+                    foreach ($aliasMap[$canonical] as $alias) {
+                        $vendorNames[] = strtolower(trim((string) $alias));
+                    }
+                }
+            }
+
+            $vendorNames = array_values(array_unique(array_filter($vendorNames)));
+            if (!empty($vendorNames)) {
+                $placeholders = implode(',', array_fill(0, count($vendorNames), '?'));
+                $query->whereRaw(
+                    "LOWER(TRIM(COALESCE(JSON_UNQUOTE(JSON_EXTRACT(specifications, '$.manufacturer')), ''))) IN ({$placeholders})",
+                    $vendorNames
+                );
+            }
         }
 
         if ($minPrice !== null) {
@@ -523,6 +613,10 @@ class ProductController extends Controller
             $query->whereIn('billing_model', array_map('trim', explode(',', (string) $billingModels)));
         }
 
+        if ($isDefaultBrowse) {
+            $this->applyCuratedDefaultBrowseFilters($query);
+        }
+
         if ($catalogClean) {
             // Drop shipping/support-like line items that are usually placeholder-priced.
             $query->whereRaw("LOWER(COALESCE(mfg_part_no, '')) <> 'shipping'")
@@ -533,6 +627,15 @@ class ProductController extends Controller
         // Fetch one extra row to detect if there are more pages (avoids expensive COUNT)
         $perPage = max(1, $pageSize);
         $currentPage = max(1, $pageNo);
+        $offset = ($currentPage - 1) * $perPage;
+        $catalogCap = $isDefaultBrowse ? 1000 : null;
+
+        if ($catalogCap !== null && $offset >= $catalogCap) {
+            return [
+                'records' => [],
+                'total' => $catalogCap,
+            ];
+        }
 
         // Skip ORDER BY for search queries — FULLTEXT returns results by relevance,
         // and ORDER BY forces MySQL to collect ALL matches before limiting (0.1s vs 3-8s).
@@ -540,9 +643,15 @@ class ProductController extends Controller
             $query->orderBy('id');
         }
 
+        $fetchLimit = $perPage + 1;
+        if ($catalogCap !== null) {
+            $remaining = max(0, $catalogCap - $offset);
+            $fetchLimit = min($fetchLimit, $remaining + 1);
+        }
+
         $products = $query
-            ->offset(($currentPage - 1) * $perPage)
-            ->limit($perPage + 1)
+            ->offset($offset)
+            ->limit($fetchLimit)
             ->get();
 
         $hasMore = $products->count() > $perPage;
@@ -550,35 +659,21 @@ class ProductController extends Controller
             $products = $products->slice(0, $perPage);
         }
 
+        if ($catalogCap !== null && ($offset + $products->count()) >= $catalogCap) {
+            $hasMore = false;
+        }
+
         // For default listing, use cached table estimate; for filtered/search, estimate from page
-        if (!$hasFilters) {
+        if ($isDefaultBrowse) {
+            $total = $hasMore
+                ? $catalogCap
+                : min($catalogCap, $offset + $products->count());
+        } elseif (!$hasFilters) {
             $total = (int) Cache::remember('pa_products_total_' . ($hideZero ? '1' : '0'), 300, function () {
                 $row = \Illuminate\Support\Facades\DB::selectOne(
                     "SELECT TABLE_ROWS FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'products'"
                 );
                 return $row->TABLE_ROWS ?? 0;
-            });
-        } elseif (!empty($selectedVendors) && $hasMore) {
-            // For vendor-filtered browse, cache the COUNT per vendor combination so pagination
-            // shows the real product count instead of the misleading "200" minimum.
-            $vendorCacheKey = 'pa_vendor_total_' . md5(implode(',', array_map('strtolower', $selectedVendors))) . '_' . ($hideZero ? '1' : '0') . '_' . ($catalogClean ? 'c' : 'r');
-            $total = (int) Cache::remember($vendorCacheKey, 600, function () use ($selectedVendors, $hideZero, $catalogClean) {
-                $countQuery = Product::query()->where('vendor_id', 'TD SYNNEX');
-                if ($hideZero) {
-                    $countQuery->where('base_price', '>', 0);
-                }
-                $countQuery->where(function ($q) use ($selectedVendors) {
-                    foreach ($selectedVendors as $vendor) {
-                        $q->orWhere('specifications->manufacturer', '=', $vendor);
-                    }
-                });
-                if ($catalogClean) {
-                    $countQuery
-                        ->whereRaw("LOWER(COALESCE(mfg_part_no, '')) <> 'shipping'")
-                        ->whereRaw("LOWER(COALESCE(product_name, '')) NOT LIKE '%shipping%'")
-                        ->whereRaw("NOT ((COALESCE(base_price, 0) <= 0.05) AND (LOWER(COALESCE(product_name, '')) LIKE '%support%' OR LOWER(COALESCE(product_name, '')) LIKE '%warranty%' OR LOWER(COALESCE(product_name, '')) LIKE '%consulting%' OR LOWER(COALESCE(product_name, '')) LIKE '%implementation%' OR LOWER(COALESCE(product_name, '')) LIKE '%annual fee%' OR LOWER(COALESCE(product_name, '')) LIKE '%training%'))");
-                }
-                return $countQuery->count();
             });
         } else {
             // N+1 estimate: fast, avoids expensive COUNT on FULLTEXT results.
@@ -673,6 +768,176 @@ class ProductController extends Controller
 
             return true;
         }));
+    }
+
+    /**
+     * Build a curated default catalog focused on commonly purchased IT items.
+     */
+    private function buildCuratedItCatalogMix(array $products, int $cap = 1000): array
+    {
+        $cap = max(1, $cap);
+
+        $groups = [
+            [
+                'key' => 'laptops_pcs',
+                'target' => 250,
+                'brands' => ['hp', 'lenovo', 'dell', 'apple'],
+                'keywords' => ['laptop', 'notebook', 'ultrabook', 'desktop', 'workstation', 'all-in-one', 'aio', 'mini pc'],
+            ],
+            [
+                'key' => 'monitors_docks',
+                'target' => 150,
+                'brands' => ['dell', 'samsung', 'asus', 'hp'],
+                'keywords' => ['monitor', 'display', 'dock', 'docking', 'port replicator', 'usb-c hub', 'hdmi adapter'],
+            ],
+            [
+                'key' => 'printing_supplies',
+                'target' => 200,
+                'brands' => ['hp', 'brother', 'canon', 'epson'],
+                'keywords' => ['printer', 'multifunction', 'mfp', 'ink', 'toner', 'cartridge', 'drum', 'laserjet', 'deskjet'],
+            ],
+            [
+                'key' => 'networking_gear',
+                'target' => 100,
+                'brands' => ['cisco meraki', 'cisco', 'ubiquiti', 'tp-link'],
+                'keywords' => ['router', 'switch', 'access point', 'wifi', 'firewall', 'gateway', 'mesh', 'network'],
+            ],
+            [
+                'key' => 'peripherals',
+                'target' => 200,
+                'brands' => ['logitech', 'microsoft', 'jabra'],
+                'keywords' => ['keyboard', 'mouse', 'headset', 'webcam', 'speakerphone', 'microphone', 'dock', 'conference'],
+            ],
+            [
+                'key' => 'software_services',
+                'target' => 100,
+                'brands' => ['microsoft', 'adobe', 'bitdefender'],
+                'keywords' => ['license', 'subscription', 'software', 'security', 'antivirus', 'backup', 'office 365', 'microsoft 365'],
+            ],
+        ];
+
+        $globalItKeywords = [
+            'laptop', 'desktop', 'workstation', 'monitor', 'dock', 'printer', 'toner', 'cartridge',
+            'router', 'switch', 'access point', 'wifi', 'keyboard', 'mouse', 'headset', 'webcam',
+            'license', 'software', 'antivirus', 'backup', 'microsoft 365', 'office 365', 'adobe',
+        ];
+
+        $groupBuckets = [];
+        foreach ($groups as $group) {
+            $groupBuckets[$group['key']] = [
+                'priority' => [],
+                'standard' => [],
+            ];
+        }
+
+        $remaining = [];
+        foreach ($products as $product) {
+            if (!is_array($product)) {
+                continue;
+            }
+
+            $name = strtolower(trim((string) ($product['productName'] ?? '')));
+            $description = strtolower(trim((string) ($product['description'] ?? '')));
+            $categoryCode = strtolower(trim((string) ($product['categoryCode'] ?? '')));
+            $vendor = strtolower($this->resolvePriceAvailabilityVendorName($product));
+            $haystack = $name . ' ' . $description . ' ' . $categoryCode;
+
+            $matchedGroup = null;
+            foreach ($groups as $group) {
+                $matchesKeyword = $this->containsAnyKeyword($haystack, $group['keywords']);
+                if (!$matchesKeyword) {
+                    continue;
+                }
+
+                $matchedGroup = $group;
+                $isPriorityBrand = $this->containsAnyKeyword($vendor, $group['brands']) || $this->containsAnyKeyword($haystack, $group['brands']);
+                if ($isPriorityBrand) {
+                    $groupBuckets[$group['key']]['priority'][] = $product;
+                } else {
+                    $groupBuckets[$group['key']]['standard'][] = $product;
+                }
+                break;
+            }
+
+            if ($matchedGroup === null && $this->containsAnyKeyword($haystack, $globalItKeywords)) {
+                $remaining[] = $product;
+            }
+        }
+
+        $selected = [];
+        $selectedLookup = [];
+
+        foreach ($groups as $group) {
+            $target = (int) $group['target'];
+            $pool = array_merge(
+                $groupBuckets[$group['key']]['priority'],
+                $groupBuckets[$group['key']]['standard']
+            );
+
+            foreach ($pool as $item) {
+                if (count($selected) >= $cap || $target <= 0) {
+                    break;
+                }
+
+                $id = $this->resolveCatalogProductIdentity($item);
+                if ($id === '' || isset($selectedLookup[$id])) {
+                    continue;
+                }
+
+                $selected[] = $item;
+                $selectedLookup[$id] = true;
+                $target--;
+            }
+        }
+
+        if (count($selected) < $cap) {
+            foreach ($remaining as $item) {
+                if (count($selected) >= $cap) {
+                    break;
+                }
+
+                $id = $this->resolveCatalogProductIdentity($item);
+                if ($id === '' || isset($selectedLookup[$id])) {
+                    continue;
+                }
+
+                $selected[] = $item;
+                $selectedLookup[$id] = true;
+            }
+        }
+
+        return array_values($selected);
+    }
+
+    private function containsAnyKeyword(string $haystack, array $keywords): bool
+    {
+        foreach ($keywords as $keyword) {
+            $needle = strtolower(trim((string) $keyword));
+            if ($needle !== '' && str_contains($haystack, $needle)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function resolveCatalogProductIdentity(array $product): string
+    {
+        $candidates = [
+            (string) ($product['productId'] ?? ''),
+            (string) ($product['sku'] ?? ''),
+            (string) ($product['mfgPartNo'] ?? ''),
+            (string) ($product['upc'] ?? ''),
+        ];
+
+        foreach ($candidates as $value) {
+            $trimmed = trim($value);
+            if ($trimmed !== '') {
+                return strtolower($trimmed);
+            }
+        }
+
+        return '';
     }
 
     private function getPriceAvailabilityProductFromDatabase(string $skuOrProductId): ?array
@@ -1015,9 +1280,32 @@ class ProductController extends Controller
     {
         try {
             if ($this->tdsynnexService->usesPriceAvailabilityAsProductSource()) {
+                $curatedItMix = filter_var(request()->query('curated_it_mix', true), FILTER_VALIDATE_BOOLEAN);
+
+                if ($curatedItMix) {
+                    $minPriceRaw = request()->query('min_price');
+                    $maxPriceRaw = request()->query('max_price');
+                    $minPrice = $minPriceRaw !== null && $minPriceRaw !== '' ? (float) $minPriceRaw : 200.0;
+                    $maxPrice = $maxPriceRaw !== null && $maxPriceRaw !== '' ? (float) $maxPriceRaw : null;
+                    $hideZero = filter_var(request()->query('hide_zero_price', true), FILTER_VALIDATE_BOOLEAN);
+                    $catalogClean = filter_var(request()->query('catalog_clean', true), FILTER_VALIDATE_BOOLEAN);
+
+                    $vendors = $this->getCuratedDefaultBrowseVendors(
+                        1000,
+                        $minPrice,
+                        $maxPrice,
+                        $hideZero,
+                        $catalogClean,
+                    );
+                } else {
+                    $vendors = $this->tdsynnexService->getPriceAvailabilityVendors();
+                }
+
+                $vendors = $this->filterCuratedVendors($vendors);
+
                 return response()->json([
                     'success' => true,
-                    'data' => $this->tdsynnexService->getPriceAvailabilityVendors(),
+                    'data' => $vendors,
                     'message' => 'Vendors retrieved successfully',
                 ]);
             }
@@ -1043,5 +1331,337 @@ class ProductController extends Controller
                 'error' => 'SERVER_ERROR'
             ], 500);
         }
+    }
+
+    private function filterCuratedVendors(array $vendors): array
+    {
+        $allowedVendors = $this->getCuratedVendorAllowList();
+        $allowedLookup = array_fill_keys(array_map(fn ($name) => $this->normalizeFacetLabel($name), $allowedVendors), true);
+
+        $aggregated = [];
+
+        foreach ($vendors as $vendor) {
+            if (!is_array($vendor)) {
+                continue;
+            }
+
+            $rawName = trim((string) ($vendor['vendorName'] ?? $vendor['vendorId'] ?? ''));
+            if ($rawName === '') {
+                continue;
+            }
+
+            $canonical = $this->normalizeCuratedVendorName($rawName);
+            $canonicalKey = $this->normalizeFacetLabel($canonical);
+
+            if (!isset($allowedLookup[$canonicalKey])) {
+                continue;
+            }
+
+            if (!isset($aggregated[$canonicalKey])) {
+                $aggregated[$canonicalKey] = [
+                    'vendorId' => $canonical,
+                    'vendorName' => $canonical,
+                    'count' => 0,
+                ];
+            }
+
+            $aggregated[$canonicalKey]['count'] += (int) ($vendor['count'] ?? 0);
+        }
+
+        $filtered = array_values($aggregated);
+        usort($filtered, function ($a, $b) {
+            return ((int) ($b['count'] ?? 0)) <=> ((int) ($a['count'] ?? 0));
+        });
+
+        return $filtered;
+    }
+
+    private function getCuratedDefaultBrowseVendors(
+        int $cap = 1000,
+        ?float $minPrice = 200.0,
+        ?float $maxPrice = null,
+        bool $hideZero = true,
+        bool $catalogClean = true
+    ): array {
+        $query = Product::query()->where('vendor_id', 'TD SYNNEX');
+
+        if ($hideZero) {
+            $query->where('base_price', '>', 0);
+        }
+
+        if ($minPrice !== null) {
+            $query->where('base_price', '>=', $minPrice);
+        }
+
+        if ($maxPrice !== null) {
+            $query->where('base_price', '<=', $maxPrice);
+        }
+
+        if ($catalogClean) {
+            $query->whereRaw("LOWER(COALESCE(mfg_part_no, '')) <> 'shipping'")
+                ->whereRaw("LOWER(COALESCE(product_name, '')) NOT LIKE '%shipping%'")
+                ->whereRaw("NOT ((COALESCE(base_price, 0) <= 0.05) AND (LOWER(COALESCE(product_name, '')) LIKE '%support%' OR LOWER(COALESCE(product_name, '')) LIKE '%warranty%' OR LOWER(COALESCE(product_name, '')) LIKE '%consulting%' OR LOWER(COALESCE(product_name, '')) LIKE '%implementation%' OR LOWER(COALESCE(product_name, '')) LIKE '%annual fee%' OR LOWER(COALESCE(product_name, '')) LIKE '%training%'))");
+        }
+
+        $this->applyCuratedDefaultBrowseFilters($query);
+
+        $rows = $query
+            ->orderBy('id')
+            ->limit(max(1, $cap))
+            ->selectRaw("TRIM(JSON_UNQUOTE(JSON_EXTRACT(specifications, '$.manufacturer'))) as manufacturer")
+            ->get();
+
+        $aggregated = [];
+        foreach ($rows as $row) {
+            $rawName = trim((string) ($row->manufacturer ?? ''));
+            if ($rawName === '') {
+                continue;
+            }
+
+            $canonical = $this->normalizeCuratedVendorName($rawName);
+            $canonicalKey = $this->normalizeFacetLabel($canonical);
+            if (!isset($aggregated[$canonicalKey])) {
+                $aggregated[$canonicalKey] = [
+                    'vendorId' => $canonical,
+                    'vendorName' => $canonical,
+                    'count' => 0,
+                ];
+            }
+
+            $aggregated[$canonicalKey]['count']++;
+        }
+
+        return array_values($aggregated);
+    }
+
+    private function getCuratedVendorKeywords(): array
+    {
+        $keywords = [];
+        foreach ($this->getCuratedVendorAliasMap() as $canonical => $aliases) {
+            $keywords[] = $canonical;
+            foreach ($aliases as $alias) {
+                $keywords[] = $alias;
+            }
+        }
+
+        return array_values(array_unique($keywords));
+    }
+
+    private function getCuratedVendorAllowList(): array
+    {
+        return [
+            'CISCO SYSTEMS',
+            'HEWLETT PACKARD ENTERPRISE',
+            'NVIDIA CORPORATION',
+            'LENOVO DATA CENTER',
+            'MICROSOFT CORPORATION',
+            'HP INC.',
+            'VEEAM SOFTWARE CORPORATION',
+            'LENOVO',
+            'FORTINET INC.',
+            'APC BY SCHNEIDER ELECTRIC',
+            'STARTECH.COM',
+            'BELKIN INTERNATIONAL INC',
+            'SAMSUNG',
+            'DELL MARKETING L.P.',
+            'ASUS',
+            'INTEL',
+            'INTELLINET',
+            'LOGITECH',
+            'JABRA',
+            'KINGSTON',
+            'KENSINGTON COMPUTER',
+            'ASUS SBG COMMERCIAL',
+            'INTELLIGENT SECURITY SYSTEMS C',
+            'NETGEAR',
+            'WESTERN DIGITAL',
+            'AMD',
+            'ACER AMERICA CORPORATION',
+            'BROADCOM',
+            'INTELLIGENT COMPUTER SOLUTIONS',
+            'CROWDSTRIKE, INC.',
+            'ASUSTOR AMERICA INC',
+            'Q6 INTELLIGENCE, LLC',
+            'SEAGATE TECHNOLOGY LLC',
+            'PALO ALTO NETWORKS',
+        ];
+    }
+
+    private function getCuratedVendorAliasMap(): array
+    {
+        return [
+            'HEWLETT PACKARD ENTERPRISE' => ['HEWLETT PACKARD ENTERPRISE COM'],
+            'MICROSOFT CORPORATION' => ['MICROSOFT', 'MICROSOFT CORP', 'MICROSOFT RETAIL'],
+            'SAMSUNG' => [
+                'SAMSUNG ELECTRONICS AMERICA, I',
+                'SAMSUNG ELECTRONICS AMERICA',
+                'SAMSUNG ELECTRONICS CO.',
+                'SAMSUNG ELECTRONICS AMERICA IN',
+                'SAMSUNG ELECTRONICS AMERICA (W',
+            ],
+            'CISCO SYSTEMS' => ['CISCO SYSTEMS CAPITAL REMARKET'],
+            'DELL MARKETING L.P.' => ['DELL MARKETING LP'],
+            'ACER AMERICA CORPORATION' => ['ACER', 'ACER AMERICA'],
+            'SEAGATE TECHNOLOGY LLC' => ['STRATEGIC SOURCING -SEAGATE'],
+        ];
+    }
+
+    private function normalizeCuratedVendorName(string $value): string
+    {
+        $normalized = $this->normalizeFacetLabel($value);
+        foreach ($this->getCuratedVendorAliasMap() as $canonical => $aliases) {
+            if ($normalized === $this->normalizeFacetLabel($canonical)) {
+                return $canonical;
+            }
+
+            foreach ($aliases as $alias) {
+                if ($normalized === $this->normalizeFacetLabel($alias)) {
+                    return $canonical;
+                }
+            }
+        }
+
+        return strtoupper(trim($value));
+    }
+
+    private function normalizeFacetLabel(string $value): string
+    {
+        $normalized = strtoupper(trim($value));
+        $normalized = preg_replace('/[^A-Z0-9\s]/', ' ', $normalized);
+        $normalized = preg_replace('/\s+/', ' ', (string) $normalized);
+        return trim((string) $normalized);
+    }
+
+    private function getCuratedItKeywords(): array
+    {
+        return [
+            'laptop',
+            'notebook',
+            'desktop',
+            'workstation',
+            'monitor',
+            'display',
+            'dock',
+            'docking',
+            'printer',
+            'toner',
+            'ink',
+            'cartridge',
+            'router',
+            'switch',
+            'access point',
+            'wifi',
+            'firewall',
+            'gateway',
+            'keyboard',
+            'mouse',
+            'headset',
+            'webcam',
+            'microphone',
+            'speakerphone',
+            'license',
+            'software',
+            'subscription',
+            'antivirus',
+            'security',
+            'backup',
+            'microsoft 365',
+            'office 365',
+        ];
+    }
+
+    private function applyCuratedDefaultBrowseFilters(\Illuminate\Database\Eloquent\Builder $query): void
+    {
+        $vendorNames = $this->getCuratedVendorAllowList();
+        foreach ($this->getCuratedVendorAliasMap() as $canonical => $aliases) {
+            $vendorNames[] = $canonical;
+            foreach ($aliases as $alias) {
+                $vendorNames[] = $alias;
+            }
+        }
+
+        $vendorNames = array_values(array_unique(array_filter(array_map(
+            fn ($name) => strtolower(trim((string) $name)),
+            $vendorNames
+        ))));
+
+        if (!empty($vendorNames)) {
+            $placeholders = implode(',', array_fill(0, count($vendorNames), '?'));
+            $query->whereRaw(
+                "LOWER(TRIM(COALESCE(JSON_UNQUOTE(JSON_EXTRACT(specifications, '$.manufacturer')), ''))) IN ({$placeholders})",
+                $vendorNames
+            );
+        }
+
+        // Hardware-only guard: explicitly exclude software/service catalog terms.
+        $nonHardwareKeywords = [
+            'license',
+            'subscription',
+            'software',
+            'office 365',
+            'microsoft 365',
+            'adobe',
+            'bitdefender',
+            'antivirus',
+            'renewal',
+            'support',
+            'warranty',
+            'maintenance',
+            'consulting',
+            'implementation',
+            'training',
+            'saas',
+        ];
+
+        foreach ($nonHardwareKeywords as $keyword) {
+            $like = '%' . strtolower($keyword) . '%';
+            $query->whereRaw("LOWER(COALESCE(product_name, '')) NOT LIKE ?", [$like])
+                ->whereRaw("LOWER(COALESCE(description, '')) NOT LIKE ?", [$like]);
+        }
+    }
+
+    private function hasProductsFullTextIndex(): bool
+    {
+        return (bool) Cache::remember('products_has_fulltext_idx', 3600, function () {
+            try {
+                $indexRows = \Illuminate\Support\Facades\DB::select(
+                    "SELECT INDEX_NAME, COLUMN_NAME, INDEX_TYPE
+                     FROM information_schema.STATISTICS
+                     WHERE TABLE_SCHEMA = DATABASE()
+                       AND TABLE_NAME = 'products'"
+                );
+
+                $fulltextColumns = [];
+                foreach ($indexRows as $row) {
+                    if (strtoupper((string) ($row->INDEX_TYPE ?? '')) !== 'FULLTEXT') {
+                        continue;
+                    }
+
+                    $indexName = (string) ($row->INDEX_NAME ?? '');
+                    if ($indexName === '') {
+                        continue;
+                    }
+
+                    if (!isset($fulltextColumns[$indexName])) {
+                        $fulltextColumns[$indexName] = [];
+                    }
+
+                    $fulltextColumns[$indexName][] = (string) ($row->COLUMN_NAME ?? '');
+                }
+
+                foreach ($fulltextColumns as $columns) {
+                    $lookup = array_fill_keys($columns, true);
+                    if (isset($lookup['product_name'], $lookup['description'], $lookup['mfg_part_no'])) {
+                        return true;
+                    }
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Could not inspect FULLTEXT indexes for products table', [
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
+            return false;
+        });
     }
 }

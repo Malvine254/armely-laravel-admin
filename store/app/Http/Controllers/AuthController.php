@@ -56,9 +56,33 @@ class AuthController extends Controller
             return null;
         }
 
+        $value = str_replace('\\', '/', $value);
+
+        // Support legacy absolute URLs and keep only the storage-relative part.
+        if (filter_var($value, FILTER_VALIDATE_URL)) {
+            $parsedPath = (string) parse_url($value, PHP_URL_PATH);
+            $value = $parsedPath !== '' ? $parsedPath : $value;
+        }
+
         $value = ltrim($value, '/');
+        if (str_contains($value, '/storage/')) {
+            $storagePos = strpos($value, '/storage/');
+            if ($storagePos !== false) {
+                $value = substr($value, $storagePos + strlen('/storage/'));
+            }
+        }
+
         if (str_starts_with($value, 'storage/')) {
             $value = substr($value, strlen('storage/'));
+        }
+
+        if (str_starts_with($value, 'public/')) {
+            $value = substr($value, strlen('public/'));
+        }
+
+        $value = ltrim($value, '/');
+        if ($value === '' || str_contains($value, '..')) {
+            return null;
         }
 
         return $value !== '' ? $value : null;
@@ -71,8 +95,24 @@ class AuthController extends Controller
             return null;
         }
 
-        $frontendBaseUrl = rtrim((string) env('FRONTEND_URL', config('app.url')), '/');
-        return $frontendBaseUrl . '/storage/' . ltrim($normalizedPath, '/');
+        $relativePublicPath = 'storage/' . ltrim($normalizedPath, '/');
+        $absoluteDiskPath = storage_path('app/public/' . ltrim($normalizedPath, '/'));
+        $version = is_file($absoluteDiskPath) ? ('?v=' . (string) @filemtime($absoluteDiskPath)) : '';
+
+        $baseUrl = '';
+        try {
+            if (request()) {
+                $baseUrl = rtrim((string) request()->getSchemeAndHttpHost(), '/');
+            }
+        } catch (\Throwable $e) {
+            $baseUrl = '';
+        }
+
+        if ($baseUrl === '') {
+            $baseUrl = rtrim((string) config('app.url'), '/');
+        }
+
+        return rtrim($baseUrl, '/') . '/' . $relativePublicPath . $version;
     }
 
     private function strongPasswordRule(): Password
@@ -456,10 +496,12 @@ class AuthController extends Controller
             try {
                 $file = $request->file('profile_picture');
                 $oldProfilePicturePath = $this->normalizeStoredProfilePicturePath($user->profile_picture);
-                $filename = 'profile_' . $user->id . '_' . time() . '.' . $file->getClientOriginalExtension();
+                $extension = strtolower((string) ($file->getClientOriginalExtension() ?: $file->extension() ?: 'jpg'));
+                $filename = 'profile_' . $user->id . '_' . Str::uuid() . '.' . $extension;
+                $folder = 'profile-pictures/' . now()->format('Y/m');
                 
                 // Store the file - storeAs returns the path or throws an exception
-                $storagePath = $file->storeAs('profile-pictures', $filename, 'public');
+                $storagePath = $file->storeAs($folder, $filename, 'public');
                 
                 if ($storagePath === false) {
                     \Log::error('Profile picture storage failed', [
