@@ -18,10 +18,24 @@
     <router-view />
 
     <button
+      v-if="showFloatingChatLauncher"
+      type="button"
+      @click="openMelaAssistant"
+      class="mela-fab"
+      aria-label="Open Mela AI chat"
+      title="Chat with Mela AI"
+    >
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h8M8 14h5m8 6l-4-2H8a4 4 0 01-4-4V7a4 4 0 014-4h8a4 4 0 014 4v13z" />
+      </svg>
+    </button>
+
+    <button
       v-if="showBackToTop"
       type="button"
       @click="scrollToTop"
-      class="fixed bottom-5 right-5 sm:bottom-6 sm:right-6 w-11 h-11 rounded-full shadow-lg flex items-center justify-center text-white z-[10001] transition"
+      class="fixed w-11 h-11 rounded-full shadow-lg flex items-center justify-center text-white z-[10001] transition"
+      :class="showFloatingChatLauncher ? 'bottom-20 right-5 sm:bottom-24 sm:right-6' : 'bottom-5 right-5 sm:bottom-6 sm:right-6'"
       style="background-color: #2F5597;"
       @mouseenter="$event.currentTarget.style.backgroundColor='#1f4788'"
       @mouseleave="$event.currentTarget.style.backgroundColor='#2F5597'"
@@ -163,12 +177,13 @@
 
 <script setup>
 import { computed, ref, reactive, onMounted, onBeforeUnmount } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import Toasts from './components/Toasts.vue'
 import { useAuthStore } from './stores/authStore'
 import { getCookieConsentStatus, setCookieConsentStatus, getCookiePreferences, setCookiePreferences } from './services/searchInsights'
 
 const route = useRoute()
+const router = useRouter()
 const authStore = useAuthStore()
 const showBackToTop = ref(false)
 const showCookieBanner = ref(false)
@@ -190,6 +205,14 @@ const showStoreFooter = computed(() => {
   return !routeName.startsWith('admin-') && routeName !== 'admin-login'
 })
 
+const showFloatingChatLauncher = computed(() => {
+  const routeName = String(route.name || '')
+  if (!authStore.isAuthenticated) return false
+  if (routeName === 'messages') return false
+  if (routeName === 'admin-login') return false
+  return true
+})
+
 const handleScroll = () => {
   showBackToTop.value = window.scrollY > 320
 }
@@ -201,6 +224,10 @@ const refreshCookieBanner = () => {
 
 const scrollToTop = () => {
   window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+const openMelaAssistant = () => {
+  router.push({ name: 'messages' })
 }
 
 const acceptCookies = () => {
@@ -260,4 +287,94 @@ onBeforeUnmount(() => {
 
 <style>
 /* Global styles */
+
+.mela-fab {
+  position: fixed;
+  right: 1.25rem;
+  top: 50%;
+  z-index: 10002;
+  inline-size: 3.5rem;
+  block-size: 3.5rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.38);
+  background: linear-gradient(135deg, #1d4b8f 0%, #2e67b8 55%, #5f97e1 100%);
+  box-shadow: 0 10px 26px rgba(18, 56, 112, 0.35);
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 200ms ease, box-shadow 220ms ease, filter 220ms ease;
+  transform: translateY(-50%);
+  animation: mela-fab-rise 520ms ease-out, mela-fab-float 3.4s ease-in-out 650ms infinite;
+}
+
+.mela-fab:hover {
+  transform: translateY(calc(-50% - 3px)) scale(1.04);
+  box-shadow: 0 14px 32px rgba(18, 56, 112, 0.42);
+  filter: saturate(1.08);
+}
+
+.mela-fab:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(147, 197, 253, 0.45), 0 14px 32px rgba(18, 56, 112, 0.42);
+}
+
+.mela-fab::before {
+  content: '';
+  position: absolute;
+  inset: -7px;
+  border-radius: 9999px;
+  border: 2px solid rgba(134, 178, 236, 0.45);
+  animation: mela-fab-pulse 2.2s ease-out infinite;
+}
+
+.mela-fab svg {
+  inline-size: 1.35rem;
+  block-size: 1.35rem;
+}
+
+@media (min-width: 640px) {
+  .mela-fab {
+    right: 1.5rem;
+    inline-size: 3.75rem;
+    block-size: 3.75rem;
+  }
+}
+
+@keyframes mela-fab-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(calc(-50% + 12px)) scale(0.92);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(-50%) scale(1);
+  }
+}
+
+@keyframes mela-fab-float {
+  0%,
+  100% {
+    transform: translateY(-50%);
+  }
+  50% {
+    transform: translateY(calc(-50% - 4px));
+  }
+}
+
+@keyframes mela-fab-pulse {
+  0% {
+    transform: scale(0.92);
+    opacity: 0.7;
+  }
+  70% {
+    transform: scale(1.2);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.2);
+    opacity: 0;
+  }
+}
 </style>

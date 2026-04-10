@@ -19,7 +19,36 @@
               <svg class="absolute left-3 top-3 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
               </svg>
-              <input v-model="searchQuery" @keyup.enter="performSearch" type="text" placeholder="Search products..." class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent transition">
+              <input
+                v-model="searchQuery"
+                @input="handleSearchInput"
+                @focus="handleSearchFocus"
+                @blur="handleSearchBlur"
+                @keydown.down.prevent="highlightNextSuggestion"
+                @keydown.up.prevent="highlightPreviousSuggestion"
+                @keydown.esc="dismissSearchSuggestions"
+                @keydown.enter.prevent="handleSearchEnter"
+                type="text"
+                placeholder="Search products..."
+                class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent transition"
+              >
+
+              <div
+                v-if="showSearchSuggestions && searchSuggestionItems.length > 0"
+                class="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden"
+              >
+                <button
+                  v-for="(item, index) in searchSuggestionItems"
+                  :key="`${item.term}-${item.source}-${index}`"
+                  type="button"
+                  class="w-full text-left px-3 py-2.5 border-b border-gray-100 last:border-b-0 transition flex items-center justify-between"
+                  :class="index === activeSuggestionIndex ? 'bg-blue-50' : 'hover:bg-gray-50'"
+                  @mousedown.prevent="applySearchSuggestion(item.term)"
+                >
+                  <span class="text-sm text-gray-800 truncate pr-3">{{ item.term }}</span>
+                  <span class="text-[10px] uppercase tracking-wide text-gray-500">{{ item.source }}</span>
+                </button>
+              </div>
             </div>
           </div>
           <button
@@ -245,7 +274,7 @@ import { useCartStore } from '../../stores/cartStore'
 import { useFavoritesStore } from '../../stores/favoritesStore'
 import { useAuthStore } from '../../stores/authStore'
 import { usePricingSettings } from '../../composables/usePricingSettings'
-import { trackSearchTerm, hasTrackingConsent, getSearchProfileTerms } from '../../services/searchInsights'
+import { trackSearchTerm, hasTrackingConsent, getSearchProfileTerms, getSearchSuggestions } from '../../services/searchInsights'
 import api from '../../services/api'
 import Navbar from '../../components/Navbar.vue'
 import FilterSidebar from '../../components/FilterSidebar.vue'
@@ -261,6 +290,8 @@ const ITEMS_PER_PAGE = 9
 const API_PAGE_SIZE = 100
 const SEARCH_TRACK_DEBOUNCE_MS = 15000
 const PROFILE_TERM_LIMIT = 25
+const LOCAL_SEARCH_HISTORY_KEY = 'armely_products_search_history'
+const LOCAL_SEARCH_HISTORY_LIMIT = 12
 const TOP_VENDOR_DISPLAY_LIMIT = 40
 const DEFAULT_VENDOR_SCOPE_LIMIT = 12
 const DEFAULT_BROWSE_MIN_PRICE = 200
@@ -423,6 +454,10 @@ const currentPage = ref(1)
 const lastTrackedTerm = ref('')
 const lastTrackedAt = ref(0)
 const reviewStatsByProduct = ref({})
+const localSearchHistory = ref([])
+const showSearchSuggestions = ref(false)
+const activeSuggestionIndex = ref(-1)
+const searchSuggestionItems = ref([])
 
 const availableVendors = ref([])
 const allVendors = ref([])
@@ -516,6 +551,125 @@ const reviewRatingOptions = computed(() => {
 })
 
 const normalizeSearchText = (value) => String(value || '').toLowerCase().trim().replace(/\s+/g, ' ')
+
+const normalizeSearchHistoryTerm = (value) => String(value || '').trim().replace(/\s+/g, ' ')
+
+const loadLocalSearchHistory = () => {
+  if (typeof window === 'undefined') return
+  try {
+    const parsed = JSON.parse(localStorage.getItem(LOCAL_SEARCH_HISTORY_KEY) || '[]')
+    if (Array.isArray(parsed)) {
+      localSearchHistory.value = parsed
+        .map((entry) => normalizeSearchHistoryTerm(entry))
+        .filter((entry) => entry.length > 1)
+        .slice(0, LOCAL_SEARCH_HISTORY_LIMIT)
+    }
+  } catch (error) {
+    localSearchHistory.value = []
+  }
+}
+
+const persistLocalSearchHistory = (term) => {
+  const normalized = normalizeSearchHistoryTerm(term)
+  if (normalized.length < 2 || typeof window === 'undefined') return
+
+  const withoutTerm = localSearchHistory.value.filter(
+    (item) => normalizeSearchHistoryTerm(item).toLowerCase() !== normalized.toLowerCase()
+  )
+
+  localSearchHistory.value = [normalized, ...withoutTerm].slice(0, LOCAL_SEARCH_HISTORY_LIMIT)
+  localStorage.setItem(LOCAL_SEARCH_HISTORY_KEY, JSON.stringify(localSearchHistory.value))
+}
+
+const buildSearchSuggestionItems = (input = '') => {
+  const normalizedInput = normalizeSearchText(input)
+  const fromHistory = localSearchHistory.value
+    .filter((term) => {
+      if (!normalizedInput) return true
+      return normalizeSearchText(term).includes(normalizedInput)
+    })
+    .map((term) => ({ term, source: 'history' }))
+
+  const insightSuggestions = getSearchSuggestions(input)
+  const fromInsights = [
+    ...(insightSuggestions.recommended || []).map((entry) => ({ term: entry.term, source: 'recommended' })),
+    ...(insightSuggestions.recent || []).map((entry) => ({ term: entry.term, source: 'recent' })),
+    ...(insightSuggestions.popular || []).map((entry) => ({ term: entry.term, source: 'popular' })),
+  ]
+
+  const merged = [...fromHistory, ...fromInsights]
+  const seen = new Set()
+  const unique = []
+
+  merged.forEach((item) => {
+    const normalized = normalizeSearchText(item.term)
+    if (!normalized || seen.has(normalized)) return
+    seen.add(normalized)
+    unique.push({ term: normalizeSearchHistoryTerm(item.term), source: item.source })
+  })
+
+  searchSuggestionItems.value = unique.slice(0, 8)
+  activeSuggestionIndex.value = -1
+}
+
+const handleSearchInput = () => {
+  buildSearchSuggestionItems(searchQuery.value)
+  showSearchSuggestions.value = searchSuggestionItems.value.length > 0
+}
+
+const handleSearchFocus = () => {
+  buildSearchSuggestionItems(searchQuery.value)
+  showSearchSuggestions.value = searchSuggestionItems.value.length > 0
+}
+
+const handleSearchBlur = () => {
+  setTimeout(() => {
+    showSearchSuggestions.value = false
+    activeSuggestionIndex.value = -1
+  }, 120)
+}
+
+const dismissSearchSuggestions = () => {
+  showSearchSuggestions.value = false
+  activeSuggestionIndex.value = -1
+}
+
+const applySearchSuggestion = async (term) => {
+  searchQuery.value = normalizeSearchHistoryTerm(term)
+  dismissSearchSuggestions()
+  await performSearch(true)
+}
+
+const highlightNextSuggestion = () => {
+  if (!showSearchSuggestions.value || searchSuggestionItems.value.length === 0) return
+  activeSuggestionIndex.value = (activeSuggestionIndex.value + 1) % searchSuggestionItems.value.length
+}
+
+const highlightPreviousSuggestion = () => {
+  if (!showSearchSuggestions.value || searchSuggestionItems.value.length === 0) return
+  if (activeSuggestionIndex.value <= 0) {
+    activeSuggestionIndex.value = searchSuggestionItems.value.length - 1
+    return
+  }
+  activeSuggestionIndex.value -= 1
+}
+
+const handleSearchEnter = async () => {
+  if (
+    showSearchSuggestions.value
+    && activeSuggestionIndex.value >= 0
+    && activeSuggestionIndex.value < searchSuggestionItems.value.length
+  ) {
+    const selected = searchSuggestionItems.value[activeSuggestionIndex.value]
+    if (selected?.term) {
+      await applySearchSuggestion(selected.term)
+      return
+    }
+  }
+
+  dismissSearchSuggestions()
+  await performSearch(true)
+}
 
 const getProductSearchBlob = (product) => {
   const categories = Array.isArray(product.productCategories)
@@ -998,6 +1152,7 @@ const isDefaultCuratedBrowse = (filters = currentFilters.value) => {
 
 const performSearch = async (resetPage = true) => {
   error.value = ''
+  dismissSearchSuggestions()
   if (resetPage) {
     currentPage.value = 1
     loading.value = true
@@ -1010,6 +1165,7 @@ const performSearch = async (resetPage = true) => {
 
   const normalizedQuery = normalizeSearchText(searchQuery.value)
   if (normalizedQuery) {
+    persistLocalSearchHistory(searchQuery.value)
     const now = Date.now()
     const canTrack = normalizedQuery !== lastTrackedTerm.value || (now - lastTrackedAt.value) > SEARCH_TRACK_DEBOUNCE_MS
     if (canTrack) {
@@ -1576,6 +1732,7 @@ onMounted(async () => {
   }
 
   await loadPricingSettings(true)
+  loadLocalSearchHistory()
   fetchVendors()
 })
 </script>
