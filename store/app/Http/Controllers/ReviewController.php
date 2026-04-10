@@ -6,6 +6,8 @@ use App\Models\Product;
 use App\Models\ProductReview;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -16,78 +18,127 @@ class ReviewController extends Controller
      */
     public function index(string $productId, Request $request): JsonResponse
     {
-        $reviews = ProductReview::where('product_id', $productId)
-            ->with('user:id,name,email,profile_picture')
-            ->orderByDesc('created_at')
-            ->paginate($request->integer('per_page', 10));
-
-        $reviewItems = $reviews->items();
-        $productIds = collect($reviewItems)
-            ->pluck('product_id')
-            ->filter()
-            ->map(fn ($id) => (string) $id)
-            ->unique()
-            ->values();
-
-        $productNameLookup = [];
-        if ($productIds->isNotEmpty()) {
-            $products = Product::query()
-                ->whereIn('tdsynnex_product_id', $productIds)
-                ->orWhereIn('tdsynnex_sku_no', $productIds)
-                ->get(['tdsynnex_product_id', 'tdsynnex_sku_no', 'product_name']);
-
-            foreach ($products as $product) {
-                $name = (string) ($product->product_name ?? '');
-                if ($name === '') {
-                    continue;
-                }
-
-                if ($product->tdsynnex_product_id !== null) {
-                    $productNameLookup[(string) $product->tdsynnex_product_id] = $name;
-                }
-
-                if (!empty($product->tdsynnex_sku_no)) {
-                    $productNameLookup[(string) $product->tdsynnex_sku_no] = $name;
-                }
-            }
+        if (!Schema::hasTable('product_reviews')) {
+            return response()->json([
+                'data' => [],
+                'meta' => [
+                    'current_page' => 1,
+                    'last_page' => 1,
+                    'total' => 0,
+                ],
+                'stats' => [
+                    'total' => 0,
+                    'average' => 0,
+                    'breakdown' => [5 => 0, 4 => 0, 3 => 0, 2 => 0, 1 => 0],
+                ],
+            ]);
         }
 
-        $reviewItems = array_map(function ($review) use ($productNameLookup) {
-            $reviewData = $review->toArray();
-            $id = (string) ($reviewData['product_id'] ?? '');
-            $reviewData['product_name'] = $productNameLookup[$id] ?? ($id !== '' ? ('Product ' . $id) : 'Unknown Product');
-            return $reviewData;
-        }, $reviewItems);
+        try {
+            $reviews = ProductReview::where('product_id', $productId)
+                ->with('user:' . implode(',', $this->reviewUserColumns()))
+                ->orderByDesc('created_at')
+                ->paginate($request->integer('per_page', 10));
 
-        // Build summary stats
-        $stats = ProductReview::where('product_id', $productId)
-            ->selectRaw('COUNT(*) as total, AVG(rating) as average, ' .
-                'SUM(CASE WHEN rating = 5 THEN 1 ELSE 0 END) as five, ' .
-                'SUM(CASE WHEN rating = 4 THEN 1 ELSE 0 END) as four, ' .
-                'SUM(CASE WHEN rating = 3 THEN 1 ELSE 0 END) as three, ' .
-                'SUM(CASE WHEN rating = 2 THEN 1 ELSE 0 END) as two, ' .
-                'SUM(CASE WHEN rating = 1 THEN 1 ELSE 0 END) as one')
-            ->first();
+            $reviewItems = $reviews->items();
+            $productIds = collect($reviewItems)
+                ->pluck('product_id')
+                ->filter()
+                ->map(fn ($id) => (string) $id)
+                ->unique()
+                ->values();
 
-        return response()->json([
-            'data' => $reviewItems,
-            'meta' => [
-                'current_page' => $reviews->currentPage(),
-                'last_page'    => $reviews->lastPage(),
-                'total'        => $reviews->total(),
-            ],
-            'stats' => [
-                'total'   => (int) $stats->total,
-                'average' => $stats->total > 0 ? round((float) $stats->average, 1) : 0,
-                'breakdown' => [
-                    5 => (int) $stats->five,
-                    4 => (int) $stats->four,
-                    3 => (int) $stats->three,
-                    2 => (int) $stats->two,
-                    1 => (int) $stats->one,
+            $productNameLookup = [];
+            if ($productIds->isNotEmpty()) {
+                $products = Product::query()
+                    ->where(function ($q) use ($productIds) {
+                        $q->whereIn('tdsynnex_product_id', $productIds)
+                            ->orWhereIn('tdsynnex_sku_no', $productIds);
+                    })
+                    ->get(['tdsynnex_product_id', 'tdsynnex_sku_no', 'product_name']);
+
+                foreach ($products as $product) {
+                    $name = (string) ($product->product_name ?? '');
+                    if ($name === '') {
+                        continue;
+                    }
+
+                    if ($product->tdsynnex_product_id !== null) {
+                        $productNameLookup[(string) $product->tdsynnex_product_id] = $name;
+                    }
+
+                    if (!empty($product->tdsynnex_sku_no)) {
+                        $productNameLookup[(string) $product->tdsynnex_sku_no] = $name;
+                    }
+                }
+            }
+
+            $reviewItems = array_map(function ($review) use ($productNameLookup) {
+                $reviewData = $review->toArray();
+                $id = (string) ($reviewData['product_id'] ?? '');
+                $reviewData['product_name'] = $productNameLookup[$id] ?? ($id !== '' ? ('Product ' . $id) : 'Unknown Product');
+                return $reviewData;
+            }, $reviewItems);
+
+            $stats = ProductReview::where('product_id', $productId)
+                ->selectRaw('COUNT(*) as total, AVG(rating) as average, ' .
+                    'SUM(CASE WHEN rating = 5 THEN 1 ELSE 0 END) as five, ' .
+                    'SUM(CASE WHEN rating = 4 THEN 1 ELSE 0 END) as four, ' .
+                    'SUM(CASE WHEN rating = 3 THEN 1 ELSE 0 END) as three, ' .
+                    'SUM(CASE WHEN rating = 2 THEN 1 ELSE 0 END) as two, ' .
+                    'SUM(CASE WHEN rating = 1 THEN 1 ELSE 0 END) as one')
+                ->first();
+
+            return response()->json([
+                'data' => $reviewItems,
+                'meta' => [
+                    'current_page' => $reviews->currentPage(),
+                    'last_page' => $reviews->lastPage(),
+                    'total' => $reviews->total(),
                 ],
-            ],
-        ]);
+                'stats' => [
+                    'total' => (int) $stats->total,
+                    'average' => $stats->total > 0 ? round((float) $stats->average, 1) : 0,
+                    'breakdown' => [
+                        5 => (int) $stats->five,
+                        4 => (int) $stats->four,
+                        3 => (int) $stats->three,
+                        2 => (int) $stats->two,
+                        1 => (int) $stats->one,
+                    ],
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('ReviewController.index failed', [
+                'product_id' => $productId,
+                'message' => $e->getMessage(),
+                'exception' => get_class($e),
+            ]);
+
+            return response()->json([
+                'data' => [],
+                'meta' => [
+                    'current_page' => 1,
+                    'last_page' => 1,
+                    'total' => 0,
+                ],
+                'stats' => [
+                    'total' => 0,
+                    'average' => 0,
+                    'breakdown' => [5 => 0, 4 => 0, 3 => 0, 2 => 0, 1 => 0],
+                ],
+            ]);
+        }
+    }
+
+    private function reviewUserColumns(): array
+    {
+        $columns = ['id', 'name', 'email'];
+        if (Schema::hasColumn('users', 'profile_picture')) {
+            $columns[] = 'profile_picture';
+        }
+
+        return $columns;
     }
 
     /**

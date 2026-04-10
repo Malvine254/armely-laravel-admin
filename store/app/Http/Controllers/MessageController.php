@@ -736,6 +736,38 @@ class MessageController extends Controller
             ]);
 
             $fallbackReply = 'Mela AI is temporarily unavailable. Please try again shortly, or request human support.';
+            $fallbackActions = [
+                [
+                    'label' => 'Request human support',
+                    'link' => '/messages',
+                ],
+            ];
+            $fallbackProductSuggestions = [];
+
+            try {
+                $fallbackSearchContext = $this->buildProductSearchContext($question, []);
+                $fallbackProductSuggestions = $this->searchProductsForAssistant($question, [], 6, $fallbackSearchContext);
+
+                if (!empty($fallbackProductSuggestions)) {
+                    $fallbackReply = 'Mela AI is temporarily unavailable, but I found matching products from your catalog below. You can open product details now or request human support.';
+                    $fallbackActions[] = [
+                        'label' => 'Open product search',
+                        'link' => '/products?search=' . urlencode($question),
+                    ];
+                }
+            } catch (\Throwable $fallbackError) {
+                Log::warning('Assistant error fallback product search failed', [
+                    'user_id' => $request->user()?->id,
+                    'chat_session_id' => $validated['chat_session_id'] ?? null,
+                    'message' => $fallbackError->getMessage(),
+                ]);
+            }
+
+            $fallbackActions = collect($fallbackActions)
+                ->filter(static fn (array $action) => !empty($action['label']) && !empty($action['link']))
+                ->unique(static fn (array $action) => $action['label'] . '|' . $action['link'])
+                ->values()
+                ->all();
 
             if ($session && $user) {
                 try {
@@ -744,14 +776,10 @@ class MessageController extends Controller
                         'user_id' => $user->id,
                         'role' => 'assistant',
                         'content' => $fallbackReply,
-                        'actions' => [
-                            [
-                                'label' => 'Request human support',
-                                'link' => '/messages',
-                            ],
-                        ],
+                        'actions' => $fallbackActions,
                         'metadata' => [
                             'source' => 'assistant_error_fallback',
+                            'product_suggestions' => $fallbackProductSuggestions,
                         ],
                     ]);
 
@@ -771,13 +799,8 @@ class MessageController extends Controller
                 'success' => true,
                 'data' => [
                     'reply' => $fallbackReply,
-                    'actions' => [
-                        [
-                            'label' => 'Request human support',
-                            'link' => '/messages',
-                        ],
-                    ],
-                    'product_suggestions' => [],
+                    'actions' => $fallbackActions,
+                    'product_suggestions' => $fallbackProductSuggestions,
                     'source' => 'assistant_error_fallback',
                     'chat_session' => [
                         'id' => $session?->id ?? ($validated['chat_session_id'] ?? null),
@@ -1496,7 +1519,7 @@ class MessageController extends Controller
         }
 
         return $candidates
-            ->map(function (array $candidate) use ($keywords, $preferenceKeywords, $searchContext, $deviceType, $maxBudget) {
+            ->map(function (array $candidate) use ($keywords, $preferenceKeywords, $searchContext, $deviceType, $maxBudget, $requiredBrand, $requiredCategory) {
                 $name = strtolower((string) ($candidate['name'] ?? ''));
                 $description = strtolower((string) ($candidate['description'] ?? ''));
                 $vendor = strtolower((string) ($candidate['vendor'] ?? ''));
