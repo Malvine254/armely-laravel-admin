@@ -118,6 +118,10 @@ $actions = [
         'label' => 'Sync Product Images (use Limit/Chunk below)',
         'type' => 'sync_images',
     ],
+    'db_repair' => [
+        'label' => 'Repair DB Schema (run pending migrations)',
+        'type' => 'db_repair',
+    ],
     'clear_tds_cache' => [
         'label' => 'Clear TD SYNNEX Cache',
         'type' => 'artisan',
@@ -181,6 +185,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             '--limit' => $limit,
             '--chunk' => $chunk,
         ]);
+    } elseif ($actionType === 'db_repair') {
+        $seed = isset($_POST['db_seed']) && $_POST['db_seed'] === '1';
+        $params = [];
+        if ($seed) {
+            $params['--seed'] = true;
+        }
+
+        $results[] = runArtisanCommand('db:repair-schema', $params);
     } elseif ($actionType === 'vendor_report') {
         try {
             $rows = Product::query()
@@ -367,10 +379,17 @@ function h(?string $value): string
                     <label for="sync_chunk">Image Sync Chunk</label>
                     <input type="number" id="sync_chunk" name="sync_chunk" value="<?= h((string) ($_POST['sync_chunk'] ?? '25')) ?>" form="sync-images-form" min="1" max="500">
                 </div>
+                <div>
+                    <label for="db_seed">DB Repair Options</label>
+                    <div style="display:flex;align-items:center;gap:8px;padding:10px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;">
+                        <input type="checkbox" id="db_seed" name="db_seed" value="1" form="db-repair-form" <?= isset($_POST['db_seed']) && $_POST['db_seed'] === '1' ? 'checked' : '' ?>>
+                        <span style="font-size:14px;color:#374151;">Include seeders (db:seed)</span>
+                    </div>
+                </div>
             </div>
             <div class="actions">
                 <?php foreach ($actions as $actionKey => $action): ?>
-                    <form method="post" id="<?= $actionKey === 'sync_images' ? 'sync-images-form' : '' ?>">
+                    <form method="post" id="<?= $actionKey === 'sync_images' ? 'sync-images-form' : ($actionKey === 'db_repair' ? 'db-repair-form' : '') ?>">
                         <input type="hidden" name="action" value="<?= h($actionKey) ?>">
                         <button type="submit"><?= h($action['label']) ?></button>
                     </form>
