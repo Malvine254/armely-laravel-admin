@@ -364,10 +364,11 @@ class MessageController extends Controller
             'chat_session_id' => 'nullable|integer',
         ]);
 
-        try {
-
         $user = $request->user();
+        $session = null;
         $question = trim((string) $validated['message']);
+
+        try {
         $session = $this->resolveOrCreateChatSession($user->id, $validated['chat_session_id'] ?? null);
         $wantsEscalation = $this->isUserEscalationIntent($question);
 
@@ -652,12 +653,45 @@ class MessageController extends Controller
                 'user_id' => $request->user()?->id,
                 'chat_session_id' => $validated['chat_session_id'] ?? null,
                 'message' => $e->getMessage(),
+                'exception' => get_class($e),
             ]);
+
+            $fallbackReply = 'Mela AI is temporarily unavailable. Please try again shortly, or request human support.';
+
+            if ($session && $user) {
+                try {
+                    ChatMessage::create([
+                        'chat_session_id' => $session->id,
+                        'user_id' => $user->id,
+                        'role' => 'assistant',
+                        'content' => $fallbackReply,
+                        'actions' => [
+                            [
+                                'label' => 'Request human support',
+                                'link' => '/messages',
+                            ],
+                        ],
+                        'metadata' => [
+                            'source' => 'assistant_error_fallback',
+                        ],
+                    ]);
+
+                    $session->forceFill([
+                        'last_message_at' => now(),
+                    ])->save();
+                } catch (\Throwable $inner) {
+                    Log::error('Failed to persist Mela AI fallback message', [
+                        'user_id' => $user->id,
+                        'chat_session_id' => $session->id,
+                        'message' => $inner->getMessage(),
+                    ]);
+                }
+            }
 
             return response()->json([
                 'success' => true,
                 'data' => [
-                    'reply' => 'Mela AI is temporarily unavailable. Please try again shortly, or request human support.',
+                    'reply' => $fallbackReply,
                     'actions' => [
                         [
                             'label' => 'Request human support',
@@ -667,8 +701,8 @@ class MessageController extends Controller
                     'product_suggestions' => [],
                     'source' => 'assistant_error_fallback',
                     'chat_session' => [
-                        'id' => $validated['chat_session_id'] ?? null,
-                        'title' => 'New chat',
+                        'id' => $session?->id ?? ($validated['chat_session_id'] ?? null),
+                        'title' => $session?->title ?? 'New chat',
                     ],
                 ],
             ], 200);
