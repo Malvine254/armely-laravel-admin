@@ -859,7 +859,10 @@ class AzureGraphMailService
                 return false;
             }
 
+            $subject = $this->withSubjectPrefix($subject);
+
             $fromEmail = config('services.azure.from_email');
+            $fromName = (string) config('services.azure.from_name', config('mail.from.name', 'Armely Store'));
             $url = 'https://graph.microsoft.com/v1.0/users/' . rawurlencode($fromEmail) . '/sendMail';
 
             $response = Http::withToken($token)
@@ -867,6 +870,18 @@ class AzureGraphMailService
                 ->post($url, [
                     'message' => [
                         'subject' => $subject,
+                        'from' => [
+                            'emailAddress' => [
+                                'address' => $fromEmail,
+                                'name' => $fromName,
+                            ],
+                        ],
+                        'sender' => [
+                            'emailAddress' => [
+                                'address' => $fromEmail,
+                                'name' => $fromName,
+                            ],
+                        ],
                         'body' => [
                             'contentType' => 'HTML',
                             'content' => $htmlBody,
@@ -904,6 +919,22 @@ class AzureGraphMailService
     private function normalizeEmail(string $email): string
     {
         return strtolower(trim($email));
+    }
+
+    private function withSubjectPrefix(string $subject): string
+    {
+        $cleanSubject = trim($subject);
+        $prefix = trim((string) config('services.azure.subject_prefix', config('app.name', 'Armely Store')));
+
+        if ($prefix === '' || $cleanSubject === '') {
+            return $cleanSubject;
+        }
+
+        if (Str::startsWith(Str::lower($cleanSubject), Str::lower($prefix))) {
+            return $cleanSubject;
+        }
+
+        return $prefix . ' - ' . $cleanSubject;
     }
 
     private function isDeliverableEmail(string $email): bool

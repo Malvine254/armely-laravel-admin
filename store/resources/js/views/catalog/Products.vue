@@ -172,13 +172,16 @@
                 <!-- Product Info -->
                 <div class="p-4">
                   <div class="flex items-start justify-between mb-2">
-                    <h3 class="text-sm font-semibold text-gray-900 line-clamp-2">{{ product.productName }}</h3>
+                    <h3
+                      class="text-sm font-semibold text-gray-900 line-clamp-2"
+                      :title="buildProductHoverDetails(product)"
+                    >{{ product.productName }}</h3>
                     <span v-if="product.discontinueProduct" class="ml-2 px-2 py-1 bg-red-100 text-red-700 text-xs font-semibold rounded">EOL</span>
                     <span v-else class="ml-2 px-2 py-1 text-xs font-semibold rounded" style="background-color: #cce4f4; color: #2F5597;">Active</span>
                   </div>
                   <div class="flex items-center justify-between gap-3 text-xs text-gray-600 mb-3">
-                    <p class="truncate">SKU: {{ product.mfgPartNo || 'N/A' }}</p>
-                    <p class="truncate text-right">Vendor: {{ product.vendorId || 'N/A' }}</p>
+                    <p class="truncate" :title="`SKU: ${getProductSku(product)}`">SKU: {{ getProductSku(product) }}</p>
+                    <p class="truncate text-right" :title="`Vendor: ${getProductVendor(product)}`">Vendor: {{ getProductVendor(product) }}</p>
                   </div>
 
                   <!-- Reviews -->
@@ -214,11 +217,26 @@
 
                   <!-- Actions -->
                   <div class="flex gap-2 w-full">
-                    <button @click="viewProductDetails(product)" class="flex-1 px-3 py-2 text-white text-sm font-semibold rounded-lg transition" style="background-color: #2F5597;" @mouseenter="$event.target.style.backgroundColor='#1f4788'" @mouseleave="$event.target.style.backgroundColor='#2F5597'">View Details</button>
-                    <button @click="addToQuote(product)" class="px-3 py-2 text-white text-sm font-semibold rounded-lg transition" style="background-color: #2F5597;" @mouseenter="$event.target.style.backgroundColor='#1f4788'" @mouseleave="$event.target.style.backgroundColor='#2F5597'" title="Add to Quote">+</button>
+                    <button @click="viewProductDetails(product)" class="flex-1 px-3 py-2 text-white text-sm font-semibold rounded-lg transition inline-flex items-center justify-center gap-1" style="background-color: #2F5597;" @mouseenter="$event.target.style.backgroundColor='#1f4788'" @mouseleave="$event.target.style.backgroundColor='#2F5597'">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5s8.268 2.943 9.542 7c-1.274 4.057-5.065 7-9.542 7S3.732 16.057 2.458 12z" />
+                      </svg>
+                      <span>View</span>
+                    </button>
+                    <button @click="addToQuote(product)" class="px-3 py-2 text-white text-sm font-semibold rounded-lg transition" style="background-color: #2F5597;" @mouseenter="$event.target.style.backgroundColor='#1f4788'" @mouseleave="$event.target.style.backgroundColor='#2F5597'" title="Add to Quote" aria-label="Add to Quote">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m1.6 8L5.4 5M7 13l-1.2 6.4A1 1 0 006.8 21h10.4a1 1 0 001-.8L20 13M9 21a1 1 0 100-2 1 1 0 000 2zm8 0a1 1 0 100-2 1 1 0 000 2z" />
+                      </svg>
+                    </button>
                     <button @click="toggleFavorite(product)" class="px-3 py-2 rounded-lg transition border" :style="isFavorite(product.productId) ? { backgroundColor: '#cce4f4', borderColor: '#2F5597', color: '#2F5597' } : { borderColor: '#d1d5db', color: '#4b5563' }" :title="isFavorite(product.productId) ? 'Remove from Favorites' : 'Add to Favorites'">
                       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                      </svg>
+                    </button>
+                    <button @click="openShareModal(product)" class="px-3 py-2 rounded-lg transition border border-gray-300 text-gray-600 hover:bg-gray-50" title="Share Product">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C9.886 12.511 11.326 12 12.889 12c2.87 0 5.322 1.723 6.296 4.182m-16.338 0A6.986 6.986 0 019.111 12c1.563 0 3.003.511 4.205 1.342M15 6a3 3 0 11-6 0 3 3 0 016 0zm6 14a2 2 0 11-4 0 2 2 0 014 0zM7 20a2 2 0 11-4 0 2 2 0 014 0z" />
                       </svg>
                     </button>
                   </div>
@@ -259,6 +277,56 @@
                 Next →
               </button>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="showShareModal" class="fixed inset-0 z-50 flex items-center justify-center px-4">
+        <div class="absolute inset-0 bg-slate-900/45" @click="closeShareModal"></div>
+        <div class="relative w-full max-w-lg rounded-2xl border bg-white shadow-2xl" style="border-color:#cfe0f5;">
+          <div class="px-5 py-4 border-b" style="border-color:#e2e8f0;">
+            <h3 class="text-lg font-bold" style="color:#2F5597;">Share Product</h3>
+            <p class="text-sm text-slate-600 mt-1">{{ sharingProduct?.productName || 'Selected product' }}</p>
+          </div>
+
+          <div class="p-5 space-y-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Recipient Email (optional)</label>
+              <input
+                v-model="shareRecipientEmail"
+                type="email"
+                class="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2"
+                style="border-color:#cbd5e1;"
+                placeholder="user@company.com"
+              >
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Note (optional)</label>
+              <textarea
+                v-model="shareNote"
+                rows="3"
+                class="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2"
+                style="border-color:#cbd5e1;"
+                placeholder="Add a message for the recipient"
+              ></textarea>
+            </div>
+
+            <div v-if="shareGeneratedLink" class="rounded-lg border p-3" style="border-color:#bfdbfe;background:#eff6ff;">
+              <p class="text-xs font-semibold text-slate-700 mb-1">Share Link</p>
+              <p class="text-xs break-all text-slate-700">{{ shareGeneratedLink }}</p>
+              <div class="mt-3 flex flex-wrap gap-2">
+                <button @click="copyShareGeneratedLink" type="button" class="px-3 py-2 text-xs font-semibold rounded-lg text-white" style="background-color:#2F5597;">Copy Link</button>
+                <button @click="sendShareLinkByEmail" type="button" class="px-3 py-2 text-xs font-semibold rounded-lg border" style="border-color:#2F5597;color:#2F5597;">Send to Email</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="px-5 py-4 border-t flex justify-end gap-2" style="border-color:#e2e8f0;">
+            <button @click="closeShareModal" type="button" class="px-4 py-2 text-sm font-semibold rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50">Close</button>
+            <button @click="submitProductShare" type="button" :disabled="shareSubmitting" class="px-4 py-2 text-sm font-semibold rounded-lg text-white disabled:opacity-60" style="background-color:#2F5597;">
+              {{ shareSubmitting ? 'Generating...' : (shareGeneratedLink ? 'Regenerate Link' : 'Generate Link') }}
+            </button>
           </div>
         </div>
       </div>
@@ -458,6 +526,12 @@ const localSearchHistory = ref([])
 const showSearchSuggestions = ref(false)
 const activeSuggestionIndex = ref(-1)
 const searchSuggestionItems = ref([])
+const showShareModal = ref(false)
+const sharingProduct = ref(null)
+const shareRecipientEmail = ref('')
+const shareNote = ref('')
+const shareGeneratedLink = ref('')
+const shareSubmitting = ref(false)
 
 const availableVendors = ref([])
 const allVendors = ref([])
@@ -1658,6 +1732,150 @@ const addToQuote = (product) => {
   }
 
   toastStore.addToast(`Added "${product.productName}" to quote`, 'success')
+}
+
+const getProductSku = (product) => {
+  return String(
+    product?.mfgPartNo ||
+    product?.mfg_part_no ||
+    product?.tdsynnexSkuNo ||
+    product?.tdsynnex_sku_no ||
+    product?.skuNo ||
+    product?.sku_no ||
+    'N/A'
+  )
+}
+
+const getProductVendor = (product) => {
+  return String(
+    product?.vendorId ||
+    product?.vendor_id ||
+    product?.vendorName ||
+    product?.vendor_name ||
+    product?.manufacturerName ||
+    product?.manufacturer_name ||
+    'N/A'
+  )
+}
+
+const buildProductHoverDetails = (product) => {
+  const lines = [
+    product?.productName || 'Product',
+    `SKU: ${getProductSku(product)}`,
+    `Vendor: ${getProductVendor(product)}`,
+  ]
+
+  const price = Number(product?.productPrice?.[0]?.rsPrice || 0)
+  if (price > 0) {
+    lines.push(`Price: ${formatCatalogPrice(price)}`)
+  }
+
+  const billing = [product?.billingModel || '', product?.billingFrequency || ''].filter(Boolean).join(' / ')
+  if (billing) {
+    lines.push(`Billing: ${billing}`)
+  }
+
+  return lines.join('\n')
+}
+
+const openShareModal = (product) => {
+  if (!authStore.isAuthenticated) {
+    toastStore.addToast('Please log in to share products', 'info')
+    router.push({ name: 'login', query: { redirect: route.fullPath } })
+    return
+  }
+
+  sharingProduct.value = product
+  shareRecipientEmail.value = ''
+  shareNote.value = ''
+  shareGeneratedLink.value = ''
+  showShareModal.value = true
+}
+
+const closeShareModal = () => {
+  showShareModal.value = false
+  sharingProduct.value = null
+  shareSubmitting.value = false
+}
+
+const submitProductShare = async () => {
+  const product = sharingProduct.value
+  if (!product) return
+
+  const recipientEmail = shareRecipientEmail.value.trim()
+
+  shareSubmitting.value = true
+  try {
+    const response = await api.post('/shares/product', {
+      recipient_email: recipientEmail || null,
+      note: shareNote.value.trim(),
+      product: {
+        productId: product.productId,
+        productName: product.productName,
+        mfgPartNo: getProductSku(product) === 'N/A' ? '' : getProductSku(product),
+        vendorId: getProductVendor(product) === 'N/A' ? '' : getProductVendor(product),
+        description: product.description || '',
+        imageUrl: product.productImages?.[0]?.imageUrl || product.productImages?.[0] || '',
+        price: Number(product.productPrice?.[0]?.rsPrice || 0),
+      },
+    })
+
+    const shareUrl = String(response.data?.data?.share_url || '').trim()
+    shareGeneratedLink.value = shareUrl
+    if (shareUrl) {
+      toastStore.addToast('Share link generated. Use Copy Link or Send to Email.', 'success')
+    } else {
+      toastStore.addToast(`Shared "${product.productName}" successfully`, 'success')
+    }
+  } catch (error) {
+    console.error('Failed to share product:', error)
+    toastStore.addToast(error.response?.data?.message || 'Failed to share product', 'error')
+  } finally {
+    shareSubmitting.value = false
+  }
+}
+
+const copyShareGeneratedLink = async () => {
+  const link = shareGeneratedLink.value.trim()
+  if (!link) return
+
+  try {
+    if (navigator?.clipboard?.writeText) {
+      await navigator.clipboard.writeText(link)
+      toastStore.addToast('Share link copied to clipboard', 'success')
+      return
+    }
+  } catch (error) {
+    console.warn('Clipboard copy failed:', error)
+  }
+
+  window.prompt('Copy this share link:', link)
+}
+
+const sendShareLinkByEmail = () => {
+  const link = shareGeneratedLink.value.trim()
+  if (!link) {
+    toastStore.addToast('Generate the share link first', 'warning')
+    return
+  }
+
+  const recipient = encodeURIComponent(shareRecipientEmail.value.trim())
+  const productName = encodeURIComponent(sharingProduct.value?.productName || 'Shared product')
+  const note = encodeURIComponent(shareNote.value.trim())
+  const bodyParts = [
+    `I wanted to share this product with you:`,
+    decodeURIComponent(productName),
+    '',
+    link,
+  ]
+
+  if (note) {
+    bodyParts.splice(3, 0, `Note: ${decodeURIComponent(note)}`, '')
+  }
+
+  const subject = `Shared product: ${decodeURIComponent(productName)}`
+  const body = bodyParts.join('\n')
+  window.location.href = `mailto:${recipient}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
 }
 
 const toggleFavorite = (product) => {
