@@ -534,6 +534,80 @@ class ProductController extends Controller
         bool $catalogClean = false,
         bool $curatedItMix = true
     ): array {
+        $cacheableDefaultBrowse = $curatedItMix
+            && empty($search)
+            && empty($selectedVendors)
+            && empty($billingModels)
+            && (int) $pageNo > 0
+            && (int) $pageSize > 0;
+
+        if ($cacheableDefaultBrowse) {
+            $cacheKey = sprintf(
+                'pa_default_browse_page:%s',
+                md5(json_encode([
+                    'page' => (int) $pageNo,
+                    'page_size' => (int) $pageSize,
+                    'hide_zero' => $hideZero,
+                    'min_price' => $minPrice,
+                    'max_price' => $maxPrice,
+                    'catalog_clean' => $catalogClean,
+                    'hardware_only' => (bool) config('tdsynnex.catalog.hardware_only', true),
+                ]))
+            );
+
+            return Cache::remember($cacheKey, 300, function () use (
+                $search,
+                $minPrice,
+                $maxPrice,
+                $billingModels,
+                $hideZero,
+                $pageNo,
+                $pageSize,
+                $selectedVendors,
+                $catalogClean,
+                $curatedItMix
+            ) {
+                return $this->fetchPriceAvailabilityPageFromDatabaseUncached(
+                    $search,
+                    $minPrice,
+                    $maxPrice,
+                    $billingModels,
+                    $hideZero,
+                    $pageNo,
+                    $pageSize,
+                    $selectedVendors,
+                    $catalogClean,
+                    $curatedItMix,
+                );
+            });
+        }
+
+        return $this->fetchPriceAvailabilityPageFromDatabaseUncached(
+            $search,
+            $minPrice,
+            $maxPrice,
+            $billingModels,
+            $hideZero,
+            $pageNo,
+            $pageSize,
+            $selectedVendors,
+            $catalogClean,
+            $curatedItMix,
+        );
+    }
+
+    private function fetchPriceAvailabilityPageFromDatabaseUncached(
+        ?string $search,
+        $minPrice,
+        $maxPrice,
+        ?string $billingModels,
+        bool $hideZero,
+        int $pageNo,
+        int $pageSize,
+        array $selectedVendors = [],
+        bool $catalogClean = false,
+        bool $curatedItMix = true
+    ): array {
         $query = Product::query()->where('vendor_id', 'TD SYNNEX');
 
         $isDefaultBrowse =
@@ -1397,55 +1471,69 @@ class ProductController extends Controller
         bool $hideZero = true,
         bool $catalogClean = true
     ): array {
-        $query = Product::query()->where('vendor_id', 'TD SYNNEX');
+        $cacheKey = sprintf(
+            'pa_default_browse_vendors:%s',
+            md5(json_encode([
+                'cap' => $cap,
+                'min_price' => $minPrice,
+                'max_price' => $maxPrice,
+                'hide_zero' => $hideZero,
+                'catalog_clean' => $catalogClean,
+                'hardware_only' => (bool) config('tdsynnex.catalog.hardware_only', true),
+            ]))
+        );
 
-        if ($hideZero) {
-            $query->where('base_price', '>', 0);
-        }
+        return Cache::remember($cacheKey, 300, function () use ($cap, $minPrice, $maxPrice, $hideZero, $catalogClean) {
+            $query = Product::query()->where('vendor_id', 'TD SYNNEX');
 
-        if ($minPrice !== null) {
-            $query->where('base_price', '>=', $minPrice);
-        }
-
-        if ($maxPrice !== null) {
-            $query->where('base_price', '<=', $maxPrice);
-        }
-
-        if ($catalogClean) {
-            $query->whereRaw("LOWER(COALESCE(mfg_part_no, '')) <> 'shipping'")
-                ->whereRaw("LOWER(COALESCE(product_name, '')) NOT LIKE '%shipping%'")
-                ->whereRaw("NOT ((COALESCE(base_price, 0) <= 0.05) AND (LOWER(COALESCE(product_name, '')) LIKE '%support%' OR LOWER(COALESCE(product_name, '')) LIKE '%warranty%' OR LOWER(COALESCE(product_name, '')) LIKE '%consulting%' OR LOWER(COALESCE(product_name, '')) LIKE '%implementation%' OR LOWER(COALESCE(product_name, '')) LIKE '%annual fee%' OR LOWER(COALESCE(product_name, '')) LIKE '%training%'))");
-        }
-
-        $this->applyCuratedDefaultBrowseFilters($query);
-
-        $rows = $query
-            ->orderBy('id')
-            ->limit(max(1, $cap))
-            ->selectRaw("TRIM(JSON_UNQUOTE(JSON_EXTRACT(specifications, '$.manufacturer'))) as manufacturer")
-            ->get();
-
-        $aggregated = [];
-        foreach ($rows as $row) {
-            $rawName = trim((string) ($row->manufacturer ?? ''));
-            if ($rawName === '') {
-                continue;
+            if ($hideZero) {
+                $query->where('base_price', '>', 0);
             }
 
-            $canonical = $this->normalizeCuratedVendorName($rawName);
-            $canonicalKey = $this->normalizeFacetLabel($canonical);
-            if (!isset($aggregated[$canonicalKey])) {
-                $aggregated[$canonicalKey] = [
-                    'vendorId' => $canonical,
-                    'vendorName' => $canonical,
-                    'count' => 0,
-                ];
+            if ($minPrice !== null) {
+                $query->where('base_price', '>=', $minPrice);
             }
 
-            $aggregated[$canonicalKey]['count']++;
-        }
+            if ($maxPrice !== null) {
+                $query->where('base_price', '<=', $maxPrice);
+            }
 
-        return array_values($aggregated);
+            if ($catalogClean) {
+                $query->whereRaw("LOWER(COALESCE(mfg_part_no, '')) <> 'shipping'")
+                    ->whereRaw("LOWER(COALESCE(product_name, '')) NOT LIKE '%shipping%'")
+                    ->whereRaw("NOT ((COALESCE(base_price, 0) <= 0.05) AND (LOWER(COALESCE(product_name, '')) LIKE '%support%' OR LOWER(COALESCE(product_name, '')) LIKE '%warranty%' OR LOWER(COALESCE(product_name, '')) LIKE '%consulting%' OR LOWER(COALESCE(product_name, '')) LIKE '%implementation%' OR LOWER(COALESCE(product_name, '')) LIKE '%annual fee%' OR LOWER(COALESCE(product_name, '')) LIKE '%training%'))");
+            }
+
+            $this->applyCuratedDefaultBrowseFilters($query);
+
+            $rows = $query
+                ->orderBy('id')
+                ->limit(max(1, $cap))
+                ->selectRaw("TRIM(JSON_UNQUOTE(JSON_EXTRACT(specifications, '$.manufacturer'))) as manufacturer")
+                ->get();
+
+            $aggregated = [];
+            foreach ($rows as $row) {
+                $rawName = trim((string) ($row->manufacturer ?? ''));
+                if ($rawName === '') {
+                    continue;
+                }
+
+                $canonical = $this->normalizeCuratedVendorName($rawName);
+                $canonicalKey = $this->normalizeFacetLabel($canonical);
+                if (!isset($aggregated[$canonicalKey])) {
+                    $aggregated[$canonicalKey] = [
+                        'vendorId' => $canonical,
+                        'vendorName' => $canonical,
+                        'count' => 0,
+                    ];
+                }
+
+                $aggregated[$canonicalKey]['count']++;
+            }
+
+            return array_values($aggregated);
+        });
     }
 
     private function getCuratedVendorKeywords(): array
