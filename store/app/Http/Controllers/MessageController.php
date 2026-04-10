@@ -1036,12 +1036,13 @@ class MessageController extends Controller
             $recentChatTurns = ChatMessage::where('chat_session_id', $chatSessionId)
                 ->orderByDesc('id')
                 ->limit(10)
-                ->get(['role', 'content'])
+                ->get(['role', 'content', 'metadata'])
                 ->reverse()
                 ->values()
                 ->map(fn (ChatMessage $item) => [
                     'role' => $item->role,
                     'content' => $item->content,
+                    'has_product_suggestions' => !empty((array) data_get($item->metadata, 'product_suggestions', [])),
                 ])
                 ->all();
         }
@@ -1263,6 +1264,7 @@ class MessageController extends Controller
         }
 
         $searchPhrase = implode(' ', array_slice($keywords, 0, 6));
+        $rawQuestionPhrase = trim($question);
 
         $products = Product::query()
             ->where('is_available', true)
@@ -1273,7 +1275,9 @@ class MessageController extends Controller
                         ->orWhere('description', 'like', $like)
                         ->orWhere('vendor_id', 'like', $like)
                         ->orWhere('mfg_part_no', 'like', $like)
-                        ->orWhere('tdsynnex_sku_no', 'like', $like);
+                        ->orWhere('tdsynnex_sku_no', 'like', $like)
+                        ->orWhereRaw("LOWER(JSON_UNQUOTE(JSON_EXTRACT(specifications, '$.manufacturer'))) LIKE ?", [strtolower($like)])
+                        ->orWhereRaw("LOWER(JSON_UNQUOTE(JSON_EXTRACT(specifications, '$.vendorName'))) LIKE ?", [strtolower($like)]);
                 }
             })
             ->limit(120)
@@ -1334,6 +1338,40 @@ class MessageController extends Controller
                         'image_url' => $this->extractProductImageUrl($images),
                         'is_discontinued' => (bool) ($item['discontinueProduct'] ?? false),
                     ]);
+                }
+
+                // Intent-based broadening: if keyword phrase is too narrow, retry with full user wording.
+                if ($candidates->count() < max(3, $limit) && $rawQuestionPhrase !== '') {
+                    $remoteFallback = $this->tdsynnexService->searchPriceAvailabilityCatalog($rawQuestionPhrase, 120);
+                    foreach ($remoteFallback as $item) {
+                        if (!is_array($item)) {
+                            continue;
+                        }
+
+                        $productId = (string) ($item['productId'] ?? $item['sku'] ?? '');
+                        if ($productId === '') {
+                            continue;
+                        }
+
+                        if ($candidates->contains(fn (array $row) => (string) ($row['product_id'] ?? '') === $productId)) {
+                            continue;
+                        }
+
+                        $price = (float) data_get($item, 'productPrice.0.rsPrice', 0);
+                        $images = $item['productImages'] ?? $item['images'] ?? [];
+
+                        $candidates->push([
+                            'source' => 'tdsynnex',
+                            'product_id' => $productId,
+                            'name' => (string) ($item['productName'] ?? ''),
+                            'sku' => (string) ($item['sku'] ?? $item['mfgPartNo'] ?? ''),
+                            'vendor' => (string) ($item['vendorName'] ?? $item['vendorId'] ?? 'TD SYNNEX'),
+                            'price' => $price,
+                            'description' => (string) ($item['description'] ?? ''),
+                            'image_url' => $this->extractProductImageUrl($images),
+                            'is_discontinued' => (bool) ($item['discontinueProduct'] ?? false),
+                        ]);
+                    }
                 }
             } catch (\Throwable $e) {
                 // Keep assistant responsive even if catalog lookup fails.
@@ -1515,10 +1553,6 @@ class MessageController extends Controller
             ->values()
             ->all();
 
-        if (str_contains($normalized, 'dell')) {
-            array_unshift($keywords, 'dell');
-        }
-
         if (str_contains($normalized, 'laptop')) {
             $keywords[] = 'laptop';
             $keywords[] = 'notebook';
@@ -1541,8 +1575,8 @@ class MessageController extends Controller
 
         $productSignals = [
             'laptop', 'notebook', 'desktop', 'monitor', 'printer', 'server', 'sku', 'model', 'spec',
-            'recommend', 'suggest', 'sample list', 'best', 'buy', 'purchase', 'quote', 'dell', 'hp',
-            'lenovo', 'microsoft', 'surface', 'apple'
+            'recommend', 'suggest', 'sample list', 'best', 'buy', 'purchase', 'quote', 'network',
+            'switch', 'router', 'firewall', 'access point', 'wifi', 'wireless', 'catalogue', 'catalog'
         ];
 
         $financeSignals = [
@@ -1557,14 +1591,24 @@ class MessageController extends Controller
             }
         }
 
-        if (!$hasCurrentProductSignal && Str::contains($q, $financeSignals)) {
+        $hasMeaningfulKeywords = count($this->extractProductSearchKeywords($question)) > 0;
+
+        if (!$hasCurrentProductSignal && !$hasMeaningfulKeywords && Str::contains($q, $financeSignals)) {
             return false;
+        }
+
+        if (Str::contains($q, ['do we have', 'availability', 'in stock', 'check for', 'search for'])) {
+            return true;
         }
 
         foreach ($productSignals as $signal) {
             if (str_contains($q, $signal)) {
                 return true;
             }
+        }
+
+        if ($hasMeaningfulKeywords && !Str::contains($q, $financeSignals)) {
+            return true;
         }
 
         $recentUserText = collect($recentChatTurns)
@@ -1576,13 +1620,21 @@ class MessageController extends Controller
         $followUpSignals = [
             'which one', 'which is best', 'recommend one', 'top one', 'best one',
             'can you recommend', 'show more', 'similar options', 'other options', 'another option',
-            'under', 'below', 'not more than', 'within budget'
+            'under', 'below', 'not more than', 'within budget',
+            'from the list', 'from your list', 'why did you suggest'
         ];
 
         $isLikelyProductFollowUp = Str::contains($q, $followUpSignals);
 
         if ($recentUserText !== '' && $isLikelyProductFollowUp) {
-            foreach (['laptop', 'notebook', 'recommend', 'sample list', 'buy', 'purchase', 'dell', 'hp', 'lenovo'] as $signal) {
+            $recentHasProductSuggestions = collect($recentChatTurns)
+                ->contains(static fn (array $turn) => (bool) ($turn['has_product_suggestions'] ?? false));
+
+            if ($recentHasProductSuggestions) {
+                return true;
+            }
+
+            foreach (['laptop', 'notebook', 'recommend', 'sample list', 'buy', 'purchase', 'printer', 'network'] as $signal) {
                 if (str_contains($recentUserText, $signal)) {
                     return true;
                 }
@@ -1613,8 +1665,9 @@ class MessageController extends Controller
         ];
 
         $priorityTerms = [
-            'dell', 'lenovo', 'hp', 'microsoft', 'surface', 'apple', 'laptop', 'notebook', 'monitor',
-            'printer', 'printers', 'server', 'desktop', 'workstation', 'gaming', 'business'
+            'laptop', 'notebook', 'monitor', 'printer', 'printers', 'server', 'desktop',
+            'workstation', 'gaming', 'business', 'network', 'networking', 'switch',
+            'router', 'firewall', 'wireless'
         ];
 
         $tokens = $userTexts

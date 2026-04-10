@@ -14,23 +14,43 @@
         </p>
       </div>
 
-      <div class="mt-5 grid grid-cols-1 xl:grid-cols-12 gap-5 flex-1 min-h-0 overflow-hidden">
-        <section class="xl:col-span-4 rounded-2xl border border-[#d6e2f3] bg-white/95 shadow-sm backdrop-blur overflow-hidden min-h-0">
+      <div class="mt-5 grid grid-cols-1 xl:grid-cols-12 gap-5 flex-1 min-h-0 overflow-hidden relative">
+        <div
+          v-if="isHistoryOpenMobile"
+          class="xl:hidden fixed inset-0 bg-slate-900/40 z-30"
+          @click="closeHistoryPanel"
+        ></div>
+
+        <section
+          class="rounded-2xl border border-[#d6e2f3] bg-white/95 shadow-sm backdrop-blur overflow-hidden min-h-0 flex flex-col xl:col-span-4 xl:relative xl:z-auto xl:flex"
+          :class="isHistoryOpenMobile ? 'fixed z-40 top-3 bottom-3 left-3 right-14' : 'hidden xl:flex'"
+        >
           <div class="px-4 py-4 border-b border-[#e4ebf5] bg-[#f7fbff]">
             <div class="flex items-center justify-between mb-2">
               <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wide">Chat History</h2>
-              <button
-                @click="createNewChatSession"
-                class="px-2.5 py-1.5 text-[11px] font-semibold rounded-md text-white"
-                style="background: linear-gradient(135deg, #1d4b8f 0%, #3f78c7 100%);"
-              >
-                + New Chat
-              </button>
+              <div class="flex items-center gap-2">
+                <button
+                  @click="createNewChatSession"
+                  class="px-2.5 py-1.5 text-[11px] font-semibold rounded-md text-white"
+                  style="background: linear-gradient(135deg, #1d4b8f 0%, #3f78c7 100%);"
+                >
+                  + New Chat
+                </button>
+                <button
+                  class="xl:hidden w-8 h-8 rounded-md border border-[#d6e2f3] text-slate-600 hover:bg-[#edf4ff]"
+                  @click="closeHistoryPanel"
+                  aria-label="Close chat history"
+                >
+                  <svg class="w-4 h-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
             </div>
             <p class="text-[11px] text-slate-500">Choose a conversation or start a new one.</p>
           </div>
 
-          <div class="h-full overflow-y-auto themed-scrollbar p-3">
+          <div class="flex-1 min-h-0 overflow-y-auto themed-scrollbar p-3">
             <button
               v-for="session in chatSessions"
               :key="`chat-session-${session.id}`"
@@ -79,6 +99,16 @@
         <section class="xl:col-span-8 rounded-2xl border border-[#d6e2f3] bg-white/95 shadow-sm backdrop-blur overflow-hidden flex flex-col min-h-0">
           <div class="px-5 py-4 border-b border-[#e4ebf5] bg-[#f8fbff] flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
+              <button
+                class="xl:hidden inline-flex items-center gap-2 px-2.5 py-1.5 rounded-md border border-[#c9d9ef] text-[#1d4b8f] bg-white hover:bg-[#edf4ff] mb-2"
+                @click="toggleHistoryPanel"
+                aria-label="Toggle chat history"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+                <span class="text-xs font-semibold">Chat History</span>
+              </button>
               <h2 class="text-lg font-bold text-slate-900">Mela AI Assistant</h2>
               <p class="text-xs text-slate-600">
                 {{ activeSessionLabel }}
@@ -232,8 +262,17 @@ const chatSessions = ref([])
 const activeChatSessionId = ref(null)
 const escalating = ref(false)
 const pollingInterval = ref(null)
+const isHistoryOpenMobile = ref(false)
 
 const getAuthToken = () => localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
+
+const toggleHistoryPanel = () => {
+  isHistoryOpenMobile.value = !isHistoryOpenMobile.value
+}
+
+const closeHistoryPanel = () => {
+  isHistoryOpenMobile.value = false
+}
 
 const quickPrompts = [
   'Best Dell laptop sample list',
@@ -438,6 +477,7 @@ const selectChatSession = async (sessionId) => {
 
     ensureChatWelcome()
     await scrollChatToBottom()
+    closeHistoryPanel()
     startMessagePolling()
   } catch (error) {
     console.error('Error selecting chat session:', error)
@@ -639,12 +679,12 @@ onMounted(async () => {
   await fetchChatSessions()
   if (chatSessions.value.length) {
     await selectChatSession(chatSessions.value[0].id)
-
-  onUnmounted(() => {
-    stopMessagePolling()
-  })
   }
   await scrollChatToBottom()
+})
+
+onUnmounted(() => {
+  stopMessagePolling()
 })
 </script>
 
