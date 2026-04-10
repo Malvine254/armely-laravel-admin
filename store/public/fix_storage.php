@@ -223,6 +223,12 @@ $actions = [
         'help' => 'Create or update an admin account with hashed password, verified email, active status, and approved company.',
         'type' => 'admin_bootstrap',
     ],
+    'user_access_update' => [
+        'label' => 'User Access Update (specific user)',
+        'category' => 'Access Recovery',
+        'help' => 'Grant or revoke access for a specific existing user by setting role, status, verification, and company approval.',
+        'type' => 'user_access_update',
+    ],
 ];
 
 $groupedActions = [];
@@ -453,6 +459,101 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ];
             }
         }
+    } elseif ($actionType === 'user_access_update') {
+        $email = strtolower(toStringPost('user_access_email', ''));
+        $role = strtolower(toStringPost('user_access_role', 'user'));
+        $status = strtolower(toStringPost('user_access_status', 'active'));
+        $companyStatus = strtolower(toStringPost('user_access_company_status', 'approved'));
+        $verifyEmail = isset($_POST['user_access_verify_email']) && (string) $_POST['user_access_verify_email'] === '1';
+
+        $allowedRoles = ['user', 'buyer', 'owner', 'manager', 'admin'];
+        $allowedUserStatuses = ['active', 'pending', 'inactive', 'suspended'];
+        $allowedCompanyStatuses = ['approved', 'pending', 'rejected'];
+
+        if ($email === '') {
+            $results[] = [
+                'command' => 'user_access_update',
+                'status' => 'ERROR',
+                'output' => 'User email is required.',
+            ];
+        } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $results[] = [
+                'command' => 'user_access_update',
+                'status' => 'ERROR',
+                'output' => 'Please provide a valid user email address.',
+            ];
+        } else {
+            if (!in_array($role, $allowedRoles, true)) {
+                $role = 'user';
+            }
+            if (!in_array($status, $allowedUserStatuses, true)) {
+                $status = 'active';
+            }
+            if (!in_array($companyStatus, $allowedCompanyStatuses, true)) {
+                $companyStatus = 'approved';
+            }
+
+            try {
+                DB::beginTransaction();
+
+                $user = User::where('email', $email)->first();
+                if (!$user) {
+                    throw new RuntimeException('No user found with that email. Create the account first, then update access.');
+                }
+
+                $user->forceFill([
+                    'role' => $role,
+                    'status' => $status,
+                    'email_verified_at' => $verifyEmail ? ($user->email_verified_at ?? now()) : null,
+                ])->save();
+
+                $companyName = 'n/a';
+                $companyDomain = 'n/a';
+                $companyAppliedStatus = 'n/a';
+
+                if ($user->company_id) {
+                    $company = Company::find($user->company_id);
+                    if ($company) {
+                        $company->forceFill([
+                            'status' => $companyStatus,
+                        ])->save();
+
+                        $companyName = (string) $company->name;
+                        $companyDomain = (string) $company->domain;
+                        $companyAppliedStatus = (string) $company->status;
+                    }
+                }
+
+                if (method_exists($user, 'tokens')) {
+                    $user->tokens()->delete();
+                }
+
+                DB::commit();
+
+                $results[] = [
+                    'command' => 'user_access_update',
+                    'status' => 'OK',
+                    'output' => sprintf(
+                        "User access updated.\nEmail: %s\nRole: %s\nUser status: %s\nEmail verified: %s\nCompany: %s (%s)\nCompany status: %s",
+                        (string) $user->email,
+                        (string) $user->role,
+                        (string) $user->status,
+                        $user->email_verified_at ? 'YES' : 'NO',
+                        $companyName,
+                        $companyDomain,
+                        $companyAppliedStatus
+                    ),
+                ];
+            } catch (Throwable $e) {
+                DB::rollBack();
+
+                $results[] = [
+                    'command' => 'user_access_update',
+                    'status' => 'ERROR',
+                    'output' => $e->getMessage(),
+                ];
+            }
+        }
     }
 }
 
@@ -503,6 +604,13 @@ $statusRows = [
     'Image sync current showing only' => config('tdsynnex.image_sync.current_showing_only') ? 'true' : 'false',
     'Image sync scope cap' => (string) config('tdsynnex.image_sync.scope_cap', 1000),
 ];
+
+$userAccessRows = User::query()
+    ->select(['id', 'name', 'email', 'role', 'status', 'email_verified_at', 'company_id', 'updated_at'])
+    ->with(['company:id,name,domain,status'])
+    ->orderByDesc('updated_at')
+    ->limit(30)
+    ->get();
 
 function h(?string $value): string
 {
@@ -574,6 +682,24 @@ function h(?string $value): string
             display: flex;
             flex-direction: column;
             gap: 16px;
+        }
+        .submit-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 14px;
+            border: 1px solid #dbe3ef;
+            border-radius: 10px;
+            background: #f8fbff;
+        }
+        .submit-row button {
+            width: auto;
+            min-width: 230px;
+        }
+        .submit-note {
+            font-size: 13px;
+            color: #475569;
         }
         .action-help {
             margin: 0;
@@ -705,11 +831,55 @@ function h(?string $value): string
                             <option value="manager" <?= $selectedRole === 'manager' ? 'selected' : '' ?>>manager</option>
                         </select>
                     </div>
+                    <div>
+                        <label class="section-title" for="user_access_email">User Email (specific user)</label>
+                        <input type="email" id="user_access_email" name="user_access_email" value="<?= h((string) ($_POST['user_access_email'] ?? '')) ?>" placeholder="user@company.com">
+                    </div>
+                    <div>
+                        <label class="section-title" for="user_access_role">User Role</label>
+                        <select id="user_access_role" name="user_access_role">
+                            <?php $selectedUserRole = strtolower((string) ($_POST['user_access_role'] ?? 'user')); ?>
+                            <option value="user" <?= $selectedUserRole === 'user' ? 'selected' : '' ?>>user</option>
+                            <option value="buyer" <?= $selectedUserRole === 'buyer' ? 'selected' : '' ?>>buyer</option>
+                            <option value="owner" <?= $selectedUserRole === 'owner' ? 'selected' : '' ?>>owner</option>
+                            <option value="manager" <?= $selectedUserRole === 'manager' ? 'selected' : '' ?>>manager</option>
+                            <option value="admin" <?= $selectedUserRole === 'admin' ? 'selected' : '' ?>>admin</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="section-title" for="user_access_status">User Status</label>
+                        <select id="user_access_status" name="user_access_status">
+                            <?php $selectedUserStatus = strtolower((string) ($_POST['user_access_status'] ?? 'active')); ?>
+                            <option value="active" <?= $selectedUserStatus === 'active' ? 'selected' : '' ?>>active</option>
+                            <option value="pending" <?= $selectedUserStatus === 'pending' ? 'selected' : '' ?>>pending</option>
+                            <option value="inactive" <?= $selectedUserStatus === 'inactive' ? 'selected' : '' ?>>inactive</option>
+                            <option value="suspended" <?= $selectedUserStatus === 'suspended' ? 'selected' : '' ?>>suspended</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="section-title" for="user_access_company_status">Company Status</label>
+                        <select id="user_access_company_status" name="user_access_company_status">
+                            <?php $selectedCompanyStatus = strtolower((string) ($_POST['user_access_company_status'] ?? 'approved')); ?>
+                            <option value="approved" <?= $selectedCompanyStatus === 'approved' ? 'selected' : '' ?>>approved</option>
+                            <option value="pending" <?= $selectedCompanyStatus === 'pending' ? 'selected' : '' ?>>pending</option>
+                            <option value="rejected" <?= $selectedCompanyStatus === 'rejected' ? 'selected' : '' ?>>rejected</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="section-title" for="user_access_verify_email">Email Verification</label>
+                        <div style="display:flex;align-items:center;gap:8px;padding:10px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;min-height:44px;">
+                            <input type="checkbox" id="user_access_verify_email" name="user_access_verify_email" value="1" <?= isset($_POST['user_access_verify_email']) && (string) $_POST['user_access_verify_email'] === '1' ? 'checked' : '' ?>>
+                            <span style="font-size:14px;color:#374151;">Mark email as verified (required for login)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="submit-row">
+                    <button type="submit">Run Selected Operation</button>
+                    <span class="submit-note">Changes are not auto-saved. Enter details, then click this button.</span>
                 </div>
 
                 <p class="action-help"><?= h((string) ($actions[$selectedAction]['help'] ?? 'Select an operation to run maintenance tasks.')) ?></p>
-
-                <button type="submit">Run Selected Operation</button>
             </form>
         </div>
 
@@ -721,6 +891,41 @@ function h(?string $value): string
                     <tr>
                         <th><?= h($label) ?></th>
                         <td><?= h((string) $value) ?></td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <h2>User Access Table (Latest 30)</h2>
+            <p class="note">Use this table to find the exact email, then run <strong>User Access Update (specific user)</strong> from Primary Operation.</p>
+            <table>
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>User Status</th>
+                    <th>Email Verified</th>
+                    <th>Company</th>
+                    <th>Company Status</th>
+                    <th>Updated</th>
+                </tr>
+                </thead>
+                <tbody>
+                <?php foreach ($userAccessRows as $row): ?>
+                    <tr>
+                        <td><?= h((string) $row->id) ?></td>
+                        <td><?= h((string) $row->name) ?></td>
+                        <td><?= h((string) $row->email) ?></td>
+                        <td><?= h((string) $row->role) ?></td>
+                        <td><?= h((string) $row->status) ?></td>
+                        <td><?= $row->email_verified_at ? 'YES' : 'NO' ?></td>
+                        <td><?= h((string) optional($row->company)->name) ?></td>
+                        <td><?= h((string) optional($row->company)->status) ?></td>
+                        <td><?= h((string) $row->updated_at) ?></td>
                     </tr>
                 <?php endforeach; ?>
                 </tbody>
