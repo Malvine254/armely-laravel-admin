@@ -509,33 +509,55 @@ class MessageController extends Controller
         }
 
         if ((bool) $session->escalated_to_human) {
-            // Check if admin has replied yet
-            $adminMessages = ChatMessage::where('chat_session_id', $session->id)
-                ->where('role', 'admin')
-                ->exists();
+            // Keep human handoff only when the user explicitly asks for it in this turn.
+            if ($wantsEscalation) {
+                // Check if admin has replied yet
+                $adminMessages = ChatMessage::where('chat_session_id', $session->id)
+                    ->where('role', 'admin')
+                    ->exists();
 
-            if (!$adminMessages) {
-                // No admin reply yet; send handoff message
-                $handoffReply = 'This chat is already escalated to human support. A team member will continue from here shortly.';
+                if (!$adminMessages) {
+                    // No admin reply yet; send handoff message
+                    $handoffReply = 'This chat is already escalated to human support. A team member will continue from here shortly.';
 
-                ChatMessage::create([
-                    'chat_session_id' => $session->id,
-                    'user_id' => $user->id,
-                    'role' => 'assistant',
-                    'content' => $handoffReply,
-                    'actions' => [],
-                    'metadata' => [
-                        'source' => 'human_handoff_guard',
-                    ],
-                ]);
+                    ChatMessage::create([
+                        'chat_session_id' => $session->id,
+                        'user_id' => $user->id,
+                        'role' => 'assistant',
+                        'content' => $handoffReply,
+                        'actions' => [],
+                        'metadata' => [
+                            'source' => 'human_handoff_guard',
+                        ],
+                    ]);
+
+                    return response()->json([
+                        'success' => true,
+                        'data' => [
+                            'reply' => $handoffReply,
+                            'actions' => [],
+                            'product_suggestions' => [],
+                            'source' => 'human_handoff_guard',
+                            'chat_session' => [
+                                'id' => $session->id,
+                                'title' => $session->title,
+                            ],
+                        ],
+                    ]);
+                }
+
+                // Admin has replied; just acknowledge message silently
+                $session->forceFill([
+                    'last_message_at' => now(),
+                ])->save();
 
                 return response()->json([
                     'success' => true,
                     'data' => [
-                        'reply' => $handoffReply,
+                        'reply' => 'Your message has been received. A team member will respond shortly.',
                         'actions' => [],
                         'product_suggestions' => [],
-                        'source' => 'human_handoff_guard',
+                        'source' => 'human_handoff_silent',
                         'chat_session' => [
                             'id' => $session->id,
                             'title' => $session->title,
@@ -544,24 +566,10 @@ class MessageController extends Controller
                 ]);
             }
 
-            // Admin has replied; just acknowledge message silently
+            // User did not request human handoff in this turn, so continue with AI.
             $session->forceFill([
-                'last_message_at' => now(),
+                'escalated_to_human' => false,
             ])->save();
-
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    'reply' => 'Your message has been received. A team member will respond shortly.',
-                    'actions' => [],
-                    'product_suggestions' => [],
-                    'source' => 'human_handoff_silent',
-                    'chat_session' => [
-                        'id' => $session->id,
-                        'title' => $session->title,
-                    ],
-                ],
-            ]);
         }
 
         $context = $this->buildAssistantContext($user, $question, $session->id);
@@ -895,17 +903,20 @@ class MessageController extends Controller
             return false;
         }
 
+        // Require explicit handoff phrasing to avoid accidental escalations.
         return Str::contains($normalized, [
-            'escalate',
-            'human support',
-            'human agent',
+            'please escalate',
+            'escalate this',
+            'escalate to human',
+            'connect me to human support',
+            'connect me to a human',
+            'transfer me to human support',
             'talk to a human',
-            'talk to human',
             'speak to a human',
-            'speak to human',
+            'i want human support',
+            'i need human support',
             'live agent',
             'real person',
-            'support agent',
             'handoff to human',
         ]);
     }
