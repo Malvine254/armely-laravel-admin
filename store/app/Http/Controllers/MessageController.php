@@ -16,6 +16,7 @@ use App\Services\AzureOpenAiChatService;
 use App\Services\NotificationService;
 use App\Services\TDSynnexService;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class MessageController extends Controller
@@ -957,23 +958,34 @@ class MessageController extends Controller
 
     private function buildAssistantContext($user, string $question, ?int $chatSessionId = null): array
     {
-        $recentInvoices = Invoice::where('user_id', $user->id)
-            ->orderByDesc('issued_at')
-            ->orderByDesc('id')
-            ->limit(8)
-            ->get(['invoice_number', 'status', 'total_amount', 'paid_amount', 'due_at', 'order_number']);
+        $hasInvoicesTable = Schema::hasTable('invoices');
+        $hasOrdersTable = Schema::hasTable('orders');
+        $hasQuotesTable = Schema::hasTable('quotes');
+        $hasChatMessagesTable = Schema::hasTable('chat_messages');
 
-        $recentOrders = Order::where('user_id', $user->id)
-            ->orderByDesc('created_at')
-            ->limit(6)
-            ->get(['order_number', 'quote_id', 'status', 'payment_status', 'total_amount', 'tracking_info', 'created_at']);
+        $recentInvoices = $hasInvoicesTable
+            ? Invoice::where('user_id', $user->id)
+                ->orderByDesc('issued_at')
+                ->orderByDesc('id')
+                ->limit(8)
+                ->get(['invoice_number', 'status', 'total_amount', 'paid_amount', 'due_at', 'order_number'])
+            : collect();
 
-        $approvedQuotes = Quote::where('user_id', $user->id)
-            ->where('status', 'approved')
-            ->with('order:id,quote_id,order_number,payment_status,status')
-            ->orderByDesc('created_at')
-            ->limit(10)
-            ->get(['quote_id', 'status', 'total_amount', 'created_at']);
+        $recentOrders = $hasOrdersTable
+            ? Order::where('user_id', $user->id)
+                ->orderByDesc('created_at')
+                ->limit(6)
+                ->get(['order_number', 'quote_id', 'status', 'payment_status', 'total_amount', 'tracking_info', 'created_at'])
+            : collect();
+
+        $approvedQuotes = $hasQuotesTable
+            ? Quote::where('user_id', $user->id)
+                ->where('status', 'approved')
+                ->with('order:id,quote_id,order_number,payment_status,status')
+                ->orderByDesc('created_at')
+                ->limit(10)
+                ->get(['quote_id', 'status', 'total_amount', 'created_at'])
+            : collect();
 
         $completedPaidQuotes = $approvedQuotes
             ->filter(function (Quote $quote) {
@@ -995,7 +1007,7 @@ class MessageController extends Controller
 
         $invoiceNumber = $this->extractInvoiceNumber($question);
         $focusedInvoice = null;
-        if ($invoiceNumber !== null) {
+        if ($hasInvoicesTable && $invoiceNumber !== null) {
             $focusedInvoice = Invoice::where('user_id', $user->id)
                 ->where('invoice_number', $invoiceNumber)
                 ->first(['invoice_number', 'status', 'total_amount', 'paid_amount', 'due_at', 'order_number']);
@@ -1019,7 +1031,7 @@ class MessageController extends Controller
             ->sum('remaining_amount');
 
         $recentChatTurns = [];
-        if ($chatSessionId) {
+        if ($hasChatMessagesTable && $chatSessionId) {
             $recentChatTurns = ChatMessage::where('chat_session_id', $chatSessionId)
                 ->orderByDesc('id')
                 ->limit(10)
