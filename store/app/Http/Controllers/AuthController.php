@@ -100,8 +100,22 @@ class AuthController extends Controller
         $version = is_file($absoluteDiskPath) ? ('?v=' . (string) @filemtime($absoluteDiskPath)) : '';
 
         $baseUrl = '';
+
+        // Prefer explicit deploy base for subpath hosting (e.g. https://domain.com/store).
+        $configuredAssetBase = rtrim((string) env('ASSET_URL', ''), '/');
+        if ($configuredAssetBase !== '') {
+            $baseUrl = $configuredAssetBase;
+        }
+
+        if ($baseUrl === '') {
+            $configuredFrontendBase = rtrim((string) env('FRONTEND_URL', ''), '/');
+            if ($configuredFrontendBase !== '') {
+                $baseUrl = $configuredFrontendBase;
+            }
+        }
+
         try {
-            if (request()) {
+            if ($baseUrl === '' && request()) {
                 $baseUrl = rtrim((string) request()->getSchemeAndHttpHost(), '/');
             }
         } catch (\Throwable $e) {
