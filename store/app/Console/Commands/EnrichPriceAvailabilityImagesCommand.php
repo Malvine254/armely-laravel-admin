@@ -41,12 +41,7 @@ class EnrichPriceAvailabilityImagesCommand extends Command
                     return self::FAILURE;
                 }
 
-                $query = Product::query()
-                    ->where('vendor_id', 'TD SYNNEX')
-                    ->where(function ($q) {
-                        $q->whereNull('images')
-                            ->orWhere('images', '[]');
-                    })
+                $query = $service->priceAvailabilityImageSyncQuery()
                     ->orderBy('id')
                     ->select('id');
 
@@ -92,12 +87,7 @@ class EnrichPriceAvailabilityImagesCommand extends Command
             }
 
             // Count total products to process for progress display
-            $totalQuery = Product::query()
-                ->where('vendor_id', 'TD SYNNEX')
-                ->where(function ($q) {
-                    $q->whereNull('images')
-                        ->orWhere('images', '[]');
-                });
+            $totalQuery = $service->priceAvailabilityImageSyncQuery();
             if ($limit > 0) {
                 $totalToProcess = min($limit, $totalQuery->count());
             } else {

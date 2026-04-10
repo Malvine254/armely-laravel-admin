@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\Artisan;
+use App\Models\Product;
 
 require __DIR__ . '/../vendor/autoload.php';
 
@@ -12,43 +13,121 @@ $app->make(Kernel::class)->bootstrap();
 $actions = [
     'status' => [
         'label' => 'Show Status',
-        'commands' => [],
+        'type' => 'status',
     ],
     'storage_link' => [
         'label' => 'Run storage:link',
-        'commands' => ['storage:link'],
+        'type' => 'artisan',
+        'commands' => [
+            ['name' => 'storage:link', 'params' => []],
+        ],
     ],
     'optimize_clear' => [
         'label' => 'Run optimize:clear',
-        'commands' => ['optimize:clear'],
+        'type' => 'artisan',
+        'commands' => [
+            ['name' => 'optimize:clear', 'params' => []],
+        ],
     ],
     'cache_clear' => [
         'label' => 'Run cache:clear',
-        'commands' => ['cache:clear'],
+        'type' => 'artisan',
+        'commands' => [
+            ['name' => 'cache:clear', 'params' => []],
+        ],
     ],
     'config_clear' => [
         'label' => 'Run config:clear',
-        'commands' => ['config:clear'],
+        'type' => 'artisan',
+        'commands' => [
+            ['name' => 'config:clear', 'params' => []],
+        ],
     ],
     'route_clear' => [
         'label' => 'Run route:clear',
-        'commands' => ['route:clear'],
+        'type' => 'artisan',
+        'commands' => [
+            ['name' => 'route:clear', 'params' => []],
+        ],
     ],
     'view_clear' => [
         'label' => 'Run view:clear',
-        'commands' => ['view:clear'],
+        'type' => 'artisan',
+        'commands' => [
+            ['name' => 'view:clear', 'params' => []],
+        ],
     ],
     'event_clear' => [
         'label' => 'Run event:clear',
-        'commands' => ['event:clear'],
+        'type' => 'artisan',
+        'commands' => [
+            ['name' => 'event:clear', 'params' => []],
+        ],
     ],
     'all_clear' => [
         'label' => 'Run All Clear Commands',
-        'commands' => ['optimize:clear', 'cache:clear', 'config:clear', 'route:clear', 'view:clear', 'event:clear'],
+        'type' => 'artisan',
+        'commands' => [
+            ['name' => 'optimize:clear', 'params' => []],
+            ['name' => 'cache:clear', 'params' => []],
+            ['name' => 'config:clear', 'params' => []],
+            ['name' => 'route:clear', 'params' => []],
+            ['name' => 'view:clear', 'params' => []],
+            ['name' => 'event:clear', 'params' => []],
+        ],
     ],
     'storage_and_clear' => [
         'label' => 'Run storage:link + all clear commands',
-        'commands' => ['storage:link', 'optimize:clear', 'cache:clear', 'config:clear', 'route:clear', 'view:clear', 'event:clear'],
+        'type' => 'artisan',
+        'commands' => [
+            ['name' => 'storage:link', 'params' => []],
+            ['name' => 'optimize:clear', 'params' => []],
+            ['name' => 'cache:clear', 'params' => []],
+            ['name' => 'config:clear', 'params' => []],
+            ['name' => 'route:clear', 'params' => []],
+            ['name' => 'view:clear', 'params' => []],
+            ['name' => 'event:clear', 'params' => []],
+        ],
+    ],
+    'build_prep' => [
+        'label' => 'Run Build Prep (Laravel caches)',
+        'type' => 'artisan',
+        'commands' => [
+            ['name' => 'config:cache', 'params' => []],
+            ['name' => 'route:cache', 'params' => []],
+            ['name' => 'view:cache', 'params' => []],
+            ['name' => 'event:cache', 'params' => []],
+            ['name' => 'optimize', 'params' => []],
+        ],
+    ],
+    'sync_catalog' => [
+        'label' => 'Sync PriceAvailability Catalog (sync)',
+        'type' => 'artisan',
+        'commands' => [
+            ['name' => 'tdsynnex:sync-priceavailability-products', 'params' => ['--sync' => true]],
+        ],
+    ],
+    'sync_catalog_force' => [
+        'label' => 'Force Catalog Sync (sync + force)',
+        'type' => 'artisan',
+        'commands' => [
+            ['name' => 'tdsynnex:sync-priceavailability-products', 'params' => ['--sync' => true, '--force' => true]],
+        ],
+    ],
+    'sync_images' => [
+        'label' => 'Sync Product Images (use Limit/Chunk below)',
+        'type' => 'sync_images',
+    ],
+    'clear_tds_cache' => [
+        'label' => 'Clear TD SYNNEX Cache',
+        'type' => 'artisan',
+        'commands' => [
+            ['name' => 'tdsynnex:clear-cache', 'params' => []],
+        ],
+    ],
+    'vendor_report' => [
+        'label' => 'Vendor Diagnostics Report',
+        'type' => 'vendor_report',
     ],
 ];
 
@@ -57,18 +136,81 @@ $selectedAction = array_key_exists($selectedAction, $actions) ? $selectedAction 
 
 $results = [];
 
+function toIntInRange(string $key, int $default, int $min, int $max): int
+{
+    $value = isset($_POST[$key]) ? (int) $_POST[$key] : $default;
+    return max($min, min($max, $value));
+}
+
+function runArtisanCommand(string $command, array $params = []): array
+{
+    try {
+        Artisan::call($command, $params);
+        return [
+            'command' => $command . (empty($params) ? '' : ' ' . json_encode($params)),
+            'status' => 'OK',
+            'output' => trim(Artisan::output()),
+        ];
+    } catch (Throwable $e) {
+        return [
+            'command' => $command . (empty($params) ? '' : ' ' . json_encode($params)),
+            'status' => 'ERROR',
+            'output' => $e->getMessage(),
+        ];
+    }
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    foreach ($actions[$selectedAction]['commands'] as $command) {
+    $actionType = (string) ($actions[$selectedAction]['type'] ?? 'status');
+
+    if ($actionType === 'artisan') {
+        foreach ((array) ($actions[$selectedAction]['commands'] ?? []) as $commandDef) {
+            $commandName = (string) ($commandDef['name'] ?? '');
+            $commandParams = (array) ($commandDef['params'] ?? []);
+            if ($commandName === '') {
+                continue;
+            }
+
+            $results[] = runArtisanCommand($commandName, $commandParams);
+        }
+    } elseif ($actionType === 'sync_images') {
+        $limit = toIntInRange('sync_limit', 100, 0, 50000);
+        $chunk = toIntInRange('sync_chunk', 25, 1, 500);
+        $results[] = runArtisanCommand('tdsynnex:enrich-priceavailability-images', [
+            '--sync' => true,
+            '--limit' => $limit,
+            '--chunk' => $chunk,
+        ]);
+    } elseif ($actionType === 'vendor_report') {
         try {
-            Artisan::call($command);
+            $rows = Product::query()
+                ->where('vendor_id', 'TD SYNNEX')
+                ->selectRaw("TRIM(COALESCE(JSON_UNQUOTE(JSON_EXTRACT(specifications, '$.manufacturer')), 'UNKNOWN')) as manufacturer")
+                ->selectRaw("COUNT(*) as total_count")
+                ->selectRaw("SUM(CASE WHEN images IS NULL OR images = '[]' THEN 1 ELSE 0 END) as missing_images")
+                ->groupBy('manufacturer')
+                ->orderByDesc('missing_images')
+                ->limit(40)
+                ->get();
+
+            $lines = [];
+            foreach ($rows as $row) {
+                $lines[] = sprintf(
+                    '%s | total=%d | missing_images=%d',
+                    (string) $row->manufacturer,
+                    (int) $row->total_count,
+                    (int) $row->missing_images
+                );
+            }
+
             $results[] = [
-                'command' => $command,
+                'command' => 'vendor_diagnostics',
                 'status' => 'OK',
-                'output' => trim(Artisan::output()),
+                'output' => empty($lines) ? 'No vendor rows found.' : implode("\n", $lines),
             ];
         } catch (Throwable $e) {
             $results[] = [
-                'command' => $command,
+                'command' => 'vendor_diagnostics',
                 'status' => 'ERROR',
                 'output' => $e->getMessage(),
             ];
@@ -94,6 +236,9 @@ $statusRows = [
     'storage/app/public exists' => file_exists($storagePublicPath) ? 'YES' : 'NO',
     'storage/app/public writable' => file_exists($storagePublicPath) ? (is_writable($storagePublicPath) ? 'YES' : 'NO') : 'NO',
     'bootstrap/cache writable' => file_exists($cachePath) ? (is_writable($cachePath) ? 'YES' : 'NO') : 'NO',
+    'Catalog hardware only' => config('tdsynnex.catalog.hardware_only') ? 'true' : 'false',
+    'Image sync current showing only' => config('tdsynnex.image_sync.current_showing_only') ? 'true' : 'false',
+    'Image sync scope cap' => (string) config('tdsynnex.image_sync.scope_cap', 1000),
 ];
 
 function h(?string $value): string
@@ -133,6 +278,25 @@ function h(?string $value): string
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap: 12px;
+        }
+        .sync-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        .sync-options label {
+            font-size: 13px;
+            color: #4b5563;
+            display: block;
+            margin-bottom: 4px;
+        }
+        .sync-options input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 14px;
         }
         button {
             width: 100%;
@@ -194,9 +358,19 @@ function h(?string $value): string
 
         <div class="card">
             <h2>Actions</h2>
+            <div class="sync-options">
+                <div>
+                    <label for="sync_limit">Image Sync Limit (0 = all scoped)</label>
+                    <input type="number" id="sync_limit" name="sync_limit" value="<?= h((string) ($_POST['sync_limit'] ?? '100')) ?>" form="sync-images-form" min="0" max="50000">
+                </div>
+                <div>
+                    <label for="sync_chunk">Image Sync Chunk</label>
+                    <input type="number" id="sync_chunk" name="sync_chunk" value="<?= h((string) ($_POST['sync_chunk'] ?? '25')) ?>" form="sync-images-form" min="1" max="500">
+                </div>
+            </div>
             <div class="actions">
                 <?php foreach ($actions as $actionKey => $action): ?>
-                    <form method="post">
+                    <form method="post" id="<?= $actionKey === 'sync_images' ? 'sync-images-form' : '' ?>">
                         <input type="hidden" name="action" value="<?= h($actionKey) ?>">
                         <button type="submit"><?= h($action['label']) ?></button>
                     </form>
