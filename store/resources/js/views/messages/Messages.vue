@@ -15,8 +15,16 @@
               <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wide">Chat History</h2>
               <div class="flex items-center gap-2">
                 <button
+                  v-if="chatSessions.length"
+                  @click="toggleManageHistory"
+                  class="px-2.5 py-1.5 text-[11px] font-semibold rounded-md border border-[#c7d8ef] text-[#1d4b8f] bg-white hover:bg-[#edf4ff]"
+                >
+                  {{ manageHistoryMode ? 'Done' : 'Manage' }}
+                </button>
+                <button
                   @click="createNewChatSession"
-                  class="px-2.5 py-1.5 text-[11px] font-semibold rounded-md text-white"
+                  :disabled="manageHistoryMode"
+                  class="px-2.5 py-1.5 text-[11px] font-semibold rounded-md text-white disabled:opacity-50 disabled:cursor-not-allowed"
                   style="background: linear-gradient(135deg, #1d4b8f 0%, #3f78c7 100%);"
                 >
                   + New Chat
@@ -33,19 +41,52 @@
               </div>
             </div>
             <p class="text-[11px] text-slate-500">Choose a conversation or start a new one.</p>
+
+            <div v-if="manageHistoryMode" class="mt-3 flex items-center justify-between gap-2 rounded-xl border border-[#d8e4f4] bg-white px-3 py-2">
+              <p class="text-[11px] font-semibold text-slate-700">
+                {{ selectedHistoryCount ? `${selectedHistoryCount} selected` : 'Select chats to delete' }}
+              </p>
+              <div class="flex items-center gap-2">
+                <button
+                  @click="deleteSelectedChats"
+                  :disabled="!selectedHistoryCount || deletingHistory"
+                  class="px-2.5 py-1.5 rounded-md text-[11px] font-semibold bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {{ deletingHistory ? 'Deleting...' : 'Delete Selected' }}
+                </button>
+                <button
+                  @click="clearAllChats"
+                  :disabled="!chatSessions.length || deletingHistory"
+                  class="text-[11px] font-semibold text-slate-500 hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Clear All
+                </button>
+              </div>
+            </div>
           </div>
 
           <div class="flex-1 min-h-0 overflow-y-auto themed-scrollbar p-3">
             <button
               v-for="session in chatSessions"
               :key="`chat-session-${session.id}`"
-              @click="selectChatSession(session.id)"
+              @click="handleSessionCardClick(session.id)"
               class="w-full text-left rounded-xl border mb-2 p-2.5 transition"
-              :class="activeChatSessionId === session.id
+              :class="manageHistoryMode && selectedHistoryIds.includes(session.id)
+                ? 'border-red-200 bg-red-50 ring-1 ring-red-200'
+                : activeChatSessionId === session.id
                 ? 'border-[#bcd3f3] bg-[#eaf2ff] ring-1 ring-[#c5dbf7]'
                 : 'border-[#e2eaf5] bg-white hover:bg-[#f6faff]'"
             >
               <div class="flex items-start gap-2">
+                <div
+                  v-if="manageHistoryMode"
+                  class="mt-0.5 w-5 h-5 rounded-md border flex items-center justify-center flex-shrink-0"
+                  :class="selectedHistoryIds.includes(session.id) ? 'bg-red-600 border-red-600 text-white' : 'border-[#c6d6ec] bg-white text-transparent'"
+                >
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
                 <div
                   class="mt-0.5 w-7 h-7 rounded-full flex items-center justify-center"
                   :class="session.resolved_at ? 'bg-green-100 text-green-700' : session.escalated_to_human ? 'bg-amber-100 text-amber-700' : 'bg-[#e6efff] text-[#215192]'"
@@ -250,6 +291,9 @@ const activeChatSessionId = ref(null)
 const escalating = ref(false)
 const pollingInterval = ref(null)
 const isHistoryOpenMobile = ref(false)
+const manageHistoryMode = ref(false)
+const selectedHistoryIds = ref([])
+const deletingHistory = ref(false)
 
 const getAuthToken = () => localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
 
@@ -284,12 +328,129 @@ const cacheSessionMessages = (sessionId, messages) => {
   writeCachedJson(getChatCacheKey(`session:${sessionId}`), messages)
 }
 
+const clearCachedSessionMessages = (sessionId) => {
+  if (!sessionId || typeof window === 'undefined') return
+  localStorage.removeItem(getChatCacheKey(`session:${sessionId}`))
+}
+
+const selectedHistoryCount = computed(() => selectedHistoryIds.value.length)
+
 const toggleHistoryPanel = () => {
   isHistoryOpenMobile.value = !isHistoryOpenMobile.value
 }
 
 const closeHistoryPanel = () => {
   isHistoryOpenMobile.value = false
+}
+
+const toggleManageHistory = () => {
+  manageHistoryMode.value = !manageHistoryMode.value
+  if (!manageHistoryMode.value) {
+    selectedHistoryIds.value = []
+  }
+}
+
+const handleSessionCardClick = async (sessionId) => {
+  if (manageHistoryMode.value) {
+    toggleSessionSelection(sessionId)
+    return
+  }
+
+  await selectChatSession(sessionId)
+}
+
+const toggleSessionSelection = (sessionId) => {
+  if (selectedHistoryIds.value.includes(sessionId)) {
+    selectedHistoryIds.value = selectedHistoryIds.value.filter((id) => id !== sessionId)
+    return
+  }
+
+  selectedHistoryIds.value = [...selectedHistoryIds.value, sessionId]
+}
+
+const syncChatSessionStateAfterDelete = async (deletedIds = []) => {
+  const deletedSet = new Set((deletedIds || []).map((id) => Number(id)))
+  chatSessions.value = chatSessions.value.filter((session) => !deletedSet.has(Number(session.id)))
+  selectedHistoryIds.value = selectedHistoryIds.value.filter((id) => !deletedSet.has(Number(id)))
+
+  deletedIds.forEach((id) => clearCachedSessionMessages(id))
+  writeCachedJson(getChatCacheKey('sessions'), chatSessions.value)
+
+  if (deletedSet.has(Number(activeChatSessionId.value))) {
+    stopMessagePolling()
+    activeChatSessionId.value = null
+    chatMessages.value = []
+
+    const nextSession = chatSessions.value[0]
+    if (nextSession?.id) {
+      await selectChatSession(nextSession.id)
+    } else {
+      ensureChatWelcome()
+    }
+  }
+}
+
+const deleteChatSessions = async ({ ids = [], clearAll = false } = {}) => {
+  if (deletingHistory.value) return
+
+  const targetIds = clearAll ? chatSessions.value.map((session) => session.id) : ids
+  if (!clearAll && targetIds.length === 0) return
+
+  const confirmed = window.confirm(
+    clearAll
+      ? 'Delete all chat history? This cannot be undone.'
+      : `Delete ${targetIds.length} selected chat${targetIds.length === 1 ? '' : 's'}? This cannot be undone.`
+  )
+
+  if (!confirmed) return
+
+  try {
+    deletingHistory.value = true
+    const token = getAuthToken()
+    const response = await fetch(
+      clearAll ? `${API_BASE_URL}/messages/chats/bulk-delete` : `${API_BASE_URL}/messages/chats/bulk-delete`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          Accept: 'application/json'
+        },
+        body: JSON.stringify({
+          chat_session_ids: clearAll ? [] : targetIds,
+          clear_all: clearAll,
+        })
+      }
+    )
+
+    if (!response.ok) {
+      throw new Error('Failed to delete chat history')
+    }
+
+    const payload = await response.json()
+    const deletedIds = payload?.deleted_ids || []
+    await syncChatSessionStateAfterDelete(deletedIds)
+
+    if (clearAll) {
+      manageHistoryMode.value = false
+      toastStore.addToast('All chat history deleted', 'success')
+    } else {
+      toastStore.addToast('Selected chats deleted', 'success')
+    }
+  } catch (error) {
+    console.error('Error deleting chat sessions:', error)
+    toastStore.addToast('Failed to delete chat history', 'error')
+  } finally {
+    deletingHistory.value = false
+  }
+}
+
+const deleteSelectedChats = async () => {
+  await deleteChatSessions({ ids: selectedHistoryIds.value })
+}
+
+const clearAllChats = async () => {
+  await deleteChatSessions({ clearAll: true })
 }
 
 const quickPrompts = [

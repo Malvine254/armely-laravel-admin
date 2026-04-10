@@ -15,10 +15,14 @@ $app->make(Kernel::class)->bootstrap();
 $actions = [
     'status' => [
         'label' => 'Show Status',
+        'category' => 'Diagnostics',
+        'help' => 'View environment, storage, chat schema, and sync scope status.',
         'type' => 'status',
     ],
     'storage_link' => [
         'label' => 'Run storage:link',
+        'category' => 'Storage & Cache',
+        'help' => 'Recreate the public storage symlink.',
         'type' => 'artisan',
         'commands' => [
             ['name' => 'storage:link', 'params' => []],
@@ -26,6 +30,8 @@ $actions = [
     ],
     'optimize_clear' => [
         'label' => 'Run optimize:clear',
+        'category' => 'Storage & Cache',
+        'help' => 'Clear Laravel compiled bootstrap caches.',
         'type' => 'artisan',
         'commands' => [
             ['name' => 'optimize:clear', 'params' => []],
@@ -33,6 +39,8 @@ $actions = [
     ],
     'cache_clear' => [
         'label' => 'Run cache:clear',
+        'category' => 'Storage & Cache',
+        'help' => 'Clear the application cache store.',
         'type' => 'artisan',
         'commands' => [
             ['name' => 'cache:clear', 'params' => []],
@@ -40,6 +48,8 @@ $actions = [
     ],
     'config_clear' => [
         'label' => 'Run config:clear',
+        'category' => 'Storage & Cache',
+        'help' => 'Clear cached configuration.',
         'type' => 'artisan',
         'commands' => [
             ['name' => 'config:clear', 'params' => []],
@@ -47,6 +57,8 @@ $actions = [
     ],
     'route_clear' => [
         'label' => 'Run route:clear',
+        'category' => 'Storage & Cache',
+        'help' => 'Clear cached routes.',
         'type' => 'artisan',
         'commands' => [
             ['name' => 'route:clear', 'params' => []],
@@ -54,6 +66,8 @@ $actions = [
     ],
     'view_clear' => [
         'label' => 'Run view:clear',
+        'category' => 'Storage & Cache',
+        'help' => 'Clear compiled Blade views.',
         'type' => 'artisan',
         'commands' => [
             ['name' => 'view:clear', 'params' => []],
@@ -61,6 +75,8 @@ $actions = [
     ],
     'event_clear' => [
         'label' => 'Run event:clear',
+        'category' => 'Storage & Cache',
+        'help' => 'Clear cached events and listeners.',
         'type' => 'artisan',
         'commands' => [
             ['name' => 'event:clear', 'params' => []],
@@ -68,6 +84,8 @@ $actions = [
     ],
     'all_clear' => [
         'label' => 'Run All Clear Commands',
+        'category' => 'Storage & Cache',
+        'help' => 'Run all cache clearing commands in one pass.',
         'type' => 'artisan',
         'commands' => [
             ['name' => 'optimize:clear', 'params' => []],
@@ -80,6 +98,8 @@ $actions = [
     ],
     'storage_and_clear' => [
         'label' => 'Run storage:link + all clear commands',
+        'category' => 'Storage & Cache',
+        'help' => 'Repair public storage and clear all caches together.',
         'type' => 'artisan',
         'commands' => [
             ['name' => 'storage:link', 'params' => []],
@@ -93,6 +113,8 @@ $actions = [
     ],
     'build_prep' => [
         'label' => 'Run Build Prep (Laravel caches)',
+        'category' => 'Storage & Cache',
+        'help' => 'Warm config, route, view, and event caches for deployment.',
         'type' => 'artisan',
         'commands' => [
             ['name' => 'config:cache', 'params' => []],
@@ -104,6 +126,8 @@ $actions = [
     ],
     'sync_catalog' => [
         'label' => 'Sync PriceAvailability Catalog (sync)',
+        'category' => 'Catalog & Images',
+        'help' => 'Sync the TD SYNNEX catalog using scoped sync settings.',
         'type' => 'artisan',
         'commands' => [
             ['name' => 'tdsynnex:sync-priceavailability-products', 'params' => ['--sync' => true]],
@@ -111,6 +135,8 @@ $actions = [
     ],
     'sync_catalog_force' => [
         'label' => 'Force Catalog Sync (sync + force)',
+        'category' => 'Catalog & Images',
+        'help' => 'Force a fresh TD SYNNEX catalog sync.',
         'type' => 'artisan',
         'commands' => [
             ['name' => 'tdsynnex:sync-priceavailability-products', 'params' => ['--sync' => true, '--force' => true]],
@@ -118,14 +144,20 @@ $actions = [
     ],
     'sync_images' => [
         'label' => 'Sync Product Images (use Limit/Chunk below)',
+        'category' => 'Catalog & Images',
+        'help' => 'Run scoped product image enrichment with the options below.',
         'type' => 'sync_images',
     ],
     'db_repair' => [
         'label' => 'Repair DB Schema (run pending migrations)',
+        'category' => 'Database Repairs',
+        'help' => 'Run the schema repair command and pending migrations.',
         'type' => 'db_repair',
     ],
     'mela_chat_schema_fix' => [
         'label' => 'Run Mela AI Chat Schema Fix Migration',
+        'category' => 'Database Repairs',
+        'help' => 'Apply the chat sessions schema fix migration.',
         'type' => 'artisan',
         'commands' => [
             [
@@ -139,6 +171,8 @@ $actions = [
     ],
     'mela_chat_messages_id_fix' => [
         'label' => 'Run Mela AI Chat Messages ID Fix Migration',
+        'category' => 'Database Repairs',
+        'help' => 'Repair the chat_messages auto-increment primary key.',
         'type' => 'artisan',
         'commands' => [
             [
@@ -152,6 +186,8 @@ $actions = [
     ],
     'quotes_schema_fix' => [
         'label' => 'Run Quotes Table Fix Migration',
+        'category' => 'Database Repairs',
+        'help' => 'Create or repair the quotes table used by the assistant.',
         'type' => 'artisan',
         'commands' => [
             [
@@ -165,6 +201,8 @@ $actions = [
     ],
     'clear_tds_cache' => [
         'label' => 'Clear TD SYNNEX Cache',
+        'category' => 'Catalog & Images',
+        'help' => 'Clear cached TD SYNNEX catalog responses.',
         'type' => 'artisan',
         'commands' => [
             ['name' => 'tdsynnex:clear-cache', 'params' => []],
@@ -172,9 +210,17 @@ $actions = [
     ],
     'vendor_report' => [
         'label' => 'Vendor Diagnostics Report',
+        'category' => 'Diagnostics',
+        'help' => 'Show vendor image coverage diagnostics from current products.',
         'type' => 'vendor_report',
     ],
 ];
+
+$groupedActions = [];
+foreach ($actions as $actionKey => $action) {
+    $category = (string) ($action['category'] ?? 'Other');
+    $groupedActions[$category][$actionKey] = $action;
+}
 
 $selectedAction = isset($_POST['action']) ? (string) $_POST['action'] : 'status';
 $selectedAction = array_key_exists($selectedAction, $actions) ? $selectedAction : 'status';
@@ -352,10 +398,11 @@ function h(?string $value): string
         h1, h2 {
             margin-top: 0;
         }
-        .actions {
+        .control-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 12px;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 14px;
+            margin-bottom: 16px;
         }
         .sync-options {
             display: grid;
@@ -375,6 +422,28 @@ function h(?string $value): string
             border: 1px solid #cbd5e1;
             border-radius: 8px;
             font-size: 14px;
+        }
+        .sync-options select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 14px;
+            background: #fff;
+        }
+        .primary-form {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .action-help {
+            margin: 0;
+            padding: 12px 14px;
+            border-radius: 10px;
+            background: #eff6ff;
+            color: #1e3a8a;
+            font-size: 14px;
+            border: 1px solid #bfdbfe;
         }
         button {
             width: 100%;
@@ -425,6 +494,13 @@ function h(?string $value): string
             font-size: 14px;
             color: #6b7280;
         }
+        .section-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #475569;
+            margin-bottom: 6px;
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -436,31 +512,41 @@ function h(?string $value): string
 
         <div class="card">
             <h2>Actions</h2>
-            <div class="sync-options">
-                <div>
-                    <label for="sync_limit">Image Sync Limit (0 = all scoped)</label>
-                    <input type="number" id="sync_limit" name="sync_limit" value="<?= h((string) ($_POST['sync_limit'] ?? '100')) ?>" form="sync-images-form" min="0" max="50000">
-                </div>
-                <div>
-                    <label for="sync_chunk">Image Sync Chunk</label>
-                    <input type="number" id="sync_chunk" name="sync_chunk" value="<?= h((string) ($_POST['sync_chunk'] ?? '25')) ?>" form="sync-images-form" min="1" max="500">
-                </div>
-                <div>
-                    <label for="db_seed">DB Repair Options</label>
-                    <div style="display:flex;align-items:center;gap:8px;padding:10px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;">
-                        <input type="checkbox" id="db_seed" name="db_seed" value="1" form="db-repair-form" <?= isset($_POST['db_seed']) && $_POST['db_seed'] === '1' ? 'checked' : '' ?>>
-                        <span style="font-size:14px;color:#374151;">Include seeders (db:seed)</span>
+            <form method="post" class="primary-form">
+                <div class="control-grid">
+                    <div>
+                        <label class="section-title" for="action">Primary Operation</label>
+                        <select id="action" name="action">
+                            <?php foreach ($groupedActions as $category => $categoryActions): ?>
+                                <optgroup label="<?= h($category) ?>">
+                                    <?php foreach ($categoryActions as $actionKey => $action): ?>
+                                        <option value="<?= h($actionKey) ?>" <?= $selectedAction === $actionKey ? 'selected' : '' ?>><?= h($action['label']) ?></option>
+                                    <?php endforeach; ?>
+                                </optgroup>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="section-title" for="sync_limit">Image Sync Limit (0 = all scoped)</label>
+                        <input type="number" id="sync_limit" name="sync_limit" value="<?= h((string) ($_POST['sync_limit'] ?? '100')) ?>" min="0" max="50000">
+                    </div>
+                    <div>
+                        <label class="section-title" for="sync_chunk">Image Sync Chunk</label>
+                        <input type="number" id="sync_chunk" name="sync_chunk" value="<?= h((string) ($_POST['sync_chunk'] ?? '25')) ?>" min="1" max="500">
+                    </div>
+                    <div>
+                        <label class="section-title" for="db_seed">DB Repair Options</label>
+                        <div style="display:flex;align-items:center;gap:8px;padding:10px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;min-height:44px;">
+                            <input type="checkbox" id="db_seed" name="db_seed" value="1" <?= isset($_POST['db_seed']) && $_POST['db_seed'] === '1' ? 'checked' : '' ?>>
+                            <span style="font-size:14px;color:#374151;">Include seeders (db:seed)</span>
+                        </div>
                     </div>
                 </div>
-            </div>
-            <div class="actions">
-                <?php foreach ($actions as $actionKey => $action): ?>
-                    <form method="post" id="<?= $actionKey === 'sync_images' ? 'sync-images-form' : ($actionKey === 'db_repair' ? 'db-repair-form' : '') ?>">
-                        <input type="hidden" name="action" value="<?= h($actionKey) ?>">
-                        <button type="submit"><?= h($action['label']) ?></button>
-                    </form>
-                <?php endforeach; ?>
-            </div>
+
+                <p class="action-help"><?= h((string) ($actions[$selectedAction]['help'] ?? 'Select an operation to run maintenance tasks.')) ?></p>
+
+                <button type="submit">Run Selected Operation</button>
+            </form>
         </div>
 
         <div class="card">

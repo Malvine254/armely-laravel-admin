@@ -295,6 +295,68 @@ class MessageController extends Controller
         ]);;
     }
 
+    public function deleteChatSession(Request $request, int $chatSessionId): JsonResponse
+    {
+        $session = ChatSession::where('user_id', $request->user()->id)
+            ->where('id', $chatSessionId)
+            ->firstOrFail();
+
+        $session->delete();
+
+        return response()->json([
+            'success' => true,
+            'deleted_count' => 1,
+            'deleted_ids' => [$chatSessionId],
+        ]);
+    }
+
+    public function bulkDeleteChatSessions(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'chat_session_ids' => 'nullable|array',
+            'chat_session_ids.*' => 'integer',
+            'clear_all' => 'nullable|boolean',
+        ]);
+
+        $clearAll = (bool) ($validated['clear_all'] ?? false);
+        $ids = collect((array) ($validated['chat_session_ids'] ?? []))
+            ->map(fn ($id) => (int) $id)
+            ->filter(fn ($id) => $id > 0)
+            ->unique()
+            ->values();
+
+        $query = ChatSession::query()->where('user_id', $request->user()->id);
+
+        if (!$clearAll) {
+            if ($ids->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No chat sessions selected for deletion.',
+                ], 422);
+            }
+
+            $query->whereIn('id', $ids->all());
+        }
+
+        $deletedIds = $query->pluck('id')->map(fn ($id) => (int) $id)->values();
+
+        if ($deletedIds->isEmpty()) {
+            return response()->json([
+                'success' => true,
+                'deleted_count' => 0,
+                'deleted_ids' => [],
+            ]);
+        }
+
+        ChatSession::whereIn('id', $deletedIds->all())->delete();
+
+        return response()->json([
+            'success' => true,
+            'deleted_count' => $deletedIds->count(),
+            'deleted_ids' => $deletedIds->all(),
+        ]);
+    }
+
     public function escalateChatSession(Request $request, int $chatSessionId): JsonResponse
     {
         $validated = $request->validate([
