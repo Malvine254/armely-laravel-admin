@@ -1119,6 +1119,7 @@ class MessageController extends Controller
                 ->map(fn (ChatMessage $item) => [
                     'role' => $item->role,
                     'content' => $item->content,
+                    'product_suggestions' => array_values(array_filter((array) data_get($item->metadata, 'product_suggestions', []))),
                     'has_product_suggestions' => !empty((array) data_get($item->metadata, 'product_suggestions', [])),
                 ])
                 ->all();
@@ -1326,6 +1327,10 @@ class MessageController extends Controller
         $keywords = $this->extractProductSearchKeywords($question);
         $deviceType = strtolower((string) ($searchContext['device_type'] ?? ''));
         $maxBudget = isset($searchContext['max_budget']) ? (float) $searchContext['max_budget'] : null;
+        $requiredBrand = strtolower((string) ($searchContext['required_brand'] ?? ''));
+        $requiredCategory = strtolower((string) ($searchContext['required_category'] ?? ''));
+        $transactionalFollowUp = (bool) ($searchContext['transactional_follow_up'] ?? false);
+        $recentSuggestedProducts = (array) ($searchContext['recent_suggested_products'] ?? []);
 
         if ($deviceType !== '' && !in_array($deviceType, $keywords, true)) {
             $keywords[] = $deviceType;
@@ -1334,6 +1339,41 @@ class MessageController extends Controller
         $preferenceKeywords = array_values(array_filter(array_map('strtolower', $historyPreferences)));
         if (!empty($preferenceKeywords)) {
             $keywords = array_values(array_unique(array_merge($keywords, $preferenceKeywords)));
+        }
+
+        if ($transactionalFollowUp && empty($keywords) && !empty($recentSuggestedProducts)) {
+            return collect($recentSuggestedProducts)
+                ->map(function (array $candidate) {
+                    return [
+                        'product_id' => (string) ($candidate['product_id'] ?? ''),
+                        'name' => (string) ($candidate['name'] ?? ''),
+                        'sku' => (string) ($candidate['sku'] ?? ''),
+                        'vendor' => (string) ($candidate['vendor'] ?? ''),
+                        'price' => (float) ($candidate['price'] ?? 0),
+                        'description' => Str::limit((string) ($candidate['description'] ?? ''), 180),
+                        'image_url' => $candidate['image_url'] ?? null,
+                        'why' => 'From your previously suggested products for this conversation.',
+                        'actions' => [
+                            [
+                                'label' => 'View details',
+                                'link' => '/products/' . urlencode((string) ($candidate['product_id'] ?? '')),
+                            ],
+                            [
+                                'label' => 'Find similar',
+                                'link' => '/products?search=' . urlencode((string) ($candidate['name'] ?? '')),
+                            ],
+                            [
+                                'label' => 'Request quote',
+                                'link' => '/cart',
+                            ],
+                        ],
+                    ];
+                })
+                ->filter(static fn (array $item) => !empty($item['product_id']) && !empty($item['name']))
+                ->unique(static fn (array $item) => (string) $item['product_id'])
+                ->take($limit)
+                ->values()
+                ->all();
         }
 
         if (empty($keywords)) {
@@ -1517,6 +1557,27 @@ class MessageController extends Controller
                     }
                 }
 
+                if ($requiredBrand !== '') {
+                    $brandMatched = str_contains($name, $requiredBrand)
+                        || str_contains($vendor, $requiredBrand)
+                        || str_contains($description, $requiredBrand);
+
+                    if ($brandMatched) {
+                        $score += 8;
+                    } else {
+                        $score -= 18;
+                    }
+                }
+
+                if ($requiredCategory !== '') {
+                    $categoryMatched = $this->matchesRequestedCategory($candidate, $requiredCategory);
+                    if ($categoryMatched) {
+                        $score += 7;
+                    } else {
+                        $score -= 16;
+                    }
+                }
+
                 if ($isAccessory) {
                     $score -= ($deviceType !== '') ? 12 : 5;
                 }
@@ -1598,6 +1659,27 @@ class MessageController extends Controller
 
                 return true;
             })
+            ->filter(function (array $item) use ($requiredBrand, $requiredCategory) {
+                if ($requiredBrand !== '') {
+                    $haystack = strtolower(
+                        (string) ($item['name'] ?? '') . ' ' .
+                        (string) ($item['vendor'] ?? '') . ' ' .
+                        (string) ($item['description'] ?? '')
+                    );
+
+                    if (!str_contains($haystack, $requiredBrand)) {
+                        return false;
+                    }
+                }
+
+                if ($requiredCategory !== '') {
+                    if (!$this->matchesRequestedCategory($item, $requiredCategory)) {
+                        return false;
+                    }
+                }
+
+                return true;
+            })
             ->sortByDesc('score')
             ->values()
             ->take($limit)
@@ -1619,7 +1701,9 @@ class MessageController extends Controller
             'and', 'or', 'with', 'show', 'please', 'can', 'you', 'want', 'from', 'that', 'this',
             'have', 'all', 'more', 'details', 'about', 'find', 'search', 'suggestion', 'suggestions',
             'suggest', 'suggested', 'recommended', 'recommend', 'available', 'current', 'from',
-            'product', 'products', 'item', 'items', 'one', 'two', 'three', 'hi', 'hello', 'hey', 'to', 'today'
+            'product', 'products', 'item', 'items', 'one', 'two', 'three', 'hi', 'hello', 'hey', 'to', 'today',
+            'order', 'quote', 'quotes', 'cart', 'make', 'proceed', 'request', 'them', 'those', 'are', 'please',
+            'add', 'added', 'placing', 'place'
         ];
 
         $keywords = collect($parts)
@@ -1810,10 +1894,104 @@ class MessageController extends Controller
             }
         }
 
+        $requiredBrand = null;
+        $knownBrands = [
+            'dell', 'hp', 'lenovo', 'cisco', 'meraki', 'microsoft', 'apple', 'samsung', 'epson',
+            'brother', 'canon', 'asus', 'acer', 'logitech', 'jabra', 'netgear', 'ubiquiti', 'fortinet'
+        ];
+        foreach ($knownBrands as $brand) {
+            if (str_contains($joined, $brand)) {
+                $requiredBrand = $brand;
+                break;
+            }
+        }
+
+        $requiredCategory = null;
+        foreach (['monitor', 'laptop', 'desktop', 'printer', 'server', 'switch', 'router', 'access point', 'firewall'] as $category) {
+            if (str_contains($joined, $category)) {
+                $requiredCategory = $category;
+                break;
+            }
+        }
+
+        $questionLower = strtolower(trim($question));
+        $transactionalSignals = [
+            'request quote', 'proceed', 'add to cart', 'add them', 'order them', 'place order',
+            'make them quote', 'make quote', 'use suggested', 'best two', 'those two', 'them'
+        ];
+        $transactionalFollowUp = Str::contains($questionLower, $transactionalSignals);
+
+        $recentSuggestedProducts = collect($recentChatTurns)
+            ->filter(static fn (array $turn) => strtolower((string) ($turn['role'] ?? '')) === 'assistant')
+            ->flatMap(static fn (array $turn) => (array) ($turn['product_suggestions'] ?? []))
+            ->map(function ($item) {
+                if (!is_array($item)) {
+                    return null;
+                }
+
+                return [
+                    'product_id' => (string) ($item['product_id'] ?? ''),
+                    'name' => (string) ($item['name'] ?? ''),
+                    'sku' => (string) ($item['sku'] ?? ''),
+                    'vendor' => (string) ($item['vendor'] ?? ''),
+                    'price' => (float) ($item['price'] ?? 0),
+                    'description' => (string) ($item['description'] ?? ''),
+                    'image_url' => $item['image_url'] ?? null,
+                ];
+            })
+            ->filter(static fn ($item) => is_array($item) && !empty($item['product_id']))
+            ->unique(static fn (array $item) => (string) $item['product_id'])
+            ->take(20)
+            ->values()
+            ->all();
+
         return [
             'device_type' => $deviceType,
             'max_budget' => $maxBudget,
+            'required_brand' => $requiredBrand,
+            'required_category' => $requiredCategory,
+            'transactional_follow_up' => $transactionalFollowUp,
+            'recent_suggested_products' => $recentSuggestedProducts,
         ];
+    }
+
+    private function matchesRequestedCategory(array $candidate, string $requiredCategory): bool
+    {
+        $category = strtolower(trim($requiredCategory));
+        if ($category === '') {
+            return true;
+        }
+
+        $haystack = strtolower(trim(
+            (string) ($candidate['name'] ?? '') . ' ' .
+            (string) ($candidate['description'] ?? '') . ' ' .
+            (string) ($candidate['sku'] ?? '')
+        ));
+
+        if ($haystack === '') {
+            return false;
+        }
+
+        $aliases = [
+            'monitor' => ['monitor', 'display', 'screen'],
+            'laptop' => ['laptop', 'notebook', 'ultrabook'],
+            'desktop' => ['desktop', 'workstation', 'mini pc'],
+            'printer' => ['printer', 'laserjet', 'inkjet', 'multifunction', 'mfp'],
+            'server' => ['server', 'rack', 'tower server'],
+            'switch' => ['switch', 'ethernet switch'],
+            'router' => ['router', 'gateway'],
+            'access point' => ['access point', 'wireless ap', 'wifi ap'],
+            'firewall' => ['firewall', 'security appliance'],
+        ];
+
+        $needles = $aliases[$category] ?? [$category];
+        foreach ($needles as $needle) {
+            if (str_contains($haystack, strtolower($needle))) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function isAccessoryLikeProduct(array $candidate): bool
