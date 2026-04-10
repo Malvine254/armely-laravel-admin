@@ -124,7 +124,9 @@ Route::prefix('v1')->group(function () {
         Route::get('/messages', [MessageController::class, 'getMessages']);
         Route::get('/messages/chats', [MessageController::class, 'getChatSessions']);
         Route::post('/messages/chats', [MessageController::class, 'createChatSession']);
+        Route::post('/messages/chats/bulk-delete', [MessageController::class, 'bulkDeleteChatSessions']);
         Route::get('/messages/chats/{chatSessionId}', [MessageController::class, 'getChatSessionMessages']);
+        Route::delete('/messages/chats/{chatSessionId}', [MessageController::class, 'deleteChatSession']);
         Route::post('/messages/chats/{chatSessionId}/escalate', [MessageController::class, 'escalateChatSession']);
         Route::post('/messages/assistant/chat', [MessageController::class, 'assistantChat']);
         Route::get('/messages/unread-count', [MessageController::class, 'getUnreadCount']);
