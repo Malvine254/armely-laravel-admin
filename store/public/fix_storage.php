@@ -150,6 +150,19 @@ $actions = [
             ],
         ],
     ],
+    'quotes_schema_fix' => [
+        'label' => 'Run Quotes Table Fix Migration',
+        'type' => 'artisan',
+        'commands' => [
+            [
+                'name' => 'migrate',
+                'params' => [
+                    '--force' => true,
+                    '--path' => 'database/migrations/2026_04_10_140000_ensure_quotes_table_exists_for_assistant.php',
+                ],
+            ],
+        ],
+    ],
     'clear_tds_cache' => [
         'label' => 'Clear TD SYNNEX Cache',
         'type' => 'artisan',
@@ -263,6 +276,7 @@ $storagePublicPath = storage_path('app/public');
 $cachePath = base_path('bootstrap/cache');
 $chatSessionsExists = Schema::hasTable('chat_sessions');
 $chatMessagesExists = Schema::hasTable('chat_messages');
+$quotesTableExists = Schema::hasTable('quotes');
 $chatMessagesIdHealthy = false;
 
 if ($chatMessagesExists) {
@@ -299,6 +313,7 @@ $statusRows = [
     'chat_sessions.resolved_at' => ($chatSessionsExists && Schema::hasColumn('chat_sessions', 'resolved_at')) ? 'YES' : 'NO',
     'chat_messages exists' => $chatMessagesExists ? 'YES' : 'NO',
     'chat_messages.id auto_increment PK' => $chatMessagesIdHealthy ? 'YES' : 'NO',
+    'quotes table exists' => $quotesTableExists ? 'YES' : 'NO',
     'Catalog hardware only' => config('tdsynnex.catalog.hardware_only') ? 'true' : 'false',
     'Image sync current showing only' => config('tdsynnex.image_sync.current_showing_only') ? 'true' : 'false',
     'Image sync scope cap' => (string) config('tdsynnex.image_sync.scope_cap', 1000),
