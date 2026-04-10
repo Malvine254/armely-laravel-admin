@@ -233,6 +233,8 @@ const activeChatSessionId = ref(null)
 const escalating = ref(false)
 const pollingInterval = ref(null)
 
+const getAuthToken = () => localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
+
 const quickPrompts = [
   'Best Dell laptop sample list',
   'Show unpaid invoices',
@@ -276,7 +278,7 @@ const refreshChatMessages = async () => {
   if (!activeChatSessionId.value) return
 
   try {
-    const token = localStorage.getItem('auth_token')
+    const token = getAuthToken()
     const response = await fetch(`${API_BASE_URL}/messages/chats/${activeChatSessionId.value}`, {
       method: 'GET',
       headers: {
@@ -340,7 +342,7 @@ const stopMessagePolling = () => {
 
 const fetchChatSessions = async () => {
   try {
-    const token = localStorage.getItem('auth_token')
+    const token = getAuthToken()
     const response = await fetch(`${API_BASE_URL}/messages/chats`, {
       method: 'GET',
       headers: {
@@ -369,7 +371,7 @@ const createNewChatSession = async () => {
       return
     }
 
-    const token = localStorage.getItem('auth_token')
+    const token = getAuthToken()
     const response = await fetch(`${API_BASE_URL}/messages/chats`, {
       method: 'POST',
       headers: {
@@ -407,7 +409,7 @@ const selectChatSession = async (sessionId) => {
 
   try {
     stopMessagePolling()
-    const token = localStorage.getItem('auth_token')
+    const token = getAuthToken()
     const response = await fetch(`${API_BASE_URL}/messages/chats/${sessionId}`, {
       method: 'GET',
       headers: {
@@ -448,7 +450,7 @@ const escalateActiveChat = async () => {
 
   try {
     escalating.value = true
-    const token = localStorage.getItem('auth_token')
+    const token = getAuthToken()
     const response = await fetch(`${API_BASE_URL}/messages/chats/${activeChatSessionId.value}/escalate`, {
       method: 'POST',
       headers: {
@@ -478,7 +480,7 @@ const openActionLink = async (link) => {
   if (!link) return
 
   if (link.startsWith('/api/')) {
-    const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
+    const token = getAuthToken()
     if (!token) {
       toastStore.addToast('Please log in to continue', 'warning')
       await router.push('/login')
@@ -581,7 +583,7 @@ const sendChatMessage = async (prefilled = null) => {
 
   sendingChat.value = true
   try {
-    const token = localStorage.getItem('auth_token')
+    const token = getAuthToken()
     const response = await fetch(`${API_BASE_URL}/messages/assistant/chat`, {
       method: 'POST',
       headers: {

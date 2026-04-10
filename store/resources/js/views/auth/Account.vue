@@ -446,6 +446,8 @@ const toastStore = useToastStore()
 const activities = ref([])
 const loading = ref(false)
 
+const getAuthToken = () => localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token') || authStore.token
+
 // Modal states
 const showEditProfileModal = ref(false)
 const showChangePasswordModal = ref(false)
@@ -648,7 +650,7 @@ const submitProfilePictureUpload = async () => {
     const formData = new FormData()
     formData.append('profile_picture', profilePictureFile.value)
 
-    const token = localStorage.getItem('auth_token')
+    const token = getAuthToken()
     console.log('Uploading profile picture...')
     const response = await fetch(`${API_BASE_URL}/auth/update-profile`, {
       method: 'POST',
@@ -690,7 +692,7 @@ const submitProfilePictureUpload = async () => {
 const fetchActivities = async () => {
   loading.value = true
   try {
-    const token = localStorage.getItem('auth_token')
+    const token = getAuthToken()
     const response = await fetch(`${API_BASE_URL}/activities?limit=5`, {
       method: 'GET',
       headers: {
@@ -743,7 +745,7 @@ const handleEditProfile = () => {
 const submitEditProfile = async () => {
   editFormLoading.value = true
   try {
-    const token = localStorage.getItem('auth_token')
+    const token = getAuthToken()
     
     // Use FormData to support file uploads
     const formData = new FormData()
@@ -838,7 +840,7 @@ const submitChangePassword = async () => {
 
   passwordFormLoading.value = true
   try {
-    const token = localStorage.getItem('auth_token')
+    const token = getAuthToken()
     const response = await fetch(`${API_BASE_URL}/auth/change-password`, {
       method: 'PUT',
       headers: {
@@ -904,7 +906,7 @@ const saveNotificationSettings = () => {
 const fetchSavedPaymentMethods = async () => {
   paymentMethodsLoading.value = true
   try {
-    const token = localStorage.getItem('auth_token')
+    const token = getAuthToken()
     const response = await fetch(`${API_BASE_URL}/payment-methods`, {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -938,7 +940,7 @@ const fetchSavedPaymentMethods = async () => {
 const savePaymentConsent = async () => {
   consentLoading.value = true
   try {
-    const token = localStorage.getItem('auth_token')
+    const token = getAuthToken()
     const response = await fetch(`${API_BASE_URL}/payment-methods/consent`, {
       method: 'POST',
       headers: {
@@ -996,7 +998,7 @@ const openAddCardModal = async () => {
 
 const initializeStripeCardSetup = async () => {
   try {
-    const token = localStorage.getItem('auth_token')
+    const token = getAuthToken()
     const response = await fetch(`${API_BASE_URL}/payment-methods/setup-intent`, {
       method: 'POST',
       headers: {
@@ -1097,7 +1099,7 @@ const saveCard = async () => {
       throw new Error('Stripe did not return a payment method.')
     }
 
-    const token = localStorage.getItem('auth_token')
+    const token = getAuthToken()
     const attachResponse = await fetch(`${API_BASE_URL}/payment-methods/attach`, {
       method: 'POST',
       headers: {
@@ -1130,7 +1132,7 @@ const saveCard = async () => {
 const setDefaultCard = async (paymentMethodId) => {
   settingDefaultCardId.value = paymentMethodId
   try {
-    const token = localStorage.getItem('auth_token')
+    const token = getAuthToken()
     const response = await fetch(`${API_BASE_URL}/payment-methods/default`, {
       method: 'PUT',
       headers: {
@@ -1158,7 +1160,7 @@ const setDefaultCard = async (paymentMethodId) => {
 const removeCard = async (paymentMethodId) => {
   removingCardId.value = paymentMethodId
   try {
-    const token = localStorage.getItem('auth_token')
+    const token = getAuthToken()
     const response = await fetch(`${API_BASE_URL}/payment-methods/${paymentMethodId}`, {
       method: 'DELETE',
       headers: {
@@ -1183,7 +1185,7 @@ const removeCard = async (paymentMethodId) => {
 
 const logActivity = async (type, action, description) => {
   try {
-    const token = localStorage.getItem('auth_token')
+    const token = getAuthToken()
     await fetch(`${API_BASE_URL}/activities/log`, {
       method: 'POST',
       headers: {
@@ -1206,7 +1208,7 @@ const handleDeleteAccount = () => {
 const submitDeleteAccount = async () => {
   deleteAccountLoading.value = true
   try {
-    const token = localStorage.getItem('auth_token')
+    const token = getAuthToken()
     const response = await fetch(`${API_BASE_URL}/auth/account`, {
       method: 'DELETE',
       headers: {
