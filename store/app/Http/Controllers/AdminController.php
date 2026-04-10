@@ -770,28 +770,48 @@ class AdminController extends Controller
                 ->first();
 
             if (!$paidQuoteInvoice) {
+                $pendingQuoteInvoiceCreated = false;
                 $pendingQuoteInvoice = (clone $quoteInvoiceQuery)
                     ->where('status', '!=', 'paid')
                     ->first();
 
                 if (!$pendingQuoteInvoice) {
                     $pendingQuoteInvoice = $this->createQuotePaymentInvoice($quote);
+                    $pendingQuoteInvoiceCreated = true;
 
-                    Message::createMessage(
-                        $quote->user_id,
-                        'invoice',
-                        'Quote accepted - payment required',
-                        "Quote {$quote->quote_id} has been accepted. Please complete payment for invoice {$pendingQuoteInvoice->invoice_number} to continue order processing.",
-                        $pendingQuoteInvoice->invoice_number,
-                        'normal',
-                        [
+                    try {
+                        Message::createMessage(
+                            $quote->user_id,
+                            'invoice',
+                            'Quote approved - payment available',
+                            "Quote {$quote->quote_id} has been approved. You can complete payment using invoice {$pendingQuoteInvoice->invoice_number} whenever you are ready.",
+                            $pendingQuoteInvoice->invoice_number,
+                            'normal',
+                            [
+                                'quote_id' => $quote->quote_id,
+                                'invoice_id' => $pendingQuoteInvoice->id,
+                                'invoice_number' => $pendingQuoteInvoice->invoice_number,
+                            ]
+                        );
+                    } catch (\Throwable $messageError) {
+                        Log::warning('Quote approval payment message could not be created', [
                             'quote_id' => $quote->quote_id,
-                            'invoice_id' => $pendingQuoteInvoice->id,
+                            'user_id' => $quote->user_id,
                             'invoice_number' => $pendingQuoteInvoice->invoice_number,
-                        ]
-                    );
+                            'error' => $messageError->getMessage(),
+                        ]);
+                    }
 
-                    $this->notificationService->sendInvoiceReminderNotification($pendingQuoteInvoice);
+                    try {
+                        $this->notificationService->sendInvoiceReminderNotification($pendingQuoteInvoice);
+                    } catch (\Throwable $notificationError) {
+                        Log::warning('Quote approval payment notification could not be sent', [
+                            'quote_id' => $quote->quote_id,
+                            'user_id' => $quote->user_id,
+                            'invoice_number' => $pendingQuoteInvoice->invoice_number,
+                            'error' => $notificationError->getMessage(),
+                        ]);
+                    }
                 }
 
                 if ($quote->status !== 'approved') {
@@ -801,13 +821,25 @@ class AdminController extends Controller
                         'approved_at' => now(),
                         'admin_notes' => $validated['admin_notes'] ?? $quote->admin_notes,
                     ]);
+
+                    try {
+                        $this->notificationService->sendQuoteApprovedNotification($quote);
+                    } catch (\Throwable $approvalNotificationError) {
+                        Log::warning('Quote approved notification could not be sent', [
+                            'quote_id' => $quote->quote_id,
+                            'user_id' => $quote->user_id,
+                            'error' => $approvalNotificationError->getMessage(),
+                        ]);
+                    }
                 }
 
                 return response()->json([
                     'success' => true,
-                    'message' => "Payment is required before final approval. Customer can now proceed with invoice {$pendingQuoteInvoice->invoice_number}.",
+                    'message' => $pendingQuoteInvoiceCreated
+                        ? "Quote approved successfully. Payment invoice {$pendingQuoteInvoice->invoice_number} was created for the customer."
+                        : "Quote approved successfully. Customer can pay later using invoice {$pendingQuoteInvoice->invoice_number}.",
                     'data' => [
-                        'payment_required' => true,
+                        'payment_pending' => true,
                         'quote' => $quote,
                         'invoice' => $pendingQuoteInvoice,
                     ],
