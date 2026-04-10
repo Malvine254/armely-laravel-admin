@@ -186,7 +186,7 @@
                   </button>
                 </div>
                 <p class="mt-2 text-[10px] uppercase tracking-wide" :class="chat.role === 'user' ? 'text-blue-200' : 'text-slate-400'">
-                  {{ getMessageSenderLabel(chat) }}
+                  {{ getMessageSenderLabel(chat) }} · {{ formatMessageTimestamp(chat.createdAt) }}
                 </p>
               </div>
             </div>
@@ -283,6 +283,7 @@ const ensureChatWelcome = () => {
     id: `assistant-welcome-${Date.now()}`,
     role: 'assistant',
     text: 'Hi, I am Mela AI. I can suggest products with reasons, provide quote and payment guidance, and escalate to human support if needed.',
+    createdAt: new Date().toISOString(),
     actions: [
       { label: 'Browse products', link: '/products' },
       { label: 'Open quotes', link: '/quotes' },
@@ -333,6 +334,7 @@ const refreshChatMessages = async () => {
       role: item.role,
       text: item.text,
       senderName: item.sender_name || null,
+      createdAt: item.created_at || null,
       actions: item.actions || [],
       productSuggestions: item.product_suggestions || []
     }))
@@ -456,6 +458,7 @@ const selectChatSession = async (sessionId) => {
       role: item.role,
       text: item.text,
       senderName: item.sender_name || null,
+      createdAt: item.created_at || null,
       actions: item.actions || [],
       productSuggestions: item.product_suggestions || []
     }))
@@ -571,6 +574,52 @@ const getMessageSenderLabel = (chat) => {
   return 'Assistant'
 }
 
+const formatMessageTimestamp = (value) => {
+  if (!value) return 'Now'
+
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'Now'
+
+  const now = new Date()
+  const sameDay = date.toDateString() === now.toDateString()
+  const yesterday = new Date(now)
+  yesterday.setDate(now.getDate() - 1)
+  const sameYesterday = date.toDateString() === yesterday.toDateString()
+  const dayDiff = Math.floor((now - date) / (1000 * 60 * 60 * 24))
+
+  const timeLabel = date.toLocaleTimeString([], {
+    hour: 'numeric',
+    minute: '2-digit',
+  })
+
+  if (sameDay) {
+    return `Today ${timeLabel}`
+  }
+
+  if (sameYesterday) {
+    return `Yesterday ${timeLabel}`
+  }
+
+  if (dayDiff < 7) {
+    const weekday = date.toLocaleDateString([], { weekday: 'short' })
+    return `${weekday} ${timeLabel}`
+  }
+
+  if (dayDiff < 28) {
+    const weeks = Math.max(1, Math.floor(dayDiff / 7))
+    const weekday = date.toLocaleDateString([], { weekday: 'short' })
+    return `${weeks}w ${weekday} ${timeLabel}`
+  }
+
+  return date.toLocaleString([], {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  })
+}
+
 const escapeHtml = (text) => {
   return String(text || '')
     .replace(/&/g, '&amp;')
@@ -599,6 +648,7 @@ const sendChatMessage = async (prefilled = null) => {
     id: `user-${Date.now()}`,
     role: 'user',
     text: outgoing,
+    createdAt: new Date().toISOString(),
     actions: [],
     productSuggestions: []
   })
@@ -637,6 +687,7 @@ const sendChatMessage = async (prefilled = null) => {
       id: `assistant-${Date.now()}`,
       role: 'assistant',
       text: assistantPayload.reply || 'I could not generate a response right now.',
+      createdAt: assistantPayload.created_at || new Date().toISOString(),
       actions: assistantPayload.actions || [],
       productSuggestions: assistantPayload.product_suggestions || []
     })
@@ -648,6 +699,7 @@ const sendChatMessage = async (prefilled = null) => {
       id: `assistant-error-${Date.now()}`,
       role: 'assistant',
       text: 'I could not process that right now. Please try again in a moment.',
+      createdAt: new Date().toISOString(),
       actions: [],
       productSuggestions: []
     })
