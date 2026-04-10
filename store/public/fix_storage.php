@@ -4,8 +4,11 @@ declare(strict_types=1);
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
+use App\Models\Company;
 use App\Models\Product;
+use App\Models\User;
 
 require __DIR__ . '/../vendor/autoload.php';
 
@@ -214,6 +217,12 @@ $actions = [
         'help' => 'Show vendor image coverage diagnostics from current products.',
         'type' => 'vendor_report',
     ],
+    'admin_bootstrap' => [
+        'label' => 'Admin Access Recovery (create/update admin user)',
+        'category' => 'Access Recovery',
+        'help' => 'Create or update an admin account with hashed password, verified email, active status, and approved company.',
+        'type' => 'admin_bootstrap',
+    ],
 ];
 
 $groupedActions = [];
@@ -249,6 +258,36 @@ function runArtisanCommand(string $command, array $params = []): array
             'output' => $e->getMessage(),
         ];
     }
+}
+
+function toStringPost(string $key, string $default = ''): string
+{
+    return trim((string) ($_POST[$key] ?? $default));
+}
+
+function validateStrongPasswordForRecovery(string $password): ?string
+{
+    if (strlen($password) < 8) {
+        return 'Password must be at least 8 characters.';
+    }
+
+    if (!preg_match('/[A-Z]/', $password)) {
+        return 'Password must include at least one uppercase letter.';
+    }
+
+    if (!preg_match('/[a-z]/', $password)) {
+        return 'Password must include at least one lowercase letter.';
+    }
+
+    if (!preg_match('/\d/', $password)) {
+        return 'Password must include at least one number.';
+    }
+
+    if (!preg_match('/[^A-Za-z0-9]/', $password)) {
+        return 'Password must include at least one symbol.';
+    }
+
+    return null;
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -313,6 +352,106 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'status' => 'ERROR',
                 'output' => $e->getMessage(),
             ];
+        }
+    } elseif ($actionType === 'admin_bootstrap') {
+        $name = toStringPost('admin_recovery_name', (string) env('ADMIN_NAME', 'Armely Admin'));
+        $email = strtolower(toStringPost('admin_recovery_email', (string) env('ADMIN_EMAIL', '')));
+        $password = (string) ($_POST['admin_recovery_password'] ?? '');
+        $companyName = toStringPost('admin_recovery_company', 'Armely Internal');
+        $role = strtolower(toStringPost('admin_recovery_role', 'admin'));
+
+        $allowedRoles = ['admin', 'owner', 'manager'];
+        if (!in_array($role, $allowedRoles, true)) {
+            $role = 'admin';
+        }
+
+        if ($name === '' || $email === '' || $password === '') {
+            $results[] = [
+                'command' => 'admin_bootstrap',
+                'status' => 'ERROR',
+                'output' => 'Name, email, and password are required.',
+            ];
+        } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $results[] = [
+                'command' => 'admin_bootstrap',
+                'status' => 'ERROR',
+                'output' => 'Please provide a valid admin email address.',
+            ];
+        } elseif (($passwordError = validateStrongPasswordForRecovery($password)) !== null) {
+            $results[] = [
+                'command' => 'admin_bootstrap',
+                'status' => 'ERROR',
+                'output' => $passwordError,
+            ];
+        } else {
+            try {
+                $domain = strtolower((string) substr(strrchr($email, '@') ?: '', 1));
+                if ($domain === '') {
+                    throw new RuntimeException('Unable to derive company domain from email.');
+                }
+
+                DB::beginTransaction();
+
+                $company = Company::where('domain', $domain)->first();
+                if (!$company) {
+                    $company = Company::create([
+                        'name' => $companyName,
+                        'domain' => $domain,
+                        'status' => 'approved',
+                    ]);
+                } else {
+                    $company->forceFill([
+                        'name' => $companyName !== '' ? $companyName : $company->name,
+                        'status' => 'approved',
+                    ])->save();
+                }
+
+                $user = User::where('email', $email)->first();
+                $payload = [
+                    'name' => $name,
+                    'password' => Hash::make($password),
+                    'company_id' => $company->id,
+                    'role' => $role,
+                    'status' => 'active',
+                    'email_verified_at' => now(),
+                ];
+
+                $operation = 'updated';
+                if (!$user) {
+                    $user = User::create(array_merge($payload, ['email' => $email]));
+                    $operation = 'created';
+                } else {
+                    $user->forceFill($payload)->save();
+                }
+
+                if (method_exists($user, 'tokens')) {
+                    $user->tokens()->delete();
+                }
+
+                DB::commit();
+
+                $results[] = [
+                    'command' => 'admin_bootstrap',
+                    'status' => 'OK',
+                    'output' => sprintf(
+                        'Admin user %s successfully.\nEmail: %s\nRole: %s\nStatus: %s\nEmail verified: YES\nCompany: %s (%s, approved)',
+                        $operation,
+                        $email,
+                        $role,
+                        'active',
+                        (string) $company->name,
+                        (string) $company->domain
+                    ),
+                ];
+            } catch (Throwable $e) {
+                DB::rollBack();
+
+                $results[] = [
+                    'command' => 'admin_bootstrap',
+                    'status' => 'ERROR',
+                    'output' => $e->getMessage(),
+                ];
+            }
         }
     }
 }
@@ -540,6 +679,31 @@ function h(?string $value): string
                             <input type="checkbox" id="db_seed" name="db_seed" value="1" <?= isset($_POST['db_seed']) && $_POST['db_seed'] === '1' ? 'checked' : '' ?>>
                             <span style="font-size:14px;color:#374151;">Include seeders (db:seed)</span>
                         </div>
+                    </div>
+                    <div>
+                        <label class="section-title" for="admin_recovery_name">Admin Name</label>
+                        <input type="text" id="admin_recovery_name" name="admin_recovery_name" value="<?= h((string) ($_POST['admin_recovery_name'] ?? env('ADMIN_NAME', 'Armely Admin'))) ?>" placeholder="Armely Admin">
+                    </div>
+                    <div>
+                        <label class="section-title" for="admin_recovery_email">Admin Email</label>
+                        <input type="email" id="admin_recovery_email" name="admin_recovery_email" value="<?= h((string) ($_POST['admin_recovery_email'] ?? env('ADMIN_EMAIL', ''))) ?>" placeholder="admin@company.com">
+                    </div>
+                    <div>
+                        <label class="section-title" for="admin_recovery_password">Admin Password</label>
+                        <input type="password" id="admin_recovery_password" name="admin_recovery_password" value="" placeholder="Strong password (8+, upper/lower/number/symbol)">
+                    </div>
+                    <div>
+                        <label class="section-title" for="admin_recovery_company">Admin Company Name</label>
+                        <input type="text" id="admin_recovery_company" name="admin_recovery_company" value="<?= h((string) ($_POST['admin_recovery_company'] ?? 'Armely Internal')) ?>" placeholder="Armely Internal">
+                    </div>
+                    <div>
+                        <label class="section-title" for="admin_recovery_role">Admin Role</label>
+                        <select id="admin_recovery_role" name="admin_recovery_role">
+                            <?php $selectedRole = strtolower((string) ($_POST['admin_recovery_role'] ?? 'admin')); ?>
+                            <option value="admin" <?= $selectedRole === 'admin' ? 'selected' : '' ?>>admin</option>
+                            <option value="owner" <?= $selectedRole === 'owner' ? 'selected' : '' ?>>owner</option>
+                            <option value="manager" <?= $selectedRole === 'manager' ? 'selected' : '' ?>>manager</option>
+                        </select>
                     </div>
                 </div>
 
