@@ -153,8 +153,22 @@ class MessageController extends Controller
 
     public function getChatSessions(Request $request): JsonResponse
     {
+        $lastMessageContentSubquery = ChatMessage::query()
+            ->select('content')
+            ->whereColumn('chat_session_id', 'chat_sessions.id')
+            ->latest('id')
+            ->limit(1);
+
+        $lastMessageRoleSubquery = ChatMessage::query()
+            ->select('role')
+            ->whereColumn('chat_session_id', 'chat_sessions.id')
+            ->latest('id')
+            ->limit(1);
+
         $sessions = ChatSession::where('user_id', $request->user()->id)
-            ->with(['messages' => fn ($q) => $q->latest('id')->limit(1)])
+            ->select(['id', 'title', 'updated_at', 'last_message_at', 'escalated_to_human', 'escalated_at', 'resolved_at'])
+            ->selectSub($lastMessageContentSubquery, 'last_message_content')
+            ->selectSub($lastMessageRoleSubquery, 'last_message_role')
             ->orderByDesc('last_message_at')
             ->orderByDesc('updated_at')
             ->limit(40)
@@ -163,14 +177,15 @@ class MessageController extends Controller
         return response()->json([
             'success' => true,
             'data' => $sessions->map(function (ChatSession $session) {
-                $last = $session->messages->first();
                 return [
                     'id' => $session->id,
                     'title' => $session->title,
                     'updated_at' => $session->updated_at,
                     'last_message_at' => $session->last_message_at,
-                    'last_message_preview' => $last ? Str::limit((string) $last->content, 80) : null,
-                    'last_message_role' => $last?->role,
+                    'last_message_preview' => $session->last_message_content
+                        ? Str::limit((string) $session->last_message_content, 80)
+                        : null,
+                    'last_message_role' => $session->last_message_role,
                     'escalated_to_human' => (bool) $session->escalated_to_human,
                     'escalated_at' => $session->escalated_at,
                     'resolved_at' => $session->resolved_at,
