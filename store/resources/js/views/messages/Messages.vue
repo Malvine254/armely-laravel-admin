@@ -2,13 +2,13 @@
   <div class="min-h-screen bg-[radial-gradient(circle_at_top_right,_#dce9fb_0%,_#eef4fd_35%,_#f6f9ff_100%)]">
     <Navbar />
 
-    <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-5 py-4 sm:py-5 h-[calc(100dvh-4rem)] flex flex-col overflow-hidden">
+    <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-5 py-4 sm:py-5 h-[calc(100dvh-9.5rem)] md:h-[calc(100dvh-5rem)] flex flex-col overflow-hidden">
       <div class="grid grid-cols-1 xl:grid-cols-12 gap-5 flex-1 min-h-0 overflow-hidden relative">
         <section
           class="rounded-2xl border border-[#d6e2f3] bg-white/95 shadow-sm backdrop-blur overflow-hidden min-h-0 flex flex-col xl:col-span-4 transition-transform duration-300 ease-out xl:relative xl:translate-x-0"
           :class="isHistoryOpenMobile
-            ? 'fixed z-40 top-3 bottom-3 left-3 w-[84vw] max-w-sm translate-x-0 xl:static xl:w-auto xl:max-w-none'
-            : 'fixed z-40 top-3 bottom-3 left-3 w-[84vw] max-w-sm -translate-x-[110%] xl:static xl:w-auto xl:max-w-none'"
+            ? 'fixed z-[70] top-[8.75rem] bottom-3 left-3 w-[84vw] max-w-sm translate-x-0 xl:static xl:w-auto xl:max-w-none'
+            : 'fixed z-[70] top-[8.75rem] bottom-3 left-3 w-[84vw] max-w-sm -translate-x-[110%] xl:static xl:w-auto xl:max-w-none'"
         >
           <div class="px-4 py-4 border-b border-[#e4ebf5] bg-[#f7fbff]">
             <div class="flex items-center justify-between mb-2">
@@ -231,12 +231,14 @@
 import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useToastStore } from '../../stores/toastStore'
+import { useAuthStore } from '../../stores/authStore'
 import { API_BASE_URL } from '../../services/runtimeConfig'
 import Navbar from '../../components/Navbar.vue'
 import { usePricingSettings } from '../../composables/usePricingSettings'
 
 const toastStore = useToastStore()
 const router = useRouter()
+const authStore = useAuthStore()
 const { loadPricingSettings, formatUsdUsingCurrentCurrency } = usePricingSettings()
 
 const chatMessages = ref([])
@@ -250,6 +252,37 @@ const pollingInterval = ref(null)
 const isHistoryOpenMobile = ref(false)
 
 const getAuthToken = () => localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
+
+const getChatCacheKey = (scope) => {
+  const userId = authStore.user?.id || 'guest'
+  return `mela-chat:${scope}:${userId}`
+}
+
+const readCachedJson = (key, fallback) => {
+  if (typeof window === 'undefined') return fallback
+  try {
+    const raw = localStorage.getItem(key)
+    return raw ? JSON.parse(raw) : fallback
+  } catch (error) {
+    return fallback
+  }
+}
+
+const writeCachedJson = (key, value) => {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem(key, JSON.stringify(value))
+  } catch (error) {
+    // Ignore storage write failures.
+  }
+}
+
+const getCachedSessionMessages = (sessionId) => readCachedJson(getChatCacheKey(`session:${sessionId}`), [])
+
+const cacheSessionMessages = (sessionId, messages) => {
+  if (!sessionId) return
+  writeCachedJson(getChatCacheKey(`session:${sessionId}`), messages)
+}
 
 const toggleHistoryPanel = () => {
   isHistoryOpenMobile.value = !isHistoryOpenMobile.value
@@ -341,6 +374,7 @@ const refreshChatMessages = async () => {
 
     const shouldScroll = newMessages.length > chatMessages.value.length
     chatMessages.value = newMessages
+    cacheSessionMessages(activeChatSessionId.value, newMessages)
 
     if (shouldScroll) {
       await scrollChatToBottom()
@@ -384,6 +418,7 @@ const fetchChatSessions = async () => {
 
     const payload = await response.json()
     chatSessions.value = payload?.data || []
+    writeCachedJson(getChatCacheKey('sessions'), chatSessions.value)
   } catch (error) {
     console.error('Error fetching chat sessions:', error)
   }
@@ -435,6 +470,14 @@ const selectChatSession = async (sessionId) => {
 
   try {
     stopMessagePolling()
+    const cachedMessages = getCachedSessionMessages(sessionId)
+    if (Array.isArray(cachedMessages) && cachedMessages.length > 0) {
+      activeChatSessionId.value = sessionId
+      chatMessages.value = cachedMessages
+      ensureChatWelcome()
+      void scrollChatToBottom()
+    }
+
     const token = getAuthToken()
     const response = await fetch(`${API_BASE_URL}/messages/chats/${sessionId}`, {
       method: 'GET',
@@ -462,6 +505,7 @@ const selectChatSession = async (sessionId) => {
       actions: item.actions || [],
       productSuggestions: item.product_suggestions || []
     }))
+    cacheSessionMessages(sessionId, chatMessages.value)
 
     ensureChatWelcome()
     await scrollChatToBottom()
@@ -691,6 +735,7 @@ const sendChatMessage = async (prefilled = null) => {
       actions: assistantPayload.actions || [],
       productSuggestions: assistantPayload.product_suggestions || []
     })
+    cacheSessionMessages(activeChatSessionId.value, chatMessages.value)
 
     await fetchChatSessions()
   } catch (error) {
@@ -712,6 +757,10 @@ const sendChatMessage = async (prefilled = null) => {
 
 onMounted(async () => {
   await loadPricingSettings()
+  const cachedSessions = readCachedJson(getChatCacheKey('sessions'), [])
+  if (Array.isArray(cachedSessions) && cachedSessions.length > 0) {
+    chatSessions.value = cachedSessions
+  }
   ensureChatWelcome()
   await fetchChatSessions()
   if (chatSessions.value.length) {
