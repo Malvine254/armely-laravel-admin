@@ -3,27 +3,12 @@
     <Navbar />
 
     <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-5 py-4 sm:py-5 h-[calc(100dvh-4rem)] flex flex-col overflow-hidden">
-      <div
-        class="rounded-3xl p-6 sm:p-8 text-white shadow-xl border border-white/20"
-        style="background: linear-gradient(135deg, #0e2a56 0%, #1d4b8f 48%, #3e79c9 100%);"
-      >
-        <p class="text-[11px] uppercase tracking-[0.2em] text-blue-100">Smart Support</p>
-        <h1 class="mt-2 text-3xl sm:text-4xl font-bold leading-tight">Mela AI</h1>
-        <p class="text-blue-100 mt-2 max-w-3xl">
-          Product discovery, quote help, invoice/payment support, and human escalation in one conversation.
-        </p>
-      </div>
-
-      <div class="mt-5 grid grid-cols-1 xl:grid-cols-12 gap-5 flex-1 min-h-0 overflow-hidden relative">
-        <div
-          v-if="isHistoryOpenMobile"
-          class="xl:hidden fixed inset-0 bg-slate-900/40 z-30"
-          @click="closeHistoryPanel"
-        ></div>
-
+      <div class="grid grid-cols-1 xl:grid-cols-12 gap-5 flex-1 min-h-0 overflow-hidden relative">
         <section
-          class="rounded-2xl border border-[#d6e2f3] bg-white/95 shadow-sm backdrop-blur overflow-hidden min-h-0 flex flex-col xl:col-span-4 xl:relative xl:z-auto xl:flex"
-          :class="isHistoryOpenMobile ? 'fixed z-40 top-3 bottom-3 left-3 right-14' : 'hidden xl:flex'"
+          class="rounded-2xl border border-[#d6e2f3] bg-white/95 shadow-sm backdrop-blur overflow-hidden min-h-0 flex flex-col xl:col-span-4 transition-transform duration-300 ease-out xl:relative xl:translate-x-0"
+          :class="isHistoryOpenMobile
+            ? 'fixed z-40 top-3 bottom-3 left-3 w-[84vw] max-w-sm translate-x-0 xl:static xl:w-auto xl:max-w-none'
+            : 'fixed z-40 top-3 bottom-3 left-3 w-[84vw] max-w-sm -translate-x-[110%] xl:static xl:w-auto xl:max-w-none'"
         >
           <div class="px-4 py-4 border-b border-[#e4ebf5] bg-[#f7fbff]">
             <div class="flex items-center justify-between mb-2">
@@ -104,7 +89,7 @@
                 @click="toggleHistoryPanel"
                 aria-label="Toggle chat history"
               >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-4 h-4 transition-transform duration-300" :class="isHistoryOpenMobile ? 'rotate-90' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
                 <span class="text-xs font-semibold">Chat History</span>
