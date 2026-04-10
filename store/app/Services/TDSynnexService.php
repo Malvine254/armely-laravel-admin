@@ -849,18 +849,103 @@ class TDSynnexService
         ];
     }
 
-    public function syncPriceAvailabilityImagesFromDatabase(int $chunk = 25, int $limit = 0, ?callable $onProgress = null): array
+    public function priceAvailabilityImageSyncQuery(): \Illuminate\Database\Eloquent\Builder
     {
-        $chunk = max(1, $chunk);
-        $limit = max(0, $limit);
+        $currentShowingOnly = (bool) config('tdsynnex.image_sync.current_showing_only', true);
+        $scopeCap = max(0, (int) config('tdsynnex.image_sync.scope_cap', 1000));
 
         $query = Product::query()
             ->where('vendor_id', 'TD SYNNEX')
             ->where(function ($q) {
                 $q->whereNull('images')
                     ->orWhere('images', '[]');
-            })
-            ->orderBy('id');
+            });
+
+        if ($currentShowingOnly) {
+            // Match storefront-ready catalog rows to avoid scanning the entire imported feed.
+            $query->where(function ($q) {
+                $q->where('is_available', 1)
+                    ->orWhereNull('is_available');
+            })->where(function ($q) {
+                $q->where('is_discontinued', 0)
+                    ->orWhereNull('is_discontinued');
+            });
+
+            if ((bool) config('tdsynnex.image_sync.hide_zero_price', true)) {
+                $query->where('base_price', '>', 0);
+            }
+
+            $minPrice = config('tdsynnex.image_sync.min_price', 200);
+            if ($minPrice !== null && $minPrice !== '') {
+                $query->where('base_price', '>=', (float) $minPrice);
+            }
+
+            if ((bool) config('tdsynnex.image_sync.catalog_clean', true)) {
+                $query->whereRaw("LOWER(COALESCE(mfg_part_no, '')) <> 'shipping'")
+                    ->whereRaw("LOWER(COALESCE(product_name, '')) NOT LIKE '%shipping%'")
+                    ->whereRaw("NOT ((COALESCE(base_price, 0) <= 0.05) AND (LOWER(COALESCE(product_name, '')) LIKE '%support%' OR LOWER(COALESCE(product_name, '')) LIKE '%warranty%' OR LOWER(COALESCE(product_name, '')) LIKE '%consulting%' OR LOWER(COALESCE(product_name, '')) LIKE '%implementation%' OR LOWER(COALESCE(product_name, '')) LIKE '%annual fee%' OR LOWER(COALESCE(product_name, '')) LIKE '%training%'))");
+            }
+
+            if ((bool) config('tdsynnex.catalog.hardware_only', true)) {
+                $nonHardwareRegex = '(license|lic/sa|subscription|software|office|windows svr|exchange svr|core cal|\\bcal\\b|addtl prod|step up|coverage|warranty|support|maintenance|consulting|implementation|training|care pack|onsite repair|extended service|service agreement|sa olv|olv nl)';
+                $query->whereRaw(
+                    "LOWER(CONCAT(' ', COALESCE(product_name, ''), ' ', COALESCE(description, ''), ' ')) NOT REGEXP ?",
+                    [$nonHardwareRegex]
+                );
+            }
+
+            if ($scopeCap > 0) {
+                $scopeIds = Product::query()
+                    ->where('vendor_id', 'TD SYNNEX')
+                    ->where(function ($q) {
+                        $q->where('is_available', 1)
+                            ->orWhereNull('is_available');
+                    })
+                    ->where(function ($q) {
+                        $q->where('is_discontinued', 0)
+                            ->orWhereNull('is_discontinued');
+                    });
+
+                if ((bool) config('tdsynnex.image_sync.hide_zero_price', true)) {
+                    $scopeIds->where('base_price', '>', 0);
+                }
+
+                $minPrice = config('tdsynnex.image_sync.min_price', 200);
+                if ($minPrice !== null && $minPrice !== '') {
+                    $scopeIds->where('base_price', '>=', (float) $minPrice);
+                }
+
+                if ((bool) config('tdsynnex.image_sync.catalog_clean', true)) {
+                    $scopeIds->whereRaw("LOWER(COALESCE(mfg_part_no, '')) <> 'shipping'")
+                        ->whereRaw("LOWER(COALESCE(product_name, '')) NOT LIKE '%shipping%'")
+                        ->whereRaw("NOT ((COALESCE(base_price, 0) <= 0.05) AND (LOWER(COALESCE(product_name, '')) LIKE '%support%' OR LOWER(COALESCE(product_name, '')) LIKE '%warranty%' OR LOWER(COALESCE(product_name, '')) LIKE '%consulting%' OR LOWER(COALESCE(product_name, '')) LIKE '%implementation%' OR LOWER(COALESCE(product_name, '')) LIKE '%annual fee%' OR LOWER(COALESCE(product_name, '')) LIKE '%training%'))");
+                }
+
+                if ((bool) config('tdsynnex.catalog.hardware_only', true)) {
+                    $nonHardwareRegex = '(license|lic/sa|subscription|software|office|windows svr|exchange svr|core cal|\\bcal\\b|addtl prod|step up|coverage|warranty|support|maintenance|consulting|implementation|training|care pack|onsite repair|extended service|service agreement|sa olv|olv nl)';
+                    $scopeIds->whereRaw(
+                        "LOWER(CONCAT(' ', COALESCE(product_name, ''), ' ', COALESCE(description, ''), ' ')) NOT REGEXP ?",
+                        [$nonHardwareRegex]
+                    );
+                }
+
+                $ids = $scopeIds->orderBy('id')->limit($scopeCap)->pluck('id')->all();
+                if (empty($ids)) {
+                    $query->whereRaw('1 = 0');
+                } else {
+                    $query->whereIn('id', $ids);
+                }
+            }
+        }
+
+        return $query;
+    }
+
+    public function syncPriceAvailabilityImagesFromDatabase(int $chunk = 25, int $limit = 0, ?callable $onProgress = null): array
+    {
+        $chunk = max(1, $chunk);
+        $limit = max(0, $limit);
+        $query = $this->priceAvailabilityImageSyncQuery()->orderBy('id');
 
         if ($limit > 0) {
             $query->limit($limit);
@@ -1773,7 +1858,7 @@ class TDSynnexService
         $ttl = max(60, (int) config('tdsynnex.icecat.cache_ttl', 86400));
         $cacheKey = 'tdsynnex:assets:' . md5(json_encode([
             // Cache version bump forces re-evaluation of older no-match entries.
-            'icecat-v5-scrape-safe',
+            'icecat-v6-serpapi-images',
             $sku,
             (string) ($meta['mpn'] ?? ''),
             (string) ($meta['manufacturer'] ?? ''),
@@ -1802,17 +1887,17 @@ class TDSynnexService
             }
 
             if (empty($images)) {
-                $scraped = $this->fetchScrapedProductImageData($sku, $meta, $description);
-                $scrapedImage = trim((string) ($scraped['image_url'] ?? ''));
-                if ($scrapedImage !== '' && $this->isValidImageUrl($scrapedImage)) {
+                $serpApi = $this->fetchSerpApiProductImageData($sku, $meta, $description);
+                $serpApiImage = trim((string) ($serpApi['image_url'] ?? ''));
+                if ($serpApiImage !== '' && $this->isValidImageUrl($serpApiImage)) {
                     $images[] = [
-                        'imageUrl' => $scrapedImage,
-                        'source' => (string) ($scraped['source'] ?? 'scrape-approved'),
+                        'imageUrl' => $serpApiImage,
+                        'source' => (string) ($serpApi['source'] ?? 'serpapi-image'),
                     ];
                 }
             }
 
-            // Icecat disabled - using only flat-file and safe scraper.
+            // Icecat disabled - using only flat-file and SerpAPI image fallback.
             // $icecatData = $this->fetchIcecatProductData($sku, $meta, $description);
             // $icecatImage = trim((string) ($icecatData['image_url'] ?? ''));
             // $resolvedDescription = trim((string) ($icecatData['description'] ?? ''));
@@ -2077,6 +2162,146 @@ class TDSynnexService
         return ['image_url' => '', 'source' => ''];
     }
 
+    private function fetchSerpApiProductImageData(string $sku, array $meta, string $description = ''): array
+    {
+        if (!config('tdsynnex.serpapi.enabled', false)) {
+            return ['image_url' => '', 'source' => ''];
+        }
+
+        $apiKey = trim((string) config('tdsynnex.serpapi.api_key', ''));
+        if ($apiKey === '') {
+            return ['image_url' => '', 'source' => ''];
+        }
+
+        $queries = $this->buildSerpApiImageQueries($sku, $meta, $description);
+        if (empty($queries)) {
+            return ['image_url' => '', 'source' => ''];
+        }
+
+        $endpoint = trim((string) config('tdsynnex.serpapi.endpoint', 'https://serpapi.com/search.json'));
+        $timeout = max(2, (int) config('tdsynnex.serpapi.timeout', 10));
+        $connectTimeout = max(1, (int) config('tdsynnex.serpapi.connect_timeout', 3));
+        $num = max(1, min(20, (int) config('tdsynnex.serpapi.num', 5)));
+        $maxQueries = max(1, min(6, (int) config('tdsynnex.serpapi.max_queries', 3)));
+        $retryAttempts = max(1, min(5, (int) config('tdsynnex.serpapi.retry_attempts', 3)));
+        $retryDelayMs = max(100, min(5000, (int) config('tdsynnex.serpapi.retry_delay_ms', 350)));
+        $queries = array_slice($queries, 0, $maxQueries);
+
+        $baseParams = [
+            'api_key' => $apiKey,
+            'engine' => (string) config('tdsynnex.serpapi.engine', 'google_images'),
+            'num' => $num,
+        ];
+
+        $tbm = trim((string) config('tdsynnex.serpapi.tbm', 'isch'));
+        if ($tbm !== '') {
+            $baseParams['tbm'] = $tbm;
+        }
+
+        $gl = trim((string) config('tdsynnex.serpapi.gl', 'us'));
+        if ($gl !== '') {
+            $baseParams['gl'] = $gl;
+        }
+
+        $hl = trim((string) config('tdsynnex.serpapi.hl', 'en'));
+        if ($hl !== '') {
+            $baseParams['hl'] = $hl;
+        }
+
+        try {
+            \Illuminate\Support\Facades\DB::disconnect();
+
+            foreach ($queries as $query) {
+                $params = array_merge($baseParams, ['q' => $query]);
+
+                for ($attempt = 1; $attempt <= $retryAttempts; $attempt++) {
+                    try {
+                        $response = Http::acceptJson()
+                            ->connectTimeout($connectTimeout)
+                            ->timeout($timeout)
+                            ->get($endpoint, $params);
+
+                        if ($response->failed()) {
+                            Log::debug('SerpAPI image lookup failed', [
+                                'sku' => $sku,
+                                'status' => $response->status(),
+                                'query' => $query,
+                                'attempt' => $attempt,
+                            ]);
+
+                            continue;
+                        }
+
+                        $json = $response->json();
+                        if (!is_array($json)) {
+                            continue;
+                        }
+
+                        $results = (array) ($json['images_results'] ?? []);
+                        foreach ($results as $result) {
+                            if (!is_array($result)) {
+                                continue;
+                            }
+
+                            $imageUrl = $this->extractImageUrlFromSerpApiResult($result);
+                            if ($imageUrl === '' || !$this->isValidImageUrl($imageUrl)) {
+                                continue;
+                            }
+
+                            Log::info('SerpAPI MATCH', [
+                                'sku' => $sku,
+                                'query' => $query,
+                                'attempt' => $attempt,
+                                'image' => $imageUrl,
+                            ]);
+
+                            return [
+                                'image_url' => $imageUrl,
+                                'source' => 'serpapi-image',
+                            ];
+                        }
+                    } catch (\Throwable $e) {
+                        Log::debug('SerpAPI image lookup exception', [
+                            'sku' => $sku,
+                            'query' => $query,
+                            'attempt' => $attempt,
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
+
+                    if ($attempt < $retryAttempts) {
+                        usleep($retryDelayMs * 1000);
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::debug('SerpAPI image lookup outer exception', [
+                'sku' => $sku,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        return ['image_url' => '', 'source' => ''];
+    }
+
+    private function extractImageUrlFromSerpApiResult(array $result): string
+    {
+        $candidates = [
+            (string) ($result['original'] ?? ''),
+            (string) ($result['thumbnail'] ?? ''),
+            (string) ($result['image'] ?? ''),
+        ];
+
+        foreach ($candidates as $candidate) {
+            $candidate = trim($candidate);
+            if ($candidate !== '') {
+                return $candidate;
+            }
+        }
+
+        return '';
+    }
+
     private function resolveScrapeCandidateUrls(array $meta, string $description = ''): array
     {
         $candidates = [];
@@ -2308,6 +2533,78 @@ class TDSynnexService
         }
 
         return false;
+    }
+
+    private function buildSerpApiImageQueries(string $sku, array $meta, string $description = ''): array
+    {
+        $manufacturer = trim((string) ($meta['manufacturer'] ?? ''));
+        $manufacturerShort = $this->normalizeManufacturerForSearch($manufacturer);
+        $mpn = trim((string) ($meta['mpn'] ?? ''));
+        $upc = trim((string) ($meta['upc'] ?? ''));
+        $domain = trim((string) ($meta['source_url'] ?? $meta['product_url'] ?? $meta['manufacturer_url'] ?? ''));
+        $host = strtolower((string) parse_url($domain, PHP_URL_HOST));
+
+        $queries = [];
+
+        foreach ([
+            trim($manufacturerShort . ' ' . $mpn),
+            trim($manufacturerShort . ' ' . $mpn . ' product image'),
+            trim($manufacturerShort . ' ' . $mpn . ' ' . $sku),
+            trim($manufacturer . ' ' . $mpn),
+            trim($mpn . ' product image'),
+            trim($mpn),
+            trim($manufacturerShort . ' ' . $upc),
+            trim($upc),
+            trim($manufacturerShort . ' ' . $sku),
+            trim($sku),
+        ] as $candidate) {
+            $candidate = preg_replace('/\s+/', ' ', trim((string) $candidate)) ?: '';
+            if ($candidate !== '') {
+                $queries[$candidate] = true;
+            }
+        }
+
+        if ($host !== '') {
+            foreach (array_keys($queries) as $query) {
+                $queries[$query . ' site:' . $host] = true;
+            }
+        }
+
+        if (empty($queries)) {
+            $desc = trim((string) $description);
+            if ($desc !== '') {
+                $queries[$desc] = true;
+            }
+        }
+
+        return array_keys($queries);
+    }
+
+    private function normalizeManufacturerForSearch(string $manufacturer): string
+    {
+        $value = strtoupper(trim($manufacturer));
+        if ($value === '') {
+            return '';
+        }
+
+        $value = str_replace(['CORPORATION', 'CORP', 'INCORPORATED', 'INC.', 'INC', 'LLC', 'LTD', 'LIMITED', 'CO.', 'CO'], '', $value);
+        $value = preg_replace('/\s+/', ' ', trim($value)) ?: '';
+
+        $aliases = [
+            'HEWLETT PACKARD ENTERPRISE' => 'HPE',
+            'APC BY SCHNEIDER ELECTRIC' => 'APC',
+            'HP INC' => 'HP',
+            'EPSON PRINT' => 'EPSON',
+            'BELKIN INTERNATIONAL' => 'BELKIN',
+        ];
+
+        foreach ($aliases as $from => $to) {
+            if ($value === $from) {
+                return $to;
+            }
+        }
+
+        return $value;
     }
 
     private function extractImageUrlFromHtml(string $html, string $baseUrl, array $meta = []): string

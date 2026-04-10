@@ -181,6 +181,37 @@ return [
         'max_lookups_per_request' => env('ICECAT_MAX_LOOKUPS_PER_REQUEST', 8),
     ],
 
+    'serpapi' => [
+        'enabled' => env('SERPAPI_IMAGE_ENABLED', true),
+        'api_key' => env('SERPAPI_API_KEY', ''),
+        'endpoint' => env('SERPAPI_ENDPOINT', 'https://serpapi.com/search.json'),
+        'engine' => env('SERPAPI_ENGINE', 'google_images'),
+        'tbm' => env('SERPAPI_TBM', 'isch'),
+        'gl' => env('SERPAPI_GL', 'us'),
+        'hl' => env('SERPAPI_HL', 'en'),
+        'num' => env('SERPAPI_NUM', 5),
+        'timeout' => env('SERPAPI_TIMEOUT', 10),
+        'connect_timeout' => env('SERPAPI_CONNECT_TIMEOUT', 3),
+        'max_queries' => env('SERPAPI_MAX_QUERIES', 3),
+        'retry_attempts' => env('SERPAPI_RETRY_ATTEMPTS', 3),
+        'retry_delay_ms' => env('SERPAPI_RETRY_DELAY_MS', 350),
+    ],
+
+    'image_sync' => [
+        // Restrict enrichment pool to storefront-like browse products by default.
+        'current_showing_only' => env('IMAGE_SYNC_CURRENT_SHOWING_ONLY', true),
+        'hide_zero_price' => env('IMAGE_SYNC_HIDE_ZERO_PRICE', true),
+        'min_price' => env('IMAGE_SYNC_MIN_PRICE', 200),
+        'catalog_clean' => env('IMAGE_SYNC_CATALOG_CLEAN', true),
+        // Cap sync scope to the first N currently-showing products (0 = uncapped).
+        'scope_cap' => env('IMAGE_SYNC_SCOPE_CAP', 1000),
+    ],
+
+    'catalog' => [
+        // When enabled, exclude software/licenses/services/warranty-like rows from product listings.
+        'hardware_only' => env('CATALOG_HARDWARE_ONLY', true),
+    ],
+
     'scraping' => [
         'enabled' => env('IMAGE_SCRAPING_ENABLED', true),
         'timeout' => env('IMAGE_SCRAPING_TIMEOUT', 4),

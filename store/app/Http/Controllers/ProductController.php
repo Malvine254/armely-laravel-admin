@@ -613,6 +613,10 @@ class ProductController extends Controller
             $query->whereIn('billing_model', array_map('trim', explode(',', (string) $billingModels)));
         }
 
+        if ((bool) config('tdsynnex.catalog.hardware_only', true)) {
+            $this->applyHardwareOnlyExclusions($query);
+        }
+
         if ($isDefaultBrowse) {
             $this->applyCuratedDefaultBrowseFilters($query);
         }
@@ -1603,31 +1607,19 @@ class ProductController extends Controller
             );
         }
 
-        // Hardware-only guard: explicitly exclude software/service catalog terms.
-        $nonHardwareKeywords = [
-            'license',
-            'subscription',
-            'software',
-            'office 365',
-            'microsoft 365',
-            'adobe',
-            'bitdefender',
-            'antivirus',
-            'renewal',
-            'support',
-            'warranty',
-            'maintenance',
-            'consulting',
-            'implementation',
-            'training',
-            'saas',
-        ];
-
-        foreach ($nonHardwareKeywords as $keyword) {
-            $like = '%' . strtolower($keyword) . '%';
-            $query->whereRaw("LOWER(COALESCE(product_name, '')) NOT LIKE ?", [$like])
-                ->whereRaw("LOWER(COALESCE(description, '')) NOT LIKE ?", [$like]);
+        if ((bool) config('tdsynnex.catalog.hardware_only', true)) {
+            $this->applyHardwareOnlyExclusions($query);
         }
+    }
+
+    private function applyHardwareOnlyExclusions(\Illuminate\Database\Eloquent\Builder $query): void
+    {
+        // Exclude software/license/service-like SKUs that often pollute hardware catalog views.
+        $nonHardwareRegex = '(license|lic/sa|subscription|software|office|windows svr|exchange svr|core cal|\\bcal\\b|addtl prod|step up|coverage|warranty|support|maintenance|consulting|implementation|training|care pack|onsite repair|extended service|service agreement|sa olv|olv nl|renewal|saas)';
+        $query->whereRaw(
+            "LOWER(CONCAT(' ', COALESCE(product_name, ''), ' ', COALESCE(description, ''), ' ')) NOT REGEXP ?",
+            [$nonHardwareRegex]
+        );
     }
 
     private function hasProductsFullTextIndex(): bool
