@@ -85,8 +85,8 @@ class RepairDatabaseSchemaCommand extends Command
                 ->first();
 
             if ($idMeta === null) {
-                $this->warn('migrations.id is missing. Adding auto-increment primary key...');
-                DB::statement('ALTER TABLE `migrations` ADD COLUMN `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY FIRST');
+                $this->warn('migrations.id is missing. Rebuilding migrations table with the correct schema...');
+                $this->rebuildMigrationsTable();
                 return self::SUCCESS;
             }
 
@@ -100,24 +100,7 @@ class RepairDatabaseSchemaCommand extends Command
             }
 
             $this->warn('migrations.id is not a valid auto-increment primary key. Repairing table structure...');
-
-            // Normalize any duplicate or null ids first so we can safely enforce primary key.
-            DB::statement('SET @rownum := 0');
-            DB::statement('UPDATE `migrations` SET `id` = (@rownum := @rownum + 1) ORDER BY `id` ASC, `migration` ASC');
-            DB::statement('ALTER TABLE `migrations` MODIFY `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT');
-
-            // Ensure primary key exists on id.
-            $pkExists = DB::table('information_schema.table_constraints')
-                ->where('TABLE_SCHEMA', $table)
-                ->where('TABLE_NAME', 'migrations')
-                ->where('CONSTRAINT_TYPE', 'PRIMARY KEY')
-                ->exists();
-
-            if ($pkExists) {
-                DB::statement('ALTER TABLE `migrations` DROP PRIMARY KEY');
-            }
-
-            DB::statement('ALTER TABLE `migrations` ADD PRIMARY KEY (`id`)');
+            $this->rebuildMigrationsTable();
             $this->info('migrations table structure repaired.');
 
             return self::SUCCESS;
@@ -125,5 +108,26 @@ class RepairDatabaseSchemaCommand extends Command
             $this->error('Failed to repair migrations table: ' . $e->getMessage());
             return self::FAILURE;
         }
+    }
+
+    private function rebuildMigrationsTable(): void
+    {
+        $tmpTable = 'migrations_repair_tmp';
+
+        DB::statement('DROP TABLE IF EXISTS `'.$tmpTable.'`');
+        DB::statement(
+            'CREATE TABLE `'.$tmpTable.'` (' .
+            ' `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,' .
+            ' `migration` VARCHAR(255) NOT NULL,' .
+            ' `batch` INT NOT NULL,' .
+            ' PRIMARY KEY (`id`)' .
+            ')'
+        );
+
+        // Preserve existing migration history while normalizing id generation.
+        DB::statement('INSERT INTO `'.$tmpTable.'` (`migration`, `batch`) SELECT `migration`, `batch` FROM `migrations` ORDER BY `batch` ASC, `migration` ASC');
+
+        DB::statement('DROP TABLE `migrations`');
+        DB::statement('RENAME TABLE `'.$tmpTable.'` TO `migrations`');
     }
 }
