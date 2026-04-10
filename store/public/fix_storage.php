@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schema;
 use App\Models\Product;
 
 require __DIR__ . '/../vendor/autoload.php';
@@ -122,6 +123,19 @@ $actions = [
         'label' => 'Repair DB Schema (run pending migrations)',
         'type' => 'db_repair',
     ],
+    'mela_chat_schema_fix' => [
+        'label' => 'Run Mela AI Chat Schema Fix Migration',
+        'type' => 'artisan',
+        'commands' => [
+            [
+                'name' => 'migrate',
+                'params' => [
+                    '--force' => true,
+                    '--path' => 'database/migrations/2026_04_10_120000_fix_chat_sessions_columns_for_assistant.php',
+                ],
+            ],
+        ],
+    ],
     'clear_tds_cache' => [
         'label' => 'Clear TD SYNNEX Cache',
         'type' => 'artisan',
@@ -233,6 +247,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $publicStoragePath = public_path('storage');
 $storagePublicPath = storage_path('app/public');
 $cachePath = base_path('bootstrap/cache');
+$chatSessionsExists = Schema::hasTable('chat_sessions');
 $statusRows = [
     'App env' => (string) config('app.env'),
     'App debug' => config('app.debug') ? 'true' : 'false',
@@ -248,6 +263,10 @@ $statusRows = [
     'storage/app/public exists' => file_exists($storagePublicPath) ? 'YES' : 'NO',
     'storage/app/public writable' => file_exists($storagePublicPath) ? (is_writable($storagePublicPath) ? 'YES' : 'NO') : 'NO',
     'bootstrap/cache writable' => file_exists($cachePath) ? (is_writable($cachePath) ? 'YES' : 'NO') : 'NO',
+    'chat_sessions exists' => $chatSessionsExists ? 'YES' : 'NO',
+    'chat_sessions.escalated_to_human' => ($chatSessionsExists && Schema::hasColumn('chat_sessions', 'escalated_to_human')) ? 'YES' : 'NO',
+    'chat_sessions.escalated_at' => ($chatSessionsExists && Schema::hasColumn('chat_sessions', 'escalated_at')) ? 'YES' : 'NO',
+    'chat_sessions.resolved_at' => ($chatSessionsExists && Schema::hasColumn('chat_sessions', 'resolved_at')) ? 'YES' : 'NO',
     'Catalog hardware only' => config('tdsynnex.catalog.hardware_only') ? 'true' : 'false',
     'Image sync current showing only' => config('tdsynnex.image_sync.current_showing_only') ? 'true' : 'false',
     'Image sync scope cap' => (string) config('tdsynnex.image_sync.scope_cap', 1000),
