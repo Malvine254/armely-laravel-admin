@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\SharePreviewController;
 
 // Store SPA public routes - disable legacy dashboard
 Route::get('/dashboard', function () {
@@ -11,6 +12,17 @@ Route::get('/dashboard', function () {
 
 // Lightweight public ping for deployment health checks (no auth)
 Route::get('/admin/ping', [AdminController::class, 'ping'])->name('store.admin.ping');
+
+// Public share preview pages for WhatsApp/Teams/chat link unfurls.
+Route::get('/share/product/{productId}', [SharePreviewController::class, 'product'])
+    ->name('store.share.product.preview');
+
+Route::get('/share/cart/{messageId}', [SharePreviewController::class, 'cart'])
+    ->middleware('signed')
+    ->name('store.share.cart.preview');
+
+Route::get('/share/cart/public/{token}', [SharePreviewController::class, 'cartPublic'])
+    ->name('store.share.cart.preview.public');
 
 // Store admin is handled by the Vue SPA. Authentication is token-based via
 // /api/v1/auth/*, so these paths should render the SPA entrypoint.

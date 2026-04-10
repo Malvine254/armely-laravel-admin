@@ -9,6 +9,8 @@ use App\Models\Product;
 use App\Models\AppSetting;
 use App\Models\Shipment;
 use App\Models\Activity;
+use App\Models\Message;
+use App\Models\User;
 use App\Jobs\SendQuoteNotificationJob;
 use App\Services\TDSynnexService;
 use App\Services\PdfService;
@@ -18,6 +20,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\URL;
 
 class QuoteOrderInvoiceController extends Controller
 {
@@ -280,6 +283,295 @@ class QuoteOrderInvoiceController extends Controller
                 'message' => 'Failed to load pricing settings',
             ], 500);
         }
+    }
+
+    public function shareProduct(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if ($response = $this->ensureWriteAccess($user)) {
+            return $response;
+        }
+
+        $validated = $request->validate([
+            'recipient_email' => ['nullable', 'email'],
+            'product' => ['required', 'array'],
+            'product.productId' => ['required'],
+            'product.productName' => ['required', 'string', 'max:500'],
+            'product.mfgPartNo' => ['nullable', 'string', 'max:100'],
+            'product.vendorId' => ['nullable', 'string', 'max:255'],
+            'product.description' => ['nullable', 'string'],
+            'product.imageUrl' => ['nullable', 'string', 'max:2048'],
+            'product.price' => ['nullable', 'numeric'],
+            'note' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $recipientEmail = strtolower(trim((string) ($validated['recipient_email'] ?? '')));
+        $recipient = null;
+        if ($recipientEmail !== '') {
+            $recipient = User::whereRaw('LOWER(email) = ?', [$recipientEmail])->first();
+
+            if ($recipient && (int) $recipient->id === (int) $user->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You cannot share a product with your own account.',
+                ], 422);
+            }
+        }
+
+        $product = $validated['product'];
+        $productId = (string) $product['productId'];
+        $shareUrl = $this->buildProductShareUrl($productId);
+
+        $message = null;
+        if ($recipient) {
+            $message = Message::createMessage(
+                (int) $recipient->id,
+                'system',
+                'Product shared with you',
+                sprintf('%s shared %s with you.%s', (string) $user->name, (string) $product['productName'], !empty($validated['note']) ? ' Note: ' . (string) $validated['note'] : ''),
+                'PRODUCT-SHARE-' . $productId,
+                'normal',
+                [
+                    'share_type' => 'product',
+                    'shared_by_user_id' => (int) $user->id,
+                    'shared_by_name' => (string) $user->name,
+                    'note' => (string) ($validated['note'] ?? ''),
+                    'product' => [
+                        'product_id' => $productId,
+                        'name' => (string) $product['productName'],
+                        'sku' => (string) ($product['mfgPartNo'] ?? ''),
+                        'vendor' => (string) ($product['vendorId'] ?? ''),
+                        'price' => (float) ($product['price'] ?? 0),
+                        'description' => (string) ($product['description'] ?? ''),
+                        'image_url' => (string) ($product['imageUrl'] ?? ''),
+                    ],
+                    'actions' => [
+                        [
+                            'label' => 'View shared product',
+                            'link' => $shareUrl,
+                        ],
+                    ],
+                ]
+            );
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => $recipient
+                ? 'Product shared successfully.'
+                : 'Product share link generated successfully.',
+            'data' => [
+                'message_id' => $message?->id,
+                'recipient_email' => $recipient?->email,
+                'share_url' => $shareUrl,
+                'recipient_registered' => (bool) $recipient,
+            ],
+        ]);
+    }
+
+    public function shareCart(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if ($response = $this->ensureWriteAccess($user)) {
+            return $response;
+        }
+
+        $validated = $request->validate([
+            'recipient_email' => ['nullable', 'email'],
+            'items' => ['required', 'array', 'min:1', 'max:200'],
+            'items.*.productId' => ['required'],
+            'items.*.productName' => ['required', 'string', 'max:500'],
+            'items.*.quantity' => ['required', 'integer', 'min:1', 'max:999'],
+            'items.*.mfgPartNo' => ['nullable', 'string', 'max:100'],
+            'items.*.vendorId' => ['nullable', 'string', 'max:255'],
+            'items.*.billingModel' => ['nullable', 'string', 'max:100'],
+            'items.*.billingFrequency' => ['nullable', 'string', 'max:50'],
+            'items.*.productImages' => ['nullable', 'array'],
+            'items.*.productPrice' => ['nullable', 'array'],
+            'note' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $recipientEmail = strtolower(trim((string) ($validated['recipient_email'] ?? '')));
+        $recipient = null;
+        if ($recipientEmail !== '') {
+            $recipient = User::whereRaw('LOWER(email) = ?', [$recipientEmail])->first();
+
+            if ($recipient && (int) $recipient->id === (int) $user->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You cannot share a cart with your own account.',
+                ], 422);
+            }
+        }
+
+        $sharedItems = collect($validated['items'])
+            ->map(function (array $item) {
+                return [
+                    'productId' => (string) $item['productId'],
+                    'productName' => (string) $item['productName'],
+                    'quantity' => max(1, (int) $item['quantity']),
+                    'mfgPartNo' => (string) ($item['mfgPartNo'] ?? ''),
+                    'vendorId' => (string) ($item['vendorId'] ?? ''),
+                    'billingModel' => (string) ($item['billingModel'] ?? ''),
+                    'billingFrequency' => (string) ($item['billingFrequency'] ?? ''),
+                    'productImages' => array_values(array_slice((array) ($item['productImages'] ?? []), 0, 5)),
+                    'productPrice' => array_values(array_slice((array) ($item['productPrice'] ?? []), 0, 3)),
+                ];
+            })
+            ->filter(fn (array $item) => $item['productId'] !== '' && $item['productName'] !== '')
+            ->values()
+            ->all();
+
+        if (empty($sharedItems)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No valid cart items were provided to share.',
+            ], 422);
+        }
+
+        $publicToken = $this->createPublicCartShareToken(
+            (int) $user->id,
+            (string) $user->name,
+            (string) ($validated['note'] ?? ''),
+            $sharedItems
+        );
+        $shareUrl = $this->buildPublicCartShareUrl($publicToken);
+
+        $message = null;
+        if ($recipient) {
+            $message = Message::createMessage(
+                (int) $recipient->id,
+                'system',
+                'Cart shared with you',
+                sprintf('%s shared a cart with %d item(s).%s', (string) $user->name, count($sharedItems), !empty($validated['note']) ? ' Note: ' . (string) $validated['note'] : ''),
+                'CART-SHARE-' . now()->timestamp,
+                'normal',
+                [
+                    'share_type' => 'cart',
+                    'shared_by_user_id' => (int) $user->id,
+                    'shared_by_name' => (string) $user->name,
+                    'note' => (string) ($validated['note'] ?? ''),
+                    'cart' => [
+                        'items' => $sharedItems,
+                        'item_count' => count($sharedItems),
+                    ],
+                ]
+            );
+
+            $message->forceFill([
+                'metadata' => array_merge((array) $message->metadata, [
+                    'actions' => [
+                        [
+                            'label' => 'Open shared cart',
+                            'link' => $shareUrl,
+                        ],
+                    ],
+                    'share_url' => $shareUrl,
+                    'public_share_token' => $publicToken,
+                ]),
+            ])->save();
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => $recipient
+                ? 'Cart shared successfully.'
+                : 'Cart share link generated successfully.',
+            'data' => [
+                'message_id' => $message?->id,
+                'recipient_email' => $recipient?->email,
+                'item_count' => count($sharedItems),
+                'share_url' => $shareUrl,
+                'recipient_registered' => (bool) $recipient,
+            ],
+        ]);
+    }
+
+    public function getSharedCart(Request $request, int $messageId): JsonResponse
+    {
+        $message = Message::where('id', $messageId)
+            ->where('user_id', $request->user()->id)
+            ->firstOrFail();
+
+        if ((string) data_get($message->metadata, 'share_type') !== 'cart') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Shared cart not found for this message.',
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'message_id' => $message->id,
+                'shared_by_name' => (string) data_get($message->metadata, 'shared_by_name', 'A user'),
+                'note' => (string) data_get($message->metadata, 'note', ''),
+                'items' => array_values((array) data_get($message->metadata, 'cart.items', [])),
+            ],
+        ]);
+    }
+
+    public function getPublicSharedCart(string $token): JsonResponse
+    {
+        $payload = Cache::get($this->publicCartShareCacheKey($token));
+        if (!is_array($payload)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This shared cart link is invalid or has expired.',
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'token' => $token,
+                'shared_by_name' => (string) ($payload['shared_by_name'] ?? 'A user'),
+                'note' => (string) ($payload['note'] ?? ''),
+                'items' => array_values((array) ($payload['items'] ?? [])),
+            ],
+        ]);
+    }
+
+    private function buildProductShareUrl(string $productId): string
+    {
+        $configured = trim((string) env('FRONTEND_URL', ''));
+        if ($configured !== '') {
+            return rtrim($configured, '/') . '/share/product/' . rawurlencode($productId);
+        }
+
+        return route('store.share.product.preview', ['productId' => $productId]);
+    }
+
+    private function createPublicCartShareToken(int $sharedByUserId, string $sharedByName, string $note, array $items): string
+    {
+        $token = bin2hex(random_bytes(20));
+        $payload = [
+            'share_type' => 'cart_public',
+            'shared_by_user_id' => $sharedByUserId,
+            'shared_by_name' => $sharedByName,
+            'note' => $note,
+            'items' => array_values($items),
+            'created_at' => now()->toIso8601String(),
+        ];
+
+        Cache::put($this->publicCartShareCacheKey($token), $payload, now()->addDays(14));
+
+        return $token;
+    }
+
+    private function buildPublicCartShareUrl(string $token): string
+    {
+        $configured = trim((string) env('FRONTEND_URL', ''));
+        if ($configured !== '') {
+            return rtrim($configured, '/') . '/share/cart/public/' . rawurlencode($token);
+        }
+
+        return route('store.share.cart.preview.public', ['token' => $token]);
+    }
+
+    private function publicCartShareCacheKey(string $token): string
+    {
+        return 'share:cart:public:' . $token;
     }
 
     // ============ QUOTES ============

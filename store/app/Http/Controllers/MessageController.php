@@ -687,6 +687,39 @@ class MessageController extends Controller
             ]);
         }
 
+        $localProductHandled = $this->handleLocalProductDiscoveryReply($question, $context);
+        if ($localProductHandled !== null) {
+            ChatMessage::create([
+                'chat_session_id' => $session->id,
+                'user_id' => $user->id,
+                'role' => 'assistant',
+                'content' => $localProductHandled['reply'],
+                'actions' => $localProductHandled['actions'],
+                'metadata' => [
+                    'source' => $localProductHandled['source'],
+                    'product_suggestions' => (array) ($localProductHandled['product_suggestions'] ?? []),
+                ],
+            ]);
+
+            $session->forceFill([
+                'last_message_at' => now(),
+            ])->save();
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'reply' => $localProductHandled['reply'],
+                    'actions' => $localProductHandled['actions'],
+                    'product_suggestions' => (array) ($localProductHandled['product_suggestions'] ?? []),
+                    'source' => $localProductHandled['source'],
+                    'chat_session' => [
+                        'id' => $session->id,
+                        'title' => $session->title,
+                    ],
+                ],
+            ]);
+        }
+
         $assistantReply = $this->assistantService->generateReply($question, $context);
         $usedFallback = false;
 
@@ -839,6 +872,16 @@ class MessageController extends Controller
      */
     private function resolveMessageAction($message): array
     {
+        $metadataAction = collect((array) data_get($message->metadata, 'actions', []))
+            ->first(fn ($action) => !empty($action['label']) && !empty($action['link']));
+
+        if (is_array($metadataAction)) {
+            return [
+                'link' => (string) $metadataAction['link'],
+                'label' => (string) $metadataAction['label'],
+            ];
+        }
+
         $referenceId = trim((string) ($message->reference_id ?? ''));
         $title = strtolower((string) ($message->title ?? ''));
         $body = strtolower((string) ($message->message ?? ''));
@@ -1181,6 +1224,7 @@ class MessageController extends Controller
             })->all(),
             'completed_paid_quotes' => $completedPaidQuotes,
             'product_suggestions' => $productSuggestions,
+            'product_intent' => $shouldSuggestProducts,
             'history_preferences' => $historyPreferences,
             'recent_chat_turns' => $recentChatTurns,
             'focused_invoice' => $focusedInvoice ? [
@@ -1200,6 +1244,18 @@ class MessageController extends Controller
         $actions = [];
         $questionLower = strtolower($question);
         $focusedInvoice = $context['focused_invoice'] ?? null;
+        $isProductIntent = (bool) ($context['product_intent'] ?? false);
+
+        if ($isProductIntent) {
+            $actions[] = [
+                'label' => 'Open product search',
+                'link' => '/products?search=' . urlencode(trim($question)),
+            ];
+            $actions[] = [
+                'label' => 'Browse products',
+                'link' => '/products',
+            ];
+        }
 
         if ($focusedInvoice && !empty($focusedInvoice['invoice_number'])) {
             $invoiceNumber = (string) $focusedInvoice['invoice_number'];
@@ -1275,6 +1331,7 @@ class MessageController extends Controller
         $openCount = (int) ($context['summary']['open_invoice_count'] ?? 0);
         $openTotal = $this->formatAssistantMoney((float) ($context['summary']['open_invoice_total'] ?? 0));
         $completedPaidQuoteCount = (int) ($context['summary']['completed_paid_quote_count'] ?? 0);
+        $isProductIntent = (bool) ($context['product_intent'] ?? false);
 
         if ($focusedInvoice && !empty($focusedInvoice['invoice_number'])) {
             $remaining = $this->formatAssistantMoney((float) ($focusedInvoice['remaining_amount'] ?? 0));
@@ -1293,11 +1350,52 @@ class MessageController extends Controller
             return "I found matching products. Top suggestion is {$name} at {$price}. Review the suggested product cards for why each one was selected and quick actions.";
         }
 
+        if ($isProductIntent) {
+            return 'I searched your product catalog but did not find strong matches yet. Try a shorter keyword (brand or SKU), or open product search from the actions below.';
+        }
+
         if (Str::contains(strtolower($question), ['quote', 'same quote', 'reorder', 'requote'])) {
             return "You have {$completedPaidQuoteCount} quote(s) that are approved and fully paid. Open Quotes to reorder from completed quotes or create a new quote from the same items.";
         }
 
         return 'I can help with invoices, payment steps, quote follow-ups, and order tracking. Ask me with an invoice number (for example INV-202604-00012) for direct actions.';
+    }
+
+    private function handleLocalProductDiscoveryReply(string $question, array $context): ?array
+    {
+        $isProductIntent = (bool) ($context['product_intent'] ?? false);
+        if (!$isProductIntent) {
+            return null;
+        }
+
+        $productSuggestions = (array) ($context['product_suggestions'] ?? []);
+        $actions = $this->buildAssistantActions($question, $context);
+
+        if (!empty($productSuggestions)) {
+            $top = $productSuggestions[0];
+            $topName = (string) ($top['name'] ?? 'a matching product');
+            $topPrice = isset($top['price']) ? $this->formatAssistantMoney((float) $top['price']) : null;
+
+            $reply = $topPrice && $topPrice !== '$0.00'
+                ? "I found matching products for your search. Top result is {$topName} at {$topPrice}."
+                : "I found matching products for your search. Top result is {$topName}.";
+
+            $reply .= ' You can open details directly from the suggestions below.';
+
+            return [
+                'reply' => $reply,
+                'actions' => $actions,
+                'product_suggestions' => $productSuggestions,
+                'source' => 'local_product_search_match',
+            ];
+        }
+
+        return [
+            'reply' => 'I searched the product catalog but could not find a direct match from this phrase. Try a shorter keyword like brand, model, or SKU.',
+            'actions' => $actions,
+            'product_suggestions' => [],
+            'source' => 'local_product_search_no_match',
+        ];
     }
 
     private function extractInvoiceNumber(string $text): ?string
@@ -1403,11 +1501,13 @@ class MessageController extends Controller
             return [];
         }
 
-        $searchPhrase = implode(' ', array_slice($keywords, 0, 6));
-        $rawQuestionPhrase = trim($question);
+        $searchQueries = $this->buildAssistantSearchQueries($question, $keywords);
 
         $products = Product::query()
-            ->where('is_available', true)
+            ->where(function ($availability) {
+                $availability->where('is_available', true)
+                    ->orWhereNull('is_available');
+            })
             ->where(function ($base) use ($keywords) {
                 foreach ($keywords as $keyword) {
                     $like = '%' . $keyword . '%';
@@ -1447,43 +1547,13 @@ class MessageController extends Controller
             ];
         })->values();
 
-        if ($candidates->count() < max(3, $limit)) {
+        $allowRemoteCatalogLookup = (bool) config('services.tdsynnex.assistant_remote_lookup', false);
+
+        if ($allowRemoteCatalogLookup && $candidates->count() < max(3, $limit)) {
             try {
-                $remote = $this->tdsynnexService->searchPriceAvailabilityCatalog($searchPhrase, 120);
-                foreach ($remote as $item) {
-                    if (!is_array($item)) {
-                        continue;
-                    }
-
-                    $productId = (string) ($item['productId'] ?? $item['sku'] ?? '');
-                    if ($productId === '') {
-                        continue;
-                    }
-
-                    if ($candidates->contains(fn (array $row) => (string) ($row['product_id'] ?? '') === $productId)) {
-                        continue;
-                    }
-
-                    $price = (float) data_get($item, 'productPrice.0.rsPrice', 0);
-                    $images = $item['productImages'] ?? $item['images'] ?? [];
-
-                    $candidates->push([
-                        'source' => 'tdsynnex',
-                        'product_id' => $productId,
-                        'name' => (string) ($item['productName'] ?? ''),
-                        'sku' => (string) ($item['sku'] ?? $item['mfgPartNo'] ?? ''),
-                        'vendor' => (string) ($item['vendorName'] ?? $item['vendorId'] ?? 'TD SYNNEX'),
-                        'price' => $price,
-                        'description' => (string) ($item['description'] ?? ''),
-                        'image_url' => $this->extractProductImageUrl($images),
-                        'is_discontinued' => (bool) ($item['discontinueProduct'] ?? false),
-                    ]);
-                }
-
-                // Intent-based broadening: if keyword phrase is too narrow, retry with full user wording.
-                if ($candidates->count() < max(3, $limit) && $rawQuestionPhrase !== '') {
-                    $remoteFallback = $this->tdsynnexService->searchPriceAvailabilityCatalog($rawQuestionPhrase, 120);
-                    foreach ($remoteFallback as $item) {
+                foreach ($searchQueries as $searchQuery) {
+                    $remote = $this->tdsynnexService->searchPriceAvailabilityCatalog($searchQuery, 120);
+                    foreach ($remote as $item) {
                         if (!is_array($item)) {
                             continue;
                         }
@@ -1511,6 +1581,10 @@ class MessageController extends Controller
                             'image_url' => $this->extractProductImageUrl($images),
                             'is_discontinued' => (bool) ($item['discontinueProduct'] ?? false),
                         ]);
+                    }
+
+                    if ($candidates->count() >= max(8, $limit * 2)) {
+                        break;
                     }
                 }
             } catch (\Throwable $e) {
@@ -1743,6 +1817,37 @@ class MessageController extends Controller
         }
 
         return array_values(array_unique($keywords));
+    }
+
+    private function buildAssistantSearchQueries(string $question, array $keywords): array
+    {
+        $raw = strtolower(trim($question));
+        $cleaned = preg_replace('/\b(search|find|look\s*for|show|me|please|for\s*me)\b/i', ' ', $raw) ?? $raw;
+        $cleaned = preg_replace('/\s+/', ' ', trim((string) $cleaned)) ?? '';
+
+        $queries = [];
+
+        $keywordPhrase = trim(implode(' ', array_slice(array_values(array_filter($keywords)), 0, 8)));
+        if ($keywordPhrase !== '') {
+            $queries[] = $keywordPhrase;
+        }
+
+        if ($cleaned !== '') {
+            $queries[] = $cleaned;
+        }
+
+        if ($raw !== '') {
+            $queries[] = $raw;
+        }
+
+        if (!empty($keywords)) {
+            $firstKeyword = trim((string) ($keywords[0] ?? ''));
+            if ($firstKeyword !== '') {
+                $queries[] = $firstKeyword;
+            }
+        }
+
+        return array_values(array_unique(array_filter($queries, static fn ($q) => is_string($q) && trim($q) !== '')));
     }
 
     private function isProductDiscoveryIntent(string $question, array $recentChatTurns = []): bool

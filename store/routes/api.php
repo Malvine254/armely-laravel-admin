@@ -68,6 +68,7 @@ Route::prefix('v1')->group(function () {
 
     // Reviews endpoints (public read, auth write)
     Route::get('/products/{productId}/reviews', [ReviewController::class, 'index']);
+    Route::get('/shares/public/cart/{token}', [QuoteOrderInvoiceController::class, 'getPublicSharedCart']);
     Route::middleware(['auth:sanctum', 'active.user'])->group(function () {
         Route::post('/products/{productId}/reviews', [ReviewController::class, 'store']);
         Route::delete('/products/{productId}/reviews/{reviewId}', [ReviewController::class, 'destroy']);
@@ -77,6 +78,9 @@ Route::prefix('v1')->group(function () {
     Route::middleware(['auth:sanctum', 'active.user'])->group(function () {
         Route::get('/quotes', [QuoteOrderInvoiceController::class, 'getQuotes']);
         Route::post('/quotes', [QuoteOrderInvoiceController::class, 'createQuote']);
+        Route::post('/shares/product', [QuoteOrderInvoiceController::class, 'shareProduct']);
+        Route::post('/shares/cart', [QuoteOrderInvoiceController::class, 'shareCart']);
+        Route::get('/shares/cart/{messageId}', [QuoteOrderInvoiceController::class, 'getSharedCart']);
         Route::get('/quotes/{quoteId}', [QuoteOrderInvoiceController::class, 'getQuote']);
         Route::get('/quotes/{quoteId}/pdf', [QuoteOrderInvoiceController::class, 'downloadQuotePdf']);
         Route::post('/quotes/{quoteId}/cancel', [QuoteOrderInvoiceController::class, 'cancelQuote']);

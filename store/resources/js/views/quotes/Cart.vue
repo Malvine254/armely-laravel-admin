@@ -157,6 +157,12 @@
                 </svg>
                 <span>{{ isSubmittingQuote ? 'Submitting Quote...' : 'Request Quote' }}</span>
               </button>
+              <button @click="openCartShareModal" class="w-full px-4 py-3 border font-semibold rounded-lg transition inline-flex items-center justify-center gap-2" style="border-color: #2F5597; color: #2F5597;" @mouseenter="$event.target.style.backgroundColor='#eef5fc'" @mouseleave="$event.target.style.backgroundColor='transparent'">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C9.886 12.511 11.326 12 12.889 12c2.87 0 5.322 1.723 6.296 4.182m-16.338 0A6.986 6.986 0 019.111 12c1.563 0 3.003.511 4.205 1.342M15 6a3 3 0 11-6 0 3 3 0 016 0zm6 14a2 2 0 11-4 0 2 2 0 014 0zM7 20a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                </svg>
+                <span>Share Cart</span>
+              </button>
               <button @click="clearAllItems" class="w-full px-4 py-3 border border-red-300 text-red-600 font-semibold rounded-lg transition hover:bg-red-50 inline-flex items-center justify-center gap-2">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 7h12M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2M7 7l1 12a2 2 0 002 2h4a2 2 0 002-2l1-12"></path>
@@ -167,6 +173,56 @@
           </div>
         </div>
       </div>
+
+      <div v-if="showCartShareModal" class="fixed inset-0 z-50 flex items-center justify-center px-4">
+        <div class="absolute inset-0 bg-slate-900/45" @click="closeCartShareModal"></div>
+        <div class="relative w-full max-w-lg rounded-2xl border bg-white shadow-2xl" style="border-color:#cfe0f5;">
+          <div class="px-5 py-4 border-b" style="border-color:#e2e8f0;">
+            <h3 class="text-lg font-bold" style="color:#2F5597;">Share Cart</h3>
+            <p class="text-sm text-slate-600 mt-1">Share {{ cartStore.cartCount }} item(s) with another user.</p>
+          </div>
+
+          <div class="p-5 space-y-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Recipient Email (optional)</label>
+              <input
+                v-model="cartShareRecipientEmail"
+                type="email"
+                class="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2"
+                style="border-color:#cbd5e1;"
+                placeholder="user@company.com"
+              >
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Note (optional)</label>
+              <textarea
+                v-model="cartShareNote"
+                rows="3"
+                class="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2"
+                style="border-color:#cbd5e1;"
+                placeholder="Add a message for the recipient"
+              ></textarea>
+            </div>
+
+            <div v-if="cartShareGeneratedLink" class="rounded-lg border p-3" style="border-color:#bfdbfe;background:#eff6ff;">
+              <p class="text-xs font-semibold text-slate-700 mb-1">Share Link</p>
+              <p class="text-xs break-all text-slate-700">{{ cartShareGeneratedLink }}</p>
+              <div class="mt-3 flex flex-wrap gap-2">
+                <button @click="copyCartShareLink" type="button" class="px-3 py-2 text-xs font-semibold rounded-lg text-white" style="background-color:#2F5597;">Copy Link</button>
+                <button @click="sendCartShareByEmail" type="button" class="px-3 py-2 text-xs font-semibold rounded-lg border" style="border-color:#2F5597;color:#2F5597;">Send to Email</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="px-5 py-4 border-t flex justify-end gap-2" style="border-color:#e2e8f0;">
+            <button @click="closeCartShareModal" type="button" class="px-4 py-2 text-sm font-semibold rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50">Close</button>
+            <button @click="submitCartShare" type="button" :disabled="cartShareSubmitting" class="px-4 py-2 text-sm font-semibold rounded-lg text-white disabled:opacity-60" style="background-color:#2F5597;">
+              {{ cartShareSubmitting ? 'Generating...' : (cartShareGeneratedLink ? 'Regenerate Link' : 'Generate Link') }}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -174,21 +230,28 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useCartStore } from '../../stores/cartStore'
 import { useQuotesStore } from '../../stores/quotesStore'
 import { useToastStore } from '../../stores/toastStore'
 import { useAuthStore } from '../../stores/authStore'
 import { usePricingSettings } from '../../composables/usePricingSettings'
+import api from '../../services/api'
 import Navbar from '../../components/Navbar.vue'
 
 const router = useRouter()
+const route = useRoute()
 const cartStore = useCartStore()
 const quotesStore = useQuotesStore()
 const toastStore = useToastStore()
 const authStore = useAuthStore()
 const failedImageIds = ref([])
 const isSubmittingQuote = ref(false)
+const showCartShareModal = ref(false)
+const cartShareRecipientEmail = ref('')
+const cartShareNote = ref('')
+const cartShareGeneratedLink = ref('')
+const cartShareSubmitting = ref(false)
 const { loadPricingSettings, getCatalogPriceWithRules, convertFromUsd, formatWithCurrency } = usePricingSettings()
 
 const getAdjustedUnitUsd = (item) => {
@@ -214,8 +277,125 @@ const formatPrice = (price) => {
   return parseFloat(price || 0).toFixed(2)
 }
 
-onMounted(() => {
-  loadPricingSettings()
+const mergeSharedItemsIntoCart = (sharedItems = []) => {
+  const merged = new Map()
+
+  cartStore.items.forEach((item) => {
+    const key = String(item.productId || '')
+    if (!key) return
+    merged.set(key, { ...item, quantity: Number(item.quantity || 1) })
+  })
+
+  sharedItems.forEach((item) => {
+    const key = String(item.productId || '')
+    if (!key) return
+
+    const existing = merged.get(key)
+    if (existing) {
+      existing.quantity = Number(existing.quantity || 0) + Number(item.quantity || 0)
+      return
+    }
+
+    merged.set(key, { ...item, quantity: Math.max(1, Number(item.quantity || 1)) })
+  })
+
+  cartStore.replaceCartItems(Array.from(merged.values()))
+}
+
+const clearSharedMessageQuery = async () => {
+  const nextQuery = { ...route.query }
+  delete nextQuery.shared_message
+  delete nextQuery.shared_token
+  await router.replace({ query: nextQuery })
+}
+
+const importSharedCartFromPublicToken = async () => {
+  const sharedToken = String(route.query.shared_token || '').trim()
+  if (!sharedToken) return false
+
+  try {
+    const response = await api.get(`/shares/public/cart/${encodeURIComponent(sharedToken)}`)
+    const payload = response.data?.data || {}
+    const sharedItems = Array.isArray(payload.items) ? payload.items : []
+    if (!sharedItems.length) {
+      toastStore.addToast('This shared cart has no items to import', 'warning')
+      await clearSharedMessageQuery()
+      return true
+    }
+
+    if (cartStore.items.length > 0) {
+      const shouldMerge = window.confirm(`Import ${sharedItems.length} shared item(s) from ${payload.shared_by_name || 'another user'}? Click OK to merge, or Cancel to replace your current cart.`)
+      if (shouldMerge) {
+        mergeSharedItemsIntoCart(sharedItems)
+        toastStore.addToast(`Merged ${sharedItems.length} shared item(s) into your quote`, 'success')
+      } else {
+        cartStore.replaceCartItems(sharedItems)
+        cartStore.clearRevisionSource()
+        toastStore.addToast(`Replaced your quote with ${sharedItems.length} shared item(s)`, 'success')
+      }
+    } else {
+      cartStore.replaceCartItems(sharedItems)
+      cartStore.clearRevisionSource()
+      toastStore.addToast(`Imported ${sharedItems.length} shared item(s) from ${payload.shared_by_name || 'another user'}`, 'success')
+    }
+
+    await clearSharedMessageQuery()
+    return true
+  } catch (error) {
+    console.error('Failed to import public shared cart:', error)
+    toastStore.addToast(error.response?.data?.message || 'Failed to import shared cart', 'error')
+    return true
+  }
+}
+
+const importSharedCartFromMessage = async () => {
+  const sharedMessageId = String(route.query.shared_message || '').trim()
+  if (!sharedMessageId) return
+
+  if (!authStore.isAuthenticated) {
+    toastStore.addToast('Please log in to open a shared cart', 'info')
+    router.push({ name: 'login', query: { redirect: route.fullPath } })
+    return
+  }
+
+  try {
+    const response = await api.get(`/shares/cart/${encodeURIComponent(sharedMessageId)}`)
+    const payload = response.data?.data || {}
+    const sharedItems = Array.isArray(payload.items) ? payload.items : []
+    if (!sharedItems.length) {
+      toastStore.addToast('This shared cart has no items to import', 'warning')
+      await clearSharedMessageQuery()
+      return
+    }
+
+    if (cartStore.items.length > 0) {
+      const shouldMerge = window.confirm(`Import ${sharedItems.length} shared item(s) from ${payload.shared_by_name || 'another user'}? Click OK to merge, or Cancel to replace your current cart.`)
+      if (shouldMerge) {
+        mergeSharedItemsIntoCart(sharedItems)
+        toastStore.addToast(`Merged ${sharedItems.length} shared item(s) into your quote`, 'success')
+      } else {
+        cartStore.replaceCartItems(sharedItems)
+        cartStore.clearRevisionSource()
+        toastStore.addToast(`Replaced your quote with ${sharedItems.length} shared item(s)`, 'success')
+      }
+    } else {
+      cartStore.replaceCartItems(sharedItems)
+      cartStore.clearRevisionSource()
+      toastStore.addToast(`Imported ${sharedItems.length} shared item(s) from ${payload.shared_by_name || 'another user'}`, 'success')
+    }
+
+    await clearSharedMessageQuery()
+  } catch (error) {
+    console.error('Failed to import shared cart:', error)
+    toastStore.addToast(error.response?.data?.message || 'Failed to import shared cart', 'error')
+  }
+}
+
+onMounted(async () => {
+  await loadPricingSettings()
+  const importedFromPublic = await importSharedCartFromPublicToken()
+  if (importedFromPublic) return
+  await importSharedCartFromMessage()
 })
 
 const getProductImageUrl = (item) => {
@@ -260,6 +440,109 @@ const clearAllItems = () => {
   if (confirm('Are you sure you want to clear your entire quote?')) {
     cartStore.clearCart()
   }
+}
+
+const openCartShareModal = () => {
+  if (cartStore.isEmpty) {
+    toastStore.addToast('Your quote is empty', 'warning')
+    return
+  }
+
+  if (!authStore.isAuthenticated) {
+    toastStore.addToast('Please log in to share a cart', 'info')
+    router.push({ name: 'login', query: { redirect: '/cart' } })
+    return
+  }
+
+  cartShareRecipientEmail.value = ''
+  cartShareNote.value = ''
+  cartShareGeneratedLink.value = ''
+  showCartShareModal.value = true
+}
+
+const closeCartShareModal = () => {
+  showCartShareModal.value = false
+  cartShareSubmitting.value = false
+}
+
+const submitCartShare = async () => {
+  const recipientEmail = cartShareRecipientEmail.value.trim()
+
+  cartShareSubmitting.value = true
+
+  try {
+    const payloadItems = cartStore.items.map((item) => ({
+      productId: item.productId,
+      productName: item.productName,
+      quantity: Number(item.quantity || 1),
+      mfgPartNo: item.mfgPartNo || '',
+      vendorId: item.vendorId || '',
+      billingModel: item.billingModel || '',
+      billingFrequency: item.billingFrequency || '',
+      productImages: Array.isArray(item.productImages) ? item.productImages : [],
+      productPrice: Array.isArray(item.productPrice) ? item.productPrice : [],
+    }))
+
+    const response = await api.post('/shares/cart', {
+      recipient_email: recipientEmail || null,
+      note: cartShareNote.value.trim(),
+      items: payloadItems,
+    })
+
+    const shareUrl = String(response.data?.data?.share_url || '').trim()
+    cartShareGeneratedLink.value = shareUrl
+    if (shareUrl) {
+      toastStore.addToast('Share link generated. Use Copy Link or Send to Email.', 'success')
+    } else {
+      toastStore.addToast(`Shared ${payloadItems.length} item(s) successfully`, 'success')
+    }
+  } catch (error) {
+    console.error('Failed to share cart:', error)
+    toastStore.addToast(error.response?.data?.message || 'Failed to share cart', 'error')
+  } finally {
+    cartShareSubmitting.value = false
+  }
+}
+
+const copyCartShareLink = async () => {
+  const link = cartShareGeneratedLink.value.trim()
+  if (!link) return
+
+  try {
+    if (navigator?.clipboard?.writeText) {
+      await navigator.clipboard.writeText(link)
+      toastStore.addToast('Share link copied to clipboard', 'success')
+      return
+    }
+  } catch (error) {
+    console.warn('Clipboard copy failed:', error)
+  }
+
+  window.prompt('Copy this share link:', link)
+}
+
+const sendCartShareByEmail = () => {
+  const link = cartShareGeneratedLink.value.trim()
+  if (!link) {
+    toastStore.addToast('Generate the share link first', 'warning')
+    return
+  }
+
+  const recipient = encodeURIComponent(cartShareRecipientEmail.value.trim())
+  const note = cartShareNote.value.trim()
+  const bodyParts = [
+    `I shared a cart from Armely with you (${cartStore.cartCount} item(s)).`,
+    '',
+  ]
+
+  if (note) {
+    bodyParts.push(`Note: ${note}`, '')
+  }
+
+  bodyParts.push(link)
+  const subject = `Shared cart from Armely (${cartStore.cartCount} item(s))`
+  const body = bodyParts.join('\n')
+  window.location.href = `mailto:${recipient}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
 }
 
 const escapeCsvValue = (value) => {

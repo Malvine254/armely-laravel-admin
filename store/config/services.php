@@ -54,6 +54,8 @@ return [
         'client_id' => env('AZURE_CLIENT_ID'),
         'client_secret' => env('AZURE_CLIENT_SECRET'),
         'from_email' => env('NO_REPLY_EMAIL', env('FROM_EMAIL', env('MAIL_FROM_ADDRESS'))),
+        'from_name' => env('MAIL_FROM_NAME', env('APP_NAME', 'Armely Store')),
+        'subject_prefix' => env('MAIL_SUBJECT_PREFIX', env('APP_NAME', 'Armely Store')),
     ],
 
     'azure_openai' => [

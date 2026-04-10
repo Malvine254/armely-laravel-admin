@@ -59,7 +59,7 @@
               <div class="flex items-center gap-2 mb-3">
                 <span v-if="product.discontinueProduct" class="px-2.5 py-0.5 bg-red-50 text-red-600 text-xs font-semibold rounded-full border border-red-200">End of Life</span>
                 <span v-else class="px-2.5 py-0.5 text-xs font-semibold rounded-full border" style="background-color: #eef5fc; color: #2F5597; border-color: #bad5f0;">Active</span>
-                <span v-if="product.vendorId" class="px-2.5 py-0.5 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">{{ product.vendorId }}</span>
+                <span v-if="getProductVendor(product) !== 'N/A'" class="px-2.5 py-0.5 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">{{ getProductVendor(product) }}</span>
               </div>
 
               <!-- Product Name -->
@@ -67,7 +67,7 @@
 
               <!-- Meta pills -->
               <div class="flex flex-wrap gap-x-5 gap-y-2 text-sm text-gray-500 mb-5">
-                <span><span class="font-medium text-gray-700">SKU</span> {{ product.mfgPartNo || 'N/A' }}</span>
+                <span><span class="font-medium text-gray-700">SKU</span> {{ getProductSku(product) }}</span>
                 <span><span class="font-medium text-gray-700">ID</span> {{ product.productId }}</span>
                 <span v-if="product.billingModel"><span class="font-medium text-gray-700">Billing</span> {{ product.billingModel }}</span>
               </div>
@@ -108,6 +108,11 @@
                     <svg class="w-4 h-4" :fill="isFavorite ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
                     {{ isFavorite ? 'Saved' : 'Save' }}
                   </span>
+                </button>
+                <button @click="openShareModal(product)" class="px-4 py-3 border border-gray-300 text-gray-600 rounded-xl hover:bg-gray-50 transition-all duration-200" title="Share Product">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C9.886 12.511 11.326 12 12.889 12c2.87 0 5.322 1.723 6.296 4.182m-16.338 0A6.986 6.986 0 019.111 12c1.563 0 3.003.511 4.205 1.342M15 6a3 3 0 11-6 0 3 3 0 016 0zm6 14a2 2 0 11-4 0 2 2 0 014 0zM7 20a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
                 </button>
               </div>
             </div>
@@ -181,7 +186,7 @@
                   </div>
                   <div>
                     <p class="text-xs text-gray-500">SKU / Part No.</p>
-                    <p class="text-sm font-medium text-gray-900">{{ product.mfgPartNo || 'N/A' }}</p>
+                    <p class="text-sm font-medium text-gray-900">{{ getProductSku(product) }}</p>
                   </div>
                 </div>
                 <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
@@ -190,7 +195,7 @@
                   </div>
                   <div>
                     <p class="text-xs text-gray-500">Vendor</p>
-                    <p class="text-sm font-medium text-gray-900">{{ product.vendorId || 'N/A' }}</p>
+                    <p class="text-sm font-medium text-gray-900">{{ getProductVendor(product) }}</p>
                   </div>
                 </div>
                 <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
@@ -467,13 +472,13 @@
             <!-- Product Info -->
             <div class="p-4">
               <div class="flex items-start justify-between mb-2">
-                <h3 class="text-sm font-semibold text-gray-900 line-clamp-2">{{ relatedProduct.productName }}</h3>
+                <h3 class="text-sm font-semibold text-gray-900 line-clamp-2" :title="buildProductHoverDetails(relatedProduct)">{{ relatedProduct.productName }}</h3>
                 <span v-if="relatedProduct.discontinueProduct" class="ml-2 px-2 py-1 bg-red-100 text-red-700 text-xs font-semibold rounded flex-shrink-0">EOL</span>
                 <span v-else class="ml-2 px-2 py-1 text-xs font-semibold rounded flex-shrink-0" style="background-color: #cce4f4; color: #2F5597;">Active</span>
               </div>
               <div class="flex items-center justify-between gap-3 text-xs text-gray-600 mb-3">
-                <p class="truncate">SKU: {{ relatedProduct.mfgPartNo || 'N/A' }}</p>
-                <p class="truncate text-right">Vendor: {{ relatedProduct.vendorId || 'N/A' }}</p>
+                <p class="truncate" :title="`SKU: ${getProductSku(relatedProduct)}`">SKU: {{ getProductSku(relatedProduct) }}</p>
+                <p class="truncate text-right" :title="`Vendor: ${getProductVendor(relatedProduct)}`">Vendor: {{ getProductVendor(relatedProduct) }}</p>
               </div>
 
               <div class="flex items-center gap-1 mb-3">
@@ -511,11 +516,26 @@
 
               <!-- Actions -->
               <div class="flex gap-2 w-full">
-                <button @click="navigateToProduct(relatedProduct.productId)" class="flex-1 px-3 py-2 text-white text-sm font-semibold rounded-lg transition" style="background-color: #2F5597;" @mouseenter="$event.target.style.backgroundColor='#1f4788'" @mouseleave="$event.target.style.backgroundColor='#2F5597'">View Details</button>
-                <button @click.stop="addRelatedToQuote(relatedProduct)" class="px-3 py-2 text-white text-sm font-semibold rounded-lg transition" style="background-color: #2F5597;" @mouseenter="$event.target.style.backgroundColor='#1f4788'" @mouseleave="$event.target.style.backgroundColor='#2F5597'" title="Add to Quote">+</button>
+                <button @click="navigateToProduct(relatedProduct.productId)" class="flex-1 px-3 py-2 text-white text-sm font-semibold rounded-lg transition inline-flex items-center justify-center gap-1" style="background-color: #2F5597;" @mouseenter="$event.target.style.backgroundColor='#1f4788'" @mouseleave="$event.target.style.backgroundColor='#2F5597'">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5s8.268 2.943 9.542 7c-1.274 4.057-5.065 7-9.542 7S3.732 16.057 2.458 12z" />
+                  </svg>
+                  <span>View</span>
+                </button>
+                <button @click.stop="addRelatedToQuote(relatedProduct)" class="px-3 py-2 text-white text-sm font-semibold rounded-lg transition" style="background-color: #2F5597;" @mouseenter="$event.target.style.backgroundColor='#1f4788'" @mouseleave="$event.target.style.backgroundColor='#2F5597'" title="Add to Quote" aria-label="Add to Quote">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m1.6 8L5.4 5M7 13l-1.2 6.4A1 1 0 006.8 21h10.4a1 1 0 001-.8L20 13M9 21a1 1 0 100-2 1 1 0 000 2zm8 0a1 1 0 100-2 1 1 0 000 2z" />
+                  </svg>
+                </button>
                 <button @click.stop="toggleRelatedFavorite(relatedProduct)" class="px-3 py-2 rounded-lg transition border" :style="favoritesStore.isFavorite(relatedProduct.productId) ? { backgroundColor: '#cce4f4', borderColor: '#2F5597', color: '#2F5597' } : { borderColor: '#d1d5db', color: '#4b5563' }" :title="favoritesStore.isFavorite(relatedProduct.productId) ? 'Remove from Favorites' : 'Add to Favorites'">
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                  </svg>
+                </button>
+                <button @click.stop="openShareModal(relatedProduct)" class="px-3 py-2 rounded-lg transition border border-gray-300 text-gray-600 hover:bg-gray-50" title="Share Product">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C9.886 12.511 11.326 12 12.889 12c2.87 0 5.322 1.723 6.296 4.182m-16.338 0A6.986 6.986 0 019.111 12c1.563 0 3.003.511 4.205 1.342M15 6a3 3 0 11-6 0 3 3 0 016 0zm6 14a2 2 0 11-4 0 2 2 0 014 0zM7 20a2 2 0 11-4 0 2 2 0 014 0z" />
                   </svg>
                 </button>
               </div>
@@ -552,6 +572,56 @@
           </button>
         </div>
       </div>
+
+      <div v-if="showShareModal" class="fixed inset-0 z-50 flex items-center justify-center px-4">
+        <div class="absolute inset-0 bg-slate-900/45" @click="closeShareModal"></div>
+        <div class="relative w-full max-w-lg rounded-2xl border bg-white shadow-2xl" style="border-color:#cfe0f5;">
+          <div class="px-5 py-4 border-b" style="border-color:#e2e8f0;">
+            <h3 class="text-lg font-bold" style="color:#2F5597;">Share Product</h3>
+            <p class="text-sm text-slate-600 mt-1">{{ sharingProduct?.productName || 'Selected product' }}</p>
+          </div>
+
+          <div class="p-5 space-y-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Recipient Email (optional)</label>
+              <input
+                v-model="shareRecipientEmail"
+                type="email"
+                class="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2"
+                style="border-color:#cbd5e1;"
+                placeholder="user@company.com"
+              >
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Note (optional)</label>
+              <textarea
+                v-model="shareNote"
+                rows="3"
+                class="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2"
+                style="border-color:#cbd5e1;"
+                placeholder="Add a message for the recipient"
+              ></textarea>
+            </div>
+
+            <div v-if="shareGeneratedLink" class="rounded-lg border p-3" style="border-color:#bfdbfe;background:#eff6ff;">
+              <p class="text-xs font-semibold text-slate-700 mb-1">Share Link</p>
+              <p class="text-xs break-all text-slate-700">{{ shareGeneratedLink }}</p>
+              <div class="mt-3 flex flex-wrap gap-2">
+                <button @click="copyShareGeneratedLink" type="button" class="px-3 py-2 text-xs font-semibold rounded-lg text-white" style="background-color:#2F5597;">Copy Link</button>
+                <button @click="sendShareLinkByEmail" type="button" class="px-3 py-2 text-xs font-semibold rounded-lg border" style="border-color:#2F5597;color:#2F5597;">Send to Email</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="px-5 py-4 border-t flex justify-end gap-2" style="border-color:#e2e8f0;">
+            <button @click="closeShareModal" type="button" class="px-4 py-2 text-sm font-semibold rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50">Close</button>
+            <button @click="submitProductShare" type="button" :disabled="shareSubmitting" class="px-4 py-2 text-sm font-semibold rounded-lg text-white disabled:opacity-60" style="background-color:#2F5597;">
+              {{ shareSubmitting ? 'Generating...' : (shareGeneratedLink ? 'Regenerate Link' : 'Generate Link') }}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -566,6 +636,7 @@ import { useAuthStore } from '../../stores/authStore'
 import Navbar from '../../components/Navbar.vue'
 import { API_BASE_URL } from '../../services/runtimeConfig'
 import { usePricingSettings } from '../../composables/usePricingSettings'
+import api from '../../services/api'
 
 const router = useRouter()
 const route = useRoute()
@@ -594,6 +665,12 @@ const reviewForm = ref({ rating: 0, title: '', body: '', images: [] })
 const reviewImagePreviews = ref([])
 const relatedReviewStatsByProduct = ref({})
 const pendingRelatedReviewStats = new Set()
+const showShareModal = ref(false)
+const sharingProduct = ref(null)
+const shareRecipientEmail = ref('')
+const shareNote = ref('')
+const shareGeneratedLink = ref('')
+const shareSubmitting = ref(false)
 
 const productDetailCache = new Map()
 const relatedProductsCache = new Map()
@@ -714,6 +791,45 @@ const getProductIcon = (productName) => {
   if (name.includes('azure') || name.includes('cloud') || name.includes('subscription')) return 'cloud'
   if (name.includes('database') || name.includes('sql')) return 'database'
   return 'default'
+}
+
+const getProductSku = (item) => {
+  return String(
+    item?.mfgPartNo ||
+    item?.mfg_part_no ||
+    item?.tdsynnexSkuNo ||
+    item?.tdsynnex_sku_no ||
+    item?.skuNo ||
+    item?.sku_no ||
+    'N/A'
+  )
+}
+
+const getProductVendor = (item) => {
+  return String(
+    item?.vendorId ||
+    item?.vendor_id ||
+    item?.vendorName ||
+    item?.vendor_name ||
+    item?.manufacturerName ||
+    item?.manufacturer_name ||
+    'N/A'
+  )
+}
+
+const buildProductHoverDetails = (item) => {
+  const lines = [
+    item?.productName || 'Product',
+    `SKU: ${getProductSku(item)}`,
+    `Vendor: ${getProductVendor(item)}`,
+  ]
+
+  const price = Number(item?.productPrice?.[0]?.rsPrice || 0)
+  if (price > 0) {
+    lines.push(`Price: ${formatAdjustedCurrency(price)}`)
+  }
+
+  return lines.join('\n')
 }
 
 const normalizeImages = (source) => {
@@ -906,6 +1022,114 @@ const addRelatedToQuote = (relatedProduct) => {
     return
   }
   toastStore.addToast(`Added "${relatedProduct.productName}" to quote`, 'success')
+}
+
+const getPrimaryImage = (item) => {
+  const images = normalizeImages(item?.productImages)
+  if (images.length > 0) return images[0]
+
+  const fallback = normalizeImages(item?.images)
+  if (fallback.length > 0) return fallback[0]
+
+  return String(item?.image_url || '').trim()
+}
+
+const openShareModal = (item) => {
+  if (!item) return
+
+  if (!authStore.isAuthenticated) {
+    toastStore.addToast('Please log in to share products', 'info')
+    router.push({ name: 'login', query: { redirect: route.fullPath } })
+    return
+  }
+
+  sharingProduct.value = item
+  shareRecipientEmail.value = ''
+  shareNote.value = ''
+  shareGeneratedLink.value = ''
+  showShareModal.value = true
+}
+
+const closeShareModal = () => {
+  showShareModal.value = false
+  sharingProduct.value = null
+  shareSubmitting.value = false
+}
+
+const submitProductShare = async () => {
+  const item = sharingProduct.value
+  if (!item) return
+
+  const recipientEmail = shareRecipientEmail.value.trim()
+  shareSubmitting.value = true
+
+  try {
+    const response = await api.post('/shares/product', {
+      recipient_email: recipientEmail || null,
+      note: shareNote.value.trim(),
+      product: {
+        productId: item.productId,
+        productName: item.productName,
+        mfgPartNo: getProductSku(item) === 'N/A' ? '' : getProductSku(item),
+        vendorId: getProductVendor(item) === 'N/A' ? '' : getProductVendor(item),
+        description: item.description || '',
+        imageUrl: getPrimaryImage(item) || '',
+        price: Number(item.productPrice?.[0]?.rsPrice || 0),
+      },
+    })
+
+    const shareUrl = String(response.data?.data?.share_url || '').trim()
+    shareGeneratedLink.value = shareUrl
+    toastStore.addToast('Share link generated. Use Copy Link or Send to Email.', 'success')
+  } catch (error) {
+    console.error('Failed to share product:', error)
+    toastStore.addToast(error.response?.data?.message || 'Failed to share product', 'error')
+  } finally {
+    shareSubmitting.value = false
+  }
+}
+
+const copyShareGeneratedLink = async () => {
+  const link = shareGeneratedLink.value.trim()
+  if (!link) return
+
+  try {
+    if (navigator?.clipboard?.writeText) {
+      await navigator.clipboard.writeText(link)
+      toastStore.addToast('Share link copied to clipboard', 'success')
+      return
+    }
+  } catch (error) {
+    console.warn('Clipboard copy failed:', error)
+  }
+
+  window.prompt('Copy this share link:', link)
+}
+
+const sendShareLinkByEmail = () => {
+  const link = shareGeneratedLink.value.trim()
+  if (!link) {
+    toastStore.addToast('Generate the share link first', 'warning')
+    return
+  }
+
+  const recipient = encodeURIComponent(shareRecipientEmail.value.trim())
+  const productName = sharingProduct.value?.productName || 'Shared product'
+  const note = shareNote.value.trim()
+  const bodyParts = [
+    'I wanted to share this product with you:',
+    productName,
+    '',
+  ]
+
+  if (note) {
+    bodyParts.push(`Note: ${note}`, '')
+  }
+
+  bodyParts.push(link)
+  const subject = `Shared product: ${productName}`
+  const body = bodyParts.join('\n')
+  window.location.href = `mailto:${recipient}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
 }
 
 const toggleRelatedFavorite = (relatedProduct) => {
