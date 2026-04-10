@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use App\Models\Product;
 
@@ -136,6 +137,19 @@ $actions = [
             ],
         ],
     ],
+    'mela_chat_messages_id_fix' => [
+        'label' => 'Run Mela AI Chat Messages ID Fix Migration',
+        'type' => 'artisan',
+        'commands' => [
+            [
+                'name' => 'migrate',
+                'params' => [
+                    '--force' => true,
+                    '--path' => 'database/migrations/2026_04_10_130000_fix_chat_messages_id_autoincrement.php',
+                ],
+            ],
+        ],
+    ],
     'clear_tds_cache' => [
         'label' => 'Clear TD SYNNEX Cache',
         'type' => 'artisan',
@@ -248,6 +262,22 @@ $publicStoragePath = public_path('storage');
 $storagePublicPath = storage_path('app/public');
 $cachePath = base_path('bootstrap/cache');
 $chatSessionsExists = Schema::hasTable('chat_sessions');
+$chatMessagesExists = Schema::hasTable('chat_messages');
+$chatMessagesIdHealthy = false;
+
+if ($chatMessagesExists) {
+    $idMeta = DB::table('information_schema.columns')
+        ->select(['COLUMN_KEY', 'EXTRA'])
+        ->where('TABLE_SCHEMA', DB::getDatabaseName())
+        ->where('TABLE_NAME', 'chat_messages')
+        ->where('COLUMN_NAME', 'id')
+        ->first();
+
+    $chatMessagesIdHealthy = $idMeta
+        && strtoupper((string) ($idMeta->COLUMN_KEY ?? '')) === 'PRI'
+        && str_contains(strtolower((string) ($idMeta->EXTRA ?? '')), 'auto_increment');
+}
+
 $statusRows = [
     'App env' => (string) config('app.env'),
     'App debug' => config('app.debug') ? 'true' : 'false',
@@ -267,6 +297,8 @@ $statusRows = [
     'chat_sessions.escalated_to_human' => ($chatSessionsExists && Schema::hasColumn('chat_sessions', 'escalated_to_human')) ? 'YES' : 'NO',
     'chat_sessions.escalated_at' => ($chatSessionsExists && Schema::hasColumn('chat_sessions', 'escalated_at')) ? 'YES' : 'NO',
     'chat_sessions.resolved_at' => ($chatSessionsExists && Schema::hasColumn('chat_sessions', 'resolved_at')) ? 'YES' : 'NO',
+    'chat_messages exists' => $chatMessagesExists ? 'YES' : 'NO',
+    'chat_messages.id auto_increment PK' => $chatMessagesIdHealthy ? 'YES' : 'NO',
     'Catalog hardware only' => config('tdsynnex.catalog.hardware_only') ? 'true' : 'false',
     'Image sync current showing only' => config('tdsynnex.image_sync.current_showing_only') ? 'true' : 'false',
     'Image sync scope cap' => (string) config('tdsynnex.image_sync.scope_cap', 1000),
