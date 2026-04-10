@@ -364,6 +364,8 @@ class MessageController extends Controller
             'chat_session_id' => 'nullable|integer',
         ]);
 
+        try {
+
         $user = $request->user();
         $question = trim((string) $validated['message']);
         $session = $this->resolveOrCreateChatSession($user->id, $validated['chat_session_id'] ?? null);
@@ -637,6 +639,32 @@ class MessageController extends Controller
                 ],
             ],
         ]);
+        } catch (\Throwable $e) {
+            Log::error('Mela AI assistantChat failed', [
+                'user_id' => $request->user()?->id,
+                'chat_session_id' => $validated['chat_session_id'] ?? null,
+                'message' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'reply' => 'Mela AI is temporarily unavailable. Please try again shortly, or request human support.',
+                    'actions' => [
+                        [
+                            'label' => 'Request human support',
+                            'link' => '/messages',
+                        ],
+                    ],
+                    'product_suggestions' => [],
+                    'source' => 'assistant_error_fallback',
+                    'chat_session' => [
+                        'id' => $validated['chat_session_id'] ?? null,
+                        'title' => 'New chat',
+                    ],
+                ],
+            ], 200);
+        }
     }
 
     /**
