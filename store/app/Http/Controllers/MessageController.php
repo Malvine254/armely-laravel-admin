@@ -12,6 +12,7 @@ use App\Models\Order;
 use App\Models\Quote;
 use App\Models\Product;
 use App\Models\User;
+use App\Models\AppSetting;
 use App\Services\AzureOpenAiChatService;
 use App\Services\NotificationService;
 use App\Services\TDSynnexService;
@@ -884,10 +885,10 @@ class MessageController extends Controller
 
         $dueAt = optional($invoice->due_at)?->toDateString();
         $dueText = $dueAt ? " payment is due by {$dueAt}." : '';
-        $balanceText = number_format($balanceDue, 2);
+        $balanceText = $this->formatAssistantMoney($balanceDue);
 
         return [
-            'reply' => "I sent an invoice reminder for {$invoiceNumber} to your email: {$recipientEmail}. Balance due is \${$balanceText}.{$dueText}",
+            'reply' => "I sent an invoice reminder for {$invoiceNumber} to your email: {$recipientEmail}. Balance due is {$balanceText}.{$dueText}",
             'actions' => [
                 [
                     'label' => 'View invoice',
@@ -1170,24 +1171,24 @@ class MessageController extends Controller
     {
         $focusedInvoice = $context['focused_invoice'] ?? null;
         $openCount = (int) ($context['summary']['open_invoice_count'] ?? 0);
-        $openTotal = number_format((float) ($context['summary']['open_invoice_total'] ?? 0), 2);
+        $openTotal = $this->formatAssistantMoney((float) ($context['summary']['open_invoice_total'] ?? 0));
         $completedPaidQuoteCount = (int) ($context['summary']['completed_paid_quote_count'] ?? 0);
 
         if ($focusedInvoice && !empty($focusedInvoice['invoice_number'])) {
-            $remaining = number_format((float) ($focusedInvoice['remaining_amount'] ?? 0), 2);
-            return "I found invoice {$focusedInvoice['invoice_number']}. Remaining balance is \${$remaining}. You can view it, download the PDF, or pay from the actions below.";
+            $remaining = $this->formatAssistantMoney((float) ($focusedInvoice['remaining_amount'] ?? 0));
+            return "I found invoice {$focusedInvoice['invoice_number']}. Remaining balance is {$remaining}. You can view it, download the PDF, or pay from the actions below.";
         }
 
         if (Str::contains(strtolower($question), ['invoice', 'payment', 'pay'])) {
-            return "You currently have {$openCount} invoice(s) with outstanding balance totaling \${$openTotal}. I can help you open invoices, pay them, or download invoice PDFs.";
+            return "You currently have {$openCount} invoice(s) with outstanding balance totaling {$openTotal}. I can help you open invoices, pay them, or download invoice PDFs.";
         }
 
         $productSuggestions = (array) ($context['product_suggestions'] ?? []);
         if (!empty($productSuggestions)) {
             $top = $productSuggestions[0];
-            $price = number_format((float) ($top['price'] ?? 0), 2);
+            $price = $this->formatAssistantMoney((float) ($top['price'] ?? 0));
             $name = (string) ($top['name'] ?? 'recommended product');
-            return "I found matching products. Top suggestion is {$name} at \${$price}. Review the suggested product cards for why each one was selected and quick actions.";
+            return "I found matching products. Top suggestion is {$name} at {$price}. Review the suggested product cards for why each one was selected and quick actions.";
         }
 
         if (Str::contains(strtolower($question), ['quote', 'same quote', 'reorder', 'requote'])) {
@@ -1204,6 +1205,42 @@ class MessageController extends Controller
         }
 
         return null;
+    }
+
+    private function getAssistantCurrencyConfig(): array
+    {
+        if (!Schema::hasTable('app_settings')) {
+            return ['code' => 'USD', 'rate' => 1.0, 'symbol' => '$'];
+        }
+
+        $code = strtoupper((string) AppSetting::getValue('pricing.currency_code', 'USD'));
+        if ($code === '') {
+            $code = 'USD';
+        }
+
+        $rate = max(0.0001, AppSetting::getNumber('pricing.currency_rate', 1.0));
+
+        $symbol = match ($code) {
+            'EUR' => 'EUR ',
+            'GBP' => 'GBP ',
+            'KES' => 'KES ',
+            'USD' => '$',
+            default => $code . ' ',
+        };
+
+        return [
+            'code' => $code,
+            'rate' => $rate,
+            'symbol' => $symbol,
+        ];
+    }
+
+    private function formatAssistantMoney(float $amount, int $decimals = 2): string
+    {
+        $currency = $this->getAssistantCurrencyConfig();
+        $converted = $amount * (float) ($currency['rate'] ?? 1.0);
+
+        return (string) ($currency['symbol'] ?? '$') . number_format($converted, $decimals);
     }
 
     private function searchProductsForAssistant(string $question, array $historyPreferences = [], int $limit = 6, array $searchContext = []): array
@@ -1395,9 +1432,9 @@ class MessageController extends Controller
 
                 if ($maxBudget !== null && $maxBudget > 0 && $price > 0) {
                     if ($price <= $maxBudget) {
-                        $whyText .= '. Within your budget of $' . number_format($maxBudget, 0);
+                        $whyText .= '. Within your budget of ' . $this->formatAssistantMoney($maxBudget, 0);
                     } else {
-                        $whyText .= '. Above your budget of $' . number_format($maxBudget, 0);
+                        $whyText .= '. Above your budget of ' . $this->formatAssistantMoney($maxBudget, 0);
                     }
                 }
 
@@ -1466,7 +1503,8 @@ class MessageController extends Controller
             'need', 'purchase', 'buy', 'best', 'give', 'me', 'sample', 'list', 'for', 'the',
             'and', 'or', 'with', 'show', 'please', 'can', 'you', 'want', 'from', 'that', 'this',
             'have', 'all', 'more', 'details', 'about', 'find', 'search', 'suggestion', 'suggestions',
-            'product', 'products', 'item', 'items', 'hi', 'hello', 'hey', 'to', 'today'
+            'suggest', 'suggested', 'recommended', 'recommend', 'available', 'current', 'from',
+            'product', 'products', 'item', 'items', 'one', 'two', 'three', 'hi', 'hello', 'hey', 'to', 'today'
         ];
 
         $keywords = collect($parts)
@@ -1569,13 +1607,14 @@ class MessageController extends Controller
             'need', 'purchase', 'buy', 'best', 'give', 'me', 'sample', 'list', 'for', 'the',
             'and', 'or', 'with', 'show', 'please', 'can', 'you', 'want', 'from', 'that', 'this',
             'have', 'all', 'more', 'details', 'about', 'find', 'search', 'suggestion', 'suggestions',
-            'product', 'products', 'item', 'items', 'invoice', 'payment', 'quote', 'order', 'hi',
-            'hello', 'hey', 'to', 'today'
+            'suggest', 'suggested', 'recommended', 'recommend', 'available', 'current',
+            'product', 'products', 'item', 'items', 'invoice', 'payment', 'quote', 'order',
+            'one', 'two', 'three', 'hi', 'hello', 'hey', 'to', 'today'
         ];
 
         $priorityTerms = [
             'dell', 'lenovo', 'hp', 'microsoft', 'surface', 'apple', 'laptop', 'notebook', 'monitor',
-            'printer', 'server', 'desktop', 'workstation', 'gaming', 'business'
+            'printer', 'printers', 'server', 'desktop', 'workstation', 'gaming', 'business'
         ];
 
         $tokens = $userTexts
