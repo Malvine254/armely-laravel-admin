@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Services\CatalogOperationStateService;
 use App\Services\TDSynnexService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -19,7 +20,7 @@ class SyncPriceAvailabilityCatalogJob implements ShouldQueue
 
     public $tries = 1;
 
-    public function __construct(public bool $forceRefresh = false)
+    public function __construct(public bool $forceRefresh = false, public bool $fromAdmin = false)
     {
     $this->onConnection('database');
     $this->onQueue('products-sync');
@@ -32,12 +33,31 @@ class SyncPriceAvailabilityCatalogJob implements ShouldQueue
         ];
     }
 
-    public function handle(TDSynnexService $service): void
+    public function handle(TDSynnexService $service, CatalogOperationStateService $stateService): void
     {
         if (!$service->usesPriceAvailabilityAsProductSource()) {
             Log::info('PriceAvailability catalog sync skipped: products source is not priceavailability.');
+            if ($this->fromAdmin) {
+                $stateService->fail('Catalog sync skipped: products source is not set to priceavailability.');
+            }
             return;
         }
+
+        if ($this->fromAdmin) {
+            $stateService->running('Catalog sync job started...');
+        }
+
+        // Admin-triggered runs should not use the short web timeout.
+        config([
+            'tdsynnex.price_availability.request_timeout' => max(
+                30,
+                (int) config('tdsynnex.price_availability.request_timeout', 8)
+            ),
+            'tdsynnex.price_availability.max_runtime_seconds' => max(
+                300,
+                (int) config('tdsynnex.price_availability.max_runtime_seconds', 45)
+            ),
+        ]);
 
         Log::info('PriceAvailability catalog sync started.', [
             'force' => $this->forceRefresh,
@@ -50,5 +70,25 @@ class SyncPriceAvailabilityCatalogJob implements ShouldQueue
             'synced' => (int) ($result['synced'] ?? 0),
             'updated' => (int) ($result['updated'] ?? 0),
         ]);
+
+        if ($this->fromAdmin) {
+            $stateService->complete(
+                'Catalog sync completed.',
+                "Catalog sync completed.\nSource products: "
+                . (int) ($result['source_count'] ?? 0)
+                . "\nRows synced: "
+                . (int) ($result['synced'] ?? 0)
+                . "\nRows updated: "
+                . (int) ($result['updated'] ?? 0)
+            );
+        }
+    }
+
+    public function failed(\Throwable $e): void
+    {
+        if ($this->fromAdmin) {
+            app(CatalogOperationStateService::class)
+                ->fail('Catalog sync failed: ' . $e->getMessage());
+        }
     }
 }

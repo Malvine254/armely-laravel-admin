@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\Product;
+use App\Services\CatalogOperationStateService;
 use App\Services\TDSynnexService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -20,7 +21,7 @@ class EnrichPriceAvailabilityImagesJob implements ShouldQueue
 
     public $tries = 1;
 
-    public function __construct(public int $chunk = 25, public int $limit = 0)
+    public function __construct(public int $chunk = 25, public int $limit = 0, public bool $fromAdmin = false)
     {
     $this->onConnection('database');
     $this->onQueue('products-sync');
@@ -33,10 +34,13 @@ class EnrichPriceAvailabilityImagesJob implements ShouldQueue
         ];
     }
 
-    public function handle(TDSynnexService $service): void
+    public function handle(TDSynnexService $service, CatalogOperationStateService $stateService): void
     {
         if (!$service->usesPriceAvailabilityAsProductSource()) {
             Log::info('PriceAvailability image enrichment skipped: products source is not priceavailability.');
+            if ($this->fromAdmin) {
+                $stateService->fail('Image enrichment skipped: products source is not set to priceavailability.');
+            }
             return;
         }
 
@@ -48,7 +52,23 @@ class EnrichPriceAvailabilityImagesJob implements ShouldQueue
             'limit' => $limit,
         ]);
 
-        $result = $service->syncPriceAvailabilityImagesFromDatabase($chunk, $limit);
+        if ($this->fromAdmin) {
+            $stateService->running(
+                'Image enrichment job started... chunk=' . $chunk . ', limit=' . $limit
+            );
+        }
+
+        $result = $service->syncPriceAvailabilityImagesFromDatabase(
+            $chunk,
+            $limit,
+            $this->fromAdmin
+                ? function (int $processed, int $updated, $product, bool $didUpdate, array $images) use ($stateService) {
+                    $sku = trim((string) ($product->tdsynnex_sku_no ?? $product->tdsynnex_product_id ?? $product->id));
+                    $status = $didUpdate ? 'UPDATED' : 'SKIPPED';
+                    $stateService->append(sprintf('[%d] %s SKU:%s (images:%d)', $processed, $status, $sku, count($images)));
+                }
+                : null
+        );
 
         $withImages = Product::query()
             ->where('vendor_id', 'TD SYNNEX')
@@ -61,5 +81,25 @@ class EnrichPriceAvailabilityImagesJob implements ShouldQueue
             'updated' => (int) ($result['updated'] ?? 0),
             'with_images' => (int) $withImages,
         ]);
+
+        if ($this->fromAdmin) {
+            $stateService->complete(
+                'Image enrichment completed.',
+                "Image enrichment completed.\nProcessed: "
+                . (int) ($result['processed'] ?? 0)
+                . "\nUpdated: "
+                . (int) ($result['updated'] ?? 0)
+                . "\nProducts with images: "
+                . (int) $withImages
+            );
+        }
+    }
+
+    public function failed(\Throwable $e): void
+    {
+        if ($this->fromAdmin) {
+            app(CatalogOperationStateService::class)
+                ->fail('Image enrichment failed: ' . $e->getMessage());
+        }
     }
 }

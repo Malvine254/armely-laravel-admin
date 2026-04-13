@@ -71,6 +71,7 @@
           <FilterSidebar 
             :vendors="availableVendors" 
             :categories="availableCategories"
+            :active-filters="currentFilters"
             :lifecycle-options="lifecycleOptions"
             :media-options="reviewRatingOptions"
             @filter-change="handleFilterChange"
@@ -111,8 +112,8 @@
                 <div class="h-1 rounded-r animate-pulse" style="background-color: #2F5597; width: 100%;"></div>
               </div>
             </div>
-            <div class="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-              <p class="text-gray-600 font-medium">Showing <span class="font-bold" style="color: #2F5597;">{{ paginatedProducts.length }}</span> of <span class="font-bold" style="color: #2F5597;">{{ totalProducts }}</span> products</p>
+            <div class="mb-6 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3">
+              <p class="text-gray-600 font-medium">Showing <span class="font-bold" style="color: #2F5597;">{{ Math.min(ITEMS_PER_PAGE, totalProducts) }}</span> of <span class="font-bold" style="color: #2F5597;">{{ totalProducts }}</span> products</p>
               <span class="text-gray-600 text-sm">Page <span class="font-bold" style="color: #2F5597;">{{ currentPage }}</span> of <span class="font-bold" style="color: #2F5597;">{{ totalPages }}</span></span>
             </div>
 
@@ -363,7 +364,6 @@ const LOCAL_SEARCH_HISTORY_LIMIT = 12
 const TOP_VENDOR_DISPLAY_LIMIT = 40
 const DEFAULT_VENDOR_SCOPE_LIMIT = 12
 const DEFAULT_BROWSE_MIN_PRICE = 200
-const CURATED_BROWSE_MAX_TOTAL = 1000
 const CURATED_CACHE_VERSION = 2
 const ENABLE_SERVER_PREFETCH = false
 const CURATED_VENDOR_ALLOWLIST = [
@@ -1054,18 +1054,13 @@ const requiresClientSideFiltering = computed(() => {
 
 const totalProducts = computed(() => {
   if (serverPaged.value) {
-    const total = Number(serverTotal.value || 0)
-    if (isDefaultCuratedBrowse(currentFilters.value)) {
-      return Math.min(CURATED_BROWSE_MAX_TOTAL, total)
-    }
-
-    return total
+    return Number(serverTotal.value || 0)
   }
 
   return filteredProducts.value.length
 })
 
-const totalPages = computed(() => Math.ceil(totalProducts.value / ITEMS_PER_PAGE))
+const totalPages = computed(() => Math.max(1, Math.ceil(totalProducts.value / ITEMS_PER_PAGE)))
 
 const paginatedProducts = computed(() => {
   if (serverPaged.value) {
@@ -1256,11 +1251,7 @@ const performSearch = async (resetPage = true) => {
     const cached = requestCache.get(cacheKey)
     if (Date.now() - cached.timestamp < 5 * 60 * 1000) {
       products.value = cached.data
-      let cachedTotal = Number(cached.total || cached.data?.length || 0)
-      if (isDefaultCuratedBrowse(currentFilters.value)) {
-        cachedTotal = Math.min(CURATED_BROWSE_MAX_TOTAL, Math.max((cached.data || []).length, cachedTotal))
-      }
-      serverTotal.value = cachedTotal
+      serverTotal.value = Number(cached.total || cached.data?.length || 0)
       serverPaged.value = Boolean(cached.serverPaged)
       if (!Boolean(cached.serverPaged)) {
         updateVendorCounts(cached.data)
@@ -1277,11 +1268,7 @@ const performSearch = async (resetPage = true) => {
     try {
       const result = await pendingRequests.get(cacheKey)
       products.value = result.data
-      let pendingTotal = Number(result.total || result.data?.length || 0)
-      if (isDefaultCuratedBrowse(currentFilters.value)) {
-        pendingTotal = Math.min(CURATED_BROWSE_MAX_TOTAL, Math.max((result.data || []).length, pendingTotal))
-      }
-      serverTotal.value = pendingTotal
+      serverTotal.value = Number(result.total || result.data?.length || 0)
       serverPaged.value = Boolean(result.serverPaged)
       if (!Boolean(result.serverPaged)) {
         updateVendorCounts(result.data)
@@ -1306,12 +1293,6 @@ const performSearch = async (resetPage = true) => {
       const params = {
         hide_zero_price: true,
         catalog_clean: true,
-        curated_it_mix: true,
-      }
-
-      // Keep default catalog focused on higher-value IT items unless user explicitly sets pricing.
-      if (isDefaultBrowse && Number(currentFilters.value.priceMin || 0) <= 0) {
-        params.min_price = DEFAULT_BROWSE_MIN_PRICE
       }
 
       if (searchQuery.value) {
@@ -1356,18 +1337,9 @@ const performSearch = async (resetPage = true) => {
           ? payload.records
           : (Array.isArray(payload) ? payload : [])
         loadedTotal = Number(payload.total || loadedProducts.length || 0)
-
-        // Hard cap curated browse totals so pagination never expands to the full raw catalog.
-        if (isDefaultBrowse) {
-          loadedTotal = Math.min(CURATED_BROWSE_MAX_TOTAL, Math.max(loadedProducts.length, loadedTotal))
-        }
       } else {
         loadedProducts = await fetchAllProductPages(params)
         loadedTotal = loadedProducts.length
-
-        if (isDefaultBrowse) {
-          loadedTotal = Math.min(CURATED_BROWSE_MAX_TOTAL, loadedTotal)
-        }
       }
 
       products.value = loadedProducts
@@ -1700,10 +1672,7 @@ const prefetchPage = (page) => {
     if (response.data?.success) {
       const payload = response.data.data || {}
       const records = Array.isArray(payload.records) ? payload.records : []
-      let prefetchedTotal = Number(payload.total || records.length || 0)
-      if (isDefaultBrowse) {
-        prefetchedTotal = Math.min(CURATED_BROWSE_MAX_TOTAL, Math.max(records.length, prefetchedTotal))
-      }
+      const prefetchedTotal = Number(payload.total || records.length || 0)
 
       requestCache.set(cacheKey, {
         data: records,
@@ -1930,9 +1899,17 @@ watch(
 )
 
 watch(
-  () => route.query.q,
-  (newQuery) => {
+  () => [route.query.q, route.query.vendor, route.query.category],
+  ([newQuery, newVendor, newCategory]) => {
     searchQuery.value = newQuery ? String(newQuery) : ''
+
+    currentFilters.value = {
+      ...currentFilters.value,
+      vendors: newVendor ? [String(newVendor)] : [],
+      categories: newCategory ? [String(newCategory)] : [],
+    }
+
+    currentPage.value = 1
     performSearch(true)
   },
   { immediate: true }

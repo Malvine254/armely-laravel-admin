@@ -829,7 +829,7 @@ class TDSynnexService
             'mfg_part_no' => (string) ($product['mfgPartNo'] ?? $sku),
             'description' => (string) ($product['description'] ?? ''),
             'base_price' => (float) ($product['productPrice'][0]['rsPrice'] ?? 0),
-            'retail_price' => (float) ($product['productPrice'][0]['rsPrice'] ?? 0),
+            'retail_price' => (float) ($product['productPrice'][0]['msrp'] ?? $product['productPrice'][0]['rsPrice'] ?? 0),
             'billing_model' => (string) ($product['billingModel'] ?? ''),
             'billing_frequency' => (string) ($product['billingFrequency'] ?? ''),
             'is_available' => !((bool) ($product['discontinueProduct'] ?? false)),
@@ -1265,6 +1265,25 @@ class TDSynnexService
         return $normalized;
     }
 
+    private function pickFirstNumericValue(array $row, array $keys): float
+    {
+        foreach ($keys as $key) {
+            $candidates = [$key, strtolower($key), strtoupper($key), ucfirst($key)];
+            foreach ($candidates as $candidateKey) {
+                if (!array_key_exists($candidateKey, $row)) {
+                    continue;
+                }
+
+                $value = $row[$candidateKey];
+                if (is_numeric((string) $value)) {
+                    return (float) $value;
+                }
+            }
+        }
+
+        return 0.0;
+    }
+
     private function normalizePriceAvailabilityProduct(array $row, array $metadata): array
     {
         $sku = trim((string) ($row['synnexSKU'] ?? $row['SynnexSKU'] ?? ''));
@@ -1277,7 +1296,34 @@ class TDSynnexService
         $apiDescription = trim((string) ($row['description'] ?? ''));
         $flatDescription = trim((string) ($meta['description'] ?? ''));
         $description = $flatDescription !== '' ? $flatDescription : $apiDescription;
-        $price = is_numeric((string) ($row['price'] ?? null)) ? (float) $row['price'] : 0.0;
+        // Keep reseller/cost in base_price and prefer MSRP/list for retail_price.
+        $resellerPrice = $this->pickFirstNumericValue($row, [
+            'price',
+            'resellerPrice',
+            'customerPrice',
+            'costPrice',
+            'dealerPrice',
+        ]);
+
+        $msrpPrice = $this->pickFirstNumericValue($row, [
+            'msrp',
+            'MSRP',
+            'listPrice',
+            'retailPrice',
+            'suggestedRetailPrice',
+        ]);
+
+        if ($resellerPrice <= 0) {
+            $resellerPrice = (float) ($meta['base_price'] ?? 0);
+        }
+
+        if ($msrpPrice <= 0) {
+            $msrpPrice = (float) ($meta['retail_price'] ?? 0);
+        }
+
+        if ($msrpPrice <= 0) {
+            $msrpPrice = $resellerPrice;
+        }
         $qty = is_numeric((string) ($row['totalQuantity'] ?? null)) ? (int) $row['totalQuantity'] : 0;
         $isDiscontinued = in_array(strtolower($status), ['discontinued', 'not found'], true);
         return [
@@ -1302,7 +1348,8 @@ class TDSynnexService
             'discontinueProduct' => $isDiscontinued,
             'productPrice' => [
                 [
-                    'rsPrice' => $price,
+                    'rsPrice' => $resellerPrice,
+                    'msrp' => $msrpPrice,
                     'minQty' => 1,
                 ],
             ],
@@ -1425,17 +1472,11 @@ class TDSynnexService
                     'source_url'   => (string) ($spec['source_url'] ?? $apMeta['source_url'] ?? ''),
                 ];
 
-                $assets = $this->resolveProductAssetsForSku($sku, $meta, '');
+                $assets = $this->resolveProductAssetsForSku($sku, $meta, (string) ($product->name ?? $product->product_name ?? ''));
                 $longDescription = trim((string) ($assets['description'] ?? ''));
 
                 if ($longDescription !== '') {
                     $product->description = $longDescription;
-
-                    // Also save images if we got them and they were missing
-                    $images = (array) ($assets['images'] ?? []);
-                    if (!empty($images) && (empty($product->images) || $product->images === '[]')) {
-                        $product->images = $images;
-                    }
 
                     $product->save();
                     $updated++;
@@ -1449,6 +1490,76 @@ class TDSynnexService
             'processed' => $processed,
             'updated'   => $updated,
         ];
+    }
+
+    /**
+     * Download external image URLs to public/images/products/ and return the images
+     * array with updated local paths. Falls back to the original URL on failure.
+     */
+    private function localizeImages(array $images, string $nameKey): array
+    {
+        if (!config('tdsynnex.local_images.enabled', true)) {
+            return $images;
+        }
+
+        $destDir  = public_path(config('tdsynnex.local_images.dest_dir', 'images/products'));
+        $urlPfx   = rtrim((string) config('tdsynnex.local_images.url_prefix', '/images/products'), '/');
+        $timeout  = max(5, (int) config('tdsynnex.local_images.download_timeout', 15));
+        $safeName = strtolower(preg_replace('/[^a-zA-Z0-9.\-_]/', '-', $nameKey));
+        $safeName = trim($safeName, '-');
+
+        if (!is_dir($destDir)) {
+            mkdir($destDir, 0775, true);
+        }
+
+        $result = [];
+        foreach ($images as $idx => $img) {
+            if (!is_array($img)) {
+                $result[] = $img;
+                continue;
+            }
+
+            $url = trim((string) ($img['imageUrl'] ?? ''));
+
+            if ($url === '' || str_starts_with($url, '/images/')) {
+                $result[] = $img;
+                continue;
+            }
+
+            $urlPath = parse_url($url, PHP_URL_PATH) ?? '';
+            $ext     = strtolower(pathinfo($urlPath, PATHINFO_EXTENSION));
+            if (!in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'], true)) {
+                $ext = 'jpg';
+            }
+
+            $filename  = $idx === 0 ? "{$safeName}.{$ext}" : "{$safeName}-{$idx}.{$ext}";
+            $localPath = $destDir . DIRECTORY_SEPARATOR . $filename;
+            $localUrl  = $urlPfx . '/' . $filename;
+
+            if (file_exists($localPath) && filesize($localPath) > 500) {
+                $result[] = array_merge($img, ['imageUrl' => $localUrl]);
+                continue;
+            }
+
+            try {
+                $response = \Illuminate\Support\Facades\Http::withHeaders([
+                    'User-Agent' => 'Mozilla/5.0 (compatible; ArmelyStore/1.0; +https://armely.com)',
+                ])->timeout($timeout)->get($url);
+
+                if ($response->successful() && strlen($response->body()) > 500) {
+                    file_put_contents($localPath, $response->body());
+                    $result[] = array_merge($img, ['imageUrl' => $localUrl]);
+                } else {
+                    $result[] = $img;
+                    Log::debug('localizeImages: download failed', ['key' => $nameKey, 'url' => $url, 'status' => $response->status()]);
+                }
+            } catch (\Throwable $e) {
+                $result[] = $img;
+                Log::debug('localizeImages: exception', ['key' => $nameKey, 'url' => $url, 'error' => $e->getMessage()]);
+            }
+        }
+
+        return $result;
     }
 
     private function persistProductImagesBySku(string $sku, array $images): void
@@ -1473,6 +1584,10 @@ class TDSynnexService
             if (!$product) {
                 return;
             }
+
+            $mpn     = trim((string) ($product->mfg_part_no ?? ''));
+            $nameKey = $mpn !== '' ? $mpn : $sku;
+            $images  = $this->localizeImages($images, $nameKey);
 
             $product->images = $images;
             $product->save();
@@ -1719,6 +1834,9 @@ class TDSynnexService
                 }
 
                 if (!isset($metadata[$sku])) {
+                    $apBasePrice = is_numeric(trim((string) ($parts[12] ?? ''))) ? (float) $parts[12] : 0.0;
+                    $apRetailPrice = is_numeric(trim((string) ($parts[13] ?? ''))) ? (float) $parts[13] : 0.0;
+
                     $metadata[$sku] = [
                         'category_code' => trim((string) ($parts[24] ?? '')) ?: '-',
                         'category_name' => trim((string) ($parts[35] ?? '')),
@@ -1728,6 +1846,8 @@ class TDSynnexService
                         'mpn' => trim((string) ($parts[2] ?? '')),
                         'manufacturer' => trim((string) ($parts[7] ?? '')),
                         'upc' => trim((string) ($parts[33] ?? '')),
+                        'base_price' => $apBasePrice,
+                        'retail_price' => $apRetailPrice,
                         'image_url' => $this->extractImageUrlFromApRow($parts),
                         'source_url' => $this->extractSourceUrlFromApRow($parts),
                     ];
@@ -1887,27 +2007,17 @@ class TDSynnexService
             }
 
             if (empty($images)) {
-                $serpApi = $this->fetchSerpApiProductImageData($sku, $meta, $description);
-                $serpApiImage = trim((string) ($serpApi['image_url'] ?? ''));
-                if ($serpApiImage !== '' && $this->isValidImageUrl($serpApiImage)) {
+                $scraped = $this->fetchScrapedProductImageData($sku, $meta, $description);
+                $scrapedImage = trim((string) ($scraped['image_url'] ?? ''));
+                if ($scrapedImage !== '' && $this->isValidImageUrl($scrapedImage)) {
                     $images[] = [
-                        'imageUrl' => $serpApiImage,
-                        'source' => (string) ($serpApi['source'] ?? 'serpapi-image'),
+                        'imageUrl' => $scrapedImage,
+                        'source' => (string) ($scraped['source'] ?? 'scrape-approved'),
                     ];
                 }
-            }
 
-            // Icecat disabled - using only flat-file and SerpAPI image fallback.
-            // $icecatData = $this->fetchIcecatProductData($sku, $meta, $description);
-            // $icecatImage = trim((string) ($icecatData['image_url'] ?? ''));
-            // $resolvedDescription = trim((string) ($icecatData['description'] ?? ''));
-            // if ($icecatImage !== '' && $this->isValidImageUrl($icecatImage)) {
-            //     $matchReason = trim((string) ($icecatData['match_reason'] ?? ''));
-            //     $images[] = [
-            //         'imageUrl' => $icecatImage,
-            //         'source' => $matchReason !== '' ? 'icecat:' . $matchReason : 'icecat',
-            //     ];
-            // }
+                $resolvedDescription = trim((string) ($scraped['description'] ?? ''));
+            }
 
             $unique = [];
             $seen = [];
@@ -2091,12 +2201,12 @@ class TDSynnexService
     private function fetchScrapedProductImageData(string $sku, array $meta, string $description = ''): array
     {
         if (!config('tdsynnex.scraping.enabled', false)) {
-            return ['image_url' => '', 'source' => ''];
+            return ['image_url' => '', 'source' => '', 'description' => ''];
         }
 
         $candidates = $this->resolveScrapeCandidateUrls($meta, $description);
         if (empty($candidates)) {
-            return ['image_url' => '', 'source' => ''];
+            return ['image_url' => '', 'source' => '', 'description' => ''];
         }
 
         $maxCandidates = max(1, (int) config('tdsynnex.scraping.max_candidates', 3));
@@ -2130,6 +2240,7 @@ class TDSynnexService
                 }
 
                 $html = (string) $response->body();
+                $scrapedDescription = $this->extractDescriptionFromHtml($html);
                 if (!$this->passesScrapedLicensePolicy($html)) {
                     Log::info('Scraper skipped by license policy', ['sku' => $sku, 'url' => $pageUrl]);
                     continue;
@@ -2149,6 +2260,7 @@ class TDSynnexService
                 return [
                     'image_url' => $imageUrl,
                     'source' => 'scrape-approved',
+                    'description' => $scrapedDescription,
                 ];
             } catch (\Throwable $e) {
                 Log::debug('Scraper image lookup exception', [
@@ -2159,7 +2271,31 @@ class TDSynnexService
             }
         }
 
-        return ['image_url' => '', 'source' => ''];
+        return ['image_url' => '', 'source' => '', 'description' => ''];
+    }
+
+    private function extractDescriptionFromHtml(string $html): string
+    {
+        if ($html === '') {
+            return '';
+        }
+
+        $patterns = [
+            '/<meta[^>]+property=["\']og:description["\'][^>]+content=["\']([^"\']+)["\']/i',
+            '/<meta[^>]+name=["\']description["\'][^>]+content=["\']([^"\']+)["\']/i',
+            '/<meta[^>]+content=["\']([^"\']+)["\'][^>]+name=["\']description["\']/i',
+        ];
+
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $html, $m)) {
+                $text = trim(html_entity_decode(strip_tags((string) ($m[1] ?? '')), ENT_QUOTES | ENT_HTML5));
+                if (mb_strlen($text) >= 20) {
+                    return mb_substr($text, 0, 2000);
+                }
+            }
+        }
+
+        return '';
     }
 
     private function fetchSerpApiProductImageData(string $sku, array $meta, string $description = ''): array

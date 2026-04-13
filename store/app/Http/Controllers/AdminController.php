@@ -9,13 +9,18 @@ use App\Models\User;
 use App\Models\Company;
 use App\Models\Product;
 use App\Models\AppSetting;
+use App\Jobs\DownloadProductImagesJob;
+use App\Jobs\EnrichPriceAvailabilityImagesJob;
 use App\Services\NotificationService;
+use App\Services\CatalogOperationStateService;
 use App\Services\TDSynnexService;
+use App\Jobs\SyncPriceAvailabilityCatalogJob;
 use App\Models\Message;
 use App\Exceptions\TDSynnexApiException;
 use App\Jobs\GenerateInvoiceJob;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Hash;
@@ -38,6 +43,71 @@ class AdminController extends Controller
         }
 
         return $value;
+    }
+
+    private function isAdminUser($user): bool
+    {
+        return $user && in_array($user->role, ['admin', 'super_admin'], true);
+    }
+
+    private function buildCatalogOperationsStatus(): array
+    {
+        $serviceAvailable = $this->tdsynnexServiceAvailable();
+        $dbCacheExists = $this->tdsynnexServiceAvailable()
+            ? app(TDSynnexService::class)->hasPriceAvailabilityDatabaseCache()
+            : false;
+
+        $baseQuery = Product::query()->where('vendor_id', 'TD SYNNEX');
+        $totalProducts = (clone $baseQuery)->count();
+        $productsWithImages = (clone $baseQuery)
+            ->whereNotNull('images')
+            ->where('images', '!=', '[]')
+            ->count();
+        $productsWithLocalImages = (clone $baseQuery)
+            ->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(images, '$[0].imageUrl')) LIKE '/images/%'")
+            ->count();
+        $lastSyncedAt = (clone $baseQuery)->max('last_synced_at');
+
+        $pendingJobs = null;
+        $failedJobs = null;
+        try {
+            if (DB::getSchemaBuilder()->hasTable('jobs')) {
+                $pendingJobs = DB::table('jobs')
+                    ->where('queue', 'products-sync')
+                    ->count();
+            }
+
+            if (DB::getSchemaBuilder()->hasTable('failed_jobs')) {
+                $failedJobs = DB::table('failed_jobs')
+                    ->where('queue', 'products-sync')
+                    ->count();
+            }
+        } catch (\Throwable $e) {
+            $pendingJobs = null;
+            $failedJobs = null;
+        }
+
+        $operationState = app(CatalogOperationStateService::class)->get();
+
+        return [
+            'products_source' => (string) config('tdsynnex.products_source', 'priceavailability'),
+            'db_cache_exists' => $dbCacheExists,
+            'total_products' => $totalProducts,
+            'products_with_images' => $productsWithImages,
+            'products_with_local_images' => $productsWithLocalImages,
+            'last_catalog_sync_at' => $lastSyncedAt ? (string) $lastSyncedAt : null,
+            'pending_products_sync_jobs' => $pendingJobs,
+            'failed_products_sync_jobs' => $failedJobs,
+            'catalog_operation' => $operationState,
+            'priceavailability_enabled' => $serviceAvailable
+                ? app(TDSynnexService::class)->usesPriceAvailabilityAsProductSource()
+                : false,
+        ];
+    }
+
+    private function tdsynnexServiceAvailable(): bool
+    {
+        return app()->bound(TDSynnexService::class) || class_exists(TDSynnexService::class);
     }
 
     /**
@@ -2167,15 +2237,23 @@ class AdminController extends Controller
                         'smtp_username' => config('mail.mailers.smtp.username', ''),
                     ],
                     'system_settings' => [
-                        'company_name' => 'Armely Store',
-                        'support_email' => config('mail.from.address', 'support@armely.com'),
+                        'company_name' => (string) AppSetting::getValue('system.company_name', 'Armely Store'),
+                        'support_email' => (string) AppSetting::getValue('system.support_email', config('mail.from.address', 'support@armely.com')),
                         'currency' => strtoupper((string) AppSetting::getValue('pricing.currency_code', 'USD')),
                         'currency_rate' => AppSetting::getNumber('pricing.currency_rate', 1),
-                        'timezone' => config('app.timezone', 'America/New_York'),
+                        'timezone' => (string) AppSetting::getValue('system.timezone', config('app.timezone', 'America/New_York')),
                         'maintenance_mode' => app()->isDownForMaintenance(),
                         'tax_rate_percent' => AppSetting::getNumber('pricing.tax_rate_percent', 0),
                         'profit_rate_percent' => AppSetting::getNumber('pricing.profit_rate_percent', 0),
                     ],
+                    'catalog_operations' => (function () {
+                        try {
+                            return $this->buildCatalogOperationsStatus();
+                        } catch (\Throwable $e) {
+                            Log::warning('buildCatalogOperationsStatus failed: ' . $e->getMessage());
+                            return [];
+                        }
+                    })(),
                 ],
             ]);
         } catch (\Exception $e) {
@@ -2348,6 +2426,92 @@ class AdminController extends Controller
         }
     }
 
+    public function getCatalogOperationsStatus(Request $request): JsonResponse
+    {
+        try {
+            $user = $request->user();
+
+            if (!$this->isAdminUser($user)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized',
+                ], 403);
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => $this->buildCatalogOperationsStatus(),
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Failed to get catalog operations status: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to get catalog status',
+            ], 500);
+        }
+    }
+
+    public function runCatalogOperation(Request $request): JsonResponse
+    {
+        try {
+            $user = $request->user();
+
+            if (!$this->isAdminUser($user)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized',
+                ], 403);
+            }
+
+            $validated = $request->validate([
+                'action' => 'required|string|in:sync_catalog,enrich_images,download_images',
+            ]);
+
+            $action = (string) $validated['action'];
+            $message = '';
+            $stateService = app(CatalogOperationStateService::class);
+
+            if ($action === 'sync_catalog') {
+                $message = 'Catalog sync queued in background on products-sync queue.';
+                $stateService->start($action, (int) $user->id, $message);
+                SyncPriceAvailabilityCatalogJob::dispatch(false, true);
+            }
+
+            if ($action === 'enrich_images') {
+                $message = 'Image enrichment queued in background (chunk=1, limit=100) with live per-item output.';
+                $stateService->start($action, (int) $user->id, $message);
+                EnrichPriceAvailabilityImagesJob::dispatch(1, 100, true);
+            }
+
+            if ($action === 'download_images') {
+                $message = 'Image download queued in background (chunk=1, limit=100) with live per-item output.';
+                $stateService->start($action, (int) $user->id, $message);
+                DownloadProductImagesJob::dispatch(100, 1);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'data' => [
+                    'output' => $stateService->get()['output'] ?? $message,
+                    'status' => (function () {
+                        try { return $this->buildCatalogOperationsStatus(); } catch (\Throwable $e) { return []; }
+                    })(),
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Failed to run catalog operation: ' . $e->getMessage(), [
+                'action' => $request->input('action'),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to run catalog operation: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
     /**
      * Update email settings (placeholder)
      */
@@ -2400,6 +2564,9 @@ class AdminController extends Controller
                 'profit_rate_percent' => 'sometimes|numeric|min:0|max:500',
                 'currency' => 'sometimes|string|max:10',
                 'currency_rate' => 'sometimes|numeric|min:0.0001|max:1000000',
+                'company_name' => 'sometimes|string|max:255',
+                'support_email' => 'sometimes|email|max:255',
+                'timezone' => 'sometimes|string|max:100',
             ]);
 
             // Handle maintenance mode
@@ -2434,13 +2601,25 @@ class AdminController extends Controller
                 AppSetting::setValue('pricing.currency_rate', (float) $validated['currency_rate']);
             }
 
-            // In a real implementation, save other settings to database
-            // For now, just save to config (you may want to use Settings model)
-            
+            if (array_key_exists('company_name', $validated)) {
+                AppSetting::setValue('system.company_name', (string) $validated['company_name']);
+            }
+
+            if (array_key_exists('support_email', $validated)) {
+                AppSetting::setValue('system.support_email', (string) $validated['support_email']);
+            }
+
+            if (array_key_exists('timezone', $validated)) {
+                AppSetting::setValue('system.timezone', (string) $validated['timezone']);
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => 'System settings updated successfully',
                 'data' => [
+                    'company_name' => (string) AppSetting::getValue('system.company_name', 'Armely Store'),
+                    'support_email' => (string) AppSetting::getValue('system.support_email', config('mail.from.address', 'support@armely.com')),
+                    'timezone' => (string) AppSetting::getValue('system.timezone', config('app.timezone', 'America/New_York')),
                     'tax_rate_percent' => AppSetting::getNumber('pricing.tax_rate_percent', 0),
                     'profit_rate_percent' => AppSetting::getNumber('pricing.profit_rate_percent', 0),
                     'currency' => strtoupper((string) AppSetting::getValue('pricing.currency_code', 'USD')),

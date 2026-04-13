@@ -276,7 +276,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 
 const props = defineProps({
   vendors: {
@@ -286,6 +286,10 @@ const props = defineProps({
   categories: {
     type: Array,
     default: () => []
+  },
+  activeFilters: {
+    type: Object,
+    default: () => ({})
   },
   lifecycleOptions: {
     type: Array,
@@ -316,6 +320,27 @@ const filters = ref({
   lifecycleStatuses: [],
   mediaStatuses: []
 })
+
+const syncFromActiveFilters = (source = {}) => {
+  const next = source || {}
+  filters.value = {
+    priceMin: Number(next.priceMin ?? 0),
+    priceMax: Number(next.priceMax ?? 10000),
+    partNumber: String(next.partNumber ?? ''),
+    vendors: Array.isArray(next.vendors) ? [...next.vendors] : [],
+    categories: Array.isArray(next.categories) ? [...next.categories] : [],
+    lifecycleStatuses: Array.isArray(next.lifecycleStatuses) ? [...next.lifecycleStatuses] : [],
+    mediaStatuses: Array.isArray(next.mediaStatuses) ? [...next.mediaStatuses] : []
+  }
+}
+
+watch(
+  () => props.activeFilters,
+  (next) => {
+    syncFromActiveFilters(next)
+  },
+  { immediate: true, deep: true }
+)
 
 const openSections = ref({
   price: true,
