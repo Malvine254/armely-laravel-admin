@@ -4,55 +4,55 @@
 
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-      <div class="bg-white rounded-lg shadow p-6">
+      <div class="rounded-xl border border-white/10 p-6 backdrop-blur" style="background: linear-gradient(180deg, rgba(34, 211, 238, 0.12), rgba(3, 102, 214, 0.08));">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm text-gray-600 mb-1">Total Invoices</p>
-            <p class="text-2xl font-bold text-gray-900">{{ stats.total || 0 }}</p>
+            <p class="text-sm text-slate-300 mb-1">Total Invoices</p>
+            <p class="text-2xl font-bold text-white">{{ stats.total || 0 }}</p>
           </div>
-          <div class="w-12 h-12 bg-[#edf3fb] rounded-lg flex items-center justify-center">
-            <i class="fas fa-receipt text-[#2f5597] text-xl"></i>
+          <div class="w-12 h-12 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, rgba(34, 211, 238, 0.25), rgba(59, 130, 246, 0.25));">
+            <i class="fas fa-receipt text-cyan-300 text-xl"></i>
           </div>
         </div>
       </div>
-      <div class="bg-white rounded-lg shadow p-6">
+      <div class="rounded-xl border border-white/10 p-6 backdrop-blur" style="background: linear-gradient(180deg, rgba(251, 191, 36, 0.12), rgba(217, 119, 6, 0.08));">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm text-gray-600 mb-1">Pending</p>
+            <p class="text-sm text-slate-300 mb-1">Pending</p>
             <p class="text-2xl font-bold text-yellow-600">{{ stats.pending || 0 }}</p>
           </div>
-          <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-            <i class="fas fa-hourglass-half text-yellow-600 text-xl"></i>
+          <div class="w-12 h-12 bg-amber-500/20 rounded-lg flex items-center justify-center">
+            <i class="fas fa-hourglass-half text-amber-300 text-xl"></i>
           </div>
         </div>
       </div>
-      <div class="bg-white rounded-lg shadow p-6">
+      <div class="rounded-xl border border-white/10 p-6 backdrop-blur" style="background: linear-gradient(180deg, rgba(34, 197, 94, 0.12), rgba(22, 163, 74, 0.08));">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm text-gray-600 mb-1">Paid</p>
+            <p class="text-sm text-slate-300 mb-1">Paid</p>
             <p class="text-2xl font-bold text-green-600">{{ stats.paid || 0 }}</p>
           </div>
-          <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-            <i class="fas fa-check-circle text-green-600 text-xl"></i>
+          <div class="w-12 h-12 bg-emerald-500/20 rounded-lg flex items-center justify-center">
+            <i class="fas fa-check-circle text-emerald-300 text-xl"></i>
           </div>
         </div>
       </div>
-      <div class="bg-white rounded-lg shadow p-6">
+      <div class="rounded-xl border border-white/10 p-6 backdrop-blur" style="background: linear-gradient(180deg, rgba(239, 68, 68, 0.12), rgba(185, 28, 28, 0.08));">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm text-gray-600 mb-1">Overdue</p>
+            <p class="text-sm text-slate-300 mb-1">Overdue</p>
             <p class="text-2xl font-bold text-red-600">{{ stats.overdue || 0 }}</p>
           </div>
-          <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
-            <i class="fas fa-exclamation-circle text-red-600 text-xl"></i>
+          <div class="w-12 h-12 bg-rose-500/20 rounded-lg flex items-center justify-center">
+            <i class="fas fa-exclamation-circle text-rose-300 text-xl"></i>
           </div>
         </div>
       </div>
     </div>
 
     <!-- Status Tabs -->
-    <div class="bg-white rounded-lg shadow mb-6">
-      <div class="border-b border-gray-200">
+    <div class="rounded-xl border border-white/10 shadow mb-6 overflow-hidden backdrop-blur" style="background: linear-gradient(180deg, rgba(15, 23, 42, 0.72), rgba(10, 41, 72, 0.72));">
+      <div class="border-b border-white/10 bg-slate-900/50">
         <nav class="flex -mb-px">
           <button
             v-for="tab in statusTabs"
@@ -61,16 +61,16 @@
             :class="[
               'px-6 py-4 text-sm font-semibold border-b-2 transition',
               statusFilter === tab.value
-                ? 'border-[#2f5597] text-[#2f5597]'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'border-cyan-400 text-cyan-300'
+                : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-white/20'
             ]"
           >
             {{ tab.label }}
             <span v-if="tab.count !== undefined" :class="[
               'ml-2 px-2 py-1 text-xs rounded-full',
               statusFilter === tab.value
-                ? 'bg-[#2f5597] text-white'
-                : 'bg-gray-200 text-gray-600'
+                ? 'bg-cyan-500/20 text-cyan-300'
+                : 'bg-white/10 text-slate-300'
             ]">
               {{ tab.count }}
             </span>
@@ -80,31 +80,31 @@
     </div>
 
     <!-- Filters and Search -->
-    <div class="bg-white rounded-lg shadow p-6 mb-6">
+    <div class="rounded-xl border border-white/10 shadow p-6 mb-6 backdrop-blur" style="background: linear-gradient(180deg, rgba(15, 23, 42, 0.72), rgba(10, 41, 72, 0.72));">
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Search Invoice</label>
+          <label class="block text-sm font-medium text-slate-200 mb-2">Search Invoice</label>
           <input
             v-model="searchQuery"
             type="text"
             placeholder="Enter invoice number or customer name..."
             @keyup.enter="applyFilters"
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2f5597]"
+            class="w-full px-4 py-2.5 border border-white/10 rounded-lg bg-white/5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500"
           />
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Sort By</label>
-          <select v-model="sortBy" @change="applyFilters" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2f5597]">
-            <option value="newest">Newest First</option>
-            <option value="oldest">Oldest First</option>
-            <option value="highest">Highest Amount</option>
-            <option value="lowest">Lowest Amount</option>
+          <label class="block text-sm font-medium text-slate-200 mb-2">Sort By</label>
+          <select v-model="sortBy" @change="applyFilters" class="w-full px-4 py-2.5 border border-white/10 rounded-lg bg-white/5 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500">
+            <option value="newest" class="bg-slate-900">Newest First</option>
+            <option value="oldest" class="bg-slate-900">Oldest First</option>
+            <option value="highest" class="bg-slate-900">Highest Amount</option>
+            <option value="lowest" class="bg-slate-900">Lowest Amount</option>
           </select>
         </div>
         <div class="flex items-end">
           <button
             @click="applyFilters"
-            class="w-full bg-[#2f5597] hover:bg-[#274a82] text-white font-medium py-2 px-4 rounded-lg transition"
+            class="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-medium py-2.5 px-4 rounded-lg transition"
           >
             <i class="fas fa-search mr-2"></i>Apply Filters
           </button>
@@ -114,7 +114,7 @@
 
     <!-- Bulk Action Toolbar -->
     <transition name="slide-down">
-      <div v-if="selectedIds.size > 0" class="bg-[#1e3a6e] text-white rounded-lg shadow px-5 py-3 mb-4 flex flex-wrap items-center gap-3">
+      <div v-if="selectedIds.size > 0" class="rounded-lg border border-cyan-500/20 text-white shadow px-5 py-3 mb-4 flex flex-wrap items-center gap-3 backdrop-blur" style="background: linear-gradient(135deg, rgba(6, 182, 212, 0.18), rgba(37, 99, 235, 0.18));">
         <span class="font-semibold text-sm mr-2">{{ selectedIds.size }} selected</span>
 
         <button
@@ -151,10 +151,10 @@
     </transition>
 
     <!-- Invoices List -->
-    <div class="bg-white rounded-lg shadow overflow-hidden">
+    <div class="rounded-xl border border-white/10 shadow overflow-hidden backdrop-blur" style="background: linear-gradient(180deg, rgba(15, 23, 42, 0.72), rgba(10, 41, 72, 0.72));">
       <div class="overflow-x-auto">
         <table class="w-full">
-          <thead class="bg-gray-50 border-b border-gray-200">
+          <thead class="bg-slate-900/70 border-b border-white/10">
             <tr>
               <th class="px-4 py-4 w-10">
                 <input
@@ -162,46 +162,46 @@
                   :checked="allPageSelected"
                   :indeterminate="somePageSelected"
                   @change="toggleSelectAll"
-                  class="w-4 h-4 rounded border-gray-300 text-[#2f5597] cursor-pointer"
+                  class="w-4 h-4 rounded border-white/20 cursor-pointer" style="accent-color: #22d3ee;"
                 />
               </th>
-              <th class="px-6 py-4 text-left font-semibold text-gray-700">Invoice #</th>
-              <th class="px-6 py-4 text-left font-semibold text-gray-700">Customer</th>
-              <th class="px-6 py-4 text-left font-semibold text-gray-700">Company</th>
-              <th class="px-6 py-4 text-right font-semibold text-gray-700">Amount</th>
-              <th class="px-6 py-4 text-left font-semibold text-gray-700">Status</th>
-              <th class="px-6 py-4 text-left font-semibold text-gray-700">Due Date</th>
-              <th class="px-6 py-4 text-center font-semibold text-gray-700">Actions</th>
+              <th class="px-6 py-4 text-left font-semibold text-slate-200 uppercase text-xs tracking-wide">Invoice #</th>
+              <th class="px-6 py-4 text-left font-semibold text-slate-200 uppercase text-xs tracking-wide">Customer</th>
+              <th class="px-6 py-4 text-left font-semibold text-slate-200 uppercase text-xs tracking-wide">Company</th>
+              <th class="px-6 py-4 text-right font-semibold text-slate-200 uppercase text-xs tracking-wide">Amount</th>
+              <th class="px-6 py-4 text-left font-semibold text-slate-200 uppercase text-xs tracking-wide">Status</th>
+              <th class="px-6 py-4 text-left font-semibold text-slate-200 uppercase text-xs tracking-wide">Due Date</th>
+              <th class="px-6 py-4 text-center font-semibold text-slate-200 uppercase text-xs tracking-wide">Actions</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-if="invoices.length === 0" class="border-b border-gray-200 hover:bg-gray-50">
-              <td :colspan="8" class="px-6 py-9 text-center text-gray-500">
-                <i class="fas fa-inbox text-4xl mb-3 block opacity-30"></i>
+            <tr v-if="invoices.length === 0" class="border-b border-white/10">
+              <td :colspan="8" class="px-6 py-12 text-center text-slate-400">
+                <i class="fas fa-inbox text-4xl mb-3 block opacity-30 text-slate-600"></i>
                 <p>No invoices found</p>
               </td>
             </tr>
-            <tr v-for="invoice in invoices" :key="invoice.id" class="border-b border-gray-200 hover:bg-gray-50 transition">
+            <tr v-for="invoice in invoices" :key="invoice.id" class="border-b border-white/10 hover:bg-white/5 transition">
               <td class="px-4 py-4">
                 <input
                   type="checkbox"
                   :checked="selectedIds.has(invoice.id)"
                   @change="toggleSelect(invoice.id)"
-                  class="w-4 h-4 rounded border-gray-300 text-[#2f5597] cursor-pointer"
+                  class="w-4 h-4 rounded border-white/20 cursor-pointer" style="accent-color: #22d3ee;"
                 />
               </td>
               <td class="px-6 py-4">
-                <span class="font-medium text-[#2f5597]">{{ invoice.invoice_number }}</span>
+                <span class="font-medium text-cyan-300 font-mono">{{ invoice.invoice_number }}</span>
               </td>
               <td class="px-6 py-4">
-                <p class="font-medium text-gray-900">{{ invoice.user?.name }}</p>
-                <p class="text-xs text-gray-500">{{ invoice.user?.email }}</p>
+                <p class="font-medium text-white">{{ invoice.user?.name }}</p>
+                <p class="text-xs text-slate-400">{{ invoice.user?.email }}</p>
               </td>
               <td class="px-6 py-4">
-                <p class="text-gray-900">{{ invoice.user?.company?.name }}</p>
+                <p class="text-slate-200">{{ invoice.user?.company?.name }}</p>
               </td>
               <td class="px-6 py-4 text-right">
-                <p class="font-bold text-gray-900">${{ formatCurrency(invoice.total_amount) }}</p>
+                <p class="font-bold text-white">${{ formatCurrency(invoice.total_amount) }}</p>
               </td>
               <td class="px-6 py-4">
                 <span :class="statusBadgeClass(invoice.status)">
@@ -209,7 +209,7 @@
                 </span>
               </td>
               <td class="px-6 py-4 text-sm">
-                <span :class="isOverdue(invoice.due_at) ? 'text-red-600 font-semibold' : 'text-gray-600'">
+                <span :class="isOverdue(invoice.due_at) ? 'text-rose-300 font-semibold' : 'text-slate-400'">
                   {{ formatDate(invoice.due_at) }}
                 </span>
               </td>
@@ -219,7 +219,7 @@
                   <button
                     @click="viewInvoice(invoice)"
                     title="View Invoice"
-                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-[#edf3fb] text-[#2f5597] hover:bg-[#2f5597] hover:text-white transition-colors duration-150"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 hover:bg-cyan-500/20 transition-colors duration-150"
                   >
                     <i class="fas fa-eye"></i>
                     <span>View</span>
@@ -231,7 +231,7 @@
                     @click="sendReminder(invoice)"
                     :disabled="sendingReminderInvoiceId === invoice.id"
                     title="Send Payment Reminder"
-                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-blue-500/10 text-blue-300 border border-blue-500/30 hover:bg-blue-500/20 transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <i :class="sendingReminderInvoiceId === invoice.id ? 'fas fa-spinner fa-spin' : 'fas fa-envelope'"></i>
                     <span>{{ sendingReminderInvoiceId === invoice.id ? 'Sending…' : 'Reminder' }}</span>
@@ -242,7 +242,7 @@
                     v-if="invoice.status === 'pending'"
                     @click="markAsPaid(invoice)"
                     title="Mark as Paid"
-                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-green-50 text-green-700 hover:bg-green-600 hover:text-white transition-colors duration-150"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/20 transition-colors duration-150"
                   >
                     <i class="fas fa-check"></i>
                     <span>Mark Paid</span>
@@ -255,8 +255,8 @@
       </div>
 
       <!-- Pagination -->
-      <div class="px-6 py-4 border-t border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div class="text-sm text-gray-600">
+      <div class="px-6 py-4 border-t border-white/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-slate-900/50">
+        <div class="text-sm text-slate-400">
           <p>Showing {{ invoices.length }} of {{ totalInvoices }} invoices</p>
           <p class="mt-1">Page {{ currentPage }} of {{ lastPage }}</p>
         </div>
@@ -264,7 +264,7 @@
           <button
             :disabled="currentPage === 1"
             @click="currentPage--; fetchInvoices()"
-            class="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            class="px-3 py-2 border border-white/10 text-slate-300 rounded-lg hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Previous
           </button>
@@ -275,8 +275,8 @@
             :class="[
               'px-3 py-2 rounded-lg border text-sm font-semibold transition',
               page === currentPage
-                ? 'bg-[#2f5597] text-white border-[#2f5597]'
-                : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white border-cyan-500'
+                : 'border-white/10 text-slate-300 hover:bg-white/10'
             ]"
           >
             {{ page }}
@@ -284,7 +284,7 @@
           <button
             :disabled="currentPage >= lastPage"
             @click="currentPage++; fetchInvoices()"
-            class="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            class="px-3 py-2 border border-white/10 text-slate-300 rounded-lg hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Next
           </button>
@@ -293,12 +293,12 @@
     </div>
 
     <!-- Invoice View Modal -->
-    <div v-if="selectedInvoice" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div class="bg-white rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div class="sticky top-0 text-white p-6 border-b" style="background: linear-gradient(90deg, #2f5597, #1f4788);">
+    <div v-if="selectedInvoice" class="fixed inset-0 bg-black/50 backdrop-blur-[2px] flex items-center justify-center z-50 p-4" @click="selectedInvoice = null">
+      <div class="rounded-2xl border border-white/10 shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto" style="background: linear-gradient(180deg, rgba(15, 23, 42, 0.95), rgba(10, 41, 72, 0.95));" @click.stop>
+        <div class="sticky top-0 text-white p-6 border-b border-white/10" style="background: linear-gradient(90deg, rgba(34, 211, 238, 0.15), rgba(59, 130, 246, 0.1));">
           <div class="flex justify-between items-center">
             <h3 class="text-xl font-bold">Invoice: {{ selectedInvoice.invoice_number }}</h3>
-            <button @click="selectedInvoice = null" class="text-white hover:text-gray-200">
+            <button @click="selectedInvoice = null" class="text-slate-300 hover:text-cyan-300">
               <i class="fas fa-times text-xl"></i>
             </button>
           </div>
@@ -308,67 +308,67 @@
           <!-- Invoice Details -->
           <div class="grid grid-cols-2 gap-6">
             <div>
-              <p class="text-sm text-gray-500 font-medium">Customer</p>
-              <p class="text-lg font-semibold text-gray-900">{{ selectedInvoice.user?.name }}</p>
-              <p class="text-sm text-gray-600">{{ selectedInvoice.user?.email }}</p>
+              <p class="text-sm text-slate-400 font-medium">Customer</p>
+              <p class="text-lg font-semibold text-white">{{ selectedInvoice.user?.name }}</p>
+              <p class="text-sm text-slate-400">{{ selectedInvoice.user?.email }}</p>
             </div>
             <div>
-              <p class="text-sm text-gray-500 font-medium">Company</p>
-              <p class="text-lg font-semibold text-gray-900">{{ selectedInvoice.user?.company?.name }}</p>
+              <p class="text-sm text-slate-400 font-medium">Company</p>
+              <p class="text-lg font-semibold text-white">{{ selectedInvoice.user?.company?.name }}</p>
             </div>
             <div>
-              <p class="text-sm text-gray-500 font-medium">Invoice Date</p>
-              <p class="text-lg font-semibold text-gray-900">{{ formatDate(selectedInvoice.invoice_date) }}</p>
+              <p class="text-sm text-slate-400 font-medium">Invoice Date</p>
+              <p class="text-lg font-semibold text-white">{{ formatDate(selectedInvoice.invoice_date) }}</p>
             </div>
             <div>
-              <p class="text-sm text-gray-500 font-medium">Due Date</p>
-              <p class="text-lg font-semibold" :class="isOverdue(selectedInvoice.due_at) ? 'text-red-600' : 'text-gray-900'">
+              <p class="text-sm text-slate-400 font-medium">Due Date</p>
+              <p class="text-lg font-semibold" :class="isOverdue(selectedInvoice.due_at) ? 'text-rose-300' : 'text-white'">
                 {{ formatDate(selectedInvoice.due_at) }}
               </p>
             </div>
             <div>
-              <p class="text-sm text-gray-500 font-medium">Amount</p>
-              <p class="text-2xl font-bold text-gray-900">${{ formatCurrency(selectedInvoice.total_amount) }}</p>
+              <p class="text-sm text-slate-400 font-medium">Amount</p>
+              <p class="text-2xl font-bold text-cyan-300">${{ formatCurrency(selectedInvoice.total_amount) }}</p>
             </div>
             <div>
-              <p class="text-sm text-gray-500 font-medium">Status</p>
+              <p class="text-sm text-slate-400 font-medium">Status</p>
               <span :class="statusBadgeClass(selectedInvoice.status)">
                 {{ formatStatus(selectedInvoice.status) }}
               </span>
             </div>
           </div>
 
-          <hr class="my-4" />
+          <hr class="my-4 border-white/10" />
 
           <!-- Invoice Items -->
           <div>
-            <p class="text-sm font-semibold text-gray-700 mb-3">Items</p>
-            <div class="space-y-2 bg-gray-50 p-4 rounded-lg max-h-48 overflow-y-auto">
+            <p class="text-sm font-semibold text-slate-200 mb-3">Items</p>
+            <div class="space-y-2 bg-white/5 border border-white/10 p-4 rounded-lg max-h-48 overflow-y-auto">
               <div v-for="(item, index) in selectedInvoice.items" :key="index" class="text-sm">
-                <p class="font-medium text-gray-900">{{ item.name || 'Item ' + (index + 1) }}</p>
-                <p class="text-xs text-gray-600">Qty: {{ item.quantity }} × ${{ formatCurrency(item.price) }}</p>
+                <p class="font-medium text-white">{{ item.name || 'Item ' + (index + 1) }}</p>
+                <p class="text-xs text-slate-400">Qty: {{ item.quantity }} × ${{ formatCurrency(item.price) }}</p>
               </div>
             </div>
           </div>
 
           <!-- Payment Section -->
-          <div v-if="selectedInvoice.status === 'pending'" class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h4 class="font-semibold text-gray-900 mb-3">Mark as Paid</h4>
+          <div v-if="selectedInvoice.status === 'pending'" class="bg-cyan-500/10 border border-cyan-500/20 rounded-lg p-4">
+            <h4 class="font-semibold text-white mb-3">Mark as Paid</h4>
             <div class="space-y-3">
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Payment Date</label>
+                <label class="block text-sm font-medium text-slate-200 mb-2">Payment Date</label>
                 <input
                   v-model="paymentDate"
                   type="date"
-                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2f5597]"
+                  class="w-full px-4 py-2.5 border border-white/10 bg-white/5 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
                 />
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Notes</label>
+                <label class="block text-sm font-medium text-slate-200 mb-2">Notes</label>
                 <textarea
                   v-model="paymentNotes"
                   placeholder="Add payment notes..."
-                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2f5597] h-20"
+                  class="w-full px-4 py-2 border border-white/10 bg-white/5 text-white placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 h-20"
                 ></textarea>
               </div>
               <button
@@ -382,16 +382,16 @@
           </div>
 
           <!-- Action Buttons -->
-          <div class="flex space-x-3 justify-end border-t pt-4">
+          <div class="flex space-x-3 justify-end border-t border-white/10 pt-4">
             <button
               @click="selectedInvoice = null"
-              class="px-6 py-2 border border-[#2f5597] rounded-lg text-[#2f5597] font-medium hover:bg-[#edf3fb] transition"
+              class="px-6 py-2 border border-cyan-500/50 rounded-lg text-cyan-300 font-medium hover:bg-cyan-500/20 transition"
             >
               Close
             </button>
             <button
               @click="downloadPdf"
-              class="px-6 py-2 bg-[#2f5597] hover:bg-[#274a82] text-white font-medium rounded-lg transition"
+              class="px-6 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-medium rounded-lg transition"
             >
               <i class="fas fa-download mr-2"></i>Download PDF
             </button>
@@ -399,7 +399,7 @@
               v-if="selectedInvoice.status !== 'paid' && selectedInvoice.status !== 'cancelled'"
               @click="sendReminder(selectedInvoice)"
               :disabled="sendingReminderInvoiceId === selectedInvoice.id"
-              class="px-6 py-2 border border-[#2f5597] rounded-lg text-[#2f5597] font-medium hover:bg-[#edf3fb] disabled:opacity-50 disabled:cursor-not-allowed transition"
+              class="px-6 py-2 border border-cyan-500/50 rounded-lg text-cyan-300 font-medium hover:bg-cyan-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition"
             >
               <i class="fas fa-envelope mr-2"></i>{{ sendingReminderInvoiceId === selectedInvoice.id ? 'Sending...' : 'Send Reminder' }}
             </button>

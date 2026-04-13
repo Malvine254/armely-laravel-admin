@@ -3,38 +3,39 @@
     <template #title>Customers</template>
 
     <!-- Filters and Search -->
-    <div class="bg-white rounded-lg shadow p-6 mb-6">
+    <div class="rounded-xl border border-white/10 p-6 mb-6 backdrop-blur" style="background: linear-gradient(180deg, rgba(15, 23, 42, 0.7), rgba(10, 41, 72, 0.7));">
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Search Customer</label>
+          <label class="block text-sm font-medium text-slate-200 mb-2">Search Customer</label>
           <input
             v-model="searchQuery"
             type="text"
             placeholder="Company name or domain..."
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2f5597]"
+            class="w-full px-4 py-2.5 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 text-white placeholder-slate-500 transition"
+            style="background: rgba(148, 163, 184, 0.12);"
           />
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Filter by Status</label>
-          <select v-model="statusFilter" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2f5597]">
-            <option value="">All Status</option>
-            <option value="pending">Pending</option>
-            <option value="approved">Approved</option>
-            <option value="inactive">Inactive</option>
+          <label class="block text-sm font-medium text-slate-200 mb-2">Filter by Status</label>
+          <select v-model="statusFilter" class="w-full px-4 py-2.5 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 text-white transition" style="background: rgba(148, 163, 184, 0.12);">
+            <option value="" class="bg-slate-900">All Status</option>
+            <option value="pending" class="bg-slate-900">Pending</option>
+            <option value="approved" class="bg-slate-900">Approved</option>
+            <option value="inactive" class="bg-slate-900">Inactive</option>
           </select>
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Sort By</label>
-          <select v-model="sortBy" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2f5597]">
-            <option value="newest">Newest</option>
-            <option value="oldest">Oldest</option>
-            <option value="name">Company Name</option>
+          <label class="block text-sm font-medium text-slate-200 mb-2">Sort By</label>
+          <select v-model="sortBy" class="w-full px-4 py-2.5 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 text-white transition" style="background: rgba(148, 163, 184, 0.12);">
+            <option value="newest" class="bg-slate-900">Newest</option>
+            <option value="oldest" class="bg-slate-900">Oldest</option>
+            <option value="name" class="bg-slate-900">Company Name</option>
           </select>
         </div>
         <div class="flex items-end">
           <button
             @click="applyFilters"
-            class="w-full bg-[#2f5597] hover:bg-[#274a82] text-white font-medium py-2 px-4 rounded-lg transition"
+            class="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-medium py-2.5 px-4 rounded-lg transition shadow-lg"
           >
             <i class="fas fa-search mr-2"></i>Filter
           </button>
@@ -43,106 +44,106 @@
     </div>
 
     <!-- Customers Table -->
-    <div class="bg-white rounded-lg shadow overflow-hidden">
-      <div class="px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    <div class="rounded-xl border border-white/10 overflow-hidden backdrop-blur" style="background: linear-gradient(180deg, rgba(15, 23, 42, 0.6), rgba(10, 41, 72, 0.6));">
+      <div class="px-6 py-4 border-b border-white/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3" style="background: rgba(15, 23, 42, 0.5);">
         <div>
-          <h3 class="text-lg font-semibold text-gray-900">Customer Accounts</h3>
-          <p class="text-sm text-gray-600">Manage company access and status</p>
+          <h3 class="text-lg font-semibold text-white">Customer Accounts</h3>
+          <p class="text-sm text-slate-400">Manage company access and status</p>
         </div>
         <div class="flex items-center gap-3">
           <!-- Bulk Actions -->
-          <div v-if="selectedCompanies.length > 0" class="flex gap-2">
-            <span class="text-sm text-gray-600 self-center">{{ selectedCompanies.length }} selected</span>
+          <div v-if="selectedCompanies.length > 0" class="flex gap-2 flex-wrap">
+            <span class="text-sm text-cyan-300 self-center"><i class="fas fa-check-square mr-1"></i>{{ selectedCompanies.length }} selected</span>
             <button
               @click="confirmBulkAction('approve')"
-              class="px-3 py-2 text-xs font-semibold rounded-lg border border-blue-600 text-blue-600 hover:bg-blue-50 transition"
+              class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-cyan-500/50 text-cyan-300 hover:bg-cyan-500/20 transition"
             >
               <i class="fas fa-check mr-1"></i>Approve
             </button>
             <button
               @click="confirmBulkAction('suspend')"
-              class="px-3 py-2 text-xs font-semibold rounded-lg border border-yellow-600 text-yellow-600 hover:bg-yellow-50 transition"
+              class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-amber-500/50 text-amber-300 hover:bg-amber-500/20 transition"
             >
               <i class="fas fa-pause mr-1"></i>Suspend
             </button>
             <button
               @click="confirmBulkAction('activate')"
-              class="px-3 py-2 text-xs font-semibold rounded-lg border border-green-600 text-green-600 hover:bg-green-50 transition"
+              class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-emerald-500/50 text-emerald-300 hover:bg-emerald-500/20 transition"
             >
               <i class="fas fa-play mr-1"></i>Activate
             </button>
             <button
               @click="confirmBulkAction('delete')"
-              class="px-3 py-2 text-xs font-semibold rounded-lg border border-red-600 text-red-600 hover:bg-red-50 transition"
+              class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-rose-500/50 text-rose-300 hover:bg-rose-500/20 transition"
             >
               <i class="fas fa-trash mr-1"></i>Delete
             </button>
           </div>
-          <p class="text-sm text-gray-600">Showing {{ customers.length }} of {{ totalCustomers }} customers</p>
+          <p class="text-sm text-slate-400">Showing {{ customers.length }} of {{ totalCustomers }} customers</p>
         </div>
       </div>
 
       <div class="overflow-x-auto">
         <table class="w-full text-sm">
-          <thead class="bg-gray-50 border-b border-gray-200">
+          <thead style="background: rgba(15, 23, 42, 0.8);" class="border-b border-white/10">
             <tr>
               <th class="px-4 py-3 text-left">
                 <input
                   type="checkbox"
                   :checked="allSelected"
                   @change="toggleSelectAll"
-                  class="w-4 h-4 text-[#2f5597] border-gray-300 rounded focus:ring-[#2f5597]"
+                  class="w-4 h-4 rounded cursor-pointer" style="accent-color: #22d3ee;"
                 />
               </th>
-              <th class="px-6 py-3 text-left font-semibold text-gray-700">Company</th>
-              <th class="px-6 py-3 text-left font-semibold text-gray-700">Domain</th>
-              <th class="px-6 py-3 text-left font-semibold text-gray-700">Primary Contact</th>
-              <th class="px-6 py-3 text-left font-semibold text-gray-700">Users</th>
-              <th class="px-6 py-3 text-left font-semibold text-gray-700">Status</th>
-              <th class="px-6 py-3 text-left font-semibold text-gray-700">Joined</th>
-              <th class="px-6 py-3 text-right font-semibold text-gray-700">Actions</th>
+              <th class="px-6 py-3 text-left font-semibold text-slate-200 uppercase text-xs tracking-wide">Company</th>
+              <th class="px-6 py-3 text-left font-semibold text-slate-200 uppercase text-xs tracking-wide">Domain</th>
+              <th class="px-6 py-3 text-left font-semibold text-slate-200 uppercase text-xs tracking-wide">Primary Contact</th>
+              <th class="px-6 py-3 text-left font-semibold text-slate-200 uppercase text-xs tracking-wide">Users</th>
+              <th class="px-6 py-3 text-left font-semibold text-slate-200 uppercase text-xs tracking-wide">Status</th>
+              <th class="px-6 py-3 text-left font-semibold text-slate-200 uppercase text-xs tracking-wide">Joined</th>
+              <th class="px-6 py-3 text-right font-semibold text-slate-200 uppercase text-xs tracking-wide">Actions</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-gray-200">
+          <tbody class="divide-y divide-white/10">
             <tr v-if="customers.length === 0">
-              <td colspan="8" class="px-6 py-9 text-center text-gray-500">
-                <i class="fas fa-users text-3xl mb-3 block text-gray-300"></i>
-                No customers found
+              <td colspan="8" class="px-6 py-16 text-center">
+                <i class="fas fa-users text-5xl mb-4 block opacity-20 text-slate-400"></i>
+                <p class="text-slate-400 text-lg font-medium">No customers found</p>
               </td>
             </tr>
-            <tr v-for="company in customers" :key="company.id" class="hover:bg-gray-50 transition">
+            <tr v-for="company in customers" :key="company.id" class="hover:bg-white/5 transition">
               <td class="px-4 py-4">
                 <input
                   type="checkbox"
                   :value="company.id"
                   v-model="selectedCompanies"
-                  class="w-4 h-4 text-[#2f5597] border-gray-300 rounded focus:ring-[#2f5597]"
+                  class="w-4 h-4 rounded cursor-pointer" style="accent-color: #22d3ee;"
                 />
               </td>
               <td class="px-6 py-4">
-                <div class="font-semibold text-gray-900">{{ company.name }}</div>
-                <div class="text-xs text-gray-500">ID: {{ company.id }}</div>
+                <div class="font-semibold text-slate-100">{{ company.name }}</div>
+                <div class="text-xs text-slate-400 font-mono">ID: {{ company.id }}</div>
               </td>
-              <td class="px-6 py-4 text-gray-600">{{ company.domain }}</td>
+              <td class="px-6 py-4 text-slate-300">{{ company.domain }}</td>
               <td class="px-6 py-4">
                 <div v-if="company.users && company.users.length > 0">
-                  <div class="font-medium text-gray-900">{{ company.users[0].name }}</div>
-                  <div class="text-xs text-gray-500">{{ company.users[0].email }}</div>
+                  <div class="font-medium text-slate-100">{{ company.users[0].name }}</div>
+                  <div class="text-xs text-slate-400">{{ company.users[0].email }}</div>
                 </div>
-                <div v-else class="text-xs text-gray-500">No users</div>
+                <div v-else class="text-xs text-slate-500">No users</div>
               </td>
-              <td class="px-6 py-4 text-gray-600">{{ company.users ? company.users.length : 0 }}</td>
+              <td class="px-6 py-4 text-slate-300">{{ company.users ? company.users.length : 0 }}</td>
               <td class="px-6 py-4">
                 <span :class="['px-3 py-1 rounded-full text-xs font-semibold', statusBadgeClass(getCompanyEffectiveStatus(company))]">
                   {{ formatStatusLabel(getCompanyEffectiveStatus(company)) }}
                 </span>
               </td>
-              <td class="px-6 py-4 text-gray-600">{{ formatDate(company.created_at) }}</td>
+              <td class="px-6 py-4 text-slate-300">{{ formatDate(company.created_at) }}</td>
               <td class="px-6 py-4 text-right">
                 <div class="flex justify-end gap-2">
                   <button
                     @click="viewCustomer(company)"
-                    class="px-3 py-2 text-xs font-semibold rounded-lg border border-[#2f5597] text-[#2f5597] hover:bg-[#edf3fb] transition"
+                    class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-gradient-to-r from-cyan-500/30 to-blue-600/30 hover:from-cyan-400/40 hover:to-blue-500/40 text-cyan-300 transition border border-cyan-500/30"
                   >
                     View
                   </button>
@@ -150,7 +151,7 @@
                     v-if="company.status === 'pending'"
                     @click="approveCustomer(company)"
                     :disabled="isSubmitting"
-                    class="px-3 py-2 text-xs font-semibold rounded-lg bg-[#2f5597] hover:bg-[#274a82] text-white transition disabled:opacity-50"
+                    class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white transition disabled:opacity-50"
                   >
                     Approve
                   </button>
@@ -158,7 +159,7 @@
                     v-if="canSuspendCompany(company)"
                     @click="manageCustomer(company, 'suspend')"
                     :disabled="isSubmitting"
-                    class="px-3 py-2 text-xs font-semibold rounded-lg border border-yellow-600 text-yellow-700 hover:bg-yellow-50 transition disabled:opacity-50"
+                    class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-amber-500/50 text-amber-300 hover:bg-amber-500/20 transition disabled:opacity-50"
                   >
                     Suspend
                   </button>
@@ -166,20 +167,20 @@
                     v-if="canActivateCompany(company)"
                     @click="manageCustomer(company, 'activate')"
                     :disabled="isSubmitting"
-                    class="px-3 py-2 text-xs font-semibold rounded-lg border border-green-600 text-green-700 hover:bg-green-50 transition disabled:opacity-50"
+                    class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-emerald-500/50 text-emerald-300 hover:bg-emerald-500/20 transition disabled:opacity-50"
                   >
                     Activate
                   </button>
                   <button
                     @click="manageCustomer(company, 'delete')"
                     :disabled="isSubmitting"
-                    class="px-3 py-2 text-xs font-semibold rounded-lg border border-red-600 text-red-700 hover:bg-red-50 transition disabled:opacity-50"
+                    class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-rose-500/50 text-rose-300 hover:bg-rose-500/20 transition disabled:opacity-50"
                   >
                     Delete
                   </button>
                   <button
                     @click="viewCustomerOrders(company)"
-                    class="px-3 py-2 text-xs font-semibold rounded-lg bg-[#2f5597] hover:bg-[#274a82] text-white transition"
+                    class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white transition"
                   >
                     Orders
                   </button>
@@ -190,16 +191,16 @@
         </table>
       </div>
 
-      <div class="px-6 py-4 border-t border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div class="text-sm text-gray-600">
+      <div class="px-6 py-4 border-t border-white/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3" style="background: rgba(15, 23, 42, 0.5);">
+        <div class="text-sm text-slate-300">
           <p>Showing {{ customers.length }} of {{ totalCustomers }} customers</p>
-          <p class="mt-1">Page {{ currentPage }} of {{ lastPage }}</p>
+          <p class="mt-1 text-xs text-slate-400">Page {{ currentPage }} of {{ lastPage }}</p>
         </div>
         <div class="flex flex-wrap gap-2">
           <button
             :disabled="currentPage === 1"
             @click="currentPage--; fetchCustomers()"
-            class="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            class="px-3 py-2 border border-white/10 rounded-lg text-slate-300 hover:bg-white/10 hover:text-cyan-300 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm"
           >
             Previous
           </button>
@@ -210,8 +211,8 @@
             :class="[
               'px-3 py-2 rounded-lg border text-sm font-semibold transition',
               page === currentPage
-                ? 'bg-[#2f5597] text-white border-[#2f5597]'
-                : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white border-cyan-500'
+                : 'border-white/10 text-slate-300 hover:border-cyan-500/50 hover:text-cyan-300'
             ]"
           >
             {{ page }}
@@ -219,7 +220,7 @@
           <button
             :disabled="currentPage >= lastPage"
             @click="currentPage++; fetchCustomers()"
-            class="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            class="px-3 py-2 border border-white/10 rounded-lg text-slate-300 hover:bg-white/10 hover:text-cyan-300 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm"
           >
             Next
           </button>
@@ -228,62 +229,65 @@
     </div>
 
     <!-- Customer Details Modal -->
-    <div v-if="selectedCustomer" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div class="bg-white rounded-lg shadow-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div class="sticky top-0 text-white p-6 border-b" style="background: linear-gradient(90deg, #2f5597, #1f4788);">
+    <div v-if="selectedCustomer" class="fixed inset-0 bg-black/50 backdrop-blur-[2px] flex items-center justify-center z-50 p-4" @click="selectedCustomer = null">
+      <div class="rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-white/10" style="background: linear-gradient(180deg, rgba(15, 23, 42, 0.95), rgba(10, 41, 72, 0.95));" @click.stop>
+        <div class="sticky top-0 text-white p-6 border-b border-white/10" style="background: linear-gradient(90deg, rgba(34, 211, 238, 0.15), rgba(59, 130, 246, 0.1));">
           <div class="flex justify-between items-center">
-            <h3 class="text-xl font-bold">{{ selectedCustomer.name }}</h3>
-            <button @click="selectedCustomer = null" class="text-white hover:text-gray-200">
-              <i class="fas fa-times text-xl"></i>
+            <div>
+              <p class="text-xs uppercase tracking-wide text-cyan-300 font-semibold">Customer Details</p>
+              <h3 class="text-xl font-bold text-white mt-1">{{ selectedCustomer.name }}</h3>
+            </div>
+            <button @click="selectedCustomer = null" class="text-slate-400 hover:text-cyan-300 transition text-2xl">
+              <i class="fas fa-times"></i>
             </button>
           </div>
         </div>
 
         <div class="p-6 space-y-4">
           <!-- Company Info -->
-          <div class="bg-[#edf3fb] p-4 rounded-lg">
-            <h4 class="font-semibold text-gray-900 mb-3">Company Information</h4>
+          <div class="rounded-xl border border-white/10 p-4" style="background: linear-gradient(135deg, rgba(34, 211, 238, 0.1), rgba(59, 130, 246, 0.08));">
+            <h4 class="font-semibold text-cyan-300 mb-3 text-sm uppercase tracking-wide">Company Information</h4>
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <p class="text-sm text-gray-600">Company Name</p>
-                <p class="font-semibold text-gray-900">{{ selectedCustomer.name }}</p>
+                <p class="text-sm text-slate-400">Company Name</p>
+                <p class="font-semibold text-white">{{ selectedCustomer.name }}</p>
               </div>
               <div>
-                <p class="text-sm text-gray-600">Domain</p>
-                <p class="font-semibold text-gray-900">{{ selectedCustomer.domain }}</p>
+                <p class="text-sm text-slate-400">Domain</p>
+                <p class="font-semibold text-white">{{ selectedCustomer.domain }}</p>
               </div>
               <div>
-                <p class="text-sm text-gray-600">Status</p>
+                <p class="text-sm text-slate-400">Status</p>
                 <span :class="['px-3 py-1 rounded-full text-xs font-semibold', statusBadgeClass(getCompanyEffectiveStatus(selectedCustomer))]">
                   {{ formatStatusLabel(getCompanyEffectiveStatus(selectedCustomer)) }}
                 </span>
               </div>
               <div>
-                <p class="text-sm text-gray-600">Joined</p>
-                <p class="font-semibold text-gray-900">{{ formatDate(selectedCustomer.created_at) }}</p>
+                <p class="text-sm text-slate-400">Joined</p>
+                <p class="font-semibold text-white">{{ formatDate(selectedCustomer.created_at) }}</p>
               </div>
             </div>
           </div>
 
           <!-- Team Members -->
           <div>
-            <h4 class="font-semibold text-gray-900 mb-3">Team Members</h4>
+            <h4 class="font-semibold text-slate-200 mb-3 text-sm uppercase tracking-wide">Team Members</h4>
             <div class="space-y-2">
-              <div v-for="user in selectedCustomer.users" :key="user.id" class="bg-gray-50 p-4 rounded-lg flex justify-between items-center">
+              <div v-for="user in selectedCustomer.users" :key="user.id" class="rounded-lg p-4 border border-white/10 flex justify-between items-center" style="background: rgba(148, 163, 184, 0.08);">
                 <div>
-                  <p class="font-medium text-gray-900">{{ user.name }}</p>
-                  <p class="text-xs text-gray-600">{{ user.email }}</p>
+                  <p class="font-medium text-slate-100">{{ user.name }}</p>
+                  <p class="text-xs text-slate-400">{{ user.email }}</p>
                 </div>
-                <span class="text-xs font-semibold text-gray-600">{{ user.role }}</span>
+                <span class="text-xs font-semibold text-slate-400 border border-white/10 px-2 py-1 rounded-full">{{ user.role }}</span>
               </div>
             </div>
           </div>
 
           <!-- Action Buttons -->
-          <div class="flex space-x-3 justify-end border-t pt-4">
+          <div class="flex space-x-3 justify-end border-t border-white/10 pt-4">
             <button
               @click="selectedCustomer = null"
-              class="px-6 py-2 border border-[#2f5597] rounded-lg text-[#2f5597] font-medium hover:bg-[#edf3fb] transition"
+              class="px-6 py-2 border border-cyan-500/50 rounded-lg text-cyan-300 font-medium hover:bg-cyan-500/20 transition text-sm"
             >
               Close
             </button>
@@ -291,7 +295,7 @@
               v-if="selectedCustomer.status === 'pending'"
               @click="approveCustomer(selectedCustomer)"
               :disabled="isSubmitting"
-              class="px-6 py-2 bg-[#2f5597] hover:bg-[#274a82] text-white font-medium rounded-lg transition disabled:opacity-50"
+              class="px-6 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-medium rounded-lg transition disabled:opacity-50 text-sm"
             >
               <i class="fas fa-check mr-2"></i>Approve
             </button>
@@ -299,7 +303,7 @@
               v-if="canSuspendCompany(selectedCustomer)"
               @click="manageCustomer(selectedCustomer, 'suspend')"
               :disabled="isSubmitting"
-              class="px-6 py-2 bg-yellow-600 hover:bg-yellow-700 text-white font-medium rounded-lg transition disabled:opacity-50"
+              class="px-6 py-2 bg-amber-600/30 hover:bg-amber-600/40 text-amber-300 font-medium rounded-lg transition border border-amber-500/50 text-sm disabled:opacity-50"
             >
               <i class="fas fa-pause mr-2"></i>Suspend
             </button>
@@ -307,14 +311,14 @@
               v-if="canActivateCompany(selectedCustomer)"
               @click="manageCustomer(selectedCustomer, 'activate')"
               :disabled="isSubmitting"
-              class="px-6 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition disabled:opacity-50"
+              class="px-6 py-2 bg-emerald-600/30 hover:bg-emerald-600/40 text-emerald-300 font-medium rounded-lg transition border border-emerald-500/50 text-sm disabled:opacity-50"
             >
               <i class="fas fa-play mr-2"></i>Activate
             </button>
             <button
               @click="manageCustomer(selectedCustomer, 'delete')"
               :disabled="isSubmitting"
-              class="px-6 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition disabled:opacity-50"
+              class="px-6 py-2 bg-rose-600/30 hover:bg-rose-600/40 text-rose-300 font-medium rounded-lg transition border border-rose-500/50 text-sm disabled:opacity-50"
             >
               <i class="fas fa-trash mr-2"></i>Delete
             </button>
@@ -324,26 +328,26 @@
     </div>
 
     <!-- Confirmation Modal for Bulk Actions -->
-    <div v-if="showConfirmModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div class="bg-white rounded-lg shadow-lg max-w-md w-full">
+    <div v-if="showConfirmModal" class="fixed inset-0 bg-black/50 backdrop-blur-[2px] flex items-center justify-center z-50 p-4" @click="showConfirmModal = false">
+      <div class="rounded-2xl shadow-2xl max-w-md w-full border border-white/10" style="background: linear-gradient(180deg, rgba(15, 23, 42, 0.95), rgba(10, 41, 72, 0.95));" @click.stop>
         <div class="p-6">
           <div class="flex items-center mb-4">
             <div :class="[
               'w-12 h-12 rounded-full flex items-center justify-center mr-4',
-              bulkAction === 'delete' ? 'bg-red-100' : 'bg-yellow-100'
+              bulkAction === 'delete' ? 'bg-rose-500/20' : 'bg-amber-500/20'
             ]">
               <i :class="[
                 'fas text-2xl',
-                bulkAction === 'delete' ? 'fa-trash text-red-600' : 'fa-exclamation-triangle text-yellow-600'
+                bulkAction === 'delete' ? 'fa-trash text-rose-400' : 'fa-exclamation-triangle text-amber-400'
               ]"></i>
             </div>
-            <h3 class="text-lg font-bold text-gray-900">{{ confirmModalTitle }}</h3>
+            <h3 class="text-lg font-bold text-white">{{ confirmModalTitle }}</h3>
           </div>
-          <p class="text-gray-600 mb-6">{{ confirmModalMessage }}</p>
+          <p class="text-slate-300 mb-6">{{ confirmModalMessage }}</p>
           <div class="flex justify-end gap-3">
             <button
               @click="showConfirmModal = false"
-              class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
+              class="px-4 py-2 border border-white/10 rounded-lg text-slate-300 hover:bg-white/10 transition text-sm font-medium"
             >
               Cancel
             </button>
@@ -351,8 +355,8 @@
               @click="executeBulkAction"
               :disabled="isSubmitting"
               :class="[
-                'px-4 py-2 rounded-lg text-white font-medium transition disabled:opacity-50',
-                bulkAction === 'delete' ? 'bg-red-600 hover:bg-red-700' : 'bg-yellow-600 hover:bg-yellow-700'
+                'px-4 py-2 rounded-lg text-white font-medium transition disabled:opacity-50 text-sm',
+                bulkAction === 'delete' ? 'bg-rose-600 hover:bg-rose-700' : 'bg-amber-600 hover:bg-amber-700'
               ]"
             >
               <i :class="['fas mr-2', bulkAction === 'delete' ? 'fa-trash' : 'fa-check']"></i>

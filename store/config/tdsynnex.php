@@ -168,7 +168,7 @@ return [
     ],
 
     'icecat' => [
-        'enabled' => env('ICECAT_ENABLED', true),
+        'enabled' => env('ICECAT_ENABLED', false),
         // Optional: persistence may stall when DB is unavailable; keep off by default.
         'persist_to_db' => env('ICECAT_PERSIST_TO_DB', false),
         'username' => env('ICECAT_USERNAME', ''),
@@ -182,7 +182,7 @@ return [
     ],
 
     'serpapi' => [
-        'enabled' => env('SERPAPI_IMAGE_ENABLED', true),
+        'enabled' => env('SERPAPI_IMAGE_ENABLED', false),
         'api_key' => env('SERPAPI_API_KEY', ''),
         'endpoint' => env('SERPAPI_ENDPOINT', 'https://serpapi.com/search.json'),
         'engine' => env('SERPAPI_ENGINE', 'google_images'),
@@ -241,5 +241,13 @@ return [
     ],
 
     'allow_submit_po' => env('TDSYNNEX_ALLOW_SUBMIT_PO', false),
+
+    // Local image storage: downloaded images are saved under public/images/products/
+    'local_images' => [
+        'enabled'          => env('PRODUCT_IMAGES_LOCAL_DOWNLOAD', true),
+        'dest_dir'         => env('PRODUCT_IMAGES_DEST_DIR', 'images/products'),
+        'url_prefix'       => env('PRODUCT_IMAGES_URL_PREFIX', '/images/products'),
+        'download_timeout' => env('PRODUCT_IMAGES_DOWNLOAD_TIMEOUT', 15),
+    ],
 
 ];

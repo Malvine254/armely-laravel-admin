@@ -176,6 +176,8 @@ Route::prefix('v1')->group(function () {
         Route::post('/admin/settings/profile', [AdminController::class, 'updateProfile']);
         Route::post('/admin/settings/api', [AdminController::class, 'updateApiConfig']);
         Route::get('/admin/settings/api/test', [AdminController::class, 'testApiConnection']);
+        Route::get('/admin/settings/catalog/status', [AdminController::class, 'getCatalogOperationsStatus']);
+        Route::post('/admin/settings/catalog/run', [AdminController::class, 'runCatalogOperation']);
         Route::post('/admin/settings/email', [AdminController::class, 'updateEmailSettings']);
         Route::post('/admin/settings/system', [AdminController::class, 'updateSystemSettings']);
 

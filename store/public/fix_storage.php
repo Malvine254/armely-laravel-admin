@@ -6,6 +6,9 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
+use App\Jobs\DownloadProductImagesJob;
+use App\Jobs\EnrichPriceAvailabilityDescriptionsJob;
+use App\Jobs\EnrichPriceAvailabilityImagesJob;
 use App\Models\Company;
 use App\Models\Product;
 use App\Models\User;
@@ -128,28 +131,40 @@ $actions = [
         ],
     ],
     'sync_catalog' => [
-        'label' => 'Sync PriceAvailability Catalog (sync)',
+        'label' => 'Queue Catalog Sync (background)',
         'category' => 'Catalog & Images',
-        'help' => 'Sync the TD SYNNEX catalog using scoped sync settings.',
+        'help' => 'Queue TD SYNNEX catalog sync in the products-sync queue.',
         'type' => 'artisan',
         'commands' => [
-            ['name' => 'tdsynnex:sync-priceavailability-products', 'params' => ['--sync' => true]],
+            ['name' => 'tdsynnex:sync-priceavailability-products', 'params' => []],
         ],
     ],
     'sync_catalog_force' => [
-        'label' => 'Force Catalog Sync (sync + force)',
+        'label' => 'Queue Force Catalog Sync (background)',
         'category' => 'Catalog & Images',
-        'help' => 'Force a fresh TD SYNNEX catalog sync.',
+        'help' => 'Queue a forced fresh TD SYNNEX catalog sync.',
         'type' => 'artisan',
         'commands' => [
-            ['name' => 'tdsynnex:sync-priceavailability-products', 'params' => ['--sync' => true, '--force' => true]],
+            ['name' => 'tdsynnex:sync-priceavailability-products', 'params' => ['--force' => true]],
         ],
     ],
     'sync_images' => [
-        'label' => 'Sync Product Images (use Limit/Chunk below)',
+        'label' => 'Queue Image Sync (and optional descriptions)',
         'category' => 'Catalog & Images',
-        'help' => 'Run scoped product image enrichment with the options below.',
+        'help' => 'Queue image enrichment with Limit/Chunk, and optionally queue description backfill.',
         'type' => 'sync_images',
+    ],
+    'download_images_local' => [
+        'label' => 'Queue Local Image Download (use Limit/Chunk below)',
+        'category' => 'Catalog & Images',
+        'help' => 'Queue download of external image URLs to local /images/products paths.',
+        'type' => 'download_images_local',
+    ],
+    'sync_descriptions' => [
+        'label' => 'Queue Description Backfill (use Limit/Chunk below)',
+        'category' => 'Catalog & Images',
+        'help' => 'Queue Icecat description backfill for products missing descriptions.',
+        'type' => 'sync_descriptions',
     ],
     'db_repair' => [
         'label' => 'Repair DB Schema (run pending migrations)',
@@ -209,6 +224,24 @@ $actions = [
         'type' => 'artisan',
         'commands' => [
             ['name' => 'tdsynnex:clear-cache', 'params' => []],
+        ],
+    ],
+    'queue_products_sync_once' => [
+        'label' => 'Process products-sync Queue (stop when empty)',
+        'category' => 'Catalog & Images',
+        'help' => 'Run queued products-sync jobs now and stop when queue is empty.',
+        'type' => 'artisan',
+        'commands' => [
+            ['name' => 'queue:work', 'params' => ['connection' => 'database', '--queue' => 'products-sync', '--stop-when-empty' => true, '--sleep' => 1, '--tries' => 1, '--timeout' => 120]],
+        ],
+    ],
+    'queue_failed_products_sync' => [
+        'label' => 'Retry Failed products-sync Jobs',
+        'category' => 'Catalog & Images',
+        'help' => 'Retry failed queue jobs for products-sync.',
+        'type' => 'artisan',
+        'commands' => [
+            ['name' => 'queue:retry', 'params' => ['id' => ['all']]],
         ],
     ],
     'vendor_report' => [
@@ -312,11 +345,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($actionType === 'sync_images') {
         $limit = toIntInRange('sync_limit', 100, 0, 50000);
         $chunk = toIntInRange('sync_chunk', 25, 1, 500);
-        $results[] = runArtisanCommand('tdsynnex:enrich-priceavailability-images', [
-            '--sync' => true,
-            '--limit' => $limit,
-            '--chunk' => $chunk,
-        ]);
+        $withDescriptions = isset($_POST['sync_with_descriptions']) && (string) $_POST['sync_with_descriptions'] === '1';
+
+        EnrichPriceAvailabilityImagesJob::dispatch($chunk, $limit, true);
+        $results[] = [
+            'command' => 'queue: EnrichPriceAvailabilityImagesJob',
+            'status' => 'OK',
+            'output' => "Queued image enrichment in background (queue=products-sync, chunk={$chunk}, limit={$limit}).",
+        ];
+
+        if ($withDescriptions) {
+            EnrichPriceAvailabilityDescriptionsJob::dispatch($chunk, $limit);
+            $results[] = [
+                'command' => 'queue: EnrichPriceAvailabilityDescriptionsJob',
+                'status' => 'OK',
+                'output' => "Queued description enrichment in background (queue=products-sync, chunk={$chunk}, limit={$limit}).",
+            ];
+        }
+    } elseif ($actionType === 'download_images_local') {
+        $limit = toIntInRange('sync_limit', 100, 0, 50000);
+        $chunk = toIntInRange('sync_chunk', 1, 1, 500);
+
+        DownloadProductImagesJob::dispatch($limit, $chunk);
+        $results[] = [
+            'command' => 'queue: DownloadProductImagesJob',
+            'status' => 'OK',
+            'output' => "Queued local image download in background (queue=products-sync, chunk={$chunk}, limit={$limit}).",
+        ];
+    } elseif ($actionType === 'sync_descriptions') {
+        $limit = toIntInRange('sync_limit', 100, 0, 50000);
+        $chunk = toIntInRange('sync_chunk', 25, 1, 500);
+
+        EnrichPriceAvailabilityDescriptionsJob::dispatch($chunk, $limit);
+        $results[] = [
+            'command' => 'queue: EnrichPriceAvailabilityDescriptionsJob',
+            'status' => 'OK',
+            'output' => "Queued description enrichment in background (queue=products-sync, chunk={$chunk}, limit={$limit}).",
+        ];
     } elseif ($actionType === 'db_repair') {
         $seed = isset($_POST['db_seed']) && $_POST['db_seed'] === '1';
         $params = [];
@@ -792,12 +857,19 @@ function h(?string $value): string
                         </select>
                     </div>
                     <div>
-                        <label class="section-title" for="sync_limit">Image Sync Limit (0 = all scoped)</label>
+                        <label class="section-title" for="sync_limit">Catalog/Image Limit (0 = all scoped)</label>
                         <input type="number" id="sync_limit" name="sync_limit" value="<?= h((string) ($_POST['sync_limit'] ?? '100')) ?>" min="0" max="50000">
                     </div>
                     <div>
-                        <label class="section-title" for="sync_chunk">Image Sync Chunk</label>
+                        <label class="section-title" for="sync_chunk">Catalog/Image Chunk</label>
                         <input type="number" id="sync_chunk" name="sync_chunk" value="<?= h((string) ($_POST['sync_chunk'] ?? '25')) ?>" min="1" max="500">
+                    </div>
+                    <div>
+                        <label class="section-title" for="sync_with_descriptions">Image Sync Options</label>
+                        <div style="display:flex;align-items:center;gap:8px;padding:10px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;min-height:44px;">
+                            <input type="checkbox" id="sync_with_descriptions" name="sync_with_descriptions" value="1" <?= isset($_POST['sync_with_descriptions']) ? 'checked' : '' ?>>
+                            <span style="font-size:14px;color:#374151;">Also queue description backfill with image sync</span>
+                        </div>
                     </div>
                     <div>
                         <label class="section-title" for="db_seed">DB Repair Options</label>

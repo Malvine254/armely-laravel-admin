@@ -3,86 +3,94 @@
     <template #title>Quote Management</template>
 
     <!-- Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-      <div class="bg-white rounded-lg shadow p-6">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      <div class="rounded-xl border border-white/10 p-6 backdrop-blur transition hover:border-cyan-500/40" style="background: linear-gradient(180deg, rgba(34, 211, 238, 0.12), rgba(3, 102, 214, 0.08));">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm text-gray-600 mb-1">Total Quotes</p>
-            <p class="text-2xl font-bold text-gray-900">{{ stats.total || 0 }}</p>
+            <p class="text-xs text-slate-300 uppercase tracking-wide mb-1 font-semibold">Total Quotes</p>
+            <p class="text-3xl font-bold text-white">{{ stats.total || 0 }}</p>
+            <p class="text-xs text-slate-400 mt-2">All submitted quotes</p>
           </div>
-          <div class="w-12 h-12 bg-[#edf3fb] rounded-lg flex items-center justify-center">
-            <i class="fas fa-file-invoice text-[#2f5597] text-xl"></i>
+          <div class="w-14 h-14 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, rgba(34, 211, 238, 0.25), rgba(59, 130, 246, 0.25));">
+            <i class="fas fa-file-invoice text-cyan-300 text-2xl"></i>
           </div>
         </div>
       </div>
-      <div class="bg-white rounded-lg shadow p-6">
+      <div class="rounded-xl border border-white/10 p-6 backdrop-blur transition hover:border-amber-500/40" style="background: linear-gradient(180deg, rgba(251, 191, 36, 0.12), rgba(217, 119, 6, 0.08));">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm text-gray-600 mb-1">Pending</p>
-            <p class="text-2xl font-bold text-yellow-600">{{ stats.pending || 0 }}</p>
+            <p class="text-xs text-slate-300 uppercase tracking-wide mb-1 font-semibold">Awaiting Action</p>
+            <p class="text-3xl font-bold text-amber-300">{{ stats.pending || 0 }}</p>
+            <p class="text-xs text-slate-400 mt-2">Need approval</p>
           </div>
-          <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-            <i class="fas fa-clock text-yellow-600 text-xl"></i>
+          <div class="w-14 h-14 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, rgba(251, 191, 36, 0.25), rgba(217, 119, 6, 0.25));">
+            <i class="fas fa-clock text-amber-300 text-2xl"></i>
           </div>
         </div>
       </div>
-      <div class="bg-white rounded-lg shadow p-6">
+      <div class="rounded-xl border border-white/10 p-6 backdrop-blur transition hover:border-emerald-500/40" style="background: linear-gradient(180deg, rgba(34, 197, 94, 0.12), rgba(22, 163, 74, 0.08));">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm text-gray-600 mb-1">Approved</p>
-            <p class="text-2xl font-bold text-green-600">{{ stats.approved || 0 }}</p>
+            <p class="text-xs text-slate-300 uppercase tracking-wide mb-1 font-semibold">Approved</p>
+            <p class="text-3xl font-bold text-emerald-300">{{ stats.approved || 0 }}</p>
+            <p class="text-xs text-slate-400 mt-2">Converted to orders</p>
           </div>
-          <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-            <i class="fas fa-check-circle text-green-600 text-xl"></i>
+          <div class="w-14 h-14 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, rgba(34, 197, 94, 0.25), rgba(22, 163, 74, 0.25));">
+            <i class="fas fa-check-circle text-emerald-300 text-2xl"></i>
           </div>
         </div>
       </div>
-      <div class="bg-white rounded-lg shadow p-6">
+      <div class="rounded-xl border border-white/10 p-6 backdrop-blur transition hover:border-rose-500/40" style="background: linear-gradient(180deg, rgba(239, 68, 68, 0.12), rgba(185, 28, 28, 0.08));">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm text-gray-600 mb-1">Rejected</p>
-            <p class="text-2xl font-bold text-red-600">{{ stats.rejected || 0 }}</p>
+            <p class="text-xs text-slate-300 uppercase tracking-wide mb-1 font-semibold">Rejected</p>
+            <p class="text-3xl font-bold text-rose-300">{{ stats.rejected || 0 }}</p>
+            <p class="text-xs text-slate-400 mt-2">Declined requests</p>
           </div>
-          <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
-            <i class="fas fa-times-circle text-red-600 text-xl"></i>
+          <div class="w-14 h-14 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.25), rgba(185, 28, 28, 0.25));">
+            <i class="fas fa-times-circle text-rose-300 text-2xl"></i>
           </div>
         </div>
       </div>
     </div>
 
-    <div class="bg-[#edf3fb] border border-[#dbe7f8] rounded-lg p-4 mb-6">
-      <p class="text-sm text-[#274a82] font-medium">
-        Pending approvals queue powered by the new admin API.
-        Only key fields are shown below. Use Review to view full quote details.
-      </p>
+    <!-- Info Banner -->
+    <div class="rounded-lg border border-cyan-500/20 p-4 mb-6 backdrop-blur" style="background: linear-gradient(135deg, rgba(34, 211, 238, 0.1), rgba(59, 130, 246, 0.08));">
+      <div class="flex items-start gap-3">
+        <i class="fas fa-lightbulb text-cyan-300 mt-0.5 text-lg flex-shrink-0"></i>
+        <p class="text-sm text-slate-200 font-medium">
+          <span class="text-cyan-300 font-semibold">Review & Approve</span> pending customer quotes. Click <span class="font-semibold">Review</span> to see full details and approve or reject each quote.
+        </p>
+      </div>
     </div>
 
     <!-- Filters and Search -->
-    <div class="bg-white rounded-lg shadow p-6 mb-6">
+    <div class="rounded-xl border border-white/10 p-6 mb-6 backdrop-blur" style="background: linear-gradient(180deg, rgba(15, 23, 42, 0.7), rgba(10, 41, 72, 0.7));">
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Search Quote</label>
+          <label class="block text-sm font-medium text-slate-200 mb-2">Search Quote</label>
           <input
             v-model="searchQuery"
             type="text"
-            placeholder="Enter quote ID or customer name..."
+            placeholder="Quote ID, customer name..."
             @keyup.enter="applyFilters"
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2f5597]"
+            class="w-full px-4 py-2.5 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 text-white placeholder-slate-500 transition"
+            style="background: rgba(148, 163, 184, 0.12);"
           />
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Sort By</label>
-          <select v-model="sortBy" @change="applyFilters" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2f5597]">
-            <option value="newest">Newest First</option>
-            <option value="oldest">Oldest First</option>
-            <option value="highest">Highest Amount</option>
-            <option value="lowest">Lowest Amount</option>
+          <label class="block text-sm font-medium text-slate-200 mb-2">Sort By</label>
+          <select v-model="sortBy" @change="applyFilters" class="w-full px-4 py-2.5 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 text-white transition" style="background: rgba(148, 163, 184, 0.12);">
+            <option value="newest" class="bg-slate-900">Newest First</option>
+            <option value="oldest" class="bg-slate-900">Oldest First</option>
+            <option value="highest" class="bg-slate-900">Highest Amount</option>
+            <option value="lowest" class="bg-slate-900">Lowest Amount</option>
           </select>
         </div>
         <div class="flex items-end">
           <button
             @click="applyFilters"
-            class="w-full bg-[#2f5597] hover:bg-[#274a82] text-white font-medium py-2 px-4 rounded-lg transition"
+            class="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-medium py-2.5 px-4 rounded-lg transition shadow-lg"
           >
             <i class="fas fa-search mr-2"></i>Apply Filters
           </button>
@@ -91,13 +99,13 @@
     </div>
 
     <!-- Quotes List -->
-    <div class="bg-white rounded-lg shadow overflow-hidden">
+    <div class="rounded-xl border border-white/10 overflow-hidden backdrop-blur" style="background: linear-gradient(180deg, rgba(15, 23, 42, 0.6), rgba(10, 41, 72, 0.6));">
       <!-- Bulk Actions Bar -->
-      <div v-if="selectedQuotes.length > 0" class="px-6 py-3 bg-[#edf3fb] border-b border-gray-200 flex items-center justify-between">
-        <span class="text-sm font-medium text-gray-700">{{ selectedQuotes.length }} quote(s) selected</span>
+      <div v-if="selectedQuotes.length > 0" class="px-6 py-4 border-b border-white/10 flex items-center justify-between" style="background: rgba(34, 211, 238, 0.1);">
+        <span class="text-sm font-medium text-cyan-300"><i class="fas fa-check-square mr-2"></i>{{ selectedQuotes.length }} quote(s) selected</span>
         <button
           @click="confirmBulkDelete"
-          class="px-4 py-2 text-xs font-semibold rounded-lg border border-red-600 text-red-600 hover:bg-red-50 transition"
+          class="px-4 py-2 text-xs font-semibold rounded-lg border border-rose-500/50 text-rose-300 hover:bg-rose-500/20 transition"
         >
           <i class="fas fa-trash mr-1"></i>Delete Selected
         </button>
@@ -105,82 +113,82 @@
 
       <div class="overflow-x-auto">
         <table class="w-full">
-          <thead class="bg-gray-50 border-b border-gray-200">
+          <thead style="background: rgba(15, 23, 42, 0.8);" class="border-b border-white/10">
             <tr>
               <th class="px-4 py-4 text-left">
                 <input
                   type="checkbox"
                   :checked="allSelected"
                   @change="toggleSelectAll"
-                  class="w-4 h-4 text-[#2f5597] border-gray-300 rounded focus:ring-[#2f5597]"
+                  class="w-4 h-4 rounded cursor-pointer" style="accent-color: #22d3ee;"
                 />
               </th>
-              <th class="px-6 py-4 text-left font-semibold text-gray-700">Quote</th>
-              <th class="px-6 py-4 text-left font-semibold text-gray-700">Status</th>
-              <th class="px-6 py-4 text-left font-semibold text-gray-700">Customer</th>
-              <th class="px-6 py-4 text-left font-semibold text-gray-700">Company</th>
-              <th class="px-6 py-4 text-right font-semibold text-gray-700">Amount</th>
-              <th class="px-6 py-4 text-left font-semibold text-gray-700">Submitted</th>
-              <th class="px-6 py-4 text-center font-semibold text-gray-700">Actions</th>
+              <th class="px-6 py-4 text-left font-semibold text-slate-200 uppercase text-xs tracking-wide">Quote</th>
+              <th class="px-6 py-4 text-left font-semibold text-slate-200 uppercase text-xs tracking-wide">Status</th>
+              <th class="px-6 py-4 text-left font-semibold text-slate-200 uppercase text-xs tracking-wide">Customer</th>
+              <th class="px-6 py-4 text-left font-semibold text-slate-200 uppercase text-xs tracking-wide">Company</th>
+              <th class="px-6 py-4 text-right font-semibold text-slate-200 uppercase text-xs tracking-wide">Amount</th>
+              <th class="px-6 py-4 text-left font-semibold text-slate-200 uppercase text-xs tracking-wide">Submitted</th>
+              <th class="px-6 py-4 text-center font-semibold text-slate-200 uppercase text-xs tracking-wide">Actions</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-if="quotes.length === 0" class="border-b border-gray-200 hover:bg-gray-50">
-              <td colspan="7" class="px-6 py-9 text-center text-gray-500">
-                <i class="fas fa-inbox text-4xl mb-3 block opacity-30"></i>
-                <p>No pending quotes found</p>
+            <tr v-if="quotes.length === 0" class="border-b border-white/10 hover:bg-white/5 transition">
+              <td colspan="8" class="px-6 py-16 text-center">
+                <i class="fas fa-inbox text-5xl mb-4 block opacity-20 text-slate-400"></i>
+                <p class="text-slate-400 text-lg font-medium">No pending quotes found</p>
               </td>
             </tr>
-            <tr v-for="quote in quotes" :key="quote.id" class="border-b border-gray-200 hover:bg-gray-50 transition">
+            <tr v-for="quote in quotes" :key="quote.id" class="border-b border-white/10 hover:bg-white/5 transition cursor-pointer">
               <td class="px-4 py-4">
                 <input
                   type="checkbox"
                   :value="quote.id"
                   v-model="selectedQuotes"
-                  class="w-4 h-4 text-[#2f5597] border-gray-300 rounded focus:ring-[#2f5597]"
+                  class="w-4 h-4 rounded cursor-pointer" style="accent-color: #22d3ee;"
                 />
               </td>
               <td class="px-6 py-4">
-                <p class="text-sm font-semibold text-gray-900 max-w-[320px] truncate" :title="getQuoteDisplayName(quote)">
+                <p class="text-sm font-semibold text-slate-100 max-w-[320px] truncate" :title="getQuoteDisplayName(quote)">
                   {{ getQuoteDisplayName(quote) }}
                 </p>
-                <p class="text-xs text-[#2f5597] mt-0.5">{{ quote.quote_id }}</p>
+                <p class="text-xs text-cyan-400 mt-0.5 font-mono">{{ quote.quote_id }}</p>
               </td>
               <td class="px-6 py-4">
                 <span
                   :class="[
                     'inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold',
                     quote.status === 'approved'
-                      ? 'bg-green-100 text-green-700'
+                      ? 'bg-emerald-500/20 text-emerald-300'
                       : quote.status === 'rejected'
-                        ? 'bg-red-100 text-red-700'
-                        : 'bg-yellow-100 text-yellow-700'
+                        ? 'bg-rose-500/20 text-rose-300'
+                        : 'bg-amber-500/20 text-amber-300'
                   ]"
                 >
                   {{ formatStatus(quote.status) }}
                 </span>
               </td>
               <td class="px-6 py-4">
-                <p class="font-medium text-gray-900">{{ getUserName(quote) }}</p>
-                <p class="text-xs text-gray-500">{{ getUserEmail(quote) }}</p>
+                <p class="font-medium text-slate-100">{{ getUserName(quote) }}</p>
+                <p class="text-xs text-slate-400">{{ getUserEmail(quote) }}</p>
               </td>
               <td class="px-6 py-4">
-                <p class="text-gray-900">{{ getCompanyName(quote) }}</p>
+                <p class="text-slate-100">{{ getCompanyName(quote) }}</p>
               </td>
               <td class="px-6 py-4 text-right">
-                <p class="font-bold text-gray-900">${{ formatCurrency(quote.total_amount) }}</p>
-                <p class="text-xs text-gray-500">Tax: ${{ formatCurrency(quote.tax_amount) }}</p>
+                <p class="font-bold text-white">${{ formatCurrency(quote.total_amount) }}</p>
+                <p class="text-xs text-slate-400">Tax: ${{ formatCurrency(quote.tax_amount) }}</p>
               </td>
-              <td class="px-6 py-4 text-sm text-gray-600">
+              <td class="px-6 py-4 text-sm text-slate-300">
                 {{ formatDate(quote.submitted_at) }}
               </td>
               <td class="px-6 py-4">
-                <div class="flex justify-center space-x-3">
+                <div class="flex justify-center">
                   <button
                     @click="selectQuote(quote)"
-                    class="text-[#2f5597] hover:text-[#274a82] font-medium"
+                    class="px-3 py-1.5 bg-gradient-to-r from-cyan-500/30 to-blue-600/30 hover:from-cyan-400/40 hover:to-blue-500/40 text-cyan-300 font-medium rounded-lg transition border border-cyan-500/30 text-sm"
                   >
-                    <i class="fas fa-eye mr-1"></i>Review Full
+                    <i class="fas fa-eye mr-1"></i>Review
                   </button>
                 </div>
               </td>
@@ -190,16 +198,16 @@
       </div>
 
       <!-- Pagination -->
-      <div class="px-6 py-4 border-t border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div class="text-sm text-gray-600">
+      <div class="px-6 py-4 border-t border-white/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3" style="background: rgba(15, 23, 42, 0.5);">
+        <div class="text-sm text-slate-300">
           <p>Showing {{ quotes.length }} of {{ totalQuotes }} quotes</p>
-          <p class="mt-1">Page {{ currentPage }} of {{ lastPage }}</p>
+          <p class="mt-1 text-xs text-slate-400">Page {{ currentPage }} of {{ lastPage }}</p>
         </div>
         <div class="flex flex-wrap gap-2">
           <button
             :disabled="currentPage === 1"
             @click="currentPage--; fetchQuotes()"
-            class="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            class="px-3 py-2 border border-white/10 rounded-lg text-slate-300 hover:bg-white/10 hover:text-cyan-300 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm"
           >
             Previous
           </button>
@@ -210,8 +218,8 @@
             :class="[
               'px-3 py-2 rounded-lg border text-sm font-semibold transition',
               page === currentPage
-                ? 'bg-[#2f5597] text-white border-[#2f5597]'
-                : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white border-cyan-500'
+                : 'border-white/10 text-slate-300 hover:border-cyan-500/50 hover:text-cyan-300'
             ]"
           >
             {{ page }}
@@ -219,7 +227,7 @@
           <button
             :disabled="currentPage >= lastPage"
             @click="currentPage++; fetchQuotes()"
-            class="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            class="px-3 py-2 border border-white/10 rounded-lg text-slate-300 hover:bg-white/10 hover:text-cyan-300 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm"
           >
             Next
           </button>
@@ -229,56 +237,56 @@
 
     <!-- Quote Review Modal -->
     <div v-if="selectedQuote" class="fixed inset-0 z-[9999] bg-black/50 backdrop-blur-[2px] flex items-center justify-center p-4" @click="selectedQuote = null">
-      <div class="bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[94vh] overflow-y-auto" @click.stop>
-        <div class="sticky top-0 text-white p-6 border-b border-white/15" style="background: linear-gradient(90deg, #2f5597, #1f4788);">
+      <div class="rounded-2xl shadow-2xl max-w-6xl w-full max-h-[94vh] overflow-y-auto border border-white/10" style="background: linear-gradient(180deg, rgba(15, 23, 42, 0.95), rgba(10, 41, 72, 0.95));" @click.stop>
+        <div class="sticky top-0 text-white p-6 border-b border-white/10" style="background: linear-gradient(90deg, rgba(34, 211, 238, 0.15), rgba(59, 130, 246, 0.1));">
           <div class="flex justify-between items-center">
             <div>
-              <p class="text-xs uppercase tracking-wide text-blue-100 font-semibold">Quote Approval</p>
-              <h3 class="text-2xl font-bold">{{ selectedQuote.quote_id }}</h3>
+              <p class="text-xs uppercase tracking-wide text-cyan-300 font-semibold">Quote Approval</p>
+              <h3 class="text-2xl font-bold text-white mt-1">{{ selectedQuote.quote_id }}</h3>
             </div>
-            <button @click="selectedQuote = null" class="text-white hover:text-gray-200 transition">
-              <i class="fas fa-times text-xl"></i>
+            <button @click="selectedQuote = null" class="text-slate-400 hover:text-cyan-300 transition text-2xl">
+              <i class="fas fa-times"></i>
             </button>
           </div>
         </div>
 
         <div class="p-6 sm:p-8 space-y-6">
-          <div v-if="isLoadingQuoteDetails" class="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-sm text-blue-800">
+          <div v-if="isLoadingQuoteDetails" class="bg-cyan-500/20 border border-cyan-400/30 rounded-lg px-4 py-3 text-sm text-cyan-300">
             <i class="fas fa-spinner fa-spin mr-2"></i>Loading full quote details...
           </div>
 
           <!-- Quote Details -->
           <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
-            <div class="xl:col-span-2 bg-gradient-to-br from-slate-50 to-blue-50 border border-blue-100 rounded-xl p-4">
-              <p class="text-xs uppercase tracking-wide text-blue-700 font-semibold">Quote Summary</p>
-              <p class="text-xl font-bold text-slate-900 mt-1">{{ getQuoteDisplayName(selectedQuote) }}</p>
-              <p class="text-sm text-slate-600 mt-1">Quote ID: {{ selectedQuote.quote_id }}</p>
+            <div class="xl:col-span-2 rounded-xl border border-white/10 p-4" style="background: linear-gradient(135deg, rgba(34, 211, 238, 0.1), rgba(59, 130, 246, 0.08));">
+              <p class="text-xs uppercase tracking-wide text-cyan-300 font-semibold">Quote Summary</p>
+              <p class="text-xl font-bold text-white mt-1">{{ getQuoteDisplayName(selectedQuote) }}</p>
+              <p class="text-sm text-slate-400 mt-1">ID: {{ selectedQuote.quote_id }}</p>
               <div class="mt-3 flex flex-wrap gap-2">
-                <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">{{ formatStatus(selectedQuote.status) }}</span>
-                <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-200 text-slate-700">Submitted: {{ formatDate(selectedQuote.submitted_at || selectedQuote.created_at) }}</span>
-                <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-200 text-slate-700">Expires: {{ formatDate(selectedQuote.expires_at) }}</span>
+                <span class="px-2.5 py-1 rounded-full text-xs font-semibold" :class="selectedQuote.status === 'approved' ? 'bg-emerald-500/20 text-emerald-300' : selectedQuote.status === 'rejected' ? 'bg-rose-500/20 text-rose-300' : 'bg-amber-500/20 text-amber-300'">{{ formatStatus(selectedQuote.status) }}</span>
+                <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-white/10 text-slate-300">Submitted: {{ formatDate(selectedQuote.submitted_at || selectedQuote.created_at) }}</span>
+                <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-white/10 text-slate-300">Expires: {{ formatDate(selectedQuote.expires_at) }}</span>
               </div>
             </div>
 
-            <div class="bg-white border border-gray-200 rounded-xl p-4">
-              <p class="text-xs uppercase tracking-wide text-gray-500 font-semibold mb-1">Financial</p>
-              <p class="text-3xl font-extrabold text-slate-900 leading-tight">${{ formatCurrency(selectedQuote.total_amount) }}</p>
-              <p class="text-sm text-gray-600 mt-1">Tax: ${{ formatCurrency(selectedQuote.tax_amount) }}</p>
-              <p class="text-sm text-gray-600">Discount: ${{ formatCurrency(selectedQuote.discount_amount) }}</p>
-              <p class="text-sm text-gray-600">Items: {{ normalizedQuoteItems.length }}</p>
+            <div class="rounded-xl border border-white/10 p-4" style="background: rgba(148, 163, 184, 0.08);">
+              <p class="text-xs uppercase tracking-wide text-slate-300 font-semibold mb-1">Financial</p>
+              <p class="text-3xl font-extrabold text-cyan-300 leading-tight">${{ formatCurrency(selectedQuote.total_amount) }}</p>
+              <p class="text-sm text-slate-400 mt-1">Tax: ${{ formatCurrency(selectedQuote.tax_amount) }}</p>
+              <p class="text-sm text-slate-400">Discount: ${{ formatCurrency(selectedQuote.discount_amount) }}</p>
+              <p class="text-sm text-slate-400">Items: {{ normalizedQuoteItems.length }}</p>
             </div>
 
-            <div class="bg-white border border-gray-200 rounded-xl p-4">
-              <p class="text-xs uppercase tracking-wide text-gray-500 font-semibold mb-1">Customer</p>
-              <p class="text-base font-semibold text-slate-900">{{ getUserName(selectedQuote) }}</p>
-              <p class="text-sm text-gray-600">{{ getUserEmail(selectedQuote) }}</p>
-              <p class="text-sm text-gray-600 mt-2">Company: {{ getCompanyName(selectedQuote) }}</p>
+            <div class="rounded-xl border border-white/10 p-4" style="background: rgba(148, 163, 184, 0.08);">
+              <p class="text-xs uppercase tracking-wide text-slate-300 font-semibold mb-1">Customer</p>
+              <p class="text-base font-semibold text-white">{{ getUserName(selectedQuote) }}</p>
+              <p class="text-sm text-slate-400">{{ getUserEmail(selectedQuote) }}</p>
+              <p class="text-sm text-slate-400 mt-2">Company: {{ getCompanyName(selectedQuote) }}</p>
             </div>
 
-            <div class="bg-white border border-gray-200 rounded-xl p-4" v-if="selectedQuote.order">
-              <p class="text-xs uppercase tracking-wide text-gray-500 font-semibold mb-1">Linked Order</p>
-              <p class="text-base font-semibold text-slate-900">{{ selectedQuote.order.order_number || 'N/A' }}</p>
-              <p class="text-sm text-gray-600">Status: {{ selectedQuote.order.status || 'N/A' }}</p>
+            <div v-if="selectedQuote.order" class="rounded-xl border border-white/10 p-4" style="background: rgba(34, 197, 94, 0.08);">
+              <p class="text-xs uppercase tracking-wide text-slate-300 font-semibold mb-1">Linked Order</p>
+              <p class="text-base font-semibold text-emerald-300">{{ selectedQuote.order.order_number || 'N/A' }}</p>
+              <p class="text-sm text-slate-400">Status: {{ selectedQuote.order.status || 'N/A' }}</p>
             </div>
           </div>
 
@@ -287,20 +295,20 @@
           <!-- Quote Items -->
           <div>
             <div class="flex items-center justify-between mb-3">
-              <p class="text-sm font-semibold text-gray-700">Items</p>
-              <span class="text-xs font-semibold px-2 py-1 rounded-full bg-gray-100 text-gray-700">{{ normalizedQuoteItems.length }} item(s)</span>
+              <p class="text-sm font-semibold text-slate-200">Items</p>
+              <span class="text-xs font-semibold px-2 py-1 rounded-full bg-white/10 text-slate-400">{{ normalizedQuoteItems.length }} item(s)</span>
             </div>
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 bg-gray-50 p-4 rounded-lg max-h-[26rem] overflow-y-auto border border-gray-200">
-              <div v-for="(item, index) in normalizedQuoteItems" :key="index" class="text-sm bg-white border border-gray-200 rounded-lg p-3">
-                <p class="font-semibold text-slate-900 leading-snug">{{ item.name }}</p>
-                <p class="text-xs text-gray-600 mt-1" v-if="item.sku">SKU: {{ item.sku }}</p>
-                <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-700">
-                  <span>Qty: {{ item.quantity }}</span>
-                  <span>Unit: ${{ formatCurrency(item.price) }}</span>
-                  <span class="font-semibold text-slate-900">Line: ${{ formatCurrency(item.lineTotal) }}</span>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 p-4 rounded-lg max-h-[26rem] overflow-y-auto border border-white/10" style="background: rgba(15, 23, 42, 0.5);">
+              <div v-for="(item, index) in normalizedQuoteItems" :key="index" class="text-sm rounded-lg p-3 border border-white/10" style="background: rgba(148, 163, 184, 0.08);">
+                <p class="font-semibold text-slate-100 leading-snug">{{ item.name }}</p>
+                <p class="text-xs text-slate-400 mt-1" v-if="item.sku">SKU: {{ item.sku }}</p>
+                <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-400">
+                  <span>Qty: <span class="text-slate-200">{{ item.quantity }}</span></span>
+                  <span>Unit: <span class="text-slate-200">${{ formatCurrency(item.price) }}</span></span>
+                  <span class="font-semibold text-cyan-300">Line: ${{ formatCurrency(item.lineTotal) }}</span>
                 </div>
               </div>
-              <p v-if="normalizedQuoteItems.length === 0" class="text-sm text-gray-500">No item details available.</p>
+              <p v-if="normalizedQuoteItems.length === 0" class="text-sm text-slate-400">No item details available.</p>
             </div>
           </div>
 
@@ -404,14 +412,14 @@
           <div v-else class="flex space-x-3 justify-end border-t pt-4">
             <button
               @click="selectedQuote = null"
-              class="px-6 py-2 border border-[#2f5597] rounded-lg text-[#2f5597] font-medium hover:bg-[#edf3fb] transition"
+              class="px-6 py-2 border border-cyan-500/50 rounded-lg text-cyan-300 font-medium hover:bg-cyan-500/20 transition text-sm"
             >
               Cancel
             </button>
             <button
               v-if="!showRejectionReason"
               @click="showRejectionReason = true"
-              class="px-6 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition"
+              class="px-6 py-2 bg-rose-600/30 hover:bg-rose-600/40 text-rose-300 font-medium rounded-lg transition border border-rose-500/50 text-sm"
             >
               <i class="fas fa-times mr-2"></i>Reject
             </button>
@@ -419,7 +427,7 @@
               v-if="showRejectionReason"
               @click="rejectQuote"
               :disabled="isSubmitting"
-              class="px-6 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition disabled:opacity-50"
+              class="px-6 py-2 bg-rose-600 hover:bg-rose-700 text-white font-medium rounded-lg transition disabled:opacity-50 text-sm"
             >
               <i class="fas fa-check mr-2"></i>Confirm Rejection
             </button>
@@ -427,7 +435,7 @@
               v-if="!showRejectionReason"
               @click="approveQuote"
               :disabled="isSubmitting"
-              class="px-6 py-2 bg-[#2f5597] hover:bg-[#274a82] text-white font-medium rounded-lg transition disabled:opacity-50"
+              class="px-6 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-medium rounded-lg transition disabled:opacity-50 text-sm"
             >
               <i class="fas fa-check mr-2"></i>Approve
             </button>
@@ -437,7 +445,7 @@
           <div v-if="selectedQuote.order || selectedQuote.status === 'approved' || selectedQuote.status === 'rejected'" class="flex justify-end mt-4">
             <button
               @click="selectedQuote = null"
-              class="px-6 py-2 bg-[#2f5597] hover:bg-[#274a82] text-white font-medium rounded-lg transition"
+              class="px-6 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-medium rounded-lg transition text-sm"
             >
               <i class="fas fa-times mr-2"></i>Close
             </button>
@@ -448,26 +456,26 @@
 
     <!-- Delete Confirmation Modal -->
     <div v-if="showDeleteConfirm" class="fixed inset-0 z-[9999] bg-black/50 backdrop-blur-[2px] flex items-center justify-center p-4" @click="showDeleteConfirm = false">
-      <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full" @click.stop>
+      <div class="rounded-2xl shadow-2xl max-w-md w-full border border-white/10" style="background: linear-gradient(180deg, rgba(15, 23, 42, 0.95), rgba(10, 41, 72, 0.95));" @click.stop>
         <div class="p-6">
           <div class="flex items-center mb-4">
-            <div class="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mr-4">
-              <i class="fas fa-trash text-red-600 text-2xl"></i>
+            <div class="w-12 h-12 rounded-full flex items-center justify-center mr-4" style="background: rgba(239, 68, 68, 0.2);">
+              <i class="fas fa-trash text-rose-400 text-2xl"></i>
             </div>
-            <h3 class="text-lg font-bold text-gray-900">Delete {{ selectedQuotes.length }} Quote(s)?</h3>
+            <h3 class="text-lg font-bold text-white">Delete {{ selectedQuotes.length }} Quote(s)?</h3>
           </div>
-          <p class="text-gray-600 mb-6">Are you sure you want to permanently delete {{ selectedQuotes.length }} quote(s)? This action cannot be undone.</p>
+          <p class="text-slate-300 mb-6">Are you sure you want to permanently delete {{ selectedQuotes.length }} quote(s)? This action cannot be undone.</p>
           <div class="flex justify-end gap-3">
             <button
               @click="showDeleteConfirm = false"
-              class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
+              class="px-4 py-2 border border-white/10 rounded-lg text-slate-300 hover:bg-white/10 transition text-sm font-medium"
             >
               Cancel
             </button>
             <button
               @click="executeBulkDelete"
               :disabled="isSubmitting"
-              class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition disabled:opacity-50"
+              class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-medium rounded-lg transition disabled:opacity-50 text-sm"
             >
               <i class="fas fa-trash mr-2"></i>Delete
             </button>

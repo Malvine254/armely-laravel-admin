@@ -1,121 +1,216 @@
 <template>
-  <nav class="bg-gradient-to-r from-blue-900 to-blue-800 text-white shadow-lg sticky top-0 z-50" style="background: linear-gradient(to right, #183a72, #0f2a54)">
+  <nav class="sticky top-0 z-50 border-b border-white/10" style="background: linear-gradient(135deg, #0f172a 0%, #0a2948 45%, #1d4c6e 100%); box-shadow: 0 16px 45px rgba(2, 6, 23, 0.35);">
     <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-5">
       <div class="flex items-center justify-between h-20">
         <!-- Logo Section -->
-        <button type="button" class="flex items-center gap-2 sm:gap-3 flex-shrink-0 cursor-pointer" @click="goToProducts">
-          <div class="w-10 h-10 rounded-lg bg-white overflow-hidden flex items-center justify-center">
+        <button type="button" class="flex items-center gap-2 sm:gap-3 flex-shrink-0 cursor-pointer transition hover:opacity-95" @click="goToProducts">
+          <div class="w-11 h-11 rounded-xl overflow-hidden flex items-center justify-center shadow-lg border border-white/30 bg-white">
             <img
               v-if="showLogoImage"
               :src="logoSrc"
               alt="Armely Store"
-              class="w-9 h-9 object-contain"
+              class="w-full h-full object-contain p-1"
               @error="handleLogoError"
             >
-            <span v-else class="text-blue-900 font-bold text-lg">A</span>
+            <span v-else class="text-white font-bold text-base">A</span>
           </div>
           <div class="text-left">
-            <div class="font-bold text-base sm:text-lg">Armely Store</div>
-            <div class="hidden sm:block text-xs" style="color: #cce4f4;">B2B Procurements</div>
+            <div class="font-bold text-base sm:text-lg text-white">Armely Store</div>
+            <div class="hidden sm:block text-xs text-slate-200">B2B Procurements</div>
           </div>
         </button>
 
-        <!-- Search Bar - Hidden on mobile -->
-        <div class="hidden md:block flex-1 mx-8">
-          <div class="relative">
-            <svg class="absolute left-3 top-3.5 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: #ffffff;">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-            </svg>
-            <input
-              v-model="searchTerm"
-              type="text"
-              placeholder="Search products, vendors, solutions..."
-              class="w-full pl-10 pr-4 py-2.5 rounded-lg text-white outline-none focus:ring-2 transition border border-white placeholder-white/90"
-              style="background-color: transparent; color: #ffffff;"
-              @keyup.enter="submitSearch"
-              @input="searchTerm = $event.target.value"
+        <!-- Nav Links: Categories - Hidden on mobile -->
+        <div class="hidden md:flex items-center justify-center gap-1 flex-1 mx-6 min-w-0">
+          <div
+            v-for="cat in primaryCategories"
+            :key="cat.value"
+            class="relative"
+            @mouseenter="categoryDropdownOpen = cat.value"
+            @mouseleave="categoryDropdownOpen = null"
+          >
+            <button
+              type="button"
+              class="flex items-center gap-1.5 flex-shrink-0 px-3 py-2 rounded-lg text-sm font-semibold text-slate-100 hover:text-cyan-300 hover:bg-white/10 transition"
+              @click="browseProducts(cat.value)"
             >
+              <span>{{ cat.name }}</span>
+              <svg class="w-3.5 h-3.5 transition-transform" :class="categoryDropdownOpen === cat.value ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+              </svg>
+            </button>
+
+            <transition enter-active-class="transition ease-out duration-150" enter-from-class="opacity-0 translate-y-1" enter-to-class="opacity-100 translate-y-0" leave-active-class="transition ease-in duration-100" leave-from-class="opacity-100 translate-y-0" leave-to-class="opacity-0 translate-y-1">
+              <div v-if="categoryDropdownOpen === cat.value" class="absolute left-0 mt-1 w-64 rounded-xl shadow-2xl overflow-hidden z-50 border border-white/10" style="background: linear-gradient(180deg, #0f2136 0%, #0a1a2e 100%);">
+                <div class="px-4 py-2.5 border-b border-white/10">
+                  <p class="text-xs font-semibold text-cyan-400 uppercase tracking-widest">{{ cat.name }} Brands</p>
+                </div>
+                <div class="py-1.5">
+                  <button
+                    v-for="brand in categoryBrandsMap[cat.value] || []"
+                    :key="`${cat.value}-${brand.value}`"
+                    type="button"
+                    class="w-full text-left px-4 py-2.5 text-sm text-slate-200 hover:bg-white/10 hover:text-cyan-300 transition"
+                    @click="browseCategoryVendor(cat.value, brand.value)"
+                  >
+                    {{ brand.label }}
+                  </button>
+                  <button
+                    type="button"
+                    class="w-full text-left px-4 py-2.5 text-sm text-cyan-300 hover:bg-white/10 transition"
+                    @click="browseProducts(cat.value)"
+                  >
+                    View all in {{ cat.name }}
+                  </button>
+                </div>
+              </div>
+            </transition>
           </div>
+
+          <!-- More Categories Dropdown -->
+          <div class="relative" @mouseenter="moreCategoriesOpen = true" @mouseleave="moreCategoriesOpen = false">
+            <button
+              type="button"
+              class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold text-slate-100 hover:text-cyan-300 hover:bg-white/10 transition"
+              @click="moreCategoriesOpen = !moreCategoriesOpen"
+            >
+              More Categories
+              <svg class="w-3.5 h-3.5 transition-transform" :class="moreCategoriesOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+              </svg>
+            </button>
+            <transition enter-active-class="transition ease-out duration-150" enter-from-class="opacity-0 translate-y-1" enter-to-class="opacity-100 translate-y-0" leave-active-class="transition ease-in duration-100" leave-from-class="opacity-100 translate-y-0" leave-to-class="opacity-0 translate-y-1">
+              <div v-if="moreCategoriesOpen" class="absolute left-0 mt-1 w-64 rounded-xl shadow-2xl overflow-visible z-50 border border-white/10" style="background: linear-gradient(180deg, #0f2136 0%, #0a1a2e 100%);">
+                <div class="px-4 py-2.5 border-b border-white/10">
+                  <p class="text-xs font-semibold text-cyan-400 uppercase tracking-widest">More Categories</p>
+                </div>
+                <div class="py-1.5">
+                  <div
+                    v-for="cat in overflowCategories"
+                    :key="cat.value"
+                    class="relative"
+                    @mouseenter="moreCategoryDropdownOpen = cat.value"
+                    @mouseleave="moreCategoryDropdownOpen = null"
+                  >
+                    <button
+                      type="button"
+                      class="w-full flex items-center justify-between text-left px-4 py-2.5 text-sm text-slate-200 hover:bg-white/10 hover:text-cyan-300 transition"
+                      @click="browseProducts(cat.value)"
+                    >
+                      <span>{{ cat.name }}</span>
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                      </svg>
+                    </button>
+
+                    <transition enter-active-class="transition ease-out duration-150" enter-from-class="opacity-0 translate-x-1" enter-to-class="opacity-100 translate-x-0" leave-active-class="transition ease-in duration-100" leave-from-class="opacity-100 translate-x-0" leave-to-class="opacity-0 translate-x-1">
+                      <div v-if="moreCategoryDropdownOpen === cat.value" class="absolute left-full top-0 ml-1 w-60 rounded-xl shadow-2xl overflow-hidden z-[60] border border-white/10" style="background: linear-gradient(180deg, #0f2136 0%, #0a1a2e 100%);">
+                        <div class="px-4 py-2.5 border-b border-white/10">
+                          <p class="text-xs font-semibold text-cyan-400 uppercase tracking-widest">{{ cat.name }} Brands</p>
+                        </div>
+                        <div class="py-1.5">
+                          <button
+                            v-for="brand in categoryBrandsMap[cat.value] || []"
+                            :key="`${cat.value}-more-${brand.value}`"
+                            type="button"
+                            class="w-full text-left px-4 py-2.5 text-sm text-slate-200 hover:bg-white/10 hover:text-cyan-300 transition"
+                            @click="browseCategoryVendor(cat.value, brand.value)"
+                          >
+                            {{ brand.label }}
+                          </button>
+                          <button
+                            type="button"
+                            class="w-full text-left px-4 py-2.5 text-sm text-cyan-300 hover:bg-white/10 transition"
+                            @click="browseProducts(cat.value)"
+                          >
+                            View all in {{ cat.name }}
+                          </button>
+                        </div>
+                      </div>
+                    </transition>
+                  </div>
+                </div>
+              </div>
+            </transition>
+          </div>
+
         </div>
 
         <!-- Right Section Icons -->
         <div class="flex items-center gap-1 sm:gap-2 md:gap-4">
           <!-- Cart Icon - Always visible (guest + authenticated) -->
-          <button type="button" class="relative p-1.5 sm:p-2 rounded-lg transition group cursor-pointer" style="color: white;" @click="goToCart" @mouseenter="$event.currentTarget.style.backgroundColor='#3d6ba8'" @mouseleave="$event.currentTarget.style.backgroundColor='transparent'">
+          <button type="button" class="relative p-1.5 sm:p-2 rounded-lg transition group cursor-pointer text-slate-100 hover:text-cyan-300" @click="goToCart">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 9m10-9l2 9m-9 0h14m-5-9v9"></path>
             </svg>
-            <span v-if="cartStore.cartCount > 0" class="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-semibold">{{ cartStore.cartCount }}</span>
-            <span class="hidden group-hover:block absolute top-12 right-0 bg-white px-2 py-1 rounded text-xs" style="color: #2F5597;">Cart</span>
+            <span v-if="cartStore.cartCount > 0" class="absolute top-1 right-1 w-4 h-4 bg-rose-500 text-white text-xs rounded-full flex items-center justify-center font-semibold">{{ cartStore.cartCount }}</span>
+            <span class="hidden group-hover:block absolute top-12 right-0 bg-slate-100 px-2 py-1 rounded text-xs text-slate-900 whitespace-nowrap">Cart</span>
           </button>
 
           <!-- Authenticated User Features -->
           <template v-if="authStore.isAuthenticated">
             <!-- Messages Icon -->
-            <button v-if="authStore.hasFeatureAccess('messages')" @click="goToMessages" class="hidden md:flex relative p-2 rounded-lg transition group" style="color: white;" @mouseenter="$event.target.style.backgroundColor='#3d6ba8'" @mouseleave="$event.target.style.backgroundColor='transparent'">
+            <button v-if="authStore.hasFeatureAccess('messages')" @click="goToMessages" class="hidden md:flex relative p-2 rounded-lg transition group text-slate-100 hover:text-cyan-300">
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
               </svg>
-              <span class="hidden group-hover:block absolute top-12 right-0 bg-white px-2 py-1 rounded text-xs whitespace-nowrap" style="color: #2F5597;">Messages</span>
+              <span class="hidden group-hover:block absolute top-12 right-0 bg-slate-100 px-2 py-1 rounded text-xs whitespace-nowrap text-slate-900">Messages</span>
             </button>
 
             <!-- Favorites Icon - Only for authenticated users -->
-            <button type="button" v-if="authStore.isAuthenticated" class="hidden md:flex relative p-2 rounded-lg transition group cursor-pointer" style="color: white;" @click="goToFavorites" @mouseenter="$event.currentTarget.style.backgroundColor='#3d6ba8'" @mouseleave="$event.currentTarget.style.backgroundColor='transparent'">
+            <button type="button" v-if="authStore.isAuthenticated" class="hidden md:flex relative p-2 rounded-lg transition group cursor-pointer text-slate-100 hover:text-cyan-300" @click="goToFavorites">
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
               </svg>
-              <span v-if="favoritesStore.favoriteCount > 0" class="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-semibold">{{ favoritesStore.favoriteCount }}</span>
-              <span class="hidden group-hover:block absolute top-12 right-0 bg-white px-2 py-1 rounded text-xs whitespace-nowrap" style="color: #2F5597;">Favorites</span>
+              <span v-if="favoritesStore.favoriteCount > 0" class="absolute top-1 right-1 w-4 h-4 bg-rose-500 text-white text-xs rounded-full flex items-center justify-center font-semibold">{{ favoritesStore.favoriteCount }}</span>
+              <span class="hidden group-hover:block absolute top-12 right-0 bg-slate-100 px-2 py-1 rounded text-xs whitespace-nowrap text-slate-900">Favorites</span>
             </button>
 
             <!-- Authenticated Account Menu -->
             <div class="hidden md:block relative group">
-              <button class="p-2 rounded-lg transition flex items-center gap-2" style="color: white;" @mouseenter="$event.currentTarget.style.backgroundColor='#3d6ba8'" @mouseleave="$event.currentTarget.style.backgroundColor='transparent'">
+              <button class="p-2 rounded-lg transition flex items-center gap-2 text-slate-100 hover:text-cyan-300">
                 <!-- Profile Picture or Initials -->
-                <img v-if="userProfilePictureUrl" :src="userProfilePictureUrl" :alt="authStore.user?.name" class="w-8 h-8 rounded-full object-cover border border-white">
-                <div v-else class="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-xs" style="background-color: #2F5597;">{{ userInitials }}</div>
-                <span class="text-sm font-medium">Hi, {{ userFirstName }}</span>
+                <img v-if="userProfilePictureUrl" :src="userProfilePictureUrl" :alt="authStore.user?.name" class="w-8 h-8 rounded-full object-cover border border-slate-300">
+                <div v-else class="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-xs bg-gradient-to-br from-cyan-400 to-blue-500">{{ userInitials }}</div>
+                <span class="text-sm font-medium">{{ userFirstName }}</span>
               </button>
               <!-- Authenticated Dropdown Menu -->
-              <div class="hidden group-hover:block absolute right-0 mt-0 w-56 bg-white rounded-lg shadow-xl py-2 z-10" style="color: #2F5597;">
-                <div class="px-4 py-2 border-b border-gray-200">
+              <div class="hidden group-hover:block absolute right-0 mt-0 w-56 bg-slate-900 rounded-lg shadow-xl py-2 z-10 border border-white/10" style="background: linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(8, 16, 29, 0.98));">
+                <div class="px-4 py-2 border-b border-white/10">
                   <div class="flex items-center gap-3 mb-2">
-                    <img v-if="userProfilePictureUrl" :src="userProfilePictureUrl" :alt="authStore.user?.name" class="w-10 h-10 rounded-full object-cover border border-gray-300">
-                    <div v-else class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold" style="background-color: #2F5597;">{{ userInitials }}</div>
+                    <img v-if="userProfilePictureUrl" :src="userProfilePictureUrl" :alt="authStore.user?.name" class="w-10 h-10 rounded-full object-cover border border-slate-400">
+                    <div v-else class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold bg-gradient-to-br from-cyan-400 to-blue-500">{{ userInitials }}</div>
                     <div>
-                      <div class="font-semibold text-sm">{{ authStore.user?.name }}</div>
-                      <div class="text-xs text-gray-500">{{ authStore.user?.email }}</div>
+                      <div class="font-semibold text-sm text-white">{{ authStore.user?.name }}</div>
+                      <div class="text-xs text-slate-300">{{ authStore.user?.email }}</div>
                     </div>
                   </div>
-                  <div v-if="authStore.user?.company_name" class="text-xs text-gray-600">{{ authStore.user?.company_name }}</div>
+                  <div v-if="authStore.user?.company_name" class="text-xs text-slate-300">{{ authStore.user?.company_name }}</div>
                 </div>
-                <router-link to="/account" class="block w-full px-4 py-2 text-left hover:bg-gray-100 transition">My Account</router-link>
-                <router-link to="/quotes" v-if="authStore.isAuthenticated" class="block w-full px-4 py-2 text-left hover:bg-gray-100 transition">My Quotes</router-link>
-                <router-link to="/orders" v-if="authStore.isAuthenticated" class="block w-full px-4 py-2 text-left hover:bg-gray-100 transition">My Orders</router-link>
-                <router-link to="/invoices" v-if="authStore.hasFeatureAccess('invoices')" class="block w-full px-4 py-2 text-left hover:bg-gray-100 transition">Invoices</router-link>
-                <div class="border-t border-gray-200 my-2"></div>
-                <button @click="handleLogout" class="w-full px-4 py-2 text-left hover:bg-gray-100 transition text-red-600"><strong>Sign Out</strong></button>
+                <router-link to="/account" class="block w-full px-4 py-2 text-left hover:bg-white/10 transition text-slate-100">My Account</router-link>
+                <router-link to="/quotes" v-if="authStore.isAuthenticated" class="block w-full px-4 py-2 text-left hover:bg-white/10 transition text-slate-100">My Quotes</router-link>
+                <router-link to="/orders" v-if="authStore.isAuthenticated" class="block w-full px-4 py-2 text-left hover:bg-white/10 transition text-slate-100">My Orders</router-link>
+                <router-link to="/invoices" v-if="authStore.hasFeatureAccess('invoices')" class="block w-full px-4 py-2 text-left hover:bg-white/10 transition text-slate-100">Invoices</router-link>
+                <div class="border-t border-white/10 my-2"></div>
+                <button @click="handleLogout" class="w-full px-4 py-2 text-left hover:bg-rose-500/20 transition text-rose-400"><strong>Sign Out</strong></button>
               </div>
             </div>
           </template>
 
           <!-- Unauthenticated User - Login/Sign Up Buttons -->
           <template v-else>
-            <router-link to="/login" class="hidden md:inline-block px-4 py-2 rounded-lg font-semibold transition text-sm" style="background-color: transparent; border: 2px solid white; color: white;" @mouseenter="$event.target.style.backgroundColor='#3d6ba8'" @mouseleave="$event.target.style.backgroundColor='transparent'">
+            <router-link to="/login" class="hidden md:inline-block px-4 py-2 rounded-lg font-semibold transition text-sm text-slate-100 border border-slate-300 hover:bg-white/10">
               Log In
             </router-link>
-            <router-link to="/register" class="hidden md:inline-block px-4 py-2 rounded-lg font-semibold transition text-sm text-white" style="background-color: #2F5597;" @mouseenter="$event.target.style.backgroundColor='#1f4788'" @mouseleave="$event.target.style.backgroundColor='#2F5597'">
+            <router-link to="/register" class="hidden md:inline-block px-4 py-2 rounded-lg font-semibold transition text-sm text-white bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500">
               Sign Up
             </router-link>
           </template>
 
-          <!-- Mobile Menu Button -->
+      <!-- Mobile Menu Button -->
           <button
-            class="md:hidden p-2 rounded-lg transition"
-            style="color: white;"
+            class="md:hidden p-2 rounded-lg transition text-slate-100 hover:text-cyan-300"
             @click="toggleMobileMenu"
-            @mouseenter="$event.target.style.backgroundColor='#3d6ba8'"
-            @mouseleave="$event.target.style.backgroundColor='transparent'"
             :aria-expanded="mobileMenuOpen ? 'true' : 'false'"
             aria-label="Toggle mobile menu"
           >
@@ -129,42 +224,34 @@
         </div>
       </div>
 
-      <!-- Mobile Search Bar -->
-      <div class="md:hidden pb-4">
-        <div class="relative">
-          <svg class="absolute left-3 top-3.5 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: #ffffff;">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-          </svg>
-          <input
-            v-model="searchTerm"
-            type="text"
-            placeholder="Search products..."
-            class="w-full pl-10 pr-4 py-2.5 rounded-lg text-white outline-none focus:ring-2 transition border border-white placeholder-white/90"
-            style="background-color: transparent; color: #ffffff;"
-            @keyup.enter="submitSearch"
-            @input="searchTerm = $event.target.value"
-          >
-        </div>
-      </div>
-
       <!-- Mobile Dropdown Menu -->
       <div v-if="mobileMenuOpen" class="md:hidden pb-4">
-        <div class="rounded-lg border border-white/20 overflow-hidden" style="background-color: rgba(15, 42, 84, 0.9);">
-          <template v-if="authStore.isAuthenticated">
-            <div class="px-4 py-3 border-b border-white/20">
-              <div class="font-semibold text-white">{{ authStore.user?.name }}</div>
-              <div class="text-xs" style="color: #cce4f4;">{{ authStore.user?.email }}</div>
+        <div class="rounded-lg border border-white/10 overflow-hidden" style="background: rgba(15, 23, 42, 0.9);">
+          <!-- Products Section -->
+          <div class="border-b border-white/10">
+            <button type="button" @click="mobileProductsOpen = !mobileProductsOpen" class="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold text-slate-100 hover:bg-white/10 transition">
+              <span>Products</span>
+              <svg class="w-4 h-4 transition-transform" :class="mobileProductsOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+            </button>
+            <div v-if="mobileProductsOpen" class="bg-black/20">
+              <button v-for="cat in productCategories" :key="cat.value" type="button" @click="browseProducts(cat.value)" class="w-full text-left px-8 py-2.5 text-sm text-slate-300 hover:bg-white/10 transition">{{ cat.name }}</button>
             </div>
-            <button type="button" @click="goToAccount" class="w-full text-left px-4 py-3 text-sm text-white transition" @mouseenter="$event.currentTarget.style.backgroundColor='rgba(255,255,255,0.08)'" @mouseleave="$event.currentTarget.style.backgroundColor='transparent'">My Account</button>
-            <button type="button" @click="goToCart" class="w-full text-left px-4 py-3 text-sm text-white transition" @mouseenter="$event.currentTarget.style.backgroundColor='rgba(255,255,255,0.08)'" @mouseleave="$event.currentTarget.style.backgroundColor='transparent'">My Quote / Cart</button>
-            <button type="button" @click="goToOrders" class="w-full text-left px-4 py-3 text-sm text-white transition" @mouseenter="$event.currentTarget.style.backgroundColor='rgba(255,255,255,0.08)'" @mouseleave="$event.currentTarget.style.backgroundColor='transparent'">My Orders</button>
-            <button type="button" @click="goToMessages" v-if="authStore.hasFeatureAccess('messages')" class="w-full text-left px-4 py-3 text-sm text-white transition" @mouseenter="$event.currentTarget.style.backgroundColor='rgba(255,255,255,0.08)'" @mouseleave="$event.currentTarget.style.backgroundColor='transparent'">Messages</button>
-            <button type="button" @click="goToFavorites" class="w-full text-left px-4 py-3 text-sm text-white transition" @mouseenter="$event.currentTarget.style.backgroundColor='rgba(255,255,255,0.08)'" @mouseleave="$event.currentTarget.style.backgroundColor='transparent'">Favorites</button>
-            <button type="button" @click="handleLogout" class="w-full text-left px-4 py-3 text-sm font-semibold text-red-200 transition" @mouseenter="$event.currentTarget.style.backgroundColor='rgba(220,38,38,0.18)'" @mouseleave="$event.currentTarget.style.backgroundColor='transparent'">Sign Out</button>
+          </div>
+          <template v-if="authStore.isAuthenticated">
+            <div class="px-4 py-3 border-b border-white/10">
+              <div class="font-semibold text-white">{{ authStore.user?.name }}</div>
+              <div class="text-xs text-slate-300">{{ authStore.user?.email }}</div>
+            </div>
+            <button type="button" @click="goToAccount" class="w-full text-left px-4 py-3 text-sm text-slate-100 transition hover:bg-white/10">My Account</button>
+            <button type="button" @click="goToCart" class="w-full text-left px-4 py-3 text-sm text-slate-100 transition hover:bg-white/10">My Quote / Cart</button>
+            <button type="button" @click="goToOrders" class="w-full text-left px-4 py-3 text-sm text-slate-100 transition hover:bg-white/10">My Orders</button>
+            <button type="button" @click="goToMessages" v-if="authStore.hasFeatureAccess('messages')" class="w-full text-left px-4 py-3 text-sm text-slate-100 transition hover:bg-white/10">Messages</button>
+            <button type="button" @click="goToFavorites" class="w-full text-left px-4 py-3 text-sm text-slate-100 transition hover:bg-white/10">Favorites</button>
+            <button type="button" @click="handleLogout" class="w-full text-left px-4 py-3 text-sm font-semibold text-rose-400 transition hover:bg-rose-500/20">Sign Out</button>
           </template>
           <template v-else>
-            <router-link to="/login" @click="closeMobileMenu" class="block w-full text-left px-4 py-3 text-sm text-white transition" @mouseenter="$event.currentTarget.style.backgroundColor='rgba(255,255,255,0.08)'" @mouseleave="$event.currentTarget.style.backgroundColor='transparent'">Log In</router-link>
-            <router-link to="/register" @click="closeMobileMenu" class="block w-full text-left px-4 py-3 text-sm text-white transition" @mouseenter="$event.currentTarget.style.backgroundColor='rgba(255,255,255,0.08)'" @mouseleave="$event.currentTarget.style.backgroundColor='transparent'">Sign Up</router-link>
+            <router-link to="/login" @click="closeMobileMenu" class="block w-full text-left px-4 py-3 text-sm text-slate-100 transition hover:bg-white/10">Log In</router-link>
+            <router-link to="/register" @click="closeMobileMenu" class="block w-full text-left px-4 py-3 text-sm text-slate-100 transition hover:bg-white/10">Sign Up</router-link>
           </template>
         </div>
       </div>
@@ -180,15 +267,68 @@ import { useFavoritesStore } from '../stores/favoritesStore'
 import { useAuthStore } from '../stores/authStore'
 import { useToastStore } from '../stores/toastStore'
 import { buildStoreUrl } from '../services/runtimeConfig'
-import { trackSearchTerm } from '../services/searchInsights'
 
 const router = useRouter()
 const cartStore = useCartStore()
 const favoritesStore = useFavoritesStore()
 const authStore = useAuthStore()
 const toastStore = useToastStore()
-const searchTerm = ref('')
 const mobileMenuOpen = ref(false)
+const categoryDropdownOpen = ref(null)
+const moreCategoriesOpen = ref(false)
+const moreCategoryDropdownOpen = ref(null)
+const mobileProductsOpen = ref(false)
+
+const productCategories = [
+  { name: 'Laptops & PCs', value: 'Laptops & PCs' },
+  { name: 'Monitors & Docks', value: 'Monitors & Docks' },
+  { name: 'Networking Gear', value: 'Networking Gear' },
+  { name: 'Software & Services', value: 'Software & Services' },
+  { name: 'Printing & Supplies', value: 'Printing & Supplies' },
+  { name: 'Peripherals', value: 'Peripherals' },
+]
+
+const primaryCategories = computed(() => productCategories.slice(0, 3))
+const overflowCategories = computed(() => productCategories.slice(3))
+
+const categoryBrandsMap = {
+  'Laptops & PCs': [
+    { label: 'Dell', value: 'DELL MARKETING L.P.' },
+    { label: 'HP Inc.', value: 'HP INC.' },
+    { label: 'Lenovo', value: 'LENOVO' },
+    { label: 'Microsoft', value: 'MICROSOFT CORPORATION' },
+  ],
+  'Monitors & Docks': [
+    { label: 'Samsung', value: 'SAMSUNG' },
+    { label: 'Dell', value: 'DELL MARKETING L.P.' },
+    { label: 'HP Inc.', value: 'HP INC.' },
+    { label: 'Lenovo', value: 'LENOVO' },
+  ],
+  'Networking Gear': [
+    { label: 'Cisco', value: 'CISCO SYSTEMS' },
+    { label: 'Fortinet', value: 'FORTINET INC.' },
+    { label: 'Netgear', value: 'NETGEAR' },
+    { label: 'Palo Alto Networks', value: 'PALO ALTO NETWORKS' },
+  ],
+  'Software & Services': [
+    { label: 'Microsoft', value: 'MICROSOFT CORPORATION' },
+    { label: 'Veeam', value: 'VEEAM SOFTWARE CORPORATION' },
+    { label: 'Cisco', value: 'CISCO SYSTEMS' },
+    { label: 'Fortinet', value: 'FORTINET INC.' },
+  ],
+  'Printing & Supplies': [
+    { label: 'HP Inc.', value: 'HP INC.' },
+    { label: 'Samsung', value: 'SAMSUNG' },
+    { label: 'Dell', value: 'DELL MARKETING L.P.' },
+    { label: 'Lenovo', value: 'LENOVO' },
+  ],
+  'Peripherals': [
+    { label: 'Logitech', value: 'LOGITECH' },
+    { label: 'Jabra', value: 'JABRA' },
+    { label: 'Kingston', value: 'KINGSTON' },
+    { label: 'Netgear', value: 'NETGEAR' },
+  ],
+}
 
 const logoCandidates = (() => {
   const relativePath = 'images/logo/armely-store-logo.png'
@@ -276,22 +416,33 @@ const goToOrders = () => {
 
 const goToProducts = () => {
   router.push({ name: 'products' })
-  closeMobileMenu()
+  closeAll()
+}
+
+const browseProducts = (category = null) => {
+  const query = category ? { category } : {}
+  router.push({ name: 'products', query })
+  closeAll()
+}
+
+const browseCategoryVendor = (category, vendor) => {
+  router.push({ name: 'products', query: { category, vendor } })
+  closeAll()
+}
+
+const closeAll = () => {
+  mobileMenuOpen.value = false
+  categoryDropdownOpen.value = null
+  moreCategoriesOpen.value = false
+  moreCategoryDropdownOpen.value = null
+  mobileProductsOpen.value = false
 }
 
 const handleLogout = async () => {
   await authStore.logout()
   toastStore.addToast('Logged out successfully', 'success')
   router.push({ name: 'login' })
-  closeMobileMenu()
-}
-
-const submitSearch = () => {
-  const query = searchTerm.value.trim()
-  if (query) {
-    trackSearchTerm(query)
-  }
-  router.push({ name: 'products', query: query ? { q: query } : {} })
+  closeAll()
 }
 
 </script>

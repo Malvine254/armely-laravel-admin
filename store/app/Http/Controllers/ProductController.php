@@ -194,7 +194,7 @@ class ProductController extends Controller
                 $allProducts = $this->filterCatalogNoiseProducts($allProducts);
             }
 
-            $curatedItMix = filter_var($request->query('curated_it_mix', true), FILTER_VALIDATE_BOOLEAN);
+            $curatedItMix = filter_var($request->query('curated_it_mix', false), FILTER_VALIDATE_BOOLEAN);
             $hasExplicitVendorFilter = trim((string) $request->query('vendors', '')) !== ''
                 || trim((string) $request->query('vendor', '')) !== '';
             $isDefaultCuratedBrowse = $curatedItMix
@@ -203,7 +203,7 @@ class ProductController extends Controller
                 && empty($billingModels);
 
             if ($isDefaultCuratedBrowse) {
-                $allProducts = $this->buildCuratedItCatalogMix($allProducts, 1000);
+                $allProducts = $this->buildCuratedItCatalogMix($allProducts);
             }
 
             // Reset array keys after filtering
@@ -211,10 +211,6 @@ class ProductController extends Controller
 
             // Get total and prepare response
             $total = count($allProducts);
-            if ($isDefaultCuratedBrowse) {
-                $total = min(1000, $total);
-                $apiTotal = min(1000, (int) $apiTotal);
-            }
             $records = array_slice($allProducts, ($pageNo - 1) * $pageSize, $pageSize);
 
             Log::info('ProductController.index successful', [
@@ -293,7 +289,7 @@ class ProductController extends Controller
             $selectedVendors = array_values(array_unique(array_filter($normalized, fn ($vendor) => trim((string) $vendor) !== '')));
         }
 
-        $curatedItMix = filter_var($request->query('curated_it_mix', true), FILTER_VALIDATE_BOOLEAN);
+        $curatedItMix = filter_var($request->query('curated_it_mix', false), FILTER_VALIDATE_BOOLEAN);
 
         $allProducts = [];
         $fromDbCache = false;
@@ -410,7 +406,7 @@ class ProductController extends Controller
             && $maxPrice === null
             && empty($billingModels)
         ) {
-            $allProducts = $this->buildCuratedItCatalogMix($allProducts, 1000);
+            $allProducts = $this->buildCuratedItCatalogMix($allProducts);
             $apiTotal = count($allProducts);
         }
 
@@ -532,7 +528,7 @@ class ProductController extends Controller
         int $pageSize,
         array $selectedVendors = [],
         bool $catalogClean = false,
-        bool $curatedItMix = true
+        bool $curatedItMix = false
     ): array {
         $cacheableDefaultBrowse = $curatedItMix
             && empty($search)
@@ -606,7 +602,7 @@ class ProductController extends Controller
         int $pageSize,
         array $selectedVendors = [],
         bool $catalogClean = false,
-        bool $curatedItMix = true
+        bool $curatedItMix = false
     ): array {
         $query = Product::query()->where('vendor_id', 'TD SYNNEX');
 
@@ -687,10 +683,6 @@ class ProductController extends Controller
             $query->whereIn('billing_model', array_map('trim', explode(',', (string) $billingModels)));
         }
 
-        if ((bool) config('tdsynnex.catalog.hardware_only', true)) {
-            $this->applyHardwareOnlyExclusions($query);
-        }
-
         if ($isDefaultBrowse) {
             $this->applyCuratedDefaultBrowseFilters($query);
         }
@@ -706,15 +698,6 @@ class ProductController extends Controller
         $perPage = max(1, $pageSize);
         $currentPage = max(1, $pageNo);
         $offset = ($currentPage - 1) * $perPage;
-        $catalogCap = $isDefaultBrowse ? 1000 : null;
-
-        if ($catalogCap !== null && $offset >= $catalogCap) {
-            return [
-                'records' => [],
-                'total' => $catalogCap,
-            ];
-        }
-
         // Skip ORDER BY for search queries — FULLTEXT returns results by relevance,
         // and ORDER BY forces MySQL to collect ALL matches before limiting (0.1s vs 3-8s).
         if (empty($search)) {
@@ -722,10 +705,6 @@ class ProductController extends Controller
         }
 
         $fetchLimit = $perPage + 1;
-        if ($catalogCap !== null) {
-            $remaining = max(0, $catalogCap - $offset);
-            $fetchLimit = min($fetchLimit, $remaining + 1);
-        }
 
         $products = $query
             ->offset($offset)
@@ -737,16 +716,8 @@ class ProductController extends Controller
             $products = $products->slice(0, $perPage);
         }
 
-        if ($catalogCap !== null && ($offset + $products->count()) >= $catalogCap) {
-            $hasMore = false;
-        }
-
         // For default listing, use cached table estimate; for filtered/search, estimate from page
-        if ($isDefaultBrowse) {
-            $total = $hasMore
-                ? $catalogCap
-                : min($catalogCap, $offset + $products->count());
-        } elseif (!$hasFilters) {
+        if (!$hasFilters) {
             $total = (int) Cache::remember('pa_products_total_' . ($hideZero ? '1' : '0'), 300, function () {
                 $row = \Illuminate\Support\Facades\DB::selectOne(
                     "SELECT TABLE_ROWS FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'products'"
@@ -851,9 +822,9 @@ class ProductController extends Controller
     /**
      * Build a curated default catalog focused on commonly purchased IT items.
      */
-    private function buildCuratedItCatalogMix(array $products, int $cap = 1000): array
+    private function buildCuratedItCatalogMix(array $products, ?int $cap = null): array
     {
-        $cap = max(1, $cap);
+        $maxItems = $cap === null ? null : max(1, (int) $cap);
 
         $groups = [
             [
@@ -946,14 +917,15 @@ class ProductController extends Controller
         $selectedLookup = [];
 
         foreach ($groups as $group) {
-            $target = (int) $group['target'];
             $pool = array_merge(
                 $groupBuckets[$group['key']]['priority'],
                 $groupBuckets[$group['key']]['standard']
             );
 
+            $target = $maxItems === null ? count($pool) : (int) $group['target'];
+
             foreach ($pool as $item) {
-                if (count($selected) >= $cap || $target <= 0) {
+                if (($maxItems !== null && count($selected) >= $maxItems) || $target <= 0) {
                     break;
                 }
 
@@ -968,9 +940,9 @@ class ProductController extends Controller
             }
         }
 
-        if (count($selected) < $cap) {
+        if ($maxItems === null || count($selected) < $maxItems) {
             foreach ($remaining as $item) {
-                if (count($selected) >= $cap) {
+                if ($maxItems !== null && count($selected) >= $maxItems) {
                     break;
                 }
 
@@ -1084,7 +1056,6 @@ class ProductController extends Controller
                     'specifications',
                     'images'
                 ])
-                ->limit(1000)
                 ->get();
 
             return $products->map(function ($product) {
@@ -1379,7 +1350,7 @@ class ProductController extends Controller
                     $catalogClean = filter_var(request()->query('catalog_clean', true), FILTER_VALIDATE_BOOLEAN);
 
                     $vendors = $this->getCuratedDefaultBrowseVendors(
-                        1000,
+                        null,
                         $minPrice,
                         $maxPrice,
                         $hideZero,
@@ -1465,7 +1436,7 @@ class ProductController extends Controller
     }
 
     private function getCuratedDefaultBrowseVendors(
-        int $cap = 1000,
+        ?int $cap = null,
         ?float $minPrice = 200.0,
         ?float $maxPrice = null,
         bool $hideZero = true,
@@ -1506,11 +1477,15 @@ class ProductController extends Controller
 
             $this->applyCuratedDefaultBrowseFilters($query);
 
-            $rows = $query
+            $rowsQuery = $query
                 ->orderBy('id')
-                ->limit(max(1, $cap))
-                ->selectRaw("TRIM(JSON_UNQUOTE(JSON_EXTRACT(specifications, '$.manufacturer'))) as manufacturer")
-                ->get();
+                ->selectRaw("TRIM(JSON_UNQUOTE(JSON_EXTRACT(specifications, '$.manufacturer'))) as manufacturer");
+
+            if ($cap !== null) {
+                $rowsQuery->limit(max(1, $cap));
+            }
+
+            $rows = $rowsQuery->get();
 
             $aggregated = [];
             foreach ($rows as $row) {
