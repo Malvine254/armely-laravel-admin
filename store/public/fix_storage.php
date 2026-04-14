@@ -25,6 +25,12 @@ $actions = [
         'help' => 'View environment, storage, chat schema, and sync scope status.',
         'type' => 'status',
     ],
+    'catalog_diagnostics' => [
+        'label' => 'Catalog Diagnostics Report',
+        'category' => 'Diagnostics',
+        'help' => 'Show TD SYNNEX product counts, source flags, and current catalog rows.',
+        'type' => 'catalog_diagnostics',
+    ],
     'storage_link' => [
         'label' => 'Run storage:link',
         'category' => 'Storage & Cache',
@@ -147,6 +153,27 @@ $actions = [
         'commands' => [
             ['name' => 'tdsynnex:sync-priceavailability-products', 'params' => ['--force' => true]],
         ],
+    ],
+    'sync_catalog_force_inline' => [
+        'label' => 'Run Force Catalog Sync Now (inline)',
+        'category' => 'Catalog & Images',
+        'help' => 'Run a blocking fresh TD SYNNEX catalog sync in this request using current env settings.',
+        'type' => 'artisan',
+        'commands' => [
+            ['name' => 'tdsynnex:sync-priceavailability-products', 'params' => ['--force' => true, '--sync' => true]],
+        ],
+    ],
+    'reset_tds_products' => [
+        'label' => 'Delete TD SYNNEX Cached Products',
+        'category' => 'Catalog & Images',
+        'help' => 'Delete only TD SYNNEX rows from the local products table so the next sync can rebuild from source.',
+        'type' => 'reset_tds_products',
+    ],
+    'reset_and_resync_catalog' => [
+        'label' => 'Reset TD SYNNEX + Force Resync Now',
+        'category' => 'Catalog & Images',
+        'help' => 'Delete TD SYNNEX cached rows, clear cache/config, then run a forced inline catalog rebuild.',
+        'type' => 'reset_and_resync_catalog',
     ],
     'sync_images' => [
         'label' => 'Queue Image Sync (and optional descriptions)',
@@ -424,6 +451,74 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'output' => $e->getMessage(),
             ];
         }
+    } elseif ($actionType === 'catalog_diagnostics') {
+        try {
+            $tdCount = Product::query()->where('vendor_id', 'TD SYNNEX')->count();
+            $availableCount = Product::query()->where('vendor_id', 'TD SYNNEX')->where('is_available', 1)->count();
+            $pricedCount = Product::query()->where('vendor_id', 'TD SYNNEX')->where('base_price', '>', 0)->count();
+            $discontinuedCount = Product::query()->where('vendor_id', 'TD SYNNEX')->where('is_discontinued', 1)->count();
+
+            $results[] = [
+                'command' => 'catalog_diagnostics',
+                'status' => 'OK',
+                'output' => implode("\n", [
+                    'TDSYNNEX_PRODUCTS_SOURCE=' . (string) config('tdsynnex.products_source', ''),
+                    'TDSYNNEX_XML_USE_TEST=' . (config('tdsynnex.xml.use_test_by_default') ? 'true' : 'false'),
+                    'SYNNEX_FLAT_FILE_PATH=' . (string) config('tdsynnex.price_availability.flat_file_path', ''),
+                    'SYNNEX_FLAT_FILES_DIR=' . (string) config('tdsynnex.price_availability.flat_files_dir', ''),
+                    'SYNNEX_MAX_SKUS=' . (string) config('tdsynnex.price_availability.max_skus', 0),
+                    'CATALOG_HARDWARE_ONLY=' . (config('tdsynnex.catalog.hardware_only') ? 'true' : 'false'),
+                    'TD_SYNNEX_DB_ROWS=' . (string) $tdCount,
+                    'TD_SYNNEX_AVAILABLE_ROWS=' . (string) $availableCount,
+                    'TD_SYNNEX_PRICED_ROWS=' . (string) $pricedCount,
+                    'TD_SYNNEX_DISCONTINUED_ROWS=' . (string) $discontinuedCount,
+                ]),
+            ];
+        } catch (Throwable $e) {
+            $results[] = [
+                'command' => 'catalog_diagnostics',
+                'status' => 'ERROR',
+                'output' => $e->getMessage(),
+            ];
+        }
+    } elseif ($actionType === 'reset_tds_products') {
+        try {
+            $deleted = Product::query()->where('vendor_id', 'TD SYNNEX')->delete();
+            Artisan::call('cache:clear');
+            Artisan::call('config:clear');
+
+            $results[] = [
+                'command' => 'reset_tds_products',
+                'status' => 'OK',
+                'output' => "Deleted {$deleted} TD SYNNEX product rows and cleared cache/config.",
+            ];
+        } catch (Throwable $e) {
+            $results[] = [
+                'command' => 'reset_tds_products',
+                'status' => 'ERROR',
+                'output' => $e->getMessage(),
+            ];
+        }
+    } elseif ($actionType === 'reset_and_resync_catalog') {
+        try {
+            $deleted = Product::query()->where('vendor_id', 'TD SYNNEX')->delete();
+
+            $results[] = runArtisanCommand('cache:clear');
+            $results[] = runArtisanCommand('config:clear');
+            $results[] = runArtisanCommand('tdsynnex:sync-priceavailability-products', ['--force' => true, '--sync' => true]);
+
+            array_unshift($results, [
+                'command' => 'reset_tds_products',
+                'status' => 'OK',
+                'output' => "Deleted {$deleted} TD SYNNEX product rows before forced resync.",
+            ]);
+        } catch (Throwable $e) {
+            $results[] = [
+                'command' => 'reset_and_resync_catalog',
+                'status' => 'ERROR',
+                'output' => $e->getMessage(),
+            ];
+        }
     } elseif ($actionType === 'admin_bootstrap') {
         $name = toStringPost('admin_recovery_name', (string) env('ADMIN_NAME', 'Armely Admin'));
         $email = strtolower(toStringPost('admin_recovery_email', (string) env('ADMIN_EMAIL', '')));
@@ -629,6 +724,9 @@ $chatSessionsExists = Schema::hasTable('chat_sessions');
 $chatMessagesExists = Schema::hasTable('chat_messages');
 $quotesTableExists = Schema::hasTable('quotes');
 $chatMessagesIdHealthy = false;
+$tdSynnexCount = Product::query()->where('vendor_id', 'TD SYNNEX')->count();
+$tdSynnexAvailableCount = Product::query()->where('vendor_id', 'TD SYNNEX')->where('is_available', 1)->count();
+$tdSynnexPricedCount = Product::query()->where('vendor_id', 'TD SYNNEX')->where('base_price', '>', 0)->count();
 
 if ($chatMessagesExists) {
     $idMeta = DB::table('information_schema.columns')
@@ -665,6 +763,14 @@ $statusRows = [
     'chat_messages exists' => $chatMessagesExists ? 'YES' : 'NO',
     'chat_messages.id auto_increment PK' => $chatMessagesIdHealthy ? 'YES' : 'NO',
     'quotes table exists' => $quotesTableExists ? 'YES' : 'NO',
+    'TDSYNNEX_PRODUCTS_SOURCE' => (string) config('tdsynnex.products_source', ''),
+    'TDSYNNEX_XML_USE_TEST' => config('tdsynnex.xml.use_test_by_default') ? 'true' : 'false',
+    'SYNNEX_FLAT_FILE_PATH' => (string) config('tdsynnex.price_availability.flat_file_path', ''),
+    'SYNNEX_FLAT_FILES_DIR' => (string) config('tdsynnex.price_availability.flat_files_dir', ''),
+    'SYNNEX_MAX_SKUS' => (string) config('tdsynnex.price_availability.max_skus', 0),
+    'TD SYNNEX DB rows' => (string) $tdSynnexCount,
+    'TD SYNNEX available rows' => (string) $tdSynnexAvailableCount,
+    'TD SYNNEX priced rows' => (string) $tdSynnexPricedCount,
     'Catalog hardware only' => config('tdsynnex.catalog.hardware_only') ? 'true' : 'false',
     'Image sync current showing only' => config('tdsynnex.image_sync.current_showing_only') ? 'true' : 'false',
     'Image sync scope cap' => (string) config('tdsynnex.image_sync.scope_cap', 1000),
