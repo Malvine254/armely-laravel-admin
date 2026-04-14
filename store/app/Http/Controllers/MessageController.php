@@ -2202,7 +2202,15 @@ class MessageController extends Controller
 
     private function isValidImageUrl(string $url): bool
     {
-        if ($url === '' || !filter_var($url, FILTER_VALIDATE_URL)) {
+        if ($url === '') {
+            return false;
+        }
+
+        if (str_starts_with($url, '/')) {
+            return (bool) preg_match('/^\/images\/.+\.(?:jpg|jpeg|png|webp|gif|avif)(?:\?.*)?$/i', $url);
+        }
+
+        if (!filter_var($url, FILTER_VALIDATE_URL)) {
             return false;
         }
 

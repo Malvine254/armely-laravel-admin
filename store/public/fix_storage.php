@@ -187,6 +187,15 @@ $actions = [
         'help' => 'Queue download of external image URLs to local /images/products paths.',
         'type' => 'download_images_local',
     ],
+    'sync_local_images_by_sku' => [
+        'label' => 'Sync Existing Local Images by SKU (inline)',
+        'category' => 'Catalog & Images',
+        'help' => 'Scan public/images/products for SKU-named files and write local image URLs into products.images.',
+        'type' => 'artisan',
+        'commands' => [
+            ['name' => 'products:sync-local-images-by-sku', 'params' => []],
+        ],
+    ],
     'sync_descriptions' => [
         'label' => 'Queue Description Backfill (use Limit/Chunk below)',
         'category' => 'Catalog & Images',

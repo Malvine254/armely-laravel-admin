@@ -718,30 +718,33 @@ class ProductController extends Controller
             $products = $products->slice(0, $perPage);
         }
 
-        // For default listing, use an exact cached count for the current browse scope.
-        // TABLE_ROWS is only an estimate and can lag behind real synced row counts.
-        if (!$hasFilters) {
+        // Use an exact cached count for all cases except full-text search (which is too expensive to COUNT).
+        if (!empty($search)) {
+            // FULLTEXT search: COUNT forces MySQL to collect all matches before limiting (0.1s vs 3-8s).
+            // Use N+1 estimate instead: hasMore flag tells frontend there are more pages.
+            $total = $hasMore
+                ? max(($currentPage * $perPage) * 3, ($currentPage * $perPage) + $perPage + 1)
+                : ($currentPage - 1) * $perPage + $products->count();
+        } else {
+            // Default browse, vendor filter, price filter — all safe to COUNT exactly.
+            // TABLE_ROWS is only an estimate and can lag behind real synced row counts.
             $countCacheKey = sprintf(
                 'pa_products_total_exact:%s',
                 md5(json_encode([
+                    'vendors' => $selectedVendors,
                     'hide_zero' => $hideZero,
                     'min_price' => $minPrice,
                     'max_price' => $maxPrice,
                     'catalog_clean' => $catalogClean,
+                    'billing_models' => $billingModels,
                     'hardware_only' => (bool) config('tdsynnex.catalog.hardware_only', true),
                     'default_browse' => $isDefaultBrowse,
                 ]))
             );
 
-            $total = (int) Cache::remember($countCacheKey, 300, function () use ($totalQuery) {
+            $total = (int) Cache::remember($countCacheKey, 120, function () use ($totalQuery) {
                 return (clone $totalQuery)->count();
             });
-        } else {
-            // N+1 estimate: fast, avoids expensive COUNT on FULLTEXT results.
-            // The hasMore flag tells us there are more pages; frontend prefetches make this smooth.
-            $total = $hasMore
-                ? max(($currentPage * $perPage) * 3, ($currentPage * $perPage) + $perPage + 1) // always implies at least one more page
-                : ($currentPage - 1) * $perPage + $products->count();
         }
 
         return [
@@ -1130,7 +1133,16 @@ class ProductController extends Controller
 
     private function isValidImageUrl(string $url): bool
     {
-        if ($url === '' || !filter_var($url, FILTER_VALIDATE_URL)) {
+        if ($url === '') {
+            return false;
+        }
+
+        // Accept both absolute URLs and local public paths (e.g. /images/products/123.jpg).
+        if (str_starts_with($url, '/')) {
+            return (bool) preg_match('/^\/images\/.+\.(?:jpg|jpeg|png|webp|gif|avif)(?:\?.*)?$/i', $url);
+        }
+
+        if (!filter_var($url, FILTER_VALIDATE_URL)) {
             return false;
         }
 

@@ -1537,60 +1537,28 @@ const extractCategories = (sourceProducts = products.value) => {
 }
 
 const handleFilterChange = (filters) => {
-  const previousFilters = { ...currentFilters.value }
-  const previousRequiresClient = requiresClientForFilters(previousFilters)
-  const nextRequiresClient = requiresClientForFilters(filters)
+  const normalizeFilters = (value = {}) => ({
+    priceMin: Number(value.priceMin ?? 0),
+    priceMax: Number(value.priceMax ?? 10000),
+    partNumber: String(value.partNumber ?? '').trim(),
+    vendors: Array.isArray(value.vendors) ? [...value.vendors].map((v) => String(v).trim()) : [],
+    categories: Array.isArray(value.categories) ? [...value.categories].map((v) => String(v).trim()) : [],
+    lifecycleStatuses: Array.isArray(value.lifecycleStatuses) ? [...value.lifecycleStatuses].map((v) => String(v).trim()) : [],
+    mediaStatuses: Array.isArray(value.mediaStatuses) ? [...value.mediaStatuses].map((v) => String(v).trim()) : [],
+  })
 
-  const previousVendors = [...currentFilters.value.vendors]
-  const previousPriceMin = currentFilters.value.priceMin
-  const previousPriceMax = currentFilters.value.priceMax
-  const previousPartNumber = currentFilters.value.partNumber
-  const previousCategories = [...currentFilters.value.categories]
-  const previousLifecycleStatuses = [...currentFilters.value.lifecycleStatuses]
-  const previousMediaStatuses = [...currentFilters.value.mediaStatuses]
-  
-  currentPage.value = 1 // Reset to first page when filters change
-  
-  // Check what changed
-  const vendorsChanged = 
-    previousVendors.length !== filters.vendors.length ||
-    previousVendors.some((v, i) => v !== filters.vendors[i])
-  
-  const priceChanged = 
-    previousPriceMin !== filters.priceMin ||
-    previousPriceMax !== filters.priceMax
+  const previousNormalized = normalizeFilters(currentFilters.value)
+  const nextNormalized = normalizeFilters(filters)
+  const changed = JSON.stringify(previousNormalized) !== JSON.stringify(nextNormalized)
 
-  const partNumberChanged = previousPartNumber !== filters.partNumber
-  
-  const categoriesChanged =
-    previousCategories.length !== filters.categories.length ||
-    previousCategories.some((c, i) => c !== filters.categories[i])
-  
-  const lifecycleChanged =
-    previousLifecycleStatuses.length !== filters.lifecycleStatuses.length ||
-    previousLifecycleStatuses.some((b, i) => b !== filters.lifecycleStatuses[i])
+  currentFilters.value = nextNormalized
 
-  const mediaChanged =
-    previousMediaStatuses.length !== filters.mediaStatuses.length ||
-    previousMediaStatuses.some((m, i) => m !== filters.mediaStatuses[i])
-
-  const serverScopedFiltersChanged = vendorsChanged || priceChanged
-  const clientOnlyFiltersChanged = partNumberChanged || categoriesChanged || lifecycleChanged || mediaChanged
-  const modeChanged = previousRequiresClient !== nextRequiresClient
-  
-  // Always update the filters - this ensures the computed property recalculates
-  currentFilters.value = { ...filters }
-  
-  // Only re-fetch when server-scoped filters change or when switching between server/client filter mode.
-  if (serverScopedFiltersChanged || modeChanged) {
-    performSearch(true)
+  if (!changed) {
     return
   }
 
-  // Client-only filters are applied locally once full dataset is loaded.
-  if (clientOnlyFiltersChanged && nextRequiresClient) {
-    loading.value = false
-  }
+  currentPage.value = 1
+  performSearch(true)
 }
 
 const resetFilters = () => {
@@ -1912,14 +1880,34 @@ watch(
 )
 
 watch(
-  () => [route.query.q, route.query.vendor, route.query.category],
-  ([newQuery, newVendor, newCategory]) => {
+  () => [route.query.q, route.query.vendor, route.query.vendors, route.query.category],
+  ([newQuery, newVendor, newVendors, newCategory]) => {
     searchQuery.value = newQuery ? String(newQuery) : ''
+
+    const hasVendorQuery = newVendor !== undefined || newVendors !== undefined
+    const hasCategoryQuery = newCategory !== undefined
+
+    let nextVendors = currentFilters.value.vendors
+    if (hasVendorQuery) {
+      const vendorsRaw = newVendors ?? newVendor
+      if (Array.isArray(vendorsRaw)) {
+        nextVendors = vendorsRaw.map((value) => String(value)).filter(Boolean)
+      } else if (typeof vendorsRaw === 'string' && vendorsRaw.trim() !== '') {
+        nextVendors = vendorsRaw.split(',').map((value) => value.trim()).filter(Boolean)
+      } else {
+        nextVendors = []
+      }
+    }
+
+    let nextCategories = currentFilters.value.categories
+    if (hasCategoryQuery) {
+      nextCategories = newCategory ? [String(newCategory)] : []
+    }
 
     currentFilters.value = {
       ...currentFilters.value,
-      vendors: newVendor ? [String(newVendor)] : [],
-      categories: newCategory ? [String(newCategory)] : [],
+      vendors: nextVendors,
+      categories: nextCategories,
     }
 
     currentPage.value = 1
