@@ -14,16 +14,16 @@
     RewriteRule ^ / [L,R=301,NE]
 
     # 3a. Serve real static files from store/public/ (store CSS, JS, images …).
-    RewriteCond %{DOCUMENT_ROOT}/store/public%{REQUEST_URI} -f
-    RewriteRule ^ store/public%{REQUEST_URI} [L]
+    RewriteCond %{REQUEST_URI} ^/store/(.+)$ [NC]
+    RewriteCond %{DOCUMENT_ROOT}/store/public/%1 -f
+    RewriteRule ^store/(.+)$ store/public/$1 [L]
 
     # 3b. Serve real static files from public/ (admin CSS, JS, images …).
     RewriteCond %{DOCUMENT_ROOT}/public%{REQUEST_URI} -f
     RewriteRule ^ public%{REQUEST_URI} [L]
 
     # 4. Route /store/* requests through the store bridge (mirrors what public/.htaccess does).
-    RewriteCond %{REQUEST_URI} ^/store(/|$)
-    RewriteRule ^ public/store/index.php [L]
+    RewriteRule ^store(?:/.*)?$ public/store/index.php [L]
 
     # 5. Everything else (including /) goes straight to the admin/main front controller.
     RewriteRule ^ public/index.php [L]
