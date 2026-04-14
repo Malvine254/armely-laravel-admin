@@ -6,6 +6,10 @@
     RewriteEngine On
     RewriteBase /store/
 
+    # Canonical host: redirect apex to www domain.
+    RewriteCond %{HTTP_HOST} ^armely\.com$ [NC]
+    RewriteRule ^ https://www.armely.com%{REQUEST_URI} [L,R=301,NE]
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]

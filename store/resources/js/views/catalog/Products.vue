@@ -366,6 +366,7 @@ const DEFAULT_VENDOR_SCOPE_LIMIT = 12
 const DEFAULT_BROWSE_MIN_PRICE = 200
 const CURATED_CACHE_VERSION = 2
 const ENABLE_SERVER_PREFETCH = false
+const ENABLE_VENDOR_COUNTS_API = false
 const CURATED_VENDOR_ALLOWLIST = [
   'CISCO SYSTEMS',
   'HEWLETT PACKARD ENTERPRISE',
@@ -1291,8 +1292,13 @@ const performSearch = async (resetPage = true) => {
         && !hasClientOnlyFilters
 
       const params = {
+        curated_it_mix: true,
         hide_zero_price: true,
         catalog_clean: true,
+      }
+
+      if (isDefaultBrowse && Number(currentFilters.value.priceMin || 0) <= 0) {
+        params.min_price = DEFAULT_BROWSE_MIN_PRICE
       }
 
       if (searchQuery.value) {
@@ -1431,6 +1437,13 @@ const fetchVendors = async () => {
       if (b.count !== a.count) return b.count - a.count
       return a.name.localeCompare(b.name)
     })
+  }
+
+  if (!ENABLE_VENDOR_COUNTS_API) {
+    const mapped = buildFromAllowlist([])
+    allVendors.value = mapped
+    availableVendors.value = mapped
+    return
   }
 
   try {

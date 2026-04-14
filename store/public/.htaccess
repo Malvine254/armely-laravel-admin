@@ -6,6 +6,10 @@
     RewriteEngine On
     RewriteBase /store/
 
+    # Canonical host: redirect apex to www domain.
+    RewriteCond %{HTTP_HOST} ^armely\.com$ [NC]
+    RewriteRule ^ https://www.armely.com%{REQUEST_URI} [L,R=301,NE]
+
     # Shared hosting (including some GoDaddy stacks) may drop Authorization unless explicitly mapped.
     SetEnvIfNoCase Authorization "^(.*)$" HTTP_AUTHORIZATION=$1
 

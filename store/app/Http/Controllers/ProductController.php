@@ -1348,9 +1348,10 @@ class ProductController extends Controller
                     $maxPrice = $maxPriceRaw !== null && $maxPriceRaw !== '' ? (float) $maxPriceRaw : null;
                     $hideZero = filter_var(request()->query('hide_zero_price', true), FILTER_VALIDATE_BOOLEAN);
                     $catalogClean = filter_var(request()->query('catalog_clean', true), FILTER_VALIDATE_BOOLEAN);
+                    $facetCap = max(5000, (int) request()->query('vendor_cap', 50000));
 
                     $vendors = $this->getCuratedDefaultBrowseVendors(
-                        null,
+                        $facetCap,
                         $minPrice,
                         $maxPrice,
                         $hideZero,
@@ -1477,15 +1478,21 @@ class ProductController extends Controller
 
             $this->applyCuratedDefaultBrowseFilters($query);
 
-            $rowsQuery = $query
-                ->orderBy('id')
-                ->selectRaw("TRIM(JSON_UNQUOTE(JSON_EXTRACT(specifications, '$.manufacturer'))) as manufacturer");
+            $manufacturerExpr = "TRIM(JSON_UNQUOTE(JSON_EXTRACT(specifications, '$.manufacturer')))";
 
-            if ($cap !== null) {
-                $rowsQuery->limit(max(1, $cap));
+            if ($cap === null) {
+                $rows = $query
+                    ->selectRaw("{$manufacturerExpr} as manufacturer, COUNT(*) as aggregate_count")
+                    ->whereRaw("{$manufacturerExpr} <> ''")
+                    ->groupByRaw($manufacturerExpr)
+                    ->get();
+            } else {
+                $rows = $query
+                    ->orderBy('id')
+                    ->selectRaw("{$manufacturerExpr} as manufacturer")
+                    ->limit(max(1, $cap))
+                    ->get();
             }
-
-            $rows = $rowsQuery->get();
 
             $aggregated = [];
             foreach ($rows as $row) {
@@ -1504,7 +1511,7 @@ class ProductController extends Controller
                     ];
                 }
 
-                $aggregated[$canonicalKey]['count']++;
+                $aggregated[$canonicalKey]['count'] += max(1, (int) ($row->aggregate_count ?? 1));
             }
 
             return array_values($aggregated);
@@ -1612,30 +1619,74 @@ class ProductController extends Controller
     private function getCuratedItKeywords(): array
     {
         return [
+            // Laptops & PCs
             'laptop',
             'notebook',
             'desktop',
             'workstation',
+            'thinkpad',
+            'elitebook',
+            'probook',
+            'latitude',
+            'inspiron',
+            'precision',
+            'macbook',
+            'imac',
+            'mac mini',
+            'mac pro',
+            'chromebook',
+            'ultrabook',
+            'tablet',
+            'surface pro',
+            'surface laptop',
+            // Monitors & Docks
             'monitor',
             'display',
+            'lcd',
+            'ultrasharp',
             'dock',
             'docking',
+            'docking station',
+            'thunderbolt dock',
+            // Printing & Supplies
             'printer',
             'toner',
             'ink',
             'cartridge',
+            'inkjet',
+            'laserjet',
+            'multifunction',
+            'mfp',
+            'print server',
+            // Networking
             'router',
             'switch',
             'access point',
             'wifi',
+            'wireless',
             'firewall',
             'gateway',
+            'meraki',
+            'ubiquiti',
+            'unifi',
+            'tp-link',
+            'network adapter',
+            'poe switch',
+            'managed switch',
+            // Peripherals
             'keyboard',
             'mouse',
             'headset',
             'webcam',
             'microphone',
             'speakerphone',
+            'headphone',
+            'speaker',
+            'usb hub',
+            'kvm',
+            'barcode scanner',
+            'stylus',
+            // Software & Services
             'license',
             'software',
             'subscription',
@@ -1644,6 +1695,9 @@ class ProductController extends Controller
             'backup',
             'microsoft 365',
             'office 365',
+            'adobe',
+            'bitdefender',
+            'endpoint protection',
         ];
     }
 
@@ -1682,6 +1736,23 @@ class ProductController extends Controller
         $query->whereRaw(
             "LOWER(CONCAT(' ', COALESCE(product_name, ''), ' ', COALESCE(description, ''), ' ')) NOT REGEXP ?",
             [$nonHardwareRegex]
+        );
+    }
+
+    private function applyItCategoryAllowlist(\Illuminate\Database\Eloquent\Builder $query): void
+    {
+        $keywords = $this->getCuratedItKeywords();
+        if (empty($keywords)) {
+            return;
+        }
+
+        // Build an OR-based REGEXP: a product is included if its name, description, or category
+        // contains at least one IT-relevant keyword. This is intentionally non-strict (inclusive OR).
+        $pattern = implode('|', $keywords);
+
+        $query->whereRaw(
+            "LOWER(CONCAT(' ', COALESCE(product_name, ''), ' ', COALESCE(description, ''), ' ', COALESCE(category_name, ''), ' ')) REGEXP ?",
+            [$pattern]
         );
     }
 

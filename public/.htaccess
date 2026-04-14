@@ -5,6 +5,10 @@
 
     RewriteEngine On
 
+    # Canonical host: redirect apex to www domain.
+    RewriteCond %{HTTP_HOST} ^armely\.com$ [NC]
+    RewriteRule ^ https://www.armely.com%{REQUEST_URI} [L,R=301,NE]
+
     # Route all /admin paths through Laravel EXCEPT static asset folders
     # (css, js, images). Support both deployment styles:
     # - URI starts with /admin/... (docroot points to /public)
