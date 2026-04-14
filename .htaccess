@@ -21,9 +21,9 @@
     RewriteCond %{DOCUMENT_ROOT}/public%{REQUEST_URI} -f
     RewriteRule ^ public%{REQUEST_URI} [L]
 
-    # 4. Route /store/* requests to the store app's front controller.
+    # 4. Route /store/* requests through the store bridge (mirrors what public/.htaccess does).
     RewriteCond %{REQUEST_URI} ^/store(/|$)
-    RewriteRule ^ store/public/index.php [L]
+    RewriteRule ^ public/store/index.php [L]
 
     # 5. Everything else (including /) goes straight to the admin/main front controller.
     RewriteRule ^ public/index.php [L]
