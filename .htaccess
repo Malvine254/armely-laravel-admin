@@ -1,24 +1,24 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
-    # Redirect www to apex canonical host
+    # 1. Redirect www host to apex canonical host (fires before anything else).
     RewriteCond %{HTTP_HOST} ^www\.armely\.com$ [NC]
     RewriteRule ^ https://armely.com%{REQUEST_URI} [L,R=301,NE]
 
-    # Strip /public prefix from any URL that contains it.
-    # e.g. https://armely.com/public/blog  → https://armely.com/blog
-    # Uses THE_REQUEST to match the original request line before any
-    # internal rewrite, so we never redirect a loop.
-    RewriteCond %{THE_REQUEST} \s/public/(\S*) [NC]
+    # 2. Strip any /public prefix that leaks into the browser URL.
+    #    /public/blog  → /blog   |   /public  → /
+    #    Uses THE_REQUEST (original request line) to avoid rewrite loops.
+    RewriteCond %{THE_REQUEST} \s/public/(\S+) [NC]
     RewriteRule ^ /%1 [L,R=301,NE]
+    RewriteCond %{THE_REQUEST} \s/public[\s?] [NC]
+    RewriteRule ^ / [L,R=301,NE]
 
-    # If the request already targets an existing file or directory
-    # inside the project root, serve it directly.
-    RewriteCond %{REQUEST_FILENAME} -f [OR]
-    RewriteCond %{REQUEST_FILENAME} -d
-    RewriteRule ^ - [L]
+    # 3. Serve real static files that exist inside public/ (CSS, JS, images …).
+    #    Never rewrite to the public/ directory itself — that triggers a
+    #    mod_dir redirect to /public/ in the browser.
+    RewriteCond %{DOCUMENT_ROOT}/public%{REQUEST_URI} -f
+    RewriteRule ^ public%{REQUEST_URI} [L]
 
-    # Internally route all other requests through the public/ directory
-    # so Laravel's front controller (public/index.php) handles them.
-    RewriteRule ^(.*)$ public/$1 [L]
+    # 4. Everything else (including /) goes straight to Laravel's front controller.
+    RewriteRule ^ public/index.php [L]
 </IfModule>
