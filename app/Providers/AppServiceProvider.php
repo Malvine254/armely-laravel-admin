@@ -11,6 +11,7 @@ use App\Listeners\LogSuccessfulLogout;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\URL;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -27,14 +28,32 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // If ASSET_URL points to /store, keep that setting from breaking root-site assets.
-        // For non-store routes, prefer request-based asset URLs.
+        // Keep generated URLs and assets on the same host as the incoming request.
+        // This avoids CSS/JS loading issues when both apex and www are in use.
         if (!$this->app->runningInConsole()) {
+            $requestRoot = request()->getSchemeAndHttpHost();
+            $requestHost = strtolower((string) request()->getHost());
             $assetUrl = (string) config('app.asset_url', '');
+            $assetHost = strtolower((string) (parse_url($assetUrl, PHP_URL_HOST) ?? ''));
             $assetPath = (string) (parse_url($assetUrl, PHP_URL_PATH) ?? '');
+            $isStoreRequest = request()->is('store*');
 
-            if ($assetUrl !== '' && str_contains($assetPath, '/store') && !request()->is('store*')) {
-                config(['app.asset_url' => null]);
+            if (!$isStoreRequest) {
+                URL::forceRootUrl($requestRoot);
+
+                // If ASSET_URL is empty, points to a different host, or points into /store,
+                // force it to the current request origin for consistent asset loading.
+                if (
+                    $assetUrl === ''
+                    || ($assetHost !== '' && $assetHost !== $requestHost)
+                    || ($assetUrl !== '' && str_contains($assetPath, '/store'))
+                ) {
+                    config(['app.asset_url' => $requestRoot]);
+                }
+            }
+
+            if ($assetUrl !== '' && str_contains($assetPath, '/store') && !$isStoreRequest) {
+                config(['app.asset_url' => $requestRoot]);
             }
         }
 

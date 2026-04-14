@@ -58,5 +58,5 @@
     Header always set Permissions-Policy "geolocation=(), microphone=(), camera=(), payment=(), usb=(), gyroscope=(), magnetometer=()"
 
     # Cross-Origin Resource Policy
-    Header always set Cross-Origin-Resource-Policy "same-origin"
+    Header always set Cross-Origin-Resource-Policy "same-site"
 </IfModule>
