@@ -694,6 +694,8 @@ class ProductController extends Controller
                 ->whereRaw("NOT ((COALESCE(base_price, 0) <= 0.05) AND (LOWER(COALESCE(product_name, '')) LIKE '%support%' OR LOWER(COALESCE(product_name, '')) LIKE '%warranty%' OR LOWER(COALESCE(product_name, '')) LIKE '%consulting%' OR LOWER(COALESCE(product_name, '')) LIKE '%implementation%' OR LOWER(COALESCE(product_name, '')) LIKE '%annual fee%' OR LOWER(COALESCE(product_name, '')) LIKE '%training%'))");
         }
 
+        $totalQuery = clone $query;
+
         // Fetch one extra row to detect if there are more pages (avoids expensive COUNT)
         $perPage = max(1, $pageSize);
         $currentPage = max(1, $pageNo);
@@ -716,13 +718,23 @@ class ProductController extends Controller
             $products = $products->slice(0, $perPage);
         }
 
-        // For default listing, use cached table estimate; for filtered/search, estimate from page
+        // For default listing, use an exact cached count for the current browse scope.
+        // TABLE_ROWS is only an estimate and can lag behind real synced row counts.
         if (!$hasFilters) {
-            $total = (int) Cache::remember('pa_products_total_' . ($hideZero ? '1' : '0'), 300, function () {
-                $row = \Illuminate\Support\Facades\DB::selectOne(
-                    "SELECT TABLE_ROWS FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'products'"
-                );
-                return $row->TABLE_ROWS ?? 0;
+            $countCacheKey = sprintf(
+                'pa_products_total_exact:%s',
+                md5(json_encode([
+                    'hide_zero' => $hideZero,
+                    'min_price' => $minPrice,
+                    'max_price' => $maxPrice,
+                    'catalog_clean' => $catalogClean,
+                    'hardware_only' => (bool) config('tdsynnex.catalog.hardware_only', true),
+                    'default_browse' => $isDefaultBrowse,
+                ]))
+            );
+
+            $total = (int) Cache::remember($countCacheKey, 300, function () use ($totalQuery) {
+                return (clone $totalQuery)->count();
             });
         } else {
             // N+1 estimate: fast, avoids expensive COUNT on FULLTEXT results.
