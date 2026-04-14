@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="uuid-b6fa13c5-de2f-439a-853d-b3ea0812ec26" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 800 800">
+  <defs>
+    <clipPath id="uuid-aadf6a3e-602d-4f4c-9944-26c1c0e18054">
+      <rect width="800" height="800" style="fill: none; stroke-width: 0px;"/>
+    </clipPath>
+  </defs>
+  <g style="clip-path: url(#uuid-aadf6a3e-602d-4f4c-9944-26c1c0e18054);">
+    <g>
+      <g>
+        <path d="M0,0h800v800H0V0Z" style="fill: #112e51; stroke-width: 0px;"/>
+        <circle cx="400" cy="400" r="400" style="fill: #112e51; stroke-width: 0px;"/>
+        <circle cx="400" cy="400" r="379.2" style="fill: #112e51; stroke-width: 0px;"/>
+        <circle cx="400" cy="400" r="358.46" style="fill: #112e51; stroke-width: 0px;"/>
+      </g>
+      <circle cx="400" cy="400" r="354.5" style="fill: #122f52; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="350.49" style="fill: #122f52; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="346.53" style="fill: #123053; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="342.52" style="fill: #123054; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="338.56" style="fill: #133154; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="334.55" style="fill: #133155; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="330.59" style="fill: #133256; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="326.58" style="fill: #133256; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="322.63" style="fill: #143257; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="318.62" style="fill: #143358; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="314.66" style="fill: #143358; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="310.65" style="fill: #143459; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="306.69" style="fill: #14345a; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="302.68" style="fill: #15355b; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="298.72" style="fill: #15355b; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="294.71" style="fill: #15355c; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="290.75" style="fill: #15365d; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="286.75" style="fill: #16365d; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="282.79" style="fill: #16375e; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="278.78" style="fill: #16375f; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="274.82" style="fill: #163860; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="270.81" style="fill: #173860; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="266.85" style="fill: #173961; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="262.89" style="fill: #173962; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="258.88" style="fill: #173963; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="254.92" style="fill: #173a63; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="250.91" style="fill: #183a64; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="246.96" style="fill: #183b65; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="242.95" style="fill: #183b65; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="238.99" style="fill: #183c66; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="234.98" style="fill: #193c67; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="231.02" style="fill: #193c68; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="227.01" style="fill: #193d68; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="223.05" style="fill: #193d69; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="219.04" style="fill: #193e6a; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="215.08" style="fill: #193e6b; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="211.07" style="fill: #1a3f6b; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="207.12" style="fill: #1a3f6c; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="203.11" style="fill: #1a3f6d; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="199.15" style="fill: #1a406e; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="195.14" style="fill: #1a406e; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="191.18" style="fill: #1a416f; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="187.17" style="fill: #1b4170; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="183.21" style="fill: #1b4270; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="179.2" style="fill: #1b4271; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="175.24" style="fill: #1b4272; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="171.29" style="fill: #1b4373; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="167.28" style="fill: #1b4373; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="163.32" style="fill: #1c4474; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="159.31" style="fill: #1c4475; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="155.35" style="fill: #1c4576; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="151.34" style="fill: #1c4577; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="147.38" style="fill: #1c4577; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="143.37" style="fill: #1c4678; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="139.41" style="fill: #1c4679; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="135.4" style="fill: #1d477a; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="131.45" style="fill: #1d477a; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="127.44" style="fill: #1d487b; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="123.48" style="fill: #1d487c; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="119.47" style="fill: #1d487d; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="115.51" style="fill: #1d497d; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="111.5" style="fill: #1d497e; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="107.54" style="fill: #1e4a7f; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="103.53" style="fill: #1e4a80; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="99.57" style="fill: #1e4b80; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="95.57" style="fill: #1e4b81; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="91.61" style="fill: #1e4b82; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="87.65" style="fill: #1e4c83; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="83.64" style="fill: #1e4c84; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="79.68" style="fill: #1e4d84; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="75.67" style="fill: #1e4d85; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="71.71" style="fill: #1f4e86; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="67.7" style="fill: #1f4e87; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="63.74" style="fill: #1f4e88; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="59.73" style="fill: #1f4f88; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="55.78" style="fill: #1f4f89; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="51.77" style="fill: #1f508a; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="47.81" style="fill: #1f508b; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="43.8" style="fill: #1f518c; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="39.84" style="fill: #1f518c; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="35.83" style="fill: #1f518d; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="31.87" style="fill: #1f528e; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="27.86" style="fill: #1f528f; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="23.9" style="fill: #205390; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="19.89" style="fill: #205391; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="15.94" style="fill: #205492; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="11.93" style="fill: #205492; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="7.97" style="fill: #205593; stroke-width: 0px;"/>
+      <circle cx="400" cy="400" r="3.96" style="fill: #205594; stroke-width: 0px;"/>
+    </g>
+  </g>
+  <path d="M618.54,448.41l90.2,173.84h-111.4l-82.89-158.21h-57.58v158.21h-100.78v-218.59c-.05-.5-.1-.95-.1-1.45s.05-.95.05-1.45v-2.31h.1c1.7-16.99,14.68-30.57,31.37-33.27v-.3h2.1c1.3-.15,2.61-.2,3.96-.2,1.15,0,2.31.05,3.46.15h7.72c.85-.1,1.75-.1,2.61-.1h164.32c9.12-.8,17.54-4.26,24.51-10.17,9.77-8.32,15.43-20.5,15.43-33.43,0-17.39-10.27-33.12-26.21-40.19-5.16-2.26-10.72-3.51-16.49-3.61l-13.33-.15H186.62v87.55h128.74v98.92h-128.74v158.56h-100.83V223.9c0-26.26,21.35-47.61,47.61-47.61h436.73c77.27.35,140.02,63.39,140.02,140.52,0,59.28-37.78,111.5-91.61,131.6Z" style="fill: #fff; stroke-width: 0px;"/>
+  <path d="M642.85,622.2h65.9v45.65h-65.9v71.36h-50.16v-71.36h-66.05v-45.65h66.05v-68.35h50.16v68.35Z" style="fill: red; stroke-width: 0px;"/>
+</svg>
