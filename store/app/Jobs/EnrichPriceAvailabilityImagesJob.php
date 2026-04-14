@@ -21,7 +21,7 @@ class EnrichPriceAvailabilityImagesJob implements ShouldQueue
 
     public $tries = 1;
 
-    public function __construct(public int $chunk = 25, public int $limit = 0, public bool $fromAdmin = false)
+    public function __construct(public int $chunk = 1, public int $limit = 0, public bool $fromAdmin = false)
     {
     $this->onConnection('database');
     $this->onQueue('products-sync');

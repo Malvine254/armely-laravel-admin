@@ -27,6 +27,17 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // If ASSET_URL points to /store, keep that setting from breaking root-site assets.
+        // For non-store routes, prefer request-based asset URLs.
+        if (!$this->app->runningInConsole()) {
+            $assetUrl = (string) config('app.asset_url', '');
+            $assetPath = (string) (parse_url($assetUrl, PHP_URL_PATH) ?? '');
+
+            if ($assetUrl !== '' && str_contains($assetPath, '/store') && !request()->is('store*')) {
+                config(['app.asset_url' => null]);
+            }
+        }
+
         // Register login/logout listeners
         Event::listen(Login::class, LogSuccessfulLogin::class);
         Event::listen(Logout::class, LogSuccessfulLogout::class);

@@ -947,15 +947,27 @@ class TDSynnexService
         $limit = max(0, $limit);
         $query = $this->priceAvailabilityImageSyncQuery()->orderBy('id');
 
-        if ($limit > 0) {
-            $query->limit($limit);
-        }
-
-        $products = $query->get();
         $processed = 0;
         $updated = 0;
+        $stop = false;
 
-        foreach ($products->chunk($chunk) as $batch) {
+        $query->chunkById($chunk, function ($batch) use (&$processed, &$updated, $limit, $onProgress, &$stop) {
+            if ($stop) {
+                return false;
+            }
+
+            if ($limit > 0) {
+                $remaining = $limit - $processed;
+                if ($remaining <= 0) {
+                    $stop = true;
+                    return false;
+                }
+
+                if ($batch->count() > $remaining) {
+                    $batch = $batch->take($remaining)->values();
+                }
+            }
+
             $batchSkus = [];
             foreach ($batch as $product) {
                 $spec = is_array($product->specifications) ? $product->specifications : [];
@@ -1020,7 +1032,14 @@ class TDSynnexService
                     $onProgress($processed, $updated, $product, $didUpdate, $images);
                 }
             }
-        }
+
+            if ($limit > 0 && $processed >= $limit) {
+                $stop = true;
+                return false;
+            }
+
+            return true;
+        }, 'id');
 
         return [
             'processed' => $processed,
@@ -1987,7 +2006,7 @@ class TDSynnexService
             (string) ($meta['source_url'] ?? ''),
         ]));
 
-        return Cache::remember($cacheKey, now()->addSeconds($ttl), function () use ($sku, $meta, $description) {
+        $resolver = function () use ($sku, $meta, $description) {
             $images = [];
             $resolvedDescription = '';
 
@@ -2035,7 +2054,18 @@ class TDSynnexService
                 'images' => $unique,
                 'description' => $resolvedDescription,
             ];
-        });
+        };
+
+        try {
+            return Cache::remember($cacheKey, now()->addSeconds($ttl), $resolver);
+        } catch (\Throwable $e) {
+            Log::warning('Asset cache unavailable, continuing without cache', [
+                'sku' => $sku,
+                'error' => $e->getMessage(),
+            ]);
+
+            return $resolver();
+        }
     }
 
     private function fetchIcecatProductData(string $sku, array $meta, string $description = ''): array
@@ -2467,7 +2497,38 @@ class TDSynnexService
             $candidates[$url] = true;
         }
 
+        foreach ($this->buildEcommerceSearchUrls($meta) as $url) {
+            $candidates[$url] = true;
+        }
+
         return array_keys($candidates);
+    }
+
+    private function buildEcommerceSearchUrls(array $meta): array
+    {
+        $manufacturer = trim((string) ($meta['manufacturer'] ?? ''));
+        $mpn = trim((string) ($meta['mpn'] ?? ''));
+        $sku = trim((string) ($meta['sku'] ?? ''));
+
+        $query = trim(preg_replace('/\s+/', ' ', trim($manufacturer . ' ' . $mpn . ' ' . $sku)) ?: '');
+        if ($query === '') {
+            return [];
+        }
+
+        $q = rawurlencode($query);
+
+        return [
+            'https://www.amazon.com/s?k=' . $q,
+            'https://www.aliexpress.com/wholesale?SearchText=' . $q,
+            'https://www.ebay.com/sch/i.html?_nkw=' . $q,
+            'https://www.walmart.com/search?q=' . $q,
+            'https://www.bestbuy.com/site/searchpage.jsp?st=' . $q,
+            'https://www.newegg.com/p/pl?d=' . $q,
+            'https://www.cdw.com/search/?key=' . $q,
+            'https://www.bhphotovideo.com/c/search?Ntt=' . $q,
+            'https://www.provantage.com/service/searchsvcs?QUERY=' . $q,
+            'https://www.insight.com/en_US/search.html?q=' . $q,
+        ];
     }
 
     private function buildManufacturerSearchUrls(array $meta): array
@@ -2496,6 +2557,43 @@ class TDSynnexService
             'APC' => 'https://www.apc.com/us/en/search/%s',
             'SCHNEIDER' => 'https://www.apc.com/us/en/search/%s',
             'STARTECH' => 'https://www.startech.com/en-us/search?search_term=%s',
+            'EATON' => 'https://www.eaton.com/us/en-us/search-results.html?q=%s',
+            'TRIPP LITE' => 'https://tripplite.eaton.com/products/search?query=%s',
+            'TARGUS' => 'https://us.targus.com/search?q=%s',
+            'IBM' => 'https://www.ibm.com/search?lang=en&cc=us&q=%s',
+            'ARUBA' => 'https://www.arubanetworks.com/search/?q=%s',
+            'JUNIPER' => 'https://www.juniper.net/us/en/search-results.html?q=%s',
+            'BROCADE' => 'https://www.broadcom.com/search?searchString=%s',
+            'EXTREME NETWORKS' => 'https://www.extremenetworks.com/?s=%s',
+            'RUCKUS' => 'https://www.commscope.com/search/?q=%s',
+            'SUPERMICRO' => 'https://www.supermicro.com/en/search/%s',
+            'ASUS' => 'https://www.asus.com/us/searchresult?searchType=products&searchKey=%s',
+            'ACER' => 'https://www.acer.com/us-en/search?query=%s',
+            'MSI' => 'https://www.msi.com/search/%s',
+            'SAMSUNG' => 'https://www.samsung.com/us/search/searchMain/?listType=g&searchTerm=%s',
+            'LG' => 'https://www.lg.com/us/search?q=%s',
+            'SONY' => 'https://electronics.sony.com/search/%s',
+            'EPSON' => 'https://epson.com/Search?text=%s',
+            'CANON' => 'https://www.usa.canon.com/search?searchTerm=%s',
+            'BROTHER' => 'https://www.brother-usa.com/search?searchTerm=%s',
+            'XEROX' => 'https://www.xerox.com/en-us/search?search=%s',
+            'KYOCERA' => 'https://www.kyoceradocumentsolutions.us/en/search.html?q=%s',
+            'LEXMARK' => 'https://www.lexmark.com/en_us/search.html?q=%s',
+            'SEAGATE' => 'https://www.seagate.com/search/?q=%s',
+            'WESTERN DIGITAL' => 'https://www.westerndigital.com/search?query=%s',
+            'WD' => 'https://www.westerndigital.com/search?query=%s',
+            'KINGSTON' => 'https://www.kingston.com/en/search?term=%s',
+            'CRUCIAL' => 'https://www.crucial.com/search?query=%s',
+            'MICRON' => 'https://www.micron.com/search?query=%s',
+            'INTEL' => 'https://www.intel.com/content/www/us/en/search.html?ws=text#q=%s',
+            'AMD' => 'https://www.amd.com/en/search/site-search.html#q=%s',
+            'NVIDIA' => 'https://www.nvidia.com/en-us/search/?q=%s',
+            'PALO ALTO' => 'https://www.paloaltonetworks.com/search?q=%s',
+            'ZEBRA' => 'https://www.zebra.com/us/en/search.html?q=%s',
+            'HONEYWELL' => 'https://sps.honeywell.com/us/en/search?search=%s',
+            'AXIS' => 'https://www.axis.com/search?text=%s',
+            'UBIQUITI' => 'https://ui.com/search?q=%s',
+            'TP-LINK' => 'https://www.tp-link.com/us/search/?q=%s',
         ];
 
         $urls = [];
@@ -2572,7 +2670,7 @@ class TDSynnexService
 
         $path = (string) (parse_url($url, PHP_URL_PATH) ?: '/');
         $cacheKey = 'tdsynnex:scraper:robots:' . md5($host);
-        $robotsText = Cache::remember($cacheKey, now()->addHours(12), function () use ($host) {
+        $fetchRobots = function () use ($host) {
             try {
                 $response = Http::timeout(4)->get('https://' . $host . '/robots.txt');
                 if ($response->successful()) {
@@ -2583,11 +2681,26 @@ class TDSynnexService
             }
 
             return '';
-        });
+        };
+
+        try {
+            $robotsText = Cache::remember($cacheKey, now()->addHours(12), $fetchRobots);
+        } catch (\Throwable $e) {
+            Log::warning('Robots cache unavailable, using direct fetch', [
+                'host' => $host,
+                'error' => $e->getMessage(),
+            ]);
+            $robotsText = $fetchRobots();
+        }
 
         if (trim($robotsText) === '') {
-            // Fail closed for safety: require readable robots policy for scraping.
-            return false;
+            // Fail open when robots cannot be fetched. This avoids dropping
+            // entire domains due to transient robots/network/CDN issues.
+            Log::warning('Robots unavailable, allowing scrape', [
+                'host' => $host,
+                'url' => $url,
+            ]);
+            return true;
         }
 
         $lines = preg_split('/\r\n|\r|\n/', strtolower($robotsText)) ?: [];
@@ -2763,41 +2876,61 @@ class TDSynnexService
 
         if (preg_match_all('/<img\b[^>]*>/i', $html, $imgTags)) {
             foreach ((array) ($imgTags[0] ?? []) as $imgTag) {
-                if (!preg_match('/\ssrc=["\']([^"\']+)["\']/i', $imgTag, $srcMatch)) {
-                    continue;
+                $rawCandidates = [];
+
+                if (preg_match('/\ssrc=["\']([^"\']+)["\']/i', $imgTag, $srcMatch)) {
+                    $rawCandidates[] = trim((string) ($srcMatch[1] ?? ''));
                 }
 
-                $candidate = trim((string) ($srcMatch[1] ?? ''));
-                if ($candidate === '' || str_starts_with($candidate, 'data:')) {
-                    continue;
+                if (preg_match('/\sdata-src=["\']([^"\']+)["\']/i', $imgTag, $dataSrcMatch)) {
+                    $rawCandidates[] = trim((string) ($dataSrcMatch[1] ?? ''));
                 }
 
-                $absolute = $this->toAbsoluteUrl($candidate, $baseUrl);
-                if (!$this->isValidImageUrl($absolute)) {
-                    continue;
+                if (preg_match('/\sdata-original=["\']([^"\']+)["\']/i', $imgTag, $dataOriginalMatch)) {
+                    $rawCandidates[] = trim((string) ($dataOriginalMatch[1] ?? ''));
                 }
 
-                $haystack = strtolower($absolute . ' ' . $imgTag);
-                $looksGeneric = false;
-                foreach ($genericNeedles as $needle) {
-                    if (str_contains($haystack, $needle)) {
-                        $looksGeneric = true;
-                        break;
+                if (preg_match('/\ssrcset=["\']([^"\']+)["\']/i', $imgTag, $srcSetMatch)) {
+                    $rawCandidates = array_merge($rawCandidates, $this->extractUrlsFromSrcset((string) ($srcSetMatch[1] ?? '')));
+                }
+
+                if (preg_match('/\sdata-srcset=["\']([^"\']+)["\']/i', $imgTag, $dataSrcSetMatch)) {
+                    $rawCandidates = array_merge($rawCandidates, $this->extractUrlsFromSrcset((string) ($dataSrcSetMatch[1] ?? '')));
+                }
+
+                foreach ($rawCandidates as $candidate) {
+                    $candidate = trim((string) $candidate);
+                    if ($candidate === '' || str_starts_with($candidate, 'data:')) {
+                        continue;
                     }
-                }
 
-                $hasStrongMatch = false;
-                foreach ($matchingNeedles as $needle) {
-                    if ($needle !== '' && str_contains($haystack, $needle)) {
-                        $hasStrongMatch = true;
-                        break;
+                    $absolute = $this->toAbsoluteUrl($candidate, $baseUrl);
+                    if (!$this->isValidImageUrl($absolute)) {
+                        continue;
                     }
-                }
 
-                if ($hasStrongMatch) {
-                    $strongCandidates[] = $absolute;
-                } elseif (!$looksGeneric) {
-                    $fallbackCandidates[] = $absolute;
+                    $haystack = strtolower($absolute . ' ' . $imgTag);
+                    $looksGeneric = false;
+                    foreach ($genericNeedles as $needle) {
+                        if (str_contains($haystack, $needle)) {
+                            $looksGeneric = true;
+                            break;
+                        }
+                    }
+
+                    $hasStrongMatch = false;
+                    foreach ($matchingNeedles as $needle) {
+                        if ($needle !== '' && str_contains($haystack, $needle)) {
+                            $hasStrongMatch = true;
+                            break;
+                        }
+                    }
+
+                    if ($hasStrongMatch) {
+                        $strongCandidates[] = $absolute;
+                    } elseif (!$looksGeneric) {
+                        $fallbackCandidates[] = $absolute;
+                    }
                 }
             }
         }
@@ -2806,12 +2939,9 @@ class TDSynnexService
             return (string) ($strongCandidates[0] ?? '');
         }
 
-        // If we know SKU/MPN but no matching image was found, fail closed to avoid
-        // attaching unrelated campaign/hero assets from search result pages.
-        if (!empty($matchingNeedles)) {
-            return '';
-        }
-
+        // Relaxed mode: if SKU/MPN is present but not embedded in URL/tag text,
+        // still allow the first non-generic candidate so vendor pages with opaque
+        // CDN filenames can be accepted.
         if (!empty($fallbackCandidates)) {
             return (string) ($fallbackCandidates[0] ?? '');
         }
@@ -2853,7 +2983,70 @@ class TDSynnexService
             }
         }
 
+        // Some vendor pages expose primary media in JSON-LD product schema.
+        if (preg_match_all('/<script[^>]+type=["\']application\/ld\+json["\'][^>]*>(.*?)<\/script>/is', $html, $jsonLdBlocks)) {
+            foreach ((array) ($jsonLdBlocks[1] ?? []) as $jsonLd) {
+                $decoded = json_decode((string) $jsonLd, true);
+                if (!is_array($decoded)) {
+                    continue;
+                }
+
+                foreach ($this->collectImageCandidatesFromJsonLd($decoded) as $candidate) {
+                    $absolute = $this->toAbsoluteUrl((string) $candidate, $baseUrl);
+                    if ($this->isValidImageUrl($absolute)) {
+                        return $absolute;
+                    }
+                }
+            }
+        }
+
         return '';
+    }
+
+    private function extractUrlsFromSrcset(string $srcset): array
+    {
+        $urls = [];
+        foreach (explode(',', $srcset) as $part) {
+            $part = trim((string) $part);
+            if ($part === '') {
+                continue;
+            }
+
+            $first = trim((string) strtok($part, ' '));
+            if ($first !== '') {
+                $urls[] = $first;
+            }
+        }
+
+        return array_values(array_unique($urls));
+    }
+
+    private function collectImageCandidatesFromJsonLd(array $node): array
+    {
+        $results = [];
+
+        if (isset($node['image'])) {
+            $image = $node['image'];
+            if (is_string($image)) {
+                $results[] = $image;
+            } elseif (is_array($image)) {
+                foreach ($image as $item) {
+                    if (is_string($item)) {
+                        $results[] = $item;
+                    } elseif (is_array($item) && isset($item['url']) && is_string($item['url'])) {
+                        $results[] = $item['url'];
+                    }
+                }
+            }
+        }
+
+        foreach ($node as $value) {
+            if (is_array($value)) {
+                $results = array_merge($results, $this->collectImageCandidatesFromJsonLd($value));
+            }
+        }
+
+        return array_values(array_unique(array_filter(array_map('trim', $results))));
     }
 
     private function toAbsoluteUrl(string $candidate, string $baseUrl): string
