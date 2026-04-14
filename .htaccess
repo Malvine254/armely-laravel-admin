@@ -13,12 +13,18 @@
     RewriteCond %{THE_REQUEST} \s/public[\s?] [NC]
     RewriteRule ^ / [L,R=301,NE]
 
-    # 3. Serve real static files that exist inside public/ (CSS, JS, images …).
-    #    Never rewrite to the public/ directory itself — that triggers a
-    #    mod_dir redirect to /public/ in the browser.
+    # 3a. Serve real static files from store/public/ (store CSS, JS, images …).
+    RewriteCond %{DOCUMENT_ROOT}/store/public%{REQUEST_URI} -f
+    RewriteRule ^ store/public%{REQUEST_URI} [L]
+
+    # 3b. Serve real static files from public/ (admin CSS, JS, images …).
     RewriteCond %{DOCUMENT_ROOT}/public%{REQUEST_URI} -f
     RewriteRule ^ public%{REQUEST_URI} [L]
 
-    # 4. Everything else (including /) goes straight to Laravel's front controller.
+    # 4. Route /store/* requests to the store app's front controller.
+    RewriteCond %{REQUEST_URI} ^/store(/|$)
+    RewriteRule ^ store/public/index.php [L]
+
+    # 5. Everything else (including /) goes straight to the admin/main front controller.
     RewriteRule ^ public/index.php [L]
 </IfModule>
