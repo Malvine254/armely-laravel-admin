@@ -1,0 +1,24 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Redirect www to apex canonical host
+    RewriteCond %{HTTP_HOST} ^www\.armely\.com$ [NC]
+    RewriteRule ^ https://armely.com%{REQUEST_URI} [L,R=301,NE]
+
+    # Strip /public prefix from any URL that contains it.
+    # e.g. https://armely.com/public/blog  → https://armely.com/blog
+    # Uses THE_REQUEST to match the original request line before any
+    # internal rewrite, so we never redirect a loop.
+    RewriteCond %{THE_REQUEST} \s/public/(\S*) [NC]
+    RewriteRule ^ /%1 [L,R=301,NE]
+
+    # If the request already targets an existing file or directory
+    # inside the project root, serve it directly.
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # Internally route all other requests through the public/ directory
+    # so Laravel's front controller (public/index.php) handles them.
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
