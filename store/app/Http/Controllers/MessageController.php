@@ -2185,19 +2185,29 @@ class MessageController extends Controller
             if (is_string($image) && trim($image) !== '') {
                 $url = trim($image);
                 if ($this->isValidImageUrl($url)) {
-                    return $url;
+                    return $this->resolveImageUrl($url);
                 }
             }
 
             if (is_array($image)) {
                 $url = trim((string) ($image['imageUrl'] ?? $image['url'] ?? ''));
                 if ($this->isValidImageUrl($url)) {
-                    return $url;
+                    return $this->resolveImageUrl($url);
                 }
             }
         }
 
         return null;
+    }
+
+    private function resolveImageUrl(string $url): string
+    {
+        if (!str_starts_with($url, '/')) {
+            return $url;
+        }
+
+        $appUrl = rtrim((string) config('app.url', ''), '/');
+        return $appUrl !== '' ? $appUrl . $url : $url;
     }
 
     private function isValidImageUrl(string $url): bool
