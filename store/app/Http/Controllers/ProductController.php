@@ -1124,11 +1124,35 @@ class ProductController extends Controller
                 continue;
             }
 
-            $seen[$url] = true;
-            $normalized[] = ['imageUrl' => $url];
+            // Convert relative local paths (/images/...) to absolute URLs using APP_URL.
+            // Stored paths like /images/products/12345.jpg work on localhost but break on
+            // subdirectory deployments (e.g. https://armely.com/store/) where the browser
+            // would request https://armely.com/images/... (missing the /store/ prefix).
+            $absoluteUrl = $this->resolveImageUrl($url);
+
+            if (isset($seen[$absoluteUrl])) {
+                continue;
+            }
+
+            $seen[$absoluteUrl] = true;
+            $normalized[] = ['imageUrl' => $absoluteUrl];
         }
 
         return $normalized;
+    }
+
+    private function resolveImageUrl(string $url): string
+    {
+        if (!str_starts_with($url, '/')) {
+            return $url; // already absolute
+        }
+
+        $appUrl = rtrim((string) config('app.url', ''), '/');
+        if ($appUrl === '') {
+            return $url;
+        }
+
+        return $appUrl . $url;
     }
 
     private function isValidImageUrl(string $url): bool
