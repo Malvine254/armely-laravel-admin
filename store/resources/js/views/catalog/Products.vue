@@ -65,9 +65,9 @@
       </div>
 
       <!-- Content Layout: Sidebar + Products Grid -->
-      <div class="flex gap-8 lg:gap-6">
+      <div class="flex items-stretch gap-8 lg:gap-6">
         <!-- Filters Sidebar -->
-        <div class="hidden lg:block lg:w-80 flex-shrink-0">
+        <div class="hidden lg:flex lg:flex-col lg:w-80 flex-shrink-0">
           <FilterSidebar 
             :vendors="availableVendors" 
             :categories="availableCategories"
@@ -75,6 +75,7 @@
             :lifecycle-options="lifecycleOptions"
             :media-options="reviewRatingOptions"
             @filter-change="handleFilterChange"
+            class="flex-1"
           />
         </div>
 
@@ -113,8 +114,8 @@
               </div>
             </div>
             <div class="mb-6 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3">
-              <p class="text-gray-600 font-medium">Showing <span class="font-bold" style="color: #2F5597;">{{ Math.min(ITEMS_PER_PAGE, totalProducts) }}</span> of <span class="font-bold" style="color: #2F5597;">{{ totalProducts }}</span> products</p>
-              <span class="text-gray-600 text-sm">Page <span class="font-bold" style="color: #2F5597;">{{ currentPage }}</span> of <span class="font-bold" style="color: #2F5597;">{{ totalPages }}</span></span>
+              <p class="text-gray-600 font-medium">Showing <span class="font-bold" style="color: #2F5597;">{{ visibleProductsRangeLabel }}</span></p>
+              <span class="text-gray-600 text-sm">Page <span class="font-bold" style="color: #2F5597;">{{ currentPage }}</span> of <span class="font-bold" style="color: #2F5597;">{{ totalPagesLabel }}</span></span>
             </div>
 
             <!-- Empty State -->
@@ -183,6 +184,10 @@
                   <div class="flex items-center justify-between gap-3 text-xs text-gray-600 mb-3">
                     <p class="truncate" :title="`SKU: ${getProductSku(product)}`">SKU: {{ getProductSku(product) }}</p>
                     <p class="truncate text-right" :title="`Vendor: ${getProductVendor(product)}`">Vendor: {{ getProductVendor(product) }}</p>
+                  </div>
+                  <div class="mb-3 flex items-center gap-2 text-xs text-gray-600">
+                    <span class="px-2 py-1 rounded-full font-medium" style="background-color: #eef4fb; color: #2F5597;">Category</span>
+                    <p class="truncate" :title="getProductCategoryLabel(product)">{{ getProductCategoryLabel(product) }}</p>
                   </div>
 
                   <!-- Reviews -->
@@ -364,157 +369,72 @@ const LOCAL_SEARCH_HISTORY_LIMIT = 12
 const TOP_VENDOR_DISPLAY_LIMIT = 40
 const DEFAULT_VENDOR_SCOPE_LIMIT = 12
 const DEFAULT_BROWSE_MIN_PRICE = 200
-const CURATED_CACHE_VERSION = 2
+const CURATED_CACHE_VERSION = 3
 const ENABLE_SERVER_PREFETCH = false
-const ENABLE_VENDOR_COUNTS_API = false
+const ENABLE_VENDOR_COUNTS_API = true
 const CURATED_VENDOR_ALLOWLIST = [
-  'CISCO SYSTEMS',
-  'HEWLETT PACKARD ENTERPRISE',
-  'NVIDIA CORPORATION',
-  'LENOVO DATA CENTER',
-  'MICROSOFT CORPORATION',
-  'HP INC.',
-  'VEEAM SOFTWARE CORPORATION',
-  'LENOVO',
-  'FORTINET INC.',
-  'APC BY SCHNEIDER ELECTRIC',
-  'STARTECH.COM',
-  'BELKIN INTERNATIONAL INC',
-  'SAMSUNG',
-  'DELL MARKETING L.P.',
-  'ASUS',
-  'INTEL',
-  'INTELLINET',
-  'LOGITECH',
-  'JABRA',
-  'KINGSTON',
-  'KENSINGTON COMPUTER',
-  'ASUS SBG COMMERCIAL',
-  'INTELLIGENT SECURITY SYSTEMS C',
-  'NETGEAR',
-  'WESTERN DIGITAL',
-  'AMD',
-  'ACER AMERICA CORPORATION',
-  'BROADCOM',
-  'INTELLIGENT COMPUTER SOLUTIONS',
-  'CROWDSTRIKE, INC.',
-  'ASUSTOR AMERICA INC',
-  'Q6 INTELLIGENCE, LLC',
-  'SEAGATE TECHNOLOGY LLC',
-  'PALO ALTO NETWORKS',
+  'CISCO', 'DELL', 'HP', 'LENOVO', 'MICROSOFT', 'SAMSUNG', 'EPSON', 'CANON',
+  'PANASONIC', 'ACER', 'ASUS', 'XEROX', 'GETAC', 'GOOGLE', 'RICOH', 'SONY',
+  'LEXMARK', 'SANDISK', 'CRADLEPOINT', 'AVAYA', 'BRADY', 'DT RESEARCH',
+  'HUBBELL', 'HAIVISION',
 ]
 
 const CURATED_VENDOR_ALIAS_MAP = {
-  'HEWLETT PACKARD ENTERPRISE': ['HEWLETT PACKARD ENTERPRISE COM'],
-  'MICROSOFT CORPORATION': ['MICROSOFT', 'MICROSOFT CORP', 'MICROSOFT RETAIL'],
-  SAMSUNG: [
-    'SAMSUNG ELECTRONICS AMERICA, I',
-    'SAMSUNG ELECTRONICS AMERICA',
-    'SAMSUNG ELECTRONICS CO.',
-    'SAMSUNG ELECTRONICS AMERICA IN',
-    'SAMSUNG ELECTRONICS AMERICA (W',
+  CISCO: ['CISCO SYSTEMS', 'CISCO SYSTEMS CAPITAL REMARKET'],
+  DELL: ['DELL MARKETING L.P.', 'DELL MARKETING LP', 'DELL WORLD TRADE L.P.'],
+  HP: [
+    'HP INC', 'HP INC.',
+    'HEWLETT PACKARD', 'HEWLETT PACKARD ENTERPRISE',
+    'HEWLETT PACKARD ENTERPRISE COM', 'HEWLETT PACKARD ENTERPRISE COMPANY',
   ],
-  'CISCO SYSTEMS': ['CISCO SYSTEMS CAPITAL REMARKET'],
-  'DELL MARKETING L.P.': ['DELL MARKETING LP'],
-  'ACER AMERICA CORPORATION': ['ACER', 'ACER AMERICA'],
-  'SEAGATE TECHNOLOGY LLC': ['STRATEGIC SOURCING -SEAGATE'],
+  LENOVO: ['LENOVO DATA CENTER', 'LENOVO GROUP', 'LENOVO PC HK LIMITED'],
+  MICROSOFT: [
+    'MICROSOFT CORPORATION', 'MICROSOFT CORP', 'MICROSOFT RETAIL',
+    'MSFT RETAL NEW NAE', 'MSFT SURFACE RECERTIFIED',
+  ],
+  SAMSUNG: [
+    'SAMSUNG ELECTRONICS AMERICA', 'SAMSUNG ELECTRONICS AMERICA, I',
+    'SAMSUNG ELECTRONICS AMERICA IN', 'SAMSUNG ELECTRONICS AMERICA (W',
+    'SAMSUNG ELECTRONICS CO.', 'SAMSUNG VXT',
+  ],
+  EPSON: ['EPSON PRINT', 'EPSON PROJECTION', 'EPSON PROJECTOR', 'EPSON SCANNER'],
+  CANON: ['CANON USA', 'CANON USA INC', 'CANON USA INC.', 'CANON USA, INC'],
+  PANASONIC: ['PANASONIC SOLUTIONS COMPANY', 'PANASONIC SYSTEM SOLUTIONS'],
+  ACER: ['ACER AMERICA', 'ACER AMERICA CORPORATION'],
+  ASUS: ['ASUS - RETAIL', 'ASUS SBG COMMERCIAL'],
+  XEROX: ['XEROX CORPORATION'],
+  GETAC: ['GETAC INC.', 'GETAC VIDEO SOLUTIONS INC.'],
+  GOOGLE: ['GOOGLE CLOUD', 'GOOGLE INC', 'GOOGLE LLC', 'GOOGLE REMAN'],
+  RICOH: ['RICOH PFU', 'RICOH USA'],
+  SONY: ['SONY CONSUMER ELECTRONICS INC', 'SONY PRO ELECTRONICS INC'],
+  LEXMARK: ['LEXMARK WARRANTIES'],
+  SANDISK: ['SANDISK PROFESSIONAL', 'SANDISK TECHNOLOGIES, INC.'],
+  CRADLEPOINT: ['CRADLEPOINT INC', 'CRADLEPOINT MSP'],
+  AVAYA: ['AVAYA BLUE'],
+  BRADY: ['BRADY PEOPLE ID - CIPI', 'BRADY WORLDWIDE, INC.'],
+  'DT RESEARCH': ['DT RESEARCH GOVERNMENT'],
+  HUBBELL: ['HUBBELL PREMISE WIRING'],
+  HAIVISION: ['HAIVISION MCS, LLC', 'HAIVISION NETWORK VIDEO INC.'],
 }
-
-const CATEGORY_GROUP_DEFINITIONS = [
-  {
-    name: 'Laptops & PCs',
-    value: 'Laptops & PCs',
-    keywords: ['laptop', 'notebook', 'desktop', 'workstation', 'all-in-one', 'mini pc'],
-  },
-  {
-    name: 'Monitors & Docks',
-    value: 'Monitors & Docks',
-    keywords: ['monitor', 'display', 'dock', 'docking', 'usb-c hub', 'port replicator'],
-  },
-  {
-    name: 'Printing & Supplies',
-    value: 'Printing & Supplies',
-    keywords: ['printer', 'toner', 'ink', 'cartridge', 'drum', 'laserjet', 'deskjet'],
-  },
-  {
-    name: 'Networking Gear',
-    value: 'Networking Gear',
-    keywords: ['router', 'switch', 'access point', 'wifi', 'firewall', 'gateway', 'mesh'],
-  },
-  {
-    name: 'Peripherals',
-    value: 'Peripherals',
-    keywords: ['keyboard', 'mouse', 'headset', 'webcam', 'speakerphone', 'microphone'],
-  },
-  {
-    name: 'Software & Services',
-    value: 'Software & Services',
-    keywords: ['license', 'software', 'subscription', 'antivirus', 'security', 'backup', 'microsoft 365', 'office 365'],
-  },
-]
 
 // Only vendors matching a term below will appear in the sidebar.
 // To add a new brand, append its uppercase display name here.
-const PREFERRED_VENDOR_TERMS = [
-  'MICROSOFT',
-  'CISCO',
-  'HEWLETT PACKARD',
-  'HP INC',
-  'LENOVO',
-  'DELL',
-  'NVIDIA',
-  'FORTINET',
-  'VEEAM',
-  'STARTECH',
-  'LOGITECH',
-  'APPLE',
-  'AMD',
-  'INTEL',
-  'SAMSUNG',
-  'UBIQUITI',
-  'NETGEAR',
-  'PALO ALTO',
-  'JUNIPER',
-  'ARUBA',
-  'CROWDSTRIKE',
-  'VMWARE',
-  'BROADCOM',
-  'ACER',
-  'ASUS',
-  'JABRA',
-  'PLANTRONICS',
-  'POLY ',
-  'SEAGATE',
-  'WESTERN DIGITAL',
-  'KINGSTON',
-  'CRUCIAL',
-  'CORSAIR',
-  'BELKIN',
-  'KENSINGTON',
-  'APC BY',
-  'APC ',
-]
+const PREFERRED_VENDOR_TERMS = Object.keys(CURATED_VENDOR_ALIAS_MAP)
 
 // Vendors used for implicit browse scope when user has not selected a vendor
 // and the live vendor list has not loaded yet.
 const FALLBACK_VENDOR_SCOPE = [
-  'CISCO SYSTEMS',
-  'HEWLETT PACKARD ENTERPRISE',
-  'NVIDIA CORPORATION',
-  'LENOVO DATA CENTER',
-  'MICROSOFT CORPORATION',
-  'HP INC.',
-  'VEEAM SOFTWARE CORPORATION',
-  'FORTINET INC.',
-  'STARTECH.COM',
-  'LOGITECH',
-  'DELL MARKETING L.P.',
+  'CISCO',
+  'DELL',
+  'HP',
   'LENOVO',
 ]
 
 const products = ref([])
 const serverTotal = ref(0)
 const serverPaged = ref(false)
+const serverHasMore = ref(false)
+const serverTotalIsEstimate = ref(false)
 const loading = ref(false)
 const pageLoading = ref(false)
 const error = ref('')
@@ -542,6 +462,7 @@ const currentFilters = ref({
   priceMin: 0,
   priceMax: 10000,
   partNumber: '',
+  productType: '',
   vendors: [],
   categories: [],
   lifecycleStatuses: [],
@@ -550,8 +471,7 @@ const currentFilters = ref({
 
 const requiresClientForFilters = (filters) => {
   return (
-    (Array.isArray(filters?.categories) && filters.categories.length > 0)
-    || String(filters?.partNumber || '').trim().length > 0
+    String(filters?.partNumber || '').trim().length > 0
     || (Array.isArray(filters?.lifecycleStatuses) && filters.lifecycleStatuses.length > 0)
     || (Array.isArray(filters?.mediaStatuses) && filters.mediaStatuses.length > 0)
   )
@@ -816,8 +736,8 @@ const getVendorCountForKey = (vendorKey, vendorCountMap) => {
 const selectTopDisplayVendors = (vendors = [], selected = []) => {
   const source = Array.isArray(vendors) ? [...vendors] : []
   const selectedSet = new Set((selected || []).map((name) => normalizeVendorKey(name)))
-  const curatedVendorSet = new Set(CURATED_VENDOR_ALLOWLIST.map((name) => normalizeVendorKey(name)))
 
+  // Sort by count descending, then alphabetically
   source.sort((a, b) => {
     if (b.count !== a.count) return b.count - a.count
     return a.name.localeCompare(b.name)
@@ -833,29 +753,14 @@ const selectTopDisplayVendors = (vendors = [], selected = []) => {
     chosenKeys.add(key)
   }
 
-  // Show only vendors that match a preferred brand term.
-  // This prevents niche/high-volume vendors (SOPHOS, EXTREME, ADD-ON, etc.)
-  // from flooding the sidebar.
+  // Show all vendors with counts > 0
   source.forEach((vendor) => {
-    const vendorKey = normalizeVendorKey(vendor.name || vendor.value)
-    if (!vendorKey) return
-    if (curatedVendorSet.has(vendorKey)) {
+    if (Number(vendor.count || 0) > 0) {
       tryPush(vendor)
     }
   })
 
-  // Backward-compatible fallback for legacy vendor naming variations.
-  if (chosen.length === 0) {
-    source.forEach((vendor) => {
-      const vendorKey = normalizeVendorKey(vendor.name || vendor.value)
-      if (!vendorKey) return
-      if (PREFERRED_VENDOR_TERMS.some((term) => vendorKey.includes(term.toUpperCase()))) {
-        tryPush(vendor)
-      }
-    })
-  }
-
-  // Always keep any already-selected vendor visible even if not in preferred list.
+  // Always keep any already-selected vendor visible even if count is 0.
   source.forEach((vendor) => {
     const vendorKey = normalizeVendorKey(vendor.name || vendor.value)
     if (selectedSet.has(vendorKey)) {
@@ -866,27 +771,29 @@ const selectTopDisplayVendors = (vendors = [], selected = []) => {
   return chosen
 }
 
-const getCuratedCategoryForProduct = (product) => {
-  const haystack = normalizeSearchText([
-    product?.productName,
-    product?.description,
-    product?.category,
-    product?.categoryName,
-    product?.flatCategoryName,
-    product?.categoryCode,
-    product?.specifications?.categoryName,
-    product?.mfgPartNo,
-  ].join(' '))
-
-  if (!haystack) return null
-
-  for (const group of CATEGORY_GROUP_DEFINITIONS) {
-    if (group.keywords.some((keyword) => haystack.includes(normalizeSearchText(keyword)))) {
-      return group
-    }
+const getProductCategoryLabel = (product) => {
+  // Match product's categoryCode prefix against UNSPSC segments from the API
+  const categoryCode = String(product?.categoryCode || product?.specifications?.categoryCode || '').trim()
+  if (categoryCode && availableCategories.value.length > 0) {
+    const prefix = categoryCode.substring(0, 2)
+    const match = availableCategories.value.find(c => c.value === prefix)
+    if (match) return match.name
   }
 
-  return null
+  const rawCategory = [
+    product?.flatCategoryName,
+    product?.categoryName,
+    product?.category,
+    product?.specifications?.categoryName,
+  ]
+    .map((value) => String(value || '').trim())
+    .find(Boolean)
+
+  if (rawCategory) {
+    return rawCategory
+  }
+
+  return categoryCode ? `Category ${categoryCode}` : 'Uncategorized'
 }
 
 const computePersonalizationWeight = (entry) => {
@@ -968,57 +875,7 @@ const filteredProducts = computed(() => {
     filtered = filtered.filter((product) => String(product.mfgPartNo || '').toLowerCase().includes(partQuery))
   }
   
-  // Filter by category
-  if (filters.categories && filters.categories.length > 0) {
-    filtered = filtered.filter(product => {
-      const selectedCategory = filters.categories[0]
-      const selectedCategoryValue = availableCategories.value.find(c => c.name === selectedCategory)?.value || selectedCategory
-      
-      // Check if it's a billing model category
-      if (selectedCategory.startsWith('Billing: ')) {
-        const billingModel = selectedCategory.replace('Billing: ', '')
-        return product.billingModel === billingModel
-      }
-      
-      // Check if it's a billing frequency category
-      if (selectedCategory.startsWith('Frequency: ')) {
-        const frequency = selectedCategory.replace('Frequency: ', '')
-        return product.billingFrequency === frequency
-      }
-
-      const groupedCategory = CATEGORY_GROUP_DEFINITIONS.find((group) => group.name === selectedCategory)
-      if (groupedCategory) {
-        const match = getCuratedCategoryForProduct(product)
-        return match?.name === groupedCategory.name
-      }
-      
-      // Check in productCategories
-      if (product.productCategories && Array.isArray(product.productCategories)) {
-        return product.productCategories.some(cat => {
-          const categoryName = typeof cat === 'object' ? cat.categoryName : cat
-          return categoryName === selectedCategoryValue
-        })
-      }
-
-      // Check readable flat category names from PriceAvailability payloads
-      const flatCategoryName = String(product.flatCategoryName || product.categoryName || product.category || '').trim()
-      if (flatCategoryName) {
-        return flatCategoryName === selectedCategoryValue
-      }
-
-      const specCategoryName = String(product.specifications?.categoryName || '').trim()
-      if (specCategoryName) {
-        return specCategoryName === selectedCategoryValue
-      }
-
-      // PriceAvailability products use categoryCode
-      if (product.categoryCode) {
-        return String(product.categoryCode).trim() === String(selectedCategoryValue).trim()
-      }
-      
-      return false
-    })
-  }
+  // Category filtering is handled server-side via the `category` API param.
   
   // Filter by lifecycle status
   if (filters.lifecycleStatuses && filters.lifecycleStatuses.length > 0) {
@@ -1061,7 +918,40 @@ const totalProducts = computed(() => {
   return filteredProducts.value.length
 })
 
+const totalProductsLabel = computed(() => {
+  if (serverPaged.value && serverTotalIsEstimate.value) {
+    return `${totalProducts.value}+`
+  }
+
+  return String(totalProducts.value)
+})
+
 const totalPages = computed(() => Math.max(1, Math.ceil(totalProducts.value / ITEMS_PER_PAGE)))
+
+const visibleProductsCount = computed(() => paginatedProducts.value.length)
+
+const visibleProductsRangeLabel = computed(() => {
+  if (totalProducts.value === 0 || visibleProductsCount.value === 0) {
+    return `0 of ${totalProductsLabel.value} products`
+  }
+
+  const rangeStart = ((currentPage.value - 1) * ITEMS_PER_PAGE) + 1
+  const rangeEnd = rangeStart + visibleProductsCount.value - 1
+
+  if (rangeStart === rangeEnd) {
+    return `${rangeStart} of ${totalProductsLabel.value} products`
+  }
+
+  return `${rangeStart}-${rangeEnd} of ${totalProductsLabel.value} products`
+})
+
+const totalPagesLabel = computed(() => {
+  if (serverPaged.value && serverTotalIsEstimate.value && serverHasMore.value) {
+    return `${totalPages.value}+`
+  }
+
+  return String(totalPages.value)
+})
 
 const paginatedProducts = computed(() => {
   if (serverPaged.value) {
@@ -1200,6 +1090,7 @@ const getImplicitVendorScope = () => {
 const getCacheKey = (filters, page = 1, useServerPaged = false) => {
   return JSON.stringify({
     curatedVersion: CURATED_CACHE_VERSION,
+    productType: filters.productType,
     vendors: filters.vendors,
     search: searchQuery.value,
     minPrice: filters.priceMin,
@@ -1254,9 +1145,10 @@ const performSearch = async (resetPage = true) => {
       products.value = cached.data
       serverTotal.value = Number(cached.total || cached.data?.length || 0)
       serverPaged.value = Boolean(cached.serverPaged)
+      serverHasMore.value = Boolean(cached.hasMore)
+      serverTotalIsEstimate.value = Boolean(cached.totalIsEstimate)
       if (!Boolean(cached.serverPaged)) {
         updateVendorCounts(cached.data)
-        extractCategories(cached.data)
       }
       loading.value = false
       pageLoading.value = false
@@ -1271,9 +1163,10 @@ const performSearch = async (resetPage = true) => {
       products.value = result.data
       serverTotal.value = Number(result.total || result.data?.length || 0)
       serverPaged.value = Boolean(result.serverPaged)
+      serverHasMore.value = Boolean(result.hasMore)
+      serverTotalIsEstimate.value = Boolean(result.totalIsEstimate)
       if (!Boolean(result.serverPaged)) {
         updateVendorCounts(result.data)
-        extractCategories(result.data)
       }
     } finally {
       loading.value = false
@@ -1297,6 +1190,10 @@ const performSearch = async (resetPage = true) => {
         catalog_clean: true,
       }
 
+      if (currentFilters.value.productType) {
+        params.product_type = currentFilters.value.productType
+      }
+
       if (isDefaultBrowse && Number(currentFilters.value.priceMin || 0) <= 0) {
         params.min_price = DEFAULT_BROWSE_MIN_PRICE
       }
@@ -1312,6 +1209,14 @@ const performSearch = async (resetPage = true) => {
         }
       }
 
+      if (currentFilters.value.categories.length > 0) {
+        const selectedCategoryName = currentFilters.value.categories[0]
+        const categoryEntry = availableCategories.value.find(c => c.name === selectedCategoryName)
+        if (categoryEntry?.value) {
+          params.category = categoryEntry.value
+        }
+      }
+
       if (currentFilters.value.priceMin > 0) {
         params.min_price = currentFilters.value.priceMin
       }
@@ -1321,6 +1226,8 @@ const performSearch = async (resetPage = true) => {
 
       let loadedProducts = []
       let loadedTotal = 0
+      let loadedHasMore = false
+      let loadedTotalIsEstimate = false
 
       if (useServerPaged) {
         const response = await api.get('/products', {
@@ -1343,6 +1250,8 @@ const performSearch = async (resetPage = true) => {
           ? payload.records
           : (Array.isArray(payload) ? payload : [])
         loadedTotal = Number(payload.total || loadedProducts.length || 0)
+        loadedHasMore = Boolean(payload.has_more)
+        loadedTotalIsEstimate = Boolean(payload.total_is_estimate)
       } else {
         loadedProducts = await fetchAllProductPages(params)
         loadedTotal = loadedProducts.length
@@ -1351,15 +1260,10 @@ const performSearch = async (resetPage = true) => {
       products.value = loadedProducts
 
       serverTotal.value = loadedTotal
+      serverHasMore.value = loadedHasMore
+      serverTotalIsEstimate.value = loadedTotalIsEstimate
 
       if (Array.isArray(products.value)) {
-        // Always refresh categories from current results so sidebar categories are never empty.
-        try {
-          extractCategories(loadedProducts)
-        } catch (err) {
-          console.error('Category extraction error:', err)
-        }
-
         // Vendor counts should only be recomputed from full client-side datasets.
         if (!useServerPaged) {
           updateVendorCounts(loadedProducts)
@@ -1370,6 +1274,8 @@ const performSearch = async (resetPage = true) => {
           data: products.value,
           total: loadedTotal,
           serverPaged: useServerPaged,
+          hasMore: loadedHasMore,
+          totalIsEstimate: loadedTotalIsEstimate,
           timestamp: Date.now()
         })
 
@@ -1382,7 +1288,9 @@ const performSearch = async (resetPage = true) => {
         return {
           data: products.value,
           total: loadedTotal,
-          serverPaged: useServerPaged
+          serverPaged: useServerPaged,
+          hasMore: loadedHasMore,
+          totalIsEstimate: loadedTotalIsEstimate,
         }
       } else {
         error.value = 'Failed to fetch products'
@@ -1416,33 +1324,32 @@ const clearSearch = async () => {
 }
 
 const fetchVendors = async () => {
-  // Build count lookup from API, then map CURATED_VENDOR_ALLOWLIST as the authoritative list
-  const buildFromAllowlist = (apiVendors = []) => {
-    const countLookup = new Map()
+  // Build vendor list from API response — show ALL vendors with their counts
+  const buildFromApi = (apiVendors = []) => {
+    const aggregated = new Map()
     apiVendors.forEach((vendor) => {
       const name = String(vendor.vendorName || vendor.vendorId || '').trim()
+      if (!name) return
       const key = toCanonicalVendorKey(name)
-      if (key) countLookup.set(key, (countLookup.get(key) || 0) + Number(vendor.count || 0))
-    })
-
-    return CURATED_VENDOR_ALLOWLIST.map((vendorName) => {
-      const key = toCanonicalVendorKey(vendorName)
-      const apiCount = countLookup.get(key) || 0
-      return {
-        name: vendorName,
-        value: vendorName,
-        count: apiCount,
+      if (!key) return
+      const existing = aggregated.get(key)
+      if (existing) {
+        existing.count += Number(vendor.count || 0)
+      } else {
+        aggregated.set(key, {
+          name,
+          value: name,
+          count: Number(vendor.count || 0),
+        })
       }
-    }).sort((a, b) => {
+    })
+    return Array.from(aggregated.values()).sort((a, b) => {
       if (b.count !== a.count) return b.count - a.count
       return a.name.localeCompare(b.name)
     })
   }
 
   if (!ENABLE_VENDOR_COUNTS_API) {
-    const mapped = buildFromAllowlist([])
-    allVendors.value = mapped
-    availableVendors.value = mapped
     return
   }
 
@@ -1456,6 +1363,10 @@ const fetchVendors = async () => {
       curated_it_mix: true,
       hide_zero_price: true,
       catalog_clean: true,
+    }
+
+    if (currentFilters.value.productType) {
+      vendorParams.product_type = currentFilters.value.productType
     }
 
     if (isDefaultBrowse && Number(currentFilters.value.priceMin || 0) <= 0) {
@@ -1472,16 +1383,53 @@ const fetchVendors = async () => {
 
     const rawVendorData = response.data?.data || []
     const apiVendors = Array.isArray(rawVendorData) ? rawVendorData : (rawVendorData.records || [])
-    const mappedVendors = buildFromAllowlist(apiVendors)
+    const mappedVendors = buildFromApi(apiVendors)
 
     allVendors.value = mappedVendors
     availableVendors.value = mappedVendors
   } catch (err) {
     console.error('Error fetching vendors:', err)
-    // Fallback: still show all 26 curated brands with nominal count
-    const fallback = buildFromAllowlist([])
-    allVendors.value = fallback
-    availableVendors.value = fallback
+  }
+}
+
+const fetchCategories = async () => {
+  try {
+    const isDefaultBrowse =
+      !searchQuery.value
+      && currentFilters.value.vendors.length === 0
+      && !requiresClientForFilters(currentFilters.value)
+
+    const params = {
+      hide_zero_price: true,
+      catalog_clean: true,
+    }
+
+    if (currentFilters.value.productType) {
+      params.product_type = currentFilters.value.productType
+    }
+
+    if (isDefaultBrowse && Number(currentFilters.value.priceMin || 0) <= 0) {
+      params.min_price = DEFAULT_BROWSE_MIN_PRICE
+    } else if (Number(currentFilters.value.priceMin || 0) > 0) {
+      params.min_price = currentFilters.value.priceMin
+    }
+
+    if (Number(currentFilters.value.priceMax || 10000) < 10000) {
+      params.max_price = currentFilters.value.priceMax
+    }
+
+    const response = await api.get('/categories', { params })
+    const rawData = response.data?.data || []
+
+    if (Array.isArray(rawData) && rawData.length > 0) {
+      availableCategories.value = rawData.map(cat => ({
+        name: cat.name || cat.value || '',
+        value: cat.value || cat.name || '',
+        count: Number(cat.count || 0),
+      }))
+    }
+  } catch (err) {
+    console.error('Error fetching categories:', err)
   }
 }
 
@@ -1514,33 +1462,12 @@ const updateVendorCounts = (sourceProducts = products.value) => {
   availableVendors.value = selectTopDisplayVendors(availableVendors.value, currentFilters.value.vendors)
 }
 
-const extractCategories = (sourceProducts = products.value) => {
-  const counts = new Map(CATEGORY_GROUP_DEFINITIONS.map((group) => [group.name, 0]))
-
-  sourceProducts.forEach((product) => {
-    const match = getCuratedCategoryForProduct(product)
-    if (match) {
-      counts.set(match.name, Number(counts.get(match.name) || 0) + 1)
-    }
-  })
-
-  availableCategories.value = CATEGORY_GROUP_DEFINITIONS.map((group) => ({
-    name: group.name,
-    value: group.value,
-    // Keep each curated category visible in sidebar even when current page has sparse matches.
-    count: Math.max(1, Number(counts.get(group.name) || 0)),
-  }))
-  
-  // Vendor counts are updated from currently loaded products.
-  
-  // Log for verification
-}
-
 const handleFilterChange = (filters) => {
   const normalizeFilters = (value = {}) => ({
     priceMin: Number(value.priceMin ?? 0),
     priceMax: Number(value.priceMax ?? 10000),
     partNumber: String(value.partNumber ?? '').trim(),
+    productType: String(value.productType ?? '').toLowerCase() === 'software' ? 'software' : (String(value.productType ?? '').toLowerCase() === 'hardware' ? 'hardware' : ''),
     vendors: Array.isArray(value.vendors) ? [...value.vendors].map((v) => String(v).trim()) : [],
     categories: Array.isArray(value.categories) ? [...value.categories].map((v) => String(v).trim()) : [],
     lifecycleStatuses: Array.isArray(value.lifecycleStatuses) ? [...value.lifecycleStatuses].map((v) => String(v).trim()) : [],
@@ -1568,6 +1495,7 @@ const resetFilters = () => {
     priceMin: 0,
     priceMax: 10000,
     partNumber: '',
+    productType: '',
     vendors: [],
     categories: [],
     lifecycleStatuses: [],
@@ -1612,6 +1540,10 @@ const prefetchPage = (page) => {
     curated_it_mix: true,
   }
 
+  if (currentFilters.value.productType) {
+    params.product_type = currentFilters.value.productType
+  }
+
   const hasClientOnlyFilters = requiresClientForFilters(currentFilters.value)
   const isDefaultBrowse =
     !searchQuery.value
@@ -1631,6 +1563,7 @@ const prefetchPage = (page) => {
 
   const tempFilters = { ...currentFilters.value }
   const cacheKey = JSON.stringify({
+    productType: tempFilters.productType,
     vendors: tempFilters.vendors,
     search: searchQuery.value,
     minPrice: tempFilters.priceMin,
@@ -1930,5 +1863,6 @@ onMounted(async () => {
   await loadPricingSettings(true)
   loadLocalSearchHistory()
   fetchVendors()
+  fetchCategories()
 })
 </script>

@@ -64,6 +64,7 @@ Route::prefix('v1')->group(function () {
     
     // Vendors endpoints
     Route::get('/vendors', [ProductController::class, 'vendors']);
+    Route::get('/categories', [ProductController::class, 'categories']);
     Route::get('/pricing/settings', [QuoteOrderInvoiceController::class, 'getPricingSettings']);
 
     // Reviews endpoints (public read, auth write)

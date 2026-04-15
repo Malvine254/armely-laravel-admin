@@ -185,7 +185,10 @@ return [
         'enabled' => env('SERPAPI_IMAGE_ENABLED', false),
         'api_key' => env('SERPAPI_API_KEY', ''),
         'endpoint' => env('SERPAPI_ENDPOINT', 'https://serpapi.com/search.json'),
+        // Use bing_images to run image search on Bing via SerpAPI.
         'engine' => env('SERPAPI_ENGINE', 'google_images'),
+        // Query priority for image lookup: hybrid, title, sku, manufacturer
+        'query_strategy' => env('SERPAPI_QUERY_STRATEGY', 'hybrid'),
         'tbm' => env('SERPAPI_TBM', 'isch'),
         'gl' => env('SERPAPI_GL', 'us'),
         'hl' => env('SERPAPI_HL', 'en'),
@@ -195,6 +198,14 @@ return [
         'max_queries' => env('SERPAPI_MAX_QUERIES', 3),
         'retry_attempts' => env('SERPAPI_RETRY_ATTEMPTS', 3),
         'retry_delay_ms' => env('SERPAPI_RETRY_DELAY_MS', 350),
+    ],
+
+    // Primary web image source used by resolver when flat-file images are missing.
+    'bing' => [
+        'enabled' => env('BING_IMAGE_ENABLED', true),
+        'timeout' => env('BING_IMAGE_TIMEOUT', 8),
+        'connect_timeout' => env('BING_IMAGE_CONNECT_TIMEOUT', 3),
+        'user_agent' => env('BING_IMAGE_USER_AGENT', 'Mozilla/5.0 (compatible; ArmelyImageBot/1.0; +https://armely.com)'),
     ],
 
     'image_sync' => [

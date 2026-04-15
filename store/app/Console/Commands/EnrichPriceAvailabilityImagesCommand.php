@@ -14,7 +14,7 @@ class EnrichPriceAvailabilityImagesCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'tdsynnex:enrich-priceavailability-images {--chunk=1 : Number of products per batch} {--limit=0 : Max products to process (0 = all)} {--sync : Run inline and block until complete} {--descriptions : Backfill Icecat descriptions for products with missing or name-only descriptions}';
+    protected $signature = 'tdsynnex:enrich-priceavailability-images {--chunk=1 : Number of products per batch} {--limit=0 : Max products to process (0 = all)} {--sync : Run inline and block until complete} {--descriptions : Backfill Icecat descriptions for products with missing or name-only descriptions} {--vendor=TD SYNNEX : Product vendor_id filter} {--search= : Product search filter (title, SKU, MPN, description, manufacturer)} {--manufacturer= : Manufacturer filter (from specifications.manufacturer)} {--manufacturer-id= : Manufacturer identifier filter (alias of manufacturer)} {--sku= : SKU/MPN filter, accepts CSV for multiple values} {--force-web-refresh : Include rows that already have images and prioritize web/title lookup}';
 
     /**
      * The console command description.
@@ -34,6 +34,22 @@ class EnrichPriceAvailabilityImagesCommand extends Command
             $chunk = max(1, (int) $this->option('chunk'));
             $limit = max(0, (int) $this->option('limit'));
             $descriptionMode = (bool) $this->option('descriptions');
+            $vendor = trim((string) $this->option('vendor'));
+            $search = trim((string) $this->option('search'));
+            $manufacturer = trim((string) $this->option('manufacturer'));
+            $manufacturerId = trim((string) $this->option('manufacturer-id'));
+            $sku = trim((string) $this->option('sku'));
+            $forceWebRefresh = (bool) $this->option('force-web-refresh');
+
+            $filters = [
+                'vendor' => $vendor,
+                'search' => $search,
+                'manufacturer' => $manufacturer,
+                'manufacturer_id' => $manufacturerId,
+                'sku' => $sku,
+                'include_with_images' => $forceWebRefresh,
+                'prefer_web' => $forceWebRefresh,
+            ];
 
             if (!$this->option('sync')) {
                 if ($descriptionMode) {
@@ -41,7 +57,7 @@ class EnrichPriceAvailabilityImagesCommand extends Command
                     return self::FAILURE;
                 }
 
-                $query = $service->priceAvailabilityImageSyncQuery()
+                $query = $service->priceAvailabilityImageSyncQuery($filters)
                     ->orderBy('id')
                     ->select('id');
 
@@ -87,7 +103,7 @@ class EnrichPriceAvailabilityImagesCommand extends Command
             }
 
             // Count total products to process for progress display
-            $totalQuery = $service->priceAvailabilityImageSyncQuery();
+            $totalQuery = $service->priceAvailabilityImageSyncQuery($filters);
             if ($limit > 0) {
                 $totalToProcess = min($limit, $totalQuery->count());
             } else {
@@ -100,6 +116,16 @@ class EnrichPriceAvailabilityImagesCommand extends Command
             }
 
             $this->info("Enriching images for {$totalToProcess} products...");
+            if ($search !== '' || $manufacturer !== '' || $manufacturerId !== '' || $sku !== '' || $vendor !== '') {
+                $this->line(
+                    'Filters: vendor=' . ($vendor !== '' ? $vendor : 'TD SYNNEX')
+                    . ', search=' . ($search !== '' ? $search : 'none')
+                    . ', manufacturer=' . ($manufacturer !== '' ? $manufacturer : 'none')
+                    . ', manufacturer-id=' . ($manufacturerId !== '' ? $manufacturerId : 'none')
+                    . ', sku=' . ($sku !== '' ? $sku : 'none')
+                    . ', force-web-refresh=' . ($forceWebRefresh ? 'yes' : 'no')
+                );
+            }
             $this->newLine();
 
             $startTime = microtime(true);
@@ -134,7 +160,7 @@ class EnrichPriceAvailabilityImagesCommand extends Command
                         $rate
                     )
                 );
-            });
+            }, $filters);
 
             $elapsed = round(microtime(true) - $startTime, 1);
 

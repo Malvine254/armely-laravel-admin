@@ -237,8 +237,8 @@
 
     <!-- Quote Review Modal -->
     <div v-if="selectedQuote" class="fixed inset-0 z-[9999] bg-black/50 backdrop-blur-[2px] flex items-center justify-center p-4" @click="selectedQuote = null">
-      <div class="rounded-2xl shadow-2xl max-w-6xl w-full max-h-[94vh] overflow-y-auto border border-white/10" style="background: linear-gradient(180deg, rgba(15, 23, 42, 0.95), rgba(10, 41, 72, 0.95));" @click.stop>
-        <div class="sticky top-0 text-white p-6 border-b border-white/10" style="background: linear-gradient(90deg, rgba(34, 211, 238, 0.15), rgba(59, 130, 246, 0.1));">
+      <div class="rounded-2xl shadow-2xl max-w-6xl w-full max-h-[94vh] border border-white/10 overflow-hidden flex flex-col" style="background: linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(10, 41, 72, 0.98));" @click.stop>
+        <div class="text-white p-6 border-b border-white/10 flex-shrink-0 relative z-10" style="background: linear-gradient(90deg, rgba(15, 23, 42, 0.98), rgba(10, 41, 72, 0.98)); box-shadow: 0 10px 30px rgba(2, 8, 23, 0.35);">
           <div class="flex justify-between items-center">
             <div>
               <p class="text-xs uppercase tracking-wide text-cyan-300 font-semibold">Quote Approval</p>
@@ -250,7 +250,7 @@
           </div>
         </div>
 
-        <div class="p-6 sm:p-8 space-y-6">
+        <div class="p-6 sm:p-8 space-y-6 overflow-y-auto flex-1">
           <div v-if="isLoadingQuoteDetails" class="bg-cyan-500/20 border border-cyan-400/30 rounded-lg px-4 py-3 text-sm text-cyan-300">
             <i class="fas fa-spinner fa-spin mr-2"></i>Loading full quote details...
           </div>
@@ -313,75 +313,77 @@
           </div>
 
           <!-- Full Row Details -->
-          <div class="border rounded-lg">
+          <div class="border border-white/10 rounded-lg">
             <button
               @click="showFullRowDetails = !showFullRowDetails"
-              class="w-full px-4 py-3 flex items-center justify-between text-left font-semibold text-gray-800 hover:bg-gray-50 transition"
+              class="w-full px-4 py-3 flex items-center justify-between text-left font-semibold text-slate-200 hover:bg-white/5 transition"
             >
               <span>Full Row Details</span>
               <i :class="showFullRowDetails ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
             </button>
-            <div v-if="showFullRowDetails" class="px-4 pb-4 pt-3 border-t bg-gray-50">
+            <div v-if="showFullRowDetails" class="px-4 pb-4 pt-3 border-t border-white/10" style="background: rgba(15, 23, 42, 0.5);">
               <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                <div class="bg-white rounded-lg border border-gray-200 p-3 space-y-1">
-                  <p class="font-semibold text-gray-800">Quote Metadata</p>
-                  <p><span class="font-medium text-gray-700">Internal ID:</span> {{ selectedQuote.id }}</p>
-                  <p><span class="font-medium text-gray-700">Quote ID:</span> {{ selectedQuote.quote_id }}</p>
-                  <p><span class="font-medium text-gray-700">Status:</span> {{ formatStatus(selectedQuote.status) }}</p>
-                  <p><span class="font-medium text-gray-700">Created:</span> {{ formatDate(selectedQuote.created_at) }}</p>
-                  <p><span class="font-medium text-gray-700">Submitted:</span> {{ formatDate(selectedQuote.submitted_at || selectedQuote.created_at) }}</p>
-                  <p><span class="font-medium text-gray-700">Expires:</span> {{ formatDate(selectedQuote.expires_at) }}</p>
+                <div class="rounded-lg border border-white/10 p-3 space-y-1" style="background: rgba(148, 163, 184, 0.08);">
+                  <p class="font-semibold text-slate-100">Quote Metadata</p>
+                  <p><span class="font-medium text-slate-400">Internal ID:</span> <span class="text-slate-200">{{ selectedQuote.id }}</span></p>
+                  <p><span class="font-medium text-slate-400">Quote ID:</span> <span class="text-slate-200">{{ selectedQuote.quote_id }}</span></p>
+                  <p><span class="font-medium text-slate-400">Status:</span> <span class="text-slate-200">{{ formatStatus(selectedQuote.status) }}</span></p>
+                  <p><span class="font-medium text-slate-400">Created:</span> <span class="text-slate-200">{{ formatDate(selectedQuote.created_at) }}</span></p>
+                  <p><span class="font-medium text-slate-400">Submitted:</span> <span class="text-slate-200">{{ formatDate(selectedQuote.submitted_at || selectedQuote.created_at) }}</span></p>
+                  <p><span class="font-medium text-slate-400">Expires:</span> <span class="text-slate-200">{{ formatDate(selectedQuote.expires_at) }}</span></p>
                 </div>
 
-                <div class="bg-white rounded-lg border border-gray-200 p-3 space-y-1">
-                  <p class="font-semibold text-gray-800">Financial</p>
-                  <p><span class="font-medium text-gray-700">Subtotal:</span> ${{ formatCurrency(selectedQuote.total_amount) }}</p>
-                  <p><span class="font-medium text-gray-700">Tax:</span> ${{ formatCurrency(selectedQuote.tax_amount) }}</p>
-                  <p><span class="font-medium text-gray-700">Discount:</span> ${{ formatCurrency(selectedQuote.discount_amount) }}</p>
-                  <p><span class="font-medium text-gray-700">Items Count:</span> {{ selectedQuote.items?.length || 0 }}</p>
+                <div class="rounded-lg border border-white/10 p-3 space-y-1" style="background: rgba(148, 163, 184, 0.08);">
+                  <p class="font-semibold text-slate-100">Financial</p>
+                  <p><span class="font-medium text-slate-400">Subtotal:</span> <span class="text-slate-200">${{ formatCurrency(selectedQuote.total_amount) }}</span></p>
+                  <p><span class="font-medium text-slate-400">Tax:</span> <span class="text-slate-200">${{ formatCurrency(selectedQuote.tax_amount) }}</span></p>
+                  <p><span class="font-medium text-slate-400">Discount:</span> <span class="text-slate-200">${{ formatCurrency(selectedQuote.discount_amount) }}</span></p>
+                  <p><span class="font-medium text-slate-400">Items Count:</span> <span class="text-slate-200">{{ selectedQuote.items?.length || 0 }}</span></p>
                 </div>
 
-                <div class="bg-white rounded-lg border border-gray-200 p-3 space-y-1">
-                  <p class="font-semibold text-gray-800">Approval Trail</p>
-                  <p><span class="font-medium text-gray-700">Approved At:</span> {{ formatDate(selectedQuote.approved_at) }}</p>
-                  <p><span class="font-medium text-gray-700">Rejected At:</span> {{ formatDate(selectedQuote.rejected_at) }}</p>
-                  <p><span class="font-medium text-gray-700">Rejected Reason:</span> {{ selectedQuote.rejection_reason || 'N/A' }}</p>
-                  <p><span class="font-medium text-gray-700">Admin Notes:</span> {{ selectedQuote.admin_notes || adminNotes || 'N/A' }}</p>
+                <div class="rounded-lg border border-white/10 p-3 space-y-1" style="background: rgba(148, 163, 184, 0.08);">
+                  <p class="font-semibold text-slate-100">Approval Trail</p>
+                  <p><span class="font-medium text-slate-400">Approved At:</span> <span class="text-slate-200">{{ formatDate(selectedQuote.approved_at) }}</span></p>
+                  <p><span class="font-medium text-slate-400">Rejected At:</span> <span class="text-slate-200">{{ formatDate(selectedQuote.rejected_at) }}</span></p>
+                  <p><span class="font-medium text-slate-400">Rejected Reason:</span> <span class="text-slate-200">{{ selectedQuote.rejection_reason || 'N/A' }}</span></p>
+                  <p><span class="font-medium text-slate-400">Admin Notes:</span> <span class="text-slate-200">{{ selectedQuote.admin_notes || adminNotes || 'N/A' }}</span></p>
                 </div>
               </div>
 
-              <div class="mt-4 bg-white rounded-lg border border-gray-200 p-3 text-sm" v-if="selectedQuote.order?.invoice">
-                <p class="font-semibold text-gray-800 mb-1">Invoice</p>
-                <p><span class="font-medium text-gray-700">Invoice #:</span> {{ selectedQuote.order.invoice.invoice_number || 'N/A' }}</p>
-                <p><span class="font-medium text-gray-700">Status:</span> {{ selectedQuote.order.invoice.status || 'N/A' }}</p>
-                <p><span class="font-medium text-gray-700">Due Date:</span> {{ formatDate(selectedQuote.order.invoice.due_date) }}</p>
-                <p><span class="font-medium text-gray-700">Amount:</span> ${{ formatCurrency(selectedQuote.order.invoice.total_amount) }}</p>
+              <div class="mt-4 rounded-lg border border-white/10 p-3 text-sm" style="background: rgba(148, 163, 184, 0.08);" v-if="selectedQuote.order?.invoice">
+                <p class="font-semibold text-slate-100 mb-1">Invoice</p>
+                <p><span class="font-medium text-slate-400">Invoice #:</span> <span class="text-slate-200">{{ selectedQuote.order.invoice.invoice_number || 'N/A' }}</span></p>
+                <p><span class="font-medium text-slate-400">Status:</span> <span class="text-slate-200">{{ selectedQuote.order.invoice.status || 'N/A' }}</span></p>
+                <p><span class="font-medium text-slate-400">Due Date:</span> <span class="text-slate-200">{{ formatDate(selectedQuote.order.invoice.due_date) }}</span></p>
+                <p><span class="font-medium text-slate-400">Amount:</span> <span class="text-slate-200">${{ formatCurrency(selectedQuote.order.invoice.total_amount) }}</span></p>
               </div>
 
-              <div class="mt-4 bg-white rounded-lg border border-gray-200 p-3 text-sm">
-                <p class="font-semibold text-gray-800 mb-1">Description</p>
-                <p class="text-gray-700 whitespace-pre-wrap">{{ selectedQuote.description || 'N/A' }}</p>
+              <div class="mt-4 rounded-lg border border-white/10 p-3 text-sm" style="background: rgba(148, 163, 184, 0.08);">
+                <p class="font-semibold text-slate-100 mb-1">Description</p>
+                <p class="text-slate-300 whitespace-pre-wrap">{{ selectedQuote.description || 'N/A' }}</p>
               </div>
             </div>
           </div>
 
           <!-- Admin Notes -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Admin Notes</label>
+            <label class="block text-sm font-medium text-slate-200 mb-2">Admin Notes</label>
             <textarea
               v-model="adminNotes"
               placeholder="Add internal notes..."
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2f5597] h-24"
+              class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 h-24 text-slate-100 placeholder-slate-400"
+              style="background: rgba(15, 23, 42, 0.78); border-color: rgba(148, 163, 184, 0.35); color: #e2e8f0; caret-color: #e2e8f0;"
             ></textarea>
           </div>
 
           <!-- Rejection Reason (if rejecting) -->
           <div v-if="showRejectionReason">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Rejection Reason</label>
+            <label class="block text-sm font-medium text-slate-200 mb-2">Rejection Reason</label>
             <textarea
               v-model="rejectionReason"
               placeholder="Provide a reason for rejection..."
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2f5597] h-20"
+              class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 h-20 text-slate-100 placeholder-slate-400"
+              style="background: rgba(15, 23, 42, 0.78); border-color: rgba(148, 163, 184, 0.35); color: #e2e8f0; caret-color: #e2e8f0;"
               required
             ></textarea>
           </div>
@@ -536,6 +538,60 @@ const pageNumbers = computed(() => {
   return pages
 })
 
+const normalizeText = (value) => String(value || '').trim()
+
+const isUnknownProductLabel = (value) => {
+  const normalized = normalizeText(value).toLowerCase()
+  if (!normalized) return true
+  return /^unknown\s+product(\s*\([^)]*\))?(\s*\d+)?$/i.test(normalized)
+}
+
+const getPreferredItemName = (item, lineItem = {}, relatedProduct = {}, index = 0) => {
+  const candidateNames = [
+    item?.product_name,
+    item?.productName,
+    item?.partDescription,
+    item?.item_name,
+    item?.name,
+    item?.description,
+    lineItem?.product_name,
+    lineItem?.item_name,
+    lineItem?.name,
+    lineItem?.description,
+    relatedProduct?.product_name,
+    relatedProduct?.name,
+  ]
+
+  const validName = candidateNames
+    .map(normalizeText)
+    .find((candidate) => candidate && !isUnknownProductLabel(candidate))
+
+  if (validName) return validName
+
+  const mfg = normalizeText(
+    item?.mfg_part_number
+    || item?.mfg_part_no
+    || lineItem?.mfg_part_number
+    || lineItem?.part_number
+    || relatedProduct?.mfg_part_no
+  )
+  if (mfg) return mfg
+
+  const sku = normalizeText(
+    item?.sku
+    || item?.sku_no
+    || lineItem?.sku
+    || lineItem?.sku_no
+    || relatedProduct?.tdsynnex_sku_no
+  )
+  if (sku) return `SKU ${sku}`
+
+  const productId = normalizeText(item?.product_id || lineItem?.product_id || relatedProduct?.id)
+  if (productId) return `Product #${productId}`
+
+  return `Item ${index + 1}`
+}
+
 const normalizedQuoteItems = computed(() => {
   const rawItems = Array.isArray(selectedQuote.value?.items) ? selectedQuote.value.items : []
   const lineItems = Array.isArray(selectedQuote.value?.lineItems) ? selectedQuote.value.lineItems : []
@@ -545,6 +601,9 @@ const normalizedQuoteItems = computed(() => {
 
   return sourceItems.map((item, index) => {
     const lineItem = lineItems[index] || {}
+    // For lineItems loaded via Eloquent relation, the nested product object provides the name.
+    const relatedProduct = item?.product || lineItem?.product || {}
+
     const quantity = Number(
       item?.quantity
       || item?.qty
@@ -562,31 +621,19 @@ const normalizedQuoteItems = computed(() => {
       || 0
     )
 
-    const name = String(
-      item?.product_name
-      || item?.productName
-      || item?.partDescription
-      || item?.item_name
-      || item?.name
-      || item?.description
-      || lineItem?.product_name
-      || lineItem?.item_name
-      || lineItem?.name
-      || lineItem?.description
-      || item?.sku
-      || item?.product_id
-      || lineItem?.sku
-      || lineItem?.product_id
-      || 'Unknown Product'
-    ).trim()
+    const name = getPreferredItemName(item, lineItem, relatedProduct, index)
 
     const sku = String(
       item?.sku
       || item?.sku_no
+      || item?.mfg_part_number
+      || item?.mfg_part_no
       || item?.partNumber
       || lineItem?.sku
       || lineItem?.sku_no
       || lineItem?.part_number
+      || relatedProduct?.tdsynnex_sku_no
+      || relatedProduct?.mfg_part_no
       || ''
     ).trim()
 
@@ -643,18 +690,23 @@ const getQuoteDisplayName = (quote) => {
   const items = Array.isArray(quote?.items) ? quote.items : []
   if (items.length > 0) {
     const first = items[0] || {}
-    const firstName = String(
-      first.product_name
-      || first.productName
-      || first.partDescription
-      || first.name
-      || first.description
-      || ''
-    ).trim()
+    const firstName = getPreferredItemName(first, {}, {}, 0)
 
-    if (firstName) {
+    if (firstName && !/^item\s+1$/i.test(firstName)) {
       const extra = Math.max(items.length - 1, 0)
       return extra > 0 ? `${firstName} +${extra} more` : firstName
+    }
+
+    // Fall back to mfg part number if name is still missing
+    const firstMfg = String(
+      first.mfg_part_number
+      || first.mfg_part_no
+      || first.sku
+      || ''
+    ).trim()
+    if (firstMfg) {
+      const extra = Math.max(items.length - 1, 0)
+      return extra > 0 ? `${firstMfg} +${extra} more` : firstMfg
     }
   }
 
