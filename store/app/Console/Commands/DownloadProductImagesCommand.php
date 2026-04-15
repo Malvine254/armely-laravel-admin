@@ -103,8 +103,8 @@ class DownloadProductImagesCommand extends Command
                 $spec     = is_array($product->specifications) ? $product->specifications : [];
                 $mpn      = trim((string) ($product->mfg_part_no ?? ''));
                 $sku      = trim((string) ($spec['sku'] ?? $product->tdsynnex_sku_no ?? $product->tdsynnex_product_id ?? $product->id));
-                // mfg_part_no is the most human-readable stable key; fall back to sku then DB id.
-                $nameBase = $mpn !== '' ? $mpn : ($sku !== '' ? $sku : (string) $product->id);
+                // Use SKU-first naming for easier operational lookup on disk.
+                $nameBase = $sku !== '' ? $sku : ($mpn !== '' ? $mpn : (string) $product->id);
                 $safeName = strtolower(preg_replace('/[^a-zA-Z0-9.\-_]/', '-', $nameBase));
                 $safeName = trim($safeName, '-');
 

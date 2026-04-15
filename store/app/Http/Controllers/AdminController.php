@@ -110,6 +110,122 @@ class AdminController extends Controller
         return app()->bound(TDSynnexService::class) || class_exists(TDSynnexService::class);
     }
 
+    private function isUnknownProductName(?string $value): bool
+    {
+        $normalized = trim((string) $value);
+
+        if ($normalized === '') {
+            return true;
+        }
+
+        return (bool) preg_match('/^unknown\s+product(\s*\([^)]*\))?(\s*\d+)?$/i', $normalized);
+    }
+
+    private function enrichQuoteItemsWithProductData(array $items): array
+    {
+        if (empty($items)) {
+            return $items;
+        }
+
+        $itemsMissingName = collect($items)->filter(function ($item) {
+            return $this->isUnknownProductName($item['product_name'] ?? null);
+        });
+
+        if ($itemsMissingName->isEmpty()) {
+            return $items;
+        }
+
+        $productIds = $itemsMissingName
+            ->map(fn ($item) => trim((string) ($item['product_id'] ?? '')))
+            ->filter(fn ($value) => $value !== '')
+            ->unique()
+            ->values();
+
+        $missingSkus = $itemsMissingName
+            ->map(fn ($item) => trim((string) (
+                $item['sku'] ?? $item['sku_no'] ?? $item['partNumber'] ?? $item['mfg_part_number'] ?? $item['mfg_part_no'] ?? ''
+            )))
+            ->filter(fn ($value) => $value !== '')
+            ->unique()
+            ->values();
+
+        $productsByLocalId = collect();
+        $productsByExternalId = collect();
+        $productsBySku = collect();
+        $productsByMfg = collect();
+
+        if ($productIds->isNotEmpty()) {
+            $productsByLocalId = Product::query()
+                ->whereIn('id', $productIds->all())
+                ->get(['id', 'tdsynnex_product_id', 'product_name', 'mfg_part_no', 'tdsynnex_sku_no'])
+                ->keyBy(fn (Product $product) => (string) $product->id);
+
+            $productsByExternalId = Product::query()
+                ->whereIn('tdsynnex_product_id', $productIds->all())
+                ->get(['id', 'tdsynnex_product_id', 'product_name', 'mfg_part_no', 'tdsynnex_sku_no'])
+                ->keyBy(fn (Product $product) => trim((string) $product->tdsynnex_product_id));
+        }
+
+        if ($missingSkus->isNotEmpty()) {
+            $matchedProducts = Product::query()
+                ->whereIn('tdsynnex_sku_no', $missingSkus->all())
+                ->orWhereIn('mfg_part_no', $missingSkus->all())
+                ->get(['id', 'tdsynnex_product_id', 'product_name', 'mfg_part_no', 'tdsynnex_sku_no']);
+
+            $productsBySku = $matchedProducts
+                ->filter(fn (Product $product) => trim((string) $product->tdsynnex_sku_no) !== '')
+                ->keyBy(fn (Product $product) => trim((string) $product->tdsynnex_sku_no));
+
+            $productsByMfg = $matchedProducts
+                ->filter(fn (Product $product) => trim((string) $product->mfg_part_no) !== '')
+                ->keyBy(fn (Product $product) => trim((string) $product->mfg_part_no));
+        }
+
+        return array_map(function (array $item) use ($productsByLocalId, $productsByExternalId, $productsBySku, $productsByMfg) {
+            $existingName = trim((string) ($item['product_name'] ?? ''));
+            if (!$this->isUnknownProductName($existingName)) {
+                return $item;
+            }
+
+            $product = null;
+            $productId = trim((string) ($item['product_id'] ?? ''));
+
+            if ($productId !== '') {
+                $product = $productsByLocalId->get($productId) ?? $productsByExternalId->get($productId);
+            }
+
+            if (!$product) {
+                $skuKey = trim((string) (
+                    $item['sku'] ?? $item['sku_no'] ?? $item['partNumber'] ?? $item['mfg_part_number'] ?? $item['mfg_part_no'] ?? ''
+                ));
+
+                if ($skuKey !== '') {
+                    $product = $productsBySku->get($skuKey) ?? $productsByMfg->get($skuKey);
+                }
+            }
+
+            if (!$product) {
+                return $item;
+            }
+
+            $item['product_name'] = $product->product_name
+                ?? $product->mfg_part_no
+                ?? $product->tdsynnex_sku_no
+                ?? $existingName
+                ?? null;
+
+            if (empty($item['mfg_part_number'] ?? null)) {
+                $item['mfg_part_number'] = $product->mfg_part_no ?? null;
+            }
+
+            if (empty($item['sku'] ?? null)) {
+                $item['sku'] = $product->tdsynnex_sku_no ?? $product->mfg_part_no ?? null;
+            }
+
+            return $item;
+        }, $items);
+    }
+
     /**
      * Recursively search for order number in API response
      * Looks for common field names that might contain order ID
@@ -780,6 +896,15 @@ class AdminController extends Controller
             $quotes = $quotesQuery
                 ->paginate($pageSize, ['*'], 'page', $page);
 
+            $quotes->getCollection()->transform(function (Quote $quote) {
+                $items = is_array($quote->items) ? $quote->items : [];
+                if (!empty($items)) {
+                    $quote->items = $this->enrichQuoteItemsWithProductData($items);
+                }
+
+                return $quote;
+            });
+
             return response()->json([
                 'success' => true,
                 'data' => $quotes->items(),
@@ -1334,6 +1459,7 @@ class AdminController extends Controller
                     'order',
                     'order.invoice',
                     'lineItems',
+                    'lineItems.product',
                 ])
                 ->where('id', $quoteId)
                 ->orWhere('quote_id', $quoteId)
@@ -1344,6 +1470,12 @@ class AdminController extends Controller
                     'success' => false,
                     'message' => 'Quote not found',
                 ], 404);
+            }
+
+            // Enrich items JSON: fill missing product_name from the products table.
+            $items = is_array($quote->items) ? $quote->items : [];
+            if (!empty($items)) {
+                $quote->items = $this->enrichQuoteItemsWithProductData($items);
             }
 
             return response()->json([

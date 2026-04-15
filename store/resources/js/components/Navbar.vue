@@ -280,53 +280,53 @@ const moreCategoryDropdownOpen = ref(null)
 const mobileProductsOpen = ref(false)
 
 const productCategories = [
-  { name: 'Laptops & PCs', value: 'Laptops & PCs' },
-  { name: 'Monitors & Docks', value: 'Monitors & Docks' },
-  { name: 'Networking Gear', value: 'Networking Gear' },
-  { name: 'Software & Services', value: 'Software & Services' },
-  { name: 'Printing & Supplies', value: 'Printing & Supplies' },
-  { name: 'Peripherals', value: 'Peripherals' },
+  { name: 'IT Hardware & Telecom', value: 'IT Hardware & Telecom' },
+  { name: 'Software & IT Services', value: 'Software & IT Services' },
+  { name: 'Power & UPS', value: 'Power & UPS' },
+  { name: 'Printing & Imaging', value: 'Printing & Imaging' },
+  { name: 'Consumer Electronics', value: 'Consumer Electronics' },
+  { name: 'Security Equipment', value: 'Security Equipment' },
 ]
 
 const primaryCategories = computed(() => productCategories.slice(0, 3))
 const overflowCategories = computed(() => productCategories.slice(3))
 
 const categoryBrandsMap = {
-  'Laptops & PCs': [
-    { label: 'Dell', value: 'DELL MARKETING L.P.' },
-    { label: 'HP Inc.', value: 'HP INC.' },
-    { label: 'Lenovo', value: 'LENOVO' },
-    { label: 'Microsoft', value: 'MICROSOFT CORPORATION' },
-  ],
-  'Monitors & Docks': [
-    { label: 'Samsung', value: 'SAMSUNG' },
-    { label: 'Dell', value: 'DELL MARKETING L.P.' },
-    { label: 'HP Inc.', value: 'HP INC.' },
+  'IT Hardware & Telecom': [
+    { label: 'Cisco', value: 'CISCO' },
+    { label: 'HP', value: 'HP' },
+    { label: 'Dell', value: 'DELL' },
     { label: 'Lenovo', value: 'LENOVO' },
   ],
-  'Networking Gear': [
-    { label: 'Cisco', value: 'CISCO SYSTEMS' },
-    { label: 'Fortinet', value: 'FORTINET INC.' },
-    { label: 'Netgear', value: 'NETGEAR' },
-    { label: 'Palo Alto Networks', value: 'PALO ALTO NETWORKS' },
-  ],
-  'Software & Services': [
-    { label: 'Microsoft', value: 'MICROSOFT CORPORATION' },
+  'Software & IT Services': [
+    { label: 'Microsoft', value: 'MICROSOFT' },
     { label: 'Veeam', value: 'VEEAM SOFTWARE CORPORATION' },
-    { label: 'Cisco', value: 'CISCO SYSTEMS' },
+    { label: 'Cisco', value: 'CISCO' },
     { label: 'Fortinet', value: 'FORTINET INC.' },
   ],
-  'Printing & Supplies': [
-    { label: 'HP Inc.', value: 'HP INC.' },
-    { label: 'Samsung', value: 'SAMSUNG' },
-    { label: 'Dell', value: 'DELL MARKETING L.P.' },
-    { label: 'Lenovo', value: 'LENOVO' },
+  'Power & UPS': [
+    { label: 'APC by Schneider', value: 'APC BY SCHNEIDER ELECTRIC' },
+    { label: 'Eaton', value: 'EATON' },
+    { label: 'Vertiv', value: 'VERTIV' },
+    { label: 'CyberPower', value: 'CYBERPOWER SYSTEMS (USA), INC.' },
   ],
-  'Peripherals': [
+  'Printing & Imaging': [
+    { label: 'HP', value: 'HP' },
+    { label: 'Lexmark', value: 'LEXMARK' },
+    { label: 'Epson', value: 'EPSON' },
+    { label: 'Canon', value: 'CANON' },
+  ],
+  'Consumer Electronics': [
+    { label: 'Samsung', value: 'SAMSUNG' },
+    { label: 'Sony', value: 'SONY' },
     { label: 'Logitech', value: 'LOGITECH' },
-    { label: 'Jabra', value: 'JABRA' },
-    { label: 'Kingston', value: 'KINGSTON' },
-    { label: 'Netgear', value: 'NETGEAR' },
+    { label: 'Panasonic', value: 'PANASONIC' },
+  ],
+  'Security Equipment': [
+    { label: 'Cisco', value: 'CISCO' },
+    { label: 'Fortinet', value: 'FORTINET INC.' },
+    { label: 'Barracuda', value: 'BARRACUDA NETWORKS' },
+    { label: 'WatchGuard', value: 'WATCHGUARD TECHNOLOGIES' },
   ],
 }
 

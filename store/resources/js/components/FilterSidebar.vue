@@ -1,5 +1,5 @@
 <template>
-  <div class="w-full lg:w-80 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+  <div class="w-full lg:w-80 bg-white rounded-lg shadow-sm border border-gray-200 p-6 flex flex-col">
     <!-- Applied Filters Header -->
     <div v-if="hasActiveFilters" class="mb-6 pb-6 border-b border-gray-200">
       <div class="flex items-center justify-between mb-3">
@@ -28,11 +28,6 @@
         <div v-for="cat in filters.categories" :key="cat" class="flex items-center gap-1 px-3 py-1 rounded-full text-sm" style="background-color: #cce4f4; color: #2F5597;">
           <span>{{ cat }}</span>
           <button @click="removeCategory(cat)" class="hover:font-semibold">×</button>
-        </div>
-        <!-- Lifecycle Filter Badges -->
-        <div v-for="status in filters.lifecycleStatuses" :key="`life-${status}`" class="flex items-center gap-1 px-3 py-1 rounded-full text-sm" style="background-color: #e9f3ff; color: #2F5597;">
-          <span>{{ status }}</span>
-          <button @click="toggleLifecycleStatus(status)" class="hover:font-semibold">×</button>
         </div>
         <!-- Review Rating Filter Badges -->
         <div v-for="status in filters.mediaStatuses" :key="`media-${status}`" class="flex items-center gap-1 px-3 py-1 rounded-full text-sm" style="background-color: #eef7ec; color: #1f6e3e;">
@@ -73,6 +68,36 @@
       </div>
     </div>
 
+    <!-- Categories Filter -->
+    <div v-if="normalizedCategories.length > 0" class="mb-6 pb-6 border-b border-gray-200">
+      <button @click="toggleSection('categories')" class="flex items-center justify-between w-full mb-3">
+        <h4 class="font-semibold text-gray-900">Categories</h4>
+        <svg class="w-4 h-4 text-gray-500" :class="{ 'rotate-180': openSections.categories }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+        </svg>
+      </button>
+      <div v-show="openSections.categories" class="space-y-3">
+        <input 
+          v-model="categorySearch" 
+          type="text" 
+          placeholder="Search Categories" 
+          class="w-full px-3 py-2 border border-gray-300 rounded text-sm outline-none transition" @focus="$event.target.style.borderColor='#2F5597'" @blur="$event.target.style.borderColor='rgb(209, 213, 219)'"
+        />
+        <div class="space-y-2 max-h-[20rem] overflow-y-auto">
+          <label v-for="category in filteredCategories" :key="category.name" class="flex items-center gap-3 cursor-pointer">
+            <input 
+              :checked="filters.categories.includes(category.name)" 
+              @change="toggleCategory(category.name)"
+              type="radio" 
+              name="category"
+              class="w-4 h-4 rounded-full border-gray-300 cursor-pointer" style="accent-color: #2F5597;"
+            />
+            <span class="text-sm text-gray-700">{{ category.name }} <span v-if="hasDisplayableCount(category)" class="text-gray-500">({{ category.count }})</span></span>
+          </label>
+        </div>
+      </div>
+    </div>
+
     <!-- Vendors Filter -->
     <div v-if="normalizedVendors.length > 0" class="mb-6 pb-6 border-b border-gray-200">
       <button @click="toggleSection('vendors')" class="flex items-center justify-between w-full mb-3">
@@ -88,7 +113,7 @@
           placeholder="Search Vendor" 
           class="w-full px-3 py-2 border border-gray-300 rounded text-sm outline-none transition" @focus="$event.target.style.borderColor='#2F5597'" @blur="$event.target.style.borderColor='rgb(209, 213, 219)'"
         />
-        <div class="space-y-2 max-h-64 overflow-y-auto">
+        <div class="space-y-2 max-h-56 overflow-y-auto">
           <label v-for="vendor in filteredVendors" :key="vendor.name" class="flex items-center gap-3 cursor-pointer">
             <input 
               :checked="filters.vendors.includes(vendor.name)" 
@@ -124,89 +149,6 @@
         <button @click="applyFilters" class="w-full text-white font-medium py-2 rounded text-sm transition" style="background-color: #2F5597;" @mouseenter="$event.target.style.backgroundColor='#1f4788'" @mouseleave="$event.target.style.backgroundColor='#2F5597'">
           Apply Part Filter
         </button>
-      </div>
-    </div>
-
-    <!-- Categories Filter -->
-    <div v-if="normalizedCategories.length > 0" class="mb-6 pb-6 border-b border-gray-200">
-      <button @click="toggleSection('categories')" class="flex items-center justify-between w-full mb-3">
-        <h4 class="font-semibold text-gray-900">Categories</h4>
-        <svg class="w-4 h-4 text-gray-500" :class="{ 'rotate-180': openSections.categories }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-        </svg>
-      </button>
-      <div v-show="openSections.categories" class="space-y-3">
-        <input 
-          v-model="categorySearch" 
-          type="text" 
-          placeholder="Search Categories" 
-          class="w-full px-3 py-2 border border-gray-300 rounded text-sm outline-none transition" @focus="$event.target.style.borderColor='#2F5597'" @blur="$event.target.style.borderColor='rgb(209, 213, 219)'"
-        />
-        <div class="space-y-2 max-h-[36rem] overflow-y-auto">
-          <label v-for="category in filteredCategories" :key="category.name" class="flex items-center gap-3 cursor-pointer">
-            <input 
-              :checked="filters.categories.includes(category.name)" 
-              @change="toggleCategory(category.name)"
-              type="radio" 
-              name="category"
-              class="w-4 h-4 rounded-full border-gray-300 cursor-pointer" style="accent-color: #2F5597;"
-            />
-            <span class="text-sm text-gray-700">{{ category.name }}</span>
-          </label>
-        </div>
-      </div>
-    </div>
-
-    <!-- Product Lifecycle Filter -->
-    <div class="mb-6 pb-6 border-b border-gray-200">
-      <button @click="toggleSection('lifecycle')" class="flex items-center justify-between w-full mb-3">
-        <h4 class="font-semibold text-gray-900">Product Lifecycle</h4>
-        <svg class="w-4 h-4 text-gray-500" :class="{ 'rotate-180': openSections.lifecycle }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-        </svg>
-      </button>
-      <div v-show="openSections.lifecycle" class="space-y-3">
-        <div class="flex flex-wrap gap-2">
-          <button
-            @click="setActiveLifecycle"
-            class="px-3 py-1.5 text-xs font-semibold rounded-full border transition"
-            style="border-color: #2F5597; color: #2F5597;"
-            @mouseenter="$event.target.style.backgroundColor='#edf3fb'"
-            @mouseleave="$event.target.style.backgroundColor='transparent'"
-          >
-            Active Only
-          </button>
-          <button
-            @click="setEolLifecycle"
-            class="px-3 py-1.5 text-xs font-semibold rounded-full border transition"
-            style="border-color: #2F5597; color: #2F5597;"
-            @mouseenter="$event.target.style.backgroundColor='#edf3fb'"
-            @mouseleave="$event.target.style.backgroundColor='transparent'"
-          >
-            EOL Only
-          </button>
-          <button
-            @click="clearLifecycle"
-            class="px-3 py-1.5 text-xs font-semibold rounded-full border transition"
-            style="border-color: #d1d5db; color: #4b5563;"
-            @mouseenter="$event.target.style.backgroundColor='#f3f4f6'"
-            @mouseleave="$event.target.style.backgroundColor='transparent'"
-          >
-            Clear
-          </button>
-        </div>
-        <label v-for="status in lifecycleOptions" :key="status.name" class="flex items-center justify-between gap-3 cursor-pointer">
-          <div class="flex items-center gap-3">
-            <input
-              :checked="filters.lifecycleStatuses.includes(status.name)"
-              @change="toggleLifecycleStatus(status.name)"
-              type="checkbox"
-              class="w-4 h-4 rounded border-gray-300 cursor-pointer" style="accent-color: #2F5597;"
-            />
-            <span class="text-sm text-gray-700">{{ status.name }}</span>
-          </div>
-          <span class="text-xs text-gray-500">{{ status.count }}</span>
-        </label>
       </div>
     </div>
 
@@ -365,11 +307,11 @@ const hasDisplayableCount = (item) => {
 }
 
 const normalizedVendors = computed(() => {
-  return (props.vendors || []).filter(vendor => vendor?.name && hasDataCount(vendor))
+  return (props.vendors || []).filter(vendor => vendor?.name)
 })
 
 const normalizedCategories = computed(() => {
-  return (props.categories || []).filter(category => category?.name && hasDataCount(category))
+  return (props.categories || []).filter(category => category?.name)
 })
 
 const filteredVendors = computed(() => {
@@ -389,7 +331,6 @@ const hasActiveFilters = computed(() => {
     || !!filters.value.partNumber
     || filters.value.vendors.length > 0
     || filters.value.categories.length > 0
-    || filters.value.lifecycleStatuses.length > 0
     || filters.value.mediaStatuses.length > 0
 })
 
@@ -497,6 +438,7 @@ const clearAllFilters = () => {
     priceMin: 0,
     priceMax: 10000,
     partNumber: '',
+    productType: 'hardware',
     vendors: [],
     categories: [],
     lifecycleStatuses: [],

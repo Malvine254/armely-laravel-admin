@@ -849,17 +849,72 @@ class TDSynnexService
         ];
     }
 
-    public function priceAvailabilityImageSyncQuery(): \Illuminate\Database\Eloquent\Builder
+    public function priceAvailabilityImageSyncQuery(array $filters = []): \Illuminate\Database\Eloquent\Builder
     {
+        $vendorId = trim((string) ($filters['vendor'] ?? 'TD SYNNEX'));
+        if ($vendorId === '') {
+            $vendorId = 'TD SYNNEX';
+        }
+        $search = trim((string) ($filters['search'] ?? ''));
+        $manufacturer = trim((string) ($filters['manufacturer'] ?? ''));
+        $manufacturerId = trim((string) ($filters['manufacturer_id'] ?? ''));
+        $skuFilter = trim((string) ($filters['sku'] ?? ''));
+        $includeWithImages = (bool) ($filters['include_with_images'] ?? false);
+
         $currentShowingOnly = (bool) config('tdsynnex.image_sync.current_showing_only', true);
         $scopeCap = max(0, (int) config('tdsynnex.image_sync.scope_cap', 1000));
 
         $query = Product::query()
-            ->where('vendor_id', 'TD SYNNEX')
-            ->where(function ($q) {
+            ->where('vendor_id', $vendorId);
+
+        if (!$includeWithImages) {
+            $query->where(function ($q) {
                 $q->whereNull('images')
                     ->orWhere('images', '[]');
             });
+        }
+
+        if ($manufacturer !== '') {
+            $manufacturerLike = '%' . strtolower($manufacturer) . '%';
+            $query->whereRaw(
+                "LOWER(COALESCE(JSON_UNQUOTE(JSON_EXTRACT(specifications, '$.manufacturer')), '')) LIKE ?",
+                [$manufacturerLike]
+            );
+        }
+
+        if ($manufacturerId !== '') {
+            $manufacturerIdLike = '%' . strtolower($manufacturerId) . '%';
+            $query->whereRaw(
+                "LOWER(COALESCE(JSON_UNQUOTE(JSON_EXTRACT(specifications, '$.manufacturer')), '')) LIKE ?",
+                [$manufacturerIdLike]
+            );
+        }
+
+        if ($skuFilter !== '') {
+            $skuTokens = array_values(array_unique(array_filter(array_map('trim', explode(',', $skuFilter)), fn ($v) => $v !== '')));
+            if (!empty($skuTokens)) {
+                $query->where(function ($q) use ($skuTokens) {
+                    foreach ($skuTokens as $token) {
+                        $tokenLike = '%' . strtolower($token) . '%';
+                        $q->orWhereRaw("LOWER(COALESCE(CAST(tdsynnex_sku_no AS CHAR), '')) LIKE ?", [$tokenLike])
+                            ->orWhereRaw("LOWER(COALESCE(CAST(tdsynnex_product_id AS CHAR), '')) LIKE ?", [$tokenLike])
+                            ->orWhereRaw("LOWER(COALESCE(JSON_UNQUOTE(JSON_EXTRACT(specifications, '$.sku')), '')) LIKE ?", [$tokenLike])
+                            ->orWhereRaw("LOWER(COALESCE(mfg_part_no, '')) LIKE ?", [$tokenLike]);
+                    }
+                });
+            }
+        }
+
+        if ($search !== '') {
+            $like = '%' . strtolower($search) . '%';
+            $query->where(function ($q) use ($like) {
+                $q->orWhereRaw("LOWER(COALESCE(product_name, '')) LIKE ?", [$like])
+                    ->orWhereRaw("LOWER(COALESCE(mfg_part_no, '')) LIKE ?", [$like])
+                    ->orWhereRaw("LOWER(COALESCE(description, '')) LIKE ?", [$like])
+                    ->orWhereRaw("LOWER(COALESCE(JSON_UNQUOTE(JSON_EXTRACT(specifications, '$.sku')), '')) LIKE ?", [$like])
+                    ->orWhereRaw("LOWER(COALESCE(JSON_UNQUOTE(JSON_EXTRACT(specifications, '$.manufacturer')), '')) LIKE ?", [$like]);
+            });
+        }
 
         if ($currentShowingOnly) {
             // Match storefront-ready catalog rows to avoid scanning the entire imported feed.
@@ -896,7 +951,7 @@ class TDSynnexService
 
             if ($scopeCap > 0) {
                 $scopeIds = Product::query()
-                    ->where('vendor_id', 'TD SYNNEX')
+                    ->where('vendor_id', $vendorId)
                     ->where(function ($q) {
                         $q->where('is_available', 1)
                             ->orWhereNull('is_available');
@@ -929,6 +984,48 @@ class TDSynnexService
                     );
                 }
 
+                if ($manufacturer !== '') {
+                    $manufacturerLike = '%' . strtolower($manufacturer) . '%';
+                    $scopeIds->whereRaw(
+                        "LOWER(COALESCE(JSON_UNQUOTE(JSON_EXTRACT(specifications, '$.manufacturer')), '')) LIKE ?",
+                        [$manufacturerLike]
+                    );
+                }
+
+                if ($manufacturerId !== '') {
+                    $manufacturerIdLike = '%' . strtolower($manufacturerId) . '%';
+                    $scopeIds->whereRaw(
+                        "LOWER(COALESCE(JSON_UNQUOTE(JSON_EXTRACT(specifications, '$.manufacturer')), '')) LIKE ?",
+                        [$manufacturerIdLike]
+                    );
+                }
+
+                if ($skuFilter !== '') {
+                    $skuTokens = array_values(array_unique(array_filter(array_map('trim', explode(',', $skuFilter)), fn ($v) => $v !== '')));
+                    if (!empty($skuTokens)) {
+                        $scopeIds->where(function ($q) use ($skuTokens) {
+                            foreach ($skuTokens as $token) {
+                                $tokenLike = '%' . strtolower($token) . '%';
+                                $q->orWhereRaw("LOWER(COALESCE(CAST(tdsynnex_sku_no AS CHAR), '')) LIKE ?", [$tokenLike])
+                                    ->orWhereRaw("LOWER(COALESCE(CAST(tdsynnex_product_id AS CHAR), '')) LIKE ?", [$tokenLike])
+                                    ->orWhereRaw("LOWER(COALESCE(JSON_UNQUOTE(JSON_EXTRACT(specifications, '$.sku')), '')) LIKE ?", [$tokenLike])
+                                    ->orWhereRaw("LOWER(COALESCE(mfg_part_no, '')) LIKE ?", [$tokenLike]);
+                            }
+                        });
+                    }
+                }
+
+                if ($search !== '') {
+                    $like = '%' . strtolower($search) . '%';
+                    $scopeIds->where(function ($q) use ($like) {
+                        $q->orWhereRaw("LOWER(COALESCE(product_name, '')) LIKE ?", [$like])
+                            ->orWhereRaw("LOWER(COALESCE(mfg_part_no, '')) LIKE ?", [$like])
+                            ->orWhereRaw("LOWER(COALESCE(description, '')) LIKE ?", [$like])
+                            ->orWhereRaw("LOWER(COALESCE(JSON_UNQUOTE(JSON_EXTRACT(specifications, '$.sku')), '')) LIKE ?", [$like])
+                            ->orWhereRaw("LOWER(COALESCE(JSON_UNQUOTE(JSON_EXTRACT(specifications, '$.manufacturer')), '')) LIKE ?", [$like]);
+                    });
+                }
+
                 $ids = $scopeIds->orderBy('id')->limit($scopeCap)->pluck('id')->all();
                 if (empty($ids)) {
                     $query->whereRaw('1 = 0');
@@ -941,17 +1038,18 @@ class TDSynnexService
         return $query;
     }
 
-    public function syncPriceAvailabilityImagesFromDatabase(int $chunk = 25, int $limit = 0, ?callable $onProgress = null): array
+    public function syncPriceAvailabilityImagesFromDatabase(int $chunk = 25, int $limit = 0, ?callable $onProgress = null, array $filters = []): array
     {
         $chunk = max(1, $chunk);
         $limit = max(0, $limit);
-        $query = $this->priceAvailabilityImageSyncQuery()->orderBy('id');
+        $query = $this->priceAvailabilityImageSyncQuery($filters)->orderBy('id');
+        $preferWeb = (bool) ($filters['prefer_web'] ?? false);
 
         $processed = 0;
         $updated = 0;
         $stop = false;
 
-        $query->chunkById($chunk, function ($batch) use (&$processed, &$updated, $limit, $onProgress, &$stop) {
+        $query->chunkById($chunk, function ($batch) use (&$processed, &$updated, $limit, $onProgress, &$stop, $preferWeb) {
             if ($stop) {
                 return false;
             }
@@ -1000,7 +1098,8 @@ class TDSynnexService
                     'mpn' => (string) ($product->mfg_part_no ?? $apMeta['mpn'] ?? ''),
                     'manufacturer' => (string) ($spec['manufacturer'] ?? $apMeta['manufacturer'] ?? ''),
                     'upc' => (string) ($spec['upc'] ?? $apMeta['upc'] ?? ''),
-                    'image_url' => (string) ($apMeta['image_url'] ?? ''),
+                    'title' => (string) ($product->product_name ?? ''),
+                    'image_url' => $preferWeb ? '' : (string) ($apMeta['image_url'] ?? ''),
                     'source_url' => (string) ($spec['source_url'] ?? $apMeta['source_url'] ?? ''),
                 ];
 
@@ -1010,6 +1109,7 @@ class TDSynnexService
 
                 $didUpdate = false;
                 if (!empty($images)) {
+                    $images = $this->localizeImages($images, $lookupKey);
                     $product->images = $images;
                     $didUpdate = true;
                 }
@@ -1487,6 +1587,7 @@ class TDSynnexService
                     'mpn'          => (string) ($product->mfg_part_no ?? $apMeta['mpn'] ?? ''),
                     'manufacturer' => (string) ($spec['manufacturer'] ?? $apMeta['manufacturer'] ?? ''),
                     'upc'          => (string) ($spec['upc'] ?? $apMeta['upc'] ?? ''),
+                    'title'        => (string) ($product->product_name ?? ''),
                     'image_url'    => (string) ($apMeta['image_url'] ?? ''),
                     'source_url'   => (string) ($spec['source_url'] ?? $apMeta['source_url'] ?? ''),
                 ];
@@ -1604,8 +1705,10 @@ class TDSynnexService
                 return;
             }
 
-            $mpn     = trim((string) ($product->mfg_part_no ?? ''));
-            $nameKey = $mpn !== '' ? $mpn : $sku;
+            $nameKey = trim((string) $sku);
+            if ($nameKey === '') {
+                $nameKey = trim((string) ($product->mfg_part_no ?? ''));
+            }
             $images  = $this->localizeImages($images, $nameKey);
 
             $product->images = $images;
@@ -1959,6 +2062,7 @@ class TDSynnexService
             'mpn' => (string) ($product->mfg_part_no ?? $apMeta['mpn'] ?? ''),
             'manufacturer' => (string) ($spec['manufacturer'] ?? $apMeta['manufacturer'] ?? ''),
             'upc' => (string) ($spec['upc'] ?? $apMeta['upc'] ?? ''),
+            'title' => (string) ($product->product_name ?? ''),
             'image_url' => (string) ($apMeta['image_url'] ?? ''),
             'source_url' => (string) ($spec['source_url'] ?? $apMeta['source_url'] ?? ''),
         ];
@@ -1969,6 +2073,7 @@ class TDSynnexService
 
         $didUpdate = false;
         if (!empty($images)) {
+            $images = $this->localizeImages($images, $lookupKey);
             $product->images = $images;
             $didUpdate = true;
         }
@@ -1997,7 +2102,7 @@ class TDSynnexService
         $ttl = max(60, (int) config('tdsynnex.icecat.cache_ttl', 86400));
         $cacheKey = 'tdsynnex:assets:' . md5(json_encode([
             // Cache version bump forces re-evaluation of older no-match entries.
-            'icecat-v6-serpapi-images',
+            'icecat-v7-bing-primary',
             $sku,
             (string) ($meta['mpn'] ?? ''),
             (string) ($meta['manufacturer'] ?? ''),
@@ -2026,6 +2131,19 @@ class TDSynnexService
             }
 
             if (empty($images)) {
+                // Main source: Bing images search (title/SKU/manufacturer-aware query).
+                $bing = $this->fetchBingProductImageData($sku, $meta, $description);
+                $bingImage = trim((string) ($bing['image_url'] ?? ''));
+                if ($bingImage !== '' && $this->isValidImageUrl($bingImage)) {
+                    $images[] = [
+                        'imageUrl' => $bingImage,
+                        'source' => (string) ($bing['source'] ?? 'bing-images'),
+                    ];
+                    $resolvedDescription = trim((string) ($bing['description'] ?? ''));
+                }
+            }
+
+            if (empty($images)) {
                 $scraped = $this->fetchScrapedProductImageData($sku, $meta, $description);
                 $scrapedImage = trim((string) ($scraped['image_url'] ?? ''));
                 if ($scrapedImage !== '' && $this->isValidImageUrl($scrapedImage)) {
@@ -2033,9 +2151,8 @@ class TDSynnexService
                         'imageUrl' => $scrapedImage,
                         'source' => (string) ($scraped['source'] ?? 'scrape-approved'),
                     ];
+                    $resolvedDescription = trim((string) ($scraped['description'] ?? ''));
                 }
-
-                $resolvedDescription = trim((string) ($scraped['description'] ?? ''));
             }
 
             $unique = [];
@@ -2302,6 +2419,136 @@ class TDSynnexService
         }
 
         return ['image_url' => '', 'source' => '', 'description' => ''];
+    }
+
+    private function fetchBingProductImageData(string $sku, array $meta, string $description = ''): array
+    {
+        if (!config('tdsynnex.bing.enabled', true)) {
+            return ['image_url' => '', 'source' => '', 'description' => ''];
+        }
+
+        $timeout = max(2, (int) config('tdsynnex.bing.timeout', 8));
+        $connectTimeout = max(1, (int) config('tdsynnex.bing.connect_timeout', 3));
+        $userAgent = trim((string) config('tdsynnex.bing.user_agent', 'Mozilla/5.0 (compatible; ArmelyImageBot/1.0; +https://armely.com)'));
+        $query = trim($this->buildBingImageQuery($sku, $meta, $description));
+        if ($query === '') {
+            return ['image_url' => '', 'source' => '', 'description' => ''];
+        }
+
+        $bingUrl = 'https://www.bing.com/images/search?q=' . rawurlencode($query) . '&form=HDRSC3&first=1';
+
+        try {
+            \Illuminate\Support\Facades\DB::disconnect();
+
+            $response = Http::withHeaders([
+                'User-Agent' => $userAgent,
+                'Accept' => 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.8',
+            ])
+                ->connectTimeout($connectTimeout)
+                ->timeout($timeout)
+                ->get($bingUrl);
+
+            if ($response->failed()) {
+                Log::debug('Bing image lookup failed', [
+                    'sku' => $sku,
+                    'query' => $query,
+                    'status' => $response->status(),
+                ]);
+
+                return ['image_url' => '', 'source' => '', 'description' => ''];
+            }
+
+            $html = (string) $response->body();
+            $imageUrl = $this->extractImageUrlFromBingHtml($html);
+            if ($imageUrl === '' || !$this->isValidImageUrl($imageUrl)) {
+                return ['image_url' => '', 'source' => '', 'description' => ''];
+            }
+
+            Log::info('Bing MATCH', [
+                'sku' => $sku,
+                'query' => $query,
+                'image' => $imageUrl,
+            ]);
+
+            return [
+                'image_url' => $imageUrl,
+                'source' => 'bing-images',
+                'description' => '',
+            ];
+        } catch (\Throwable $e) {
+            Log::debug('Bing image lookup exception', [
+                'sku' => $sku,
+                'query' => $query,
+                'error' => $e->getMessage(),
+            ]);
+
+            return ['image_url' => '', 'source' => '', 'description' => ''];
+        }
+    }
+
+    private function buildBingImageQuery(string $sku, array $meta, string $description = ''): string
+    {
+        $title = $this->sanitizeSearchPhrase((string) ($meta['title'] ?? ''));
+        $manufacturer = $this->sanitizeSearchPhrase((string) ($meta['manufacturer'] ?? ''));
+        $mpn = $this->sanitizeSearchPhrase((string) ($meta['mpn'] ?? ''));
+        $upc = $this->sanitizeSearchPhrase((string) ($meta['upc'] ?? ''));
+        $skuToken = $this->sanitizeSearchPhrase($sku);
+
+        $candidates = [
+            trim($title),
+            trim($title . ' ' . $mpn),
+            trim($manufacturer . ' ' . $mpn),
+            trim($manufacturer . ' ' . $skuToken),
+            trim($mpn),
+            trim($skuToken),
+            trim($manufacturer . ' ' . $upc),
+            trim($upc),
+            trim($description),
+        ];
+
+        foreach ($candidates as $candidate) {
+            $candidate = preg_replace('/\s+/', ' ', trim((string) $candidate)) ?: '';
+            if ($candidate !== '') {
+                return $candidate;
+            }
+        }
+
+        return '';
+    }
+
+    private function extractImageUrlFromBingHtml(string $html): string
+    {
+        if ($html === '') {
+            return '';
+        }
+
+        // Primary: parse Bing metadata attribute containing JSON with murl.
+        if (preg_match_all('/\sm="([^"]+)"/i', $html, $mAttrs)) {
+            foreach ((array) ($mAttrs[1] ?? []) as $rawAttr) {
+                $decodedAttr = html_entity_decode((string) $rawAttr, ENT_QUOTES | ENT_HTML5);
+                $json = json_decode($decodedAttr, true);
+                if (!is_array($json)) {
+                    continue;
+                }
+
+                $candidate = trim((string) ($json['murl'] ?? $json['turl'] ?? ''));
+                if ($candidate !== '' && $this->isValidImageUrl($candidate)) {
+                    return $candidate;
+                }
+            }
+        }
+
+        // Fallback: regex extraction from embedded JSON snippets.
+        if (preg_match_all('/"murl"\s*:\s*"(https?:\\\/\\\/[^"\\]+)"/i', $html, $jsonMatches)) {
+            foreach ((array) ($jsonMatches[1] ?? []) as $raw) {
+                $candidate = stripslashes((string) $raw);
+                if ($candidate !== '' && $this->isValidImageUrl($candidate)) {
+                    return $candidate;
+                }
+            }
+        }
+
+        return '';
     }
 
     private function extractDescriptionFromHtml(string $html): string
@@ -2790,23 +3037,46 @@ class TDSynnexService
         $manufacturerShort = $this->normalizeManufacturerForSearch($manufacturer);
         $mpn = trim((string) ($meta['mpn'] ?? ''));
         $upc = trim((string) ($meta['upc'] ?? ''));
+        $title = $this->sanitizeSearchPhrase((string) ($meta['title'] ?? ''));
         $domain = trim((string) ($meta['source_url'] ?? $meta['product_url'] ?? $meta['manufacturer_url'] ?? ''));
         $host = strtolower((string) parse_url($domain, PHP_URL_HOST));
+        $strategy = strtolower(trim((string) config('tdsynnex.serpapi.query_strategy', 'hybrid')));
 
         $queries = [];
 
-        foreach ([
+        $titleFirstQueries = [
+            trim($title . ' ' . $mpn),
+            trim($title . ' ' . $sku),
+            trim($title . ' product image'),
+            trim($title),
+        ];
+
+        $skuFirstQueries = [
             trim($manufacturerShort . ' ' . $mpn),
-            trim($manufacturerShort . ' ' . $mpn . ' product image'),
-            trim($manufacturerShort . ' ' . $mpn . ' ' . $sku),
             trim($manufacturer . ' ' . $mpn),
             trim($mpn . ' product image'),
             trim($mpn),
-            trim($manufacturerShort . ' ' . $upc),
-            trim($upc),
             trim($manufacturerShort . ' ' . $sku),
             trim($sku),
-        ] as $candidate) {
+        ];
+
+        $manufacturerFirstQueries = [
+            trim($manufacturerShort . ' ' . $mpn),
+            trim($manufacturerShort . ' ' . $sku),
+            trim($manufacturer . ' ' . $mpn),
+            trim($manufacturerShort . ' ' . $upc),
+            trim($manufacturerShort . ' product image'),
+            trim($manufacturer),
+        ];
+
+        $orderedCandidates = match ($strategy) {
+            'title' => array_merge($titleFirstQueries, $skuFirstQueries, $manufacturerFirstQueries),
+            'sku' => array_merge($skuFirstQueries, $titleFirstQueries, $manufacturerFirstQueries),
+            'manufacturer' => array_merge($manufacturerFirstQueries, $skuFirstQueries, $titleFirstQueries),
+            default => array_merge($titleFirstQueries, $skuFirstQueries, $manufacturerFirstQueries),
+        };
+
+        foreach ($orderedCandidates as $candidate) {
             $candidate = preg_replace('/\s+/', ' ', trim((string) $candidate)) ?: '';
             if ($candidate !== '') {
                 $queries[$candidate] = true;
@@ -2827,6 +3097,25 @@ class TDSynnexService
         }
 
         return array_keys($queries);
+    }
+
+    private function sanitizeSearchPhrase(string $value): string
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return '';
+        }
+
+        // Keep the title compact so search queries remain focused and consistent.
+        $value = preg_replace('/[\(\)\[\]\{\}\|\"\']+/', ' ', $value) ?: '';
+        $value = preg_replace('/\s+/', ' ', trim($value)) ?: '';
+
+        $parts = array_values(array_filter(explode(' ', $value), fn ($part) => trim((string) $part) !== ''));
+        if (count($parts) > 10) {
+            $parts = array_slice($parts, 0, 10);
+        }
+
+        return trim(implode(' ', $parts));
     }
 
     private function normalizeManufacturerForSearch(string $manufacturer): string

@@ -34,6 +34,8 @@ class ProductController extends Controller
             $minPrice = $request->query('min_price');
             $maxPrice = $request->query('max_price');
             $billingModels = $request->query('billing_models'); // comma-separated list
+            $productType = $this->normalizeProductType((string) $request->query('product_type', ''));
+            $category = trim((string) $request->query('category', ''));
             $useDbCache = $request->query('use_db_cache', true); // Use database cache by default
             // hide items with zero reseller price by default; set ?hide_zero_price=false to disable
             $hideZero = filter_var($request->query('hide_zero_price', true), FILTER_VALIDATE_BOOLEAN);
@@ -46,6 +48,7 @@ class ProductController extends Controller
                 'page' => $pageNo,
                 'per_page' => $pageSize,
                 'search' => $search,
+                'product_type' => $productType,
                 'use_db_cache' => $useDbCache,
                 'catalog_clean' => $catalogClean,
                 'query_params' => $request->query()
@@ -56,7 +59,7 @@ class ProductController extends Controller
                 $shouldFallbackToStreamOneBrowse = !$hasPriceAvailabilityDbCache && empty($search);
 
                 if (!$shouldFallbackToStreamOneBrowse) {
-                    return $this->indexFromPriceAvailability($request, $search, $minPrice, $maxPrice, $billingModels, $hideZero, $pageNo, $pageSize, (bool) $useDbCache, $catalogClean);
+                    return $this->indexFromPriceAvailability($request, $search, $minPrice, $maxPrice, $billingModels, $hideZero, $pageNo, $pageSize, (bool) $useDbCache, $catalogClean, $productType, $category);
                 }
 
                 Log::warning('PriceAvailability source selected without DB cache; falling back to paginated StreamOne browse', [
@@ -194,6 +197,8 @@ class ProductController extends Controller
                 $allProducts = $this->filterCatalogNoiseProducts($allProducts);
             }
 
+            $allProducts = $this->filterProductsByType($allProducts, $productType);
+
             $curatedItMix = filter_var($request->query('curated_it_mix', false), FILTER_VALIDATE_BOOLEAN);
             $hasExplicitVendorFilter = trim((string) $request->query('vendors', '')) !== ''
                 || trim((string) $request->query('vendor', '')) !== '';
@@ -271,22 +276,47 @@ class ProductController extends Controller
         int $pageNo,
         int $pageSize,
         bool $useDbCache = true,
-        bool $catalogClean = false
+        bool $catalogClean = false,
+        string $productType = 'hardware',
+        string $category = ''
     ): JsonResponse {
         $selectedVendors = [];
         $vendorsCsv = trim((string) $request->query('vendors', ''));
+        $hasExplicitVendorSelection = false;
         if ($vendorsCsv !== '') {
+            $hasExplicitVendorSelection = true;
             $selectedVendors = array_values(array_filter(array_map('trim', explode(',', $vendorsCsv)), fn ($v) => $v !== ''));
         } else {
             $singleVendor = trim((string) $request->query('vendor', ''));
-            if ($singleVendor !== '' && strcasecmp($singleVendor, 'Microsoft') !== 0) {
+            if ($singleVendor !== '') {
+                $hasExplicitVendorSelection = true;
                 $selectedVendors = [$singleVendor];
             }
         }
 
         if (!empty($selectedVendors)) {
             $normalized = array_map(fn ($vendor) => $this->normalizeCuratedVendorName((string) $vendor), $selectedVendors);
-            $selectedVendors = array_values(array_unique(array_filter($normalized, fn ($vendor) => trim((string) $vendor) !== '')));
+            $selectedVendors = array_values(array_unique(array_filter($normalized, function ($vendor) {
+                return trim((string) $vendor) !== '';
+            })));
+        }
+
+        if ($hasExplicitVendorSelection && empty($selectedVendors)) {
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'records' => [],
+                    'total' => 0,
+                    'apiTotal' => 0,
+                    'pageNo' => $pageNo,
+                    'pageSize' => $pageSize,
+                    'vendors' => [],
+                    'cached' => true,
+                    'dbCached' => false,
+                    'source' => 'priceavailability',
+                ],
+                'message' => 'Products retrieved successfully',
+            ])->header('Cache-Control', 'public, max-age=300');
         }
 
         $curatedItMix = filter_var($request->query('curated_it_mix', false), FILTER_VALIDATE_BOOLEAN);
@@ -306,6 +336,8 @@ class ProductController extends Controller
                 $selectedVendors,
                 $catalogClean,
                 $curatedItMix,
+                $productType,
+                $category,
             );
 
             $fromDbCache = true;
@@ -316,6 +348,8 @@ class ProductController extends Controller
                     'records' => $dbPage['records'],
                     'total' => $dbPage['total'],
                     'apiTotal' => $dbPage['total'],
+                    'has_more' => (bool) ($dbPage['has_more'] ?? false),
+                    'total_is_estimate' => (bool) ($dbPage['total_is_estimate'] ?? false),
                     'pageNo' => $pageNo,
                     'pageSize' => $pageSize,
                     'vendors' => !empty($selectedVendors) ? array_values($selectedVendors) : array_values(array_unique(array_map(
@@ -345,6 +379,8 @@ class ProductController extends Controller
 
             return $product;
         }, $allProducts);
+
+        $allProducts = $this->filterAllowedCatalogProducts($allProducts);
 
         $apiTotal = count($allProducts);
 
@@ -398,6 +434,8 @@ class ProductController extends Controller
             $allProducts = $this->filterCatalogNoiseProducts($allProducts);
         }
 
+        $allProducts = $this->filterProductsByType($allProducts, $productType);
+
         if (
             $curatedItMix
             && empty($search)
@@ -446,6 +484,8 @@ class ProductController extends Controller
             $query = Product::query()
                 ->where('vendor_id', 'TD SYNNEX');
 
+            $this->applyCuratedDefaultBrowseFilters($query);
+
             if ($hideZero) {
                 $query->where(function ($q) {
                     $q->where(function ($q2) {
@@ -458,46 +498,7 @@ class ProductController extends Controller
 
             $products = $query->orderBy('product_name')->limit(50000)->get();
 
-            return $products->map(function (Product $product) {
-                $spec = is_array($product->specifications) ? $product->specifications : [];
-                $sku = (string) ($spec['sku'] ?? $product->tdsynnex_sku_no ?? $product->tdsynnex_product_id);
-                $price = (float) ($product->base_price ?? $product->retail_price ?? 0);
-                $images = $this->normalizeSavedProductImages($product->images);
-                $primaryImage = (string) ($images[0]['imageUrl'] ?? '');
-                $vendor = trim((string) ($spec['manufacturer'] ?? $product->vendor_id ?? 'TD SYNNEX'));
-                if ($vendor === '') {
-                    $vendor = 'TD SYNNEX';
-                }
-
-                return [
-                    'productId' => $sku,
-                    'sku' => $sku,
-                    'mfgPartNo' => (string) ($product->mfg_part_no ?? $sku),
-                    'vendorId' => $vendor,
-                    'vendorName' => $vendor,
-                    'productName' => (string) ($product->product_name ?? $sku),
-                    'description' => (string) ($product->description ?? ''),
-                    'status' => (string) ($spec['status'] ?? ''),
-                    'availableQuantity' => (int) ($spec['availableQuantity'] ?? 0),
-                    'qty' => (string) ($spec['availableQuantity'] ?? 0),
-                    'categoryCode' => (string) ($spec['categoryCode'] ?? '-'),
-                    'upc' => (string) ($spec['upc'] ?? ''),
-                    'manufacturer' => (string) ($spec['manufacturer'] ?? ''),
-                    'billingModel' => (string) ($product->billing_model ?? ''),
-                    'billingFrequency' => (string) ($product->billing_frequency ?? ''),
-                    'discontinueProduct' => (bool) ($product->is_discontinued ?? false),
-                    'productPrice' => [
-                        [
-                            'rsPrice' => $price,
-                            'minQty' => 1,
-                        ],
-                    ],
-                    'productImages' => $images,
-                    'images' => $images,
-                    'image_url' => $primaryImage,
-                    'icecat_title' => '',
-                ];
-            })->toArray();
+            return $products->map(fn (Product $product) => $this->mapPriceAvailabilityDatabaseProduct($product))->toArray();
         } catch (\Throwable $e) {
             Log::warning('Failed to fetch PriceAvailability products from database cache', [
                 'error' => $e->getMessage(),
@@ -511,11 +512,30 @@ class ProductController extends Controller
     {
         $manufacturer = trim((string) ($product['manufacturer'] ?? ''));
         if ($manufacturer !== '') {
-            return $manufacturer;
+            return $this->normalizeCuratedVendorName($manufacturer);
         }
 
         $vendorName = trim((string) ($product['vendorName'] ?? $product['vendorId'] ?? 'TD SYNNEX'));
-        return $vendorName !== '' ? $vendorName : 'TD SYNNEX';
+        return $vendorName !== '' ? $this->normalizeCuratedVendorName($vendorName) : 'TD SYNNEX';
+    }
+
+    private function isAllowedCatalogVendor(?string $vendorName): bool
+    {
+        $canonical = $this->normalizeCuratedVendorName((string) $vendorName);
+        $allowed = array_map(fn ($name) => $this->normalizeFacetLabel($name), $this->getCuratedVendorAllowList());
+
+        return in_array($this->normalizeFacetLabel($canonical), $allowed, true);
+    }
+
+    private function filterAllowedCatalogProducts(array $products): array
+    {
+        return array_values(array_filter($products, function ($product) {
+            if (!is_array($product)) {
+                return false;
+            }
+
+            return $this->isAllowedCatalogVendor($this->resolvePriceAvailabilityVendorName($product));
+        }));
     }
 
     private function fetchPriceAvailabilityPageFromDatabase(
@@ -528,7 +548,9 @@ class ProductController extends Controller
         int $pageSize,
         array $selectedVendors = [],
         bool $catalogClean = false,
-        bool $curatedItMix = false
+        bool $curatedItMix = false,
+        string $productType = 'hardware',
+        string $category = ''
     ): array {
         $cacheableDefaultBrowse = $curatedItMix
             && empty($search)
@@ -541,13 +563,16 @@ class ProductController extends Controller
             $cacheKey = sprintf(
                 'pa_default_browse_page:%s',
                 md5(json_encode([
-                    'page' => (int) $pageNo,
-                    'page_size' => (int) $pageSize,
-                    'hide_zero' => $hideZero,
-                    'min_price' => $minPrice,
-                    'max_price' => $maxPrice,
-                    'catalog_clean' => $catalogClean,
-                    'hardware_only' => (bool) config('tdsynnex.catalog.hardware_only', true),
+                        'paging_strategy' => 'estimated_v2',
+                        'page' => (int) $pageNo,
+                        'page_size' => (int) $pageSize,
+                        'hide_zero' => $hideZero,
+                        'min_price' => $minPrice,
+                        'max_price' => $maxPrice,
+                        'catalog_clean' => $catalogClean,
+                        'product_type' => $productType,
+                        'category' => $category,
+                        'hardware_only' => (bool) config('tdsynnex.catalog.hardware_only', true),
                 ]))
             );
 
@@ -562,6 +587,8 @@ class ProductController extends Controller
                 $selectedVendors,
                 $catalogClean,
                 $curatedItMix
+                ,$productType
+                ,$category
             ) {
                 return $this->fetchPriceAvailabilityPageFromDatabaseUncached(
                     $search,
@@ -574,6 +601,8 @@ class ProductController extends Controller
                     $selectedVendors,
                     $catalogClean,
                     $curatedItMix,
+                    $productType,
+                    $category,
                 );
             });
         }
@@ -589,6 +618,8 @@ class ProductController extends Controller
             $selectedVendors,
             $catalogClean,
             $curatedItMix,
+            $productType,
+            $category,
         );
     }
 
@@ -602,23 +633,27 @@ class ProductController extends Controller
         int $pageSize,
         array $selectedVendors = [],
         bool $catalogClean = false,
-        bool $curatedItMix = false
+        bool $curatedItMix = false,
+        string $productType = 'hardware',
+        string $category = ''
     ): array {
         $query = Product::query()->where('vendor_id', 'TD SYNNEX');
+        $normalizedProductType = $this->normalizeProductType($productType);
 
         $isDefaultBrowse =
             $curatedItMix
+            && ($normalizedProductType === 'hardware' || $normalizedProductType === '')
             && empty($search)
             && empty($selectedVendors)
             && empty($billingModels);
 
-        $hasFilters =
-            !empty($search)
-            || !empty($selectedVendors)
-            || $minPrice !== null
-            || $maxPrice !== null
-            || !empty($billingModels)
-            || $isDefaultBrowse;
+        if (!empty($selectedVendors)) {
+            // Vendor scope is handled below in the selectedVendors block.
+        }
+
+        if ($isDefaultBrowse && (bool) config('tdsynnex.catalog.hardware_only', true)) {
+            $this->applyHardwareOnlyExclusions($query);
+        }
 
         if ($hideZero) {
             $query->where('base_price', '>', 0);
@@ -626,9 +661,8 @@ class ProductController extends Controller
 
         if (!empty($search)) {
             $searchTerm = trim((string) $search);
+
             if ($this->hasProductsFullTextIndex()) {
-                // Pure FULLTEXT search — OR clauses with btree columns prevent FULLTEXT index usage
-                // (10s+ vs <1s). Exact SKU/part lookups use the show/getBySku endpoints instead.
                 $query->whereRaw(
                     'MATCH(product_name, description, mfg_part_no) AGAINST(? IN BOOLEAN MODE)',
                     [$searchTerm . '*']
@@ -683,31 +717,49 @@ class ProductController extends Controller
             $query->whereIn('billing_model', array_map('trim', explode(',', (string) $billingModels)));
         }
 
-        if ($isDefaultBrowse) {
-            $this->applyCuratedDefaultBrowseFilters($query);
+        if (!($isDefaultBrowse && $normalizedProductType === 'hardware')) {
+            $this->applyProductTypeFilterToQuery($query, $normalizedProductType);
         }
 
         if ($catalogClean) {
-            // Drop shipping/support-like line items that are usually placeholder-priced.
             $query->whereRaw("LOWER(COALESCE(mfg_part_no, '')) <> 'shipping'")
                 ->whereRaw("LOWER(COALESCE(product_name, '')) NOT LIKE '%shipping%'")
                 ->whereRaw("NOT ((COALESCE(base_price, 0) <= 0.05) AND (LOWER(COALESCE(product_name, '')) LIKE '%support%' OR LOWER(COALESCE(product_name, '')) LIKE '%warranty%' OR LOWER(COALESCE(product_name, '')) LIKE '%consulting%' OR LOWER(COALESCE(product_name, '')) LIKE '%implementation%' OR LOWER(COALESCE(product_name, '')) LIKE '%annual fee%' OR LOWER(COALESCE(product_name, '')) LIKE '%training%'))");
         }
 
-        $totalQuery = clone $query;
+        // Filter by UNSPSC category segment prefix (e.g. "56" for Furniture)
+        if ($category !== '') {
+            if ($category === 'other') {
+                // "Other" matches any segment NOT in the named category list
+                $namedSegments = ['43','81','26','39','24','45','44','52','32','56','41','46','42','14','71','53','60','23','40','25','55','47','27','31','03'];
+                $placeholders = implode(',', array_fill(0, count($namedSegments), '?'));
+                $query->whereRaw(
+                    "LEFT(JSON_UNQUOTE(JSON_EXTRACT(specifications, '$.categoryCode')), 2) NOT IN ($placeholders)",
+                    $namedSegments
+                );
+            } else {
+                $safePrefix = preg_replace('/[^0-9]/', '', $category);
+                if ($safePrefix !== '') {
+                    $query->whereRaw(
+                        "LEFT(JSON_UNQUOTE(JSON_EXTRACT(specifications, '$.categoryCode')), ?) = ?",
+                        [strlen($safePrefix), $safePrefix]
+                    );
+                }
+            }
+        }
 
-        // Fetch one extra row to detect if there are more pages (avoids expensive COUNT)
         $perPage = max(1, $pageSize);
         $currentPage = max(1, $pageNo);
         $offset = ($currentPage - 1) * $perPage;
-        // Skip ORDER BY for search queries — FULLTEXT returns results by relevance,
-        // and ORDER BY forces MySQL to collect ALL matches before limiting (0.1s vs 3-8s).
+
         if (empty($search)) {
             $query->orderBy('id');
         }
 
-        $fetchLimit = $perPage + 1;
+        // Clone the fully-filtered query BEFORE pagination so we can COUNT later.
+        $countQuery = $query->clone();
 
+        $fetchLimit = $perPage + 1;
         $products = $query
             ->offset($offset)
             ->limit($fetchLimit)
@@ -718,39 +770,44 @@ class ProductController extends Controller
             $products = $products->slice(0, $perPage);
         }
 
-        // Use an exact cached count for all cases except full-text search (which is too expensive to COUNT).
-        if (!empty($search)) {
-            // FULLTEXT search: COUNT forces MySQL to collect all matches before limiting (0.1s vs 3-8s).
-            // Use N+1 estimate instead: hasMore flag tells frontend there are more pages.
-            $total = $hasMore
-                ? max(($currentPage * $perPage) * 3, ($currentPage * $perPage) + $perPage + 1)
-                : ($currentPage - 1) * $perPage + $products->count();
-        } else {
-            // Default browse, vendor filter, price filter — all safe to COUNT exactly.
-            // TABLE_ROWS is only an estimate and can lag behind real synced row counts.
-            $countCacheKey = sprintf(
-                'pa_products_total_exact:%s',
-                md5(json_encode([
-                    'vendors' => $selectedVendors,
-                    'hide_zero' => $hideZero,
-                    'min_price' => $minPrice,
-                    'max_price' => $maxPrice,
-                    'catalog_clean' => $catalogClean,
-                    'billing_models' => $billingModels,
-                    'hardware_only' => (bool) config('tdsynnex.catalog.hardware_only', true),
-                    'default_browse' => $isDefaultBrowse,
-                ]))
-            );
-
-            $total = (int) Cache::remember($countCacheKey, 120, function () use ($totalQuery) {
-                return (clone $totalQuery)->count();
-            });
-        }
+        $total = $this->getFilteredTotal($countQuery, $currentPage, $perPage, $products->count(), $hasMore);
 
         return [
             'records' => $products->map(fn (Product $product) => $this->mapPriceAvailabilityDatabaseProduct($product))->toArray(),
             'total' => $total,
+            'has_more' => $hasMore,
+            'total_is_estimate' => false,
         ];
+    }
+
+    /**
+     * Get the real filtered total, cached for 1 hour to avoid expensive COUNT on every request.
+     * When all results fit on the current page (!$hasMore), the exact total is computed directly.
+     */
+    private function getFilteredTotal(
+        \Illuminate\Database\Eloquent\Builder $countQuery,
+        int $currentPage,
+        int $perPage,
+        int $currentCount,
+        bool $hasMore
+    ): int {
+        if (!$hasMore) {
+            return (($currentPage - 1) * $perPage) + $currentCount;
+        }
+
+        $countCacheKey = 'pa_filtered_total:' . md5(json_encode([
+            $countQuery->toSql(),
+            $countQuery->getBindings(),
+        ]));
+
+        $total = (int) Cache::remember($countCacheKey, 3600, function () use ($countQuery) {
+            return $countQuery->count();
+        });
+
+        // Ensure total is at least as large as what we've already seen on this page.
+        $minimum = ($currentPage * $perPage) + 1;
+
+        return max($total, $minimum);
     }
 
     private function mapPriceAvailabilityDatabaseProduct(Product $product): array
@@ -832,6 +889,68 @@ class ProductController extends Controller
 
             return true;
         }));
+    }
+
+    private function normalizeProductType(string $value): string
+    {
+        $normalized = strtolower(trim($value));
+        if ($normalized === 'software') return 'software';
+        if ($normalized === 'hardware') return 'hardware';
+        return ''; // empty = all types, no filter
+    }
+
+    private function getSoftwareClassificationRegex(): string
+    {
+        return '(license|lic/sa|subscription|software|saas|office|microsoft 365|office 365|adobe|antivirus|security|backup|support|maintenance|consulting|implementation|training|warranty|service agreement|renewal|hosting|cloud)';
+    }
+
+    private function isSoftwareProduct(array $product): bool
+    {
+        $billingModel = strtolower(trim((string) ($product['billingModel'] ?? '')));
+        if (str_contains($billingModel, 'subscription') || str_contains($billingModel, 'software') || str_contains($billingModel, 'service')) {
+            return true;
+        }
+
+        $haystack = strtolower(trim(implode(' ', [
+            (string) ($product['productName'] ?? ''),
+            (string) ($product['description'] ?? ''),
+            (string) ($product['categoryCode'] ?? ''),
+            (string) ($product['mfgPartNo'] ?? ''),
+        ])));
+
+        return $haystack !== '' && (bool) preg_match('/' . $this->getSoftwareClassificationRegex() . '/i', $haystack);
+    }
+
+    private function filterProductsByType(array $products, string $productType): array
+    {
+        $normalized = $this->normalizeProductType($productType);
+        if ($normalized === '') return $products; // no filter — show all types
+        $wantSoftware = $normalized === 'software';
+
+        return array_values(array_filter($products, function ($product) use ($wantSoftware) {
+            if (!is_array($product)) {
+                return false;
+            }
+
+            $isSoftware = $this->isSoftwareProduct($product);
+            return $wantSoftware ? $isSoftware : !$isSoftware;
+        }));
+    }
+
+    private function applyProductTypeFilterToQuery(\Illuminate\Database\Eloquent\Builder $query, string $productType): void
+    {
+        $normalized = $this->normalizeProductType($productType);
+        if ($normalized === '') return; // no filter — show all types
+        $regex = $this->getSoftwareClassificationRegex();
+
+        $sqlHaystack = "LOWER(CONCAT(' ', COALESCE(product_name, ''), ' ', COALESCE(description, ''), ' ', COALESCE(JSON_UNQUOTE(JSON_EXTRACT(specifications, '$.categoryCode')), ''), ' ', COALESCE(mfg_part_no, ''), ' ', COALESCE(billing_model, ''), ' '))";
+
+        if ($normalized === 'software') {
+            $query->whereRaw("{$sqlHaystack} REGEXP ?", [$regex]);
+            return;
+        }
+
+        $query->whereRaw("{$sqlHaystack} NOT REGEXP ?", [$regex]);
     }
 
     /**
@@ -1020,7 +1139,8 @@ class ProductController extends Controller
             $product = $baseQuery()->where('tdsynnex_product_id', $numeric)->first()
                 ?? $baseQuery()->where('tdsynnex_sku_no', $numeric)->first();
             if ($product) {
-                return $this->mapPriceAvailabilityDatabaseProduct($product);
+                $mapped = $this->mapPriceAvailabilityDatabaseProduct($product);
+                return $this->isAllowedCatalogVendor($this->resolvePriceAvailabilityVendorName($mapped)) ? $mapped : null;
             }
         }
 
@@ -1032,7 +1152,9 @@ class ProductController extends Controller
             return null;
         }
 
-        return $this->mapPriceAvailabilityDatabaseProduct($product);
+        $mapped = $this->mapPriceAvailabilityDatabaseProduct($product);
+
+        return $this->isAllowedCatalogVendor($this->resolvePriceAvailabilityVendorName($mapped)) ? $mapped : null;
     }
 
     /**
@@ -1185,6 +1307,10 @@ class ProductController extends Controller
                 $product = $this->getPriceAvailabilityProductFromDatabase($productId)
                     ?? $this->tdsynnexService->getPriceAvailabilityProductBySku($productId);
 
+                if (is_array($product) && !$this->isAllowedCatalogVendor($this->resolvePriceAvailabilityVendorName($product))) {
+                    $product = null;
+                }
+
                 if (!$product) {
                     return response()->json([
                         'success' => false,
@@ -1237,6 +1363,10 @@ class ProductController extends Controller
             if ($this->tdsynnexService->usesPriceAvailabilityAsProductSource()) {
                 $product = $this->getPriceAvailabilityProductFromDatabase($skuNo)
                     ?? $this->tdsynnexService->getPriceAvailabilityProductBySku($skuNo);
+
+                if (is_array($product) && !$this->isAllowedCatalogVendor($this->resolvePriceAvailabilityVendorName($product))) {
+                    $product = null;
+                }
 
                 if (!$product) {
                     return response()->json([
@@ -1351,6 +1481,7 @@ class ProductController extends Controller
         }
 
         $query = Product::query()->where('vendor_id', 'TD SYNNEX');
+        $this->applyCuratedDefaultBrowseFilters($query);
 
         if ($searchWord !== '') {
             $query->whereRaw('MATCH(product_name, description, mfg_part_no) AGAINST(? IN BOOLEAN MODE)', [$searchWord . '*']);
@@ -1379,7 +1510,7 @@ class ProductController extends Controller
             }
         }
 
-        return $related;
+        return $this->filterAllowedCatalogProducts($related);
     }
 
     /**
@@ -1390,7 +1521,7 @@ class ProductController extends Controller
         try {
             if ($this->tdsynnexService->usesPriceAvailabilityAsProductSource()) {
                 $curatedItMix = filter_var(request()->query('curated_it_mix', true), FILTER_VALIDATE_BOOLEAN);
-
+                $productType = $this->normalizeProductType((string) request()->query('product_type', ''));
                 if ($curatedItMix) {
                     $minPriceRaw = request()->query('min_price');
                     $maxPriceRaw = request()->query('max_price');
@@ -1406,12 +1537,13 @@ class ProductController extends Controller
                         $maxPrice,
                         $hideZero,
                         $catalogClean,
+                        $productType,
                     );
                 } else {
                     $vendors = $this->tdsynnexService->getPriceAvailabilityVendors();
                 }
 
-                $vendors = $this->filterCuratedVendors($vendors);
+                // Return all vendors with counts — no curated filter.
 
                 return response()->json([
                     'success' => true,
@@ -1441,6 +1573,156 @@ class ProductController extends Controller
                 'error' => 'SERVER_ERROR'
             ], 500);
         }
+    }
+
+    /**
+     * Return category group counts based on keyword matching against product_name + description.
+     * Results are cached for 1 hour since the keyword definitions are static.
+     */
+    public function categories(): JsonResponse
+    {
+        try {
+            $hideZero = filter_var(request()->query('hide_zero_price', true), FILTER_VALIDATE_BOOLEAN);
+            $minPriceRaw = request()->query('min_price');
+            $maxPriceRaw = request()->query('max_price');
+            $minPrice = $minPriceRaw !== null && $minPriceRaw !== '' ? (float) $minPriceRaw : null;
+            $maxPrice = $maxPriceRaw !== null && $maxPriceRaw !== '' ? (float) $maxPriceRaw : null;
+            $catalogClean = filter_var(request()->query('catalog_clean', false), FILTER_VALIDATE_BOOLEAN);
+            $productType = $this->normalizeProductType((string) request()->query('product_type', ''));
+
+            $cacheKey = sprintf(
+                'pa_category_counts:%s',
+                md5(json_encode([
+                    'hide_zero' => $hideZero,
+                    'min_price' => $minPrice,
+                    'max_price' => $maxPrice,
+                    'catalog_clean' => $catalogClean,
+                    'product_type' => $productType,
+                ]))
+            );
+
+            $data = Cache::remember($cacheKey, 3600, function () use ($hideZero, $minPrice, $maxPrice, $catalogClean, $productType) {
+                return $this->computeCategoryGroupCounts($hideZero, $minPrice, $maxPrice, $catalogClean, $productType);
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => $data,
+                'message' => 'Categories retrieved successfully',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve categories: ' . $e->getMessage(),
+                'error' => 'SERVER_ERROR',
+            ], 500);
+        }
+    }
+
+    /**
+     * Compute category counts from UNSPSC segment codes stored in specifications.categoryCode.
+     * Groups products by the 2-digit UNSPSC segment prefix and maps to readable names.
+     */
+    private function computeCategoryGroupCounts(
+        bool $hideZero,
+        ?float $minPrice,
+        ?float $maxPrice,
+        bool $catalogClean,
+        string $productType
+    ): array {
+        // 2-digit segment prefix → IT-catalog-appropriate label
+        // Labels derived from actual TD SYNNEX product data, not generic UNSPSC names
+        $segmentLabels = [
+            '43' => 'IT Hardware & Telecom',
+            '81' => 'Software & IT Services',
+            '26' => 'Power & UPS',
+            '39' => 'Cables & Electrical',
+            '24' => 'Racks & Containment',
+            '45' => 'Printing & Imaging',
+            '44' => 'Office Equipment',
+            '52' => 'Consumer Electronics',
+            '32' => 'Electronic Components',
+            '56' => 'Furniture',
+            '41' => 'Monitor Arms & Mounts',
+            '46' => 'Security Equipment',
+            '42' => 'Projector Screens',
+            '14' => 'Paper & Canvas',
+            '71' => 'Network Attached Storage',
+            '53' => 'Protective Cases',
+            '60' => 'Ergonomic Seating & Gaming',
+            '23' => '3D Printers',
+            '40' => 'Fans & Cooling',
+            '25' => 'Drones & EV Charging',
+            '00' => 'Other',
+            '55' => 'Labels & Identification',
+            '47' => 'Cleaning Supplies',
+            '27' => 'Tools & Accessories',
+            '31' => 'Cameras & Surveillance',
+            '03' => 'Photo & Specialty Paper',
+            '05' => 'Other',
+            '49' => 'Other',
+        ];
+
+        $query = Product::query()->where('vendor_id', 'TD SYNNEX');
+
+        if ($hideZero) {
+            $query->where('base_price', '>', 0);
+        }
+
+        if ($minPrice !== null) {
+            $query->where('base_price', '>=', $minPrice);
+        }
+
+        if ($maxPrice !== null) {
+            $query->where('base_price', '<=', $maxPrice);
+        }
+
+        if ($catalogClean) {
+            $query->whereRaw("LOWER(COALESCE(mfg_part_no, '')) <> 'shipping'")
+                ->whereRaw("LOWER(COALESCE(product_name, '')) NOT LIKE '%shipping%'");
+        }
+
+        // Group by first 2 characters of categoryCode (UNSPSC segment)
+        $rows = $query
+            ->selectRaw("LEFT(JSON_UNQUOTE(JSON_EXTRACT(specifications, '$.categoryCode')), 2) as segment, COUNT(*) as cnt")
+            ->whereRaw("JSON_EXTRACT(specifications, '$.categoryCode') IS NOT NULL")
+            ->groupBy('segment')
+            ->orderByDesc('cnt')
+            ->get();
+
+        $result = [];
+        $otherCount = 0;
+        foreach ($rows as $row) {
+            $seg = $row->segment;
+            $label = $segmentLabels[$seg] ?? 'Other';
+            $cnt = (int) $row->cnt;
+
+            // Merge all "Other" segments into a single bucket
+            if ($label === 'Other') {
+                $otherCount += $cnt;
+                continue;
+            }
+
+            $result[] = [
+                'name'  => $label,
+                'value' => $seg,
+                'count' => $cnt,
+            ];
+        }
+
+        // Add combined "Other" bucket if it has products
+        if ($otherCount > 0) {
+            $result[] = [
+                'name'  => 'Other',
+                'value' => 'other',
+                'count' => $otherCount,
+            ];
+        }
+
+        // Sort by count descending
+        usort($result, fn($a, $b) => $b['count'] - $a['count']);
+
+        return $result;
     }
 
     private function filterCuratedVendors(array $vendors): array
@@ -1491,21 +1773,22 @@ class ProductController extends Controller
         ?float $minPrice = 200.0,
         ?float $maxPrice = null,
         bool $hideZero = true,
-        bool $catalogClean = true
+        bool $catalogClean = true,
+        string $productType = 'hardware'
     ): array {
         $cacheKey = sprintf(
             'pa_default_browse_vendors:%s',
             md5(json_encode([
-                'cap' => $cap,
                 'min_price' => $minPrice,
                 'max_price' => $maxPrice,
                 'hide_zero' => $hideZero,
                 'catalog_clean' => $catalogClean,
+                'product_type' => $productType,
                 'hardware_only' => (bool) config('tdsynnex.catalog.hardware_only', true),
             ]))
         );
 
-        return Cache::remember($cacheKey, 300, function () use ($cap, $minPrice, $maxPrice, $hideZero, $catalogClean) {
+        return Cache::remember($cacheKey, 300, function () use ($minPrice, $maxPrice, $hideZero, $catalogClean, $productType) {
             $query = Product::query()->where('vendor_id', 'TD SYNNEX');
 
             if ($hideZero) {
@@ -1526,23 +1809,15 @@ class ProductController extends Controller
                     ->whereRaw("NOT ((COALESCE(base_price, 0) <= 0.05) AND (LOWER(COALESCE(product_name, '')) LIKE '%support%' OR LOWER(COALESCE(product_name, '')) LIKE '%warranty%' OR LOWER(COALESCE(product_name, '')) LIKE '%consulting%' OR LOWER(COALESCE(product_name, '')) LIKE '%implementation%' OR LOWER(COALESCE(product_name, '')) LIKE '%annual fee%' OR LOWER(COALESCE(product_name, '')) LIKE '%training%'))");
             }
 
-            $this->applyCuratedDefaultBrowseFilters($query);
+            $this->applyProductTypeFilterToQuery($query, $productType);
 
             $manufacturerExpr = "TRIM(JSON_UNQUOTE(JSON_EXTRACT(specifications, '$.manufacturer')))";
 
-            if ($cap === null) {
-                $rows = $query
-                    ->selectRaw("{$manufacturerExpr} as manufacturer, COUNT(*) as aggregate_count")
-                    ->whereRaw("{$manufacturerExpr} <> ''")
-                    ->groupByRaw($manufacturerExpr)
-                    ->get();
-            } else {
-                $rows = $query
-                    ->orderBy('id')
-                    ->selectRaw("{$manufacturerExpr} as manufacturer")
-                    ->limit(max(1, $cap))
-                    ->get();
-            }
+            $rows = $query
+                ->selectRaw("{$manufacturerExpr} as manufacturer, COUNT(*) as aggregate_count")
+                ->whereRaw("{$manufacturerExpr} <> ''")
+                ->groupByRaw($manufacturerExpr)
+                ->get();
 
             $aggregated = [];
             foreach ($rows as $row) {
@@ -1583,60 +1858,122 @@ class ProductController extends Controller
 
     private function getCuratedVendorAllowList(): array
     {
-        return [
-            'CISCO SYSTEMS',
-            'HEWLETT PACKARD ENTERPRISE',
-            'NVIDIA CORPORATION',
-            'LENOVO DATA CENTER',
-            'MICROSOFT CORPORATION',
-            'HP INC.',
-            'VEEAM SOFTWARE CORPORATION',
-            'LENOVO',
-            'FORTINET INC.',
-            'APC BY SCHNEIDER ELECTRIC',
-            'STARTECH.COM',
-            'BELKIN INTERNATIONAL INC',
-            'SAMSUNG',
-            'DELL MARKETING L.P.',
-            'ASUS',
-            'INTEL',
-            'INTELLINET',
-            'LOGITECH',
-            'JABRA',
-            'KINGSTON',
-            'KENSINGTON COMPUTER',
-            'ASUS SBG COMMERCIAL',
-            'INTELLIGENT SECURITY SYSTEMS C',
-            'NETGEAR',
-            'WESTERN DIGITAL',
-            'AMD',
-            'ACER AMERICA CORPORATION',
-            'BROADCOM',
-            'INTELLIGENT COMPUTER SOLUTIONS',
-            'CROWDSTRIKE, INC.',
-            'ASUSTOR AMERICA INC',
-            'Q6 INTELLIGENCE, LLC',
-            'SEAGATE TECHNOLOGY LLC',
-            'PALO ALTO NETWORKS',
-        ];
+        return array_keys($this->getCuratedVendorAliasMap());
     }
 
     private function getCuratedVendorAliasMap(): array
     {
         return [
-            'HEWLETT PACKARD ENTERPRISE' => ['HEWLETT PACKARD ENTERPRISE COM'],
-            'MICROSOFT CORPORATION' => ['MICROSOFT', 'MICROSOFT CORP', 'MICROSOFT RETAIL'],
+            'CISCO' => [
+                'CISCO SYSTEMS',
+                'CISCO SYSTEMS CAPITAL REMARKET',
+            ],
+            'DELL' => [
+                'DELL MARKETING L.P.',
+                'DELL MARKETING LP',
+                'DELL WORLD TRADE L.P.',
+            ],
+            'HP' => [
+                'HP INC',
+                'HP INC.',
+                'HEWLETT PACKARD',
+                'HEWLETT PACKARD ENTERPRISE',
+                'HEWLETT PACKARD ENTERPRISE COM',
+                'HEWLETT PACKARD ENTERPRISE COMPANY',
+            ],
+            'LENOVO' => [
+                'LENOVO DATA CENTER',
+                'LENOVO GROUP',
+                'LENOVO PC HK LIMITED',
+            ],
+            'MICROSOFT' => [
+                'MICROSOFT CORPORATION',
+                'MICROSOFT CORP',
+                'MICROSOFT RETAIL',
+                'MSFT RETAL NEW NAE',
+                'MSFT SURFACE RECERTIFIED',
+            ],
             'SAMSUNG' => [
-                'SAMSUNG ELECTRONICS AMERICA, I',
                 'SAMSUNG ELECTRONICS AMERICA',
-                'SAMSUNG ELECTRONICS CO.',
+                'SAMSUNG ELECTRONICS AMERICA, I',
                 'SAMSUNG ELECTRONICS AMERICA IN',
                 'SAMSUNG ELECTRONICS AMERICA (W',
+                'SAMSUNG ELECTRONICS CO.',
+                'SAMSUNG VXT',
             ],
-            'CISCO SYSTEMS' => ['CISCO SYSTEMS CAPITAL REMARKET'],
-            'DELL MARKETING L.P.' => ['DELL MARKETING LP'],
-            'ACER AMERICA CORPORATION' => ['ACER', 'ACER AMERICA'],
-            'SEAGATE TECHNOLOGY LLC' => ['STRATEGIC SOURCING -SEAGATE'],
+            'EPSON' => [
+                'EPSON PRINT',
+                'EPSON PROJECTION',
+                'EPSON PROJECTOR',
+                'EPSON SCANNER',
+            ],
+            'CANON' => [
+                'CANON USA',
+                'CANON USA INC',
+                'CANON USA INC.',
+                'CANON USA, INC',
+            ],
+            'PANASONIC' => [
+                'PANASONIC SOLUTIONS COMPANY',
+                'PANASONIC SYSTEM SOLUTIONS',
+            ],
+            'ACER' => [
+                'ACER AMERICA',
+                'ACER AMERICA CORPORATION',
+            ],
+            'ASUS' => [
+                'ASUS - RETAIL',
+                'ASUS SBG COMMERCIAL',
+            ],
+            'XEROX' => [
+                'XEROX CORPORATION',
+            ],
+            'GETAC' => [
+                'GETAC INC.',
+                'GETAC VIDEO SOLUTIONS INC.',
+            ],
+            'GOOGLE' => [
+                'GOOGLE CLOUD',
+                'GOOGLE INC',
+                'GOOGLE LLC',
+                'GOOGLE REMAN',
+            ],
+            'RICOH' => [
+                'RICOH PFU',
+                'RICOH USA',
+            ],
+            'SONY' => [
+                'SONY CONSUMER ELECTRONICS INC',
+                'SONY PRO ELECTRONICS INC',
+            ],
+            'LEXMARK' => [
+                'LEXMARK WARRANTIES',
+            ],
+            'SANDISK' => [
+                'SANDISK PROFESSIONAL',
+                'SANDISK TECHNOLOGIES, INC.',
+            ],
+            'CRADLEPOINT' => [
+                'CRADLEPOINT INC',
+                'CRADLEPOINT MSP',
+            ],
+            'AVAYA' => [
+                'AVAYA BLUE',
+            ],
+            'BRADY' => [
+                'BRADY PEOPLE ID - CIPI',
+                'BRADY WORLDWIDE, INC.',
+            ],
+            'DT RESEARCH' => [
+                'DT RESEARCH GOVERNMENT',
+            ],
+            'HUBBELL' => [
+                'HUBBELL PREMISE WIRING',
+            ],
+            'HAIVISION' => [
+                'HAIVISION MCS, LLC',
+                'HAIVISION NETWORK VIDEO INC.',
+            ],
         ];
     }
 
@@ -1751,7 +2088,7 @@ class ProductController extends Controller
         ];
     }
 
-    private function applyCuratedDefaultBrowseFilters(\Illuminate\Database\Eloquent\Builder $query): void
+    private function applyCuratedVendorScope(\Illuminate\Database\Eloquent\Builder $query): void
     {
         $vendorNames = $this->getCuratedVendorAllowList();
         foreach ($this->getCuratedVendorAliasMap() as $canonical => $aliases) {
@@ -1773,6 +2110,11 @@ class ProductController extends Controller
                 $vendorNames
             );
         }
+    }
+
+    private function applyCuratedDefaultBrowseFilters(\Illuminate\Database\Eloquent\Builder $query): void
+    {
+        $this->applyCuratedVendorScope($query);
 
         if ((bool) config('tdsynnex.catalog.hardware_only', true)) {
             $this->applyHardwareOnlyExclusions($query);
