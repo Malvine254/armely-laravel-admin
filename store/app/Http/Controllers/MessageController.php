@@ -2206,8 +2206,8 @@ class MessageController extends Controller
             return $url;
         }
 
-        $appUrl = rtrim((string) config('app.url', ''), '/');
-        return $appUrl !== '' ? $appUrl . $url : $url;
+        $base = rtrim((string) config('app.asset_url', ''), '/');
+        return $base !== '' ? $base . $url : $url;
     }
 
     private function isValidImageUrl(string $url): bool

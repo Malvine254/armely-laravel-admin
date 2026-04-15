@@ -1147,12 +1147,14 @@ class ProductController extends Controller
             return $url; // already absolute
         }
 
-        $appUrl = rtrim((string) config('app.url', ''), '/');
-        if ($appUrl === '') {
+        // Use ASSET_URL if configured (set in production .env for subdirectory deployments).
+        // Leave ASSET_URL empty in local .env so artisan-serve relative paths work unchanged.
+        $base = rtrim((string) config('app.asset_url', ''), '/');
+        if ($base === '') {
             return $url;
         }
 
-        return $appUrl . $url;
+        return $base . $url;
     }
 
     private function isValidImageUrl(string $url): bool
