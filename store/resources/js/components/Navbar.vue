@@ -41,9 +41,9 @@
             </button>
 
             <transition enter-active-class="transition ease-out duration-150" enter-from-class="opacity-0 translate-y-1" enter-to-class="opacity-100 translate-y-0" leave-active-class="transition ease-in duration-100" leave-from-class="opacity-100 translate-y-0" leave-to-class="opacity-0 translate-y-1">
-              <div v-if="categoryDropdownOpen === cat.value" class="absolute left-0 mt-1 w-64 rounded-xl shadow-2xl overflow-hidden z-50 border border-white/10" style="background: linear-gradient(180deg, #0f2136 0%, #0a1a2e 100%);">
-                <div class="px-4 py-2.5 border-b border-white/10">
-                  <p class="text-xs font-semibold text-cyan-400 uppercase tracking-widest">{{ cat.name }} Brands</p>
+              <div v-if="categoryDropdownOpen === cat.value" class="absolute left-0 mt-1 w-64 rounded-xl shadow-2xl overflow-hidden z-50 border border-white/20" style="background-color: #2F5597;">
+                <div class="px-4 py-2.5 border-b border-white/20">
+                  <p class="text-xs font-semibold text-white uppercase tracking-widest">{{ cat.name }} Brands</p>
                 </div>
                 <div class="py-1.5">
                   <button
@@ -80,9 +80,9 @@
               </svg>
             </button>
             <transition enter-active-class="transition ease-out duration-150" enter-from-class="opacity-0 translate-y-1" enter-to-class="opacity-100 translate-y-0" leave-active-class="transition ease-in duration-100" leave-from-class="opacity-100 translate-y-0" leave-to-class="opacity-0 translate-y-1">
-              <div v-if="moreCategoriesOpen" class="absolute left-0 mt-1 w-64 rounded-xl shadow-2xl overflow-visible z-50 border border-white/10" style="background: linear-gradient(180deg, #0f2136 0%, #0a1a2e 100%);">
-                <div class="px-4 py-2.5 border-b border-white/10">
-                  <p class="text-xs font-semibold text-cyan-400 uppercase tracking-widest">More Categories</p>
+              <div v-if="moreCategoriesOpen" class="absolute left-0 mt-1 w-64 rounded-xl shadow-2xl overflow-visible z-50 border border-white/20" style="background-color: #2F5597;">
+                <div class="px-4 py-2.5 border-b border-white/20">
+                  <p class="text-xs font-semibold text-white uppercase tracking-widest">More Categories</p>
                 </div>
                 <div class="py-1.5">
                   <div
@@ -104,9 +104,9 @@
                     </button>
 
                     <transition enter-active-class="transition ease-out duration-150" enter-from-class="opacity-0 translate-x-1" enter-to-class="opacity-100 translate-x-0" leave-active-class="transition ease-in duration-100" leave-from-class="opacity-100 translate-x-0" leave-to-class="opacity-0 translate-x-1">
-                      <div v-if="moreCategoryDropdownOpen === cat.value" class="absolute left-full top-0 ml-1 w-60 rounded-xl shadow-2xl overflow-hidden z-[60] border border-white/10" style="background: linear-gradient(180deg, #0f2136 0%, #0a1a2e 100%);">
-                        <div class="px-4 py-2.5 border-b border-white/10">
-                          <p class="text-xs font-semibold text-cyan-400 uppercase tracking-widest">{{ cat.name }} Brands</p>
+                      <div v-if="moreCategoryDropdownOpen === cat.value" class="absolute left-full top-0 ml-1 w-60 rounded-xl shadow-2xl overflow-hidden z-[60] border border-white/20" style="background-color: #2F5597;">
+                        <div class="px-4 py-2.5 border-b border-white/20">
+                          <p class="text-xs font-semibold text-white uppercase tracking-widest">{{ cat.name }} Brands</p>
                         </div>
                         <div class="py-1.5">
                           <button
@@ -175,8 +175,8 @@
                 <span class="text-sm font-medium">{{ userFirstName }}</span>
               </button>
               <!-- Authenticated Dropdown Menu -->
-              <div class="hidden group-hover:block absolute right-0 mt-0 w-56 bg-slate-900 rounded-lg shadow-xl py-2 z-10 border border-white/10" style="background: linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(8, 16, 29, 0.98));">
-                <div class="px-4 py-2 border-b border-white/10">
+              <div class="hidden group-hover:block absolute right-0 mt-0 w-56 rounded-lg shadow-xl py-2 z-10 border border-white/20" style="background-color: #2F5597;">
+                <div class="px-4 py-2 border-b border-white/20">
                   <div class="flex items-center gap-3 mb-2">
                     <img v-if="userProfilePictureUrl" :src="userProfilePictureUrl" :alt="authStore.user?.name" class="w-10 h-10 rounded-full object-cover border border-slate-400">
                     <div v-else class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold bg-gradient-to-br from-cyan-400 to-blue-500">{{ userInitials }}</div>
@@ -191,7 +191,7 @@
                 <router-link to="/quotes" v-if="authStore.isAuthenticated" class="block w-full px-4 py-2 text-left hover:bg-white/10 transition text-slate-100">My Quotes</router-link>
                 <router-link to="/orders" v-if="authStore.isAuthenticated" class="block w-full px-4 py-2 text-left hover:bg-white/10 transition text-slate-100">My Orders</router-link>
                 <router-link to="/invoices" v-if="authStore.hasFeatureAccess('invoices')" class="block w-full px-4 py-2 text-left hover:bg-white/10 transition text-slate-100">Invoices</router-link>
-                <div class="border-t border-white/10 my-2"></div>
+                <div class="border-t border-white/20 my-2"></div>
                 <button @click="handleLogout" class="w-full px-4 py-2 text-left hover:bg-rose-500/20 transition text-rose-400"><strong>Sign Out</strong></button>
               </div>
             </div>
@@ -226,7 +226,7 @@
 
       <!-- Mobile Dropdown Menu -->
       <div v-if="mobileMenuOpen" class="md:hidden pb-4">
-        <div class="rounded-lg border border-white/10 overflow-hidden" style="background: rgba(15, 23, 42, 0.9);">
+        <div class="rounded-lg border border-white/20 overflow-hidden" style="background-color: #2F5597;">
           <!-- Products Section -->
           <div class="border-b border-white/10">
             <button type="button" @click="mobileProductsOpen = !mobileProductsOpen" class="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold text-slate-100 hover:bg-white/10 transition">

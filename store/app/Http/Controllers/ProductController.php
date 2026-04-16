@@ -699,7 +699,7 @@ class ProductController extends Controller
             if (!empty($vendorNames)) {
                 $placeholders = implode(',', array_fill(0, count($vendorNames), '?'));
                 $query->whereRaw(
-                    "LOWER(TRIM(COALESCE(JSON_UNQUOTE(JSON_EXTRACT(specifications, '$.manufacturer')), ''))) IN ({$placeholders})",
+                    "LOWER(TRIM(COALESCE(manufacturer, ''))) IN ({$placeholders})",
                     $vendorNames
                 );
             }
@@ -734,16 +734,13 @@ class ProductController extends Controller
                 $namedSegments = ['43','81','26','39','24','45','44','52','32','56','41','46','42','14','71','53','60','23','40','25','55','47','27','31','03'];
                 $placeholders = implode(',', array_fill(0, count($namedSegments), '?'));
                 $query->whereRaw(
-                    "LEFT(JSON_UNQUOTE(JSON_EXTRACT(specifications, '$.categoryCode')), 2) NOT IN ($placeholders)",
+                    "COALESCE(category_segment, '') NOT IN ($placeholders)",
                     $namedSegments
                 );
             } else {
                 $safePrefix = preg_replace('/[^0-9]/', '', $category);
                 if ($safePrefix !== '') {
-                    $query->whereRaw(
-                        "LEFT(JSON_UNQUOTE(JSON_EXTRACT(specifications, '$.categoryCode')), ?) = ?",
-                        [strlen($safePrefix), $safePrefix]
-                    );
+                    $query->where('category_segment', $safePrefix);
                 }
             }
         }
@@ -941,16 +938,17 @@ class ProductController extends Controller
     {
         $normalized = $this->normalizeProductType($productType);
         if ($normalized === '') return; // no filter — show all types
-        $regex = $this->getSoftwareClassificationRegex();
 
-        $sqlHaystack = "LOWER(CONCAT(' ', COALESCE(product_name, ''), ' ', COALESCE(description, ''), ' ', COALESCE(JSON_UNQUOTE(JSON_EXTRACT(specifications, '$.categoryCode')), ''), ' ', COALESCE(mfg_part_no, ''), ' ', COALESCE(billing_model, ''), ' '))";
-
-        if ($normalized === 'software') {
-            $query->whereRaw("{$sqlHaystack} REGEXP ?", [$regex]);
+        // Use the indexed is_hardware column instead of expensive REGEXP scan
+        if ($normalized === 'hardware') {
+            $query->where('is_hardware', 1);
             return;
         }
 
-        $query->whereRaw("{$sqlHaystack} NOT REGEXP ?", [$regex]);
+        // Software: still needs REGEXP for precise classification
+        $regex = $this->getSoftwareClassificationRegex();
+        $sqlHaystack = "LOWER(CONCAT(' ', COALESCE(product_name, ''), ' ', COALESCE(description, ''), ' ', COALESCE(JSON_UNQUOTE(JSON_EXTRACT(specifications, '$.categoryCode')), ''), ' ', COALESCE(mfg_part_no, ''), ' ', COALESCE(billing_model, ''), ' '))";
+        $query->whereRaw("{$sqlHaystack} REGEXP ?", [$regex]);
     }
 
     /**
@@ -1528,7 +1526,7 @@ class ProductController extends Controller
                     $minPrice = $minPriceRaw !== null && $minPriceRaw !== '' ? (float) $minPriceRaw : 200.0;
                     $maxPrice = $maxPriceRaw !== null && $maxPriceRaw !== '' ? (float) $maxPriceRaw : null;
                     $hideZero = filter_var(request()->query('hide_zero_price', true), FILTER_VALIDATE_BOOLEAN);
-                    $catalogClean = filter_var(request()->query('catalog_clean', true), FILTER_VALIDATE_BOOLEAN);
+                    $catalogClean = filter_var(request()->query('catalog_clean', false), FILTER_VALIDATE_BOOLEAN);
                     $facetCap = max(5000, (int) request()->query('vendor_cap', 50000));
 
                     $vendors = $this->getCuratedDefaultBrowseVendors(
@@ -1598,6 +1596,7 @@ class ProductController extends Controller
                     'max_price' => $maxPrice,
                     'catalog_clean' => $catalogClean,
                     'product_type' => $productType,
+                    'hardware_only' => (bool) config('tdsynnex.catalog.hardware_only', true),
                 ]))
             );
 
@@ -1679,14 +1678,23 @@ class ProductController extends Controller
 
         if ($catalogClean) {
             $query->whereRaw("LOWER(COALESCE(mfg_part_no, '')) <> 'shipping'")
-                ->whereRaw("LOWER(COALESCE(product_name, '')) NOT LIKE '%shipping%'");
+                ->whereRaw("LOWER(COALESCE(product_name, '')) NOT LIKE '%shipping%'")
+                ->whereRaw("NOT ((COALESCE(base_price, 0) <= 0.05) AND (LOWER(COALESCE(product_name, '')) LIKE '%support%' OR LOWER(COALESCE(product_name, '')) LIKE '%warranty%' OR LOWER(COALESCE(product_name, '')) LIKE '%consulting%' OR LOWER(COALESCE(product_name, '')) LIKE '%implementation%' OR LOWER(COALESCE(product_name, '')) LIKE '%annual fee%' OR LOWER(COALESCE(product_name, '')) LIKE '%training%'))");
         }
 
-        // Group by first 2 characters of categoryCode (UNSPSC segment)
+        $this->applyProductTypeFilterToQuery($query, $productType);
+
+        // Apply the same hardware-only exclusions that the product listing uses
+        if ((bool) config('tdsynnex.catalog.hardware_only', true)) {
+            $this->applyHardwareOnlyExclusions($query);
+        }
+
+        // Group by denormalized category_segment column (first 2 chars of UNSPSC categoryCode)
         $rows = $query
-            ->selectRaw("LEFT(JSON_UNQUOTE(JSON_EXTRACT(specifications, '$.categoryCode')), 2) as segment, COUNT(*) as cnt")
-            ->whereRaw("JSON_EXTRACT(specifications, '$.categoryCode') IS NOT NULL")
-            ->groupBy('segment')
+            ->selectRaw("category_segment as segment, COUNT(*) as cnt")
+            ->where('category_segment', '<>', '')
+            ->whereNotNull('category_segment')
+            ->groupBy('category_segment')
             ->orderByDesc('cnt')
             ->get();
 
@@ -1811,12 +1819,16 @@ class ProductController extends Controller
 
             $this->applyProductTypeFilterToQuery($query, $productType);
 
-            $manufacturerExpr = "TRIM(JSON_UNQUOTE(JSON_EXTRACT(specifications, '$.manufacturer')))";
+            // Apply the same hardware-only exclusions that the product listing uses
+            if ((bool) config('tdsynnex.catalog.hardware_only', true)) {
+                $this->applyHardwareOnlyExclusions($query);
+            }
 
             $rows = $query
-                ->selectRaw("{$manufacturerExpr} as manufacturer, COUNT(*) as aggregate_count")
-                ->whereRaw("{$manufacturerExpr} <> ''")
-                ->groupByRaw($manufacturerExpr)
+                ->selectRaw("manufacturer, COUNT(*) as aggregate_count")
+                ->where('manufacturer', '<>', '')
+                ->whereNotNull('manufacturer')
+                ->groupBy('manufacturer')
                 ->get();
 
             $aggregated = [];
@@ -2106,7 +2118,7 @@ class ProductController extends Controller
         if (!empty($vendorNames)) {
             $placeholders = implode(',', array_fill(0, count($vendorNames), '?'));
             $query->whereRaw(
-                "LOWER(TRIM(COALESCE(JSON_UNQUOTE(JSON_EXTRACT(specifications, '$.manufacturer')), ''))) IN ({$placeholders})",
+                "LOWER(TRIM(COALESCE(manufacturer, ''))) IN ({$placeholders})",
                 $vendorNames
             );
         }
@@ -2123,12 +2135,35 @@ class ProductController extends Controller
 
     private function applyHardwareOnlyExclusions(\Illuminate\Database\Eloquent\Builder $query): void
     {
-        // Exclude software/license/service-like SKUs that often pollute hardware catalog views.
-        $nonHardwareRegex = '(license|lic/sa|subscription|software|office|windows svr|exchange svr|core cal|\\bcal\\b|addtl prod|step up|coverage|warranty|support|maintenance|consulting|implementation|training|care pack|onsite repair|extended service|service agreement|sa olv|olv nl|renewal|saas)';
-        $query->whereRaw(
-            "LOWER(CONCAT(' ', COALESCE(product_name, ''), ' ', COALESCE(description, ''), ' ')) NOT REGEXP ?",
-            [$nonHardwareRegex]
-        );
+        // Use precomputed indexed column instead of expensive REGEXP scan.
+        $query->where('is_hardware', 1);
+    }
+
+    /**
+     * Determine if product text matches non-hardware keywords.
+     * Used at import time to set the is_hardware column.
+     */
+    public static function isHardwareProduct(string $productName, string $description = ''): bool
+    {
+        $text = strtolower(' ' . ($productName ?: '') . ' ' . ($description ?: '') . ' ');
+        $keywords = [
+            'license', 'lic/sa', 'subscription', 'software', 'office',
+            'windows svr', 'exchange svr', 'core cal', 'addtl prod', 'step up',
+            'coverage', 'warranty', 'support', 'maintenance', 'consulting',
+            'implementation', 'training', 'care pack', 'onsite repair',
+            'extended service', 'service agreement', 'sa olv', 'olv nl',
+            'renewal', 'saas',
+        ];
+        foreach ($keywords as $kw) {
+            if (str_contains($text, $kw)) {
+                return false;
+            }
+        }
+        // Also match word-boundary 'cal'
+        if (preg_match('/\bcal\b/', $text)) {
+            return false;
+        }
+        return true;
     }
 
     private function applyItCategoryAllowlist(\Illuminate\Database\Eloquent\Builder $query): void

@@ -16,6 +16,7 @@ use App\Services\CatalogOperationStateService;
 use App\Services\TDSynnexService;
 use App\Jobs\SyncPriceAvailabilityCatalogJob;
 use App\Models\Message;
+use App\Models\Activity;
 use App\Exceptions\TDSynnexApiException;
 use App\Jobs\GenerateInvoiceJob;
 use Illuminate\Http\Request;
@@ -1728,6 +1729,228 @@ class AdminController extends Controller
                 'message' => 'Failed to fetch order status: ' . $e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * Admin cancel order (works for any user's order)
+     */
+    public function adminCancelOrder(Request $request, string $orderNumber): JsonResponse
+    {
+        try {
+            $user = $request->user();
+
+            if ($user->role !== 'admin' && $user->role !== 'super_admin') {
+                return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+            }
+
+            $validated = $request->validate([
+                'reason' => 'nullable|string|max:500',
+            ]);
+
+            $order = Order::where('order_number', $orderNumber)->firstOrFail();
+
+            if (in_array($order->status, ['cancelled', 'delivered'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Order cannot be cancelled — current status is {$order->status}",
+                ], 400);
+            }
+
+            // Attempt TD SYNNEX cancellation for external orders
+            if ($order->tdsynnex_order_id) {
+                try {
+                    $tdsynnexService = app(TDSynnexService::class);
+                    $tdsynnexService->cancelOrder($order->tdsynnex_order_id, $validated['reason'] ?? 'Cancelled by admin');
+                } catch (\Exception $apiEx) {
+                    Log::warning("TD SYNNEX cancel failed for {$orderNumber}: {$apiEx->getMessage()}");
+                }
+            }
+
+            $order->update([
+                'status' => 'cancelled',
+                'cancellation_reason' => $validated['reason'] ?? 'Cancelled by admin',
+                'cancelled_at' => now(),
+            ]);
+
+            Activity::log(
+                $user->id,
+                'order',
+                'cancelled',
+                "Order {$orderNumber} cancelled by admin {$user->name}",
+                ['order_number' => $orderNumber]
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Order cancelled successfully',
+                'data' => $order,
+            ]);
+        } catch (\Exception $e) {
+            Log::error("Admin cancel order failed for {$orderNumber}: " . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to cancel order: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Get confirmed/shipped orders with tracking info for the dedicated tracking page
+     */
+    public function getConfirmedOrdersTracking(Request $request): JsonResponse
+    {
+        try {
+            $user = $request->user();
+
+            if ($user->role !== 'admin' && $user->role !== 'super_admin') {
+                return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+            }
+
+            $page = $request->get('page', 1);
+            $pageSize = $request->get('pageSize', 20);
+            $statusFilter = $request->get('status', '');
+            $search = $request->get('search', '');
+
+            $query = Order::with(['user', 'company', 'invoice', 'items'])
+                ->whereIn('status', ['confirmed', 'processing', 'shipped', 'delivered']);
+
+            if ($statusFilter) {
+                $query->where('status', $statusFilter);
+            }
+
+            if ($search) {
+                $searchTerm = $search;
+                $query->where(function ($q) use ($searchTerm) {
+                    $q->where('order_number', 'like', "%{$searchTerm}%")
+                      ->orWhere('tdsynnex_order_id', 'like', "%{$searchTerm}%")
+                      ->orWhereHas('user', function ($uq) use ($searchTerm) {
+                          $uq->where('name', 'like', "%{$searchTerm}%");
+                      })
+                      ->orWhereHas('company', function ($cq) use ($searchTerm) {
+                          $cq->where('name', 'like', "%{$searchTerm}%");
+                      });
+                });
+            }
+
+            $orders = $query->orderBy('created_at', 'desc')
+                ->paginate($pageSize, ['*'], 'page', $page);
+
+            $tdsynnexService = app(TDSynnexService::class);
+
+            $orderRows = array_map(function ($order) use ($tdsynnexService) {
+                $trackingInfo = $this->parseTrackingInfoValue($order->tracking_info ?? null);
+
+                // Try to get live status for TD SYNNEX orders
+                $liveStatus = null;
+                $packages = [];
+                if ($order->tdsynnex_order_id || !str_starts_with((string) $order->order_number, 'ORD-')) {
+                    try {
+                        $poNumber = $order->po_number ?? $order->order_number;
+                        $poResponse = $tdsynnexService->checkPoStatus($poNumber);
+                        if (is_array($poResponse) && !isset($poResponse['error'])) {
+                            $liveStatus = $poResponse;
+                            $packages = $this->extractPackagesFromPoStatus($poResponse);
+                        }
+                    } catch (\Exception $ex) {
+                        Log::debug("Live PO status check failed for {$order->order_number}: {$ex->getMessage()}");
+                    }
+                }
+
+                // Enrich items with product details
+                $rawItems = is_array($order->items) ? $order->items : [];
+                $enrichedItems = array_map(function ($item) {
+                    $product = null;
+                    $productId = $item['product_id'] ?? $item['productId'] ?? null;
+                    if ($productId) {
+                        $product = Product::find($productId);
+                    }
+                    return [
+                        'product_id' => $productId,
+                        'name' => $item['product_name'] ?? $item['name'] ?? ($product ? ($product->product_name ?: $product->description) : 'Unknown Product'),
+                        'sku' => $item['sku'] ?? ($product->tdsynnex_sku_no ?? null),
+                        'mfg_part_no' => $item['mfg_part_no'] ?? ($product->mfg_part_no ?? null),
+                        'manufacturer' => $item['manufacturer'] ?? ($product->manufacturer ?? null),
+                        'quantity' => (int) ($item['quantity'] ?? 1),
+                        'price' => (float) ($item['price'] ?? $item['unit_price'] ?? ($product->base_price ?? 0)),
+                        'image' => $item['image'] ?? ($product->images[0] ?? null),
+                    ];
+                }, $rawItems);
+
+                return [
+                    'order_number' => $order->order_number,
+                    'tdsynnex_order_id' => $order->tdsynnex_order_id,
+                    'po_number' => $order->po_number ?? $order->order_number,
+                    'status' => $order->status,
+                    'payment_status' => $order->payment_status ?: (($order->invoice && (string) $order->invoice->status === 'paid') ? 'completed' : 'pending'),
+                    'total_amount' => $order->total_amount,
+                    'shipping_amount' => $order->shipping_amount,
+                    'customer_name' => $order->user?->name ?? 'N/A',
+                    'company_name' => $order->company?->name ?? 'N/A',
+                    'items' => $enrichedItems,
+                    'items_count' => count($rawItems),
+                    'tracking_number' => $trackingInfo['tracking_number'] ?? $trackingInfo['trackingNumber'] ?? null,
+                    'carrier' => $trackingInfo['carrier'] ?? null,
+                    'shipping_status' => $trackingInfo['shipping_status'] ?? $order->status,
+                    'estimated_delivery_date' => $trackingInfo['estimated_delivery_date'] ?? null,
+                    'shipped_at' => $order->shipped_at,
+                    'delivered_at' => $order->delivered_at,
+                    'created_at' => $order->created_at,
+                    'updated_at' => $order->updated_at,
+                    'live_po_status' => $liveStatus,
+                    'packages' => $packages,
+                ];
+            }, $orders->items());
+
+            return response()->json([
+                'success' => true,
+                'data' => $orderRows,
+                'pagination' => [
+                    'total' => $orders->total(),
+                    'per_page' => $orders->perPage(),
+                    'current_page' => $orders->currentPage(),
+                    'last_page' => $orders->lastPage(),
+                ],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to fetch tracking orders: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch tracking data',
+            ], 500);
+        }
+    }
+
+    /**
+     * Extract package-level tracking info from a PO status response
+     */
+    private function extractPackagesFromPoStatus(array $poResponse): array
+    {
+        $packages = [];
+
+        // Navigate typical TD SYNNEX PO status response structure
+        $items = $poResponse['POStatusResponse']['Items']['Item'] ?? $poResponse['Items']['Item'] ?? [];
+        if (!empty($items) && !isset($items[0])) {
+            $items = [$items]; // single item
+        }
+
+        foreach ($items as $item) {
+            $pkgs = $item['Packages']['Package'] ?? $item['Package'] ?? [];
+            if (!empty($pkgs) && !isset($pkgs[0])) {
+                $pkgs = [$pkgs];
+            }
+            foreach ($pkgs as $pkg) {
+                $packages[] = [
+                    'tracking_number' => $pkg['TrackingNumber'] ?? $pkg['trackingNumber'] ?? null,
+                    'carrier' => $pkg['ShipMethodDescription'] ?? $pkg['Carrier'] ?? $pkg['carrier'] ?? null,
+                    'ship_date' => $pkg['DateShipped'] ?? $pkg['ShipDate'] ?? $pkg['shipDate'] ?? null,
+                    'weight' => $pkg['Weight'] ?? null,
+                    'sku' => $item['SKU'] ?? $item['MfgPartNumber'] ?? null,
+                    'quantity_shipped' => $pkg['ShipQuantity'] ?? $item['ShipQuantity'] ?? null,
+                ];
+            }
+        }
+
+        return $packages;
     }
 
     /**

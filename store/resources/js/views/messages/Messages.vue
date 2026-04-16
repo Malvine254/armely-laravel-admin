@@ -1,23 +1,23 @@
 <template>
-  <div class="min-h-screen bg-[radial-gradient(circle_at_top_right,_rgba(34,211,238,0.14)_0%,_rgba(15,23,42,0.92)_35%,_rgba(2,6,23,1)_100%)] text-slate-100">
+  <div class="min-h-screen bg-gray-50 text-gray-900">
     <Navbar />
 
     <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-5 py-4 sm:py-5 h-[calc(100dvh-9.5rem)] md:h-[calc(100dvh-5rem)] flex flex-col overflow-hidden">
       <div class="grid grid-cols-1 xl:grid-cols-12 gap-5 flex-1 min-h-0 overflow-hidden relative">
         <section
-          class="rounded-2xl border border-white/10 bg-slate-950/65 shadow-sm backdrop-blur overflow-hidden min-h-0 flex flex-col xl:col-span-4 transition-transform duration-300 ease-out xl:static xl:translate-x-0 xl:top-auto xl:bottom-auto xl:left-auto xl:z-auto"
+          class="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden min-h-0 flex flex-col xl:col-span-4 transition-transform duration-300 ease-out xl:static xl:translate-x-0 xl:top-auto xl:bottom-auto xl:left-auto xl:z-auto"
           :class="isHistoryOpenMobile
             ? 'fixed xl:static z-[70] top-[8.75rem] bottom-3 left-3 w-[84vw] max-w-sm translate-x-0 xl:w-auto xl:max-w-none'
             : 'fixed xl:static z-[70] top-[8.75rem] bottom-3 left-3 w-[84vw] max-w-sm -translate-x-[110%] xl:w-auto xl:max-w-none'"
         >
-          <div class="px-4 py-4 border-b border-white/10 bg-slate-900/70">
+          <div class="px-4 py-4 border-b border-gray-200 bg-gray-50">
             <div class="flex items-center justify-between mb-2">
-              <h2 class="text-sm font-bold text-slate-100 uppercase tracking-wide">Chat History</h2>
+              <h2 class="text-sm font-bold text-gray-900 uppercase tracking-wide">Chat History</h2>
               <div class="flex items-center gap-2">
                 <button
                   v-if="chatSessions.length"
                   @click="toggleManageHistory"
-                  class="px-2.5 py-1.5 text-[11px] font-semibold rounded-md border border-cyan-500/30 text-cyan-300 bg-cyan-500/10 hover:bg-cyan-500/20"
+                  class="px-2.5 py-1.5 text-[11px] font-semibold rounded-md border border-[#2F5597]/30 text-[#2F5597] bg-[#2F5597]/10 hover:bg-[#2F5597]/20"
                 >
                   {{ manageHistoryMode ? 'Done' : 'Manage' }}
                 </button>
@@ -25,12 +25,12 @@
                   @click="createNewChatSession"
                   :disabled="manageHistoryMode"
                   class="px-2.5 py-1.5 text-[11px] font-semibold rounded-md text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                  style="background: linear-gradient(135deg, #06b6d4 0%, #2563eb 100%);"
+                  style="background-color: #2F5597;"
                 >
                   + New Chat
                 </button>
                 <button
-                  class="xl:hidden w-8 h-8 rounded-md border border-white/10 text-slate-300 hover:bg-white/10"
+                  class="xl:hidden w-8 h-8 rounded-md border border-gray-200 text-gray-500 hover:bg-gray-100"
                   @click="closeHistoryPanel"
                   aria-label="Close chat history"
                 >
@@ -40,10 +40,10 @@
                 </button>
               </div>
             </div>
-            <p class="text-[11px] text-slate-400">Choose a conversation or start a new one.</p>
+            <p class="text-[11px] text-gray-500">Choose a conversation or start a new one.</p>
 
-            <div v-if="manageHistoryMode" class="mt-3 flex items-center justify-between gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2">
-              <p class="text-[11px] font-semibold text-slate-200">
+            <div v-if="manageHistoryMode" class="mt-3 flex items-center justify-between gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2">
+              <p class="text-[11px] font-semibold text-gray-700">
                 {{ selectedHistoryCount ? `${selectedHistoryCount} selected` : 'Select chats to delete' }}
               </p>
               <div class="flex items-center gap-2">
@@ -57,7 +57,7 @@
                 <button
                   @click="clearAllChats"
                   :disabled="!chatSessions.length || deletingHistory"
-                  class="text-[11px] font-semibold text-slate-400 hover:text-rose-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                  class="text-[11px] font-semibold text-gray-500 hover:text-rose-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Clear All
                 </button>
@@ -74,14 +74,14 @@
               :class="manageHistoryMode && selectedHistoryIds.includes(session.id)
                 ? 'border-rose-500/30 bg-rose-500/10 ring-1 ring-rose-500/20'
                 : activeChatSessionId === session.id
-                ? 'border-cyan-500/30 bg-cyan-500/10 ring-1 ring-cyan-500/20'
-                : 'border-white/10 bg-white/5 hover:bg-white/10'"
+                ? 'border-[#2F5597]/30 bg-[#2F5597]/10 ring-1 ring-[#2F5597]/20'
+                : 'border-gray-200 bg-white hover:bg-gray-50'"
             >
               <div class="flex items-start gap-2">
                 <div
                   v-if="manageHistoryMode"
                   class="mt-0.5 w-5 h-5 rounded-md border flex items-center justify-center flex-shrink-0"
-                  :class="selectedHistoryIds.includes(session.id) ? 'bg-rose-600 border-rose-600 text-white' : 'border-white/15 bg-white/5 text-transparent'"
+                  :class="selectedHistoryIds.includes(session.id) ? 'bg-rose-600 border-rose-600 text-white' : 'border-gray-300 bg-white text-transparent'"
                 >
                   <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
@@ -89,7 +89,7 @@
                 </div>
                 <div
                   class="mt-0.5 w-7 h-7 rounded-full flex items-center justify-center"
-                  :class="session.resolved_at ? 'bg-emerald-500/20 text-emerald-300' : session.escalated_to_human ? 'bg-amber-500/20 text-amber-300' : 'bg-cyan-500/20 text-cyan-300'"
+                  :class="session.resolved_at ? 'bg-emerald-500/20 text-emerald-600' : session.escalated_to_human ? 'bg-amber-500/20 text-amber-600' : 'bg-[#2F5597]/20 text-[#2F5597]'"
                 >
                   <svg v-if="session.resolved_at" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -107,26 +107,39 @@
 
                 <div class="min-w-0 flex-1">
                   <div class="flex items-center justify-between gap-2">
-                    <p class="text-xs font-semibold text-slate-100 truncate">{{ session.title || 'New chat' }}</p>
-                    <span v-if="session.resolved_at" class="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-semibold">Resolved</span>
-                    <span v-else-if="session.escalated_to_human" class="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-semibold">Human</span>
+                    <p class="text-xs font-semibold text-gray-900 truncate">{{ session.title || 'New chat' }}</p>
+                    <span v-if="session.resolved_at" class="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-600 font-semibold">Resolved</span>
+                    <span v-else-if="session.escalated_to_human" class="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-600 font-semibold">Human</span>
                   </div>
-                  <p class="text-[11px] text-slate-400 truncate mt-0.5">{{ session.last_message_preview || 'No messages yet' }}</p>
+                  <p class="text-[11px] text-gray-500 truncate mt-0.5">{{ session.last_message_preview || 'No messages yet' }}</p>
                 </div>
               </div>
             </button>
 
-            <p v-if="!chatSessions.length" class="text-[11px] text-slate-400 px-1 py-1">
+            <p v-if="!chatSessions.length && !loadingSessions" class="text-[11px] text-gray-500 px-1 py-1">
               No chat sessions yet.
             </p>
+
+            <!-- Loading skeleton -->
+            <template v-if="loadingSessions && !chatSessions.length">
+              <div v-for="i in 4" :key="`skeleton-${i}`" class="w-full rounded-xl border border-gray-200 bg-white mb-2 p-2.5 animate-pulse">
+                <div class="flex items-start gap-2">
+                  <div class="mt-0.5 w-7 h-7 rounded-full bg-gray-200"></div>
+                  <div class="min-w-0 flex-1 space-y-2">
+                    <div class="h-3 bg-gray-200 rounded w-3/4"></div>
+                    <div class="h-2.5 bg-gray-200 rounded w-1/2"></div>
+                  </div>
+                </div>
+              </div>
+            </template>
           </div>
         </section>
 
-        <section class="xl:col-span-8 rounded-2xl border border-white/10 bg-slate-950/65 shadow-sm backdrop-blur overflow-hidden flex flex-col min-h-0">
-          <div class="px-5 py-4 border-b border-white/10 bg-slate-900/70 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <section class="xl:col-span-8 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden flex flex-col min-h-0">
+          <div class="px-5 py-4 border-b border-gray-200 bg-gray-50 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <button
-                class="xl:hidden inline-flex items-center gap-2 px-2.5 py-1.5 rounded-md border border-cyan-500/30 text-cyan-300 bg-cyan-500/10 hover:bg-cyan-500/20 mb-2"
+                class="xl:hidden inline-flex items-center gap-2 px-2.5 py-1.5 rounded-md border border-[#2F5597]/30 text-[#2F5597] bg-[#2F5597]/10 hover:bg-[#2F5597]/20 mb-2"
                 @click="toggleHistoryPanel"
                 aria-label="Toggle chat history"
               >
@@ -135,18 +148,18 @@
                 </svg>
                 <span class="text-xs font-semibold">Chat History</span>
               </button>
-              <h2 class="text-lg font-bold text-slate-100">Mela AI Assistant</h2>
-              <p class="text-xs text-slate-400">
+              <h2 class="text-lg font-bold text-gray-900">Mela AI Assistant</h2>
+              <p class="text-xs text-gray-500">
                 {{ activeSessionLabel }}
-                <span v-if="activeSession?.escalated_to_human" class="font-semibold text-amber-300"> · Escalated to human</span>
-                <span v-if="activeSession?.resolved_at" class="font-semibold text-emerald-300"> · Resolved</span>
+                <span v-if="activeSession?.escalated_to_human" class="font-semibold text-amber-600"> · Escalated to human</span>
+                <span v-if="activeSession?.resolved_at" class="font-semibold text-emerald-600"> · Resolved</span>
               </p>
             </div>
             <div class="flex flex-wrap gap-2">
               <button
                 @click="escalateActiveChat"
                 :disabled="!activeChatSessionId || escalating || (activeSession?.escalated_to_human && !activeSession?.resolved_at)"
-                class="px-3 py-1.5 rounded-full text-xs font-semibold border border-amber-500/30 text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                class="px-3 py-1.5 rounded-full text-xs font-semibold border border-amber-500/30 text-amber-600 bg-amber-500/10 hover:bg-amber-500/20 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {{ activeSession?.resolved_at ? (escalating ? 'Reopening...' : 'Reopen to Human') : activeSession?.escalated_to_human ? 'Escalated' : (escalating ? 'Escalating...' : 'Escalate to Human') }}
               </button>
@@ -154,14 +167,14 @@
                 v-for="prompt in quickPrompts"
                 :key="prompt"
                 @click="sendChatMessage(prompt)"
-                class="px-3 py-1.5 rounded-full text-xs font-semibold border border-cyan-500/30 text-cyan-300 bg-cyan-500/10 hover:bg-cyan-500/20"
+                class="px-3 py-1.5 rounded-full text-xs font-semibold border border-[#2F5597]/30 text-[#2F5597] bg-[#2F5597]/10 hover:bg-[#2F5597]/20"
               >
                 {{ prompt }}
               </button>
             </div>
           </div>
 
-          <div ref="chatScrollRef" class="flex-1 min-h-0 overflow-y-auto themed-scrollbar p-4 sm:p-5 space-y-4" style="background: linear-gradient(180deg, rgba(2, 6, 23, 0.88) 0%, rgba(15, 23, 42, 0.82) 100%);">
+          <div ref="chatScrollRef" class="flex-1 min-h-0 overflow-y-auto themed-scrollbar p-4 sm:p-5 space-y-4 bg-gray-50">
             <div
               v-for="chat in chatMessages"
               :key="chat.id"
@@ -171,8 +184,8 @@
               <div
                 class="max-w-[90%] sm:max-w-[78%] rounded-2xl px-4 py-3 shadow-sm"
                 :class="chat.role === 'user'
-                  ? 'bg-[#1f4f92] text-white rounded-br-md'
-                  : 'bg-slate-900/90 border border-white/10 text-slate-100 rounded-bl-md'"
+                  ? 'bg-[#2F5597] text-white rounded-br-md'
+                  : 'bg-white border border-gray-200 text-gray-900 rounded-bl-md'"
               >
                 <p class="text-sm whitespace-pre-wrap leading-relaxed" v-html="renderMessageHtml(chat.text)"></p>
 
@@ -180,35 +193,36 @@
                   <article
                     v-for="product in chat.productSuggestions"
                     :key="`suggestion-${chat.id}-${product.product_id}`"
-                    class="rounded-xl border border-white/10 bg-white/5 p-2.5"
+                    class="rounded-xl border border-gray-200 bg-gray-50 p-2.5"
                   >
                     <div class="flex gap-2">
-                      <div class="w-14 h-14 rounded-lg bg-slate-950/70 border border-white/10 overflow-hidden flex-shrink-0 flex items-center justify-center">
+                      <div class="w-14 h-14 rounded-lg bg-gray-100 border border-gray-200 overflow-hidden flex-shrink-0 flex items-center justify-center">
                         <img
-                          v-if="product.image_url"
+                          v-if="product.image_url && !product._imgError"
                           :src="product.image_url"
                           :alt="product.name"
                           class="w-full h-full object-cover"
+                          @error="product._imgError = true"
                         >
-                        <svg v-else class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4-4a3 3 0 014.2 0l4.8 4.8M14 14l1.6-1.6a3 3 0 014.2 0L20 13M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        <svg v-else class="w-6 h-6 text-[#2F5597]/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                         </svg>
                       </div>
                       <div class="min-w-0">
-                        <p class="text-xs font-bold text-slate-100 truncate">{{ product.name }}</p>
-                        <p class="text-[11px] text-slate-400 truncate" v-if="product.vendor">{{ product.vendor }} · {{ product.sku || 'SKU N/A' }}</p>
-                        <p class="text-xs font-semibold text-cyan-300 mt-0.5">{{ formatCurrency(product.price) }}</p>
+                        <p class="text-xs font-bold text-gray-900 truncate">{{ product.name }}</p>
+                        <p class="text-[11px] text-gray-500 truncate" v-if="product.vendor">{{ product.vendor }} · {{ product.sku || 'SKU N/A' }}</p>
+                        <p class="text-xs font-semibold text-[#2F5597] mt-0.5">{{ formatCurrency(product.price) }}</p>
                       </div>
                     </div>
 
-                    <p class="mt-2 text-[11px] text-slate-300">{{ product.why }}</p>
+                    <p class="mt-2 text-[11px] text-gray-600">{{ product.why }}</p>
 
                     <div class="mt-2 flex flex-wrap gap-1.5">
                       <button
                         v-for="action in product.actions || []"
                         :key="`prod-action-${product.product_id}-${action.label}`"
                         @click="openActionLink(action.link)"
-                        class="px-2 py-1 rounded-md text-[11px] font-semibold border border-cyan-500/30 text-cyan-300 bg-cyan-500/10 hover:bg-cyan-500/20"
+                        class="px-2 py-1 rounded-md text-[11px] font-semibold border border-[#2F5597]/30 text-[#2F5597] bg-[#2F5597]/10 hover:bg-[#2F5597]/20"
                       >
                         {{ action.label }}
                       </button>
@@ -221,42 +235,42 @@
                     v-for="action in chat.actions"
                     :key="`${chat.id}-${action.label}-${action.link}`"
                     @click="openActionLink(action.link)"
-                    class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-cyan-500/30 text-cyan-300 bg-cyan-500/10 hover:bg-cyan-500/20"
+                    class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-[#2F5597]/30 text-[#2F5597] bg-[#2F5597]/10 hover:bg-[#2F5597]/20"
                   >
                     {{ action.label }}
                   </button>
                 </div>
-                <p class="mt-2 text-[10px] uppercase tracking-wide" :class="chat.role === 'user' ? 'text-cyan-100' : 'text-slate-400'">
+                <p class="mt-2 text-[10px] uppercase tracking-wide" :class="chat.role === 'user' ? 'text-blue-100' : 'text-gray-500'">
                   {{ getMessageSenderLabel(chat) }} · {{ formatMessageTimestamp(chat.createdAt) }}
                 </p>
               </div>
             </div>
 
             <div v-if="sendingChat" class="flex justify-start">
-              <div class="bg-slate-900/90 border border-white/10 rounded-2xl rounded-bl-md px-4 py-3">
+              <div class="bg-white border border-gray-200 rounded-2xl rounded-bl-md px-4 py-3">
                 <div class="flex items-center gap-1">
-                  <span class="h-2 w-2 bg-cyan-400 rounded-full animate-bounce [animation-delay:-0.2s]"></span>
-                  <span class="h-2 w-2 bg-cyan-400 rounded-full animate-bounce [animation-delay:-0.1s]"></span>
-                  <span class="h-2 w-2 bg-cyan-400 rounded-full animate-bounce"></span>
+                  <span class="h-2 w-2 bg-[#2F5597] rounded-full animate-bounce [animation-delay:-0.2s]"></span>
+                  <span class="h-2 w-2 bg-[#2F5597] rounded-full animate-bounce [animation-delay:-0.1s]"></span>
+                  <span class="h-2 w-2 bg-[#2F5597] rounded-full animate-bounce"></span>
                 </div>
               </div>
             </div>
           </div>
 
-          <form class="shrink-0 p-4 border-t border-white/10 bg-slate-900/80" @submit.prevent="sendChatMessage()">
+          <form class="shrink-0 p-4 border-t border-gray-200 bg-white" @submit.prevent="sendChatMessage()">
             <div class="flex gap-2 items-stretch">
               <textarea
                 v-model="chatInput"
                 rows="2"
                 placeholder="Ask Mela AI about products, invoices, payments, quotes, and tracking..."
-                class="flex-1 resize-none rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-slate-100 placeholder-slate-500 min-h-[92px] focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                class="flex-1 resize-none rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 min-h-[92px] focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
                 @keydown.enter.exact.prevent="sendChatMessage()"
               ></textarea>
               <button
                 type="submit"
                 :disabled="sendingChat || !chatInput.trim()"
                 class="px-4 rounded-xl text-white font-semibold transition min-h-[92px] disabled:opacity-50 disabled:cursor-not-allowed"
-                style="background: linear-gradient(135deg, #06b6d4 0%, #2563eb 100%);"
+                style="background-color: #2F5597;"
               >
                 Send
               </button>
@@ -294,6 +308,7 @@ const isHistoryOpenMobile = ref(false)
 const manageHistoryMode = ref(false)
 const selectedHistoryIds = ref([])
 const deletingHistory = ref(false)
+const loadingSessions = ref(true)
 
 const getAuthToken = () => localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
 
@@ -454,20 +469,21 @@ const clearAllChats = async () => {
 }
 
 const quickPrompts = [
-  'Best Dell laptop sample list',
-  'Show unpaid invoices',
-  'Download invoice PDF',
-  'Track my latest order'
+  'Recommend a Dell laptop under $1500',
+  'Show my unpaid invoices',
+  'Track my latest order',
+  'Help me find networking equipment'
 ]
 
 const activeSession = computed(() => chatSessions.value.find((session) => session.id === activeChatSessionId.value) || null)
 
 const activeSessionLabel = computed(() => {
   if (!activeSession.value) {
-    return 'Start a chat to begin with Mela AI'
+    return 'Start a conversation with Mela AI'
   }
 
-  return `Chat #${activeSession.value.id}`
+  const title = activeSession.value.title || ''
+  return title && title !== 'New chat' ? title : `Chat #${activeSession.value.id}`
 })
 
 const ensureChatWelcome = () => {
@@ -476,7 +492,7 @@ const ensureChatWelcome = () => {
   chatMessages.value.push({
     id: `assistant-welcome-${Date.now()}`,
     role: 'assistant',
-    text: 'Hi, I am Mela AI. I can suggest products with reasons, provide quote and payment guidance, and escalate to human support if needed.',
+    text: 'Hey there! \uD83D\uDC4B I\'m Mela AI, your Armely assistant. I can help you find IT products, manage invoices and payments, track orders, and more. What can I help you with today?',
     createdAt: new Date().toISOString(),
     actions: [
       { label: 'Browse products', link: '/products' },
@@ -552,7 +568,7 @@ const startMessagePolling = () => {
 
   pollingInterval.value = setInterval(() => {
     refreshChatMessages()
-  }, 2000)
+  }, 5000)
 }
 
 const stopMessagePolling = () => {
@@ -837,12 +853,18 @@ const escapeHtml = (text) => {
 const renderMessageHtml = (text) => {
   const safe = escapeHtml(text)
 
-  const markdownLinked = safe.replace(
-    /\[([^\]]+)\]\(((?:\/|https?:\/\/)[^)\s]+)\)/g,
-    '<a href="$2" class="text-[#1d4b8f] font-semibold underline hover:text-[#153a69]">$1</a>'
-  )
+  let html = safe
+    // Markdown links  [text](url)
+    .replace(
+      /\[([^\]]+)\]\(((?:\/|https?:\/\/)[^)\s]+)\)/g,
+      '<a href="$2" class="text-[#1d4b8f] font-semibold underline hover:text-[#153a69]" target="_blank" rel="noopener">$1</a>'
+    )
+    // Bold  **text**
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    // Newlines
+    .replace(/\n/g, '<br>')
 
-  return markdownLinked.replace(/\n/g, '<br>')
+  return html
 }
 
 const sendChatMessage = async (prefilled = null) => {
@@ -917,13 +939,24 @@ const sendChatMessage = async (prefilled = null) => {
 }
 
 onMounted(async () => {
-  await loadPricingSettings()
   const cachedSessions = readCachedJson(getChatCacheKey('sessions'), [])
   if (Array.isArray(cachedSessions) && cachedSessions.length > 0) {
     chatSessions.value = cachedSessions
+    loadingSessions.value = false
+    // Show cached data immediately, select first session from cache
+    if (cachedSessions.length) {
+      const firstId = cachedSessions[0].id
+      const cachedMsgs = getCachedSessionMessages(firstId)
+      if (cachedMsgs.length) {
+        activeChatSessionId.value = firstId
+        chatMessages.value = cachedMsgs
+      }
+    }
   }
   ensureChatWelcome()
-  await fetchChatSessions()
+  // Load pricing + fresh sessions in parallel
+  await Promise.all([loadPricingSettings(), fetchChatSessions()])
+  loadingSessions.value = false
   if (chatSessions.value.length) {
     await selectChatSession(chatSessions.value[0].id)
   }

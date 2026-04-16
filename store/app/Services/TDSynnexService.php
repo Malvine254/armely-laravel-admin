@@ -787,6 +787,9 @@ class TDSynnexService
                     'billing_frequency',
                     'is_available',
                     'is_discontinued',
+                    'is_hardware',
+                    'category_segment',
+                    'manufacturer',
                     'specifications',
                     'images',
                     'last_synced_at',
@@ -834,6 +837,12 @@ class TDSynnexService
             'billing_frequency' => (string) ($product['billingFrequency'] ?? ''),
             'is_available' => !((bool) ($product['discontinueProduct'] ?? false)),
             'is_discontinued' => (bool) ($product['discontinueProduct'] ?? false),
+            'is_hardware' => \App\Http\Controllers\ProductController::isHardwareProduct(
+                (string) ($product['productName'] ?? ''),
+                (string) ($product['description'] ?? '')
+            ) ? 1 : 0,
+            'category_segment' => substr(trim((string) ($product['categoryCode'] ?? '')), 0, 2) ?: null,
+            'manufacturer' => trim((string) ($product['manufacturer'] ?? '')) ?: null,
             'specifications' => json_encode([
                 'sku' => $sku,
                 'status' => (string) ($product['status'] ?? ''),
@@ -841,6 +850,8 @@ class TDSynnexService
                 'availableQuantity' => (int) ($product['availableQuantity'] ?? 0),
                 'upc' => (string) ($product['upc'] ?? ''),
                 'manufacturer' => (string) ($product['manufacturer'] ?? ''),
+                'categoryName' => (string) ($product['flatCategoryName'] ?? ''),
+                'familyCode' => (string) ($product['flatFamilyCode'] ?? ''),
             ], JSON_UNESCAPED_UNICODE),
             'images' => json_encode((array) ($product['productImages'] ?? []), JSON_UNESCAPED_UNICODE),
             'last_synced_at' => $timestamp,
@@ -4132,19 +4143,38 @@ class TDSynnexService
     public function checkPoStatus(string $poNumber): array
     {
         try {
-            // Build XML manually with proper SynnexB2B wrapper
+            $customerNo = trim((string) config('tdsynnex.price_availability.customer_no', ''));
+            $username = trim((string) config('tdsynnex.price_availability.username', ''));
+            $password = trim((string) config('tdsynnex.price_availability.password', ''));
+
+            if ($customerNo === '' || $username === '' || $password === '') {
+                throw new TDSynnexApiException(
+                    'Missing XML PO Status credentials. Please set SYNNEX_CUSTOMER_NO, SYNNEX_USERNAME and SYNNEX_PASSWORD in store/.env.'
+                );
+            }
+
+            $escapedPoNumber = $this->xmlEscape($poNumber);
+            $escapedUsername = $this->xmlEscape($username);
+            $escapedPassword = $this->xmlEscape($password);
+            $escapedCustomerNo = $this->xmlEscape($customerNo);
+
             $xmlBody = <<<XML
 <?xml version="1.0" encoding="UTF-8"?>
 <SynnexB2B>
+    <Credential>
+        <UserID>{$escapedUsername}</UserID>
+        <Password>{$escapedPassword}</Password>
+    </Credential>
     <POStatusRequest>
-        <PONumber>{$poNumber}</PONumber>
+        <CustomerNumber>{$escapedCustomerNo}</CustomerNumber>
+        <PONumber>{$escapedPoNumber}</PONumber>
     </POStatusRequest>
 </SynnexB2B>
 XML;
             
             Log::debug('Checking PO status', [
                 'po_number' => $poNumber,
-                'xml_body' => $xmlBody,
+                'xml_body' => $this->sanitizeXmlForLogs($xmlBody),
             ]);
             
             $response = $this->requestXml('post', '/api/v1/SynnexXML/POStatus', $xmlBody);

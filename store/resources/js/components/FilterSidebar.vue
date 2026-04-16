@@ -69,7 +69,7 @@
     </div>
 
     <!-- Categories Filter -->
-    <div v-if="normalizedCategories.length > 0" class="mb-6 pb-6 border-b border-gray-200">
+    <div class="mb-6 pb-6 border-b border-gray-200">
       <button @click="toggleSection('categories')" class="flex items-center justify-between w-full mb-3">
         <h4 class="font-semibold text-gray-900">Categories</h4>
         <svg class="w-4 h-4 text-gray-500" :class="{ 'rotate-180': openSections.categories }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -77,29 +77,38 @@
         </svg>
       </button>
       <div v-show="openSections.categories" class="space-y-3">
-        <input 
-          v-model="categorySearch" 
-          type="text" 
-          placeholder="Search Categories" 
-          class="w-full px-3 py-2 border border-gray-300 rounded text-sm outline-none transition" @focus="$event.target.style.borderColor='#2F5597'" @blur="$event.target.style.borderColor='rgb(209, 213, 219)'"
-        />
-        <div class="space-y-2 max-h-[20rem] overflow-y-auto">
-          <label v-for="category in filteredCategories" :key="category.name" class="flex items-center gap-3 cursor-pointer">
-            <input 
-              :checked="filters.categories.includes(category.name)" 
-              @change="toggleCategory(category.name)"
-              type="radio" 
-              name="category"
-              class="w-4 h-4 rounded-full border-gray-300 cursor-pointer" style="accent-color: #2F5597;"
-            />
-            <span class="text-sm text-gray-700">{{ category.name }} <span v-if="hasDisplayableCount(category)" class="text-gray-500">({{ category.count }})</span></span>
-          </label>
-        </div>
+        <!-- Skeleton while loading -->
+        <template v-if="normalizedCategories.length === 0">
+          <div v-for="i in 6" :key="'cat-skel-'+i" class="flex items-center gap-3 animate-pulse">
+            <div class="w-4 h-4 rounded-full bg-gray-200"></div>
+            <div class="h-4 bg-gray-200 rounded" :style="{ width: (50 + i * 8) + '%' }"></div>
+          </div>
+        </template>
+        <template v-else>
+          <input 
+            v-model="categorySearch" 
+            type="text" 
+            placeholder="Search Categories" 
+            class="w-full px-3 py-2 border border-gray-300 rounded text-sm outline-none transition" @focus="$event.target.style.borderColor='#2F5597'" @blur="$event.target.style.borderColor='rgb(209, 213, 219)'"
+          />
+          <div class="space-y-2 max-h-[20rem] overflow-y-auto">
+            <label v-for="category in filteredCategories" :key="category.name" class="flex items-center gap-3 cursor-pointer">
+              <input 
+                :checked="filters.categories.includes(category.name)" 
+                @change="toggleCategory(category.name)"
+                type="radio" 
+                name="category"
+                class="w-4 h-4 rounded-full border-gray-300 cursor-pointer" style="accent-color: #2F5597;"
+              />
+              <span class="text-sm text-gray-700">{{ category.name }} <span v-if="hasDisplayableCount(category)" class="text-gray-500">({{ category.count }})</span></span>
+            </label>
+          </div>
+        </template>
       </div>
     </div>
 
     <!-- Vendors Filter -->
-    <div v-if="normalizedVendors.length > 0" class="mb-6 pb-6 border-b border-gray-200">
+    <div class="mb-6 pb-6 border-b border-gray-200">
       <button @click="toggleSection('vendors')" class="flex items-center justify-between w-full mb-3">
         <h4 class="font-semibold text-gray-900">Vendors</h4>
         <svg class="w-4 h-4 text-gray-500" :class="{ 'rotate-180': openSections.vendors }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -107,24 +116,33 @@
         </svg>
       </button>
       <div v-show="openSections.vendors" class="space-y-3">
-        <input 
-          v-model="vendorSearch" 
-          type="text" 
-          placeholder="Search Vendor" 
-          class="w-full px-3 py-2 border border-gray-300 rounded text-sm outline-none transition" @focus="$event.target.style.borderColor='#2F5597'" @blur="$event.target.style.borderColor='rgb(209, 213, 219)'"
-        />
-        <div class="space-y-2 max-h-56 overflow-y-auto">
-          <label v-for="vendor in filteredVendors" :key="vendor.name" class="flex items-center gap-3 cursor-pointer">
-            <input 
-              :checked="filters.vendors.includes(vendor.name)" 
-              @change="toggleVendor(vendor.name)"
-              type="radio" 
-              name="vendor-select"
-              class="w-4 h-4 rounded-full border-gray-300 cursor-pointer" style="accent-color: #2F5597;"
-            />
-            <span class="text-sm text-gray-700">{{ vendor.name }} <span v-if="hasDisplayableCount(vendor)" class="text-gray-500">({{ vendor.count }})</span></span>
-          </label>
-        </div>
+        <!-- Skeleton while loading -->
+        <template v-if="normalizedVendors.length === 0">
+          <div v-for="i in 8" :key="'ven-skel-'+i" class="flex items-center gap-3 animate-pulse">
+            <div class="w-4 h-4 rounded-full bg-gray-200"></div>
+            <div class="h-4 bg-gray-200 rounded" :style="{ width: (40 + i * 6) + '%' }"></div>
+          </div>
+        </template>
+        <template v-else>
+          <input 
+            v-model="vendorSearch" 
+            type="text" 
+            placeholder="Search Vendor" 
+            class="w-full px-3 py-2 border border-gray-300 rounded text-sm outline-none transition" @focus="$event.target.style.borderColor='#2F5597'" @blur="$event.target.style.borderColor='rgb(209, 213, 219)'"
+          />
+          <div class="space-y-2 max-h-56 overflow-y-auto">
+            <label v-for="vendor in filteredVendors" :key="vendor.name" class="flex items-center gap-3 cursor-pointer">
+              <input 
+                :checked="filters.vendors.includes(vendor.name)" 
+                @change="toggleVendor(vendor.name)"
+                type="radio" 
+                name="vendor-select"
+                class="w-4 h-4 rounded-full border-gray-300 cursor-pointer" style="accent-color: #2F5597;"
+              />
+              <span class="text-sm text-gray-700">{{ vendor.name }} <span v-if="hasDisplayableCount(vendor)" class="text-gray-500">({{ vendor.count }})</span></span>
+            </label>
+          </div>
+        </template>
       </div>
     </div>
 

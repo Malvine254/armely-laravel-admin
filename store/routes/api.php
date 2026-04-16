@@ -165,8 +165,10 @@ Route::prefix('v1')->group(function () {
 
         // Order management
         Route::get('/admin/orders', [AdminController::class, 'getAllOrders']);
+        Route::get('/admin/orders/tracking', [AdminController::class, 'getConfirmedOrdersTracking']);
         Route::post('/admin/orders/bulk-delete', [AdminController::class, 'bulkDeleteOrders']);
         Route::get('/admin/orders/{orderNumber}/status', [AdminController::class, 'getOrderStatus']);
+        Route::post('/admin/orders/{orderNumber}/cancel', [AdminController::class, 'adminCancelOrder']);
 
         // Reports
         Route::get('/admin/reports/revenue', [AdminController::class, 'getRevenueReport']);
