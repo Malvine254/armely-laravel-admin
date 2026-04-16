@@ -1,25 +1,24 @@
 <template>
-  <div class="flex h-screen" style="background: linear-gradient(135deg, #0f172a 0%, #0a2948 45%, #1d4c6e 100%);">
+  <div class="flex h-screen bg-gray-50">
     <!-- Mobile Overlay -->
     <div
       v-show="sidebarOpen"
-      class="fixed inset-0 bg-black/40 z-40 md:hidden"
+      class="fixed inset-0 bg-black/30 z-40 md:hidden"
       @click="sidebarOpen = false"
     ></div>
 
     <!-- Sidebar Navigation -->
     <div
       :class="[
-        'w-64 text-slate-100 shadow-lg flex flex-col fixed inset-y-0 left-0 z-50 transform transition-transform duration-200 md:static md:translate-x-0',
+        'w-64 shadow-lg flex flex-col fixed inset-y-0 left-0 z-50 transform transition-transform duration-200 md:static md:translate-x-0 bg-white border-r border-gray-200',
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       ]"
-      style="background: linear-gradient(180deg, rgba(15, 23, 42, 0.95), rgba(10, 41, 72, 0.95));"
     >
       <!-- Logo -->
-      <div class="p-6 border-b border-white/10 flex items-center justify-between">
+      <div class="px-5 flex items-center justify-between flex-shrink-0 admin-header-band" style="background: linear-gradient(135deg, #2F5597, #1e3a6b);">
         <div>
-          <h1 class="text-2xl font-bold text-white">Armely Admin</h1>
-          <p class="text-sm text-slate-300 mt-1">Control Panel</p>
+          <h1 class="text-xl font-bold text-white leading-tight">Armely Admin</h1>
+          <p class="text-[11px] text-white/60 mt-0.5">Control Panel</p>
         </div>
         <button
           type="button"
@@ -41,8 +40,8 @@
           :class="[
             'flex items-center px-6 py-3 border-l-4 transition',
             isActive('dashboard')
-              ? 'bg-white/10 border-cyan-300 text-cyan-300'
-              : 'border-transparent hover:bg-white/10 hover:border-cyan-300 text-slate-100'
+              ? 'bg-[#2F5597]/10 border-[#2F5597] text-[#2F5597] font-semibold'
+              : 'border-transparent hover:bg-gray-50 hover:border-[#2F5597]/50 text-gray-700'
           ]"
         >
           <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -53,15 +52,15 @@
 
         <!-- Quotes Management -->
         <div class="mt-4 px-4">
-          <p class="text-xs font-semibold text-slate-300 uppercase tracking-wider">Quotes</p>
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Quotes</p>
         </div>
         <router-link
           :to="{ name: 'admin-quotes' }"
           :class="[
             'flex items-center px-6 py-3 border-l-4 transition',
             isActive('quotes')
-              ? 'bg-white/10 border-cyan-300 text-cyan-300'
-              : 'border-transparent hover:bg-white/10 hover:border-cyan-300 text-slate-100'
+              ? 'bg-[#2F5597]/10 border-[#2F5597] text-[#2F5597] font-semibold'
+              : 'border-transparent hover:bg-gray-50 hover:border-[#2F5597]/50 text-gray-700'
           ]"
         >
           <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -75,15 +74,15 @@
 
         <!-- Orders Management -->
         <div class="mt-4 px-4">
-          <p class="text-xs font-semibold text-slate-300 uppercase tracking-wider">Orders</p>
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Orders</p>
         </div>
         <router-link
           :to="{ name: 'admin-orders' }"
           :class="[
             'flex items-center px-6 py-3 border-l-4 transition',
             isActive('orders')
-              ? 'bg-white/10 border-cyan-300 text-cyan-300'
-              : 'border-transparent hover:bg-white/10 hover:border-cyan-300 text-slate-100'
+              ? 'bg-[#2F5597]/10 border-[#2F5597] text-[#2F5597] font-semibold'
+              : 'border-transparent hover:bg-gray-50 hover:border-[#2F5597]/50 text-gray-700'
           ]"
         >
           <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -94,18 +93,32 @@
             {{ stats.processing_orders }}
           </span>
         </router-link>
+        <router-link
+          :to="{ name: 'admin-order-tracking' }"
+          :class="[
+            'flex items-center px-6 py-3 border-l-4 transition',
+            isActive('orders/tracking')
+              ? 'bg-[#2F5597]/10 border-[#2F5597] text-[#2F5597] font-semibold'
+              : 'border-transparent hover:bg-gray-50 hover:border-[#2F5597]/50 text-gray-700'
+          ]"
+        >
+          <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
+          </svg>
+          <span>Order Tracking</span>
+        </router-link>
 
         <!-- Customers Management -->
         <div class="mt-4 px-4">
-          <p class="text-xs font-semibold text-slate-300 uppercase tracking-wider">Customers</p>
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Customers</p>
         </div>
         <router-link
           :to="{ name: 'admin-customers' }"
           :class="[
             'flex items-center px-6 py-3 border-l-4 transition',
             isActive('customers')
-              ? 'bg-white/10 border-cyan-300 text-cyan-300'
-              : 'border-transparent hover:bg-white/10 hover:border-cyan-300 text-slate-100'
+              ? 'bg-[#2F5597]/10 border-[#2F5597] text-[#2F5597] font-semibold'
+              : 'border-transparent hover:bg-gray-50 hover:border-[#2F5597]/50 text-gray-700'
           ]"
         >
           <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -116,15 +129,15 @@
 
         <!-- Support / Chat Escalations -->
         <div class="mt-4 px-4">
-          <p class="text-xs font-semibold text-slate-300 uppercase tracking-wider">Support</p>
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Support</p>
         </div>
         <router-link
           :to="{ name: 'admin-chat' }"
           :class="[
             'flex items-center px-6 py-3 border-l-4 transition',
             isActive('chat')
-              ? 'bg-white/10 border-cyan-300 text-cyan-300'
-              : 'border-transparent hover:bg-white/10 hover:border-cyan-300 text-slate-100'
+              ? 'bg-[#2F5597]/10 border-[#2F5597] text-[#2F5597] font-semibold'
+              : 'border-transparent hover:bg-gray-50 hover:border-[#2F5597]/50 text-gray-700'
           ]"
         >
           <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -138,15 +151,15 @@
 
         <!-- Reports -->
         <div class="mt-4 px-4">
-          <p class="text-xs font-semibold text-slate-300 uppercase tracking-wider">Analytics</p>
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Analytics</p>
         </div>
         <router-link
           :to="{ name: 'admin-reports' }"
           :class="[
             'flex items-center px-6 py-3 border-l-4 transition',
             isActive('reports')
-              ? 'bg-white/10 border-cyan-300 text-cyan-300'
-              : 'border-transparent hover:bg-white/10 hover:border-cyan-300 text-slate-100'
+              ? 'bg-[#2F5597]/10 border-[#2F5597] text-[#2F5597] font-semibold'
+              : 'border-transparent hover:bg-gray-50 hover:border-[#2F5597]/50 text-gray-700'
           ]"
         >
           <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -157,15 +170,15 @@
 
         <!-- Invoices Management -->
         <div class="mt-4 px-4">
-          <p class="text-xs font-semibold text-slate-300 uppercase tracking-wider">Billing</p>
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Billing</p>
         </div>
         <router-link
           :to="{ name: 'admin-invoices' }"
           :class="[
             'flex items-center px-6 py-3 border-l-4 transition',
             isActive('invoices')
-              ? 'bg-white/10 border-cyan-300 text-cyan-300'
-              : 'border-transparent hover:bg-white/10 hover:border-cyan-300 text-slate-100'
+              ? 'bg-[#2F5597]/10 border-[#2F5597] text-[#2F5597] font-semibold'
+              : 'border-transparent hover:bg-gray-50 hover:border-[#2F5597]/50 text-gray-700'
           ]"
         >
           <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -176,15 +189,15 @@
 
         <!-- Settings -->
         <div class="mt-4 px-4">
-          <p class="text-xs font-semibold text-slate-300 uppercase tracking-wider">System</p>
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">System</p>
         </div>
         <router-link
           :to="{ name: 'admin-settings' }"
           :class="[
             'flex items-center px-6 py-3 border-l-4 transition',
             isActive('settings')
-              ? 'bg-white/10 border-cyan-300 text-cyan-300'
-              : 'border-transparent hover:bg-white/10 hover:border-cyan-300 text-slate-100'
+              ? 'bg-[#2F5597]/10 border-[#2F5597] text-[#2F5597] font-semibold'
+              : 'border-transparent hover:bg-gray-50 hover:border-[#2F5597]/50 text-gray-700'
           ]"
         >
           <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -196,16 +209,16 @@
       </nav>
 
       <!-- User Profile -->
-      <div class="border-t border-white/10 p-4 flex-shrink-0">
+      <div class="border-t border-gray-200 p-4 flex-shrink-0">
         <div class="flex items-center gap-3 mb-3">
-          <div class="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center">
+          <div class="w-10 h-10 rounded-full flex items-center justify-center" style="background: linear-gradient(135deg, #2F5597, #1e3a6b);">
             <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
             </svg>
           </div>
           <div class="flex-1 min-w-0">
-            <p class="font-semibold text-sm truncate text-slate-100">{{ currentUser.name || 'Loading...' }}</p>
-            <p class="text-xs text-slate-300 truncate">{{ currentUser.email || 'Please wait' }}</p>
+            <p class="font-semibold text-sm truncate text-gray-900">{{ currentUser.name || 'Loading...' }}</p>
+            <p class="text-xs text-gray-500 truncate">{{ currentUser.email || 'Please wait' }}</p>
           </div>
         </div>
         <button @click="logout" class="w-full bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-400 hover:to-rose-500 py-2 rounded text-sm font-semibold transition text-white">
@@ -217,12 +230,12 @@
     <!-- Main Content Area -->
     <div class="flex-1 flex flex-col min-w-0">
       <!-- Top Header -->
-      <div class="border-b border-white/10 px-3 sm:px-4 lg:px-5 py-4 shadow-sm" style="background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(10, 41, 72, 0.95));">
-        <div class="flex justify-between items-center">
-          <div class="flex items-center gap-3">
+      <div class="px-4 sm:px-5 lg:px-8 admin-header-band shadow-md" style="background: linear-gradient(135deg, #2F5597, #1e3a6b);">
+        <div class="flex justify-between items-center h-full w-full gap-4">
+          <div class="flex items-center gap-3 flex-shrink-0">
             <button
               type="button"
-              class="md:hidden text-slate-100 hover:text-cyan-300 transition"
+              class="md:hidden text-white/80 hover:text-white transition"
               @click="sidebarOpen = true"
               aria-label="Open sidebar"
             >
@@ -230,35 +243,120 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
-            <h2 class="text-2xl font-bold text-slate-100">
+            <h2 class="text-xl font-bold text-white whitespace-nowrap">
               <slot name="title">Admin Dashboard</slot>
             </h2>
           </div>
-          <div class="flex items-center space-x-4">
-            <!-- Notifications -->
-            <div class="relative">
-              <button class="text-slate-100 hover:text-cyan-300 transition relative">
+          <div class="flex items-center gap-3 flex-shrink-0">
+            <!-- Search Bar -->
+            <div class="relative hidden sm:block">
+              <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                type="text"
+                placeholder="Search orders, quotes, customers…"
+                class="pl-9 pr-4 py-2 w-64 lg:w-80 rounded-lg text-sm bg-white/15 text-white placeholder-white/50 border border-white/20 focus:outline-none focus:bg-white/25 focus:border-white/40 transition"
+              />
+            </div>
+
+            <!-- Notifications Bell -->
+            <div class="relative" ref="notifRef">
+              <button
+                @click="toggleNotifications"
+                class="relative p-2 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition"
+              >
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
                 </svg>
-                <span class="absolute top-0 right-0 bg-rose-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                  {{ unreadNotifications }}
+                <span v-if="totalNotifCount > 0" class="absolute -top-0.5 -right-0.5 bg-rose-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 ring-2 ring-[#2F5597]">
+                  {{ totalNotifCount > 99 ? '99+' : totalNotifCount }}
                 </span>
               </button>
+
+              <!-- Notification Dropdown -->
+              <transition
+                enter-active-class="transition ease-out duration-150"
+                enter-from-class="opacity-0 translate-y-1 scale-95"
+                enter-to-class="opacity-100 translate-y-0 scale-100"
+                leave-active-class="transition ease-in duration-100"
+                leave-from-class="opacity-100 translate-y-0 scale-100"
+                leave-to-class="opacity-0 translate-y-1 scale-95"
+              >
+                <div v-if="showNotifDropdown" class="absolute right-0 top-full mt-2 w-80 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 overflow-hidden">
+                  <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between" style="background: linear-gradient(135deg, #2F5597, #1e3a6b);">
+                    <p class="text-sm font-semibold text-white">Notifications</p>
+                    <span class="text-[10px] font-bold bg-white/20 text-white px-2 py-0.5 rounded-full">{{ totalNotifCount }} new</span>
+                  </div>
+                  <div class="max-h-80 overflow-y-auto divide-y divide-gray-50">
+                    <!-- Pending Quotes -->
+                    <router-link v-if="stats.pending_quotes > 0" :to="{ name: 'admin-quotes' }" @click.native="showNotifDropdown = false" class="flex items-start gap-3 px-4 py-3 hover:bg-blue-50/60 transition group">
+                      <div class="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <p class="text-sm font-semibold text-gray-900 group-hover:text-[#2F5597]">{{ stats.pending_quotes }} Pending Quote{{ stats.pending_quotes > 1 ? 's' : '' }}</p>
+                        <p class="text-xs text-gray-500 mt-0.5">Quotes awaiting your review and approval</p>
+                      </div>
+                      <span class="bg-amber-100 text-amber-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0">{{ stats.pending_quotes }}</span>
+                    </router-link>
+
+                    <!-- Processing Orders -->
+                    <router-link v-if="stats.processing_orders > 0" :to="{ name: 'admin-orders' }" @click.native="showNotifDropdown = false" class="flex items-start gap-3 px-4 py-3 hover:bg-blue-50/60 transition group">
+                      <div class="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <p class="text-sm font-semibold text-gray-900 group-hover:text-[#2F5597]">{{ stats.processing_orders }} Order{{ stats.processing_orders > 1 ? 's' : '' }} Processing</p>
+                        <p class="text-xs text-gray-500 mt-0.5">Orders currently being fulfilled</p>
+                      </div>
+                      <span class="bg-blue-100 text-blue-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0">{{ stats.processing_orders }}</span>
+                    </router-link>
+
+                    <!-- Chat Escalations -->
+                    <router-link v-if="escalatedChatCount > 0" :to="{ name: 'admin-chat' }" @click.native="showNotifDropdown = false" class="flex items-start gap-3 px-4 py-3 hover:bg-blue-50/60 transition group">
+                      <div class="w-9 h-9 rounded-full bg-rose-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <svg class="w-4 h-4 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-3 3v-3z"/></svg>
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <p class="text-sm font-semibold text-gray-900 group-hover:text-[#2F5597]">{{ escalatedChatCount }} Chat Escalation{{ escalatedChatCount > 1 ? 's' : '' }}</p>
+                        <p class="text-xs text-gray-500 mt-0.5">Customer chats needing admin response</p>
+                      </div>
+                      <span class="bg-rose-100 text-rose-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0">{{ escalatedChatCount }}</span>
+                    </router-link>
+
+                    <!-- Overdue Invoices -->
+                    <router-link v-if="stats.overdue_invoices > 0" :to="{ name: 'admin-invoices' }" @click.native="showNotifDropdown = false" class="flex items-start gap-3 px-4 py-3 hover:bg-blue-50/60 transition group">
+                      <div class="w-9 h-9 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <p class="text-sm font-semibold text-gray-900 group-hover:text-[#2F5597]">{{ stats.overdue_invoices }} Overdue Invoice{{ stats.overdue_invoices > 1 ? 's' : '' }}</p>
+                        <p class="text-xs text-gray-500 mt-0.5">Invoices past their due date</p>
+                      </div>
+                      <span class="bg-red-100 text-red-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0">{{ stats.overdue_invoices }}</span>
+                    </router-link>
+
+                    <!-- Empty State -->
+                    <div v-if="totalNotifCount === 0" class="px-4 py-8 text-center">
+                      <svg class="w-10 h-10 mx-auto text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                      <p class="text-sm text-gray-400">All caught up!</p>
+                    </div>
+                  </div>
+                </div>
+              </transition>
             </div>
-            <!-- Search -->
-            <input
-              type="text"
-              placeholder="Search..."
-              class="px-4 py-2 border border-white/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 text-slate-100 placeholder-slate-400"
-              style="background: rgba(148, 163, 184, 0.12);"
-            />
+
+            <!-- User Avatar -->
+            <div class="w-8 h-8 rounded-full flex items-center justify-center bg-white/20 text-white text-xs font-bold flex-shrink-0">
+              {{ currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'A' }}
+            </div>
           </div>
         </div>
       </div>
 
       <!-- Page Content -->
-      <div class="flex-1 overflow-auto overflow-x-hidden p-4 sm:p-6 lg:p-8">
+      <div class="flex-1 overflow-auto overflow-x-hidden p-4 sm:p-6 lg:p-8 bg-gray-100">
         <slot></slot>
       </div>
     </div>
@@ -266,7 +364,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import api from '@/services/api'
 
@@ -274,6 +372,8 @@ const router = useRouter()
 const route = useRoute()
 
 const sidebarOpen = ref(false)
+const showNotifDropdown = ref(false)
+const notifRef = ref(null)
 
 const currentUser = ref({
   name: '',
@@ -282,14 +382,36 @@ const currentUser = ref({
 
 const stats = ref({
   pending_quotes: 0,
-  processing_orders: 0
+  processing_orders: 0,
+  overdue_invoices: 0
 })
 
-const unreadNotifications = ref(0)
 const escalatedChatCount = ref(0)
 
+const totalNotifCount = computed(() => {
+  return (stats.value.pending_quotes || 0)
+    + (stats.value.processing_orders || 0)
+    + (escalatedChatCount.value || 0)
+    + (stats.value.overdue_invoices || 0)
+})
+
+const toggleNotifications = () => {
+  showNotifDropdown.value = !showNotifDropdown.value
+}
+
+const handleClickOutside = (e) => {
+  if (notifRef.value && !notifRef.value.contains(e.target)) {
+    showNotifDropdown.value = false
+  }
+}
+
 const isActive = (section) => {
-  return route.path.includes(`/admin/${section}`)
+  const path = route.path
+  if (section === 'orders') {
+    // Don't match /admin/orders/tracking
+    return path.includes('/admin/orders') && !path.includes('/admin/orders/tracking')
+  }
+  return path.includes(`/admin/${section}`)
 }
 
 watch(
@@ -369,19 +491,32 @@ onMounted(() => {
   fetchCurrentUser()
   fetchStats()
   fetchEscalatedCount()
+  document.addEventListener('click', handleClickOutside)
   // Optionally refresh stats every 30 seconds
   setInterval(fetchStats, 30000)
   setInterval(fetchEscalatedCount, 30000)
 })
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
 </script>
 
 <style scoped>
+/* Unified header band — same height for sidebar logo + top bar */
+.admin-header-band {
+  height: 72px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
 /* Smooth transitions */
 a {
   @apply transition-all duration-200;
 }
 
-/* Thin, translucent scrollbar for sidebar nav */
+/* Thin scrollbar for sidebar nav */
 .sidebar-nav::-webkit-scrollbar {
   width: 4px;
 }
@@ -389,15 +524,15 @@ a {
   background: transparent;
 }
 .sidebar-nav::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.20);
+  background: rgba(47, 85, 151, 0.20);
   border-radius: 4px;
 }
 .sidebar-nav::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.40);
+  background: rgba(47, 85, 151, 0.40);
 }
 /* Firefox */
 .sidebar-nav {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.20) transparent;
+  scrollbar-color: rgba(47, 85, 151, 0.20) transparent;
 }
 </style>

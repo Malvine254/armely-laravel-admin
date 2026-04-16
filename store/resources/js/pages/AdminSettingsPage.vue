@@ -3,8 +3,8 @@
     <template #title>Settings</template>
 
     <!-- Tabs -->
-    <div class="rounded-xl border border-white/10 backdrop-blur mb-6 overflow-hidden" style="background: linear-gradient(180deg, rgba(15,23,42,0.80), rgba(10,41,72,0.80))">
-      <div class="border-b border-white/10">
+    <div class="rounded-xl border-0 shadow-lg bg-white mb-6 overflow-hidden">
+      <div class="border-b border-gray-200">
         <nav class="flex -mb-px overflow-x-auto">
           <button
             v-for="tab in tabs"
@@ -13,8 +13,8 @@
             :class="[
               'px-6 py-4 text-sm font-semibold border-b-2 transition whitespace-nowrap',
               activeTab === tab.id
-                ? 'border-cyan-400 text-cyan-300 bg-cyan-500/10'
-                : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-500 hover:bg-white/5'
+                ? 'border-[#2F5597] text-[#2F5597] bg-[#2F5597]/10'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-400 hover:bg-gray-50'
             ]"
           >
             <i :class="['fas', tab.icon, 'mr-2']"></i>
@@ -25,70 +25,70 @@
     </div>
 
     <!-- Profile Settings -->
-    <div v-if="activeTab === 'profile'" class="rounded-xl border border-white/10 backdrop-blur overflow-hidden" style="background: linear-gradient(180deg, rgba(15,23,42,0.80), rgba(10,41,72,0.80))">
-      <div class="p-6 border-b border-white/10">
-        <h3 class="text-lg font-semibold text-white">Profile Settings</h3>
-        <p class="text-sm text-slate-400 mt-1">Update your personal information</p>
+    <div v-if="activeTab === 'profile'" class="rounded-xl border-0 shadow-lg bg-white overflow-hidden">
+      <div class="p-6 border-b border-gray-200">
+        <h3 class="text-lg font-semibold text-gray-900">Profile Settings</h3>
+        <p class="text-sm text-gray-500 mt-1">Update your personal information</p>
       </div>
       
       <div class="p-6 space-y-6">
         <div class="flex items-center gap-6">
-          <div class="w-24 h-24 rounded-full flex items-center justify-center text-white text-3xl font-bold" style="background: linear-gradient(135deg, #06b6d4, #2563eb)">
+          <div class="w-24 h-24 rounded-full flex items-center justify-center text-white text-3xl font-bold" style="background: linear-gradient(135deg, #2F5597, #1e3a6b)">
             {{ getInitials(profile.name) }}
           </div>
           <div>
-            <h4 class="font-semibold text-white">{{ profile.name }}</h4>
-            <p class="text-sm text-slate-400">{{ profile.email }}</p>
-            <p class="text-xs text-slate-500 mt-1">Administrator</p>
+            <h4 class="font-semibold text-gray-900">{{ profile.name }}</h4>
+            <p class="text-sm text-gray-500">{{ profile.email }}</p>
+            <p class="text-xs text-gray-400 mt-1">Administrator</p>
           </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label class="block text-sm font-medium text-slate-200 mb-2">Full Name</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
             <input
               v-model="profile.name"
               type="text"
-              class="w-full px-4 py-2 border border-white/10 bg-white/5 text-white placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              class="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-900 placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-slate-200 mb-2">Email Address</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
             <input
               v-model="profile.email"
               type="email"
-              class="w-full px-4 py-2 border border-white/10 bg-white/5 text-white placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              class="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-900 placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
             />
           </div>
         </div>
 
-        <div class="border-t border-white/10 pt-6">
-          <h4 class="font-semibold text-slate-100 mb-4">Change Password</h4>
+        <div class="border-t border-gray-200 pt-6">
+          <h4 class="font-semibold text-gray-900 mb-4">Change Password</h4>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label class="block text-sm font-medium text-slate-200 mb-2">Current Password</label>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Current Password</label>
               <input
                 v-model="passwords.current"
                 type="password"
-                class="w-full px-4 py-2 border border-white/10 bg-white/5 text-white placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                class="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-900 placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
               />
             </div>
             <div>
-              <label class="block text-sm font-medium text-slate-200 mb-2">New Password</label>
+              <label class="block text-sm font-medium text-gray-700 mb-2">New Password</label>
               <input
                 v-model="passwords.new"
                 type="password"
-                class="w-full px-4 py-2 border border-white/10 bg-white/5 text-white placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                class="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-900 placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
               />
             </div>
           </div>
         </div>
 
-        <div class="flex justify-end gap-3 border-t border-white/10 pt-6">
+        <div class="flex justify-end gap-3 border-t border-gray-200 pt-6">
           <button
             @click="saveProfile"
             :disabled="isSaving"
-            class="px-6 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-medium rounded-lg transition disabled:opacity-50"
+            class="px-6 py-2 bg-[#2F5597] hover:bg-[#1e3a6b] text-white font-medium rounded-lg transition disabled:opacity-50"
           >
             <i class="fas fa-save mr-2"></i>Save Changes
           </button>
@@ -97,93 +97,93 @@
     </div>
 
     <!-- API Configuration -->
-    <div v-if="activeTab === 'api'" class="rounded-xl border border-white/10 backdrop-blur overflow-hidden" style="background: linear-gradient(180deg, rgba(15,23,42,0.80), rgba(10,41,72,0.80))">
-      <div class="p-6 border-b border-white/10">
-        <h3 class="text-lg font-semibold text-white">Integrations Configuration</h3>
-        <p class="text-sm text-slate-400 mt-1">Manage TD SYNNEX and QuickBooks credentials and payment URL templates</p>
+    <div v-if="activeTab === 'api'" class="rounded-xl border-0 shadow-lg bg-white overflow-hidden">
+      <div class="p-6 border-b border-gray-200">
+        <h3 class="text-lg font-semibold text-gray-900">Integrations Configuration</h3>
+        <p class="text-sm text-gray-500 mt-1">Manage TD SYNNEX and QuickBooks credentials and payment URL templates</p>
       </div>
       
       <div class="p-6 space-y-6">
-        <div class="bg-cyan-500/10 border border-cyan-500/20 rounded-lg p-4">
+        <div class="bg-[#2F5597]/10 border border-[#2F5597]/20 rounded-lg p-4">
           <div class="flex items-start gap-3">
-            <i class="fas fa-info-circle text-cyan-400 mt-1"></i>
-            <div class="text-sm text-cyan-100">
+            <i class="fas fa-info-circle text-[#2F5597] mt-1"></i>
+            <div class="text-sm text-[#2F5597]">
               <p class="font-medium">Integration Settings</p>
-              <p class="mt-1 text-cyan-200">These values are stored in app settings so production changes can be done from admin without editing code or .env.</p>
+              <p class="mt-1 text-[#2F5597]">These values are stored in app settings so production changes can be done from admin without editing code or .env.</p>
             </div>
           </div>
         </div>
 
         <div class="grid grid-cols-1 gap-6">
-          <div class="border border-white/10 rounded-lg bg-white/5 p-4">
-            <h4 class="font-semibold text-slate-100 mb-4">TD SYNNEX</h4>
+          <div class="border border-gray-200 rounded-lg bg-gray-50 p-4">
+            <h4 class="font-semibold text-gray-900 mb-4">TD SYNNEX</h4>
             <div class="grid grid-cols-1 gap-6">
           <div>
-            <label class="block text-sm font-medium text-slate-200 mb-2">API Client ID</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">API Client ID</label>
             <input
               v-model="apiConfig.client_id"
               type="text"
-              class="w-full px-4 py-2 border border-white/10 bg-white/5 text-white placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              class="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-900 placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
               placeholder="Enter your TD SYNNEX Client ID"
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-slate-200 mb-2">API Client Secret</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">API Client Secret</label>
             <div class="relative">
               <input
                 v-model="apiConfig.client_secret"
                 :type="showSecret ? 'text' : 'password'"
-                class="w-full px-4 py-2 border border-white/10 bg-white/5 text-white placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 pr-12"
+                class="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-900 placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597] pr-12"
                 placeholder="••••••••••••••••"
               />
               <button
                 @click="showSecret = !showSecret"
                 type="button"
-                class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
               >
                 <i :class="['fas', showSecret ? 'fa-eye-slash' : 'fa-eye']"></i>
               </button>
             </div>
           </div>
           <div>
-            <label class="block text-sm font-medium text-slate-200 mb-2">API Environment</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">API Environment</label>
             <select
               v-model="apiConfig.environment"
-              class="w-full px-4 py-2 border border-white/10 bg-slate-900 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              class="w-full px-4 py-2 border border-gray-200 bg-white text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
             >
-              <option value="sandbox" class="bg-slate-900">Sandbox (Testing)</option>
-              <option value="production" class="bg-slate-900">Production</option>
+              <option value="sandbox" class="bg-white">Sandbox (Testing)</option>
+              <option value="production" class="bg-white">Production</option>
             </select>
           </div>
             </div>
           </div>
 
-          <div class="border border-white/10 rounded-lg bg-white/5 p-4">
-            <h4 class="font-semibold text-slate-100 mb-4">QuickBooks</h4>
+          <div class="border border-gray-200 rounded-lg bg-gray-50 p-4">
+            <h4 class="font-semibold text-gray-900 mb-4">QuickBooks</h4>
             <div class="grid grid-cols-1 gap-6">
               <div>
-                <label class="block text-sm font-medium text-slate-200 mb-2">QuickBooks Client ID</label>
+                <label class="block text-sm font-medium text-gray-700 mb-2">QuickBooks Client ID</label>
                 <input
                   v-model="apiConfig.quickbooks_client_id"
                   type="text"
-                  class="w-full px-4 py-2 border border-white/10 bg-white/5 text-white placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  class="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-900 placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
                   placeholder="Enter QuickBooks Client ID"
                 />
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-slate-200 mb-2">QuickBooks Client Secret</label>
+                <label class="block text-sm font-medium text-gray-700 mb-2">QuickBooks Client Secret</label>
                 <div class="relative">
                   <input
                     v-model="apiConfig.quickbooks_client_secret"
                     :type="showQuickBooksSecret ? 'text' : 'password'"
-                    class="w-full px-4 py-2 border border-white/10 bg-white/5 text-white placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 pr-12"
+                    class="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-900 placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597] pr-12"
                     placeholder="••••••••••••••••"
                   />
                   <button
                     @click="showQuickBooksSecret = !showQuickBooksSecret"
                     type="button"
-                    class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200"
+                    class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
                   >
                     <i :class="['fas', showQuickBooksSecret ? 'fa-eye-slash' : 'fa-eye']"></i>
                   </button>
@@ -191,51 +191,51 @@
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-slate-200 mb-2">QuickBooks Company ID</label>
+                <label class="block text-sm font-medium text-gray-700 mb-2">QuickBooks Company ID</label>
                 <input
                   v-model="apiConfig.quickbooks_company_id"
                   type="text"
-                  class="w-full px-4 py-2 border border-white/10 bg-white/5 text-white placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  class="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-900 placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
                   placeholder="Enter QuickBooks Company ID"
                 />
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-slate-200 mb-2">QuickBooks Payment URL Template</label>
+                <label class="block text-sm font-medium text-gray-700 mb-2">QuickBooks Payment URL Template</label>
                 <input
                   v-model="apiConfig.quickbooks_payment_url_template"
                   type="url"
-                  class="w-full px-4 py-2 border border-white/10 bg-white/5 text-white placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  class="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-900 placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
                   placeholder="https://.../{invoice_number}?amount={amount}&company={quickbooks_company_id}"
                 />
-                <p class="text-xs text-slate-400 mt-1">Supports placeholders like {invoice_number}, {amount}, {success_url}, {cancel_url}, {quickbooks_company_id}.</p>
+                <p class="text-xs text-gray-500 mt-1">Supports placeholders like {invoice_number}, {amount}, {success_url}, {cancel_url}, {quickbooks_company_id}.</p>
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-slate-200 mb-2">QuickBooks Bulk Payment URL Template</label>
+                <label class="block text-sm font-medium text-gray-700 mb-2">QuickBooks Bulk Payment URL Template</label>
                 <input
                   v-model="apiConfig.quickbooks_bulk_payment_url_template"
                   type="url"
-                  class="w-full px-4 py-2 border border-white/10 bg-white/5 text-white placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  class="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-900 placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
                   placeholder="https://.../bulk?invoices={invoice_numbers}&amount={amount}"
                 />
-                <p class="text-xs text-slate-400 mt-1">Used when paying multiple invoices directly. If blank, users can combine invoices first and pay the combined invoice.</p>
+                <p class="text-xs text-gray-500 mt-1">Used when paying multiple invoices directly. If blank, users can combine invoices first and pay the combined invoice.</p>
               </div>
             </div>
           </div>
         </div>
 
-        <div class="flex justify-between items-center border-t border-white/10 pt-6">
+        <div class="flex justify-between items-center border-t border-gray-200 pt-6">
           <button
             @click="testApiConnection"
-            class="px-4 py-2 border border-cyan-500/30 text-cyan-300 bg-cyan-500/10 rounded-lg hover:bg-cyan-500/20 transition"
+            class="px-4 py-2 border border-[#2F5597]/30 text-[#2F5597] bg-[#2F5597]/10 rounded-lg hover:bg-[#2F5597]/20 transition"
           >
             <i class="fas fa-plug mr-2"></i>Test Connection
           </button>
           <button
             @click="saveApiConfig"
             :disabled="isSaving"
-            class="px-6 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-medium rounded-lg transition disabled:opacity-50"
+            class="px-6 py-2 bg-[#2F5597] hover:bg-[#1e3a6b] text-white font-medium rounded-lg transition disabled:opacity-50"
           >
             <i class="fas fa-save mr-2"></i>Save Configuration
           </button>
@@ -244,100 +244,100 @@
     </div>
 
     <!-- Email Settings -->
-    <div v-if="activeTab === 'email'" class="rounded-xl border border-white/10 backdrop-blur overflow-hidden" style="background: linear-gradient(180deg, rgba(15,23,42,0.80), rgba(10,41,72,0.80))">
-      <div class="p-6 border-b border-white/10">
-        <h3 class="text-lg font-semibold text-white">Email & Notifications</h3>
-        <p class="text-sm text-slate-400 mt-1">Configure email notifications and SMTP settings</p>
+    <div v-if="activeTab === 'email'" class="rounded-xl border-0 shadow-lg bg-white overflow-hidden">
+      <div class="p-6 border-b border-gray-200">
+        <h3 class="text-lg font-semibold text-gray-900">Email & Notifications</h3>
+        <p class="text-sm text-gray-500 mt-1">Configure email notifications and SMTP settings</p>
       </div>
       
       <div class="p-6 space-y-6">
         <div>
-          <h4 class="font-semibold text-slate-100 mb-4">Email Notifications</h4>
+          <h4 class="font-semibold text-gray-900 mb-4">Email Notifications</h4>
           <div class="space-y-3">
             <label class="flex items-center gap-3 cursor-pointer">
               <input
                 v-model="emailSettings.new_orders"
                 type="checkbox"
-                class="w-5 h-5 rounded border-white/20 bg-white/5 focus:ring-cyan-500"
-                style="accent-color: #22d3ee"
+                class="w-5 h-5 rounded border-gray-300 bg-gray-50 focus:ring-[#2F5597]"
+                style="accent-color: #2F5597"
               />
               <div>
-                <p class="font-medium text-white">New Orders</p>
-                <p class="text-sm text-slate-400">Receive notifications when new orders are placed</p>
+                <p class="font-medium text-gray-900">New Orders</p>
+                <p class="text-sm text-gray-500">Receive notifications when new orders are placed</p>
               </div>
             </label>
             <label class="flex items-center gap-3 cursor-pointer">
               <input
                 v-model="emailSettings.new_quotes"
                 type="checkbox"
-                class="w-5 h-5 rounded border-white/20 bg-white/5 focus:ring-cyan-500"
-                style="accent-color: #22d3ee"
+                class="w-5 h-5 rounded border-gray-300 bg-gray-50 focus:ring-[#2F5597]"
+                style="accent-color: #2F5597"
               />
               <div>
-                <p class="font-medium text-white">New Quote Requests</p>
-                <p class="text-sm text-slate-400">Get notified when customers request quotes</p>
+                <p class="font-medium text-gray-900">New Quote Requests</p>
+                <p class="text-sm text-gray-500">Get notified when customers request quotes</p>
               </div>
             </label>
             <label class="flex items-center gap-3 cursor-pointer">
               <input
                 v-model="emailSettings.low_stock"
                 type="checkbox"
-                class="w-5 h-5 rounded border-white/20 bg-white/5 focus:ring-cyan-500"
-                style="accent-color: #22d3ee"
+                class="w-5 h-5 rounded border-gray-300 bg-gray-50 focus:ring-[#2F5597]"
+                style="accent-color: #2F5597"
               />
               <div>
-                <p class="font-medium text-white">Low Stock Alerts</p>
-                <p class="text-sm text-slate-400">Alerts when products are running low</p>
+                <p class="font-medium text-gray-900">Low Stock Alerts</p>
+                <p class="text-sm text-gray-500">Alerts when products are running low</p>
               </div>
             </label>
           </div>
         </div>
 
-        <div class="border-t border-white/10 pt-6">
-          <h4 class="font-semibold text-slate-100 mb-4">SMTP Configuration</h4>
+        <div class="border-t border-gray-200 pt-6">
+          <h4 class="font-semibold text-gray-900 mb-4">SMTP Configuration</h4>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label class="block text-sm font-medium text-slate-200 mb-2">SMTP Host</label>
+              <label class="block text-sm font-medium text-gray-700 mb-2">SMTP Host</label>
               <input
                 v-model="emailSettings.smtp_host"
                 type="text"
-                class="w-full px-4 py-2 border border-white/10 bg-white/5 text-white placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                class="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-900 placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
                 placeholder="smtp.example.com"
               />
             </div>
             <div>
-              <label class="block text-sm font-medium text-slate-200 mb-2">SMTP Port</label>
+              <label class="block text-sm font-medium text-gray-700 mb-2">SMTP Port</label>
               <input
                 v-model="emailSettings.smtp_port"
                 type="text"
-                class="w-full px-4 py-2 border border-white/10 bg-white/5 text-white placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                class="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-900 placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
                 placeholder="587"
               />
             </div>
             <div>
-              <label class="block text-sm font-medium text-slate-200 mb-2">SMTP Username</label>
+              <label class="block text-sm font-medium text-gray-700 mb-2">SMTP Username</label>
               <input
                 v-model="emailSettings.smtp_username"
                 type="text"
-                class="w-full px-4 py-2 border border-white/10 bg-white/5 text-white placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                class="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-900 placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
               />
             </div>
             <div>
-              <label class="block text-sm font-medium text-slate-200 mb-2">SMTP Password</label>
+              <label class="block text-sm font-medium text-gray-700 mb-2">SMTP Password</label>
               <input
                 v-model="emailSettings.smtp_password"
                 type="password"
-                class="w-full px-4 py-2 border border-white/10 bg-white/5 text-white placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                class="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-900 placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
               />
             </div>
           </div>
         </div>
 
-        <div class="flex justify-end gap-3 border-t border-white/10 pt-6">
+        <div class="flex justify-end gap-3 border-t border-gray-200 pt-6">
           <button
             @click="saveEmailSettings"
             :disabled="isSaving"
-            class="px-6 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-medium rounded-lg transition disabled:opacity-50"
+            class="px-6 py-2 bg-[#2F5597] hover:bg-[#1e3a6b] text-white font-medium rounded-lg transition disabled:opacity-50"
           >
             <i class="fas fa-save mr-2"></i>Save Settings
           </button>
@@ -346,114 +346,114 @@
     </div>
 
     <!-- System Settings -->
-    <div v-if="activeTab === 'system'" class="rounded-xl border border-white/10 backdrop-blur overflow-hidden" style="background: linear-gradient(180deg, rgba(15,23,42,0.80), rgba(10,41,72,0.80))">
-      <div class="p-6 border-b border-white/10">
-        <h3 class="text-lg font-semibold text-white">System Settings</h3>
-        <p class="text-sm text-slate-400 mt-1">General system configuration</p>
+    <div v-if="activeTab === 'system'" class="rounded-xl border-0 shadow-lg bg-white overflow-hidden">
+      <div class="p-6 border-b border-gray-200">
+        <h3 class="text-lg font-semibold text-gray-900">System Settings</h3>
+        <p class="text-sm text-gray-500 mt-1">General system configuration</p>
       </div>
       
       <div class="p-6 space-y-6">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label class="block text-sm font-medium text-slate-200 mb-2">Company Name</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Company Name</label>
             <input
               v-model="systemSettings.company_name"
               type="text"
-              class="w-full px-4 py-2 border border-white/10 bg-white/5 text-white placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              class="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-900 placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-slate-200 mb-2">Support Email</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Support Email</label>
             <input
               v-model="systemSettings.support_email"
               type="email"
-              class="w-full px-4 py-2 border border-white/10 bg-white/5 text-white placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              class="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-900 placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-slate-200 mb-2">Currency</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Currency</label>
             <select
               v-model="systemSettings.currency"
-              class="w-full px-4 py-2 border border-white/10 bg-slate-900 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              class="w-full px-4 py-2 border border-gray-200 bg-white text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
             >
-              <option value="USD" class="bg-slate-900">USD ($)</option>
-              <option value="EUR" class="bg-slate-900">EUR (€)</option>
-              <option value="GBP" class="bg-slate-900">GBP (£)</option>
+              <option value="USD" class="bg-white">USD ($)</option>
+              <option value="EUR" class="bg-white">EUR (€)</option>
+              <option value="GBP" class="bg-white">GBP (£)</option>
             </select>
           </div>
           <div>
-            <label class="block text-sm font-medium text-slate-200 mb-2">Currency Rate (vs USD)</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Currency Rate (vs USD)</label>
             <input
               v-model.number="systemSettings.currency_rate"
               type="number"
               min="0.0001"
               step="0.0001"
-              class="w-full px-4 py-2 border border-white/10 bg-white/5 text-white placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              class="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-900 placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
               placeholder="e.g. 4.44"
             />
-            <p class="text-xs text-slate-400 mt-1">Example: set 4.44 to convert 1 USD to 4.44 in selected currency.</p>
+            <p class="text-xs text-gray-500 mt-1">Example: set 4.44 to convert 1 USD to 4.44 in selected currency.</p>
           </div>
           <div>
-            <label class="block text-sm font-medium text-slate-200 mb-2">Timezone</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Timezone</label>
             <select
               v-model="systemSettings.timezone"
-              class="w-full px-4 py-2 border border-white/10 bg-slate-900 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              class="w-full px-4 py-2 border border-gray-200 bg-white text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
             >
-              <option value="America/New_York" class="bg-slate-900">Eastern Time (ET)</option>
-              <option value="America/Chicago" class="bg-slate-900">Central Time (CT)</option>
-              <option value="America/Denver" class="bg-slate-900">Mountain Time (MT)</option>
-              <option value="America/Los_Angeles" class="bg-slate-900">Pacific Time (PT)</option>
+              <option value="America/New_York" class="bg-white">Eastern Time (ET)</option>
+              <option value="America/Chicago" class="bg-white">Central Time (CT)</option>
+              <option value="America/Denver" class="bg-white">Mountain Time (MT)</option>
+              <option value="America/Los_Angeles" class="bg-white">Pacific Time (PT)</option>
             </select>
           </div>
           <div>
-            <label class="block text-sm font-medium text-slate-200 mb-2">Default Tax Rate (%)</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Default Tax Rate (%)</label>
             <input
               v-model.number="systemSettings.tax_rate_percent"
               type="number"
               min="0"
               max="100"
               step="0.01"
-              class="w-full px-4 py-2 border border-white/10 bg-white/5 text-white placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              class="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-900 placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
               placeholder="e.g. 7.50"
             />
-            <p class="text-xs text-slate-400 mt-1">Applied when building invoice tax if quote/order tax is not explicitly provided.</p>
+            <p class="text-xs text-gray-500 mt-1">Applied when building invoice tax if quote/order tax is not explicitly provided.</p>
           </div>
           <div>
-            <label class="block text-sm font-medium text-slate-200 mb-2">Default Profit Per Item (%)</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Default Profit Per Item (%)</label>
             <input
               v-model.number="systemSettings.profit_rate_percent"
               type="number"
               min="0"
               max="500"
               step="0.01"
-              class="w-full px-4 py-2 border border-white/10 bg-white/5 text-white placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              class="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-900 placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
               placeholder="e.g. 12.00"
             />
-            <p class="text-xs text-slate-400 mt-1">Markup used to compute invoice subtotal and per-item unit prices.</p>
+            <p class="text-xs text-gray-500 mt-1">Markup used to compute invoice subtotal and per-item unit prices.</p>
           </div>
         </div>
 
-        <div class="border-t border-white/10 pt-6">
-          <h4 class="font-semibold text-slate-100 mb-4">Maintenance Mode</h4>
+        <div class="border-t border-gray-200 pt-6">
+          <h4 class="font-semibold text-gray-900 mb-4">Maintenance Mode</h4>
           <label class="flex items-center gap-3 cursor-pointer">
             <input
               v-model="systemSettings.maintenance_mode"
               type="checkbox"
-              class="w-5 h-5 rounded border-white/20 bg-white/5 focus:ring-cyan-500"
-              style="accent-color: #22d3ee"
+              class="w-5 h-5 rounded border-gray-300 bg-gray-50 focus:ring-[#2F5597]"
+              style="accent-color: #2F5597"
             />
             <div>
-              <p class="font-medium text-white">Enable Maintenance Mode</p>
-              <p class="text-sm text-slate-400">Site will be unavailable to customers during maintenance</p>
+              <p class="font-medium text-gray-900">Enable Maintenance Mode</p>
+              <p class="text-sm text-gray-500">Site will be unavailable to customers during maintenance</p>
             </div>
           </label>
         </div>
 
-        <div class="flex justify-end gap-3 border-t border-white/10 pt-6">
+        <div class="flex justify-end gap-3 border-t border-gray-200 pt-6">
           <button
             @click="saveSystemSettings"
             :disabled="isSaving"
-            class="px-6 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-medium rounded-lg transition disabled:opacity-50"
+            class="px-6 py-2 bg-[#2F5597] hover:bg-[#1e3a6b] text-white font-medium rounded-lg transition disabled:opacity-50"
           >
             <i class="fas fa-save mr-2"></i>Save Settings
           </button>
@@ -462,46 +462,46 @@
     </div>
 
     <!-- Catalog Operations -->
-    <div v-if="activeTab === 'catalog'" class="rounded-xl border border-white/10 backdrop-blur overflow-hidden" style="background: linear-gradient(180deg, rgba(15,23,42,0.80), rgba(10,41,72,0.80))">
-      <div class="p-6 border-b border-white/10">
-        <h3 class="text-lg font-semibold text-white">TD SYNNEX Catalog Operations</h3>
-        <p class="text-sm text-slate-400 mt-1">Monitor catalog freshness and run sync/image actions from the admin UI.</p>
+    <div v-if="activeTab === 'catalog'" class="rounded-xl border-0 shadow-lg bg-white overflow-hidden">
+      <div class="p-6 border-b border-gray-200">
+        <h3 class="text-lg font-semibold text-gray-900">TD SYNNEX Catalog Operations</h3>
+        <p class="text-sm text-gray-500 mt-1">Monitor catalog freshness and run sync/image actions from the admin UI.</p>
       </div>
 
       <div class="p-6 space-y-6">
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          <div class="rounded-lg border border-white/10 bg-white/5 p-4">
-            <p class="text-xs uppercase tracking-widest text-slate-400">Product Source</p>
-            <p class="mt-2 text-lg font-semibold text-white">{{ catalogOperations.products_source || 'unknown' }}</p>
-            <p class="mt-1 text-sm" :class="catalogOperations.db_cache_exists ? 'text-emerald-300' : 'text-amber-300'">
+          <div class="rounded-lg border border-gray-200 bg-gray-50 p-4">
+            <p class="text-xs uppercase tracking-widest text-gray-500">Product Source</p>
+            <p class="mt-2 text-lg font-semibold text-gray-900">{{ catalogOperations.products_source || 'unknown' }}</p>
+            <p class="mt-1 text-sm" :class="catalogOperations.db_cache_exists ? 'text-emerald-600' : 'text-amber-600'">
               {{ catalogOperations.db_cache_exists ? 'Serving from local DB cache' : 'DB cache missing' }}
             </p>
           </div>
 
-          <div class="rounded-lg border border-white/10 bg-white/5 p-4">
-            <p class="text-xs uppercase tracking-widest text-slate-400">Catalog Size</p>
-            <p class="mt-2 text-lg font-semibold text-white">{{ formatNumber(catalogOperations.total_products) }} products</p>
-            <p class="mt-1 text-sm text-slate-300">Images: {{ formatNumber(catalogOperations.products_with_images) }}</p>
+          <div class="rounded-lg border border-gray-200 bg-gray-50 p-4">
+            <p class="text-xs uppercase tracking-widest text-gray-500">Catalog Size</p>
+            <p class="mt-2 text-lg font-semibold text-gray-900">{{ formatNumber(catalogOperations.total_products) }} products</p>
+            <p class="mt-1 text-sm text-gray-500">Images: {{ formatNumber(catalogOperations.products_with_images) }}</p>
           </div>
 
-          <div class="rounded-lg border border-white/10 bg-white/5 p-4">
-            <p class="text-xs uppercase tracking-widest text-slate-400">Local Images</p>
-            <p class="mt-2 text-lg font-semibold text-white">{{ formatNumber(catalogOperations.products_with_local_images) }}</p>
-            <p class="mt-1 text-sm text-slate-300">Pending queue jobs: {{ catalogOperations.pending_products_sync_jobs ?? 'n/a' }}</p>
-            <p class="mt-1 text-sm text-rose-300">Failed queue jobs: {{ catalogOperations.failed_products_sync_jobs ?? 0 }}</p>
+          <div class="rounded-lg border border-gray-200 bg-gray-50 p-4">
+            <p class="text-xs uppercase tracking-widest text-gray-500">Local Images</p>
+            <p class="mt-2 text-lg font-semibold text-gray-900">{{ formatNumber(catalogOperations.products_with_local_images) }}</p>
+            <p class="mt-1 text-sm text-gray-500">Pending queue jobs: {{ catalogOperations.pending_products_sync_jobs ?? 'n/a' }}</p>
+            <p class="mt-1 text-sm text-rose-600">Failed queue jobs: {{ catalogOperations.failed_products_sync_jobs ?? 0 }}</p>
           </div>
         </div>
 
-        <div class="rounded-lg border border-cyan-500/20 bg-cyan-500/10 p-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+        <div class="rounded-lg border border-[#2F5597]/20 bg-[#2F5597]/10 p-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <div>
-            <p class="text-sm font-semibold text-cyan-100">Last catalog sync</p>
-            <p class="text-sm text-cyan-200">{{ formatDateTime(catalogOperations.last_catalog_sync_at) }}</p>
+            <p class="text-sm font-semibold text-[#2F5597]">Last catalog sync</p>
+            <p class="text-sm text-[#2F5597]">{{ formatDateTime(catalogOperations.last_catalog_sync_at) }}</p>
             <p class="text-xs mt-1" :class="{
-              'text-amber-200': catalogOperations.catalog_operation?.status === 'queued',
-              'text-cyan-200': catalogOperations.catalog_operation?.status === 'running',
-              'text-emerald-200': catalogOperations.catalog_operation?.status === 'completed',
-              'text-rose-200': catalogOperations.catalog_operation?.status === 'failed',
-              'text-slate-300': !catalogOperations.catalog_operation?.status || catalogOperations.catalog_operation?.status === 'idle'
+              'text-amber-700': catalogOperations.catalog_operation?.status === 'queued',
+              'text-[#2F5597]': catalogOperations.catalog_operation?.status === 'running',
+              'text-emerald-700': catalogOperations.catalog_operation?.status === 'completed',
+              'text-rose-600': catalogOperations.catalog_operation?.status === 'failed',
+              'text-gray-500': !catalogOperations.catalog_operation?.status || catalogOperations.catalog_operation?.status === 'idle'
             }">
               Operation: {{ catalogOperations.catalog_operation?.status || 'idle' }}
               <span v-if="catalogOperations.catalog_operation?.message">- {{ catalogOperations.catalog_operation?.message }}</span>
@@ -510,28 +510,28 @@
           <button
             @click="refreshCatalogOperations"
             :disabled="catalogActionLoading"
-            class="px-4 py-2 rounded-lg border border-cyan-400/30 text-cyan-200 hover:bg-cyan-500/10 transition disabled:opacity-50"
+            class="px-4 py-2 rounded-lg border border-[#2F5597]/30 text-[#2F5597] hover:bg-[#2F5597]/10 transition disabled:opacity-50"
           >
             <i class="fas fa-rotate mr-2"></i>Refresh Status
           </button>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div class="rounded-lg border border-white/10 bg-white/5 p-5">
-            <h4 class="text-white font-semibold">Sync Catalog Now</h4>
-            <p class="mt-2 text-sm text-slate-400">Pull the latest TD SYNNEX catalog into the local products table now.</p>
+          <div class="rounded-lg border border-gray-200 bg-gray-50 p-5">
+            <h4 class="text-gray-900 font-semibold">Sync Catalog Now</h4>
+            <p class="mt-2 text-sm text-gray-500">Pull the latest TD SYNNEX catalog into the local products table now.</p>
             <button
               @click="runCatalogOperation('sync_catalog')"
               :disabled="catalogActionLoading"
-              class="mt-4 w-full px-4 py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-medium transition disabled:opacity-50"
+              class="mt-4 w-full px-4 py-2 rounded-lg bg-[#2F5597] hover:bg-[#1e3a6b] text-white font-medium transition disabled:opacity-50"
             >
               <i class="fas fa-database mr-2"></i>Run Catalog Sync
             </button>
           </div>
 
-          <div class="rounded-lg border border-white/10 bg-white/5 p-5">
-            <h4 class="text-white font-semibold">Enrich Missing Images</h4>
-            <p class="mt-2 text-sm text-slate-400">Fetch and save missing product images for a small admin-safe batch.</p>
+          <div class="rounded-lg border border-gray-200 bg-gray-50 p-5">
+            <h4 class="text-gray-900 font-semibold">Enrich Missing Images</h4>
+            <p class="mt-2 text-sm text-gray-500">Fetch and save missing product images for a small admin-safe batch.</p>
             <button
               @click="runCatalogOperation('enrich_images')"
               :disabled="catalogActionLoading"
@@ -541,9 +541,9 @@
             </button>
           </div>
 
-          <div class="rounded-lg border border-white/10 bg-white/5 p-5">
-            <h4 class="text-white font-semibold">Download Images Local</h4>
-            <p class="mt-2 text-sm text-slate-400">Download current external image URLs into the project folder for local serving.</p>
+          <div class="rounded-lg border border-gray-200 bg-gray-50 p-5">
+            <h4 class="text-gray-900 font-semibold">Download Images Local</h4>
+            <p class="mt-2 text-sm text-gray-500">Download current external image URLs into the project folder for local serving.</p>
             <button
               @click="runCatalogOperation('download_images')"
               :disabled="catalogActionLoading"
@@ -554,35 +554,35 @@
           </div>
         </div>
 
-        <div class="rounded-lg border border-white/10 bg-slate-950/40 p-4">
+        <div class="rounded-lg border border-gray-200 bg-gray-50 p-4">
           <div class="flex items-center justify-between gap-3">
             <div class="flex items-center gap-3">
-              <h4 class="text-white font-semibold">Last Command Output</h4>
-              <span v-if="catalogActionLoading" class="inline-flex items-center gap-1.5 text-xs text-cyan-300 animate-pulse">
+              <h4 class="text-gray-900 font-semibold">Last Command Output</h4>
+              <span v-if="catalogActionLoading" class="inline-flex items-center gap-1.5 text-xs text-[#2F5597] animate-pulse">
                 <i class="fas fa-circle-notch fa-spin"></i> Running…
               </span>
             </div>
             <button
               v-if="catalogCommandOutput"
               @click="catalogCommandOutput = ''"
-              class="text-xs text-slate-400 hover:text-slate-200 transition"
+              class="text-xs text-gray-500 hover:text-gray-700 transition"
             ><i class="fas fa-trash-can mr-1"></i>Clear</button>
           </div>
-          <pre class="mt-3 min-h-[220px] max-h-[600px] w-full overflow-auto whitespace-pre-wrap break-all rounded-lg bg-black/50 p-4 text-xs leading-relaxed text-slate-200 font-mono">{{ catalogCommandOutput || 'No command has been run from this page yet.' }}</pre>
+          <pre class="mt-3 min-h-[220px] max-h-[600px] w-full overflow-auto whitespace-pre-wrap break-all rounded-lg bg-black/50 p-4 text-xs leading-relaxed text-gray-700 font-mono">{{ catalogCommandOutput || 'No command has been run from this page yet.' }}</pre>
         </div>
       </div>
     </div>
 
     <!-- Admin Users Management (Super Admin Only) -->
-    <div v-if="activeTab === 'admins'" class="rounded-xl border border-white/10 backdrop-blur overflow-hidden" style="background: linear-gradient(180deg, rgba(15,23,42,0.80), rgba(10,41,72,0.80))">
-      <div class="p-6 border-b border-white/10 flex justify-between items-center">
+    <div v-if="activeTab === 'admins'" class="rounded-xl border-0 shadow-lg bg-white overflow-hidden">
+      <div class="p-6 border-b border-gray-200 flex justify-between items-center">
         <div>
-          <h3 class="text-lg font-semibold text-white">Admin Users</h3>
-          <p class="text-sm text-slate-400 mt-1">Manage administrator accounts</p>
+          <h3 class="text-lg font-semibold text-gray-900">Admin Users</h3>
+          <p class="text-sm text-gray-500 mt-1">Manage administrator accounts</p>
         </div>
         <button
           @click="showAddAdminModal = true"
-          class="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-medium rounded-lg transition"
+          class="px-4 py-2 bg-[#2F5597] hover:bg-[#1e3a6b] text-white font-medium rounded-lg transition"
         >
           <i class="fas fa-user-plus mr-2"></i>Add Admin
         </button>
@@ -592,30 +592,30 @@
         <div class="overflow-x-auto">
           <table class="w-full">
             <thead>
-              <tr class="bg-slate-900/70 border-b border-white/10">
-                <th class="text-left py-3 px-4 text-xs font-semibold text-slate-200 uppercase tracking-wide">Name</th>
-                <th class="text-left py-3 px-4 text-xs font-semibold text-slate-200 uppercase tracking-wide">Email</th>
-                <th class="text-left py-3 px-4 text-xs font-semibold text-slate-200 uppercase tracking-wide">Role</th>
-                <th class="text-left py-3 px-4 text-xs font-semibold text-slate-200 uppercase tracking-wide">Status</th>
-                <th class="text-left py-3 px-4 text-xs font-semibold text-slate-200 uppercase tracking-wide">Created</th>
-                <th class="text-left py-3 px-4 text-xs font-semibold text-slate-200 uppercase tracking-wide">Actions</th>
+              <tr class="bg-gray-50 border-b border-gray-200">
+                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-700 uppercase tracking-wide">Name</th>
+                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-700 uppercase tracking-wide">Email</th>
+                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-700 uppercase tracking-wide">Role</th>
+                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-700 uppercase tracking-wide">Status</th>
+                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-700 uppercase tracking-wide">Created</th>
+                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-700 uppercase tracking-wide">Actions</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="admin in adminUsers" :key="admin.id" class="border-b border-white/10 hover:bg-white/5 transition">
+              <tr v-for="admin in adminUsers" :key="admin.id" class="border-b border-gray-200 hover:bg-gray-50 transition">
                 <td class="py-3 px-4">
                   <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold" style="background: linear-gradient(135deg, #06b6d4, #2563eb)">
+                    <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold" style="background: linear-gradient(135deg, #2F5597, #1e3a6b)">
                       {{ getInitials(admin.name) }}
                     </div>
-                    <span class="font-medium text-white">{{ admin.name }}</span>
+                    <span class="font-medium text-gray-900">{{ admin.name }}</span>
                   </div>
                 </td>
-                <td class="py-3 px-4 text-slate-400">{{ admin.email }}</td>
+                <td class="py-3 px-4 text-gray-500">{{ admin.email }}</td>
                 <td class="py-3 px-4">
                   <span :class="[
                     'px-2 py-1 rounded-full text-xs font-semibold',
-                    admin.role === 'super_admin' ? 'bg-violet-500/20 text-violet-300' : 'bg-cyan-500/20 text-cyan-300'
+                    admin.role === 'super_admin' ? 'bg-violet-500/20 text-violet-700' : 'bg-[#2F5597]/10 text-[#2F5597]'
                   ]">
                     {{ admin.role === 'super_admin' ? 'Super Admin' : 'Admin' }}
                   </span>
@@ -623,32 +623,32 @@
                 <td class="py-3 px-4">
                   <span :class="[
                     'px-2 py-1 rounded-full text-xs font-semibold',
-                    admin.status === 'active' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300'
+                    admin.status === 'active' ? 'bg-emerald-500/20 text-emerald-600' : 'bg-rose-500/20 text-rose-600'
                   ]">
                     {{ admin.status }}
                   </span>
                 </td>
-                <td class="py-3 px-4 text-slate-400 text-sm">{{ new Date(admin.created_at).toLocaleDateString() }}</td>
+                <td class="py-3 px-4 text-gray-500 text-sm">{{ new Date(admin.created_at).toLocaleDateString() }}</td>
                 <td class="py-3 px-4">
                   <div class="flex gap-2">
                     <button
                       v-if="admin.status === 'active'"
                       @click="suspendAdmin(admin.id)"
-                      class="px-3 py-1 text-xs border border-amber-500/40 text-amber-300 bg-amber-500/10 rounded hover:bg-amber-500/20 transition"
+                      class="px-3 py-1 text-xs border border-amber-500/40 text-amber-600 bg-amber-500/10 rounded hover:bg-amber-500/20 transition"
                     >
                       <i class="fas fa-pause mr-1"></i>Suspend
                     </button>
                     <button
                       v-else
                       @click="activateAdmin(admin.id)"
-                      class="px-3 py-1 text-xs border border-emerald-500/40 text-emerald-300 bg-emerald-500/10 rounded hover:bg-emerald-500/20 transition"
+                      class="px-3 py-1 text-xs border border-emerald-500/40 text-emerald-600 bg-emerald-500/10 rounded hover:bg-emerald-500/20 transition"
                     >
                       <i class="fas fa-play mr-1"></i>Activate
                     </button>
                     <button
                       v-if="admin.id !== currentUserId"
                       @click="deleteAdmin(admin.id)"
-                      class="px-3 py-1 text-xs border border-rose-500/40 text-rose-300 bg-rose-500/10 rounded hover:bg-rose-500/20 transition"
+                      class="px-3 py-1 text-xs border border-rose-500/40 text-rose-600 bg-rose-500/10 rounded hover:bg-rose-500/20 transition"
                     >
                       <i class="fas fa-trash mr-1"></i>Delete
                     </button>
@@ -662,60 +662,60 @@
     </div>
 
     <!-- Add Admin Modal -->
-    <div v-if="showAddAdminModal" class="fixed inset-0 bg-black/50 backdrop-blur-[2px] flex items-center justify-center z-50" @click.self="closeAddAdminModal">
-      <div class="rounded-xl border border-white/10 backdrop-blur w-full max-w-md mx-4 overflow-hidden" style="background: linear-gradient(180deg, rgba(15,23,42,0.97), rgba(10,41,72,0.97))">
-        <div class="p-6 border-b border-white/10" style="background: linear-gradient(90deg, rgba(6,182,212,0.08) 0%, rgba(37,99,235,0.08) 100%)">
+    <div v-if="showAddAdminModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click.self="closeAddAdminModal">
+      <div class="rounded-xl bg-white border-0 shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+        <div class="p-6 border-b border-gray-200 text-white" style="background: linear-gradient(135deg, #2F5597, #1e3a6b)">
           <h3 class="text-lg font-semibold text-white">Add New Admin</h3>
         </div>
         <div class="p-6 space-y-4">
           <div>
-            <label class="block text-sm font-medium text-slate-200 mb-2">Full Name</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
             <input
               v-model="newAdmin.name"
               type="text"
-              class="w-full px-4 py-2 border border-white/10 bg-white/5 text-white placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              class="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-900 placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
               placeholder="Enter admin name"
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-slate-200 mb-2">Email Address</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
             <input
               v-model="newAdmin.email"
               type="email"
-              class="w-full px-4 py-2 border border-white/10 bg-white/5 text-white placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              class="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-900 placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
               placeholder="admin@example.com"
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-slate-200 mb-2">Password</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
             <input
               v-model="newAdmin.password"
               type="password"
-              class="w-full px-4 py-2 border border-white/10 bg-white/5 text-white placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              class="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-900 placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
               placeholder="Min 8 characters"
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-slate-200 mb-2">Role</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Role</label>
             <select
               v-model="newAdmin.role"
-              class="w-full px-4 py-2 border border-white/10 bg-slate-900 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              class="w-full px-4 py-2 border border-gray-200 bg-white text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
             >
-              <option value="admin" class="bg-slate-900">Admin</option>
-              <option value="super_admin" class="bg-slate-900">Super Admin</option>
+              <option value="admin" class="bg-white">Admin</option>
+              <option value="super_admin" class="bg-white">Super Admin</option>
             </select>
           </div>
         </div>
-        <div class="p-6 border-t border-white/10 flex justify-end gap-3">
+        <div class="p-6 border-t border-gray-200 flex justify-end gap-3">
           <button
             @click="closeAddAdminModal"
-            class="px-4 py-2 border border-white/10 text-slate-300 bg-white/5 rounded-lg hover:bg-white/10 transition"
+            class="px-4 py-2 border border-gray-200 text-gray-500 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
           >
             Cancel
           </button>
           <button
             @click="createAdmin"
-            class="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-medium rounded-lg transition"
+            class="px-4 py-2 bg-[#2F5597] hover:bg-[#1e3a6b] text-white font-medium rounded-lg transition"
           >
             <i class="fas fa-plus mr-2"></i>Create Admin
           </button>
@@ -860,7 +860,7 @@ const showToast = (message, type = 'success') => {
   const iconClass = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'
   
   const toast = document.createElement('div')
-  toast.className = `fixed top-4 right-4 ${bgColor} text-white px-6 py-3 rounded-lg shadow-lg z-50 transition-opacity flex items-center gap-2`
+  toast.className = `fixed top-4 right-4 ${bgColor} text-gray-900 px-6 py-3 rounded-lg shadow-lg z-50 transition-opacity flex items-center gap-2`
   
   const icon = document.createElement('i')
   icon.className = `fas ${iconClass}`

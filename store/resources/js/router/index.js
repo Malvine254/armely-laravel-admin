@@ -18,6 +18,7 @@ import AdminReportsPage from '../pages/AdminReportsPage.vue';
 import AdminSettingsPage from '../pages/AdminSettingsPage.vue';
 import AdminInvoicesPage from '../pages/AdminInvoicesPage.vue';
 import AdminChatPage from '../pages/AdminChatPage.vue';
+import AdminOrderTrackingPage from '../pages/AdminOrderTrackingPage.vue';
 import Products from '../views/catalog/Products.vue';
 import ProductDetail from '../views/catalog/ProductDetail.vue';
 import Cart from '../views/quotes/Cart.vue';
@@ -97,6 +98,12 @@ const routes = [
     path: '/admin/orders',
     name: 'admin-orders',
     component: AdminOrdersPage,
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/admin/orders/tracking',
+    name: 'admin-order-tracking',
+    component: AdminOrderTrackingPage,
     meta: { requiresAuth: true, requiresAdmin: true },
   },
   {

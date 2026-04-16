@@ -469,7 +469,7 @@ class MessageController extends Controller
                     'resolved_at' => null,
                 ])->save();
 
-                $handoffReply = 'Understood. I reopened this ticket and escalated it to human support. A team member will continue from here shortly.';
+                $handoffReply = 'Absolutely — I\'ve reopened this ticket and escalated it to our support team. A team member will pick up right where we left off. You\'re in good hands! 🙌';
 
                 ChatMessage::create([
                     'chat_session_id' => $session->id,
@@ -536,7 +536,7 @@ class MessageController extends Controller
                 'resolved_at' => null,
             ])->save();
 
-            $handoffReply = 'Understood. I escalated this chat to human support. A team member will continue from here shortly.';
+            $handoffReply = 'Of course! I\'ve connected you with our support team. A real person will jump in shortly to help you out. In the meantime, feel free to share any details that might help them assist you faster. 🤝';
 
             ChatMessage::create([
                 'chat_session_id' => $session->id,
@@ -598,7 +598,7 @@ class MessageController extends Controller
 
                 if (!$adminMessages) {
                     // No admin reply yet; send handoff message
-                    $handoffReply = 'This chat is already escalated to human support. A team member will continue from here shortly.';
+                    $handoffReply = 'This chat is already with our support team — they\'ll be with you shortly! If there\'s anything specific you\'d like them to know, feel free to type it here and they\'ll see it when they join. 😊';
 
                     ChatMessage::create([
                         'chat_session_id' => $session->id,
@@ -634,7 +634,7 @@ class MessageController extends Controller
                 return response()->json([
                     'success' => true,
                     'data' => [
-                        'reply' => 'Your message has been received. A team member will respond shortly.',
+                        'reply' => 'Got it — your message has been received! A team member will respond shortly. Thanks for your patience! 🙏',
                         'actions' => [],
                         'product_suggestions' => [],
                         'source' => 'human_handoff_silent',
@@ -768,7 +768,7 @@ class MessageController extends Controller
                 'exception' => get_class($e),
             ]);
 
-            $fallbackReply = 'Mela AI is temporarily unavailable. Please try again shortly, or request human support.';
+            $fallbackReply = 'Oops — Mela AI hit a temporary snag. No worries though! Please try again in a moment, or I can connect you with our support team right away.';
             $fallbackActions = [
                 [
                     'label' => 'Request human support',
@@ -782,7 +782,8 @@ class MessageController extends Controller
                 $fallbackProductSuggestions = $this->searchProductsForAssistant($question, [], 6, $fallbackSearchContext);
 
                 if (!empty($fallbackProductSuggestions)) {
-                    $fallbackReply = 'Mela AI is temporarily unavailable, but I found matching products from your catalog below. You can open product details now or request human support.';
+                    $count = count($fallbackProductSuggestions);
+                    $fallbackReply = "Mela AI is temporarily unavailable, but I still managed to find {$count} matching product(s) from your catalog! Check them out below, or reach out to our team for more help.";
                     $fallbackActions[] = [
                         'label' => 'Open product search',
                         'link' => '/products?search=' . urlencode($question),
@@ -1327,6 +1328,10 @@ class MessageController extends Controller
 
     private function buildFallbackReply(string $question, array $context): string
     {
+        $customerName = trim((string) ($context['customer']['name'] ?? ''));
+        $firstName = $customerName !== '' ? explode(' ', $customerName)[0] : '';
+        $greet = $firstName !== '' ? "{$firstName}, " : '';
+
         $focusedInvoice = $context['focused_invoice'] ?? null;
         $openCount = (int) ($context['summary']['open_invoice_count'] ?? 0);
         $openTotal = $this->formatAssistantMoney((float) ($context['summary']['open_invoice_total'] ?? 0));
@@ -1335,30 +1340,56 @@ class MessageController extends Controller
 
         if ($focusedInvoice && !empty($focusedInvoice['invoice_number'])) {
             $remaining = $this->formatAssistantMoney((float) ($focusedInvoice['remaining_amount'] ?? 0));
-            return "I found invoice {$focusedInvoice['invoice_number']}. Remaining balance is {$remaining}. You can view it, download the PDF, or pay from the actions below.";
+            $status = strtolower((string) ($focusedInvoice['status'] ?? 'open'));
+            return "{$greet}I found invoice {$focusedInvoice['invoice_number']} (status: {$status}). The remaining balance is {$remaining}. You can view it, download the PDF, or make a payment using the actions below — let me know if you need anything else!";
         }
 
         if (Str::contains(strtolower($question), ['invoice', 'payment', 'pay'])) {
-            return "You currently have {$openCount} invoice(s) with outstanding balance totaling {$openTotal}. I can help you open invoices, pay them, or download invoice PDFs.";
+            if ($openCount === 0) {
+                return "{$greet}great news — you have no outstanding invoices right now! If you need to review past invoices or set up a new order, I'm here to help.";
+            }
+            return "{$greet}you currently have {$openCount} open invoice(s) totaling {$openTotal}. I can help you view details, download PDFs, or make payments — just let me know which invoice you'd like to start with!";
         }
 
         $productSuggestions = (array) ($context['product_suggestions'] ?? []);
         if (!empty($productSuggestions)) {
+            $count = count($productSuggestions);
             $top = $productSuggestions[0];
             $price = $this->formatAssistantMoney((float) ($top['price'] ?? 0));
-            $name = (string) ($top['name'] ?? 'recommended product');
-            return "I found matching products. Top suggestion is {$name} at {$price}. Review the suggested product cards for why each one was selected and quick actions.";
+            $name = (string) ($top['name'] ?? 'a top product');
+            return "{$greet}I found {$count} product(s) that match your search! The top suggestion is **{$name}** at {$price}. Check out the product cards below — each one explains why it's a good fit. Want me to help you request a quote?";
         }
 
         if ($isProductIntent) {
-            return 'I searched your product catalog but did not find strong matches yet. Try a shorter keyword (brand or SKU), or open product search from the actions below.';
+            return "{$greet}I searched the catalog but didn't find a strong match for that specific phrase. Try narrowing it down — a brand name (like \"Dell\" or \"Cisco\"), a model number, or a category (like \"laptop\" or \"switch\") works best. I'm ready when you are!";
         }
 
         if (Str::contains(strtolower($question), ['quote', 'same quote', 'reorder', 'requote'])) {
-            return "You have {$completedPaidQuoteCount} quote(s) that are approved and fully paid. Open Quotes to reorder from completed quotes or create a new quote from the same items.";
+            if ($completedPaidQuoteCount > 0) {
+                return "{$greet}you have {$completedPaidQuoteCount} approved and paid quote(s) ready to reorder. Head to Quotes to duplicate one, or I can help you build a new quote from scratch!";
+            }
+            return "{$greet}I don't see any completed quotes yet, but I can help you browse products and build a new quote. What are you looking for?";
         }
 
-        return 'I can help with invoices, payment steps, quote follow-ups, and order tracking. Ask me with an invoice number (for example INV-202604-00012) for direct actions.';
+        if (Str::contains(strtolower($question), ['order', 'track', 'shipping', 'delivery'])) {
+            return "{$greet}I can pull up your recent orders and tracking info. If you have a specific order number, share it and I'll look it up right away!";
+        }
+
+        // Greeting handling
+        $questionLower = strtolower(trim($question));
+        $greetings = ['hi', 'hello', 'hey', 'yo', 'good morning', 'good afternoon', 'good evening', 'howdy', 'sup', 'whats up'];
+        if (in_array($questionLower, $greetings, true) || Str::startsWith($questionLower, ['hi ', 'hello ', 'hey '])) {
+            $timeGreet = date('H') < 12 ? 'Good morning' : (date('H') < 17 ? 'Good afternoon' : 'Good evening');
+            $nameGreet = $firstName !== '' ? ", {$firstName}" : '';
+            return "{$timeGreet}{$nameGreet}! 👋 I'm Mela AI, your Armely assistant. I can help with invoices, payments, orders, quotes, and finding the right IT products. What can I do for you today?";
+        }
+
+        // Thank you handling
+        if (Str::contains($questionLower, ['thank', 'thanks', 'thx', 'appreciate'])) {
+            return "You're welcome{$greet}! Happy to help anytime. Is there anything else I can assist you with?";
+        }
+
+        return "{$greet}I'm here to help with invoices, payments, quotes, order tracking, and product recommendations. Just ask — for example, try \"Show my unpaid invoices\" or \"Recommend a Dell laptop under \$1500\" and I'll jump right in!";
     }
 
     private function handleLocalProductDiscoveryReply(string $question, array $context): ?array
@@ -1370,17 +1401,39 @@ class MessageController extends Controller
 
         $productSuggestions = (array) ($context['product_suggestions'] ?? []);
         $actions = $this->buildAssistantActions($question, $context);
+        $customerName = trim((string) ($context['customer']['name'] ?? ''));
+        $firstName = $customerName !== '' ? explode(' ', $customerName)[0] : '';
+        $greet = $firstName !== '' ? "{$firstName}, " : '';
 
         if (!empty($productSuggestions)) {
+            $count = count($productSuggestions);
             $top = $productSuggestions[0];
             $topName = (string) ($top['name'] ?? 'a matching product');
             $topPrice = isset($top['price']) ? $this->formatAssistantMoney((float) $top['price']) : null;
+            $topVendor = trim((string) ($top['vendor'] ?? ''));
 
-            $reply = $topPrice && $topPrice !== '$0.00'
-                ? "I found matching products for your search. Top result is {$topName} at {$topPrice}."
-                : "I found matching products for your search. Top result is {$topName}.";
+            $reply = "{$greet}";
+            if ($count === 1) {
+                $reply .= "I found a great match for you!";
+            } else {
+                $reply .= "I found {$count} products that fit your search!";
+            }
 
-            $reply .= ' You can open details directly from the suggestions below.';
+            if ($topPrice && $topPrice !== '$0.00') {
+                $reply .= " The top pick is **{$topName}** at {$topPrice}";
+                if ($topVendor !== '') {
+                    $reply .= " from {$topVendor}";
+                }
+                $reply .= '.';
+            } else {
+                $reply .= " Top pick: **{$topName}**";
+                if ($topVendor !== '') {
+                    $reply .= " from {$topVendor}";
+                }
+                $reply .= '.';
+            }
+
+            $reply .= ' Check out the product cards below for details on why each was selected. Want me to help you request a quote or find more options?';
 
             return [
                 'reply' => $reply,
@@ -1391,7 +1444,7 @@ class MessageController extends Controller
         }
 
         return [
-            'reply' => 'I searched the product catalog but could not find a direct match from this phrase. Try a shorter keyword like brand, model, or SKU.',
+            'reply' => "{$greet}I searched the catalog but didn't find a direct match for that phrase. Here are a few tips that help:\n\n• Use a **brand name** like \"Dell\", \"HP\", or \"Cisco\"\n• Try a **category** like \"laptop\", \"monitor\", or \"switch\"\n• Include a **model or SKU** if you have one\n\nGive it another try and I'll find the best options for you!",
             'actions' => $actions,
             'product_suggestions' => [],
             'source' => 'local_product_search_no_match',
@@ -1516,8 +1569,8 @@ class MessageController extends Controller
                         ->orWhere('vendor_id', 'like', $like)
                         ->orWhere('mfg_part_no', 'like', $like)
                         ->orWhere('tdsynnex_sku_no', 'like', $like)
-                        ->orWhereRaw("LOWER(JSON_UNQUOTE(JSON_EXTRACT(specifications, '$.manufacturer'))) LIKE ?", [strtolower($like)])
-                        ->orWhereRaw("LOWER(JSON_UNQUOTE(JSON_EXTRACT(specifications, '$.vendorName'))) LIKE ?", [strtolower($like)]);
+                        ->orWhere('manufacturer', 'like', $like)
+                        ->orWhere('category_segment', 'like', $like);
                 }
             })
             ->limit(120)
@@ -1531,6 +1584,8 @@ class MessageController extends Controller
                 'retail_price',
                 'images',
                 'is_discontinued',
+                'manufacturer',
+                'category_segment',
             ]);
 
         $candidates = $products->map(function (Product $product) {
@@ -1695,20 +1750,24 @@ class MessageController extends Controller
                 $matched = array_values(array_unique(array_filter($matched)));
                 $historyMatches = array_values(array_unique(array_filter($historyMatches)));
 
-                $whyText = 'Matched by catalog relevance';
+                $whyText = 'Selected based on catalog relevance to your search.';
                 if (!empty($matched)) {
-                    $whyText = 'Matched on: ' . implode(', ', $matched);
+                    $whyText = 'Matches your search for: ' . implode(', ', $matched) . '.';
                 }
                 if (!empty($historyMatches)) {
-                    $whyText .= '. Aligned with your recent interest in: ' . implode(', ', $historyMatches);
+                    $whyText .= ' Also aligns with your recent interest in ' . implode(', ', $historyMatches) . '.';
                 }
 
                 if ($maxBudget !== null && $maxBudget > 0 && $price > 0) {
                     if ($price <= $maxBudget) {
-                        $whyText .= '. Within your budget of ' . $this->formatAssistantMoney($maxBudget, 0);
+                        $whyText .= ' ✓ Within your ' . $this->formatAssistantMoney($maxBudget, 0) . ' budget.';
                     } else {
-                        $whyText .= '. Above your budget of ' . $this->formatAssistantMoney($maxBudget, 0);
+                        $whyText .= ' ⚠ Above your ' . $this->formatAssistantMoney($maxBudget, 0) . ' budget.';
                     }
+                }
+
+                if ($isDeviceMatch && $deviceType !== '') {
+                    $whyText .= ' Confirmed ' . $deviceType . ' match.';
                 }
 
                 return [
@@ -1792,28 +1851,60 @@ class MessageController extends Controller
     private function extractProductSearchKeywords(string $question): array
     {
         $normalized = strtolower($question);
-        $parts = preg_split('/[^a-z0-9]+/i', $normalized) ?: [];
+        $parts = preg_split('/[^a-z0-9-]+/i', $normalized) ?: [];
         $stopWords = [
-            'need', 'purchase', 'buy', 'best', 'give', 'me', 'sample', 'list', 'for', 'the',
+            'need', 'purchase', 'buy', 'best', 'give', 'me', 'my', 'your', 'our', 'its', 'their',
+            'sample', 'list', 'for', 'the', 'is', 'it', 'if', 'in', 'on', 'at', 'of', 'be', 'no', 'so',
             'and', 'or', 'with', 'show', 'please', 'can', 'you', 'want', 'from', 'that', 'this',
             'have', 'all', 'more', 'details', 'about', 'find', 'search', 'suggestion', 'suggestions',
             'suggest', 'suggested', 'recommended', 'recommend', 'available', 'current', 'from',
             'product', 'products', 'item', 'items', 'one', 'two', 'three', 'hi', 'hello', 'hey', 'to', 'today',
             'order', 'quote', 'quotes', 'cart', 'make', 'proceed', 'request', 'them', 'those', 'are', 'please',
-            'add', 'added', 'placing', 'place'
+            'add', 'added', 'placing', 'place', 'good', 'looking', 'look', 'get', 'some', 'any',
+            'what', 'which', 'would', 'could', 'should', 'like', 'price', 'under', 'below', 'above',
+            'something', 'anything', 'around', 'great', 'nice', 'new', 'need', 'do', 'does', 'got',
         ];
 
         $keywords = collect($parts)
             ->map(static fn ($p) => trim((string) $p))
-            ->filter(static fn ($p) => strlen($p) >= 3)
+            ->filter(static fn ($p) => strlen($p) >= 2)
             ->filter(static fn ($p) => !in_array($p, $stopWords, true))
             ->unique()
             ->values()
             ->all();
 
+        // Expand known brand variants
+        $brandExpansions = [
+            'hp' => ['hp', 'hewlett-packard', 'hewlett packard'],
+            'dell' => ['dell'],
+            'lenovo' => ['lenovo'],
+        ];
+
+        foreach ($brandExpansions as $brand => $variants) {
+            if (str_contains($normalized, $brand)) {
+                foreach ($variants as $variant) {
+                    if (!in_array($variant, $keywords, true)) {
+                        $keywords[] = $variant;
+                    }
+                }
+            }
+        }
+
+        // Expand device type synonyms
         if (str_contains($normalized, 'laptop')) {
-            $keywords[] = 'laptop';
-            $keywords[] = 'notebook';
+            if (!in_array('notebook', $keywords, true)) {
+                $keywords[] = 'notebook';
+            }
+        }
+        if (str_contains($normalized, 'notebook')) {
+            if (!in_array('laptop', $keywords, true)) {
+                $keywords[] = 'laptop';
+            }
+        }
+        if (str_contains($normalized, 'monitor')) {
+            if (!in_array('display', $keywords, true)) {
+                $keywords[] = 'display';
+            }
         }
 
         return array_values(array_unique($keywords));
@@ -1857,19 +1948,23 @@ class MessageController extends Controller
             return false;
         }
 
-        $greetings = ['hi', 'hello', 'hey', 'yo', 'good morning', 'good afternoon', 'good evening'];
+        $greetings = ['hi', 'hello', 'hey', 'yo', 'good morning', 'good afternoon', 'good evening', 'howdy', 'sup', 'whats up', 'thanks', 'thank you', 'thx', 'ok', 'okay', 'bye', 'goodbye'];
         if (in_array($q, $greetings, true)) {
             return false;
         }
 
         $productSignals = [
             'laptop', 'notebook', 'desktop', 'monitor', 'printer', 'server', 'sku', 'model', 'spec',
-            'recommend', 'suggest', 'sample list', 'best', 'buy', 'purchase', 'quote', 'network',
-            'switch', 'router', 'firewall', 'access point', 'wifi', 'wireless', 'catalogue', 'catalog'
+            'recommend', 'suggest', 'sample list', 'best', 'buy', 'purchase', 'network',
+            'switch', 'router', 'firewall', 'access point', 'wifi', 'wireless', 'catalogue', 'catalog',
+            'workstation', 'tablet', 'projector', 'scanner', 'ups', 'storage', 'ssd', 'ram', 'memory',
+            'headset', 'webcam', 'docking', 'dock', 'keyboard', 'mouse', 'display',
+            'thin client', 'chromebook', 'all-in-one', 'mini pc',
         ];
 
         $financeSignals = [
-            'invoice', 'payment', 'pay', 'balance', 'due', 'download', 'pdf', 'billing', 'receipt'
+            'invoice', 'payment', 'pay', 'balance', 'due', 'download', 'pdf', 'billing', 'receipt',
+            'reminder', 'send reminder', 'quote', 'quotes', 'my quotes', 'current quotes', 'open quotes',
         ];
 
         $hasCurrentProductSignal = false;
@@ -2003,6 +2098,18 @@ class MessageController extends Controller
             $deviceType = 'laptop';
         } elseif (str_contains($joined, 'desktop') || str_contains($joined, 'workstation')) {
             $deviceType = 'desktop';
+        } elseif (str_contains($joined, 'monitor') || str_contains($joined, 'display')) {
+            $deviceType = 'monitor';
+        } elseif (str_contains($joined, 'printer') || str_contains($joined, 'laserjet')) {
+            $deviceType = 'printer';
+        } elseif (str_contains($joined, 'server')) {
+            $deviceType = 'server';
+        } elseif (str_contains($joined, 'switch') && !str_contains($joined, 'nintendo')) {
+            $deviceType = 'switch';
+        } elseif (str_contains($joined, 'router') || str_contains($joined, 'gateway')) {
+            $deviceType = 'router';
+        } elseif (str_contains($joined, 'access point') || str_contains($joined, 'wireless ap')) {
+            $deviceType = 'access point';
         }
 
         $maxBudget = null;
@@ -2024,8 +2131,11 @@ class MessageController extends Controller
 
         $requiredBrand = null;
         $knownBrands = [
-            'dell', 'hp', 'lenovo', 'cisco', 'meraki', 'microsoft', 'apple', 'samsung', 'epson',
-            'brother', 'canon', 'asus', 'acer', 'logitech', 'jabra', 'netgear', 'ubiquiti', 'fortinet'
+            'dell', 'hp', 'hewlett-packard', 'lenovo', 'cisco', 'meraki', 'microsoft', 'apple',
+            'samsung', 'epson', 'brother', 'canon', 'asus', 'acer', 'logitech', 'jabra',
+            'netgear', 'ubiquiti', 'fortinet', 'aruba', 'juniper', 'sophos', 'intel',
+            'amd', 'nvidia', 'toshiba', 'xerox', 'ricoh', 'lexmark', 'benq', 'lg',
+            'panasonic', 'viewsonic', 'poly', 'plantronics', 'dynabook', 'msi',
         ];
         foreach ($knownBrands as $brand) {
             if (str_contains($joined, $brand)) {
@@ -2035,7 +2145,7 @@ class MessageController extends Controller
         }
 
         $requiredCategory = null;
-        foreach (['monitor', 'laptop', 'desktop', 'printer', 'server', 'switch', 'router', 'access point', 'firewall'] as $category) {
+        foreach (['monitor', 'display', 'laptop', 'notebook', 'desktop', 'workstation', 'printer', 'server', 'switch', 'router', 'access point', 'firewall', 'scanner', 'projector', 'tablet', 'ups', 'storage'] as $category) {
             if (str_contains($joined, $category)) {
                 $requiredCategory = $category;
                 break;
@@ -2164,15 +2274,25 @@ class MessageController extends Controller
             return false;
         }
 
-        if ($deviceType === 'laptop') {
-            return str_contains($haystack, 'laptop') || str_contains($haystack, 'notebook');
+        $deviceAliases = [
+            'laptop' => ['laptop', 'notebook', 'ultrabook', 'chromebook'],
+            'desktop' => ['desktop', 'workstation', 'mini pc', 'all-in-one'],
+            'monitor' => ['monitor', 'display', 'screen', 'lcd', 'led monitor'],
+            'printer' => ['printer', 'laserjet', 'inkjet', 'multifunction', 'mfp'],
+            'server' => ['server', 'rack', 'tower server', 'poweredge'],
+            'switch' => ['switch', 'ethernet switch', 'managed switch'],
+            'router' => ['router', 'gateway'],
+            'access point' => ['access point', 'wireless ap', 'wifi ap'],
+        ];
+
+        $needles = $deviceAliases[$deviceType] ?? [$deviceType];
+        foreach ($needles as $needle) {
+            if (str_contains($haystack, $needle)) {
+                return true;
+            }
         }
 
-        if ($deviceType === 'desktop') {
-            return str_contains($haystack, 'desktop') || str_contains($haystack, 'workstation');
-        }
-
-        return true;
+        return false;
     }
 
     private function extractProductImageUrl(mixed $images): ?string

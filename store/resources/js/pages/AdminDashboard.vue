@@ -6,20 +6,20 @@
       <div class="absolute inset-0 pointer-events-none dashboard-orb"></div>
       <div class="relative z-10 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <p class="text-xs uppercase tracking-[0.2em] text-cyan-100/80">Operations Center</p>
+          <p class="text-xs uppercase tracking-[0.2em] text-blue-200 font-semibold">Operations Center</p>
           <h2 class="text-3xl md:text-4xl font-semibold text-white mt-1">Store Performance Radar</h2>
-          <p class="text-slate-200/90 mt-2 max-w-2xl text-sm md:text-base">
+          <p class="text-blue-100/80 mt-2 max-w-2xl text-sm md:text-base">
             Live command view of quotes, orders, and invoice pressure for the current business cycle.
           </p>
         </div>
         <div class="flex items-center gap-3">
-          <span class="rounded-full border border-white/25 bg-white/10 px-4 py-2 text-xs text-white/90">
+          <span class="rounded-full border border-white/25 bg-white/10 px-4 py-2 text-xs text-white/80">
             Last sync: {{ lastSyncLabel }}
           </span>
           <button
             @click="refreshStats"
             :disabled="refreshing"
-            class="rounded-full bg-cyan-300 px-5 py-2 text-sm font-semibold text-slate-900 transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-60"
+            class="rounded-full bg-white/20 hover:bg-white/30 backdrop-blur px-5 py-2 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-60"
           >
             {{ refreshing ? 'Refreshing...' : 'Refresh' }}
           </button>
@@ -34,56 +34,56 @@
         class="glass-card rounded-2xl p-5"
       >
         <div class="flex items-center justify-between">
-          <p class="text-sm text-slate-300">{{ card.label }}</p>
+          <p class="text-sm text-gray-500">{{ card.label }}</p>
           <span :class="['rounded-full px-3 py-1 text-[11px] font-semibold', card.pillClass]">{{ card.pill }}</span>
         </div>
-        <p class="mt-4 text-3xl font-semibold text-white">{{ card.value }}</p>
-        <p class="mt-2 text-xs text-slate-300">{{ card.hint }}</p>
+        <p class="mt-4 text-3xl font-semibold text-gray-900">{{ card.value }}</p>
+        <p class="mt-2 text-xs text-gray-500">{{ card.hint }}</p>
       </article>
     </section>
 
     <section class="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-8">
       <article class="glass-card rounded-2xl p-6 xl:col-span-1">
         <div class="flex items-center justify-between mb-5">
-          <h3 class="text-white text-lg font-semibold">Invoice Pressure</h3>
-          <span class="text-xs text-slate-300">Current snapshot</span>
+          <h3 class="text-gray-900 text-lg font-semibold">Invoice Pressure</h3>
+          <span class="text-xs text-gray-500">Current snapshot</span>
         </div>
 
         <div class="flex items-center justify-center py-2">
           <div class="relative size-48">
             <div class="size-48 rounded-full chart-ring" :style="invoiceDonutStyle"></div>
-            <div class="absolute inset-4 rounded-full bg-[#081a2f] flex flex-col items-center justify-center">
-              <span class="text-xs text-slate-300">Revenue</span>
-              <span class="text-xl font-semibold text-cyan-200">${{ formatCurrency(stats.monthly_revenue) }}</span>
+            <div class="absolute inset-4 rounded-full bg-white flex flex-col items-center justify-center">
+              <span class="text-xs text-gray-500">Revenue</span>
+              <span class="text-xl font-semibold text-[#2F5597]">${{ formatCurrency(stats.monthly_revenue) }}</span>
             </div>
           </div>
         </div>
 
         <div class="space-y-3 mt-6">
           <div v-for="bucket in invoiceBuckets" :key="bucket.label" class="flex items-center justify-between text-sm">
-            <div class="flex items-center gap-2 text-slate-200">
+            <div class="flex items-center gap-2 text-gray-700">
               <span class="size-2.5 rounded-full" :style="{ backgroundColor: bucket.color }"></span>
               {{ bucket.label }}
             </div>
-            <span class="font-semibold text-white">{{ bucket.count }}</span>
+            <span class="font-semibold text-gray-900">{{ bucket.count }}</span>
           </div>
         </div>
       </article>
 
       <article class="glass-card rounded-2xl p-6 xl:col-span-1">
         <div class="flex items-center justify-between mb-5">
-          <h3 class="text-white text-lg font-semibold">Quote Funnel</h3>
-          <router-link :to="{ name: 'admin-quotes' }" class="text-cyan-300 text-xs hover:text-cyan-200">Manage quotes</router-link>
+          <h3 class="text-gray-900 text-lg font-semibold">Quote Funnel</h3>
+          <router-link :to="{ name: 'admin-quotes' }" class="text-[#2F5597] text-xs hover:text-[#2F5597]">Manage quotes</router-link>
         </div>
 
         <div class="space-y-4">
           <div v-for="step in quoteFunnel" :key="step.label">
             <div class="flex items-center justify-between text-sm mb-1">
-              <span class="text-slate-200">{{ step.label }}</span>
-              <span class="text-white font-semibold">{{ step.count }}</span>
+              <span class="text-gray-700">{{ step.label }}</span>
+              <span class="text-gray-900 font-semibold">{{ step.count }}</span>
             </div>
-            <div class="h-2 rounded-full bg-slate-800/90 overflow-hidden">
-              <div class="h-full rounded-full bg-gradient-to-r from-cyan-400 to-blue-500" :style="{ width: step.width + '%' }"></div>
+            <div class="h-2 rounded-full bg-gray-100 overflow-hidden">
+              <div class="h-full rounded-full bg-gradient-to-r from-[#1e3a6b] to-[#2F5597]" :style="{ width: step.width + '%' }"></div>
             </div>
           </div>
         </div>
@@ -91,17 +91,17 @@
 
       <article class="glass-card rounded-2xl p-6 xl:col-span-1">
         <div class="flex items-center justify-between mb-5">
-          <h3 class="text-white text-lg font-semibold">Order Flow</h3>
-          <router-link :to="{ name: 'admin-orders' }" class="text-cyan-300 text-xs hover:text-cyan-200">Open orders</router-link>
+          <h3 class="text-gray-900 text-lg font-semibold">Order Flow</h3>
+          <router-link :to="{ name: 'admin-orders' }" class="text-[#2F5597] text-xs hover:text-[#2F5597]">Open orders</router-link>
         </div>
 
         <div class="space-y-4">
           <div v-for="row in orderPipeline" :key="row.label">
             <div class="flex items-center justify-between text-sm mb-1">
-              <span class="text-slate-200">{{ row.label }}</span>
-              <span class="text-white font-semibold">{{ row.count }}</span>
+              <span class="text-gray-700">{{ row.label }}</span>
+              <span class="text-gray-900 font-semibold">{{ row.count }}</span>
             </div>
-            <div class="h-2 rounded-full bg-slate-800/90 overflow-hidden">
+            <div class="h-2 rounded-full bg-gray-100 overflow-hidden">
               <div class="h-full rounded-full" :style="{ width: row.width + '%', background: row.gradient }"></div>
             </div>
           </div>
@@ -112,13 +112,13 @@
     <section class="grid grid-cols-1 xl:grid-cols-5 gap-6">
       <article class="glass-card rounded-2xl p-6 xl:col-span-3">
         <div class="flex justify-between items-center mb-4">
-          <h3 class="text-lg font-semibold text-white">Recent Pending Quotes</h3>
-          <router-link :to="{ name: 'admin-quotes' }" class="text-cyan-300 text-sm hover:text-cyan-200">View all</router-link>
+          <h3 class="text-lg font-semibold text-gray-900">Recent Pending Quotes</h3>
+          <router-link :to="{ name: 'admin-quotes' }" class="text-[#2F5597] text-sm hover:text-[#2F5597]">View all</router-link>
         </div>
         <div class="overflow-x-auto">
           <table class="w-full min-w-[680px] text-sm">
             <thead>
-              <tr class="text-slate-300 border-b border-white/10">
+              <tr class="text-gray-500 border-b border-gray-200">
                 <th class="px-3 py-3 text-left font-medium">Quote</th>
                 <th class="px-3 py-3 text-left font-medium">Customer</th>
                 <th class="px-3 py-3 text-left font-medium">Amount</th>
@@ -127,16 +127,16 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-if="pendingQuotes.length === 0" class="border-b border-white/10">
-                <td colspan="5" class="px-3 py-8 text-center text-slate-300">No pending quotes right now.</td>
+              <tr v-if="pendingQuotes.length === 0" class="border-b border-gray-200">
+                <td colspan="5" class="px-3 py-8 text-center text-gray-500">No pending quotes right now.</td>
               </tr>
-              <tr v-for="quote in pendingQuotes" :key="quote.id" class="border-b border-white/10 hover:bg-white/5 transition-colors">
-                <td class="px-3 py-3 text-cyan-300 font-medium">{{ quote.quote_id }}</td>
-                <td class="px-3 py-3 text-slate-100">{{ getCompanyName(quote) }}</td>
-                <td class="px-3 py-3 text-slate-100">${{ formatCurrency(quote.total_amount) }}</td>
-                <td class="px-3 py-3 text-slate-300">{{ formatDate(quote.created_at) }}</td>
+              <tr v-for="quote in pendingQuotes" :key="quote.id" class="border-b border-gray-200 hover:bg-gray-50 transition-colors">
+                <td class="px-3 py-3 text-[#2F5597] font-medium">{{ quote.quote_id }}</td>
+                <td class="px-3 py-3 text-gray-900">{{ getCompanyName(quote) }}</td>
+                <td class="px-3 py-3 text-gray-900">${{ formatCurrency(quote.total_amount) }}</td>
+                <td class="px-3 py-3 text-gray-500">{{ formatDate(quote.created_at) }}</td>
                 <td class="px-3 py-3">
-                  <router-link :to="`/admin/quotes/${quote.id}`" class="text-cyan-300 hover:text-cyan-200 font-medium">Review</router-link>
+                  <router-link :to="`/admin/quotes/${quote.id}`" class="text-[#2F5597] hover:text-[#2F5597] font-medium">Review</router-link>
                 </td>
               </tr>
             </tbody>
@@ -146,21 +146,21 @@
 
       <article class="glass-card rounded-2xl p-6 xl:col-span-2">
         <div class="flex justify-between items-center mb-4">
-          <h3 class="text-lg font-semibold text-white">Recent Orders</h3>
-          <router-link :to="{ name: 'admin-orders' }" class="text-cyan-300 text-sm hover:text-cyan-200">View all</router-link>
+          <h3 class="text-lg font-semibold text-gray-900">Recent Orders</h3>
+          <router-link :to="{ name: 'admin-orders' }" class="text-[#2F5597] text-sm hover:text-[#2F5597]">View all</router-link>
         </div>
 
         <div class="space-y-3">
-          <div v-if="recentOrders.length === 0" class="rounded-xl border border-white/10 px-4 py-6 text-slate-300 text-sm text-center">
+          <div v-if="recentOrders.length === 0" class="rounded-xl border border-gray-200 px-4 py-6 text-gray-500 text-sm text-center">
             No recent orders.
           </div>
-          <div v-for="order in recentOrders" :key="order.id" class="rounded-xl border border-white/10 p-4 hover:bg-white/5 transition-colors">
+          <div v-for="order in recentOrders" :key="order.id" class="rounded-xl border border-gray-200 p-4 hover:bg-gray-50 transition-colors">
             <div class="flex items-center justify-between gap-2">
-              <p class="text-cyan-300 font-medium">{{ order.order_number }}</p>
+              <p class="text-[#2F5597] font-medium">{{ order.order_number }}</p>
               <span :class="['px-2.5 py-1 rounded-full text-[11px] font-semibold capitalize', statusBadgeClass(order.status)]">{{ order.status }}</span>
             </div>
-            <p class="text-sm text-slate-200 mt-1">{{ getCompanyName(order) }}</p>
-            <div class="mt-2 flex items-center justify-between text-xs text-slate-300">
+            <p class="text-sm text-gray-700 mt-1">{{ getCompanyName(order) }}</p>
+            <div class="mt-2 flex items-center justify-between text-xs text-gray-500">
               <span>${{ formatCurrency(order.total_amount) }}</span>
               <span>{{ formatDate(order.created_at) }}</span>
             </div>
@@ -221,28 +221,28 @@ const kpiCards = computed(() => [
     label: 'Total Quotes',
     value: stats.value.total_quotes,
     pill: `${pendingPercentage.value}% pending`,
-    pillClass: 'bg-amber-400/20 text-amber-200',
+    pillClass: 'bg-amber-100 text-amber-800',
     hint: `${approvalRate.value}% approved or resolved`
   },
   {
     label: 'Monthly Revenue',
     value: `$${formatCurrency(stats.value.monthly_revenue)}`,
     pill: 'Revenue pulse',
-    pillClass: 'bg-cyan-400/20 text-cyan-200',
+    pillClass: 'bg-[#2F5597]/10 text-[#2F5597]',
     hint: 'Updates with dashboard refresh'
   },
   {
     label: 'Total Orders',
     value: stats.value.total_orders,
     pill: `${stats.value.completed_orders} completed`,
-    pillClass: 'bg-emerald-400/20 text-emerald-200',
+    pillClass: 'bg-emerald-100 text-emerald-800',
     hint: `${stats.value.processing_orders} currently processing`
   },
   {
     label: 'Active Customers',
     value: stats.value.active_customers,
     pill: `${activeCustomerRatio.value}% active`,
-    pillClass: 'bg-fuchsia-400/20 text-fuchsia-200',
+    pillClass: 'bg-fuchsia-100 text-fuchsia-800',
     hint: `${stats.value.total_customers || 0} total customer accounts`
   }
 ])
@@ -285,7 +285,7 @@ const orderPipeline = computed(() => {
 const invoiceBuckets = computed(() => {
   const settled = Math.max(stats.value.total_orders - stats.value.pending_invoices - stats.value.overdue_invoices, 0)
   return [
-    { label: 'Settled', count: settled, color: '#22d3ee' },
+    { label: 'Settled', count: settled, color: '#2F5597' },
     { label: 'Pending', count: stats.value.pending_invoices, color: '#facc15' },
     { label: 'Overdue', count: stats.value.overdue_invoices, color: '#fb7185' }
   ]
@@ -298,7 +298,7 @@ const invoiceDonutStyle = computed(() => {
   const overdue = Math.max(100 - settled - pending, 0)
 
   return {
-    background: `conic-gradient(#22d3ee 0% ${settled}%, #facc15 ${settled}% ${settled + pending}%, #fb7185 ${settled + pending}% ${settled + pending + overdue}%, #1e293b ${settled + pending + overdue}% 100%)`
+    background: `conic-gradient(#2F5597 0% ${settled}%, #facc15 ${settled}% ${settled + pending}%, #fb7185 ${settled + pending}% ${settled + pending + overdue}%, #e5e7eb ${settled + pending + overdue}% 100%)`
   }
 })
 
@@ -332,14 +332,14 @@ const getCompanyName = (row) => {
 
 const statusBadgeClass = (status) => {
   const classes = {
-    pending: 'bg-amber-400/20 text-amber-200',
-    processing: 'bg-cyan-400/20 text-cyan-200',
-    confirmed: 'bg-indigo-400/20 text-indigo-200',
-    shipped: 'bg-blue-400/20 text-blue-200',
-    delivered: 'bg-emerald-400/20 text-emerald-200',
-    cancelled: 'bg-rose-400/20 text-rose-200'
+    pending: 'bg-amber-100 text-amber-800',
+    processing: 'bg-[#2F5597]/10 text-[#2F5597]',
+    confirmed: 'bg-indigo-100 text-indigo-800',
+    shipped: 'bg-blue-100 text-blue-800',
+    delivered: 'bg-emerald-100 text-emerald-800',
+    cancelled: 'bg-rose-100 text-rose-700'
   }
-  return classes[status] || 'bg-slate-400/20 text-slate-200'
+  return classes[status] || 'bg-gray-100 text-gray-800'
 }
 
 const fetchDashboardData = async () => {
@@ -387,9 +387,9 @@ onUnmounted(() => {
 <style scoped>
 .dashboard-surface {
   position: relative;
-  background: radial-gradient(circle at 88% 18%, rgba(56, 189, 248, 0.25), transparent 34%),
-    linear-gradient(135deg, #0f172a 0%, #0a2948 45%, #1d4c6e 100%);
-  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: linear-gradient(135deg, #2F5597 0%, #1e3a6b 60%, #162844 100%);
+  border: none;
+  box-shadow: 0 8px 32px rgba(47, 85, 151, 0.25), 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .dashboard-orb::before,
@@ -397,7 +397,7 @@ onUnmounted(() => {
   content: '';
   position: absolute;
   border-radius: 9999px;
-  filter: blur(50px);
+  filter: blur(60px);
 }
 
 .dashboard-orb::before {
@@ -405,7 +405,7 @@ onUnmounted(() => {
   height: 240px;
   top: -90px;
   right: -70px;
-  background: rgba(34, 211, 238, 0.25);
+  background: rgba(100, 160, 255, 0.2);
 }
 
 .dashboard-orb::after {
@@ -413,16 +413,23 @@ onUnmounted(() => {
   height: 180px;
   bottom: -80px;
   left: -40px;
-  background: rgba(37, 99, 235, 0.2);
+  background: rgba(47, 85, 151, 0.15);
 }
 
 .glass-card {
-  background: linear-gradient(180deg, rgba(9, 20, 38, 0.88), rgba(8, 16, 29, 0.88));
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  box-shadow: 0 16px 45px rgba(2, 6, 23, 0.35);
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.glass-card:hover {
+  box-shadow: 0 8px 24px rgba(47, 85, 151, 0.1), 0 2px 6px rgba(0, 0, 0, 0.06);
+  transform: translateY(-1px);
 }
 
 .chart-ring {
-  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.2), 0 0 30px rgba(56, 189, 248, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06), 0 0 20px rgba(47, 85, 151, 0.06);
 }
 </style>

@@ -179,6 +179,12 @@ class ImportFlatFileProductsCommand extends Command
             'billing_frequency' => '',
             'is_available' => $isActive,
             'is_discontinued' => !$isActive,
+            'is_hardware' => \App\Http\Controllers\ProductController::isHardwareProduct(
+                $description !== '' ? $description : $mpn,
+                $description
+            ) ? 1 : 0,
+            'category_segment' => substr($categoryCode, 0, 2) ?: null,
+            'manufacturer' => $manufacturer !== '' ? $manufacturer : null,
             'specifications' => json_encode([
                 'sku' => $sku,
                 'status' => $status,
@@ -213,6 +219,9 @@ class ImportFlatFileProductsCommand extends Command
                 'billing_frequency',
                 'is_available',
                 'is_discontinued',
+                'is_hardware',
+                'category_segment',
+                'manufacturer',
                 'specifications',
                 'images',
                 'last_synced_at',
