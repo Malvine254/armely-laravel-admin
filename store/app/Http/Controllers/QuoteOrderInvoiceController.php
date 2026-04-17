@@ -16,6 +16,7 @@ use App\Services\TDSynnexService;
 use App\Services\PdfService;
 use App\Services\NotificationService;
 use App\Services\InvoiceService;
+use App\Services\CustomerPricingService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;
@@ -28,18 +29,21 @@ class QuoteOrderInvoiceController extends Controller
     private PdfService $pdfService;  
     private NotificationService $notificationService;
     private InvoiceService $invoiceService;
+    private CustomerPricingService $customerPricingService;
     private array $productNameCache = [];
 
     public function __construct(
         TDSynnexService $tdsynnexService,
         PdfService $pdfService,
         NotificationService $notificationService,
-        InvoiceService $invoiceService
+        InvoiceService $invoiceService,
+        CustomerPricingService $customerPricingService
     ) {
         $this->tdsynnexService = $tdsynnexService;
         $this->pdfService = $pdfService;
         $this->notificationService = $notificationService;
         $this->invoiceService = $invoiceService;
+        $this->customerPricingService = $customerPricingService;
     }
 
     /**
@@ -267,6 +271,38 @@ class QuoteOrderInvoiceController extends Controller
             'currency_code' => $currencyCode !== '' ? $currencyCode : 'USD',
             'currency_rate' => $currencyRate,
         ];
+    }
+
+    private function appendInvoicePaymentFields(Invoice $invoice): Invoice
+    {
+        $rawData = is_array($invoice->raw_data) ? $invoice->raw_data : [];
+
+        $provider = trim((string) ($rawData['payment_gateway'] ?? ''));
+        if ($provider === '') {
+            $provider = 'quickbooks';
+        }
+
+        $paymentUrl = null;
+        $candidates = [
+            $rawData['quickbooks_checkout_url'] ?? null,
+            $rawData['quickbooks_payment_url'] ?? null,
+            $rawData['hosted_payment_url'] ?? null,
+            $rawData['hosted_invoice_url'] ?? null,
+            $rawData['payment_url'] ?? null,
+        ];
+
+        foreach ($candidates as $candidate) {
+            $value = trim((string) ($candidate ?? ''));
+            if ($value !== '' && filter_var($value, FILTER_VALIDATE_URL)) {
+                $paymentUrl = $value;
+                break;
+            }
+        }
+
+        $invoice->setAttribute('payment_provider', $provider);
+        $invoice->setAttribute('payment_url', $paymentUrl);
+
+        return $invoice;
     }
 
     public function getPricingSettings(Request $request): JsonResponse
@@ -704,6 +740,7 @@ class QuoteOrderInvoiceController extends Controller
 
             $quoteId = 'LOCAL-QUOTE-' . strtoupper(uniqid());
             $pricing = $this->loadPricingSettings();
+            $specialPricingPercent = $this->customerPricingService->resolveDiscountPercent($user);
 
             $enrichedItems = [];
             $baseSubtotal = 0.0;
@@ -723,6 +760,8 @@ class QuoteOrderInvoiceController extends Controller
                         ?? 0
                     );
                 }
+
+                $baseUnitPrice = $this->customerPricingService->applyDiscount($baseUnitPrice, $user);
 
                 $lineBase = round($baseUnitPrice * $qty, 2);
                 $baseSubtotal = round($baseSubtotal + $lineBase, 2);
@@ -778,6 +817,7 @@ class QuoteOrderInvoiceController extends Controller
                     'revised_from_quote_id' => $revisedFromQuoteId,
                     'pricing' => [
                         'base_subtotal' => $baseSubtotal,
+                        'special_pricing_percent' => $specialPricingPercent,
                         'profit_rate_percent' => (float) $pricing['profit_rate_percent'],
                         'profit_amount' => $profitAmount,
                         'tax_rate_percent' => (float) $pricing['tax_rate_percent'],
@@ -852,7 +892,7 @@ class QuoteOrderInvoiceController extends Controller
             $mappedOrders = $orders->items();
             $mappedOrders = array_map(function ($order) {
                 $itemPreview = $this->buildOrderItemPreview($order);
-                $order->tracking_number = $order->tracking_info;
+                $order->tracking_number = $this->normalizeTrackingNumber($order->tracking_info);
                 $order->estimated_delivery = $order->delivered_at;
                 $order->primary_item_name = $itemPreview['primary_item_name'];
                 $order->additional_items_count = $itemPreview['additional_items_count'];
@@ -946,7 +986,7 @@ class QuoteOrderInvoiceController extends Controller
             $status = 'processing';
         }
 
-        $trackingNumber = $latestShipment?->tracking_number ?? $order->tracking_info;
+        $trackingNumber = $this->normalizeTrackingNumber($latestShipment?->tracking_number ?? $order->tracking_info);
         $carrier = $latestShipment?->carrier ?? $this->guessCarrierFromTrackingNumber($trackingNumber);
         $trackingUrl = $latestShipment?->getTrackingUrl();
 
@@ -1027,6 +1067,75 @@ class QuoteOrderInvoiceController extends Controller
             'primary_item_name' => (string) $names->first(),
             'additional_items_count' => max($names->count() - 1, 0),
         ];
+    }
+
+    private function normalizeTrackingNumber(mixed $trackingValue): ?string
+    {
+        if (is_string($trackingValue)) {
+            $trimmed = trim($trackingValue);
+            return $this->isLikelyTrackingNumber($trimmed) ? $trimmed : null;
+        }
+
+        if (is_numeric($trackingValue)) {
+            $trimmed = trim((string) $trackingValue);
+            return $this->isLikelyTrackingNumber($trimmed) ? $trimmed : null;
+        }
+
+        if (is_array($trackingValue)) {
+            $candidates = [
+                $trackingValue['tracking_number'] ?? null,
+                $trackingValue['trackingNumber'] ?? null,
+                $trackingValue['TrackingNumber'] ?? null,
+                $trackingValue['shipmentTrackingNumber'] ?? null,
+                $trackingValue['carrierTrackingNumber'] ?? null,
+                $trackingValue['proNumber'] ?? null,
+            ];
+
+            foreach ($candidates as $candidate) {
+                $normalized = $this->normalizeTrackingNumber($candidate);
+                if ($normalized !== null) {
+                    return $normalized;
+                }
+            }
+
+            foreach ($trackingValue as $value) {
+                if (!is_array($value)) {
+                    continue;
+                }
+
+                $normalized = $this->normalizeTrackingNumber($value);
+                if ($normalized !== null) {
+                    return $normalized;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private function isLikelyTrackingNumber(?string $value): bool
+    {
+        if ($value === null) {
+            return false;
+        }
+
+        $trimmed = trim($value);
+        if ($trimmed === '') {
+            return false;
+        }
+
+        // Ignore plain status words that can appear in raw tracking payloads.
+        $statusWords = ['accepted', 'pending', 'processing', 'confirmed', 'shipped', 'in_transit', 'delivered', 'cancelled', 'invoiced'];
+        if (in_array(strtolower($trimmed), $statusWords, true)) {
+            return false;
+        }
+
+        // Tracking IDs are typically at least 8 chars and contain numeric content.
+        if (strlen($trimmed) < 8) {
+            return false;
+        }
+
+        return preg_match('/\d/', $trimmed) === 1;
     }
 
     private function resolveOrderItemName(array $item): ?string
@@ -1161,7 +1270,7 @@ class QuoteOrderInvoiceController extends Controller
             }
 
             // Map field names for frontend
-            $order->tracking_number = $order->tracking_info;
+            $order->tracking_number = $this->normalizeTrackingNumber($order->tracking_info);
             $order->estimated_delivery = $order->delivered_at;
 
             return response()->json([
@@ -1309,6 +1418,8 @@ class QuoteOrderInvoiceController extends Controller
                     $invoice->update(['items' => $enrichedItems]);
                 }
 
+                $this->appendInvoicePaymentFields($invoice);
+
                 return $invoice;
             }, $invoiceRows);
 
@@ -1374,6 +1485,8 @@ class QuoteOrderInvoiceController extends Controller
             if ($enrichedItems !== $existingItems) {
                 $invoice->update(['items' => $enrichedItems]);
             }
+
+            $this->appendInvoicePaymentFields($invoice);
 
             return response()->json([
                 'success' => true,

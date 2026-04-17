@@ -2,17 +2,17 @@
   <AdminLayout>
     <template #title>Customers</template>
 
-    <!-- Filters and Search -->
+    <div class="admin-fit-page">
+
     <div class="rounded-xl border-0 shadow-lg bg-white p-6 mb-6">
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Search Customer</label>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Search User</label>
           <input
             v-model="searchQuery"
             type="text"
-            placeholder="Company name or domain..."
+            placeholder="User, email, company, or domain..."
             class="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597] text-gray-900 placeholder-slate-500 transition"
-           
           />
         </div>
         <div>
@@ -20,8 +20,8 @@
           <select v-model="statusFilter" class="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597] text-gray-900 transition">
             <option value="" class="bg-white">All Status</option>
             <option value="pending" class="bg-white">Pending</option>
-            <option value="approved" class="bg-white">Approved</option>
-            <option value="inactive" class="bg-white">Inactive</option>
+            <option value="active" class="bg-white">Active</option>
+            <option value="suspended" class="bg-white">Suspended</option>
           </select>
         </div>
         <div>
@@ -29,7 +29,7 @@
           <select v-model="sortBy" class="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597] text-gray-900 transition">
             <option value="newest" class="bg-white">Newest</option>
             <option value="oldest" class="bg-white">Oldest</option>
-            <option value="name" class="bg-white">Company Name</option>
+            <option value="name" class="bg-white">User Name</option>
           </select>
         </div>
         <div class="flex items-end">
@@ -43,17 +43,15 @@
       </div>
     </div>
 
-    <!-- Customers Table -->
-    <div class="rounded-xl border-0 shadow-lg bg-white overflow-hidden">
+    <div class="admin-table-card rounded-xl border-0 shadow-lg bg-white overflow-hidden">
       <div class="px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h3 class="text-lg font-semibold text-gray-900">Customer Accounts</h3>
-          <p class="text-sm text-gray-500">Manage company access and status</p>
+          <h3 class="text-lg font-semibold text-gray-900">Customer Users</h3>
+          <p class="text-sm text-gray-500">Manage each customer user individually, including access and special pricing</p>
         </div>
         <div class="flex items-center gap-3">
-          <!-- Bulk Actions -->
-          <div v-if="selectedCompanies.length > 0" class="flex gap-2 flex-wrap">
-            <span class="text-sm text-[#2F5597] self-center"><i class="fas fa-check-square mr-1"></i>{{ selectedCompanies.length }} selected</span>
+          <div v-if="selectedUsers.length > 0" class="flex gap-2 flex-wrap">
+            <span class="text-sm text-[#2F5597] self-center"><i class="fas fa-check-square mr-1"></i>{{ selectedUsers.length }} selected</span>
             <button
               @click="confirmBulkAction('approve')"
               class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-[#2F5597]/50 text-[#2F5597] hover:bg-[#2F5597]/20 transition"
@@ -79,11 +77,11 @@
               <i class="fas fa-trash mr-1"></i>Delete
             </button>
           </div>
-          <p class="text-sm text-gray-500">Showing {{ customers.length }} of {{ totalCustomers }} customers</p>
+          <p class="text-sm text-gray-500">Showing {{ customerUsers.length }} of {{ totalCustomers }} users</p>
         </div>
       </div>
 
-      <div class="overflow-x-auto">
+      <div class="overflow-x-auto admin-table-scroll">
         <table class="w-full text-sm">
           <thead class="border-b border-gray-200">
             <tr>
@@ -92,94 +90,112 @@
                   type="checkbox"
                   :checked="allSelected"
                   @change="toggleSelectAll"
-                  class="w-4 h-4 rounded cursor-pointer" style="accent-color: #2F5597;"
+                  class="w-4 h-4 rounded cursor-pointer"
+                  style="accent-color: #2F5597;"
                 />
               </th>
+              <th class="px-6 py-3 text-left font-semibold text-gray-700 uppercase text-xs tracking-wide">User</th>
+              <th class="px-6 py-3 text-left font-semibold text-gray-700 uppercase text-xs tracking-wide">Email</th>
               <th class="px-6 py-3 text-left font-semibold text-gray-700 uppercase text-xs tracking-wide">Company</th>
-              <th class="px-6 py-3 text-left font-semibold text-gray-700 uppercase text-xs tracking-wide">Domain</th>
-              <th class="px-6 py-3 text-left font-semibold text-gray-700 uppercase text-xs tracking-wide">Primary Contact</th>
-              <th class="px-6 py-3 text-left font-semibold text-gray-700 uppercase text-xs tracking-wide">Users</th>
               <th class="px-6 py-3 text-left font-semibold text-gray-700 uppercase text-xs tracking-wide">Status</th>
+              <th class="px-6 py-3 text-left font-semibold text-gray-700 uppercase text-xs tracking-wide">Special Pricing</th>
               <th class="px-6 py-3 text-left font-semibold text-gray-700 uppercase text-xs tracking-wide">Joined</th>
               <th class="px-6 py-3 text-right font-semibold text-gray-700 uppercase text-xs tracking-wide">Actions</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-200">
-            <tr v-if="customers.length === 0">
+            <tr v-if="customerUsers.length === 0">
               <td colspan="8" class="px-6 py-16 text-center">
                 <i class="fas fa-users text-5xl mb-4 block opacity-20 text-gray-500"></i>
-                <p class="text-gray-500 text-lg font-medium">No customers found</p>
+                <p class="text-gray-500 text-lg font-medium">No customer users found</p>
               </td>
             </tr>
-            <tr v-for="company in customers" :key="company.id" class="hover:bg-gray-50 transition">
+            <tr v-for="user in customerUsers" :key="user.id" class="hover:bg-gray-50 transition align-top">
               <td class="px-4 py-4">
                 <input
                   type="checkbox"
-                  :value="company.id"
-                  v-model="selectedCompanies"
-                  class="w-4 h-4 rounded cursor-pointer" style="accent-color: #2F5597;"
+                  :value="user.id"
+                  v-model="selectedUsers"
+                  class="w-4 h-4 rounded cursor-pointer"
+                  style="accent-color: #2F5597;"
                 />
               </td>
               <td class="px-6 py-4">
-                <div class="font-semibold text-gray-900">{{ company.name }}</div>
-                <div class="text-xs text-gray-500 font-mono">ID: {{ company.id }}</div>
+                <div class="font-semibold text-gray-900">{{ user.name }}</div>
+                <div class="text-xs text-gray-500 font-mono">ID: {{ user.id }}</div>
               </td>
-              <td class="px-6 py-4 text-gray-500">{{ company.domain }}</td>
+              <td class="px-6 py-4 text-gray-500">{{ user.email }}</td>
               <td class="px-6 py-4">
-                <div v-if="company.users && company.users.length > 0">
-                  <div class="font-medium text-gray-900">{{ company.users[0].name }}</div>
-                  <div class="text-xs text-gray-500">{{ company.users[0].email }}</div>
-                </div>
-                <div v-else class="text-xs text-gray-400">No users</div>
+                <div class="font-medium text-gray-900">{{ user.company?.name || 'No company' }}</div>
+                <div class="text-xs text-gray-500">{{ user.company?.domain || 'No domain' }}</div>
               </td>
-              <td class="px-6 py-4 text-gray-500">{{ company.users ? company.users.length : 0 }}</td>
               <td class="px-6 py-4">
-                <span :class="['px-3 py-1 rounded-full text-xs font-semibold', statusBadgeClass(getCompanyEffectiveStatus(company))]">
-                  {{ formatStatusLabel(getCompanyEffectiveStatus(company)) }}
+                <span :class="['px-3 py-1 rounded-full text-xs font-semibold', statusBadgeClass(user.status)]">
+                  {{ formatStatusLabel(user.status) }}
                 </span>
               </td>
-              <td class="px-6 py-4 text-gray-500">{{ formatDate(company.created_at) }}</td>
-              <td class="px-6 py-4 text-right">
-                <div class="flex justify-end gap-2">
+              <td class="px-6 py-4">
+                <div class="flex items-center gap-2 min-w-[170px]">
+                  <input
+                    v-model.number="specialPricingDrafts[user.id]"
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    class="w-24 px-2 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
+                  />
+                  <span class="text-xs text-gray-500">%</span>
                   <button
-                    @click="viewCustomer(company)"
+                    @click="saveUserSpecialPricing(user)"
+                    :disabled="isSubmitting"
+                    class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-[#2F5597] hover:bg-[#1e3a6b] text-white transition disabled:opacity-50"
+                  >
+                    Save
+                  </button>
+                </div>
+              </td>
+              <td class="px-6 py-4 text-gray-500">{{ formatDate(user.created_at) }}</td>
+              <td class="px-6 py-4 text-right">
+                <div class="flex justify-end gap-2 flex-wrap">
+                  <button
+                    @click="viewUser(user)"
                     class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-[#2F5597]/10 hover:bg-[#2F5597]/20 text-[#2F5597] transition border border-[#2F5597]/30"
                   >
                     View
                   </button>
                   <button
-                    v-if="company.status === 'pending'"
-                    @click="approveCustomer(company)"
+                    v-if="canApproveUser(user)"
+                    @click="approveUser(user)"
                     :disabled="isSubmitting"
                     class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-[#2F5597] hover:bg-[#1e3a6b] text-white transition disabled:opacity-50"
                   >
                     Approve
                   </button>
                   <button
-                    v-if="canSuspendCompany(company)"
-                    @click="manageCustomer(company, 'suspend')"
+                    v-if="canSuspendUser(user)"
+                    @click="manageUser(user, 'suspend')"
                     :disabled="isSubmitting"
                     class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-amber-500/50 text-amber-600 hover:bg-amber-500/20 transition disabled:opacity-50"
                   >
                     Suspend
                   </button>
                   <button
-                    v-if="canActivateCompany(company)"
-                    @click="manageCustomer(company, 'activate')"
+                    v-if="canActivateUser(user)"
+                    @click="manageUser(user, 'activate')"
                     :disabled="isSubmitting"
                     class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-emerald-500/50 text-emerald-600 hover:bg-emerald-500/20 transition disabled:opacity-50"
                   >
                     Activate
                   </button>
                   <button
-                    @click="manageCustomer(company, 'delete')"
+                    @click="manageUser(user, 'delete')"
                     :disabled="isSubmitting"
                     class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-rose-500/50 text-rose-600 hover:bg-rose-500/20 transition disabled:opacity-50"
                   >
                     Delete
                   </button>
                   <button
-                    @click="viewCustomerOrders(company)"
+                    @click="viewCustomerOrders(user)"
                     class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-[#2F5597] hover:bg-[#1e3a6b] text-white transition"
                   >
                     Orders
@@ -191,9 +207,9 @@
         </table>
       </div>
 
-      <div class="px-6 py-4 border-t border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div class="admin-table-pagination px-6 py-4 border-t border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div class="text-sm text-gray-500">
-          <p>Showing {{ customers.length }} of {{ totalCustomers }} customers</p>
+          <p>Showing {{ customerUsers.length }} of {{ totalCustomers }} users</p>
           <p class="mt-1 text-xs text-gray-500">Page {{ currentPage }} of {{ lastPage }}</p>
         </div>
         <div class="flex flex-wrap gap-2">
@@ -228,95 +244,110 @@
       </div>
     </div>
 
-    <!-- Customer Details Modal -->
-    <div v-if="selectedCustomer" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" @click="selectedCustomer = null">
-      <div class="rounded-2xl bg-white shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto border-0" @click.stop>
+    </div>
+
+    <div v-if="selectedUser" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" @click="selectedUser = null">
+      <div class="rounded-2xl bg-white shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto border-0" @click.stop>
         <div class="sticky top-0 text-white p-6 border-b border-gray-200" style="background: linear-gradient(135deg, #2F5597, #1e3a6b);">
           <div class="flex justify-between items-center">
             <div>
-              <p class="text-xs uppercase tracking-wide text-white/70 font-semibold">Customer Details</p>
-              <h3 class="text-xl font-bold text-white mt-1">{{ selectedCustomer.name }}</h3>
+              <p class="text-xs uppercase tracking-wide text-white/70 font-semibold">Customer User</p>
+              <h3 class="text-xl font-bold text-white mt-1">{{ selectedUser.name }}</h3>
             </div>
-            <button @click="selectedCustomer = null" class="text-white/60 hover:text-white transition text-2xl">
+            <button @click="selectedUser = null" class="text-white/60 hover:text-white transition text-2xl">
               <i class="fas fa-times"></i>
             </button>
           </div>
         </div>
 
         <div class="p-6 space-y-4">
-          <!-- Company Info -->
           <div class="rounded-xl border border-gray-200 p-4">
-            <h4 class="font-semibold text-[#2F5597] mb-3 text-sm uppercase tracking-wide">Company Information</h4>
-            <div class="grid grid-cols-2 gap-4">
+            <h4 class="font-semibold text-[#2F5597] mb-3 text-sm uppercase tracking-wide">User Information</h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <p class="text-sm text-gray-500">Company Name</p>
-                <p class="font-semibold text-gray-900">{{ selectedCustomer.name }}</p>
+                <p class="text-sm text-gray-500">Name</p>
+                <p class="font-semibold text-gray-900">{{ selectedUser.name }}</p>
+              </div>
+              <div>
+                <p class="text-sm text-gray-500">Email</p>
+                <p class="font-semibold text-gray-900">{{ selectedUser.email }}</p>
+              </div>
+              <div>
+                <p class="text-sm text-gray-500">Company</p>
+                <p class="font-semibold text-gray-900">{{ selectedUser.company?.name || 'No company' }}</p>
               </div>
               <div>
                 <p class="text-sm text-gray-500">Domain</p>
-                <p class="font-semibold text-gray-900">{{ selectedCustomer.domain }}</p>
+                <p class="font-semibold text-gray-900">{{ selectedUser.company?.domain || 'No domain' }}</p>
               </div>
               <div>
                 <p class="text-sm text-gray-500">Status</p>
-                <span :class="['px-3 py-1 rounded-full text-xs font-semibold', statusBadgeClass(getCompanyEffectiveStatus(selectedCustomer))]">
-                  {{ formatStatusLabel(getCompanyEffectiveStatus(selectedCustomer)) }}
+                <span :class="['px-3 py-1 rounded-full text-xs font-semibold', statusBadgeClass(selectedUser.status)]">
+                  {{ formatStatusLabel(selectedUser.status) }}
                 </span>
               </div>
               <div>
                 <p class="text-sm text-gray-500">Joined</p>
-                <p class="font-semibold text-gray-900">{{ formatDate(selectedCustomer.created_at) }}</p>
+                <p class="font-semibold text-gray-900">{{ formatDate(selectedUser.created_at) }}</p>
               </div>
             </div>
           </div>
 
-          <!-- Team Members -->
-          <div>
-            <h4 class="font-semibold text-gray-700 mb-3 text-sm uppercase tracking-wide">Team Members</h4>
-            <div class="space-y-2">
-              <div v-for="user in selectedCustomer.users" :key="user.id" class="rounded-lg p-4 border border-gray-200 flex justify-between items-center">
-                <div>
-                  <p class="font-medium text-gray-900">{{ user.name }}</p>
-                  <p class="text-xs text-gray-500">{{ user.email }}</p>
-                </div>
-                <span class="text-xs font-semibold text-gray-500 border border-gray-200 px-2 py-1 rounded-full">{{ user.role }}</span>
-              </div>
+          <div class="rounded-xl border border-gray-200 p-4">
+            <h4 class="font-semibold text-[#2F5597] mb-3 text-sm uppercase tracking-wide">Special Pricing</h4>
+            <div class="flex flex-wrap items-center gap-2">
+              <input
+                v-model.number="specialPricingDrafts[selectedUser.id]"
+                type="number"
+                min="0"
+                max="100"
+                step="0.01"
+                class="w-28 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
+              />
+              <span class="text-sm text-gray-500">% off</span>
+              <button
+                @click="saveUserSpecialPricing(selectedUser)"
+                :disabled="isSubmitting"
+                class="px-4 py-2 text-sm font-semibold rounded-lg bg-[#2F5597] hover:bg-[#1e3a6b] text-white transition disabled:opacity-50"
+              >
+                Save Pricing
+              </button>
             </div>
           </div>
 
-          <!-- Action Buttons -->
           <div class="flex space-x-3 justify-end border-t border-gray-200 pt-4">
             <button
-              @click="selectedCustomer = null"
+              @click="selectedUser = null"
               class="px-6 py-2 border border-[#2F5597]/50 rounded-lg text-[#2F5597] font-medium hover:bg-[#2F5597]/20 transition text-sm"
             >
               Close
             </button>
             <button
-              v-if="selectedCustomer.status === 'pending'"
-              @click="approveCustomer(selectedCustomer)"
+              v-if="canApproveUser(selectedUser)"
+              @click="approveUser(selectedUser)"
               :disabled="isSubmitting"
               class="px-6 py-2 bg-[#2F5597] hover:bg-[#1e3a6b] text-white font-medium rounded-lg transition disabled:opacity-50 text-sm"
             >
               <i class="fas fa-check mr-2"></i>Approve
             </button>
             <button
-              v-if="canSuspendCompany(selectedCustomer)"
-              @click="manageCustomer(selectedCustomer, 'suspend')"
+              v-if="canSuspendUser(selectedUser)"
+              @click="manageUser(selectedUser, 'suspend')"
               :disabled="isSubmitting"
               class="px-6 py-2 bg-amber-600/30 hover:bg-amber-600/40 text-amber-600 font-medium rounded-lg transition border border-amber-500/50 text-sm disabled:opacity-50"
             >
               <i class="fas fa-pause mr-2"></i>Suspend
             </button>
             <button
-              v-if="canActivateCompany(selectedCustomer)"
-              @click="manageCustomer(selectedCustomer, 'activate')"
+              v-if="canActivateUser(selectedUser)"
+              @click="manageUser(selectedUser, 'activate')"
               :disabled="isSubmitting"
               class="px-6 py-2 bg-emerald-600/30 hover:bg-emerald-600/40 text-emerald-600 font-medium rounded-lg transition border border-emerald-500/50 text-sm disabled:opacity-50"
             >
               <i class="fas fa-play mr-2"></i>Activate
             </button>
             <button
-              @click="manageCustomer(selectedCustomer, 'delete')"
+              @click="manageUser(selectedUser, 'delete')"
               :disabled="isSubmitting"
               class="px-6 py-2 bg-rose-600/30 hover:bg-rose-600/40 text-rose-600 font-medium rounded-lg transition border border-rose-500/50 text-sm disabled:opacity-50"
             >
@@ -327,7 +358,6 @@
       </div>
     </div>
 
-    <!-- Confirmation Modal for Bulk Actions -->
     <div v-if="showConfirmModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" @click="showConfirmModal = false">
       <div class="rounded-2xl bg-white shadow-2xl max-w-md w-full border-0" @click.stop>
         <div class="p-6">
@@ -370,16 +400,16 @@
 </template>
 
 <script setup>
-import { computed, ref, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import AdminLayout from '@/components/AdminLayout.vue'
 import api from '@/services/api'
 
 const router = useRouter()
 
-const customers = ref([])
-const selectedCustomer = ref(null)
-const selectedCompanies = ref([])
+const customerUsers = ref([])
+const selectedUser = ref(null)
+const selectedUsers = ref([])
 const searchQuery = ref('')
 const statusFilter = ref('')
 const sortBy = ref('newest')
@@ -389,37 +419,28 @@ const lastPage = ref(1)
 const isSubmitting = ref(false)
 const showConfirmModal = ref(false)
 const bulkAction = ref('')
+const specialPricingDrafts = ref({})
 
 const allSelected = computed(() => {
-  if (customers.value.length === 0) return false
-  return customers.value.every(company => selectedCompanies.value.includes(company.id))
+  if (customerUsers.value.length === 0) return false
+  return customerUsers.value.every((user) => selectedUsers.value.includes(user.id))
 })
 
 const confirmModalTitle = computed(() => {
-  const count = selectedCompanies.value.length
-  if (bulkAction.value === 'delete') {
-    return `Delete ${count} Compan${count > 1 ? 'ies' : 'y'}?`
-  } else if (bulkAction.value === 'suspend') {
-    return `Suspend ${count} Compan${count > 1 ? 'ies' : 'y'}?`
-  } else if (bulkAction.value === 'activate') {
-    return `Activate ${count} Compan${count > 1 ? 'ies' : 'y'}?`
-  } else if (bulkAction.value === 'approve') {
-    return `Approve ${count} Compan${count > 1 ? 'ies' : 'y'}?`
-  }
+  const count = selectedUsers.value.length
+  if (bulkAction.value === 'delete') return `Delete ${count} User${count > 1 ? 's' : ''}?`
+  if (bulkAction.value === 'suspend') return `Suspend ${count} User${count > 1 ? 's' : ''}?`
+  if (bulkAction.value === 'activate') return `Activate ${count} User${count > 1 ? 's' : ''}?`
+  if (bulkAction.value === 'approve') return `Approve ${count} User${count > 1 ? 's' : ''}?`
   return 'Confirm Action'
 })
 
 const confirmModalMessage = computed(() => {
-  const count = selectedCompanies.value.length
-  if (bulkAction.value === 'delete') {
-    return `Are you sure you want to permanently delete ${count} compan${count > 1 ? 'ies' : 'y'} and all associated users? This action cannot be undone.`
-  } else if (bulkAction.value === 'suspend') {
-    return `Are you sure you want to suspend ${count} compan${count > 1 ? 'ies' : 'y'}? All users will not be able to access the system.`
-  } else if (bulkAction.value === 'activate') {
-    return `Are you sure you want to activate ${count} compan${count > 1 ? 'ies' : 'y'}? All users will regain access to the system.`
-  } else if (bulkAction.value === 'approve') {
-    return `Are you sure you want to approve ${count} compan${count > 1 ? 'ies' : 'y'}? They will be granted access to the platform.`
-  }
+  const count = selectedUsers.value.length
+  if (bulkAction.value === 'delete') return `Are you sure you want to permanently delete ${count} selected user${count > 1 ? 's' : ''}? This action cannot be undone.`
+  if (bulkAction.value === 'suspend') return `Are you sure you want to suspend ${count} selected user${count > 1 ? 's' : ''}?`
+  if (bulkAction.value === 'activate') return `Are you sure you want to activate ${count} selected user${count > 1 ? 's' : ''}?`
+  if (bulkAction.value === 'approve') return `Are you sure you want to approve ${count} selected user${count > 1 ? 's' : ''}?`
   return ''
 })
 
@@ -442,75 +463,67 @@ const pageNumbers = computed(() => {
   return pages
 })
 
-const formatDate = (date) => {
-  return new Date(date).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric'
-  })
-}
+const formatDate = (date) => new Date(date).toLocaleDateString('en-US', {
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric'
+})
 
 const statusBadgeClass = (status) => {
   const classes = {
     pending: 'bg-yellow-100 text-yellow-800',
-    approved: 'bg-green-100 text-green-800',
     active: 'bg-green-100 text-green-800',
-    inactive: 'bg-red-100 text-red-800',
-    suspended: 'bg-red-100 text-red-800',
-    mixed: 'bg-purple-100 text-purple-800',
+    suspended: 'bg-red-100 text-red-800'
   }
+
   return classes[status] || 'bg-gray-100 text-gray-800'
-}
-
-const getCompanyEffectiveStatus = (company) => {
-  const users = Array.isArray(company?.users) ? company.users : []
-
-  if (users.length > 0) {
-    const hasActive = users.some((user) => user?.status === 'active')
-    const hasSuspended = users.some((user) => user?.status === 'suspended')
-
-    if (hasSuspended && !hasActive) return 'suspended'
-    if (hasActive && !hasSuspended) return 'active'
-    if (hasActive && hasSuspended) return 'mixed'
-  }
-
-  if (company?.status === 'approved') return 'active'
-  if (company?.status === 'inactive') return 'suspended'
-
-  return company?.status || 'unknown'
 }
 
 const formatStatusLabel = (status) => {
   const labels = {
     pending: 'Pending',
-    approved: 'Approved',
     active: 'Active',
-    inactive: 'Inactive',
-    suspended: 'Suspended',
-    mixed: 'Mixed',
-    unknown: 'Unknown',
+    suspended: 'Suspended'
   }
 
-  return labels[status] || status
+  return labels[status] || status || 'Unknown'
 }
 
-const canSuspendCompany = (company) => {
-  if (!company || company.status === 'pending') return false
-  const effectiveStatus = getCompanyEffectiveStatus(company)
-  return effectiveStatus === 'active' || effectiveStatus === 'mixed'
+const canApproveUser = (user) => user?.status === 'pending'
+const canSuspendUser = (user) => user?.status === 'active'
+const canActivateUser = (user) => user?.status === 'suspended'
+
+const clampSpecialPricingPercent = (value) => {
+  const numeric = Number(value)
+  if (!Number.isFinite(numeric)) return 0
+  return Math.min(100, Math.max(0, Math.round(numeric * 100) / 100))
 }
 
-const canActivateCompany = (company) => {
-  if (!company) return false
-  const effectiveStatus = getCompanyEffectiveStatus(company)
-  return effectiveStatus === 'suspended' || effectiveStatus === 'mixed'
+const hydrateSpecialPricingDrafts = (users) => {
+  const nextDrafts = { ...specialPricingDrafts.value }
+
+  ;(Array.isArray(users) ? users : []).forEach((user) => {
+    nextDrafts[user.id] = clampSpecialPricingPercent(user?.special_pricing_percent ?? 0)
+  })
+
+  specialPricingDrafts.value = nextDrafts
+}
+
+const syncUserRecord = (userId, updates) => {
+  customerUsers.value = customerUsers.value.map((user) => (
+    user.id === userId ? { ...user, ...updates } : user
+  ))
+
+  if (selectedUser.value?.id === userId) {
+    selectedUser.value = { ...selectedUser.value, ...updates }
+  }
 }
 
 const fetchCustomers = async () => {
   try {
     const params = {
       page: currentPage.value,
-      pageSize: 100
+      pageSize: 10
     }
 
     if (statusFilter.value) params.status = statusFilter.value
@@ -520,45 +533,68 @@ const fetchCustomers = async () => {
     const response = await api.get('/admin/customers', { params })
 
     if (response.data.success) {
-      customers.value = response.data.data
+      customerUsers.value = response.data.data
       totalCustomers.value = response.data.pagination.total
       lastPage.value = response.data.pagination.last_page
+      hydrateSpecialPricingDrafts(customerUsers.value)
     }
   } catch (error) {
-    console.error('Failed to fetch customers:', error)
+    console.error('Failed to fetch customer users:', error)
   }
 }
 
-const viewCustomer = (company) => {
-  selectedCustomer.value = company
+const viewUser = (user) => {
+  selectedUser.value = { ...user }
+  hydrateSpecialPricingDrafts([user])
 }
 
-const approveCustomer = async (company) => {
+const saveUserSpecialPricing = async (user) => {
+  const draftValue = clampSpecialPricingPercent(specialPricingDrafts.value[user.id])
   isSubmitting.value = true
+
   try {
-    const response = await api.post(`/admin/customers/${company.id}/approve`)
-    
-    if (response.data.success) {
-      alert('Customer approved successfully!')
-      selectedCustomer.value = null
-      fetchCustomers()
+    const response = await api.post(`/admin/customers/users/${user.id}/special-pricing`, {
+      special_pricing_percent: draftValue
+    })
+
+    if (response?.data?.success) {
+      const updatedPercent = clampSpecialPricingPercent(response.data?.data?.special_pricing_percent ?? draftValue)
+      specialPricingDrafts.value[user.id] = updatedPercent
+      syncUserRecord(user.id, { special_pricing_percent: updatedPercent })
+      alert('Special pricing updated successfully')
     }
   } catch (error) {
-    console.error('Failed to approve customer:', error)
-    alert(error.response?.data?.message || 'Failed to approve customer')
+    console.error('Failed to update special pricing:', error)
+    alert(error.response?.data?.message || 'Failed to update special pricing')
   } finally {
     isSubmitting.value = false
   }
 }
 
-const manageCustomer = async (company, action) => {
-  const actionText = action === 'delete'
-    ? 'delete this customer and all associated users'
-    : `${action} this customer account`
+const approveUser = async (user) => {
+  isSubmitting.value = true
 
-  if (!confirm(`Are you sure you want to ${actionText}?`)) {
-    return
+  try {
+    const response = await api.post(`/admin/customers/users/${user.id}/approve`)
+
+    if (response?.data?.success) {
+      syncUserRecord(user.id, {
+        status: 'active',
+        company: user.company ? { ...user.company, status: response.data?.data?.company_status || 'approved' } : user.company
+      })
+      alert(response.data.message || 'Customer user approved successfully')
+    }
+  } catch (error) {
+    console.error('Failed to approve customer user:', error)
+    alert(error.response?.data?.message || 'Failed to approve customer user')
+  } finally {
+    isSubmitting.value = false
   }
+}
+
+const manageUser = async (user, action) => {
+  const actionText = action === 'delete' ? 'delete this user' : `${action} this user`
+  if (!confirm(`Are you sure you want to ${actionText}?`)) return
 
   isSubmitting.value = true
   try {
@@ -566,37 +602,43 @@ const manageCustomer = async (company, action) => {
 
     if (action === 'delete') {
       response = await api.post('/admin/customers/bulk-delete', {
-        company_ids: [company.id]
+        user_ids: [user.id]
       })
-    } else if (action === 'suspend' || action === 'activate') {
+    } else {
       response = await api.post('/admin/customers/bulk-suspend', {
-        company_ids: [company.id],
+        user_ids: [user.id],
         action
       })
     }
 
     if (response?.data?.success) {
-      alert(response.data.message || `Customer ${action}d successfully`)
-      if (selectedCustomer.value?.id === company.id) {
-        selectedCustomer.value = null
+      alert(response.data.message || `User ${action}d successfully`)
+
+      if (action === 'delete') {
+        customerUsers.value = customerUsers.value.filter((entry) => entry.id !== user.id)
+        selectedUsers.value = selectedUsers.value.filter((id) => id !== user.id)
+        if (selectedUser.value?.id === user.id) {
+          selectedUser.value = null
+        }
+      } else {
+        syncUserRecord(user.id, { status: action === 'suspend' ? 'suspended' : 'active' })
       }
-      fetchCustomers()
     }
   } catch (error) {
-    console.error(`Failed to ${action} customer:`, error)
-    alert(error.response?.data?.message || `Failed to ${action} customer`)
+    console.error(`Failed to ${action} user:`, error)
+    alert(error.response?.data?.message || `Failed to ${action} user`)
   } finally {
     isSubmitting.value = false
   }
 }
 
-const viewCustomerOrders = (company) => {
-  // Navigate to orders filtered by this customer
+const viewCustomerOrders = (user) => {
   router.push({
     name: 'admin-orders',
     query: {
-      company_id: company.id,
-      company_name: company.name
+      company_id: user.company_id,
+      company_name: user.company?.name,
+      customer_email: user.email
     }
   })
 }
@@ -608,9 +650,9 @@ const applyFilters = () => {
 
 const toggleSelectAll = () => {
   if (allSelected.value) {
-    selectedCompanies.value = []
+    selectedUsers.value = []
   } else {
-    selectedCompanies.value = customers.value.map(company => company.id)
+    selectedUsers.value = customerUsers.value.map((user) => user.id)
   }
 }
 
@@ -620,29 +662,30 @@ const confirmBulkAction = (action) => {
 }
 
 const executeBulkAction = async () => {
-  if (selectedCompanies.value.length === 0) return
+  if (selectedUsers.value.length === 0) return
 
   isSubmitting.value = true
   try {
     let response
+
     if (bulkAction.value === 'approve') {
       response = await api.post('/admin/customers/bulk-approve', {
-        company_ids: selectedCompanies.value
+        user_ids: selectedUsers.value
       })
     } else if (bulkAction.value === 'delete') {
       response = await api.post('/admin/customers/bulk-delete', {
-        company_ids: selectedCompanies.value
+        user_ids: selectedUsers.value
       })
-    } else if (bulkAction.value === 'suspend' || bulkAction.value === 'activate') {
+    } else {
       response = await api.post('/admin/customers/bulk-suspend', {
-        company_ids: selectedCompanies.value,
+        user_ids: selectedUsers.value,
         action: bulkAction.value
       })
     }
 
-    if (response && response.data.success) {
+    if (response?.data?.success) {
       alert(response.data.message)
-      selectedCompanies.value = []
+      selectedUsers.value = []
       showConfirmModal.value = false
       fetchCustomers()
     }
@@ -658,3 +701,49 @@ onMounted(() => {
   fetchCustomers()
 })
 </script>
+
+<style scoped>
+.admin-fit-page {
+  block-size: calc(100vh - 170px);
+  min-block-size: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.admin-fit-page > :not(.admin-table-card) {
+  flex-shrink: 0;
+}
+
+.admin-table-card {
+  min-block-size: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-table-scroll {
+  min-block-size: 0;
+  flex: 1;
+  overflow: auto;
+}
+
+.admin-table-pagination {
+  position: sticky;
+  inset-block-end: 0;
+  z-index: 5;
+  background: #ffffff;
+  flex-shrink: 0;
+}
+
+@media (max-width: 1023px) {
+  .admin-fit-page {
+    block-size: auto;
+    min-block-size: calc(100vh - 170px);
+  }
+
+  .admin-table-scroll {
+    max-block-size: 60vh;
+  }
+}
+</style>

@@ -67,8 +67,8 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
           </svg>
           <span>Pending Quotes</span>
-          <span v-if="stats.pending_quotes > 0" class="ml-auto bg-rose-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center">
-            {{ stats.pending_quotes }}
+          <span v-if="unseenCounts.pending_quotes > 0" class="ml-auto bg-rose-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center">
+            {{ unseenCounts.pending_quotes }}
           </span>
         </router-link>
 
@@ -89,8 +89,8 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
           </svg>
           <span>All Orders</span>
-          <span v-if="stats.processing_orders > 0" class="ml-auto bg-amber-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center">
-            {{ stats.processing_orders }}
+          <span v-if="unseenCounts.processing_orders > 0" class="ml-auto bg-amber-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center">
+            {{ unseenCounts.processing_orders }}
           </span>
         </router-link>
         <router-link
@@ -144,8 +144,8 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-3 3v-3z" />
           </svg>
           <span>Chat Escalations</span>
-          <span v-if="escalatedChatCount > 0" class="ml-auto bg-rose-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center">
-            {{ escalatedChatCount }}
+          <span v-if="unseenCounts.escalated_chat > 0" class="ml-auto bg-rose-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center">
+            {{ unseenCounts.escalated_chat }}
           </span>
         </router-link>
 
@@ -290,7 +290,7 @@
                   </div>
                   <div class="max-h-80 overflow-y-auto divide-y divide-gray-50">
                     <!-- Pending Quotes -->
-                    <router-link v-if="stats.pending_quotes > 0" :to="{ name: 'admin-quotes' }" @click.native="showNotifDropdown = false" class="flex items-start gap-3 px-4 py-3 hover:bg-blue-50/60 transition group">
+                    <router-link v-if="stats.pending_quotes > 0" :to="{ name: 'admin-quotes' }" @click="showNotifDropdown = false" class="flex items-start gap-3 px-4 py-3 hover:bg-blue-50/60 transition group">
                       <div class="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0 mt-0.5">
                         <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                       </div>
@@ -302,7 +302,7 @@
                     </router-link>
 
                     <!-- Processing Orders -->
-                    <router-link v-if="stats.processing_orders > 0" :to="{ name: 'admin-orders' }" @click.native="showNotifDropdown = false" class="flex items-start gap-3 px-4 py-3 hover:bg-blue-50/60 transition group">
+                    <router-link v-if="stats.processing_orders > 0" :to="{ name: 'admin-orders' }" @click="showNotifDropdown = false" class="flex items-start gap-3 px-4 py-3 hover:bg-blue-50/60 transition group">
                       <div class="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5">
                         <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
                       </div>
@@ -314,7 +314,7 @@
                     </router-link>
 
                     <!-- Chat Escalations -->
-                    <router-link v-if="escalatedChatCount > 0" :to="{ name: 'admin-chat' }" @click.native="showNotifDropdown = false" class="flex items-start gap-3 px-4 py-3 hover:bg-blue-50/60 transition group">
+                    <router-link v-if="escalatedChatCount > 0" :to="{ name: 'admin-chat' }" @click="showNotifDropdown = false" class="flex items-start gap-3 px-4 py-3 hover:bg-blue-50/60 transition group">
                       <div class="w-9 h-9 rounded-full bg-rose-100 flex items-center justify-center flex-shrink-0 mt-0.5">
                         <svg class="w-4 h-4 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-3 3v-3z"/></svg>
                       </div>
@@ -326,7 +326,7 @@
                     </router-link>
 
                     <!-- Overdue Invoices -->
-                    <router-link v-if="stats.overdue_invoices > 0" :to="{ name: 'admin-invoices' }" @click.native="showNotifDropdown = false" class="flex items-start gap-3 px-4 py-3 hover:bg-blue-50/60 transition group">
+                    <router-link v-if="stats.overdue_invoices > 0" :to="{ name: 'admin-invoices' }" @click="showNotifDropdown = false" class="flex items-start gap-3 px-4 py-3 hover:bg-blue-50/60 transition group">
                       <div class="w-9 h-9 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0 mt-0.5">
                         <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                       </div>
@@ -368,6 +368,8 @@ import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import api from '@/services/api'
 
+const NOTIF_SEEN_STORAGE_KEY = 'armely_admin_seen_notifications_v1'
+
 const router = useRouter()
 const route = useRoute()
 
@@ -387,16 +389,91 @@ const stats = ref({
 })
 
 const escalatedChatCount = ref(0)
+const seenBaseline = ref({
+  pending_quotes: 0,
+  processing_orders: 0,
+  escalated_chat: 0,
+  overdue_invoices: 0,
+})
+
+const getCurrentCounts = () => ({
+  pending_quotes: Number(stats.value.pending_quotes || 0),
+  processing_orders: Number(stats.value.processing_orders || 0),
+  escalated_chat: Number(escalatedChatCount.value || 0),
+  overdue_invoices: Number(stats.value.overdue_invoices || 0),
+})
+
+const loadSeenBaseline = () => {
+  try {
+    const raw = localStorage.getItem(NOTIF_SEEN_STORAGE_KEY)
+    if (!raw) return
+
+    const parsed = JSON.parse(raw)
+    seenBaseline.value = {
+      pending_quotes: Number(parsed.pending_quotes || 0),
+      processing_orders: Number(parsed.processing_orders || 0),
+      escalated_chat: Number(parsed.escalated_chat || 0),
+      overdue_invoices: Number(parsed.overdue_invoices || 0),
+    }
+  } catch {
+    // Ignore malformed local storage payload.
+  }
+}
+
+const persistSeenBaseline = () => {
+  localStorage.setItem(NOTIF_SEEN_STORAGE_KEY, JSON.stringify(seenBaseline.value))
+}
+
+const clampBaselineToCurrent = () => {
+  const current = getCurrentCounts()
+  let changed = false
+
+  ;['pending_quotes', 'processing_orders', 'escalated_chat', 'overdue_invoices'].forEach((key) => {
+    if (seenBaseline.value[key] > current[key]) {
+      seenBaseline.value[key] = current[key]
+      changed = true
+    }
+  })
+
+  if (changed) {
+    persistSeenBaseline()
+  }
+}
+
+const markNotificationSeen = (key) => {
+  const current = getCurrentCounts()
+  seenBaseline.value[key] = current[key]
+  persistSeenBaseline()
+}
+
+const markAllNotificationsSeen = () => {
+  seenBaseline.value = getCurrentCounts()
+  persistSeenBaseline()
+}
+
+const unseenCounts = computed(() => {
+  const current = getCurrentCounts()
+  return {
+    pending_quotes: Math.max(0, current.pending_quotes - Number(seenBaseline.value.pending_quotes || 0)),
+    processing_orders: Math.max(0, current.processing_orders - Number(seenBaseline.value.processing_orders || 0)),
+    escalated_chat: Math.max(0, current.escalated_chat - Number(seenBaseline.value.escalated_chat || 0)),
+    overdue_invoices: Math.max(0, current.overdue_invoices - Number(seenBaseline.value.overdue_invoices || 0)),
+  }
+})
 
 const totalNotifCount = computed(() => {
-  return (stats.value.pending_quotes || 0)
-    + (stats.value.processing_orders || 0)
-    + (escalatedChatCount.value || 0)
-    + (stats.value.overdue_invoices || 0)
+  return (unseenCounts.value.pending_quotes || 0)
+    + (unseenCounts.value.processing_orders || 0)
+    + (unseenCounts.value.escalated_chat || 0)
+    + (unseenCounts.value.overdue_invoices || 0)
 })
 
 const toggleNotifications = () => {
-  showNotifDropdown.value = !showNotifDropdown.value
+  const willOpen = !showNotifDropdown.value
+  showNotifDropdown.value = willOpen
+  if (willOpen) {
+    markAllNotificationsSeen()
+  }
 }
 
 const handleClickOutside = (e) => {
@@ -414,10 +491,29 @@ const isActive = (section) => {
   return path.includes(`/admin/${section}`)
 }
 
+const syncSeenWithCurrentRoute = (path) => {
+  if (path.includes('/admin/quotes')) {
+    markNotificationSeen('pending_quotes')
+  }
+
+  if (path.includes('/admin/orders')) {
+    markNotificationSeen('processing_orders')
+  }
+
+  if (path.includes('/admin/chat')) {
+    markNotificationSeen('escalated_chat')
+  }
+
+  if (path.includes('/admin/invoices')) {
+    markNotificationSeen('overdue_invoices')
+  }
+}
+
 watch(
   () => route.path,
-  () => {
+  (path) => {
     sidebarOpen.value = false
+    syncSeenWithCurrentRoute(path)
   }
 )
 
@@ -456,6 +552,8 @@ const fetchStats = async () => {
     const response = await api.get('/admin/dashboard/stats')
     if (response.data.success) {
       stats.value = response.data.data
+      clampBaselineToCurrent()
+      syncSeenWithCurrentRoute(route.path)
     }
   } catch (error) {
     console.error('Failed to fetch stats:', error)
@@ -467,6 +565,8 @@ const fetchEscalatedCount = async () => {
     const res = await api.get('/admin/chats/unread-count')
     if (res.data?.success) {
       escalatedChatCount.value = Number(res.data.count || 0)
+      clampBaselineToCurrent()
+      syncSeenWithCurrentRoute(route.path)
     }
   } catch {
     // non-critical
@@ -488,6 +588,8 @@ const logout = async () => {
 }
 
 onMounted(() => {
+  loadSeenBaseline()
+  syncSeenWithCurrentRoute(route.path)
   fetchCurrentUser()
   fetchStats()
   fetchEscalatedCount()

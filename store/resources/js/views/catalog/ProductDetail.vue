@@ -675,7 +675,66 @@ const shareSubmitting = ref(false)
 const productDetailCache = new Map()
 const relatedProductsCache = new Map()
 const RELATED_PER_PAGE = 8
+const PRODUCT_DETAIL_CACHE_TTL_MS = 15 * 60 * 1000
+const PRODUCT_DETAIL_FETCH_TIMEOUT_MS = 15000
+const PRODUCT_DETAIL_STORAGE_PREFIX = 'product_detail_v1:'
+const PRODUCT_RELATED_STORAGE_PREFIX = 'product_related_v1:'
 const relatedPage = ref(1)
+
+const fetchWithTimeout = async (url, options = {}, timeoutMs = PRODUCT_DETAIL_FETCH_TIMEOUT_MS) => {
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+
+  try {
+    return await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    })
+  } catch (error) {
+    if (error?.name === 'AbortError') {
+      throw new Error('Request timed out while loading product details.')
+    }
+    throw error
+  } finally {
+    clearTimeout(timeoutId)
+  }
+}
+
+const loadCachedPayload = (prefix, key) => {
+  if (typeof window === 'undefined') return null
+
+  try {
+    const raw = window.sessionStorage.getItem(`${prefix}${key}`)
+    if (!raw) return null
+
+    const parsed = JSON.parse(raw)
+    const timestamp = Number(parsed?.timestamp || 0)
+    if (!timestamp || Date.now() - timestamp > PRODUCT_DETAIL_CACHE_TTL_MS) {
+      window.sessionStorage.removeItem(`${prefix}${key}`)
+      return null
+    }
+
+    return parsed?.data ?? null
+  } catch {
+    return null
+  }
+}
+
+const saveCachedPayload = (prefix, key, data) => {
+  if (typeof window === 'undefined') return
+
+  try {
+    window.sessionStorage.setItem(
+      `${prefix}${key}`,
+      JSON.stringify({
+        timestamp: Date.now(),
+        data,
+      })
+    )
+  } catch {
+    // Ignore storage write errors.
+  }
+}
 
 const loadRelatedProducts = async (productId, cacheKey, cachedRelated) => {
   if (cachedRelated) {
@@ -684,7 +743,7 @@ const loadRelatedProducts = async (productId, cacheKey, cachedRelated) => {
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}/products/${productId}/related`)
+    const response = await fetchWithTimeout(`${API_BASE_URL}/products/${productId}/related`)
     if (!response.ok) {
       relatedProducts.value = []
       relatedProductsCache.set(cacheKey, [])
@@ -696,6 +755,7 @@ const loadRelatedProducts = async (productId, cacheKey, cachedRelated) => {
     const loadedRelated = data.records || data || []
     relatedProducts.value = loadedRelated
     relatedProductsCache.set(cacheKey, loadedRelated)
+    saveCachedPayload(PRODUCT_RELATED_STORAGE_PREFIX, cacheKey, loadedRelated)
   } catch (relatedError) {
     console.warn('Related products fetch failed:', relatedError)
     relatedProducts.value = []
@@ -707,7 +767,18 @@ const loadProductDetail = async (productId) => {
 
   const cacheKey = String(productId)
   const cachedProduct = productDetailCache.get(cacheKey)
+    ?? loadCachedPayload(PRODUCT_DETAIL_STORAGE_PREFIX, cacheKey)
   const cachedRelated = relatedProductsCache.get(cacheKey)
+    ?? loadCachedPayload(PRODUCT_RELATED_STORAGE_PREFIX, cacheKey)
+
+  if (cachedProduct) {
+    productDetailCache.set(cacheKey, cachedProduct)
+  }
+
+  if (cachedRelated) {
+    relatedProductsCache.set(cacheKey, cachedRelated)
+  }
+
   isLoading.value = true
   loadError.value = ''
   descriptionExpanded.value = false
@@ -728,7 +799,7 @@ const loadProductDetail = async (productId) => {
 
   try {
     if (!cachedProduct) {
-      const response = await fetch(`${API_BASE_URL}/products/${productId}`)
+      const response = await fetchWithTimeout(`${API_BASE_URL}/products/${productId}`)
       if (!response.ok) {
         throw new Error(response.status === 404 ? 'Product not found.' : `Failed to fetch product (${response.status}).`)
       }
@@ -741,6 +812,7 @@ const loadProductDetail = async (productId) => {
 
       product.value = loadedProduct
       productDetailCache.set(cacheKey, loadedProduct)
+      saveCachedPayload(PRODUCT_DETAIL_STORAGE_PREFIX, cacheKey, loadedProduct)
     }
 
   } catch (error) {

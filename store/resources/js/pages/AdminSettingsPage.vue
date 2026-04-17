@@ -986,6 +986,9 @@ const saveApiConfig = async () => {
   try {
     const response = await api.post('/admin/settings/api', apiConfig.value)
     if (response.data.success) {
+      if (response.data.data) {
+        apiConfig.value = { ...apiConfig.value, ...response.data.data }
+      }
       showToast('API configuration saved successfully!', 'success')
     }
   } catch (error) {
@@ -1000,7 +1003,19 @@ const testApiConnection = async () => {
   try {
     const response = await api.get('/admin/settings/api/test')
     if (response.data.success) {
-      showToast('API connection successful!', 'success')
+      const qb = response.data?.data?.quickbooks
+      if (qb && qb.configured === false) {
+        const missing = Array.isArray(qb.missing) && qb.missing.length > 0
+          ? ` Missing: ${qb.missing.join(', ')}`
+          : ''
+        const invalid = Array.isArray(qb.invalid) && qb.invalid.length > 0
+          ? ` Invalid: ${qb.invalid.join(', ')}`
+          : ''
+        showToast(`${response.data.message}${missing}${invalid}`, 'error')
+        return
+      }
+
+      showToast(response.data.message || 'API connection successful!', 'success')
     }
   } catch (error) {
     console.error('API connection failed:', error)
@@ -1013,6 +1028,9 @@ const saveEmailSettings = async () => {
   try {
     const response = await api.post('/admin/settings/email', emailSettings.value)
     if (response.data.success) {
+      if (response.data.data) {
+        emailSettings.value = { ...emailSettings.value, ...response.data.data }
+      }
       showToast('Email settings saved successfully!', 'success')
     }
   } catch (error) {

@@ -32,10 +32,14 @@ class UpdateOrderStatusJob implements ShouldQueue
             // Fetch current status from TD SYNNEX
             $tdStatus = $tdsynnexService->getOrderStatus($this->order->order_number);
 
+            // Normalize the raw TD SYNNEX status code to our canonical set
+            $rawStatus = (string) ($tdStatus['status'] ?? $tdStatus['Code'] ?? $tdStatus['orderStatus'] ?? '');
+            $normalized = self::normalizeTdStatus($rawStatus) ?: $this->order->status;
+
             // Update local order
             $oldStatus = $this->order->status;
             $this->order->update([
-                'status' => $tdStatus['status'] ?? $oldStatus,
+                'status'   => $normalized,
                 'raw_data' => $tdStatus,
             ]);
 
@@ -43,19 +47,41 @@ class UpdateOrderStatusJob implements ShouldQueue
             if ($oldStatus !== $this->order->status) {
                 if ($this->order->status === 'shipped') {
                     $notificationService->sendOrderShippedNotification($this->order);
-                } elseif ($this->order->status === 'delivered') {
-                    // Mark invoice as paid if needed
+                } elseif ($this->order->status === 'invoiced') {
+                    // Mark invoice as paid when TD marks the order as invoiced/complete
                     $invoice = $this->order->invoice;
                     if ($invoice && $invoice->status !== 'paid') {
                         $invoice->update(['status' => 'paid', 'paid_at' => now()]);
                     }
                 }
 
-                Log::info("Order {$this->order->order_number} status updated from {$oldStatus} to {$this->order->status}");
+                Log::info("Order {$this->order->order_number} status updated from {$oldStatus} to {$this->order->status}", [
+                    'raw_td_status' => $rawStatus,
+                ]);
             }
         } catch (\Exception $e) {
             Log::error("Failed to update order status for {$this->order->order_number}: " . $e->getMessage());
             throw $e;
         }
+    }
+
+    /**
+     * Map TD SYNNEX raw status codes to our canonical order status set.
+     * TD SYNNEX statuses: RECEIVED, OPEN, ACCEPTED, BACKORDERED, PARTIALLY_SHIPPED,
+     *                      SHIPPED, INVOICED, COMPLETE, CANCELLED.
+     */
+    private static function normalizeTdStatus(string $raw): string
+    {
+        return match (strtolower(trim($raw))) {
+            'received', 'open', 'accepted', 'confirmed',
+            'pending', 'processing', 'draft'                             => 'accepted',
+            'backordered', 'back_ordered', 'back ordered', 'backorder'  => 'backordered',
+            'partiallyshipped', 'partially_shipped', 'partial'           => 'shipped',
+            'shipped'                                                     => 'shipped',
+            'invoiced', 'invoiced/complete', 'complete',
+            'completed', 'delivered'                                     => 'invoiced',
+            'cancelled', 'canceled', 'voided', 'void'                   => 'cancelled',
+            default                                                       => '',
+        };
     }
 }

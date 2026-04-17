@@ -30,6 +30,7 @@ class User extends Authenticatable
         'profile_picture',
         'stripe_customer_id',
         'payment_methods_consent',
+        'special_pricing_percent',
     ];
 
     /**
@@ -53,6 +54,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'payment_methods_consent' => 'boolean',
+            'special_pricing_percent' => 'decimal:2',
         ];
     }
 

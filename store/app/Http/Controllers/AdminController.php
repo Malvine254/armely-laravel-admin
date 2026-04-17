@@ -13,6 +13,7 @@ use App\Jobs\DownloadProductImagesJob;
 use App\Jobs\EnrichPriceAvailabilityImagesJob;
 use App\Services\NotificationService;
 use App\Services\CatalogOperationStateService;
+use App\Services\EnvironmentSettingsService;
 use App\Services\TDSynnexService;
 use App\Jobs\SyncPriceAvailabilityCatalogJob;
 use App\Models\Message;
@@ -29,11 +30,13 @@ use Illuminate\Support\Facades\Hash;
 class AdminController extends Controller
 {
     private NotificationService $notificationService;
+    private EnvironmentSettingsService $environmentSettingsService;
     private array $productNameCache = [];
 
-    public function __construct(NotificationService $notificationService)
+    public function __construct(NotificationService $notificationService, EnvironmentSettingsService $environmentSettingsService)
     {
         $this->notificationService = $notificationService;
+        $this->environmentSettingsService = $environmentSettingsService;
     }
 
     private function getIntegrationSetting(string $key, mixed $fallback = ''): mixed
@@ -44,6 +47,38 @@ class AdminController extends Controller
         }
 
         return $value;
+    }
+
+    private function buildQuickBooksConfigStatus(): array
+    {
+        $config = [
+            'client_id' => (string) $this->getIntegrationSetting('integrations.quickbooks.client_id', config('services.quickbooks.client_id', '')),
+            'client_secret' => (string) $this->getIntegrationSetting('integrations.quickbooks.client_secret', config('services.quickbooks.client_secret', '')),
+            'company_id' => (string) $this->getIntegrationSetting('integrations.quickbooks.company_id', config('services.quickbooks.company_id', '')),
+            'payment_url_template' => (string) $this->getIntegrationSetting('integrations.quickbooks.payment_url_template', config('services.quickbooks.payment_url_template', '')),
+            'bulk_payment_url_template' => (string) $this->getIntegrationSetting('integrations.quickbooks.bulk_payment_url_template', config('services.quickbooks.bulk_payment_url_template', '')),
+        ];
+
+        $missing = [];
+        foreach (['client_id', 'client_secret', 'company_id', 'payment_url_template'] as $requiredKey) {
+            if (trim((string) ($config[$requiredKey] ?? '')) === '') {
+                $missing[] = $requiredKey;
+            }
+        }
+
+        $invalid = [];
+        foreach (['payment_url_template', 'bulk_payment_url_template'] as $templateKey) {
+            $template = trim((string) ($config[$templateKey] ?? ''));
+            if ($template !== '' && filter_var($template, FILTER_VALIDATE_URL) === false) {
+                $invalid[] = $templateKey;
+            }
+        }
+
+        return [
+            'configured' => empty($missing) && empty($invalid),
+            'missing' => $missing,
+            'invalid' => $invalid,
+        ];
     }
 
     private function isAdminUser($user): bool
@@ -801,16 +836,28 @@ class AdminController extends Controller
             $search = $request->get('search');
             $sortBy = $request->get('sortBy', 'newest');
 
-            $query = Company::query();
+            $query = User::query()
+                ->with(['company:id,name,domain,status'])
+                ->whereNotIn('role', ['admin', 'super_admin']);
 
             if ($status) {
-                $query->where('status', $status);
+                $normalizedStatus = match ($status) {
+                    'approved' => 'active',
+                    'inactive' => 'suspended',
+                    default => $status,
+                };
+
+                $query->where('status', $normalizedStatus);
             }
 
             if ($search) {
                 $query->where(function ($subQuery) use ($search) {
                     $subQuery->where('name', 'like', "%{$search}%")
-                        ->orWhere('domain', 'like', "%{$search}%");
+                        ->orWhere('email', 'like', "%{$search}%")
+                        ->orWhereHas('company', function ($companyQuery) use ($search) {
+                            $companyQuery->where('name', 'like', "%{$search}%")
+                                ->orWhere('domain', 'like', "%{$search}%");
+                        });
                 });
             }
 
@@ -822,19 +869,16 @@ class AdminController extends Controller
                 $query->orderBy('created_at', 'desc');
             }
 
-            $companies = $query->with(['users' => function ($userQuery) {
-                    $userQuery->whereNotIn('role', ['admin', 'super_admin']);
-                }])
-                ->paginate($pageSize, ['*'], 'page', $page);
+            $customerUsers = $query->paginate($pageSize, ['*'], 'page', $page);
 
             return response()->json([
                 'success' => true,
-                'data' => $companies->items(),
+                'data' => $customerUsers->items(),
                 'pagination' => [
-                    'total' => $companies->total(),
-                    'per_page' => $companies->perPage(),
-                    'current_page' => $companies->currentPage(),
-                    'last_page' => $companies->lastPage(),
+                    'total' => $customerUsers->total(),
+                    'per_page' => $customerUsers->perPage(),
+                    'current_page' => $customerUsers->currentPage(),
+                    'last_page' => $customerUsers->lastPage(),
                 ],
             ]);
         } catch (\Exception $e) {
@@ -1795,7 +1839,8 @@ class AdminController extends Controller
     }
 
     /**
-     * Get confirmed/shipped orders with tracking info for the dedicated tracking page
+     * Get trackable orders with tracking info for the dedicated admin tracking page.
+     * Supports both legacy local statuses and normalized TD SYNNEX statuses.
      */
     public function getConfirmedOrdersTracking(Request $request): JsonResponse
     {
@@ -1812,7 +1857,16 @@ class AdminController extends Controller
             $search = $request->get('search', '');
 
             $query = Order::with(['user', 'company', 'invoice', 'items'])
-                ->whereIn('status', ['confirmed', 'processing', 'shipped', 'delivered']);
+                ->whereIn('status', [
+                    'accepted',
+                    'backordered',
+                    'shipped',
+                    'invoiced',
+                    // Legacy/local aliases still present on older rows
+                    'confirmed',
+                    'processing',
+                    'delivered',
+                ]);
 
             if ($statusFilter) {
                 $query->where('status', $statusFilter);
@@ -2182,6 +2236,113 @@ class AdminController extends Controller
     }
 
     /**
+     * Set customer-specific special pricing percentage for a single user.
+     */
+    public function setUserSpecialPricing(Request $request, string $userId): JsonResponse
+    {
+        try {
+            $actor = $request->user();
+
+            if ($actor->role !== 'admin' && $actor->role !== 'super_admin') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized',
+                ], 403);
+            }
+
+            $validated = $request->validate([
+                'special_pricing_percent' => 'required|numeric|min:0|max:100',
+            ]);
+
+            $targetUser = User::where('id', $userId)
+                ->whereNotIn('role', ['admin', 'super_admin'])
+                ->first();
+
+            if (!$targetUser) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Customer user not found',
+                ], 404);
+            }
+
+            $targetUser->special_pricing_percent = round((float) $validated['special_pricing_percent'], 2);
+            $targetUser->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Special pricing updated successfully',
+                'data' => [
+                    'id' => $targetUser->id,
+                    'name' => $targetUser->name,
+                    'email' => $targetUser->email,
+                    'special_pricing_percent' => (float) $targetUser->special_pricing_percent,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to set user special pricing: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update special pricing',
+            ], 500);
+        }
+    }
+
+    /**
+     * Approve a single customer user.
+     */
+    public function approveCustomerUser(Request $request, string $userId): JsonResponse
+    {
+        try {
+            $actor = $request->user();
+
+            if ($actor->role !== 'admin' && $actor->role !== 'super_admin') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized',
+                ], 403);
+            }
+
+            $targetUser = User::with('company')
+                ->where('id', $userId)
+                ->whereNotIn('role', ['admin', 'super_admin'])
+                ->first();
+
+            if (!$targetUser) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Customer user not found',
+                ], 404);
+            }
+
+            $targetUser->status = 'active';
+            $targetUser->save();
+
+            if ($targetUser->company && $targetUser->company->status !== 'approved') {
+                $targetUser->company->status = 'approved';
+                $targetUser->company->save();
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Customer user approved successfully',
+                'data' => [
+                    'id' => $targetUser->id,
+                    'status' => $targetUser->status,
+                    'company_status' => $targetUser->company?->status,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to approve customer user: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to approve customer user',
+            ], 500);
+        }
+    }
+
+    /**
      * Bulk approve customer companies
      */
     public function bulkApproveCustomers(Request $request): JsonResponse
@@ -2195,6 +2356,42 @@ class AdminController extends Controller
                     'success' => false,
                     'message' => 'Unauthorized',
                 ], 403);
+            }
+
+            if ($request->has('user_ids')) {
+                $request->validate([
+                    'user_ids' => 'required|array|min:1',
+                    'user_ids.*' => 'required|integer|exists:users,id',
+                ]);
+
+                $userIds = $request->user_ids;
+
+                $targetUsers = User::with('company')
+                    ->whereIn('id', $userIds)
+                    ->whereNotIn('role', ['admin', 'super_admin'])
+                    ->get();
+
+                if ($targetUsers->isEmpty()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'No eligible customer users were found to approve.',
+                    ], 400);
+                }
+
+                $targetUserIds = $targetUsers->pluck('id')->all();
+                $companyIds = $targetUsers->pluck('company_id')->filter()->unique()->values()->all();
+
+                $updatedUsers = User::whereIn('id', $targetUserIds)->update(['status' => 'active']);
+
+                if (!empty($companyIds)) {
+                    Company::whereIn('id', $companyIds)->update(['status' => 'approved']);
+                }
+
+                return response()->json([
+                    'success' => true,
+                    'message' => "$updatedUsers user(s) approved successfully",
+                    'updated_count' => $updatedUsers,
+                ]);
             }
 
             $request->validate([
@@ -2384,9 +2581,20 @@ class AdminController extends Controller
                 }
 
                 // Always update non-admin customer users for selected companies.
-                $updatedUsers = User::whereIn('company_id', $companyIds)
-                    ->whereNotIn('role', ['admin', 'super_admin'])
+                $customerUsersQuery = User::whereIn('company_id', $companyIds)
+                    ->whereNotIn('role', ['admin', 'super_admin']);
+
+                $customerUserIds = $customerUsersQuery->pluck('id')->all();
+
+                $updatedUsers = User::whereIn('id', $customerUserIds)
                     ->update(['status' => $status]);
+
+                if ($action === 'suspend' && !empty($customerUserIds)) {
+                    User::whereIn('id', $customerUserIds)
+                        ->each(function ($targetUser) {
+                            $targetUser->tokens()->delete();
+                        });
+                }
 
                 if ($updatedUsers === 0 && $updatedCount === 0) {
                     return response()->json([
@@ -2423,10 +2631,21 @@ class AdminController extends Controller
                     ], 400);
                 }
 
-                // Update user status
-                $updatedCount = User::whereIn('id', $userIds)
+                $targetUserIds = User::whereIn('id', $userIds)
                     ->whereNotIn('role', ['admin', 'super_admin']) // Prevent affecting other admins
+                    ->pluck('id')
+                    ->all();
+
+                // Update user status
+                $updatedCount = User::whereIn('id', $targetUserIds)
                     ->update(['status' => $status]);
+
+                if ($action === 'suspend' && !empty($targetUserIds)) {
+                    User::whereIn('id', $targetUserIds)
+                        ->each(function ($targetUser) {
+                            $targetUser->tokens()->delete();
+                        });
+                }
 
                 $actionText = $action === 'suspend' ? 'suspended' : 'activated';
                 return response()->json([
@@ -2584,22 +2803,23 @@ class AdminController extends Controller
                         'quickbooks_bulk_payment_url_template' => (string) $this->getIntegrationSetting('integrations.quickbooks.bulk_payment_url_template', config('services.quickbooks.bulk_payment_url_template', '')),
                     ],
                     'email_settings' => [
-                        'new_orders' => true,
-                        'new_quotes' => true,
-                        'low_stock' => false,
-                        'smtp_host' => config('mail.mailers.smtp.host', ''),
-                        'smtp_port' => config('mail.mailers.smtp.port', '587'),
-                        'smtp_username' => config('mail.mailers.smtp.username', ''),
+                        'new_orders' => filter_var((string) AppSetting::getValue('notifications.email.new_orders', env('ADMIN_NOTIFY_NEW_ORDERS', true)), FILTER_VALIDATE_BOOL),
+                        'new_quotes' => filter_var((string) AppSetting::getValue('notifications.email.new_quotes', env('ADMIN_NOTIFY_NEW_QUOTES', true)), FILTER_VALIDATE_BOOL),
+                        'low_stock' => filter_var((string) AppSetting::getValue('notifications.email.low_stock', env('ADMIN_NOTIFY_LOW_STOCK', false)), FILTER_VALIDATE_BOOL),
+                        'smtp_host' => (string) AppSetting::getValue('email.smtp_host', env('MAIL_HOST', config('mail.mailers.smtp.host', ''))),
+                        'smtp_port' => (string) AppSetting::getValue('email.smtp_port', env('MAIL_PORT', config('mail.mailers.smtp.port', '587'))),
+                        'smtp_username' => (string) AppSetting::getValue('email.smtp_username', env('MAIL_USERNAME', config('mail.mailers.smtp.username', ''))),
+                        'smtp_password' => (string) AppSetting::getValue('email.smtp_password', env('MAIL_PASSWORD', '')),
                     ],
                     'system_settings' => [
-                        'company_name' => (string) AppSetting::getValue('system.company_name', 'Armely Store'),
-                        'support_email' => (string) AppSetting::getValue('system.support_email', config('mail.from.address', 'support@armely.com')),
-                        'currency' => strtoupper((string) AppSetting::getValue('pricing.currency_code', 'USD')),
-                        'currency_rate' => AppSetting::getNumber('pricing.currency_rate', 1),
-                        'timezone' => (string) AppSetting::getValue('system.timezone', config('app.timezone', 'America/New_York')),
+                        'company_name' => (string) AppSetting::getValue('system.company_name', env('APP_NAME', 'Armely Store')),
+                        'support_email' => (string) AppSetting::getValue('system.support_email', env('SUPPORT_EMAIL', config('mail.from.address', 'support@armely.com'))),
+                        'currency' => strtoupper((string) AppSetting::getValue('pricing.currency_code', env('APP_CURRENCY', 'USD'))),
+                        'currency_rate' => AppSetting::getNumber('pricing.currency_rate', (float) env('APP_CURRENCY_RATE', 1)),
+                        'timezone' => (string) AppSetting::getValue('system.timezone', env('APP_TIMEZONE', config('app.timezone', 'America/New_York'))),
                         'maintenance_mode' => app()->isDownForMaintenance(),
-                        'tax_rate_percent' => AppSetting::getNumber('pricing.tax_rate_percent', 0),
-                        'profit_rate_percent' => AppSetting::getNumber('pricing.profit_rate_percent', 0),
+                        'tax_rate_percent' => AppSetting::getNumber('pricing.tax_rate_percent', (float) env('APP_TAX_RATE_PERCENT', 0)),
+                        'profit_rate_percent' => AppSetting::getNumber('pricing.profit_rate_percent', (float) env('APP_PROFIT_RATE_PERCENT', 0)),
                     ],
                     'catalog_operations' => (function () {
                         try {
@@ -2727,6 +2947,37 @@ class AdminController extends Controller
                 AppSetting::setValue('integrations.quickbooks.bulk_payment_url_template', trim((string) ($validated['quickbooks_bulk_payment_url_template'] ?? '')));
             }
 
+            $envUpdates = [];
+            if (array_key_exists('client_id', $validated)) {
+                $envUpdates['TDSYNNEX_CLIENT_ID'] = trim((string) ($validated['client_id'] ?? ''));
+            }
+            if (array_key_exists('client_secret', $validated)) {
+                $envUpdates['TDSYNNEX_CLIENT_SECRET'] = trim((string) ($validated['client_secret'] ?? ''));
+            }
+            if (array_key_exists('environment', $validated)) {
+                $envUpdates['TDSYNNEX_ENVIRONMENT'] = trim((string) ($validated['environment'] ?? 'sandbox')) ?: 'sandbox';
+            }
+            if (array_key_exists('quickbooks_client_id', $validated)) {
+                $envUpdates['QUICKBOOKS_CLIENT_ID'] = trim((string) ($validated['quickbooks_client_id'] ?? ''));
+            }
+            if (array_key_exists('quickbooks_client_secret', $validated)) {
+                $envUpdates['QUICKBOOKS_CLIENT_SECRET'] = trim((string) ($validated['quickbooks_client_secret'] ?? ''));
+            }
+            if (array_key_exists('quickbooks_company_id', $validated)) {
+                $envUpdates['QUICKBOOKS_COMPANY_ID'] = trim((string) ($validated['quickbooks_company_id'] ?? ''));
+            }
+            if (array_key_exists('quickbooks_payment_url_template', $validated)) {
+                $envUpdates['QUICKBOOKS_PAYMENT_URL_TEMPLATE'] = trim((string) ($validated['quickbooks_payment_url_template'] ?? ''));
+            }
+            if (array_key_exists('quickbooks_bulk_payment_url_template', $validated)) {
+                $envUpdates['QUICKBOOKS_BULK_PAYMENT_URL_TEMPLATE'] = trim((string) ($validated['quickbooks_bulk_payment_url_template'] ?? ''));
+            }
+
+            if (!empty($envUpdates)) {
+                $this->environmentSettingsService->setMany($envUpdates);
+                Artisan::call('config:clear');
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => 'API configuration updated successfully',
@@ -2767,10 +3018,25 @@ class AdminController extends Controller
             // Use TDSynnexService to test connection
             $service = new \App\Services\TDSynnexService();
             $service->authenticate();
+
+            $quickBooksStatus = $this->buildQuickBooksConfigStatus();
+
+            $message = 'TD SYNNEX connection successful.';
+            if ($quickBooksStatus['configured']) {
+                $message .= ' QuickBooks payment configuration is present.';
+            } else {
+                $message .= ' QuickBooks payment configuration is incomplete.';
+            }
             
             return response()->json([
                 'success' => true,
-                'message' => 'API connection successful! TD SYNNEX service is responding correctly.',
+                'message' => $message,
+                'data' => [
+                    'tdsynnex' => [
+                        'connected' => true,
+                    ],
+                    'quickbooks' => $quickBooksStatus,
+                ],
             ]);
         } catch (\Exception $e) {
             Log::error('API connection test failed: ' . $e->getMessage());
@@ -2883,10 +3149,78 @@ class AdminController extends Controller
                 ], 403);
             }
 
-            // In a real implementation, save to database
+            $validated = $request->validate([
+                'new_orders' => 'sometimes|boolean',
+                'new_quotes' => 'sometimes|boolean',
+                'low_stock' => 'sometimes|boolean',
+                'smtp_host' => 'sometimes|nullable|string|max:255',
+                'smtp_port' => 'sometimes|nullable|string|max:20',
+                'smtp_username' => 'sometimes|nullable|string|max:255',
+                'smtp_password' => 'sometimes|nullable|string|max:255',
+            ]);
+
+            if (array_key_exists('new_orders', $validated)) {
+                AppSetting::setValue('notifications.email.new_orders', (bool) $validated['new_orders']);
+            }
+            if (array_key_exists('new_quotes', $validated)) {
+                AppSetting::setValue('notifications.email.new_quotes', (bool) $validated['new_quotes']);
+            }
+            if (array_key_exists('low_stock', $validated)) {
+                AppSetting::setValue('notifications.email.low_stock', (bool) $validated['low_stock']);
+            }
+            if (array_key_exists('smtp_host', $validated)) {
+                AppSetting::setValue('email.smtp_host', trim((string) ($validated['smtp_host'] ?? '')));
+            }
+            if (array_key_exists('smtp_port', $validated)) {
+                AppSetting::setValue('email.smtp_port', trim((string) ($validated['smtp_port'] ?? '')));
+            }
+            if (array_key_exists('smtp_username', $validated)) {
+                AppSetting::setValue('email.smtp_username', trim((string) ($validated['smtp_username'] ?? '')));
+            }
+            if (array_key_exists('smtp_password', $validated)) {
+                AppSetting::setValue('email.smtp_password', (string) ($validated['smtp_password'] ?? ''));
+            }
+
+            $envUpdates = [];
+            if (array_key_exists('new_orders', $validated)) {
+                $envUpdates['ADMIN_NOTIFY_NEW_ORDERS'] = (bool) $validated['new_orders'];
+            }
+            if (array_key_exists('new_quotes', $validated)) {
+                $envUpdates['ADMIN_NOTIFY_NEW_QUOTES'] = (bool) $validated['new_quotes'];
+            }
+            if (array_key_exists('low_stock', $validated)) {
+                $envUpdates['ADMIN_NOTIFY_LOW_STOCK'] = (bool) $validated['low_stock'];
+            }
+            if (array_key_exists('smtp_host', $validated)) {
+                $envUpdates['MAIL_HOST'] = trim((string) ($validated['smtp_host'] ?? ''));
+            }
+            if (array_key_exists('smtp_port', $validated)) {
+                $envUpdates['MAIL_PORT'] = trim((string) ($validated['smtp_port'] ?? ''));
+            }
+            if (array_key_exists('smtp_username', $validated)) {
+                $envUpdates['MAIL_USERNAME'] = trim((string) ($validated['smtp_username'] ?? ''));
+            }
+            if (array_key_exists('smtp_password', $validated)) {
+                $envUpdates['MAIL_PASSWORD'] = (string) ($validated['smtp_password'] ?? '');
+            }
+
+            if (!empty($envUpdates)) {
+                $this->environmentSettingsService->setMany($envUpdates);
+                Artisan::call('config:clear');
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => 'Email settings updated successfully',
+                'data' => [
+                    'new_orders' => filter_var((string) AppSetting::getValue('notifications.email.new_orders', true), FILTER_VALIDATE_BOOL),
+                    'new_quotes' => filter_var((string) AppSetting::getValue('notifications.email.new_quotes', true), FILTER_VALIDATE_BOOL),
+                    'low_stock' => filter_var((string) AppSetting::getValue('notifications.email.low_stock', false), FILTER_VALIDATE_BOOL),
+                    'smtp_host' => (string) AppSetting::getValue('email.smtp_host', env('MAIL_HOST', config('mail.mailers.smtp.host', ''))),
+                    'smtp_port' => (string) AppSetting::getValue('email.smtp_port', env('MAIL_PORT', config('mail.mailers.smtp.port', '587'))),
+                    'smtp_username' => (string) AppSetting::getValue('email.smtp_username', env('MAIL_USERNAME', config('mail.mailers.smtp.username', ''))),
+                    'smtp_password' => (string) AppSetting::getValue('email.smtp_password', env('MAIL_PASSWORD', '')),
+                ],
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to update email settings: ' . $e->getMessage());
@@ -2968,6 +3302,34 @@ class AdminController extends Controller
                 AppSetting::setValue('system.timezone', (string) $validated['timezone']);
             }
 
+            $envUpdates = [];
+            if (array_key_exists('company_name', $validated)) {
+                $envUpdates['APP_NAME'] = (string) $validated['company_name'];
+            }
+            if (array_key_exists('support_email', $validated)) {
+                $envUpdates['SUPPORT_EMAIL'] = (string) $validated['support_email'];
+            }
+            if (array_key_exists('timezone', $validated)) {
+                $envUpdates['APP_TIMEZONE'] = (string) $validated['timezone'];
+            }
+            if (array_key_exists('tax_rate_percent', $validated)) {
+                $envUpdates['APP_TAX_RATE_PERCENT'] = (float) $validated['tax_rate_percent'];
+            }
+            if (array_key_exists('profit_rate_percent', $validated)) {
+                $envUpdates['APP_PROFIT_RATE_PERCENT'] = (float) $validated['profit_rate_percent'];
+            }
+            if (array_key_exists('currency', $validated)) {
+                $envUpdates['APP_CURRENCY'] = strtoupper((string) $validated['currency']);
+            }
+            if (array_key_exists('currency_rate', $validated)) {
+                $envUpdates['APP_CURRENCY_RATE'] = (float) $validated['currency_rate'];
+            }
+
+            if (!empty($envUpdates)) {
+                $this->environmentSettingsService->setMany($envUpdates);
+                Artisan::call('config:clear');
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => 'System settings updated successfully',
@@ -2975,6 +3337,7 @@ class AdminController extends Controller
                     'company_name' => (string) AppSetting::getValue('system.company_name', 'Armely Store'),
                     'support_email' => (string) AppSetting::getValue('system.support_email', config('mail.from.address', 'support@armely.com')),
                     'timezone' => (string) AppSetting::getValue('system.timezone', config('app.timezone', 'America/New_York')),
+                    'maintenance_mode' => app()->isDownForMaintenance(),
                     'tax_rate_percent' => AppSetting::getNumber('pricing.tax_rate_percent', 0),
                     'profit_rate_percent' => AppSetting::getNumber('pricing.profit_rate_percent', 0),
                     'currency' => strtoupper((string) AppSetting::getValue('pricing.currency_code', 'USD')),
@@ -3084,8 +3447,17 @@ class AdminController extends Controller
             }
 
             $admin = User::findOrFail($userId);
+
+            if ($admin->id === $currentUser->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You cannot suspend your own admin account.',
+                ], 400);
+            }
+
             $admin->status = 'suspended';
             $admin->save();
+            $admin->tokens()->delete();
 
             return response()->json([
                 'success' => true,

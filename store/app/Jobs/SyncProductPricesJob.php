@@ -56,13 +56,15 @@ class SyncProductPricesJob implements ShouldQueue
                     foreach ($apiProducts as $apiProduct) {
                         $pricesSynced++;
                         
-                        $price = $apiProduct['productPrice'][0]['rsPrice'] ?? 0;
-                        
+                        $rsPrice  = (float) ($apiProduct['productPrice'][0]['rsPrice'] ?? 0);
+                        $msrp     = (float) ($apiProduct['productPrice'][0]['msrp']    ?? $rsPrice);
+
                         $updated = Product::where('vendor_id', $vendor)
                             ->where('tdsynnex_product_id', $apiProduct['productId'] ?? null)
                             ->update([
-                                'base_price' => $price,
-                                'is_available' => !($apiProduct['discontinueProduct'] ?? false),
+                                'base_price'      => $rsPrice,
+                                'retail_price'    => $msrp,
+                                'is_available'    => !($apiProduct['discontinueProduct'] ?? false),
                                 'is_discontinued' => $apiProduct['discontinueProduct'] ?? false,
                             ]);
 

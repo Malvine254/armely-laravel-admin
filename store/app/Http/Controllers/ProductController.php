@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Services\TDSynnexService;
+use App\Services\CustomerPricingService;
 use App\Exceptions\TDSynnexApiException;
 use App\Models\Product;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;
@@ -13,10 +15,84 @@ use Illuminate\Support\Facades\Log;
 class ProductController extends Controller
 {
     protected TDSynnexService $tdsynnexService;
+    protected CustomerPricingService $customerPricingService;
 
-    public function __construct(TDSynnexService $tdsynnexService)
+    public function __construct(TDSynnexService $tdsynnexService, CustomerPricingService $customerPricingService)
     {
         $this->tdsynnexService = $tdsynnexService;
+        $this->customerPricingService = $customerPricingService;
+    }
+
+    /**
+     * MSRP-first price expression for cached DB rows.
+     * Falls back to base_price when retail_price is missing/zero.
+     */
+    private function preferredDbPriceSql(): string
+    {
+        return 'COALESCE(NULLIF(retail_price, 0), NULLIF(base_price, 0), 0)';
+    }
+
+    /**
+     * Preferred API price from a product payload (MSRP first, reseller fallback).
+     */
+    private function preferredApiProductPrice(array $product): float
+    {
+        $msrp = (float) ($product['productPrice'][0]['msrp'] ?? 0);
+        if ($msrp > 0) {
+            return $msrp;
+        }
+
+        return (float) ($product['productPrice'][0]['rsPrice'] ?? 0);
+    }
+
+    /**
+     * Normalize outbound payload so rsPrice always reflects MSRP-first logic.
+     */
+    private function normalizeApiProductPrice(array $product): array
+    {
+        $price = $this->preferredApiProductPrice($product);
+
+        if (!isset($product['productPrice']) || !is_array($product['productPrice']) || empty($product['productPrice'])) {
+            $product['productPrice'] = [['minQty' => 1]];
+        }
+
+        if (!is_array($product['productPrice'][0] ?? null)) {
+            $product['productPrice'][0] = ['minQty' => 1];
+        }
+
+        $product['productPrice'][0]['rsPrice'] = $price;
+        $product['productPrice'][0]['msrp'] = (float) ($product['productPrice'][0]['msrp'] ?? $price);
+
+        return $product;
+    }
+
+    private function authenticatedApiUser(Request $request): ?User
+    {
+        return $request->user('sanctum');
+    }
+
+    private function applySpecialPricingToProductList(array $products, ?User $user): array
+    {
+        if (!$user) {
+            return $products;
+        }
+
+        return array_map(function ($product) use ($user) {
+            if (!is_array($product)) {
+                return $product;
+            }
+
+            return $this->customerPricingService->applyToProductPayload($product, $user);
+        }, $products);
+    }
+
+    private function productCacheControlHeader(?User $user, string $publicHeader): string
+    {
+        if ($user) {
+            return 'private, no-store';
+        }
+
+        return $publicHeader;
     }
 
     /**
@@ -25,6 +101,8 @@ class ProductController extends Controller
     public function index(Request $request): JsonResponse
     {
         try {
+            $authenticatedUser = $this->authenticatedApiUser($request);
+
             // Get filter parameters
             $vendorId = $request->query('vendor', 'Microsoft');
             $vendors = $request->query('vendors'); // comma-separated list
@@ -37,7 +115,7 @@ class ProductController extends Controller
             $productType = $this->normalizeProductType((string) $request->query('product_type', ''));
             $category = trim((string) $request->query('category', ''));
             $useDbCache = $request->query('use_db_cache', true); // Use database cache by default
-            // hide items with zero reseller price by default; set ?hide_zero_price=false to disable
+            // hide items with zero MSRP price by default; set ?hide_zero_price=false to disable
             $hideZero = filter_var($request->query('hide_zero_price', true), FILTER_VALIDATE_BOOLEAN);
             // Optional catalog-only cleanup to hide obviously irrelevant line items.
             $catalogClean = filter_var($request->query('catalog_clean', false), FILTER_VALIDATE_BOOLEAN);
@@ -165,10 +243,12 @@ class ProductController extends Controller
                 }
             }
 
+            $allProducts = array_map(fn (array $product) => $this->normalizeApiProductPrice($product), $allProducts);
+
             // Optionally hide zero‑priced products
             if ($hideZero) {
                 $allProducts = array_filter($allProducts, function ($product) {
-                    return ($product['productPrice'][0]['rsPrice'] ?? 0) > 0;
+                    return $this->preferredApiProductPrice((array) $product) > 0;
                 });
             }
 
@@ -178,7 +258,7 @@ class ProductController extends Controller
                 $maxPrice = (float)($maxPrice ?? PHP_INT_MAX);
 
                 $allProducts = array_filter($allProducts, function ($product) use ($minPrice, $maxPrice) {
-                    $price = $product['productPrice'][0]['rsPrice'] ?? 0;
+                    $price = $this->preferredApiProductPrice((array) $product);
                     return $price >= $minPrice && $price <= $maxPrice;
                 });
             }
@@ -217,6 +297,7 @@ class ProductController extends Controller
             // Get total and prepare response
             $total = count($allProducts);
             $records = array_slice($allProducts, ($pageNo - 1) * $pageSize, $pageSize);
+            $records = $this->applySpecialPricingToProductList($records, $authenticatedUser);
 
             Log::info('ProductController.index successful', [
                 'total_products' => $total,
@@ -238,7 +319,7 @@ class ProductController extends Controller
                     'cached' => $fromCache
                 ],
                 'message' => 'Products retrieved successfully'
-            ])->header('Cache-Control', 'public, max-age=3600'); // 1 hour client-side cache
+            ])->header('Cache-Control', $this->productCacheControlHeader($authenticatedUser, 'public, max-age=3600')); // 1 hour client-side cache
 
         } catch (TDSynnexApiException $e) {
             Log::error('ProductController.index TDSynnexApiException', [
@@ -280,6 +361,8 @@ class ProductController extends Controller
         string $productType = 'hardware',
         string $category = ''
     ): JsonResponse {
+        $authenticatedUser = $this->authenticatedApiUser($request);
+
         $selectedVendors = [];
         $vendorsCsv = trim((string) $request->query('vendors', ''));
         $hasExplicitVendorSelection = false;
@@ -345,7 +428,7 @@ class ProductController extends Controller
             return response()->json([
                 'success' => true,
                 'data' => [
-                    'records' => $dbPage['records'],
+                    'records' => $this->applySpecialPricingToProductList($dbPage['records'], $authenticatedUser),
                     'total' => $dbPage['total'],
                     'apiTotal' => $dbPage['total'],
                     'has_more' => (bool) ($dbPage['has_more'] ?? false),
@@ -361,7 +444,7 @@ class ProductController extends Controller
                     'source' => 'priceavailability-db',
                 ],
                 'message' => 'Products retrieved successfully',
-            ])->header('Cache-Control', 'public, max-age=300');
+            ])->header('Cache-Control', $this->productCacheControlHeader($authenticatedUser, 'public, max-age=300'));
         }
 
         if (!empty($search)) {
@@ -408,9 +491,11 @@ class ProductController extends Controller
             }));
         }
 
+        $allProducts = array_map(fn (array $product) => $this->normalizeApiProductPrice($product), $allProducts);
+
         if ($hideZero) {
             $allProducts = array_values(array_filter($allProducts, function ($product) {
-                return (float) ($product['productPrice'][0]['rsPrice'] ?? 0) > 0;
+                return $this->preferredApiProductPrice((array) $product) > 0;
             }));
         }
 
@@ -418,7 +503,7 @@ class ProductController extends Controller
             $min = (float) ($minPrice ?? 0);
             $max = (float) ($maxPrice ?? PHP_INT_MAX);
             $allProducts = array_values(array_filter($allProducts, function ($product) use ($min, $max) {
-                $price = (float) ($product['productPrice'][0]['rsPrice'] ?? 0);
+                $price = $this->preferredApiProductPrice((array) $product);
                 return $price >= $min && $price <= $max;
             }));
         }
@@ -458,6 +543,8 @@ class ProductController extends Controller
             $records = $this->tdsynnexService->enrichProductsWithIcecatImages(array_values($records), $maxLookups);
         }
 
+        $records = $this->applySpecialPricingToProductList($records, $authenticatedUser);
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -475,7 +562,7 @@ class ProductController extends Controller
                 'source' => 'priceavailability',
             ],
             'message' => 'Products retrieved successfully',
-        ])->header('Cache-Control', 'public, max-age=300');
+        ])->header('Cache-Control', $this->productCacheControlHeader($authenticatedUser, 'public, max-age=300'));
     }
 
     private function fetchPriceAvailabilityFromDatabase(bool $hideZero): array
@@ -487,13 +574,7 @@ class ProductController extends Controller
             $this->applyCuratedDefaultBrowseFilters($query);
 
             if ($hideZero) {
-                $query->where(function ($q) {
-                    $q->where(function ($q2) {
-                        $q2->whereNotNull('base_price')->where('base_price', '>', 0);
-                    })->orWhere(function ($q3) {
-                        $q3->whereNotNull('retail_price')->where('retail_price', '>', 0);
-                    });
-                });
+                $query->whereRaw($this->preferredDbPriceSql() . ' > 0');
             }
 
             $products = $query->orderBy('product_name')->limit(50000)->get();
@@ -656,7 +737,7 @@ class ProductController extends Controller
         }
 
         if ($hideZero) {
-            $query->where('base_price', '>', 0);
+            $query->whereRaw($this->preferredDbPriceSql() . ' > 0');
         }
 
         if (!empty($search)) {
@@ -706,11 +787,11 @@ class ProductController extends Controller
         }
 
         if ($minPrice !== null) {
-            $query->where('base_price', '>=', (float) $minPrice);
+            $query->whereRaw($this->preferredDbPriceSql() . ' >= ?', [(float) $minPrice]);
         }
 
         if ($maxPrice !== null) {
-            $query->where('base_price', '<=', (float) $maxPrice);
+            $query->whereRaw($this->preferredDbPriceSql() . ' <= ?', [(float) $maxPrice]);
         }
 
         if (!empty($billingModels)) {
@@ -724,7 +805,7 @@ class ProductController extends Controller
         if ($catalogClean) {
             $query->whereRaw("LOWER(COALESCE(mfg_part_no, '')) <> 'shipping'")
                 ->whereRaw("LOWER(COALESCE(product_name, '')) NOT LIKE '%shipping%'")
-                ->whereRaw("NOT ((COALESCE(base_price, 0) <= 0.05) AND (LOWER(COALESCE(product_name, '')) LIKE '%support%' OR LOWER(COALESCE(product_name, '')) LIKE '%warranty%' OR LOWER(COALESCE(product_name, '')) LIKE '%consulting%' OR LOWER(COALESCE(product_name, '')) LIKE '%implementation%' OR LOWER(COALESCE(product_name, '')) LIKE '%annual fee%' OR LOWER(COALESCE(product_name, '')) LIKE '%training%'))");
+                ->whereRaw("NOT ((" . $this->preferredDbPriceSql() . " <= 0.05) AND (LOWER(COALESCE(product_name, '')) LIKE '%support%' OR LOWER(COALESCE(product_name, '')) LIKE '%warranty%' OR LOWER(COALESCE(product_name, '')) LIKE '%consulting%' OR LOWER(COALESCE(product_name, '')) LIKE '%implementation%' OR LOWER(COALESCE(product_name, '')) LIKE '%annual fee%' OR LOWER(COALESCE(product_name, '')) LIKE '%training%'))");
         }
 
         // Filter by UNSPSC category segment prefix (e.g. "56" for Furniture)
@@ -811,7 +892,7 @@ class ProductController extends Controller
     {
         $spec = is_array($product->specifications) ? $product->specifications : [];
         $sku = (string) ($spec['sku'] ?? $product->tdsynnex_sku_no ?? $product->tdsynnex_product_id);
-        $price = (float) ($product->base_price ?? $product->retail_price ?? 0);
+        $price = (float) ($product->retail_price ?? $product->base_price ?? 0);
         $images = $this->normalizeSavedProductImages($product->images);
         $primaryImage = (string) ($images[0]['imageUrl'] ?? '');
         $vendor = trim((string) ($spec['manufacturer'] ?? $product->vendor_id ?? 'TD SYNNEX'));
@@ -839,6 +920,7 @@ class ProductController extends Controller
             'productPrice' => [
                 [
                     'rsPrice' => $price,
+                    'msrp' => (float) ($product->retail_price ?? $price),
                     'minQty' => 1,
                 ],
             ],
@@ -854,7 +936,7 @@ class ProductController extends Controller
         return array_values(array_filter($products, function ($product) {
             $name = strtolower(trim((string) ($product['productName'] ?? '')));
             $sku = strtolower(trim((string) ($product['mfgPartNo'] ?? $product['sku'] ?? '')));
-            $price = (float) ($product['productPrice'][0]['rsPrice'] ?? 0);
+            $price = $this->preferredApiProductPrice((array) $product);
 
             if ($name === '' || preg_match('/^[\W_]+$/', $name)) {
                 return false;
@@ -1122,7 +1204,7 @@ class ProductController extends Controller
         return '';
     }
 
-    private function getPriceAvailabilityProductFromDatabase(string $skuOrProductId): ?array
+    private function getPriceAvailabilityProductFromDatabase(string $skuOrProductId, bool $enforceVendorAllowList = true): ?array
     {
         $needle = trim($skuOrProductId);
         if ($needle === '') {
@@ -1138,6 +1220,10 @@ class ProductController extends Controller
                 ?? $baseQuery()->where('tdsynnex_sku_no', $numeric)->first();
             if ($product) {
                 $mapped = $this->mapPriceAvailabilityDatabaseProduct($product);
+                if (!$enforceVendorAllowList) {
+                    return $mapped;
+                }
+
                 return $this->isAllowedCatalogVendor($this->resolvePriceAvailabilityVendorName($mapped)) ? $mapped : null;
             }
         }
@@ -1151,6 +1237,10 @@ class ProductController extends Controller
         }
 
         $mapped = $this->mapPriceAvailabilityDatabaseProduct($product);
+
+        if (!$enforceVendorAllowList) {
+            return $mapped;
+        }
 
         return $this->isAllowedCatalogVendor($this->resolvePriceAvailabilityVendorName($mapped)) ? $mapped : null;
     }
@@ -1168,13 +1258,7 @@ class ProductController extends Controller
 
             // If requested, only include products that have a non-zero price
             if ($hideZero) {
-                $query->where(function ($q) {
-                    $q->where(function ($q2) {
-                        $q2->whereNotNull('base_price')->where('base_price', '>', 0);
-                    })->orWhere(function ($q3) {
-                        $q3->whereNotNull('retail_price')->where('retail_price', '>', 0);
-                    });
-                });
+                $query->whereRaw($this->preferredDbPriceSql() . ' > 0');
             }
 
             $products = $query->select([
@@ -1206,7 +1290,8 @@ class ProductController extends Controller
                     'discontinueProduct' => $product->is_discontinued,
                     'productPrice' => [
                         [
-                            'rsPrice' => $product->base_price ?? $product->retail_price,
+                            'rsPrice' => $product->retail_price ?? $product->base_price,
+                            'msrp' => $product->retail_price ?? $product->base_price,
                             'minQty' => 1
                         ]
                     ],
@@ -1298,16 +1383,31 @@ class ProductController extends Controller
     /**
      * Get product details by product ID
      */
-    public function show(string $productId): JsonResponse
+    public function show(Request $request, string $productId): JsonResponse
     {
         try {
-            if ($this->tdsynnexService->usesPriceAvailabilityAsProductSource()) {
-                $product = $this->getPriceAvailabilityProductFromDatabase($productId)
-                    ?? $this->tdsynnexService->getPriceAvailabilityProductBySku($productId);
+            $authenticatedUser = $this->authenticatedApiUser($request);
 
-                if (is_array($product) && !$this->isAllowedCatalogVendor($this->resolvePriceAvailabilityVendorName($product))) {
-                    $product = null;
-                }
+            if ($this->tdsynnexService->usesPriceAvailabilityAsProductSource()) {
+                $cacheKey = sprintf('pa_product_detail:v2:%s', md5((string) $productId));
+
+                $product = Cache::remember($cacheKey, 1800, function () use ($productId) {
+                    $resolved = $this->getPriceAvailabilityProductFromDatabase($productId, false);
+
+                    if (!$resolved) {
+                        try {
+                            $resolved = $this->tdsynnexService->getPriceAvailabilityProductBySku($productId);
+                        } catch (\Throwable $e) {
+                            Log::warning('Price availability fallback lookup failed in show()', [
+                                'product_id' => $productId,
+                                'error' => $e->getMessage(),
+                            ]);
+                            $resolved = null;
+                        }
+                    }
+
+                    return $resolved;
+                });
 
                 if (!$product) {
                     return response()->json([
@@ -1317,20 +1417,28 @@ class ProductController extends Controller
                     ], 404);
                 }
 
+                $product = $this->customerPricingService->applyToProductPayload((array) $product, $authenticatedUser);
+
                 return response()->json([
                     'success' => true,
                     'data' => $product,
                     'message' => 'Product details retrieved successfully',
-                ]);
+                ])->header('Cache-Control', $this->productCacheControlHeader($authenticatedUser, 'public, max-age=300, stale-while-revalidate=900'));
             }
 
-            $product = $this->tdsynnexService->getProductDetails($productId);
+            $cacheKey = sprintf('td_product_detail:%s', md5((string) $productId));
+            $product = Cache::remember($cacheKey, 900, function () use ($productId) {
+                return $this->tdsynnexService->getProductDetails($productId);
+            });
+
+            $productData = is_array($product['data'] ?? null) ? $product['data'] : (array) $product;
+            $productData = $this->customerPricingService->applyToProductPayload($productData, $authenticatedUser);
 
             return response()->json([
                 'success' => true,
-                'data' => $product['data'] ?? $product,
+                'data' => $productData,
                 'message' => 'Product details retrieved successfully'
-            ]);
+            ])->header('Cache-Control', $this->productCacheControlHeader($authenticatedUser, 'public, max-age=180, stale-while-revalidate=600'));
 
         } catch (TDSynnexApiException $e) {
             return response()->json([
@@ -1355,16 +1463,30 @@ class ProductController extends Controller
     /**
      * Get product by SKU number
      */
-    public function getBySku(string $skuNo): JsonResponse
+    public function getBySku(Request $request, string $skuNo): JsonResponse
     {
         try {
-            if ($this->tdsynnexService->usesPriceAvailabilityAsProductSource()) {
-                $product = $this->getPriceAvailabilityProductFromDatabase($skuNo)
-                    ?? $this->tdsynnexService->getPriceAvailabilityProductBySku($skuNo);
+            $authenticatedUser = $this->authenticatedApiUser($request);
 
-                if (is_array($product) && !$this->isAllowedCatalogVendor($this->resolvePriceAvailabilityVendorName($product))) {
-                    $product = null;
-                }
+            if ($this->tdsynnexService->usesPriceAvailabilityAsProductSource()) {
+                $cacheKey = sprintf('pa_product_by_sku:v2:%s', md5((string) $skuNo));
+                $product = Cache::remember($cacheKey, 1800, function () use ($skuNo) {
+                    $resolved = $this->getPriceAvailabilityProductFromDatabase($skuNo, false);
+
+                    if (!$resolved) {
+                        try {
+                            $resolved = $this->tdsynnexService->getPriceAvailabilityProductBySku($skuNo);
+                        } catch (\Throwable $e) {
+                            Log::warning('Price availability fallback lookup failed in getBySku()', [
+                                'sku' => $skuNo,
+                                'error' => $e->getMessage(),
+                            ]);
+                            $resolved = null;
+                        }
+                    }
+
+                    return $resolved;
+                });
 
                 if (!$product) {
                     return response()->json([
@@ -1374,20 +1496,25 @@ class ProductController extends Controller
                     ], 404);
                 }
 
+                $product = $this->customerPricingService->applyToProductPayload((array) $product, $authenticatedUser);
+
                 return response()->json([
                     'success' => true,
                     'data' => $product,
                     'message' => 'Product retrieved by SKU successfully',
-                ]);
+                ])->header('Cache-Control', $this->productCacheControlHeader($authenticatedUser, 'public, max-age=300, stale-while-revalidate=900'));
             }
 
             $product = $this->tdsynnexService->getProductBySku($skuNo);
 
+            $productData = is_array($product['data'] ?? null) ? $product['data'] : (array) $product;
+            $productData = $this->customerPricingService->applyToProductPayload($productData, $authenticatedUser);
+
             return response()->json([
                 'success' => true,
-                'data' => $product['data'] ?? $product,
+                'data' => $productData,
                 'message' => 'Product retrieved by SKU successfully'
-            ]);
+            ])->header('Cache-Control', $this->productCacheControlHeader($authenticatedUser, 'public, max-age=180, stale-while-revalidate=600'));
 
         } catch (TDSynnexApiException $e) {
             return response()->json([
@@ -1412,11 +1539,18 @@ class ProductController extends Controller
     /**
      * Get related products for a product
      */
-    public function related(string $productId): JsonResponse
+    public function related(Request $request, string $productId): JsonResponse
     {
         try {
+            $authenticatedUser = $this->authenticatedApiUser($request);
+
             if ($this->tdsynnexService->usesPriceAvailabilityAsProductSource()) {
-                $relatedProducts = $this->getPriceAvailabilityRelatedFromDatabase($productId, 16);
+                $cacheKey = sprintf('pa_related_products:%s', md5((string) $productId));
+                $relatedProducts = Cache::remember($cacheKey, 1800, function () use ($productId) {
+                    return $this->getPriceAvailabilityRelatedFromDatabase($productId, 16);
+                });
+
+                $relatedProducts = $this->applySpecialPricingToProductList($relatedProducts, $authenticatedUser);
 
                 return response()->json([
                     'success' => true,
@@ -1425,16 +1559,36 @@ class ProductController extends Controller
                         'total' => count($relatedProducts),
                     ],
                     'message' => 'Related products retrieved successfully',
-                ]);
+                ])->header('Cache-Control', $this->productCacheControlHeader($authenticatedUser, 'public, max-age=300, stale-while-revalidate=900'));
             }
 
-            $relatedProducts = $this->tdsynnexService->getRelatedProducts((int)$productId);
+            $cacheKey = sprintf('td_related_products:%s', md5((string) $productId));
+            $relatedProducts = Cache::remember($cacheKey, 900, function () use ($productId) {
+                return $this->tdsynnexService->getRelatedProducts((int) $productId);
+            });
+
+            $relatedData = $relatedProducts['data'] ?? $relatedProducts;
+            $relatedRecords = [];
+
+            if (is_array($relatedData)) {
+                $relatedRecords = is_array($relatedData['records'] ?? null)
+                    ? $relatedData['records']
+                    : $relatedData;
+
+                $relatedRecords = $this->applySpecialPricingToProductList($relatedRecords, $authenticatedUser);
+
+                if (isset($relatedData['records']) && is_array($relatedData['records'])) {
+                    $relatedData['records'] = $relatedRecords;
+                } else {
+                    $relatedData = $relatedRecords;
+                }
+            }
 
             return response()->json([
                 'success' => true,
-                'data' => $relatedProducts['data'] ?? $relatedProducts,
+                'data' => $relatedData,
                 'message' => 'Related products retrieved successfully'
-            ]);
+            ])->header('Cache-Control', $this->productCacheControlHeader($authenticatedUser, 'public, max-age=180, stale-while-revalidate=600'));
 
         } catch (TDSynnexApiException $e) {
             return response()->json([
@@ -1529,14 +1683,30 @@ class ProductController extends Controller
                     $catalogClean = filter_var(request()->query('catalog_clean', false), FILTER_VALIDATE_BOOLEAN);
                     $facetCap = max(5000, (int) request()->query('vendor_cap', 50000));
 
-                    $vendors = $this->getCuratedDefaultBrowseVendors(
-                        $facetCap,
-                        $minPrice,
-                        $maxPrice,
-                        $hideZero,
-                        $catalogClean,
-                        $productType,
+                    $vendorCacheKey = sprintf(
+                        'pa_vendor_counts:%s',
+                        md5(json_encode([
+                            'curated_it_mix' => $curatedItMix,
+                            'min_price' => $minPrice,
+                            'max_price' => $maxPrice,
+                            'hide_zero' => $hideZero,
+                            'catalog_clean' => $catalogClean,
+                            'product_type' => $productType,
+                            'facet_cap' => $facetCap,
+                            'hardware_only' => (bool) config('tdsynnex.catalog.hardware_only', true),
+                        ]))
                     );
+
+                    $vendors = Cache::remember($vendorCacheKey, 1800, function () use ($facetCap, $minPrice, $maxPrice, $hideZero, $catalogClean, $productType) {
+                        return $this->getCuratedDefaultBrowseVendors(
+                            $facetCap,
+                            $minPrice,
+                            $maxPrice,
+                            $hideZero,
+                            $catalogClean,
+                            $productType,
+                        );
+                    });
                 } else {
                     $vendors = $this->tdsynnexService->getPriceAvailabilityVendors();
                 }
@@ -1547,7 +1717,7 @@ class ProductController extends Controller
                     'success' => true,
                     'data' => $vendors,
                     'message' => 'Vendors retrieved successfully',
-                ]);
+                ])->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
             }
 
             $vendors = $this->tdsynnexService->getVendors();
@@ -1556,7 +1726,7 @@ class ProductController extends Controller
                 'success' => true,
                 'data' => $vendors['data'] ?? [],
                 'message' => 'Vendors retrieved successfully'
-            ]);
+            ])->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
 
         } catch (TDSynnexApiException $e) {
             return response()->json([
@@ -1581,40 +1751,55 @@ class ProductController extends Controller
     public function menuCategories(): JsonResponse
     {
         try {
-            $data = Cache::remember('menu_categories', 3600, function () {
-                return \App\Models\Category::whereNull('parent_id')
+            $data = Cache::remember('menu_categories:v2', 3600, function () {
+                $parents = \App\Models\Category::query()
+                    ->select(['id', 'name', 'slug', 'segment_code', 'sort_order'])
+                    ->whereNull('parent_id')
                     ->where('is_active', true)
                     ->where('show_in_menu', true)
                     ->orderBy('sort_order')
-                    ->with(['children' => function ($q) {
-                        $q->where('is_active', true)
-                          ->where('show_in_menu', true)
-                          ->orderBy('sort_order');
-                    }])
+                    ->get();
+
+                if ($parents->isEmpty()) {
+                    return [];
+                }
+
+                $childrenByParent = \App\Models\Category::query()
+                    ->select(['id', 'parent_id', 'name', 'slug', 'description', 'sort_order'])
+                    ->whereIn('parent_id', $parents->pluck('id'))
+                    ->where('is_active', true)
+                    ->where('show_in_menu', true)
+                    ->orderBy('sort_order')
                     ->get()
-                    ->map(function ($cat) {
-                        return [
-                            'id'           => $cat->id,
-                            'name'         => $cat->name,
-                            'slug'         => $cat->slug,
-                            'segment_code' => $cat->segment_code,
-                            'brands'       => $cat->children->map(function ($brand) {
-                                return [
-                                    'id'    => $brand->id,
-                                    'label' => $brand->name,
-                                    'value' => $brand->description, // manufacturer filter value
-                                    'slug'  => $brand->slug,
-                                ];
-                            })->values()->all(),
-                        ];
-                    })
-                    ->all();
+                    ->groupBy('parent_id');
+
+                return $parents->map(function ($cat) use ($childrenByParent) {
+                    $brands = ($childrenByParent[$cat->id] ?? collect())
+                        ->map(function ($brand) {
+                            return [
+                                'id' => $brand->id,
+                                'label' => $brand->name,
+                                'value' => $brand->description, // manufacturer filter value
+                                'slug' => $brand->slug,
+                            ];
+                        })
+                        ->values()
+                        ->all();
+
+                    return [
+                        'id' => $cat->id,
+                        'name' => $cat->name,
+                        'slug' => $cat->slug,
+                        'segment_code' => $cat->segment_code,
+                        'brands' => $brands,
+                    ];
+                })->all();
             });
 
             return response()->json([
                 'success' => true,
                 'data'    => $data,
-            ]);
+            ])->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -1658,7 +1843,7 @@ class ProductController extends Controller
                 'success' => true,
                 'data' => $data,
                 'message' => 'Categories retrieved successfully',
-            ]);
+            ])->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -1715,21 +1900,21 @@ class ProductController extends Controller
         $query = Product::query()->where('vendor_id', 'TD SYNNEX');
 
         if ($hideZero) {
-            $query->where('base_price', '>', 0);
+            $query->whereRaw($this->preferredDbPriceSql() . ' > 0');
         }
 
         if ($minPrice !== null) {
-            $query->where('base_price', '>=', $minPrice);
+            $query->whereRaw($this->preferredDbPriceSql() . ' >= ?', [$minPrice]);
         }
 
         if ($maxPrice !== null) {
-            $query->where('base_price', '<=', $maxPrice);
+            $query->whereRaw($this->preferredDbPriceSql() . ' <= ?', [$maxPrice]);
         }
 
         if ($catalogClean) {
             $query->whereRaw("LOWER(COALESCE(mfg_part_no, '')) <> 'shipping'")
                 ->whereRaw("LOWER(COALESCE(product_name, '')) NOT LIKE '%shipping%'")
-                ->whereRaw("NOT ((COALESCE(base_price, 0) <= 0.05) AND (LOWER(COALESCE(product_name, '')) LIKE '%support%' OR LOWER(COALESCE(product_name, '')) LIKE '%warranty%' OR LOWER(COALESCE(product_name, '')) LIKE '%consulting%' OR LOWER(COALESCE(product_name, '')) LIKE '%implementation%' OR LOWER(COALESCE(product_name, '')) LIKE '%annual fee%' OR LOWER(COALESCE(product_name, '')) LIKE '%training%'))");
+                ->whereRaw("NOT ((" . $this->preferredDbPriceSql() . " <= 0.05) AND (LOWER(COALESCE(product_name, '')) LIKE '%support%' OR LOWER(COALESCE(product_name, '')) LIKE '%warranty%' OR LOWER(COALESCE(product_name, '')) LIKE '%consulting%' OR LOWER(COALESCE(product_name, '')) LIKE '%implementation%' OR LOWER(COALESCE(product_name, '')) LIKE '%annual fee%' OR LOWER(COALESCE(product_name, '')) LIKE '%training%'))");
         }
 
         $this->applyProductTypeFilterToQuery($query, $productType);
@@ -1850,21 +2035,21 @@ class ProductController extends Controller
             $query = Product::query()->where('vendor_id', 'TD SYNNEX');
 
             if ($hideZero) {
-                $query->where('base_price', '>', 0);
+                $query->whereRaw($this->preferredDbPriceSql() . ' > 0');
             }
 
             if ($minPrice !== null) {
-                $query->where('base_price', '>=', $minPrice);
+                $query->whereRaw($this->preferredDbPriceSql() . ' >= ?', [$minPrice]);
             }
 
             if ($maxPrice !== null) {
-                $query->where('base_price', '<=', $maxPrice);
+                $query->whereRaw($this->preferredDbPriceSql() . ' <= ?', [$maxPrice]);
             }
 
             if ($catalogClean) {
                 $query->whereRaw("LOWER(COALESCE(mfg_part_no, '')) <> 'shipping'")
                     ->whereRaw("LOWER(COALESCE(product_name, '')) NOT LIKE '%shipping%'")
-                    ->whereRaw("NOT ((COALESCE(base_price, 0) <= 0.05) AND (LOWER(COALESCE(product_name, '')) LIKE '%support%' OR LOWER(COALESCE(product_name, '')) LIKE '%warranty%' OR LOWER(COALESCE(product_name, '')) LIKE '%consulting%' OR LOWER(COALESCE(product_name, '')) LIKE '%implementation%' OR LOWER(COALESCE(product_name, '')) LIKE '%annual fee%' OR LOWER(COALESCE(product_name, '')) LIKE '%training%'))");
+                    ->whereRaw("NOT ((" . $this->preferredDbPriceSql() . " <= 0.05) AND (LOWER(COALESCE(product_name, '')) LIKE '%support%' OR LOWER(COALESCE(product_name, '')) LIKE '%warranty%' OR LOWER(COALESCE(product_name, '')) LIKE '%consulting%' OR LOWER(COALESCE(product_name, '')) LIKE '%implementation%' OR LOWER(COALESCE(product_name, '')) LIKE '%annual fee%' OR LOWER(COALESCE(product_name, '')) LIKE '%training%'))");
             }
 
             $this->applyProductTypeFilterToQuery($query, $productType);

@@ -29,6 +29,7 @@ return [
     */
     'client_id' => env('TDSYNNEX_CLIENT_ID'),
     'client_secret' => env('TDSYNNEX_CLIENT_SECRET'),
+    'environment' => env('TDSYNNEX_ENVIRONMENT', 'sandbox'),
 
     /*
     | API Endpoints

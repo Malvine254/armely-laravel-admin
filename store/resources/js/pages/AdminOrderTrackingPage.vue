@@ -2,17 +2,19 @@
   <AdminLayout>
     <template #title>Order Tracking</template>
 
+    <div class="admin-fit-page">
+
     <!-- Stats Summary -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
       <div class="bg-white rounded-xl shadow-lg border-0 p-5">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm text-gray-500">Processing</p>
-            <p class="text-2xl font-bold text-gray-900">{{ statusCounts.processing }}</p>
+            <p class="text-sm text-gray-500">Accepted</p>
+            <p class="text-2xl font-bold text-gray-900">{{ statusCounts.accepted }}</p>
           </div>
           <div class="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center">
             <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
         </div>
@@ -20,12 +22,12 @@
       <div class="bg-white rounded-xl shadow-lg border-0 p-5">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm text-gray-500">Confirmed</p>
-            <p class="text-2xl font-bold text-gray-900">{{ statusCounts.confirmed }}</p>
+            <p class="text-sm text-gray-500">Backordered</p>
+            <p class="text-2xl font-bold text-gray-900">{{ statusCounts.backordered }}</p>
           </div>
           <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
             <svg class="w-5 h-5 text-[#2F5597]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
         </div>
@@ -46,8 +48,8 @@
       <div class="bg-white rounded-xl shadow-lg border-0 p-5">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm text-gray-500">Delivered</p>
-            <p class="text-2xl font-bold text-gray-900">{{ statusCounts.delivered }}</p>
+            <p class="text-sm text-gray-500">Invoiced</p>
+            <p class="text-2xl font-bold text-gray-900">{{ statusCounts.invoiced }}</p>
           </div>
           <div class="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
             <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -79,10 +81,10 @@
             class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-[#2F5597]/30 focus:border-[#2F5597] text-gray-900"
           >
             <option value="">All Active</option>
-            <option value="processing">Processing</option>
-            <option value="confirmed">Confirmed</option>
+            <option value="accepted">Accepted</option>
+            <option value="backordered">Backordered</option>
             <option value="shipped">Shipped</option>
-            <option value="delivered">Delivered</option>
+            <option value="invoiced">Invoiced</option>
           </select>
         </div>
         <div class="flex items-end">
@@ -118,8 +120,8 @@
     </div>
 
     <!-- Orders Tracking Table -->
-    <div v-else-if="orders.length > 0" class="rounded-xl border-0 shadow-lg bg-white overflow-hidden">
-      <div class="overflow-x-auto">
+    <div v-else-if="orders.length > 0" class="admin-table-card rounded-xl border-0 shadow-lg bg-white overflow-hidden">
+      <div class="overflow-x-auto admin-table-scroll">
         <table class="w-full text-sm">
           <thead>
             <tr class="border-b border-gray-100" style="background: linear-gradient(135deg, #2F5597, #1e3a6b);">
@@ -244,7 +246,7 @@
       </div>
 
       <!-- Pagination -->
-      <div v-if="lastPage > 1" class="flex items-center justify-between px-6 py-4 border-t border-gray-100">
+      <div v-if="lastPage > 1" class="admin-table-pagination flex items-center justify-between px-6 py-4 border-t border-gray-100">
         <p class="text-sm text-gray-500">
           Showing page {{ currentPage }} of {{ lastPage }} ({{ totalOrders }} orders)
         </p>
@@ -273,7 +275,9 @@
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
       </svg>
       <h3 class="text-lg font-semibold text-gray-700 mb-2">No Trackable Orders</h3>
-      <p class="text-gray-500">No confirmed, shipped, or delivered orders found with the current filters.</p>
+      <p class="text-gray-500">No accepted, backordered, shipped, or invoiced orders found with the current filters.</p>
+    </div>
+
     </div>
 
     <!-- Order Detail Slide-Over -->
@@ -499,28 +503,41 @@ const loading = ref(true)
 const refreshing = ref(false)
 
 const statusCounts = computed(() => {
-  const counts = { processing: 0, confirmed: 0, shipped: 0, delivered: 0 }
+  const counts = { accepted: 0, backordered: 0, shipped: 0, invoiced: 0 }
   orders.value.forEach(o => {
-    if (counts[o.status] !== undefined) counts[o.status]++
+    const normalized = normalizeStatus(o.status)
+    if (counts[normalized] !== undefined) counts[normalized]++
   })
   return counts
 })
 
+const normalizeStatus = (status) => {
+  const raw = String(status || '').toLowerCase().trim()
+  const map = {
+    processing: 'accepted',
+    confirmed: 'accepted',
+    delivered: 'invoiced',
+    complete: 'invoiced',
+    completed: 'invoiced',
+  }
+  return map[raw] || raw
+}
+
 const orderTimeline = computed(() => {
   if (!selectedOrder.value) return []
-  const status = selectedOrder.value.status
+  const status = normalizeStatus(selectedOrder.value.status)
   const steps = [
-    { key: 'processing', label: 'Order Processing', date: formatDate(selectedOrder.value.created_at) },
-    { key: 'confirmed', label: 'Confirmed by Supplier', date: null },
+    { key: 'accepted', label: 'Accepted by Supplier', date: formatDate(selectedOrder.value.created_at) },
+    { key: 'backordered', label: 'Backordered', date: null },
     { key: 'shipped', label: 'Shipped', date: selectedOrder.value.shipped_at ? formatDate(selectedOrder.value.shipped_at) : null },
-    { key: 'delivered', label: 'Delivered', date: selectedOrder.value.delivered_at ? formatDate(selectedOrder.value.delivered_at) : null },
+    { key: 'invoiced', label: 'Invoiced / Complete', date: selectedOrder.value.delivered_at ? formatDate(selectedOrder.value.delivered_at) : null },
   ]
-  const statusOrder = ['processing', 'confirmed', 'shipped', 'delivered']
+  const statusOrder = ['accepted', 'backordered', 'shipped', 'invoiced']
   const currentIdx = statusOrder.indexOf(status)
   return steps.map((step, idx) => ({
     ...step,
-    completed: idx < currentIdx,
-    current: idx === currentIdx,
+    completed: currentIdx >= 0 && idx < currentIdx,
+    current: currentIdx >= 0 && idx === currentIdx,
   }))
 })
 
@@ -529,7 +546,7 @@ const fetchOrders = async () => {
   try {
     const params = {
       page: currentPage.value,
-      pageSize: 20,
+      pageSize: 10,
     }
     if (statusFilter.value) params.status = statusFilter.value
     if (searchQuery.value) params.search = searchQuery.value
@@ -584,12 +601,13 @@ const formatAmount = (amount) => {
 }
 
 const statusBadgeClass = (status) => {
+  const normalized = normalizeStatus(status)
   const base = 'px-2.5 py-1 rounded-full text-xs font-semibold inline-block'
-  switch (status) {
-    case 'processing': return `${base} bg-amber-100 text-amber-700`
-    case 'confirmed': return `${base} bg-blue-100 text-[#2F5597]`
+  switch (normalized) {
+    case 'accepted': return `${base} bg-blue-100 text-[#2F5597]`
+    case 'backordered': return `${base} bg-amber-100 text-amber-700`
     case 'shipped': return `${base} bg-indigo-100 text-indigo-700`
-    case 'delivered': return `${base} bg-emerald-100 text-emerald-700`
+    case 'invoiced': return `${base} bg-emerald-100 text-emerald-700`
     default: return `${base} bg-gray-100 text-gray-600`
   }
 }
@@ -609,3 +627,49 @@ onMounted(() => {
   fetchOrders()
 })
 </script>
+
+<style scoped>
+.admin-fit-page {
+  block-size: calc(100vh - 170px);
+  min-block-size: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.admin-fit-page > :not(.admin-table-card) {
+  flex-shrink: 0;
+}
+
+.admin-table-card {
+  min-block-size: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-table-scroll {
+  min-block-size: 0;
+  flex: 1;
+  overflow: auto;
+}
+
+.admin-table-pagination {
+  position: sticky;
+  inset-block-end: 0;
+  z-index: 5;
+  background: #ffffff;
+  flex-shrink: 0;
+}
+
+@media (max-width: 1023px) {
+  .admin-fit-page {
+    block-size: auto;
+    min-block-size: calc(100vh - 170px);
+  }
+
+  .admin-table-scroll {
+    max-block-size: 60vh;
+  }
+}
+</style>

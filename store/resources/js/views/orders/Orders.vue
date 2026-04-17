@@ -90,19 +90,19 @@
           <p class="text-sm text-gray-600">No active shipments yet. Once an order ships, tracking appears here.</p>
         </div>
 
-        <div v-else class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div v-else class="grid grid-cols-1 gap-4">
           <article
             v-for="shipment in liveShipments"
             :key="shipment.order_number"
-            class="rounded-xl border p-4"
-            style="border-color: #d9e6f7; background: linear-gradient(160deg, #ffffff 0%, #f8fbff 100%);"
+            class="group rounded-2xl border p-4 md:p-5 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg"
+            style="border-color: #d9e6f7; background: linear-gradient(170deg, #ffffff 0%, #f6faff 55%, #eef5ff 100%);"
           >
-            <div class="flex items-start justify-between gap-3 mb-3">
+            <div class="flex items-start justify-between gap-3 mb-4">
               <div>
                 <p class="text-xs uppercase tracking-wide text-gray-500">Order</p>
                 <p class="font-mono font-semibold text-gray-900">{{ shipment.order_number }}</p>
                 <p
-                  class="text-sm text-gray-800 mt-1 font-medium max-w-[280px] truncate"
+                  class="text-sm text-gray-800 mt-1 font-semibold max-w-[280px] leading-snug"
                   :title="shipment.primary_item_name || 'Item details unavailable'"
                 >
                   {{ truncateProductName(shipment.primary_item_name) }}
@@ -115,17 +115,51 @@
               </span>
             </div>
 
-            <div class="mb-3">
-              <div class="w-full rounded-full h-2 mb-1" style="background-color: #d9e6f7;">
-                <div class="h-2 rounded-full" style="background-color: #2F5597;" :style="{ inlineSize: shipment.progress + '%' }"></div>
+            <div class="mb-4 rounded-xl border px-3 py-2.5" style="border-color:#dbe8f8; background-color:#ffffffcc;">
+              <div class="flex items-center justify-between mb-1.5">
+                <p class="text-[11px] uppercase tracking-wide font-semibold text-gray-600">Progress</p>
+                <p class="text-xs font-bold" style="color:#2F5597;">{{ shipment.progress }}%</p>
+              </div>
+              <div class="w-full rounded-full h-2.5 mb-1" style="background-color: #d9e6f7;">
+                <div class="h-2.5 rounded-full" style="background: linear-gradient(90deg, #2F5597, #4a79c6);" :style="{ inlineSize: shipment.progress + '%' }"></div>
               </div>
               <p class="text-xs text-gray-600">{{ shipment.progress }}% complete</p>
             </div>
 
-            <div class="space-y-1 mb-3 text-xs text-gray-700">
-              <p><span class="font-semibold">Carrier:</span> {{ shipment.carrier ? shipment.carrier.toUpperCase() : 'TBD' }}</p>
-              <p><span class="font-semibold">Tracking:</span> {{ shipment.tracking_number || 'Pending assignment' }}</p>
-              <p><span class="font-semibold">ETA:</span> {{ shipment.estimated_delivery_at ? formatDate(shipment.estimated_delivery_at) : 'Awaiting update' }}</p>
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 mb-4 text-xs text-gray-700">
+              <div class="lg:col-span-7 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div class="rounded-lg px-3 py-2 border" style="border-color:#e2e8f0; background-color:#fff;">
+                  <p class="text-[10px] uppercase tracking-wide text-gray-500">Carrier</p>
+                  <p class="mt-0.5 font-semibold text-gray-900 truncate">{{ shipment.carrier ? shipment.carrier.toUpperCase() : 'Awaiting assignment' }}</p>
+                </div>
+                <div class="rounded-lg px-3 py-2 border" style="border-color:#e2e8f0; background-color:#fff;">
+                  <p class="text-[10px] uppercase tracking-wide text-gray-500">Tracking</p>
+                  <p class="mt-0.5 font-mono text-gray-900 truncate">{{ shipment.tracking_number || 'Pending assignment' }}</p>
+                </div>
+                <div class="rounded-lg px-3 py-2 border" style="border-color:#e2e8f0; background-color:#fff;">
+                  <p class="text-[10px] uppercase tracking-wide text-gray-500">ETA</p>
+                  <p class="mt-0.5 font-semibold text-gray-900 truncate">{{ shipment.estimated_delivery_at ? formatDate(shipment.estimated_delivery_at) : 'Awaiting update' }}</p>
+                </div>
+              </div>
+
+              <div class="lg:col-span-5 rounded-xl border px-3 py-3" style="border-color:#e2e8f0; background-color:#fff;">
+                <p class="text-[11px] font-semibold text-gray-700 mb-2">Timeline</p>
+                <div class="flex items-start">
+                  <template v-for="(milestone, idx) in shipment.milestones" :key="milestone.label">
+                    <div v-if="idx > 0" class="h-px w-5 mt-2.5"
+                      :class="milestone.done ? 'bg-green-400' : 'bg-gray-300'"
+                    ></div>
+                    <div class="min-w-[56px] flex flex-col items-center text-center">
+                      <span class="w-5 h-5 rounded-full border-2"
+                        :class="milestone.done ? 'bg-green-500 border-green-500' : 'bg-white border-gray-300'"
+                      ></span>
+                      <span class="mt-1 text-[10px] leading-tight"
+                        :class="milestone.done ? 'text-gray-800 font-semibold' : 'text-gray-400'"
+                      >{{ milestone.label }}</span>
+                    </div>
+                  </template>
+                </div>
+              </div>
             </div>
 
             <div
@@ -135,16 +169,6 @@
               <p class="text-xs font-medium text-blue-800">
                 Payment confirmed. Tracking will appear once the carrier dispatch scan is available.
               </p>
-            </div>
-
-            <div class="mb-3">
-              <p class="text-xs font-semibold text-gray-700 mb-2">Timeline</p>
-              <ul class="space-y-1.5">
-                <li v-for="milestone in shipment.milestones" :key="milestone.label" class="flex items-center gap-2 text-xs">
-                  <span class="w-2 h-2 rounded-full" :class="milestone.done ? 'bg-green-500' : 'bg-gray-300'"></span>
-                  <span :class="milestone.done ? 'text-gray-900 font-medium' : 'text-gray-500'">{{ milestone.label }}</span>
-                </li>
-              </ul>
             </div>
 
             <button
@@ -172,10 +196,10 @@
             <select v-model="selectedStatus" class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-0 transition duration-200" style="focus:ring-color: #2F5597; border-color: #e5e7eb;">
               <option value="">All Statuses</option>
               <option value="pending">Pending</option>
-              <option value="processing">Processing</option>
-              <option value="confirmed">Confirmed</option>
+              <option value="accepted">Accepted</option>
+              <option value="backordered">Backordered</option>
               <option value="shipped">Shipped</option>
-              <option value="delivered">Delivered</option>
+              <option value="invoiced">Invoiced / Complete</option>
               <option value="cancelled">Cancelled</option>
             </select>
           </div>
@@ -245,10 +269,9 @@
             <thead>
               <tr class="border-b" style="background: linear-gradient(90deg, #f7fbff, #edf4fc); border-color: #d9e6f7;">
                 <th class="px-5 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Order Number</th>
-                <th class="px-5 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Status</th>
                 <th class="px-5 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Created</th>
                 <th class="px-5 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Amount</th>
-                <th class="px-5 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Progress</th>
+                <th class="px-5 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Journey</th>
                 <th class="px-5 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Actions</th>
               </tr>
             </thead>
@@ -281,22 +304,47 @@
                   </p>
                   <p v-if="order.tracking_number" class="text-xs text-gray-500 mt-1">Tracking: {{ order.tracking_number }}</p>
                 </td>
-                <td class="px-5 py-4 align-top">
-                  <span :class="getStatusBadge(order.status)" class="inline-flex px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap">
-                    {{ formatStatus(order.status) }}
-                  </span>
-                </td>
                 <td class="px-5 py-4 text-sm text-gray-700 align-top">{{ formatDate(order.created_at) }}</td>
                 <td class="px-5 py-4 align-top">
                   <p class="text-sm font-bold text-gray-900">{{ formatCurrency(order.total_amount) }}</p>
                   <p v-if="order.estimated_delivery" class="text-xs text-gray-500 mt-1">ETA: {{ formatDate(order.estimated_delivery) }}</p>
                 </td>
                 <td class="px-5 py-4 align-top">
-                  <div class="w-36">
-                    <div class="w-full rounded-full h-2 mb-1" style="background-color: #d9e6f7;">
-                      <div class="h-2 rounded-full" style="background-color: #2F5597;" :style="{ inlineSize: getStatusProgress(order.status) + '%' }"></div>
-                    </div>
-                    <p class="text-xs text-gray-600">{{ getStatusProgress(order.status) }}%</p>
+                  <!-- Horizontal journey stepper with labels -->
+                  <div class="flex items-start gap-0">
+                    <template v-for="(step, idx) in statusSteps" :key="step.key">
+                      <!-- connector line -->
+                      <div v-if="idx > 0" class="h-px w-5 flex-shrink-0 mt-3.5 transition-colors duration-300"
+                        :class="['completed','current'].includes(getStepState(order.status, step.key)) ? 'bg-[#2F5597]' : 'bg-gray-200'"
+                      ></div>
+                      <!-- step node + label -->
+                      <div class="flex flex-col items-center" style="min-width:52px;">
+                        <div class="w-7 h-7 rounded-full flex items-center justify-center transition-all duration-300 shadow-sm"
+                          :class="{
+                            'bg-[#2F5597] text-white':                               getStepState(order.status, step.key) === 'completed',
+                            'bg-[#2F5597] text-white ring-2 ring-blue-200 ring-offset-1': getStepState(order.status, step.key) === 'current',
+                            'bg-gray-100 text-gray-400':                             getStepState(order.status, step.key) === 'upcoming',
+                            'bg-red-100 text-red-500':                               getStepState(order.status, step.key) === 'cancelled',
+                            'bg-gray-50  text-gray-300':                             getStepState(order.status, step.key) === 'disabled',
+                          }"
+                        >
+                          <svg v-if="step.key === 'pending'" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                          <svg v-else-if="step.key === 'accepted'" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                          <svg v-else-if="step.key === 'backordered'" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                          <svg v-else-if="step.key === 'shipped'" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"/></svg>
+                          <svg v-else-if="step.key === 'invoiced'" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                        </div>
+                        <span class="mt-1 text-center leading-tight"
+                          :class="{
+                            'text-[#2F5597] font-semibold': getStepState(order.status, step.key) === 'current',
+                            'text-gray-700 font-medium':    getStepState(order.status, step.key) === 'completed',
+                            'text-gray-400':                ['upcoming','disabled'].includes(getStepState(order.status, step.key)),
+                            'text-red-500 font-semibold':   getStepState(order.status, step.key) === 'cancelled',
+                          }"
+                          style="font-size:9px; max-width:52px; word-break:break-word;"
+                        >{{ step.label }}</span>
+                      </div>
+                    </template>
                   </div>
                 </td>
                 <td class="px-5 py-4 align-top">
@@ -319,17 +367,6 @@
                       @mouseleave="$event.target.style.backgroundColor='#2F5597'"
                     >
                       Pay via Invoice
-                    </button>
-                    <button
-                      v-if="canCancelOrder(order)"
-                      @click="cancelOrder(order)"
-                      :disabled="processingOrderNumber === order.order_number"
-                      class="px-3 py-1.5 text-xs rounded-md font-semibold transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                      style="color: #e74c3c; border: 1px solid #e74c3c;"
-                      @mouseenter="$event.target.style.backgroundColor='#fadbd8'"
-                      @mouseleave="$event.target.style.backgroundColor='transparent'"
-                    >
-                      {{ processingOrderNumber === order.order_number ? 'Cancelling...' : 'Cancel' }}
                     </button>
                   </div>
                 </td>
@@ -387,18 +424,67 @@
 
         <!-- Modal Body -->
         <div class="px-6 py-8">
-          <!-- Status Section -->
+          <!-- Status Section - vertical timeline tree -->
           <div class="mb-8 pb-8 border-b border-gray-200">
-            <div class="flex items-center justify-between mb-4">
-              <h3 class="text-lg font-bold text-gray-900">Order Status</h3>
+            <div class="flex items-center justify-between mb-6">
+              <h3 class="text-lg font-bold text-gray-900">Order Journey</h3>
               <span :class="getStatusBadge(selectedOrder.status)" class="px-4 py-2 rounded-full text-sm font-semibold">
                 {{ formatStatus(selectedOrder.status) }}
               </span>
             </div>
-            <div class="w-full bg-gray-200 rounded-full h-2 mb-2">
-              <div class="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full" :style="{ inlineSize: getStatusProgress(selectedOrder.status) + '%' }"></div>
-            </div>
-            <p class="text-xs text-gray-600">{{ getStatusProgress(selectedOrder.status) }}% Complete</p>
+            <!-- vertical timeline -->
+            <ol class="relative ml-1">
+              <li v-for="(step, idx) in statusSteps" :key="step.key" class="relative flex gap-4 pb-7 last:pb-0">
+                <!-- vertical connector -->
+                <div v-if="idx < statusSteps.length - 1"
+                  class="absolute left-[15px] top-8 bottom-0 w-0.5 transition-colors duration-300"
+                  :class="['completed','current'].includes(getStepState(selectedOrder.status, statusSteps[idx + 1].key)) ? 'bg-[#2F5597]' : 'bg-gray-200'"
+                ></div>
+                <!-- icon node -->
+                <div class="relative z-10 flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center shadow-sm transition-all duration-300"
+                  :class="{
+                    'bg-[#2F5597] text-white':                                 getStepState(selectedOrder.status, step.key) === 'completed',
+                    'bg-[#2F5597] text-white ring-4 ring-blue-100':            getStepState(selectedOrder.status, step.key) === 'current',
+                    'bg-gray-100  text-gray-400':                              getStepState(selectedOrder.status, step.key) === 'upcoming',
+                    'bg-red-100   text-red-500':                               getStepState(selectedOrder.status, step.key) === 'cancelled',
+                    'bg-gray-50   text-gray-300':                              getStepState(selectedOrder.status, step.key) === 'disabled',
+                  }"
+                >
+                  <!-- check for completed -->
+                  <svg v-if="getStepState(selectedOrder.status, step.key) === 'completed'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                  <!-- x for cancelled -->
+                  <svg v-else-if="getStepState(selectedOrder.status, step.key) === 'cancelled'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                  <!-- individual icons for current/upcoming/disabled -->
+                  <template v-else>
+                    <svg v-if="step.key === 'pending'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                    <svg v-else-if="step.key === 'accepted'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <svg v-else-if="step.key === 'backordered'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <svg v-else-if="step.key === 'shipped'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"/></svg>
+                    <svg v-else-if="step.key === 'invoiced'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                  </template>
+                </div>
+                <!-- text -->
+                <div class="flex-1 min-w-0 pt-0.5">
+                  <p class="text-sm font-semibold leading-tight"
+                    :class="{
+                      'text-[#2F5597]': getStepState(selectedOrder.status, step.key) === 'current',
+                      'text-gray-900':  getStepState(selectedOrder.status, step.key) === 'completed',
+                      'text-gray-400':  ['upcoming','disabled'].includes(getStepState(selectedOrder.status, step.key)),
+                      'text-red-600':   getStepState(selectedOrder.status, step.key) === 'cancelled',
+                    }"
+                  >{{ step.label }}
+                    <span v-if="getStepState(selectedOrder.status, step.key) === 'current'" class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-[#2F5597] uppercase tracking-wide">Current</span>
+                  </p>
+                  <p class="text-xs mt-0.5"
+                    :class="{
+                      'text-gray-600': ['completed','current'].includes(getStepState(selectedOrder.status, step.key)),
+                      'text-gray-300': ['upcoming','disabled'].includes(getStepState(selectedOrder.status, step.key)),
+                      'text-red-400':  getStepState(selectedOrder.status, step.key) === 'cancelled',
+                    }"
+                  >{{ step.desc }}</p>
+                </div>
+              </li>
+            </ol>
           </div>
 
           <!-- Order Information Grid -->
@@ -435,17 +521,6 @@
               @mouseleave="$event.target.style.backgroundColor='#2F5597'"
             >
               Pay via Invoice
-            </button>
-            <button
-              v-if="canCancelOrder(selectedOrder)"
-              @click="cancelOrder(selectedOrder)"
-              :disabled="processingOrderNumber === selectedOrder.order_number"
-              class="flex-1 px-4 py-3 text-white rounded-lg font-semibold transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              style="background-color: #e74c3c;"
-              @mouseenter="$event.target.style.backgroundColor='#c0392b'"
-              @mouseleave="$event.target.style.backgroundColor='#e74c3c'"
-            >
-              {{ processingOrderNumber === selectedOrder.order_number ? 'Cancelling...' : 'Cancel Order' }}
             </button>
           </div>
         </div>
@@ -657,12 +732,17 @@ export default {
 
     const getStatusBadge = (status) => {
       const badges = {
-        pending: 'bg-yellow-100 text-yellow-800',
-        processing: 'bg-orange-100 text-orange-800',
-        confirmed: 'bg-blue-100 text-blue-800',
-        shipped: 'bg-indigo-100 text-indigo-800',
-        delivered: 'bg-green-100 text-green-800',
-        cancelled: 'bg-red-100 text-red-800',
+        pending:     'bg-yellow-100 text-yellow-800',
+        accepted:    'bg-blue-100 text-blue-800',
+        // legacy local aliases
+        processing:  'bg-blue-100 text-blue-800',
+        confirmed:   'bg-blue-100 text-blue-800',
+        backordered: 'bg-orange-100 text-orange-800',
+        shipped:     'bg-indigo-100 text-indigo-800',
+        invoiced:    'bg-green-100 text-green-800',
+        // legacy
+        delivered:   'bg-green-100 text-green-800',
+        cancelled:   'bg-red-100 text-red-800',
       };
       return badges[status] || 'bg-gray-100 text-gray-800';
     };
@@ -693,6 +773,35 @@ export default {
         cancelled: 0,
       };
       return statusProgress[status] || 0;
+    };
+
+    // TD SYNNEX canonical order status flow (no local "processing" or "confirmed")
+    const statusSteps = [
+      { key: 'pending',     label: 'Order Placed',        desc: 'Your order has been submitted'              },
+      { key: 'accepted',    label: 'Accepted by Supplier', desc: 'TD SYNNEX has accepted your order'          },
+      { key: 'backordered', label: 'Backordered',          desc: 'Item(s) awaiting stock availability'        },
+      { key: 'shipped',     label: 'Shipped',              desc: 'Your order is on the way'                   },
+      { key: 'invoiced',    label: 'Invoiced / Complete',  desc: 'Order fulfilled and invoice issued'         },
+    ];
+    // Old local statuses mapped to the canonical step keys for display
+    const _statusAlias = {
+      processing: 'accepted', confirmed: 'accepted', delivered: 'invoiced',
+    };
+    const _stepOrder = ['pending', 'accepted', 'backordered', 'shipped', 'invoiced'];
+
+    const resolveStatus = (s) => _statusAlias[s] ?? s;
+
+    const getStepState = (orderStatus, stepKey) => {
+      const resolved = resolveStatus(orderStatus);
+      if (resolved === 'cancelled') {
+        return stepKey === 'pending' ? 'cancelled' : 'disabled';
+      }
+      const currentIdx = _stepOrder.indexOf(resolved);
+      const stepIdx    = _stepOrder.indexOf(stepKey);
+      if (currentIdx === -1) return 'upcoming';
+      if (stepIdx < currentIdx)  return 'completed';
+      if (stepIdx === currentIdx) return 'current';
+      return 'upcoming';
     };
 
     const liveStatusBadge = (status) => {
@@ -842,6 +951,9 @@ export default {
       openTracking,
       hasPayableInvoice,
       payViaInvoice,
+      statusSteps,
+      getStepState,
+      resolveStatus,
     };
   },
 };
