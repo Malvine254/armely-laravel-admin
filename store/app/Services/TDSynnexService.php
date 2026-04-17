@@ -607,9 +607,11 @@ class TDSynnexService
 
     public function hasPriceAvailabilityDatabaseCache(): bool
     {
-        return Product::query()
-            ->where('vendor_id', 'TD SYNNEX')
-            ->exists();
+        return \Illuminate\Support\Facades\Cache::remember(
+            'pa_db_cache_exists',
+            600,
+            fn () => Product::query()->where('vendor_id', 'TD SYNNEX')->exists()
+        );
     }
 
     /**

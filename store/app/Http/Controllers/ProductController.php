@@ -120,18 +120,6 @@ class ProductController extends Controller
             // Optional catalog-only cleanup to hide obviously irrelevant line items.
             $catalogClean = filter_var($request->query('catalog_clean', false), FILTER_VALIDATE_BOOLEAN);
 
-            Log::info('ProductController.index called', [
-                'vendor' => $vendorId,
-                'vendors' => $vendors,
-                'page' => $pageNo,
-                'per_page' => $pageSize,
-                'search' => $search,
-                'product_type' => $productType,
-                'use_db_cache' => $useDbCache,
-                'catalog_clean' => $catalogClean,
-                'query_params' => $request->query()
-            ]);
-
             if ($this->tdsynnexService->usesPriceAvailabilityAsProductSource()) {
                 $hasPriceAvailabilityDbCache = $this->tdsynnexService->hasPriceAvailabilityDatabaseCache();
                 $shouldFallbackToStreamOneBrowse = !$hasPriceAvailabilityDbCache && empty($search);
@@ -633,62 +621,32 @@ class ProductController extends Controller
         string $productType = 'hardware',
         string $category = ''
     ): array {
-        $cacheableDefaultBrowse = $curatedItMix
-            && empty($search)
-            && empty($selectedVendors)
-            && empty($billingModels)
-            && (int) $pageNo > 0
-            && (int) $pageSize > 0;
+        // All browse pages (default and filtered) are cached.
+        // Search queries use a shorter TTL since results should feel responsive.
+        $isSearch = !empty($search);
+        $ttl = $isSearch ? 120 : ($curatedItMix && empty($selectedVendors) && empty($billingModels) ? 1800 : 600);
 
-        if ($cacheableDefaultBrowse) {
-            $cacheKey = sprintf(
-                'pa_default_browse_page:%s',
-                md5(json_encode([
-                        'paging_strategy' => 'estimated_v2',
-                        'page' => (int) $pageNo,
-                        'page_size' => (int) $pageSize,
-                        'hide_zero' => $hideZero,
-                        'min_price' => $minPrice,
-                        'max_price' => $maxPrice,
-                        'catalog_clean' => $catalogClean,
-                        'product_type' => $productType,
-                        'category' => $category,
-                        'hardware_only' => (bool) config('tdsynnex.catalog.hardware_only', true),
-                ]))
-            );
+        $cacheKey = sprintf(
+            'pa_browse_page:%s',
+            md5(json_encode([
+                'v' => 3,
+                'page' => (int) $pageNo,
+                'page_size' => (int) $pageSize,
+                'hide_zero' => $hideZero,
+                'min_price' => $minPrice,
+                'max_price' => $maxPrice,
+                'catalog_clean' => $catalogClean,
+                'product_type' => $productType,
+                'category' => $category,
+                'curated_it_mix' => $curatedItMix,
+                'selected_vendors' => $selectedVendors,
+                'billing_models' => $billingModels,
+                'search' => $search,
+                'hardware_only' => (bool) config('tdsynnex.catalog.hardware_only', true),
+            ]))
+        );
 
-            return Cache::remember($cacheKey, 300, function () use (
-                $search,
-                $minPrice,
-                $maxPrice,
-                $billingModels,
-                $hideZero,
-                $pageNo,
-                $pageSize,
-                $selectedVendors,
-                $catalogClean,
-                $curatedItMix
-                ,$productType
-                ,$category
-            ) {
-                return $this->fetchPriceAvailabilityPageFromDatabaseUncached(
-                    $search,
-                    $minPrice,
-                    $maxPrice,
-                    $billingModels,
-                    $hideZero,
-                    $pageNo,
-                    $pageSize,
-                    $selectedVendors,
-                    $catalogClean,
-                    $curatedItMix,
-                    $productType,
-                    $category,
-                );
-            });
-        }
-
-        return $this->fetchPriceAvailabilityPageFromDatabaseUncached(
+        return Cache::remember($cacheKey, $ttl, function () use (
             $search,
             $minPrice,
             $maxPrice,
@@ -700,8 +658,24 @@ class ProductController extends Controller
             $catalogClean,
             $curatedItMix,
             $productType,
-            $category,
-        );
+            $category
+        ) {
+            return $this->fetchPriceAvailabilityPageFromDatabaseUncached(
+                $search,
+                $minPrice,
+                $maxPrice,
+                $billingModels,
+                $hideZero,
+                $pageNo,
+                $pageSize,
+                $selectedVendors,
+                $catalogClean,
+                $curatedItMix,
+                $productType,
+                $category,
+            );
+        });
+
     }
 
     private function fetchPriceAvailabilityPageFromDatabaseUncached(
