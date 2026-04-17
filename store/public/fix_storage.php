@@ -52,6 +52,13 @@ $actions = [
             ['name' => 'migrate', 'params' => ['--force' => true]],
         ],
     ],
+    'seed_menu_categories' => [
+      'label' => 'Seed Menu Categories',
+      'help' => 'Run CategorySeeder to populate categories menu data.',
+      'commands' => [
+        ['name' => 'db:seed', 'params' => ['--class' => 'CategorySeeder', '--force' => true]],
+      ],
+    ],
     'full_rebuild' => [
         'label' => 'Full Production Rebuild',
         'help' => 'Clear caches, relink storage, run migrations, then rebuild caches.',
