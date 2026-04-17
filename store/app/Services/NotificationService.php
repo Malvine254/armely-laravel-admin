@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\AppSetting;
 use App\Models\Quote;
 use App\Models\Order;
 use App\Models\Invoice;
@@ -12,12 +13,21 @@ class NotificationService
 {
     public function __construct(private AzureGraphMailService $mailer) {}
 
+    private function emailNotificationsEnabled(string $key, bool $default = true): bool
+    {
+        return filter_var((string) AppSetting::getValue($key, $default), FILTER_VALIDATE_BOOL);
+    }
+
     /**
      * Send quote created notification to admin
      */
     public function sendQuoteCreatedNotification(Quote $quote): void
     {
         try {
+            if (!$this->emailNotificationsEnabled('notifications.email.new_quotes', true)) {
+                return;
+            }
+
             $admins = User::where('role', 'admin')
                 ->where('status', 'active')
                 ->get();
@@ -42,6 +52,10 @@ class NotificationService
     public function sendQuoteRevisionNotification(Quote $quote, string $revisedFromQuoteId): void
     {
         try {
+            if (!$this->emailNotificationsEnabled('notifications.email.new_quotes', true)) {
+                return;
+            }
+
             $admins = User::where('role', 'admin')
                 ->where('status', 'active')
                 ->get();
@@ -94,6 +108,10 @@ class NotificationService
     public function sendOrderConfirmationNotification(Order $order): void
     {
         try {
+            if (!$this->emailNotificationsEnabled('notifications.email.new_orders', true)) {
+                return;
+            }
+
             $this->mailer->sendOrderConfirmationEmail($order);
 
             Log::info("Order confirmation notification sent to user {$order->user_id}");
@@ -108,6 +126,10 @@ class NotificationService
     public function sendOrderShippedNotification(Order $order): void
     {
         try {
+            if (!$this->emailNotificationsEnabled('notifications.email.new_orders', true)) {
+                return;
+            }
+
             $this->mailer->sendOrderShippedEmail($order);
 
             Log::info("Order shipped notification sent to user {$order->user_id}");
