@@ -114,16 +114,17 @@ class AuthController extends Controller
             }
         }
 
+        if ($baseUrl === '') {
+            // Prefer configured app URL to keep subpath hosting (for example /store).
+            $baseUrl = rtrim((string) config('app.url'), '/');
+        }
+
         try {
             if ($baseUrl === '' && request()) {
                 $baseUrl = rtrim((string) request()->getSchemeAndHttpHost(), '/');
             }
         } catch (\Throwable $e) {
             $baseUrl = '';
-        }
-
-        if ($baseUrl === '') {
-            $baseUrl = rtrim((string) config('app.url'), '/');
         }
 
         return rtrim($baseUrl, '/') . '/' . $relativePublicPath . $version;
