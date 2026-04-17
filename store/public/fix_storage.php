@@ -59,6 +59,18 @@ $actions = [
         ['name' => 'db:seed', 'params' => ['--class' => 'CategorySeeder', '--force' => true]],
       ],
     ],
+    'reindex_products' => [
+        'label' => 'Re-index Products',
+        'help' => 'Backfill category_segment and is_hardware for all rows, then clear all browse caches.',
+        'commands' => [],
+    ],
+    'price_sync' => [
+        'label' => 'Price & Catalog Sync',
+        'help' => 'Run TD SYNNEX PriceAvailability catalog sync (queued — requires queue worker running).',
+        'commands' => [
+            ['name' => 'tdsynnex:sync-priceavailability-products', 'params' => []],
+        ],
+    ],
     'full_rebuild' => [
         'label' => 'Full Production Rebuild',
         'help' => 'Clear caches, relink storage, run migrations, then rebuild caches.',
@@ -197,6 +209,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ...$buildLines,
             ]),
         ];
+    } elseif ($selectedAction === 'reindex_products') {
+        try {
+            $job = new \App\Jobs\ReindexProductsJob(true);
+            $job->handle(app(\App\Services\CatalogOperationStateService::class));
+            $results[] = [
+                'command' => 'reindex_products',
+                'status' => 'OK',
+                'output' => 'Re-index complete. category_segment and is_hardware backfilled, all browse caches cleared.',
+            ];
+        } catch (\Throwable $e) {
+            $results[] = [
+                'command' => 'reindex_products',
+                'status' => 'ERROR',
+                'output' => $e->getMessage(),
+            ];
+        }
     } else {
         foreach ((array) ($actions[$selectedAction]['commands'] ?? []) as $commandDef) {
             $commandName = (string) ($commandDef['name'] ?? '');

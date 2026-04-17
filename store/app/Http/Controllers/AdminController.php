@@ -16,6 +16,7 @@ use App\Services\CatalogOperationStateService;
 use App\Services\EnvironmentSettingsService;
 use App\Services\TDSynnexService;
 use App\Jobs\SyncPriceAvailabilityCatalogJob;
+use App\Jobs\ReindexProductsJob;
 use App\Models\Message;
 use App\Models\Activity;
 use App\Exceptions\TDSynnexApiException;
@@ -3086,7 +3087,7 @@ class AdminController extends Controller
             }
 
             $validated = $request->validate([
-                'action' => 'required|string|in:sync_catalog,enrich_images,download_images',
+                'action' => 'required|string|in:sync_catalog,enrich_images,download_images,reindex_products',
             ]);
 
             $action = (string) $validated['action'];
@@ -3109,6 +3110,18 @@ class AdminController extends Controller
                 $message = 'Image download queued in background (chunk=1, limit=100) with live per-item output.';
                 $stateService->start($action, (int) $user->id, $message);
                 DownloadProductImagesJob::dispatch(100, 1);
+            }
+
+            if ($action === 'reindex_products') {
+                $message = 'Re-indexing products inline — backfilling category_segment, is_hardware, clearing browse caches…';
+                $stateService->start($action, (int) $user->id, $message);
+
+                // Run inline (no queue needed — pure DB + cache work)
+                $job = new ReindexProductsJob(true);
+                $job->handle(app(CatalogOperationStateService::class));
+
+                $finalState = $stateService->get();
+                $message = $finalState['message'] ?? 'Re-index complete.';
             }
 
             return response()->json([

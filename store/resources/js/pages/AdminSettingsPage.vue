@@ -516,7 +516,7 @@
           </button>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-4">
           <div class="rounded-lg border border-gray-200 bg-gray-50 p-5">
             <h4 class="text-gray-900 font-semibold">Sync Catalog Now</h4>
             <p class="mt-2 text-sm text-gray-500">Pull the latest TD SYNNEX catalog into the local products table now.</p>
@@ -550,6 +550,18 @@
               class="mt-4 w-full px-4 py-2 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-medium transition disabled:opacity-50"
             >
               <i class="fas fa-download mr-2"></i>Download Images
+            </button>
+          </div>
+
+          <div class="rounded-lg border border-amber-200 bg-amber-50 p-5">
+            <h4 class="text-gray-900 font-semibold">Re-index Products</h4>
+            <p class="mt-2 text-sm text-gray-500">Backfill <code class="bg-amber-100 px-1 rounded text-xs">category_segment</code> and <code class="bg-amber-100 px-1 rounded text-xs">is_hardware</code> for all rows, then clear all browse caches for instant fast loads.</p>
+            <button
+              @click="runCatalogOperation('reindex_products')"
+              :disabled="catalogActionLoading"
+              class="mt-4 w-full px-4 py-2 rounded-lg bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white font-medium transition disabled:opacity-50"
+            >
+              <i class="fas fa-bolt mr-2"></i>Re-index &amp; Clear Cache
             </button>
           </div>
         </div>
