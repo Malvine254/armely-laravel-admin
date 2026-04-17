@@ -260,13 +260,14 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCartStore } from '../stores/cartStore'
 import { useFavoritesStore } from '../stores/favoritesStore'
 import { useAuthStore } from '../stores/authStore'
 import { useToastStore } from '../stores/toastStore'
 import { buildStoreUrl } from '../services/runtimeConfig'
+import api from '../services/api'
 
 const router = useRouter()
 const cartStore = useCartStore()
@@ -279,56 +280,37 @@ const moreCategoriesOpen = ref(false)
 const moreCategoryDropdownOpen = ref(null)
 const mobileProductsOpen = ref(false)
 
-const productCategories = [
-  { name: 'IT Hardware & Telecom', value: 'IT Hardware & Telecom' },
-  { name: 'Software & IT Services', value: 'Software & IT Services' },
-  { name: 'Power & UPS', value: 'Power & UPS' },
-  { name: 'Printing & Imaging', value: 'Printing & Imaging' },
-  { name: 'Consumer Electronics', value: 'Consumer Electronics' },
-  { name: 'Security Equipment', value: 'Security Equipment' },
-]
+const productCategories = ref([])
 
-const primaryCategories = computed(() => productCategories.slice(0, 3))
-const overflowCategories = computed(() => productCategories.slice(3))
+const primaryCategories = computed(() => productCategories.value.slice(0, 3))
+const overflowCategories = computed(() => productCategories.value.slice(3))
 
-const categoryBrandsMap = {
-  'IT Hardware & Telecom': [
-    { label: 'Cisco', value: 'CISCO' },
-    { label: 'HP', value: 'HP' },
-    { label: 'Dell', value: 'DELL' },
-    { label: 'Lenovo', value: 'LENOVO' },
-  ],
-  'Software & IT Services': [
-    { label: 'Microsoft', value: 'MICROSOFT' },
-    { label: 'Veeam', value: 'VEEAM SOFTWARE CORPORATION' },
-    { label: 'Cisco', value: 'CISCO' },
-    { label: 'Fortinet', value: 'FORTINET INC.' },
-  ],
-  'Power & UPS': [
-    { label: 'APC by Schneider', value: 'APC BY SCHNEIDER ELECTRIC' },
-    { label: 'Eaton', value: 'EATON' },
-    { label: 'Vertiv', value: 'VERTIV' },
-    { label: 'CyberPower', value: 'CYBERPOWER SYSTEMS (USA), INC.' },
-  ],
-  'Printing & Imaging': [
-    { label: 'HP', value: 'HP' },
-    { label: 'Lexmark', value: 'LEXMARK' },
-    { label: 'Epson', value: 'EPSON' },
-    { label: 'Canon', value: 'CANON' },
-  ],
-  'Consumer Electronics': [
-    { label: 'Samsung', value: 'SAMSUNG' },
-    { label: 'Sony', value: 'SONY' },
-    { label: 'Logitech', value: 'LOGITECH' },
-    { label: 'Panasonic', value: 'PANASONIC' },
-  ],
-  'Security Equipment': [
-    { label: 'Cisco', value: 'CISCO' },
-    { label: 'Fortinet', value: 'FORTINET INC.' },
-    { label: 'Barracuda', value: 'BARRACUDA NETWORKS' },
-    { label: 'WatchGuard', value: 'WATCHGUARD TECHNOLOGIES' },
-  ],
+const categoryBrandsMap = computed(() => {
+  const map = {}
+  for (const cat of productCategories.value) {
+    map[cat.name] = cat.brands || []
+  }
+  return map
+})
+
+const fetchMenuCategories = async () => {
+  try {
+    const { data } = await api.get('/menu-categories')
+    if (data.success && Array.isArray(data.data)) {
+      productCategories.value = data.data.map(cat => ({
+        name: cat.name,
+        value: cat.name,
+        brands: cat.brands || [],
+      }))
+    }
+  } catch (e) {
+    // Silently fall back — navbar will just show no categories
+  }
 }
+
+onMounted(() => {
+  fetchMenuCategories()
+})
 
 const logoCandidates = (() => {
   const relativePath = 'images/logo/armely-store-logo.png'

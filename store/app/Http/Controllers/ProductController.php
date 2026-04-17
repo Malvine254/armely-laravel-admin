@@ -1574,6 +1574,56 @@ class ProductController extends Controller
     }
 
     /**
+     * Return the category tree for the store navbar.
+     * Top-level categories with their brand children, pulled from the categories table.
+     * Cached for 1 hour.
+     */
+    public function menuCategories(): JsonResponse
+    {
+        try {
+            $data = Cache::remember('menu_categories', 3600, function () {
+                return \App\Models\Category::whereNull('parent_id')
+                    ->where('is_active', true)
+                    ->where('show_in_menu', true)
+                    ->orderBy('sort_order')
+                    ->with(['children' => function ($q) {
+                        $q->where('is_active', true)
+                          ->where('show_in_menu', true)
+                          ->orderBy('sort_order');
+                    }])
+                    ->get()
+                    ->map(function ($cat) {
+                        return [
+                            'id'           => $cat->id,
+                            'name'         => $cat->name,
+                            'slug'         => $cat->slug,
+                            'segment_code' => $cat->segment_code,
+                            'brands'       => $cat->children->map(function ($brand) {
+                                return [
+                                    'id'    => $brand->id,
+                                    'label' => $brand->name,
+                                    'value' => $brand->description, // manufacturer filter value
+                                    'slug'  => $brand->slug,
+                                ];
+                            })->values()->all(),
+                        ];
+                    })
+                    ->all();
+            });
+
+            return response()->json([
+                'success' => true,
+                'data'    => $data,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to load menu categories',
+            ], 500);
+        }
+    }
+
+    /**
      * Return category group counts based on keyword matching against product_name + description.
      * Results are cached for 1 hour since the keyword definitions are static.
      */
