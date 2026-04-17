@@ -42,8 +42,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->job(\App\Jobs\SyncProductPricesJob::class)
             ->dailyAt('00:00')
             ->name('sync-product-prices')
-            ->withoutOverlapping()
-            ->runInBackground();
+            ->withoutOverlapping();
 
         $schedule->job(new \App\Jobs\SyncPriceAvailabilityCatalogJob(true), 'products-sync', 'database')
             ->hourly()
