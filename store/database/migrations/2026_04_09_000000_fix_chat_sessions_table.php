@@ -8,10 +8,13 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // Drop existing table if it exists
-        Schema::dropIfExists('chat_sessions');
+        // This migration should be safe in production rebuild flows.
+        // If the table already exists, avoid destructive drops that can fail on FK constraints.
+        if (Schema::hasTable('chat_sessions')) {
+            return;
+        }
 
-        // Create fresh table with proper AUTO_INCREMENT
+        // Create table when missing.
         Schema::create('chat_sessions', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('user_id');
