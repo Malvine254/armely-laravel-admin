@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -19,7 +20,8 @@ class DashboardController extends Controller
 
         $blogTable = $this->resolveBlogTable();
 
-        $stats = [
+        $stats = Cache::remember('admin_dashboard_stats', 300, function () {
+        return [
             'blogs' => $this->safeCountAny(['blog', 'blogs']),
             'videos' => $this->safeCountAny(['videos', 'video']),
             'careers' => $this->safeCountAny(['careers', 'career']),
@@ -36,10 +38,11 @@ class DashboardController extends Controller
             'total_admins' => $this->safeCount('admin'),
             'active_admins' => $this->countActiveAdmins(),
         ];
+        });
 
         [$labels, $consultations, $contacts, $jobApplications, $campaigns] = $this->buildMonthlyTrend();
 
-        $recentActivity = $this->recentActivity();
+        $recentActivity = Cache::remember('admin_dashboard_activity', 120, fn() => $this->recentActivity());
 
         $topAuthors = $this->topBlogAuthors($blogTable, 10);
         $topAuthorHighlight = $topAuthors->first();
@@ -265,6 +268,7 @@ class DashboardController extends Controller
 
     private function buildMonthlyTrend(): array
     {
+        return Cache::remember('admin_monthly_trend', 1800, function () {
         $labels = [];
         $consultations = [];
         $contacts = [];
@@ -283,6 +287,7 @@ class DashboardController extends Controller
         }
 
         return [$labels, $consultations, $contacts, $jobApplications, $campaigns];
+        });
     }
 
     private function recentActivity(): Collection

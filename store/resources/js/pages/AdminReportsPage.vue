@@ -2,6 +2,8 @@
   <AdminLayout>
     <template #title>Revenue Reports</template>
 
+    <div class="admin-fit-page">
+
     <!-- Period Selector -->
     <div class="rounded-xl border-0 shadow-lg bg-white p-6 mb-6">
       <div class="flex items-center justify-between">
@@ -83,7 +85,7 @@
     </div>
 
     <!-- Top Customers -->
-    <div class="rounded-xl border-0 shadow-lg bg-white overflow-hidden">
+    <div class="admin-table-card rounded-xl border-0 shadow-lg bg-white overflow-hidden">
       <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-gray-50">
         <div>
           <h3 class="text-lg font-semibold text-gray-900">Top Customers</h3>
@@ -97,7 +99,7 @@
         </button>
       </div>
 
-      <div class="overflow-x-auto">
+      <div class="overflow-x-auto admin-table-scroll">
         <table class="w-full">
           <thead class="bg-gray-50 border-b border-gray-200">
             <tr>
@@ -148,9 +150,11 @@
         </table>
       </div>
 
-      <div class="px-6 py-4 border-t border-gray-200 bg-gray-50">
+      <div class="admin-table-pagination px-6 py-4 border-t border-gray-200 bg-gray-50">
         <p class="text-sm text-gray-500">Showing top {{ topCustomers.length }} customers by total purchase value</p>
       </div>
+    </div>
+
     </div>
   </AdminLayout>
 </template>
@@ -227,3 +231,49 @@ onMounted(() => {
   fetchTopCustomers()
 })
 </script>
+
+<style scoped>
+.admin-fit-page {
+  block-size: calc(100vh - 170px);
+  min-block-size: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.admin-fit-page > :not(.admin-table-card) {
+  flex-shrink: 0;
+}
+
+.admin-table-card {
+  min-block-size: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-table-scroll {
+  min-block-size: 0;
+  flex: 1;
+  overflow: auto;
+}
+
+.admin-table-pagination {
+  position: sticky;
+  inset-block-end: 0;
+  z-index: 5;
+  background: #f9fafb;
+  flex-shrink: 0;
+}
+
+@media (max-width: 1023px) {
+  .admin-fit-page {
+    block-size: auto;
+    min-block-size: calc(100vh - 170px);
+  }
+
+  .admin-table-scroll {
+    max-block-size: 60vh;
+  }
+}
+</style>

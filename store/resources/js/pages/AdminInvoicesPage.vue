@@ -2,6 +2,8 @@
   <AdminLayout>
     <template #title>Invoice Management</template>
 
+    <div class="admin-fit-page">
+
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
       <div class="rounded-xl border-0 shadow-lg bg-white p-6">
@@ -151,8 +153,8 @@
     </transition>
 
     <!-- Invoices List -->
-    <div class="rounded-xl border-0 shadow-lg bg-white overflow-hidden">
-      <div class="overflow-x-auto">
+    <div class="admin-table-card rounded-xl border-0 shadow-lg bg-white overflow-hidden">
+      <div class="overflow-x-auto admin-table-scroll">
         <table class="w-full">
           <thead class="bg-gray-50 border-b border-gray-200">
             <tr>
@@ -255,7 +257,7 @@
       </div>
 
       <!-- Pagination -->
-      <div class="px-6 py-4 border-t border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-gray-50">
+      <div class="admin-table-pagination px-6 py-4 border-t border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-gray-50">
         <div class="text-sm text-gray-500">
           <p>Showing {{ invoices.length }} of {{ totalInvoices }} invoices</p>
           <p class="mt-1">Page {{ currentPage }} of {{ lastPage }}</p>
@@ -290,6 +292,8 @@
           </button>
         </div>
       </div>
+    </div>
+
     </div>
 
     <!-- Invoice View Modal -->
@@ -608,7 +612,7 @@ const fetchInvoices = async () => {
     const response = await api.get(endpoint, {
       params: {
         page: currentPage.value,
-        per_page: 15,
+        per_page: 10,
         search: searchQuery.value || undefined,
         sort_by: 'created_at',
         sort_order: sortBy.value === 'newest' ? 'desc' : 'asc'
@@ -716,3 +720,49 @@ onMounted(() => {
   fetchInvoices()
 })
 </script>
+
+<style scoped>
+.admin-fit-page {
+  block-size: calc(100vh - 170px);
+  min-block-size: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.admin-fit-page > :not(.admin-table-card) {
+  flex-shrink: 0;
+}
+
+.admin-table-card {
+  min-block-size: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-table-scroll {
+  min-block-size: 0;
+  flex: 1;
+  overflow: auto;
+}
+
+.admin-table-pagination {
+  position: sticky;
+  inset-block-end: 0;
+  z-index: 5;
+  background: #f9fafb;
+  flex-shrink: 0;
+}
+
+@media (max-width: 1023px) {
+  .admin-fit-page {
+    block-size: auto;
+    min-block-size: calc(100vh - 170px);
+  }
+
+  .admin-table-scroll {
+    max-block-size: 60vh;
+  }
+}
+</style>

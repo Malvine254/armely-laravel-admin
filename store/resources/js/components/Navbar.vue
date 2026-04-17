@@ -41,7 +41,7 @@
             </button>
 
             <transition enter-active-class="transition ease-out duration-150" enter-from-class="opacity-0 translate-y-1" enter-to-class="opacity-100 translate-y-0" leave-active-class="transition ease-in duration-100" leave-from-class="opacity-100 translate-y-0" leave-to-class="opacity-0 translate-y-1">
-              <div v-if="categoryDropdownOpen === cat.value" class="absolute left-0 mt-1 w-64 rounded-xl shadow-2xl overflow-hidden z-50 border border-white/20" style="background-color: #2F5597;">
+              <div v-if="categoryDropdownOpen === cat.value" class="absolute left-0 mt-1 w-64 rounded-xl shadow-2xl overflow-hidden z-50 border border-white/20" style="background: linear-gradient(135deg, #0f172a 0%, #0a2948 45%, #1d4c6e 100%);">
                 <div class="px-4 py-2.5 border-b border-white/20">
                   <p class="text-xs font-semibold text-white uppercase tracking-widest">{{ cat.name }} Brands</p>
                 </div>
@@ -80,7 +80,7 @@
               </svg>
             </button>
             <transition enter-active-class="transition ease-out duration-150" enter-from-class="opacity-0 translate-y-1" enter-to-class="opacity-100 translate-y-0" leave-active-class="transition ease-in duration-100" leave-from-class="opacity-100 translate-y-0" leave-to-class="opacity-0 translate-y-1">
-              <div v-if="moreCategoriesOpen" class="absolute left-0 mt-1 w-64 rounded-xl shadow-2xl overflow-visible z-50 border border-white/20" style="background-color: #2F5597;">
+              <div v-if="moreCategoriesOpen" class="absolute left-0 mt-1 w-64 rounded-xl shadow-2xl overflow-visible z-50 border border-white/20" style="background: linear-gradient(135deg, #0f172a 0%, #0a2948 45%, #1d4c6e 100%);">
                 <div class="px-4 py-2.5 border-b border-white/20">
                   <p class="text-xs font-semibold text-white uppercase tracking-widest">More Categories</p>
                 </div>
@@ -104,7 +104,7 @@
                     </button>
 
                     <transition enter-active-class="transition ease-out duration-150" enter-from-class="opacity-0 translate-x-1" enter-to-class="opacity-100 translate-x-0" leave-active-class="transition ease-in duration-100" leave-from-class="opacity-100 translate-x-0" leave-to-class="opacity-0 translate-x-1">
-                      <div v-if="moreCategoryDropdownOpen === cat.value" class="absolute left-full top-0 ml-1 w-60 rounded-xl shadow-2xl overflow-hidden z-[60] border border-white/20" style="background-color: #2F5597;">
+                      <div v-if="moreCategoryDropdownOpen === cat.value" class="absolute left-full top-0 ml-1 w-60 rounded-xl shadow-2xl overflow-hidden z-[60] border border-white/20" style="background: linear-gradient(135deg, #0f172a 0%, #0a2948 45%, #1d4c6e 100%);">
                         <div class="px-4 py-2.5 border-b border-white/20">
                           <p class="text-xs font-semibold text-white uppercase tracking-widest">{{ cat.name }} Brands</p>
                         </div>
@@ -175,7 +175,7 @@
                 <span class="text-sm font-medium">{{ userFirstName }}</span>
               </button>
               <!-- Authenticated Dropdown Menu -->
-              <div class="hidden group-hover:block absolute right-0 mt-0 w-56 rounded-lg shadow-xl py-2 z-10 border border-white/20" style="background-color: #2F5597;">
+              <div class="hidden group-hover:block absolute right-0 mt-0 w-56 rounded-lg shadow-xl py-2 z-10 border border-white/20" style="background: linear-gradient(135deg, #0f172a 0%, #0a2948 45%, #1d4c6e 100%);">
                 <div class="px-4 py-2 border-b border-white/20">
                   <div class="flex items-center gap-3 mb-2">
                     <img v-if="userProfilePictureUrl" :src="userProfilePictureUrl" :alt="authStore.user?.name" class="w-10 h-10 rounded-full object-cover border border-slate-400">
@@ -226,7 +226,7 @@
 
       <!-- Mobile Dropdown Menu -->
       <div v-if="mobileMenuOpen" class="md:hidden pb-4">
-        <div class="rounded-lg border border-white/20 overflow-hidden" style="background-color: #2F5597;">
+        <div class="rounded-lg border border-white/20 overflow-hidden" style="background: linear-gradient(135deg, #0f172a 0%, #0a2948 45%, #1d4c6e 100%);">
           <!-- Products Section -->
           <div class="border-b border-white/10">
             <button type="button" @click="mobileProductsOpen = !mobileProductsOpen" class="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold text-slate-100 hover:bg-white/10 transition">
@@ -281,6 +281,8 @@ const moreCategoryDropdownOpen = ref(null)
 const mobileProductsOpen = ref(false)
 
 const productCategories = ref([])
+const MENU_CATEGORIES_STORAGE_KEY = 'store_menu_categories_v1'
+const MENU_CATEGORIES_CACHE_TTL_MS = 15 * 60 * 1000
 
 const primaryCategories = computed(() => productCategories.value.slice(0, 3))
 const overflowCategories = computed(() => productCategories.value.slice(3))
@@ -293,15 +295,63 @@ const categoryBrandsMap = computed(() => {
   return map
 })
 
+const normalizeMenuCategories = (rows) => {
+  if (!Array.isArray(rows)) return []
+
+  return rows
+    .map(cat => ({
+      name: cat?.name,
+      value: cat?.name,
+      brands: Array.isArray(cat?.brands) ? cat.brands : [],
+    }))
+    .filter(cat => typeof cat.name === 'string' && cat.name.trim() !== '')
+}
+
+const loadMenuCategoriesFromStorage = () => {
+  if (typeof window === 'undefined') return []
+
+  try {
+    const raw = window.localStorage.getItem(MENU_CATEGORIES_STORAGE_KEY)
+    if (!raw) return []
+
+    const parsed = JSON.parse(raw)
+    const timestamp = Number(parsed?.timestamp || 0)
+    if (!timestamp || Date.now() - timestamp > MENU_CATEGORIES_CACHE_TTL_MS) {
+      window.localStorage.removeItem(MENU_CATEGORIES_STORAGE_KEY)
+      return []
+    }
+
+    return normalizeMenuCategories(parsed?.data)
+  } catch {
+    return []
+  }
+}
+
+const saveMenuCategoriesToStorage = (rows) => {
+  if (typeof window === 'undefined') return
+
+  try {
+    window.localStorage.setItem(
+      MENU_CATEGORIES_STORAGE_KEY,
+      JSON.stringify({
+        timestamp: Date.now(),
+        data: rows,
+      })
+    )
+  } catch {
+    // Ignore storage errors (quota/privacy mode)
+  }
+}
+
 const fetchMenuCategories = async () => {
   try {
     const { data } = await api.get('/menu-categories')
     if (data.success && Array.isArray(data.data)) {
-      productCategories.value = data.data.map(cat => ({
-        name: cat.name,
-        value: cat.name,
-        brands: cat.brands || [],
-      }))
+      const normalized = normalizeMenuCategories(data.data)
+      if (normalized.length > 0) {
+        productCategories.value = normalized
+        saveMenuCategoriesToStorage(normalized)
+      }
     }
   } catch (e) {
     // Silently fall back — navbar will just show no categories
@@ -309,6 +359,11 @@ const fetchMenuCategories = async () => {
 }
 
 onMounted(() => {
+  const cachedCategories = loadMenuCategoriesFromStorage()
+  if (cachedCategories.length > 0) {
+    productCategories.value = cachedCategories
+  }
+
   fetchMenuCategories()
 })
 
@@ -428,3 +483,4 @@ const handleLogout = async () => {
 }
 
 </script>
+

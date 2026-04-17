@@ -2,6 +2,8 @@
   <AdminLayout>
     <template #title>Quote Management</template>
 
+    <div class="admin-fit-page">
+
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
       <div class="rounded-xl border-0 shadow-lg bg-white p-6 transition hover:shadow-xl">
@@ -99,7 +101,7 @@
     </div>
 
     <!-- Quotes List -->
-    <div class="rounded-xl border-0 shadow-lg bg-white overflow-hidden">
+    <div class="admin-table-card rounded-xl border-0 shadow-lg bg-white overflow-hidden">
       <!-- Bulk Actions Bar -->
       <div v-if="selectedQuotes.length > 0" class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
         <span class="text-sm font-medium text-[#2F5597]"><i class="fas fa-check-square mr-2"></i>{{ selectedQuotes.length }} quote(s) selected</span>
@@ -111,7 +113,7 @@
         </button>
       </div>
 
-      <div class="overflow-x-auto">
+      <div class="overflow-x-auto admin-table-scroll">
         <table class="w-full">
           <thead class="border-b border-gray-200">
             <tr>
@@ -198,7 +200,7 @@
       </div>
 
       <!-- Pagination -->
-      <div class="px-6 py-4 border-t border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div class="admin-table-pagination px-6 py-4 border-t border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div class="text-sm text-gray-500">
           <p>Showing {{ quotes.length }} of {{ totalQuotes }} quotes</p>
           <p class="mt-1 text-xs text-gray-500">Page {{ currentPage }} of {{ lastPage }}</p>
@@ -233,6 +235,8 @@
           </button>
         </div>
       </div>
+    </div>
+
     </div>
 
     <!-- Quote Review Modal -->
@@ -885,3 +889,49 @@ onMounted(() => {
   fetchQuotes()
 })
 </script>
+
+<style scoped>
+.admin-fit-page {
+  block-size: calc(100vh - 170px);
+  min-block-size: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.admin-fit-page > :not(.admin-table-card) {
+  flex-shrink: 0;
+}
+
+.admin-table-card {
+  min-block-size: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-table-scroll {
+  min-block-size: 0;
+  flex: 1;
+  overflow: auto;
+}
+
+.admin-table-pagination {
+  position: sticky;
+  inset-block-end: 0;
+  z-index: 5;
+  background: #ffffff;
+  flex-shrink: 0;
+}
+
+@media (max-width: 1023px) {
+  .admin-fit-page {
+    block-size: auto;
+    min-block-size: calc(100vh - 170px);
+  }
+
+  .admin-table-scroll {
+    max-block-size: 60vh;
+  }
+}
+</style>

@@ -148,6 +148,8 @@ Route::prefix('v1')->group(function () {
         
         // Customer management
         Route::get('/admin/customers', [AdminController::class, 'getCustomers']);
+        Route::post('/admin/customers/users/{userId}/special-pricing', [AdminController::class, 'setUserSpecialPricing']);
+        Route::post('/admin/customers/users/{userId}/approve', [AdminController::class, 'approveCustomerUser']);
         Route::post('/admin/customers/{companyId}/approve', [AdminController::class, 'approveCustomer']);
         Route::post('/admin/customers/bulk-approve', [AdminController::class, 'bulkApproveCustomers']);
         Route::post('/admin/customers/bulk-delete', [AdminController::class, 'bulkDeleteUsers']);

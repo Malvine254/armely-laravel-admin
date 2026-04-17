@@ -185,17 +185,12 @@
                     <p class="truncate" :title="`SKU: ${getProductSku(product)}`">SKU: {{ getProductSku(product) }}</p>
                     <p class="truncate text-right" :title="`Vendor: ${getProductVendor(product)}`">Vendor: {{ getProductVendor(product) }}</p>
                   </div>
-                  <div class="mb-3 flex items-center gap-2 text-xs text-gray-600">
-                    <span class="px-2 py-1 rounded-full font-medium" style="background-color: #eef4fb; color: #2F5597;">Category</span>
-                    <p class="truncate" :title="getProductCategoryLabel(product)">{{ getProductCategoryLabel(product) }}</p>
-                  </div>
-
                   <!-- Reviews -->
                   <div class="flex items-center gap-1 mb-3">
                     <svg
                       v-for="star in 5"
                       :key="`rating-${product.productId}-${star}`"
-                      class="w-3.5 h-3.5"
+                      class="w-4 h-4"
                       :class="star <= Math.round(getReviewStatsForProduct(product.productId).average) ? 'text-yellow-400' : 'text-gray-300'"
                       fill="currentColor"
                       viewBox="0 0 20 20"
@@ -211,7 +206,8 @@
                   
                   <!-- Pricing -->
                   <div v-if="product.productPrice && product.productPrice.length > 0" class="mb-4">
-                    <p class="text-2xl font-bold" style="color: #2F5597;">{{ formatCatalogPrice(product.productPrice[0].rsPrice) }}</p>
+                    <p v-if="pricingReady" class="text-2xl font-bold" style="color: #2F5597;">{{ formatCatalogPrice(product.productPrice[0].rsPrice) }}</p>
+                    <div v-else class="h-8 w-28 rounded bg-gray-200 animate-pulse"></div>
                     <p class="text-xs text-gray-600">Min Qty: {{ product.productPrice[0].minQty }}</p>
                   </div>
 
@@ -360,6 +356,7 @@ const cartStore = useCartStore()
 const favoritesStore = useFavoritesStore()
 const authStore = useAuthStore()
 const { loadPricingSettings, getCatalogPriceWithRules, convertFromUsd, formatWithCurrency } = usePricingSettings()
+const pricingReady = ref(false)
 const ITEMS_PER_PAGE = 9
 const API_PAGE_SIZE = 100
 const SEARCH_TRACK_DEBOUNCE_MS = 15000
@@ -372,6 +369,9 @@ const DEFAULT_BROWSE_MIN_PRICE = 200
 const CURATED_CACHE_VERSION = 3
 const ENABLE_SERVER_PREFETCH = false
 const ENABLE_VENDOR_COUNTS_API = true
+const SIDEBAR_FACETS_CACHE_TTL_MS = 10 * 60 * 1000
+const SIDEBAR_VENDORS_STORAGE_KEY = 'products_sidebar_vendors_v1'
+const SIDEBAR_CATEGORIES_STORAGE_KEY = 'products_sidebar_categories_v1'
 const CURATED_VENDOR_ALLOWLIST = [
   'CISCO', 'DELL', 'HP', 'LENOVO', 'MICROSOFT', 'SAMSUNG', 'EPSON', 'CANON',
   'PANASONIC', 'ACER', 'ASUS', 'XEROX', 'GETAC', 'GOOGLE', 'RICOH', 'SONY',
@@ -457,6 +457,62 @@ const shareSubmitting = ref(false)
 const availableVendors = ref([])
 const allVendors = ref([])
 const availableCategories = ref([])
+
+const loadSidebarFacetCache = (key) => {
+  if (typeof window === 'undefined') return []
+
+  try {
+    const raw = window.localStorage.getItem(key)
+    if (!raw) return []
+
+    const parsed = JSON.parse(raw)
+    const timestamp = Number(parsed?.timestamp || 0)
+    if (!timestamp || Date.now() - timestamp > SIDEBAR_FACETS_CACHE_TTL_MS) {
+      window.localStorage.removeItem(key)
+      return []
+    }
+
+    return Array.isArray(parsed?.data) ? parsed.data : []
+  } catch {
+    return []
+  }
+}
+
+const saveSidebarFacetCache = (key, data) => {
+  if (typeof window === 'undefined') return
+
+  try {
+    window.localStorage.setItem(
+      key,
+      JSON.stringify({
+        timestamp: Date.now(),
+        data,
+      })
+    )
+  } catch {
+    // Ignore storage write errors
+  }
+}
+
+const normalizeVendorsForSidebar = (items = []) => {
+  return (Array.isArray(items) ? items : [])
+    .map((vendor) => ({
+      name: String(vendor?.name || '').trim(),
+      value: String(vendor?.value || vendor?.name || '').trim(),
+      count: Number(vendor?.count || 0),
+    }))
+    .filter((vendor) => vendor.name !== '')
+}
+
+const normalizeCategoriesForSidebar = (items = []) => {
+  return (Array.isArray(items) ? items : [])
+    .map((cat) => ({
+      name: String(cat?.name || '').trim(),
+      value: String(cat?.value || cat?.name || '').trim(),
+      count: Number(cat?.count || 0),
+    }))
+    .filter((cat) => cat.name !== '')
+}
 
 const currentFilters = ref({
   priceMin: 0,
@@ -771,13 +827,49 @@ const selectTopDisplayVendors = (vendors = [], selected = []) => {
   return chosen
 }
 
+const getCategorySegmentKey = (value) => {
+  const raw = String(value || '').trim()
+  if (!raw) return ''
+
+  const digits = raw.replace(/\D+/g, '')
+  if (!digits) return ''
+
+  if (digits.length === 1) return `0${digits}`
+  return digits.slice(0, 2)
+}
+
+const getSignificantSegmentKey = (value) => {
+  const raw = String(value || '').trim()
+  if (!raw) return ''
+
+  const digits = raw.replace(/\D+/g, '').replace(/^0+/, '')
+  if (!digits) return ''
+
+  if (digits.length === 1) return `0${digits}`
+  return digits.slice(0, 2)
+}
+
+const isNumericCategoryLabel = (value) => {
+  const normalized = String(value || '').trim()
+  if (!normalized) return false
+  return /^category\s*\d+$/i.test(normalized) || /^\d+$/.test(normalized)
+}
+
 const getProductCategoryLabel = (product) => {
-  // Match product's categoryCode prefix against UNSPSC segments from the API
+  // Match product category code against API-provided category segment keys.
   const categoryCode = String(product?.categoryCode || product?.specifications?.categoryCode || '').trim()
   if (categoryCode && availableCategories.value.length > 0) {
-    const prefix = categoryCode.substring(0, 2)
-    const match = availableCategories.value.find(c => c.value === prefix)
-    if (match) return match.name
+    const segmentCandidates = [
+      getCategorySegmentKey(categoryCode),
+      getSignificantSegmentKey(categoryCode),
+    ].filter(Boolean)
+
+    const match = availableCategories.value.find((category) => {
+      const categoryKey = getCategorySegmentKey(category?.value)
+      return segmentCandidates.includes(categoryKey)
+    })
+
+    if (match?.name) return match.name
   }
 
   const rawCategory = [
@@ -787,13 +879,13 @@ const getProductCategoryLabel = (product) => {
     product?.specifications?.categoryName,
   ]
     .map((value) => String(value || '').trim())
-    .find(Boolean)
+    .find((value) => value && !isNumericCategoryLabel(value))
 
   if (rawCategory) {
     return rawCategory
   }
 
-  return categoryCode ? `Category ${categoryCode}` : 'Uncategorized'
+  return categoryCode ? 'Other' : 'Uncategorized'
 }
 
 const computePersonalizationWeight = (entry) => {
@@ -1087,9 +1179,19 @@ const getImplicitVendorScope = () => {
   return [...FALLBACK_VENDOR_SCOPE]
 }
 
+const getCatalogPricingScope = () => {
+  if (!authStore.isAuthenticated || !authStore.user?.id) {
+    return 'guest'
+  }
+
+  const discount = Number(authStore.user?.special_pricing_percent || 0)
+  return `user:${authStore.user.id}:discount:${discount.toFixed(2)}`
+}
+
 const getCacheKey = (filters, page = 1, useServerPaged = false) => {
   return JSON.stringify({
     curatedVersion: CURATED_CACHE_VERSION,
+    pricingScope: getCatalogPricingScope(),
     productType: filters.productType,
     vendors: filters.vendors,
     search: searchQuery.value,
@@ -1383,10 +1485,11 @@ const fetchVendors = async () => {
 
     const rawVendorData = response.data?.data || []
     const apiVendors = Array.isArray(rawVendorData) ? rawVendorData : (rawVendorData.records || [])
-    const mappedVendors = buildFromApi(apiVendors)
+    const mappedVendors = normalizeVendorsForSidebar(buildFromApi(apiVendors))
 
     allVendors.value = mappedVendors
     availableVendors.value = mappedVendors
+    saveSidebarFacetCache(SIDEBAR_VENDORS_STORAGE_KEY, mappedVendors)
   } catch (err) {
     console.error('Error fetching vendors:', err)
   }
@@ -1422,11 +1525,9 @@ const fetchCategories = async () => {
     const rawData = response.data?.data || []
 
     if (Array.isArray(rawData) && rawData.length > 0) {
-      availableCategories.value = rawData.map(cat => ({
-        name: cat.name || cat.value || '',
-        value: cat.value || cat.name || '',
-        count: Number(cat.count || 0),
-      }))
+      const normalized = normalizeCategoriesForSidebar(rawData)
+      availableCategories.value = normalized
+      saveSidebarFacetCache(SIDEBAR_CATEGORIES_STORAGE_KEY, normalized)
     }
   } catch (err) {
     console.error('Error fetching categories:', err)
@@ -1563,6 +1664,7 @@ const prefetchPage = (page) => {
 
   const tempFilters = { ...currentFilters.value }
   const cacheKey = JSON.stringify({
+    pricingScope: getCatalogPricingScope(),
     productType: tempFilters.productType,
     vendors: tempFilters.vendors,
     search: searchQuery.value,
@@ -1849,6 +1951,16 @@ watch(
   { immediate: true }
 )
 
+watch(
+  () => [authStore.isAuthenticated, authStore.user?.id, authStore.user?.special_pricing_percent],
+  () => {
+    requestCache.clear()
+    pendingRequests.clear()
+    currentPage.value = 1
+    performSearch(true)
+  }
+)
+
 onMounted(async () => {
   if (route.query.next === 'login') {
     const query = {}
@@ -1861,7 +1973,20 @@ onMounted(async () => {
   }
 
   await loadPricingSettings(true)
+  pricingReady.value = true
   loadLocalSearchHistory()
+
+  const cachedVendors = normalizeVendorsForSidebar(loadSidebarFacetCache(SIDEBAR_VENDORS_STORAGE_KEY))
+  if (cachedVendors.length > 0) {
+    allVendors.value = cachedVendors
+    availableVendors.value = cachedVendors
+  }
+
+  const cachedCategories = normalizeCategoriesForSidebar(loadSidebarFacetCache(SIDEBAR_CATEGORIES_STORAGE_KEY))
+  if (cachedCategories.length > 0) {
+    availableCategories.value = cachedCategories
+  }
+
   fetchVendors()
   fetchCategories()
 })

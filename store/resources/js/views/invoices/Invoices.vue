@@ -235,15 +235,6 @@
                     </button>
                     <button
                       v-if="canPayInvoice(invoice)"
-                      @click="payWithDefaultCard(invoice)"
-                      :disabled="payingInvoiceNumber === invoice.invoice_number || !hasDefaultCard"
-                      class="px-3 py-1.5 text-xs rounded-md text-white font-semibold transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                      style="background-color: #2563eb;"
-                    >
-                      {{ payingInvoiceNumber === invoice.invoice_number ? 'Processing...' : 'Pay Default' }}
-                    </button>
-                    <button
-                      v-if="canPayInvoice(invoice)"
                       @click="startPayment(invoice)"
                       :disabled="payingInvoiceNumber === invoice.invoice_number"
                       class="px-3 py-1.5 text-xs rounded-md text-white font-semibold transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -1205,12 +1196,27 @@ export default {
       await applyRouteInvoiceSelection()
 
       const paymentStatus = String(route.query?.quickbooks || route.query?.payment || route.query?.stripe || '').trim()
+      const paymentInvoice = String(route.query?.invoice || route.query?.invoiceNumber || '').trim()
+      const paymentInvoiceList = String(route.query?.invoiceNumbers || '').trim()
+      const paymentRef = String(route.query?.paymentId || route.query?.txn || route.query?.transactionId || '').trim()
+
+      const paymentTarget = paymentInvoice
+        || (paymentInvoiceList ? `invoices ${paymentInvoiceList}` : '')
+
+      const suffixParts = []
+      if (paymentTarget) {
+        suffixParts.push(paymentTarget)
+      }
+      if (paymentRef) {
+        suffixParts.push(`ref ${paymentRef}`)
+      }
+      const suffix = suffixParts.length > 0 ? ` (${suffixParts.join(' | ')})` : ''
 
       if (paymentStatus === 'success') {
-        toastStore.addToast('Payment completed successfully.', 'success')
+        toastStore.addToast(`Payment completed successfully${suffix}.`, 'success')
       }
       if (paymentStatus === 'cancel') {
-        toastStore.addToast('Payment was canceled.', 'warning')
+        toastStore.addToast(`Payment was canceled${suffix}.`, 'warning')
       }
 
       if (paymentStatus) {

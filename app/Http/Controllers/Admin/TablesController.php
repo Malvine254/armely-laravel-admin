@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
@@ -13,32 +14,47 @@ use App\Services\ActivityLogger;
 
 class TablesController extends Controller
 {
+    /** @var array<string,bool> In-process cache for $this->tableExists() calls */
+    private static array $tableExists = [];
+    /** @var array<string,bool> In-process cache for $this->columnExists() calls */
+    private static array $columnExists = [];
+
+    private function tableExists(string $table): bool
+    {
+        return self::$tableExists[$table] ??= $this->tableExists($table);
+    }
+
+    private function columnExists(string $table, string $column): bool
+    {
+        $key = "$table.$column";
+        return self::$columnExists[$key] ??= $this->columnExists($table, $column);
+    }
+
     public function index()
     {
-        // Use table name fallback logic like DashboardController
-        $blogTable = Schema::hasTable('blog') ? 'blog' : (Schema::hasTable('blogs') ? 'blogs' : null);
-        $blogs = $blogTable ? DB::table($blogTable)->orderBy(Schema::hasColumn($blogTable, 'blog_id') ? 'blog_id' : 'id', 'desc')->limit(50)->get() : collect();
-        
-        $videoTable = Schema::hasTable('videos') ? 'videos' : (Schema::hasTable('video') ? 'video' : null);
-        $videos = $videoTable ? DB::table($videoTable)->orderBy(Schema::hasColumn($videoTable, 'video_id') ? 'video_id' : 'id', 'desc')->limit(50)->get() : collect();
-        
-        $careerTable = Schema::hasTable('careers') ? 'careers' : (Schema::hasTable('career') ? 'career' : null);
+        $blogTable = $this->tableExists('blog') ? 'blog' : ($this->tableExists('blogs') ? 'blogs' : null);
+        $blogs = $blogTable ? DB::table($blogTable)->orderBy($this->columnExists($blogTable, 'blog_id') ? 'blog_id' : 'id', 'desc')->limit(50)->get() : collect();
+
+        $videoTable = $this->tableExists('videos') ? 'videos' : ($this->tableExists('video') ? 'video' : null);
+        $videos = $videoTable ? DB::table($videoTable)->orderBy($this->columnExists($videoTable, 'video_id') ? 'video_id' : 'id', 'desc')->limit(50)->get() : collect();
+
+        $careerTable = $this->tableExists('careers') ? 'careers' : ($this->tableExists('career') ? 'career' : null);
         $careers = $careerTable ? DB::table($careerTable)->orderBy('id', 'desc')->limit(50)->get() : collect();
-        
-        $socialImpactTable = Schema::hasTable('social_impact') ? 'social_impact' : (Schema::hasTable('social_impacts') ? 'social_impacts' : null);
+
+        $socialImpactTable = $this->tableExists('social_impact') ? 'social_impact' : ($this->tableExists('social_impacts') ? 'social_impacts' : null);
         $socialImpact = $socialImpactTable ? DB::table($socialImpactTable)->orderBy('id', 'desc')->limit(50)->get() : collect();
-        
-        $customerStoriesTable = Schema::hasTable('customer_stories') ? 'customer_stories' : (Schema::hasTable('customer_story') ? 'customer_story' : null);
+
+        $customerStoriesTable = $this->tableExists('customer_stories') ? 'customer_stories' : ($this->tableExists('customer_story') ? 'customer_story' : null);
         $customerStories = $customerStoriesTable ? DB::table($customerStoriesTable)->orderBy('id', 'desc')->limit(50)->get() : collect();
-        
-        $eventsTable = Schema::hasTable('events') ? 'events' : (Schema::hasTable('event') ? 'event' : null);
+
+        $eventsTable = $this->tableExists('events') ? 'events' : ($this->tableExists('event') ? 'event' : null);
         $events = $eventsTable ? DB::table($eventsTable)->orderBy('id', 'desc')->limit(50)->get() : collect();
-        
-        $teamTable = Schema::hasTable('team') ? 'team' : (Schema::hasTable('teams') ? 'teams' : null);
+
+        $teamTable = $this->tableExists('team') ? 'team' : ($this->tableExists('teams') ? 'teams' : null);
         $team = $teamTable ? DB::table($teamTable)->orderBy('id', 'desc')->limit(50)->get() : collect();
-        
-        $contacts = Schema::hasTable('contacts') ? DB::table('contacts')->orderBy('id', 'desc')->limit(50)->get() : collect();
-        
+
+        $contacts = $this->tableExists('contacts') ? DB::table('contacts')->orderBy('id', 'desc')->limit(50)->get() : collect();
+
         return view('admin.tables', compact('blogs', 'videos', 'careers', 'socialImpact', 'customerStories', 'events', 'team', 'contacts'));
     }
     
@@ -46,7 +62,7 @@ class TablesController extends Controller
     
     public function listBlogs(Request $request)
     {
-        $blogTable = Schema::hasTable('blogs') ? 'blogs' : 'blog';
+        $blogTable = $this->tableExists('blogs') ? 'blogs' : 'blog';
         
         // Check if it's a DataTables AJAX request
         if ($request->has('draw')) {
@@ -57,13 +73,13 @@ class TablesController extends Controller
             $searchValue = $request->input('search.value');
             if (!empty($searchValue)) {
                 $query->where(function($q) use ($searchValue, $blogTable) {
-                    $q->where(Schema::hasColumn($blogTable, 'title') ? 'title' : 'id', 'like', "%{$searchValue}%")
-                      ->orWhere(Schema::hasColumn($blogTable, 'author') ? 'author' : 'id', 'like', "%{$searchValue}%");
+                    $q->where($this->columnExists($blogTable, 'title') ? 'title' : 'id', 'like', "%{$searchValue}%")
+                      ->orWhere($this->columnExists($blogTable, 'author') ? 'author' : 'id', 'like', "%{$searchValue}%");
                     
-                    if (Schema::hasColumn($blogTable, 'blog_title')) {
+                    if ($this->columnExists($blogTable, 'blog_title')) {
                         $q->orWhere('blog_title', 'like', "%{$searchValue}%");
                     }
-                    if (Schema::hasColumn($blogTable, 'description')) {
+                    if ($this->columnExists($blogTable, 'description')) {
                         $q->orWhere('description', 'like', "%{$searchValue}%");
                     }
                 });
@@ -77,11 +93,11 @@ class TablesController extends Controller
             
             // Map column indices to actual DB columns
             $columns = [
-                0 => Schema::hasColumn($blogTable, 'blog_id') ? 'blog_id' : 'id',
-                1 => Schema::hasColumn($blogTable, 'title') ? 'title' : (Schema::hasColumn($blogTable, 'blog_title') ? 'blog_title' : 'id'),
-                2 => Schema::hasColumn($blogTable, 'author') ? 'author' : 'id',
-                3 => Schema::hasColumn($blogTable, 'date') ? 'date' : (Schema::hasColumn($blogTable, 'blog_date') ? 'blog_date' : 'id'),
-                4 => Schema::hasColumn($blogTable, 'id') ? 'id' : 'blog_id'
+                0 => $this->columnExists($blogTable, 'blog_id') ? 'blog_id' : 'id',
+                1 => $this->columnExists($blogTable, 'title') ? 'title' : ($this->columnExists($blogTable, 'blog_title') ? 'blog_title' : 'id'),
+                2 => $this->columnExists($blogTable, 'author') ? 'author' : 'id',
+                3 => $this->columnExists($blogTable, 'date') ? 'date' : ($this->columnExists($blogTable, 'blog_date') ? 'blog_date' : 'id'),
+                4 => $this->columnExists($blogTable, 'id') ? 'id' : 'blog_id'
             ];
             
             $orderBy = $columns[$orderColIndex] ?? $columns[0];
@@ -112,7 +128,7 @@ class TablesController extends Controller
         $start = microtime(true);
         try {
             $blogs = DB::table($blogTable)
-                ->orderBy(Schema::hasColumn($blogTable, 'blog_id') ? 'blog_id' : 'id', 'desc')
+                ->orderBy($this->columnExists($blogTable, 'blog_id') ? 'blog_id' : 'id', 'desc')
                 ->limit($limit)
                 ->get();
             
@@ -128,7 +144,7 @@ class TablesController extends Controller
         $limit = (int) $request->query('limit', 50);
         $limit = max(1, min($limit, 500));
 
-        $videoTable = Schema::hasTable('videos') ? 'videos' : 'video';
+        $videoTable = $this->tableExists('videos') ? 'videos' : 'video';
         $videos = DB::table($videoTable)->orderBy('id', 'desc')->limit($limit)->get();
         return response()->json(['success' => true, 'data' => $videos, 'limit' => $limit]);
     }
@@ -138,7 +154,7 @@ class TablesController extends Controller
         $limit = (int) $request->query('limit', 50);
         $limit = max(1, min($limit, 500));
 
-        $careerTable = Schema::hasTable('career') ? 'career' : 'careers';
+        $careerTable = $this->tableExists('career') ? 'career' : 'careers';
         $careers = DB::table($careerTable)->orderBy('id', 'desc')->limit($limit)->get();
         return response()->json(['success' => true, 'data' => $careers, 'limit' => $limit]);
     }
@@ -148,7 +164,7 @@ class TablesController extends Controller
         $limit = (int) $request->query('limit', 50);
         $limit = max(1, min($limit, 500));
 
-        $table = Schema::hasTable('social_impact') ? 'social_impact' : 'social_impacts';
+        $table = $this->tableExists('social_impact') ? 'social_impact' : 'social_impacts';
         $items = DB::table($table)->orderBy('id', 'desc')->limit($limit)->get();
         return response()->json(['success' => true, 'data' => $items, 'limit' => $limit]);
     }
@@ -158,7 +174,7 @@ class TablesController extends Controller
         $limit = (int) $request->query('limit', 50);
         $limit = max(1, min($limit, 500));
 
-        $table = Schema::hasTable('customer_stories') ? 'customer_stories' : 'customer_story';
+        $table = $this->tableExists('customer_stories') ? 'customer_stories' : 'customer_story';
         $stories = DB::table($table)->orderBy('id', 'desc')->limit($limit)->get();
         return response()->json(['success' => true, 'data' => $stories, 'limit' => $limit]);
     }
@@ -168,7 +184,7 @@ class TablesController extends Controller
         $limit = (int) $request->query('limit', 50);
         $limit = max(1, min($limit, 500));
 
-        $table = Schema::hasTable('events') ? 'events' : 'event';
+        $table = $this->tableExists('events') ? 'events' : 'event';
         $events = DB::table($table)->orderBy('id', 'desc')->limit($limit)->get();
         return response()->json(['success' => true, 'data' => $events, 'limit' => $limit]);
     }
@@ -178,7 +194,7 @@ class TablesController extends Controller
         $limit = (int) $request->query('limit', 50);
         $limit = max(1, min($limit, 500));
 
-        $table = Schema::hasTable('team') ? 'team' : 'teams';
+        $table = $this->tableExists('team') ? 'team' : 'teams';
         $team = DB::table($table)->orderBy('id', 'desc')->limit($limit)->get();
         return response()->json(['success' => true, 'data' => $team, 'limit' => $limit]);
     }
@@ -213,8 +229,8 @@ class TablesController extends Controller
     // Blog Management
     public function storeOrUpdateBlog(Request $request)
     {
-        $blogTable = Schema::hasTable('blogs') ? 'blogs' : 'blog';
-        $idColumn = Schema::hasColumn($blogTable, 'blog_id') ? 'blog_id' : 'id';
+        $blogTable = $this->tableExists('blogs') ? 'blogs' : 'blog';
+        $idColumn = $this->columnExists($blogTable, 'blog_id') ? 'blog_id' : 'id';
         
         // Check if this is an update or create
         if ($request->has('id') && $request->id) {
@@ -222,7 +238,7 @@ class TablesController extends Controller
             $data = [];
             
             if ($request->filled('title')) {
-                $titleColumn = Schema::hasColumn($blogTable, 'title') ? 'title' : 'blog_title';
+                $titleColumn = $this->columnExists($blogTable, 'title') ? 'title' : 'blog_title';
                 $data[$titleColumn] = $request->title;
             }
             
@@ -231,12 +247,12 @@ class TablesController extends Controller
             }
             
             if ($request->filled('date')) {
-                $dateColumn = Schema::hasColumn($blogTable, 'date') ? 'date' : 'blog_date';
+                $dateColumn = $this->columnExists($blogTable, 'date') ? 'date' : 'blog_date';
                 $data[$dateColumn] = $request->date;
             }
             
             if ($request->filled('body')) {
-                $bodyColumn = Schema::hasColumn($blogTable, 'body') ? 'body' : 'content';
+                $bodyColumn = $this->columnExists($blogTable, 'body') ? 'body' : 'content';
                 $data[$bodyColumn] = $request->body;
             }
             
@@ -244,7 +260,7 @@ class TablesController extends Controller
                 $image = $request->file('image');
                 $filename = time() . '_' . Str::slug($request->title ?? 'blog') . '.' . $image->getClientOriginalExtension();
                 $image->move(public_path('images/blog'), $filename);
-                $imageColumn = Schema::hasColumn($blogTable, 'image_path') ? 'image_path' : 'image';
+                $imageColumn = $this->columnExists($blogTable, 'image_path') ? 'image_path' : 'image';
                 $data[$imageColumn] = 'images/blog/' . $filename;
             }
             
@@ -257,7 +273,7 @@ class TablesController extends Controller
             $data = [];
             
             if ($request->has('title')) {
-                $titleColumn = Schema::hasColumn($blogTable, 'title') ? 'title' : 'blog_title';
+                $titleColumn = $this->columnExists($blogTable, 'title') ? 'title' : 'blog_title';
                 $data[$titleColumn] = $request->title;
             }
             
@@ -266,12 +282,12 @@ class TablesController extends Controller
             }
             
             if ($request->has('date')) {
-                $dateColumn = Schema::hasColumn($blogTable, 'date') ? 'date' : 'blog_date';
+                $dateColumn = $this->columnExists($blogTable, 'date') ? 'date' : 'blog_date';
                 $data[$dateColumn] = $request->date;
             }
             
             if ($request->has('body')) {
-                $bodyColumn = Schema::hasColumn($blogTable, 'body') ? 'body' : 'content';
+                $bodyColumn = $this->columnExists($blogTable, 'body') ? 'body' : 'content';
                 $data[$bodyColumn] = $request->body;
             }
             
@@ -279,7 +295,7 @@ class TablesController extends Controller
                 $image = $request->file('image');
                 $filename = time() . '_' . Str::slug($request->title ?? 'blog') . '.' . $image->getClientOriginalExtension();
                 $image->move(public_path('images/blog'), $filename);
-                $imageColumn = Schema::hasColumn($blogTable, 'image_path') ? 'image_path' : 'image';
+                $imageColumn = $this->columnExists($blogTable, 'image_path') ? 'image_path' : 'image';
                 $data[$imageColumn] = 'images/blog/' . $filename;
             }
             
@@ -289,19 +305,19 @@ class TablesController extends Controller
                 $data['blog_id'] = $maxBlogId + 1;
             }
             
-            if (Schema::hasColumn($blogTable, 'id') && $idColumn !== 'id') {
+            if ($this->columnExists($blogTable, 'id') && $idColumn !== 'id') {
                 $maxId = DB::table($blogTable)->max('id') ?? 0;
                 $data['id'] = $maxId + 1;
             }
             
             // Add default values for fields that don't have defaults
-            if (Schema::hasColumn($blogTable, 'clicks') && !isset($data['clicks'])) {
+            if ($this->columnExists($blogTable, 'clicks') && !isset($data['clicks'])) {
                 $data['clicks'] = 0;
             }
-            if (Schema::hasColumn($blogTable, 'views') && !isset($data['views'])) {
+            if ($this->columnExists($blogTable, 'views') && !isset($data['views'])) {
                 $data['views'] = 0;
             }
-            if (Schema::hasColumn($blogTable, 'status') && !isset($data['status'])) {
+            if ($this->columnExists($blogTable, 'status') && !isset($data['status'])) {
                 $data['status'] = 'published';
             }
             
@@ -314,8 +330,8 @@ class TablesController extends Controller
     
     public function deleteBlog($id)
     {
-        $blogTable = Schema::hasTable('blogs') ? 'blogs' : 'blog';
-        $idColumn = Schema::hasColumn($blogTable, 'blog_id') ? 'blog_id' : 'id';
+        $blogTable = $this->tableExists('blogs') ? 'blogs' : 'blog';
+        $idColumn = $this->columnExists($blogTable, 'blog_id') ? 'blog_id' : 'id';
         DB::table($blogTable)->where($idColumn, $id)->delete();
         ActivityLogger::log('delete', 'Blog', $id, 'Deleted blog #' . $id);
         return response()->json(['success' => true, 'message' => 'Blog deleted successfully']);
@@ -328,19 +344,19 @@ class TablesController extends Controller
             'url' => 'required|string',
         ]);
         
-        $videoTable = Schema::hasTable('videos') ? 'videos' : 'youtube_videos';
-        $idColumn = Schema::hasColumn($videoTable, 'video_id') ? 'video_id' : 'id';
+        $videoTable = $this->tableExists('videos') ? 'videos' : 'youtube_videos';
+        $idColumn = $this->columnExists($videoTable, 'video_id') ? 'video_id' : 'id';
         
         $data = [];
         
         // Add url/iframe column with fallback
-        if (Schema::hasColumn($videoTable, 'url')) {
+        if ($this->columnExists($videoTable, 'url')) {
             $data['url'] = $validated['url'];
-        } elseif (Schema::hasColumn($videoTable, 'video_url')) {
+        } elseif ($this->columnExists($videoTable, 'video_url')) {
             $data['video_url'] = $validated['url'];
-        } elseif (Schema::hasColumn($videoTable, 'iframe')) {
+        } elseif ($this->columnExists($videoTable, 'iframe')) {
             $data['iframe'] = $validated['url'];
-        } elseif (Schema::hasColumn($videoTable, 'embed')) {
+        } elseif ($this->columnExists($videoTable, 'embed')) {
             $data['embed'] = $validated['url'];
         }
         
@@ -357,8 +373,8 @@ class TablesController extends Controller
     
     public function deleteVideo($id)
     {
-        $videoTable = Schema::hasTable('videos') ? 'videos' : 'video';
-        $idColumn = Schema::hasColumn($videoTable, 'video_id') ? 'video_id' : 'id';
+        $videoTable = $this->tableExists('videos') ? 'videos' : 'video';
+        $idColumn = $this->columnExists($videoTable, 'video_id') ? 'video_id' : 'id';
         DB::table($videoTable)->where($idColumn, $id)->delete();
         ActivityLogger::log('delete', 'Video', $id, 'Deleted video #' . $id);
         return response()->json(['success' => true, 'message' => 'Video deleted successfully']);
@@ -367,30 +383,30 @@ class TablesController extends Controller
     // Career Management
     public function storeOrUpdateCareer(Request $request)
     {
-        $careerTable = Schema::hasTable('career') ? 'career' : 'careers';
+        $careerTable = $this->tableExists('career') ? 'career' : 'careers';
         
         if ($request->has('id') && $request->id) {
             // UPDATE
             $data = [];
             
             if ($request->filled('job_title')) {
-                $col = Schema::hasColumn($careerTable, 'job_title') ? 'job_title' : 'title';
+                $col = $this->columnExists($careerTable, 'job_title') ? 'job_title' : 'title';
                 $data[$col] = $request->job_title;
             }
             if ($request->filled('job_description')) {
-                $col = Schema::hasColumn($careerTable, 'job_description') ? 'job_description' : 'description';
+                $col = $this->columnExists($careerTable, 'job_description') ? 'job_description' : 'description';
                 $data[$col] = $request->job_description;
             }
             if ($request->filled('job_location')) {
-                $col = Schema::hasColumn($careerTable, 'job_location') ? 'job_location' : 'location';
+                $col = $this->columnExists($careerTable, 'job_location') ? 'job_location' : 'location';
                 $data[$col] = $request->job_location;
             }
             if ($request->filled('job_type')) {
-                $col = Schema::hasColumn($careerTable, 'job_type') ? 'job_type' : 'type';
+                $col = $this->columnExists($careerTable, 'job_type') ? 'job_type' : 'type';
                 $data[$col] = $request->job_type;
             }
             if ($request->filled('job_deadline')) {
-                $col = Schema::hasColumn($careerTable, 'job_deadline') ? 'job_deadline' : 'deadline';
+                $col = $this->columnExists($careerTable, 'job_deadline') ? 'job_deadline' : 'deadline';
                 $data[$col] = $request->job_deadline;
             }
             
@@ -406,23 +422,23 @@ class TablesController extends Controller
             $data = [];
             
             if ($request->filled('job_title')) {
-                $col = Schema::hasColumn($careerTable, 'job_title') ? 'job_title' : 'title';
+                $col = $this->columnExists($careerTable, 'job_title') ? 'job_title' : 'title';
                 $data[$col] = $request->job_title;
             }
             if ($request->filled('job_description')) {
-                $col = Schema::hasColumn($careerTable, 'job_description') ? 'job_description' : 'description';
+                $col = $this->columnExists($careerTable, 'job_description') ? 'job_description' : 'description';
                 $data[$col] = $request->job_description;
             }
             if ($request->filled('job_location')) {
-                $col = Schema::hasColumn($careerTable, 'job_location') ? 'job_location' : 'location';
+                $col = $this->columnExists($careerTable, 'job_location') ? 'job_location' : 'location';
                 $data[$col] = $request->job_location;
             }
             if ($request->filled('job_type')) {
-                $col = Schema::hasColumn($careerTable, 'job_type') ? 'job_type' : 'type';
+                $col = $this->columnExists($careerTable, 'job_type') ? 'job_type' : 'type';
                 $data[$col] = $request->job_type;
             }
             if ($request->filled('job_deadline')) {
-                $col = Schema::hasColumn($careerTable, 'job_deadline') ? 'job_deadline' : 'deadline';
+                $col = $this->columnExists($careerTable, 'job_deadline') ? 'job_deadline' : 'deadline';
                 $data[$col] = $request->job_deadline;
             }
             
@@ -435,7 +451,7 @@ class TablesController extends Controller
     
     public function deleteCareer($id)
     {
-        $careerTable = Schema::hasTable('career') ? 'career' : 'careers';
+        $careerTable = $this->tableExists('career') ? 'career' : 'careers';
         DB::table($careerTable)->where('id', $id)->delete();
         ActivityLogger::log('delete', 'Career', $id, 'Deleted career #' . $id);
         return response()->json(['success' => true, 'message' => 'Career deleted successfully']);
@@ -444,30 +460,30 @@ class TablesController extends Controller
     // Social Impact Management
     public function storeOrUpdateSocialImpact(Request $request)
     {
-        $table = Schema::hasTable('social_impact') ? 'social_impact' : 'social_impacts';
+        $table = $this->tableExists('social_impact') ? 'social_impact' : 'social_impacts';
         
         if ($request->has('id') && $request->id) {
             // UPDATE
             $data = [];
             
             if ($request->filled('title')) {
-                $col = Schema::hasColumn($table, 'title') ? 'title' : 'impact_title';
+                $col = $this->columnExists($table, 'title') ? 'title' : 'impact_title';
                 $data[$col] = $request->title;
             }
             if ($request->filled('body')) {
-                $col = Schema::hasColumn($table, 'body') ? 'body' : 'content';
+                $col = $this->columnExists($table, 'body') ? 'body' : 'content';
                 $data[$col] = $request->body;
             }
             if ($request->filled('category')) {
-                $col = Schema::hasColumn($table, 'category') ? 'category' : 'impact_area';
+                $col = $this->columnExists($table, 'category') ? 'category' : 'impact_area';
                 $data[$col] = $request->category;
             }
             if ($request->filled('posted_date')) {
-                $col = Schema::hasColumn($table, 'posted_date') ? 'posted_date' : 'published_date';
+                $col = $this->columnExists($table, 'posted_date') ? 'posted_date' : 'published_date';
                 $data[$col] = $request->posted_date;
             }
             if ($request->filled('author_name')) {
-                $col = Schema::hasColumn($table, 'author_name') ? 'author_name' : 'author';
+                $col = $this->columnExists($table, 'author_name') ? 'author_name' : 'author';
                 $data[$col] = $request->author_name;
             }
             
@@ -476,9 +492,9 @@ class TablesController extends Controller
                 $filename = time() . '_' . $image->getClientOriginalName();
                 $image->move(public_path('images/social-impact'), $filename);
                 
-                if (Schema::hasColumn($table, 'image_url')) {
+                if ($this->columnExists($table, 'image_url')) {
                     $data['image_url'] = 'images/social-impact/' . $filename;
-                } elseif (Schema::hasColumn($table, 'image')) {
+                } elseif ($this->columnExists($table, 'image')) {
                     $data['image'] = 'images/social-impact/' . $filename;
                 }
             }
@@ -495,23 +511,23 @@ class TablesController extends Controller
             $data = [];
             
             if ($request->filled('title')) {
-                $col = Schema::hasColumn($table, 'title') ? 'title' : 'impact_title';
+                $col = $this->columnExists($table, 'title') ? 'title' : 'impact_title';
                 $data[$col] = $request->title;
             }
             if ($request->filled('body')) {
-                $col = Schema::hasColumn($table, 'body') ? 'body' : 'content';
+                $col = $this->columnExists($table, 'body') ? 'body' : 'content';
                 $data[$col] = $request->body;
             }
             if ($request->filled('category')) {
-                $col = Schema::hasColumn($table, 'category') ? 'category' : 'impact_area';
+                $col = $this->columnExists($table, 'category') ? 'category' : 'impact_area';
                 $data[$col] = $request->category;
             }
             if ($request->filled('posted_date')) {
-                $col = Schema::hasColumn($table, 'posted_date') ? 'posted_date' : 'published_date';
+                $col = $this->columnExists($table, 'posted_date') ? 'posted_date' : 'published_date';
                 $data[$col] = $request->posted_date;
             }
             if ($request->filled('author_name')) {
-                $col = Schema::hasColumn($table, 'author_name') ? 'author_name' : 'author';
+                $col = $this->columnExists($table, 'author_name') ? 'author_name' : 'author';
                 $data[$col] = $request->author_name;
             }
             
@@ -520,15 +536,15 @@ class TablesController extends Controller
                 $filename = time() . '_' . $image->getClientOriginalName();
                 $image->move(public_path('images/social-impact'), $filename);
                 
-                if (Schema::hasColumn($table, 'image_url')) {
+                if ($this->columnExists($table, 'image_url')) {
                     $data['image_url'] = 'images/social-impact/' . $filename;
-                } elseif (Schema::hasColumn($table, 'image')) {
+                } elseif ($this->columnExists($table, 'image')) {
                     $data['image'] = 'images/social-impact/' . $filename;
                 }
             }
             
             // Set defaults
-            if (!isset($data['author_name']) && Schema::hasColumn($table, 'author_name')) {
+            if (!isset($data['author_name']) && $this->columnExists($table, 'author_name')) {
                 $data['author_name'] = 'Admin';
             }
             
@@ -541,7 +557,7 @@ class TablesController extends Controller
     
     public function deleteSocialImpact($id)
     {
-        $table = Schema::hasTable('social_impact') ? 'social_impact' : 'social_impacts';
+        $table = $this->tableExists('social_impact') ? 'social_impact' : 'social_impacts';
         DB::table($table)->where('id', $id)->delete();
         ActivityLogger::log('delete', 'SocialImpact', $id, 'Deleted social impact #' . $id);
         return response()->json(['success' => true, 'message' => 'Social Impact deleted successfully']);
@@ -550,7 +566,7 @@ class TablesController extends Controller
     // Customer Stories Management
     public function storeOrUpdateCustomerStory(Request $request)
     {
-        $table = Schema::hasTable('customer_stories') ? 'customer_stories' : 'customer_story';
+        $table = $this->tableExists('customer_stories') ? 'customer_stories' : 'customer_story';
         
         if ($request->has('id') && $request->id) {
             // UPDATE
@@ -563,7 +579,7 @@ class TablesController extends Controller
                 $data['position'] = $request->position;
             }
             if ($request->filled('body_content')) {
-                $col = Schema::hasColumn($table, 'body_content') ? 'body_content' : 'content';
+                $col = $this->columnExists($table, 'body_content') ? 'body_content' : 'content';
                 $data[$col] = $request->body_content;
             }
             
@@ -572,11 +588,11 @@ class TablesController extends Controller
                 $filename = time() . '_' . $image->getClientOriginalName();
                 $image->move(public_path('images/customers'), $filename);
                 
-                if (Schema::hasColumn($table, 'profile')) {
+                if ($this->columnExists($table, 'profile')) {
                     $data['profile'] = 'images/customers/' . $filename;
-                } elseif (Schema::hasColumn($table, 'profile_image')) {
+                } elseif ($this->columnExists($table, 'profile_image')) {
                     $data['profile_image'] = 'images/customers/' . $filename;
-                } elseif (Schema::hasColumn($table, 'image')) {
+                } elseif ($this->columnExists($table, 'image')) {
                     $data['image'] = 'images/customers/' . $filename;
                 }
             }
@@ -599,7 +615,7 @@ class TablesController extends Controller
                 $data['position'] = $request->position;
             }
             if ($request->filled('body_content')) {
-                $col = Schema::hasColumn($table, 'body_content') ? 'body_content' : 'content';
+                $col = $this->columnExists($table, 'body_content') ? 'body_content' : 'content';
                 $data[$col] = $request->body_content;
             }
             
@@ -608,11 +624,11 @@ class TablesController extends Controller
                 $filename = time() . '_' . $image->getClientOriginalName();
                 $image->move(public_path('images/customers'), $filename);
                 
-                if (Schema::hasColumn($table, 'profile')) {
+                if ($this->columnExists($table, 'profile')) {
                     $data['profile'] = 'images/customers/' . $filename;
-                } elseif (Schema::hasColumn($table, 'profile_image')) {
+                } elseif ($this->columnExists($table, 'profile_image')) {
                     $data['profile_image'] = 'images/customers/' . $filename;
-                } elseif (Schema::hasColumn($table, 'image')) {
+                } elseif ($this->columnExists($table, 'image')) {
                     $data['image'] = 'images/customers/' . $filename;
                 }
             }
@@ -626,7 +642,7 @@ class TablesController extends Controller
     
     public function deleteCustomerStory($id)
     {
-        $table = Schema::hasTable('customer_stories') ? 'customer_stories' : 'customer_story';
+        $table = $this->tableExists('customer_stories') ? 'customer_stories' : 'customer_story';
         DB::table($table)->where('id', $id)->delete();
         ActivityLogger::log('delete', 'CustomerStory', $id, 'Deleted customer story #' . $id);
         return response()->json(['success' => true, 'message' => 'Customer Story deleted successfully']);
@@ -682,8 +698,8 @@ class TablesController extends Controller
     // Show/Get individual items
     public function showBlog($id)
     {
-        $blogTable = Schema::hasTable('blogs') ? 'blogs' : 'blog';
-        $idColumn = Schema::hasColumn($blogTable, 'blog_id') ? 'blog_id' : 'id';
+        $blogTable = $this->tableExists('blogs') ? 'blogs' : 'blog';
+        $idColumn = $this->columnExists($blogTable, 'blog_id') ? 'blog_id' : 'id';
         $blog = DB::table($blogTable)->where($idColumn, $id)->first();
         return response()->json($blog);
     }
@@ -696,8 +712,8 @@ class TablesController extends Controller
             'has_file' => $request->hasFile('image')
         ]);
         
-        $blogTable = Schema::hasTable('blogs') ? 'blogs' : 'blog';
-        $idColumn = Schema::hasColumn($blogTable, 'blog_id') ? 'blog_id' : 'id';
+        $blogTable = $this->tableExists('blogs') ? 'blogs' : 'blog';
+        $idColumn = $this->columnExists($blogTable, 'blog_id') ? 'blog_id' : 'id';
         
         Log::info('Table info', [
             'table' => $blogTable,
@@ -708,7 +724,7 @@ class TablesController extends Controller
         
         // Only update fields that are provided and not empty
         if ($request->filled('title')) {
-            $titleColumn = Schema::hasColumn($blogTable, 'title') ? 'title' : 'blog_title';
+            $titleColumn = $this->columnExists($blogTable, 'title') ? 'title' : 'blog_title';
             $data[$titleColumn] = $request->title;
         }
         
@@ -717,12 +733,12 @@ class TablesController extends Controller
         }
         
         if ($request->filled('date')) {
-            $dateColumn = Schema::hasColumn($blogTable, 'date') ? 'date' : 'blog_date';
+            $dateColumn = $this->columnExists($blogTable, 'date') ? 'date' : 'blog_date';
             $data[$dateColumn] = $request->date;
         }
         
         if ($request->filled('body')) {
-            $bodyColumn = Schema::hasColumn($blogTable, 'body') ? 'body' : 'content';
+            $bodyColumn = $this->columnExists($blogTable, 'body') ? 'body' : 'content';
             $data[$bodyColumn] = $request->body;
         }
         
@@ -730,7 +746,7 @@ class TablesController extends Controller
             $image = $request->file('image');
             $filename = time() . '_' . Str::slug($request->title ?? 'blog') . '.' . $image->getClientOriginalExtension();
             $image->move(public_path('images/blog'), $filename);
-            $imageColumn = Schema::hasColumn($blogTable, 'image_path') ? 'image_path' : 'image';
+            $imageColumn = $this->columnExists($blogTable, 'image_path') ? 'image_path' : 'image';
             $data[$imageColumn] = 'images/blog/' . $filename;
         }
         
@@ -761,14 +777,14 @@ class TablesController extends Controller
     
     public function showVideo($id)
     {
-        $videoTable = Schema::hasTable('videos') ? 'videos' : 'video';
+        $videoTable = $this->tableExists('videos') ? 'videos' : 'video';
         $video = DB::table($videoTable)->where('id', $id)->first();
         return response()->json($video);
     }
     
     public function updateVideo(Request $request, $id)
     {
-        $videoTable = Schema::hasTable('videos') ? 'videos' : 'video';
+        $videoTable = $this->tableExists('videos') ? 'videos' : 'video';
         
         $data = [];
         if ($request->has('title')) $data['title'] = $request->title;
@@ -781,35 +797,35 @@ class TablesController extends Controller
     
     public function showCareer($id)
     {
-        $careerTable = Schema::hasTable('career') ? 'career' : 'careers';
+        $careerTable = $this->tableExists('career') ? 'career' : 'careers';
         $career = DB::table($careerTable)->where('id', $id)->first();
         return response()->json($career);
     }
     
     public function updateCareer(Request $request, $id)
     {
-        $careerTable = Schema::hasTable('career') ? 'career' : 'careers';
+        $careerTable = $this->tableExists('career') ? 'career' : 'careers';
         
         $data = [];
         
         if ($request->filled('job_title')) {
-            $col = Schema::hasColumn($careerTable, 'job_title') ? 'job_title' : 'title';
+            $col = $this->columnExists($careerTable, 'job_title') ? 'job_title' : 'title';
             $data[$col] = $request->job_title;
         }
         if ($request->filled('job_description')) {
-            $col = Schema::hasColumn($careerTable, 'job_description') ? 'job_description' : 'description';
+            $col = $this->columnExists($careerTable, 'job_description') ? 'job_description' : 'description';
             $data[$col] = $request->job_description;
         }
         if ($request->filled('job_location')) {
-            $col = Schema::hasColumn($careerTable, 'job_location') ? 'job_location' : 'location';
+            $col = $this->columnExists($careerTable, 'job_location') ? 'job_location' : 'location';
             $data[$col] = $request->job_location;
         }
         if ($request->filled('job_type')) {
-            $col = Schema::hasColumn($careerTable, 'job_type') ? 'job_type' : 'type';
+            $col = $this->columnExists($careerTable, 'job_type') ? 'job_type' : 'type';
             $data[$col] = $request->job_type;
         }
         if ($request->filled('job_deadline')) {
-            $col = Schema::hasColumn($careerTable, 'job_deadline') ? 'job_deadline' : 'deadline';
+            $col = $this->columnExists($careerTable, 'job_deadline') ? 'job_deadline' : 'deadline';
             $data[$col] = $request->job_deadline;
         }
         
@@ -821,35 +837,35 @@ class TablesController extends Controller
     
     public function showSocialImpact($id)
     {
-        $table = Schema::hasTable('social_impact') ? 'social_impact' : 'social_impacts';
+        $table = $this->tableExists('social_impact') ? 'social_impact' : 'social_impacts';
         $item = DB::table($table)->where('id', $id)->first();
         return response()->json($item);
     }
     
     public function updateSocialImpact(Request $request, $id)
     {
-        $table = Schema::hasTable('social_impact') ? 'social_impact' : 'social_impacts';
+        $table = $this->tableExists('social_impact') ? 'social_impact' : 'social_impacts';
         
         $data = [];
         
         if ($request->filled('title')) {
-            $col = Schema::hasColumn($table, 'title') ? 'title' : 'impact_title';
+            $col = $this->columnExists($table, 'title') ? 'title' : 'impact_title';
             $data[$col] = $request->title;
         }
         if ($request->filled('body')) {
-            $col = Schema::hasColumn($table, 'body') ? 'body' : 'content';
+            $col = $this->columnExists($table, 'body') ? 'body' : 'content';
             $data[$col] = $request->body;
         }
         if ($request->filled('category')) {
-            $col = Schema::hasColumn($table, 'category') ? 'category' : 'impact_area';
+            $col = $this->columnExists($table, 'category') ? 'category' : 'impact_area';
             $data[$col] = $request->category;
         }
         if ($request->filled('posted_date')) {
-            $col = Schema::hasColumn($table, 'posted_date') ? 'posted_date' : 'published_date';
+            $col = $this->columnExists($table, 'posted_date') ? 'posted_date' : 'published_date';
             $data[$col] = $request->posted_date;
         }
         if ($request->filled('author_name')) {
-            $col = Schema::hasColumn($table, 'author_name') ? 'author_name' : 'author';
+            $col = $this->columnExists($table, 'author_name') ? 'author_name' : 'author';
             $data[$col] = $request->author_name;
         }
         
@@ -858,9 +874,9 @@ class TablesController extends Controller
             $filename = time() . '_' . $image->getClientOriginalName();
             $image->move(public_path('images/social-impact'), $filename);
             
-            if (Schema::hasColumn($table, 'image_url')) {
+            if ($this->columnExists($table, 'image_url')) {
                 $data['image_url'] = 'images/social-impact/' . $filename;
-            } elseif (Schema::hasColumn($table, 'image')) {
+            } elseif ($this->columnExists($table, 'image')) {
                 $data['image'] = 'images/social-impact/' . $filename;
             }
         }
@@ -873,27 +889,27 @@ class TablesController extends Controller
     
     public function showCustomerStory($id)
     {
-        $table = Schema::hasTable('customer_stories') ? 'customer_stories' : 'customer_story';
+        $table = $this->tableExists('customer_stories') ? 'customer_stories' : 'customer_story';
         $item = DB::table($table)->where('id', $id)->first();
         return response()->json($item);
     }
     
     public function updateCustomerStory(Request $request, $id)
     {
-        $table = Schema::hasTable('customer_stories') ? 'customer_stories' : 'customer_story';
+        $table = $this->tableExists('customer_stories') ? 'customer_stories' : 'customer_story';
         
         $data = [];
         
         if ($request->filled('name')) {
-            $col = Schema::hasColumn($table, 'name') ? 'name' : 'customer_name';
+            $col = $this->columnExists($table, 'name') ? 'name' : 'customer_name';
             $data[$col] = $request->name;
         }
         if ($request->filled('position')) {
-            $col = Schema::hasColumn($table, 'position') ? 'position' : 'job_title';
+            $col = $this->columnExists($table, 'position') ? 'position' : 'job_title';
             $data[$col] = $request->position;
         }
         if ($request->filled('body_content')) {
-            $col = Schema::hasColumn($table, 'body_content') ? 'body_content' : 'content';
+            $col = $this->columnExists($table, 'body_content') ? 'body_content' : 'content';
             $data[$col] = $request->body_content;
         }
         
@@ -902,11 +918,11 @@ class TablesController extends Controller
             $filename = time() . '_' . $image->getClientOriginalName();
             $image->move(public_path('images/customers'), $filename);
             
-            if (Schema::hasColumn($table, 'profile')) {
+            if ($this->columnExists($table, 'profile')) {
                 $data['profile'] = 'images/customers/' . $filename;
-            } elseif (Schema::hasColumn($table, 'profile_image')) {
+            } elseif ($this->columnExists($table, 'profile_image')) {
                 $data['profile_image'] = 'images/customers/' . $filename;
-            } elseif (Schema::hasColumn($table, 'image')) {
+            } elseif ($this->columnExists($table, 'image')) {
                 $data['image'] = 'images/customers/' . $filename;
             }
         }
@@ -921,7 +937,7 @@ class TablesController extends Controller
     
     public function storeOrUpdateEvent(Request $request)
     {
-        $table = Schema::hasTable('events') ? 'events' : 'event';
+        $table = $this->tableExists('events') ? 'events' : 'event';
         $id = $request->id;
         
         if ($id) {
@@ -945,7 +961,7 @@ class TablesController extends Controller
             }
             
             if ($request->filled('recorded_url')) {
-                if (Schema::hasColumn($table, 'recorded_url')) {
+                if ($this->columnExists($table, 'recorded_url')) {
                     $data['recorded_url'] = $request->recorded_url;
                 }
             }
@@ -969,7 +985,7 @@ class TablesController extends Controller
                 $data['url'] = $request->url;
             }
             
-            if ($request->filled('recorded_url') && Schema::hasColumn($table, 'recorded_url')) {
+            if ($request->filled('recorded_url') && $this->columnExists($table, 'recorded_url')) {
                 $data['recorded_url'] = $request->recorded_url;
             }
             
@@ -983,7 +999,7 @@ class TablesController extends Controller
     
     public function deleteEvent($id)
     {
-        $table = Schema::hasTable('events') ? 'events' : 'event';
+        $table = $this->tableExists('events') ? 'events' : 'event';
         DB::table($table)->where('id', $id)->delete();
         ActivityLogger::log('delete', 'Event', $id, 'Deleted event #' . $id);
         return response()->json(['success' => true, 'message' => 'Event deleted successfully']);
@@ -993,7 +1009,7 @@ class TablesController extends Controller
     
     public function storeOrUpdateTeam(Request $request)
     {
-        $table = Schema::hasTable('team') ? 'team' : 'teams';
+        $table = $this->tableExists('team') ? 'team' : 'teams';
         $id = $request->id;
         
         if ($id) {
@@ -1001,44 +1017,44 @@ class TablesController extends Controller
             $data = [];
             
             if ($request->filled('team_name')) {
-                if (Schema::hasColumn($table, 'team_name')) {
+                if ($this->columnExists($table, 'team_name')) {
                     $data['team_name'] = $request->team_name;
-                } elseif (Schema::hasColumn($table, 'name')) {
+                } elseif ($this->columnExists($table, 'name')) {
                     $data['name'] = $request->team_name;
                 }
             }
             
             if ($request->filled('team_title')) {
-                if (Schema::hasColumn($table, 'team_title')) {
+                if ($this->columnExists($table, 'team_title')) {
                     $data['team_title'] = $request->team_title;
-                } elseif (Schema::hasColumn($table, 'title')) {
+                } elseif ($this->columnExists($table, 'title')) {
                     $data['title'] = $request->team_title;
                 }
             }
             
             if ($request->filled('team_body')) {
-                if (Schema::hasColumn($table, 'team_body')) {
+                if ($this->columnExists($table, 'team_body')) {
                     $data['team_body'] = $request->team_body;
-                } elseif (Schema::hasColumn($table, 'body')) {
+                } elseif ($this->columnExists($table, 'body')) {
                     $data['body'] = $request->team_body;
-                } elseif (Schema::hasColumn($table, 'bio')) {
+                } elseif ($this->columnExists($table, 'bio')) {
                     $data['bio'] = $request->team_body;
                 }
             }
             
-            if ($request->filled('linkedin') && Schema::hasColumn($table, 'linkedin')) {
+            if ($request->filled('linkedin') && $this->columnExists($table, 'linkedin')) {
                 $data['linkedin'] = $request->linkedin;
             }
             
-            if ($request->filled('facebook') && Schema::hasColumn($table, 'facebook')) {
+            if ($request->filled('facebook') && $this->columnExists($table, 'facebook')) {
                 $data['facebook'] = $request->facebook;
             }
             
-            if ($request->filled('instagram') && Schema::hasColumn($table, 'instagram')) {
+            if ($request->filled('instagram') && $this->columnExists($table, 'instagram')) {
                 $data['instagram'] = $request->instagram;
             }
             
-            if ($request->filled('x') && Schema::hasColumn($table, 'x')) {
+            if ($request->filled('x') && $this->columnExists($table, 'x')) {
                 $data['x'] = $request->x;
             }
             
@@ -1047,9 +1063,9 @@ class TablesController extends Controller
                 $filename = time() . '_' . $image->getClientOriginalName();
                 $image->move(public_path('images/team'), $filename);
                 
-                if (Schema::hasColumn($table, 'team_image')) {
+                if ($this->columnExists($table, 'team_image')) {
                     $data['team_image'] = $filename;
-                } elseif (Schema::hasColumn($table, 'image')) {
+                } elseif ($this->columnExists($table, 'image')) {
                     $data['image'] = $filename;
                 }
             }
@@ -1065,39 +1081,39 @@ class TablesController extends Controller
             // Create new team member
             $data = [];
             
-            if (Schema::hasColumn($table, 'team_name')) {
+            if ($this->columnExists($table, 'team_name')) {
                 $data['team_name'] = $request->team_name;
-            } elseif (Schema::hasColumn($table, 'name')) {
+            } elseif ($this->columnExists($table, 'name')) {
                 $data['name'] = $request->team_name;
             }
             
-            if (Schema::hasColumn($table, 'team_title')) {
+            if ($this->columnExists($table, 'team_title')) {
                 $data['team_title'] = $request->team_title;
-            } elseif (Schema::hasColumn($table, 'title')) {
+            } elseif ($this->columnExists($table, 'title')) {
                 $data['title'] = $request->team_title;
             }
             
-            if (Schema::hasColumn($table, 'team_body')) {
+            if ($this->columnExists($table, 'team_body')) {
                 $data['team_body'] = $request->team_body;
-            } elseif (Schema::hasColumn($table, 'body')) {
+            } elseif ($this->columnExists($table, 'body')) {
                 $data['body'] = $request->team_body;
-            } elseif (Schema::hasColumn($table, 'bio')) {
+            } elseif ($this->columnExists($table, 'bio')) {
                 $data['bio'] = $request->team_body;
             }
             
-            if ($request->filled('linkedin') && Schema::hasColumn($table, 'linkedin')) {
+            if ($request->filled('linkedin') && $this->columnExists($table, 'linkedin')) {
                 $data['linkedin'] = $request->linkedin;
             }
             
-            if ($request->filled('facebook') && Schema::hasColumn($table, 'facebook')) {
+            if ($request->filled('facebook') && $this->columnExists($table, 'facebook')) {
                 $data['facebook'] = $request->facebook;
             }
             
-            if ($request->filled('instagram') && Schema::hasColumn($table, 'instagram')) {
+            if ($request->filled('instagram') && $this->columnExists($table, 'instagram')) {
                 $data['instagram'] = $request->instagram;
             }
             
-            if ($request->filled('x') && Schema::hasColumn($table, 'x')) {
+            if ($request->filled('x') && $this->columnExists($table, 'x')) {
                 $data['x'] = $request->x;
             }
             
@@ -1106,14 +1122,14 @@ class TablesController extends Controller
                 $filename = time() . '_' . $image->getClientOriginalName();
                 $image->move(public_path('images/team'), $filename);
                 
-                if (Schema::hasColumn($table, 'team_image')) {
+                if ($this->columnExists($table, 'team_image')) {
                     $data['team_image'] = $filename;
-                } elseif (Schema::hasColumn($table, 'image')) {
+                } elseif ($this->columnExists($table, 'image')) {
                     $data['image'] = $filename;
                 }
             }
             
-            if (Schema::hasColumn($table, 'created_date')) {
+            if ($this->columnExists($table, 'created_date')) {
                 $data['created_date'] = now()->format('d-m-y h:i:sa');
             }
             
@@ -1127,12 +1143,12 @@ class TablesController extends Controller
     
     public function deleteTeam($id)
     {
-        $table = Schema::hasTable('team') ? 'team' : 'teams';
+        $table = $this->tableExists('team') ? 'team' : 'teams';
         
         // Get the team member to delete their image
         $member = DB::table($table)->where('id', $id)->first();
         if ($member) {
-            $imageColumn = Schema::hasColumn($table, 'team_image') ? 'team_image' : 'image';
+            $imageColumn = $this->columnExists($table, 'team_image') ? 'team_image' : 'image';
             if (isset($member->$imageColumn)) {
                 $imagePath = public_path('images/team/' . $member->$imageColumn);
                 if (file_exists($imagePath)) {
@@ -1182,3 +1198,4 @@ class TablesController extends Controller
         return response()->json(['success' => true, 'message' => 'Contact deleted successfully']);
     }
 }
+

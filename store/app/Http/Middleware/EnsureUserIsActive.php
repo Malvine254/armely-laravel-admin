@@ -34,19 +34,17 @@ class EnsureUserIsActive
             return $next($request);
         }
 
-        // Allow read-only endpoints so users can still sign in and view account status.
-        if ($request->isMethod('GET') || $request->isMethod('HEAD') || $request->isMethod('OPTIONS')) {
-            return $next($request);
-        }
-
         // Always allow logout even for restricted accounts.
         if ($request->is('api/v1/auth/logout')) {
             return $next($request);
         }
 
+        // Revoke the current access token so restricted users immediately lose API access.
+        $user->currentAccessToken()?->delete();
+
         $message = !$isEmailVerified
             ? 'Please activate your account from the email link before performing this action.'
-            : 'Your account is suspended or pending approval. You have read-only access.';
+            : 'Your account is suspended or pending approval. Access is blocked.';
 
         return response()->json([
             'success' => false,

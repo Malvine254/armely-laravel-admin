@@ -244,11 +244,30 @@ class AuthController extends Controller
                 : 'user_not_active';
         }
 
+        if ($restricted) {
+            // Immediately revoke any existing tokens so suspended/inactive users lose access.
+            $user->tokens()->delete();
+
+            $message = match ($restrictionReason) {
+                'company_suspended' => 'Login blocked: your company account is suspended. Please contact support.',
+                'company_not_approved' => 'Login blocked: your company account is pending approval.',
+                'user_suspended' => 'Login blocked: your user account is suspended. Please contact support.',
+                default => 'Login blocked: your account is not active.',
+            };
+
+            return response()->json([
+                'success' => false,
+                'message' => $message,
+                'data' => [
+                    'restricted' => true,
+                    'restriction_reason' => $restrictionReason,
+                ],
+            ], 403);
+        }
+
         $token = $user->createToken('auth_token')->plainTextToken;
 
-        $message = $restricted
-            ? 'Login successful. Your account is suspended or pending approval. Access is restricted.'
-            : 'Login successful';
+        $message = 'Login successful';
 
         $shippingAddress = $this->resolveDefaultShippingAddress($company);
         $userPayload = $user->toArray();
@@ -265,8 +284,8 @@ class AuthController extends Controller
                 'user' => $userPayload,
                 'company' => $company,
                 'shipping_address' => $shippingAddress,
-                'restricted' => $restricted,
-                'restriction_reason' => $restrictionReason,
+                'restricted' => false,
+                'restriction_reason' => null,
             ],
         ]);
     }
