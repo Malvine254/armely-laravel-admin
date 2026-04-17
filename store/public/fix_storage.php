@@ -97,16 +97,93 @@ function runArtisanCommand(string $command, array $params = []): array
             'output' => trim(Artisan::output()),
         ];
     } catch (Throwable $e) {
+      $message = $e->getMessage();
+
+      // In production this is expected when the symlink already exists.
+      if ($command === 'storage:link' && stripos($message, 'already exists') !== false) {
+        return [
+          'command' => $command . (empty($params) ? '' : ' ' . json_encode($params)),
+          'status' => 'OK',
+          'output' => $message,
+        ];
+      }
+
         return [
             'command' => $command . (empty($params) ? '' : ' ' . json_encode($params)),
             'status' => 'ERROR',
-            'output' => $e->getMessage(),
+        'output' => $message,
         ];
     }
 }
 
+  function getFrontendBuildStatus(): array
+  {
+    $manifestPath = __DIR__ . '/build/manifest.json';
+
+    if (!file_exists($manifestPath)) {
+      return [
+        'manifest_found' => false,
+        'message' => 'public/build/manifest.json not found',
+      ];
+    }
+
+    $raw = @file_get_contents($manifestPath);
+    if ($raw === false) {
+      return [
+        'manifest_found' => true,
+        'message' => 'manifest.json exists but could not be read',
+      ];
+    }
+
+    $manifest = json_decode($raw, true);
+    if (!is_array($manifest)) {
+      return [
+        'manifest_found' => true,
+        'message' => 'manifest.json is invalid JSON',
+      ];
+    }
+
+    $entry = $manifest['resources/js/app.js'] ?? null;
+    $assetFile = is_array($entry) ? ($entry['file'] ?? null) : null;
+    $assetPath = is_string($assetFile) ? (__DIR__ . '/build/' . $assetFile) : null;
+
+    return [
+      'manifest_found' => true,
+      'manifest_mtime' => date('Y-m-d H:i:s', (int) @filemtime($manifestPath)),
+      'app_asset' => $assetFile,
+      'asset_exists' => $assetPath ? file_exists($assetPath) : false,
+      'asset_mtime' => ($assetPath && file_exists($assetPath)) ? date('Y-m-d H:i:s', (int) @filemtime($assetPath)) : null,
+    ];
+  }
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($selectedAction === 'status') {
+      $build = getFrontendBuildStatus();
+
+      $buildLines = [
+        'FRONTEND_MANIFEST_FOUND=' . (($build['manifest_found'] ?? false) ? 'true' : 'false'),
+      ];
+
+      if (!empty($build['message'])) {
+        $buildLines[] = 'FRONTEND_STATUS=' . (string) $build['message'];
+      }
+
+      if (!empty($build['manifest_mtime'])) {
+        $buildLines[] = 'FRONTEND_MANIFEST_MTIME=' . (string) $build['manifest_mtime'];
+      }
+
+      if (!empty($build['app_asset'])) {
+        $buildLines[] = 'FRONTEND_APP_ASSET=' . (string) $build['app_asset'];
+      }
+
+      if (array_key_exists('asset_exists', $build)) {
+        $buildLines[] = 'FRONTEND_APP_ASSET_EXISTS=' . (($build['asset_exists'] ?? false) ? 'true' : 'false');
+      }
+
+      if (!empty($build['asset_mtime'])) {
+        $buildLines[] = 'FRONTEND_APP_ASSET_MTIME=' . (string) $build['asset_mtime'];
+      }
+
         $results[] = [
             'command' => 'status',
             'status' => 'OK',
@@ -117,6 +194,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'APP_URL=' . (string) config('app.url'),
                 'PHP_VERSION=' . PHP_VERSION,
                 'LARAVEL_VERSION=' . app()->version(),
+                ...$buildLines,
             ]),
         ];
     } else {
