@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\AppSetting;
 use App\Models\Product;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -11,6 +12,53 @@ use Illuminate\Support\Str;
 class AzureGraphMailService
 {
     private array $productNameLookupCache = [];
+
+    public function sendTestEmail(string $recipientEmail, string $recipientName = 'Admin'): bool
+    {
+        if (!$this->isConfigured()) {
+            return false;
+        }
+
+        $safeName = e($recipientName ?: 'Admin');
+        $subject = 'Azure Graph Email Test';
+        $html = "
+            <div style='font-family:Segoe UI,Arial,sans-serif;line-height:1.5;color:#1f2937'>
+                <h2 style='margin:0 0 12px;color:#2F5597'>Azure Graph Email Test</h2>
+                <p>Hello {$safeName},</p>
+                <p>This is a test message from Armely Admin Settings.</p>
+                <p>If you received this email, Azure Graph configuration is working.</p>
+            </div>
+        ";
+        $text = "Hello {$recipientName},\n\nThis is a test message from Armely Admin Settings.\nAzure Graph configuration is working.";
+
+        return $this->sendEmail($recipientEmail, $subject, $html, $text);
+    }
+
+    private function getAzureSetting(string $settingKey, mixed $fallback = ''): mixed
+    {
+        try {
+            $stored = AppSetting::getValue($settingKey, null);
+            if ($stored !== null && $stored !== '') {
+                return $stored;
+            }
+        } catch (\Throwable $e) {
+            // Keep mail service resilient if app_settings table is temporarily unavailable.
+        }
+
+        return $fallback;
+    }
+
+    private function getAzureConfig(): array
+    {
+        return [
+            'tenant_id' => (string) $this->getAzureSetting('integrations.azure_graph.tenant_id', config('services.azure.tenant_id', '')),
+            'client_id' => (string) $this->getAzureSetting('integrations.azure_graph.client_id', config('services.azure.client_id', '')),
+            'client_secret' => (string) $this->getAzureSetting('integrations.azure_graph.client_secret', config('services.azure.client_secret', '')),
+            'from_email' => (string) $this->getAzureSetting('integrations.azure_graph.from_email', config('services.azure.from_email', '')),
+            'from_name' => (string) $this->getAzureSetting('integrations.azure_graph.from_name', config('services.azure.from_name', config('mail.from.name', 'Armely Store'))),
+            'subject_prefix' => (string) $this->getAzureSetting('integrations.azure_graph.subject_prefix', config('services.azure.subject_prefix', config('app.name', 'Armely Store'))),
+        ];
+    }
 
     public function sendActivationEmail(string $recipientEmail, string $recipientName, string $activationUrl): bool
     {
@@ -834,7 +882,7 @@ class AzureGraphMailService
 
     private function isConfigured(): bool
     {
-        $config = config('services.azure');
+        $config = $this->getAzureConfig();
 
         return !empty($config['tenant_id'])
             && !empty($config['client_id'])
@@ -861,8 +909,9 @@ class AzureGraphMailService
 
             $subject = $this->withSubjectPrefix($subject);
 
-            $fromEmail = config('services.azure.from_email');
-            $fromName = (string) config('services.azure.from_name', config('mail.from.name', 'Armely Store'));
+            $azure = $this->getAzureConfig();
+            $fromEmail = (string) ($azure['from_email'] ?? '');
+            $fromName = (string) ($azure['from_name'] ?? config('mail.from.name', 'Armely Store'));
             $url = 'https://graph.microsoft.com/v1.0/users/' . rawurlencode($fromEmail) . '/sendMail';
 
             $response = Http::withToken($token)
@@ -924,7 +973,7 @@ class AzureGraphMailService
     private function withSubjectPrefix(string $subject): string
     {
         $cleanSubject = trim($subject);
-        $prefix = trim((string) config('services.azure.subject_prefix', config('app.name', 'Armely Store')));
+        $prefix = trim((string) ($this->getAzureConfig()['subject_prefix'] ?? config('app.name', 'Armely Store')));
 
         if ($prefix === '' || $cleanSubject === '') {
             return $cleanSubject;
@@ -994,11 +1043,18 @@ class AzureGraphMailService
 
     private function getAccessToken(): ?string
     {
-        return Cache::remember('azure_graph_mail_access_token', now()->addMinutes(50), function () {
+        $azure = $this->getAzureConfig();
+        $tenantId = (string) ($azure['tenant_id'] ?? '');
+        $clientId = (string) ($azure['client_id'] ?? '');
+        $clientSecret = (string) ($azure['client_secret'] ?? '');
+
+        $cacheKey = 'azure_graph_mail_access_token:' . sha1($tenantId . '|' . $clientId);
+
+        return Cache::remember($cacheKey, now()->addMinutes(50), function () use ($tenantId, $clientId, $clientSecret) {
             try {
-                $tenantId = config('services.azure.tenant_id');
-                $clientId = config('services.azure.client_id');
-                $clientSecret = config('services.azure.client_secret');
+                if ($tenantId === '' || $clientId === '' || $clientSecret === '') {
+                    return null;
+                }
 
                 $url = "https://login.microsoftonline.com/{$tenantId}/oauth2/v2.0/token";
 
