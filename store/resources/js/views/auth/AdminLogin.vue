@@ -145,7 +145,11 @@ const handleLogin = async () => {
       }
 
       // Redirect using route name so Vue Router keeps the configured /store base path.
-      router.push({ name: 'admin-dashboard-page' })
+      if (result.forcePasswordChange) {
+        router.push({ name: 'admin-change-password' })
+      } else {
+        router.push({ name: 'admin-dashboard-page' })
+      }
     } else {
       errorMessage.value = result.message || 'Invalid credentials'
     }

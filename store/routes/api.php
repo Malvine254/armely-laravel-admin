@@ -187,9 +187,15 @@ Route::prefix('v1')->group(function () {
         Route::post('/admin/settings/email', [AdminController::class, 'updateEmailSettings']);
         Route::post('/admin/settings/system', [AdminController::class, 'updateSystemSettings']);
 
+        // Activity Logs
+        Route::get('/admin/logs/admins', [AdminController::class, 'getAdminActivityLogs']);
+        Route::get('/admin/logs/users', [AdminController::class, 'getUserActivityLogs']);
+        Route::post('/admin/logs/bulk-delete', [AdminController::class, 'bulkDeleteActivityLogs']);
+
         // Admin User Management
         Route::get('/admin/users', [AdminController::class, 'getAdminUsers']);
         Route::post('/admin/users', [AdminController::class, 'createAdminUser']);
+        Route::post('/admin/users/{userId}/resend-credentials', [AdminController::class, 'resendAdminCredentials']);
         Route::post('/admin/users/{userId}/suspend', [AdminController::class, 'suspendAdminUser']);
         Route::post('/admin/users/{userId}/activate', [AdminController::class, 'activateAdminUser']);
         Route::delete('/admin/users/{userId}', [AdminController::class, 'deleteAdminUser']);

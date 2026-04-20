@@ -9,7 +9,7 @@
           <button
             v-for="tab in tabs"
             :key="tab.id"
-            @click="activeTab = tab.id"
+            @click="switchTab(tab.id)"
             :class="[
               'px-6 py-4 text-sm font-semibold border-b-2 transition whitespace-nowrap',
               activeTab === tab.id
@@ -610,6 +610,7 @@
                 <th class="text-left py-3 px-4 text-xs font-semibold text-gray-700 uppercase tracking-wide">Role</th>
                 <th class="text-left py-3 px-4 text-xs font-semibold text-gray-700 uppercase tracking-wide">Status</th>
                 <th class="text-left py-3 px-4 text-xs font-semibold text-gray-700 uppercase tracking-wide">Created</th>
+                <th class="text-left py-3 px-4 text-xs font-semibold text-gray-700 uppercase tracking-wide">Login Status</th>
                 <th class="text-left py-3 px-4 text-xs font-semibold text-gray-700 uppercase tracking-wide">Actions</th>
               </tr>
             </thead>
@@ -642,7 +643,27 @@
                 </td>
                 <td class="py-3 px-4 text-gray-500 text-sm">{{ new Date(admin.created_at).toLocaleDateString() }}</td>
                 <td class="py-3 px-4">
-                  <div class="flex gap-2">
+                  <template v-if="admin.force_password_change">
+                    <span v-if="isTempExpired(admin.temp_password_expires_at)" class="px-2 py-1 rounded-full text-xs font-semibold bg-rose-500/20 text-rose-600">
+                      <i class="fas fa-clock mr-1"></i>Expired
+                    </span>
+                    <span v-else class="px-2 py-1 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-600">
+                      <i class="fas fa-hourglass-half mr-1"></i>Awaiting login · expires {{ tempExpiresIn(admin.temp_password_expires_at) }}
+                    </span>
+                  </template>
+                  <span v-else class="px-2 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-600">
+                    <i class="fas fa-check mr-1"></i>Active
+                  </span>
+                </td>
+                <td class="py-3 px-4">
+                  <div class="flex gap-2 flex-wrap">
+                    <button
+                      v-if="admin.force_password_change"
+                      @click="resendCredentials(admin.id)"
+                      class="px-3 py-1 text-xs border border-[#2F5597]/40 text-[#2F5597] bg-[#2F5597]/10 rounded hover:bg-[#2F5597]/20 transition"
+                    >
+                      <i class="fas fa-paper-plane mr-1"></i>Resend
+                    </button>
                     <button
                       v-if="admin.status === 'active'"
                       @click="suspendAdmin(admin.id)"
@@ -669,6 +690,319 @@
               </tr>
             </tbody>
           </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Admin Logs -->
+    <div v-if="activeTab === 'admin_logs'" class="rounded-xl border-0 shadow-lg bg-white overflow-hidden">
+      <div class="p-6 border-b border-gray-200 flex items-center justify-between bg-gray-50">
+        <div>
+          <h3 class="text-lg font-semibold text-gray-900">Admin Activity Logs</h3>
+          <p class="text-sm text-gray-500 mt-1">Actions performed by admin and super admin accounts</p>
+        </div>
+        <div class="flex items-center gap-3">
+          <input
+            v-model="adminLogsSearch"
+            @input="adminLogsPage = 1; fetchAdminLogs()"
+            type="text"
+            placeholder="Search logs…"
+            class="px-3 py-2 text-sm border border-gray-200 bg-gray-50 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597] w-52"
+          />
+          <button
+            @click="fetchAdminLogs"
+            :disabled="adminLogsLoading"
+            class="px-4 py-2 text-sm bg-[#2F5597] hover:bg-[#1e3a6b] text-white rounded-lg transition disabled:opacity-60 flex items-center gap-2"
+          >
+            <svg v-if="adminLogsLoading" class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <i v-else class="fas fa-sync-alt"></i>
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      <!-- Bulk action bar -->
+      <div v-if="selectedAdminLogs.length > 0" class="px-6 py-3 bg-[#2F5597]/10 border-b border-[#2F5597]/20 flex items-center gap-3">
+        <span class="text-sm font-medium text-[#2F5597]">{{ selectedAdminLogs.length }} selected</span>
+        <button
+          @click="bulkDeleteLogs('admin_selected')"
+          class="px-3 py-1.5 text-xs bg-rose-500 hover:bg-rose-600 text-white rounded-lg transition font-medium"
+        >
+          <i class="fas fa-trash mr-1"></i>Delete Selected
+        </button>
+        <button
+          @click="bulkDeleteLogs('admin_all')"
+          class="px-3 py-1.5 text-xs border border-rose-500/40 text-rose-600 bg-rose-500/10 hover:bg-rose-500/20 rounded-lg transition font-medium"
+        >
+          <i class="fas fa-broom mr-1"></i>Clear All Admin Logs
+        </button>
+        <button @click="selectedAdminLogs = []" class="ml-auto text-xs text-gray-500 hover:text-gray-700 transition">
+          <i class="fas fa-times mr-1"></i>Deselect All
+        </button>
+      </div>
+      <div v-else class="px-6 py-2.5 bg-gray-50 border-b border-gray-200 flex items-center">
+        <button
+          @click="bulkDeleteLogs('admin_all')"
+          class="px-3 py-1.5 text-xs border border-rose-500/40 text-rose-600 bg-rose-500/10 hover:bg-rose-500/20 rounded-lg transition font-medium"
+        >
+          <i class="fas fa-broom mr-1"></i>Clear All Logs
+        </button>
+      </div>
+
+      <div v-if="adminLogsLoading" class="flex justify-center py-12">
+        <svg class="animate-spin h-8 w-8 text-[#2F5597]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+      </div>
+      <div v-else class="overflow-x-auto">
+        <table class="w-full">
+          <thead class="bg-gray-50 border-b border-gray-200">
+            <tr>
+              <th class="px-4 py-3 text-left w-10">
+                <input
+                  type="checkbox"
+                  :checked="allAdminLogsSelected"
+                  @change="toggleAllAdminLogs"
+                  class="w-4 h-4 rounded border-gray-300"
+                  style="accent-color: #2F5597"
+                />
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Time</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Admin</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Type</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Action</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Description</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200">
+            <tr v-if="adminLogs.length === 0">
+              <td colspan="6" class="px-6 py-12 text-center text-gray-500">
+                <i class="fas fa-shield-halved text-4xl mb-3 block text-gray-400"></i>
+                <p>No admin activity logs found</p>
+              </td>
+            </tr>
+            <tr v-for="log in adminLogs" :key="log.id" class="hover:bg-gray-50 transition">
+              <td class="px-4 py-3">
+                <input
+                  type="checkbox"
+                  :value="log.id"
+                  v-model="selectedAdminLogs"
+                  class="w-4 h-4 rounded border-gray-300"
+                  style="accent-color: #2F5597"
+                />
+              </td>
+              <td class="px-6 py-3 text-xs text-gray-500 whitespace-nowrap">{{ formatLogTime(log.created_at) }}</td>
+              <td class="px-6 py-3">
+                <div class="font-medium text-gray-900 text-sm">{{ log.user?.name || '—' }}</div>
+                <div class="text-xs text-gray-500">{{ log.user?.email }}</div>
+              </td>
+              <td class="px-6 py-3">
+                <span :class="['px-2 py-0.5 rounded-full text-xs font-semibold', logTypeBadge(log.type)]">{{ log.type }}</span>
+              </td>
+              <td class="px-6 py-3 text-sm font-mono text-gray-700">{{ log.action }}</td>
+              <td class="px-6 py-3 text-sm text-gray-700">{{ log.description }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="admin-table-pagination px-6 py-4 border-t border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div class="text-sm text-gray-500">
+          <p>Showing {{ adminLogs.length }} of {{ adminLogsTotal }} admin log entries</p>
+          <p class="mt-1 text-xs text-gray-500">Page {{ adminLogsPage }} of {{ adminLogsLastPage }}</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button
+            :disabled="adminLogsPage === 1"
+            @click="adminLogsPage--; fetchAdminLogs()"
+            class="px-3 py-2 border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-[#2F5597] transition disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+          >
+            Previous
+          </button>
+          <button
+            v-for="page in adminLogsPageNumbers"
+            :key="page"
+            @click="adminLogsPage = page; fetchAdminLogs()"
+            :class="[
+              'px-3 py-2 rounded-lg border text-sm font-semibold transition',
+              page === adminLogsPage
+                ? 'bg-gradient-to-r from-[#2F5597] to-[#1e3a6b] text-white border-[#2F5597]'
+                : 'border-gray-200 text-gray-500 hover:border-[#2F5597]/50 hover:text-[#2F5597]'
+            ]"
+          >
+            {{ page }}
+          </button>
+          <button
+            :disabled="adminLogsPage >= adminLogsLastPage"
+            @click="adminLogsPage++; fetchAdminLogs()"
+            class="px-3 py-2 border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-[#2F5597] transition disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+          >
+            Next
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- User Activity Logs -->
+    <div v-if="activeTab === 'user_logs'" class="rounded-xl border-0 shadow-lg bg-white overflow-hidden">
+      <div class="p-6 border-b border-gray-200 flex items-center justify-between bg-gray-50">
+        <div>
+          <h3 class="text-lg font-semibold text-gray-900">User Activity Logs</h3>
+          <p class="text-sm text-gray-500 mt-1">All activity across every user account</p>
+        </div>
+        <div class="flex items-center gap-3">
+          <input
+            v-model="userLogsSearch"
+            @input="userLogsPage = 1; fetchUserLogs()"
+            type="text"
+            placeholder="Search by user, action…"
+            class="px-3 py-2 text-sm border border-gray-200 bg-gray-50 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597] w-56"
+          />
+          <button
+            @click="fetchUserLogs"
+            :disabled="userLogsLoading"
+            class="px-4 py-2 text-sm bg-[#2F5597] hover:bg-[#1e3a6b] text-white rounded-lg transition disabled:opacity-60 flex items-center gap-2"
+          >
+            <svg v-if="userLogsLoading" class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <i v-else class="fas fa-sync-alt"></i>
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      <!-- Bulk action bar -->
+      <div v-if="selectedUserLogs.length > 0" class="px-6 py-3 bg-[#2F5597]/10 border-b border-[#2F5597]/20 flex items-center gap-3">
+        <span class="text-sm font-medium text-[#2F5597]">{{ selectedUserLogs.length }} selected</span>
+        <button
+          @click="bulkDeleteLogs('user_selected')"
+          class="px-3 py-1.5 text-xs bg-rose-500 hover:bg-rose-600 text-white rounded-lg transition font-medium"
+        >
+          <i class="fas fa-trash mr-1"></i>Delete Selected
+        </button>
+        <button
+          @click="bulkDeleteLogs('user_all')"
+          class="px-3 py-1.5 text-xs border border-rose-500/40 text-rose-600 bg-rose-500/10 hover:bg-rose-500/20 rounded-lg transition font-medium"
+        >
+          <i class="fas fa-broom mr-1"></i>Clear All User Logs
+        </button>
+        <button @click="selectedUserLogs = []" class="ml-auto text-xs text-gray-500 hover:text-gray-700 transition">
+          <i class="fas fa-times mr-1"></i>Deselect All
+        </button>
+      </div>
+      <div v-else class="px-6 py-2.5 bg-gray-50 border-b border-gray-200 flex items-center">
+        <button
+          @click="bulkDeleteLogs('user_all')"
+          class="px-3 py-1.5 text-xs border border-rose-500/40 text-rose-600 bg-rose-500/10 hover:bg-rose-500/20 rounded-lg transition font-medium"
+        >
+          <i class="fas fa-broom mr-1"></i>Clear All Logs
+        </button>
+      </div>
+
+      <div v-if="userLogsLoading" class="flex justify-center py-12">
+        <svg class="animate-spin h-8 w-8 text-[#2F5597]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+      </div>
+      <div v-else class="overflow-x-auto">
+        <table class="w-full">
+          <thead class="bg-gray-50 border-b border-gray-200">
+            <tr>
+              <th class="px-4 py-3 text-left w-10">
+                <input
+                  type="checkbox"
+                  :checked="allUserLogsSelected"
+                  @change="toggleAllUserLogs"
+                  class="w-4 h-4 rounded border-gray-300"
+                  style="accent-color: #2F5597"
+                />
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Time</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">User</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Role</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Type</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Action</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Description</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200">
+            <tr v-if="userLogs.length === 0">
+              <td colspan="7" class="px-6 py-12 text-center text-gray-500">
+                <i class="fas fa-clock-rotate-left text-4xl mb-3 block text-gray-400"></i>
+                <p>No user activity logs found</p>
+              </td>
+            </tr>
+            <tr v-for="log in userLogs" :key="log.id" class="hover:bg-gray-50 transition">
+              <td class="px-4 py-3">
+                <input
+                  type="checkbox"
+                  :value="log.id"
+                  v-model="selectedUserLogs"
+                  class="w-4 h-4 rounded border-gray-300"
+                  style="accent-color: #2F5597"
+                />
+              </td>
+              <td class="px-6 py-3 text-xs text-gray-500 whitespace-nowrap">{{ formatLogTime(log.created_at) }}</td>
+              <td class="px-6 py-3">
+                <div class="font-medium text-gray-900 text-sm">{{ log.user?.name || '—' }}</div>
+                <div class="text-xs text-gray-500">{{ log.user?.email }}</div>
+              </td>
+              <td class="px-6 py-3">
+                <span :class="[
+                  'px-2 py-0.5 rounded-full text-xs font-semibold',
+                  log.user?.role === 'super_admin' ? 'bg-violet-500/10 text-violet-700' :
+                  log.user?.role === 'admin' ? 'bg-[#2F5597]/10 text-[#2F5597]' :
+                  'bg-gray-100 text-gray-600'
+                ]">{{ log.user?.role || 'user' }}</span>
+              </td>
+              <td class="px-6 py-3">
+                <span :class="['px-2 py-0.5 rounded-full text-xs font-semibold', logTypeBadge(log.type)]">{{ log.type }}</span>
+              </td>
+              <td class="px-6 py-3 text-sm font-mono text-gray-700">{{ log.action }}</td>
+              <td class="px-6 py-3 text-sm text-gray-700">{{ log.description }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="admin-table-pagination px-6 py-4 border-t border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div class="text-sm text-gray-500">
+          <p>Showing {{ userLogs.length }} of {{ userLogsTotal }} activity log entries</p>
+          <p class="mt-1 text-xs text-gray-500">Page {{ userLogsPage }} of {{ userLogsLastPage }}</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button
+            :disabled="userLogsPage === 1"
+            @click="userLogsPage--; fetchUserLogs()"
+            class="px-3 py-2 border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-[#2F5597] transition disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+          >
+            Previous
+          </button>
+          <button
+            v-for="page in userLogsPageNumbers"
+            :key="page"
+            @click="userLogsPage = page; fetchUserLogs()"
+            :class="[
+              'px-3 py-2 rounded-lg border text-sm font-semibold transition',
+              page === userLogsPage
+                ? 'bg-gradient-to-r from-[#2F5597] to-[#1e3a6b] text-white border-[#2F5597]'
+                : 'border-gray-200 text-gray-500 hover:border-[#2F5597]/50 hover:text-[#2F5597]'
+            ]"
+          >
+            {{ page }}
+          </button>
+          <button
+            :disabled="userLogsPage >= userLogsLastPage"
+            @click="userLogsPage++; fetchUserLogs()"
+            class="px-3 py-2 border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-[#2F5597] transition disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+          >
+            Next
+          </button>
         </div>
       </div>
     </div>
@@ -739,7 +1073,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import AdminLayout from '@/components/AdminLayout.vue'
 import api from '@/services/api'
 
@@ -757,7 +1091,9 @@ const tabs = [
   { id: 'catalog', label: 'Catalog Ops', icon: 'fa-boxes-stacked' },
   { id: 'email', label: 'Email & Notifications', icon: 'fa-envelope' },
   { id: 'system', label: 'System', icon: 'fa-cog' },
-  { id: 'admins', label: 'Admin Users', icon: 'fa-users-cog' }
+  { id: 'admins', label: 'Admin Users', icon: 'fa-users-cog' },
+  { id: 'admin_logs', label: 'Admin Logs', icon: 'fa-shield-halved' },
+  { id: 'user_logs', label: 'User Activity', icon: 'fa-clock-rotate-left' }
 ]
 
 const profile = ref({
@@ -827,6 +1163,54 @@ const catalogCommandOutput = ref('')
 const catalogStatusPollId = ref(null)
 
 const adminUsers = ref([])
+
+// Activity logs
+const adminLogs = ref([])
+const userLogs = ref([])
+const adminLogsLoading = ref(false)
+const userLogsLoading = ref(false)
+const adminLogsSearch = ref('')
+const userLogsSearch = ref('')
+const adminLogsTotal = ref(0)
+const userLogsTotal = ref(0)
+const adminLogsPage = ref(1)
+const adminLogsLastPage = ref(1)
+const selectedAdminLogs = ref([])
+const userLogsPage = ref(1)
+const userLogsLastPage = ref(1)
+const selectedUserLogs = ref([])
+
+const allAdminLogsSelected = computed(() =>
+  adminLogs.value.length > 0 && adminLogs.value.every(l => selectedAdminLogs.value.includes(l.id))
+)
+
+const allUserLogsSelected = computed(() =>
+  userLogs.value.length > 0 && userLogs.value.every(l => selectedUserLogs.value.includes(l.id))
+)
+
+const adminLogsPageNumbers = computed(() => {
+  const total = adminLogsLastPage.value
+  const current = adminLogsPage.value
+  const half = 2
+  let start = Math.max(1, current - half)
+  let end = Math.min(total, start + 4)
+  if (end - start < 4) start = Math.max(1, end - 4)
+  const pages = []
+  for (let p = start; p <= end; p++) pages.push(p)
+  return pages
+})
+
+const userLogsPageNumbers = computed(() => {
+  const total = userLogsLastPage.value
+  const current = userLogsPage.value
+  const half = 2
+  let start = Math.max(1, current - half)
+  let end = Math.min(total, start + 4)
+  if (end - start < 4) start = Math.max(1, end - 4)
+  const pages = []
+  for (let p = start; p <= end; p++) pages.push(p)
+  return pages
+})
 
 const newAdmin = ref({
   name: '',
@@ -1163,6 +1547,34 @@ const deleteAdmin = async (adminId) => {
   }
 }
 
+const isTempExpired = (expiresAt) => {
+  if (!expiresAt) return false
+  return new Date(expiresAt) < new Date()
+}
+
+const tempExpiresIn = (expiresAt) => {
+  if (!expiresAt) return ''
+  const ms = new Date(expiresAt) - Date.now()
+  if (ms <= 0) return 'now'
+  const hrs = Math.floor(ms / 3600000)
+  const mins = Math.floor((ms % 3600000) / 60000)
+  if (hrs > 0) return `in ${hrs}h ${mins}m`
+  return `in ${mins}m`
+}
+
+const resendCredentials = async (adminId) => {
+  if (!confirm('This will generate a new temporary password and email it to the admin. Continue?')) return
+  try {
+    const response = await api.post(`/admin/users/${adminId}/resend-credentials`)
+    if (response.data.success) {
+      showToast(response.data.message, 'success')
+      fetchAdminUsers()
+    }
+  } catch (error) {
+    showToast(error.response?.data?.message || 'Failed to resend credentials', 'error')
+  }
+}
+
 const fetchCurrentUser = async () => {
   try {
     const response = await api.get('/auth/me')
@@ -1172,6 +1584,122 @@ const fetchCurrentUser = async () => {
   } catch (error) {
     console.error('Failed to fetch current user:', error)
   }
+}
+
+const fetchAdminLogs = async () => {
+  adminLogsLoading.value = true
+  try {
+    const res = await api.get('/admin/logs/admins', {
+      params: { per_page: 25, page: adminLogsPage.value, search: adminLogsSearch.value }
+    })
+    if (res.data.success) {
+      adminLogs.value = res.data.data
+      adminLogsTotal.value = res.data.pagination?.total ?? res.data.total ?? 0
+      adminLogsLastPage.value = res.data.pagination?.last_page ?? 1
+      selectedAdminLogs.value = []
+    }
+  } catch (e) {
+    console.error('Failed to fetch admin logs', e)
+  } finally {
+    adminLogsLoading.value = false
+  }
+}
+
+const fetchUserLogs = async () => {
+  userLogsLoading.value = true
+  try {
+    const res = await api.get('/admin/logs/users', {
+      params: { per_page: 25, page: userLogsPage.value, search: userLogsSearch.value }
+    })
+    if (res.data.success) {
+      userLogs.value = res.data.data
+      userLogsTotal.value = res.data.pagination?.total ?? res.data.total ?? 0
+      userLogsLastPage.value = res.data.pagination?.last_page ?? 1
+      selectedUserLogs.value = []
+    }
+  } catch (e) {
+    console.error('Failed to fetch user logs', e)
+  } finally {
+    userLogsLoading.value = false
+  }
+}
+
+const toggleAllAdminLogs = () => {
+  if (allAdminLogsSelected.value) {
+    selectedAdminLogs.value = []
+  } else {
+    selectedAdminLogs.value = adminLogs.value.map(l => l.id)
+  }
+}
+
+const toggleAllUserLogs = () => {
+  if (allUserLogsSelected.value) {
+    selectedUserLogs.value = []
+  } else {
+    selectedUserLogs.value = userLogs.value.map(l => l.id)
+  }
+}
+
+const bulkDeleteLogs = async (scope) => {
+  const isAdmin = scope.startsWith('admin')
+  const isAll = scope.endsWith('_all')
+  const selected = isAdmin ? selectedAdminLogs.value : selectedUserLogs.value
+
+  if (!isAll && selected.length === 0) {
+    showToast('No entries selected', 'error')
+    return
+  }
+
+  const label = isAdmin ? 'admin' : 'user'
+  const msg = isAll
+    ? `Clear ALL ${label} logs? This cannot be undone.`
+    : `Delete ${selected.length} selected log ${selected.length === 1 ? 'entry' : 'entries'}? This cannot be undone.`
+
+  if (!confirm(msg)) return
+
+  try {
+    const payload = isAll
+      ? { delete_all: true, scope: isAdmin ? 'admins' : 'users' }
+      : { ids: selected }
+    const res = await api.post('/admin/logs/bulk-delete', payload)
+    if (res.data.success) {
+      showToast(res.data.message, 'success')
+      if (isAdmin) {
+        selectedAdminLogs.value = []
+        adminLogsPage.value = 1
+        fetchAdminLogs()
+      } else {
+        selectedUserLogs.value = []
+        userLogsPage.value = 1
+        fetchUserLogs()
+      }
+    }
+  } catch (e) {
+    showToast(e.response?.data?.message || 'Failed to delete logs', 'error')
+  }
+}
+
+const switchTab = (id) => {
+  activeTab.value = id
+  if (id === 'admin_logs' && adminLogs.value.length === 0) fetchAdminLogs()
+  if (id === 'user_logs' && userLogs.value.length === 0) fetchUserLogs()
+}
+
+const formatLogTime = (dateStr) => {
+  if (!dateStr) return ''
+  return new Date(dateStr).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })
+}
+
+const logTypeBadge = (type) => {
+  const map = {
+    login: 'bg-[#2F5597]/10 text-[#2F5597]',
+    profile: 'bg-violet-500/10 text-violet-700',
+    order: 'bg-emerald-500/10 text-emerald-700',
+    quote: 'bg-amber-500/10 text-amber-700',
+    invoice: 'bg-orange-500/10 text-orange-700',
+    settings: 'bg-gray-200 text-gray-700',
+  }
+  return map[type] || 'bg-gray-100 text-gray-600'
 }
 
 onMounted(() => {

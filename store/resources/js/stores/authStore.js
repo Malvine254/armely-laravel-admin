@@ -8,6 +8,7 @@ export const useAuthStore = defineStore('auth', () => {
   const token = ref(initialToken)
   const user = ref(null)
   const accessRestricted = ref(localStorage.getItem('auth_restricted') === 'true')
+  const forcePasswordChange = ref(localStorage.getItem('auth_force_pw') === 'true' || sessionStorage.getItem('auth_force_pw') === 'true')
   const sessionExpiry = ref(null)
   const USER_KEY = 'armely_user'
   const SESSION_EXPIRY_KEY = 'auth_session_expiry'
@@ -19,11 +20,13 @@ export const useAuthStore = defineStore('auth', () => {
   const clearAuthStorage = () => {
     localStorage.removeItem('auth_token')
     localStorage.removeItem('auth_restricted')
+    localStorage.removeItem('auth_force_pw')
     localStorage.removeItem(USER_KEY)
     localStorage.removeItem(SESSION_EXPIRY_KEY)
     localStorage.removeItem(REMEMBER_KEY)
     sessionStorage.removeItem('auth_token')
     sessionStorage.removeItem('auth_restricted')
+    sessionStorage.removeItem('auth_force_pw')
     sessionStorage.removeItem(USER_KEY)
     sessionStorage.removeItem(SESSION_EXPIRY_KEY)
     sessionStorage.removeItem(REMEMBER_KEY)
@@ -99,10 +102,14 @@ export const useAuthStore = defineStore('auth', () => {
                 saveToken(payload.token, remember)
                 saveUser()
         setRestricted(payload.restricted)
+        const forcePw = !!payload.force_password_change
+        forcePasswordChange.value = forcePw
+        getAuthStorage().setItem('auth_force_pw', String(forcePw))
         return {
           ok: true,
           user: payload.user,
           restricted: !!payload.restricted,
+          forcePasswordChange: forcePw,
           message: response.data?.message,
         }
       }
@@ -304,6 +311,12 @@ export const useAuthStore = defineStore('auth', () => {
     return allowedRoles.includes(user.value?.role)
   }
 
+  const clearForcePasswordChange = () => {
+    forcePasswordChange.value = false
+    localStorage.removeItem('auth_force_pw')
+    sessionStorage.removeItem('auth_force_pw')
+  }
+
   const getSessionTimeRemaining = () => {
     if (!sessionExpiry.value) return null
     const now = new Date()
@@ -327,6 +340,7 @@ export const useAuthStore = defineStore('auth', () => {
     user,
     accessRestricted,
     sessionExpiry,
+    forcePasswordChange,
     isAuthenticated,
     isRestricted,
     isActivationPending,
@@ -340,6 +354,7 @@ export const useAuthStore = defineStore('auth', () => {
     forgotPassword,
     resetPassword,
     logout,
-    refreshUser
+    refreshUser,
+    clearForcePasswordChange,
   }
 })

@@ -43,7 +43,15 @@
       </div>
     </div>
 
-    <div class="admin-table-card rounded-xl border-0 shadow-lg bg-white overflow-hidden">
+    <!-- Loading -->
+    <div v-if="isLoading" class="flex justify-center py-12">
+      <svg class="animate-spin h-8 w-8 text-[#2F5597]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+    </div>
+
+    <div v-else class="admin-table-card rounded-xl border-0 shadow-lg bg-white overflow-hidden">
       <div class="px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h3 class="text-lg font-semibold text-gray-900">Customer Users</h3>
@@ -95,7 +103,6 @@
                 />
               </th>
               <th class="px-6 py-3 text-left font-semibold text-gray-700 uppercase text-xs tracking-wide">User</th>
-              <th class="px-6 py-3 text-left font-semibold text-gray-700 uppercase text-xs tracking-wide">Email</th>
               <th class="px-6 py-3 text-left font-semibold text-gray-700 uppercase text-xs tracking-wide">Company</th>
               <th class="px-6 py-3 text-left font-semibold text-gray-700 uppercase text-xs tracking-wide">Status</th>
               <th class="px-6 py-3 text-left font-semibold text-gray-700 uppercase text-xs tracking-wide">Special Pricing</th>
@@ -105,7 +112,7 @@
           </thead>
           <tbody class="divide-y divide-gray-200">
             <tr v-if="customerUsers.length === 0">
-              <td colspan="8" class="px-6 py-16 text-center">
+              <td colspan="7" class="px-6 py-16 text-center">
                 <i class="fas fa-users text-5xl mb-4 block opacity-20 text-gray-500"></i>
                 <p class="text-gray-500 text-lg font-medium">No customer users found</p>
               </td>
@@ -122,9 +129,8 @@
               </td>
               <td class="px-6 py-4">
                 <div class="font-semibold text-gray-900">{{ user.name }}</div>
-                <div class="text-xs text-gray-500 font-mono">ID: {{ user.id }}</div>
+                <div class="text-xs text-gray-500">{{ user.email }}</div>
               </td>
-              <td class="px-6 py-4 text-gray-500">{{ user.email }}</td>
               <td class="px-6 py-4">
                 <div class="font-medium text-gray-900">{{ user.company?.name || 'No company' }}</div>
                 <div class="text-xs text-gray-500">{{ user.company?.domain || 'No domain' }}</div>
@@ -155,8 +161,8 @@
                 </div>
               </td>
               <td class="px-6 py-4 text-gray-500">{{ formatDate(user.created_at) }}</td>
-              <td class="px-6 py-4 text-right">
-                <div class="flex justify-end gap-2 flex-wrap">
+              <td class="px-6 py-4 text-right whitespace-nowrap">
+                <div class="flex justify-end items-center gap-2">
                   <button
                     @click="viewUser(user)"
                     class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-[#2F5597]/10 hover:bg-[#2F5597]/20 text-[#2F5597] transition border border-[#2F5597]/30"
@@ -420,6 +426,7 @@ const isSubmitting = ref(false)
 const showConfirmModal = ref(false)
 const bulkAction = ref('')
 const specialPricingDrafts = ref({})
+const isLoading = ref(false)
 
 const allSelected = computed(() => {
   if (customerUsers.value.length === 0) return false
@@ -520,6 +527,7 @@ const syncUserRecord = (userId, updates) => {
 }
 
 const fetchCustomers = async () => {
+  isLoading.value = true
   try {
     const params = {
       page: currentPage.value,
@@ -540,6 +548,8 @@ const fetchCustomers = async () => {
     }
   } catch (error) {
     console.error('Failed to fetch customer users:', error)
+  } finally {
+    isLoading.value = false
   }
 }
 

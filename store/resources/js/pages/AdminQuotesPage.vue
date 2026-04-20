@@ -100,8 +100,16 @@
       </div>
     </div>
 
+    <!-- Loading -->
+    <div v-if="isLoading" class="flex justify-center py-12">
+      <svg class="animate-spin h-8 w-8 text-[#2F5597]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+    </div>
+
     <!-- Quotes List -->
-    <div class="admin-table-card rounded-xl border-0 shadow-lg bg-white overflow-hidden">
+    <div v-else class="admin-table-card rounded-xl border-0 shadow-lg bg-white overflow-hidden">
       <!-- Bulk Actions Bar -->
       <div v-if="selectedQuotes.length > 0" class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
         <span class="text-sm font-medium text-[#2F5597]"><i class="fas fa-check-square mr-2"></i>{{ selectedQuotes.length }} quote(s) selected</span>
@@ -493,7 +501,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import AdminLayout from '@/components/AdminLayout.vue'
 import api from '@/services/api'
 
@@ -512,6 +520,7 @@ const showDeleteConfirm = ref(false)
 const showFullRowDetails = ref(false)
 const isLoadingQuoteDetails = ref(false)
 const isSubmitting = ref(false)
+const isLoading = ref(false)
 const stats = ref({
   total: 0,
   pending: 0,
@@ -723,6 +732,7 @@ const formatStatus = (status) => {
 }
 
 const fetchQuotes = async () => {
+  isLoading.value = true
   try {
     const response = await api.get('/admin/quotes/pending', {
       params: {
@@ -741,6 +751,8 @@ const fetchQuotes = async () => {
   } catch (error) {
     console.error('[fetchQuotes] Failed to fetch pending quotes:', error)
     alert('Failed to fetch quotes: ' + error.message)
+  } finally {
+    isLoading.value = false
   }
 }
 
@@ -790,18 +802,19 @@ const approveQuote = async () => {
     console.log('[approveQuote] Approval response:', response.data)
     
     if (response.data.success) {
-      alert(response.data.message || 'Quote action completed successfully!')
+      // Optimistic update — remove from pending list immediately
+      quotes.value = quotes.value.filter(q => q.id !== selectedQuote.value.id)
+      if (stats.value.pending > 0) stats.value.pending -= 1
+      stats.value.approved = (stats.value.approved || 0) + 1
 
       if (!response.data?.data?.payment_required) {
         selectedQuote.value = null
       }
-      
-      console.log('[approveQuote] Calling fetchQuotes after approval...')
+
+      alert(response.data.message || 'Quote action completed successfully!')
+
       await fetchQuotes()
-      console.log('[approveQuote] fetchQuotes completed')
-      
       await fetchStats()
-      console.log('[approveQuote] fetchStats completed')
     } else {
       alert(response.data.message || 'Failed to process quote approval')
     }
@@ -830,8 +843,13 @@ const rejectQuote = async () => {
     })
 
     if (response.data.success) {
-      alert('Quote rejected successfully!')
+      // Optimistic update — remove from pending list immediately
+      quotes.value = quotes.value.filter(q => q.id !== selectedQuote.value.id)
+      if (stats.value.pending > 0) stats.value.pending -= 1
+      stats.value.rejected = (stats.value.rejected || 0) + 1
       selectedQuote.value = null
+
+      alert('Quote rejected successfully!')
       fetchQuotes()
       fetchStats()
     }
@@ -884,9 +902,20 @@ const executeBulkDelete = async () => {
   }
 }
 
+let pollInterval = null
+
 onMounted(() => {
   fetchStats()
   fetchQuotes()
+  // Refresh stats and quotes every 30 seconds to catch new submissions
+  pollInterval = setInterval(() => {
+    fetchStats()
+    fetchQuotes()
+  }, 30_000)
+})
+
+onUnmounted(() => {
+  clearInterval(pollInterval)
 })
 </script>
 

@@ -12,7 +12,7 @@
           <button
             v-for="periodOption in periods"
             :key="periodOption.value"
-            @click="period = periodOption.value; fetchRevenueReport()"
+            @click="changePeriod(periodOption.value)"
             :class="[
               'px-4 py-2 rounded-lg font-medium transition',
               period === periodOption.value
@@ -84,18 +84,32 @@
       </div>
     </div>
 
+    <!-- Loading -->
+    <div v-if="isLoadingCustomers" class="flex justify-center py-12">
+      <svg class="animate-spin h-8 w-8 text-[#2F5597]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+    </div>
+
     <!-- Top Customers -->
-    <div class="admin-table-card rounded-xl border-0 shadow-lg bg-white overflow-hidden">
+    <div v-else class="admin-table-card rounded-xl border-0 shadow-lg bg-white overflow-hidden">
       <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-gray-50">
         <div>
           <h3 class="text-lg font-semibold text-gray-900">Top Customers</h3>
-          <p class="text-sm text-gray-500">Customers with highest total purchase value</p>
+          <p class="text-sm text-gray-500">Customers with highest total purchase value — {{ getPeriodLabel() }}</p>
         </div>
         <button
           @click="fetchTopCustomers"
-          class="px-4 py-2 text-sm bg-[#2F5597] hover:bg-[#1e3a6b] text-white rounded-lg transition"
+          :disabled="isLoadingCustomers"
+          class="px-4 py-2 text-sm bg-[#2F5597] hover:bg-[#1e3a6b] text-white rounded-lg transition disabled:opacity-60 flex items-center gap-2"
         >
-          <i class="fas fa-sync-alt mr-2"></i>Refresh
+          <svg v-if="isLoadingCustomers" class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <i v-else class="fas fa-sync-alt"></i>
+          Refresh
         </button>
       </div>
 
@@ -114,7 +128,7 @@
             <tr v-if="topCustomers.length === 0">
               <td colspan="5" class="px-6 py-12 text-center text-gray-500">
                 <i class="fas fa-users text-4xl mb-3 block text-gray-400"></i>
-                <p>No customer data available</p>
+                <p>No customer data for {{ getPeriodLabel() }}</p>
               </td>
             </tr>
             <tr v-for="(customer, index) in topCustomers" :key="customer.id" class="hover:bg-gray-50 transition">
@@ -164,7 +178,8 @@ import { ref, onMounted } from 'vue'
 import AdminLayout from '@/components/AdminLayout.vue'
 import api from '@/services/api'
 
-const period = ref('month')
+const period = ref('year')
+const isLoadingCustomers = ref(false)
 const revenueData = ref({
   total_revenue: 0,
   total_orders: 0,
@@ -213,17 +228,26 @@ const fetchRevenueReport = async () => {
 }
 
 const fetchTopCustomers = async () => {
+  isLoadingCustomers.value = true
+  topCustomers.value = []
   try {
     const response = await api.get('/admin/reports/top-customers', {
-      params: { limit: 10 }
+      params: { limit: 10, period: period.value }
     })
-
     if (response.data.success) {
       topCustomers.value = response.data.data
     }
   } catch (error) {
     console.error('Failed to fetch top customers:', error)
+  } finally {
+    isLoadingCustomers.value = false
   }
+}
+
+const changePeriod = (value) => {
+  period.value = value
+  fetchRevenueReport()
+  fetchTopCustomers()
 }
 
 onMounted(() => {

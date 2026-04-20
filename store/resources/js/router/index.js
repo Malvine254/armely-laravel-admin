@@ -19,6 +19,7 @@ import AdminSettingsPage from '../pages/AdminSettingsPage.vue';
 import AdminInvoicesPage from '../pages/AdminInvoicesPage.vue';
 import AdminChatPage from '../pages/AdminChatPage.vue';
 import AdminOrderTrackingPage from '../pages/AdminOrderTrackingPage.vue';
+import AdminChangePasswordPage from '../pages/AdminChangePasswordPage.vue';
 import Products from '../views/catalog/Products.vue';
 import ProductDetail from '../views/catalog/ProductDetail.vue';
 import Cart from '../views/quotes/Cart.vue';
@@ -75,6 +76,12 @@ const routes = [
     component: AdminLogin,
     alias: ['/admin-login'],
     meta: { requiresAuth: false },
+  },
+  {
+    path: '/admin/change-password',
+    name: 'admin-change-password',
+    component: AdminChangePasswordPage,
+    meta: { requiresAuth: true },
   },
   {
     path: '/admin',
@@ -251,6 +258,17 @@ router.beforeEach((to, from, next) => {
     return;
   }
   
+  // Force password change: admin must set a new password before accessing anything else
+  if (
+    authStore.isAuthenticated &&
+    authStore.forcePasswordChange &&
+    to.name !== 'admin-change-password' &&
+    to.name !== 'admin-login'
+  ) {
+    next({ name: 'admin-change-password' })
+    return
+  }
+
   // Check admin requirement
   if (to.meta.requiresAdmin && !authStore.isAdmin) {
     // Clear the non-admin session and send to admin login
