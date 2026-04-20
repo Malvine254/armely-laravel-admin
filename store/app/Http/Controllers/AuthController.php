@@ -114,17 +114,22 @@ class AuthController extends Controller
             }
         }
 
+        // Use the request's actual scheme+host+base path so the URL works regardless
+        // of how the app is served (artisan serve, Apache, XAMPP, etc.). APP_URL may
+        // carry a subpath suffix (e.g. /store) that doesn't apply to the running server.
         if ($baseUrl === '') {
-            // Prefer configured app URL to keep subpath hosting (for example /store).
-            $baseUrl = rtrim((string) config('app.url'), '/');
+            try {
+                if (request()) {
+                    $baseUrl = rtrim((string) request()->getSchemeAndHttpHost(), '/')
+                             . rtrim((string) request()->getBasePath(), '/');
+                }
+            } catch (\Throwable $e) {
+                // fall through to APP_URL
+            }
         }
 
-        try {
-            if ($baseUrl === '' && request()) {
-                $baseUrl = rtrim((string) request()->getSchemeAndHttpHost(), '/');
-            }
-        } catch (\Throwable $e) {
-            $baseUrl = '';
+        if ($baseUrl === '') {
+            $baseUrl = rtrim((string) config('app.url'), '/');
         }
 
         return rtrim($baseUrl, '/') . '/' . $relativePublicPath . $version;
@@ -266,6 +271,15 @@ class AuthController extends Controller
             ], 403);
         }
 
+        // Block login if the temporary password has expired (first-login accounts only)
+        if ($user->force_password_change && $user->temp_password_expires_at && now()->isAfter($user->temp_password_expires_at)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Your temporary password has expired. Please contact your administrator to resend your credentials.',
+                'data' => ['temp_password_expired' => true],
+            ], 403);
+        }
+
         $token = $user->createToken('auth_token')->plainTextToken;
 
         $message = 'Login successful';
@@ -287,6 +301,7 @@ class AuthController extends Controller
                 'shipping_address' => $shippingAddress,
                 'restricted' => false,
                 'restriction_reason' => null,
+                'force_password_change' => (bool) $user->force_password_change,
             ],
         ]);
     }
@@ -687,13 +702,17 @@ class AuthController extends Controller
         $user = $request->user();
         $company = $user?->company;
 
-        if (!$user || !$company || $user->status !== 'active' || $company->status !== 'approved') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Your account is suspended or pending approval. You have read-only access.',
-            ], 403);
+        $isAdminForcedChange = $user && $user->force_password_change && in_array($user->role, ['admin', 'super_admin']);
+
+        if (!$isAdminForcedChange) {
+            if (!$user || !$company || $user->status !== 'active' || $company->status !== 'approved') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Your account is suspended or pending approval. You have read-only access.',
+                ], 403);
+            }
         }
-        
+
         $data = $request->validate([
             'current_password' => ['required', 'string'],
             'new_password' => ['required', 'string', $this->strongPasswordRule()],
@@ -709,6 +728,8 @@ class AuthController extends Controller
 
         $user->update([
             'password' => Hash::make($data['new_password']),
+            'force_password_change' => false,
+            'temp_password_expires_at' => null,
         ]);
 
         Activity::log($user->id, 'profile', 'password_changed', 'Changed account password');

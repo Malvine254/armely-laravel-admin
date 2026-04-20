@@ -23,10 +23,13 @@ use App\Exceptions\TDSynnexApiException;
 use App\Jobs\GenerateInvoiceJob;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\AdminWelcomeMail;
 
 class AdminController extends Controller
 {
@@ -89,21 +92,25 @@ class AdminController extends Controller
 
     private function buildCatalogOperationsStatus(): array
     {
+        $counts = Cache::remember('catalog_ops_counts', 300, function () {
+            $baseQuery = Product::query()->where('vendor_id', 'TD SYNNEX');
+            return [
+                'total'       => (clone $baseQuery)->count(),
+                'with_images' => (clone $baseQuery)->whereNotNull('images')->where('images', '!=', '[]')->count(),
+                'local_images'=> (clone $baseQuery)->where('images', 'like', '%"/images/%')->count(),
+                'last_synced' => (clone $baseQuery)->max('last_synced_at'),
+            ];
+        });
+
         $serviceAvailable = $this->tdsynnexServiceAvailable();
-        $dbCacheExists = $this->tdsynnexServiceAvailable()
+        $dbCacheExists = $serviceAvailable
             ? app(TDSynnexService::class)->hasPriceAvailabilityDatabaseCache()
             : false;
 
-        $baseQuery = Product::query()->where('vendor_id', 'TD SYNNEX');
-        $totalProducts = (clone $baseQuery)->count();
-        $productsWithImages = (clone $baseQuery)
-            ->whereNotNull('images')
-            ->where('images', '!=', '[]')
-            ->count();
-        $productsWithLocalImages = (clone $baseQuery)
-            ->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(images, '$[0].imageUrl')) LIKE '/images/%'")
-            ->count();
-        $lastSyncedAt = (clone $baseQuery)->max('last_synced_at');
+        $totalProducts        = $counts['total'];
+        $productsWithImages   = $counts['with_images'];
+        $productsWithLocalImages = $counts['local_images'];
+        $lastSyncedAt         = $counts['last_synced'];
 
         $pendingJobs = null;
         $failedJobs = null;
@@ -2171,9 +2178,22 @@ class AdminController extends Controller
             }
 
             $limit = $request->get('limit', 10);
+            $period = $request->get('period', 'month');
 
-            $topCustomers = User::selectRaw('users.id, users.name, users.email, company_id, COUNT(orders.id) as order_count, SUM(orders.total_amount) as total_spent')
-                ->leftJoin('orders', 'users.id', '=', 'orders.user_id')
+            $query = User::selectRaw('users.id, users.name, users.email, users.company_id, COUNT(orders.id) as order_count, COALESCE(SUM(orders.total_amount), 0) as total_spent')
+                ->join('orders', 'users.id', '=', 'orders.user_id');
+
+            if ($period === 'day') {
+                $query->whereBetween('orders.created_at', [now()->startOfDay(), now()->endOfDay()]);
+            } elseif ($period === 'week') {
+                $query->whereBetween('orders.created_at', [now()->startOfWeek(), now()->endOfWeek()]);
+            } elseif ($period === 'month') {
+                $query->whereBetween('orders.created_at', [now()->startOfMonth(), now()->endOfMonth()]);
+            } elseif ($period === 'year') {
+                $query->whereBetween('orders.created_at', [now()->startOfYear(), now()->endOfYear()]);
+            }
+
+            $topCustomers = $query
                 ->groupBy('users.id', 'users.name', 'users.email', 'users.company_id')
                 ->orderByDesc('total_spent')
                 ->limit($limit)
@@ -2822,14 +2842,7 @@ class AdminController extends Controller
                         'tax_rate_percent' => AppSetting::getNumber('pricing.tax_rate_percent', (float) env('APP_TAX_RATE_PERCENT', 0)),
                         'profit_rate_percent' => AppSetting::getNumber('pricing.profit_rate_percent', (float) env('APP_PROFIT_RATE_PERCENT', 0)),
                     ],
-                    'catalog_operations' => (function () {
-                        try {
-                            return $this->buildCatalogOperationsStatus();
-                        } catch (\Throwable $e) {
-                            Log::warning('buildCatalogOperationsStatus failed: ' . $e->getMessage());
-                            return [];
-                        }
-                    })(),
+                    'catalog_operations' => [],
                 ],
             ]);
         } catch (\Exception $e) {
@@ -3124,6 +3137,8 @@ class AdminController extends Controller
                 $message = $finalState['message'] ?? 'Re-index complete.';
             }
 
+            Cache::forget('catalog_ops_counts');
+
             return response()->json([
                 'success' => true,
                 'message' => $message,
@@ -3384,7 +3399,7 @@ class AdminController extends Controller
 
             $admins = User::whereIn('role', ['admin', 'super_admin'])
                 ->orderBy('created_at', 'desc')
-                ->get(['id', 'name', 'email', 'role', 'status', 'created_at']);
+                ->get(['id', 'name', 'email', 'role', 'status', 'created_at', 'force_password_change', 'temp_password_expires_at']);
 
             return response()->json([
                 'success' => true,
@@ -3422,17 +3437,29 @@ class AdminController extends Controller
                 'role' => 'required|in:admin,super_admin',
             ]);
 
+            $plainPassword = $request->password;
+
             $newAdmin = User::create([
                 'name' => $request->name,
                 'email' => $request->email,
-                'password' => \Hash::make($request->password),
+                'password' => Hash::make($plainPassword),
                 'role' => $request->role,
                 'status' => 'active',
+                'company_id' => $user->company_id,
+                'email_verified_at' => now(),
+                'force_password_change' => true,
+                'temp_password_expires_at' => now()->addHours(48),
             ]);
+
+            try {
+                Mail::to($newAdmin->email)->send(new AdminWelcomeMail($newAdmin, $plainPassword));
+            } catch (\Throwable $e) {
+                Log::warning('Failed to send admin welcome email: ' . $e->getMessage());
+            }
 
             return response()->json([
                 'success' => true,
-                'message' => 'Admin user created successfully',
+                'message' => 'Admin user created and welcome email sent',
                 'data' => $newAdmin,
             ]);
         } catch (\Exception $e) {
@@ -3441,6 +3468,45 @@ class AdminController extends Controller
                 'success' => false,
                 'message' => 'Failed to create admin user',
             ], 500);
+        }
+    }
+
+    /**
+     * Resend admin welcome email with a new temporary password and reset the expiry
+     */
+    public function resendAdminCredentials(Request $request, $userId): JsonResponse
+    {
+        try {
+            $currentUser = $request->user();
+
+            if ($currentUser->role !== 'super_admin' && $currentUser->role !== 'admin') {
+                return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+            }
+
+            $admin = User::whereIn('role', ['admin', 'super_admin'])->findOrFail($userId);
+
+            // Generate a fresh temporary password
+            $newPassword = \Illuminate\Support\Str::random(10) . '!A1';
+
+            $admin->update([
+                'password' => Hash::make($newPassword),
+                'force_password_change' => true,
+                'temp_password_expires_at' => now()->addHours(48),
+            ]);
+
+            try {
+                Mail::to($admin->email)->send(new AdminWelcomeMail($admin, $newPassword));
+            } catch (\Throwable $e) {
+                Log::warning('Failed to resend admin welcome email: ' . $e->getMessage());
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'New credentials emailed to ' . $admin->email . '. Expires in 48 hours.',
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to resend admin credentials: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Failed to resend credentials'], 500);
         }
     }
 
@@ -3553,6 +3619,146 @@ class AdminController extends Controller
                 'success' => false,
                 'message' => 'Failed to delete admin user',
             ], 500);
+        }
+    }
+
+    /**
+     * Get activity logs for admin users only
+     */
+    public function getAdminActivityLogs(Request $request): JsonResponse
+    {
+        try {
+            $perPage = (int) $request->get('per_page', 25);
+            $page    = max(1, (int) $request->get('page', 1));
+            $search  = $request->get('search', '');
+
+            $adminIds = User::whereIn('role', ['admin', 'super_admin'])->pluck('id');
+
+            $query = Activity::with('user:id,name,email,role')
+                ->whereIn('user_id', $adminIds)
+                ->orderByDesc('created_at');
+
+            if ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('description', 'like', "%{$search}%")
+                      ->orWhere('action', 'like', "%{$search}%")
+                      ->orWhere('type', 'like', "%{$search}%");
+                });
+            }
+
+            $total    = $query->count();
+            $lastPage = max(1, (int) ceil($total / $perPage));
+            $logs = $query->offset(($page - 1) * $perPage)->limit($perPage)->get()
+                ->map(fn($a) => [
+                    'id'          => $a->id,
+                    'user'        => $a->user ? ['id' => $a->user->id, 'name' => $a->user->name, 'email' => $a->user->email, 'role' => $a->user->role] : null,
+                    'type'        => $a->type,
+                    'action'      => $a->action,
+                    'description' => $a->description,
+                    'metadata'    => $a->metadata,
+                    'created_at'  => $a->created_at,
+                ]);
+
+            return response()->json([
+                'success'   => true,
+                'data'      => $logs,
+                'pagination' => [
+                    'total'     => $total,
+                    'per_page'  => $perPage,
+                    'page'      => $page,
+                    'last_page' => $lastPage,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to fetch admin logs: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Failed to fetch admin logs'], 500);
+        }
+    }
+
+    /**
+     * Get activity logs for all users
+     */
+    public function getUserActivityLogs(Request $request): JsonResponse
+    {
+        try {
+            $perPage = (int) $request->get('per_page', 25);
+            $page    = max(1, (int) $request->get('page', 1));
+            $search  = $request->get('search', '');
+
+            $query = Activity::with('user:id,name,email,role')
+                ->orderByDesc('created_at');
+
+            if ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('description', 'like', "%{$search}%")
+                      ->orWhere('action', 'like', "%{$search}%")
+                      ->orWhere('type', 'like', "%{$search}%")
+                      ->orWhereHas('user', fn($uq) => $uq->where('name', 'like', "%{$search}%")->orWhere('email', 'like', "%{$search}%"));
+                });
+            }
+
+            $total    = $query->count();
+            $lastPage = max(1, (int) ceil($total / $perPage));
+            $logs = $query->offset(($page - 1) * $perPage)->limit($perPage)->get()
+                ->map(fn($a) => [
+                    'id'          => $a->id,
+                    'user'        => $a->user ? ['id' => $a->user->id, 'name' => $a->user->name, 'email' => $a->user->email, 'role' => $a->user->role] : null,
+                    'type'        => $a->type,
+                    'action'      => $a->action,
+                    'description' => $a->description,
+                    'metadata'    => $a->metadata,
+                    'created_at'  => $a->created_at,
+                ]);
+
+            return response()->json([
+                'success'    => true,
+                'data'       => $logs,
+                'pagination' => [
+                    'total'     => $total,
+                    'per_page'  => $perPage,
+                    'page'      => $page,
+                    'last_page' => $lastPage,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to fetch user logs: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Failed to fetch user logs'], 500);
+        }
+    }
+
+    /**
+     * Bulk delete activity logs by IDs
+     */
+    public function bulkDeleteActivityLogs(Request $request): JsonResponse
+    {
+        try {
+            $request->validate([
+                'ids'   => 'required_without:delete_all|array',
+                'ids.*' => 'integer',
+                'delete_all' => 'sometimes|boolean',
+                'scope' => 'sometimes|in:admins,users,all',
+            ]);
+
+            if ($request->boolean('delete_all')) {
+                $scope = $request->get('scope', 'all');
+                $query = Activity::query();
+                if ($scope === 'admins') {
+                    $adminIds = User::whereIn('role', ['admin', 'super_admin'])->pluck('id');
+                    $query->whereIn('user_id', $adminIds);
+                }
+                $deleted = $query->delete();
+            } else {
+                $deleted = Activity::whereIn('id', $request->input('ids', []))->delete();
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => $deleted . ' log ' . ($deleted === 1 ? 'entry' : 'entries') . ' deleted.',
+                'deleted' => $deleted,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to delete activity logs: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Failed to delete logs'], 500);
         }
     }
 

@@ -68,8 +68,16 @@
       </div>
     </div>
 
+    <!-- Loading -->
+    <div v-if="isLoading" class="flex justify-center py-12">
+      <svg class="animate-spin h-8 w-8 text-[#2F5597]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+    </div>
+
     <!-- Orders List -->
-    <div class="admin-table-card rounded-xl border-0 shadow-lg bg-white overflow-hidden">
+    <div v-else class="admin-table-card rounded-xl border-0 shadow-lg bg-white overflow-hidden">
       <!-- Bulk Actions Bar -->
       <div v-if="selectedOrders.length > 0" class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
         <span class="text-sm font-medium text-[#2F5597]"><i class="fas fa-check-square mr-2"></i>{{ selectedOrders.length }} order(s) selected</span>
@@ -383,6 +391,7 @@ const currentPage = ref(1)
 const totalOrders = ref(0)
 const lastPage = ref(1)
 const isSubmitting = ref(false)
+const isLoading = ref(false)
 const showDeleteConfirm = ref(false)
 const companyId = ref(route.query.company_id || null)
 const companyName = ref(route.query.company_name || null)
@@ -604,6 +613,7 @@ const canCancelOrder = (order) => {
 }
 
 const fetchOrders = async () => {
+  isLoading.value = true
   try {
     const params = {
       page: currentPage.value,
@@ -654,6 +664,8 @@ const fetchOrders = async () => {
     }
   } catch (error) {
     console.error('Failed to fetch orders:', error)
+  } finally {
+    isLoading.value = false
   }
 }
 
