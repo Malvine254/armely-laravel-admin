@@ -1763,7 +1763,7 @@ class ProductController extends Controller
     public function menuCategories(): JsonResponse
     {
         try {
-            $data = Cache::remember('menu_categories:v2', 3600, function () {
+            $data = Cache::remember('menu_categories:v3', 3600, function () {
                 $parents = \App\Models\Category::query()
                     ->select(['id', 'name', 'slug', 'segment_code', 'sort_order'])
                     ->whereNull('parent_id')
@@ -1776,33 +1776,47 @@ class ProductController extends Controller
                     return [];
                 }
 
-                $childrenByParent = \App\Models\Category::query()
-                    ->select(['id', 'parent_id', 'name', 'slug', 'description', 'sort_order'])
-                    ->whereIn('parent_id', $parents->pluck('id'))
-                    ->where('is_active', true)
-                    ->where('show_in_menu', true)
-                    ->orderBy('sort_order')
-                    ->get()
-                    ->groupBy('parent_id');
+                // Build top-brand map from products table, grouped by category_segment.
+                // Returns up to 8 brands per segment, ordered by product count descending.
+                $segmentCodes = $parents->pluck('segment_code')->filter()->unique()->values()->all();
+                $brandsBySegment = [];
 
-                return $parents->map(function ($cat) use ($childrenByParent) {
-                    $brands = ($childrenByParent[$cat->id] ?? collect())
-                        ->map(function ($brand) {
-                            return [
-                                'id' => $brand->id,
-                                'label' => $brand->name,
-                                'value' => $brand->description, // manufacturer filter value
-                                'slug' => $brand->slug,
+                if (!empty($segmentCodes)) {
+                    $rows = Product::query()
+                        ->where('vendor_id', 'TD SYNNEX')
+                        ->where('is_hardware', 1)
+                        ->whereIn('category_segment', $segmentCodes)
+                        ->whereNotNull('manufacturer')
+                        ->where('manufacturer', '<>', '')
+                        ->selectRaw('category_segment, manufacturer, COUNT(*) as cnt')
+                        ->groupBy('category_segment', 'manufacturer')
+                        ->orderByDesc('cnt')
+                        ->get();
+
+                    foreach ($rows as $row) {
+                        $seg = (string) $row->category_segment;
+                        if (!isset($brandsBySegment[$seg])) {
+                            $brandsBySegment[$seg] = [];
+                        }
+                        if (count($brandsBySegment[$seg]) < 8) {
+                            $name = trim((string) $row->manufacturer);
+                            $brandsBySegment[$seg][] = [
+                                'label' => $name,
+                                'value' => $name,
                             ];
-                        })
-                        ->values()
-                        ->all();
+                        }
+                    }
+                }
+
+                return $parents->map(function ($cat) use ($brandsBySegment) {
+                    $seg = (string) ($cat->segment_code ?? '');
+                    $brands = $brandsBySegment[$seg] ?? [];
 
                     return [
                         'id' => $cat->id,
                         'name' => $cat->name,
                         'slug' => $cat->slug,
-                        'segment_code' => $cat->segment_code,
+                        'segment_code' => $seg,
                         'brands' => $brands,
                     ];
                 })->all();

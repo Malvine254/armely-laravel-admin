@@ -65,6 +65,12 @@ return Application::configure(basePath: dirname(__DIR__))
             ->everyThirtyMinutes()
             ->name('update-order-statuses')
             ->withoutOverlapping();
+
+        // Import flat file then sync Excel catalog files against TD SYNNEX API daily.
+        $schedule->command('tdsynnex:sync-catalog')
+            ->daily()
+            ->name('tdsynnex-sync-catalog')
+            ->withoutOverlapping();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (Throwable $e, $request) {

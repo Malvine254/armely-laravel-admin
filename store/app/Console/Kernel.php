@@ -36,6 +36,7 @@ class Kernel extends ConsoleKernel
             ->name('enrich-priceavailability-images')
             ->withoutOverlapping();
 
+
         // Update order statuses every 30 minutes
         $schedule->call(function () {
             $orders = \App\Models\Order::whereIn('status', ['pending', 'processing', 'shipped'])
