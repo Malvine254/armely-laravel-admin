@@ -20,7 +20,7 @@ class DashboardController extends Controller
 
         $blogTable = $this->resolveBlogTable();
 
-        $stats = Cache::remember('admin_dashboard_stats', 300, function () {
+        $stats = Cache::remember('admin_dashboard_stats', 300, function () use ($today, $weekAgo, $monthAgo, $blogTable) {
         return [
             'blogs' => $this->safeCountAny(['blog', 'blogs']),
             'videos' => $this->safeCountAny(['videos', 'video']),

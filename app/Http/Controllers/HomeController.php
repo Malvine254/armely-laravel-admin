@@ -668,9 +668,16 @@ class HomeController extends Controller
     public function submitContact(Request $request)
     {
         try {
+            // Normalize common user input quirks before validation.
+            $normalizedEmail = preg_replace('/\s+/', '', trim((string) $request->input('email', '')));
+            if (Str::startsWith(strtolower($normalizedEmail), 'mailto:')) {
+                $normalizedEmail = substr($normalizedEmail, 7);
+            }
+            $request->merge(['email' => $normalizedEmail]);
+
             $data = $request->validate([
                 'name' => ['required', 'string', 'max:255'],
-                'email' => ['required', 'email:rfc,dns,filter', 'max:255'],
+                'email' => ['required', 'email:filter', 'max:255'],
                 'organization' => ['nullable', 'string', 'max:255'],
                 'phone' => ['nullable', 'string', 'max:50'],
                 'message' => ['required', 'string'],

@@ -14,7 +14,7 @@ class EnrichPriceAvailabilityImagesCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'tdsynnex:enrich-priceavailability-images {--chunk=1 : Number of products per batch} {--limit=0 : Max products to process (0 = all)} {--sync : Run inline and block until complete} {--descriptions : Backfill Icecat descriptions for products with missing or name-only descriptions} {--vendor=TD SYNNEX : Product vendor_id filter} {--search= : Product search filter (title, SKU, MPN, description, manufacturer)} {--manufacturer= : Manufacturer filter (from specifications.manufacturer)} {--manufacturer-id= : Manufacturer identifier filter (alias of manufacturer)} {--sku= : SKU/MPN filter, accepts CSV for multiple values} {--force-web-refresh : Include rows that already have images and prioritize web/title lookup}';
+    protected $signature = 'tdsynnex:enrich-priceavailability-images {--chunk=1 : Number of products per batch} {--limit=0 : Max products to process (0 = all)} {--sync : Run inline and block until complete} {--descriptions : Backfill Icecat descriptions for products with missing or name-only descriptions} {--force-descriptions : Overwrite existing descriptions with fresh pulled descriptions} {--vendor=TD SYNNEX : Product vendor_id filter} {--search= : Product search filter (title, SKU, MPN, description, manufacturer)} {--manufacturer= : Manufacturer filter (from specifications.manufacturer)} {--manufacturer-id= : Manufacturer identifier filter (alias of manufacturer)} {--sku= : SKU/MPN filter, accepts CSV for multiple values} {--force-web-refresh : Include rows that already have images and prioritize web/title lookup}';
 
     /**
      * The console command description.
@@ -40,6 +40,7 @@ class EnrichPriceAvailabilityImagesCommand extends Command
             $manufacturerId = trim((string) $this->option('manufacturer-id'));
             $sku = trim((string) $this->option('sku'));
             $forceWebRefresh = (bool) $this->option('force-web-refresh');
+            $forceDescriptions = (bool) $this->option('force-descriptions');
 
             $filters = [
                 'vendor' => $vendor,
@@ -80,8 +81,22 @@ class EnrichPriceAvailabilityImagesCommand extends Command
             }
 
             if ($descriptionMode) {
-                $this->info('Backfilling Icecat descriptions for products missing descriptions...');
-                $result = $service->syncPriceAvailabilityDescriptionsFromDatabase($chunk, $limit);
+                if ($forceDescriptions) {
+                    $this->info('Force-refreshing descriptions for all TD SYNNEX products...');
+                } else {
+                    $this->info('Backfilling Icecat descriptions for products missing descriptions...');
+                }
+                $result = $service->syncPriceAvailabilityDescriptionsFromDatabase(
+                    $chunk,
+                    $limit,
+                    function (int $processed, int $updated, Product $product, bool $didUpdate) {
+                        $sku = trim((string) ($product->tdsynnex_sku_no ?? $product->tdsynnex_product_id ?? ''));
+                        $name = mb_substr(trim((string) ($product->product_name ?? $product->name ?? '—')), 0, 70);
+                        $status = $didUpdate ? '<fg=green>UPDATED</>' : '<fg=yellow>SKIPPED</>';
+                        $this->line(sprintf('[%d] %s SKU:%s %s', $processed, $status, $sku, $name));
+                    },
+                    $forceDescriptions
+                );
 
                 if ((int) ($result['processed'] ?? 0) === 0) {
                     $this->warn('No database products found that need description enrichment.');
