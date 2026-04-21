@@ -55,7 +55,17 @@ class TablesController extends Controller
 
         $contacts = $this->tableExists('contacts') ? DB::table('contacts')->orderBy('id', 'desc')->limit(50)->get() : collect();
 
-        return view('admin.tables', compact('blogs', 'videos', 'careers', 'socialImpact', 'customerStories', 'events', 'team', 'contacts'));
+        $adminAuthors = $this->tableExists('admin')
+            ? DB::table('admin')
+                ->whereNotNull('name')
+                ->where('name', '!=', '')
+                ->orderBy('name')
+                ->pluck('name')
+                ->unique()
+                ->values()
+            : collect();
+
+        return view('admin.tables', compact('blogs', 'videos', 'careers', 'socialImpact', 'customerStories', 'events', 'team', 'contacts', 'adminAuthors'));
     }
     
     // ========== LIST ENDPOINTS FOR AJAX TABLE RELOAD ==========

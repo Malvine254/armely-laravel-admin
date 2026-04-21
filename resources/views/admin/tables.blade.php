@@ -3,6 +3,10 @@
 @section('page-title', 'Content Management')
 @section('title', 'Content Management - Armely Admin')
 
+@php
+    $currentAdminName = auth('admin')->user()->name ?? '';
+@endphp
+
 @push('styles')
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css" integrity="sha384-ok3J6xA9oQqai5C9ytYveFsBeKgoGk4T+NExsr6hoIKjZdv9SJcmx2mafwUWRNf9" crossorigin="anonymous">
 <style>
@@ -712,7 +716,11 @@
                         
                         <div class="col-md-6">
                             <label for="blogAuthor" class="form-label">Author *</label>
-                            <input type="text" class="form-control" id="blogAuthor" name="author" required placeholder="Author name">
+                            <select class="form-select" id="blogAuthor" name="author" required data-default-author="{{ $currentAdminName }}">
+                                @foreach(($adminAuthors ?? collect()) as $authorName)
+                                    <option value="{{ $authorName }}" {{ $authorName === $currentAdminName ? 'selected' : '' }}>{{ $authorName }}</option>
+                                @endforeach
+                            </select>
                         </div>
                         
                         <div class="col-md-6">
@@ -1490,6 +1498,11 @@ $(document).ready(function() {
         $('#blogModalTitle').text('Add New Blog');
         $('#blogForm')[0].reset();
         $('#blogId').val('');
+
+        const defaultAuthor = $('#blogAuthor').data('default-author');
+        if (defaultAuthor) {
+            $('#blogAuthor').val(defaultAuthor);
+        }
         
         // Initialize CKEditor if not already
         if (!blogEditor) {
@@ -1513,7 +1526,11 @@ $(document).ready(function() {
         
         $('#blogId').val(blogId);
         $('#blogTitle').val(blog.title || blog.blog_title || '');
-        $('#blogAuthor').val(blog.author || '');
+        const editAuthor = blog.author || '';
+        if (editAuthor && $('#blogAuthor option[value="' + editAuthor.replace(/"/g, '\\"') + '"]').length === 0) {
+            $('#blogAuthor').append(new Option(editAuthor, editAuthor));
+        }
+        $('#blogAuthor').val(editAuthor);
         $('#blogDate').val(blog.date || blog.blog_date || '');
         
         // Initialize CKEditor if not already

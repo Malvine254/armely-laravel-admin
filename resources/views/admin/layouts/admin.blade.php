@@ -204,6 +204,28 @@
         outline: none;
         box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
     }
+
+    /* Sidebar account legibility */
+    .admin-sidebar .sidebar-user strong {
+        color: #1f3f7f;
+        font-weight: 700;
+    }
+
+    .admin-sidebar .sidebar-user small {
+        color: #334155;
+        font-weight: 600;
+    }
+
+    .admin-sidebar .sidebar-user .sidebar-logout-link {
+        color: #1f3f7f !important;
+        font-weight: 700;
+        text-decoration: none;
+    }
+
+    .admin-sidebar .sidebar-user .sidebar-logout-link:hover {
+        color: #142b57 !important;
+        text-decoration: underline;
+    }
     </style>
 </head>
 <body class="admin-body">
@@ -299,7 +321,7 @@
         <strong>{{ auth('admin')->user()->name ?? 'Admin' }}</strong>
         <small>Administrator</small>
         <div class="mt-2">
-                <a class="text-light small" href="{{ route('admin.logout.get') }}" 
+                <a class="small sidebar-logout-link" href="{{ route('admin.logout.get') }}" 
                onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
                 <i class="fas fa-sign-out-alt me-2"></i>Logout
             </a>
