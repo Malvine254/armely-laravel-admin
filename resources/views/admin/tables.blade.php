@@ -700,7 +700,8 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form id="blogForm">
+                <form id="blogForm" method="POST" action="{{ route('admin.tables.blogs.store') }}" enctype="multipart/form-data">
+                    @csrf
                     <input type="hidden" id="blogId" name="id">
                     
                     <div class="row g-3">
@@ -1544,8 +1545,15 @@ $(document).ready(function() {
         $('#blogModal').modal('show');
     });
 
+    // Ensure Enter key submits through the same AJAX flow.
+    $('#blogForm').on('submit', function(e) {
+        e.preventDefault();
+        $('#saveBlogBtn').trigger('click');
+    });
+
     // Save Blog (Add/Edit)
-    $('#saveBlogBtn').click(function() {
+    $('#saveBlogBtn').on('click', function(e) {
+        e.preventDefault();
         const formData = new FormData();
         const id = $('#blogId').val();
         const isEdit = id !== '';
@@ -1572,6 +1580,7 @@ $(document).ready(function() {
 
         $.ajax({
             url: isEdit ? `/admin/tables/blogs/${id}` : '/admin/tables/blogs',
+            method: 'POST',
             type: 'POST',
             data: formData,
             processData: false,

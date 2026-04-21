@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Services\TDSynnexService;
 use App\Services\CustomerPricingService;
+use App\Support\CatalogTaxonomy;
 use App\Exceptions\TDSynnexApiException;
 use App\Models\Product;
 use App\Models\User;
@@ -785,17 +786,46 @@ class ProductController extends Controller
         // Filter by UNSPSC category segment prefix (e.g. "56" for Furniture)
         if ($category !== '') {
             if ($category === 'other') {
-                // "Other" matches any segment NOT in the named category list
-                $namedSegments = ['43','81','26','39','24','45','44','52','32','56','41','46','42','14','71','53','60','23','40','25','55','47','27','31','03'];
+                // "Other" matches any segment outside the curated workbook categories.
+                $namedSegments = [];
+                foreach (CatalogTaxonomy::curatedCategories() as $curatedCategory) {
+                    foreach ($curatedCategory['segment_codes'] as $segmentCode) {
+                        $namedSegments[] = $segmentCode;
+                    }
+                }
+                $namedSegments = array_values(array_unique($namedSegments));
                 $placeholders = implode(',', array_fill(0, count($namedSegments), '?'));
                 $query->whereRaw(
                     "COALESCE(category_segment, '') NOT IN ($placeholders)",
                     $namedSegments
                 );
             } else {
-                $safePrefix = preg_replace('/[^0-9]/', '', $category);
-                if ($safePrefix !== '') {
-                    $query->where('category_segment', $safePrefix);
+                $segments = array_values(array_filter(
+                    array_map('trim', explode(',', $category)),
+                    static fn (string $seg): bool => (bool) preg_match('/^\d{2}$/', $seg)
+                ));
+
+                if (empty($segments)) {
+                    $menuCategory = \App\Models\Category::query()
+                        ->whereNull('parent_id')
+                        ->where(function ($q) use ($category) {
+                            $q->where('slug', $category)
+                                ->orWhereRaw('LOWER(name) = ?', [strtolower($category)]);
+                        })
+                        ->first();
+
+                    if ($menuCategory) {
+                        $segments = array_values(array_filter(
+                            array_map('trim', explode(',', (string) $menuCategory->segment_code)),
+                            static fn (string $seg): bool => (bool) preg_match('/^\d{2}$/', $seg)
+                        ));
+                    }
+                }
+
+                if (count($segments) === 1) {
+                    $query->where('category_segment', $segments[0]);
+                } elseif (count($segments) > 1) {
+                    $query->whereIn('category_segment', $segments);
                 }
             }
         }
@@ -1836,8 +1866,7 @@ class ProductController extends Controller
     }
 
     /**
-     * Compute category counts from UNSPSC segment codes stored in specifications.categoryCode.
-     * Groups products by the 2-digit UNSPSC segment prefix and maps to readable names.
+     * Compute category counts from curated workbook categories.
      */
     private function computeCategoryGroupCounts(
         bool $hideZero,
@@ -1846,38 +1875,21 @@ class ProductController extends Controller
         bool $catalogClean,
         string $productType
     ): array {
-        // 2-digit segment prefix → IT-catalog-appropriate label
-        // Labels derived from actual TD SYNNEX product data, not generic UNSPSC names
-        $segmentLabels = [
-            '43' => 'IT Hardware & Telecom',
-            '81' => 'Software & IT Services',
-            '26' => 'Power & UPS',
-            '39' => 'Cables & Electrical',
-            '24' => 'Racks & Containment',
-            '45' => 'Printing & Imaging',
-            '44' => 'Office Equipment',
-            '52' => 'Consumer Electronics',
-            '32' => 'Electronic Components',
-            '56' => 'Furniture',
-            '41' => 'Monitor Arms & Mounts',
-            '46' => 'Security Equipment',
-            '42' => 'Projector Screens',
-            '14' => 'Paper & Canvas',
-            '71' => 'Network Attached Storage',
-            '53' => 'Protective Cases',
-            '60' => 'Ergonomic Seating & Gaming',
-            '23' => '3D Printers',
-            '40' => 'Fans & Cooling',
-            '25' => 'Drones & EV Charging',
-            '00' => 'Other',
-            '55' => 'Labels & Identification',
-            '47' => 'Cleaning Supplies',
-            '27' => 'Tools & Accessories',
-            '31' => 'Cameras & Surveillance',
-            '03' => 'Photo & Specialty Paper',
-            '05' => 'Other',
-            '49' => 'Other',
-        ];
+        $curatedCategories = CatalogTaxonomy::curatedCategories();
+        $segmentToName = [];
+        $valueByName = [];
+        $countsByName = [];
+
+        foreach ($curatedCategories as $curatedCategory) {
+            $name = (string) $curatedCategory['name'];
+            $segments = array_values(array_filter((array) ($curatedCategory['segment_codes'] ?? [])));
+            $valueByName[$name] = implode(',', $segments);
+            $countsByName[$name] = 0;
+
+            foreach ($segments as $segment) {
+                $segmentToName[(string) $segment] = $name;
+            }
+        }
 
         $query = Product::query()->where('vendor_id', 'TD SYNNEX');
 
@@ -1916,31 +1928,25 @@ class ProductController extends Controller
             ->get();
 
         $result = [];
-        $otherCount = 0;
         foreach ($rows as $row) {
-            $seg = $row->segment;
-            $label = $segmentLabels[$seg] ?? 'Other';
+            $seg = (string) $row->segment;
             $cnt = (int) $row->cnt;
-
-            // Merge all "Other" segments into a single bucket
-            if ($label === 'Other') {
-                $otherCount += $cnt;
+            $name = $segmentToName[$seg] ?? null;
+            if ($name === null) {
                 continue;
             }
 
-            $result[] = [
-                'name'  => $label,
-                'value' => $seg,
-                'count' => $cnt,
-            ];
+            $countsByName[$name] = ($countsByName[$name] ?? 0) + $cnt;
         }
 
-        // Add combined "Other" bucket if it has products
-        if ($otherCount > 0) {
+        foreach ($countsByName as $name => $count) {
+            if ($count <= 0) {
+                continue;
+            }
             $result[] = [
-                'name'  => 'Other',
-                'value' => 'other',
-                'count' => $otherCount,
+                'name' => $name,
+                'value' => $valueByName[$name] ?? '',
+                'count' => $count,
             ];
         }
 
