@@ -847,7 +847,16 @@ class TDSynnexService
             'manufacturer' => trim((string) ($product['manufacturer'] ?? '')) ?: null,
             'specifications' => json_encode([
                 'sku' => $sku,
+                'lineNumber' => (string) ($product['lineNumber'] ?? ''),
+                'synnexSKU' => (string) ($product['synnexSKU'] ?? $sku),
                 'status' => (string) ($product['status'] ?? ''),
+                'description' => (string) ($product['description'] ?? ''),
+                'price' => (float) ($product['price'] ?? $product['productPrice'][0]['rsPrice'] ?? 0),
+                'totalQuantity' => (int) ($product['totalQuantity'] ?? $product['availableQuantity'] ?? 0),
+                'mfgPN' => (string) ($product['mfgPN'] ?? $product['mfgPartNo'] ?? $sku),
+                'mfgCode' => (string) ($product['mfgCode'] ?? ''),
+                'GlobalProductStatusCode' => (string) ($product['GlobalProductStatusCode'] ?? ''),
+                'AvailabilityByWarehouse' => $product['AvailabilityByWarehouse'] ?? [],
                 'categoryCode' => (string) ($product['categoryCode'] ?? '-'),
                 'availableQuantity' => (int) ($product['availableQuantity'] ?? 0),
                 'upc' => (string) ($product['upc'] ?? ''),
@@ -1416,6 +1425,20 @@ class TDSynnexService
         return 0.0;
     }
 
+    private function pickFirstValue(array $row, array $keys, $default = null)
+    {
+        foreach ($keys as $key) {
+            $candidates = [$key, strtolower($key), strtoupper($key), ucfirst($key)];
+            foreach ($candidates as $candidateKey) {
+                if (array_key_exists($candidateKey, $row)) {
+                    return $row[$candidateKey];
+                }
+            }
+        }
+
+        return $default;
+    }
+
     private function normalizePriceAvailabilityProduct(array $row, array $metadata): array
     {
         $sku = trim((string) ($row['synnexSKU'] ?? $row['SynnexSKU'] ?? ''));
@@ -1424,10 +1447,16 @@ class TDSynnexService
         }
 
         $meta = $metadata[$sku] ?? [];
-        $status = trim((string) ($row['status'] ?? '-'));
-        $apiDescription = trim((string) ($row['description'] ?? ''));
+        $lineNumber = trim((string) $this->pickFirstValue($row, ['lineNumber'], ''));
+        $status = trim((string) $this->pickFirstValue($row, ['status'], '-'));
+        $apiDescription = trim((string) $this->pickFirstValue($row, ['description'], ''));
         $flatDescription = trim((string) ($meta['description'] ?? ''));
-        $description = $flatDescription !== '' ? $flatDescription : $apiDescription;
+        // Prefer live API description when present so sync refreshes stale flat-file text.
+        $description = $apiDescription !== '' ? $apiDescription : $flatDescription;
+        $mfgPN = trim((string) $this->pickFirstValue($row, ['mfgPN', 'mfgPartNo', 'manufacturerPartNumber'], (string) ($meta['mpn'] ?? $sku)));
+        $mfgCode = trim((string) $this->pickFirstValue($row, ['mfgCode', 'manufacturerCode'], (string) ($meta['manufacturer'] ?? '')));
+        $globalProductStatusCode = trim((string) $this->pickFirstValue($row, ['GlobalProductStatusCode', 'globalProductStatusCode'], ''));
+        $availabilityByWarehouse = $this->pickFirstValue($row, ['AvailabilityByWarehouse', 'availabilityByWarehouse'], []);
         // Keep reseller/cost in base_price and prefer MSRP/list for retail_price.
         $resellerPrice = $this->pickFirstNumericValue($row, [
             'price',
@@ -1461,12 +1490,20 @@ class TDSynnexService
         return [
             'productId' => $sku,
             'sku' => $sku,
-            'mfgPartNo' => (string) ($meta['mpn'] ?? $sku),
+            'lineNumber' => $lineNumber,
+            'synnexSKU' => $sku,
+            'mfgPartNo' => $mfgPN,
+            'mfgPN' => $mfgPN,
+            'mfgCode' => $mfgCode,
+            'GlobalProductStatusCode' => $globalProductStatusCode,
+            'AvailabilityByWarehouse' => $availabilityByWarehouse,
             'vendorId' => 'TD SYNNEX',
             'vendorName' => 'TD SYNNEX',
             'productName' => $description !== '' ? $description : ((string) ($meta['mpn'] ?? $sku)),
             'description' => $description,
             'status' => $status,
+            'price' => $resellerPrice,
+            'totalQuantity' => $qty,
             'availableQuantity' => $qty,
             'qty' => (string) $qty,
             'categoryCode' => (string) ($meta['category_code'] ?? '-'),
@@ -1554,29 +1591,38 @@ class TDSynnexService
      * Persist only image payload for an existing product row identified by SKU.
      * This avoids full product DB sync while enabling durable image caching.
      */
-    public function syncPriceAvailabilityDescriptionsFromDatabase(int $chunk = 25, int $limit = 0): array
+    public function syncPriceAvailabilityDescriptionsFromDatabase(int $chunk = 25, int $limit = 0, ?callable $onProgress = null, bool $overwriteExisting = false): array
     {
         $chunk = max(1, $chunk);
         $limit = max(0, $limit);
 
         $query = Product::query()
-            ->where('vendor_id', 'TD SYNNEX')
-            ->where(function ($q) {
+            ->where('vendor_id', 'TD SYNNEX');
+
+        if (!$overwriteExisting) {
+            $query->where(function ($q) {
                 $q->whereNull('description')
                     ->orWhere('description', '')
                     ->orWhereRaw('TRIM(description) = TRIM(product_name)');
-            })
-            ->orderBy('id');
-
-        if ($limit > 0) {
-            $query->limit($limit);
+            });
         }
 
-        $products = $query->get();
         $processed = 0;
         $updated = 0;
 
-        foreach ($products->chunk($chunk) as $batch) {
+        $query->orderBy('id')->chunkById($chunk, function ($batch) use (&$processed, &$updated, $limit, $onProgress) {
+            if ($limit > 0 && $processed >= $limit) {
+                return false;
+            }
+
+            if ($limit > 0) {
+                $remaining = $limit - $processed;
+                if ($remaining <= 0) {
+                    return false;
+                }
+                $batch = $batch->take($remaining);
+            }
+
             $batchSkus = [];
             foreach ($batch as $product) {
                 $spec = is_array($product->specifications) ? $product->specifications : [];
@@ -1608,16 +1654,22 @@ class TDSynnexService
                 $assets = $this->resolveProductAssetsForSku($sku, $meta, (string) ($product->name ?? $product->product_name ?? ''));
                 $longDescription = trim((string) ($assets['description'] ?? ''));
 
+                $didUpdate = false;
                 if ($longDescription !== '') {
                     $product->description = $longDescription;
 
                     $product->save();
                     $updated++;
+                    $didUpdate = true;
                 }
 
                 $processed++;
+
+                if ($onProgress !== null) {
+                    $onProgress($processed, $updated, $product, $didUpdate, $longDescription);
+                }
             }
-        }
+        }, 'id');
 
         return [
             'processed' => $processed,
