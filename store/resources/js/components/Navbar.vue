@@ -281,7 +281,7 @@ const moreCategoryDropdownOpen = ref(null)
 const mobileProductsOpen = ref(false)
 
 const productCategories = ref([])
-const MENU_CATEGORIES_STORAGE_KEY = 'store_menu_categories_v1'
+const MENU_CATEGORIES_STORAGE_KEY = 'store_menu_categories_v2'
 const MENU_CATEGORIES_CACHE_TTL_MS = 15 * 60 * 1000
 
 const primaryCategories = computed(() => productCategories.value.slice(0, 3))
