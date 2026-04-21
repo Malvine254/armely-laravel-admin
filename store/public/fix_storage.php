@@ -12,7 +12,7 @@ $app->make(Kernel::class)->bootstrap();
 $actions = [
     'status' => [
         'label' => 'Status',
-        'help' => 'Show app and runtime status information.',
+        'help' => 'Show app, runtime, and frontend build status information.',
         'commands' => [],
     ],
     'clear_all' => [
@@ -53,11 +53,11 @@ $actions = [
         ],
     ],
     'seed_menu_categories' => [
-      'label' => 'Seed Menu Categories',
-      'help' => 'Run CategorySeeder to populate categories menu data.',
-      'commands' => [
-        ['name' => 'db:seed', 'params' => ['--class' => 'CategorySeeder', '--force' => true]],
-      ],
+        'label' => 'Seed Menu Categories',
+        'help' => 'Run CategorySeeder to populate categories menu data.',
+        'commands' => [
+            ['name' => 'db:seed', 'params' => ['--class' => 'CategorySeeder', '--force' => true]],
+        ],
     ],
     'reindex_products' => [
         'label' => 'Re-index Products',
@@ -66,10 +66,15 @@ $actions = [
     ],
     'price_sync' => [
         'label' => 'Price & Catalog Sync',
-        'help' => 'Run TD SYNNEX PriceAvailability catalog sync (queued — requires queue worker running).',
+        'help' => 'Run TD SYNNEX PriceAvailability catalog sync (queued - requires queue worker running).',
         'commands' => [
             ['name' => 'tdsynnex:sync-priceavailability-products', 'params' => []],
         ],
+    ],
+    'build_frontend' => [
+        'label' => 'Build Frontend Assets',
+        'help' => 'Run npm run build inside the store app to regenerate public/build assets.',
+        'commands' => [],
     ],
     'full_rebuild' => [
         'label' => 'Full Production Rebuild',
@@ -103,56 +108,200 @@ function runArtisanCommand(string $command, array $params = []): array
 {
     try {
         Artisan::call($command, $params);
+
         return [
             'command' => $command . (empty($params) ? '' : ' ' . json_encode($params)),
             'status' => 'OK',
             'output' => trim(Artisan::output()),
         ];
     } catch (Throwable $e) {
-      $message = $e->getMessage();
+        $message = $e->getMessage();
 
-      // In production this is expected when the symlink already exists.
-      if ($command === 'storage:link' && stripos($message, 'already exists') !== false) {
-        return [
-          'command' => $command . (empty($params) ? '' : ' ' . json_encode($params)),
-          'status' => 'OK',
-          'output' => $message,
-        ];
-      }
+        if ($command === 'storage:link' && stripos($message, 'already exists') !== false) {
+            return [
+                'command' => $command . (empty($params) ? '' : ' ' . json_encode($params)),
+                'status' => 'OK',
+                'output' => $message,
+            ];
+        }
 
         return [
             'command' => $command . (empty($params) ? '' : ' ' . json_encode($params)),
             'status' => 'ERROR',
-        'output' => $message,
+            'output' => $message,
         ];
     }
 }
 
-  function getFrontendBuildStatus(): array
-  {
+function isWindowsHost(): bool
+{
+    return DIRECTORY_SEPARATOR === '\\';
+}
+
+function findAvailableBinary(array $candidates): ?string
+{
+    $pathEnv = (string) getenv('PATH');
+    $pathDirs = array_filter(array_map('trim', explode(PATH_SEPARATOR, $pathEnv)));
+
+    foreach ($candidates as $candidate) {
+        if ($candidate === '') {
+            continue;
+        }
+
+        if (strpbrk($candidate, '\\/') !== false && is_file($candidate)) {
+            return $candidate;
+        }
+
+        foreach ($pathDirs as $dir) {
+            $fullPath = rtrim($dir, '\\/') . DIRECTORY_SEPARATOR . $candidate;
+            if (is_file($fullPath)) {
+                return $fullPath;
+            }
+        }
+    }
+
+    return null;
+}
+
+function runProcessCommand(string $command, string $workingDirectory): array
+{
+    if (!function_exists('proc_open')) {
+        return [
+            'ok' => false,
+            'exit_code' => null,
+            'stdout' => '',
+            'stderr' => 'proc_open is disabled on this PHP host.',
+        ];
+    }
+
+    $descriptors = [
+        0 => ['pipe', 'r'],
+        1 => ['pipe', 'w'],
+        2 => ['pipe', 'w'],
+    ];
+
+    $process = @proc_open($command, $descriptors, $pipes, $workingDirectory);
+    if (!is_resource($process)) {
+        return [
+            'ok' => false,
+            'exit_code' => null,
+            'stdout' => '',
+            'stderr' => 'Failed to start process: ' . $command,
+        ];
+    }
+
+    fwrite($pipes[0], '');
+    fclose($pipes[0]);
+
+    $stdout = stream_get_contents($pipes[1]);
+    fclose($pipes[1]);
+
+    $stderr = stream_get_contents($pipes[2]);
+    fclose($pipes[2]);
+
+    $exitCode = proc_close($process);
+
+    return [
+        'ok' => $exitCode === 0,
+        'exit_code' => $exitCode,
+        'stdout' => trim((string) $stdout),
+        'stderr' => trim((string) $stderr),
+    ];
+}
+
+function getFrontendToolingStatus(): array
+{
+    $nodeCandidates = isWindowsHost() ? ['node.exe', 'node'] : ['node'];
+    $npmCandidates = isWindowsHost() ? ['npm.cmd', 'npm.exe', 'npm'] : ['npm'];
+
+    return [
+        'node_binary' => findAvailableBinary($nodeCandidates),
+        'npm_binary' => findAvailableBinary($npmCandidates),
+        'node_modules_found' => is_dir(__DIR__ . '/../node_modules'),
+    ];
+}
+
+function buildFrontendAssets(): array
+{
+    $appRoot = realpath(__DIR__ . '/..');
+    if (!is_string($appRoot) || $appRoot === '') {
+        return [
+            'command' => 'npm run build',
+            'status' => 'ERROR',
+            'output' => 'Unable to resolve the store application root.',
+        ];
+    }
+
+    $tooling = getFrontendToolingStatus();
+    $npmBinary = $tooling['npm_binary'] ?? null;
+
+    if (!is_string($npmBinary) || $npmBinary === '') {
+        return [
+            'command' => 'npm run build',
+            'status' => 'ERROR',
+            'output' => 'npm is not available on this host. Build locally and upload public/build, or install Node.js and npm on the server.',
+        ];
+    }
+
+    if (empty($tooling['node_modules_found'])) {
+        return [
+            'command' => 'npm run build',
+            'status' => 'ERROR',
+            'output' => 'node_modules is missing in the store root. Install dependencies first, or build locally and upload public/build.',
+        ];
+    }
+
+    $versionResult = runProcessCommand('"' . $npmBinary . '" --version', $appRoot);
+    if (!$versionResult['ok']) {
+        return [
+            'command' => 'npm --version',
+            'status' => 'ERROR',
+            'output' => trim(($versionResult['stderr'] ?? '') . "\n" . ($versionResult['stdout'] ?? '')),
+        ];
+    }
+
+    $buildResult = runProcessCommand('"' . $npmBinary . '" run build', $appRoot);
+
+    return [
+        'command' => 'npm run build',
+        'status' => $buildResult['ok'] ? 'OK' : 'ERROR',
+        'output' => trim(implode("\n\n", array_filter([
+            'NPM_VERSION=' . trim((string) ($versionResult['stdout'] ?? '')),
+            $buildResult['stdout'] ?? '',
+            $buildResult['stderr'] ?? '',
+        ]))) ?: 'No output returned.',
+    ];
+}
+
+function getFrontendBuildStatus(): array
+{
     $manifestPath = __DIR__ . '/build/manifest.json';
+    $tooling = getFrontendToolingStatus();
 
     if (!file_exists($manifestPath)) {
-      return [
-        'manifest_found' => false,
-        'message' => 'public/build/manifest.json not found',
-      ];
+        return [
+            'manifest_found' => false,
+            'message' => 'public/build/manifest.json not found',
+            ...$tooling,
+        ];
     }
 
     $raw = @file_get_contents($manifestPath);
     if ($raw === false) {
-      return [
-        'manifest_found' => true,
-        'message' => 'manifest.json exists but could not be read',
-      ];
+        return [
+            'manifest_found' => true,
+            'message' => 'manifest.json exists but could not be read',
+            ...$tooling,
+        ];
     }
 
     $manifest = json_decode($raw, true);
     if (!is_array($manifest)) {
-      return [
-        'manifest_found' => true,
-        'message' => 'manifest.json is invalid JSON',
-      ];
+        return [
+            'manifest_found' => true,
+            'message' => 'manifest.json is invalid JSON',
+            ...$tooling,
+        ];
     }
 
     $entry = $manifest['resources/js/app.js'] ?? null;
@@ -160,41 +309,45 @@ function runArtisanCommand(string $command, array $params = []): array
     $assetPath = is_string($assetFile) ? (__DIR__ . '/build/' . $assetFile) : null;
 
     return [
-      'manifest_found' => true,
-      'manifest_mtime' => date('Y-m-d H:i:s', (int) @filemtime($manifestPath)),
-      'app_asset' => $assetFile,
-      'asset_exists' => $assetPath ? file_exists($assetPath) : false,
-      'asset_mtime' => ($assetPath && file_exists($assetPath)) ? date('Y-m-d H:i:s', (int) @filemtime($assetPath)) : null,
+        'manifest_found' => true,
+        'manifest_mtime' => date('Y-m-d H:i:s', (int) @filemtime($manifestPath)),
+        'app_asset' => $assetFile,
+        'asset_exists' => $assetPath ? file_exists($assetPath) : false,
+        'asset_mtime' => ($assetPath && file_exists($assetPath)) ? date('Y-m-d H:i:s', (int) @filemtime($assetPath)) : null,
+        ...$tooling,
     ];
-  }
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($selectedAction === 'status') {
-      $build = getFrontendBuildStatus();
+        $build = getFrontendBuildStatus();
 
-      $buildLines = [
-        'FRONTEND_MANIFEST_FOUND=' . (($build['manifest_found'] ?? false) ? 'true' : 'false'),
-      ];
+        $buildLines = [
+            'FRONTEND_MANIFEST_FOUND=' . (($build['manifest_found'] ?? false) ? 'true' : 'false'),
+            'NODE_BINARY=' . (!empty($build['node_binary']) ? (string) $build['node_binary'] : 'NOT_FOUND'),
+            'NPM_BINARY=' . (!empty($build['npm_binary']) ? (string) $build['npm_binary'] : 'NOT_FOUND'),
+            'NODE_MODULES_FOUND=' . (($build['node_modules_found'] ?? false) ? 'true' : 'false'),
+        ];
 
-      if (!empty($build['message'])) {
-        $buildLines[] = 'FRONTEND_STATUS=' . (string) $build['message'];
-      }
+        if (!empty($build['message'])) {
+            $buildLines[] = 'FRONTEND_STATUS=' . (string) $build['message'];
+        }
 
-      if (!empty($build['manifest_mtime'])) {
-        $buildLines[] = 'FRONTEND_MANIFEST_MTIME=' . (string) $build['manifest_mtime'];
-      }
+        if (!empty($build['manifest_mtime'])) {
+            $buildLines[] = 'FRONTEND_MANIFEST_MTIME=' . (string) $build['manifest_mtime'];
+        }
 
-      if (!empty($build['app_asset'])) {
-        $buildLines[] = 'FRONTEND_APP_ASSET=' . (string) $build['app_asset'];
-      }
+        if (!empty($build['app_asset'])) {
+            $buildLines[] = 'FRONTEND_APP_ASSET=' . (string) $build['app_asset'];
+        }
 
-      if (array_key_exists('asset_exists', $build)) {
-        $buildLines[] = 'FRONTEND_APP_ASSET_EXISTS=' . (($build['asset_exists'] ?? false) ? 'true' : 'false');
-      }
+        if (array_key_exists('asset_exists', $build)) {
+            $buildLines[] = 'FRONTEND_APP_ASSET_EXISTS=' . (($build['asset_exists'] ?? false) ? 'true' : 'false');
+        }
 
-      if (!empty($build['asset_mtime'])) {
-        $buildLines[] = 'FRONTEND_APP_ASSET_MTIME=' . (string) $build['asset_mtime'];
-      }
+        if (!empty($build['asset_mtime'])) {
+            $buildLines[] = 'FRONTEND_APP_ASSET_MTIME=' . (string) $build['asset_mtime'];
+        }
 
         $results[] = [
             'command' => 'status',
@@ -207,6 +360,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'PHP_VERSION=' . PHP_VERSION,
                 'LARAVEL_VERSION=' . app()->version(),
                 ...$buildLines,
+            ]),
+        ];
+    } elseif ($selectedAction === 'build_frontend') {
+        $results[] = buildFrontendAssets();
+
+        $build = getFrontendBuildStatus();
+        $results[] = [
+            'command' => 'frontend_status_after_build',
+            'status' => 'OK',
+            'output' => implode("\n", [
+                'FRONTEND_MANIFEST_FOUND=' . (($build['manifest_found'] ?? false) ? 'true' : 'false'),
+                'NODE_BINARY=' . (!empty($build['node_binary']) ? (string) $build['node_binary'] : 'NOT_FOUND'),
+                'NPM_BINARY=' . (!empty($build['npm_binary']) ? (string) $build['npm_binary'] : 'NOT_FOUND'),
+                'NODE_MODULES_FOUND=' . (($build['node_modules_found'] ?? false) ? 'true' : 'false'),
+                'FRONTEND_MANIFEST_MTIME=' . (!empty($build['manifest_mtime']) ? (string) $build['manifest_mtime'] : 'N/A'),
+                'FRONTEND_APP_ASSET=' . (!empty($build['app_asset']) ? (string) $build['app_asset'] : 'N/A'),
+                'FRONTEND_APP_ASSET_EXISTS=' . (($build['asset_exists'] ?? false) ? 'true' : 'false'),
+                'FRONTEND_APP_ASSET_MTIME=' . (!empty($build['asset_mtime']) ? (string) $build['asset_mtime'] : 'N/A'),
             ]),
         ];
     } elseif ($selectedAction === 'reindex_products') {
@@ -269,8 +440,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <div class="wrap">
     <div class="card">
       <h1>Armely Production Rebuild Tool</h1>
-      <p>This page now includes only core Artisan commands for production rebuild and cache refresh.</p>
-      <p class="notice">If frontend JS/CSS changes are missing, this tool cannot run npm builds. You still need to run your deployment build pipeline for Vite assets.</p>
+      <p>This page includes production-safe Laravel rebuild utilities plus a frontend asset build trigger.</p>
+      <p class="notice">Frontend build works only if this server has Node.js, npm, and installed node_modules for the store app. If not, build locally and upload public/build.</p>
 
       <form method="post">
         <div class="actions">
