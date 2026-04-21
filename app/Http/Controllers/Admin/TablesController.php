@@ -21,13 +21,13 @@ class TablesController extends Controller
 
     private function tableExists(string $table): bool
     {
-        return self::$tableExists[$table] ??= $this->tableExists($table);
+        return self::$tableExists[$table] ??= Schema::hasTable($table);
     }
 
     private function columnExists(string $table, string $column): bool
     {
         $key = "$table.$column";
-        return self::$columnExists[$key] ??= $this->columnExists($table, $column);
+        return self::$columnExists[$key] ??= Schema::hasColumn($table, $column);
     }
 
     public function index()
