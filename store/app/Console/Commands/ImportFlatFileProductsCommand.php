@@ -3,7 +3,9 @@
 namespace App\Console\Commands;
 
 use App\Jobs\EnrichPriceAvailabilityProductImageJob;
+use App\Models\Category;
 use App\Models\Product;
+use App\Support\CatalogTaxonomy;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
@@ -161,6 +163,22 @@ class ImportFlatFileProductsCommand extends Command
         $categoryName = trim((string) ($parts[35] ?? ''));
         $familyCode = trim((string) ($parts[36] ?? ''));
 
+        $curatedCategoryName = CatalogTaxonomy::inferCategoryName(
+            $categoryName,
+            $description !== '' ? $description : $mpn,
+            $description,
+            $categoryCode
+        );
+        $curatedSegment = CatalogTaxonomy::segmentCodeForCategory($curatedCategoryName);
+        static $categoryIdByName = null;
+        if ($categoryIdByName === null) {
+            $categoryIdByName = Category::query()
+                ->whereNull('parent_id')
+                ->pluck('id', 'name')
+                ->all();
+        }
+        $categoryId = $categoryIdByName[$curatedCategoryName] ?? null;
+
         $isActive = strtoupper($status) === 'A';
         $imageUrl = $this->extractImageUrlFromParts($parts);
         $images = $imageUrl !== '' ? [['imageUrl' => $imageUrl, 'source' => 'flat-file']] : [];
@@ -183,16 +201,19 @@ class ImportFlatFileProductsCommand extends Command
                 $description !== '' ? $description : $mpn,
                 $description
             ) ? 1 : 0,
-            'category_segment' => substr($categoryCode, 0, 2) ?: null,
+            'category_id' => $categoryId,
+            'category_segment' => $curatedSegment,
             'manufacturer' => $manufacturer !== '' ? $manufacturer : null,
             'specifications' => json_encode([
                 'sku' => $sku,
                 'status' => $status,
                 'categoryCode' => $categoryCode !== '' ? $categoryCode : '-',
+                'sourceCategoryName' => $categoryName,
+                'curatedCategoryName' => $curatedCategoryName,
                 'availableQuantity' => $qty,
                 'upc' => $upc,
                 'manufacturer' => $manufacturer,
-                'categoryName' => $categoryName,
+                'categoryName' => $curatedCategoryName,
                 'familyCode' => $familyCode,
             ], JSON_UNESCAPED_UNICODE),
             'images' => json_encode($images, JSON_UNESCAPED_UNICODE),
@@ -220,6 +241,7 @@ class ImportFlatFileProductsCommand extends Command
                 'is_available',
                 'is_discontinued',
                 'is_hardware',
+                'category_id',
                 'category_segment',
                 'manufacturer',
                 'specifications',

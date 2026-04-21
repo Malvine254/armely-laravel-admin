@@ -2,8 +2,10 @@
 
 namespace App\Services;
 
-use App\Models\Product;
 use App\Exceptions\TDSynnexApiException;
+use App\Models\Category;
+use App\Models\Product;
+use App\Support\CatalogTaxonomy;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
@@ -790,6 +792,7 @@ class TDSynnexService
                     'is_available',
                     'is_discontinued',
                     'is_hardware',
+                    'category_id',
                     'category_segment',
                     'manufacturer',
                     'specifications',
@@ -824,6 +827,23 @@ class TDSynnexService
             return null;
         }
 
+        $curatedCategoryName = CatalogTaxonomy::inferCategoryName(
+            (string) ($product['flatCategoryName'] ?? ''),
+            (string) ($product['productName'] ?? ''),
+            (string) ($product['description'] ?? ''),
+            (string) ($product['categoryCode'] ?? '')
+        );
+        $curatedSegment = CatalogTaxonomy::segmentCodeForCategory($curatedCategoryName);
+
+        static $categoryIdByName = null;
+        if ($categoryIdByName === null) {
+            $categoryIdByName = Category::query()
+                ->whereNull('parent_id')
+                ->pluck('id', 'name')
+                ->all();
+        }
+        $categoryId = $categoryIdByName[$curatedCategoryName] ?? null;
+
         $timestamp = now();
 
         return [
@@ -843,7 +863,8 @@ class TDSynnexService
                 (string) ($product['productName'] ?? ''),
                 (string) ($product['description'] ?? '')
             ) ? 1 : 0,
-            'category_segment' => substr(trim((string) ($product['categoryCode'] ?? '')), 0, 2) ?: null,
+            'category_id' => $categoryId,
+            'category_segment' => $curatedSegment,
             'manufacturer' => trim((string) ($product['manufacturer'] ?? '')) ?: null,
             'specifications' => json_encode([
                 'sku' => $sku,
@@ -861,7 +882,9 @@ class TDSynnexService
                 'availableQuantity' => (int) ($product['availableQuantity'] ?? 0),
                 'upc' => (string) ($product['upc'] ?? ''),
                 'manufacturer' => (string) ($product['manufacturer'] ?? ''),
-                'categoryName' => (string) ($product['flatCategoryName'] ?? ''),
+                'sourceCategoryName' => (string) ($product['flatCategoryName'] ?? ''),
+                'curatedCategoryName' => $curatedCategoryName,
+                'categoryName' => $curatedCategoryName,
                 'familyCode' => (string) ($product['flatFamilyCode'] ?? ''),
             ], JSON_UNESCAPED_UNICODE),
             'images' => json_encode((array) ($product['productImages'] ?? []), JSON_UNESCAPED_UNICODE),
@@ -869,6 +892,14 @@ class TDSynnexService
             'updated_at' => $timestamp,
             'created_at' => $timestamp,
         ];
+    }
+
+    /**
+     * Convert a normalized PriceAvailability catalog product into a products-table row.
+     */
+    public function mapPriceAvailabilityCatalogProductToDatabaseRow(array $product): ?array
+    {
+        return $this->priceAvailabilityProductToDatabaseRow($product);
     }
 
     public function priceAvailabilityImageSyncQuery(array $filters = []): \Illuminate\Database\Eloquent\Builder

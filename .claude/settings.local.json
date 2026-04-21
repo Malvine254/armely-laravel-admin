@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(grep -E \"\\\\.\\(php|js\\)$\")",
-      "Bash(xargs ls *)"
+      "Bash(xargs ls *)",
+      "Bash(pip install *)",
+      "Bash(python -c ' *)"
     ]
   }
 }
