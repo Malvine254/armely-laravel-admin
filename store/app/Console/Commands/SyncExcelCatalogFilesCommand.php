@@ -630,6 +630,15 @@ class SyncExcelCatalogFilesCommand extends Command
             }
         }
 
+        // Prevent double-encoding: Product model has 'images' => 'array' cast, so Eloquent
+        // will json_encode whatever value we pass. If images is already a JSON string (from
+        // mapPriceAvailabilityCatalogProductToDatabaseRow), decode it first so the cast
+        // encodes it exactly once. Without this, '[]' becomes '"[]"' in the DB.
+        if (isset($fill['images']) && is_string($fill['images'])) {
+            $decoded = json_decode($fill['images'], true);
+            $fill['images'] = is_array($decoded) ? $decoded : [];
+        }
+
         Product::updateOrCreate($key, $fill);
     }
 }
