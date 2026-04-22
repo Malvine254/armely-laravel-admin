@@ -125,6 +125,9 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
           </svg>
           <span>Customers</span>
+          <span v-if="unseenCounts.pending_users > 0" class="ml-auto bg-amber-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center">
+            {{ unseenCounts.pending_users }}
+          </span>
         </router-link>
 
         <!-- Support / Chat Escalations -->
@@ -325,6 +328,18 @@
                       <span class="bg-rose-100 text-rose-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0">{{ escalatedChatCount }}</span>
                     </router-link>
 
+                    <!-- Pending Account Approvals -->
+                    <router-link v-if="stats.pending_users > 0" :to="{ name: 'admin-customers' }" @click="showNotifDropdown = false" class="flex items-start gap-3 px-4 py-3 hover:bg-blue-50/60 transition group">
+                      <div class="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <p class="text-sm font-semibold text-gray-900 group-hover:text-[#2F5597]">{{ stats.pending_users }} Account{{ stats.pending_users > 1 ? 's' : '' }} Awaiting Approval</p>
+                        <p class="text-xs text-gray-500 mt-0.5">New user registrations pending review</p>
+                      </div>
+                      <span class="bg-amber-100 text-amber-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0">{{ stats.pending_users }}</span>
+                    </router-link>
+
                     <!-- Overdue Invoices -->
                     <router-link v-if="stats.overdue_invoices > 0" :to="{ name: 'admin-invoices' }" @click="showNotifDropdown = false" class="flex items-start gap-3 px-4 py-3 hover:bg-blue-50/60 transition group">
                       <div class="w-9 h-9 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -385,7 +400,8 @@ const currentUser = ref({
 const stats = ref({
   pending_quotes: 0,
   processing_orders: 0,
-  overdue_invoices: 0
+  overdue_invoices: 0,
+  pending_users: 0,
 })
 
 const escalatedChatCount = ref(0)
@@ -394,6 +410,7 @@ const seenBaseline = ref({
   processing_orders: 0,
   escalated_chat: 0,
   overdue_invoices: 0,
+  pending_users: 0,
 })
 
 const getCurrentCounts = () => ({
@@ -401,6 +418,7 @@ const getCurrentCounts = () => ({
   processing_orders: Number(stats.value.processing_orders || 0),
   escalated_chat: Number(escalatedChatCount.value || 0),
   overdue_invoices: Number(stats.value.overdue_invoices || 0),
+  pending_users: Number(stats.value.pending_users || 0),
 })
 
 const loadSeenBaseline = () => {
@@ -414,6 +432,7 @@ const loadSeenBaseline = () => {
       processing_orders: Number(parsed.processing_orders || 0),
       escalated_chat: Number(parsed.escalated_chat || 0),
       overdue_invoices: Number(parsed.overdue_invoices || 0),
+      pending_users: Number(parsed.pending_users || 0),
     }
   } catch {
     // Ignore malformed local storage payload.
@@ -428,7 +447,7 @@ const clampBaselineToCurrent = () => {
   const current = getCurrentCounts()
   let changed = false
 
-  ;['pending_quotes', 'processing_orders', 'escalated_chat', 'overdue_invoices'].forEach((key) => {
+  ;['pending_quotes', 'processing_orders', 'escalated_chat', 'overdue_invoices', 'pending_users'].forEach((key) => {
     if (seenBaseline.value[key] > current[key]) {
       seenBaseline.value[key] = current[key]
       changed = true
@@ -451,13 +470,35 @@ const markAllNotificationsSeen = () => {
   persistSeenBaseline()
 }
 
+const suppressedByRoute = computed(() => {
+  const path = route.path
+  return {
+    pending_quotes: path.includes('/admin/quotes'),
+    processing_orders: path.includes('/admin/orders'),
+    escalated_chat: path.includes('/admin/chat'),
+    overdue_invoices: path.includes('/admin/invoices'),
+    pending_users: path.includes('/admin/customers'),
+  }
+})
+
 const unseenCounts = computed(() => {
   const current = getCurrentCounts()
   return {
-    pending_quotes: Math.max(0, current.pending_quotes - Number(seenBaseline.value.pending_quotes || 0)),
-    processing_orders: Math.max(0, current.processing_orders - Number(seenBaseline.value.processing_orders || 0)),
-    escalated_chat: Math.max(0, current.escalated_chat - Number(seenBaseline.value.escalated_chat || 0)),
-    overdue_invoices: Math.max(0, current.overdue_invoices - Number(seenBaseline.value.overdue_invoices || 0)),
+    pending_quotes: suppressedByRoute.value.pending_quotes
+      ? 0
+      : Math.max(0, current.pending_quotes - Number(seenBaseline.value.pending_quotes || 0)),
+    processing_orders: suppressedByRoute.value.processing_orders
+      ? 0
+      : Math.max(0, current.processing_orders - Number(seenBaseline.value.processing_orders || 0)),
+    escalated_chat: suppressedByRoute.value.escalated_chat
+      ? 0
+      : Math.max(0, current.escalated_chat - Number(seenBaseline.value.escalated_chat || 0)),
+    overdue_invoices: suppressedByRoute.value.overdue_invoices
+      ? 0
+      : Math.max(0, current.overdue_invoices - Number(seenBaseline.value.overdue_invoices || 0)),
+    pending_users: suppressedByRoute.value.pending_users
+      ? 0
+      : Math.max(0, current.pending_users - Number(seenBaseline.value.pending_users || 0)),
   }
 })
 
@@ -466,6 +507,7 @@ const totalNotifCount = computed(() => {
     + (unseenCounts.value.processing_orders || 0)
     + (unseenCounts.value.escalated_chat || 0)
     + (unseenCounts.value.overdue_invoices || 0)
+    + (unseenCounts.value.pending_users || 0)
 })
 
 const toggleNotifications = () => {
@@ -506,6 +548,10 @@ const syncSeenWithCurrentRoute = (path) => {
 
   if (path.includes('/admin/invoices')) {
     markNotificationSeen('overdue_invoices')
+  }
+
+  if (path.includes('/admin/customers')) {
+    markNotificationSeen('pending_users')
   }
 }
 
@@ -589,7 +635,6 @@ const logout = async () => {
 
 onMounted(() => {
   loadSeenBaseline()
-  syncSeenWithCurrentRoute(route.path)
   fetchCurrentUser()
   fetchStats()
   fetchEscalatedCount()

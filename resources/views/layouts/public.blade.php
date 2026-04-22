@@ -341,7 +341,7 @@
                 <div class="row align-items-center">
                     <div class="col-lg-3 col-md-3 col-12 d-flex align-items-center">
                         <div class="logo d-flex align-items-center" style="padding: 0; margin: 0;">
-                            <a href="{{ route('home') }}" class="d-inline-flex align-items-center" style="margin: 0; padding: 0;">
+                            <a href="{{ url('/products') }}" class="d-inline-flex align-items-center" style="margin: 0; padding: 0;">
                                 <img src="{{ asset('images/logo/logo-replace.png') }}" alt="Armely logo" class="img-fluid" style="max-height: 52px; width: auto; display: block;" />
                             </a>
                         </div>

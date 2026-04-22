@@ -323,7 +323,7 @@
             <strong>Payment Information:</strong><br>
             Payment terms: Net 30 days from invoice date.<br>
             Please include invoice number {{ $invoice->invoice_number }} with your payment.<br>
-            For payment inquiries, contact: billing@armely.com
+            For payment inquiries, contact: {{ \App\Models\AppSetting::getValue('system.support_email', config('mail.from.address', 'info@armely.com')) }}
         </div>
 
         <!-- Footer -->
@@ -331,7 +331,7 @@
             <p><strong>Notes:</strong></p>
             <p>• Thank you for your business!</p>
             <p>• Please retain this invoice for your records.</p>
-            <p>• For questions about this invoice, please contact us at info@armely.com</p>
+            <p>• For questions about this invoice, please contact us at {{ \App\Models\AppSetting::getValue('system.support_email', config('mail.from.address', 'info@armely.com')) }}</p>
             <br>
             <p style="text-align: center;">Generated on {{ $generatedDate }}</p>
         </div>

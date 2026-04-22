@@ -49,6 +49,18 @@
         </p>
       </div>
 
+      <!-- Pending approval banner -->
+      <div v-if="pendingApproval" class="mt-4 bg-amber-50 border border-amber-200 rounded-xl p-4 text-center">
+        <div class="flex items-center justify-center gap-2 mb-1">
+          <svg class="w-4 h-4 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <p class="text-sm font-semibold text-amber-800">Account pending approval</p>
+        </div>
+        <p class="text-sm text-amber-700">Your account is awaiting review by our team. You'll receive an email at <strong>{{ email }}</strong> once it's approved.</p>
+        <p class="text-xs text-amber-600 mt-2">Questions? Contact us at <a href="mailto:info@armely.com" class="font-semibold underline">info@armely.com</a></p>
+      </div>
+
       <div v-if="showResendActivation" class="mt-4 text-center">
         <p class="text-sm text-slate-600 mb-2">Account not activated yet?</p>
         <button
@@ -83,6 +95,7 @@ const email = ref(route.query.email ? String(route.query.email) : '')
 const password = ref('')
 const rememberMe = ref(false)
 const showResendActivation = ref(false)
+const pendingApproval = ref(false)
 const loading = ref(false)
 
 const isFormValid = computed(() => {
@@ -143,6 +156,7 @@ const handleLogin = async () => {
     if (result.ok) {
       cartStore.mergeGuestCartIntoCurrentUser()
       showResendActivation.value = false
+      pendingApproval.value = false
       if (result.restricted) {
         toastStore.addToast(result.message || 'Your account is restricted. You have read-only access.', 'warning')
         router.push({ name: 'account' })
@@ -151,10 +165,18 @@ const handleLogin = async () => {
         router.push(resolvePostLoginRoute())
       }
     } else {
-      if ((result.message || '').toLowerCase().includes('activate your account')) {
+      const reason = result.restrictionReason
+      if (reason === 'company_not_approved' || reason === 'user_not_active') {
+        pendingApproval.value = true
+        showResendActivation.value = false
+      } else if ((result.message || '').toLowerCase().includes('activate your account')) {
         showResendActivation.value = true
+        pendingApproval.value = false
+        toastStore.addToast(result.message || 'Login failed', 'warning')
+      } else {
+        pendingApproval.value = false
+        toastStore.addToast(result.message || 'Login failed', 'warning')
       }
-      toastStore.addToast(result.message || 'Login failed', 'warning')
     }
   } catch (error) {
     toastStore.addToast(error.response?.data?.message || 'Login failed', 'warning')

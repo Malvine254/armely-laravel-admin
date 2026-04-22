@@ -37,7 +37,7 @@
                 If payment has already been made, please ignore this reminder.
             </p>
             <p style="margin: 8px 0 0; color: #64748b; font-size: 12px;">
-                For questions about this invoice, contact us at info@armely.com.
+                For questions about this invoice, contact us at {{ \App\Models\AppSetting::getValue('system.support_email', config('mail.from.address', 'info@armely.com')) }}.
             </p>
         </div>
     </div>
