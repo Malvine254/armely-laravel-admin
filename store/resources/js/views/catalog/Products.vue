@@ -135,14 +135,20 @@
               <div v-for="product in paginatedProducts" :key="product.productId" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden group hover:shadow-lg transition" style="border: 1px solid rgb(229, 231, 235);" @mouseenter="$event.currentTarget.style.borderColor='#cce4f5'" @mouseleave="$event.currentTarget.style.borderColor='rgb(229, 231, 235)'">
                 <!-- Product Image -->
                 <div class="bg-gradient-to-br from-gray-200 to-gray-300 h-40 flex items-center justify-center transition relative overflow-hidden" style="background: linear-gradient(135deg, rgb(229, 231, 235), rgb(209, 213, 219));">
+                  <!-- Skeleton shimmer while image loads -->
+                  <div v-if="product.productImages && product.productImages[0] && !product._imgLoaded" class="absolute inset-0 skeleton-shimmer"></div>
                   <!-- Actual Product Image if available -->
-                  <img 
+                  <img
                     v-if="product.productImages && product.productImages[0]"
                     :src="product.productImages[0].imageUrl || product.productImages[0]"
                     :alt="product.productName"
-                    class="w-full h-full object-cover"
-                    loading="lazy"
-                    @error="event => event.target.style.display = 'none'"
+                    class="w-full h-full object-cover transition-opacity duration-300"
+                    :class="product._imgLoaded ? 'opacity-100' : 'opacity-0'"
+                    :loading="paginatedProducts.indexOf(product) < 6 ? 'eager' : 'lazy'"
+                    :fetchpriority="paginatedProducts.indexOf(product) < 3 ? 'high' : 'auto'"
+                    width="320" height="160"
+                    @load="product._imgLoaded = true"
+                    @error="event => { product._imgLoaded = true; event.target.style.display = 'none' }"
                   />
                   
                   <!-- Fallback: Animated background + Icon -->

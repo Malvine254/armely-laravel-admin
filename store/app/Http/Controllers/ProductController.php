@@ -1364,14 +1364,13 @@ class ProductController extends Controller
             return $url; // already absolute
         }
 
-        // Use ASSET_URL if configured (set in production .env for subdirectory deployments).
-        // Leave ASSET_URL empty in local .env so artisan-serve relative paths work unchanged.
-        $base = rtrim((string) config('app.asset_url', ''), '/');
-        if ($base === '') {
-            return $url;
+        // Use ASSET_URL if configured (CDN or explicit production override).
+        $assetUrl = rtrim((string) config('app.asset_url', ''), '/');
+        if ($assetUrl !== '') {
+            return $assetUrl . $url;
         }
 
-        return $base . $url;
+        return $url;
     }
 
     private function isValidImageUrl(string $url): bool
@@ -1415,6 +1414,30 @@ class ProductController extends Controller
                                 'error' => $e->getMessage(),
                             ]);
                             $resolved = null;
+                        }
+                    }
+
+                    // If the product has no images stored, try a live API fetch and persist.
+                    if ($resolved && empty($resolved['productImages'])) {
+                        try {
+                            $imgResponse = $this->tdsynnexService->getProductImages((int) ($resolved['synnexSKU'] ?? $productId));
+                            $liveImages = $imgResponse['data']['images'] ?? [];
+                            if (!empty($liveImages)) {
+                                $normalized = array_map(fn($img) => ['imageUrl' => (string) ($img['imageUrl'] ?? $img['url'] ?? $img)], $liveImages);
+                                $resolved['productImages'] = $normalized;
+                                $resolved['images'] = $normalized;
+                                $resolved['image_url'] = (string) ($normalized[0]['imageUrl'] ?? '');
+                                // Persist so future loads are instant
+                                Product::where('vendor_id', 'TD SYNNEX')
+                                    ->where(function ($q) use ($productId) {
+                                        $q->where('tdsynnex_product_id', (int) $productId)
+                                          ->orWhere('tdsynnex_sku_no', (int) $productId)
+                                          ->orWhere('mfg_part_no', $productId);
+                                    })
+                                    ->update(['images' => json_encode($normalized)]);
+                            }
+                        } catch (\Throwable $e) {
+                            // Non-fatal — continue without images
                         }
                     }
 
