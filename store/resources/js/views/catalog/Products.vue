@@ -138,25 +138,25 @@
                 <!-- Product Image -->
                 <div class="bg-gradient-to-br from-gray-200 to-gray-300 h-40 flex items-center justify-center transition relative overflow-hidden" style="background: linear-gradient(135deg, rgb(229, 231, 235), rgb(209, 213, 219));">
                   <!-- Skeleton shimmer while image loads -->
-                  <div v-if="getPrimaryImageUrl(product) && !product._imgLoaded" class="absolute inset-0 skeleton-shimmer"></div>
+                  <div v-if="getPrimaryImageUrl(product) && !imgLoadMap[product.productId] && !imgErrorMap[product.productId]" class="absolute inset-0 skeleton-shimmer"></div>
                   <!-- Actual Product Image if available -->
                   <img
-                    v-if="getPrimaryImageUrl(product)"
+                    v-if="getPrimaryImageUrl(product) && !imgErrorMap[product.productId]"
                     :src="getPrimaryImageUrl(product)"
                     :alt="product.productName"
                     class="w-full h-full object-cover transition-opacity duration-300"
-                    :class="product._imgLoaded ? 'opacity-100' : 'opacity-0'"
+                    :class="imgLoadMap[product.productId] ? 'opacity-100' : 'opacity-0'"
                     :loading="paginatedProducts.indexOf(product) < 2 ? 'eager' : 'lazy'"
                     :fetchpriority="paginatedProducts.indexOf(product) === 0 ? 'high' : 'auto'"
                     decoding="async"
                     sizes="(min-width: 1024px) 320px, (min-width: 768px) 50vw, 100vw"
                     width="320" height="160"
-                    @load="product._imgLoaded = true"
-                    @error="event => { product._imgLoaded = true; event.target.style.display = 'none' }"
+                    @load="onImgLoad(product.productId)"
+                    @error="onImgError(product.productId)"
                   />
                   
                   <!-- Fallback: Animated background + Icon -->
-                  <template v-else>
+                  <template v-if="!getPrimaryImageUrl(product) || imgErrorMap[product.productId]">
                     <!-- Animated background -->
                     <div class="absolute inset-0 opacity-10">
                       <div class="absolute top-2 right-2 w-12 h-12 bg-blue-400 rounded-full"></div>
@@ -185,7 +185,7 @@
                 <div class="p-4">
                   <div class="flex items-start justify-between mb-2">
                     <h3
-                      class="text-sm font-semibold text-gray-900 line-clamp-2"
+                      class="text-sm font-semibold text-gray-900 line-clamp-2 min-h-[2.5rem]"
                       :title="buildProductHoverDetails(product)"
                     >{{ product.productName }}</h3>
                     <span v-if="product.discontinueProduct" class="ml-2 px-2 py-1 bg-red-100 text-red-700 text-xs font-semibold rounded">EOL</span>
@@ -360,7 +360,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, reactive } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useToastStore } from '../../stores/toastStore'
 import { useCartStore } from '../../stores/cartStore'
@@ -381,6 +381,10 @@ const favoritesStore = useFavoritesStore()
 const authStore = useAuthStore()
 const { loadPricingSettings, getCatalogPriceWithRules, convertFromUsd, formatWithCurrency } = usePricingSettings()
 const pricingReady = ref(false)
+const imgLoadMap = reactive({})
+const imgErrorMap = reactive({})
+const onImgLoad = (productId) => { imgLoadMap[productId] = true }
+const onImgError = (productId) => { imgErrorMap[productId] = true }
 const ITEMS_PER_PAGE = 9
 const API_PAGE_SIZE = 100
 const SEARCH_TRACK_DEBOUNCE_MS = 15000
@@ -1888,8 +1892,7 @@ const getPrimaryImageUrl = (product) => {
   const appendUrl = (value) => {
     const rawUrl = String(value || '').trim()
     if (!rawUrl) return
-    const url = rawUrl.startsWith('/images/') ? buildStoreUrl(rawUrl) : rawUrl
-    candidates.push(url)
+    candidates.push(rawUrl)
   }
 
   const appendImages = (images) => {

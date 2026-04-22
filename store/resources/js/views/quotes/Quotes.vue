@@ -313,14 +313,15 @@
                       {{ processingQuoteId === quote.quote_id ? 'Cancelling...' : 'Cancel' }}
                     </button>
                     <button
+                      v-if="canReviseQuote(quote)"
                       @click="reviseQuote(quote)"
-                      :disabled="processingQuoteId === quote.quote_id || !canReviseQuote(quote)"
+                      :disabled="processingQuoteId === quote.quote_id"
                       class="px-3 py-1.5 text-xs rounded-md font-semibold transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                       style="color: #2F5597; border: 1px solid #2F5597;"
                       @mouseenter="$event.target.style.backgroundColor='#edf3fb'"
                       @mouseleave="$event.target.style.backgroundColor='transparent'"
                     >
-                      {{ !canReviseQuote(quote) ? 'Not Revisable' : (processingQuoteId === quote.quote_id ? 'Preparing...' : (isQuoteLockedForPayment(quote) ? 'Re-open Quote' : 'Revise')) }}
+                      {{ processingQuoteId === quote.quote_id ? 'Preparing...' : (isQuoteLockedForPayment(quote) ? 'Re-open Quote' : 'Revise') }}
                     </button>
                   </div>
                 </td>
@@ -1079,8 +1080,10 @@ export default {
 
     const canReviseQuote = (quote) => {
       if (!quote) return false
-      if (String(quote.status || '').toLowerCase() === 'cancelled') return false
-      if (String(quote.status || '').toLowerCase() === 'converted') return false
+      const status = String(quote.status || '').toLowerCase()
+      if (status === 'cancelled') return false
+      if (status === 'converted') return false
+      if (status === 'approved') return false
       return true
     }
 
