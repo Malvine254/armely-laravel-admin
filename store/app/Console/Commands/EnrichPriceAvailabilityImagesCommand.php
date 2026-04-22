@@ -14,7 +14,7 @@ class EnrichPriceAvailabilityImagesCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'tdsynnex:enrich-priceavailability-images {--chunk=1 : Number of products per batch} {--limit=0 : Max products to process (0 = all)} {--sync : Run inline and block until complete} {--descriptions : Backfill Icecat descriptions for products with missing or name-only descriptions} {--force-descriptions : Overwrite existing descriptions with fresh pulled descriptions} {--vendor=TD SYNNEX : Product vendor_id filter} {--search= : Product search filter (title, SKU, MPN, description, manufacturer)} {--manufacturer= : Manufacturer filter (from specifications.manufacturer)} {--manufacturer-id= : Manufacturer identifier filter (alias of manufacturer)} {--sku= : SKU/MPN filter, accepts CSV for multiple values} {--force-web-refresh : Include rows that already have images and prioritize web/title lookup}';
+    protected $signature = 'tdsynnex:enrich-priceavailability-images {--chunk=1 : Number of products per batch} {--limit=0 : Max products to process (0 = all)} {--sync : Run inline and block until complete} {--descriptions : Backfill Icecat descriptions for products with missing or name-only descriptions} {--force-descriptions : Overwrite existing descriptions with fresh pulled descriptions} {--vendor=TD SYNNEX : Product vendor_id filter} {--search= : Product search filter (title, SKU, MPN, description, manufacturer)} {--manufacturer= : Manufacturer filter (from specifications.manufacturer)} {--manufacturer-id= : Manufacturer identifier filter (alias of manufacturer)} {--sku= : SKU/MPN filter, accepts CSV for multiple values} {--current-source= : Only refresh products whose current primary image source matches this value, for example bing-images} {--force-web-refresh : Include rows that already have images and prioritize web/title lookup}';
 
     /**
      * The console command description.
@@ -39,6 +39,7 @@ class EnrichPriceAvailabilityImagesCommand extends Command
             $manufacturer = trim((string) $this->option('manufacturer'));
             $manufacturerId = trim((string) $this->option('manufacturer-id'));
             $sku = trim((string) $this->option('sku'));
+            $currentSource = trim((string) $this->option('current-source'));
             $forceWebRefresh = (bool) $this->option('force-web-refresh');
             $forceDescriptions = (bool) $this->option('force-descriptions');
 
@@ -48,6 +49,7 @@ class EnrichPriceAvailabilityImagesCommand extends Command
                 'manufacturer' => $manufacturer,
                 'manufacturer_id' => $manufacturerId,
                 'sku' => $sku,
+                'current_source' => $currentSource,
                 'include_with_images' => $forceWebRefresh,
                 'prefer_web' => $forceWebRefresh,
             ];
@@ -138,6 +140,7 @@ class EnrichPriceAvailabilityImagesCommand extends Command
                     . ', manufacturer=' . ($manufacturer !== '' ? $manufacturer : 'none')
                     . ', manufacturer-id=' . ($manufacturerId !== '' ? $manufacturerId : 'none')
                     . ', sku=' . ($sku !== '' ? $sku : 'none')
+                    . ', current-source=' . ($currentSource !== '' ? $currentSource : 'none')
                     . ', force-web-refresh=' . ($forceWebRefresh ? 'yes' : 'no')
                 );
             }

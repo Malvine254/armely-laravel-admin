@@ -912,6 +912,7 @@ class TDSynnexService
         $manufacturer = trim((string) ($filters['manufacturer'] ?? ''));
         $manufacturerId = trim((string) ($filters['manufacturer_id'] ?? ''));
         $skuFilter = trim((string) ($filters['sku'] ?? ''));
+        $currentSource = strtolower(trim((string) ($filters['current_source'] ?? '')));
         $includeWithImages = (bool) ($filters['include_with_images'] ?? false);
 
         $currentShowingOnly = (bool) config('tdsynnex.image_sync.current_showing_only', true);
@@ -967,6 +968,13 @@ class TDSynnexService
                     ->orWhereRaw("LOWER(COALESCE(JSON_UNQUOTE(JSON_EXTRACT(specifications, '$.sku')), '')) LIKE ?", [$like])
                     ->orWhereRaw("LOWER(COALESCE(JSON_UNQUOTE(JSON_EXTRACT(specifications, '$.manufacturer')), '')) LIKE ?", [$like]);
             });
+        }
+
+        if ($currentSource !== '') {
+            $query->whereRaw(
+                "LOWER(COALESCE(JSON_UNQUOTE(JSON_EXTRACT(images, '$[0].source')), '')) = ?",
+                [$currentSource]
+            );
         }
 
         if ($currentShowingOnly) {
@@ -1077,6 +1085,13 @@ class TDSynnexService
                             ->orWhereRaw("LOWER(COALESCE(JSON_UNQUOTE(JSON_EXTRACT(specifications, '$.sku')), '')) LIKE ?", [$like])
                             ->orWhereRaw("LOWER(COALESCE(JSON_UNQUOTE(JSON_EXTRACT(specifications, '$.manufacturer')), '')) LIKE ?", [$like]);
                     });
+                }
+
+                if ($currentSource !== '') {
+                    $scopeIds->whereRaw(
+                        "LOWER(COALESCE(JSON_UNQUOTE(JSON_EXTRACT(images, '$[0].source')), '')) = ?",
+                        [$currentSource]
+                    );
                 }
 
                 $ids = $scopeIds->orderBy('id')->limit($scopeCap)->pluck('id')->all();
@@ -2198,7 +2213,7 @@ class TDSynnexService
         $ttl = max(60, (int) config('tdsynnex.icecat.cache_ttl', 86400));
         $cacheKey = 'tdsynnex:assets:' . md5(json_encode([
             // Cache version bump forces re-evaluation of older no-match entries.
-            'icecat-v7-bing-primary',
+            'icecat-v8-icecat-primary',
             $sku,
             (string) ($meta['mpn'] ?? ''),
             (string) ($meta['manufacturer'] ?? ''),
@@ -2227,15 +2242,14 @@ class TDSynnexService
             }
 
             if (empty($images)) {
-                // Main source: Bing images search (title/SKU/manufacturer-aware query).
-                $bing = $this->fetchBingProductImageData($sku, $meta, $description);
-                $bingImage = trim((string) ($bing['image_url'] ?? ''));
-                if ($bingImage !== '' && $this->isValidImageUrl($bingImage)) {
+                $icecat = $this->fetchIcecatProductData($sku, $meta, $description);
+                $icecatImage = trim((string) ($icecat['image_url'] ?? ''));
+                if ($icecatImage !== '' && $this->isValidImageUrl($icecatImage)) {
                     $images[] = [
-                        'imageUrl' => $bingImage,
-                        'source' => (string) ($bing['source'] ?? 'bing-images'),
+                        'imageUrl' => $icecatImage,
+                        'source' => 'icecat',
                     ];
-                    $resolvedDescription = trim((string) ($bing['description'] ?? ''));
+                    $resolvedDescription = trim((string) ($icecat['description'] ?? ''));
                 }
             }
 
@@ -2248,6 +2262,19 @@ class TDSynnexService
                         'source' => (string) ($scraped['source'] ?? 'scrape-approved'),
                     ];
                     $resolvedDescription = trim((string) ($scraped['description'] ?? ''));
+                }
+            }
+
+            if (empty($images)) {
+                // Last-resort fallback: Bing image search can find something, but links are less stable.
+                $bing = $this->fetchBingProductImageData($sku, $meta, $description);
+                $bingImage = trim((string) ($bing['image_url'] ?? ''));
+                if ($bingImage !== '' && $this->isValidImageUrl($bingImage)) {
+                    $images[] = [
+                        'imageUrl' => $bingImage,
+                        'source' => (string) ($bing['source'] ?? 'bing-images'),
+                    ];
+                    $resolvedDescription = trim((string) ($bing['description'] ?? ''));
                 }
             }
 
