@@ -407,7 +407,7 @@ const LOCAL_SEARCH_HISTORY_KEY = 'armely_products_search_history'
 const LOCAL_SEARCH_HISTORY_LIMIT = 12
 const TOP_VENDOR_DISPLAY_LIMIT = 40
 const DEFAULT_VENDOR_SCOPE_LIMIT = 12
-const DEFAULT_BROWSE_MIN_PRICE = 0
+const DEFAULT_BROWSE_MIN_PRICE = 100
 const CURATED_CACHE_VERSION = 3
 const ENABLE_SERVER_PREFETCH = false
 const ENABLE_VENDOR_COUNTS_API = true
@@ -558,7 +558,7 @@ const normalizeCategoriesForSidebar = (items = []) => {
 }
 
 const currentFilters = ref({
-  priceMin: 0,
+  priceMin: 100,
   priceMax: 10000,
   partNumber: '',
   productType: '',
@@ -2192,7 +2192,7 @@ watch(
 
     currentFilters.value = {
       ...currentFilters.value,
-      priceMin: hasMinPriceQuery ? Number(minPrice || 0) : 0,
+      priceMin: hasMinPriceQuery ? Number(minPrice || 0) : 100,
       priceMax: hasMaxPriceQuery ? Number(maxPrice || 10000) : 10000,
       partNumber: hasPartNumberQuery ? String(partNumber || '').trim() : '',
       productType: hasProductTypeQuery ? String(productType || '').trim() : '',
