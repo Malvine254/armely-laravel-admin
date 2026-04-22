@@ -1637,7 +1637,7 @@ class TDSynnexService
      * Persist only image payload for an existing product row identified by SKU.
      * This avoids full product DB sync while enabling durable image caching.
      */
-    public function syncPriceAvailabilityDescriptionsFromDatabase(int $chunk = 25, int $limit = 0, ?callable $onProgress = null, bool $overwriteExisting = false): array
+    public function syncPriceAvailabilityDescriptionsFromDatabase(int $chunk = 25, int $limit = 0, ?callable $onProgress = null, bool $overwriteExisting = false, bool $allowBingFallback = false): array
     {
         $chunk = max(1, $chunk);
         $limit = max(0, $limit);
@@ -1656,7 +1656,7 @@ class TDSynnexService
         $processed = 0;
         $updated = 0;
 
-        $query->orderBy('id')->chunkById($chunk, function ($batch) use (&$processed, &$updated, $limit, $onProgress) {
+        $query->orderBy('id')->chunkById($chunk, function ($batch) use (&$processed, &$updated, $limit, $onProgress, $allowBingFallback) {
             if ($limit > 0 && $processed >= $limit) {
                 return false;
             }
@@ -1699,6 +1699,13 @@ class TDSynnexService
 
                 $assets = $this->resolveProductAssetsForSku($sku, $meta, (string) ($product->name ?? $product->product_name ?? ''));
                 $longDescription = trim((string) ($assets['description'] ?? ''));
+
+                if ($longDescription === '' && $allowBingFallback) {
+                    $bingDescription = trim((string) ($this->fetchBingProductDescription($sku, $meta, (string) ($product->name ?? $product->product_name ?? ''))['description'] ?? ''));
+                    if ($bingDescription !== '') {
+                        $longDescription = $bingDescription;
+                    }
+                }
 
                 $didUpdate = false;
                 if ($longDescription !== '') {
@@ -2609,6 +2616,63 @@ class TDSynnexService
         }
     }
 
+    private function fetchBingProductDescription(string $sku, array $meta, string $description = ''): array
+    {
+        if (!config('tdsynnex.bing.enabled', true)) {
+            return ['description' => '', 'source' => ''];
+        }
+
+        $timeout = max(2, (int) config('tdsynnex.bing.timeout', 8));
+        $connectTimeout = max(1, (int) config('tdsynnex.bing.connect_timeout', 3));
+        $userAgent = trim((string) config('tdsynnex.bing.user_agent', 'Mozilla/5.0 (compatible; ArmelyImageBot/1.0; +https://armely.com)'));
+        $query = trim($this->buildBingWebQuery($sku, $meta, $description));
+        if ($query === '') {
+            return ['description' => '', 'source' => ''];
+        }
+
+        $bingUrl = 'https://www.bing.com/search?q=' . rawurlencode($query) . '&form=QBLH';
+
+        try {
+            \Illuminate\Support\Facades\DB::disconnect();
+
+            $response = Http::withHeaders([
+                'User-Agent' => $userAgent,
+                'Accept' => 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.8',
+            ])
+                ->connectTimeout($connectTimeout)
+                ->timeout($timeout)
+                ->get($bingUrl);
+
+            if ($response->failed()) {
+                return ['description' => '', 'source' => ''];
+            }
+
+            $snippet = $this->extractDescriptionSnippetFromBingHtml((string) $response->body());
+            if ($snippet === '') {
+                return ['description' => '', 'source' => ''];
+            }
+
+            Log::info('Bing DESCRIPTION MATCH', [
+                'sku' => $sku,
+                'query' => $query,
+                'description' => $snippet,
+            ]);
+
+            return [
+                'description' => $snippet,
+                'source' => 'bing-web-snippet',
+            ];
+        } catch (\Throwable $e) {
+            Log::debug('Bing description lookup exception', [
+                'sku' => $sku,
+                'query' => $query,
+                'error' => $e->getMessage(),
+            ]);
+
+            return ['description' => '', 'source' => ''];
+        }
+    }
+
     private function buildBingImageQuery(string $sku, array $meta, string $description = ''): string
     {
         $title = $this->sanitizeSearchPhrase((string) ($meta['title'] ?? ''));
@@ -2626,6 +2690,33 @@ class TDSynnexService
             trim($skuToken),
             trim($manufacturer . ' ' . $upc),
             trim($upc),
+            trim($description),
+        ];
+
+        foreach ($candidates as $candidate) {
+            $candidate = preg_replace('/\s+/', ' ', trim((string) $candidate)) ?: '';
+            if ($candidate !== '') {
+                return $candidate;
+            }
+        }
+
+        return '';
+    }
+
+    private function buildBingWebQuery(string $sku, array $meta, string $description = ''): string
+    {
+        $title = $this->sanitizeSearchPhrase((string) ($meta['title'] ?? ''));
+        $manufacturer = $this->sanitizeSearchPhrase((string) ($meta['manufacturer'] ?? ''));
+        $mpn = $this->sanitizeSearchPhrase((string) ($meta['mpn'] ?? ''));
+        $skuToken = $this->sanitizeSearchPhrase($sku);
+
+        $candidates = [
+            trim($title . ' ' . $mpn),
+            trim($title),
+            trim($manufacturer . ' ' . $mpn),
+            trim($manufacturer . ' ' . $skuToken),
+            trim($mpn),
+            trim($skuToken),
             trim($description),
         ];
 
@@ -2669,6 +2760,30 @@ class TDSynnexService
                     return $candidate;
                 }
             }
+        }
+
+        return '';
+    }
+
+    private function extractDescriptionSnippetFromBingHtml(string $html): string
+    {
+        if ($html === '') {
+            return '';
+        }
+
+        if (!preg_match_all('/<li class="b_algo"[^>]*>.*?<p>(.*?)<\/p>/is', $html, $matches)) {
+            return '';
+        }
+
+        foreach ((array) ($matches[1] ?? []) as $rawSnippet) {
+            $snippet = html_entity_decode(strip_tags((string) $rawSnippet), ENT_QUOTES | ENT_HTML5);
+            $snippet = preg_replace('/\s+/', ' ', trim($snippet)) ?: '';
+
+            if ($snippet === '' || mb_strlen($snippet) < 40) {
+                continue;
+            }
+
+            return $snippet;
         }
 
         return '';

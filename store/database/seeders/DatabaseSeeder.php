@@ -18,7 +18,7 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $adminEmail = env('ADMIN_EMAIL', 'support@armely.com');
+        $adminEmail = env('ADMIN_EMAIL', 'unfo@armely.com');
         $adminPassword = env('ADMIN_PASSWORD', 'Admin@12345');
         $adminName = env('ADMIN_NAME', 'Armely Admin');
 

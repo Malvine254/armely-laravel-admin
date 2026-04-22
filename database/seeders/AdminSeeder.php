@@ -10,7 +10,7 @@ class AdminSeeder extends Seeder
 {
     public function run(): void
     {
-        $adminEmail = env('ADMIN_EMAIL', 'support@armely.com');
+        $adminEmail = env('ADMIN_EMAIL', 'unfo@armely.com');
 
         // Create a default super admin account
         Admin::firstOrCreate(
