@@ -189,7 +189,8 @@
 
       <template v-if="activeTab === 'orders'">
       <!-- Filter Bar -->
-      <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
+      <div class="sticky top-20 z-30 -mx-3 mb-8 px-3 sm:-mx-4 sm:px-4 lg:-mx-5 lg:px-5">
+        <div class="rounded-2xl border border-gray-100 bg-white/95 p-6 shadow-lg shadow-slate-200/60 backdrop-blur-sm">
         <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
           <div class="relative md:col-span-3">
             <label class="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">Filter by Status</label>
@@ -225,6 +226,7 @@
               Reset
             </button>
           </div>
+        </div>
         </div>
       </div>
 
@@ -290,18 +292,29 @@
                   >
                     {{ order.order_number }}
                   </button>
-                  <p
-                    class="text-sm text-gray-800 mt-1 font-medium max-w-[260px] truncate"
-                    :title="order.primary_item_name || 'Item details unavailable'"
-                  >
-                    {{ truncateProductName(order.primary_item_name) }}
-                  </p>
-                  <p
-                    v-if="order.additional_items_count > 0"
-                    class="text-xs text-gray-500"
-                  >
-                    +{{ order.additional_items_count }} more item(s)
-                  </p>
+                  <div class="mt-2">
+                    <p class="text-xs text-gray-500">
+                      {{ getOrderItemCount(order) }} item{{ getOrderItemCount(order) === 1 ? '' : 's' }}
+                    </p>
+                    <div v-if="getOrderItemNames(order).length" class="mt-2 space-y-1">
+                      <p
+                        v-for="(itemName, index) in getVisibleOrderItemNames(order)"
+                        :key="`${order.order_number}-item-${index}`"
+                        class="text-xs leading-5 text-gray-600"
+                      >
+                        {{ itemName }}
+                      </p>
+                      <button
+                        v-if="hasHiddenOrderItems(order)"
+                        type="button"
+                        @click="toggleOrderItemsExpanded(order)"
+                        class="inline-flex items-center text-xs font-semibold transition duration-200 hover:opacity-80"
+                        style="color: #2F5597;"
+                      >
+                        {{ isOrderItemsExpanded(order) ? 'Show less' : `Show all ${getOrderItemCount(order)} items` }}
+                      </button>
+                    </div>
+                  </div>
                   <p v-if="order.tracking_number" class="text-xs text-gray-500 mt-1">Tracking: {{ order.tracking_number }}</p>
                 </td>
                 <td class="px-5 py-4 text-sm text-gray-700 align-top">{{ formatDate(order.created_at) }}</td>
@@ -556,6 +569,7 @@ export default {
     const activeTab = ref('orders');
     const selectedOrder = ref(null);
     const processingOrderNumber = ref(null);
+    const expandedOrderItems = ref({});
     const pagination = ref({
       current_page: 1,
       per_page: 10,
@@ -674,7 +688,7 @@ export default {
         });
 
         if (response.data?.success) {
-          toastStore.addToast('Order cancelled successfully', 'success');
+          toastStore.addToast('Order cancelled successfully', 'success', 3000, { category: 'orders' });
           if (selectedOrder.value?.order_number === order.order_number) {
             selectedOrder.value = response.data.data;
           }
@@ -709,6 +723,7 @@ export default {
       searchQuery.value = '';
       sortBy.value = 'created_desc';
       pagination.value.current_page = 1;
+      expandedOrderItems.value = {};
       fetchOrders();
     };
 
@@ -757,6 +772,65 @@ export default {
         return text;
       }
       return `${text.slice(0, Math.max(1, maxLength - 1)).trimEnd()}…`;
+    };
+
+    const getOrderItemCount = (order) => {
+      return Array.isArray(order?.items) ? order.items.length : 0;
+    };
+
+    const getOrderItemNames = (order) => {
+      const items = Array.isArray(order?.items) ? order.items : [];
+      const names = items
+        .map((item, index) => String(
+          item?.product_name
+          || item?.productName
+          || item?.name
+          || item?.description
+          || item?.partDescription
+          || item?.mfg_part_number
+          || item?.mfgPartNo
+          || item?.sku
+          || ''
+        ).trim())
+        .filter(Boolean);
+
+      if (names.length > 0) {
+        return names;
+      }
+
+      const fallback = String(order?.primary_item_name || '').trim();
+      if (fallback && fallback.toLowerCase() !== 'item details unavailable') {
+        return [fallback];
+      }
+
+      const genericNames = items.map((_, index) => `Order Item ${index + 1}`);
+      return genericNames.filter(Boolean);
+    };
+
+    const isOrderItemsExpanded = (order) => {
+      const orderNumber = String(order?.order_number || '').trim();
+      if (!orderNumber) return false;
+      return !!expandedOrderItems.value[orderNumber];
+    };
+
+    const getVisibleOrderItemNames = (order) => {
+      const names = getOrderItemNames(order);
+      if (isOrderItemsExpanded(order)) return names;
+      return names.slice(0, 2);
+    };
+
+    const hasHiddenOrderItems = (order) => {
+      return getOrderItemNames(order).length > 2;
+    };
+
+    const toggleOrderItemsExpanded = (order) => {
+      const orderNumber = String(order?.order_number || '').trim();
+      if (!orderNumber || !hasHiddenOrderItems(order)) return;
+
+      expandedOrderItems.value = {
+        ...expandedOrderItems.value,
+        [orderNumber]: !expandedOrderItems.value[orderNumber],
+      };
     };
 
     const getOrdersCountByStatus = (status) => {
@@ -847,7 +921,7 @@ export default {
 
     const payViaInvoice = async (order) => {
       if (!hasPayableInvoice(order)) {
-        toastStore.addToast('No payable invoice linked to this order yet.', 'warning');
+        toastStore.addToast('No payable invoice linked to this order yet.', 'warning', 3000, { category: 'invoices' });
         return;
       }
 
@@ -860,7 +934,7 @@ export default {
           from: 'orders',
         },
       });
-      toastStore.addToast(`Invoice ${order.linked_invoice_number} is ready for payment`, 'info');
+      toastStore.addToast(`Invoice ${order.linked_invoice_number} is ready for payment`, 'info', 3000, { category: 'invoices' });
     };
 
     const fetchLiveShipping = async () => {
@@ -939,6 +1013,12 @@ export default {
       getStatusBadge,
       formatCurrency,
       truncateProductName,
+      getOrderItemCount,
+      getOrderItemNames,
+      getVisibleOrderItemNames,
+      hasHiddenOrderItems,
+      isOrderItemsExpanded,
+      toggleOrderItemsExpanded,
       getOrdersCountByStatus,
       getStatusProgress,
       liveShipments,

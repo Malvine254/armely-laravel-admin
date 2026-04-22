@@ -175,6 +175,17 @@ export const useCartStore = defineStore('cart', () => {
       return false
     }
 
+    const availableQty = Number(
+      product?.availableQuantity ??
+      product?.totalQuantity ??
+      product?.qty ??
+      NaN
+    )
+
+    if (Number.isFinite(availableQty) && availableQty <= 0) {
+      return false
+    }
+
     const normalizedProduct = normalizeCartItem({
       ...product,
       quantity,

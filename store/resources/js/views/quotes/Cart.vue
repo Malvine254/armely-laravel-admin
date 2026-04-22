@@ -600,7 +600,7 @@ const downloadQuote = () => {
     document.body.removeChild(link)
     URL.revokeObjectURL(url)
 
-    toastStore.addToast('Quote downloaded successfully', 'success')
+    toastStore.addToast('Quote downloaded successfully', 'success', 3000, { category: 'quotes' })
   } catch (error) {
     console.error('Error downloading quote:', error)
     toastStore.addToast('Failed to download quote', 'error')
@@ -616,15 +616,28 @@ const requestQuote = async () => {
   }
 
   if (cartStore.isEmpty) {
-    toastStore.addToast('Your quote is empty', 'warning')
+    toastStore.addToast('Your quote is empty', 'warning', 3000, { category: 'quotes' })
     return
   }
 
   // Check if user is authenticated
   if (!authStore.isAuthenticated) {
-    toastStore.addToast('Please log in to request a quote', 'info')
+    toastStore.addToast('Please log in to request a quote', 'info', 3000, { category: 'quotes' })
     // Redirect to login with return URL
     router.push({ name: 'login', query: { redirect: '/cart' } })
+    return
+  }
+
+  const shipping = authStore.user?.shipping_address || {}
+  const hasSavedShippingAddress = [
+    shipping.street_1,
+    shipping.city,
+    shipping.country,
+  ].some((value) => String(value || '').trim() !== '')
+
+  if (!hasSavedShippingAddress) {
+    toastStore.addToast('Add your shipping address in Account before requesting a quote', 'warning', 3000, { category: 'quotes' })
+    router.push({ name: 'account' })
     return
   }
 
@@ -632,7 +645,7 @@ const requestQuote = async () => {
   try {
     isSubmittingQuote.value = true
     slowRequestTimer = setTimeout(() => {
-      toastStore.addToast('Still submitting your quote. Please wait...', 'info')
+      toastStore.addToast('Still submitting your quote. Please wait...', 'info', 3000, { category: 'quotes' })
     }, 4000)
 
     const quoteItems = cartStore.items
@@ -663,7 +676,7 @@ const requestQuote = async () => {
     }
 
     if (response.data?.success) {
-      toastStore.addToast(`Quote #${response.data.data.quote_id} created successfully`, 'success')
+      toastStore.addToast(`Quote #${response.data.data.quote_id} created successfully`, 'success', 3000, { category: 'quotes' })
       cartStore.clearCart()
 
       // Navigate immediately after success for faster UX
@@ -685,6 +698,6 @@ const requestQuote = async () => {
 
 const clearRevisionMode = () => {
   cartStore.clearRevisionSource()
-  toastStore.addToast('Revision mode cleared', 'info')
+  toastStore.addToast('Revision mode cleared', 'info', 3000, { category: 'quotes' })
 }
 </script>

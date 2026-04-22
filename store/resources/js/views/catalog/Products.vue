@@ -138,16 +138,18 @@
                 <!-- Product Image -->
                 <div class="bg-gradient-to-br from-gray-200 to-gray-300 h-40 flex items-center justify-center transition relative overflow-hidden" style="background: linear-gradient(135deg, rgb(229, 231, 235), rgb(209, 213, 219));">
                   <!-- Skeleton shimmer while image loads -->
-                  <div v-if="product.productImages && product.productImages[0] && !product._imgLoaded" class="absolute inset-0 skeleton-shimmer"></div>
+                  <div v-if="getPrimaryImageUrl(product) && !product._imgLoaded" class="absolute inset-0 skeleton-shimmer"></div>
                   <!-- Actual Product Image if available -->
                   <img
-                    v-if="product.productImages && product.productImages[0]"
-                    :src="product.productImages[0].imageUrl || product.productImages[0]"
+                    v-if="getPrimaryImageUrl(product)"
+                    :src="getPrimaryImageUrl(product)"
                     :alt="product.productName"
                     class="w-full h-full object-cover transition-opacity duration-300"
                     :class="product._imgLoaded ? 'opacity-100' : 'opacity-0'"
-                    :loading="paginatedProducts.indexOf(product) < 6 ? 'eager' : 'lazy'"
-                    :fetchpriority="paginatedProducts.indexOf(product) < 3 ? 'high' : 'auto'"
+                    :loading="paginatedProducts.indexOf(product) < 2 ? 'eager' : 'lazy'"
+                    :fetchpriority="paginatedProducts.indexOf(product) === 0 ? 'high' : 'auto'"
+                    decoding="async"
+                    sizes="(min-width: 1024px) 320px, (min-width: 768px) 50vw, 100vw"
                     width="320" height="160"
                     @load="product._imgLoaded = true"
                     @error="event => { product._imgLoaded = true; event.target.style.display = 'none' }"
@@ -221,8 +223,12 @@
 
                   <!-- Features -->
                   <div class="mb-4 flex flex-wrap gap-1">
-                    <span class="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">{{ product.billingModel || 'N/A' }}</span>
-                    <span class="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">{{ product.billingFrequency || 'N/A' }}</span>
+                    <span class="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">{{ getProductMetaPrimary(product) }}</span>
+                    <span class="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">{{ getProductMetaSecondary(product) }}</span>
+                  </div>
+                  <div class="mb-4 flex items-center justify-between gap-3 text-xs">
+                    <span class="font-semibold" :class="getStockTone(product)">{{ getStockLabel(product) }}</span>
+                    <span class="text-gray-500">{{ getWarehouseSummary(product) }}</span>
                   </div>
 
                   <!-- Actions -->
@@ -234,7 +240,16 @@
                       </svg>
                       <span>View</span>
                     </button>
-                    <button @click="addToQuote(product)" class="px-3 py-2 text-white text-sm font-semibold rounded-lg transition" style="background-color: #2F5597;" @mouseenter="$event.target.style.backgroundColor='#1f4788'" @mouseleave="$event.target.style.backgroundColor='#2F5597'" title="Add to Quote" aria-label="Add to Quote">
+                    <button
+                      @click="addToQuote(product)"
+                      :disabled="isOutOfStock(product)"
+                      class="px-3 py-2 text-white text-sm font-semibold rounded-lg transition disabled:cursor-not-allowed disabled:opacity-60"
+                      style="background-color: #2F5597;"
+                      @mouseenter="!isOutOfStock(product) && ($event.target.style.backgroundColor='#1f4788')"
+                      @mouseleave="$event.target.style.backgroundColor='#2F5597'"
+                      :title="isOutOfStock(product) ? 'Out of stock' : 'Add to Quote'"
+                      aria-label="Add to Quote"
+                    >
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m1.6 8L5.4 5M7 13l-1.2 6.4A1 1 0 006.8 21h10.4a1 1 0 001-.8L20 13M9 21a1 1 0 100-2 1 1 0 000 2zm8 0a1 1 0 100-2 1 1 0 000 2z" />
                       </svg>
@@ -354,6 +369,7 @@ import { useAuthStore } from '../../stores/authStore'
 import { usePricingSettings } from '../../composables/usePricingSettings'
 import { trackSearchTerm, hasTrackingConsent, getSearchProfileTerms, getSearchSuggestions } from '../../services/searchInsights'
 import api from '../../services/api'
+import { buildStoreUrl } from '../../services/runtimeConfig'
 import Navbar from '../../components/Navbar.vue'
 import FilterSidebar from '../../components/FilterSidebar.vue'
 
@@ -532,6 +548,23 @@ const currentFilters = ref({
   lifecycleStatuses: [],
   mediaStatuses: []
 })
+
+const buildProductsRouteQuery = () => {
+  const query = {}
+
+  if (searchQuery.value) query.q = searchQuery.value
+  if (currentFilters.value.vendors.length > 0) query.vendors = currentFilters.value.vendors.join(',')
+  if (currentFilters.value.categories.length > 0) query.category = currentFilters.value.categories[0]
+  if (currentFilters.value.priceMin > 0) query.minPrice = String(currentFilters.value.priceMin)
+  if (currentFilters.value.priceMax < 10000) query.maxPrice = String(currentFilters.value.priceMax)
+  if (currentFilters.value.partNumber) query.partNumber = currentFilters.value.partNumber
+  if (currentFilters.value.productType) query.productType = currentFilters.value.productType
+  if (currentFilters.value.lifecycleStatuses.length > 0) query.lifecycle = currentFilters.value.lifecycleStatuses.join(',')
+  if (currentFilters.value.mediaStatuses.length > 0) query.media = currentFilters.value.mediaStatuses.join(',')
+  if (currentPage.value > 1) query.page = String(currentPage.value)
+
+  return query
+}
 
 const requiresClientForFilters = (filters) => {
   return (
@@ -1054,13 +1087,22 @@ const totalPagesLabel = computed(() => {
 })
 
 const paginatedProducts = computed(() => {
+  const source = filteredProducts.value
+  const indexed = source.map((item, index) => ({ item, index }))
+  indexed.sort((left, right) => {
+    const rankDiff = getStockRank(left.item) - getStockRank(right.item)
+    if (rankDiff !== 0) return rankDiff
+    return left.index - right.index
+  })
+  const sorted = indexed.map(({ item }) => item)
+
   if (serverPaged.value) {
-    return filteredProducts.value
+    return sorted
   }
 
   const start = (currentPage.value - 1) * ITEMS_PER_PAGE
   const end = start + ITEMS_PER_PAGE
-  return filteredProducts.value.slice(start, end)
+  return sorted.slice(start, end)
 })
 
 const pageNumbers = computed(() => {
@@ -1228,7 +1270,11 @@ const performSearch = async (resetPage = true) => {
     currentPage.value = 1
     loading.value = true
   } else {
-    pageLoading.value = true
+    if (products.value.length === 0) {
+      loading.value = true
+    } else {
+      pageLoading.value = true
+    }
   }
 
   const useServerPaged = !requiresClientSideFiltering.value
@@ -1713,14 +1759,22 @@ const prefetchPage = (page) => {
 const viewProductDetails = (product) => {
   router.push({
     name: 'product-detail',
-    params: { id: product.productId }
+    params: { id: product.productId },
+    query: {
+      returnTo: route.fullPath,
+    },
   })
 }
 
 const addToQuote = (product) => {
+  if (isOutOfStock(product)) {
+    toastStore.addToast(`"${product.productName}" is out of stock and cannot be added to quote`, 'error')
+    return
+  }
+
   const added = cartStore.addItem(product, 1)
   if (!added) {
-    toastStore.addToast('Account suspended: adding items to quotes is disabled', 'error')
+    toastStore.addToast('This product cannot be added to quote right now', 'error')
     return
   }
 
@@ -1749,6 +1803,120 @@ const getProductVendor = (product) => {
     product?.manufacturer_name ||
     'N/A'
   )
+}
+
+const getAvailableQuantity = (product) => {
+  const qty = Number(
+    product?.availableQuantity ??
+    product?.totalQuantity ??
+    product?.qty ??
+    NaN
+  )
+
+  return Number.isFinite(qty) ? Math.max(0, qty) : null
+}
+
+const isOutOfStock = (product) => getAvailableQuantity(product) === 0
+
+const getStockRank = (product) => {
+  const qty = getAvailableQuantity(product)
+  if (qty === null) return 1
+  return qty <= 0 ? 2 : 0
+}
+
+const getAvailabilityByWarehouse = (product) => {
+  return Array.isArray(product?.AvailabilityByWarehouse) ? product.AvailabilityByWarehouse : []
+}
+
+const getStockLabel = (product) => {
+  const qty = getAvailableQuantity(product)
+  if (qty !== null) {
+    if (qty > 0) return `Stock: ${qty}`
+    return 'Out of stock'
+  }
+
+  return 'Stock: Check availability'
+}
+
+const getStockTone = (product) => {
+  const qty = getAvailableQuantity(product)
+  if (qty === null) return 'text-amber-600'
+  return qty > 0 ? 'text-emerald-600' : 'text-red-600'
+}
+
+const getWarehouseSummary = (product) => {
+  const warehouses = getAvailabilityByWarehouse(product)
+  if (warehouses.length > 0) {
+    return `${warehouses.length} warehouse${warehouses.length === 1 ? '' : 's'}`
+  }
+
+  const qty = getAvailableQuantity(product)
+  if (qty !== null) {
+    return qty > 0 ? 'Available now' : 'Request quote'
+  }
+
+  return 'No live count'
+}
+
+const getProductMetaPrimary = (product) => {
+  const billingModel = String(product?.billingModel || '').trim()
+  if (billingModel) return billingModel
+
+  const qty = getAvailableQuantity(product)
+  if (qty !== null) {
+    return qty > 0 ? 'In Stock' : 'Out of Stock'
+  }
+
+  return product?.discontinueProduct ? 'Legacy Product' : 'Catalog Product'
+}
+
+const getProductMetaSecondary = (product) => {
+  const billingFrequency = String(product?.billingFrequency || '').trim()
+  if (billingFrequency) return billingFrequency
+
+  const qty = getAvailableQuantity(product)
+  if (qty !== null) {
+    return qty > 0 ? `${qty} available` : 'Request quote'
+  }
+
+  return 'Request quote'
+}
+
+const getPrimaryImageUrl = (product) => {
+  const candidates = []
+
+  const appendUrl = (value) => {
+    const rawUrl = String(value || '').trim()
+    if (!rawUrl) return
+    const url = rawUrl.startsWith('/images/') ? buildStoreUrl(rawUrl) : rawUrl
+    candidates.push(url)
+  }
+
+  const appendImages = (images) => {
+    if (!Array.isArray(images)) return
+
+    images.forEach((image) => {
+      if (typeof image === 'string') {
+        appendUrl(image)
+        return
+      }
+
+      if (image && typeof image === 'object') {
+        appendUrl(image.imageUrl || image.imageURL || image.image_url || image.url || image.thumbnailUrl)
+      }
+    })
+  }
+
+  appendImages(product?.productImages)
+  appendImages(product?.images)
+  appendUrl(product?.image_url)
+  appendUrl(product?.thumbnailUrl)
+  appendUrl(product?.thumbnail)
+
+  if (candidates.length === 0) return ''
+
+  const localCandidate = candidates.find((url) => url.startsWith('/images/') || url.includes('/images/products/'))
+  return localCandidate || candidates[0]
 }
 
 const buildProductHoverDetails = (product) => {
@@ -1808,7 +1976,7 @@ const submitProductShare = async () => {
         mfgPartNo: getProductSku(product) === 'N/A' ? '' : getProductSku(product),
         vendorId: getProductVendor(product) === 'N/A' ? '' : getProductVendor(product),
         description: product.description || '',
-        imageUrl: product.productImages?.[0]?.imageUrl || product.productImages?.[0] || '',
+        imageUrl: getPrimaryImageUrl(product),
         price: Number(product.productPrice?.[0]?.rsPrice || 0),
       },
     })
@@ -1923,12 +2091,30 @@ watch(
 )
 
 watch(
-  () => [route.query.q, route.query.vendor, route.query.vendors, route.query.category],
-  ([newQuery, newVendor, newVendors, newCategory]) => {
+  () => [
+    route.query.q,
+    route.query.vendor,
+    route.query.vendors,
+    route.query.category,
+    route.query.minPrice,
+    route.query.maxPrice,
+    route.query.partNumber,
+    route.query.productType,
+    route.query.lifecycle,
+    route.query.media,
+    route.query.page,
+  ],
+  ([newQuery, newVendor, newVendors, newCategory, minPrice, maxPrice, partNumber, productType, lifecycle, media, page]) => {
     searchQuery.value = newQuery ? String(newQuery) : ''
 
     const hasVendorQuery = newVendor !== undefined || newVendors !== undefined
     const hasCategoryQuery = newCategory !== undefined
+    const hasMinPriceQuery = minPrice !== undefined
+    const hasMaxPriceQuery = maxPrice !== undefined
+    const hasPartNumberQuery = partNumber !== undefined
+    const hasProductTypeQuery = productType !== undefined
+    const hasLifecycleQuery = lifecycle !== undefined
+    const hasMediaQuery = media !== undefined
 
     let nextVendors = currentFilters.value.vendors
     if (hasVendorQuery) {
@@ -1947,16 +2133,65 @@ watch(
       nextCategories = newCategory ? [String(newCategory)] : []
     }
 
-    currentFilters.value = {
-      ...currentFilters.value,
-      vendors: nextVendors,
-      categories: nextCategories,
+    let nextLifecycleStatuses = currentFilters.value.lifecycleStatuses
+    if (hasLifecycleQuery) {
+      nextLifecycleStatuses = lifecycle
+        ? String(lifecycle).split(',').map((value) => value.trim()).filter(Boolean)
+        : []
     }
 
-    currentPage.value = 1
-    performSearch(true)
+    let nextMediaStatuses = currentFilters.value.mediaStatuses
+    if (hasMediaQuery) {
+      nextMediaStatuses = media
+        ? String(media).split(',').map((value) => value.trim()).filter(Boolean)
+        : []
+    }
+
+    currentFilters.value = {
+      ...currentFilters.value,
+      priceMin: hasMinPriceQuery ? Number(minPrice || 0) : 0,
+      priceMax: hasMaxPriceQuery ? Number(maxPrice || 10000) : 10000,
+      partNumber: hasPartNumberQuery ? String(partNumber || '').trim() : '',
+      productType: hasProductTypeQuery ? String(productType || '').trim() : '',
+      vendors: nextVendors,
+      categories: nextCategories,
+      lifecycleStatuses: nextLifecycleStatuses,
+      mediaStatuses: nextMediaStatuses,
+    }
+
+    currentPage.value = Math.max(1, Number(page || 1) || 1)
+    performSearch(false)
   },
   { immediate: true }
+)
+
+watch(
+  () => [
+    searchQuery.value,
+    currentFilters.value.priceMin,
+    currentFilters.value.priceMax,
+    currentFilters.value.partNumber,
+    currentFilters.value.productType,
+    currentFilters.value.vendors.join(','),
+    currentFilters.value.categories.join(','),
+    currentFilters.value.lifecycleStatuses.join(','),
+    currentFilters.value.mediaStatuses.join(','),
+    currentPage.value,
+  ],
+  () => {
+    const nextQuery = buildProductsRouteQuery()
+    const currentQuery = { ...route.query }
+    delete currentQuery.returnTo
+
+    if (JSON.stringify(currentQuery) === JSON.stringify(nextQuery)) {
+      return
+    }
+
+    router.replace({
+      name: 'products',
+      query: nextQuery,
+    })
+  }
 )
 
 watch(

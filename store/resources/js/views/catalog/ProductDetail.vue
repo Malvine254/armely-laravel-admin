@@ -28,6 +28,9 @@
                   :alt="product.productName"
                   class="max-w-full max-h-full object-contain transition-transform duration-300 hover:scale-105"
                   loading="eager"
+                  fetchpriority="high"
+                  decoding="async"
+                  sizes="(min-width: 1024px) 40vw, 100vw"
                   @error="selectedImage = ''"
                 />
                 <div v-else class="text-center flex flex-col items-center justify-center gap-3">
@@ -51,7 +54,7 @@
                   @click="selectedImage = image"
                   type="button"
                 >
-                  <img :src="image" :alt="`Image ${idx + 1}`" class="w-full h-full object-cover" loading="lazy" />
+                  <img :src="image" :alt="`Image ${idx + 1}`" class="w-full h-full object-cover" loading="lazy" decoding="async" />
                 </button>
               </div>
             </div>
@@ -73,6 +76,15 @@
                 <span><span class="font-medium text-gray-700">SKU</span> {{ getProductSku(product) }}</span>
                 <span><span class="font-medium text-gray-700">ID</span> {{ product.productId }}</span>
                 <span v-if="product.billingModel"><span class="font-medium text-gray-700">Billing</span> {{ product.billingModel }}</span>
+              </div>
+              <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 mb-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div class="flex items-center gap-3">
+                  <span class="text-sm font-semibold" :class="getStockTone(product)">{{ getStockLabel(product) }}</span>
+                  <span class="text-sm text-slate-500">{{ getWarehouseSummary(product) }}</span>
+                </div>
+                <div class="text-sm text-slate-600">
+                  <span class="font-medium text-slate-700">Availability:</span> {{ getProductMetaPrimary(product) }} / {{ getProductMetaSecondary(product) }}
+                </div>
               </div>
 
               <!-- Price highlight card -->
@@ -100,7 +112,14 @@
 
               <!-- Action Buttons -->
               <div class="flex gap-3 mt-auto">
-                <button @click="addToQuote" class="flex-1 px-5 py-3 text-white font-semibold rounded-xl transition-all duration-200 text-sm shadow-sm hover:shadow-md" style="background-color: #2F5597;" @mouseenter="$event.target.style.backgroundColor='#244a85'" @mouseleave="$event.target.style.backgroundColor='#2F5597'">
+                <button
+                  @click="addToQuote"
+                  :disabled="isOutOfStock(product)"
+                  class="flex-1 px-5 py-3 text-white font-semibold rounded-xl transition-all duration-200 text-sm shadow-sm hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60"
+                  style="background-color: #2F5597;"
+                  @mouseenter="!isOutOfStock(product) && ($event.target.style.backgroundColor='#244a85')"
+                  @mouseleave="$event.target.style.backgroundColor='#2F5597'"
+                >
                   <span class="flex items-center justify-center gap-2">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
                     Add to Quote
@@ -443,11 +462,13 @@
             <!-- Product Image -->
             <div class="bg-gradient-to-br from-gray-200 to-gray-300 h-40 flex items-center justify-center relative overflow-hidden" style="background: linear-gradient(135deg, rgb(229, 231, 235), rgb(209, 213, 219));">
               <img
-                v-if="relatedProduct.productImages && relatedProduct.productImages[0]"
-                :src="relatedProduct.productImages[0].imageUrl || relatedProduct.productImages[0]"
+                v-if="getPrimaryImageUrl(relatedProduct)"
+                :src="getPrimaryImageUrl(relatedProduct)"
                 :alt="relatedProduct.productName"
                 class="w-full h-full object-cover"
                 loading="lazy"
+                decoding="async"
+                sizes="(min-width: 1024px) 240px, (min-width: 640px) 50vw, 100vw"
                 @error="event => event.target.style.display = 'none'"
               />
               <template v-else>
@@ -513,8 +534,12 @@
 
               <!-- Features -->
               <div class="mb-4 flex flex-wrap gap-1">
-                <span class="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">{{ relatedProduct.billingModel || 'N/A' }}</span>
-                <span class="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">{{ relatedProduct.billingFrequency || 'N/A' }}</span>
+                <span class="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">{{ getProductMetaPrimary(relatedProduct) }}</span>
+                <span class="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">{{ getProductMetaSecondary(relatedProduct) }}</span>
+              </div>
+              <div class="mb-4 flex items-center justify-between gap-3 text-xs">
+                <span class="font-semibold" :class="getStockTone(relatedProduct)">{{ getStockLabel(relatedProduct) }}</span>
+                <span class="text-gray-500">{{ getWarehouseSummary(relatedProduct) }}</span>
               </div>
 
               <!-- Actions -->
@@ -526,7 +551,16 @@
                   </svg>
                   <span>View</span>
                 </button>
-                <button @click.stop="addRelatedToQuote(relatedProduct)" class="px-3 py-2 text-white text-sm font-semibold rounded-lg transition" style="background-color: #2F5597;" @mouseenter="$event.target.style.backgroundColor='#1f4788'" @mouseleave="$event.target.style.backgroundColor='#2F5597'" title="Add to Quote" aria-label="Add to Quote">
+                <button
+                  @click.stop="addRelatedToQuote(relatedProduct)"
+                  :disabled="isOutOfStock(relatedProduct)"
+                  class="px-3 py-2 text-white text-sm font-semibold rounded-lg transition disabled:cursor-not-allowed disabled:opacity-60"
+                  style="background-color: #2F5597;"
+                  @mouseenter="!isOutOfStock(relatedProduct) && ($event.target.style.backgroundColor='#1f4788')"
+                  @mouseleave="$event.target.style.backgroundColor='#2F5597'"
+                  :title="isOutOfStock(relatedProduct) ? 'Out of stock' : 'Add to Quote'"
+                  aria-label="Add to Quote"
+                >
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m1.6 8L5.4 5M7 13l-1.2 6.4A1 1 0 006.8 21h10.4a1 1 0 001-.8L20 13M9 21a1 1 0 100-2 1 1 0 000 2zm8 0a1 1 0 100-2 1 1 0 000 2z" />
                   </svg>
@@ -637,7 +671,7 @@ import { useCartStore } from '../../stores/cartStore'
 import { useFavoritesStore } from '../../stores/favoritesStore'
 import { useAuthStore } from '../../stores/authStore'
 import Navbar from '../../components/Navbar.vue'
-import { API_BASE_URL } from '../../services/runtimeConfig'
+import { API_BASE_URL, buildStoreUrl } from '../../services/runtimeConfig'
 import { usePricingSettings } from '../../composables/usePricingSettings'
 import api from '../../services/api'
 
@@ -847,12 +881,43 @@ watch(
   { immediate: true }
 )
 
+const sanitizeReturnTo = (value) => {
+  const candidate = String(value || '').trim()
+  if (!candidate || !candidate.startsWith('/') || candidate.startsWith('//') || candidate.startsWith('/\\')) {
+    return '/products'
+  }
+
+  try {
+    const parsed = new URL(candidate, window.location.origin)
+    if (parsed.origin !== window.location.origin) {
+      return '/products'
+    }
+
+    if (!parsed.pathname.startsWith('/products')) {
+      return '/products'
+    }
+
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`
+  } catch {
+    return '/products'
+  }
+}
+
 const navigateToProduct = (productId) => {
-  router.push({ name: 'product-detail', params: { id: productId } })
+  const returnTo = sanitizeReturnTo(route.query.returnTo || '/products')
+
+  router.push({
+    name: 'product-detail',
+    params: { id: productId },
+    query: {
+      returnTo,
+    },
+  })
 }
 
 const goBack = () => {
-  router.push({ name: 'products' })
+  const returnTo = sanitizeReturnTo(route.query.returnTo)
+  router.push(returnTo)
 }
 
 const formatAdjustedCurrency = (baseUsdPrice) => {
@@ -878,6 +943,120 @@ const getProductSku = (item) => {
     item?.sku_no ||
     'N/A'
   )
+}
+
+const getAvailableQuantity = (item) => {
+  const qty = Number(
+    item?.availableQuantity ??
+    item?.totalQuantity ??
+    item?.qty ??
+    NaN
+  )
+
+  return Number.isFinite(qty) ? Math.max(0, qty) : null
+}
+
+const isOutOfStock = (item) => getAvailableQuantity(item) === 0
+
+const getStockRank = (item) => {
+  const qty = getAvailableQuantity(item)
+  if (qty === null) return 1
+  return qty <= 0 ? 2 : 0
+}
+
+const getAvailabilityByWarehouse = (item) => {
+  return Array.isArray(item?.AvailabilityByWarehouse) ? item.AvailabilityByWarehouse : []
+}
+
+const getStockLabel = (item) => {
+  const qty = getAvailableQuantity(item)
+  if (qty !== null) {
+    if (qty > 0) return `Stock: ${qty}`
+    return 'Out of stock'
+  }
+
+  return 'Stock: Check availability'
+}
+
+const getStockTone = (item) => {
+  const qty = getAvailableQuantity(item)
+  if (qty === null) return 'text-amber-600'
+  return qty > 0 ? 'text-emerald-600' : 'text-red-600'
+}
+
+const getWarehouseSummary = (item) => {
+  const warehouses = getAvailabilityByWarehouse(item)
+  if (warehouses.length > 0) {
+    return `${warehouses.length} warehouse${warehouses.length === 1 ? '' : 's'}`
+  }
+
+  const qty = getAvailableQuantity(item)
+  if (qty !== null) {
+    return qty > 0 ? 'Available now' : 'Request quote'
+  }
+
+  return 'No live count'
+}
+
+const getProductMetaPrimary = (item) => {
+  const billingModel = String(item?.billingModel || '').trim()
+  if (billingModel) return billingModel
+
+  const qty = getAvailableQuantity(item)
+  if (qty !== null) {
+    return qty > 0 ? 'In Stock' : 'Out of Stock'
+  }
+
+  return item?.discontinueProduct ? 'Legacy Product' : 'Catalog Product'
+}
+
+const getProductMetaSecondary = (item) => {
+  const billingFrequency = String(item?.billingFrequency || '').trim()
+  if (billingFrequency) return billingFrequency
+
+  const qty = getAvailableQuantity(item)
+  if (qty !== null) {
+    return qty > 0 ? `${qty} available` : 'Request quote'
+  }
+
+  return 'Request quote'
+}
+
+const getPrimaryImageUrl = (item) => {
+  const candidates = []
+
+  const appendUrl = (value) => {
+    const rawUrl = String(value || '').trim()
+    if (!rawUrl) return
+    const url = rawUrl.startsWith('/images/') ? buildStoreUrl(rawUrl) : rawUrl
+    candidates.push(url)
+  }
+
+  const appendImages = (images) => {
+    if (!Array.isArray(images)) return
+
+    images.forEach((image) => {
+      if (typeof image === 'string') {
+        appendUrl(image)
+        return
+      }
+
+      if (image && typeof image === 'object') {
+        appendUrl(image.imageUrl || image.imageURL || image.image_url || image.url || image.thumbnailUrl)
+      }
+    })
+  }
+
+  appendImages(item?.productImages)
+  appendImages(item?.images)
+  appendUrl(item?.image_url)
+  appendUrl(item?.thumbnailUrl)
+  appendUrl(item?.thumbnail)
+
+  if (candidates.length === 0) return ''
+
+  const localCandidate = candidates.find((url) => url.startsWith('/images/') || url.includes('/images/products/'))
+  return localCandidate || candidates[0]
 }
 
 const getProductVendor = (item) => {
@@ -933,13 +1112,21 @@ const normalizedImages = computed(() => {
   if (!product.value) return []
 
   const urls = normalizeImages(product.value.productImages)
-  if (urls.length > 0) return urls
+  if (urls.length > 0) {
+    return [...urls].sort((left, right) => {
+      const leftLocal = left.startsWith('/images/') || left.includes('/images/products/')
+      const rightLocal = right.startsWith('/images/') || right.includes('/images/products/')
+      if (leftLocal === rightLocal) return 0
+      return leftLocal ? -1 : 1
+    })
+  }
 
   const imageFallback = normalizeImages(product.value.images)
   if (imageFallback.length > 0) return imageFallback
 
-  if (product.value.image_url) {
-    return [String(product.value.image_url)]
+  const primary = getPrimaryImageUrl(product.value)
+  if (primary) {
+    return [primary]
   }
 
   return []
@@ -981,9 +1168,20 @@ const isDescriptionLong = computed(() => {
 
 const relatedTotalPages = computed(() => Math.ceil(relatedProducts.value.length / RELATED_PER_PAGE))
 
+const sortedRelatedProducts = computed(() => {
+  const source = relatedProducts.value
+  const indexed = source.map((item, index) => ({ item, index }))
+  indexed.sort((left, right) => {
+    const rankDiff = getStockRank(left.item) - getStockRank(right.item)
+    if (rankDiff !== 0) return rankDiff
+    return left.index - right.index
+  })
+  return indexed.map(({ item }) => item)
+})
+
 const paginatedRelated = computed(() => {
   const start = (relatedPage.value - 1) * RELATED_PER_PAGE
-  return relatedProducts.value.slice(start, start + RELATED_PER_PAGE)
+  return sortedRelatedProducts.value.slice(start, start + RELATED_PER_PAGE)
 })
 
 const relatedPageNumbers = computed(() => {
@@ -1058,9 +1256,13 @@ watch(paginatedRelated, (visibleRelated) => {
 
 const addToQuote = () => {
   if (!product.value) return
+  if (isOutOfStock(product.value)) {
+    toastStore.addToast(`"${product.value.productName}" is out of stock and cannot be added to quote`, 'error')
+    return
+  }
   const added = cartStore.addItem(product.value, 1)
   if (!added) {
-    toastStore.addToast('Account suspended: adding items to quotes is disabled', 'error')
+    toastStore.addToast('This product cannot be added to quote right now', 'error')
     return
   }
 
@@ -1091,9 +1293,13 @@ const addToFavorite = () => {
 }
 
 const addRelatedToQuote = (relatedProduct) => {
+  if (isOutOfStock(relatedProduct)) {
+    toastStore.addToast(`"${relatedProduct.productName}" is out of stock and cannot be added to quote`, 'error')
+    return
+  }
   const added = cartStore.addItem(relatedProduct, 1)
   if (!added) {
-    toastStore.addToast('Account suspended: adding items to quotes is disabled', 'error')
+    toastStore.addToast('This product cannot be added to quote right now', 'error')
     return
   }
   toastStore.addToast(`Added "${relatedProduct.productName}" to quote`, 'success')
