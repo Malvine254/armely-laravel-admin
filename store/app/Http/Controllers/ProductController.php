@@ -1321,6 +1321,13 @@ class ProductController extends Controller
 
     private function normalizeSavedProductImages($images): array
     {
+        // Guard against double-encoded DB values: Eloquent's 'array' cast on a stored
+        // '"[]"' gives back a PHP string '[]', not an array. Try to recover from that.
+        if (is_string($images)) {
+            $decoded = json_decode($images, true);
+            $images = is_array($decoded) ? $decoded : [];
+        }
+
         if (!is_array($images)) {
             return [];
         }
