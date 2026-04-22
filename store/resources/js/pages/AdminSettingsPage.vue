@@ -3,7 +3,7 @@
     <template #title>Settings</template>
 
     <!-- Tabs -->
-    <div class="rounded-xl border-0 shadow-lg bg-white mb-6 overflow-hidden">
+    <div class="rounded-xl border-0 shadow-lg bg-white mb-6 overflow-hidden sticky top-0 z-10">
       <div class="border-b border-gray-200">
         <nav class="flex -mb-px overflow-x-auto">
           <button
