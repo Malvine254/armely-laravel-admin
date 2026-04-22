@@ -399,10 +399,32 @@ onMounted(async () => {
 })
 
 const getProductImageUrl = (item) => {
-  const firstImage = item?.productImages?.[0]
-  if (!firstImage) return null
-  if (typeof firstImage === 'string') return firstImage
-  return firstImage.imageUrl || null
+  const candidates = []
+
+  const appendUrl = (value) => {
+    const rawUrl = String(value || '').trim()
+    if (rawUrl) candidates.push(rawUrl)
+  }
+
+  const appendImages = (images) => {
+    if (!Array.isArray(images)) return
+    images.forEach((image) => {
+      if (typeof image === 'string') { appendUrl(image); return }
+      if (image && typeof image === 'object') {
+        appendUrl(image.imageUrl || image.imageURL || image.image_url || image.url || image.thumbnailUrl)
+      }
+    })
+  }
+
+  appendImages(item?.productImages)
+  appendImages(item?.images)
+  appendUrl(item?.image_url)
+  appendUrl(item?.thumbnailUrl)
+  appendUrl(item?.thumbnail)
+
+  return candidates.find(url => url.startsWith('/images/') || url.includes('/images/products/'))
+    || candidates[0]
+    || null
 }
 
 const hasProductImage = (item) => {

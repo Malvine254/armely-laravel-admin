@@ -331,7 +331,7 @@
             <p><strong>Notes:</strong></p>
             <p>• Thank you for your business!</p>
             <p>• Please retain this invoice for your records.</p>
-            <p>• For questions about this invoice, please contact us at unfo@armely.com</p>
+            <p>• For questions about this invoice, please contact us at info@armely.com</p>
             <br>
             <p style="text-align: center;">Generated on {{ $generatedDate }}</p>
         </div>

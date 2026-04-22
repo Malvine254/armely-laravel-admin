@@ -566,7 +566,13 @@ class ProductController extends Controller
                 $query->whereRaw($this->preferredDbPriceSql() . ' > 0');
             }
 
-            $products = $query->orderBy('product_name')->limit(50000)->get();
+            $products = $query->orderByRaw(
+                "CASE
+                    WHEN JSON_EXTRACT(specifications, '$.availableQuantity') > 0 THEN 0
+                    WHEN JSON_EXTRACT(specifications, '$.availableQuantity') IS NULL THEN 1
+                    ELSE 2
+                END"
+            )->orderBy('product_name')->limit(50000)->get();
 
             return $products->map(fn (Product $product) => $this->mapPriceAvailabilityDatabaseProduct($product))->toArray();
         } catch (\Throwable $e) {
@@ -834,6 +840,14 @@ class ProductController extends Controller
         $currentPage = max(1, $pageNo);
         $offset = ($currentPage - 1) * $perPage;
 
+        // Always show in-stock products first (mirrors frontend getStockRank: qty>0=0, null=1, 0=2).
+        $query->orderByRaw(
+            "CASE
+                WHEN JSON_EXTRACT(specifications, '$.availableQuantity') > 0 THEN 0
+                WHEN JSON_EXTRACT(specifications, '$.availableQuantity') IS NULL THEN 1
+                ELSE 2
+            END"
+        );
         if (empty($search)) {
             $query->orderBy('id');
         }
@@ -1682,6 +1696,13 @@ class ProductController extends Controller
         }
 
         $candidates = $query
+            ->orderByRaw(
+                "CASE
+                    WHEN JSON_EXTRACT(specifications, '$.availableQuantity') > 0 THEN 0
+                    WHEN JSON_EXTRACT(specifications, '$.availableQuantity') IS NULL THEN 1
+                    ELSE 2
+                END"
+            )
             ->limit(max(1, $limit) + 1)
             ->get();
 
