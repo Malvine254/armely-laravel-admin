@@ -16,7 +16,8 @@ class SyncExcelCatalogFilesCommand extends Command
     protected $signature = 'tdsynnex:sync-catalog-files
         {path? : CSV file, XLSX file, or directory of CSVs (defaults to excel-import-csvs2/)}
         {--limit=0 : Max rows per file (0 = all)}
-        {--dry-run : Map and validate rows without writing to DB}';
+        {--dry-run : Map and validate rows without writing to DB}
+        {--unmatched-out= : Write unmatched row MPNs/names to this JSON file}';
 
     protected $description = 'Import catalog files (CSV/XLSX) and enrich every row from the TD SYNNEX API';
 
@@ -32,10 +33,12 @@ class SyncExcelCatalogFilesCommand extends Command
             return self::FAILURE;
         }
 
-        $limit  = max(0, (int) $this->option('limit'));
-        $dryRun = (bool) $this->option('dry-run');
+        $limit        = max(0, (int) $this->option('limit'));
+        $dryRun       = (bool) $this->option('dry-run');
+        $unmatchedOut = (string) ($this->option('unmatched-out') ?? '');
 
         $totalImported = $totalMatched = $totalUnmatched = $totalSkipped = 0;
+        $allUnmatched  = [];
 
         foreach ($files as $file) {
             $this->line('');
@@ -61,6 +64,12 @@ class SyncExcelCatalogFilesCommand extends Command
             $totalMatched   += $result['matched'];
             $totalUnmatched += $result['unmatched'];
             $totalSkipped   += $result['skipped'];
+            $allUnmatched    = array_merge($allUnmatched, $result['unmatchedRows'] ?? []);
+        }
+
+        if ($unmatchedOut !== '' && !empty($allUnmatched)) {
+            file_put_contents($unmatchedOut, json_encode($allUnmatched, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+            $this->line("Unmatched rows written to: {$unmatchedOut}");
         }
 
         $this->line('');
@@ -239,6 +248,10 @@ class SyncExcelCatalogFilesCommand extends Command
             'manufacturer p/n' => 'mfg_part_no',
             'part number'    => 'mfg_part_no',
             'part no'        => 'mfg_part_no',
+            'model / part #' => 'mfg_part_no',
+            'model/part#'    => 'mfg_part_no',
+            'model/part #'   => 'mfg_part_no',
+            'model / part#'  => 'mfg_part_no',
             'sku#'           => 'sku',
             'sku #'          => 'sku',
             'td snx#'        => 'tdsynnex_ref',
@@ -251,6 +264,7 @@ class SyncExcelCatalogFilesCommand extends Command
             'est price'      => 'base_price',
             'price'          => 'base_price',
             '#'              => '_row',
+            'manufacturer'   => 'brand',
         ];
 
         return array_map(function ($h) use ($aliases) {
@@ -271,12 +285,13 @@ class SyncExcelCatalogFilesCommand extends Command
 
     /**
      * @param array<int, array<string, string>> $rows
-     * @return array{matched:int,unmatched:int,skipped:int,imported:int}
+     * @return array{matched:int,unmatched:int,skipped:int,imported:int,unmatchedRows:list<array<string,string>>}
      */
     private function processRows(array $rows, int $limit, bool $dryRun): array
     {
-        $matched   = $unmatched = $skipped = $imported = 0;
-        $processed = 0;
+        $matched      = $unmatched = $skipped = $imported = 0;
+        $unmatchedRows = [];
+        $processed    = 0;
 
         $bar = $this->output->createProgressBar(count($rows));
         $bar->setFormat(' %current%/%max% [%bar%] %elapsed%');
@@ -293,6 +308,11 @@ class SyncExcelCatalogFilesCommand extends Command
 
             if ($apiProduct === null) {
                 $unmatched++;
+                $unmatchedRows[] = [
+                    'mfg_part_no' => $row['mfg_part_no'] ?? '',
+                    'brand'       => $row['brand'] ?? '',
+                    'name'        => $row['name'] ?? $row['product_name'] ?? '',
+                ];
                 continue;
             }
 
@@ -317,7 +337,7 @@ class SyncExcelCatalogFilesCommand extends Command
         $bar->finish();
         $this->newLine();
 
-        return compact('matched', 'unmatched', 'skipped', 'imported');
+        return compact('matched', 'unmatched', 'skipped', 'imported', 'unmatchedRows');
     }
 
     /** @param array<string, string> $row */

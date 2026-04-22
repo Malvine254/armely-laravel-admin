@@ -115,9 +115,23 @@
                 <div class="h-1 rounded-r animate-pulse" style="background-color: #2F5597; width: 100%;"></div>
               </div>
             </div>
-            <div class="mb-6 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3">
+            <div class="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
               <p class="text-gray-600 font-medium">Showing <span class="font-bold" style="color: #2F5597;">{{ visibleProductsRangeLabel }}</span></p>
-              <span class="text-gray-600 text-sm">Page <span class="font-bold" style="color: #2F5597;">{{ currentPage }}</span> of <span class="font-bold" style="color: #2F5597;">{{ totalPagesLabel }}</span></span>
+              <div class="flex items-center gap-3">
+                <label class="text-sm text-gray-600 font-medium whitespace-nowrap">Sort by:</label>
+                <select
+                  v-model="sortBy"
+                  @change="currentPage = 1"
+                  class="text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:border-transparent bg-white text-gray-700"
+                  style="--tw-ring-color: #2F5597;"
+                >
+                  <option value="relevance">Relevance</option>
+                  <option value="price_asc">Price: Low to High</option>
+                  <option value="price_desc">Price: High to Low</option>
+                  <option value="name_asc">Name: A – Z</option>
+                  <option value="name_desc">Name: Z – A</option>
+                </select>
+              </div>
             </div>
 
             <!-- Empty State -->
@@ -475,6 +489,7 @@ const localSearchHistory = ref([])
 const showSearchSuggestions = ref(false)
 const activeSuggestionIndex = ref(-1)
 const searchSuggestionItems = ref([])
+const sortBy = ref('relevance')
 const showShareModal = ref(false)
 const sharingProduct = ref(null)
 const shareRecipientEmail = ref('')
@@ -1090,10 +1105,35 @@ const totalPagesLabel = computed(() => {
   return String(totalPages.value)
 })
 
+const getProductUnitPrice = (product) => {
+  const price = product?.productPrice?.[0]?.rsPrice
+  return price != null ? Number(price) : null
+}
+
 const paginatedProducts = computed(() => {
   const source = filteredProducts.value
   const indexed = source.map((item, index) => ({ item, index }))
+
+  const mode = sortBy.value
   indexed.sort((left, right) => {
+    if (mode === 'price_asc' || mode === 'price_desc') {
+      const lp = getProductUnitPrice(left.item)
+      const rp = getProductUnitPrice(right.item)
+      if (lp === null && rp === null) return left.index - right.index
+      if (lp === null) return 1
+      if (rp === null) return -1
+      const diff = lp - rp
+      if (diff !== 0) return mode === 'price_asc' ? diff : -diff
+      return left.index - right.index
+    }
+    if (mode === 'name_asc' || mode === 'name_desc') {
+      const ln = String(left.item.productName || '').toLowerCase()
+      const rn = String(right.item.productName || '').toLowerCase()
+      const cmp = ln.localeCompare(rn)
+      if (cmp !== 0) return mode === 'name_asc' ? cmp : -cmp
+      return left.index - right.index
+    }
+    // relevance: stock rank first, then personalization order
     const rankDiff = getStockRank(left.item) - getStockRank(right.item)
     if (rankDiff !== 0) return rankDiff
     return left.index - right.index

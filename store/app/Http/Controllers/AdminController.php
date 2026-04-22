@@ -21,6 +21,7 @@ use App\Models\Message;
 use App\Models\Activity;
 use App\Exceptions\TDSynnexApiException;
 use App\Jobs\GenerateInvoiceJob;
+use App\Mail\AccountApprovedMail;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;
@@ -41,6 +42,93 @@ class AdminController extends Controller
     {
         $this->notificationService = $notificationService;
         $this->environmentSettingsService = $environmentSettingsService;
+    }
+
+    /**
+     * Pre-populate $productNameCache with one batch DB query so that subsequent
+     * resolveOrderItemName() / resolveProductNameByLookupKey() calls never hit
+     * the database individually in a loop.
+     *
+     * @param array $itemCollections  Array of arrays-of-items, e.g. from multiple orders or invoices.
+     */
+    private function prefetchProductNamesForItems(array $itemCollections): void
+    {
+        $lookupKeys = [];
+
+        foreach ($itemCollections as $items) {
+            if (!is_array($items)) {
+                continue;
+            }
+            foreach ($items as $item) {
+                if (!is_array($item)) {
+                    continue;
+                }
+
+                // If the item already carries an inline name we won't need a DB lookup.
+                $inlineName = $item['product_name']
+                    ?? $item['productName']
+                    ?? $item['name']
+                    ?? $item['partDescription']
+                    ?? $item['description']
+                    ?? null;
+
+                if (is_string($inlineName) && trim($inlineName) !== '') {
+                    continue;
+                }
+
+                $key = trim((string) (
+                    $item['product_id']
+                    ?? $item['productId']
+                    ?? $item['id']
+                    ?? $item['sku']
+                    ?? $item['partNumber']
+                    ?? $item['mfg_part_number']
+                    ?? $item['mfgPartNo']
+                    ?? ''
+                ));
+
+                if ($key !== '' && !array_key_exists($key, $this->productNameCache)) {
+                    $lookupKeys[] = $key;
+                }
+            }
+        }
+
+        $lookupKeys = array_values(array_unique($lookupKeys));
+        if (empty($lookupKeys)) {
+            return;
+        }
+
+        $numericKeys = array_values(array_filter($lookupKeys, 'ctype_digit'));
+
+        $products = Product::query()
+            ->select(['id', 'product_name', 'tdsynnex_product_id', 'tdsynnex_sku_no', 'mfg_part_no'])
+            ->where(function ($q) use ($lookupKeys, $numericKeys) {
+                $q->whereIn('tdsynnex_product_id', $lookupKeys)
+                  ->orWhereIn('tdsynnex_sku_no', $lookupKeys)
+                  ->orWhereIn('mfg_part_no', $lookupKeys);
+                if (!empty($numericKeys)) {
+                    $q->orWhereIn('id', array_map('intval', $numericKeys));
+                }
+            })
+            ->get();
+
+        foreach ($products as $product) {
+            $name = trim((string) ($product->product_name ?? ''));
+            if ($name === '') {
+                continue;
+            }
+            foreach ([
+                (string) ($product->tdsynnex_product_id ?? ''),
+                (string) ($product->tdsynnex_sku_no ?? ''),
+                (string) ($product->mfg_part_no ?? ''),
+                (string) $product->id,
+            ] as $key) {
+                $key = trim($key);
+                if ($key !== '' && !isset($this->productNameCache[$key])) {
+                    $this->productNameCache[$key] = $name;
+                }
+            }
+        }
     }
 
     private function getIntegrationSetting(string $key, mixed $fallback = ''): mixed
@@ -803,6 +891,10 @@ class AdminController extends Controller
                     ->sum('total_amount'),
                 'total_customers' => Company::count(),
                 'active_customers' => Company::where('status', 'approved')->count(),
+                'pending_users' => User::whereNotIn('role', ['admin', 'super_admin'])
+                    ->where('status', 'pending')
+                    ->whereNotNull('email_verified_at')
+                    ->count(),
                 'pending_invoices' => Invoice::where('status', 'pending')->count(),
                 'overdue_invoices' => Invoice::where('status', 'pending')
                     ->where('due_at', '<', now())
@@ -2072,6 +2164,12 @@ class AdminController extends Controller
                 ->paginate($pageSize, ['*'], 'page', $page);
 
             $orderRows = $orders->items();
+
+            // Batch-load all product names needed for this page in a single query.
+            $this->prefetchProductNamesForItems(
+                array_map(fn ($o) => is_array($o->items) ? $o->items : [], $orderRows)
+            );
+
             $orderRows = array_map(function ($order) {
                 $itemPreview = $this->buildOrderItemPreview($order);
                 $remainingDue = $order->invoice
@@ -2344,6 +2442,12 @@ class AdminController extends Controller
                 $targetUser->company->save();
             }
 
+            try {
+                Mail::to($targetUser->email)->send(new AccountApprovedMail($targetUser->load('company')));
+            } catch (\Exception $mailEx) {
+                Log::warning('Failed to send account approval email to ' . $targetUser->email . ': ' . $mailEx->getMessage());
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => 'Customer user approved successfully',
@@ -2408,6 +2512,14 @@ class AdminController extends Controller
                     Company::whereIn('id', $companyIds)->update(['status' => 'approved']);
                 }
 
+                foreach ($targetUsers->load('company') as $approvedUser) {
+                    try {
+                        Mail::to($approvedUser->email)->send(new AccountApprovedMail($approvedUser));
+                    } catch (\Exception $mailEx) {
+                        Log::warning('Failed to send approval email to ' . $approvedUser->email . ': ' . $mailEx->getMessage());
+                    }
+                }
+
                 return response()->json([
                     'success' => true,
                     'message' => "$updatedUsers user(s) approved successfully",
@@ -2442,10 +2554,23 @@ class AdminController extends Controller
             // Update company status
             $updatedCount = Company::whereIn('id', $targetCompanyIds)->update(['status' => 'approved']);
 
-            // Activate all users in these companies
+            // Activate all users in these companies and collect them for emails
+            $usersToNotify = User::with('company')
+                ->whereIn('company_id', $targetCompanyIds)
+                ->whereNotIn('role', ['admin', 'super_admin'])
+                ->get();
+
             User::whereIn('company_id', $targetCompanyIds)
                 ->whereNotIn('role', ['admin', 'super_admin'])
                 ->update(['status' => 'active']);
+
+            foreach ($usersToNotify as $approvedUser) {
+                try {
+                    Mail::to($approvedUser->email)->send(new AccountApprovedMail($approvedUser));
+                } catch (\Exception $mailEx) {
+                    Log::warning('Failed to send approval email to ' . $approvedUser->email . ': ' . $mailEx->getMessage());
+                }
+            }
 
             return response()->json([
                 'success' => true,
@@ -2834,7 +2959,7 @@ class AdminController extends Controller
                     ],
                     'system_settings' => [
                         'company_name' => (string) AppSetting::getValue('system.company_name', env('APP_NAME', 'Armely Store')),
-                        'support_email' => (string) AppSetting::getValue('system.support_email', env('SUPPORT_EMAIL', config('mail.from.address', 'unfo@armely.com'))),
+                        'support_email' => (string) AppSetting::getValue('system.support_email', env('SUPPORT_EMAIL', config('mail.from.address', 'info@armely.com'))),
                         'currency' => strtoupper((string) AppSetting::getValue('pricing.currency_code', env('APP_CURRENCY', 'USD'))),
                         'currency_rate' => AppSetting::getNumber('pricing.currency_rate', (float) env('APP_CURRENCY_RATE', 1)),
                         'timezone' => (string) AppSetting::getValue('system.timezone', env('APP_TIMEZONE', config('app.timezone', 'America/New_York'))),
@@ -3369,7 +3494,7 @@ class AdminController extends Controller
                 'message' => 'System settings updated successfully',
                 'data' => [
                     'company_name' => (string) AppSetting::getValue('system.company_name', 'Armely Store'),
-                    'support_email' => (string) AppSetting::getValue('system.support_email', config('mail.from.address', 'unfo@armely.com')),
+                    'support_email' => (string) AppSetting::getValue('system.support_email', config('mail.from.address', 'info@armely.com')),
                     'timezone' => (string) AppSetting::getValue('system.timezone', config('app.timezone', 'America/New_York')),
                     'maintenance_mode' => app()->isDownForMaintenance(),
                     'tax_rate_percent' => AppSetting::getNumber('pricing.tax_rate_percent', 0),
@@ -3825,7 +3950,7 @@ class AdminController extends Controller
             $sortBy = $request->get('sort_by', 'created_at');
             $sortOrder = $request->get('sort_order', 'desc');
 
-            $query = Invoice::with(['user', 'user.company']);
+            $query = Invoice::with(['user', 'user.company', 'order']);
 
             // Apply status filter
             if ($status && $status !== 'all') {

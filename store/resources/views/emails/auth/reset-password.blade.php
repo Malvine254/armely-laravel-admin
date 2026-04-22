@@ -85,7 +85,7 @@
     </div>
     
     <div class="footer">
-        <p>If you have any questions, contact us at info@armely.com</p>
+        <p>If you have any questions, contact us at {{ \App\Models\AppSetting::getValue('system.support_email', config('mail.from.address', 'info@armely.com')) }}</p>
         <p>&copy; {{ date('Y') }} Armely Store. All rights reserved.</p>
     </div>
 </body>

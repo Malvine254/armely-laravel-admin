@@ -555,6 +555,7 @@ class AzureGraphMailService
         $safeButtonUrl   = e($buttonUrl);
         $safeFooterNote  = $footerNote ? e($footerNote) : '';
         $year            = date('Y');
+        $supportEmail    = e((string) AppSetting::getValue('system.support_email', config('mail.from.address', 'info@armely.com')));
 
         $footerNoteHtml = $footerNote
             ? "<p style='margin:0 0 12px;color:#64748b;font-size:13px;line-height:1.6'>{$safeFooterNote}</p>"
@@ -598,7 +599,7 @@ class AzureGraphMailService
     <div style='padding:16px 32px 20px;background:#f8fbff;border-top:1px solid #e3ebf8'>
       {$footerNoteHtml}
       <p style='margin:0;font-size:12px;color:#94a3b8'>You received this email because you have an account with Armely Store.
-        &nbsp;&bull;&nbsp; <a href='mailto:unfo@armely.com' style='color:#2f5597;text-decoration:none'>unfo@armely.com</a>
+        &nbsp;&bull;&nbsp; <a href='mailto:{$supportEmail}' style='color:#2f5597;text-decoration:none'>{$supportEmail}</a>
       </p>
     </div>
   </div>
@@ -738,7 +739,8 @@ class AzureGraphMailService
 
     private function buildFullInvoiceHtml(\App\Models\Invoice $invoice, \App\Models\User $user, bool $isReminder): string
     {
-        $appUrl      = config('app.url');
+        $appUrl        = config('app.url');
+        $supportEmail  = e((string) AppSetting::getValue('system.support_email', config('mail.from.address', 'info@armely.com')));
         $invNumber   = e($invoice->invoice_number);
         $issuedAt    = $invoice->issued_at?->format('M d, Y') ?? 'N/A';
         $dueDate     = $invoice->due_at?->format('M d, Y') ?? 'On Demand';
@@ -922,7 +924,7 @@ class AzureGraphMailService
             . "<a href='{$appUrl}/invoices' style='display:inline-block;padding:12px 24px;background:#2F5597;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:bold;font-size:14px;'>View &amp; Pay Invoice</a>"
             . "</div>"
             . "<div style='margin-top:50px;padding-top:20px;border-top:1px solid #ddd;text-align:center;font-size:12px;color:#999;'>"
-            . "<p style='margin:0;'>Thank you for your business! | www.armely.com | unfo@armely.com</p>"
+            . "<p style='margin:0;'>Thank you for your business! | www.armely.com | {$supportEmail}</p>"
             . "</div>"
             . "</div></div></body></html>";
     }

@@ -4,25 +4,30 @@
 
     <div class="flex gap-6 h-[calc(100vh-10rem)] min-h-0 text-gray-900">
 
-      <!-- Left: session list -->
-      <div class="w-80 flex-shrink-0 rounded-xl border-0 shadow-lg bg-white flex flex-col min-h-0 overflow-hidden">
+      <!-- Session list sidebar -->
+      <div class="w-80 flex-shrink-0 rounded-2xl border border-gray-200 shadow-sm bg-white flex flex-col min-h-0 overflow-hidden">
         <div class="px-4 py-4 border-b border-gray-200 flex-shrink-0 bg-gray-50">
-          <div class="flex items-center justify-between mb-3">
-            <h3 class="font-bold text-gray-900">Escalated Chats</h3>
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-sm font-bold text-gray-900 uppercase tracking-wide">Escalated Chats</h3>
             <span v-if="openSessions.length" class="bg-red-500 text-white text-xs rounded-full px-2 py-0.5 font-semibold">
               {{ openSessions.length }}
             </span>
           </div>
+          <p class="text-[11px] text-gray-500 mb-2">Select a conversation to respond.</p>
           <div class="flex gap-2">
             <button
               @click="tab = 'open'"
               :class="['flex-1 py-1.5 text-xs font-semibold rounded-md transition',
-                tab === 'open' ? 'bg-gradient-to-r from-[#2F5597] to-[#1e3a6b] text-white' : 'bg-gray-50 text-gray-500 hover:bg-gray-100']"
+                tab === 'open'
+                  ? 'bg-[#2F5597] text-white'
+                  : 'border border-[#2F5597]/30 text-[#2F5597] bg-[#2F5597]/10 hover:bg-[#2F5597]/20']"
             >Open ({{ openSessions.length }})</button>
             <button
               @click="tab = 'resolved'"
               :class="['flex-1 py-1.5 text-xs font-semibold rounded-md transition',
-                tab === 'resolved' ? 'bg-gradient-to-r from-[#2F5597] to-[#1e3a6b] text-white' : 'bg-gray-50 text-gray-500 hover:bg-gray-100']"
+                tab === 'resolved'
+                  ? 'bg-[#2F5597] text-white'
+                  : 'border border-[#2F5597]/30 text-[#2F5597] bg-[#2F5597]/10 hover:bg-[#2F5597]/20']"
             >History</button>
           </div>
         </div>
@@ -31,44 +36,50 @@
           <div class="w-6 h-6 border-2 border-[#2F5597] border-t-transparent rounded-full animate-spin"></div>
         </div>
 
-        <div v-else class="flex-1 overflow-y-auto divide-y divide-gray-200">
+        <div v-else class="flex-1 overflow-y-auto themed-scrollbar p-3">
           <button
             v-for="session in displayedSessions"
             :key="session.id"
             @click="selectSession(session)"
-            :class="['w-full text-left px-4 py-3 transition hover:bg-gray-50',
-              activeSession?.id === session.id ? 'bg-[#2F5597]/10 border-l-4 border-[#2F5597]' : '']"
+            class="w-full text-left rounded-xl border mb-2 p-2.5 transition"
+            :class="activeSession?.id === session.id
+              ? 'border-[#2F5597]/30 bg-[#2F5597]/10 ring-1 ring-[#2F5597]/20'
+              : 'border-gray-200 bg-white hover:bg-gray-50'"
           >
-            <div class="flex items-start gap-2.5">
-              <div class="w-8 h-8 rounded-full bg-amber-500/20 text-amber-600 flex items-center justify-center flex-shrink-0">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="flex items-start gap-2">
+              <div
+                class="mt-0.5 w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
+                :class="session.resolved_at ? 'bg-emerald-500/20 text-emerald-600' : 'bg-amber-500/20 text-amber-600'"
+              >
+                <svg v-if="session.resolved_at" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5V10a8 8 0 10-16 0v10h5m6 0v-3a3 3 0 00-3-3h-2a3 3 0 00-3 3v3m8 0H9" />
                 </svg>
               </div>
               <div class="min-w-0 flex-1">
-                <p class="text-xs font-semibold text-gray-900 truncate">{{ session.user?.name || 'Unknown user' }}</p>
-                <p class="text-[11px] text-gray-500 truncate">{{ session.user?.email }}</p>
+                <div class="flex items-center justify-between gap-2">
+                  <p class="text-xs font-semibold text-gray-900 truncate">{{ session.user?.name || 'Unknown user' }}</p>
+                  <span
+                    class="text-[10px] px-1.5 py-0.5 rounded-full font-semibold flex-shrink-0"
+                    :class="session.resolved_at ? 'bg-emerald-500/20 text-emerald-600' : 'bg-amber-500/20 text-amber-600'"
+                  >{{ session.resolved_at ? 'Resolved' : 'Escalated' }}</span>
+                </div>
                 <p class="text-[11px] text-gray-500 truncate mt-0.5">{{ session.last_message_preview || session.title || 'No messages' }}</p>
                 <p class="text-[10px] text-gray-400 mt-0.5">{{ timeAgo(session.escalated_at) }}</p>
               </div>
-              <span v-if="session.resolved_at" class="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-600 font-semibold flex-shrink-0">Done</span>
             </div>
           </button>
 
-          <div v-if="listLoading" class="flex justify-center py-8">
-            <svg class="animate-spin h-8 w-8 text-[#2F5597]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-          </div>
-          <div v-else-if="!displayedSessions.length" class="px-4 py-8 text-center text-sm text-gray-500">
+          <p v-if="!displayedSessions.length" class="text-[11px] text-gray-500 px-1 py-8 text-center">
             {{ tab === 'open' ? 'No open escalations' : 'No chat history yet' }}
-          </div>
+          </p>
         </div>
       </div>
 
-      <!-- Right: conversation thread -->
-      <div class="flex-1 rounded-xl border-0 shadow-lg bg-white flex flex-col min-h-0 overflow-hidden">
+      <!-- Conversation thread panel -->
+      <div class="flex-1 rounded-2xl border border-gray-200 shadow-sm bg-white flex flex-col min-h-0 overflow-hidden">
 
         <!-- Empty state -->
         <div v-if="!activeSession" class="flex-1 flex flex-col items-center justify-center text-gray-500 gap-3">
@@ -80,30 +91,32 @@
 
         <template v-else>
           <!-- Header -->
-          <div class="px-5 py-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between flex-shrink-0">
+          <div class="px-5 py-4 border-b border-gray-200 bg-gray-50 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between flex-shrink-0">
             <div>
-              <p class="font-bold text-gray-900">{{ activeSession.user?.name || 'Customer' }}</p>
-              <p class="text-xs text-gray-500">{{ activeSession.user?.email }} · Session #{{ activeSession.id }}</p>
-              <p class="text-xs text-amber-600 font-medium mt-0.5">
-                Escalated {{ timeAgo(activeSession.escalated_at) }}
-                <span v-if="activeSession.resolved_at" class="ml-2 text-emerald-600">· Resolved {{ timeAgo(activeSession.resolved_at) }}</span>
+              <h2 class="text-lg font-bold text-gray-900">{{ activeSession.user?.name || 'Customer' }}</h2>
+              <p class="text-xs text-gray-500">
+                {{ activeSession.user?.email }} · Session #{{ activeSession.id }}
+                <span v-if="activeSession.resolved_at" class="font-semibold text-emerald-600"> · Resolved {{ timeAgo(activeSession.resolved_at) }}</span>
+                <span v-else class="font-semibold text-amber-600"> · Escalated {{ timeAgo(activeSession.escalated_at) }}</span>
               </p>
             </div>
-            <button
-              v-if="!activeSession.resolved_at"
-              @click="resolveChat"
-              :disabled="resolving"
-              class="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 transition"
-            >
-              {{ resolving ? 'Resolving...' : 'Mark Resolved' }}
-            </button>
-            <span v-else class="px-3 py-1.5 rounded-lg text-sm font-semibold text-emerald-600 bg-emerald-500/20">
-              Resolved
-            </span>
+            <div class="flex flex-wrap gap-2">
+              <button
+                v-if="!activeSession.resolved_at"
+                @click="resolveChat"
+                :disabled="resolving"
+                class="px-3 py-1.5 rounded-full text-xs font-semibold border border-emerald-500/30 text-emerald-600 bg-emerald-500/10 hover:bg-emerald-500/20 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {{ resolving ? 'Resolving...' : 'Mark Resolved' }}
+              </button>
+              <span v-else class="px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-600">
+                Resolved
+              </span>
+            </div>
           </div>
 
           <!-- Messages -->
-          <div ref="messagesEl" class="flex-1 overflow-y-auto px-5 py-4 space-y-3">
+          <div ref="messagesEl" class="flex-1 overflow-y-auto themed-scrollbar p-4 sm:p-5 space-y-4 bg-gray-50">
             <div v-if="messagesLoading" class="flex justify-center py-8">
               <div class="w-6 h-6 border-2 border-[#2F5597] border-t-transparent rounded-full animate-spin"></div>
             </div>
@@ -112,34 +125,34 @@
               <div
                 v-for="msg in messages"
                 :key="msg.id"
-                :class="['flex', msg.role === 'user' ? 'justify-end' : 'justify-start']"
+                class="flex"
+                :class="msg.role === 'user' ? 'justify-end' : 'justify-start'"
               >
-                <!-- Admin label on left side -->
-                <div v-if="msg.role === 'admin'" class="flex items-end gap-2 max-w-[80%]">
-                  <div class="w-7 h-7 rounded-full bg-[#2F5597] text-white flex items-center justify-center flex-shrink-0 text-xs font-bold">A</div>
-                  <div class="bg-gray-100 border border-gray-200 text-gray-900 rounded-2xl rounded-bl-none px-4 py-2.5 text-sm shadow-sm">
-                    <p class="text-[10px] font-semibold text-[#2F5597] mb-1">Admin</p>
-                    <p class="whitespace-pre-wrap">{{ msg.text }}</p>
-                    <p class="text-[10px] text-gray-400 mt-1">{{ formatTime(msg.created_at) }}</p>
-                  </div>
+                <div
+                  class="max-w-[90%] rounded-2xl px-4 py-3 shadow-sm"
+                  :class="msg.role === 'user'
+                    ? 'bg-[#2F5597] text-white rounded-br-md'
+                    : 'bg-white border border-gray-200 text-gray-900 rounded-bl-md'"
+                >
+                  <p class="text-sm whitespace-pre-wrap leading-relaxed">{{ msg.text }}</p>
+                  <p
+                    class="mt-2 text-[10px] uppercase tracking-wide"
+                    :class="msg.role === 'user' ? 'text-blue-100' : 'text-gray-500'"
+                  >
+                    <template v-if="msg.role === 'admin'">Admin · </template>
+                    <template v-else-if="msg.role !== 'user'">Mela AI · </template>
+                    {{ formatTime(msg.created_at) }}
+                  </p>
                 </div>
+              </div>
 
-                <!-- User bubble on right -->
-                <div v-else-if="msg.role === 'user'" class="flex items-end gap-2 max-w-[80%]">
-                  <div class="bg-[#2f5597] text-white rounded-2xl rounded-br-none px-4 py-2.5 text-sm shadow-sm">
-                    <p class="whitespace-pre-wrap">{{ msg.text }}</p>
-                    <p class="text-[10px] text-blue-200 mt-1">{{ formatTime(msg.created_at) }}</p>
-                  </div>
-                  <div class="w-7 h-7 rounded-full bg-gray-300 text-gray-500 flex items-center justify-center flex-shrink-0 text-xs font-bold">U</div>
-                </div>
-
-                <!-- Assistant/system bubble on left -->
-                <div v-else class="flex items-end gap-2 max-w-[80%]">
-                  <div class="w-7 h-7 rounded-full bg-amber-500/20 text-amber-600 flex items-center justify-center flex-shrink-0 text-xs font-bold">AI</div>
-                  <div class="bg-gray-100 border border-gray-200 text-gray-900 rounded-2xl rounded-bl-none px-4 py-2.5 text-sm shadow-sm">
-                    <p class="text-[10px] font-semibold text-gray-500 mb-1">Mela AI</p>
-                    <p class="whitespace-pre-wrap">{{ msg.text }}</p>
-                    <p class="text-[10px] text-gray-400 mt-1">{{ formatTime(msg.created_at) }}</p>
+              <!-- Typing indicator while sending -->
+              <div v-if="sending" class="flex justify-start">
+                <div class="bg-white border border-gray-200 rounded-2xl rounded-bl-md px-4 py-3">
+                  <div class="flex items-center gap-1">
+                    <span class="h-2 w-2 bg-[#2F5597] rounded-full animate-bounce [animation-delay:-0.2s]"></span>
+                    <span class="h-2 w-2 bg-[#2F5597] rounded-full animate-bounce [animation-delay:-0.1s]"></span>
+                    <span class="h-2 w-2 bg-[#2F5597] rounded-full animate-bounce"></span>
                   </div>
                 </div>
               </div>
@@ -147,25 +160,25 @@
           </div>
 
           <!-- Reply box (only for open/unresolved) -->
-          <div v-if="!activeSession.resolved_at" class="px-5 py-4 border-t border-gray-200 flex-shrink-0 bg-gray-50">
-            <div class="flex gap-3 items-end">
+          <form v-if="!activeSession.resolved_at" class="shrink-0 p-4 border-t border-gray-200 bg-white" @submit.prevent="sendReply">
+            <div class="flex gap-2 items-stretch">
               <textarea
                 v-model="replyText"
                 @keydown.enter.ctrl.prevent="sendReply"
                 placeholder="Type a reply… (Ctrl+Enter to send)"
                 rows="2"
-                class="flex-1 px-4 py-2.5 border border-gray-200 bg-gray-50 rounded-xl text-sm text-gray-900 placeholder-slate-500 resize-none focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
+                class="flex-1 resize-none rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 min-h-[92px] focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
               ></textarea>
               <button
-                @click="sendReply"
+                type="submit"
                 :disabled="!replyText.trim() || sending"
-                class="px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-[#2F5597] to-[#1e3a6b] hover:from-[#3a65ad] hover:to-[#244b80] disabled:opacity-50 transition"
+                class="px-4 rounded-xl text-white font-semibold transition self-stretch disabled:opacity-50 disabled:cursor-not-allowed"
+                style="background-color: #2F5597;"
               >
                 {{ sending ? 'Sending…' : 'Send' }}
               </button>
             </div>
-            <p class="text-[10px] text-gray-400 mt-1">Your reply is visible to the customer in their Mela AI chat.</p>
-          </div>
+          </form>
         </template>
       </div>
     </div>
@@ -297,3 +310,29 @@ onUnmounted(() => {
   if (pollTimer) clearInterval(pollTimer)
 })
 </script>
+
+<style scoped>
+.themed-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #7fa4d6 #e8f0fb;
+}
+
+.themed-scrollbar::-webkit-scrollbar {
+  inline-size: 10px;
+}
+
+.themed-scrollbar::-webkit-scrollbar-track {
+  background: linear-gradient(180deg, #edf3fb 0%, #e4edf9 100%);
+  border-radius: 999px;
+}
+
+.themed-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #8bb0de 0%, #5f8fcb 100%);
+  border-radius: 999px;
+  border: 2px solid #e8f0fb;
+}
+
+.themed-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #6f9ad1 0%, #3f78c7 100%);
+}
+</style>

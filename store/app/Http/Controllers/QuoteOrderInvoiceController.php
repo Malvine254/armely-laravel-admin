@@ -47,6 +47,92 @@ class QuoteOrderInvoiceController extends Controller
     }
 
     /**
+     * Pre-populate $productNameCache with one batch DB query so that subsequent
+     * resolveProductNameByLookupKey() calls never hit the database individually.
+     * TD SYNNEX API fallback still fires per-key only when the DB has no match.
+     *
+     * @param array $itemCollections  Array of arrays-of-items (e.g. from multiple invoices).
+     */
+    private function prefetchProductNamesForItems(array $itemCollections): void
+    {
+        $lookupKeys = [];
+
+        foreach ($itemCollections as $items) {
+            if (!is_array($items)) {
+                continue;
+            }
+            foreach ($items as $item) {
+                if (!is_array($item)) {
+                    continue;
+                }
+
+                $inlineName = $item['product_name']
+                    ?? $item['productName']
+                    ?? $item['name']
+                    ?? $item['partDescription']
+                    ?? $item['description']
+                    ?? null;
+
+                if (is_string($inlineName) && trim($inlineName) !== '') {
+                    continue;
+                }
+
+                $key = trim((string) (
+                    $item['product_id']
+                    ?? $item['productId']
+                    ?? $item['id']
+                    ?? $item['sku']
+                    ?? $item['partNumber']
+                    ?? $item['mfg_part_number']
+                    ?? $item['mfgPartNo']
+                    ?? ''
+                ));
+
+                if ($key !== '' && !array_key_exists($key, $this->productNameCache)) {
+                    $lookupKeys[] = $key;
+                }
+            }
+        }
+
+        $lookupKeys = array_values(array_unique($lookupKeys));
+        if (empty($lookupKeys)) {
+            return;
+        }
+
+        $numericKeys = array_values(array_filter($lookupKeys, 'ctype_digit'));
+
+        $products = Product::query()
+            ->select(['id', 'product_name', 'tdsynnex_product_id', 'tdsynnex_sku_no', 'mfg_part_no'])
+            ->where(function ($q) use ($lookupKeys, $numericKeys) {
+                $q->whereIn('tdsynnex_product_id', $lookupKeys)
+                  ->orWhereIn('tdsynnex_sku_no', $lookupKeys)
+                  ->orWhereIn('mfg_part_no', $lookupKeys);
+                if (!empty($numericKeys)) {
+                    $q->orWhereIn('id', array_map('intval', $numericKeys));
+                }
+            })
+            ->get();
+
+        foreach ($products as $product) {
+            $name = trim((string) ($product->product_name ?? ''));
+            if ($name === '') {
+                continue;
+            }
+            foreach ([
+                (string) ($product->tdsynnex_product_id ?? ''),
+                (string) ($product->tdsynnex_sku_no ?? ''),
+                (string) ($product->mfg_part_no ?? ''),
+                (string) $product->id,
+            ] as $key) {
+                $key = trim($key);
+                if ($key !== '' && !isset($this->productNameCache[$key])) {
+                    $this->productNameCache[$key] = $name;
+                }
+            }
+        }
+    }
+
+    /**
      * Ensure consistency for customer-facing pages:
      * order -> invoice.
      */
@@ -899,6 +985,11 @@ class QuoteOrderInvoiceController extends Controller
 
             // Map the response to ensure frontend field names match
             $mappedOrders = $orders->items();
+
+            $this->prefetchProductNamesForItems(
+                array_map(fn ($o) => is_array($o->items) ? $o->items : [], $mappedOrders)
+            );
+
             $mappedOrders = array_map(function ($order) {
                 $itemPreview = $this->buildOrderItemPreview($order);
                 $order->tracking_number = $this->normalizeTrackingNumber($order->tracking_info);
@@ -1417,6 +1508,10 @@ class QuoteOrderInvoiceController extends Controller
 
             $invoices = $query->paginate($pageSize, ['*'], 'page', $page);
             $invoiceRows = $invoices->items();
+
+            $this->prefetchProductNamesForItems(
+                array_map(fn ($inv) => is_array($inv->items) ? $inv->items : [], $invoiceRows)
+            );
 
             $invoiceRows = array_map(function ($invoice) {
                 $existingItems = is_array($invoice->items) ? $invoice->items : [];

@@ -116,7 +116,12 @@ export const useAuthStore = defineStore('auth', () => {
       return { ok: false, message: response.data?.message || 'Login failed' }
     } catch (error) {
       console.error('Login error:', error)
-      return { ok: false, message: error.response?.data?.message || error.message || 'Login failed' }
+      const errData = error.response?.data
+      return {
+        ok: false,
+        message: errData?.message || error.message || 'Login failed',
+        restrictionReason: errData?.data?.restriction_reason || null,
+      }
     }
   }
 
