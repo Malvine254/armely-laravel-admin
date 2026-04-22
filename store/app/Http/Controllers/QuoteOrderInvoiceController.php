@@ -749,12 +749,21 @@ class QuoteOrderInvoiceController extends Controller
                 $productId = (int) $item['product_id'];
                 $qty = max(1, (int) $item['quantity']);
 
-                $product = Product::query()->find($productId);
+                $product = Product::query()
+                    ->where(function ($query) use ($productId) {
+                        $query->where('id', $productId)
+                            ->orWhere('tdsynnex_product_id', $productId)
+                            ->orWhere('tdsynnex_sku_no', $productId);
+                    })
+                    ->orderByDesc('updated_at')
+                    ->orderByDesc('id')
+                    ->first();
 
                 $baseUnitPrice = 0.0;
                 if ($product) {
                     $baseUnitPrice = (float) (
-                        $product->customer_price
+                        $product->base_price
+                        ?? $product->customer_price
                         ?? $product->retail_price
                         ?? $product->price
                         ?? 0

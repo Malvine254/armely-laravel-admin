@@ -229,7 +229,7 @@ return [
         'timeout' => env('IMAGE_SCRAPING_TIMEOUT', 4),
         'connect_timeout' => env('IMAGE_SCRAPING_CONNECT_TIMEOUT', 2),
         'max_candidates' => env('IMAGE_SCRAPING_MAX_CANDIDATES', 3),
-        'user_agent' => env('IMAGE_SCRAPING_USER_AGENT', 'ArmelyImageBot/1.0 (+support@armely.com)'),
+        'user_agent' => env('IMAGE_SCRAPING_USER_AGENT', 'ArmelyImageBot/1.0 (+unfo@armely.com)'),
         'allowed_domains' => array_values(array_filter(array_map('trim', explode(',', (string) env(
             'IMAGE_SCRAPING_ALLOWED_DOMAINS',
             'hp.com,dell.com,lenovo.com,cisco.com,belkin.com,apc.com,fortinet.com,veeam.com,logitech.com,startech.com,netgear.com'

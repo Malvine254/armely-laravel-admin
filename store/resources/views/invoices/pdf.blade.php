@@ -365,7 +365,7 @@
 
         <!-- Footer -->
         <div style="margin-top: 50px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; font-size: 12px; color: #999;">
-            <p>Thank you for your business! | www.armely.com | support@armely.com</p>
+            <p>Thank you for your business! | www.armely.com | unfo@armely.com</p>
         </div>
     </div>
 </body>

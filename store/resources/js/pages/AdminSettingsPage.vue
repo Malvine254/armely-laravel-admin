@@ -1129,7 +1129,7 @@ const emailSettings = ref({
 
 const systemSettings = ref({
   company_name: 'Armely Store',
-  support_email: 'support@armely.com',
+  support_email: 'unfo@armely.com',
   currency: 'USD',
   currency_rate: 1,
   timezone: 'America/New_York',

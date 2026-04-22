@@ -14,7 +14,7 @@ class EnrichPriceAvailabilityImagesCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'tdsynnex:enrich-priceavailability-images {--chunk=1 : Number of products per batch} {--limit=0 : Max products to process (0 = all)} {--sync : Run inline and block until complete} {--descriptions : Backfill Icecat descriptions for products with missing or name-only descriptions} {--force-descriptions : Overwrite existing descriptions with fresh pulled descriptions} {--vendor=TD SYNNEX : Product vendor_id filter} {--search= : Product search filter (title, SKU, MPN, description, manufacturer)} {--manufacturer= : Manufacturer filter (from specifications.manufacturer)} {--manufacturer-id= : Manufacturer identifier filter (alias of manufacturer)} {--sku= : SKU/MPN filter, accepts CSV for multiple values} {--current-source= : Only refresh products whose current primary image source matches this value, for example bing-images} {--force-web-refresh : Include rows that already have images and prioritize web/title lookup}';
+    protected $signature = 'tdsynnex:enrich-priceavailability-images {--chunk=1 : Number of products per batch} {--limit=0 : Max products to process (0 = all)} {--sync : Run inline and block until complete} {--descriptions : Backfill Icecat descriptions for products with missing descriptions} {--bing-descriptions : Allow Bing web search snippets as a fallback when richer descriptions are unavailable} {--force-descriptions : Overwrite existing descriptions with fresh pulled descriptions} {--vendor=TD SYNNEX : Product vendor_id filter} {--search= : Product search filter (title, SKU, MPN, description, manufacturer)} {--manufacturer= : Manufacturer filter (from specifications.manufacturer)} {--manufacturer-id= : Manufacturer identifier filter (alias of manufacturer)} {--sku= : SKU/MPN filter, accepts CSV for multiple values} {--current-source= : Only refresh products whose current primary image source matches this value, for example bing-images} {--force-web-refresh : Include rows that already have images and prioritize web/title lookup}';
 
     /**
      * The console command description.
@@ -42,6 +42,7 @@ class EnrichPriceAvailabilityImagesCommand extends Command
             $currentSource = trim((string) $this->option('current-source'));
             $forceWebRefresh = (bool) $this->option('force-web-refresh');
             $forceDescriptions = (bool) $this->option('force-descriptions');
+            $bingDescriptions = (bool) $this->option('bing-descriptions');
 
             $filters = [
                 'vendor' => $vendor,
@@ -86,7 +87,7 @@ class EnrichPriceAvailabilityImagesCommand extends Command
                 if ($forceDescriptions) {
                     $this->info('Force-refreshing descriptions for all TD SYNNEX products...');
                 } else {
-                    $this->info('Backfilling Icecat descriptions for products missing descriptions...');
+                    $this->info('Backfilling descriptions for products missing descriptions...');
                 }
                 $result = $service->syncPriceAvailabilityDescriptionsFromDatabase(
                     $chunk,
@@ -97,7 +98,8 @@ class EnrichPriceAvailabilityImagesCommand extends Command
                         $status = $didUpdate ? '<fg=green>UPDATED</>' : '<fg=yellow>SKIPPED</>';
                         $this->line(sprintf('[%d] %s SKU:%s %s', $processed, $status, $sku, $name));
                     },
-                    $forceDescriptions
+                    $forceDescriptions,
+                    $bingDescriptions
                 );
 
                 if ((int) ($result['processed'] ?? 0) === 0) {

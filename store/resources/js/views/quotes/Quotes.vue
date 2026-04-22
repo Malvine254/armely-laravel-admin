@@ -38,7 +38,8 @@
       </div>
 
       <!-- Filter Bar -->
-      <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
+      <div class="sticky top-20 z-30 -mx-3 mb-8 px-3 sm:-mx-4 sm:px-4 lg:-mx-5 lg:px-5">
+        <div class="rounded-2xl border border-gray-100 bg-white/95 p-6 shadow-lg shadow-slate-200/60 backdrop-blur-sm">
         <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
           <div class="relative md:col-span-3">
             <label class="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">Filter by Status</label>
@@ -79,6 +80,7 @@
             </button>
           </div>
         </div>
+        </div>
       </div>
 
       <!-- Loading State -->
@@ -117,7 +119,7 @@
 
       <!-- Quotes Table -->
       <div v-else class="bg-white rounded-xl shadow-sm border overflow-hidden" style="border-color: #d9e6f7;">
-        <div class="px-4 sm:px-5 py-3 border-b flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3" style="border-color: #d9e6f7; background: #f9fcff;">
+        <div class="sticky z-20 px-4 sm:px-5 py-3 border-b flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3" style="top: 10.75rem; border-color: #d9e6f7; background: rgba(249, 252, 255, 0.96); backdrop-filter: blur(10px);">
           <p class="text-sm font-medium text-gray-700">
             {{ selectedQuoteIds.length }} selected
           </p>
@@ -167,7 +169,7 @@
 
         <div class="overflow-x-auto">
           <table class="min-w-full">
-            <thead>
+            <thead class="sticky z-10" style="top: 14.75rem;">
               <tr class="border-b" style="background: linear-gradient(90deg, #f7fbff, #edf4fc); border-color: #d9e6f7;">
                 <th class="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">
                   <input
@@ -208,10 +210,29 @@
                   >
                     {{ quote.quote_id }}
                   </button>
-                  <p class="mt-1 text-xs text-gray-500">
-                    {{ getQuoteItemCount(quote) }} item{{ getQuoteItemCount(quote) === 1 ? '' : 's' }}
-                    <span v-if="getQuoteItemPreview(quote)">- {{ getQuoteItemPreview(quote) }}</span>
-                  </p>
+                  <div class="mt-2">
+                    <p class="text-xs text-gray-500">
+                      {{ getQuoteItemCount(quote) }} item{{ getQuoteItemCount(quote) === 1 ? '' : 's' }}
+                    </p>
+                    <div v-if="getQuoteItemNames(quote).length" class="mt-2 space-y-1">
+                      <p
+                        v-for="(itemName, index) in getVisibleQuoteItemNames(quote)"
+                        :key="`${quote.quote_id}-item-${index}`"
+                        class="text-xs leading-5 text-gray-600"
+                      >
+                        {{ itemName }}
+                      </p>
+                      <button
+                        v-if="hasHiddenQuoteItems(quote)"
+                        type="button"
+                        @click="toggleQuoteItemsExpanded(quote)"
+                        class="inline-flex items-center text-xs font-semibold transition duration-200 hover:opacity-80"
+                        style="color: #2F5597;"
+                      >
+                        {{ isQuoteItemsExpanded(quote) ? 'Show less' : `Show all ${getQuoteItemCount(quote)} items` }}
+                      </button>
+                    </div>
+                  </div>
                   <div v-if="isCancelledFamilyRow(quote)" class="mt-1">
                     <span class="inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap bg-red-100 text-red-700">
                       Cancelled Group
@@ -503,6 +524,7 @@ export default {
     const ordersByQuoteId = ref({})
     const invoicesByOrderNumber = ref({})
     const productNameMap = ref({})
+    const expandedQuoteItems = ref({})
     const productLookupPromises = new Map()
     const nowTick = ref(Date.now())
     let countdownTimer = null
@@ -1317,18 +1339,39 @@ export default {
       return Array.isArray(quote?.items) ? quote.items.length : 0
     }
 
-    const getQuoteItemPreview = (quote) => {
+    const getQuoteItemNames = (quote) => {
       const items = Array.isArray(quote?.items) ? quote.items : []
-      if (!items.length) return ''
+      if (!items.length) return []
 
-      const names = items
+      return items
         .map((item, idx) => String(resolveQuoteItemName(item, idx)).trim())
         .filter(Boolean)
+    }
 
-      if (!names.length) return ''
-      if (names.length <= 2) return names.join(', ')
+    const isQuoteItemsExpanded = (quote) => {
+      const quoteId = normalizeQuoteId(quote?.quote_id)
+      if (!quoteId) return false
+      return !!expandedQuoteItems.value[quoteId]
+    }
 
-      return `${names[0]}, ${names[1]} +${names.length - 2} more`
+    const getVisibleQuoteItemNames = (quote) => {
+      const names = getQuoteItemNames(quote)
+      if (isQuoteItemsExpanded(quote)) return names
+      return names.slice(0, 2)
+    }
+
+    const hasHiddenQuoteItems = (quote) => {
+      return getQuoteItemNames(quote).length > 2
+    }
+
+    const toggleQuoteItemsExpanded = (quote) => {
+      const quoteId = normalizeQuoteId(quote?.quote_id)
+      if (!quoteId || !hasHiddenQuoteItems(quote)) return
+
+      expandedQuoteItems.value = {
+        ...expandedQuoteItems.value,
+        [quoteId]: !expandedQuoteItems.value[quoteId],
+      }
     }
 
     const reviseQuote = async (quote) => {
@@ -1417,6 +1460,7 @@ export default {
       sortBy.value = 'created_desc'
       currentPage.value = 1
       pageSize.value = 10
+      expandedQuoteItems.value = {}
       fetchQuotes()
     }
 
@@ -1506,7 +1550,11 @@ export default {
       canCancelQuote, 
       canReviseQuote,
       getQuoteItemCount,
-      getQuoteItemPreview,
+      getQuoteItemNames,
+      getVisibleQuoteItemNames,
+      hasHiddenQuoteItems,
+      isQuoteItemsExpanded,
+      toggleQuoteItemsExpanded,
       cancelQuote, 
       reviseQuote,
       reviseSelectedQuotes,

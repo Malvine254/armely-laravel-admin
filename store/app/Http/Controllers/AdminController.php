@@ -2834,7 +2834,7 @@ class AdminController extends Controller
                     ],
                     'system_settings' => [
                         'company_name' => (string) AppSetting::getValue('system.company_name', env('APP_NAME', 'Armely Store')),
-                        'support_email' => (string) AppSetting::getValue('system.support_email', env('SUPPORT_EMAIL', config('mail.from.address', 'support@armely.com'))),
+                        'support_email' => (string) AppSetting::getValue('system.support_email', env('SUPPORT_EMAIL', config('mail.from.address', 'unfo@armely.com'))),
                         'currency' => strtoupper((string) AppSetting::getValue('pricing.currency_code', env('APP_CURRENCY', 'USD'))),
                         'currency_rate' => AppSetting::getNumber('pricing.currency_rate', (float) env('APP_CURRENCY_RATE', 1)),
                         'timezone' => (string) AppSetting::getValue('system.timezone', env('APP_TIMEZONE', config('app.timezone', 'America/New_York'))),
@@ -3369,7 +3369,7 @@ class AdminController extends Controller
                 'message' => 'System settings updated successfully',
                 'data' => [
                     'company_name' => (string) AppSetting::getValue('system.company_name', 'Armely Store'),
-                    'support_email' => (string) AppSetting::getValue('system.support_email', config('mail.from.address', 'support@armely.com')),
+                    'support_email' => (string) AppSetting::getValue('system.support_email', config('mail.from.address', 'unfo@armely.com')),
                     'timezone' => (string) AppSetting::getValue('system.timezone', config('app.timezone', 'America/New_York')),
                     'maintenance_mode' => app()->isDownForMaintenance(),
                     'tax_rate_percent' => AppSetting::getNumber('pricing.tax_rate_percent', 0),

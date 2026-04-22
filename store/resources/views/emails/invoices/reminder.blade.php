@@ -36,6 +36,9 @@
             <p style="margin: 20px 0 0; color: #64748b; font-size: 12px;">
                 If payment has already been made, please ignore this reminder.
             </p>
+            <p style="margin: 8px 0 0; color: #64748b; font-size: 12px;">
+                For questions about this invoice, contact us at unfo@armely.com.
+            </p>
         </div>
     </div>
 </body>

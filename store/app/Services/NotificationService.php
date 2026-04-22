@@ -32,12 +32,22 @@ class NotificationService
                 ->where('status', 'active')
                 ->get();
 
+            $sentAdminEmails = [];
             foreach ($admins as $admin) {
+                $adminEmail = strtolower(trim((string) $admin->email));
+                if ($adminEmail === '' || isset($sentAdminEmails[$adminEmail])) {
+                    continue;
+                }
+
                 $this->mailer->sendQuoteCreatedAdminEmail($admin->email, $admin->name, $quote);
+                $sentAdminEmails[$adminEmail] = true;
             }
 
             if ($quote->user && !empty($quote->user->email)) {
-                $this->mailer->sendQuoteSubmittedCustomerEmail($quote);
+                $customerEmail = strtolower(trim((string) $quote->user->email));
+                if ($customerEmail !== '' && !isset($sentAdminEmails[$customerEmail])) {
+                    $this->mailer->sendQuoteSubmittedCustomerEmail($quote);
+                }
             }
 
             Log::info("Quote created notification sent for quote {$quote->quote_id}");
@@ -60,12 +70,22 @@ class NotificationService
                 ->where('status', 'active')
                 ->get();
 
+            $sentAdminEmails = [];
             foreach ($admins as $admin) {
+                $adminEmail = strtolower(trim((string) $admin->email));
+                if ($adminEmail === '' || isset($sentAdminEmails[$adminEmail])) {
+                    continue;
+                }
+
                 $this->mailer->sendQuoteRevisionAdminEmail($admin->email, $admin->name, $quote, $revisedFromQuoteId);
+                $sentAdminEmails[$adminEmail] = true;
             }
 
             if ($quote->user && !empty($quote->user->email)) {
-                $this->mailer->sendQuoteRevisionCustomerEmail($quote, $revisedFromQuoteId);
+                $customerEmail = strtolower(trim((string) $quote->user->email));
+                if ($customerEmail !== '' && !isset($sentAdminEmails[$customerEmail])) {
+                    $this->mailer->sendQuoteRevisionCustomerEmail($quote, $revisedFromQuoteId);
+                }
             }
 
             Log::info("Quote revision notification sent for quote {$quote->quote_id} (source {$revisedFromQuoteId})");

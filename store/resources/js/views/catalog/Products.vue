@@ -12,55 +12,57 @@
       </div>
 
       <!-- Search Bar -->
-      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
-        <div class="flex flex-col lg:flex-row gap-4">
-          <div class="flex-1">
-            <div class="relative">
-              <svg class="absolute left-3 top-3 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-              </svg>
-              <input
-                v-model="searchQuery"
-                @input="handleSearchInput"
-                @focus="handleSearchFocus"
-                @blur="handleSearchBlur"
-                @keydown.down.prevent="highlightNextSuggestion"
-                @keydown.up.prevent="highlightPreviousSuggestion"
-                @keydown.esc="dismissSearchSuggestions"
-                @keydown.enter.prevent="handleSearchEnter"
-                type="text"
-                placeholder="Search products..."
-                class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent transition"
-              >
-
-              <div
-                v-if="showSearchSuggestions && searchSuggestionItems.length > 0"
-                class="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden"
-              >
-                <button
-                  v-for="(item, index) in searchSuggestionItems"
-                  :key="`${item.term}-${item.source}-${index}`"
-                  type="button"
-                  class="w-full text-left px-3 py-2.5 border-b border-gray-100 last:border-b-0 transition flex items-center justify-between"
-                  :class="index === activeSuggestionIndex ? 'bg-blue-50' : 'hover:bg-gray-50'"
-                  @mousedown.prevent="applySearchSuggestion(item.term)"
+      <div class="sticky top-20 z-40 -mx-3 mb-8 px-3 sm:-mx-4 sm:px-4 lg:-mx-5 lg:px-5">
+        <div class="rounded-2xl border border-slate-200/80 bg-white/95 p-4 shadow-lg shadow-slate-200/60 backdrop-blur-sm sm:p-5">
+          <div class="flex flex-col lg:flex-row gap-4">
+            <div class="flex-1">
+              <div class="relative">
+                <svg class="absolute left-3 top-3 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+                <input
+                  v-model="searchQuery"
+                  @input="handleSearchInput"
+                  @focus="handleSearchFocus"
+                  @blur="handleSearchBlur"
+                  @keydown.down.prevent="highlightNextSuggestion"
+                  @keydown.up.prevent="highlightPreviousSuggestion"
+                  @keydown.esc="dismissSearchSuggestions"
+                  @keydown.enter.prevent="handleSearchEnter"
+                  type="text"
+                  placeholder="Search products..."
+                  class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent transition"
                 >
-                  <span class="text-sm text-gray-800 truncate pr-3">{{ item.term }}</span>
-                  <span class="text-[10px] uppercase tracking-wide text-gray-500">{{ item.source }}</span>
-                </button>
+
+                <div
+                  v-if="showSearchSuggestions && searchSuggestionItems.length > 0"
+                  class="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden"
+                >
+                  <button
+                    v-for="(item, index) in searchSuggestionItems"
+                    :key="`${item.term}-${item.source}-${index}`"
+                    type="button"
+                    class="w-full text-left px-3 py-2.5 border-b border-gray-100 last:border-b-0 transition flex items-center justify-between"
+                    :class="index === activeSuggestionIndex ? 'bg-blue-50' : 'hover:bg-gray-50'"
+                    @mousedown.prevent="applySearchSuggestion(item.term)"
+                  >
+                    <span class="text-sm text-gray-800 truncate pr-3">{{ item.term }}</span>
+                    <span class="text-[10px] uppercase tracking-wide text-gray-500">{{ item.source }}</span>
+                  </button>
+                </div>
               </div>
             </div>
+            <button
+              v-if="searchQuery"
+              @click="clearSearch"
+              class="px-6 py-3 bg-gray-100 text-gray-700 font-semibold rounded-lg border border-gray-300 hover:bg-gray-200 transition"
+            >
+              Clear Search
+            </button>
+            <button @click="performSearch" class="px-6 py-3 text-white font-semibold rounded-lg transition" style="background-color: #2F5597;" @mouseenter="$event.target.style.backgroundColor='#1f4788'" @mouseleave="$event.target.style.backgroundColor='#2F5597'">
+              Search
+            </button>
           </div>
-          <button
-            v-if="searchQuery"
-            @click="clearSearch"
-            class="px-6 py-3 bg-gray-100 text-gray-700 font-semibold rounded-lg border border-gray-300 hover:bg-gray-200 transition"
-          >
-            Clear Search
-          </button>
-          <button @click="performSearch" class="px-6 py-3 text-white font-semibold rounded-lg transition" style="background-color: #2F5597;" @mouseenter="$event.target.style.backgroundColor='#1f4788'" @mouseleave="$event.target.style.backgroundColor='#2F5597'">
-            Search
-          </button>
         </div>
       </div>
 

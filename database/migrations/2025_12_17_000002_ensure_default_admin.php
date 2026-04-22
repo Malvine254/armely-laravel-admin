@@ -14,7 +14,7 @@ return new class extends Migration
     {
         // Check if we need to migrate from old admin1 system
         // Look for admins table in legacy system (if it exists)
-        $defaultAdminEmail = env('ADMIN_EMAIL', 'support@armely.com');
+        $defaultAdminEmail = env('ADMIN_EMAIL', 'unfo@armely.com');
         
         if (Schema::hasTable('admin') && DB::table('admin')->count() === 0) {
             // Check for legacy admin credentials in admin1
