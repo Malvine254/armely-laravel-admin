@@ -30,11 +30,14 @@
                   loading="eager"
                   @error="selectedImage = ''"
                 />
-                <div v-else class="text-center text-gray-300">
-                  <svg class="w-20 h-20 mx-auto" fill="none" stroke="currentColor" stroke-width="1" viewBox="0 0 24 24">
-                    <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                  </svg>
-                  <p class="text-xs mt-2">No image available</p>
+                <div v-else class="text-center flex flex-col items-center justify-center gap-3">
+                  <div class="w-24 h-24 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center">
+                    <span class="text-3xl font-bold text-slate-400 select-none">{{ (product.vendorName || product.manufacturer || 'P').charAt(0).toUpperCase() }}</span>
+                  </div>
+                  <div>
+                    <p class="text-sm font-semibold text-slate-500">{{ product.vendorName || product.manufacturer || 'Product' }}</p>
+                    <p class="text-xs text-slate-400 mt-0.5">Image not available</p>
+                  </div>
                 </div>
               </div>
 

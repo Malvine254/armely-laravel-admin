@@ -14,3 +14,14 @@
 :root {
     --armely-store-build: '2026-03-23';
 }
+
+/* Skeleton shimmer for image loading */
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+.skeleton-shimmer {
+  background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s infinite linear;
+}
