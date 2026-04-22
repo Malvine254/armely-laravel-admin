@@ -456,7 +456,7 @@ const clearAllFilters = () => {
     priceMin: 0,
     priceMax: 10000,
     partNumber: '',
-    productType: 'hardware',
+    productType: '',
     vendors: [],
     categories: [],
     lifecycleStatuses: [],

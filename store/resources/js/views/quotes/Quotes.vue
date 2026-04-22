@@ -119,7 +119,7 @@
 
       <!-- Quotes Table -->
       <div v-else class="bg-white rounded-xl shadow-sm border overflow-hidden" style="border-color: #d9e6f7;">
-        <div class="sticky z-20 px-4 sm:px-5 py-3 border-b flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3" style="top: 10.75rem; border-color: #d9e6f7; background: rgba(249, 252, 255, 0.96); backdrop-filter: blur(10px);">
+        <div ref="bulkActionsBarRef" class="px-4 sm:px-5 py-3 border-b flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3" style="border-color: #d9e6f7; background: #f9fcff;">
           <p class="text-sm font-medium text-gray-700">
             {{ selectedQuoteIds.length }} selected
           </p>
@@ -169,7 +169,7 @@
 
         <div class="overflow-x-auto">
           <table class="min-w-full">
-            <thead class="sticky z-10" style="top: 14.75rem;">
+            <thead>
               <tr class="border-b" style="background: linear-gradient(90deg, #f7fbff, #edf4fc); border-color: #d9e6f7;">
                 <th class="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">
                   <input
@@ -380,6 +380,61 @@
       </div>
     </div>
 
+    <div
+      v-if="showFloatingBulkActions"
+      class="fixed inset-x-4 bottom-4 z-[9998] flex justify-center"
+    >
+      <div class="w-full max-w-5xl rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-300/40">
+        <div class="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <p class="text-sm font-semibold text-gray-800">
+            {{ selectedQuoteIds.length }} selected
+          </p>
+          <div class="flex flex-wrap items-center gap-2">
+            <button
+              @click="reviseSelectedQuotes"
+              :disabled="selectedQuoteIds.length !== 1 || hasCancelledSelectedQuote || !!processingQuoteId"
+              class="px-3 py-1.5 text-xs rounded-md font-semibold transition duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+              style="color: #2F5597; border: 1px solid #2F5597;"
+              @mouseenter="$event.target.style.backgroundColor='#edf3fb'"
+              @mouseleave="$event.target.style.backgroundColor='transparent'"
+            >
+              {{ hasCancelledSelectedQuote ? 'Cancelled Not Revisable' : (selectedQuoteIds.length > 1 ? 'Select 1 Quote' : 'Revise Selected') }}
+            </button>
+            <button
+              @click="downloadSelectedPdfs"
+              :disabled="selectedQuoteIds.length === 0"
+              class="px-3 py-1.5 text-xs rounded-md font-semibold transition duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+              style="color: #2F5597; border: 1px solid #2F5597;"
+              @mouseenter="$event.target.style.backgroundColor='#edf3fb'"
+              @mouseleave="$event.target.style.backgroundColor='transparent'"
+            >
+              Download Selected PDFs
+            </button>
+            <button
+              @click="cancelSelectedQuotes"
+              :disabled="selectedCancellableQuotes.length === 0"
+              class="px-3 py-1.5 text-xs rounded-md font-semibold transition duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+              style="color: #e74c3c; border: 1px solid #e74c3c;"
+              @mouseenter="$event.target.style.backgroundColor='#fadbd8'"
+              @mouseleave="$event.target.style.backgroundColor='transparent'"
+            >
+              Cancel Selected
+            </button>
+            <button
+              @click="clearSelection"
+              :disabled="selectedQuoteIds.length === 0"
+              class="px-3 py-1.5 text-xs rounded-md font-semibold transition duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+              style="color: #6b7280; border: 1px solid #d1d5db;"
+              @mouseenter="$event.target.style.backgroundColor='#f3f4f6'"
+              @mouseleave="$event.target.style.backgroundColor='transparent'"
+            >
+              Clear Selection
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Quote Detail Modal -->
     <div v-if="selectedQuote" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[9999]" @click="closeSelectedQuoteModal">
       <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" @click.stop>
@@ -493,7 +548,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/authStore'
 import { useToastStore } from '../../stores/toastStore'
@@ -525,6 +580,8 @@ export default {
     const invoicesByOrderNumber = ref({})
     const productNameMap = ref({})
     const expandedQuoteItems = ref({})
+    const bulkActionsBarRef = ref(null)
+    const isBulkActionsBarHidden = ref(false)
     const productLookupPromises = new Map()
     const nowTick = ref(Date.now())
     let countdownTimer = null
@@ -759,10 +816,24 @@ export default {
       return selectedQuotes.value.some((quote) => String(quote?.status || '').toLowerCase() === 'cancelled')
     })
 
+    const showFloatingBulkActions = computed(() => {
+      return selectedQuoteIds.value.length > 0 && isBulkActionsBarHidden.value
+    })
+
     const allOnPageSelected = computed(() => {
       if (!paginatedQuotes.value.length) return false
       return paginatedQuotes.value.every((quote) => selectedQuoteIds.value.includes(quote.quote_id))
     })
+
+    const updateBulkActionVisibility = () => {
+      if (!bulkActionsBarRef.value) {
+        isBulkActionsBarHidden.value = false
+        return
+      }
+
+      const rect = bulkActionsBarRef.value.getBoundingClientRect()
+      isBulkActionsBarHidden.value = rect.bottom < 0 || rect.top < 0
+    }
 
     const getQuoteChildren = (quote) => {
       const quoteId = normalizeQuoteId(quote?.quote_id)
@@ -1130,25 +1201,25 @@ export default {
     const viewLinkedOrder = (quote) => {
       const order = getLinkedOrder(quote)
       if (!order) {
-        toastStore.addToast('No linked order found for this quote yet.', 'warning')
+        toastStore.addToast('No linked order found for this quote yet.', 'warning', 3000, { category: 'orders' })
         return
       }
 
       searchQuery.value = order.order_number
       selectedStatus.value = ''
       selectedQuote.value = null
-      toastStore.addToast(`Showing quote linked to order ${order.order_number}`, 'info')
+      toastStore.addToast(`Showing quote linked to order ${order.order_number}`, 'info', 3000, { category: 'orders' })
     }
 
     const viewLinkedInvoice = async (quote) => {
       if (isQuoteLockedForPayment(quote)) {
-        toastStore.addToast('Quote has expired for payment. Re-open quote to submit for approval again.', 'warning')
+        toastStore.addToast('Quote has expired for payment. Re-open quote to submit for approval again.', 'warning', 3000, { category: 'quotes' })
         return
       }
 
       const invoice = getLinkedInvoice(quote)
       if (!invoice) {
-        toastStore.addToast('No invoice available yet for this quote.', 'warning')
+        toastStore.addToast('No invoice available yet for this quote.', 'warning', 3000, { category: 'invoices' })
         return
       }
 
@@ -1161,7 +1232,7 @@ export default {
           from: 'quotes',
         },
       })
-      toastStore.addToast(`Invoice ${invoice.invoice_number} is ready for payment`, 'info')
+      toastStore.addToast(`Invoice ${invoice.invoice_number} is ready for payment`, 'info', 3000, { category: 'invoices' })
     }
 
     const toggleQuoteSelection = (quoteId, checked) => {
@@ -1192,7 +1263,7 @@ export default {
 
     const downloadSelectedPdfs = async () => {
       if (!selectedQuotes.value.length) {
-        toastStore.addToast('No quotes selected', 'warning')
+        toastStore.addToast('No quotes selected', 'warning', 3000, { category: 'quotes' })
         return
       }
 
@@ -1201,12 +1272,12 @@ export default {
         await downloadQuotePdf(quote)
       }
 
-      toastStore.addToast(`Downloaded ${selectedQuotes.value.length} quote PDF${selectedQuotes.value.length > 1 ? 's' : ''}`, 'success')
+      toastStore.addToast(`Downloaded ${selectedQuotes.value.length} quote PDF${selectedQuotes.value.length > 1 ? 's' : ''}`, 'success', 3000, { category: 'quotes' })
     }
 
     const cancelSelectedQuotes = async () => {
       if (!selectedCancellableQuotes.value.length) {
-        toastStore.addToast('No cancellable quotes selected', 'warning')
+        toastStore.addToast('No cancellable quotes selected', 'warning', 3000, { category: 'quotes' })
         return
       }
 
@@ -1241,7 +1312,7 @@ export default {
       }
 
       if (successCount > 0) {
-        toastStore.addToast(`Cancelled ${successCount} quote${successCount > 1 ? 's' : ''}`, 'success')
+        toastStore.addToast(`Cancelled ${successCount} quote${successCount > 1 ? 's' : ''}`, 'success', 3000, { category: 'quotes' })
         await fetchQuotes()
       } else {
         toastStore.addToast('Failed to cancel selected quotes', 'error')
@@ -1252,18 +1323,18 @@ export default {
 
     const reviseSelectedQuotes = async () => {
       if (!selectedQuotes.value.length) {
-        toastStore.addToast('No quote selected for revision', 'warning')
+        toastStore.addToast('No quote selected for revision', 'warning', 3000, { category: 'quotes' })
         return
       }
 
       if (selectedQuotes.value.length > 1) {
-        toastStore.addToast('Select only one quote to revise', 'warning')
+        toastStore.addToast('Select only one quote to revise', 'warning', 3000, { category: 'quotes' })
         return
       }
 
       const quote = selectedQuotes.value[0]
       if (!canReviseQuote(quote)) {
-        toastStore.addToast('Cancelled quotes cannot be revised', 'warning')
+        toastStore.addToast('Cancelled quotes cannot be revised', 'warning', 3000, { category: 'quotes' })
         return
       }
 
@@ -1295,7 +1366,7 @@ export default {
         })
 
         if (response.data?.success) {
-          toastStore.addToast('Quote cancelled successfully', 'success')
+          toastStore.addToast('Quote cancelled successfully', 'success', 3000, { category: 'quotes' })
           if (selectedQuote.value?.quote_id === quote.quote_id) {
             selectedQuote.value = response.data.data
           }
@@ -1382,9 +1453,9 @@ export default {
 
       if (!canReviseQuote(quote)) {
         if (String(quote.status || '').toLowerCase() === 'cancelled') {
-          toastStore.addToast('Cancelled quotes cannot be revised. Create a new quote from products instead.', 'warning')
+          toastStore.addToast('Cancelled quotes cannot be revised. Create a new quote from products instead.', 'warning', 3000, { category: 'quotes' })
         } else {
-          toastStore.addToast('This quote cannot be revised.', 'warning')
+          toastStore.addToast('This quote cannot be revised.', 'warning', 3000, { category: 'quotes' })
         }
         return
       }
@@ -1396,7 +1467,7 @@ export default {
 
       const quoteItems = extractQuoteItems(quote)
       if (!quoteItems.length) {
-        toastStore.addToast('This quote has no revisable items', 'warning')
+        toastStore.addToast('This quote has no revisable items', 'warning', 3000, { category: 'quotes' })
         return
       }
 
@@ -1427,7 +1498,7 @@ export default {
         cartStore.replaceCartItems(revisedItems)
         cartStore.setRevisionSource(quote.quote_id)
         selectedQuote.value = null
-        toastStore.addToast(`Quote ${quote.quote_id} loaded for revision`, 'success')
+        toastStore.addToast(`Quote ${quote.quote_id} loaded for revision`, 'success', 3000, { category: 'quotes' })
         router.push({ name: 'cart' })
       } catch (reviseError) {
         console.error('Error preparing quote revision:', reviseError)
@@ -1491,13 +1562,24 @@ export default {
       }
     })
 
+    watch([selectedQuoteIds, currentPage, pageSize, filteredQuotes], async () => {
+      await nextTick()
+      updateBulkActionVisibility()
+    }, { deep: true })
+
     onMounted(() => {
       countdownTimer = window.setInterval(() => {
         nowTick.value = Date.now()
       }, 1000)
 
+      window.addEventListener('scroll', updateBulkActionVisibility, { passive: true })
+      window.addEventListener('resize', updateBulkActionVisibility)
+
       loadPricingSettings()
       fetchQuotes()
+      nextTick(() => {
+        updateBulkActionVisibility()
+      })
     })
 
     onUnmounted(() => {
@@ -1505,6 +1587,9 @@ export default {
         window.clearInterval(countdownTimer)
         countdownTimer = null
       }
+
+      window.removeEventListener('scroll', updateBulkActionVisibility)
+      window.removeEventListener('resize', updateBulkActionVisibility)
     })
 
     return { 
@@ -1530,6 +1615,8 @@ export default {
       visiblePageNumbers,
       selectedCancellableQuotes,
       hasCancelledSelectedQuote,
+      showFloatingBulkActions,
+      bulkActionsBarRef,
       allOnPageSelected,
       fetchQuotes, 
       formatDate, 

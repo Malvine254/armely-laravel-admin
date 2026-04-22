@@ -439,6 +439,11 @@ import { useAuthStore } from '../../stores/authStore'
 import { useToastStore } from '../../stores/toastStore'
 import { API_BASE_URL } from '../../services/runtimeConfig'
 import Navbar from '../../components/Navbar.vue'
+import {
+  DEFAULT_NOTIFICATION_PREFERENCES,
+  loadNotificationPreferences,
+  saveNotificationPreferences,
+} from '../../services/notificationPreferences'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -480,7 +485,7 @@ const editForm = ref({
     city: '',
     state: '',
     postal_code: '',
-    country: 'US'
+    country: ''
   }
 })
 
@@ -537,11 +542,6 @@ const stripeCardElementClass = computed(() => {
 
   return 'border border-gray-300 hover:border-gray-400'
 })
-
-const getNotificationStorageKey = () => {
-  const userId = authStore.user?.id
-  return userId ? `notification_preferences_${userId}` : 'notification_preferences'
-}
 
 const userName = computed(() => authStore.user?.name || '')
 const userEmail = computed(() => authStore.user?.email || '')
@@ -729,15 +729,15 @@ const handleEditProfile = () => {
   editForm.value.phone = authStore.user?.phone || ''
   editForm.value.company_name = typeof company === 'object' ? (company?.name || '') : ''
   editForm.value.shipping = {
-    label: shipping.label || 'Default Shipping',
-    contact_name: shipping.contact_name || authStore.user?.name || '',
-    contact_phone: shipping.contact_phone || authStore.user?.phone || '',
+    label: shipping.label || '',
+    contact_name: shipping.contact_name || '',
+    contact_phone: shipping.contact_phone || '',
     street_1: shipping.street_1 || '',
     street_2: shipping.street_2 || '',
     city: shipping.city || '',
     state: shipping.state || '',
     postal_code: shipping.postal_code || '',
-    country: shipping.country || 'US'
+    country: shipping.country || ''
   }
   showEditProfileModal.value = true
 }
@@ -764,7 +764,7 @@ const submitEditProfile = async () => {
       city: editForm.value.shipping.city,
       state: editForm.value.shipping.state,
       postal_code: editForm.value.shipping.postal_code,
-      country: (editForm.value.shipping.country || 'US').toUpperCase()
+      country: String(editForm.value.shipping.country || '').trim().toUpperCase()
     }
     
     // Append shipping address
@@ -873,32 +873,16 @@ const submitChangePassword = async () => {
 }
 
 const handleManageNotifications = () => {
-  const saved = localStorage.getItem(getNotificationStorageKey())
-  if (saved) {
-    try {
-      const parsed = JSON.parse(saved)
-      notificationSettings.value = {
-        email: parsed.email !== false,
-        quotes: parsed.quotes !== false,
-        orders: parsed.orders !== false,
-        invoices: parsed.invoices !== false,
-      }
-    } catch (error) {
-      console.warn('Invalid notification preferences in localStorage, resetting to defaults.', error)
-      notificationSettings.value = {
-        email: true,
-        quotes: true,
-        orders: true,
-        invoices: true,
-      }
-    }
+  notificationSettings.value = {
+    ...DEFAULT_NOTIFICATION_PREFERENCES,
+    ...loadNotificationPreferences(authStore.user?.id),
   }
 
   showNotificationsModal.value = true
 }
 
 const saveNotificationSettings = () => {
-  localStorage.setItem(getNotificationStorageKey(), JSON.stringify(notificationSettings.value))
+  notificationSettings.value = saveNotificationPreferences(notificationSettings.value, authStore.user?.id)
   toastStore.addToast('Notification preferences saved!', 'success')
   showNotificationsModal.value = false
 }
@@ -1249,6 +1233,11 @@ onMounted(() => {
     toastStore.addToast('Please log in to access your account', 'error')
     router.push({ name: 'login' })
     return
+  }
+
+  notificationSettings.value = {
+    ...DEFAULT_NOTIFICATION_PREFERENCES,
+    ...loadNotificationPreferences(authStore.user?.id),
   }
   
   fetchActivities()

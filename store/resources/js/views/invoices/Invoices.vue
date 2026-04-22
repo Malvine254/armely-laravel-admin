@@ -779,7 +779,7 @@ export default {
 
     const startPayment = async (invoice) => {
       if (!canPayInvoice(invoice)) {
-        toastStore.addToast('This invoice is already fully paid.', 'warning')
+        toastStore.addToast('This invoice is already fully paid.', 'warning', 3000, { category: 'invoices' })
         return
       }
 
@@ -836,7 +836,7 @@ export default {
       })
 
       if (payableNumbers.length < 2) {
-        toastStore.addToast('Select at least 2 unpaid invoices to combine.', 'warning')
+        toastStore.addToast('Select at least 2 unpaid invoices to combine.', 'warning', 3000, { category: 'invoices' })
         return
       }
 
@@ -857,7 +857,7 @@ export default {
           product_count: Number(response.data?.data?.product_count || 0),
         }
 
-        toastStore.addToast(response.data?.message || 'Invoices combined successfully', 'success')
+        toastStore.addToast(response.data?.message || 'Invoices combined successfully', 'success', 3000, { category: 'invoices' })
         await fetchInvoices()
         clearSelection()
       } catch (err) {
@@ -873,7 +873,7 @@ export default {
     const downloadSelectedPdfs = async () => {
       const selectedRows = invoices.value.filter((inv) => selectedInvoices.value.includes(inv.invoice_number))
       if (selectedRows.length === 0) {
-        toastStore.addToast('Select at least one invoice first.', 'warning')
+        toastStore.addToast('Select at least one invoice first.', 'warning', 3000, { category: 'invoices' })
         return
       }
 
@@ -889,7 +889,7 @@ export default {
       })
 
       if (payableNumbers.length === 0) {
-        toastStore.addToast('Select at least one payable invoice.', 'warning')
+        toastStore.addToast('Select at least one payable invoice.', 'warning', 3000, { category: 'invoices' })
         return
       }
 
@@ -1141,9 +1141,9 @@ export default {
       }
 
       if (selectable.length > 0) {
-        toastStore.addToast(`Selected ${selectable.length} invoice${selectable.length > 1 ? 's' : ''} for payment`, 'info')
+        toastStore.addToast(`Selected ${selectable.length} invoice${selectable.length > 1 ? 's' : ''} for payment`, 'info', 3000, { category: 'invoices' })
       } else if (!target) {
-        toastStore.addToast('Selected invoice was not found. Try refreshing invoices.', 'warning')
+        toastStore.addToast('Selected invoice was not found. Try refreshing invoices.', 'warning', 3000, { category: 'invoices' })
       }
 
       await clearSelectionQueryParams()
@@ -1213,10 +1213,10 @@ export default {
       const suffix = suffixParts.length > 0 ? ` (${suffixParts.join(' | ')})` : ''
 
       if (paymentStatus === 'success') {
-        toastStore.addToast(`Payment completed successfully${suffix}.`, 'success')
+        toastStore.addToast(`Payment completed successfully${suffix}.`, 'success', 3000, { category: 'invoices' })
       }
       if (paymentStatus === 'cancel') {
-        toastStore.addToast(`Payment was canceled${suffix}.`, 'warning')
+        toastStore.addToast(`Payment was canceled${suffix}.`, 'warning', 3000, { category: 'invoices' })
       }
 
       if (paymentStatus) {
