@@ -3114,15 +3114,21 @@ class AdminController extends Controller
             }
 
             if ($action === 'enrich_images') {
-                $message = 'Image enrichment queued in background (chunk=1, limit=100) with live per-item output.';
+                $message = 'Image enrichment started — fetching missing images from TD SYNNEX API (all products, chunk=50)…';
                 $stateService->start($action, (int) $user->id, $message);
-                EnrichPriceAvailabilityImagesJob::dispatch(1, 100, true);
+                $job = new EnrichPriceAvailabilityImagesJob(50, 0, true);
+                $job->handle(app(TDSynnexService::class), $stateService);
+                $finalState = $stateService->get();
+                $message = $finalState['message'] ?? 'Image enrichment complete.';
             }
 
             if ($action === 'download_images') {
-                $message = 'Image download queued in background (chunk=1, limit=100) with live per-item output.';
+                $message = 'Image download started — downloading all external URLs to local disk (chunk=100)…';
                 $stateService->start($action, (int) $user->id, $message);
-                DownloadProductImagesJob::dispatch(100, 1);
+                $job = new DownloadProductImagesJob(0, 100);
+                $job->handle($stateService);
+                $finalState = $stateService->get();
+                $message = $finalState['message'] ?? 'Image download complete.';
             }
 
             if ($action === 'reindex_products') {
