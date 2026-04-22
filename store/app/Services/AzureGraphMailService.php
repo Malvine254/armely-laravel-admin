@@ -315,35 +315,40 @@ class AzureGraphMailService
             return false;
         }
 
-        $customer  = $quote->user;
-        $safeName  = e($customer->name ?? 'Customer');
-        $quoteId   = e($quote->quote_id);
-        $amount    = number_format((float) ($quote->total_amount ?? 0), 2);
-        $items     = count($quote->items ?? []);
+        $customer   = $quote->user;
+        $safeName   = e($customer->name ?? 'Customer');
+        $quoteId    = e($quote->quote_id);
+        $amount     = number_format((float)($quote->total_amount ?? 0), 2);
+        $itemCount  = count($quote->items ?? []);
         $validUntil = $quote->expires_at?->format('M d, Y') ?? 'N/A';
-        $appUrl    = config('app.url');
+        $appUrl     = config('app.url');
 
-        $html = "
-            <div style='font-family:Segoe UI,Arial,sans-serif;line-height:1.5;color:#1f2937'>
-                <h2 style='margin:0 0 12px;color:#2F5597'>Quote Approved</h2>
-                <p>Hello {$safeName},</p>
-                <p>Good news! Your quote has been approved and is ready to be converted into an order.</p>
-                <div style='border:1px solid #d9e6f7;background:#edf3fb;border-radius:8px;padding:14px;margin:16px 0'>
-                    <p style='margin:0 0 6px'><strong>Quote ID:</strong> {$quoteId}</p>
-                    <p style='margin:0 0 6px'><strong>Total Amount:</strong> \${$amount}</p>
-                    <p style='margin:0 0 6px'><strong>Items:</strong> {$items}</p>
-                    <p style='margin:0'><strong>Valid Until:</strong> {$validUntil}</p>
-                </div>
-                <p style='margin:24px 0'>
-                    <a href='{$appUrl}/quotes/{$quote->id}' style='background:#2F5597;color:#ffffff;padding:10px 16px;border-radius:6px;text-decoration:none;display:inline-block'>
-                        View Quote
-                    </a>
-                </p>
-                <p>Ready to place an order? Simply log in to your account and convert this quote to an order.</p>
-            </div>
-        ";
+        $summaryHtml = $this->buildQuoteSummaryCard([
+            ['label' => 'Quote ID',     'value' => $quoteId],
+            ['label' => 'Total Amount', 'value' => '$' . $amount],
+            ['label' => 'Items',        'value' => (string) $itemCount],
+            ['label' => 'Valid Until',  'value' => $validUntil],
+        ]);
+        $itemsHtml = $this->buildQuoteItemsTable($quote->items, $quote->total_amount);
 
-        $text = "Hello {$safeName},\n\nYour quote {$quoteId} has been approved. Total: \${$amount}.\n{$appUrl}/quotes/{$quote->id}";
+        $html = $this->buildModernNotificationEmail(
+            'Quote Approved',
+            "
+                <p style='margin:0 0 14px;font-size:16px;color:#1f2937'>Hello {$safeName},</p>
+                <p style='margin:0 0 18px;color:#4b5563'>Good news! Your quote has been approved and is ready to be converted into an order.</p>
+                {$summaryHtml}
+                {$itemsHtml}
+                <p style='margin:18px 0 0;color:#4b5563'>Ready to place an order? Log in and convert this quote to an order directly from your account.</p>
+            ",
+            'View Quote',
+            $appUrl . '/quotes/' . $quote->id,
+            'This quote is valid until ' . $validUntil . '. Please place your order before it expires.',
+            '#15803d',
+            'Approved',
+            '#15803d'
+        );
+
+        $text = "Hello {$safeName},\n\nYour quote {$quoteId} has been approved. Total: \${$amount}.\nValid until: {$validUntil}\n{$appUrl}/quotes/{$quote->id}";
 
         return $this->sendEmail($customer->email, "Your Quote Has Been Approved: {$quoteId}", $html, $text);
     }
@@ -354,29 +359,32 @@ class AzureGraphMailService
             return false;
         }
 
-        $customer  = $quote->user;
-        $safeName  = e($customer->name ?? 'Customer');
-        $quoteId   = e($quote->quote_id);
+        $customer   = $quote->user;
+        $safeName   = e($customer->name ?? 'Customer');
+        $quoteId    = e($quote->quote_id);
         $safeReason = $reason ? e($reason) : 'No reason provided.';
-        $appUrl    = config('app.url');
+        $appUrl     = config('app.url');
 
-        $html = "
-            <div style='font-family:Segoe UI,Arial,sans-serif;line-height:1.5;color:#1f2937'>
-                <h2 style='margin:0 0 12px;color:#2F5597'>Quote Update</h2>
-                <p>Hello {$safeName},</p>
-                <p>We are sorry to inform you that your quote has not been approved at this time.</p>
-                <div style='border:1px solid #d9e6f7;background:#edf3fb;border-radius:8px;padding:14px;margin:16px 0'>
-                    <p style='margin:0 0 6px'><strong>Quote ID:</strong> {$quoteId}</p>
-                    <p style='margin:0'><strong>Reason:</strong> {$safeReason}</p>
-                </div>
-                <p>Please feel free to submit a new quote or contact us for assistance.</p>
-                <p style='margin:24px 0'>
-                    <a href='{$appUrl}/quotes' style='background:#2F5597;color:#ffffff;padding:10px 16px;border-radius:6px;text-decoration:none;display:inline-block'>
-                        View Quotes
-                    </a>
-                </p>
-            </div>
-        ";
+        $summaryHtml = $this->buildQuoteSummaryCard([
+            ['label' => 'Quote ID', 'value' => $quoteId],
+            ['label' => 'Reason',   'value' => $safeReason],
+        ]);
+
+        $html = $this->buildModernNotificationEmail(
+            'Quote Not Approved',
+            "
+                <p style='margin:0 0 14px;font-size:16px;color:#1f2937'>Hello {$safeName},</p>
+                <p style='margin:0 0 18px;color:#4b5563'>We are sorry to inform you that your quote could not be approved at this time.</p>
+                {$summaryHtml}
+                <p style='margin:18px 0 0;color:#4b5563'>Please feel free to submit a new quote or contact us for assistance.</p>
+            ",
+            'Submit New Quote',
+            $appUrl . '/quotes/create',
+            'Our team is happy to work with you to find the right solution.',
+            '#b91c1c',
+            'Not Approved',
+            '#b91c1c'
+        );
 
         $text = "Hello {$safeName},\n\nYour quote {$quoteId} was not approved. Reason: {$safeReason}\n{$appUrl}/quotes";
 
@@ -389,30 +397,35 @@ class AzureGraphMailService
             return false;
         }
 
-        $customer  = $quote->user;
-        $safeName  = e($customer->name ?? 'Customer');
-        $quoteId   = e($quote->quote_id);
+        $customer   = $quote->user;
+        $safeName   = e($customer->name ?? 'Customer');
+        $quoteId    = e($quote->quote_id);
+        $amount     = number_format((float)($quote->total_amount ?? 0), 2);
         $validUntil = $quote->expires_at?->format('M d, Y') ?? 'N/A';
-        $appUrl    = config('app.url');
+        $appUrl     = config('app.url');
 
-        $html = "
-            <div style='font-family:Segoe UI,Arial,sans-serif;line-height:1.5;color:#1f2937'>
-                <h2 style='margin:0 0 12px;color:#2F5597'>Your Quote is Expiring Soon</h2>
-                <p>Hello {$safeName},</p>
-                <p>Your approved quote is expiring soon. Please take action before it expires.</p>
-                <div style='border:1px solid #d9e6f7;background:#edf3fb;border-radius:8px;padding:14px;margin:16px 0'>
-                    <p style='margin:0 0 6px'><strong>Quote ID:</strong> {$quoteId}</p>
-                    <p style='margin:0'><strong>Expires:</strong> {$validUntil}</p>
-                </div>
-                <p style='margin:24px 0'>
-                    <a href='{$appUrl}/quotes/{$quote->id}' style='background:#2F5597;color:#ffffff;padding:10px 16px;border-radius:6px;text-decoration:none;display:inline-block'>
-                        View Quote
-                    </a>
-                </p>
-            </div>
-        ";
+        $summaryHtml = $this->buildQuoteSummaryCard([
+            ['label' => 'Quote ID',     'value' => $quoteId],
+            ['label' => 'Total Amount', 'value' => '$' . $amount],
+            ['label' => 'Expires On',   'value' => $validUntil],
+        ]);
 
-        $text = "Hello {$safeName},\n\nYour quote {$quoteId} is expiring on {$validUntil}.\n{$appUrl}/quotes/{$quote->id}";
+        $html = $this->buildModernNotificationEmail(
+            'Quote Expiring Soon',
+            "
+                <p style='margin:0 0 14px;font-size:16px;color:#1f2937'>Hello {$safeName},</p>
+                <p style='margin:0 0 18px;color:#4b5563'>Your approved quote is expiring soon. Please convert it to an order before it expires.</p>
+                {$summaryHtml}
+            ",
+            'Place Order Now',
+            $appUrl . '/quotes/' . $quote->id,
+            'This quote expires on ' . $validUntil . '. Act now to secure your pricing.',
+            '#b45309',
+            'Expiring Soon',
+            '#b45309'
+        );
+
+        $text = "Hello {$safeName},\n\nYour quote {$quoteId} is expiring on {$validUntil}. Total: \${$amount}\n{$appUrl}/quotes/{$quote->id}";
 
         return $this->sendEmail($customer->email, "Quote Expiring Soon: {$quoteId}", $html, $text);
     }
@@ -426,25 +439,31 @@ class AzureGraphMailService
         $customer    = $order->user;
         $safeName    = e($customer->name ?? 'Customer');
         $orderNumber = e($order->order_number);
-        $amount      = number_format($order->total_amount ?? 0, 2);
+        $amount      = number_format((float)($order->total_amount ?? 0), 2);
+        $itemCount   = is_countable($order->items ?? []) ? count($order->items ?? []) : 0;
         $appUrl      = config('app.url');
 
-        $html = "
-            <div style='font-family:Segoe UI,Arial,sans-serif;line-height:1.5;color:#1f2937'>
-                <h2 style='margin:0 0 12px;color:#2F5597'>Order Confirmed</h2>
-                <p>Hello {$safeName},</p>
-                <p>Thank you! Your order has been confirmed and is being processed.</p>
-                <div style='border:1px solid #d9e6f7;background:#edf3fb;border-radius:8px;padding:14px;margin:16px 0'>
-                    <p style='margin:0 0 6px'><strong>Order Number:</strong> {$orderNumber}</p>
-                    <p style='margin:0'><strong>Total:</strong> \${$amount}</p>
-                </div>
-                <p style='margin:24px 0'>
-                    <a href='{$appUrl}/orders/{$order->id}' style='background:#2F5597;color:#ffffff;padding:10px 16px;border-radius:6px;text-decoration:none;display:inline-block'>
-                        View Order
-                    </a>
-                </p>
-            </div>
-        ";
+        $summaryHtml = $this->buildQuoteSummaryCard([
+            ['label' => 'Order Number', 'value' => $orderNumber],
+            ['label' => 'Items',        'value' => (string) $itemCount],
+            ['label' => 'Total',        'value' => '$' . $amount],
+        ]);
+
+        $html = $this->buildModernNotificationEmail(
+            'Order Confirmed',
+            "
+                <p style='margin:0 0 14px;font-size:16px;color:#1f2937'>Hello {$safeName},</p>
+                <p style='margin:0 0 18px;color:#4b5563'>Thank you! Your order has been confirmed and is now being processed.</p>
+                {$summaryHtml}
+                <p style='margin:18px 0 0;color:#4b5563'>We will send you another email once your order has shipped.</p>
+            ",
+            'View Order',
+            $appUrl . '/orders/' . $order->id,
+            'Thank you for choosing Armely Store.',
+            '#15803d',
+            'Order Placed',
+            '#15803d'
+        );
 
         $text = "Hello {$safeName},\n\nYour order {$orderNumber} has been confirmed. Total: \${$amount}.\n{$appUrl}/orders/{$order->id}";
 
@@ -526,37 +545,68 @@ class AzureGraphMailService
         string $contentHtml,
         string $buttonLabel,
         string $buttonUrl,
-        ?string $footerNote = null
+        ?string $footerNote = null,
+        string $accentColor = '#2f5597',
+        ?string $badgeLabel = null,
+        ?string $badgeColor = null
     ): string {
-        $safeTitle = e($title);
+        $safeTitle       = e($title);
         $safeButtonLabel = e($buttonLabel);
-        $safeButtonUrl = e($buttonUrl);
-        $safeFooterNote = $footerNote ? e($footerNote) : '';
+        $safeButtonUrl   = e($buttonUrl);
+        $safeFooterNote  = $footerNote ? e($footerNote) : '';
+        $year            = date('Y');
+
         $footerNoteHtml = $footerNote
-            ? "<p style='margin:0;color:#4b5563;font-size:14px;line-height:1.55'>{$safeFooterNote}</p>"
+            ? "<p style='margin:0 0 12px;color:#64748b;font-size:13px;line-height:1.6'>{$safeFooterNote}</p>"
             : '';
 
-        return "
-            <div style='margin:0;padding:28px 16px;background:#eef3fa;font-family:Segoe UI,Arial,sans-serif'>
-                <div style='max-width:720px;margin:0 auto;background:#ffffff;border:1px solid #d7e2f2;border-radius:14px;overflow:hidden;box-shadow:0 18px 36px rgba(20,42,84,0.12)'>
-                    <div style='padding:20px 24px;background:#0f2f63;color:#ffffff;border-bottom:4px solid #2f5597'>
-                        <p style='margin:0 0 8px;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;opacity:0.9'>Armely Store</p>
-                        <h2 style='margin:0;font-size:32px;line-height:1.1;font-weight:700'>{$safeTitle}</h2>
-                    </div>
-                    <div style='padding:24px'>
-                        {$contentHtml}
-                        <p style='margin:20px 0 0'>
-                            <a href='{$safeButtonUrl}' style='background:#2f5597;color:#ffffff;padding:12px 20px;border-radius:8px;text-decoration:none;display:inline-block;font-weight:600'>
-                                {$safeButtonLabel}
-                            </a>
-                        </p>
-                    </div>
-                    <div style='padding:16px 24px;background:#f8fbff;border-top:1px solid #e3ebf8'>
-                        {$footerNoteHtml}
-                    </div>
-                </div>
-            </div>
-        ";
+        $badgeHtml = $badgeLabel
+            ? "<span style='display:inline-block;margin-bottom:10px;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;background:" . e($badgeColor ?? $accentColor) . ";color:#fff'>" . e($badgeLabel) . "</span>"
+            : '';
+
+        return "<!DOCTYPE html><html lang='en'><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width,initial-scale=1.0'><title>{$safeTitle}</title></head>
+<body style='margin:0;padding:0;background:#eef3fa;font-family:\"Segoe UI\",Arial,sans-serif'>
+<div style='max-width:680px;margin:0 auto;padding:32px 16px 48px'>
+
+  <!-- Logo bar -->
+  <div style='text-align:center;margin-bottom:20px'>
+    <span style='display:inline-block;background:#0f2f63;color:#fff;padding:8px 20px;border-radius:8px;font-size:13px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase'>Armely Store</span>
+  </div>
+
+  <!-- Card -->
+  <div style='background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(15,47,99,0.10)'>
+
+    <!-- Header band -->
+    <div style='background:linear-gradient(135deg,#0f2f63 0%,#2f5597 100%);padding:28px 32px 24px'>
+      {$badgeHtml}
+      <h1 style='margin:0;color:#ffffff;font-size:26px;font-weight:700;line-height:1.2'>{$safeTitle}</h1>
+    </div>
+
+    <!-- Body -->
+    <div style='padding:28px 32px'>
+      {$contentHtml}
+
+      <div style='margin-top:24px'>
+        <a href='{$safeButtonUrl}'
+           style='display:inline-block;padding:13px 28px;background:" . e($accentColor) . ";color:#ffffff;text-decoration:none;border-radius:8px;font-weight:700;font-size:14px;letter-spacing:0.02em'>
+          {$safeButtonLabel} &rarr;
+        </a>
+      </div>
+    </div>
+
+    <!-- Footer note -->
+    <div style='padding:16px 32px 20px;background:#f8fbff;border-top:1px solid #e3ebf8'>
+      {$footerNoteHtml}
+      <p style='margin:0;font-size:12px;color:#94a3b8'>You received this email because you have an account with Armely Store.
+        &nbsp;&bull;&nbsp; <a href='mailto:support@armely.com' style='color:#2f5597;text-decoration:none'>support@armely.com</a>
+      </p>
+    </div>
+  </div>
+
+  <!-- Bottom -->
+  <p style='text-align:center;margin-top:20px;font-size:11px;color:#94a3b8'>&copy; {$year} Armely Store. All rights reserved.</p>
+</div>
+</body></html>";
     }
 
     private function buildQuoteSummaryCard(array $rows): string
@@ -598,6 +648,28 @@ class AzureGraphMailService
             ";
         }
 
+        // Detect whether any item carries price data.
+        $hasAnyPrices = false;
+        foreach ($normalizedItems as $item) {
+            $l = is_array($item) ? $item : [];
+            if ((float)($l['unitPrice'] ?? $l['unit_price'] ?? 0) > 0
+                || (float)($l['lineTotal'] ?? $l['line_total'] ?? 0) > 0) {
+                $hasAnyPrices = true;
+                break;
+            }
+        }
+
+        // When items have no prices but a quote total exists, distribute proportionally.
+        $qtotal = (float)($quoteTotal ?? 0);
+        $distributeTotal = !$hasAnyPrices && $qtotal > 0;
+        $totalQty = 0;
+        if ($distributeTotal) {
+            foreach ($normalizedItems as $item) {
+                $totalQty += max(1, (int)((is_array($item) ? $item : [])['quantity'] ?? 1));
+            }
+            if ($totalQty === 0) $totalQty = count($normalizedItems);
+        }
+
         $rows = '';
         $runningTotal = 0.0;
 
@@ -606,10 +678,16 @@ class AzureGraphMailService
             $name = $this->resolveLineItemName($line, 'Unknown Product');
             $productRef = (string) ($line['mfgPartNo'] ?? $line['mfg_part_no'] ?? $line['sku'] ?? $line['product_id'] ?? 'N/A');
             $quantity = max(1, (int) ($line['quantity'] ?? 1));
-            $unitPrice = (float) ($line['unitPrice'] ?? $line['unit_price'] ?? 0);
-            $lineTotal = isset($line['lineTotal']) || isset($line['line_total'])
-                ? (float) ($line['lineTotal'] ?? $line['line_total'])
-                : ($quantity * $unitPrice);
+
+            if ($distributeTotal) {
+                $unitPrice = $totalQty > 0 ? $qtotal / $totalQty : 0.0;
+                $lineTotal = $unitPrice * $quantity;
+            } else {
+                $unitPrice = (float)($line['unitPrice'] ?? $line['unit_price'] ?? 0);
+                $lineTotal = isset($line['lineTotal']) || isset($line['line_total'])
+                    ? (float)($line['lineTotal'] ?? $line['line_total'])
+                    : ($quantity * $unitPrice);
+            }
             $runningTotal += $lineTotal;
 
             $safeName = e($name);
@@ -709,12 +787,37 @@ class AzureGraphMailService
         $itemsRows = '';
         $items = $invoice->items;
         if ($items && is_array($items) && count($items)) {
+            // Detect if items carry price data; if not, distribute invoice total by qty.
+            $invHasAnyPrices = false;
+            foreach ($items as $item) {
+                if ((float)(is_array($item) ? ($item['unit_price'] ?? 0) : 0) > 0
+                    || (float)(is_array($item) ? ($item['line_total'] ?? 0) : 0) > 0) {
+                    $invHasAnyPrices = true;
+                    break;
+                }
+            }
+            $invDistribute = !$invHasAnyPrices && $totalAmt > 0;
+            $invTotalQty = 0;
+            if ($invDistribute) {
+                foreach ($items as $item) {
+                    $invTotalQty += max(1, (int)((is_array($item) ? $item : [])['quantity'] ?? 1));
+                }
+                if ($invTotalQty === 0) $invTotalQty = count($items);
+            }
+
             foreach ($items as $item) {
                 $line = is_array($item) ? $item : [];
                 $n  = e($this->resolveLineItemName($line, 'Unknown Product'));
-                $q  = (int)($item['quantity'] ?? 1);
-                $up = number_format((float)($item['unit_price'] ?? 0), 2);
-                $lt = number_format((float)($item['line_total'] ?? (($item['unit_price'] ?? 0) * ($item['quantity'] ?? 1))), 2);
+                $q  = max(1, (int)($item['quantity'] ?? 1));
+                if ($invDistribute) {
+                    $rawUp = $invTotalQty > 0 ? $totalAmt / $invTotalQty : 0.0;
+                    $rawLt = $rawUp * $q;
+                } else {
+                    $rawUp = (float)($item['unit_price'] ?? 0);
+                    $rawLt = (float)($item['line_total'] ?? ($rawUp * $q));
+                }
+                $up = number_format($rawUp, 2);
+                $lt = number_format($rawLt, 2);
                 $td = "border:1px solid #ddd;padding:10px 12px;font-size:13px;";
                 $itemsRows .= "<tr>"
                     . "<td style='{$td}'>{$n}</td>"
