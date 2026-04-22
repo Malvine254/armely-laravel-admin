@@ -1740,7 +1740,7 @@ class ProductController extends Controller
                 if ($curatedItMix) {
                     $minPriceRaw = request()->query('min_price');
                     $maxPriceRaw = request()->query('max_price');
-                    $minPrice = $minPriceRaw !== null && $minPriceRaw !== '' ? (float) $minPriceRaw : 200.0;
+                    $minPrice = $minPriceRaw !== null && $minPriceRaw !== '' ? (float) $minPriceRaw : 100.0;
                     $maxPrice = $maxPriceRaw !== null && $maxPriceRaw !== '' ? (float) $maxPriceRaw : null;
                     $hideZero = filter_var(request()->query('hide_zero_price', true), FILTER_VALIDATE_BOOLEAN);
                     $catalogClean = filter_var(request()->query('catalog_clean', false), FILTER_VALIDATE_BOOLEAN);
