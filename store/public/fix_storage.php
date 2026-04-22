@@ -15,6 +15,11 @@ $actions = [
         'help' => 'Show app, runtime, and frontend build status information.',
         'commands' => [],
     ],
+    'git_pull_deploy' => [
+        'label' => 'Git Pull & Deploy',
+        'help' => 'Pull latest code from GitHub (origin main), then clear all caches and run migrations.',
+        'commands' => [],
+    ],
     'clear_all' => [
         'label' => 'Clear All Caches',
         'help' => 'Run all cache clear commands before rebuild.',
@@ -362,6 +367,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ...$buildLines,
             ]),
         ];
+    } elseif ($selectedAction === 'git_pull_deploy') {
+        // Resolve the git repo root (two levels up from store/public)
+        $repoRoot = realpath(__DIR__ . '/../..');
+        if (!is_string($repoRoot) || $repoRoot === '') {
+            $results[] = ['command' => 'git pull', 'status' => 'ERROR', 'output' => 'Cannot resolve repo root path.'];
+        } else {
+            $gitCandidates = ['git'];
+            $gitBinary = findAvailableBinary($gitCandidates) ?? 'git';
+
+            $pullResult = runProcessCommand('"' . $gitBinary . '" pull origin main', $repoRoot);
+            $results[] = [
+                'command' => 'git pull origin main (in ' . $repoRoot . ')',
+                'status'  => $pullResult['ok'] ? 'OK' : 'ERROR',
+                'output'  => trim(($pullResult['stdout'] ?: '') . "\n" . ($pullResult['stderr'] ?: '')),
+            ];
+
+            if ($pullResult['ok']) {
+                // After a successful pull, clear caches and run migrations
+                foreach ([
+                    ['optimize:clear', []],
+                    ['cache:clear', []],
+                    ['config:clear', []],
+                    ['route:clear', []],
+                    ['view:clear', []],
+                    ['migrate', ['--force' => true]],
+                    ['config:cache', []],
+                    ['route:cache', []],
+                    ['optimize', []],
+                ] as [$cmd, $params]) {
+                    $results[] = runArtisanCommand($cmd, $params);
+                }
+            }
+        }
     } elseif ($selectedAction === 'build_frontend') {
         $results[] = buildFrontendAssets();
 
