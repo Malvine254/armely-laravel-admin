@@ -1428,7 +1428,7 @@ const toggleRelatedFavorite = (relatedProduct) => {
 }
 
 // --- Reviews ---
-const fetchReviews = async (productId, page = 1) => {
+async function fetchReviews(productId, page = 1) {
   if (!productId) return
   isLoadingReviews.value = true
   try {

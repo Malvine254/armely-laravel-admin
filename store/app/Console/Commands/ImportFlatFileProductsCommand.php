@@ -16,6 +16,10 @@ class ImportFlatFileProductsCommand extends Command
         {path? : Path to .ap file or directory (defaults to SYNNEX_FLAT_FILE_PATH / flat-files)}
         {--chunk=500 : Number of rows per DB upsert batch}
         {--limit=0 : Max rows to import (0 = unlimited)}
+        {--min-price=100 : Skip products whose base price is below this (0 = no floor)}
+        {--max-price=3000 : Skip products whose base price exceeds this (0 = no cap)}
+        {--min-qty=1 : Skip products with available quantity below this}
+        {--insert-only : Skip existing products; only insert brand-new SKUs (preserves curated is_available)}
         {--enrich-images : After import, dispatch image enrichment jobs for all products without images}';
 
     protected $description = 'Import TD SYNNEX .ap flat file data directly into the products table';
@@ -29,26 +33,36 @@ class ImportFlatFileProductsCommand extends Command
             return self::FAILURE;
         }
 
-        $chunkSize = max(1, (int) $this->option('chunk'));
-        $limit = max(0, (int) $this->option('limit'));
+        $chunkSize  = max(1, (int) $this->option('chunk'));
+        $limit      = max(0, (int) $this->option('limit'));
+        $minPrice   = (float) $this->option('min-price');
+        $maxPrice   = (float) $this->option('max-price');
+        $minQty     = max(1, (int) $this->option('min-qty'));
+        $insertOnly = (bool) $this->option('insert-only');
+
+        $priceRange = ($minPrice > 0 ? "\${$minPrice}" : '$0') . ($maxPrice > 0 ? " – \${$maxPrice}" : '+');
+        $mode = $insertOnly ? 'insert-only (new SKUs only, existing records untouched)' : 'upsert (update existing)';
+        $this->info("Filters: in-stock (qty >= {$minQty}), price {$priceRange}, hardware only, active status only");
+        $this->info("Mode: {$mode}");
 
         $totalImported = 0;
-        $totalSkipped = 0;
+        $totalSkipped  = 0;
 
         foreach ($apFiles as $apFile) {
             $this->info("Importing: {$apFile}");
-            $result = $this->importFile($apFile, $chunkSize, $limit > 0 ? $limit - $totalImported : 0);
+            $result = $this->importFile($apFile, $chunkSize, $limit > 0 ? $limit - $totalImported : 0, $minPrice, $maxPrice, $minQty, $insertOnly);
             $totalImported += $result['imported'];
-            $totalSkipped += $result['skipped'];
+            $totalSkipped  += $result['skipped'];
 
-            $this->line("  Imported: {$result['imported']}, Skipped: {$result['skipped']}");
+            $skippedDetail = "inactive={$result['skipped_inactive']}, out-of-stock={$result['skipped_stock']}, over-price={$result['skipped_price']}, non-hardware={$result['skipped_hardware']}, no-category={$result['skipped_category']}";
+            $this->line("  Inserted: {$result['imported']}, Skipped: {$result['skipped']} ({$skippedDetail})");
 
             if ($limit > 0 && $totalImported >= $limit) {
                 break;
             }
         }
 
-        $this->info("Done. Total imported: {$totalImported}, Total skipped: {$totalSkipped}");
+        $this->info("Done. Total inserted: {$totalImported}, Total skipped: {$totalSkipped}");
 
         if ($this->option('enrich-images')) {
             $this->dispatchImageEnrichmentJobs();
@@ -80,12 +94,18 @@ class ImportFlatFileProductsCommand extends Command
         $this->line('  php artisan queue:work database --queue=products-sync --sleep=1 --timeout=120');
     }
 
-    private function importFile(string $filePath, int $chunkSize, int $limit): array
+    private function importFile(string $filePath, int $chunkSize, int $limit, float $minPrice, float $maxPrice, int $minQty, bool $insertOnly = false): array
     {
-        $file = new \SplFileObject($filePath, 'r');
-        $batch = [];
-        $imported = 0;
-        $skipped = 0;
+        $file    = new \SplFileObject($filePath, 'r');
+        $batch   = [];
+        $imported         = 0;
+        $skipped          = 0;
+        $skippedInactive  = 0;
+        $skippedStock     = 0;
+        $skippedPrice     = 0;
+        $skippedHardware  = 0;
+        $skippedCategory  = 0;
+
         $bar = $this->output->createProgressBar();
         $bar->setFormat(' %current% rows [%bar%] %elapsed%');
         $bar->start();
@@ -112,17 +132,31 @@ class ImportFlatFileProductsCommand extends Command
                 continue;
             }
 
-            $row = $this->mapApRowToProduct($parts, $sku);
-            if ($row === null) {
+            $result = $this->mapApRowToProduct($parts, $sku, $minPrice, $maxPrice, $minQty);
+
+            if ($result === null) {
                 $skipped++;
                 continue;
             }
 
-            $batch[] = $row;
+            if (is_string($result)) {
+                $skipped++;
+                match ($result) {
+                    'inactive'    => $skippedInactive++,
+                    'stock'       => $skippedStock++,
+                    'price'       => $skippedPrice++,
+                    'hardware'    => $skippedHardware++,
+                    'category'    => $skippedCategory++,
+                    default       => null,
+                };
+                continue;
+            }
+
+            $batch[] = $result;
 
             if (count($batch) >= $chunkSize) {
-                $this->upsertBatch($batch);
-                $imported += count($batch);
+                $inserted = $this->writeBatch($batch, $insertOnly);
+                $imported += $inserted;
                 $bar->advance(count($batch));
                 $batch = [];
 
@@ -133,43 +167,99 @@ class ImportFlatFileProductsCommand extends Command
         }
 
         if (!empty($batch)) {
-            $this->upsertBatch($batch);
-            $imported += count($batch);
+            $inserted = $this->writeBatch($batch, $insertOnly);
+            $imported += $inserted;
             $bar->advance(count($batch));
         }
 
         $bar->finish();
         $this->newLine();
 
-        return ['imported' => $imported, 'skipped' => $skipped];
+        return [
+            'imported'         => $imported,
+            'skipped'          => $skipped,
+            'skipped_inactive' => $skippedInactive,
+            'skipped_stock'    => $skippedStock,
+            'skipped_price'    => $skippedPrice,
+            'skipped_hardware' => $skippedHardware,
+            'skipped_category' => $skippedCategory,
+        ];
     }
 
-    private function mapApRowToProduct(array $parts, string $sku): ?array
+    /**
+     * Returns an array (the mapped product row), a string skip-reason, or null for unparseable rows.
+     *
+     * @return array<string,mixed>|string|null
+     */
+    private function mapApRowToProduct(array $parts, string $sku, float $minPrice, float $maxPrice, int $minQty): array|string|null
     {
         $dbProductId = (int) $sku;
         if ($dbProductId <= 0) {
             return null;
         }
 
-        $mpn = trim((string) ($parts[2] ?? ''));
+        $status      = trim((string) ($parts[5] ?? ''));
+        $isActive    = strtoupper($status) === 'A';
+
+        // Must be active (status = "A")
+        if (!$isActive) {
+            return 'inactive';
+        }
+
+        $qty = is_numeric(trim((string) ($parts[10] ?? ''))) ? (int) $parts[10] : 0;
+
+        // Must have at least $minQty units available
+        if ($qty < $minQty) {
+            return 'stock';
+        }
+
+        $basePrice   = is_numeric(trim((string) ($parts[12] ?? ''))) ? (float) $parts[12] : 0;
+        $retailPrice = is_numeric(trim((string) ($parts[13] ?? ''))) ? (float) $parts[13] : 0;
+
+        // Must have a price (avoid free/internal placeholder items)
+        if ($basePrice <= 0) {
+            return 'price';
+        }
+
+        // Must meet the minimum price floor
+        if ($minPrice > 0 && $basePrice < $minPrice) {
+            return 'price';
+        }
+
+        // Must be at or under the price cap
+        if ($maxPrice > 0 && $basePrice > $maxPrice) {
+            return 'price';
+        }
+
+        $mpn         = trim((string) ($parts[2] ?? ''));
         $description = trim((string) ($parts[6] ?? ''));
         $manufacturer = trim((string) ($parts[7] ?? ''));
-        $status = trim((string) ($parts[5] ?? ''));
-        $qty = is_numeric(trim((string) ($parts[10] ?? ''))) ? (int) $parts[10] : 0;
-        $basePrice = is_numeric(trim((string) ($parts[12] ?? ''))) ? (float) $parts[12] : 0;
-        $retailPrice = is_numeric(trim((string) ($parts[13] ?? ''))) ? (float) $parts[13] : 0;
-        $upc = trim((string) ($parts[33] ?? ''));
+        $upc         = trim((string) ($parts[33] ?? ''));
         $categoryCode = trim((string) ($parts[34] ?? ''));
         $categoryName = trim((string) ($parts[35] ?? ''));
-        $familyCode = trim((string) ($parts[36] ?? ''));
+        $familyCode  = trim((string) ($parts[36] ?? ''));
+
+        $name = $description !== '' ? $description : $mpn;
+
+        // Must classify as hardware (no software, licenses, warranties, services)
+        $isHardware = \App\Http\Controllers\ProductController::isHardwareProduct($name, $description);
+        if (!$isHardware) {
+            return 'hardware';
+        }
 
         $curatedCategoryName = CatalogTaxonomy::inferCategoryName(
             $categoryName,
-            $description !== '' ? $description : $mpn,
+            $name,
             $description,
             $categoryCode
         );
         $curatedSegment = CatalogTaxonomy::segmentCodeForCategory($curatedCategoryName);
+
+        // Must resolve to one of the 14 curated B2B categories
+        if ($curatedSegment === '' || $curatedCategoryName === 'Uncategorized') {
+            return 'category';
+        }
+
         static $categoryIdByName = null;
         if ($categoryIdByName === null) {
             $categoryIdByName = Category::query()
@@ -179,52 +269,54 @@ class ImportFlatFileProductsCommand extends Command
         }
         $categoryId = $categoryIdByName[$curatedCategoryName] ?? null;
 
-        $isActive = strtoupper($status) === 'A';
-        $imageUrl = $this->extractImageUrlFromParts($parts);
-        $images = $imageUrl !== '' ? [['imageUrl' => $imageUrl, 'source' => 'flat-file']] : [];
+        $imageUrl  = $this->extractImageUrlFromParts($parts);
+        $images    = $imageUrl !== '' ? [['imageUrl' => $imageUrl, 'source' => 'flat-file']] : [];
         $timestamp = now();
 
         return [
             'tdsynnex_product_id' => $dbProductId,
-            'tdsynnex_sku_no' => $dbProductId,
-            'vendor_id' => 'TD SYNNEX',
-            'product_name' => $description !== '' ? $description : $mpn,
-            'mfg_part_no' => $mpn,
-            'description' => $description,
-            'base_price' => $basePrice,
-            'retail_price' => $retailPrice,
-            'billing_model' => '',
-            'billing_frequency' => '',
-            'is_available' => $isActive,
-            'is_discontinued' => !$isActive,
-            'is_hardware' => \App\Http\Controllers\ProductController::isHardwareProduct(
-                $description !== '' ? $description : $mpn,
-                $description
-            ) ? 1 : 0,
-            'category_id' => $categoryId,
-            'category_segment' => $curatedSegment,
-            'manufacturer' => $manufacturer !== '' ? $manufacturer : null,
-            'specifications' => json_encode([
-                'sku' => $sku,
-                'status' => $status,
-                'categoryCode' => $categoryCode !== '' ? $categoryCode : '-',
+            'tdsynnex_sku_no'     => $dbProductId,
+            'vendor_id'           => 'TD SYNNEX',
+            'product_name'        => $name,
+            'mfg_part_no'         => $mpn,
+            'description'         => $description,
+            'base_price'          => $basePrice,
+            'retail_price'        => $retailPrice,
+            'billing_model'       => '',
+            'billing_frequency'   => '',
+            'is_available'        => true,   // guaranteed: active + qty >= minQty
+            'is_discontinued'     => false,
+            'is_hardware'         => 1,
+            'category_id'         => $categoryId,
+            'category_segment'    => $curatedSegment,
+            'manufacturer'        => $manufacturer !== '' ? $manufacturer : null,
+            'specifications'      => json_encode([
+                'sku'                => $sku,
+                'status'             => $status,
+                'categoryCode'       => $categoryCode !== '' ? $categoryCode : '-',
                 'sourceCategoryName' => $categoryName,
-                'curatedCategoryName' => $curatedCategoryName,
-                'availableQuantity' => $qty,
-                'upc' => $upc,
-                'manufacturer' => $manufacturer,
-                'categoryName' => $curatedCategoryName,
-                'familyCode' => $familyCode,
+                'curatedCategoryName'=> $curatedCategoryName,
+                'availableQuantity'  => $qty,
+                'upc'                => $upc,
+                'manufacturer'       => $manufacturer,
+                'categoryName'       => $curatedCategoryName,
+                'familyCode'         => $familyCode,
             ], JSON_UNESCAPED_UNICODE),
-            'images' => json_encode($images, JSON_UNESCAPED_UNICODE),
-            'last_synced_at' => $timestamp,
-            'updated_at' => $timestamp,
-            'created_at' => $timestamp,
+            'images'          => json_encode($images, JSON_UNESCAPED_UNICODE),
+            'last_synced_at'  => $timestamp,
+            'updated_at'      => $timestamp,
+            'created_at'      => $timestamp,
         ];
     }
 
-    private function upsertBatch(array $rows): void
+    private function writeBatch(array $rows, bool $insertOnly): int
     {
+        if ($insertOnly) {
+            // insertOrIgnore silently skips rows whose tdsynnex_product_id already exists,
+            // preserving the curated is_available value set by CurateCatalogCommand.
+            return Product::insertOrIgnore($rows);
+        }
+
         Product::upsert(
             $rows,
             ['tdsynnex_product_id'],
@@ -250,6 +342,8 @@ class ImportFlatFileProductsCommand extends Command
                 'updated_at',
             ]
         );
+
+        return count($rows);
     }
 
     private function extractImageUrlFromParts(array $parts): string

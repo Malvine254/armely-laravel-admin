@@ -228,15 +228,40 @@ return [
         'enabled' => env('IMAGE_SCRAPING_ENABLED', true),
         'timeout' => env('IMAGE_SCRAPING_TIMEOUT', 4),
         'connect_timeout' => env('IMAGE_SCRAPING_CONNECT_TIMEOUT', 2),
-        'max_candidates' => env('IMAGE_SCRAPING_MAX_CANDIDATES', 3),
-        'user_agent' => env('IMAGE_SCRAPING_USER_AGENT', 'ArmelyImageBot/1.0 (+unfo@armely.com)'),
+        'max_candidates' => env('IMAGE_SCRAPING_MAX_CANDIDATES', 6),
+        'user_agent' => env('IMAGE_SCRAPING_USER_AGENT', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'),
         'allowed_domains' => array_values(array_filter(array_map('trim', explode(',', (string) env(
             'IMAGE_SCRAPING_ALLOWED_DOMAINS',
-            'hp.com,dell.com,lenovo.com,cisco.com,belkin.com,apc.com,fortinet.com,veeam.com,logitech.com,startech.com,netgear.com'
+            // Manufacturer sites
+            'hp.com,dell.com,lenovo.com,cisco.com,belkin.com,apc.com,fortinet.com,veeam.com,logitech.com,startech.com,netgear.com,'.
+            'juniper.net,aruba.com,arubanetworks.com,paloaltonetworks.com,checkpoint.com,netscout.com,'.
+            'jabra.com,poly.com,yealink.com,barco.com,synology.com,kensington.com,viewsonic.com,ricoh-usa.com,'.
+            'vertiv.com,cyberpowersystems.com,eaton.com,tripplite.eaton.com,'.
+            'seagate.com,westerndigital.com,kingston.com,crucial.com,micron.com,'.
+            'zebra.com,honeywell.com,axis.com,ruckus.com,commscope.com,'.
+            'intel.com,amd.com,nvidia.com,samsung.com,lg.com,epson.com,usa.canon.com,brother-usa.com,xerox.com,lexmark.com,'.
+            'supermicro.com,asus.com,acer.com,msi.com,sony.com,toshiba.com,apple.com,microsoft.com,'.
+            'havis.com,buffalo-technology.com,panduit.com,blackbox.com,chiefmfg.com,rocstor.com,cablestogo.com,ui.com,tp-link.com,'.
+            // B2B e-commerce
+            'cdw.com,cdwg.com,newegg.com,bhphotovideo.com,provantage.com,insight.com,zones.com,connection.com,adorama.com,antonline.com,'.
+            // Consumer e-commerce
+            'amazon.com,bestbuy.com,walmart.com,ebay.com,staples.com,officedepot.com'
         ))))),
         'allowed_image_domains' => array_values(array_filter(array_map('trim', explode(',', (string) env(
             'IMAGE_SCRAPING_ALLOWED_IMAGE_DOMAINS',
-            'hp.com,dell.com,lenovo.com,cisco.com,belkin.com,apc.com,fortinet.com,veeam.com,logitech.com,startech.com,netgear.com,scene7.com,akamaihd.net,cloudfront.net'
+            // Manufacturer CDNs
+            'hp.com,dell.com,lenovo.com,cisco.com,belkin.com,apc.com,logitech.com,startech.com,netgear.com,'.
+            'jabra.com,poly.com,yealink.com,barco.com,synology.com,viewsonic.com,'.
+            'seagate.com,westerndigital.com,kingston.com,crucial.com,zebra.com,honeywell.com,'.
+            'epson.com,usa.canon.com,brother-usa.com,xerox.com,samsung.com,lg.com,intel.com,'.
+            'chiefmfg.com,panduit.com,blackbox.com,cablestogo.com,'.
+            // Common image CDNs used by manufacturers & retailers
+            'scene7.com,akamaihd.net,cloudfront.net,imgix.net,'.
+            'ssl-images-amazon.com,m.media-amazon.com,images-na.ssl-images-amazon.com,'.
+            'ssl-product-images.www8-hp.com,i.dell.com,'.
+            'newegg.com,bhphotovideo.com,cdw.com,'.
+            'img.bestbuy.com,i5.walmartimages.com,ebayimg.com,'.
+            'images.provantage.com,d3nevzfk7ii3be.cloudfront.net'
         ))))),
         'license' => [
             // Skip scraping results when pages explicitly prohibit automated extraction/reuse.
