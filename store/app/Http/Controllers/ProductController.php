@@ -107,8 +107,8 @@ class ProductController extends Controller
             // Get filter parameters
             $vendorId = $request->query('vendor', 'Microsoft');
             $vendors = $request->query('vendors'); // comma-separated list
-            $pageNo = (int)$request->query('page', 1);
-            $pageSize = (int)$request->query('per_page', 20);
+            $pageNo = max(1, (int)$request->query('page', 1));
+            $pageSize = min(100, max(1, (int)$request->query('per_page', 20)));
             $search = $request->query('search');
             $minPrice = $request->query('min_price');
             $maxPrice = $request->query('max_price');
@@ -434,6 +434,34 @@ class ProductController extends Controller
                 ],
                 'message' => 'Products retrieved successfully',
             ])->header('Cache-Control', $this->productCacheControlHeader($authenticatedUser, 'public, max-age=300'));
+        }
+
+        $allowLiveCatalogFallback = filter_var($request->query('allow_live_catalog_fallback', false), FILTER_VALIDATE_BOOLEAN);
+        if (!$allowLiveCatalogFallback) {
+            Log::warning('PriceAvailability live catalog fallback skipped to avoid request timeout', [
+                'search' => $search,
+                'page' => $pageNo,
+                'per_page' => $pageSize,
+                'use_db_cache' => $useDbCache,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'records' => [],
+                    'total' => 0,
+                    'apiTotal' => 0,
+                    'has_more' => false,
+                    'total_is_estimate' => false,
+                    'pageNo' => $pageNo,
+                    'pageSize' => $pageSize,
+                    'vendors' => !empty($selectedVendors) ? array_values($selectedVendors) : [],
+                    'cached' => false,
+                    'dbCached' => $fromDbCache,
+                    'source' => 'priceavailability-db-miss',
+                ],
+                'message' => 'Catalog is syncing. Please retry shortly.',
+            ])->header('Cache-Control', 'public, max-age=30');
         }
 
         if (!empty($search)) {
