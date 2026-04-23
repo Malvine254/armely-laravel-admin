@@ -146,57 +146,76 @@ class ReviewController extends Controller
      */
     public function store(string $productId, Request $request): JsonResponse
     {
-        $validated = $request->validate([
-            'rating' => ['required', 'integer', 'min:1', 'max:5'],
-            'title'  => ['nullable', 'string', 'max:150'],
-            'body'   => ['required', 'string', 'max:5000'],
-            'images' => ['nullable', 'array', 'max:5'],
-            'images.*' => ['image', 'mimes:jpeg,png,jpg,gif,webp', 'max:3072'],
-        ]);
-
-        // Prevent duplicate reviews from same user on same product
-        $existing = ProductReview::where('user_id', $request->user()->id)
-            ->where('product_id', $productId)
-            ->exists();
-
-        if ($existing) {
+        if (!Schema::hasTable('product_reviews')) {
             return response()->json([
-                'message' => 'You have already reviewed this product.',
-            ], 422);
+                'message' => 'Reviews are temporarily unavailable.',
+            ], 503);
         }
 
-        $imagePaths = [];
-        if ($request->hasFile('images')) {
-            foreach ($request->file('images') as $image) {
-                $filename = Str::uuid() . '.' . $image->getClientOriginalExtension();
-                $path = $image->storeAs('review-images', $filename, 'public');
-                $imagePaths[] = '/storage/' . $path;
+        try {
+            $validated = $request->validate([
+                'rating' => ['required', 'integer', 'min:1', 'max:5'],
+                'title'  => ['nullable', 'string', 'max:150'],
+                'body'   => ['required', 'string', 'max:5000'],
+                'images' => ['nullable', 'array', 'max:5'],
+                'images.*' => ['image', 'mimes:jpeg,png,jpg,gif,webp', 'max:3072'],
+            ]);
+
+            // Prevent duplicate reviews from same user on same product
+            $existing = ProductReview::where('user_id', $request->user()->id)
+                ->where('product_id', $productId)
+                ->exists();
+
+            if ($existing) {
+                return response()->json([
+                    'message' => 'You have already reviewed this product.',
+                ], 422);
             }
+
+            $imagePaths = [];
+            if ($request->hasFile('images')) {
+                foreach ($request->file('images') as $image) {
+                    $filename = Str::uuid() . '.' . $image->getClientOriginalExtension();
+                    $path = $image->storeAs('review-images', $filename, 'public');
+                    $imagePaths[] = '/storage/' . $path;
+                }
+            }
+
+            $review = ProductReview::create([
+                'user_id'    => $request->user()->id,
+                'product_id' => $productId,
+                'rating'     => $validated['rating'],
+                'title'      => $validated['title'] ?? null,
+                'body'       => $validated['body'],
+                'images'     => !empty($imagePaths) ? $imagePaths : null,
+            ]);
+
+            $review->load('user:' . implode(',', $this->reviewUserColumns()));
+
+            $productName = Product::query()
+                ->where('tdsynnex_product_id', $productId)
+                ->orWhere('tdsynnex_sku_no', $productId)
+                ->value('product_name');
+
+            $reviewData = $review->toArray();
+            $reviewData['product_name'] = $productName ?: ('Product ' . $productId);
+
+            return response()->json([
+                'message' => 'Review submitted successfully.',
+                'data'    => $reviewData,
+            ], 201);
+        } catch (\Throwable $e) {
+            Log::error('ReviewController.store failed', [
+                'product_id' => $productId,
+                'user_id' => optional($request->user())->id,
+                'message' => $e->getMessage(),
+                'exception' => get_class($e),
+            ]);
+
+            return response()->json([
+                'message' => 'Unable to submit review right now. Please try again shortly.',
+            ], 500);
         }
-
-        $review = ProductReview::create([
-            'user_id'    => $request->user()->id,
-            'product_id' => $productId,
-            'rating'     => $validated['rating'],
-            'title'      => $validated['title'] ?? null,
-            'body'       => $validated['body'],
-            'images'     => !empty($imagePaths) ? $imagePaths : null,
-        ]);
-
-        $review->load('user:id,name,email,profile_picture');
-
-        $productName = Product::query()
-            ->where('tdsynnex_product_id', $productId)
-            ->orWhere('tdsynnex_sku_no', $productId)
-            ->value('product_name');
-
-        $reviewData = $review->toArray();
-        $reviewData['product_name'] = $productName ?: ('Product ' . $productId);
-
-        return response()->json([
-            'message' => 'Review submitted successfully.',
-            'data'    => $reviewData,
-        ], 201);
     }
 
     /**
