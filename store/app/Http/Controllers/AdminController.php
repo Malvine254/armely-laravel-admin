@@ -3243,33 +3243,21 @@ class AdminController extends Controller
             }
 
             if ($action === 'enrich_images') {
-                $message = 'Image enrichment started — fetching missing images from TD SYNNEX API (all products, chunk=50)…';
+                $message = 'Image enrichment queued in background on products-sync queue.';
                 $stateService->start($action, (int) $user->id, $message);
-                $job = new EnrichPriceAvailabilityImagesJob(50, 0, true);
-                $job->handle(app(TDSynnexService::class), $stateService);
-                $finalState = $stateService->get();
-                $message = $finalState['message'] ?? 'Image enrichment complete.';
+                EnrichPriceAvailabilityImagesJob::dispatch(50, 0, true);
             }
 
             if ($action === 'download_images') {
-                $message = 'Image download started — downloading all external URLs to local disk (chunk=100)…';
+                $message = 'Image download queued in background on products-sync queue.';
                 $stateService->start($action, (int) $user->id, $message);
-                $job = new DownloadProductImagesJob(0, 100);
-                $job->handle($stateService);
-                $finalState = $stateService->get();
-                $message = $finalState['message'] ?? 'Image download complete.';
+                DownloadProductImagesJob::dispatch(0, 100);
             }
 
             if ($action === 'reindex_products') {
-                $message = 'Re-indexing products inline — backfilling category_segment, is_hardware, clearing browse caches…';
+                $message = 'Re-index queued in background on products-sync queue.';
                 $stateService->start($action, (int) $user->id, $message);
-
-                // Run inline (no queue needed — pure DB + cache work)
-                $job = new ReindexProductsJob(true);
-                $job->handle(app(CatalogOperationStateService::class));
-
-                $finalState = $stateService->get();
-                $message = $finalState['message'] ?? 'Re-index complete.';
+                ReindexProductsJob::dispatch(true);
             }
 
             Cache::forget('catalog_ops_counts');
@@ -4470,4 +4458,5 @@ EOT;
         return response()->json(['success' => true, 'results' => array_slice($results, 0, 10)]);
     }
 }
+
 

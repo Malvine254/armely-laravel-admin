@@ -20,8 +20,8 @@
           </div>
         </button>
 
-        <!-- Nav Links: Categories - Hidden on mobile -->
-        <div class="hidden md:flex items-center justify-center gap-1 flex-1 mx-6 min-w-0">
+        <!-- Nav Links: Categories - Hidden below xl -->
+        <div class="hidden xl:flex items-center justify-center gap-1 flex-1 mx-6 min-w-0">
           <div
             v-for="cat in primaryCategories"
             :key="cat.value"
@@ -150,7 +150,7 @@
           <!-- Authenticated User Features -->
           <template v-if="authStore.isAuthenticated">
             <!-- Messages Icon -->
-            <button v-if="authStore.hasFeatureAccess('messages')" @click="goToMessages" class="hidden md:flex relative p-2 rounded-lg transition group text-slate-100 hover:text-cyan-300">
+            <button v-if="authStore.hasFeatureAccess('messages')" @click="goToMessages" class="hidden xl:flex relative p-2 rounded-lg transition group text-slate-100 hover:text-cyan-300">
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
               </svg>
@@ -158,7 +158,7 @@
             </button>
 
             <!-- Favorites Icon - Only for authenticated users -->
-            <button type="button" v-if="authStore.isAuthenticated" class="hidden md:flex relative p-2 rounded-lg transition group cursor-pointer text-slate-100 hover:text-cyan-300" @click="goToFavorites">
+            <button type="button" v-if="authStore.isAuthenticated" class="hidden xl:flex relative p-2 rounded-lg transition group cursor-pointer text-slate-100 hover:text-cyan-300" @click="goToFavorites">
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
               </svg>
@@ -167,7 +167,7 @@
             </button>
 
             <!-- Authenticated Account Menu -->
-            <div class="hidden md:block relative group">
+            <div class="hidden xl:block relative group">
               <button class="p-2 rounded-lg transition flex items-center gap-2 text-slate-100 hover:text-cyan-300">
                 <!-- Profile Picture or Initials -->
                 <img v-if="userProfilePictureUrl" :src="userProfilePictureUrl" :alt="authStore.user?.name" class="w-8 h-8 rounded-full object-cover border border-slate-300">
@@ -199,17 +199,17 @@
 
           <!-- Unauthenticated User - Login/Sign Up Buttons -->
           <template v-else>
-            <router-link to="/login" class="hidden md:inline-block px-4 py-2 rounded-lg font-semibold transition text-sm text-slate-100 border border-slate-300 hover:bg-white/10">
+            <router-link to="/login" class="hidden xl:inline-block px-4 py-2 rounded-lg font-semibold transition text-sm text-slate-100 border border-slate-300 hover:bg-white/10">
               Log In
             </router-link>
-            <router-link to="/register" class="hidden md:inline-block px-4 py-2 rounded-lg font-semibold transition text-sm text-white bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500">
+            <router-link to="/register" class="hidden xl:inline-block px-4 py-2 rounded-lg font-semibold transition text-sm text-white bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500">
               Sign Up
             </router-link>
           </template>
 
       <!-- Mobile Menu Button -->
           <button
-            class="md:hidden p-2 rounded-lg transition text-slate-100 hover:text-cyan-300"
+            class="xl:hidden p-2 rounded-lg transition text-slate-100 hover:text-cyan-300"
             @click="toggleMobileMenu"
             :aria-expanded="mobileMenuOpen ? 'true' : 'false'"
             aria-label="Toggle mobile menu"
@@ -225,7 +225,7 @@
       </div>
 
       <!-- Mobile Dropdown Menu -->
-      <div v-if="mobileMenuOpen" class="md:hidden pb-4">
+      <div v-if="mobileMenuOpen" class="xl:hidden pb-4">
         <div class="rounded-lg border border-white/20 overflow-hidden" style="background: linear-gradient(135deg, #0f172a 0%, #0a2948 45%, #1d4c6e 100%);">
           <!-- Products Section -->
           <div class="border-b border-white/10">
@@ -483,4 +483,3 @@ const handleLogout = async () => {
 }
 
 </script>
-

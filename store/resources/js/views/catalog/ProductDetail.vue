@@ -799,6 +799,32 @@ const loadRelatedProducts = async (productId, cacheKey, cachedRelated) => {
   }
 }
 
+const fetchReviews = async (productId, page = 1) => {
+  if (!productId) return
+  isLoadingReviews.value = true
+  try {
+    const response = await fetch(`${API_BASE_URL}/products/${productId}/reviews?page=${page}`)
+    if (!response.ok) throw new Error('Failed to load reviews')
+    const json = await response.json()
+
+    if (page === 1) {
+      reviews.value = json.data || []
+    } else {
+      reviews.value.push(...(json.data || []))
+    }
+
+    reviewsNextPage.value = (json.meta && json.meta.current_page < json.meta.last_page) ? json.meta.current_page + 1 : null
+
+    if (json.stats) {
+      reviewStats.value = json.stats
+    }
+  } catch (err) {
+    console.warn('Failed to fetch reviews:', err)
+  } finally {
+    isLoadingReviews.value = false
+  }
+}
+
 const loadProductDetail = async (productId) => {
   if (!productId) return
 
@@ -1427,32 +1453,6 @@ const toggleRelatedFavorite = (relatedProduct) => {
   toastStore.addToast(isNowFavorite ? `Added "${relatedProduct.productName}" to favorites` : `Removed "${relatedProduct.productName}" from favorites`, isNowFavorite ? 'success' : 'info')
 }
 
-// --- Reviews ---
-async function fetchReviews(productId, page = 1) {
-  if (!productId) return
-  isLoadingReviews.value = true
-  try {
-    const response = await fetch(`${API_BASE_URL}/products/${productId}/reviews?page=${page}`)
-    if (!response.ok) throw new Error('Failed to load reviews')
-    const json = await response.json()
-
-    if (page === 1) {
-      reviews.value = json.data || []
-    } else {
-      reviews.value.push(...(json.data || []))
-    }
-
-    reviewsNextPage.value = (json.meta && json.meta.current_page < json.meta.last_page) ? json.meta.current_page + 1 : null
-
-    if (json.stats) {
-      reviewStats.value = json.stats
-    }
-  } catch (err) {
-    console.warn('Failed to fetch reviews:', err)
-  } finally {
-    isLoadingReviews.value = false
-  }
-}
 
 const loadMoreReviews = () => {
   if (!reviewsNextPage.value || !product.value) return
