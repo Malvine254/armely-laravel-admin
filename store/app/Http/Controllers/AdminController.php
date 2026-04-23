@@ -2960,6 +2960,10 @@ class AdminController extends Controller
                     'system_settings' => [
                         'company_name' => (string) AppSetting::getValue('system.company_name', env('APP_NAME', 'Armely Store')),
                         'support_email' => (string) AppSetting::getValue('system.support_email', env('SUPPORT_EMAIL', config('mail.from.address', 'info@armely.com'))),
+                        'catalog_show_out_of_stock' => (bool) AppSetting::getValue('catalog.show_out_of_stock', false),
+                        'catalog_show_discontinued' => (bool) AppSetting::getValue('catalog.show_discontinued', false),
+                        'catalog_min_price' => (float) AppSetting::getValue('catalog.min_price', 100),
+                        'catalog_max_price' => (float) AppSetting::getValue('catalog.max_price', 3000),
                         'currency' => strtoupper((string) AppSetting::getValue('pricing.currency_code', env('APP_CURRENCY', 'USD'))),
                         'currency_rate' => AppSetting::getNumber('pricing.currency_rate', (float) env('APP_CURRENCY_RATE', 1)),
                         'timezone' => (string) AppSetting::getValue('system.timezone', env('APP_TIMEZONE', config('app.timezone', 'America/New_York'))),
@@ -3415,6 +3419,10 @@ class AdminController extends Controller
                 'company_name' => 'sometimes|string|max:255',
                 'support_email' => 'sometimes|email|max:255',
                 'timezone' => 'sometimes|string|max:100',
+                'catalog_show_out_of_stock' => 'sometimes|boolean',
+                'catalog_show_discontinued' => 'sometimes|boolean',
+                'catalog_min_price' => 'sometimes|numeric|min:0',
+                'catalog_max_price' => 'sometimes|numeric|min:0',
             ]);
 
             // Handle maintenance mode
@@ -3461,6 +3469,32 @@ class AdminController extends Controller
                 AppSetting::setValue('system.timezone', (string) $validated['timezone']);
             }
 
+            $catalogSettingsChanged = false;
+
+            if (array_key_exists('catalog_show_out_of_stock', $validated)) {
+                AppSetting::setValue('catalog.show_out_of_stock', (bool) $validated['catalog_show_out_of_stock']);
+                $catalogSettingsChanged = true;
+            }
+
+            if (array_key_exists('catalog_show_discontinued', $validated)) {
+                AppSetting::setValue('catalog.show_discontinued', (bool) $validated['catalog_show_discontinued']);
+                $catalogSettingsChanged = true;
+            }
+
+            if (array_key_exists('catalog_min_price', $validated)) {
+                AppSetting::setValue('catalog.min_price', (float) $validated['catalog_min_price']);
+                $catalogSettingsChanged = true;
+            }
+
+            if (array_key_exists('catalog_max_price', $validated)) {
+                AppSetting::setValue('catalog.max_price', (float) $validated['catalog_max_price']);
+                $catalogSettingsChanged = true;
+            }
+
+            if ($catalogSettingsChanged) {
+                \Illuminate\Support\Facades\Cache::flush();
+            }
+
             $envUpdates = [];
             if (array_key_exists('company_name', $validated)) {
                 $envUpdates['APP_NAME'] = (string) $validated['company_name'];
@@ -3501,6 +3535,10 @@ class AdminController extends Controller
                     'profit_rate_percent' => AppSetting::getNumber('pricing.profit_rate_percent', 0),
                     'currency' => strtoupper((string) AppSetting::getValue('pricing.currency_code', 'USD')),
                     'currency_rate' => AppSetting::getNumber('pricing.currency_rate', 1),
+                    'catalog_show_out_of_stock' => (bool) AppSetting::getValue('catalog.show_out_of_stock', false),
+                    'catalog_show_discontinued' => (bool) AppSetting::getValue('catalog.show_discontinued', false),
+                    'catalog_min_price' => (float) AppSetting::getValue('catalog.min_price', 100),
+                    'catalog_max_price' => (float) AppSetting::getValue('catalog.max_price', 3000),
                 ],
             ]);
         } catch (\Exception $e) {
