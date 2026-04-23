@@ -3235,6 +3235,14 @@ class AdminController extends Controller
             $action = (string) $validated['action'];
             $message = '';
             $stateService = app(CatalogOperationStateService::class);
+            $isAsyncQueue = config('queue.default') !== 'sync';
+
+            if (in_array($action, ['sync_catalog', 'enrich_images', 'download_images', 'reindex_products'], true) && !$isAsyncQueue) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Queue driver is set to sync. Configure an async queue (e.g. database/redis) and run queue workers to avoid request timeouts.',
+                ], 503);
+            }
 
             if ($action === 'sync_catalog') {
                 $message = 'Catalog sync queued in background on products-sync queue.';
