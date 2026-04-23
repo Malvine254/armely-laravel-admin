@@ -650,6 +650,11 @@ class ProductController extends Controller
                 'billing_models' => $billingModels,
                 'search' => $search,
                 'hardware_only' => (bool) config('tdsynnex.catalog.hardware_only', true),
+                // Catalog visibility settings — any change busts the cache
+                'show_oos' => (bool) \App\Models\AppSetting::getValue('catalog.show_out_of_stock', false),
+                'show_disc' => (bool) \App\Models\AppSetting::getValue('catalog.show_discontinued', false),
+                'cat_min' => \App\Models\AppSetting::getValue('catalog.min_price', null),
+                'cat_max' => \App\Models\AppSetting::getValue('catalog.max_price', null),
             ]))
         );
 
@@ -699,7 +704,33 @@ class ProductController extends Controller
         string $productType = 'hardware',
         string $category = ''
     ): array {
-        $query = Product::query()->where('vendor_id', 'TD SYNNEX')->where('is_available', true);
+        $showOutOfStock   = (bool) \App\Models\AppSetting::getValue('catalog.show_out_of_stock', false);
+        $showDiscontinued = (bool) \App\Models\AppSetting::getValue('catalog.show_discontinued', false);
+        $rawCatMin        = \App\Models\AppSetting::getValue('catalog.min_price', null);
+        $rawCatMax        = \App\Models\AppSetting::getValue('catalog.max_price', null);
+        $catalogMinPrice  = ($rawCatMin !== null && (float) $rawCatMin > 0) ? (float) $rawCatMin : null;
+        $catalogMaxPrice  = ($rawCatMax !== null && (float) $rawCatMax > 0) ? (float) $rawCatMax : null;
+
+        $query = Product::query()->where('vendor_id', 'TD SYNNEX');
+
+        if (!$showOutOfStock) {
+            $query->where('is_available', true);
+        }
+
+        if (!$showDiscontinued) {
+            $query->where(function ($q) {
+                $q->where('is_discontinued', false)->orWhereNull('is_discontinued');
+            });
+        }
+
+        if ($catalogMinPrice !== null && $minPrice === null) {
+            $query->whereRaw($this->preferredDbPriceSql() . ' >= ?', [$catalogMinPrice]);
+        }
+
+        if ($catalogMaxPrice !== null && $maxPrice === null) {
+            $query->whereRaw($this->preferredDbPriceSql() . ' <= ?', [$catalogMaxPrice]);
+        }
+
         $normalizedProductType = $this->normalizeProductType($productType);
 
         $isDefaultBrowse =

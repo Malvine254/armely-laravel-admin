@@ -449,6 +449,66 @@
           </label>
         </div>
 
+        <div class="border-t border-gray-200 pt-6">
+          <h4 class="font-semibold text-gray-900 mb-1">Catalog Visibility</h4>
+          <p class="text-sm text-gray-500 mb-4">Control which products are shown to customers in the storefront.</p>
+
+          <div class="space-y-3 mb-6">
+            <label class="flex items-center gap-3 cursor-pointer">
+              <input
+                v-model="systemSettings.catalog_show_out_of_stock"
+                type="checkbox"
+                class="w-5 h-5 rounded border-gray-300 bg-gray-50 focus:ring-[#2F5597]"
+                style="accent-color: #2F5597"
+              />
+              <div>
+                <p class="font-medium text-gray-900">Show Out-of-Stock Products</p>
+                <p class="text-sm text-gray-500">When enabled, products marked unavailable (is_available = false) will appear in the catalog</p>
+              </div>
+            </label>
+
+            <label class="flex items-center gap-3 cursor-pointer">
+              <input
+                v-model="systemSettings.catalog_show_discontinued"
+                type="checkbox"
+                class="w-5 h-5 rounded border-gray-300 bg-gray-50 focus:ring-[#2F5597]"
+                style="accent-color: #2F5597"
+              />
+              <div>
+                <p class="font-medium text-gray-900">Show Discontinued Products</p>
+                <p class="text-sm text-gray-500">When enabled, products flagged as discontinued will also appear</p>
+              </div>
+            </label>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Minimum Price ($)</label>
+              <input
+                v-model.number="systemSettings.catalog_min_price"
+                type="number"
+                min="0"
+                step="1"
+                class="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-900 placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
+                placeholder="e.g. 100"
+              />
+              <p class="text-xs text-gray-500 mt-1">Products below this price are hidden. Set to 0 to disable.</p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Maximum Price ($)</label>
+              <input
+                v-model.number="systemSettings.catalog_max_price"
+                type="number"
+                min="0"
+                step="1"
+                class="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-900 placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
+                placeholder="e.g. 3000"
+              />
+              <p class="text-xs text-gray-500 mt-1">Products above this price are hidden. Set to 0 to disable.</p>
+            </div>
+          </div>
+        </div>
+
         <div class="flex justify-end gap-3 border-t border-gray-200 pt-6">
           <button
             @click="saveSystemSettings"
@@ -1136,6 +1196,10 @@ const systemSettings = ref({
   maintenance_mode: false,
   tax_rate_percent: 0,
   profit_rate_percent: 0,
+  catalog_show_out_of_stock: false,
+  catalog_show_discontinued: false,
+  catalog_min_price: 100,
+  catalog_max_price: 3000,
 })
 
 const catalogOperations = ref({
