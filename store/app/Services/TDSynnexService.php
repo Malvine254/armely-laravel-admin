@@ -3003,16 +3003,25 @@ class TDSynnexService
         $q = rawurlencode($query);
 
         return [
-            'https://www.amazon.com/s?k=' . $q,
-            'https://www.aliexpress.com/wholesale?SearchText=' . $q,
-            'https://www.ebay.com/sch/i.html?_nkw=' . $q,
-            'https://www.walmart.com/search?q=' . $q,
-            'https://www.bestbuy.com/site/searchpage.jsp?st=' . $q,
-            'https://www.newegg.com/p/pl?d=' . $q,
+            // B2B-first: direct product lookup more likely to yield a clean hero image
             'https://www.cdw.com/search/?key=' . $q,
+            'https://www.cdwg.com/search/?key=' . $q,
+            'https://www.newegg.com/p/pl?d=' . $q,
             'https://www.bhphotovideo.com/c/search?Ntt=' . $q,
             'https://www.provantage.com/service/searchsvcs?QUERY=' . $q,
             'https://www.insight.com/en_US/search.html?q=' . $q,
+            'https://www.zones.com/site/product/index.html?id=' . $q,
+            'https://www.connection.com/IPA/Shop/Product/Search?q=' . $q,
+            'https://www.adorama.com/l/?searchinfo=' . $q,
+            'https://www.antonline.com/search/?query=' . $q,
+            // Consumer retailers – wide catalog coverage
+            'https://www.amazon.com/s?k=' . $q,
+            'https://www.bestbuy.com/site/searchpage.jsp?st=' . $q,
+            'https://www.walmart.com/search?q=' . $q,
+            'https://www.ebay.com/sch/i.html?_nkw=' . $q,
+            'https://www.staples.com/search?query=' . $q,
+            'https://www.officedepot.com/catalog/search.do?N=0&Ntt=' . $q,
+            'https://www.bhphotovideo.com/c/search?Ntt=' . $q,
         ];
     }
 
@@ -3079,6 +3088,30 @@ class TDSynnexService
             'AXIS' => 'https://www.axis.com/search?text=%s',
             'UBIQUITI' => 'https://ui.com/search?q=%s',
             'TP-LINK' => 'https://www.tp-link.com/us/search/?q=%s',
+            'JABRA' => 'https://www.jabra.com/en-US/search?text=%s',
+            'POLY' => 'https://www.poly.com/us/en/search#q=%s',
+            'PLANTRONICS' => 'https://www.poly.com/us/en/search#q=%s',
+            'YEALINK' => 'https://www.yealink.com/search?keyword=%s',
+            'BARCO' => 'https://www.barco.com/en/search#q=%s',
+            'SYNOLOGY' => 'https://www.synology.com/en-global/search?q=%s',
+            'KENSINGTON' => 'https://www.kensington.com/search/?text=%s',
+            'VIEWSONIC' => 'https://www.viewsonic.com/us/search/?keyword=%s',
+            'RICOH' => 'https://www.ricoh-usa.com/en/products/search?query=%s',
+            'NETSCOUT' => 'https://www.netscout.com/search?q=%s',
+            'CHECK POINT' => 'https://www.checkpoint.com/search/?q=%s',
+            'VERTIV' => 'https://www.vertiv.com/en-us/search/#q=%s',
+            'CYBERPOWER' => 'https://www.cyberpowersystems.com/search/?q=%s',
+            'HAVIS' => 'https://www.havis.com/search/?s=%s',
+            'BUFFALO' => 'https://www.buffalo-technology.com/search/?q=%s',
+            'PANDUIT' => 'https://www.panduit.com/en/search.html?q=%s',
+            'BLACK BOX' => 'https://www.blackbox.com/en-us/store/search?q=%s',
+            'CHIEF' => 'https://www.chiefmfg.com/search?query=%s',
+            'APPLE' => 'https://www.apple.com/shop/buy-mac?q=%s',
+            'MICROSOFT' => 'https://www.microsoft.com/en-us/search/shop/results?q=%s',
+            'TOSHIBA' => 'https://business.toshiba.com/search?q=%s',
+            'ROCSTOR' => 'https://www.rocstor.com/?s=%s',
+            'C2G' => 'https://www.cablestogo.com/search?searchtext=%s',
+            'NETGEAR' => 'https://www.netgear.com/search/?q=%s',
         ];
 
         $urls = [];

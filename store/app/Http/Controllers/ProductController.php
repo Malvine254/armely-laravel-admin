@@ -699,7 +699,7 @@ class ProductController extends Controller
         string $productType = 'hardware',
         string $category = ''
     ): array {
-        $query = Product::query()->where('vendor_id', 'TD SYNNEX');
+        $query = Product::query()->where('vendor_id', 'TD SYNNEX')->where('is_available', true);
         $normalizedProductType = $this->normalizeProductType($productType);
 
         $isDefaultBrowse =
