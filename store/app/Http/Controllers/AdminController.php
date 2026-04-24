@@ -1536,9 +1536,14 @@ class AdminController extends Controller
             $page = $request->get('page', 1);
             $pageSize = $request->get('pageSize', 20);
             $search = $request->get('search');
+            $status = trim((string) $request->get('status', ''));
             $sortBy = $request->get('sortBy', 'newest');
 
             $quotesQuery = Quote::query()->with('user', 'user.company', 'order');
+
+            if (in_array($status, ['pending_review', 'approved', 'rejected'], true)) {
+                $quotesQuery->where('status', $status);
+            }
 
             if ($search) {
                 $quotesQuery->where(function ($subQuery) use ($search) {

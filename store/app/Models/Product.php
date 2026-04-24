@@ -18,6 +18,7 @@ class Product extends Model
         'description',
         'base_price',
         'retail_price',
+        'quantity',
         'billing_model',
         'billing_frequency',
         'billing_term',
@@ -29,14 +30,26 @@ class Product extends Model
         'specifications',
         'images',
         'last_synced_at',
+        // Shadow columns — updated every 2 hours, applied to main columns at midnight
+        'live_price',
+        'live_retail_price',
+        'live_quantity',
+        'live_is_available',
+        'live_is_discontinued',
+        'live_checked_at',
     ];
 
     protected $casts = [
-        'specifications' => 'array',
-        'images' => 'array',
-        'last_synced_at' => 'datetime',
-        'base_price' => 'decimal:2',
-        'retail_price' => 'decimal:2',
+        'specifications'     => 'array',
+        'images'             => 'array',
+        'last_synced_at'     => 'datetime',
+        'live_checked_at'    => 'datetime',
+        'base_price'         => 'decimal:2',
+        'retail_price'       => 'decimal:2',
+        'live_price'         => 'decimal:2',
+        'live_retail_price'  => 'decimal:2',
+        'live_is_available'  => 'boolean',
+        'live_is_discontinued' => 'boolean',
     ];
 
     public function category(): BelongsTo

@@ -18,10 +18,19 @@ class Kernel extends ConsoleKernel
             ->name('check-expiring-quotes')
             ->withoutOverlapping();
 
-        // Sync product prices every 30 minutes to keep prices current
-        $schedule->job(\App\Jobs\SyncProductPricesJob::class)
-            ->everyThirtyMinutes()
-            ->name('sync-product-prices')
+        // Poll TD Synnex every 2 hours and write into live_* shadow columns only.
+        // This does NOT change displayed prices — it just captures the latest data.
+        $schedule->job(\App\Jobs\RefreshLivePricesJob::class, 'products-sync', 'database')
+            ->everyTwoHours()
+            ->name('refresh-live-prices')
+            ->withoutOverlapping();
+
+        // Midnight: compare live_* shadow columns against main columns and apply any changes
+        // to base_price, retail_price, quantity, is_available. This is the only time
+        // displayed prices/availability are updated.
+        $schedule->job(\App\Jobs\NightlyPriceSyncJob::class, 'products-sync', 'database')
+            ->dailyAt('00:00')
+            ->name('nightly-price-sync')
             ->withoutOverlapping();
 
         // Keep PriceAvailability catalog cached in local DB for fast storefront queries.
