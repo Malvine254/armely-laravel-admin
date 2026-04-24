@@ -2261,18 +2261,6 @@ class TDSynnexService
             }
 
             if (empty($images)) {
-                $scraped = $this->fetchScrapedProductImageData($sku, $meta, $description);
-                $scrapedImage = trim((string) ($scraped['image_url'] ?? ''));
-                if ($scrapedImage !== '' && $this->isValidImageUrl($scrapedImage)) {
-                    $images[] = [
-                        'imageUrl' => $scrapedImage,
-                        'source' => (string) ($scraped['source'] ?? 'scrape-approved'),
-                    ];
-                    $resolvedDescription = trim((string) ($scraped['description'] ?? ''));
-                }
-            }
-
-            if (empty($images)) {
                 $serpapi = $this->fetchSerpApiProductImageData($sku, $meta, $description);
                 $serpapiImage = trim((string) ($serpapi['image_url'] ?? ''));
                 if ($serpapiImage !== '' && $this->isValidImageUrl($serpapiImage)) {
@@ -2281,6 +2269,18 @@ class TDSynnexService
                         'source' => (string) ($serpapi['source'] ?? 'serpapi-image'),
                     ];
                     $resolvedDescription = trim((string) ($serpapi['description'] ?? ''));
+                }
+            }
+
+            if (empty($images)) {
+                $scraped = $this->fetchScrapedProductImageData($sku, $meta, $description);
+                $scrapedImage = trim((string) ($scraped['image_url'] ?? ''));
+                if ($scrapedImage !== '' && $this->isValidImageUrl($scrapedImage)) {
+                    $images[] = [
+                        'imageUrl' => $scrapedImage,
+                        'source' => (string) ($scraped['source'] ?? 'scrape-approved'),
+                    ];
+                    $resolvedDescription = trim((string) ($scraped['description'] ?? ''));
                 }
             }
 
