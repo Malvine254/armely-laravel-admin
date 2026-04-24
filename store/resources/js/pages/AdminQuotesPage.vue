@@ -61,14 +61,14 @@
       <div class="flex items-start gap-3">
         <i class="fas fa-lightbulb text-[#2F5597] mt-0.5 text-lg flex-shrink-0"></i>
         <p class="text-sm text-gray-700 font-medium">
-          <span class="text-[#2F5597] font-semibold">Review & Approve</span> pending customer quotes. Click <span class="font-semibold">Review</span> to see full details and approve or reject each quote.
+          <span class="text-[#2F5597] font-semibold">Manage customer quotes</span> across all statuses. Click <span class="font-semibold">Review</span> to view full details and take action where applicable.
         </p>
       </div>
     </div>
 
     <!-- Filters and Search -->
     <div class="rounded-xl border-0 shadow-lg bg-white p-6 mb-6">
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">Search Quote</label>
           <input
@@ -79,6 +79,15 @@
             class="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597] text-gray-900 placeholder-slate-500 transition"
            
           />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+          <select v-model="statusFilter" @change="applyFilters" class="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597] text-gray-900 transition">
+            <option value="" class="bg-white">All Statuses</option>
+            <option value="pending_review" class="bg-white">Pending Review</option>
+            <option value="approved" class="bg-white">Approved</option>
+            <option value="rejected" class="bg-white">Rejected</option>
+          </select>
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">Sort By</label>
@@ -146,7 +155,7 @@
             <tr v-if="quotes.length === 0" class="border-b border-gray-200 hover:bg-gray-50 transition">
               <td colspan="8" class="px-6 py-16 text-center">
                 <i class="fas fa-inbox text-5xl mb-4 block opacity-20 text-gray-500"></i>
-                <p class="text-gray-500 text-lg font-medium">No pending quotes found</p>
+                <p class="text-gray-500 text-lg font-medium">No quotes found</p>
               </td>
             </tr>
             <tr v-for="quote in quotes" :key="quote.id" class="border-b border-gray-200 hover:bg-gray-50 transition cursor-pointer">
@@ -509,6 +518,7 @@ const quotes = ref([])
 const selectedQuote = ref(null)
 const selectedQuotes = ref([])
 const searchQuery = ref('')
+const statusFilter = ref('')
 const sortBy = ref('newest')
 const currentPage = ref(1)
 const totalQuotes = ref(0)
@@ -734,11 +744,12 @@ const formatStatus = (status) => {
 const fetchQuotes = async () => {
   isLoading.value = true
   try {
-    const response = await api.get('/admin/quotes/pending', {
+    const response = await api.get('/admin/quotes', {
       params: {
         page: currentPage.value,
         pageSize: 10,
         search: searchQuery.value || undefined,
+        status: statusFilter.value || undefined,
         sortBy: sortBy.value || undefined
       }
     })
@@ -749,7 +760,7 @@ const fetchQuotes = async () => {
       lastPage.value = response.data.pagination.last_page
     }
   } catch (error) {
-    console.error('[fetchQuotes] Failed to fetch pending quotes:', error)
+    console.error('[fetchQuotes] Failed to fetch quotes:', error)
     alert('Failed to fetch quotes: ' + error.message)
   } finally {
     isLoading.value = false

@@ -815,6 +815,150 @@ class TDSynnexService
         ];
     }
 
+    /**
+     * Poll TD Synnex every 2 hours and write results into shadow live_* columns only.
+     * Main columns (base_price, retail_price, is_available, quantity) are NOT touched here —
+     * they are updated at midnight by applyNightlyPriceSync().
+     */
+    public function refreshLivePricesInDatabase(): array
+    {
+        $skus = $this->buildSkuListFromConfig();
+        if (empty($skus)) {
+            return ['checked' => 0];
+        }
+
+        $batchSize = max(1, (int) config('tdsynnex.price_availability.batch_size', 50));
+        $region    = (string) config('tdsynnex.price_availability.region', 'us');
+        $useTest   = (bool) config('tdsynnex.xml.use_test_by_default', true);
+        $checked   = 0;
+        $now       = now();
+
+        foreach (array_chunk($skus, $batchSize) as $skuBatch) {
+            $metadata   = $this->readApMetadata($skuBatch);
+            $xmlPayload = $this->buildPriceAvailabilityXmlPayload($skuBatch);
+            $response   = $this->postPriceAvailabilityXml($xmlPayload, $region, $useTest);
+            $rows       = [];
+
+            foreach ($this->extractPriceAvailabilityRows($response) as $row) {
+                $normalized = $this->normalizePriceAvailabilityProduct($row, $metadata);
+                if (empty($normalized)) {
+                    continue;
+                }
+
+                $sku = trim((string) ($normalized['sku'] ?? $normalized['productId'] ?? ''));
+                if ($sku === '') {
+                    continue;
+                }
+
+                $dbProductId = $this->normalizeProductDbId($sku);
+                if ($dbProductId <= 0) {
+                    continue;
+                }
+
+                $rows[] = [
+                    'tdsynnex_product_id'  => $dbProductId,
+                    'live_price'           => (float) ($normalized['productPrice'][0]['rsPrice'] ?? 0),
+                    'live_retail_price'    => (float) ($normalized['productPrice'][0]['msrp'] ?? $normalized['productPrice'][0]['rsPrice'] ?? 0),
+                    'live_quantity'        => (int) ($normalized['totalQuantity'] ?? $normalized['availableQuantity'] ?? 0),
+                    'live_is_available'    => !((bool) ($normalized['discontinueProduct'] ?? false)),
+                    'live_is_discontinued' => (bool) ($normalized['discontinueProduct'] ?? false),
+                    'live_checked_at'      => $now,
+                    // Required by upsert but not updated on conflict
+                    'updated_at'           => $now,
+                    'created_at'           => $now,
+                ];
+                $checked++;
+            }
+
+            if (empty($rows)) {
+                continue;
+            }
+
+            Product::upsert(
+                $rows,
+                ['tdsynnex_product_id'],
+                [
+                    'live_price',
+                    'live_retail_price',
+                    'live_quantity',
+                    'live_is_available',
+                    'live_is_discontinued',
+                    'live_checked_at',
+                    'updated_at',
+                ]
+            );
+        }
+
+        Log::info('Live price refresh complete', ['checked' => $checked, 'at' => $now->toDateTimeString()]);
+
+        return ['checked' => $checked];
+    }
+
+    /**
+     * Run at midnight: compare live_* shadow columns against main columns and apply any
+     * changes. Returns a summary of what changed.
+     */
+    public function applyNightlyPriceSync(): array
+    {
+        $cutoff  = now()->subHours(25); // accept live data up to 25h old
+        $changed = 0;
+        $total   = 0;
+        $log     = [];
+
+        Product::query()
+            ->whereNotNull('live_checked_at')
+            ->where('live_checked_at', '>=', $cutoff)
+            ->orderBy('id')
+            ->chunk(200, function ($products) use (&$changed, &$total, &$log) {
+                foreach ($products as $product) {
+                    $total++;
+                    $updates = [];
+
+                    // Price changed by more than 1 cent
+                    if ($product->live_price !== null && abs((float) $product->live_price - (float) $product->base_price) >= 0.01) {
+                        $updates['base_price'] = $product->live_price;
+                        $log[] = "SKU {$product->tdsynnex_sku_no}: price {$product->base_price} → {$product->live_price}";
+                    }
+
+                    if ($product->live_retail_price !== null && abs((float) $product->live_retail_price - (float) $product->retail_price) >= 0.01) {
+                        $updates['retail_price'] = $product->live_retail_price;
+                    }
+
+                    // Quantity always synced
+                    if ($product->live_quantity !== null && (int) $product->live_quantity !== (int) $product->quantity) {
+                        $updates['quantity'] = $product->live_quantity;
+                    }
+
+                    // Availability changed
+                    if ($product->live_is_available !== null && (bool) $product->live_is_available !== (bool) $product->is_available) {
+                        $updates['is_available']    = $product->live_is_available;
+                        $updates['is_discontinued'] = $product->live_is_discontinued;
+                        $log[] = "SKU {$product->tdsynnex_sku_no}: available {$product->is_available} → {$product->live_is_available}";
+                    }
+
+                    if (empty($updates)) {
+                        continue;
+                    }
+
+                    $updates['last_synced_at'] = now();
+                    $product->update($updates);
+                    $changed++;
+                }
+            });
+
+        Log::info('Nightly price sync complete', [
+            'total_compared' => $total,
+            'total_changed'  => $changed,
+            'changes'        => array_slice($log, 0, 50),
+        ]);
+
+        return [
+            'compared' => $total,
+            'changed'  => $changed,
+            'log'      => $log,
+        ];
+    }
+
     private function priceAvailabilityProductToDatabaseRow(array $product): ?array
     {
         $sku = trim((string) ($product['sku'] ?? $product['productId'] ?? ''));

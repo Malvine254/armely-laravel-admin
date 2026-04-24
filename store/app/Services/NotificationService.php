@@ -28,6 +28,7 @@ class NotificationService
                 return;
             }
 
+            $requesterEmail = strtolower(trim((string) ($quote->user->email ?? '')));
             $admins = User::where('role', 'admin')
                 ->where('status', 'active')
                 ->get();
@@ -36,6 +37,10 @@ class NotificationService
             foreach ($admins as $admin) {
                 $adminEmail = strtolower(trim((string) $admin->email));
                 if ($adminEmail === '' || isset($sentAdminEmails[$adminEmail])) {
+                    continue;
+                }
+                // Do not send "requires your review" to the same user who submitted the quote.
+                if ($requesterEmail !== '' && $adminEmail === $requesterEmail) {
                     continue;
                 }
 
@@ -66,6 +71,7 @@ class NotificationService
                 return;
             }
 
+            $requesterEmail = strtolower(trim((string) ($quote->user->email ?? '')));
             $admins = User::where('role', 'admin')
                 ->where('status', 'active')
                 ->get();
@@ -74,6 +80,10 @@ class NotificationService
             foreach ($admins as $admin) {
                 $adminEmail = strtolower(trim((string) $admin->email));
                 if ($adminEmail === '' || isset($sentAdminEmails[$adminEmail])) {
+                    continue;
+                }
+                // Do not send "review revision" to the same user who submitted the revision.
+                if ($requesterEmail !== '' && $adminEmail === $requesterEmail) {
                     continue;
                 }
 

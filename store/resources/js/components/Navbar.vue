@@ -68,7 +68,7 @@
           </div>
 
           <!-- More Categories Dropdown -->
-          <div class="relative" @mouseenter="moreCategoriesOpen = true" @mouseleave="moreCategoriesOpen = false">
+          <div v-if="overflowCategories.length > 0" class="relative" @mouseenter="moreCategoriesOpen = true" @mouseleave="moreCategoriesOpen = false">
             <button
               type="button"
               class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold text-slate-100 hover:text-cyan-300 hover:bg-white/10 transition"
@@ -282,7 +282,8 @@ const mobileProductsOpen = ref(false)
 
 const productCategories = ref([])
 const MENU_CATEGORIES_STORAGE_KEY = 'store_menu_categories_v2'
-const MENU_CATEGORIES_CACHE_TTL_MS = 15 * 60 * 1000
+const MENU_CATEGORIES_SOFT_TTL_MS = 15 * 60 * 1000
+const MENU_CATEGORIES_HARD_TTL_MS = 7 * 24 * 60 * 60 * 1000
 
 const primaryCategories = computed(() => productCategories.value.slice(0, 3))
 const overflowCategories = computed(() => productCategories.value.slice(3))
@@ -308,22 +309,31 @@ const normalizeMenuCategories = (rows) => {
 }
 
 const loadMenuCategoriesFromStorage = () => {
-  if (typeof window === 'undefined') return []
+  if (typeof window === 'undefined') return { data: [], stale: true }
 
   try {
     const raw = window.localStorage.getItem(MENU_CATEGORIES_STORAGE_KEY)
-    if (!raw) return []
+    if (!raw) return { data: [], stale: true }
 
     const parsed = JSON.parse(raw)
     const timestamp = Number(parsed?.timestamp || 0)
-    if (!timestamp || Date.now() - timestamp > MENU_CATEGORIES_CACHE_TTL_MS) {
+    if (!timestamp) {
       window.localStorage.removeItem(MENU_CATEGORIES_STORAGE_KEY)
-      return []
+      return { data: [], stale: true }
     }
 
-    return normalizeMenuCategories(parsed?.data)
+    const ageMs = Date.now() - timestamp
+    if (ageMs > MENU_CATEGORIES_HARD_TTL_MS) {
+      window.localStorage.removeItem(MENU_CATEGORIES_STORAGE_KEY)
+      return { data: [], stale: true }
+    }
+
+    return {
+      data: normalizeMenuCategories(parsed?.data),
+      stale: ageMs > MENU_CATEGORIES_SOFT_TTL_MS,
+    }
   } catch {
-    return []
+    return { data: [], stale: true }
   }
 }
 
@@ -359,12 +369,14 @@ const fetchMenuCategories = async () => {
 }
 
 onMounted(() => {
-  const cachedCategories = loadMenuCategoriesFromStorage()
-  if (cachedCategories.length > 0) {
-    productCategories.value = cachedCategories
+  const cached = loadMenuCategoriesFromStorage()
+  if (cached.data.length > 0) {
+    productCategories.value = cached.data
   }
 
-  fetchMenuCategories()
+  if (cached.stale || cached.data.length === 0) {
+    fetchMenuCategories()
+  }
 })
 
 const logoCandidates = (() => {

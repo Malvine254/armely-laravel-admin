@@ -411,6 +411,9 @@ const DEFAULT_BROWSE_MIN_PRICE = 100
 const CURATED_CACHE_VERSION = 3
 const ENABLE_SERVER_PREFETCH = false
 const ENABLE_VENDOR_COUNTS_API = true
+const PRODUCTS_RESULTS_SOFT_TTL_MS = 5 * 60 * 1000
+const PRODUCTS_RESULTS_HARD_TTL_MS = 24 * 60 * 60 * 1000
+const PRODUCTS_RESULTS_CACHE_PREFIX = 'products_results_cache_v4'
 const SIDEBAR_FACETS_CACHE_TTL_MS = 10 * 60 * 1000
 const SIDEBAR_VENDORS_STORAGE_KEY = 'products_sidebar_vendors_v1'
 const SIDEBAR_CATEGORIES_STORAGE_KEY = 'products_sidebar_categories_v1'
@@ -534,6 +537,67 @@ const saveSidebarFacetCache = (key, data) => {
     )
   } catch {
     // Ignore storage write errors
+  }
+}
+
+const hashString = (value = '') => {
+  let hash = 5381
+  const input = String(value || '')
+  for (let i = 0; i < input.length; i += 1) {
+    hash = ((hash << 5) + hash) + input.charCodeAt(i)
+    hash |= 0
+  }
+  return Math.abs(hash).toString(36)
+}
+
+const getProductsResultsStorageKey = (cacheKey) => {
+  return `${PRODUCTS_RESULTS_CACHE_PREFIX}:${hashString(cacheKey)}`
+}
+
+const loadProductResultsCache = (cacheKey) => {
+  if (typeof window === 'undefined') return null
+
+  try {
+    const storageKey = getProductsResultsStorageKey(cacheKey)
+    const raw = window.localStorage.getItem(storageKey)
+    if (!raw) return null
+
+    const parsed = JSON.parse(raw)
+    if (!parsed || parsed.cacheKey !== cacheKey) return null
+
+    const timestamp = Number(parsed.timestamp || 0)
+    if (!timestamp) {
+      window.localStorage.removeItem(storageKey)
+      return null
+    }
+
+    const ageMs = Date.now() - timestamp
+    if (ageMs > PRODUCTS_RESULTS_HARD_TTL_MS) {
+      window.localStorage.removeItem(storageKey)
+      return null
+    }
+
+    return {
+      stale: ageMs > PRODUCTS_RESULTS_SOFT_TTL_MS,
+      payload: parsed,
+    }
+  } catch {
+    return null
+  }
+}
+
+const saveProductResultsCache = (cacheKey, payload) => {
+  if (typeof window === 'undefined') return
+
+  try {
+    const storageKey = getProductsResultsStorageKey(cacheKey)
+    window.localStorage.setItem(storageKey, JSON.stringify({
+      cacheKey,
+      timestamp: Date.now(),
+      ...payload,
+    }))
+  } catch {
+    // Ignore localStorage write errors
   }
 }
 
@@ -1300,6 +1364,17 @@ const getCacheKey = (filters, page = 1, useServerPaged = false) => {
   })
 }
 
+const applyProductResultPayload = (result = {}) => {
+  products.value = Array.isArray(result.data) ? result.data : []
+  serverTotal.value = Number(result.total || products.value.length || 0)
+  serverPaged.value = Boolean(result.serverPaged)
+  serverHasMore.value = Boolean(result.hasMore)
+  serverTotalIsEstimate.value = Boolean(result.totalIsEstimate)
+  if (!Boolean(result.serverPaged)) {
+    updateVendorCounts(products.value)
+  }
+}
+
 const isDefaultCuratedBrowse = (filters = currentFilters.value) => {
   const hasClientOnlyFilters = requiresClientForFilters(filters)
   return !searchQuery.value && (filters?.vendors || []).length === 0 && !hasClientOnlyFilters
@@ -1338,20 +1413,25 @@ const performSearch = async (resetPage = true) => {
 
   const cacheKey = getCacheKey(currentFilters.value, currentPage.value, useServerPaged)
 
-  // Check if results are already cached (cache for 5 minutes)
+  // First use fast in-memory cache (soft TTL).
   if (requestCache.has(cacheKey)) {
     const cached = requestCache.get(cacheKey)
-    if (Date.now() - cached.timestamp < 5 * 60 * 1000) {
-      products.value = cached.data
-      serverTotal.value = Number(cached.total || cached.data?.length || 0)
-      serverPaged.value = Boolean(cached.serverPaged)
-      serverHasMore.value = Boolean(cached.hasMore)
-      serverTotalIsEstimate.value = Boolean(cached.totalIsEstimate)
-      if (!Boolean(cached.serverPaged)) {
-        updateVendorCounts(cached.data)
-      }
+    if (Date.now() - cached.timestamp < PRODUCTS_RESULTS_SOFT_TTL_MS) {
+      applyProductResultPayload(cached)
       loading.value = false
       pageLoading.value = false
+      return
+    }
+  }
+
+  // Then use persistent local cache (survives reloads) for instant paint.
+  const persistedCache = loadProductResultsCache(cacheKey)
+  if (persistedCache?.payload) {
+    applyProductResultPayload(persistedCache.payload)
+    loading.value = false
+    pageLoading.value = false
+
+    if (!persistedCache.stale) {
       return
     }
   }
@@ -1469,15 +1549,17 @@ const performSearch = async (resetPage = true) => {
           updateVendorCounts(loadedProducts)
         }
         
-        // Cache results locally
-        requestCache.set(cacheKey, {
+        // Cache results in-memory and persist for fast reloads.
+        const cachePayload = {
           data: products.value,
           total: loadedTotal,
           serverPaged: useServerPaged,
           hasMore: loadedHasMore,
           totalIsEstimate: loadedTotalIsEstimate,
           timestamp: Date.now()
-        })
+        }
+        requestCache.set(cacheKey, cachePayload)
+        saveProductResultsCache(cacheKey, cachePayload)
 
         // Prefetch is disabled to avoid extra concurrent API pressure.
         if (useServerPaged && ENABLE_SERVER_PREFETCH) {
@@ -1788,12 +1870,14 @@ const prefetchPage = (page) => {
       const records = Array.isArray(payload.records) ? payload.records : []
       const prefetchedTotal = Number(payload.total || records.length || 0)
 
-      requestCache.set(cacheKey, {
+      const cachePayload = {
         data: records,
         total: prefetchedTotal,
         serverPaged: true,
         timestamp: Date.now()
-      })
+      }
+      requestCache.set(cacheKey, cachePayload)
+      saveProductResultsCache(cacheKey, cachePayload)
     }
   }).catch(() => {
     // Silently ignore prefetch errors
