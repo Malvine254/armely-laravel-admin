@@ -2220,7 +2220,7 @@ class TDSynnexService
         $ttl = max(60, (int) config('tdsynnex.icecat.cache_ttl', 86400));
         $cacheKey = 'tdsynnex:assets:' . md5(json_encode([
             // Cache version bump forces re-evaluation of older no-match entries.
-            'icecat-v8-icecat-primary',
+            'ecommerce-v9-mpn-first',
             $sku,
             (string) ($meta['mpn'] ?? ''),
             (string) ($meta['manufacturer'] ?? ''),
@@ -2990,11 +2990,13 @@ class TDSynnexService
             }
         }
 
-        foreach ($this->buildManufacturerSearchUrls($meta) as $url) {
+        // E-commerce first: MPN-specific searches on B2B retailers are more accurate
+        // than manufacturer brand pages which may surface unrelated products.
+        foreach ($this->buildEcommerceSearchUrls($meta) as $url) {
             $candidates[$url] = true;
         }
 
-        foreach ($this->buildEcommerceSearchUrls($meta) as $url) {
+        foreach ($this->buildManufacturerSearchUrls($meta) as $url) {
             $candidates[$url] = true;
         }
 
@@ -3007,7 +3009,11 @@ class TDSynnexService
         $mpn = trim((string) ($meta['mpn'] ?? ''));
         $sku = trim((string) ($meta['sku'] ?? ''));
 
-        $query = trim(preg_replace('/\s+/', ' ', trim($manufacturer . ' ' . $mpn . ' ' . $sku)) ?: '');
+        // MPN-only gives the most precise product match on e-commerce search pages.
+        // Fall back to manufacturer+MPN if MPN is unavailable.
+        $query = $mpn !== ''
+            ? $mpn
+            : trim(preg_replace('/\s+/', ' ', trim($manufacturer . ' ' . $sku)) ?: '');
         if ($query === '') {
             return [];
         }
@@ -3326,6 +3332,14 @@ class TDSynnexService
         $strategy = strtolower(trim((string) config('tdsynnex.serpapi.query_strategy', 'hybrid')));
 
         $queries = [];
+
+        // High-precision e-commerce site queries — MPN-only searches on B2B retailers
+        // produce accurate product-specific images rather than generic brand imagery.
+        if ($mpn !== '') {
+            foreach (['cdw.com', 'newegg.com', 'provantage.com', 'bhphotovideo.com'] as $site) {
+                $queries['"' . $mpn . '" site:' . $site] = true;
+            }
+        }
 
         $titleFirstQueries = [
             trim($title . ' ' . $mpn),
