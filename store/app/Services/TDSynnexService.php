@@ -2273,6 +2273,18 @@ class TDSynnexService
             }
 
             if (empty($images)) {
+                $serpapi = $this->fetchSerpApiProductImageData($sku, $meta, $description);
+                $serpapiImage = trim((string) ($serpapi['image_url'] ?? ''));
+                if ($serpapiImage !== '' && $this->isValidImageUrl($serpapiImage)) {
+                    $images[] = [
+                        'imageUrl' => $serpapiImage,
+                        'source' => (string) ($serpapi['source'] ?? 'serpapi-image'),
+                    ];
+                    $resolvedDescription = trim((string) ($serpapi['description'] ?? ''));
+                }
+            }
+
+            if (empty($images)) {
                 // Last-resort fallback: Bing image search can find something, but links are less stable.
                 $bing = $this->fetchBingProductImageData($sku, $meta, $description);
                 $bingImage = trim((string) ($bing['image_url'] ?? ''));
