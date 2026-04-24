@@ -11,6 +11,7 @@ class SyncLocalProductImagesBySkuCommand extends Command
                             {--vendor=TD SYNNEX : Vendor scope in products.vendor_id}
                             {--dir=images/products : Public image directory relative to store/public}
                             {--limit=0 : Max number of product rows to update (0 = no limit)}
+                            {--priority-min-price=100 : Prioritize products whose preferred price is at least this amount}
                             {--dry-run : Preview updates without writing to the database}';
 
     protected $description = 'Map local images named by SKU (e.g. public/images/products/12345.jpg) back into products.images';
@@ -20,6 +21,7 @@ class SyncLocalProductImagesBySkuCommand extends Command
         $vendor = trim((string) $this->option('vendor'));
         $dir = trim((string) $this->option('dir'));
         $limit = max(0, (int) $this->option('limit'));
+        $priorityMinPrice = max(0, (float) $this->option('priority-min-price'));
         $dryRun = (bool) $this->option('dry-run');
 
         if ($vendor === '') {
@@ -68,6 +70,10 @@ class SyncLocalProductImagesBySkuCommand extends Command
                 });
 
             $products = $query->get();
+            $products = $products
+                ->sortByDesc(fn (Product $product) => $this->isPriorityCandidate($product, $priorityMinPrice) ? 1 : 0)
+                ->values();
+
             foreach ($products as $product) {
                 $scanned++;
 
@@ -107,6 +113,7 @@ class SyncLocalProductImagesBySkuCommand extends Command
 
         $mode = $dryRun ? 'DRY RUN' : 'APPLIED';
         $this->info("{$mode}: scanned={$scanned} matched_products={$matchedProducts} updated={$updated}");
+        $this->line("Priority rule: price >= {$priorityMinPrice} and availableQuantity > 0 were processed first.");
 
         return self::SUCCESS;
     }
@@ -212,6 +219,18 @@ class SyncLocalProductImagesBySkuCommand extends Command
         }
 
         return $normalized;
+    }
+
+    private function isPriorityCandidate(Product $product, float $minPrice): bool
+    {
+        $spec = is_array($product->specifications) ? $product->specifications : [];
+        $availableQuantity = (int) ($spec['availableQuantity'] ?? $spec['totalQuantity'] ?? 0);
+        $price = max(
+            (float) ($product->retail_price ?? 0),
+            (float) ($product->base_price ?? 0)
+        );
+
+        return $availableQuantity > 0 && $price >= $minPrice;
     }
 
     private function isAcceptableImageRef(string $url): bool
