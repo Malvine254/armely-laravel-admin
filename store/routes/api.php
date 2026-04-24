@@ -56,6 +56,9 @@ Route::prefix('v1')->group(function () {
     Route::delete('/auth/account', [AuthController::class, 'deleteAccount'])->middleware(['auth:sanctum', 'active.user']);
     Route::put('/auth/change-password', [AuthController::class, 'changePassword'])->middleware(['auth:sanctum', 'active.user']);
 
+    // Image proxy — serves external product images through our server to avoid CORS/CSP issues
+    Route::get('/img-proxy', [ProductController::class, 'imageProxy']);
+
     // Products endpoints
     Route::get('/products', [ProductController::class, 'index']);
     Route::get('/products/{productId}', [ProductController::class, 'show']);

@@ -1421,11 +1421,16 @@ class ProductController extends Controller
                 continue;
             }
 
-            // Convert relative local paths (/images/...) to absolute URLs using APP_URL.
-            // Stored paths like /images/products/12345.jpg work on localhost but break on
-            // subdirectory deployments (e.g. https://armely.com/store/) where the browser
-            // would request https://armely.com/images/... (missing the /store/ prefix).
-            $absoluteUrl = $this->resolveImageUrl($url);
+            // External URLs are routed through the server-side proxy so the browser never
+            // makes cross-origin image requests (avoids CORS/CSP failures and timeouts).
+            // The proxy downloads and caches each image locally on first hit.
+            if (str_starts_with($url, 'http')) {
+                $proxyBase = rtrim((string) config('app.url'), '/') . '/api/v1/img-proxy?url=';
+                $absoluteUrl = $proxyBase . base64_encode($url);
+            } else {
+                // Convert relative local paths (/images/...) to absolute URLs using APP_URL.
+                $absoluteUrl = $this->resolveImageUrl($url);
+            }
 
             if (isset($seen[$absoluteUrl])) {
                 continue;
@@ -2573,5 +2578,72 @@ class ProductController extends Controller
 
             return false;
         });
+    }
+
+    /**
+     * Server-side image proxy: fetches an external image URL and caches it locally.
+     * Browsers call this instead of the raw external URL to avoid CORS/CSP blocks.
+     *
+     * Usage: GET /api/v1/img-proxy?url=<base64-encoded-url>
+     */
+    public function imageProxy(Request $request): \Symfony\Component\HttpFoundation\Response
+    {
+        $encoded = (string) $request->query('url', '');
+        if ($encoded === '') {
+            abort(400, 'Missing url parameter');
+        }
+
+        $url = base64_decode($encoded, true);
+        if ($url === false || !filter_var($url, FILTER_VALIDATE_URL)) {
+            abort(400, 'Invalid url parameter');
+        }
+
+        // Only proxy http(s) images — reject anything else for safety.
+        if (!preg_match('#^https?://#i', $url)) {
+            abort(400, 'Only http/https URLs are supported');
+        }
+
+        $destDir = public_path(config('tdsynnex.local_images.dest_dir', 'images/products'));
+        $urlPrefix = rtrim((string) config('tdsynnex.local_images.url_prefix', '/images/products'), '/');
+        $cacheKey = 'img-proxy:' . md5($url);
+
+        // Check if we already have a local copy (stored path in cache).
+        $localUrl = Cache::get($cacheKey);
+        if ($localUrl) {
+            return redirect($localUrl, 301);
+        }
+
+        try {
+            $response = \Illuminate\Support\Facades\Http::withHeaders([
+                'User-Agent' => 'Mozilla/5.0 (compatible; ArmelyStore/1.0)',
+            ])->timeout(10)->get($url);
+
+            if (!$response->successful() || strlen($response->body()) < 500) {
+                abort(404, 'Remote image not available');
+            }
+
+            $ext = strtolower(pathinfo(parse_url($url, PHP_URL_PATH) ?? '', PATHINFO_EXTENSION));
+            if (!in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'], true)) {
+                $ext = 'jpg';
+            }
+
+            $filename = md5($url) . '.' . $ext;
+            $localPath = $destDir . DIRECTORY_SEPARATOR . $filename;
+            $localUrl = $urlPrefix . '/' . $filename;
+
+            if (!is_dir($destDir)) {
+                mkdir($destDir, 0775, true);
+            }
+
+            file_put_contents($localPath, $response->body());
+
+            // Cache the local URL for 30 days so subsequent requests redirect immediately.
+            Cache::put($cacheKey, $localUrl, now()->addDays(30));
+
+            return redirect($localUrl, 301);
+        } catch (\Throwable $e) {
+            Log::debug('imageProxy failed', ['url' => $url, 'error' => $e->getMessage()]);
+            abort(502, 'Could not fetch remote image');
+        }
     }
 }

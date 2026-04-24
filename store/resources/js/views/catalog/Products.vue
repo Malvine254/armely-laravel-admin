@@ -151,21 +151,17 @@
               <div v-for="product in paginatedProducts" :key="product.productId" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden group hover:shadow-lg transition" style="border: 1px solid rgb(229, 231, 235);" @mouseenter="$event.currentTarget.style.borderColor='#cce4f5'" @mouseleave="$event.currentTarget.style.borderColor='rgb(229, 231, 235)'">
                 <!-- Product Image -->
                 <div class="bg-gradient-to-br from-gray-200 to-gray-300 h-40 flex items-center justify-center transition relative overflow-hidden" style="background: linear-gradient(135deg, rgb(229, 231, 235), rgb(209, 213, 219));">
-                  <!-- Skeleton shimmer while image loads -->
-                  <div v-if="getPrimaryImageUrl(product) && !imgLoadMap[product.productId] && !imgErrorMap[product.productId]" class="absolute inset-0 skeleton-shimmer"></div>
                   <!-- Actual Product Image if available -->
                   <img
                     v-if="getPrimaryImageUrl(product) && !imgErrorMap[product.productId]"
                     :src="getPrimaryImageUrl(product)"
                     :alt="product.productName"
-                    class="w-full h-full object-cover transition-opacity duration-300"
-                    :class="imgLoadMap[product.productId] ? 'opacity-100' : 'opacity-0'"
+                    class="w-full h-full object-cover"
                     :loading="paginatedProducts.indexOf(product) < 2 ? 'eager' : 'lazy'"
                     :fetchpriority="paginatedProducts.indexOf(product) === 0 ? 'high' : 'auto'"
                     decoding="async"
                     sizes="(min-width: 1024px) 320px, (min-width: 768px) 50vw, 100vw"
                     width="320" height="160"
-                    @load="onImgLoad(product.productId)"
                     @error="onImgError(product.productId)"
                   />
                   
@@ -395,10 +391,13 @@ const favoritesStore = useFavoritesStore()
 const authStore = useAuthStore()
 const { loadPricingSettings, getCatalogPriceWithRules, convertFromUsd, formatWithCurrency } = usePricingSettings()
 const pricingReady = ref(false)
-const imgLoadMap = reactive({})
 const imgErrorMap = reactive({})
-const onImgLoad = (productId) => { imgLoadMap[productId] = true }
 const onImgError = (productId) => { imgErrorMap[productId] = true }
+const resetImgErrorMap = () => {
+  Object.keys(imgErrorMap).forEach((key) => {
+    delete imgErrorMap[key]
+  })
+}
 const ITEMS_PER_PAGE = 9
 const API_PAGE_SIZE = 100
 const SEARCH_TRACK_DEBOUNCE_MS = 15000
@@ -413,7 +412,7 @@ const ENABLE_SERVER_PREFETCH = false
 const ENABLE_VENDOR_COUNTS_API = true
 const PRODUCTS_RESULTS_SOFT_TTL_MS = 5 * 60 * 1000
 const PRODUCTS_RESULTS_HARD_TTL_MS = 24 * 60 * 60 * 1000
-const PRODUCTS_RESULTS_CACHE_PREFIX = 'products_results_cache_v4'
+const PRODUCTS_RESULTS_CACHE_PREFIX = 'products_results_cache_v5'
 const SIDEBAR_FACETS_CACHE_TTL_MS = 10 * 60 * 1000
 const SIDEBAR_VENDORS_STORAGE_KEY = 'products_sidebar_vendors_v1'
 const SIDEBAR_CATEGORIES_STORAGE_KEY = 'products_sidebar_categories_v1'
@@ -1365,6 +1364,7 @@ const getCacheKey = (filters, page = 1, useServerPaged = false) => {
 }
 
 const applyProductResultPayload = (result = {}) => {
+  resetImgErrorMap()
   products.value = Array.isArray(result.data) ? result.data : []
   serverTotal.value = Number(result.total || products.value.length || 0)
   serverPaged.value = Boolean(result.serverPaged)
@@ -1537,6 +1537,7 @@ const performSearch = async (resetPage = true) => {
         loadedTotal = loadedProducts.length
       }
 
+      resetImgErrorMap()
       products.value = loadedProducts
 
       serverTotal.value = loadedTotal
@@ -2016,6 +2017,23 @@ const getPrimaryImageUrl = (product) => {
   const appendUrl = (value) => {
     const rawUrl = String(value || '').trim()
     if (!rawUrl) return
+    if (rawUrl.startsWith('/images/')) {
+      const host = (typeof window !== 'undefined' ? String(window.location.hostname || '').toLowerCase() : '')
+      const isLocalHost = host === '127.0.0.1' || host === 'localhost'
+      const storeUrl = buildStoreUrl(rawUrl)
+
+      // Local XAMPP serves product files at /images/*; production subpath deployments
+      // may require /store/images/*. Keep both, but prefer the right one per host.
+      if (isLocalHost) {
+        candidates.push(rawUrl)
+        if (storeUrl !== rawUrl) candidates.push(storeUrl)
+      } else {
+        candidates.push(storeUrl)
+        if (storeUrl !== rawUrl) candidates.push(rawUrl)
+      }
+      return
+    }
+
     candidates.push(rawUrl)
   }
 
