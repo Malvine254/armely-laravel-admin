@@ -1046,6 +1046,22 @@ class TDSynnexService
         return $this->priceAvailabilityProductToDatabaseRow($product);
     }
 
+    private function preferredImageSyncPriceSql(): string
+    {
+        return 'COALESCE(NULLIF(retail_price, 0), NULLIF(base_price, 0), 0)';
+    }
+
+    private function imageSyncMinPrice(): mixed
+    {
+        $configured = config('tdsynnex.image_sync.min_price', null);
+        if ($configured !== null && $configured !== '') {
+            return $configured;
+        }
+
+        $catalogMin = \App\Models\AppSetting::getValue('catalog.min_price', null);
+        return ($catalogMin !== null && (float) $catalogMin > 0) ? $catalogMin : null;
+    }
+
     public function priceAvailabilityImageSyncQuery(array $filters = []): \Illuminate\Database\Eloquent\Builder
     {
         $vendorId = trim((string) ($filters['vendor'] ?? 'TD SYNNEX'));
@@ -1123,27 +1139,25 @@ class TDSynnexService
 
         if ($currentShowingOnly) {
             // Match storefront-ready catalog rows to avoid scanning the entire imported feed.
-            $query->where(function ($q) {
-                $q->where('is_available', 1)
-                    ->orWhereNull('is_available');
-            })->where(function ($q) {
+            $query->where('is_available', 1)
+                ->where(function ($q) {
                 $q->where('is_discontinued', 0)
                     ->orWhereNull('is_discontinued');
             });
 
             if ((bool) config('tdsynnex.image_sync.hide_zero_price', true)) {
-                $query->where('base_price', '>', 0);
+                $query->whereRaw($this->preferredImageSyncPriceSql() . ' > 0');
             }
 
-            $minPrice = config('tdsynnex.image_sync.min_price', 200);
+            $minPrice = $this->imageSyncMinPrice();
             if ($minPrice !== null && $minPrice !== '') {
-                $query->where('base_price', '>=', (float) $minPrice);
+                $query->whereRaw($this->preferredImageSyncPriceSql() . ' >= ?', [(float) $minPrice]);
             }
 
             if ((bool) config('tdsynnex.image_sync.catalog_clean', true)) {
                 $query->whereRaw("LOWER(COALESCE(mfg_part_no, '')) <> 'shipping'")
                     ->whereRaw("LOWER(COALESCE(product_name, '')) NOT LIKE '%shipping%'")
-                    ->whereRaw("NOT ((COALESCE(base_price, 0) <= 0.05) AND (LOWER(COALESCE(product_name, '')) LIKE '%support%' OR LOWER(COALESCE(product_name, '')) LIKE '%warranty%' OR LOWER(COALESCE(product_name, '')) LIKE '%consulting%' OR LOWER(COALESCE(product_name, '')) LIKE '%implementation%' OR LOWER(COALESCE(product_name, '')) LIKE '%annual fee%' OR LOWER(COALESCE(product_name, '')) LIKE '%training%'))");
+                    ->whereRaw("NOT ((" . $this->preferredImageSyncPriceSql() . " <= 0.05) AND (LOWER(COALESCE(product_name, '')) LIKE '%support%' OR LOWER(COALESCE(product_name, '')) LIKE '%warranty%' OR LOWER(COALESCE(product_name, '')) LIKE '%consulting%' OR LOWER(COALESCE(product_name, '')) LIKE '%implementation%' OR LOWER(COALESCE(product_name, '')) LIKE '%annual fee%' OR LOWER(COALESCE(product_name, '')) LIKE '%training%'))");
             }
 
             if ((bool) config('tdsynnex.catalog.hardware_only', true)) {
@@ -1157,28 +1171,25 @@ class TDSynnexService
             if ($scopeCap > 0) {
                 $scopeIds = Product::query()
                     ->where('vendor_id', $vendorId)
-                    ->where(function ($q) {
-                        $q->where('is_available', 1)
-                            ->orWhereNull('is_available');
-                    })
+                    ->where('is_available', 1)
                     ->where(function ($q) {
                         $q->where('is_discontinued', 0)
                             ->orWhereNull('is_discontinued');
                     });
 
                 if ((bool) config('tdsynnex.image_sync.hide_zero_price', true)) {
-                    $scopeIds->where('base_price', '>', 0);
+                    $scopeIds->whereRaw($this->preferredImageSyncPriceSql() . ' > 0');
                 }
 
-                $minPrice = config('tdsynnex.image_sync.min_price', 200);
+                $minPrice = $this->imageSyncMinPrice();
                 if ($minPrice !== null && $minPrice !== '') {
-                    $scopeIds->where('base_price', '>=', (float) $minPrice);
+                    $scopeIds->whereRaw($this->preferredImageSyncPriceSql() . ' >= ?', [(float) $minPrice]);
                 }
 
                 if ((bool) config('tdsynnex.image_sync.catalog_clean', true)) {
                     $scopeIds->whereRaw("LOWER(COALESCE(mfg_part_no, '')) <> 'shipping'")
                         ->whereRaw("LOWER(COALESCE(product_name, '')) NOT LIKE '%shipping%'")
-                        ->whereRaw("NOT ((COALESCE(base_price, 0) <= 0.05) AND (LOWER(COALESCE(product_name, '')) LIKE '%support%' OR LOWER(COALESCE(product_name, '')) LIKE '%warranty%' OR LOWER(COALESCE(product_name, '')) LIKE '%consulting%' OR LOWER(COALESCE(product_name, '')) LIKE '%implementation%' OR LOWER(COALESCE(product_name, '')) LIKE '%annual fee%' OR LOWER(COALESCE(product_name, '')) LIKE '%training%'))");
+                        ->whereRaw("NOT ((" . $this->preferredImageSyncPriceSql() . " <= 0.05) AND (LOWER(COALESCE(product_name, '')) LIKE '%support%' OR LOWER(COALESCE(product_name, '')) LIKE '%warranty%' OR LOWER(COALESCE(product_name, '')) LIKE '%consulting%' OR LOWER(COALESCE(product_name, '')) LIKE '%implementation%' OR LOWER(COALESCE(product_name, '')) LIKE '%annual fee%' OR LOWER(COALESCE(product_name, '')) LIKE '%training%'))");
                 }
 
                 if ((bool) config('tdsynnex.catalog.hardware_only', true)) {
@@ -1322,8 +1333,21 @@ class TDSynnexService
                 $didUpdate = false;
                 if (!empty($images)) {
                     $images = $this->localizeImages($images, $lookupKey);
-                    $product->images = $images;
-                    $didUpdate = true;
+                    $images = $this->filterLocalProductImages($images);
+                    if (!empty($images)) {
+                        $product->images = $images;
+                        $didUpdate = true;
+                    }
+                }
+
+                if (empty($images) && $preferWeb) {
+                    $existingImages = is_array($product->images) ? $product->images : [];
+                    $existingLocalImages = $this->filterLocalProductImages($existingImages);
+                    if ($existingImages !== $existingLocalImages) {
+                        $product->images = $existingLocalImages;
+                        $images = $existingLocalImages;
+                        $didUpdate = true;
+                    }
                 }
 
                 $currentDesc = trim((string) $product->description);
@@ -1875,13 +1899,13 @@ class TDSynnexService
     }
 
     /**
-     * Download external image URLs to public/images/products/ and return the images
-     * array with updated local paths. Falls back to the original URL on failure.
+     * Download external image URLs to public/images/products/ and return only
+     * images that have local public paths.
      */
     private function localizeImages(array $images, string $nameKey): array
     {
         if (!config('tdsynnex.local_images.enabled', true)) {
-            return $images;
+            return $this->filterLocalProductImages($images);
         }
 
         $destDir  = public_path(config('tdsynnex.local_images.dest_dir', 'images/products'));
@@ -1903,7 +1927,11 @@ class TDSynnexService
 
             $url = trim((string) ($img['imageUrl'] ?? ''));
 
-            if ($url === '' || str_starts_with($url, '/images/')) {
+            if ($url === '') {
+                continue;
+            }
+
+            if ($this->isLocalProductImageUrl($url)) {
                 $result[] = $img;
                 continue;
             }
@@ -1932,16 +1960,36 @@ class TDSynnexService
                     file_put_contents($localPath, $response->body());
                     $result[] = array_merge($img, ['imageUrl' => $localUrl]);
                 } else {
-                    $result[] = $img;
                     Log::debug('localizeImages: download failed', ['key' => $nameKey, 'url' => $url, 'status' => $response->status()]);
                 }
             } catch (\Throwable $e) {
-                $result[] = $img;
                 Log::debug('localizeImages: exception', ['key' => $nameKey, 'url' => $url, 'error' => $e->getMessage()]);
             }
         }
 
-        return $result;
+        return $this->filterLocalProductImages($result);
+    }
+
+    private function filterLocalProductImages(array $images): array
+    {
+        return array_values(array_filter($images, function ($img): bool {
+            if (!is_array($img)) {
+                return false;
+            }
+
+            return $this->isLocalProductImageUrl((string) ($img['imageUrl'] ?? ''));
+        }));
+    }
+
+    private function isLocalProductImageUrl(string $url): bool
+    {
+        $url = trim($url);
+        if ($url === '') {
+            return false;
+        }
+
+        $urlPrefix = rtrim((string) config('tdsynnex.local_images.url_prefix', '/images/products'), '/');
+        return str_starts_with($url, $urlPrefix . '/') || str_starts_with($url, '/images/');
     }
 
     private function persistProductImagesBySku(string $sku, array $images): void
@@ -1972,6 +2020,10 @@ class TDSynnexService
                 $nameKey = trim((string) ($product->mfg_part_no ?? ''));
             }
             $images  = $this->localizeImages($images, $nameKey);
+            $images = $this->filterLocalProductImages($images);
+            if (empty($images)) {
+                return;
+            }
 
             $product->images = $images;
             $product->save();
@@ -2336,8 +2388,11 @@ class TDSynnexService
         $didUpdate = false;
         if (!empty($images)) {
             $images = $this->localizeImages($images, $lookupKey);
-            $product->images = $images;
-            $didUpdate = true;
+            $images = $this->filterLocalProductImages($images);
+            if (!empty($images)) {
+                $product->images = $images;
+                $didUpdate = true;
+            }
         }
 
         if ($longDescription !== '' && trim((string) $product->description) === '') {

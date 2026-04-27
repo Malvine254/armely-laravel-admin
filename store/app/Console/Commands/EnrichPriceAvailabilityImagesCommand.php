@@ -166,6 +166,7 @@ class EnrichPriceAvailabilityImagesCommand extends Command
                 $sku = trim((string) ($product->tdsynnex_sku_no ?? $product->tdsynnex_product_id ?? ''));
                 $status = $didUpdate ? '<fg=green>✓ image saved</>' : '<fg=yellow>✗ no image</>';
                 $imageCount = count($images);
+                $status = $imageCount > 0 ? '<fg=green>image downloaded</>' : '<fg=yellow>no downloaded image</>';
 
                 $command->line(
                     sprintf(
