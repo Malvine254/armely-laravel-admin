@@ -773,6 +773,52 @@ const saveCachedPayload = (prefix, key, data) => {
   }
 }
 
+const getRelatedFilterQuery = () => {
+  const params = new URLSearchParams()
+  const returnTo = sanitizeReturnTo(route.query.returnTo || '/products')
+
+  try {
+    const parsed = new URL(returnTo, window.location.origin)
+    const source = parsed.searchParams
+    const mappings = [
+      ['q', 'q'],
+      ['search', 'search'],
+      ['minPrice', 'min_price'],
+      ['min_price', 'min_price'],
+      ['maxPrice', 'max_price'],
+      ['max_price', 'max_price'],
+      ['hide_zero_price', 'hide_zero_price'],
+      ['catalog_clean', 'catalog_clean'],
+      ['productType', 'product_type'],
+      ['product_type', 'product_type'],
+      ['category', 'category'],
+    ]
+
+    mappings.forEach(([from, to]) => {
+      const value = source.get(from)
+      if (value !== null && value !== '') {
+        params.set(to, value)
+      }
+    })
+
+    mappings.forEach(([from, to]) => {
+      const value = route.query[from]
+      if (!params.has(to) && value !== undefined && value !== null && value !== '') {
+        params.set(to, Array.isArray(value) ? value[0] : value)
+      }
+    })
+  } catch {
+    // Ignore invalid returnTo values; sanitizeReturnTo already keeps navigation safe.
+  }
+
+  return params
+}
+
+const getRelatedCacheKey = (productId) => {
+  const query = getRelatedFilterQuery().toString()
+  return query ? `${productId}?${query}` : String(productId)
+}
+
 const loadRelatedProducts = async (productId, cacheKey, cachedRelated) => {
   if (cachedRelated) {
     relatedProducts.value = cachedRelated
@@ -780,7 +826,9 @@ const loadRelatedProducts = async (productId, cacheKey, cachedRelated) => {
   }
 
   try {
-    const response = await fetchWithTimeout(`${API_BASE_URL}/products/${productId}/related`)
+    const query = getRelatedFilterQuery().toString()
+    const relatedUrl = `${API_BASE_URL}/products/${productId}/related${query ? `?${query}` : ''}`
+    const response = await fetchWithTimeout(relatedUrl)
     if (!response.ok) {
       relatedProducts.value = []
       relatedProductsCache.set(cacheKey, [])
@@ -829,17 +877,18 @@ const loadProductDetail = async (productId) => {
   if (!productId) return
 
   const cacheKey = String(productId)
+  const relatedCacheKey = getRelatedCacheKey(productId)
   const cachedProduct = productDetailCache.get(cacheKey)
     ?? loadCachedPayload(PRODUCT_DETAIL_STORAGE_PREFIX, cacheKey)
-  const cachedRelated = relatedProductsCache.get(cacheKey)
-    ?? loadCachedPayload(PRODUCT_RELATED_STORAGE_PREFIX, cacheKey)
+  const cachedRelated = relatedProductsCache.get(relatedCacheKey)
+    ?? loadCachedPayload(PRODUCT_RELATED_STORAGE_PREFIX, relatedCacheKey)
 
   if (cachedProduct) {
     productDetailCache.set(cacheKey, cachedProduct)
   }
 
   if (cachedRelated) {
-    relatedProductsCache.set(cacheKey, cachedRelated)
+    relatedProductsCache.set(relatedCacheKey, cachedRelated)
   }
 
   isLoading.value = true
@@ -887,7 +936,7 @@ const loadProductDetail = async (productId) => {
   }
 
   if (product.value) {
-    void loadRelatedProducts(productId, cacheKey, cachedRelated)
+    void loadRelatedProducts(productId, relatedCacheKey, cachedRelated)
     void fetchReviews(productId)
   }
 }
@@ -1568,4 +1617,3 @@ const formatReviewDate = (dateStr) => {
   return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
 }
 </script>
-

@@ -14,7 +14,7 @@ class SyncLocalProductImagesBySkuCommand extends Command
                             {--priority-min-price=100 : Prioritize products whose preferred price is at least this amount}
                             {--dry-run : Preview updates without writing to the database}';
 
-    protected $description = 'Map local images named by SKU (e.g. public/images/products/12345.jpg) back into products.images';
+    protected $description = 'Map local images named by SKU/MPN/title (e.g. public/images/products/12345.jpg) back into products.images';
 
     public function handle(): int
     {
@@ -37,18 +37,19 @@ class SyncLocalProductImagesBySkuCommand extends Command
             return self::FAILURE;
         }
 
-        $skuToFile = $this->buildSkuToFileMap($absoluteDir);
-        if (empty($skuToFile)) {
-            $this->warn('No SKU-named image files found in directory.');
+        $imageFiles = $this->buildImageFileMap($absoluteDir);
+        if (empty($imageFiles)) {
+            $this->warn('No local image files found in directory.');
             return self::SUCCESS;
         }
 
-        $this->info('Found ' . count($skuToFile) . ' SKU image files.');
+        $this->info('Found ' . count($imageFiles) . ' local image files.');
 
         $updated = 0;
         $scanned = 0;
         $matchedProducts = 0;
 
+        $skuToFile = $this->numericSkuFileMap($imageFiles);
         $skuKeys = array_keys($skuToFile);
         foreach (array_chunk($skuKeys, 500) as $skuChunk) {
             $intChunk = [];
@@ -77,21 +78,21 @@ class SyncLocalProductImagesBySkuCommand extends Command
             foreach ($products as $product) {
                 $scanned++;
 
-                $skuCandidates = $this->extractSkuCandidates($product);
-                $matchedSku = null;
-                foreach ($skuCandidates as $candidate) {
-                    if (isset($skuToFile[$candidate])) {
-                        $matchedSku = $candidate;
+                $matchCandidates = $this->extractImageMatchCandidates($product);
+                $matchedKey = null;
+                foreach ($matchCandidates as $candidate) {
+                    if (isset($imageFiles[$candidate])) {
+                        $matchedKey = $candidate;
                         break;
                     }
                 }
 
-                if ($matchedSku === null) {
+                if ($matchedKey === null) {
                     continue;
                 }
 
                 $matchedProducts++;
-                $localUrl = '/' . $relativeDir . '/' . $skuToFile[$matchedSku];
+                $localUrl = '/' . $relativeDir . '/' . $imageFiles[$matchedKey];
                 $newImages = $this->injectPrimaryLocalImage($product->images, $localUrl);
 
                 if ($newImages === $product->images) {
@@ -118,7 +119,7 @@ class SyncLocalProductImagesBySkuCommand extends Command
         return self::SUCCESS;
     }
 
-    private function buildSkuToFileMap(string $absoluteDir): array
+    private function buildImageFileMap(string $absoluteDir): array
     {
         $map = [];
         $priority = [
@@ -146,22 +147,33 @@ class SyncLocalProductImagesBySkuCommand extends Command
             }
 
             $name = trim((string) pathinfo($file, PATHINFO_FILENAME));
-            if ($name === '' || !ctype_digit($name)) {
+            if ($name === '') {
                 continue;
             }
 
-            if (!isset($map[$name])) {
-                $map[$name] = $file;
-                continue;
-            }
+            foreach ($this->fileMatchKeys($name) as $key) {
+                if (!isset($map[$key])) {
+                    $map[$key] = $file;
+                    continue;
+                }
 
-            $currentExt = strtolower(pathinfo($map[$name], PATHINFO_EXTENSION));
-            if (($priority[$ext] ?? 999) < ($priority[$currentExt] ?? 999)) {
-                $map[$name] = $file;
+                $currentExt = strtolower(pathinfo($map[$key], PATHINFO_EXTENSION));
+                if (($priority[$ext] ?? 999) < ($priority[$currentExt] ?? 999)) {
+                    $map[$key] = $file;
+                }
             }
         }
 
         return $map;
+    }
+
+    private function numericSkuFileMap(array $imageFiles): array
+    {
+        return array_filter(
+            $imageFiles,
+            static fn (string $file, string $key): bool => ctype_digit($key),
+            ARRAY_FILTER_USE_BOTH
+        );
     }
 
     private function extractSkuCandidates($product): array
@@ -181,6 +193,53 @@ class SyncLocalProductImagesBySkuCommand extends Command
         }
 
         return array_keys($out);
+    }
+
+    private function extractImageMatchCandidates(Product $product): array
+    {
+        $spec = is_array($product->specifications) ? $product->specifications : [];
+        $rawCandidates = [
+            (string) ($product->tdsynnex_sku_no ?? ''),
+            (string) ($product->tdsynnex_product_id ?? ''),
+            (string) ($spec['sku'] ?? ''),
+            (string) ($product->mfg_part_no ?? ''),
+            (string) ($spec['mpn'] ?? ''),
+            (string) ($spec['manufacturerPartNumber'] ?? ''),
+            (string) ($product->product_name ?? ''),
+            (string) ($product->name ?? ''),
+        ];
+
+        $keys = [];
+        foreach ($rawCandidates as $candidate) {
+            foreach ($this->fileMatchKeys($candidate) as $key) {
+                $keys[$key] = true;
+            }
+        }
+
+        return array_keys($keys);
+    }
+
+    private function fileMatchKeys(string $value): array
+    {
+        $value = strtolower(trim($value));
+        if ($value === '') {
+            return [];
+        }
+
+        $withoutSizeSuffix = preg_replace('/-\d+$/', '', $value) ?: $value;
+        $slug = preg_replace('/[^a-z0-9]+/', '-', $withoutSizeSuffix) ?: '';
+        $slug = trim($slug, '-');
+        $compact = preg_replace('/[^a-z0-9]+/', '', $withoutSizeSuffix) ?: '';
+
+        $keys = [];
+        foreach ([$value, $withoutSizeSuffix, $slug, $compact] as $key) {
+            $key = strtolower(trim((string) $key));
+            if ($key !== '') {
+                $keys[$key] = true;
+            }
+        }
+
+        return array_keys($keys);
     }
 
     private function injectPrimaryLocalImage($images, string $localUrl): array

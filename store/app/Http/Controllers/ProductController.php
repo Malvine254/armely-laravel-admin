@@ -1665,9 +1665,13 @@ class ProductController extends Controller
             $authenticatedUser = $this->authenticatedApiUser($request);
 
             if ($this->tdsynnexService->usesPriceAvailabilityAsProductSource()) {
-                $cacheKey = sprintf('pa_related_products:%s', md5((string) $productId));
-                $relatedProducts = Cache::remember($cacheKey, 1800, function () use ($productId) {
-                    return $this->getPriceAvailabilityRelatedFromDatabase($productId, 16);
+                $relatedFilters = $this->relatedRequestFilters($request);
+                $cacheKey = sprintf('pa_related_products:%s', md5(json_encode([
+                    'product_id' => (string) $productId,
+                    'filters' => $relatedFilters,
+                ])));
+                $relatedProducts = Cache::remember($cacheKey, 1800, function () use ($productId, $relatedFilters) {
+                    return $this->getPriceAvailabilityRelatedFromDatabase($productId, 16, $relatedFilters);
                 });
 
                 $relatedProducts = $this->applySpecialPricingToProductList($relatedProducts, $authenticatedUser);
@@ -1730,7 +1734,28 @@ class ProductController extends Controller
         }
     }
 
-    private function getPriceAvailabilityRelatedFromDatabase(string $skuOrProductId, int $limit = 8): array
+    private function relatedRequestFilters(Request $request): array
+    {
+        $minPrice = $request->query('min_price', $request->query('minPrice'));
+        $maxPrice = $request->query('max_price', $request->query('maxPrice'));
+        $hideZero = filter_var($request->query('hide_zero_price', true), FILTER_VALIDATE_BOOLEAN);
+        $catalogClean = filter_var($request->query('catalog_clean', false), FILTER_VALIDATE_BOOLEAN);
+        $productType = $this->normalizeProductType((string) $request->query('product_type', ''));
+        $category = trim((string) $request->query('category', ''));
+        $search = trim((string) $request->query('search', $request->query('q', '')));
+
+        return [
+            'min_price' => ($minPrice !== null && $minPrice !== '') ? (float) $minPrice : null,
+            'max_price' => ($maxPrice !== null && $maxPrice !== '') ? (float) $maxPrice : null,
+            'hide_zero' => $hideZero,
+            'catalog_clean' => $catalogClean,
+            'product_type' => $productType,
+            'category' => $category,
+            'search' => $search,
+        ];
+    }
+
+    private function getPriceAvailabilityRelatedFromDatabase(string $skuOrProductId, int $limit = 8, array $filters = []): array
     {
         $target = $this->getPriceAvailabilityProductFromDatabase($skuOrProductId);
         if (!$target) {
@@ -1754,6 +1779,52 @@ class ProductController extends Controller
 
         $query = Product::query()->where('vendor_id', 'TD SYNNEX');
         $this->applyCuratedDefaultBrowseFilters($query);
+
+        if (($filters['hide_zero'] ?? true) === true) {
+            $query->whereRaw($this->preferredDbPriceSql() . ' > 0');
+        }
+
+        if (($filters['min_price'] ?? null) !== null) {
+            $query->whereRaw($this->preferredDbPriceSql() . ' >= ?', [(float) $filters['min_price']]);
+        }
+
+        if (($filters['max_price'] ?? null) !== null) {
+            $query->whereRaw($this->preferredDbPriceSql() . ' <= ?', [(float) $filters['max_price']]);
+        }
+
+        if (($filters['catalog_clean'] ?? false) === true) {
+            $query->whereRaw("LOWER(COALESCE(mfg_part_no, '')) <> 'shipping'")
+                ->whereRaw("LOWER(COALESCE(product_name, '')) NOT LIKE '%shipping%'")
+                ->whereRaw("NOT ((" . $this->preferredDbPriceSql() . " <= 0.05) AND (LOWER(COALESCE(product_name, '')) LIKE '%support%' OR LOWER(COALESCE(product_name, '')) LIKE '%warranty%' OR LOWER(COALESCE(product_name, '')) LIKE '%consulting%' OR LOWER(COALESCE(product_name, '')) LIKE '%implementation%' OR LOWER(COALESCE(product_name, '')) LIKE '%annual fee%' OR LOWER(COALESCE(product_name, '')) LIKE '%training%'))");
+        }
+
+        $productType = $this->normalizeProductType((string) ($filters['product_type'] ?? ''));
+        if ($productType !== '' && $productType !== 'hardware') {
+            $this->applyProductTypeFilterToQuery($query, $productType);
+        }
+
+        $category = trim((string) ($filters['category'] ?? ''));
+        if ($category !== '') {
+            $segments = array_values(array_filter(
+                array_map('trim', explode(',', $category)),
+                static fn (string $seg): bool => (bool) preg_match('/^\d{2}$/', $seg)
+            ));
+            if (count($segments) === 1) {
+                $query->where('category_segment', $segments[0]);
+            } elseif (count($segments) > 1) {
+                $query->whereIn('category_segment', $segments);
+            }
+        }
+
+        $requestedSearch = trim((string) ($filters['search'] ?? ''));
+        if ($requestedSearch !== '') {
+            $like = '%' . strtolower($requestedSearch) . '%';
+            $query->where(function ($q) use ($like) {
+                $q->orWhereRaw("LOWER(COALESCE(product_name, '')) LIKE ?", [$like])
+                    ->orWhereRaw("LOWER(COALESCE(description, '')) LIKE ?", [$like])
+                    ->orWhereRaw("LOWER(COALESCE(mfg_part_no, '')) LIKE ?", [$like]);
+            });
+        }
 
         if ($searchWord !== '') {
             $query->whereRaw('MATCH(product_name, description, mfg_part_no) AGAINST(? IN BOOLEAN MODE)', [$searchWord . '*']);
