@@ -2,7 +2,7 @@
 
 namespace App\Jobs;
 
-use App\Mail\PriceSyncStatusMail;
+use App\Services\AzureGraphMailService;
 use App\Services\TDSynnexService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -11,7 +11,6 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\Middleware\WithoutOverlapping;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 
 class NightlyPriceSyncJob implements ShouldQueue
 {
@@ -25,23 +24,19 @@ class NightlyPriceSyncJob implements ShouldQueue
         return [(new WithoutOverlapping('nightly-price-sync'))->expireAfter(3700)];
     }
 
-    public function handle(TDSynnexService $service): void
+    public function handle(TDSynnexService $service, AzureGraphMailService $mailer): void
     {
         if (!$service->usesPriceAvailabilityAsProductSource()) {
             return;
         }
 
-        $adminEmail = config('mail.admin_email', env('ADMIN_EMAIL', env('SUPPORT_EMAIL')));
-
         try {
-            Mail::to($adminEmail)->cc('malvine.owuor@armely.com')->send(new PriceSyncStatusMail(
-                'Nightly Price Sync',
-                'started',
-                ['scheduled_at' => now()->format('Y-m-d H:i:s T')],
-            ));
+            $mailer->sendSyncStatusEmail('Nightly Price Sync', 'started', [
+                'Scheduled At' => now()->format('Y-m-d H:i:s T'),
+            ]);
 
-            $start  = microtime(true);
-            $result = $service->applyNightlyPriceSync();
+            $start   = microtime(true);
+            $result  = $service->applyNightlyPriceSync();
             $elapsed = round(microtime(true) - $start, 1);
 
             Log::info('NightlyPriceSyncJob complete', [
@@ -49,24 +44,17 @@ class NightlyPriceSyncJob implements ShouldQueue
                 'changed'  => $result['changed'],
             ]);
 
-            Mail::to($adminEmail)->cc('malvine.owuor@armely.com')->send(new PriceSyncStatusMail(
-                'Nightly Price Sync',
-                'completed',
-                [
-                    'Products Compared' => $result['compared'],
-                    'Products Updated'  => $result['changed'],
-                    'Duration (s)'      => $elapsed,
-                    'log'               => $result['log'],
-                ],
-            ));
+            $mailer->sendSyncStatusEmail('Nightly Price Sync', 'completed', [
+                'Products Compared' => $result['compared'],
+                'Products Updated'  => $result['changed'],
+                'Duration (s)'      => $elapsed,
+            ]);
         } catch (\Throwable $e) {
             Log::error('NightlyPriceSyncJob failed', ['error' => $e->getMessage()]);
 
-            Mail::to($adminEmail)->cc('malvine.owuor@armely.com')->send(new PriceSyncStatusMail(
-                'Nightly Price Sync',
-                'failed',
-                ['error' => $e->getMessage()],
-            ));
+            $mailer->sendSyncStatusEmail('Nightly Price Sync', 'failed', [
+                'Error' => $e->getMessage(),
+            ]);
 
             throw $e;
         }

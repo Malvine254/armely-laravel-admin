@@ -1301,6 +1301,64 @@ class AzureGraphMailService
         return 'store_mail_suppressed:' . sha1($this->normalizeEmail($email));
     }
 
+    public function sendSyncStatusEmail(string $jobName, string $status, array $details = []): bool
+    {
+        if (!$this->isConfigured()) {
+            return false;
+        }
+
+        $adminEmail = env('FROM_EMAIL', env('ADMIN_EMAIL', env('SUPPORT_EMAIL', 'admin@armely.com')));
+        $safeJob    = e($jobName);
+        $safeStatus = e($status);
+        $supportEmail = env('SUPPORT_EMAIL', 'info@armely.com');
+
+        $statusColors = [
+            'started'   => ['#1d4ed8', '#dbeafe', 'Started'],
+            'completed' => ['#15803d', '#dcfce7', 'Completed'],
+            'failed'    => ['#b91c1c', '#fee2e2', 'Failed'],
+        ];
+        [$headerColor, $badgeBg, $badgeLabel] = $statusColors[$status] ?? ['#374151', '#f3f4f6', ucfirst($status)];
+
+        $rows = '';
+        foreach ($details as $label => $value) {
+            if ($label === 'log' && is_array($value)) {
+                continue;
+            }
+            $safeLabel = e((string) $label);
+            $safeValue = e((string) $value);
+            $rows .= "<tr><td style='padding:6px 12px;color:#6b7280;font-size:13px;border-bottom:1px solid #f3f4f6'>{$safeLabel}</td>"
+                   . "<td style='padding:6px 12px;font-size:13px;font-weight:600;border-bottom:1px solid #f3f4f6'>{$safeValue}</td></tr>";
+        }
+
+        $tableBlock = $rows ? "<table style='width:100%;border-collapse:collapse;margin-top:16px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden'>{$rows}</table>" : '';
+
+        $html = $this->buildModernNotificationEmail(
+            "{$safeJob} — {$badgeLabel}",
+            "
+                <p style='margin:0 0 14px;font-size:16px;color:#1f2937'>Armely Store sync job status update.</p>
+                <p style='margin:0 0 8px;color:#4b5563'><strong>Job:</strong> {$safeJob}</p>
+                <p style='margin:0 0 18px;color:#4b5563'><strong>Status:</strong> <span style='background:{$badgeBg};color:{$headerColor};padding:2px 10px;border-radius:999px;font-size:12px;font-weight:700'>{$badgeLabel}</span></p>
+                {$tableBlock}
+                <p style='margin:18px 0 0;font-size:12px;color:#9ca3af'>Sent from Armely Store backend at " . now()->format('Y-m-d H:i:s T') . "</p>
+            ",
+            'Go to Admin Panel',
+            config('app.url') . '/store/admin',
+            "Contact {$supportEmail} if you have questions about this sync.",
+            $headerColor,
+            $badgeLabel,
+            $headerColor
+        );
+
+        $text = "{$safeJob} — {$badgeLabel}\n\n";
+        foreach ($details as $label => $value) {
+            if ($label !== 'log') {
+                $text .= "{$label}: {$value}\n";
+            }
+        }
+
+        return $this->sendEmail($adminEmail, "Armely Sync: {$safeJob} {$badgeLabel}", $html, $text);
+    }
+
     private function isRecipientDeliveryFailure(int $status, string $body): bool
     {
         if (!in_array($status, [400, 404, 422], true)) {

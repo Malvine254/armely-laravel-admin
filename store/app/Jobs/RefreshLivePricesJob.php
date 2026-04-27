@@ -2,7 +2,7 @@
 
 namespace App\Jobs;
 
-use App\Mail\PriceSyncStatusMail;
+use App\Services\AzureGraphMailService;
 use App\Services\TDSynnexService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -11,7 +11,6 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\Middleware\WithoutOverlapping;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 
 class RefreshLivePricesJob implements ShouldQueue
 {
@@ -25,44 +24,34 @@ class RefreshLivePricesJob implements ShouldQueue
         return [(new WithoutOverlapping('refresh-live-prices'))->expireAfter(3700)];
     }
 
-    public function handle(TDSynnexService $service): void
+    public function handle(TDSynnexService $service, AzureGraphMailService $mailer): void
     {
         if (!$service->usesPriceAvailabilityAsProductSource()) {
             return;
         }
 
-        $adminEmail = config('mail.admin_email', env('ADMIN_EMAIL', env('SUPPORT_EMAIL')));
-
         try {
-            Mail::to($adminEmail)->cc('malvine.owuor@armely.com')->send(new PriceSyncStatusMail(
-                'Live Price Refresh',
-                'started',
-                ['scheduled_at' => now()->format('Y-m-d H:i:s T')],
-            ));
+            $mailer->sendSyncStatusEmail('Live Price Refresh', 'started', [
+                'Scheduled At' => now()->format('Y-m-d H:i:s T'),
+            ]);
 
-            $start  = microtime(true);
-            $result = $service->refreshLivePricesInDatabase();
+            $start   = microtime(true);
+            $result  = $service->refreshLivePricesInDatabase();
             $elapsed = round(microtime(true) - $start, 1);
 
             Log::info('RefreshLivePricesJob complete', $result);
 
-            Mail::to($adminEmail)->cc('malvine.owuor@armely.com')->send(new PriceSyncStatusMail(
-                'Live Price Refresh',
-                'completed',
-                [
-                    'Products Checked' => $result['checked'],
-                    'Duration (s)'     => $elapsed,
-                    'Next Step'        => 'Nightly sync at midnight will apply any changes to displayed prices',
-                ],
-            ));
+            $mailer->sendSyncStatusEmail('Live Price Refresh', 'completed', [
+                'Products Checked' => $result['checked'],
+                'Duration (s)'     => $elapsed,
+                'Next Step'        => 'Nightly sync at midnight will apply changes to displayed prices',
+            ]);
         } catch (\Throwable $e) {
             Log::error('RefreshLivePricesJob failed', ['error' => $e->getMessage()]);
 
-            Mail::to($adminEmail)->cc('malvine.owuor@armely.com')->send(new PriceSyncStatusMail(
-                'Live Price Refresh',
-                'failed',
-                ['error' => $e->getMessage()],
-            ));
+            $mailer->sendSyncStatusEmail('Live Price Refresh', 'failed', [
+                'Error' => $e->getMessage(),
+            ]);
 
             throw $e;
         }
