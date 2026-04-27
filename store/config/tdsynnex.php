@@ -196,9 +196,23 @@ return [
         'num' => env('SERPAPI_NUM', 5),
         'timeout' => env('SERPAPI_TIMEOUT', 10),
         'connect_timeout' => env('SERPAPI_CONNECT_TIMEOUT', 3),
-        'max_queries' => env('SERPAPI_MAX_QUERIES', 3),
+        'max_queries' => env('SERPAPI_MAX_QUERIES', 8),
         'retry_attempts' => env('SERPAPI_RETRY_ATTEMPTS', 3),
         'retry_delay_ms' => env('SERPAPI_RETRY_DELAY_MS', 350),
+        'site_domains' => array_values(array_filter(array_map('trim', explode(',', (string) env(
+            'SERPAPI_SITE_DOMAINS',
+            'cdw.com,cdwg.com,insight.com,connection.com,zones.com,shi.com,provantage.com,bhphotovideo.com,newegg.com,'.
+            'staples.com,officedepot.com,bestbuy.com,amazon.com,walmart.com,'.
+            'apc.com,eaton.com,tripplite.eaton.com,hpe.com,hp.com,dell.com,lenovo.com,cisco.com,arubanetworks.com,lexmark.com,xerox.com,startech.com,viewsonic.com,axis.com,samsung.com,intel.com'
+        ))))),
+    ],
+
+    'gtin_lookup' => [
+        'enabled' => env('GTIN_IMAGE_LOOKUP_ENABLED', true),
+        'endpoint' => env('GTIN_IMAGE_LOOKUP_ENDPOINT', 'https://www.gtinsearch.org/api/items'),
+        'timeout' => env('GTIN_IMAGE_LOOKUP_TIMEOUT', 4),
+        'connect_timeout' => env('GTIN_IMAGE_LOOKUP_CONNECT_TIMEOUT', 2),
+        'user_agent' => env('GTIN_IMAGE_LOOKUP_USER_AGENT', 'ArmelyImageBot/1.0 (+https://armely.com)'),
     ],
 
     // Primary web image source used by resolver when flat-file images are missing.
@@ -233,7 +247,7 @@ return [
         'allowed_domains' => array_values(array_filter(array_map('trim', explode(',', (string) env(
             'IMAGE_SCRAPING_ALLOWED_DOMAINS',
             // Manufacturer sites
-            'hp.com,dell.com,lenovo.com,cisco.com,belkin.com,apc.com,fortinet.com,veeam.com,logitech.com,startech.com,netgear.com,'.
+            'hp.com,hpe.com,dell.com,lenovo.com,cisco.com,belkin.com,apc.com,fortinet.com,veeam.com,logitech.com,startech.com,netgear.com,'.
             'juniper.net,aruba.com,arubanetworks.com,paloaltonetworks.com,checkpoint.com,netscout.com,'.
             'jabra.com,poly.com,yealink.com,barco.com,synology.com,kensington.com,viewsonic.com,ricoh-usa.com,'.
             'vertiv.com,cyberpowersystems.com,eaton.com,tripplite.eaton.com,'.
@@ -243,14 +257,14 @@ return [
             'supermicro.com,asus.com,acer.com,msi.com,sony.com,toshiba.com,apple.com,microsoft.com,'.
             'havis.com,buffalo-technology.com,panduit.com,blackbox.com,chiefmfg.com,rocstor.com,cablestogo.com,ui.com,tp-link.com,'.
             // B2B e-commerce
-            'cdw.com,cdwg.com,newegg.com,bhphotovideo.com,provantage.com,insight.com,zones.com,connection.com,adorama.com,antonline.com,'.
+            'cdw.com,cdwg.com,newegg.com,bhphotovideo.com,provantage.com,insight.com,zones.com,connection.com,adorama.com,antonline.com,shi.com,'.
             // Consumer e-commerce
             'amazon.com,bestbuy.com,walmart.com,ebay.com,staples.com,officedepot.com'
         ))))),
         'allowed_image_domains' => array_values(array_filter(array_map('trim', explode(',', (string) env(
             'IMAGE_SCRAPING_ALLOWED_IMAGE_DOMAINS',
             // Manufacturer CDNs
-            'hp.com,dell.com,lenovo.com,cisco.com,belkin.com,apc.com,logitech.com,startech.com,netgear.com,'.
+            'hp.com,hpe.com,dell.com,lenovo.com,cisco.com,belkin.com,apc.com,logitech.com,startech.com,netgear.com,'.
             'jabra.com,poly.com,yealink.com,barco.com,synology.com,viewsonic.com,'.
             'seagate.com,westerndigital.com,kingston.com,crucial.com,zebra.com,honeywell.com,'.
             'epson.com,usa.canon.com,brother-usa.com,xerox.com,samsung.com,lg.com,intel.com,'.
@@ -259,7 +273,7 @@ return [
             'scene7.com,akamaihd.net,cloudfront.net,imgix.net,'.
             'ssl-images-amazon.com,m.media-amazon.com,images-na.ssl-images-amazon.com,'.
             'ssl-product-images.www8-hp.com,i.dell.com,'.
-            'newegg.com,bhphotovideo.com,cdw.com,'.
+            'newegg.com,bhphotovideo.com,cdw.com,cdwg.com,insight.com,connection.com,zones.com,shi.com,'.
             'img.bestbuy.com,i5.walmartimages.com,ebayimg.com,'.
             'images.provantage.com,d3nevzfk7ii3be.cloudfront.net'
         ))))),
