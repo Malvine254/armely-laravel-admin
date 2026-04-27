@@ -1161,11 +1161,7 @@ class TDSynnexService
             }
 
             if ((bool) config('tdsynnex.catalog.hardware_only', true)) {
-                $nonHardwareRegex = '(license|lic/sa|subscription|software|office|windows svr|exchange svr|core cal|\\bcal\\b|addtl prod|step up|coverage|warranty|support|maintenance|consulting|implementation|training|care pack|onsite repair|extended service|service agreement|sa olv|olv nl)';
-                $query->whereRaw(
-                    "LOWER(CONCAT(' ', COALESCE(product_name, ''), ' ', COALESCE(description, ''), ' ')) NOT REGEXP ?",
-                    [$nonHardwareRegex]
-                );
+                $query->where('is_hardware', 1);
             }
 
             if ($scopeCap > 0) {
@@ -1193,11 +1189,7 @@ class TDSynnexService
                 }
 
                 if ((bool) config('tdsynnex.catalog.hardware_only', true)) {
-                    $nonHardwareRegex = '(license|lic/sa|subscription|software|office|windows svr|exchange svr|core cal|\\bcal\\b|addtl prod|step up|coverage|warranty|support|maintenance|consulting|implementation|training|care pack|onsite repair|extended service|service agreement|sa olv|olv nl)';
-                    $scopeIds->whereRaw(
-                        "LOWER(CONCAT(' ', COALESCE(product_name, ''), ' ', COALESCE(description, ''), ' ')) NOT REGEXP ?",
-                        [$nonHardwareRegex]
-                    );
+                    $scopeIds->where('is_hardware', 1);
                 }
 
                 if ($manufacturer !== '') {
