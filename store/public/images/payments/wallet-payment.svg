@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="220" height="72" viewBox="0 0 220 72" fill="none">
-  <rect x="1" y="1" width="218" height="70" rx="12" fill="#F8FAFC" stroke="#CBD5E1"/>
-  <rect x="20" y="22" width="52" height="30" rx="8" fill="#2F5597"/>
-  <rect x="48" y="30" width="20" height="14" rx="4" fill="#DBEAFE"/>
-  <circle cx="56" cy="37" r="2.5" fill="#1E3A8A"/>
-  <text x="84" y="34" fill="#0F172A" font-size="13" font-family="Segoe UI, Arial, sans-serif" font-weight="700">Wallet / Alt Pay</text>
-  <text x="84" y="49" fill="#475569" font-size="11" font-family="Segoe UI, Arial, sans-serif">Use wallet options</text>
-</svg>

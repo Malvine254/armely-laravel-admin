@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="240" height="52" viewBox="0 0 240 52" fill="none">
-  <rect x="1" y="1" width="238" height="50" rx="10" fill="#EFF6FF" stroke="#BFDBFE"/>
-  <rect x="14" y="14" width="24" height="24" rx="6" fill="#2F5597"/>
-  <path d="M21 26L25 30L31 22" stroke="#DBEAFE" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <text x="48" y="24" fill="#1E3A8A" font-size="12" font-family="Segoe UI, Arial, sans-serif" font-weight="700">Secure Checkout</text>
-  <text x="48" y="38" fill="#334155" font-size="11" font-family="Segoe UI, Arial, sans-serif">Encrypted payment session</text>
-</svg>
