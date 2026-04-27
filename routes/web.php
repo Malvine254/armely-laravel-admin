@@ -1,0 +1,292 @@
+<?php
+
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\HomeController;
+use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\AuthController;
+use App\Http\Controllers\Admin\TablesController;
+use App\Http\Controllers\Admin\AdminsController;
+use App\Http\Controllers\Admin\ReportsController;
+use App\Http\Controllers\Admin\ProfileController;
+use App\Http\Controllers\Admin\CareerController;
+use App\Http\Controllers\Admin\AnalyticsController;
+use App\Http\Controllers\ServicesController;
+use App\Http\Controllers\BlogController;
+use App\Http\Controllers\CaseStudiesController;
+use App\Http\Controllers\SearchController;
+use App\Http\Controllers\HtmlPageController;
+use App\Http\Controllers\DataReadinessLeadController;
+
+Route::get('/', [HomeController::class, 'index'])->name('home');
+Route::get('/contact', [HomeController::class, 'contact'])->name('contact');
+Route::post('/contact', [HomeController::class, 'submitContact'])->name('contact.submit');
+
+// Thank you page - only accessible via form submission with valid session token
+Route::get('/contact/thank-you', [HomeController::class, 'contactThankYou'])
+    ->middleware(\App\Http\Middleware\ContactSubmissionMiddleware::class)
+    ->name('contact.thank-you');
+
+Route::post('/data-readiness/submit', [DataReadinessLeadController::class, 'submit'])->name('data-readiness.submit');
+
+// Services listing page
+Route::get('/services', [ServicesController::class, 'index'])->name('services');
+
+// Accept query parameter format: /service-details?name=ai-consulting
+Route::get('/service-details', function(\Illuminate\Http\Request $request) {
+    $name = $request->query('name');
+    if ($name) {
+        return redirect('/service-details/' . $name);
+    }
+    return redirect('/service-details/ai-consulting');
+});
+
+// Standard path parameter format: /service-details/ai-consulting
+Route::get('/service-details/{name}', [HomeController::class, 'serviceDetails'])->name('service-details');
+Route::post('/submit-consultation', [HomeController::class, 'submitConsultation'])->name('submit-consultation');
+
+Route::get('/case-studies', [CaseStudiesController::class, 'index'])->name('case-studies.index');
+Route::post('/case-studies/lead', [CaseStudiesController::class, 'submitLead'])->name('case-studies.lead.submit');
+Route::get('/case-studies/access/{caseStudy}', [CaseStudiesController::class, 'accessCaseStudy'])->name('case-studies.access');
+Route::get('/white-papers/access/{paper}', [CaseStudiesController::class, 'accessWhitePaper'])->name('white-papers.access');
+Route::get('/case_docs/{file}', [CaseStudiesController::class, 'legacyCaseDoc'])
+    ->where('file', '.*')
+    ->name('case-studies.legacy-doc');
+Route::get('/white_paper_docs/{file}', [CaseStudiesController::class, 'legacyWhitePaperDoc'])
+    ->where('file', '.*')
+    ->name('white-papers.legacy-doc');
+
+Route::get('/blog/{blogId?}', [BlogController::class, 'index'])->name('blog.index');
+Route::post('/blog/{blogId}/increment-clicks', [BlogController::class, 'incrementClicks'])->name('blog.increment-clicks');
+Route::get('/all-partners', [HomeController::class, 'allPartners'])->name('partners.index');
+Route::get('/all-partners/{slug}', [HtmlPageController::class, 'show'])
+    ->where('slug', '^(aws|snowflake|microsoft|redhat|cisco|guardz|td-synnex|td|veeam)$')
+    ->name('partners.show');
+
+// Backward-compatible redirect for old path
+Route::get('/partners/{slug}', function ($slug) {
+    return redirect()->route('partners.show', ['slug' => $slug]);
+});
+
+Route::get('/events', [HomeController::class, 'events'])->name('events.index');
+Route::get('/company', [HomeController::class, 'company'])->name('company.index');
+Route::get('/career', [HomeController::class, 'career'])->name('career.index');
+// Route::get('/team', [HomeController::class, 'team'])->name('team.index'); // Hidden per request
+Route::get('/customer-stories', [HomeController::class, 'customerStories'])->name('customer-stories.index');
+Route::get('/social-impact', [HomeController::class, 'socialImpact'])->name('social-impact.index');
+Route::get('/privacy-policy', [HomeController::class, 'privacyPolicy'])->name('privacy-policy');
+// IP / Country test endpoints
+Route::get('/visit/geoip', [\App\Http\Controllers\VisitController::class, 'geoip'])->name('visit.geoip');
+Route::get('/visit/ipapi', [\App\Http\Controllers\VisitController::class, 'ipapi'])->name('visit.ipapi');
+Route::get('/visit/cloudflare', [\App\Http\Controllers\VisitController::class, 'cloudflare'])->name('visit.cloudflare');
+Route::get('/social-impact-details/{secure_id}', [HomeController::class, 'socialImpactDetails'])->name('social-impact-details');
+Route::get('/industries', [HomeController::class, 'industries'])->name('industries.index');
+Route::get('/mela-ai', [HomeController::class, 'melaAi'])->name('mela-ai');
+
+$storeBaseUrl = trim((string) env('STORE_URL', ''));
+
+// Path-based deployments (e.g. https://armely.com/store or http://localhost/store)
+// should be handled by the web server directly, not by the iframe bridge routes below.
+$storeBridgeDisabledForPathMode = false;
+if ($storeBaseUrl !== '') {
+    $parsedStoreUrl = parse_url($storeBaseUrl);
+    $storeHost = strtolower((string) ($parsedStoreUrl['host'] ?? ''));
+    $storePath = '/' . trim((string) ($parsedStoreUrl['path'] ?? ''), '/');
+
+    $isPathBasedStore = str_starts_with($storePath, '/store');
+    $isLocalOrMainHost = in_array($storeHost, ['', 'localhost', '127.0.0.1', 'armely.com', 'www.armely.com'], true);
+
+    $storeBridgeDisabledForPathMode = $isPathBasedStore && $isLocalOrMainHost;
+}
+
+$buildStoreTarget = function (string $baseUrl, string $path = '', ?string $queryString = null): ?string {
+    if ($baseUrl === '') {
+        return null;
+    }
+
+    $baseUrl = rtrim($baseUrl, '/');
+    $path = ltrim($path, '/');
+
+    $target = $path !== '' ? $baseUrl . '/' . $path : $baseUrl;
+
+    if ($queryString !== null && $queryString !== '') {
+        $target .= (str_contains($target, '?') ? '&' : '?') . $queryString;
+    }
+
+    return $target;
+};
+
+if (!$storeBridgeDisabledForPathMode) {
+    Route::get('/store', function (\Illuminate\Http\Request $request) use ($storeBaseUrl, $buildStoreTarget) {
+        $targetUrl = $buildStoreTarget($storeBaseUrl, '', $request->getQueryString());
+        if ($targetUrl === null) {
+            return redirect('/');
+        }
+
+        return response()->view('store-bridge', ['targetUrl' => $targetUrl]);
+    })->name('armely-store');
+
+    Route::get('/store/{path}', function (\Illuminate\Http\Request $request, string $path) use ($storeBaseUrl, $buildStoreTarget) {
+        $targetUrl = $buildStoreTarget($storeBaseUrl, $path, $request->getQueryString());
+        if ($targetUrl === null) {
+            return redirect('/');
+        }
+
+        return response()->view('store-bridge', ['targetUrl' => $targetUrl]);
+    })->where('path', '.*');
+} else {
+    Route::get('/store', function (\Illuminate\Http\Request $request) use ($storeBaseUrl, $buildStoreTarget) {
+        $targetUrl = $buildStoreTarget($storeBaseUrl, '', $request->getQueryString());
+        if ($targetUrl === null) {
+            return redirect('/');
+        }
+
+        return redirect()->away($targetUrl);
+    })->name('armely-store');
+
+    Route::get('/store/{path}', function (\Illuminate\Http\Request $request, string $path) use ($storeBaseUrl, $buildStoreTarget) {
+        $targetUrl = $buildStoreTarget($storeBaseUrl, $path, $request->getQueryString());
+        if ($targetUrl === null) {
+            return redirect('/');
+        }
+
+        return redirect()->away($targetUrl);
+    })->where('path', '.*');
+}
+
+Route::get('/armely-store', function () {
+    return redirect()->route('armely-store');
+});
+
+Route::get('/store/public/{path?}', function (?string $path = null) {
+    return $path
+        ? redirect('/store/' . ltrim($path, '/'))
+        : redirect('/store');
+})->where('path', '.*');
+Route::get('/job-board', [HomeController::class, 'jobBoard'])->name('job-board.index');
+Route::get('/applications', [HomeController::class, 'applications'])->name('applications.index');
+Route::post('/applications', [HomeController::class, 'submitApplication'])->name('applications.submit');
+
+// Search routes
+Route::get('/api/search', [SearchController::class, 'search'])->name('search.api');
+Route::get('/api/search/suggestions', [SearchController::class, 'suggestions'])->name('search.suggestions');
+
+// Analytics API (requires admin auth)
+Route::get('/api/analytics/summary', [AnalyticsController::class, 'apiSummary'])->name('api.analytics.summary')->middleware('auth:admin');
+
+// Admin Authentication Routes (guest only)
+Route::get('/admin', [AuthController::class, 'showLogin']);
+
+// Alias route to avoid local php artisan serve collision with public/admin/* assets path.
+Route::get('/admin-login', [AuthController::class, 'showLogin'])->name('admin.login.alias');
+
+Route::prefix('admin')->group(function () {
+    Route::get('/login', [AuthController::class, 'showLogin'])->name('admin.login');
+    Route::post('/login', [AuthController::class, 'login'])->name('admin.login.post');
+    Route::get('/forgot-password', [AuthController::class, 'showReset'])->name('admin.reset');
+    Route::post('/forgot-password', [AuthController::class, 'sendResetLink'])->name('admin.reset.post');
+    Route::get('/reset-password/{token}', [AuthController::class, 'showResetForm'])->name('admin.password.reset');
+    Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('admin.password.update');
+});
+
+// Lightweight public ping for deployment health checks (no auth)
+Route::get('/admin/tables/ping', [TablesController::class, 'ping'])->name('admin.tables.ping');
+
+// Admin Protected Routes
+Route::prefix('admin')->middleware(['admin'])->group(function () {
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('admin.dashboard');
+    Route::post('/logout', [AuthController::class, 'logout'])->name('admin.logout');
+    // Graceful fallback: allow GET logout to handle cases where JS/form submission fails
+    Route::get('/logout', [AuthController::class, 'logout'])->name('admin.logout.get');
+    
+    // Tables Management (CRUD for content)
+    Route::get('/tables', [TablesController::class, 'index'])->name('admin.tables');
+    
+    // List endpoints for AJAX table reload
+    Route::get('/tables/blogs/list', [TablesController::class, 'listBlogs'])->name('admin.tables.blogs.list');
+    Route::get('/tables/videos/list', [TablesController::class, 'listVideos'])->name('admin.tables.videos.list');
+    Route::get('/tables/careers/list', [TablesController::class, 'listCareers'])->name('admin.tables.careers.list');
+    Route::get('/tables/social-impact/list', [TablesController::class, 'listSocialImpact'])->name('admin.tables.social-impact.list');
+    Route::get('/tables/customer-stories/list', [TablesController::class, 'listCustomerStories'])->name('admin.tables.customer-stories.list');
+    Route::get('/tables/events/list', [TablesController::class, 'listEvents'])->name('admin.tables.events.list');
+    Route::get('/tables/team/list', [TablesController::class, 'listTeam'])->name('admin.tables.team.list');
+    Route::get('/tables/contacts/list', [TablesController::class, 'listContacts'])->name('admin.tables.contacts.list');
+    
+    // Blogs
+    Route::get('/tables/blogs/{id}', [TablesController::class, 'showBlog'])->name('admin.tables.blogs.show');
+    Route::post('/tables/blogs', [TablesController::class, 'storeOrUpdateBlog'])->name('admin.tables.blogs.store');
+    Route::post('/tables/blogs/{id}', [TablesController::class, 'updateBlog'])->name('admin.tables.blogs.update.post');
+    Route::put('/tables/blogs/{id}', [TablesController::class, 'updateBlog'])->name('admin.tables.blogs.update');
+    Route::delete('/tables/blogs/{id}', [TablesController::class, 'deleteBlog'])->name('admin.tables.blogs.delete');
+    
+    // Videos
+    Route::get('/tables/videos/{id}', [TablesController::class, 'showVideo'])->name('admin.tables.videos.show');
+    Route::post('/tables/videos', [TablesController::class, 'storeOrUpdateVideo'])->name('admin.tables.videos.store');
+    Route::put('/tables/videos/{id}', [TablesController::class, 'updateVideo'])->name('admin.tables.videos.update');
+    Route::delete('/tables/videos/{id}', [TablesController::class, 'deleteVideo'])->name('admin.tables.videos.delete');
+    
+    // Careers
+    Route::get('/tables/careers/{id}', [TablesController::class, 'showCareer'])->name('admin.tables.careers.show');
+    Route::post('/tables/careers', [TablesController::class, 'storeOrUpdateCareer'])->name('admin.tables.careers.store');
+    Route::put('/tables/careers/{id}', [TablesController::class, 'updateCareer'])->name('admin.tables.careers.update');
+    Route::delete('/tables/careers/{id}', [TablesController::class, 'deleteCareer'])->name('admin.tables.careers.delete');
+    
+    // Social Impact
+    Route::get('/tables/social-impact/{id}', [TablesController::class, 'showSocialImpact'])->name('admin.tables.social-impact.show');
+    Route::post('/tables/social-impact', [TablesController::class, 'storeOrUpdateSocialImpact'])->name('admin.tables.social-impact.store');
+    Route::put('/tables/social-impact/{id}', [TablesController::class, 'updateSocialImpact'])->name('admin.tables.social-impact.update');
+    Route::delete('/tables/social-impact/{id}', [TablesController::class, 'deleteSocialImpact'])->name('admin.tables.social-impact.delete');
+    
+    // Customer Stories
+    Route::get('/tables/customer-stories/{id}', [TablesController::class, 'showCustomerStory'])->name('admin.tables.customer-stories.show');
+    Route::post('/tables/customer-stories', [TablesController::class, 'storeOrUpdateCustomerStory'])->name('admin.tables.customer-stories.store');
+    Route::put('/tables/customer-stories/{id}', [TablesController::class, 'updateCustomerStory'])->name('admin.tables.customer-stories.update');
+    Route::delete('/tables/customer-stories/{id}', [TablesController::class, 'deleteCustomerStory'])->name('admin.tables.customer-stories.delete');
+    
+    // Events
+    Route::post('/tables/events', [TablesController::class, 'storeOrUpdateEvent'])->name('admin.tables.events.store');
+    Route::delete('/tables/events/{id}', [TablesController::class, 'deleteEvent'])->name('admin.tables.events.delete');
+    
+    // Team
+    Route::post('/tables/team', [TablesController::class, 'storeOrUpdateTeam'])->name('admin.tables.team.store');
+    Route::delete('/tables/team/{id}', [TablesController::class, 'deleteTeam'])->name('admin.tables.team.delete');
+    
+    // Contacts
+    Route::post('/tables/contacts', [TablesController::class, 'storeOrUpdateContact'])->name('admin.tables.contacts.store');
+    Route::delete('/tables/contacts/{id}', [TablesController::class, 'deleteContact'])->name('admin.tables.contacts.delete');
+    
+    // Admin User Management
+    Route::get('/profile', [ProfileController::class, 'show'])->name('admin.profile');
+    Route::post('/profile', [ProfileController::class, 'update'])->name('admin.profile.update');
+
+    Route::get('/admins', [AdminsController::class, 'index'])->name('admin.admins');
+    Route::post('/admins', [AdminsController::class, 'store'])->name('admin.admins.store');
+    Route::put('/admins/{id}', [AdminsController::class, 'update'])->name('admin.admins.update');
+    Route::delete('/admins/{id}', [AdminsController::class, 'destroy'])->name('admin.admins.delete');
+    
+    // Reports
+    Route::get('/reports', [ReportsController::class, 'index'])->name('admin.reports');
+    Route::post('/reports/export', [ReportsController::class, 'export'])->name('admin.reports.export');
+    Route::post('/reports/export-pdf', [ReportsController::class, 'exportActivityPdf'])->name('admin.reports.export.pdf');
+    Route::post('/reports/export-excel', [ReportsController::class, 'exportActivityExcel'])->name('admin.reports.export.excel');
+    Route::get('/reports/chart-data', [ReportsController::class, 'getChartDataAjax'])->name('admin.reports.chart-data');
+    
+    // Analytics Routes (keep full dashboard for detailed views)
+    Route::get('/analytics', [AnalyticsController::class, 'index'])->name('admin.analytics');
+    Route::get('/analytics/export/csv', [AnalyticsController::class, 'exportCsv'])->name('admin.analytics.export.csv');
+    Route::get('/analytics/export/pdf', [AnalyticsController::class, 'exportPdf'])->name('admin.analytics.export.pdf');
+    
+    // File Upload Handlers
+    Route::post('/upload/image', [TablesController::class, 'uploadImage'])->name('admin.upload.image');
+    Route::post('/upload/pdf', [TablesController::class, 'uploadPdf'])->name('admin.upload.pdf');
+    
+    // Career Management - Job Applications
+    Route::get('/career/list-applications', [CareerController::class, 'listApplications'])->name('admin.career.list-applications');
+    Route::get('/career/list-shortlisted', [CareerController::class, 'listShortlisted'])->name('admin.career.list-shortlisted');
+    Route::get('/career/list-employees', [CareerController::class, 'listEmployees'])->name('admin.career.list-employees');
+    Route::get('/career/list-rejected', [CareerController::class, 'listRejected'])->name('admin.career.list-rejected');
+    Route::get('/career/locations', [CareerController::class, 'getLocations'])->name('admin.career.locations');
+    Route::get('/career/cv/{id}', [CareerController::class, 'downloadCv'])->name('admin.career.cv');     Route::delete('/career/cv/{id}', [CareerController::class, 'deleteCv'])->name('admin.career.cv.delete');    Route::post('/career/shortlist/{id}', [CareerController::class, 'shortlist'])->name('admin.career.shortlist');
+    Route::post('/career/hire/{id}', [CareerController::class, 'hire'])->name('admin.career.hire');
+    Route::post('/career/reject/{id}', [CareerController::class, 'reject'])->name('admin.career.reject');
+    Route::post('/career/delete-application/{id}', [CareerController::class, 'deleteApplication'])->name('admin.career.delete-application');
+});

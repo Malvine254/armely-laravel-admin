@@ -1,0 +1,6 @@
+*
+!.gitignore
+!case_docs/
+!case_docs/**
+!white_paper_docs/
+!white_paper_docs/**

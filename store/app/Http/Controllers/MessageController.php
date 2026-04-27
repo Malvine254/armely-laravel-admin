@@ -1,0 +1,2585 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+use App\Models\Message;
+use App\Models\ChatSession;
+use App\Models\ChatMessage;
+use App\Models\Invoice;
+use App\Models\Order;
+use App\Models\Quote;
+use App\Models\Product;
+use App\Models\User;
+use App\Models\AppSetting;
+use App\Services\AzureOpenAiChatService;
+use App\Services\NotificationService;
+use App\Services\TDSynnexService;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
+
+class MessageController extends Controller
+{
+    public function __construct(
+        private AzureOpenAiChatService $assistantService,
+        private NotificationService $notificationService,
+        private TDSynnexService $tdsynnexService
+    )
+    {
+    }
+
+    /**
+     * Get all messages for the authenticated user
+     */
+    public function getMessages(Request $request)
+    {
+        $status = $request->query('status'); // 'unread', 'read', or null for all
+        $type = $request->query('type'); // 'order', 'quote', 'invoice', 'system'
+        $limit = $request->query('limit', 20);
+        
+        $query = Message::where('user_id', $request->user()->id);
+        
+        if ($status) {
+            $query->where('status', $status);
+        }
+        
+        if ($type) {
+            $query->where('type', $type);
+        }
+        
+        $messages = $query->orderBy('created_at', 'desc')
+            ->limit($limit)
+            ->get()
+            ->map(function ($message) {
+                $action = $this->resolveMessageAction($message);
+
+                return [
+                    'id' => $message->id,
+                    'type' => $message->type,
+                    'title' => $message->title,
+                    'message' => $message->message,
+                    'reference_id' => $message->reference_id,
+                    'status' => $message->status,
+                    'priority' => $message->priority,
+                    'metadata' => $message->metadata,
+                    'read_at' => $message->read_at,
+                    'created_at' => $message->created_at,
+                    'time_ago' => $this->getTimeAgo($message->created_at),
+                    'action_link' => $action['link'],
+                    'action_label' => $action['label'],
+                ];
+            });
+
+        $unreadCount = Message::where('user_id', $request->user()->id)
+            ->where('status', 'unread')
+            ->count();
+
+        return response()->json([
+            'success' => true,
+            'data' => $messages,
+            'unread_count' => $unreadCount,
+            'total' => count($messages),
+        ]);
+    }
+
+    /**
+     * Mark message as read
+     */
+    public function markAsRead(Request $request, $id)
+    {
+        $message = Message::where('user_id', $request->user()->id)
+            ->where('id', $id)
+            ->firstOrFail();
+
+        $message->markAsRead();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Message marked as read',
+        ]);
+    }
+
+    /**
+     * Mark all messages as read
+     */
+    public function markAllAsRead(Request $request)
+    {
+        Message::where('user_id', $request->user()->id)
+            ->where('status', 'unread')
+            ->update([
+                'status' => 'read',
+                'read_at' => now(),
+            ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'All messages marked as read',
+        ]);
+    }
+
+    /**
+     * Delete a message
+     */
+    public function deleteMessage(Request $request, $id)
+    {
+        $message = Message::where('user_id', $request->user()->id)
+            ->where('id', $id)
+            ->firstOrFail();
+
+        $message->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Message deleted successfully',
+        ]);
+    }
+
+    /**
+     * Get unread count
+     */
+    public function getUnreadCount(Request $request)
+    {
+        $count = Message::where('user_id', $request->user()->id)
+            ->where('status', 'unread')
+            ->count();
+
+        return response()->json([
+            'success' => true,
+            'count' => $count,
+        ]);
+    }
+
+    public function getChatSessions(Request $request): JsonResponse
+    {
+        $lastMessageContentSubquery = ChatMessage::query()
+            ->select('content')
+            ->whereColumn('chat_session_id', 'chat_sessions.id')
+            ->latest('id')
+            ->limit(1);
+
+        $lastMessageRoleSubquery = ChatMessage::query()
+            ->select('role')
+            ->whereColumn('chat_session_id', 'chat_sessions.id')
+            ->latest('id')
+            ->limit(1);
+
+        $sessions = ChatSession::where('user_id', $request->user()->id)
+            ->select(['id', 'title', 'updated_at', 'last_message_at', 'escalated_to_human', 'escalated_at', 'resolved_at'])
+            ->selectSub($lastMessageContentSubquery, 'last_message_content')
+            ->selectSub($lastMessageRoleSubquery, 'last_message_role')
+            ->orderByDesc('last_message_at')
+            ->orderByDesc('updated_at')
+            ->limit(40)
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $sessions->map(function (ChatSession $session) {
+                return [
+                    'id' => $session->id,
+                    'title' => $session->title,
+                    'updated_at' => $session->updated_at,
+                    'last_message_at' => $session->last_message_at,
+                    'last_message_preview' => $session->last_message_content
+                        ? Str::limit((string) $session->last_message_content, 80)
+                        : null,
+                    'last_message_role' => $session->last_message_role,
+                    'escalated_to_human' => (bool) $session->escalated_to_human,
+                    'escalated_at' => $session->escalated_at,
+                    'resolved_at' => $session->resolved_at,
+                ];
+            })->values(),
+        ]);
+    }
+
+    public function createChatSession(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'title' => 'nullable|string|max:120',
+        ]);
+
+        $requestedTitle = trim((string) ($validated['title'] ?? ''));
+        $normalizedTitle = $requestedTitle !== '' ? $requestedTitle : 'New chat';
+
+        // Prevent creating multiple empty sessions for the same user.
+        // Reuse the most recently updated empty thread instead.
+        $existingEmpty = ChatSession::where('user_id', $request->user()->id)
+            ->whereDoesntHave('messages')
+            ->orderByDesc('updated_at')
+            ->first();
+
+        if ($existingEmpty) {
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'id' => $existingEmpty->id,
+                    'title' => $existingEmpty->title,
+                    'updated_at' => $existingEmpty->updated_at,
+                    'last_message_at' => $existingEmpty->last_message_at,
+                    'last_message_preview' => null,
+                    'last_message_role' => null,
+                    'escalated_to_human' => (bool) $existingEmpty->escalated_to_human,
+                    'escalated_at' => $existingEmpty->escalated_at,
+                    'resolved_at' => $existingEmpty->resolved_at,
+                ],
+                'reused_empty_session' => true,
+            ]);
+        }
+
+        $session = ChatSession::create([
+            'user_id' => $request->user()->id,
+            'title' => $normalizedTitle,
+            'last_message_at' => null,
+            'escalated_to_human' => false,
+            'escalated_at' => null,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'id' => $session->id,
+                'title' => $session->title,
+                'updated_at' => $session->updated_at,
+                'last_message_at' => $session->last_message_at,
+                'last_message_preview' => null,
+                'last_message_role' => null,
+                'escalated_to_human' => false,
+                'escalated_at' => null,
+            ],
+        ], 201);
+    }
+
+    public function getChatSessionMessages(Request $request, int $chatSessionId): JsonResponse
+    {
+        $session = ChatSession::where('user_id', $request->user()->id)
+            ->where('id', $chatSessionId)
+            ->firstOrFail();
+
+        $messages = ChatMessage::where('chat_session_id', $session->id)
+            ->orderBy('id')
+            ->get()
+            ->map(function (ChatMessage $message) {
+                $senderName = null;
+
+                if ($message->role === 'admin') {
+                    $senderName = (string) data_get($message->metadata, 'admin_name', 'Support Team');
+                }
+
+                return [
+                    'id' => $message->id,
+                    'role' => $message->role,
+                    'text' => $message->content,
+                    'actions' => $message->actions ?? [],
+                    'product_suggestions' => (array) data_get($message->metadata, 'product_suggestions', []),
+                    'sender_name' => $senderName,
+                    'created_at' => $message->created_at,
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'session' => [
+                    'id' => $session->id,
+                    'title' => $session->title,
+                    'updated_at' => $session->updated_at,
+                    'last_message_at' => $session->last_message_at,
+                    'escalated_to_human' => (bool) $session->escalated_to_human,
+                    'escalated_at' => $session->escalated_at,
+                    'resolved_at' => $session->resolved_at,
+                ],
+                'messages' => $messages,
+            ],
+        ]);;
+    }
+
+    public function deleteChatSession(Request $request, int $chatSessionId): JsonResponse
+    {
+        $session = ChatSession::where('user_id', $request->user()->id)
+            ->where('id', $chatSessionId)
+            ->firstOrFail();
+
+        $session->delete();
+
+        return response()->json([
+            'success' => true,
+            'deleted_count' => 1,
+            'deleted_ids' => [$chatSessionId],
+        ]);
+    }
+
+    public function bulkDeleteChatSessions(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'chat_session_ids' => 'nullable|array',
+            'chat_session_ids.*' => 'integer',
+            'clear_all' => 'nullable|boolean',
+        ]);
+
+        $clearAll = (bool) ($validated['clear_all'] ?? false);
+        $ids = collect((array) ($validated['chat_session_ids'] ?? []))
+            ->map(fn ($id) => (int) $id)
+            ->filter(fn ($id) => $id > 0)
+            ->unique()
+            ->values();
+
+        $query = ChatSession::query()->where('user_id', $request->user()->id);
+
+        if (!$clearAll) {
+            if ($ids->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No chat sessions selected for deletion.',
+                ], 422);
+            }
+
+            $query->whereIn('id', $ids->all());
+        }
+
+        $deletedIds = $query->pluck('id')->map(fn ($id) => (int) $id)->values();
+
+        if ($deletedIds->isEmpty()) {
+            return response()->json([
+                'success' => true,
+                'deleted_count' => 0,
+                'deleted_ids' => [],
+            ]);
+        }
+
+        ChatSession::whereIn('id', $deletedIds->all())->delete();
+
+        return response()->json([
+            'success' => true,
+            'deleted_count' => $deletedIds->count(),
+            'deleted_ids' => $deletedIds->all(),
+        ]);
+    }
+
+    public function escalateChatSession(Request $request, int $chatSessionId): JsonResponse
+    {
+        $validated = $request->validate([
+            'note' => 'nullable|string|max:600',
+        ]);
+
+        $session = ChatSession::where('user_id', $request->user()->id)
+            ->where('id', $chatSessionId)
+            ->firstOrFail();
+
+        $note = trim((string) ($validated['note'] ?? ''));
+        $isResolved = !empty($session->resolved_at);
+
+        if (!$session->escalated_to_human || $isResolved) {
+            $session->forceFill([
+                'escalated_to_human' => true,
+                'escalated_at' => now(),
+                'resolved_at' => null,
+            ])->save();
+
+            $handoffText = $isResolved
+                ? 'This ticket was reopened and escalated to human support. A team member will continue this conversation shortly.'
+                : 'Your chat was escalated to human support. A team member can continue this conversation shortly.';
+
+            ChatMessage::create([
+                'chat_session_id' => $session->id,
+                'user_id' => $request->user()->id,
+                'role' => 'assistant',
+                'content' => $handoffText,
+                'actions' => [],
+                'metadata' => [
+                    'source' => $isResolved ? 'human_escalation_reopen' : 'human_escalation',
+                    'note' => $note,
+                ],
+            ]);
+
+            $session->forceFill([
+                'last_message_at' => now(),
+            ])->save();
+
+            $admins = User::query()
+                ->whereIn('role', ['admin', 'owner', 'manager'])
+                ->get(['id']);
+
+            foreach ($admins as $admin) {
+                Message::createMessage(
+                    (int) $admin->id,
+                    'system',
+                    'Chat escalated to human support',
+                    ($isResolved
+                        ? 'A customer reopened and escalated Mela AI chat session #'
+                        : 'A customer requested human follow-up in Mela AI chat session #') . $session->id,
+                    'CHAT-' . $session->id,
+                    'high',
+                    [
+                        'chat_session_id' => $session->id,
+                        'customer_id' => $request->user()->id,
+                        'note' => $note,
+                        'reopened' => $isResolved,
+                    ]
+                );
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Chat escalated to human support',
+            'data' => [
+                'id' => $session->id,
+                'escalated_to_human' => true,
+                'escalated_at' => $session->escalated_at,
+                'resolved_at' => $session->resolved_at,
+            ],
+        ]);
+    }
+
+    /**
+     * Assistant chat endpoint backed by Azure OpenAI with account DB context.
+     */
+    public function assistantChat(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'message' => 'required|string|max:2000',
+            'chat_session_id' => 'nullable|integer',
+        ]);
+
+        $user = $request->user();
+        $session = null;
+        $question = trim((string) $validated['message']);
+
+        try {
+        $session = $this->resolveOrCreateChatSession($user->id, $validated['chat_session_id'] ?? null);
+        $wantsEscalation = $this->isUserEscalationIntent($question);
+
+        $storedUserMessage = ChatMessage::create([
+            'chat_session_id' => $session->id,
+            'user_id' => $user->id,
+            'role' => 'user',
+            'content' => $question,
+            'actions' => [],
+        ]);
+
+        $this->syncSessionTitle($session, $storedUserMessage->content);
+
+        if (!empty($session->resolved_at)) {
+            if ($wantsEscalation) {
+                $session->forceFill([
+                    'escalated_to_human' => true,
+                    'escalated_at' => now(),
+                    'resolved_at' => null,
+                ])->save();
+
+                $handoffReply = 'Absolutely — I\'ve reopened this ticket and escalated it to our support team. A team member will pick up right where we left off. You\'re in good hands! 🙌';
+
+                ChatMessage::create([
+                    'chat_session_id' => $session->id,
+                    'user_id' => $user->id,
+                    'role' => 'assistant',
+                    'content' => $handoffReply,
+                    'actions' => [],
+                    'metadata' => [
+                        'source' => 'human_handoff_reopen_requested',
+                    ],
+                ]);
+
+                $session->forceFill([
+                    'last_message_at' => now(),
+                ])->save();
+
+                $admins = User::query()
+                    ->whereIn('role', ['admin', 'owner', 'manager'])
+                    ->get(['id']);
+
+                foreach ($admins as $admin) {
+                    Message::createMessage(
+                        (int) $admin->id,
+                        'system',
+                        'Chat escalated to human support',
+                        'A customer reopened and escalated Mela AI chat session #' . $session->id,
+                        'CHAT-' . $session->id,
+                        'high',
+                        [
+                            'chat_session_id' => $session->id,
+                            'customer_id' => $user->id,
+                            'source' => 'assistant_reopen_escalation_intent',
+                            'reopened' => true,
+                        ]
+                    );
+                }
+
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'reply' => $handoffReply,
+                        'actions' => [],
+                        'product_suggestions' => [],
+                        'source' => 'human_handoff_reopen_requested',
+                        'chat_session' => [
+                            'id' => $session->id,
+                            'title' => $session->title,
+                        ],
+                    ],
+                ]);
+            }
+
+            // Resolved tickets return to AI mode unless user explicitly asks for human support.
+            // Keep resolved_at/escalated_at for admin history visibility.
+            $session->forceFill([
+                'escalated_to_human' => false,
+            ])->save();
+        }
+
+        if (!(bool) $session->escalated_to_human && $wantsEscalation) {
+            $session->forceFill([
+                'escalated_to_human' => true,
+                'escalated_at' => now(),
+                'resolved_at' => null,
+            ])->save();
+
+            $handoffReply = 'Of course! I\'ve connected you with our support team. A real person will jump in shortly to help you out. In the meantime, feel free to share any details that might help them assist you faster. 🤝';
+
+            ChatMessage::create([
+                'chat_session_id' => $session->id,
+                'user_id' => $user->id,
+                'role' => 'assistant',
+                'content' => $handoffReply,
+                'actions' => [],
+                'metadata' => [
+                    'source' => 'human_handoff_requested',
+                ],
+            ]);
+
+            $session->forceFill([
+                'last_message_at' => now(),
+            ])->save();
+
+            $admins = User::query()
+                ->whereIn('role', ['admin', 'owner', 'manager'])
+                ->get(['id']);
+
+            foreach ($admins as $admin) {
+                Message::createMessage(
+                    (int) $admin->id,
+                    'system',
+                    'Chat escalated to human support',
+                    'A customer requested human follow-up in Mela AI chat session #' . $session->id,
+                    'CHAT-' . $session->id,
+                    'high',
+                    [
+                        'chat_session_id' => $session->id,
+                        'customer_id' => $user->id,
+                        'source' => 'assistant_escalation_intent',
+                    ]
+                );
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'reply' => $handoffReply,
+                    'actions' => [],
+                    'product_suggestions' => [],
+                    'source' => 'human_handoff_requested',
+                    'chat_session' => [
+                        'id' => $session->id,
+                        'title' => $session->title,
+                    ],
+                ],
+            ]);
+        }
+
+        if ((bool) $session->escalated_to_human) {
+            // Keep human handoff only when the user explicitly asks for it in this turn.
+            if ($wantsEscalation) {
+                // Check if admin has replied yet
+                $adminMessages = ChatMessage::where('chat_session_id', $session->id)
+                    ->where('role', 'admin')
+                    ->exists();
+
+                if (!$adminMessages) {
+                    // No admin reply yet; send handoff message
+                    $handoffReply = 'This chat is already with our support team — they\'ll be with you shortly! If there\'s anything specific you\'d like them to know, feel free to type it here and they\'ll see it when they join. 😊';
+
+                    ChatMessage::create([
+                        'chat_session_id' => $session->id,
+                        'user_id' => $user->id,
+                        'role' => 'assistant',
+                        'content' => $handoffReply,
+                        'actions' => [],
+                        'metadata' => [
+                            'source' => 'human_handoff_guard',
+                        ],
+                    ]);
+
+                    return response()->json([
+                        'success' => true,
+                        'data' => [
+                            'reply' => $handoffReply,
+                            'actions' => [],
+                            'product_suggestions' => [],
+                            'source' => 'human_handoff_guard',
+                            'chat_session' => [
+                                'id' => $session->id,
+                                'title' => $session->title,
+                            ],
+                        ],
+                    ]);
+                }
+
+                // Admin has replied; just acknowledge message silently
+                $session->forceFill([
+                    'last_message_at' => now(),
+                ])->save();
+
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'reply' => 'Got it — your message has been received! A team member will respond shortly. Thanks for your patience! 🙏',
+                        'actions' => [],
+                        'product_suggestions' => [],
+                        'source' => 'human_handoff_silent',
+                        'chat_session' => [
+                            'id' => $session->id,
+                            'title' => $session->title,
+                        ],
+                    ],
+                ]);
+            }
+
+            // User did not request human handoff in this turn, so continue with AI.
+            $session->forceFill([
+                'escalated_to_human' => false,
+            ])->save();
+        }
+
+        $context = $this->buildAssistantContext($user, $question, $session->id);
+        $directHandled = $this->handleDirectAssistantAction($user, $question, $context);
+
+        if ($directHandled !== null) {
+            ChatMessage::create([
+                'chat_session_id' => $session->id,
+                'user_id' => $user->id,
+                'role' => 'assistant',
+                'content' => $directHandled['reply'],
+                'actions' => $directHandled['actions'],
+                'metadata' => [
+                    'source' => 'direct_invoice_reminder',
+                    'product_suggestions' => [],
+                ],
+            ]);
+
+            $session->forceFill([
+                'last_message_at' => now(),
+            ])->save();
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'reply' => $directHandled['reply'],
+                    'actions' => $directHandled['actions'],
+                    'product_suggestions' => [],
+                    'source' => 'direct_invoice_reminder',
+                    'chat_session' => [
+                        'id' => $session->id,
+                        'title' => $session->title,
+                    ],
+                ],
+            ]);
+        }
+
+        $localProductHandled = $this->handleLocalProductDiscoveryReply($question, $context);
+        if ($localProductHandled !== null) {
+            ChatMessage::create([
+                'chat_session_id' => $session->id,
+                'user_id' => $user->id,
+                'role' => 'assistant',
+                'content' => $localProductHandled['reply'],
+                'actions' => $localProductHandled['actions'],
+                'metadata' => [
+                    'source' => $localProductHandled['source'],
+                    'product_suggestions' => (array) ($localProductHandled['product_suggestions'] ?? []),
+                ],
+            ]);
+
+            $session->forceFill([
+                'last_message_at' => now(),
+            ])->save();
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'reply' => $localProductHandled['reply'],
+                    'actions' => $localProductHandled['actions'],
+                    'product_suggestions' => (array) ($localProductHandled['product_suggestions'] ?? []),
+                    'source' => $localProductHandled['source'],
+                    'chat_session' => [
+                        'id' => $session->id,
+                        'title' => $session->title,
+                    ],
+                ],
+            ]);
+        }
+
+        $assistantReply = $this->assistantService->generateReply($question, $context);
+        $usedFallback = false;
+
+        if (!$assistantReply) {
+            $assistantReply = $this->buildFallbackReply($question, $context);
+            $usedFallback = true;
+        }
+
+        $actions = $this->buildAssistantActions($question, $context);
+        $productSuggestions = (array) ($context['product_suggestions'] ?? []);
+
+        ChatMessage::create([
+            'chat_session_id' => $session->id,
+            'user_id' => $user->id,
+            'role' => 'assistant',
+            'content' => $assistantReply,
+            'actions' => $actions,
+            'metadata' => [
+                'source' => $usedFallback ? 'local_fallback' : 'azure_openai',
+                'product_suggestions' => $productSuggestions,
+            ],
+        ]);
+
+        $session->forceFill([
+            'last_message_at' => now(),
+        ])->save();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'reply' => $assistantReply,
+                'actions' => $actions,
+                'product_suggestions' => $productSuggestions,
+                'source' => $usedFallback ? 'local_fallback' : 'azure_openai',
+                'chat_session' => [
+                    'id' => $session->id,
+                    'title' => $session->title,
+                ],
+            ],
+        ]);
+        } catch (\Throwable $e) {
+            Log::error('Mela AI assistantChat failed', [
+                'user_id' => $request->user()?->id,
+                'chat_session_id' => $validated['chat_session_id'] ?? null,
+                'message' => $e->getMessage(),
+                'exception' => get_class($e),
+            ]);
+
+            $fallbackReply = 'Oops — Mela AI hit a temporary snag. No worries though! Please try again in a moment, or I can connect you with our support team right away.';
+            $fallbackActions = [
+                [
+                    'label' => 'Request human support',
+                    'link' => '/messages',
+                ],
+            ];
+            $fallbackProductSuggestions = [];
+
+            try {
+                $fallbackSearchContext = $this->buildProductSearchContext($question, []);
+                $fallbackProductSuggestions = $this->searchProductsForAssistant($question, [], 6, $fallbackSearchContext);
+
+                if (!empty($fallbackProductSuggestions)) {
+                    $count = count($fallbackProductSuggestions);
+                    $fallbackReply = "Mela AI is temporarily unavailable, but I still managed to find {$count} matching product(s) from your catalog! Check them out below, or reach out to our team for more help.";
+                    $fallbackActions[] = [
+                        'label' => 'Open product search',
+                        'link' => '/products?search=' . urlencode($question),
+                    ];
+                }
+            } catch (\Throwable $fallbackError) {
+                Log::warning('Assistant error fallback product search failed', [
+                    'user_id' => $request->user()?->id,
+                    'chat_session_id' => $validated['chat_session_id'] ?? null,
+                    'message' => $fallbackError->getMessage(),
+                ]);
+            }
+
+            $fallbackActions = collect($fallbackActions)
+                ->filter(static fn (array $action) => !empty($action['label']) && !empty($action['link']))
+                ->unique(static fn (array $action) => $action['label'] . '|' . $action['link'])
+                ->values()
+                ->all();
+
+            if ($session && $user) {
+                try {
+                    ChatMessage::create([
+                        'chat_session_id' => $session->id,
+                        'user_id' => $user->id,
+                        'role' => 'assistant',
+                        'content' => $fallbackReply,
+                        'actions' => $fallbackActions,
+                        'metadata' => [
+                            'source' => 'assistant_error_fallback',
+                            'product_suggestions' => $fallbackProductSuggestions,
+                        ],
+                    ]);
+
+                    $session->forceFill([
+                        'last_message_at' => now(),
+                    ])->save();
+                } catch (\Throwable $inner) {
+                    Log::error('Failed to persist Mela AI fallback message', [
+                        'user_id' => $user->id,
+                        'chat_session_id' => $session->id,
+                        'message' => $inner->getMessage(),
+                    ]);
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'reply' => $fallbackReply,
+                    'actions' => $fallbackActions,
+                    'product_suggestions' => $fallbackProductSuggestions,
+                    'source' => 'assistant_error_fallback',
+                    'chat_session' => [
+                        'id' => $session?->id ?? ($validated['chat_session_id'] ?? null),
+                        'title' => $session?->title ?? 'New chat',
+                    ],
+                ],
+            ], 200);
+        }
+    }
+
+    /**
+     * Convert timestamp to human-readable "time ago" format
+     */
+    private function getTimeAgo($date)
+    {
+        $now = now();
+        $diff = $now->diff($date);
+
+        if ($diff->days > 0) {
+            if ($diff->days === 1) return '1 day ago';
+            if ($diff->days < 7) return $diff->days . ' days ago';
+            if ($diff->days < 30) return floor($diff->days / 7) . ' weeks ago';
+            return floor($diff->days / 30) . ' months ago';
+        }
+        if ($diff->h > 0) {
+            return $diff->h . ' hour' . ($diff->h > 1 ? 's' : '') . ' ago';
+        }
+        if ($diff->i > 0) {
+            return $diff->i . ' minute' . ($diff->i > 1 ? 's' : '') . ' ago';
+        }
+        return 'just now';
+    }
+
+    /**
+     * Resolve a user-facing deep link for a message.
+     */
+    private function resolveMessageAction($message): array
+    {
+        $metadataAction = collect((array) data_get($message->metadata, 'actions', []))
+            ->first(fn ($action) => !empty($action['label']) && !empty($action['link']));
+
+        if (is_array($metadataAction)) {
+            return [
+                'link' => (string) $metadataAction['link'],
+                'label' => (string) $metadataAction['label'],
+            ];
+        }
+
+        $referenceId = trim((string) ($message->reference_id ?? ''));
+        $title = strtolower((string) ($message->title ?? ''));
+        $body = strtolower((string) ($message->message ?? ''));
+
+        if ($message->type === 'invoice' && $referenceId !== '') {
+            $isPaymentDue = str_contains($title, 'ready for payment')
+                || str_contains($title, 'due')
+                || str_contains($body, 'ready for payment')
+                || str_contains($body, 'pay')
+                || str_contains($body, 'due');
+
+            if ($isPaymentDue) {
+                return [
+                    'link' => '/payment?mode=invoice&invoiceNumber=' . urlencode($referenceId) . '&from=' . urlencode('/messages'),
+                    'label' => 'Pay now',
+                ];
+            }
+
+            return [
+                'link' => '/invoices?invoiceNumber=' . urlencode($referenceId),
+                'label' => 'View invoice',
+            ];
+        }
+
+        if ($message->type === 'quote' && $referenceId !== '') {
+            return [
+                'link' => '/quotes?view=' . urlencode($referenceId),
+                'label' => 'View quote',
+            ];
+        }
+
+        if ($message->type === 'order' && $referenceId !== '') {
+            return [
+                'link' => '/orders?view=' . urlencode($referenceId),
+                'label' => 'View order',
+            ];
+        }
+
+        return [
+            'link' => null,
+            'label' => null,
+        ];
+    }
+
+    private function handleDirectAssistantAction(User $user, string $question, array $context): ?array
+    {
+        if (!$this->isInvoiceReminderIntent($question)) {
+            return null;
+        }
+
+        $focusedInvoice = $context['focused_invoice'] ?? null;
+        if (!is_array($focusedInvoice) || empty($focusedInvoice['invoice_number'])) {
+            return [
+                'reply' => 'I can send an invoice reminder email once you include the invoice number. Send a message like: send invoice reminder for INV-202604-00012 to my email.',
+                'actions' => [
+                    [
+                        'label' => 'See all invoices',
+                        'link' => '/invoices',
+                    ],
+                ],
+            ];
+        }
+
+        $invoiceNumber = (string) $focusedInvoice['invoice_number'];
+        $invoice = Invoice::where('user_id', $user->id)
+            ->where('invoice_number', $invoiceNumber)
+            ->first();
+
+        if (!$invoice) {
+            return [
+                'reply' => "I could not find invoice {$invoiceNumber} on your account.",
+                'actions' => [
+                    [
+                        'label' => 'See all invoices',
+                        'link' => '/invoices',
+                    ],
+                ],
+            ];
+        }
+
+        $recipientEmail = trim((string) ($user->email ?? ''));
+        if ($recipientEmail === '') {
+            return [
+                'reply' => "I found {$invoiceNumber}, but your account does not have a valid email address for sending the reminder.",
+                'actions' => [
+                    [
+                        'label' => 'Update profile',
+                        'link' => '/profile',
+                    ],
+                    [
+                        'label' => 'See all invoices',
+                        'link' => '/invoices',
+                    ],
+                ],
+            ];
+        }
+
+        $totalAmount = (float) ($invoice->total_amount ?? 0);
+        $paidAmount = (float) ($invoice->paid_amount ?? 0);
+        $balanceDue = max(0, $totalAmount - $paidAmount);
+
+        if (strtolower((string) $invoice->status) === 'paid' || $balanceDue <= 0.01) {
+            return [
+                'reply' => "Invoice {$invoiceNumber} is already fully paid, so no reminder email is needed.",
+                'actions' => [
+                    [
+                        'label' => 'View invoice',
+                        'link' => '/invoices?invoiceNumber=' . urlencode($invoiceNumber),
+                    ],
+                ],
+            ];
+        }
+
+        try {
+            $sent = $this->notificationService->sendInvoiceReminderNotification($invoice);
+        } catch (\Throwable $e) {
+            Log::error('Assistant failed to send invoice reminder: ' . $e->getMessage(), [
+                'invoice_number' => $invoiceNumber,
+                'user_id' => $user->id,
+            ]);
+
+            return [
+                'reply' => "I found {$invoiceNumber}, but the reminder email could not be sent right now. Please try again in a moment.",
+                'actions' => [
+                    [
+                        'label' => 'See all invoices',
+                        'link' => '/invoices',
+                    ],
+                ],
+            ];
+        }
+
+        if (!$sent) {
+            return [
+                'reply' => "I found {$invoiceNumber}, but the reminder email could not be sent right now. Please try again in a moment.",
+                'actions' => [
+                    [
+                        'label' => 'See all invoices',
+                        'link' => '/invoices',
+                    ],
+                ],
+            ];
+        }
+
+        $dueAt = optional($invoice->due_at)?->toDateString();
+        $dueText = $dueAt ? " payment is due by {$dueAt}." : '';
+        $balanceText = $this->formatAssistantMoney($balanceDue);
+
+        return [
+            'reply' => "I sent an invoice reminder for {$invoiceNumber} to your email: {$recipientEmail}. Balance due is {$balanceText}.{$dueText}",
+            'actions' => [
+                [
+                    'label' => 'View invoice',
+                    'link' => '/invoices?invoiceNumber=' . urlencode($invoiceNumber),
+                ],
+                [
+                    'label' => 'Download invoice PDF',
+                    'link' => '/api/v1/invoices/' . urlencode($invoiceNumber) . '/pdf',
+                ],
+                [
+                    'label' => 'Pay this invoice',
+                    'link' => '/payment?mode=invoice&invoiceNumber=' . urlencode($invoiceNumber) . '&from=' . urlencode('/messages'),
+                ],
+            ],
+        ];
+    }
+
+    private function isInvoiceReminderIntent(string $question): bool
+    {
+        $normalized = strtolower($question);
+
+        return Str::contains($normalized, [
+            'send invoice reminder',
+            'send reminder',
+            'email reminder',
+            'remind me about invoice',
+            'send the reminder',
+            'send this invoice reminder',
+        ]);
+    }
+
+    private function isUserEscalationIntent(string $message): bool
+    {
+        $normalized = strtolower(trim($message));
+        if ($normalized === '') {
+            return false;
+        }
+
+        if (Str::contains($normalized, [
+            'do not escalate',
+            'dont escalate',
+            "don't escalate",
+            'no need to escalate',
+            'no escalation',
+            'keep this with ai',
+            'use ai',
+        ])) {
+            return false;
+        }
+
+        // Require explicit handoff phrasing to avoid accidental escalations.
+        return Str::contains($normalized, [
+            'please escalate',
+            'escalate this',
+            'escalate to human',
+            'connect me to human support',
+            'connect me to a human',
+            'transfer me to human support',
+            'talk to a human',
+            'speak to a human',
+            'i want human support',
+            'i need human support',
+            'live agent',
+            'real person',
+            'handoff to human',
+        ]);
+    }
+
+    private function buildAssistantContext($user, string $question, ?int $chatSessionId = null): array
+    {
+        $hasInvoicesTable = Schema::hasTable('invoices');
+        $hasOrdersTable = Schema::hasTable('orders');
+        $hasQuotesTable = Schema::hasTable('quotes');
+        $hasChatMessagesTable = Schema::hasTable('chat_messages');
+
+        $recentInvoices = $hasInvoicesTable
+            ? Invoice::where('user_id', $user->id)
+                ->orderByDesc('issued_at')
+                ->orderByDesc('id')
+                ->limit(8)
+                ->get(['invoice_number', 'status', 'total_amount', 'paid_amount', 'due_at', 'order_number'])
+            : collect();
+
+        $recentOrders = $hasOrdersTable
+            ? Order::where('user_id', $user->id)
+                ->orderByDesc('created_at')
+                ->limit(6)
+                ->get(['order_number', 'quote_id', 'status', 'payment_status', 'total_amount', 'tracking_info', 'created_at'])
+            : collect();
+
+        $approvedQuotes = $hasQuotesTable
+            ? Quote::where('user_id', $user->id)
+                ->where('status', 'approved')
+                ->with('order:id,quote_id,order_number,payment_status,status')
+                ->orderByDesc('created_at')
+                ->limit(10)
+                ->get(['quote_id', 'status', 'total_amount', 'created_at'])
+            : collect();
+
+        $completedPaidQuotes = $approvedQuotes
+            ->filter(function (Quote $quote) {
+                $paymentStatus = strtolower((string) optional($quote->order)->payment_status);
+                return in_array($paymentStatus, ['paid', 'completed'], true);
+            })
+            ->values()
+            ->map(function (Quote $quote) {
+                return [
+                    'quote_id' => $quote->quote_id,
+                    'total_amount' => (float) $quote->total_amount,
+                    'order_number' => optional($quote->order)->order_number,
+                    'payment_status' => optional($quote->order)->payment_status,
+                    'order_status' => optional($quote->order)->status,
+                    'created_at' => optional($quote->created_at)?->toIso8601String(),
+                ];
+            })
+            ->all();
+
+        $invoiceNumber = $this->extractInvoiceNumber($question);
+        $focusedInvoice = null;
+        if ($hasInvoicesTable && $invoiceNumber !== null) {
+            $focusedInvoice = Invoice::where('user_id', $user->id)
+                ->where('invoice_number', $invoiceNumber)
+                ->first(['invoice_number', 'status', 'total_amount', 'paid_amount', 'due_at', 'order_number']);
+        }
+
+        $invoiceSummaries = $recentInvoices->map(function (Invoice $invoice) {
+            $remaining = max(0, (float) $invoice->total_amount - (float) $invoice->paid_amount);
+            return [
+                'invoice_number' => $invoice->invoice_number,
+                'status' => $invoice->status,
+                'order_number' => $invoice->order_number,
+                'total_amount' => (float) $invoice->total_amount,
+                'paid_amount' => (float) $invoice->paid_amount,
+                'remaining_amount' => $remaining,
+                'due_at' => optional($invoice->due_at)?->toDateString(),
+            ];
+        })->all();
+
+        $openInvoiceTotal = collect($invoiceSummaries)
+            ->filter(static fn (array $invoice) => (float) ($invoice['remaining_amount'] ?? 0) > 0.01)
+            ->sum('remaining_amount');
+
+        $recentChatTurns = [];
+        if ($hasChatMessagesTable && $chatSessionId) {
+            $recentChatTurns = ChatMessage::where('chat_session_id', $chatSessionId)
+                ->orderByDesc('id')
+                ->limit(10)
+                ->get(['role', 'content', 'metadata'])
+                ->reverse()
+                ->values()
+                ->map(fn (ChatMessage $item) => [
+                    'role' => $item->role,
+                    'content' => $item->content,
+                    'product_suggestions' => array_values(array_filter((array) data_get($item->metadata, 'product_suggestions', []))),
+                    'has_product_suggestions' => !empty((array) data_get($item->metadata, 'product_suggestions', [])),
+                ])
+                ->all();
+        }
+
+            $historyPreferences = $this->extractPreferenceKeywordsFromHistory($recentChatTurns);
+        $shouldSuggestProducts = $this->isProductDiscoveryIntent($question, $recentChatTurns);
+            $searchContext = $this->buildProductSearchContext($question, $recentChatTurns);
+        $productSuggestions = $shouldSuggestProducts
+                ? $this->searchProductsForAssistant($question, $historyPreferences, 6, $searchContext)
+            : [];
+
+        return [
+            'customer' => [
+                'name' => (string) ($user->name ?? ''),
+                'email' => (string) ($user->email ?? ''),
+            ],
+            'summary' => [
+                'open_invoice_count' => collect($invoiceSummaries)
+                    ->filter(static fn (array $invoice) => (float) ($invoice['remaining_amount'] ?? 0) > 0.01)
+                    ->count(),
+                'open_invoice_total' => round((float) $openInvoiceTotal, 2),
+                'completed_paid_quote_count' => count($completedPaidQuotes),
+            ],
+            'recent_invoices' => $invoiceSummaries,
+            'recent_orders' => $recentOrders->map(function (Order $order) {
+                return [
+                    'order_number' => $order->order_number,
+                    'quote_id' => $order->quote_id,
+                    'status' => $order->status,
+                    'payment_status' => $order->payment_status,
+                    'total_amount' => (float) $order->total_amount,
+                    'tracking_info' => $order->tracking_info,
+                    'created_at' => optional($order->created_at)?->toIso8601String(),
+                ];
+            })->all(),
+            'completed_paid_quotes' => $completedPaidQuotes,
+            'product_suggestions' => $productSuggestions,
+            'product_intent' => $shouldSuggestProducts,
+            'history_preferences' => $historyPreferences,
+            'recent_chat_turns' => $recentChatTurns,
+            'focused_invoice' => $focusedInvoice ? [
+                'invoice_number' => $focusedInvoice->invoice_number,
+                'status' => $focusedInvoice->status,
+                'order_number' => $focusedInvoice->order_number,
+                'total_amount' => (float) $focusedInvoice->total_amount,
+                'paid_amount' => (float) $focusedInvoice->paid_amount,
+                'remaining_amount' => max(0, (float) $focusedInvoice->total_amount - (float) $focusedInvoice->paid_amount),
+                'due_at' => optional($focusedInvoice->due_at)?->toDateString(),
+            ] : null,
+        ];
+    }
+
+    private function buildAssistantActions(string $question, array $context): array
+    {
+        $actions = [];
+        $questionLower = strtolower($question);
+        $focusedInvoice = $context['focused_invoice'] ?? null;
+        $isProductIntent = (bool) ($context['product_intent'] ?? false);
+
+        if ($isProductIntent) {
+            $actions[] = [
+                'label' => 'Open product search',
+                'link' => '/products?search=' . urlencode(trim($question)),
+            ];
+            $actions[] = [
+                'label' => 'Browse products',
+                'link' => '/products',
+            ];
+        }
+
+        if ($focusedInvoice && !empty($focusedInvoice['invoice_number'])) {
+            $invoiceNumber = (string) $focusedInvoice['invoice_number'];
+
+            $actions[] = [
+                'label' => 'View invoice',
+                'link' => '/invoices?invoiceNumber=' . urlencode($invoiceNumber),
+            ];
+
+            $actions[] = [
+                'label' => 'Download invoice PDF',
+                'link' => '/api/v1/invoices/' . urlencode($invoiceNumber) . '/pdf',
+            ];
+
+            $remaining = (float) ($focusedInvoice['remaining_amount'] ?? 0);
+            if ($remaining > 0.01) {
+                $actions[] = [
+                    'label' => 'Pay this invoice',
+                    'link' => '/payment?mode=invoice&invoiceNumber=' . urlencode($invoiceNumber) . '&from=' . urlencode('/messages'),
+                ];
+            }
+        }
+
+        if (Str::contains($questionLower, ['payment', 'pay', 'invoice'])) {
+            $actions[] = [
+                'label' => 'Open payments',
+                'link' => '/payment',
+            ];
+            $actions[] = [
+                'label' => 'See all invoices',
+                'link' => '/invoices',
+            ];
+        }
+
+        if (Str::contains($questionLower, ['quote', 'requote', 'reorder', 'same quote'])) {
+            $actions[] = [
+                'label' => 'Open quotes',
+                'link' => '/quotes',
+            ];
+            $actions[] = [
+                'label' => 'Browse products',
+                'link' => '/products',
+            ];
+        }
+
+        if (Str::contains($questionLower, ['order', 'track', 'shipping'])) {
+            $actions[] = [
+                'label' => 'Open orders',
+                'link' => '/orders',
+            ];
+        }
+
+        $topProduct = collect($context['product_suggestions'] ?? [])->first();
+        if (is_array($topProduct) && !empty($topProduct['product_id'])) {
+            $actions[] = [
+                'label' => 'View top product',
+                'link' => '/products/' . urlencode((string) $topProduct['product_id']),
+            ];
+        }
+
+        $deduped = collect($actions)
+            ->filter(static fn (array $action) => !empty($action['label']) && !empty($action['link']))
+            ->unique(static fn (array $action) => $action['label'] . '|' . $action['link'])
+            ->values()
+            ->all();
+
+        return $deduped;
+    }
+
+    private function buildFallbackReply(string $question, array $context): string
+    {
+        $customerName = trim((string) ($context['customer']['name'] ?? ''));
+        $firstName = $customerName !== '' ? explode(' ', $customerName)[0] : '';
+        $greet = $firstName !== '' ? "{$firstName}, " : '';
+
+        $focusedInvoice = $context['focused_invoice'] ?? null;
+        $openCount = (int) ($context['summary']['open_invoice_count'] ?? 0);
+        $openTotal = $this->formatAssistantMoney((float) ($context['summary']['open_invoice_total'] ?? 0));
+        $completedPaidQuoteCount = (int) ($context['summary']['completed_paid_quote_count'] ?? 0);
+        $isProductIntent = (bool) ($context['product_intent'] ?? false);
+
+        if ($focusedInvoice && !empty($focusedInvoice['invoice_number'])) {
+            $remaining = $this->formatAssistantMoney((float) ($focusedInvoice['remaining_amount'] ?? 0));
+            $status = strtolower((string) ($focusedInvoice['status'] ?? 'open'));
+            return "{$greet}I found invoice {$focusedInvoice['invoice_number']} (status: {$status}). The remaining balance is {$remaining}. You can view it, download the PDF, or make a payment using the actions below — let me know if you need anything else!";
+        }
+
+        if (Str::contains(strtolower($question), ['invoice', 'payment', 'pay'])) {
+            if ($openCount === 0) {
+                return "{$greet}great news — you have no outstanding invoices right now! If you need to review past invoices or set up a new order, I'm here to help.";
+            }
+            return "{$greet}you currently have {$openCount} open invoice(s) totaling {$openTotal}. I can help you view details, download PDFs, or make payments — just let me know which invoice you'd like to start with!";
+        }
+
+        $productSuggestions = (array) ($context['product_suggestions'] ?? []);
+        if (!empty($productSuggestions)) {
+            $count = count($productSuggestions);
+            $top = $productSuggestions[0];
+            $price = $this->formatAssistantMoney((float) ($top['price'] ?? 0));
+            $name = (string) ($top['name'] ?? 'a top product');
+            return "{$greet}I found {$count} product(s) that match your search! The top suggestion is **{$name}** at {$price}. Check out the product cards below — each one explains why it's a good fit. Want me to help you request a quote?";
+        }
+
+        if ($isProductIntent) {
+            return "{$greet}I searched the catalog but didn't find a strong match for that specific phrase. Try narrowing it down — a brand name (like \"Dell\" or \"Cisco\"), a model number, or a category (like \"laptop\" or \"switch\") works best. I'm ready when you are!";
+        }
+
+        if (Str::contains(strtolower($question), ['quote', 'same quote', 'reorder', 'requote'])) {
+            if ($completedPaidQuoteCount > 0) {
+                return "{$greet}you have {$completedPaidQuoteCount} approved and paid quote(s) ready to reorder. Head to Quotes to duplicate one, or I can help you build a new quote from scratch!";
+            }
+            return "{$greet}I don't see any completed quotes yet, but I can help you browse products and build a new quote. What are you looking for?";
+        }
+
+        if (Str::contains(strtolower($question), ['order', 'track', 'shipping', 'delivery'])) {
+            return "{$greet}I can pull up your recent orders and tracking info. If you have a specific order number, share it and I'll look it up right away!";
+        }
+
+        // Greeting handling
+        $questionLower = strtolower(trim($question));
+        $greetings = ['hi', 'hello', 'hey', 'yo', 'good morning', 'good afternoon', 'good evening', 'howdy', 'sup', 'whats up'];
+        if (in_array($questionLower, $greetings, true) || Str::startsWith($questionLower, ['hi ', 'hello ', 'hey '])) {
+            $timeGreet = date('H') < 12 ? 'Good morning' : (date('H') < 17 ? 'Good afternoon' : 'Good evening');
+            $nameGreet = $firstName !== '' ? ", {$firstName}" : '';
+            return "{$timeGreet}{$nameGreet}! 👋 I'm Mela AI, your Armely assistant. I can help with invoices, payments, orders, quotes, and finding the right IT products. What can I do for you today?";
+        }
+
+        // Thank you handling
+        if (Str::contains($questionLower, ['thank', 'thanks', 'thx', 'appreciate'])) {
+            return "You're welcome{$greet}! Happy to help anytime. Is there anything else I can assist you with?";
+        }
+
+        return "{$greet}I'm here to help with invoices, payments, quotes, order tracking, and product recommendations. Just ask — for example, try \"Show my unpaid invoices\" or \"Recommend a Dell laptop under \$1500\" and I'll jump right in!";
+    }
+
+    private function handleLocalProductDiscoveryReply(string $question, array $context): ?array
+    {
+        $isProductIntent = (bool) ($context['product_intent'] ?? false);
+        if (!$isProductIntent) {
+            return null;
+        }
+
+        $productSuggestions = (array) ($context['product_suggestions'] ?? []);
+        $actions = $this->buildAssistantActions($question, $context);
+        $customerName = trim((string) ($context['customer']['name'] ?? ''));
+        $firstName = $customerName !== '' ? explode(' ', $customerName)[0] : '';
+        $greet = $firstName !== '' ? "{$firstName}, " : '';
+
+        if (!empty($productSuggestions)) {
+            $count = count($productSuggestions);
+            $top = $productSuggestions[0];
+            $topName = (string) ($top['name'] ?? 'a matching product');
+            $topPrice = isset($top['price']) ? $this->formatAssistantMoney((float) $top['price']) : null;
+            $topVendor = trim((string) ($top['vendor'] ?? ''));
+
+            $reply = "{$greet}";
+            if ($count === 1) {
+                $reply .= "I found a great match for you!";
+            } else {
+                $reply .= "I found {$count} products that fit your search!";
+            }
+
+            if ($topPrice && $topPrice !== '$0.00') {
+                $reply .= " The top pick is **{$topName}** at {$topPrice}";
+                if ($topVendor !== '') {
+                    $reply .= " from {$topVendor}";
+                }
+                $reply .= '.';
+            } else {
+                $reply .= " Top pick: **{$topName}**";
+                if ($topVendor !== '') {
+                    $reply .= " from {$topVendor}";
+                }
+                $reply .= '.';
+            }
+
+            $reply .= ' Check out the product cards below for details on why each was selected. Want me to help you request a quote or find more options?';
+
+            return [
+                'reply' => $reply,
+                'actions' => $actions,
+                'product_suggestions' => $productSuggestions,
+                'source' => 'local_product_search_match',
+            ];
+        }
+
+        return [
+            'reply' => "{$greet}I searched the catalog but didn't find a direct match for that phrase. Here are a few tips that help:\n\n• Use a **brand name** like \"Dell\", \"HP\", or \"Cisco\"\n• Try a **category** like \"laptop\", \"monitor\", or \"switch\"\n• Include a **model or SKU** if you have one\n\nGive it another try and I'll find the best options for you!",
+            'actions' => $actions,
+            'product_suggestions' => [],
+            'source' => 'local_product_search_no_match',
+        ];
+    }
+
+    private function extractInvoiceNumber(string $text): ?string
+    {
+        if (preg_match('/\bINV-[A-Z0-9-]+\b/i', $text, $matches)) {
+            return strtoupper($matches[0]);
+        }
+
+        return null;
+    }
+
+    private function getAssistantCurrencyConfig(): array
+    {
+        if (!Schema::hasTable('app_settings')) {
+            return ['code' => 'USD', 'rate' => 1.0, 'symbol' => '$'];
+        }
+
+        $code = strtoupper((string) AppSetting::getValue('pricing.currency_code', 'USD'));
+        if ($code === '') {
+            $code = 'USD';
+        }
+
+        $rate = max(0.0001, AppSetting::getNumber('pricing.currency_rate', 1.0));
+
+        $symbol = match ($code) {
+            'EUR' => 'EUR ',
+            'GBP' => 'GBP ',
+            'KES' => 'KES ',
+            'USD' => '$',
+            default => $code . ' ',
+        };
+
+        return [
+            'code' => $code,
+            'rate' => $rate,
+            'symbol' => $symbol,
+        ];
+    }
+
+    private function formatAssistantMoney(float $amount, int $decimals = 2): string
+    {
+        $currency = $this->getAssistantCurrencyConfig();
+        $converted = $amount * (float) ($currency['rate'] ?? 1.0);
+
+        return (string) ($currency['symbol'] ?? '$') . number_format($converted, $decimals);
+    }
+
+    private function searchProductsForAssistant(string $question, array $historyPreferences = [], int $limit = 6, array $searchContext = []): array
+    {
+        $keywords = $this->extractProductSearchKeywords($question);
+        $deviceType = strtolower((string) ($searchContext['device_type'] ?? ''));
+        $maxBudget = isset($searchContext['max_budget']) ? (float) $searchContext['max_budget'] : null;
+        $requiredBrand = strtolower((string) ($searchContext['required_brand'] ?? ''));
+        $requiredCategory = strtolower((string) ($searchContext['required_category'] ?? ''));
+        $transactionalFollowUp = (bool) ($searchContext['transactional_follow_up'] ?? false);
+        $recentSuggestedProducts = (array) ($searchContext['recent_suggested_products'] ?? []);
+
+        if ($deviceType !== '' && !in_array($deviceType, $keywords, true)) {
+            $keywords[] = $deviceType;
+        }
+
+        $preferenceKeywords = array_values(array_filter(array_map('strtolower', $historyPreferences)));
+        if (!empty($preferenceKeywords)) {
+            $keywords = array_values(array_unique(array_merge($keywords, $preferenceKeywords)));
+        }
+
+        if ($transactionalFollowUp && empty($keywords) && !empty($recentSuggestedProducts)) {
+            return collect($recentSuggestedProducts)
+                ->map(function (array $candidate) {
+                    return [
+                        'product_id' => (string) ($candidate['product_id'] ?? ''),
+                        'name' => (string) ($candidate['name'] ?? ''),
+                        'sku' => (string) ($candidate['sku'] ?? ''),
+                        'vendor' => (string) ($candidate['vendor'] ?? ''),
+                        'price' => (float) ($candidate['price'] ?? 0),
+                        'description' => Str::limit((string) ($candidate['description'] ?? ''), 180),
+                        'image_url' => $candidate['image_url'] ?? null,
+                        'why' => 'From your previously suggested products for this conversation.',
+                        'actions' => [
+                            [
+                                'label' => 'View details',
+                                'link' => '/products/' . urlencode((string) ($candidate['product_id'] ?? '')),
+                            ],
+                            [
+                                'label' => 'Find similar',
+                                'link' => '/products?search=' . urlencode((string) ($candidate['name'] ?? '')),
+                            ],
+                            [
+                                'label' => 'Request quote',
+                                'link' => '/cart',
+                            ],
+                        ],
+                    ];
+                })
+                ->filter(static fn (array $item) => !empty($item['product_id']) && !empty($item['name']))
+                ->unique(static fn (array $item) => (string) $item['product_id'])
+                ->take($limit)
+                ->values()
+                ->all();
+        }
+
+        if (empty($keywords)) {
+            return [];
+        }
+
+        $searchQueries = $this->buildAssistantSearchQueries($question, $keywords);
+
+        $products = Product::query()
+            ->where(function ($availability) {
+                $availability->where('is_available', true)
+                    ->orWhereNull('is_available');
+            })
+            ->where(function ($base) use ($keywords) {
+                foreach ($keywords as $keyword) {
+                    $like = '%' . $keyword . '%';
+                    $base->orWhere('product_name', 'like', $like)
+                        ->orWhere('description', 'like', $like)
+                        ->orWhere('vendor_id', 'like', $like)
+                        ->orWhere('mfg_part_no', 'like', $like)
+                        ->orWhere('tdsynnex_sku_no', 'like', $like)
+                        ->orWhere('manufacturer', 'like', $like)
+                        ->orWhere('category_segment', 'like', $like);
+                }
+            })
+            ->limit(120)
+            ->get([
+                'tdsynnex_product_id',
+                'tdsynnex_sku_no',
+                'vendor_id',
+                'product_name',
+                'description',
+                'base_price',
+                'retail_price',
+                'images',
+                'is_discontinued',
+                'manufacturer',
+                'category_segment',
+            ]);
+
+        $candidates = $products->map(function (Product $product) {
+            return [
+                'source' => 'db',
+                'product_id' => (string) ($product->tdsynnex_product_id ?: $product->tdsynnex_sku_no),
+                'name' => (string) ($product->product_name ?? ''),
+                'sku' => (string) ($product->tdsynnex_sku_no ?? ''),
+                'vendor' => (string) ($product->vendor_id ?? ''),
+                'price' => (float) ($product->base_price ?? $product->retail_price ?? 0),
+                'description' => (string) ($product->description ?? ''),
+                'image_url' => $this->extractProductImageUrl($product->images),
+                'is_discontinued' => (bool) $product->is_discontinued,
+            ];
+        })->values();
+
+        $allowRemoteCatalogLookup = (bool) config('services.tdsynnex.assistant_remote_lookup', false);
+
+        if ($allowRemoteCatalogLookup && $candidates->count() < max(3, $limit)) {
+            try {
+                foreach ($searchQueries as $searchQuery) {
+                    $remote = $this->tdsynnexService->searchPriceAvailabilityCatalog($searchQuery, 120);
+                    foreach ($remote as $item) {
+                        if (!is_array($item)) {
+                            continue;
+                        }
+
+                        $productId = (string) ($item['productId'] ?? $item['sku'] ?? '');
+                        if ($productId === '') {
+                            continue;
+                        }
+
+                        if ($candidates->contains(fn (array $row) => (string) ($row['product_id'] ?? '') === $productId)) {
+                            continue;
+                        }
+
+                        $price = (float) data_get($item, 'productPrice.0.rsPrice', 0);
+                        $images = $item['productImages'] ?? $item['images'] ?? [];
+
+                        $candidates->push([
+                            'source' => 'tdsynnex',
+                            'product_id' => $productId,
+                            'name' => (string) ($item['productName'] ?? ''),
+                            'sku' => (string) ($item['sku'] ?? $item['mfgPartNo'] ?? ''),
+                            'vendor' => (string) ($item['vendorName'] ?? $item['vendorId'] ?? 'TD SYNNEX'),
+                            'price' => $price,
+                            'description' => (string) ($item['description'] ?? ''),
+                            'image_url' => $this->extractProductImageUrl($images),
+                            'is_discontinued' => (bool) ($item['discontinueProduct'] ?? false),
+                        ]);
+                    }
+
+                    if ($candidates->count() >= max(8, $limit * 2)) {
+                        break;
+                    }
+                }
+            } catch (\Throwable $e) {
+                // Keep assistant responsive even if catalog lookup fails.
+            }
+        }
+
+        return $candidates
+            ->map(function (array $candidate) use ($keywords, $preferenceKeywords, $searchContext, $deviceType, $maxBudget, $requiredBrand, $requiredCategory) {
+                $name = strtolower((string) ($candidate['name'] ?? ''));
+                $description = strtolower((string) ($candidate['description'] ?? ''));
+                $vendor = strtolower((string) ($candidate['vendor'] ?? ''));
+                $sku = strtolower((string) ($candidate['sku'] ?? ''));
+                $isAccessory = $this->isAccessoryLikeProduct($candidate);
+                $isDeviceMatch = $this->matchesRequestedDevice($candidate, $deviceType);
+
+                $score = 0;
+                $matched = [];
+
+                foreach ($keywords as $keyword) {
+                    if ($keyword === '') {
+                        continue;
+                    }
+
+                    if (str_contains($name, $keyword)) {
+                        $score += 5;
+                        $matched[] = $keyword;
+                    }
+
+                    if (str_contains($vendor, $keyword)) {
+                        $score += 4;
+                        $matched[] = $keyword;
+                    }
+
+                    if (str_contains($description, $keyword)) {
+                        $score += 2;
+                        $matched[] = $keyword;
+                    }
+
+                    if (str_contains($sku, $keyword)) {
+                        $score += 2;
+                        $matched[] = $keyword;
+                    }
+                }
+
+                $historyMatches = [];
+                foreach ($preferenceKeywords as $pref) {
+                    if ($pref === '') {
+                        continue;
+                    }
+
+                    if (str_contains($name, $pref) || str_contains($vendor, $pref) || str_contains($description, $pref)) {
+                        $score += 3;
+                        $historyMatches[] = $pref;
+                    }
+                }
+
+                if (!(bool) ($candidate['is_discontinued'] ?? false)) {
+                    $score += 2;
+                }
+
+                if ($deviceType !== '') {
+                    if ($isDeviceMatch) {
+                        $score += 6;
+                    } else {
+                        $score -= 10;
+                    }
+                }
+
+                if ($requiredBrand !== '') {
+                    $brandMatched = str_contains($name, $requiredBrand)
+                        || str_contains($vendor, $requiredBrand)
+                        || str_contains($description, $requiredBrand);
+
+                    if ($brandMatched) {
+                        $score += 8;
+                    } else {
+                        $score -= 18;
+                    }
+                }
+
+                if ($requiredCategory !== '') {
+                    $categoryMatched = $this->matchesRequestedCategory($candidate, $requiredCategory);
+                    if ($categoryMatched) {
+                        $score += 7;
+                    } else {
+                        $score -= 16;
+                    }
+                }
+
+                if ($isAccessory) {
+                    $score -= ($deviceType !== '') ? 12 : 5;
+                }
+
+                $price = (float) ($candidate['price'] ?? 0);
+                if ($price > 0 && $price < 1200) {
+                    $score += 1;
+                }
+
+                if ($maxBudget !== null && $maxBudget > 0) {
+                    if ($price > 0 && $price <= $maxBudget) {
+                        $score += 5;
+                    } elseif ($price > $maxBudget) {
+                        $score -= 12;
+                    }
+                }
+
+                $matched = array_values(array_unique(array_filter($matched)));
+                $historyMatches = array_values(array_unique(array_filter($historyMatches)));
+
+                $whyText = 'Selected based on catalog relevance to your search.';
+                if (!empty($matched)) {
+                    $whyText = 'Matches your search for: ' . implode(', ', $matched) . '.';
+                }
+                if (!empty($historyMatches)) {
+                    $whyText .= ' Also aligns with your recent interest in ' . implode(', ', $historyMatches) . '.';
+                }
+
+                if ($maxBudget !== null && $maxBudget > 0 && $price > 0) {
+                    if ($price <= $maxBudget) {
+                        $whyText .= ' ✓ Within your ' . $this->formatAssistantMoney($maxBudget, 0) . ' budget.';
+                    } else {
+                        $whyText .= ' ⚠ Above your ' . $this->formatAssistantMoney($maxBudget, 0) . ' budget.';
+                    }
+                }
+
+                if ($isDeviceMatch && $deviceType !== '') {
+                    $whyText .= ' Confirmed ' . $deviceType . ' match.';
+                }
+
+                return [
+                    'score' => $score,
+                    'product_id' => (string) ($candidate['product_id'] ?? ''),
+                    'name' => (string) ($candidate['name'] ?? ''),
+                    'sku' => (string) ($candidate['sku'] ?? ''),
+                    'vendor' => (string) ($candidate['vendor'] ?? ''),
+                    'price' => $price,
+                    'description' => Str::limit((string) ($candidate['description'] ?? ''), 180),
+                    'image_url' => $candidate['image_url'] ?? null,
+                    'is_accessory' => $isAccessory,
+                    'device_match' => $isDeviceMatch,
+                    'why' => $whyText,
+                    'actions' => [
+                        [
+                            'label' => 'View details',
+                            'link' => '/products/' . urlencode((string) ($candidate['product_id'] ?? '')),
+                        ],
+                        [
+                            'label' => 'Find similar',
+                            'link' => '/products?search=' . urlencode((string) ($candidate['name'] ?? '')),
+                        ],
+                        [
+                            'label' => 'Request quote',
+                            'link' => '/cart',
+                        ],
+                    ],
+                ];
+            })
+            ->filter(static fn (array $item) => !empty($item['product_id']) && !empty($item['name']) && ($item['score'] ?? 0) > 0)
+            ->filter(function (array $item) use ($deviceType, $maxBudget) {
+                if ($deviceType !== '' && !($item['device_match'] ?? false)) {
+                    return false;
+                }
+
+                if ($deviceType !== '' && ($item['is_accessory'] ?? false)) {
+                    return false;
+                }
+
+                $price = (float) ($item['price'] ?? 0);
+                if ($maxBudget !== null && $maxBudget > 0 && $price > $maxBudget) {
+                    return false;
+                }
+
+                return true;
+            })
+            ->filter(function (array $item) use ($requiredBrand, $requiredCategory) {
+                if ($requiredBrand !== '') {
+                    $haystack = strtolower(
+                        (string) ($item['name'] ?? '') . ' ' .
+                        (string) ($item['vendor'] ?? '') . ' ' .
+                        (string) ($item['description'] ?? '')
+                    );
+
+                    if (!str_contains($haystack, $requiredBrand)) {
+                        return false;
+                    }
+                }
+
+                if ($requiredCategory !== '') {
+                    if (!$this->matchesRequestedCategory($item, $requiredCategory)) {
+                        return false;
+                    }
+                }
+
+                return true;
+            })
+            ->sortByDesc('score')
+            ->values()
+            ->take($limit)
+            ->map(function (array $item) {
+                unset($item['score']);
+                unset($item['is_accessory']);
+                unset($item['device_match']);
+                return $item;
+            })
+            ->all();
+    }
+
+    private function extractProductSearchKeywords(string $question): array
+    {
+        $normalized = strtolower($question);
+        $parts = preg_split('/[^a-z0-9-]+/i', $normalized) ?: [];
+        $stopWords = [
+            'need', 'purchase', 'buy', 'best', 'give', 'me', 'my', 'your', 'our', 'its', 'their',
+            'sample', 'list', 'for', 'the', 'is', 'it', 'if', 'in', 'on', 'at', 'of', 'be', 'no', 'so',
+            'and', 'or', 'with', 'show', 'please', 'can', 'you', 'want', 'from', 'that', 'this',
+            'have', 'all', 'more', 'details', 'about', 'find', 'search', 'suggestion', 'suggestions',
+            'suggest', 'suggested', 'recommended', 'recommend', 'available', 'current', 'from',
+            'product', 'products', 'item', 'items', 'one', 'two', 'three', 'hi', 'hello', 'hey', 'to', 'today',
+            'order', 'quote', 'quotes', 'cart', 'make', 'proceed', 'request', 'them', 'those', 'are', 'please',
+            'add', 'added', 'placing', 'place', 'good', 'looking', 'look', 'get', 'some', 'any',
+            'what', 'which', 'would', 'could', 'should', 'like', 'price', 'under', 'below', 'above',
+            'something', 'anything', 'around', 'great', 'nice', 'new', 'need', 'do', 'does', 'got',
+        ];
+
+        $keywords = collect($parts)
+            ->map(static fn ($p) => trim((string) $p))
+            ->filter(static fn ($p) => strlen($p) >= 2)
+            ->filter(static fn ($p) => !in_array($p, $stopWords, true))
+            ->unique()
+            ->values()
+            ->all();
+
+        // Expand known brand variants
+        $brandExpansions = [
+            'hp' => ['hp', 'hewlett-packard', 'hewlett packard'],
+            'dell' => ['dell'],
+            'lenovo' => ['lenovo'],
+        ];
+
+        foreach ($brandExpansions as $brand => $variants) {
+            if (str_contains($normalized, $brand)) {
+                foreach ($variants as $variant) {
+                    if (!in_array($variant, $keywords, true)) {
+                        $keywords[] = $variant;
+                    }
+                }
+            }
+        }
+
+        // Expand device type synonyms
+        if (str_contains($normalized, 'laptop')) {
+            if (!in_array('notebook', $keywords, true)) {
+                $keywords[] = 'notebook';
+            }
+        }
+        if (str_contains($normalized, 'notebook')) {
+            if (!in_array('laptop', $keywords, true)) {
+                $keywords[] = 'laptop';
+            }
+        }
+        if (str_contains($normalized, 'monitor')) {
+            if (!in_array('display', $keywords, true)) {
+                $keywords[] = 'display';
+            }
+        }
+
+        return array_values(array_unique($keywords));
+    }
+
+    private function buildAssistantSearchQueries(string $question, array $keywords): array
+    {
+        $raw = strtolower(trim($question));
+        $cleaned = preg_replace('/\b(search|find|look\s*for|show|me|please|for\s*me)\b/i', ' ', $raw) ?? $raw;
+        $cleaned = preg_replace('/\s+/', ' ', trim((string) $cleaned)) ?? '';
+
+        $queries = [];
+
+        $keywordPhrase = trim(implode(' ', array_slice(array_values(array_filter($keywords)), 0, 8)));
+        if ($keywordPhrase !== '') {
+            $queries[] = $keywordPhrase;
+        }
+
+        if ($cleaned !== '') {
+            $queries[] = $cleaned;
+        }
+
+        if ($raw !== '') {
+            $queries[] = $raw;
+        }
+
+        if (!empty($keywords)) {
+            $firstKeyword = trim((string) ($keywords[0] ?? ''));
+            if ($firstKeyword !== '') {
+                $queries[] = $firstKeyword;
+            }
+        }
+
+        return array_values(array_unique(array_filter($queries, static fn ($q) => is_string($q) && trim($q) !== '')));
+    }
+
+    private function isProductDiscoveryIntent(string $question, array $recentChatTurns = []): bool
+    {
+        $q = strtolower(trim($question));
+        if ($q === '') {
+            return false;
+        }
+
+        $greetings = ['hi', 'hello', 'hey', 'yo', 'good morning', 'good afternoon', 'good evening', 'howdy', 'sup', 'whats up', 'thanks', 'thank you', 'thx', 'ok', 'okay', 'bye', 'goodbye'];
+        if (in_array($q, $greetings, true)) {
+            return false;
+        }
+
+        $productSignals = [
+            'laptop', 'notebook', 'desktop', 'monitor', 'printer', 'server', 'sku', 'model', 'spec',
+            'recommend', 'suggest', 'sample list', 'best', 'buy', 'purchase', 'network',
+            'switch', 'router', 'firewall', 'access point', 'wifi', 'wireless', 'catalogue', 'catalog',
+            'workstation', 'tablet', 'projector', 'scanner', 'ups', 'storage', 'ssd', 'ram', 'memory',
+            'headset', 'webcam', 'docking', 'dock', 'keyboard', 'mouse', 'display',
+            'thin client', 'chromebook', 'all-in-one', 'mini pc',
+        ];
+
+        $financeSignals = [
+            'invoice', 'payment', 'pay', 'balance', 'due', 'download', 'pdf', 'billing', 'receipt',
+            'reminder', 'send reminder', 'quote', 'quotes', 'my quotes', 'current quotes', 'open quotes',
+        ];
+
+        $hasCurrentProductSignal = false;
+        foreach ($productSignals as $signal) {
+            if (str_contains($q, $signal)) {
+                $hasCurrentProductSignal = true;
+                break;
+            }
+        }
+
+        $hasMeaningfulKeywords = count($this->extractProductSearchKeywords($question)) > 0;
+
+        if (!$hasCurrentProductSignal && !$hasMeaningfulKeywords && Str::contains($q, $financeSignals)) {
+            return false;
+        }
+
+        if (Str::contains($q, ['do we have', 'availability', 'in stock', 'check for', 'search for'])) {
+            return true;
+        }
+
+        foreach ($productSignals as $signal) {
+            if (str_contains($q, $signal)) {
+                return true;
+            }
+        }
+
+        if ($hasMeaningfulKeywords && !Str::contains($q, $financeSignals)) {
+            return true;
+        }
+
+        $recentUserText = collect($recentChatTurns)
+            ->filter(static fn (array $turn) => strtolower((string) ($turn['role'] ?? '')) === 'user')
+            ->pluck('content')
+            ->map(static fn ($t) => strtolower((string) $t))
+            ->implode(' ');
+
+        $followUpSignals = [
+            'which one', 'which is best', 'recommend one', 'top one', 'best one',
+            'can you recommend', 'show more', 'similar options', 'other options', 'another option',
+            'under', 'below', 'not more than', 'within budget',
+            'from the list', 'from your list', 'why did you suggest'
+        ];
+
+        $isLikelyProductFollowUp = Str::contains($q, $followUpSignals);
+
+        if ($recentUserText !== '' && $isLikelyProductFollowUp) {
+            $recentHasProductSuggestions = collect($recentChatTurns)
+                ->contains(static fn (array $turn) => (bool) ($turn['has_product_suggestions'] ?? false));
+
+            if ($recentHasProductSuggestions) {
+                return true;
+            }
+
+            foreach (['laptop', 'notebook', 'recommend', 'sample list', 'buy', 'purchase', 'printer', 'network'] as $signal) {
+                if (str_contains($recentUserText, $signal)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private function extractPreferenceKeywordsFromHistory(array $recentChatTurns): array
+    {
+        $userTexts = collect($recentChatTurns)
+            ->filter(static fn (array $turn) => strtolower((string) ($turn['role'] ?? '')) === 'user')
+            ->pluck('content')
+            ->map(static fn ($text) => strtolower((string) $text));
+
+        if ($userTexts->isEmpty()) {
+            return [];
+        }
+
+        $stopWords = [
+            'need', 'purchase', 'buy', 'best', 'give', 'me', 'sample', 'list', 'for', 'the',
+            'and', 'or', 'with', 'show', 'please', 'can', 'you', 'want', 'from', 'that', 'this',
+            'have', 'all', 'more', 'details', 'about', 'find', 'search', 'suggestion', 'suggestions',
+            'suggest', 'suggested', 'recommended', 'recommend', 'available', 'current',
+            'product', 'products', 'item', 'items', 'invoice', 'payment', 'quote', 'order',
+            'one', 'two', 'three', 'hi', 'hello', 'hey', 'to', 'today'
+        ];
+
+        $priorityTerms = [
+            'laptop', 'notebook', 'monitor', 'printer', 'printers', 'server', 'desktop',
+            'workstation', 'gaming', 'business', 'network', 'networking', 'switch',
+            'router', 'firewall', 'wireless'
+        ];
+
+        $tokens = $userTexts
+            ->flatMap(function ($text) {
+                return preg_split('/[^a-z0-9]+/i', (string) $text) ?: [];
+            })
+            ->map(static fn ($token) => trim((string) $token))
+            ->filter(static fn ($token) => strlen($token) >= 3)
+            ->filter(static fn ($token) => !in_array($token, $stopWords, true));
+
+        $freq = [];
+        foreach ($tokens as $token) {
+            $freq[$token] = ($freq[$token] ?? 0) + 1;
+        }
+
+        arsort($freq);
+
+        $selected = [];
+        foreach ($freq as $token => $count) {
+            if ($count >= 2 || in_array($token, $priorityTerms, true)) {
+                $selected[] = $token;
+            }
+            if (count($selected) >= 6) {
+                break;
+            }
+        }
+
+        return $selected;
+    }
+
+    private function buildProductSearchContext(string $question, array $recentChatTurns = []): array
+    {
+        $texts = collect($recentChatTurns)
+            ->filter(static fn (array $turn) => strtolower((string) ($turn['role'] ?? '')) === 'user')
+            ->pluck('content')
+            ->map(static fn ($text) => (string) $text)
+            ->all();
+
+        $texts[] = $question;
+        $joined = strtolower(implode(' ', array_filter($texts)));
+
+        $deviceType = null;
+        if (str_contains($joined, 'laptop') || str_contains($joined, 'notebook')) {
+            $deviceType = 'laptop';
+        } elseif (str_contains($joined, 'desktop') || str_contains($joined, 'workstation')) {
+            $deviceType = 'desktop';
+        } elseif (str_contains($joined, 'monitor') || str_contains($joined, 'display')) {
+            $deviceType = 'monitor';
+        } elseif (str_contains($joined, 'printer') || str_contains($joined, 'laserjet')) {
+            $deviceType = 'printer';
+        } elseif (str_contains($joined, 'server')) {
+            $deviceType = 'server';
+        } elseif (str_contains($joined, 'switch') && !str_contains($joined, 'nintendo')) {
+            $deviceType = 'switch';
+        } elseif (str_contains($joined, 'router') || str_contains($joined, 'gateway')) {
+            $deviceType = 'router';
+        } elseif (str_contains($joined, 'access point') || str_contains($joined, 'wireless ap')) {
+            $deviceType = 'access point';
+        }
+
+        $maxBudget = null;
+        $patterns = [
+            '/(?:under|below|less than|not more than|up to|within)\s*\$?\s*(\d{2,6})/i',
+            '/\$\s*(\d{2,6})/i',
+        ];
+
+        foreach ($patterns as $pattern) {
+            if (preg_match_all($pattern, $joined, $matches) && !empty($matches[1])) {
+                $values = array_map('floatval', $matches[1]);
+                $values = array_values(array_filter($values, static fn (float $v) => $v >= 50));
+                if (!empty($values)) {
+                    $maxBudget = min($values);
+                    break;
+                }
+            }
+        }
+
+        $requiredBrand = null;
+        $knownBrands = [
+            'dell', 'hp', 'hewlett-packard', 'lenovo', 'cisco', 'meraki', 'microsoft', 'apple',
+            'samsung', 'epson', 'brother', 'canon', 'asus', 'acer', 'logitech', 'jabra',
+            'netgear', 'ubiquiti', 'fortinet', 'aruba', 'juniper', 'sophos', 'intel',
+            'amd', 'nvidia', 'toshiba', 'xerox', 'ricoh', 'lexmark', 'benq', 'lg',
+            'panasonic', 'viewsonic', 'poly', 'plantronics', 'dynabook', 'msi',
+        ];
+        foreach ($knownBrands as $brand) {
+            if (str_contains($joined, $brand)) {
+                $requiredBrand = $brand;
+                break;
+            }
+        }
+
+        $requiredCategory = null;
+        foreach (['monitor', 'display', 'laptop', 'notebook', 'desktop', 'workstation', 'printer', 'server', 'switch', 'router', 'access point', 'firewall', 'scanner', 'projector', 'tablet', 'ups', 'storage'] as $category) {
+            if (str_contains($joined, $category)) {
+                $requiredCategory = $category;
+                break;
+            }
+        }
+
+        $questionLower = strtolower(trim($question));
+        $transactionalSignals = [
+            'request quote', 'proceed', 'add to cart', 'add them', 'order them', 'place order',
+            'make them quote', 'make quote', 'use suggested', 'best two', 'those two', 'them'
+        ];
+        $transactionalFollowUp = Str::contains($questionLower, $transactionalSignals);
+
+        $recentSuggestedProducts = collect($recentChatTurns)
+            ->filter(static fn (array $turn) => strtolower((string) ($turn['role'] ?? '')) === 'assistant')
+            ->flatMap(static fn (array $turn) => (array) ($turn['product_suggestions'] ?? []))
+            ->map(function ($item) {
+                if (!is_array($item)) {
+                    return null;
+                }
+
+                return [
+                    'product_id' => (string) ($item['product_id'] ?? ''),
+                    'name' => (string) ($item['name'] ?? ''),
+                    'sku' => (string) ($item['sku'] ?? ''),
+                    'vendor' => (string) ($item['vendor'] ?? ''),
+                    'price' => (float) ($item['price'] ?? 0),
+                    'description' => (string) ($item['description'] ?? ''),
+                    'image_url' => $item['image_url'] ?? null,
+                ];
+            })
+            ->filter(static fn ($item) => is_array($item) && !empty($item['product_id']))
+            ->unique(static fn (array $item) => (string) $item['product_id'])
+            ->take(20)
+            ->values()
+            ->all();
+
+        return [
+            'device_type' => $deviceType,
+            'max_budget' => $maxBudget,
+            'required_brand' => $requiredBrand,
+            'required_category' => $requiredCategory,
+            'transactional_follow_up' => $transactionalFollowUp,
+            'recent_suggested_products' => $recentSuggestedProducts,
+        ];
+    }
+
+    private function matchesRequestedCategory(array $candidate, string $requiredCategory): bool
+    {
+        $category = strtolower(trim($requiredCategory));
+        if ($category === '') {
+            return true;
+        }
+
+        $haystack = strtolower(trim(
+            (string) ($candidate['name'] ?? '') . ' ' .
+            (string) ($candidate['description'] ?? '') . ' ' .
+            (string) ($candidate['sku'] ?? '')
+        ));
+
+        if ($haystack === '') {
+            return false;
+        }
+
+        $aliases = [
+            'monitor' => ['monitor', 'display', 'screen'],
+            'laptop' => ['laptop', 'notebook', 'ultrabook'],
+            'desktop' => ['desktop', 'workstation', 'mini pc'],
+            'printer' => ['printer', 'laserjet', 'inkjet', 'multifunction', 'mfp'],
+            'server' => ['server', 'rack', 'tower server'],
+            'switch' => ['switch', 'ethernet switch'],
+            'router' => ['router', 'gateway'],
+            'access point' => ['access point', 'wireless ap', 'wifi ap'],
+            'firewall' => ['firewall', 'security appliance'],
+        ];
+
+        $needles = $aliases[$category] ?? [$category];
+        foreach ($needles as $needle) {
+            if (str_contains($haystack, strtolower($needle))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function isAccessoryLikeProduct(array $candidate): bool
+    {
+        $haystack = strtolower(trim(
+            (string) ($candidate['name'] ?? '') . ' ' .
+            (string) ($candidate['description'] ?? '') . ' ' .
+            (string) ($candidate['sku'] ?? '')
+        ));
+
+        if ($haystack === '') {
+            return false;
+        }
+
+        $accessoryTerms = [
+            'case', 'cover', 'sleeve', 'bag', 'dock', 'docking', 'adapter', 'cable', 'charger',
+            'keyboard', 'mouse', 'headset', 'speaker', 'stand', 'screen protector', 'protector',
+            'hub', 'backpack', 'folio', 'power bank', 'battery', 'warranty', 'service plan', 'kit'
+        ];
+
+        foreach ($accessoryTerms as $term) {
+            if (str_contains($haystack, $term)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function matchesRequestedDevice(array $candidate, string $deviceType): bool
+    {
+        if ($deviceType === '') {
+            return true;
+        }
+
+        $haystack = strtolower(trim(
+            (string) ($candidate['name'] ?? '') . ' ' .
+            (string) ($candidate['description'] ?? '')
+        ));
+
+        if ($haystack === '') {
+            return false;
+        }
+
+        $deviceAliases = [
+            'laptop' => ['laptop', 'notebook', 'ultrabook', 'chromebook'],
+            'desktop' => ['desktop', 'workstation', 'mini pc', 'all-in-one'],
+            'monitor' => ['monitor', 'display', 'screen', 'lcd', 'led monitor'],
+            'printer' => ['printer', 'laserjet', 'inkjet', 'multifunction', 'mfp'],
+            'server' => ['server', 'rack', 'tower server', 'poweredge'],
+            'switch' => ['switch', 'ethernet switch', 'managed switch'],
+            'router' => ['router', 'gateway'],
+            'access point' => ['access point', 'wireless ap', 'wifi ap'],
+        ];
+
+        $needles = $deviceAliases[$deviceType] ?? [$deviceType];
+        foreach ($needles as $needle) {
+            if (str_contains($haystack, $needle)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function extractProductImageUrl(mixed $images): ?string
+    {
+        if (!is_array($images)) {
+            return null;
+        }
+
+        foreach ($images as $image) {
+            if (is_string($image) && trim($image) !== '') {
+                $url = trim($image);
+                if ($this->isValidImageUrl($url)) {
+                    return $this->resolveImageUrl($url);
+                }
+            }
+
+            if (is_array($image)) {
+                $url = trim((string) ($image['imageUrl'] ?? $image['url'] ?? ''));
+                if ($this->isValidImageUrl($url)) {
+                    return $this->resolveImageUrl($url);
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private function resolveImageUrl(string $url): string
+    {
+        if (!str_starts_with($url, '/')) {
+            return $url;
+        }
+
+        $base = rtrim((string) config('app.asset_url', ''), '/');
+        return $base !== '' ? $base . $url : $url;
+    }
+
+    private function isValidImageUrl(string $url): bool
+    {
+        if ($url === '') {
+            return false;
+        }
+
+        if (str_starts_with($url, '/')) {
+            return (bool) preg_match('/^\/images\/.+\.(?:jpg|jpeg|png|webp|gif|avif)(?:\?.*)?$/i', $url);
+        }
+
+        if (!filter_var($url, FILTER_VALIDATE_URL)) {
+            return false;
+        }
+
+        return (bool) preg_match('/\.(?:jpg|jpeg|png|webp|gif|avif)(?:\?.*)?$/i', $url);
+    }
+
+    private function resolveOrCreateChatSession(int $userId, mixed $chatSessionId): ChatSession
+    {
+        if (!empty($chatSessionId)) {
+            $existing = ChatSession::where('user_id', $userId)
+                ->where('id', (int) $chatSessionId)
+                ->first();
+
+            if ($existing) {
+                return $existing;
+            }
+        }
+
+        return ChatSession::create([
+            'user_id' => $userId,
+            'title' => 'New chat',
+            'last_message_at' => null,
+        ]);
+    }
+
+    private function syncSessionTitle(ChatSession $session, string $firstUserMessage): void
+    {
+        if ($session->title !== 'New chat') {
+            return;
+        }
+
+        $generatedTitle = trim(Str::limit($firstUserMessage, 70, ''));
+        if ($generatedTitle === '') {
+            return;
+        }
+
+        $session->forceFill([
+            'title' => $generatedTitle,
+        ])->save();
+    }
+
+    // -------------------------------------------------------------------------
+    // Admin chat methods — admins can see & reply to all escalated sessions
+    // -------------------------------------------------------------------------
+
+    public function adminGetEscalatedChats(Request $request): JsonResponse
+    {
+        $this->requireAdminRole($request);
+
+        $resolved = filter_var($request->query('resolved', false), FILTER_VALIDATE_BOOLEAN);
+        $limit = max(1, min(100, (int) $request->query('limit', 60)));
+
+        $query = ChatSession::with([
+            'messages' => fn ($q) => $q->latest('id')->limit(1),
+            'user:id,name,email',
+        ])
+            ->where(function ($q) {
+                $q->where('escalated_to_human', true)
+                    ->orWhereNotNull('resolved_at')
+                    ->orWhereHas('messages', function ($messageQuery) {
+                        $messageQuery->where('role', 'admin');
+                    });
+            });
+
+        if ($resolved) {
+            // History tab: include resolved sessions and any thread where an admin has replied.
+            $query->where(function ($q) {
+                $q->whereNotNull('resolved_at')
+                    ->orWhereHas('messages', function ($messageQuery) {
+                        $messageQuery->where('role', 'admin');
+                    });
+            });
+        } else {
+            // Open tab: only currently escalated and unresolved sessions.
+            $query->where(function ($q) {
+                $q->whereNull('resolved_at')->orWhere('resolved_at', '');
+            })->where('escalated_to_human', true);
+        }
+
+        $sessions = $query
+            ->orderByRaw('COALESCE(last_message_at, updated_at, escalated_at) DESC')
+            ->orderByDesc('id')
+            ->limit($limit)
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $sessions->map(function (ChatSession $session) {
+                $last = $session->messages->first();
+                return [
+                    'id' => $session->id,
+                    'title' => $session->title,
+                    'user' => $session->user ? [
+                        'id' => $session->user->id,
+                        'name' => $session->user->name,
+                        'email' => $session->user->email,
+                    ] : null,
+                    'escalated_at' => $session->escalated_at,
+                    'resolved_at' => $session->resolved_at ?? null,
+                    'updated_at' => $session->updated_at,
+                    'last_message_preview' => $last ? Str::limit((string) $last->content, 80) : null,
+                    'last_message_role' => $last?->role,
+                    'last_message_at' => $session->last_message_at,
+                ];
+            })->values(),
+        ]);
+    }
+
+    public function adminGetEscalatedCount(Request $request): JsonResponse
+    {
+        $this->requireAdminRole($request);
+
+        $count = ChatSession::where('escalated_to_human', true)
+            ->where(function ($q) {
+                $q->whereNull('resolved_at')->orWhere('resolved_at', '');
+            })
+            ->count();
+
+        return response()->json(['success' => true, 'count' => $count]);
+    }
+
+    public function adminGetChatSession(Request $request, int $chatSessionId): JsonResponse
+    {
+        $this->requireAdminRole($request);
+
+        $session = ChatSession::with('user:id,name,email')
+            ->findOrFail($chatSessionId);
+
+        $messages = ChatMessage::where('chat_session_id', $session->id)
+            ->orderBy('id')
+            ->get()
+            ->map(fn (ChatMessage $msg) => [
+                'id' => $msg->id,
+                'role' => $msg->role,
+                'text' => $msg->content,
+                'actions' => $msg->actions ?? [],
+                'created_at' => $msg->created_at,
+            ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'session' => [
+                    'id' => $session->id,
+                    'title' => $session->title,
+                    'escalated_to_human' => (bool) $session->escalated_to_human,
+                    'escalated_at' => $session->escalated_at,
+                    'resolved_at' => $session->resolved_at ?? null,
+                    'updated_at' => $session->updated_at,
+                    'user' => $session->user ? [
+                        'id' => $session->user->id,
+                        'name' => $session->user->name,
+                        'email' => $session->user->email,
+                    ] : null,
+                ],
+                'messages' => $messages,
+            ],
+        ]);
+    }
+
+    public function adminReplyToChat(Request $request, int $chatSessionId): JsonResponse
+    {
+        $this->requireAdminRole($request);
+
+        $validated = $request->validate([
+            'message' => 'required|string|max:4000',
+        ]);
+
+        $session = ChatSession::findOrFail($chatSessionId);
+
+        $admin = $request->user();
+        $messageText = trim((string) $validated['message']);
+
+        ChatMessage::create([
+            'chat_session_id' => $session->id,
+            'user_id' => $admin->id,
+            'role' => 'admin',
+            'content' => $messageText,
+            'actions' => [],
+            'metadata' => [
+                'source' => 'admin_reply',
+                'admin_id' => $admin->id,
+                'admin_name' => $admin->name,
+            ],
+        ]);
+
+        $session->forceFill(['last_message_at' => now()])->save();
+
+        // Notify the customer so they see the admin reply in their chat.
+        Message::createMessage(
+            (int) $session->user_id,
+            'system',
+            'Support replied to your chat',
+            Str::limit($messageText, 120),
+            'CHAT-' . $session->id,
+            'normal',
+            ['chat_session_id' => $session->id]
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Reply sent',
+        ]);
+    }
+
+    public function adminResolveChat(Request $request, int $chatSessionId): JsonResponse
+    {
+        $this->requireAdminRole($request);
+
+        $session = ChatSession::findOrFail($chatSessionId);
+
+        $session->forceFill([
+            'resolved_at' => now(),
+        ])->save();
+
+        // Leave a system message in the thread so the customer sees it.
+        ChatMessage::create([
+            'chat_session_id' => $session->id,
+            'user_id' => $request->user()->id,
+            'role' => 'admin',
+            'content' => 'This support conversation has been marked as resolved by our team. Feel free to start a new chat if you need further assistance.',
+            'actions' => [],
+            'metadata' => [
+                'source' => 'admin_resolved',
+                'admin_id' => $request->user()->id,
+                'admin_name' => $request->user()->name,
+            ],
+        ]);
+
+        $session->forceFill(['last_message_at' => now()])->save();
+
+        return response()->json(['success' => true, 'message' => 'Chat resolved']);
+    }
+
+    private function requireAdminRole(Request $request): void
+    {
+        $user = $request->user();
+        if (!$user || !in_array($user->role ?? '', ['admin', 'owner', 'manager'], true)) {
+            abort(403, 'Admin access required');
+        }
+    }
+}

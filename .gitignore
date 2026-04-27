@@ -1,0 +1,38 @@
+*.log
+.DS_Store
+.env
+.env.*
+**/.env.local
+**/.env.production
+**/.env.staging
+.env.backup
+.env.production
+.phpactor.json
+.phpunit.result.cache
+/.fleet
+/.idea
+/.nova
+/.phpunit.cache
+/.vscode
+/.zed
+/auth.json
+/node_modules
+/public/build
+/public/hot
+/public/storage
+/storage/*.key
+/storage/pail
+Homestead.json
+Homestead.yaml
+Thumbs.db
+
+# Environment and secret files stay local only
+
+# Exceptions: allow committing these files/directories for shared-host deployments
+# (useful when the server cannot run Composer or download the MaxMind DB)
+!composer.lock
+!vendor/
+!.env.example
+!**/.env.example
+!storage/app/geoip/
+!storage/app/geoip/GeoLite2-Country.mmdb
