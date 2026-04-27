@@ -2364,7 +2364,7 @@ class TDSynnexService
         $ttl = max(60, (int) config('tdsynnex.icecat.cache_ttl', 86400));
         $cacheKey = 'tdsynnex:assets:' . md5(json_encode([
             // Cache version bump forces re-evaluation of older no-match entries.
-            'ecommerce-v9-mpn-first',
+            'open-gtin-ecommerce-v10',
             $sku,
             (string) ($meta['mpn'] ?? ''),
             (string) ($meta['manufacturer'] ?? ''),
@@ -2401,6 +2401,18 @@ class TDSynnexService
                         'source' => 'icecat',
                     ];
                     $resolvedDescription = trim((string) ($icecat['description'] ?? ''));
+                }
+            }
+
+            if (empty($images)) {
+                $gtin = $this->fetchOpenGtinProductImageData($sku, $meta);
+                $gtinImage = trim((string) ($gtin['image_url'] ?? ''));
+                if ($gtinImage !== '' && $this->isValidImageUrl($gtinImage)) {
+                    $images[] = [
+                        'imageUrl' => $gtinImage,
+                        'source' => (string) ($gtin['source'] ?? 'gtin-open-data'),
+                    ];
+                    $resolvedDescription = trim((string) ($gtin['description'] ?? ''));
                 }
             }
 
@@ -2702,6 +2714,79 @@ class TDSynnexService
                     'error' => $e->getMessage(),
                 ]);
             }
+        }
+
+        return ['image_url' => '', 'source' => '', 'description' => ''];
+    }
+
+    private function fetchOpenGtinProductImageData(string $sku, array $meta): array
+    {
+        if (!config('tdsynnex.gtin_lookup.enabled', true)) {
+            return ['image_url' => '', 'source' => '', 'description' => ''];
+        }
+
+        $gtinCandidates = $this->normalizeGtinCandidates((string) ($meta['upc'] ?? ''));
+        if (empty($gtinCandidates)) {
+            return ['image_url' => '', 'source' => '', 'description' => ''];
+        }
+
+        $endpoint = rtrim(trim((string) config('tdsynnex.gtin_lookup.endpoint', 'https://www.gtinsearch.org/api/items')), '/');
+        if ($endpoint === '') {
+            return ['image_url' => '', 'source' => '', 'description' => ''];
+        }
+
+        $timeout = max(2, (int) config('tdsynnex.gtin_lookup.timeout', 4));
+        $connectTimeout = max(1, (int) config('tdsynnex.gtin_lookup.connect_timeout', 2));
+        $userAgent = trim((string) config('tdsynnex.gtin_lookup.user_agent', 'ArmelyImageBot/1.0 (+https://armely.com)'));
+
+        try {
+            \Illuminate\Support\Facades\DB::disconnect();
+
+            foreach ($gtinCandidates as $gtin) {
+                $response = Http::withHeaders([
+                    'User-Agent' => $userAgent,
+                    'Accept' => 'application/json',
+                ])
+                    ->connectTimeout($connectTimeout)
+                    ->timeout($timeout)
+                    ->get($endpoint . '/' . rawurlencode($gtin));
+
+                if ($response->failed()) {
+                    Log::debug('GTIN image lookup failed', [
+                        'sku' => $sku,
+                        'gtin' => $gtin,
+                        'status' => $response->status(),
+                    ]);
+                    continue;
+                }
+
+                $json = $response->json();
+                if (!is_array($json)) {
+                    continue;
+                }
+
+                $imageUrl = $this->extractPrimaryImageFromOpenGtinData($json);
+                if ($imageUrl === '' || !$this->isValidImageUrl($imageUrl)) {
+                    continue;
+                }
+
+                Log::info('GTIN MATCH', [
+                    'sku' => $sku,
+                    'gtin' => $gtin,
+                    'image' => $imageUrl,
+                ]);
+
+                return [
+                    'image_url' => $imageUrl,
+                    'source' => 'gtin-open-data',
+                    'description' => trim((string) data_get($json, 'description', '')),
+                ];
+            }
+        } catch (\Throwable $e) {
+            Log::debug('GTIN image lookup exception', [
+                'sku' => $sku,
+                'error' => $e->getMessage(),
+            ]);
         }
 
         return ['image_url' => '', 'source' => '', 'description' => ''];
@@ -3477,10 +3562,19 @@ class TDSynnexService
 
         $queries = [];
 
-        // High-precision e-commerce site queries — MPN-only searches on B2B retailers
+        // High-precision site queries: MPN-only searches on trusted product pages
         // produce accurate product-specific images rather than generic brand imagery.
         if ($mpn !== '') {
-            foreach (['cdw.com', 'newegg.com', 'provantage.com', 'bhphotovideo.com'] as $site) {
+            $sites = (array) config('tdsynnex.serpapi.site_domains', []);
+            if (empty($sites)) {
+                $sites = ['cdw.com', 'cdwg.com', 'insight.com', 'connection.com', 'zones.com', 'provantage.com', 'bhphotovideo.com', 'newegg.com'];
+            }
+
+            foreach ($sites as $site) {
+                $site = strtolower(trim((string) $site));
+                if ($site === '') {
+                    continue;
+                }
                 $queries['"' . $mpn . '" site:' . $site] = true;
             }
         }
@@ -4128,6 +4222,45 @@ class TDSynnexService
 
         foreach ($xmlCandidates as $candidate) {
             $url = trim((string) $candidate);
+            if ($this->isValidImageUrl($url)) {
+                return $url;
+            }
+        }
+
+        return '';
+    }
+
+    private function extractPrimaryImageFromOpenGtinData(array $payload): string
+    {
+        $candidates = [
+            data_get($payload, 'image_url'),
+            data_get($payload, 'imageUrl'),
+            data_get($payload, 'image'),
+            data_get($payload, 'images.0'),
+            data_get($payload, 'images.0.url'),
+            data_get($payload, 'images.0.image_url'),
+            data_get($payload, 'photos.0'),
+            data_get($payload, 'photos.0.url'),
+        ];
+
+        $nestedImages = data_get($payload, 'images');
+        if (is_array($nestedImages)) {
+            foreach ($nestedImages as $item) {
+                if (is_string($item)) {
+                    $candidates[] = $item;
+                    continue;
+                }
+
+                if (is_array($item)) {
+                    $candidates[] = $item['url'] ?? '';
+                    $candidates[] = $item['image_url'] ?? '';
+                    $candidates[] = $item['imageUrl'] ?? '';
+                }
+            }
+        }
+
+        foreach ($candidates as $candidate) {
+            $url = trim((string) ($candidate ?? ''));
             if ($this->isValidImageUrl($url)) {
                 return $url;
             }
