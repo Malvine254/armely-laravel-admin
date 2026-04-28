@@ -10,7 +10,7 @@
       </div>
 
       <!-- Quick Stats -->
-      <div v-if="visibleQuotes.length > 0" class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+      <div v-if="visibleQuotes.length > 0" class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
         <div class="group relative overflow-hidden rounded-2xl border p-5 sm:p-6 transition duration-300 hover:-translate-y-0.5" style="background: linear-gradient(160deg, #ffffff 0%, #f7fbff 62%, #eef4ff 100%); border-color: #d9e6f7; box-shadow: 0 12px 26px rgba(47,85,151,0.1);">
           <div class="pointer-events-none absolute -right-6 -top-6 h-16 w-16 rounded-full" style="background: radial-gradient(circle, rgba(47,85,151,0.2) 0%, rgba(47,85,151,0) 70%);"></div>
           <p class="text-gray-600 text-xs font-semibold uppercase tracking-wide">Total Quotes</p>
@@ -22,18 +22,6 @@
           <p class="text-gray-600 text-xs font-semibold uppercase tracking-wide">Pending</p>
           <p class="text-3xl font-bold text-blue-600 mt-2">{{ getQuotesCountByStatus('pending_review') }}</p>
           <div class="mt-4 h-1.5 w-16 rounded-full" style="background: linear-gradient(90deg, #2F5597, #7fa2d8);"></div>
-        </div>
-        <div class="group relative overflow-hidden rounded-2xl border p-5 sm:p-6 transition duration-300 hover:-translate-y-0.5" style="background: linear-gradient(160deg, #ffffff 0%, #f6fff9 62%, #edfff3 100%); border-color: #cce9d6; box-shadow: 0 12px 24px rgba(22,163,74,0.1);">
-          <div class="pointer-events-none absolute -right-6 -top-6 h-16 w-16 rounded-full" style="background: radial-gradient(circle, rgba(34,197,94,0.22) 0%, rgba(34,197,94,0) 70%);"></div>
-          <p class="text-gray-600 text-xs font-semibold uppercase tracking-wide">Approved</p>
-          <p class="text-3xl font-bold text-green-600 mt-2">{{ getQuotesCountByStatus('approved') }}</p>
-          <div class="mt-4 h-1.5 w-16 rounded-full" style="background: linear-gradient(90deg, #16a34a, #86efac);"></div>
-        </div>
-        <div class="group relative overflow-hidden rounded-2xl border p-5 sm:p-6 transition duration-300 hover:-translate-y-0.5" style="background: linear-gradient(160deg, #ffffff 0%, #f6f5ff 62%, #eeecff 100%); border-color: #dcd9ff; box-shadow: 0 12px 24px rgba(99,102,241,0.1);">
-          <div class="pointer-events-none absolute -right-6 -top-6 h-16 w-16 rounded-full" style="background: radial-gradient(circle, rgba(99,102,241,0.2) 0%, rgba(99,102,241,0) 70%);"></div>
-          <p class="text-gray-600 text-xs font-semibold uppercase tracking-wide">Converted</p>
-          <p class="text-3xl font-bold mt-2" style="color: #6366f1;">{{ getQuotesCountByStatus('converted') }}</p>
-          <div class="mt-4 h-1.5 w-16 rounded-full" style="background: linear-gradient(90deg, #6366f1, #a5b4fc);"></div>
         </div>
       </div>
 
@@ -47,8 +35,6 @@
               <option value="">All Statuses</option>
               <option value="draft">Draft</option>
               <option value="pending_review">Pending Review</option>
-              <option value="approved">Approved</option>
-              <option value="converted">Converted</option>
               <option value="cancelled">Cancelled</option>
               <option value="rejected">Rejected</option>
               <option value="expired">Expired</option>
@@ -588,10 +574,14 @@ export default {
     let countdownTimer = null
 
     const visibleQuotes = computed(() => {
+      const quoteRows = quotes.value.filter((quote) => {
+        const status = String(quote?.status || '').toLowerCase()
+        return status !== 'approved' && status !== 'converted'
+      })
       const revisionSource = String(cartStore.revisionSourceQuoteId || '').trim()
-      if (!revisionSource) return quotes.value
+      if (!revisionSource) return quoteRows
 
-      return quotes.value.filter((quote) => String(quote?.quote_id || '').trim() !== revisionSource)
+      return quoteRows.filter((quote) => String(quote?.quote_id || '').trim() !== revisionSource)
     })
 
     const normalizeQuoteId = (value) => String(value || '').trim().toUpperCase()

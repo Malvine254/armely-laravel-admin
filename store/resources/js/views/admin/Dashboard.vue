@@ -379,6 +379,7 @@ const approveQuote = async (quote) => {
     if (response.data?.success) {
       toastStore.addToast(`Quote ${quote.quote_id} approved`, 'success')
       await loadDashboardData()
+      router.push({ name: 'admin-orders' })
       return
     }
 
