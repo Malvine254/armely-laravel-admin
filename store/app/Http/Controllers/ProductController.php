@@ -1927,7 +1927,7 @@ class ProductController extends Controller
     public function menuCategories(): JsonResponse
     {
         try {
-            $data = Cache::remember('menu_categories:v3', 3600, function () {
+            $data = Cache::remember('menu_categories:v4', 3600, function () {
                 $parents = \App\Models\Category::query()
                     ->select(['id', 'name', 'slug', 'segment_code', 'sort_order'])
                     ->whereNull('parent_id')
@@ -1945,6 +1945,8 @@ class ProductController extends Controller
                 $segmentCodes = $parents->pluck('segment_code')->filter()->unique()->values()->all();
                 $brandsBySegment = [];
 
+                $segmentsWithProducts = [];
+
                 if (!empty($segmentCodes)) {
                     $rows = Product::query()
                         ->where('vendor_id', 'TD SYNNEX')
@@ -1959,6 +1961,7 @@ class ProductController extends Controller
 
                     foreach ($rows as $row) {
                         $seg = (string) $row->category_segment;
+                        $segmentsWithProducts[$seg] = true;
                         if (!isset($brandsBySegment[$seg])) {
                             $brandsBySegment[$seg] = [];
                         }
@@ -1972,18 +1975,21 @@ class ProductController extends Controller
                     }
                 }
 
-                return $parents->map(function ($cat) use ($brandsBySegment) {
-                    $seg = (string) ($cat->segment_code ?? '');
-                    $brands = $brandsBySegment[$seg] ?? [];
-
-                    return [
-                        'id' => $cat->id,
-                        'name' => $cat->name,
-                        'slug' => $cat->slug,
-                        'segment_code' => $seg,
-                        'brands' => $brands,
-                    ];
-                })->all();
+                return $parents
+                    ->filter(function ($cat) use ($segmentsWithProducts) {
+                        $seg = (string) ($cat->segment_code ?? '');
+                        return $seg !== '' && isset($segmentsWithProducts[$seg]);
+                    })
+                    ->map(function ($cat) use ($brandsBySegment) {
+                        $seg = (string) ($cat->segment_code ?? '');
+                        return [
+                            'id' => $cat->id,
+                            'name' => $cat->name,
+                            'slug' => $cat->slug,
+                            'segment_code' => $seg,
+                            'brands' => $brandsBySegment[$seg] ?? [],
+                        ];
+                    })->values()->all();
             });
 
             return response()->json([
