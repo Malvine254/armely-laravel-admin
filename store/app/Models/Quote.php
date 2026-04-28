@@ -82,7 +82,7 @@ class Quote extends Model
 
     public function canBeCancelled(): bool
     {
-        return in_array($this->status, ['draft', 'pending_review', 'approved'])
+        return in_array($this->status, ['draft', 'pending_review'])
             && !$this->isExpired()
             && !$this->order;
     }
