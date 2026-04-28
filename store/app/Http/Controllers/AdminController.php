@@ -556,6 +556,68 @@ class AdminController extends Controller
         ]);
     }
 
+    private function createPendingOrderForApprovedQuote(Quote $quote, ?Invoice $invoice = null): Order
+    {
+        $existingOrder = Order::where('quote_id', $quote->quote_id)->first();
+        if ($existingOrder) {
+            if ($invoice && !$invoice->order_number) {
+                $invoice->update(['order_number' => $existingOrder->order_number]);
+            }
+
+            return $existingOrder;
+        }
+
+        $orderNumber = $this->generateLocalOrderNumber($quote);
+        $company = $quote->user?->company;
+        $shippingAddress = $company?->getDefaultShippingAddress();
+        $billingAddress = $company?->getDefaultBillingAddress();
+
+        $order = Order::create([
+            'user_id' => $quote->user_id,
+            'order_number' => $orderNumber,
+            'quote_id' => $quote->quote_id,
+            'status' => 'pending',
+            'payment_status' => $invoice && (string) $invoice->status === 'paid' ? 'paid' : 'pending',
+            'total_amount' => $invoice?->total_amount ?? $quote->total_amount,
+            'tax_amount' => $invoice?->tax_amount ?? $quote->tax_amount,
+            'discount_amount' => $quote->discount_amount,
+            'shipping_amount' => $this->extractQuoteShippingAmount($quote),
+            'items' => $quote->items,
+            'raw_data' => [
+                'source' => 'quote_approval',
+                'quote_id' => $quote->quote_id,
+                'invoice_number' => $invoice?->invoice_number,
+                'td_submission_pending' => true,
+            ],
+            'tracking_info' => [
+                'shipping_status' => 'pending',
+            ],
+            'shipping_address_id' => $shippingAddress?->id,
+            'billing_address_id' => $billingAddress?->id,
+            'ordered_at' => now(),
+        ]);
+
+        if ($invoice && !$invoice->order_number) {
+            $invoice->update(['order_number' => $order->order_number]);
+        }
+
+        return $order;
+    }
+
+    private function generateLocalOrderNumber(Quote $quote): string
+    {
+        $base = 'ORD-' . now()->format('Ymd') . '-' . strtoupper(substr(preg_replace('/[^A-Za-z0-9]/', '', $quote->quote_id), -6));
+        $candidate = $base;
+        $suffix = 1;
+
+        while (Order::where('order_number', $candidate)->exists()) {
+            $candidate = $base . '-' . $suffix;
+            $suffix++;
+        }
+
+        return $candidate;
+    }
+
     private function buildOrderItemPreview(Order $order): array
     {
         $items = is_array($order->items) ? $order->items : [];
@@ -1174,14 +1236,17 @@ class AdminController extends Controller
                     }
                 }
 
+                $order = $this->createPendingOrderForApprovedQuote($quote->fresh(['user', 'user.company']), $pendingQuoteInvoice);
+
                 return response()->json([
                     'success' => true,
                     'message' => $pendingQuoteInvoiceCreated
-                        ? "Quote approved successfully. Payment invoice {$pendingQuoteInvoice->invoice_number} was created for the customer."
-                        : "Quote approved successfully. Customer can pay later using invoice {$pendingQuoteInvoice->invoice_number}.",
+                        ? "Quote approved successfully. Order {$order->order_number} and payment invoice {$pendingQuoteInvoice->invoice_number} were created."
+                        : "Quote approved successfully. Order {$order->order_number} is waiting on invoice {$pendingQuoteInvoice->invoice_number}.",
                     'data' => [
                         'payment_pending' => true,
                         'quote' => $quote,
+                        'order' => $order,
                         'invoice' => $pendingQuoteInvoice,
                     ],
                 ]);
@@ -1563,8 +1628,10 @@ class AdminController extends Controller
 
             $quotesQuery = Quote::query()->with('user', 'user.company', 'order');
 
-            if (in_array($status, ['pending_review', 'approved', 'rejected'], true)) {
+            if (in_array($status, ['pending_review', 'rejected'], true)) {
                 $quotesQuery->where('status', $status);
+            } else {
+                $quotesQuery->whereIn('status', ['pending_review', 'rejected']);
             }
 
             if ($search) {
@@ -4550,5 +4617,3 @@ EOT;
         return response()->json(['success' => true, 'results' => array_slice($results, 0, 10)]);
     }
 }
-
-

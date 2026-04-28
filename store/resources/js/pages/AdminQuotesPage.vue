@@ -83,7 +83,7 @@
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
           <select v-model="statusFilter" @change="applyFilters" class="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597] text-gray-900 transition">
-            <option value="" class="bg-white">All Statuses</option>
+            <option value="" class="bg-white">Pending + Rejected</option>
             <option value="pending_review" class="bg-white">Pending Review</option>
             <option value="rejected" class="bg-white">Rejected</option>
           </select>
@@ -541,7 +541,8 @@ const stats = ref({
 })
 
 const syncFiltersFromRoute = () => {
-  statusFilter.value = typeof route.query.status === 'string' ? route.query.status : ''
+  const routeStatus = typeof route.query.status === 'string' ? route.query.status : ''
+  statusFilter.value = ['pending_review', 'rejected'].includes(routeStatus) ? routeStatus : ''
   searchQuery.value = typeof route.query.search === 'string' ? route.query.search : ''
   sortBy.value = typeof route.query.sortBy === 'string' ? route.query.sortBy : 'newest'
 
@@ -785,7 +786,10 @@ const fetchQuotes = async () => {
     })
     
     if (response.data.success) {
-      quotes.value = response.data.data
+      quotes.value = (response.data.data || []).filter((quote) => {
+        const status = String(quote?.status || '').toLowerCase()
+        return status !== 'approved' && status !== 'converted'
+      })
       totalQuotes.value = response.data.pagination.total
       lastPage.value = response.data.pagination.last_page
     }
