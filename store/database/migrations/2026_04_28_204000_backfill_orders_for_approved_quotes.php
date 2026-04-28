@@ -11,6 +11,17 @@ return new class extends Migration
             return;
         }
 
+        // Ensure orders.id has AUTO_INCREMENT — some MySQL hosts (e.g. GoDaddy shared) lose it on import
+        $dbName = DB::getDatabaseName();
+        $idMeta = DB::selectOne(
+            "SELECT COLUMN_KEY, EXTRA FROM information_schema.COLUMNS
+             WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'orders' AND COLUMN_NAME = 'id'",
+            [$dbName]
+        );
+        if ($idMeta && !str_contains(strtolower((string) ($idMeta->EXTRA ?? '')), 'auto_increment')) {
+            DB::statement('ALTER TABLE `orders` MODIFY `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT');
+        }
+
         $approvedQuotes = DB::table('quotes')
             ->where('status', 'approved')
             ->orderBy('id')

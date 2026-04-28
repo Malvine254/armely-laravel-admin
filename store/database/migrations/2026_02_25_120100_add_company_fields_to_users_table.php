@@ -12,20 +12,30 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->foreignId('company_id')->nullable()->constrained('companies')->nullOnDelete();
-            $table->string('role')->default('buyer');
-            $table->string('status')->default('pending');
+            if (!Schema::hasColumn('users', 'company_id')) {
+                $table->foreignId('company_id')->nullable()->constrained('companies')->nullOnDelete();
+            }
+            if (!Schema::hasColumn('users', 'role')) {
+                $table->string('role')->default('buyer');
+            }
+            if (!Schema::hasColumn('users', 'status')) {
+                $table->string('status')->default('pending');
+            }
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropForeign(['company_id']);
-            $table->dropColumn(['company_id', 'role', 'status']);
+            if (Schema::hasColumn('users', 'company_id')) {
+                $table->dropForeign(['company_id']);
+                $table->dropColumn('company_id');
+            }
+            foreach (['role', 'status'] as $col) {
+                if (Schema::hasColumn('users', $col)) {
+                    $table->dropColumn($col);
+                }
+            }
         });
     }
 };
