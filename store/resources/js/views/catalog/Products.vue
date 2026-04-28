@@ -653,7 +653,7 @@ const normalizeCategoriesForSidebar = (items = []) => {
       value: String(cat?.value || cat?.name || '').trim(),
       count: Number(cat?.count || 0),
     }))
-    .filter((cat) => cat.name !== '')
+    .filter((cat) => cat.name !== '' && cat.count > 0)
 }
 
 // Restore sidebar caches synchronously at setup so filters show before first API response
