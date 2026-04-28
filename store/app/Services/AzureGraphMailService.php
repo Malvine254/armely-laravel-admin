@@ -1301,6 +1301,55 @@ class AzureGraphMailService
         return 'store_mail_suppressed:' . sha1($this->normalizeEmail($email));
     }
 
+    public function sendCartShareEmail(
+        string $toEmail,
+        string $senderName,
+        string $shareUrl,
+        int $itemCount,
+        string $note = ''
+    ): bool {
+        if (!$this->isConfigured()) {
+            return false;
+        }
+
+        $safeSender   = e($senderName ?: 'A user');
+        $safeUrl      = e($shareUrl);
+        $safeNote     = $note ? e($note) : '';
+        $appName      = e(config('app.name', 'Armely Store'));
+        $noteHtml     = $safeNote
+            ? "<div style='background:#f4f8ff;border-left:3px solid #2F5597;border-radius:0 6px 6px 0;padding:12px 16px;margin:16px 0'>
+                   <p style='margin:0 0 4px;font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.04em'>Note from {$safeSender}</p>
+                   <p style='margin:0;font-size:14px;color:#1f2937'>{$safeNote}</p>
+               </div>"
+            : '';
+
+        $subject = "{$senderName} shared a quote cart with you";
+
+        $html = $this->buildModernNotificationEmail(
+            'Shared Quote Cart',
+            "
+                <p style='margin:0 0 14px;font-size:16px;color:#1f2937'><strong>{$safeSender}</strong> has shared a quote cart with you on <strong>{$appName}</strong>.</p>
+                {$this->buildQuoteSummaryCard([
+                    ['label' => 'Shared by', 'value' => $safeSender],
+                    ['label' => 'Items',     'value' => (string) $itemCount],
+                ])}
+                {$noteHtml}
+                <p style='margin:16px 0 0;color:#4b5563;font-size:13px'>Click the button below to open the shared cart and import the items into your own quote.</p>
+                <p style='margin:8px 0 0;color:#6b7280;font-size:12px;word-break:break-all'>Or copy this link: <a href='{$safeUrl}' style='color:#2F5597'>{$safeUrl}</a></p>
+            ",
+            'Open Shared Cart',
+            $shareUrl,
+            'You can import or merge these items directly into your account.'
+        );
+
+        $text = "Hello,\n\n{$senderName} shared a quote cart with you on {$appName}.\n"
+            . "Items: {$itemCount}\n"
+            . ($note ? "Note: {$note}\n" : '')
+            . "\nOpen the shared cart: {$shareUrl}";
+
+        return $this->sendEmail($toEmail, $subject, $html, $text);
+    }
+
     public function sendSyncStatusEmail(string $jobName, string $status, array $details = []): bool
     {
         if (!$this->isConfigured()) {

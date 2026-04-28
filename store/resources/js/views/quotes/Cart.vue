@@ -54,12 +54,12 @@
             >
               <div v-for="item in cartStore.items" :key="item.productId" class="p-6 flex gap-4 hover:bg-gray-50 transition">
                 <!-- Product Image / Icon -->
-                <div class="w-24 h-24 rounded-lg bg-gray-100 border border-gray-200 overflow-hidden flex-shrink-0 flex items-center justify-center">
+                <div class="w-24 h-24 rounded-lg bg-white border border-gray-200 overflow-hidden flex-shrink-0 flex items-center justify-center">
                   <img
                     v-if="hasProductImage(item)"
                     :src="getProductImageUrl(item)"
                     :alt="item.productName"
-                    class="w-full h-full object-cover"
+                    class="w-full h-full object-contain p-1"
                     loading="lazy"
                     @error="handleImageError(item.productId)"
                   />
@@ -210,7 +210,7 @@
               <p class="text-xs break-all text-slate-700">{{ cartShareGeneratedLink }}</p>
               <div class="mt-3 flex flex-wrap gap-2">
                 <button @click="copyCartShareLink" type="button" class="px-3 py-2 text-xs font-semibold rounded-lg text-white" style="background-color:#2F5597;">Copy Link</button>
-                <button @click="sendCartShareByEmail" type="button" class="px-3 py-2 text-xs font-semibold rounded-lg border" style="border-color:#2F5597;color:#2F5597;">Send to Email</button>
+                <button @click="sendCartShareByEmail" type="button" :disabled="cartShareEmailSending" class="px-3 py-2 text-xs font-semibold rounded-lg border disabled:opacity-60" style="border-color:#2F5597;color:#2F5597;">{{ cartShareEmailSending ? 'Sending...' : 'Send to Email' }}</button>
               </div>
             </div>
           </div>
@@ -543,28 +543,35 @@ const copyCartShareLink = async () => {
   window.prompt('Copy this share link:', link)
 }
 
-const sendCartShareByEmail = () => {
+const cartShareEmailSending = ref(false)
+
+const sendCartShareByEmail = async () => {
   const link = cartShareGeneratedLink.value.trim()
   if (!link) {
     toastStore.addToast('Generate the share link first', 'warning')
     return
   }
 
-  const recipient = encodeURIComponent(cartShareRecipientEmail.value.trim())
-  const note = cartShareNote.value.trim()
-  const bodyParts = [
-    `I shared a cart from Armely with you (${cartStore.cartCount} item(s)).`,
-    '',
-  ]
-
-  if (note) {
-    bodyParts.push(`Note: ${note}`, '')
+  const recipientEmail = cartShareRecipientEmail.value.trim()
+  if (!recipientEmail) {
+    toastStore.addToast('Enter a recipient email address first', 'warning')
+    return
   }
 
-  bodyParts.push(link)
-  const subject = `Shared cart from Armely (${cartStore.cartCount} item(s))`
-  const body = bodyParts.join('\n')
-  window.location.href = `mailto:${recipient}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+  cartShareEmailSending.value = true
+  try {
+    await api.post('/shares/cart/send-email', {
+      to_email: recipientEmail,
+      share_url: link,
+      note: cartShareNote.value.trim(),
+      item_count: cartStore.cartCount,
+    })
+    toastStore.addToast(`Share link sent to ${recipientEmail}`, 'success')
+  } catch (err) {
+    toastStore.addToast(err.response?.data?.message || 'Failed to send email', 'error')
+  } finally {
+    cartShareEmailSending.value = false
+  }
 }
 
 const escapeCsvValue = (value) => {

@@ -952,8 +952,7 @@ watch(
   (productId) => {
     if (!productId) return
     loadProductDetail(productId)
-  },
-  { immediate: true }
+  }
 )
 
 const sanitizeReturnTo = (value) => {
@@ -1227,6 +1226,8 @@ watch(productDescription, (desc) => {
 
 onMounted(() => {
   loadPricingSettings()
+  const productId = route.params.id
+  if (productId) loadProductDetail(String(productId))
 })
 
 const isFavorite = computed(() => {

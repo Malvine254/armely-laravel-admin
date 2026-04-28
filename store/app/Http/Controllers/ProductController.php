@@ -743,7 +743,7 @@ class ProductController extends Controller
 
         if (!$showOutOfStock) {
             $query->where('is_available', true)
-                  ->where('quantity', '>', 0); // Also filter by stock quantity
+                ->whereRaw("CAST(COALESCE(JSON_UNQUOTE(JSON_EXTRACT(specifications, '$.availableQuantity')), JSON_UNQUOTE(JSON_EXTRACT(specifications, '$.totalQuantity')), quantity, 0) AS UNSIGNED) > 0");
         }
 
         if (!$showDiscontinued) {
@@ -1850,6 +1850,8 @@ class ProductController extends Controller
                     $hideZero = filter_var(request()->query('hide_zero_price', true), FILTER_VALIDATE_BOOLEAN);
                     $catalogClean = filter_var(request()->query('catalog_clean', false), FILTER_VALIDATE_BOOLEAN);
                     $facetCap = max(5000, (int) request()->query('vendor_cap', 50000));
+                    $search = trim((string) request()->query('search', request()->query('q', '')));
+                    $category = trim((string) request()->query('category', ''));
 
                     $vendorCacheKey = sprintf(
                         'pa_vendor_counts:%s',
@@ -1860,12 +1862,16 @@ class ProductController extends Controller
                             'hide_zero' => $hideZero,
                             'catalog_clean' => $catalogClean,
                             'product_type' => $productType,
+                            'search' => $search,
+                            'category' => $category,
                             'facet_cap' => $facetCap,
                             'hardware_only' => (bool) config('tdsynnex.catalog.hardware_only', true),
+                            'show_oos' => (bool) \App\Models\AppSetting::getValue('catalog.show_out_of_stock', false),
+                            'show_disc' => (bool) \App\Models\AppSetting::getValue('catalog.show_discontinued', false),
                         ]))
                     );
 
-                    $vendors = Cache::remember($vendorCacheKey, 1800, function () use ($facetCap, $minPrice, $maxPrice, $hideZero, $catalogClean, $productType) {
+                    $vendors = Cache::remember($vendorCacheKey, 1800, function () use ($facetCap, $minPrice, $maxPrice, $hideZero, $catalogClean, $productType, $search, $category) {
                         return $this->getCuratedDefaultBrowseVendors(
                             $facetCap,
                             $minPrice,
@@ -1873,6 +1879,8 @@ class ProductController extends Controller
                             $hideZero,
                             $catalogClean,
                             $productType,
+                            $search,
+                            $category,
                         );
                     });
                 } else {
@@ -2004,6 +2012,8 @@ class ProductController extends Controller
             $maxPrice = $maxPriceRaw !== null && $maxPriceRaw !== '' ? (float) $maxPriceRaw : null;
             $catalogClean = filter_var(request()->query('catalog_clean', false), FILTER_VALIDATE_BOOLEAN);
             $productType = $this->normalizeProductType((string) request()->query('product_type', ''));
+            $search = trim((string) request()->query('search', request()->query('q', '')));
+            $selectedVendors = $this->parseFacetVendors((string) request()->query('vendors', ''));
 
             $cacheKey = sprintf(
                 'pa_category_counts:%s',
@@ -2013,12 +2023,16 @@ class ProductController extends Controller
                     'max_price' => $maxPrice,
                     'catalog_clean' => $catalogClean,
                     'product_type' => $productType,
+                    'search' => $search,
+                    'vendors' => $selectedVendors,
                     'hardware_only' => (bool) config('tdsynnex.catalog.hardware_only', true),
+                    'show_oos' => (bool) \App\Models\AppSetting::getValue('catalog.show_out_of_stock', false),
+                    'show_disc' => (bool) \App\Models\AppSetting::getValue('catalog.show_discontinued', false),
                 ]))
             );
 
-            $data = Cache::remember($cacheKey, 3600, function () use ($hideZero, $minPrice, $maxPrice, $catalogClean, $productType) {
-                return $this->computeCategoryGroupCounts($hideZero, $minPrice, $maxPrice, $catalogClean, $productType);
+            $data = Cache::remember($cacheKey, 1800, function () use ($hideZero, $minPrice, $maxPrice, $catalogClean, $productType, $search, $selectedVendors) {
+                return $this->computeCategoryGroupCounts($hideZero, $minPrice, $maxPrice, $catalogClean, $productType, $search, $selectedVendors);
             });
 
             return response()->json([
@@ -2043,7 +2057,9 @@ class ProductController extends Controller
         ?float $minPrice,
         ?float $maxPrice,
         bool $catalogClean,
-        string $productType
+        string $productType,
+        string $search = '',
+        array $selectedVendors = []
     ): array {
         $curatedCategories = CatalogTaxonomy::curatedCategories();
         $segmentToName = [];
@@ -2062,31 +2078,7 @@ class ProductController extends Controller
         }
 
         $query = Product::query()->where('vendor_id', 'TD SYNNEX');
-
-        if ($hideZero) {
-            $query->whereRaw($this->preferredDbPriceSql() . ' > 0');
-        }
-
-        if ($minPrice !== null) {
-            $query->whereRaw($this->preferredDbPriceSql() . ' >= ?', [$minPrice]);
-        }
-
-        if ($maxPrice !== null) {
-            $query->whereRaw($this->preferredDbPriceSql() . ' <= ?', [$maxPrice]);
-        }
-
-        if ($catalogClean) {
-            $query->whereRaw("LOWER(COALESCE(mfg_part_no, '')) <> 'shipping'")
-                ->whereRaw("LOWER(COALESCE(product_name, '')) NOT LIKE '%shipping%'")
-                ->whereRaw("NOT ((" . $this->preferredDbPriceSql() . " <= 0.05) AND (LOWER(COALESCE(product_name, '')) LIKE '%support%' OR LOWER(COALESCE(product_name, '')) LIKE '%warranty%' OR LOWER(COALESCE(product_name, '')) LIKE '%consulting%' OR LOWER(COALESCE(product_name, '')) LIKE '%implementation%' OR LOWER(COALESCE(product_name, '')) LIKE '%annual fee%' OR LOWER(COALESCE(product_name, '')) LIKE '%training%'))");
-        }
-
-        $this->applyProductTypeFilterToQuery($query, $productType);
-
-        // Apply the same hardware-only exclusions that the product listing uses
-        if ((bool) config('tdsynnex.catalog.hardware_only', true)) {
-            $this->applyHardwareOnlyExclusions($query);
-        }
+        $this->applySidebarFacetProductFilters($query, $hideZero, $minPrice, $maxPrice, $catalogClean, $productType, $search, $selectedVendors);
 
         // Group by denormalized category_segment column (first 2 chars of UNSPSC categoryCode)
         $rows = $query
@@ -2124,6 +2116,188 @@ class ProductController extends Controller
         usort($result, fn($a, $b) => $b['count'] - $a['count']);
 
         return $result;
+    }
+
+    private function applySidebarFacetProductFilters(
+        \Illuminate\Database\Eloquent\Builder $query,
+        bool $hideZero,
+        ?float $minPrice,
+        ?float $maxPrice,
+        bool $catalogClean,
+        string $productType,
+        string $search = '',
+        array $selectedVendors = [],
+        string $category = ''
+    ): void {
+        $showOutOfStock = (bool) \App\Models\AppSetting::getValue('catalog.show_out_of_stock', false);
+        $showDiscontinued = (bool) \App\Models\AppSetting::getValue('catalog.show_discontinued', false);
+
+        if (!$showOutOfStock) {
+            $query->where('is_available', true)
+                ->whereRaw($this->stockQuantitySql() . ' > 0');
+        }
+
+        if (!$showDiscontinued) {
+            $query->where(function ($q) {
+                $q->where('is_discontinued', false)->orWhereNull('is_discontinued');
+            });
+        }
+
+        if ($hideZero) {
+            $query->whereRaw($this->preferredDbPriceSql() . ' > 0');
+        }
+
+        if ($minPrice !== null) {
+            $query->whereRaw($this->preferredDbPriceSql() . ' >= ?', [$minPrice]);
+        }
+
+        if ($maxPrice !== null) {
+            $query->whereRaw($this->preferredDbPriceSql() . ' <= ?', [$maxPrice]);
+        }
+
+        if ($catalogClean) {
+            $this->applyCatalogCleanFilterToQuery($query);
+        }
+
+        $normalizedProductType = $this->normalizeProductType($productType);
+        if ($normalizedProductType !== '') {
+            $this->applyProductTypeFilterToQuery($query, $normalizedProductType);
+        } elseif ((bool) config('tdsynnex.catalog.hardware_only', true)) {
+            $this->applyHardwareOnlyExclusions($query);
+        }
+
+        $this->applySearchFilterToQuery($query, $search);
+        $this->applyVendorFacetFilterToQuery($query, $selectedVendors);
+        $this->applyCategorySegmentFilterToQuery($query, $category);
+    }
+
+    private function applyCatalogCleanFilterToQuery(\Illuminate\Database\Eloquent\Builder $query): void
+    {
+        $query->whereRaw("LOWER(COALESCE(mfg_part_no, '')) <> 'shipping'")
+            ->whereRaw("LOWER(COALESCE(product_name, '')) NOT LIKE '%shipping%'")
+            ->whereRaw("NOT ((" . $this->preferredDbPriceSql() . " <= 0.05) AND (LOWER(COALESCE(product_name, '')) LIKE '%support%' OR LOWER(COALESCE(product_name, '')) LIKE '%warranty%' OR LOWER(COALESCE(product_name, '')) LIKE '%consulting%' OR LOWER(COALESCE(product_name, '')) LIKE '%implementation%' OR LOWER(COALESCE(product_name, '')) LIKE '%annual fee%' OR LOWER(COALESCE(product_name, '')) LIKE '%training%'))");
+    }
+
+    private function applySearchFilterToQuery(\Illuminate\Database\Eloquent\Builder $query, string $search): void
+    {
+        $searchTerm = trim($search);
+        if ($searchTerm === '') {
+            return;
+        }
+
+        if ($this->hasProductsFullTextIndex()) {
+            $query->whereRaw(
+                'MATCH(product_name, description, mfg_part_no) AGAINST(? IN BOOLEAN MODE)',
+                [$searchTerm . '*']
+            );
+            return;
+        }
+
+        $like = '%' . strtolower($searchTerm) . '%';
+        $query->where(function ($q) use ($like) {
+            $q->orWhereRaw("LOWER(COALESCE(product_name, '')) LIKE ?", [$like])
+                ->orWhereRaw("LOWER(COALESCE(description, '')) LIKE ?", [$like])
+                ->orWhereRaw("LOWER(COALESCE(mfg_part_no, '')) LIKE ?", [$like])
+                ->orWhereRaw("LOWER(COALESCE(manufacturer, '')) LIKE ?", [$like]);
+        });
+    }
+
+    private function applyVendorFacetFilterToQuery(\Illuminate\Database\Eloquent\Builder $query, array $selectedVendors): void
+    {
+        if (empty($selectedVendors)) {
+            return;
+        }
+
+        $vendorNames = [];
+        $aliasMap = $this->getCuratedVendorAliasMap();
+        foreach ($selectedVendors as $vendor) {
+            $canonical = $this->normalizeCuratedVendorName((string) $vendor);
+            if ($canonical === '') {
+                continue;
+            }
+
+            $vendorNames[] = strtolower($canonical);
+            if (isset($aliasMap[$canonical])) {
+                foreach ($aliasMap[$canonical] as $alias) {
+                    $vendorNames[] = strtolower(trim((string) $alias));
+                }
+            }
+        }
+
+        $vendorNames = array_values(array_unique(array_filter($vendorNames)));
+        if (empty($vendorNames)) {
+            return;
+        }
+
+        $placeholders = implode(',', array_fill(0, count($vendorNames), '?'));
+        $query->whereRaw(
+            "LOWER(TRIM(COALESCE(manufacturer, ''))) IN ({$placeholders})",
+            $vendorNames
+        );
+    }
+
+    private function applyCategorySegmentFilterToQuery(\Illuminate\Database\Eloquent\Builder $query, string $category): void
+    {
+        $category = trim($category);
+        if ($category === '') {
+            return;
+        }
+
+        if ($category === 'other') {
+            $namedSegments = [];
+            foreach (CatalogTaxonomy::curatedCategories() as $curatedCategory) {
+                foreach ($curatedCategory['segment_codes'] as $segmentCode) {
+                    $namedSegments[] = $segmentCode;
+                }
+            }
+            $namedSegments = array_values(array_unique($namedSegments));
+            if (!empty($namedSegments)) {
+                $placeholders = implode(',', array_fill(0, count($namedSegments), '?'));
+                $query->whereRaw("COALESCE(category_segment, '') NOT IN ($placeholders)", $namedSegments);
+            }
+            return;
+        }
+
+        $segments = array_values(array_filter(
+            array_map('trim', explode(',', $category)),
+            static fn (string $seg): bool => (bool) preg_match('/^\d{2}$/', $seg)
+        ));
+
+        if (empty($segments)) {
+            $menuCategory = \App\Models\Category::query()
+                ->whereNull('parent_id')
+                ->where(function ($q) use ($category) {
+                    $q->where('slug', $category)
+                        ->orWhereRaw('LOWER(name) = ?', [strtolower($category)]);
+                })
+                ->first();
+
+            if ($menuCategory) {
+                $segments = array_values(array_filter(
+                    array_map('trim', explode(',', (string) $menuCategory->segment_code)),
+                    static fn (string $seg): bool => (bool) preg_match('/^\d{2}$/', $seg)
+                ));
+            }
+        }
+
+        if (count($segments) === 1) {
+            $query->where('category_segment', $segments[0]);
+        } elseif (count($segments) > 1) {
+            $query->whereIn('category_segment', $segments);
+        }
+    }
+
+    private function parseFacetVendors(string $vendors): array
+    {
+        return array_values(array_filter(
+            array_map('trim', explode(',', $vendors)),
+            static fn (string $vendor): bool => $vendor !== ''
+        ));
+    }
+
+    private function stockQuantitySql(): string
+    {
+        return "CAST(COALESCE(JSON_UNQUOTE(JSON_EXTRACT(specifications, '$.availableQuantity')), JSON_UNQUOTE(JSON_EXTRACT(specifications, '$.totalQuantity')), quantity, 0) AS UNSIGNED)";
     }
 
     private function filterCuratedVendors(array $vendors): array
@@ -2175,7 +2349,9 @@ class ProductController extends Controller
         ?float $maxPrice = null,
         bool $hideZero = true,
         bool $catalogClean = true,
-        string $productType = 'hardware'
+        string $productType = 'hardware',
+        string $search = '',
+        string $category = ''
     ): array {
         $cacheKey = sprintf(
             'pa_default_browse_vendors:%s',
@@ -2185,37 +2361,17 @@ class ProductController extends Controller
                 'hide_zero' => $hideZero,
                 'catalog_clean' => $catalogClean,
                 'product_type' => $productType,
+                'search' => $search,
+                'category' => $category,
                 'hardware_only' => (bool) config('tdsynnex.catalog.hardware_only', true),
+                'show_oos' => (bool) \App\Models\AppSetting::getValue('catalog.show_out_of_stock', false),
+                'show_disc' => (bool) \App\Models\AppSetting::getValue('catalog.show_discontinued', false),
             ]))
         );
 
-        return Cache::remember($cacheKey, 300, function () use ($minPrice, $maxPrice, $hideZero, $catalogClean, $productType) {
+        return Cache::remember($cacheKey, 300, function () use ($minPrice, $maxPrice, $hideZero, $catalogClean, $productType, $search, $category) {
             $query = Product::query()->where('vendor_id', 'TD SYNNEX');
-
-            if ($hideZero) {
-                $query->whereRaw($this->preferredDbPriceSql() . ' > 0');
-            }
-
-            if ($minPrice !== null) {
-                $query->whereRaw($this->preferredDbPriceSql() . ' >= ?', [$minPrice]);
-            }
-
-            if ($maxPrice !== null) {
-                $query->whereRaw($this->preferredDbPriceSql() . ' <= ?', [$maxPrice]);
-            }
-
-            if ($catalogClean) {
-                $query->whereRaw("LOWER(COALESCE(mfg_part_no, '')) <> 'shipping'")
-                    ->whereRaw("LOWER(COALESCE(product_name, '')) NOT LIKE '%shipping%'")
-                    ->whereRaw("NOT ((" . $this->preferredDbPriceSql() . " <= 0.05) AND (LOWER(COALESCE(product_name, '')) LIKE '%support%' OR LOWER(COALESCE(product_name, '')) LIKE '%warranty%' OR LOWER(COALESCE(product_name, '')) LIKE '%consulting%' OR LOWER(COALESCE(product_name, '')) LIKE '%implementation%' OR LOWER(COALESCE(product_name, '')) LIKE '%annual fee%' OR LOWER(COALESCE(product_name, '')) LIKE '%training%'))");
-            }
-
-            $this->applyProductTypeFilterToQuery($query, $productType);
-
-            // Apply the same hardware-only exclusions that the product listing uses
-            if ((bool) config('tdsynnex.catalog.hardware_only', true)) {
-                $this->applyHardwareOnlyExclusions($query);
-            }
+            $this->applySidebarFacetProductFilters($query, $hideZero, $minPrice, $maxPrice, $catalogClean, $productType, $search, [], $category);
 
             $rows = $query
                 ->selectRaw("manufacturer, COUNT(*) as aggregate_count")
