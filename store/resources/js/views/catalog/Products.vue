@@ -83,11 +83,45 @@
 
         <!-- Products Section -->
         <div class="flex-1 min-w-0">
-          <!-- Loading State (full load only, not page changes) -->
-          <div v-if="loading && !pageLoading" class="text-center py-9">
-            <div class="inline-block">
-              <div class="w-12 h-12 border-4 border-gray-200 rounded-full animate-spin" style="border-top-color: #2F5597;"></div>
-              <p class="mt-4 text-gray-600 font-semibold">Loading products...</p>
+          <!-- Loading State - skeleton cards matching the real product grid -->
+          <div v-if="loading && !pageLoading">
+            <div class="mb-6 flex justify-between items-center">
+              <div class="h-5 w-44 bg-gray-200 rounded animate-pulse"></div>
+              <div class="h-9 w-44 bg-gray-200 rounded animate-pulse"></div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+              <div v-for="i in 9" :key="'skel-' + i" class="bg-white rounded-xl border border-gray-200 overflow-hidden animate-pulse">
+                <div class="h-48 bg-gray-100 border-b border-gray-100"></div>
+                <div class="p-4 space-y-3">
+                  <div class="flex justify-between items-start">
+                    <div class="h-4 bg-gray-200 rounded w-3/4"></div>
+                    <div class="h-5 w-10 bg-gray-100 rounded ml-2 flex-shrink-0"></div>
+                  </div>
+                  <div class="flex justify-between">
+                    <div class="h-3 bg-gray-100 rounded w-1/3"></div>
+                    <div class="h-3 bg-gray-100 rounded w-1/3"></div>
+                  </div>
+                  <div class="flex gap-1">
+                    <div v-for="s in 5" :key="s" class="w-4 h-4 bg-gray-200 rounded"></div>
+                    <div class="h-3 w-16 bg-gray-100 rounded ml-1"></div>
+                  </div>
+                  <div class="h-8 w-28 bg-gray-200 rounded"></div>
+                  <div class="flex gap-2">
+                    <div class="h-5 w-16 bg-gray-100 rounded"></div>
+                    <div class="h-5 w-20 bg-gray-100 rounded"></div>
+                  </div>
+                  <div class="flex justify-between">
+                    <div class="h-3 w-24 bg-gray-100 rounded"></div>
+                    <div class="h-3 w-20 bg-gray-100 rounded"></div>
+                  </div>
+                  <div class="flex gap-2 pt-1">
+                    <div class="flex-1 h-9 bg-gray-200 rounded-lg"></div>
+                    <div class="w-9 h-9 bg-gray-100 rounded-lg"></div>
+                    <div class="w-9 h-9 bg-gray-100 rounded-lg"></div>
+                    <div class="w-9 h-9 bg-gray-100 rounded-lg"></div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -621,6 +655,14 @@ const normalizeCategoriesForSidebar = (items = []) => {
     }))
     .filter((cat) => cat.name !== '')
 }
+
+// Restore sidebar caches synchronously at setup so filters show before first API response
+;(() => {
+  const sv = normalizeVendorsForSidebar(loadSidebarFacetCache(SIDEBAR_VENDORS_STORAGE_KEY))
+  if (sv.length > 0) { allVendors.value = sv; availableVendors.value = sv }
+  const sc = normalizeCategoriesForSidebar(loadSidebarFacetCache(SIDEBAR_CATEGORIES_STORAGE_KEY))
+  if (sc.length > 0) { availableCategories.value = sc }
+})()
 
 const currentFilters = ref({
   priceMin: 100,
@@ -2375,22 +2417,13 @@ onMounted(async () => {
     return
   }
 
-  await loadPricingSettings(true)
-  pricingReady.value = true
   loadLocalSearchHistory()
 
-  const cachedVendors = normalizeVendorsForSidebar(loadSidebarFacetCache(SIDEBAR_VENDORS_STORAGE_KEY))
-  if (cachedVendors.length > 0) {
-    allVendors.value = cachedVendors
-    availableVendors.value = cachedVendors
-  }
-
-  const cachedCategories = normalizeCategoriesForSidebar(loadSidebarFacetCache(SIDEBAR_CATEGORIES_STORAGE_KEY))
-  if (cachedCategories.length > 0) {
-    availableCategories.value = cachedCategories
-  }
-
-  fetchVendors()
-  fetchCategories()
+  // Fire pricing, vendors, and categories in parallel — none depends on the others
+  await Promise.all([
+    loadPricingSettings(true).then(() => { pricingReady.value = true }),
+    fetchVendors(),
+    fetchCategories(),
+  ])
 })
 </script>
