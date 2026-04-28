@@ -85,7 +85,6 @@
           <select v-model="statusFilter" @change="applyFilters" class="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597] text-gray-900 transition">
             <option value="" class="bg-white">All Statuses</option>
             <option value="pending_review" class="bg-white">Pending Review</option>
-            <option value="approved" class="bg-white">Approved</option>
             <option value="rejected" class="bg-white">Rejected</option>
           </select>
         </div>
@@ -510,10 +509,13 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import AdminLayout from '@/components/AdminLayout.vue'
 import api from '@/services/api'
 
+const route = useRoute()
+const router = useRouter()
 const quotes = ref([])
 const selectedQuote = ref(null)
 const selectedQuotes = ref([])
@@ -537,6 +539,34 @@ const stats = ref({
   approved: 0,
   rejected: 0
 })
+
+const syncFiltersFromRoute = () => {
+  statusFilter.value = typeof route.query.status === 'string' ? route.query.status : ''
+  searchQuery.value = typeof route.query.search === 'string' ? route.query.search : ''
+  sortBy.value = typeof route.query.sortBy === 'string' ? route.query.sortBy : 'newest'
+
+  const page = Number(route.query.page || 1)
+  currentPage.value = Number.isFinite(page) && page > 0 ? page : 1
+}
+
+const replaceQuoteRouteQuery = (overrides = {}) => {
+  const nextQuery = {
+    ...route.query,
+    status: statusFilter.value || undefined,
+    search: searchQuery.value || undefined,
+    sortBy: sortBy.value !== 'newest' ? sortBy.value : undefined,
+    page: currentPage.value > 1 ? String(currentPage.value) : undefined,
+    ...overrides,
+  }
+
+  Object.keys(nextQuery).forEach((key) => {
+    if (nextQuery[key] === undefined || nextQuery[key] === '') {
+      delete nextQuery[key]
+    }
+  })
+
+  router.replace({ name: 'admin-quotes', query: nextQuery })
+}
 
 const allSelected = computed(() => {
   return quotes.value.length > 0 && quotes.value.every(quote => selectedQuotes.value.includes(quote.id))
@@ -824,7 +854,7 @@ const approveQuote = async () => {
 
       alert(response.data.message || 'Quote action completed successfully!')
 
-      await fetchQuotes()
+      await router.push({ name: 'admin-orders' })
       await fetchStats()
     } else {
       alert(response.data.message || 'Failed to process quote approval')
@@ -874,6 +904,7 @@ const rejectQuote = async () => {
 
 const applyFilters = () => {
   currentPage.value = 1
+  replaceQuoteRouteQuery({ page: undefined })
   fetchQuotes()
 }
 
@@ -916,6 +947,7 @@ const executeBulkDelete = async () => {
 let pollInterval = null
 
 onMounted(() => {
+  syncFiltersFromRoute()
   fetchStats()
   fetchQuotes()
   // Refresh stats and quotes every 30 seconds to catch new submissions
@@ -928,6 +960,14 @@ onMounted(() => {
 onUnmounted(() => {
   clearInterval(pollInterval)
 })
+
+watch(
+  () => route.query,
+  () => {
+    syncFiltersFromRoute()
+    fetchQuotes()
+  }
+)
 </script>
 
 <style scoped>
