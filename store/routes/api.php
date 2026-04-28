@@ -85,6 +85,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/quotes', [QuoteOrderInvoiceController::class, 'createQuote']);
         Route::post('/shares/product', [QuoteOrderInvoiceController::class, 'shareProduct']);
         Route::post('/shares/cart', [QuoteOrderInvoiceController::class, 'shareCart']);
+        Route::post('/shares/cart/send-email', [QuoteOrderInvoiceController::class, 'sendCartShareEmail']);
         Route::get('/shares/cart/{messageId}', [QuoteOrderInvoiceController::class, 'getSharedCart']);
         Route::get('/quotes/{quoteId}', [QuoteOrderInvoiceController::class, 'getQuote']);
         Route::get('/quotes/{quoteId}/pdf', [QuoteOrderInvoiceController::class, 'downloadQuotePdf']);

@@ -17,6 +17,7 @@ use App\Services\PdfService;
 use App\Services\NotificationService;
 use App\Services\InvoiceService;
 use App\Services\CustomerPricingService;
+use App\Services\AzureGraphMailService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;
@@ -651,6 +652,40 @@ class QuoteOrderInvoiceController extends Controller
                 'note' => (string) ($payload['note'] ?? ''),
                 'items' => array_values((array) ($payload['items'] ?? [])),
             ],
+        ]);
+    }
+
+    public function sendCartShareEmail(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'to_email'   => ['required', 'email', 'max:255'],
+            'share_url'  => ['required', 'url', 'max:2048'],
+            'note'       => ['nullable', 'string', 'max:500'],
+            'item_count' => ['nullable', 'integer', 'min:1'],
+        ]);
+
+        $toEmail   = strtolower(trim($validated['to_email']));
+        $shareUrl  = trim($validated['share_url']);
+        $note      = trim((string) ($validated['note'] ?? ''));
+        $itemCount = max(1, (int) ($validated['item_count'] ?? 1));
+        $senderName = $user ? trim((string) $user->name) : config('app.name', 'Armely');
+
+        $graphMail = app(AzureGraphMailService::class);
+        $sent = $graphMail->sendCartShareEmail($toEmail, $senderName, $shareUrl, $itemCount, $note);
+
+        if (!$sent) {
+            Log::error('CartShareEmail failed via Graph API', ['to' => $toEmail]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to send the email. Please try again later.',
+            ], 500);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "Share email sent to {$toEmail}.",
         ]);
     }
 

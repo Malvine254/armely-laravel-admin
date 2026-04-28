@@ -150,13 +150,13 @@
             <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8 transition-opacity duration-200" :class="{ 'opacity-50 pointer-events-none': pageLoading }">
               <div v-for="product in paginatedProducts" :key="product.productId" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden group hover:shadow-lg transition" style="border: 1px solid rgb(229, 231, 235);" @mouseenter="$event.currentTarget.style.borderColor='#cce4f5'" @mouseleave="$event.currentTarget.style.borderColor='rgb(229, 231, 235)'">
                 <!-- Product Image -->
-                <div class="bg-gradient-to-br from-gray-200 to-gray-300 h-40 flex items-center justify-center transition relative overflow-hidden" style="background: linear-gradient(135deg, rgb(229, 231, 235), rgb(209, 213, 219));">
+                <div class="bg-white h-48 flex items-center justify-center transition relative overflow-hidden border-b border-gray-100">
                   <!-- Actual Product Image if available -->
                   <img
                     v-if="getPrimaryImageUrl(product) && !imgErrorMap[product.productId]"
                     :src="getPrimaryImageUrl(product)"
                     :alt="product.productName"
-                    class="w-full h-full object-cover"
+                    class="w-full h-full object-contain p-2"
                     :loading="paginatedProducts.indexOf(product) < 2 ? 'eager' : 'lazy'"
                     :fetchpriority="paginatedProducts.indexOf(product) === 0 ? 'high' : 'auto'"
                     decoding="async"
@@ -168,9 +168,9 @@
                   <!-- Fallback: Animated background + Icon -->
                   <template v-if="!getPrimaryImageUrl(product) || imgErrorMap[product.productId]">
                     <!-- Animated background -->
-                    <div class="absolute inset-0 opacity-10">
-                      <div class="absolute top-2 right-2 w-12 h-12 bg-blue-400 rounded-full"></div>
-                      <div class="absolute bottom-4 left-2 w-8 h-8 bg-blue-300 rounded-full"></div>
+                    <div class="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 opacity-80">
+                      <div class="absolute top-2 right-2 w-12 h-12 bg-blue-400 rounded-full opacity-10"></div>
+                      <div class="absolute bottom-4 left-2 w-8 h-8 bg-blue-300 rounded-full opacity-10"></div>
                     </div>
                     
                     <!-- Product Icon based on type -->
@@ -408,7 +408,7 @@ const TOP_VENDOR_DISPLAY_LIMIT = 40
 const DEFAULT_VENDOR_SCOPE_LIMIT = 12
 const DEFAULT_BROWSE_MIN_PRICE = 100
 const CURATED_CACHE_VERSION = 3
-const ENABLE_SERVER_PREFETCH = false
+const ENABLE_SERVER_PREFETCH = true
 const ENABLE_VENDOR_COUNTS_API = true
 const PRODUCTS_RESULTS_SOFT_TTL_MS = 5 * 60 * 1000
 const PRODUCTS_RESULTS_HARD_TTL_MS = 24 * 60 * 60 * 1000
@@ -484,6 +484,8 @@ const pageLoading = ref(false)
 const error = ref('')
 const searchQuery = ref('')
 const currentPage = ref(1)
+// Prevents the route watcher from double-fetching when we call router.replace ourselves
+let ownRouterReplace = false
 const lastTrackedTerm = ref('')
 const lastTrackedAt = ref(0)
 const reviewStatsByProduct = ref({})
@@ -1562,7 +1564,6 @@ const performSearch = async (resetPage = true) => {
         requestCache.set(cacheKey, cachePayload)
         saveProductResultsCache(cacheKey, cachePayload)
 
-        // Prefetch is disabled to avoid extra concurrent API pressure.
         if (useServerPaged && ENABLE_SERVER_PREFETCH) {
           prefetchPage(currentPage.value + 1)
           if (currentPage.value > 1) prefetchPage(currentPage.value - 1)
@@ -1662,6 +1663,16 @@ const fetchVendors = async () => {
       vendorParams.max_price = currentFilters.value.priceMax
     }
 
+    if (searchQuery.value) {
+      vendorParams.search = searchQuery.value
+    }
+
+    if (currentFilters.value.categories.length > 0) {
+      const selectedCategoryName = currentFilters.value.categories[0]
+      const categoryEntry = availableCategories.value.find(c => c.name === selectedCategoryName)
+      vendorParams.category = categoryEntry?.value || selectedCategoryName
+    }
+
     const response = await api.get('/vendors', { params: vendorParams })
 
     const rawVendorData = response.data?.data || []
@@ -1700,6 +1711,17 @@ const fetchCategories = async () => {
 
     if (Number(currentFilters.value.priceMax || 10000) < 10000) {
       params.max_price = currentFilters.value.priceMax
+    }
+
+    if (searchQuery.value) {
+      params.search = searchQuery.value
+    }
+
+    if (currentFilters.value.vendors.length > 0) {
+      const selectedVendorValues = resolveVendorApiValues(currentFilters.value.vendors)
+      if (selectedVendorValues.length > 0) {
+        params.vendors = selectedVendorValues.join(',')
+      }
     }
 
     const response = await api.get('/categories', { params })
@@ -1843,21 +1865,7 @@ const prefetchPage = (page) => {
   if (currentFilters.value.priceMin > 0) params.min_price = currentFilters.value.priceMin
   if (currentFilters.value.priceMax < 10000) params.max_price = currentFilters.value.priceMax
 
-  const tempFilters = { ...currentFilters.value }
-  const cacheKey = JSON.stringify({
-    pricingScope: getCatalogPricingScope(),
-    productType: tempFilters.productType,
-    vendors: tempFilters.vendors,
-    search: searchQuery.value,
-    minPrice: tempFilters.priceMin,
-    maxPrice: tempFilters.priceMax,
-    partNumber: tempFilters.partNumber,
-    lifecycleStatuses: tempFilters.lifecycleStatuses,
-    mediaStatuses: tempFilters.mediaStatuses,
-    categories: tempFilters.categories,
-    page: page,
-    mode: 'server'
-  })
+  const cacheKey = getCacheKey(currentFilters.value, page, true)
 
   // Skip if already cached
   if (requestCache.has(cacheKey)) return
@@ -2305,6 +2313,12 @@ watch(
     }
 
     currentPage.value = Math.max(1, Number(page || 1) || 1)
+
+    if (ownRouterReplace) {
+      ownRouterReplace = false
+      return
+    }
+
     performSearch(false)
   },
   { immediate: true }
@@ -2332,6 +2346,7 @@ watch(
       return
     }
 
+    ownRouterReplace = true
     router.replace({
       name: 'products',
       query: nextQuery,
