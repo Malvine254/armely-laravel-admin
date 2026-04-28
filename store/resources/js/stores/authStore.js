@@ -116,11 +116,13 @@ export const useAuthStore = defineStore('auth', () => {
       }
       return { ok: false, message: response.data?.message || 'Login failed' }
     } catch (error) {
-      console.error('Login error:', error)
       const errData = error.response?.data
+      const firstValidationError = errData?.errors
+        ? Object.values(errData.errors).flat()[0] || null
+        : null
       return {
         ok: false,
-        message: errData?.message || error.message || 'Login failed',
+        message: firstValidationError || errData?.message || 'Invalid email or password.',
         restrictionReason: errData?.data?.restriction_reason || null,
       }
     }
