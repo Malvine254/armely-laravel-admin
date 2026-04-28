@@ -742,7 +742,8 @@ class ProductController extends Controller
         $query = Product::query()->where('vendor_id', 'TD SYNNEX');
 
         if (!$showOutOfStock) {
-            $query->where('is_available', true);
+            $query->where('is_available', true)
+                  ->where('quantity', '>', 0); // Also filter by stock quantity
         }
 
         if (!$showDiscontinued) {
@@ -899,17 +900,9 @@ class ProductController extends Controller
         $currentPage = max(1, $pageNo);
         $offset = ($currentPage - 1) * $perPage;
 
-        // Always show in-stock products first (mirrors frontend getStockRank: qty>0=0, null=1, 0=2).
-        $query->orderByRaw(
-            "CASE
-                WHEN JSON_EXTRACT(specifications, '$.availableQuantity') > 0 THEN 0
-                WHEN JSON_EXTRACT(specifications, '$.availableQuantity') IS NULL THEN 1
-                ELSE 2
-            END"
-        );
-        if (empty($search)) {
-            $query->orderBy('id');
-        }
+        // Show available products first, then order by id for stable pagination.
+        // Uses the indexed is_available column instead of expensive JSON_EXTRACT.
+        $query->orderByDesc('is_available')->orderBy('id');
 
         // Clone the fully-filtered query BEFORE pagination so we can COUNT later.
         $countQuery = $query->clone();
@@ -1339,6 +1332,7 @@ class ProductController extends Controller
             // Check if we have recent products in database
             $query = Product::whereIn('vendor_id', $vendors)
                 ->where('is_available', true)
+                ->where('quantity', '>', 0) // Only show products with stock
                 ->where('updated_at', '>=', now()->subHours(2)); // Products updated within last 2 hours
 
             // If requested, only include products that have a non-zero price
@@ -1499,30 +1493,6 @@ class ProductController extends Controller
                                 'error' => $e->getMessage(),
                             ]);
                             $resolved = null;
-                        }
-                    }
-
-                    // If the product has no images stored, try a live API fetch and persist.
-                    if ($resolved && empty($resolved['productImages'])) {
-                        try {
-                            $imgResponse = $this->tdsynnexService->getProductImages((int) ($resolved['synnexSKU'] ?? $productId));
-                            $liveImages = $imgResponse['data']['images'] ?? [];
-                            if (!empty($liveImages)) {
-                                $normalized = array_map(fn($img) => ['imageUrl' => (string) ($img['imageUrl'] ?? $img['url'] ?? $img)], $liveImages);
-                                $resolved['productImages'] = $normalized;
-                                $resolved['images'] = $normalized;
-                                $resolved['image_url'] = (string) ($normalized[0]['imageUrl'] ?? '');
-                                // Persist so future loads are instant
-                                Product::where('vendor_id', 'TD SYNNEX')
-                                    ->where(function ($q) use ($productId) {
-                                        $q->where('tdsynnex_product_id', (int) $productId)
-                                          ->orWhere('tdsynnex_sku_no', (int) $productId)
-                                          ->orWhere('mfg_part_no', $productId);
-                                    })
-                                    ->update(['images' => json_encode($normalized)]);
-                            }
-                        } catch (\Throwable $e) {
-                            // Non-fatal — continue without images
                         }
                     }
 

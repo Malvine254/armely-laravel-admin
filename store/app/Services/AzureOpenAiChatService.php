@@ -7,99 +7,499 @@ use Illuminate\Support\Facades\Log;
 
 class AzureOpenAiChatService
 {
+    private string $endpoint;
+    private string $apiKey;
+    private string $deployment;
+    private string $apiVersion;
+    private bool $configured;
+
+    public function __construct()
+    {
+        $this->endpoint   = rtrim((string) config('services.azure_openai.endpoint'), '/');
+        $this->apiKey     = (string) config('services.azure_openai.api_key');
+        $this->deployment = (string) config('services.azure_openai.deployment');
+        $this->apiVersion = (string) config('services.azure_openai.api_version', '2024-10-21');
+        $this->configured = $this->endpoint !== '' && $this->apiKey !== '' && $this->deployment !== '';
+    }
+
+    public function isConfigured(): bool
+    {
+        return $this->configured;
+    }
+
+    /**
+     * Multi-agent orchestrator: classify intent locally (instant) then call the right specialist.
+     *
+     * Returns: ['reply' => string, 'actions' => array, 'product_suggestions' => array,
+     *           'source' => string, 'intent' => string]
+     */
+    public function orchestrate(string $question, array $context, array $chatHistory = []): array
+    {
+        if (!$this->configured) {
+            return ['reply' => null, 'actions' => [], 'product_suggestions' => [], 'source' => 'unconfigured', 'intent' => 'unknown'];
+        }
+
+        // Intent classification uses local keywords — instant, no API call, never times out.
+        $intent = $this->classifyIntentLocally($question, $chatHistory);
+
+        Log::info('Mela AI intent classified', [
+            'question' => substr($question, 0, 120),
+            'intent'   => $intent,
+        ]);
+
+        return match ($intent) {
+            'product_search'   => $this->runProductAgent($question, $context, $chatHistory),
+            'order_status'     => $this->runOrderAgent($question, $context, $chatHistory),
+            'quote_management' => $this->runQuoteAgent($question, $context, $chatHistory),
+            'invoice_payment'  => $this->runInvoiceAgent($question, $context, $chatHistory),
+            default            => $this->runSupportAgent($question, $context, $chatHistory),
+        };
+    }
+
+    /**
+     * @deprecated Use orchestrate() instead.
+     */
     public function generateReply(string $question, array $context): ?string
     {
-        $endpoint = rtrim((string) config('services.azure_openai.endpoint'), '/');
-        $apiKey = (string) config('services.azure_openai.api_key');
-        $deployment = (string) config('services.azure_openai.deployment');
-        $apiVersion = (string) config('services.azure_openai.api_version', '2024-10-21');
+        if (!$this->configured) {
+            return null;
+        }
 
-        if ($endpoint === '' || $apiKey === '' || $deployment === '') {
+        $result = $this->runSupportAgent($question, $context, []);
+        return $result['reply'] ?? null;
+    }
+
+    // ─── Intent classifier (local — zero latency) ──────────────────────────────
+
+    private function classifyIntentLocally(string $question, array $chatHistory): string
+    {
+        $q = strtolower(trim($question));
+        if ($q === '') {
+            return 'general_support';
+        }
+
+        // Multi-domain: mentions orders AND quotes together → general_support (shows combined account summary)
+        $hasOrderSignal = (bool) preg_match('/\borders?\b/', $q);
+        $hasQuoteSignal = (bool) preg_match('/\bquotes?\b/', $q);
+        if ($hasOrderSignal && $hasQuoteSignal) {
+            return 'general_support';
+        }
+
+        // Order signals — broad: "my orders", "previous orders", "order history", "order #123", etc.
+        if ($hasOrderSignal || preg_match('/\b(order (status|history|track|number|detail)|track(ing)?|shipment|delivery|shipped|dispatch|where is my|has my order|when will|order #)\b/', $q)) {
+            return 'order_status';
+        }
+
+        // Invoice / payment signals
+        if (preg_match('/\b(invoices?|payments?|pay|balance due|billing|receipt|download pdf|invoice pdf|outstanding|amount due|what do i owe)\b/', $q)) {
+            return 'invoice_payment';
+        }
+
+        // Quote signals — broad: "my quotes", "quote history", "get a quote", "reorder", etc.
+        if ($hasQuoteSignal || preg_match('/\b(quote (status|history|number)|get a quote|request (a )?quote|reorder|pending quote|open quote|same order again)\b/', $q)) {
+            return 'quote_management';
+        }
+
+        // Product / catalog signals
+        if (preg_match('/\b(laptop|notebook|desktop|printer|server|monitor|switch|router|firewall|wifi|wireless|tablet|projector|ups|storage|ssd|keyboard|mouse|webcam|headset|workstation|chromebook|thin client|mini pc|all.in.one|docking|dock|scanner|sku|catalog|buy|purchase|recommend|suggest|spec|model|find me|search for|looking for|need a|want a|compare)\b/', $q)) {
+            return 'product_search';
+        }
+
+        // Multi-domain / ambiguous → general support
+        return 'general_support';
+    }
+
+    // ─── Specialist agents ─────────────────────────────────────────────────────
+
+    private function runProductAgent(string $question, array $context, array $chatHistory): array
+    {
+        $productSuggestions = (array) ($context['product_suggestions'] ?? []);
+        $firstName          = $this->firstName($context);
+        $historyText        = $this->formatHistory($chatHistory, 6);
+
+        $productsJson = !empty($productSuggestions)
+            ? json_encode(array_map(fn ($p) => [
+                'name'   => $p['name'] ?? '',
+                'sku'    => $p['sku'] ?? '',
+                'vendor' => $p['vendor'] ?? '',
+                'price'  => $p['price'] ?? 0,
+                'why'    => $p['why'] ?? '',
+            ], array_slice($productSuggestions, 0, 6)), JSON_UNESCAPED_SLASHES)
+            : '[]';
+
+        $systemPrompt = implode("\n", [
+            'You are Mela AI, the IT product specialist for Armely — a B2B IT procurement platform.',
+            "Address the customer as {$firstName}.",
+            '',
+            '## Instructions',
+            '- You MUST list every product from the JSON catalog results provided below.',
+            '- For each product write one line: product name, vendor, price, and one sentence on why it fits.',
+            '- Do NOT withhold or skip products. Show ALL of them.',
+            '- If catalog results are empty, say so clearly and ask for a brand or category.',
+            '- Suggest requesting a quote at the end.',
+            '- Never invent product names, prices, or SKUs not in the JSON.',
+        ]);
+
+        $userContent = "Customer: {$firstName}\nQuestion: {$question}\n\nCatalog results (JSON):\n{$productsJson}";
+        if ($historyText !== '') {
+            $userContent .= "\n\nConversation history:\n{$historyText}";
+        }
+
+        $reply = $this->callApi(
+            [['role' => 'system', 'content' => $systemPrompt], ['role' => 'user', 'content' => $userContent]],
+            temperature: 0.3,
+            maxTokens: 600
+        );
+
+        // Context-aware local fallback — shows real data, not a generic message.
+        if ($reply === null) {
+            if (!empty($productSuggestions)) {
+                $top   = $productSuggestions[0];
+                $price = isset($top['price']) && $top['price'] > 0 ? ' at $' . number_format((float) $top['price'], 2) : '';
+                $count = count($productSuggestions);
+                $reply = "Hi {$firstName}! I found {$count} product(s) matching your search. Top pick: **{$top['name']}**{$price}.\n\nCheck the product cards below for details, or use the actions to browse the full catalog.";
+            } else {
+                $reply = "Hi {$firstName}! I searched the catalog but didn't find a match for that query. Try a brand name (Dell, HP, Cisco, Lenovo), a category (laptop, switch, server, UPS), or a part number.";
+            }
+        }
+
+        $actions = [];
+        if (!empty($productSuggestions)) {
+            $actions[] = ['label' => 'Browse catalog', 'link' => '/products?search=' . urlencode($question)];
+            $actions[] = ['label' => 'Request a quote', 'link' => '/cart'];
+            $topId = $productSuggestions[0]['product_id'] ?? null;
+            if ($topId) {
+                $actions[] = ['label' => 'View top product', 'link' => '/products/' . urlencode((string) $topId)];
+            }
+        } else {
+            $actions[] = ['label' => 'Browse all products', 'link' => '/products'];
+        }
+
+        return [
+            'reply'               => $reply,
+            'actions'             => $actions,
+            'product_suggestions' => $productSuggestions,
+            'source'              => 'product_agent',
+            'intent'              => 'product_search',
+        ];
+    }
+
+    private function runOrderAgent(string $question, array $context, array $chatHistory): array
+    {
+        $orders    = (array) ($context['recent_orders'] ?? []);
+        $firstName = $this->firstName($context);
+
+        if (empty($orders)) {
+            $reply = "Hi {$firstName}! I don't see any orders on your account yet. Once you submit a quote it will appear here as an order.";
+        } else {
+            $lines = [];
+            foreach ($orders as $order) {
+                $amount = (float) ($order['total_amount'] ?? 0) > 0
+                    ? ' · $' . number_format((float) $order['total_amount'], 2)
+                    : '';
+                $pay   = !empty($order['payment_status']) ? " · Payment: {$order['payment_status']}" : '';
+                $date  = !empty($order['created_at'])     ? ' · ' . substr($order['created_at'], 0, 10) : '';
+                $track = !empty($order['tracking_info'])  ? ' · Tracking available' : '';
+                $lines[] = "• **{$order['order_number']}** — " . ucfirst((string) ($order['status'] ?? '')) . "{$amount}{$pay}{$date}{$track}";
+            }
+            $count = count($orders);
+            $reply = "Hi {$firstName}! You have **{$count}** order(s) on record:\n\n" . implode("\n", $lines)
+                . "\n\nClick **View my orders** below for full tracking details and invoice downloads.";
+        }
+
+        return [
+            'reply'               => $reply,
+            'actions'             => [['label' => 'View my orders', 'link' => '/orders']],
+            'product_suggestions' => [],
+            'source'              => 'order_agent',
+            'intent'              => 'order_status',
+        ];
+    }
+
+    private function runQuoteAgent(string $question, array $context, array $chatHistory): array
+    {
+        $quotes    = (array) ($context['completed_paid_quotes'] ?? []);
+        $firstName = $this->firstName($context);
+
+        if (empty($quotes)) {
+            $reply = "Hi {$firstName}! No quotes found on your account yet. Browse the product catalog, add items to your cart, and submit a quote request to get started.";
+        } else {
+            $lines = [];
+            foreach ($quotes as $q) {
+                $amount    = (float) ($q['total_amount'] ?? 0) > 0
+                    ? ' — $' . number_format((float) $q['total_amount'], 2)
+                    : '';
+                $status    = ucfirst((string) ($q['status'] ?? ''));
+                $ordRef    = !empty($q['order_number']) ? " · Order: {$q['order_number']}" : '';
+                $ordStatus = !empty($q['order_status'])  ? " ({$q['order_status']})" : '';
+                $date      = !empty($q['created_at'])    ? ' · ' . substr($q['created_at'], 0, 10) : '';
+                $lines[]   = "• **{$q['quote_id']}**{$amount} · {$status}{$ordRef}{$ordStatus}{$date}";
+            }
+            $count = count($quotes);
+            $reply = "Hi {$firstName}! You have **{$count}** quote(s) on record:\n\n" . implode("\n", $lines)
+                . "\n\nClick **View my quotes** below to manage, duplicate for reorder, or check approval status.";
+        }
+
+        return [
+            'reply'               => $reply,
+            'actions'             => [
+                ['label' => 'View my quotes',  'link' => '/quotes'],
+                ['label' => 'Browse products', 'link' => '/products'],
+            ],
+            'product_suggestions' => [],
+            'source'              => 'quote_agent',
+            'intent'              => 'quote_management',
+        ];
+    }
+
+    private function runInvoiceAgent(string $question, array $context, array $chatHistory): array
+    {
+        $invoices       = (array) ($context['recent_invoices'] ?? []);
+        $focusedInvoice = $context['focused_invoice'] ?? null;
+        $firstName      = $this->firstName($context);
+        $openCount      = (int) ($context['summary']['open_invoice_count'] ?? 0);
+        $openTotal      = (float) ($context['summary']['open_invoice_total'] ?? 0);
+
+        // Build reply directly from context data — instant, no Azure call needed.
+        if (!empty($focusedInvoice) && is_array($focusedInvoice) && !empty($focusedInvoice['invoice_number'])) {
+            $inv    = $focusedInvoice;
+            $total  = number_format((float) ($inv['total_amount'] ?? 0), 2);
+            $rem    = number_format((float) ($inv['remaining_amount'] ?? 0), 2);
+            $paid   = number_format((float) ($inv['paid_amount'] ?? 0), 2);
+            $status = ucfirst((string) ($inv['status'] ?? ''));
+            $due    = !empty($inv['due_at']) ? " · Due: {$inv['due_at']}" : '';
+            $reply  = "Hi {$firstName}! Here are the details for **{$inv['invoice_number']}**:\n\n"
+                    . "• Total: **\${$total}**\n"
+                    . "• Paid: **\${$paid}**\n"
+                    . "• Balance: **\${$rem}**\n"
+                    . "• Status: **{$status}**{$due}\n\n"
+                    . "Use the action links below to view, download a PDF, or pay.";
+        } elseif (empty($invoices)) {
+            $reply = "Hi {$firstName}! No invoices found on your account yet.";
+        } else {
+            $open = [];
+            $paid = [];
+            foreach ($invoices as $inv) {
+                $rem      = (float) ($inv['remaining_amount'] ?? 0);
+                $total    = number_format((float) ($inv['total_amount'] ?? 0), 2);
+                $due      = !empty($inv['due_at']) ? " · due {$inv['due_at']}" : '';
+                $orderRef = !empty($inv['order_number']) ? " · {$inv['order_number']}" : '';
+                if ($rem > 0.01) {
+                    $remStr = number_format($rem, 2);
+                    $open[] = "• **{$inv['invoice_number']}** — \${$total} (balance: **\${$remStr}**){$due}{$orderRef}";
+                } else {
+                    $paid[] = "• **{$inv['invoice_number']}** — \${$total} · Paid{$orderRef}";
+                }
+            }
+            $reply = "Hi {$firstName}! ";
+            if (!empty($open)) {
+                $reply .= "**Outstanding (" . count($open) . "):**\n" . implode("\n", $open);
+            }
+            if (!empty($paid)) {
+                $reply .= (!empty($open) ? "\n\n" : '') . "**Paid (" . count($paid) . "):**\n" . implode("\n", $paid);
+            }
+            if ($openCount > 0) {
+                $reply .= "\n\n**Total outstanding: $" . number_format($openTotal, 2) . "**";
+            }
+            $reply .= "\n\nUse the action links below to view details, download a PDF, or make a payment.";
+        }
+
+        $actions = [['label' => 'See all invoices', 'link' => '/invoices']];
+        if (!empty($focusedInvoice['invoice_number'])) {
+            $invNum    = (string) $focusedInvoice['invoice_number'];
+            $actions[] = ['label' => 'View invoice', 'link' => '/invoices?invoiceNumber=' . urlencode($invNum)];
+            $actions[] = ['label' => 'Download PDF', 'link' => '/api/v1/invoices/' . urlencode($invNum) . '/pdf'];
+            if (($focusedInvoice['remaining_amount'] ?? 0) > 0.01) {
+                $actions[] = ['label' => 'Pay now', 'link' => '/payment?mode=invoice&invoiceNumber=' . urlencode($invNum) . '&from=/messages'];
+            }
+        } else {
+            $actions[] = ['label' => 'Open payments', 'link' => '/payment'];
+        }
+
+        return [
+            'reply'               => $reply,
+            'actions'             => $actions,
+            'product_suggestions' => [],
+            'source'              => 'invoice_agent',
+            'intent'              => 'invoice_payment',
+        ];
+    }
+
+    private function runSupportAgent(string $question, array $context, array $chatHistory): array
+    {
+        $customerName = trim((string) ($context['customer']['name'] ?? ''));
+        $firstName    = $this->firstName($context);
+        $historyText  = $this->formatHistory($chatHistory, 8);
+        $openCount    = (int) ($context['summary']['open_invoice_count'] ?? 0);
+        $orders       = (array) ($context['recent_orders'] ?? []);
+        $quotes       = (array) ($context['completed_paid_quotes'] ?? []);
+
+        $systemPrompt = implode("\n", [
+            'You are Mela AI, the customer account assistant for Armely — a B2B IT procurement platform.',
+            '',
+            '## Personality',
+            '- Warm, professional, and helpful. Use the customer\'s first name.',
+            '- Be concise and action-oriented. Use bullet points for clarity.',
+            '- End responses with a helpful nudge or offer.',
+            '',
+            '## Capabilities',
+            '- Handle greetings, thank-yous, account questions, and platform navigation.',
+            '- For specific order/invoice/quote questions, ask for a reference number.',
+            '- Suggest escalation to human support for complex issues.',
+            '',
+            '## Rules',
+            '- Never invent order, invoice, or quote details.',
+            '- Keep replies concise — users can see their data in the app.',
+        ]);
+
+        $greeting    = $customerName !== '' ? "Customer name: {$customerName}\n" : '';
+        $accountNote = $openCount > 0 ? "\n(Note: customer has {$openCount} open invoice(s).)" : '';
+        $userContent = "{$greeting}Question: {$question}{$accountNote}";
+        if ($historyText !== '') {
+            $userContent .= "\n\nConversation history:\n{$historyText}";
+        }
+
+        $reply = $this->callApi(
+            [['role' => 'system', 'content' => $systemPrompt], ['role' => 'user', 'content' => $userContent]],
+            temperature: 0.4,
+            maxTokens: 700
+        );
+
+        // Context-aware local fallback — always shows real account data, never a generic nothing.
+        if ($reply === null) {
+            $q     = strtolower(trim($question));
+            $greet = $firstName !== 'there' ? "Hi {$firstName}! " : 'Hi! ';
+
+            // Greetings
+            $greetWords = ['hi', 'hello', 'hey', 'good morning', 'good afternoon', 'good evening', 'howdy', 'sup'];
+            if (in_array($q, $greetWords, true) || preg_match('/^(hi|hello|hey|good (morning|afternoon|evening))\b/', $q)) {
+                $time  = (int) date('H');
+                $tod   = $time < 12 ? 'Good morning' : ($time < 17 ? 'Good afternoon' : 'Good evening');
+                $name  = $firstName !== 'there' ? ", {$firstName}" : '';
+                $reply = "{$tod}{$name}! I'm Mela AI, your Armely assistant. I can help you find IT products, manage invoices and payments, track orders, and more. What can I help you with today?";
+            }
+            // Thank you
+            elseif (preg_match('/\b(thank|thanks|thx|cheers|appreciate|great|awesome|perfect)\b/', $q)) {
+                $namePart = $firstName !== 'there' ? ", {$firstName}" : '';
+                $reply = "You're welcome{$namePart}! Happy to help anytime. Is there anything else I can assist you with?";
+            }
+            // Any mention of orders, quotes, or invoices → show account summary
+            elseif (preg_match('/\b(quotes?|orders?|invoices?|payments?|account|summary|status|history)\b/', $q)) {
+                $parts = [];
+                if (!empty($orders)) {
+                    $latest = $orders[0];
+                    $parts[] = "Your latest order **{$latest['order_number']}** is **{$latest['status']}**.";
+                }
+                if (!empty($quotes)) {
+                    $parts[] = 'You have ' . count($quotes) . ' completed quote(s) on record.';
+                }
+                if ($openCount > 0) {
+                    $parts[] = "You have {$openCount} open invoice(s) outstanding.";
+                }
+                $reply = $greet . (count($parts) ? implode(' ', $parts) . ' Use the action links below for full details.' : "I can help with orders, quotes, and invoices. What would you like to check?");
+            } else {
+                // Generic catch-all — but still personalised with account context
+                $ctxParts = [];
+                if (!empty($orders)) {
+                    $ctxParts[] = count($orders) . ' order(s)';
+                }
+                if (!empty($quotes)) {
+                    $ctxParts[] = count($quotes) . ' quote(s)';
+                }
+                if ($openCount > 0) {
+                    $ctxParts[] = "{$openCount} open invoice(s)";
+                }
+                $ctxLine = count($ctxParts) ? ' Your account has ' . implode(', ', $ctxParts) . '.' : '';
+                $reply = $greet . "I'm here to help with invoices, payments, quotes, order tracking, and product recommendations.{$ctxLine} What can I do for you today?";
+            }
+        }
+
+        $actions = [];
+        if (!empty($orders)) {
+            $actions[] = ['label' => 'View my orders', 'link' => '/orders'];
+        }
+        if ($openCount > 0) {
+            $actions[] = ['label' => 'View invoices', 'link' => '/invoices'];
+        }
+        if (!empty($quotes)) {
+            $actions[] = ['label' => 'View quotes', 'link' => '/quotes'];
+        }
+
+        return [
+            'reply'               => $reply,
+            'actions'             => $actions,
+            'product_suggestions' => [],
+            'source'              => 'support_agent',
+            'intent'              => 'general_support',
+        ];
+    }
+
+    // ─── Shared helpers ────────────────────────────────────────────────────────
+
+    private function callApi(array $messages, float $temperature = 0.35, int $maxTokens = 800): ?string
+    {
+        if (!$this->configured) {
             return null;
         }
 
         $url = sprintf(
             '%s/openai/deployments/%s/chat/completions?api-version=%s',
-            $endpoint,
-            rawurlencode($deployment),
-            rawurlencode($apiVersion)
+            $this->endpoint,
+            rawurlencode($this->deployment),
+            rawurlencode($this->apiVersion)
         );
 
-        $systemMessage = implode("\n", [
-            'You are Mela AI, the friendly and knowledgeable customer account assistant for Armely — a B2B IT procurement platform.',
-            '',
-            '## Personality',
-            '- Warm, professional, and encouraging. Use the customer\'s first name when available.',
-            '- Show genuine interest in helping. Example: "Great question!" or "Happy to help with that!"',
-            '- Be concise but never cold. End responses with a helpful nudge when appropriate.',
-            '',
-            '## Capabilities',
-            '- Answer questions about quotes, orders, invoices, payments, and shipping/tracking.',
-            '- Recommend IT products (laptops, networking, servers, peripherals) based on needs, budget, and history.',
-            '- Send invoice reminder emails and generate quick-action links.',
-            '- Escalate to human support when the customer requests it.',
-            '',
-            '## Rules',
-            '- Use ONLY the provided account context and product suggestions. Never invent invoice numbers, order IDs, prices, or product specs not in context.',
-            '- If a requested fact is missing, say so honestly and suggest the next step (e.g. "I don\'t have that info right now — would you like me to escalate to the team?").',
-            '- Treat the conversation as multi-turn: use recent_chat_turns and history_preferences for continuity.',
-            '- For ambiguous requests, ask ONE clarifying question instead of guessing.',
-            '- When discussing invoices, always mention the invoice number and payment status.',
-            '- When suggesting products, briefly explain WHY each is a good fit (budget, specs, brand preference).',
-            '- If the user seems frustrated, acknowledge it warmly and offer to escalate.',
-            '- Keep replies concise and action-oriented. Use short paragraphs or bullet points for clarity.',
-            '- Never repeat the same templated sentence across turns. Vary your phrasing naturally.',
-        ]);
-
-        $customerName = trim((string) ($context['customer']['name'] ?? ''));
-        $greeting = $customerName !== '' ? "Customer name: {$customerName}\n" : '';
-
-        $payload = [
-            'messages' => [
-                [
-                    'role' => 'system',
-                    'content' => $systemMessage,
-                ],
-                [
-                    'role' => 'user',
-                    'content' => "{$greeting}Question: {$question}\n\nAccount context (JSON):\n" . json_encode($context, JSON_UNESCAPED_SLASHES),
-                ],
-            ],
-            'temperature' => 0.35,
-            'max_tokens' => 800,
-        ];
-
         try {
-            $response = Http::timeout(25)
+            $response = Http::timeout(6) // 6s — fail fast; context-aware fallbacks handle the rest
                 ->withHeaders([
-                    'api-key' => $apiKey,
+                    'api-key'      => $this->apiKey,
                     'Content-Type' => 'application/json',
                 ])
-                ->post($url, $payload);
+                ->post($url, [
+                    'messages'    => $messages,
+                    'temperature' => $temperature,
+                    'max_tokens'  => $maxTokens,
+                ]);
 
             if (!$response->ok()) {
                 Log::warning('Azure OpenAI response not OK', [
                     'status' => $response->status(),
-                    'body' => $response->body(),
+                    'body'   => substr($response->body(), 0, 500),
                 ]);
-
                 return null;
             }
 
             $content = data_get($response->json(), 'choices.0.message.content');
             if (is_array($content)) {
-                $content = implode("\n", array_map(static fn ($chunk) => is_array($chunk) ? (string) ($chunk['text'] ?? '') : (string) $chunk, $content));
+                $content = implode("\n", array_map(
+                    static fn ($chunk) => is_array($chunk) ? (string) ($chunk['text'] ?? '') : (string) $chunk,
+                    $content
+                ));
             }
 
             $content = trim((string) $content);
-
             return $content !== '' ? $content : null;
         } catch (\Throwable $e) {
-            Log::warning('Azure OpenAI request failed', [
-                'message' => $e->getMessage(),
-            ]);
-
+            Log::warning('Azure OpenAI request failed', ['message' => $e->getMessage()]);
             return null;
         }
+    }
+
+    private function firstName(array $context): string
+    {
+        $name = trim((string) ($context['customer']['name'] ?? ''));
+        if ($name === '') {
+            return 'there';
+        }
+        return explode(' ', $name)[0];
+    }
+
+    private function formatHistory(array $chatHistory, int $limit = 6): string
+    {
+        return collect($chatHistory)
+            ->take(-$limit)
+            ->filter(fn ($t) => !empty($t['content']))
+            ->map(fn ($t) => strtoupper((string) ($t['role'] ?? 'user')) . ': ' . substr((string) ($t['content'] ?? ''), 0, 200))
+            ->implode("\n");
     }
 }

@@ -503,14 +503,18 @@ const ensureChatWelcome = () => {
   })
 }
 
-const scrollChatToBottom = async () => {
+const scrollChatToBottom = async (smooth = false) => {
   await nextTick()
   if (!chatScrollRef.value) return
-  chatScrollRef.value.scrollTop = chatScrollRef.value.scrollHeight
+  chatScrollRef.value.scrollTo({
+    top: chatScrollRef.value.scrollHeight,
+    behavior: smooth ? 'smooth' : 'instant',
+  })
 }
 
 const refreshChatMessages = async () => {
-  if (!activeChatSessionId.value) return
+  // Never run while a send is in-flight — it would clobber the optimistic message.
+  if (!activeChatSessionId.value || sendingChat.value) return
 
   try {
     const token = getAuthToken()
@@ -539,7 +543,7 @@ const refreshChatMessages = async () => {
       }
     }
 
-    const newMessages = loadedMessages.map((item) => ({
+    const serverMessages = loadedMessages.map((item) => ({
       id: item.id,
       role: item.role,
       text: item.text,
@@ -549,14 +553,43 @@ const refreshChatMessages = async () => {
       productSuggestions: item.product_suggestions || []
     }))
 
-    const shouldScroll = newMessages.length > chatMessages.value.length
-    chatMessages.value = newMessages
-    cacheSessionMessages(activeChatSessionId.value, newMessages)
+    if (!serverMessages.length) return
 
-    if (shouldScroll) {
-      await scrollChatToBottom()
+    const clientCount = chatMessages.value.length
+    const serverCount = serverMessages.length
+
+    // Reconcile in-place when counts match: replace temp IDs with real DB IDs
+    // without touching the array reference — no re-render flicker.
+    if (serverCount === clientCount) {
+      chatMessages.value.forEach((cm, i) => {
+        const sm = serverMessages[i]
+        if (!sm) return
+        if (typeof cm.id === 'string') {
+          // Optimistic message: adopt real ID and timestamp silently
+          cm.id = sm.id
+          if (sm.createdAt) cm.createdAt = sm.createdAt
+        }
+      })
+      cacheSessionMessages(activeChatSessionId.value, chatMessages.value)
+      return
     }
-  } catch (error) {
+
+    // Server has new messages (e.g. admin reply) — smart merge: append only what's new.
+    if (serverCount > clientCount) {
+      const existingIds = new Set(chatMessages.value.map((m) => m.id))
+      const added = serverMessages.filter((sm) => !existingIds.has(sm.id))
+      if (added.length) {
+        chatMessages.value.push(...added)
+        cacheSessionMessages(activeChatSessionId.value, chatMessages.value)
+        await scrollChatToBottom(true)
+      }
+      return
+    }
+
+    // Server has fewer messages than client (e.g. after deletion) — full replace.
+    chatMessages.value = serverMessages
+    cacheSessionMessages(activeChatSessionId.value, serverMessages)
+  } catch {
     // Silence transient polling errors.
   }
 }
@@ -871,6 +904,7 @@ const sendChatMessage = async (prefilled = null) => {
   const outgoing = (prefilled ?? chatInput.value).trim()
   if (!outgoing || sendingChat.value) return
 
+  // 1. Show user message instantly (optimistic).
   chatMessages.value.push({
     id: `user-${Date.now()}`,
     role: 'user',
@@ -879,11 +913,13 @@ const sendChatMessage = async (prefilled = null) => {
     actions: [],
     productSuggestions: []
   })
-
   chatInput.value = ''
   await scrollChatToBottom()
 
+  // 2. Freeze polling so it can't clobber the optimistic message while we wait.
   sendingChat.value = true
+  stopMessagePolling()
+
   try {
     const token = getAuthToken()
     const response = await fetch(`${API_BASE_URL}/messages/assistant/chat`, {
@@ -899,9 +935,7 @@ const sendChatMessage = async (prefilled = null) => {
       })
     })
 
-    if (!response.ok) {
-      throw new Error('Mela AI chat request failed')
-    }
+    if (!response.ok) throw new Error('Mela AI chat request failed')
 
     const payload = await response.json()
     const assistantPayload = payload?.data || {}
@@ -910,17 +944,34 @@ const sendChatMessage = async (prefilled = null) => {
       activeChatSessionId.value = assistantPayload.chat_session.id
     }
 
+    // 3. Push AI reply instantly — it appears the moment it arrives.
     chatMessages.value.push({
       id: `assistant-${Date.now()}`,
       role: 'assistant',
       text: assistantPayload.reply || 'I could not generate a response right now.',
-      createdAt: assistantPayload.created_at || new Date().toISOString(),
+      createdAt: new Date().toISOString(),
       actions: assistantPayload.actions || [],
       productSuggestions: assistantPayload.product_suggestions || []
     })
-    cacheSessionMessages(activeChatSessionId.value, chatMessages.value)
+    await scrollChatToBottom(true)
 
-    await fetchChatSessions()
+    // 4. Update the session sidebar preview in-place — no full reload needed.
+    const sessionId = activeChatSessionId.value
+    if (sessionId) {
+      const idx = chatSessions.value.findIndex((s) => s.id === sessionId)
+      if (idx >= 0) {
+        chatSessions.value[idx] = {
+          ...chatSessions.value[idx],
+          last_message_preview: (assistantPayload.reply || '').slice(0, 80),
+          last_message_role: 'assistant',
+          last_message_at: new Date().toISOString(),
+        }
+      }
+    }
+
+    // 5. Reconcile temp IDs with real DB IDs (no visible re-render).
+    sendingChat.value = false
+    await refreshChatMessages()
   } catch (error) {
     console.error('Error sending chat message:', error)
     chatMessages.value.push({
@@ -932,9 +983,11 @@ const sendChatMessage = async (prefilled = null) => {
       productSuggestions: []
     })
     toastStore.addToast('Mela AI is temporarily unavailable', 'error')
+    await scrollChatToBottom()
   } finally {
     sendingChat.value = false
-    await scrollChatToBottom()
+    // 6. Resume polling — new messages (e.g. admin replies) will appear automatically.
+    startMessagePolling()
   }
 }
 
