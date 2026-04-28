@@ -54,6 +54,11 @@ return [
 
     'url' => env('APP_URL', 'http://localhost'),
 
+    // Frontend store URL used in all customer-facing email links (activation, reset,
+    // quotes, orders, invoices, cart share, Stripe/QuickBooks redirects).
+    // Set FRONTEND_URL in your .env — required in production.
+    'frontend_url' => env('FRONTEND_URL', env('APP_URL', 'http://localhost')),
+
     // Base URL for static assets (set this in production .env when the app lives
     // in a subdirectory, e.g. ASSET_URL=https://armely.com/store).
     // Leave empty in local .env so relative /images/... paths work with artisan serve.

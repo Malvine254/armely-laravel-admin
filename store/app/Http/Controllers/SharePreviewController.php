@@ -109,12 +109,7 @@ class SharePreviewController extends Controller
 
     private function frontendBaseUrl(): string
     {
-        $configured = trim((string) env('FRONTEND_URL', ''));
-        if ($configured !== '') {
-            return rtrim($configured, '/');
-        }
-
-        return rtrim((string) config('app.url'), '/');
+        return rtrim((string) config('app.frontend_url'), '/');
     }
 
     private function extractImageUrl($images): ?string

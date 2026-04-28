@@ -122,14 +122,7 @@ class AuthController extends Controller
         }
 
         if ($baseUrl === '') {
-            $configuredFrontendBase = rtrim((string) env('FRONTEND_URL', ''), '/');
-            if ($configuredFrontendBase !== '') {
-                $baseUrl = $configuredFrontendBase;
-            }
-        }
-
-        if ($baseUrl === '') {
-            $baseUrl = rtrim((string) config('app.url'), '/');
+            $baseUrl = rtrim((string) config('app.frontend_url'), '/');
         }
 
         return rtrim($baseUrl, '/') . '/' . $relativePublicPath . $version;
@@ -785,7 +778,7 @@ class AuthController extends Controller
             'created_at' => now(),
         ]);
 
-        $frontendBaseUrl = rtrim((string) env('FRONTEND_URL', config('app.url')), '/');
+        $frontendBaseUrl = rtrim((string) config('app.frontend_url'), '/');
         $resetUrl = $frontendBaseUrl . '/reset-password?token=' . urlencode($token) . '&email=' . urlencode($user->email);
 
         $sent = $this->azureGraphMailService->sendPasswordResetEmail(
@@ -904,13 +897,13 @@ class AuthController extends Controller
 
     private function buildActivationUrl(string $email, string $token): string
     {
-        $frontendBaseUrl = rtrim((string) env('FRONTEND_URL', config('app.url')), '/');
+        $frontendBaseUrl = rtrim((string) config('app.frontend_url'), '/');
         return $frontendBaseUrl . '/activate-account?token=' . urlencode($token) . '&email=' . urlencode($email);
     }
 
     private function activationRedirect(bool $success, string $message)
     {
-        $frontendBaseUrl = rtrim((string) env('FRONTEND_URL', config('app.url')), '/');
+        $frontendBaseUrl = rtrim((string) config('app.frontend_url'), '/');
         $query = http_build_query([
             'activation' => $success ? 'success' : 'failed',
             'message' => $message,

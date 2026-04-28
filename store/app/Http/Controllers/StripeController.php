@@ -1043,7 +1043,7 @@ class StripeController extends Controller
         ]];
         $joinedNumbers = implode(',', $metadataNumbers);
 
-        $frontendBase = rtrim((string) env('FRONTEND_URL', config('app.url')), '/');
+        $frontendBase = rtrim((string) config('app.frontend_url'), '/');
         $successUrl = $frontendBase . '/invoices?stripe=success';
         $cancelUrl  = $frontendBase . '/invoices?stripe=cancel';
 
@@ -1122,7 +1122,7 @@ class StripeController extends Controller
         $customerId = $this->ensureStripeCustomer($user, $stripe);
         $amountCents = (int)round($remaining * 100);
 
-        $frontendBase = rtrim((string) env('FRONTEND_URL', config('app.url')), '/');
+        $frontendBase = rtrim((string) config('app.frontend_url'), '/');
         $successUrl = $frontendBase . '/invoices?stripe=success&invoice=' . urlencode($invoice->invoice_number);
         $cancelUrl  = $frontendBase . '/invoices?stripe=cancel&invoice=' . urlencode($invoice->invoice_number);
 
