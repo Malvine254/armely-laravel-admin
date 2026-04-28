@@ -11,7 +11,8 @@ return new class extends Migration
             return;
         }
 
-        // Ensure orders.id has AUTO_INCREMENT — some MySQL hosts (e.g. GoDaddy shared) lose it on import
+        // Ensure orders.id has AUTO_INCREMENT — some MySQL hosts (e.g. GoDaddy shared) lose it on import.
+        // AUTO_INCREMENT requires the column to be a key; include PRIMARY KEY when the key was also lost.
         $dbName = DB::getDatabaseName();
         $idMeta = DB::selectOne(
             "SELECT COLUMN_KEY, EXTRA FROM information_schema.COLUMNS
@@ -19,7 +20,12 @@ return new class extends Migration
             [$dbName]
         );
         if ($idMeta && !str_contains(strtolower((string) ($idMeta->EXTRA ?? '')), 'auto_increment')) {
-            DB::statement('ALTER TABLE `orders` MODIFY `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT');
+            $isPrimaryKey = strtoupper((string) ($idMeta->COLUMN_KEY ?? '')) === 'PRI';
+            if ($isPrimaryKey) {
+                DB::statement('ALTER TABLE `orders` MODIFY `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT');
+            } else {
+                DB::statement('ALTER TABLE `orders` MODIFY `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY');
+            }
         }
 
         $approvedQuotes = DB::table('quotes')
