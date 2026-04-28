@@ -183,7 +183,8 @@ class QuickBooksPaymentService
 
     private function buildResultUrl(string $status, array $query = []): string
     {
-        $baseUrl = rtrim((string) config('app.url'), '/');
+        $configured = trim((string) env('FRONTEND_URL', ''));
+        $baseUrl = rtrim($configured !== '' ? $configured : (string) config('app.url'), '/');
         $payload = array_merge(['quickbooks' => $status], $query);
 
         return $baseUrl . '/invoices?' . http_build_query($payload);
