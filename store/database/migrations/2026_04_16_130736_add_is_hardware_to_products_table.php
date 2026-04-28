@@ -12,9 +12,16 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('products', function (Blueprint $table) {
-            $table->boolean('is_hardware')->default(false)->after('description')
-                ->comment('Precomputed: true if product is physical hardware (not license/subscription/software/warranty)');
-            $table->index(['vendor_id', 'is_hardware', 'base_price'], 'idx_vendor_hardware_price');
+            if (!Schema::hasColumn('products', 'is_hardware')) {
+                $table->boolean('is_hardware')->default(false)->after('description')
+                    ->comment('Precomputed: true if product is physical hardware (not license/subscription/software/warranty)');
+            }
+            $indexNames = collect(\Illuminate\Support\Facades\DB::select(
+                "SHOW INDEX FROM `products` WHERE Key_name = 'idx_vendor_hardware_price'"
+            ));
+            if ($indexNames->isEmpty()) {
+                $table->index(['vendor_id', 'is_hardware', 'base_price'], 'idx_vendor_hardware_price');
+            }
         });
 
         // Backfill: mark rows as hardware when product_name+description do NOT match exclusion keywords

@@ -9,10 +9,14 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('invoices', function (Blueprint $table) {
-            $table->string('stripe_checkout_session_id')->nullable()->after('pdf_url');
-            $table->string('stripe_payment_intent_id')->nullable()->after('stripe_checkout_session_id');
-            $table->index('stripe_checkout_session_id');
-            $table->index('stripe_payment_intent_id');
+            if (!Schema::hasColumn('invoices', 'stripe_checkout_session_id')) {
+                $table->string('stripe_checkout_session_id')->nullable()->after('pdf_url');
+                $table->index('stripe_checkout_session_id');
+            }
+            if (!Schema::hasColumn('invoices', 'stripe_payment_intent_id')) {
+                $table->string('stripe_payment_intent_id')->nullable()->after('stripe_checkout_session_id');
+                $table->index('stripe_payment_intent_id');
+            }
         });
     }
 
