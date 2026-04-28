@@ -1,5 +1,5 @@
 <template>
-  <div class="flex h-screen bg-gray-50">
+  <div class="flex h-screen bg-gray-50 admin-font">
     <!-- Mobile Overlay -->
     <div
       v-show="sidebarOpen"
