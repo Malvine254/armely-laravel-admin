@@ -687,49 +687,36 @@ class MessageController extends Controller
             ]);
         }
 
-        $localProductHandled = $this->handleLocalProductDiscoveryReply($question, $context);
-        if ($localProductHandled !== null) {
-            ChatMessage::create([
-                'chat_session_id' => $session->id,
-                'user_id' => $user->id,
-                'role' => 'assistant',
-                'content' => $localProductHandled['reply'],
-                'actions' => $localProductHandled['actions'],
-                'metadata' => [
-                    'source' => $localProductHandled['source'],
-                    'product_suggestions' => (array) ($localProductHandled['product_suggestions'] ?? []),
-                ],
-            ]);
+        // Multi-agent orchestration: classify intent, route to specialist agent.
+        $chatHistory  = $context['recent_chat_turns'] ?? [];
+        $agentResult  = $this->assistantService->orchestrate($question, $context, $chatHistory);
 
-            $session->forceFill([
-                'last_message_at' => now(),
-            ])->save();
-
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    'reply' => $localProductHandled['reply'],
-                    'actions' => $localProductHandled['actions'],
+        // When AI is unconfigured, fall back to local heuristic responses.
+        if ($agentResult['source'] === 'unconfigured') {
+            $localProductHandled = $this->handleLocalProductDiscoveryReply($question, $context);
+            if ($localProductHandled !== null) {
+                $agentResult = [
+                    'reply'               => $localProductHandled['reply'],
+                    'actions'             => $localProductHandled['actions'],
                     'product_suggestions' => (array) ($localProductHandled['product_suggestions'] ?? []),
-                    'source' => $localProductHandled['source'],
-                    'chat_session' => [
-                        'id' => $session->id,
-                        'title' => $session->title,
-                    ],
-                ],
-            ]);
+                    'source'              => $localProductHandled['source'],
+                    'intent'              => 'product_search',
+                ];
+            } else {
+                $agentResult = [
+                    'reply'               => $this->buildFallbackReply($question, $context),
+                    'actions'             => $this->buildAssistantActions($question, $context),
+                    'product_suggestions' => (array) ($context['product_suggestions'] ?? []),
+                    'source'              => 'local_fallback',
+                    'intent'              => 'general_support',
+                ];
+            }
         }
 
-        $assistantReply = $this->assistantService->generateReply($question, $context);
-        $usedFallback = false;
-
-        if (!$assistantReply) {
-            $assistantReply = $this->buildFallbackReply($question, $context);
-            $usedFallback = true;
-        }
-
-        $actions = $this->buildAssistantActions($question, $context);
-        $productSuggestions = (array) ($context['product_suggestions'] ?? []);
+        $assistantReply     = (string) ($agentResult['reply'] ?? '');
+        $actions            = (array) ($agentResult['actions'] ?? []);
+        $productSuggestions = (array) ($agentResult['product_suggestions'] ?? []);
+        $source             = (string) ($agentResult['source'] ?? 'azure_openai');
 
         ChatMessage::create([
             'chat_session_id' => $session->id,
@@ -738,7 +725,8 @@ class MessageController extends Controller
             'content' => $assistantReply,
             'actions' => $actions,
             'metadata' => [
-                'source' => $usedFallback ? 'local_fallback' : 'azure_openai',
+                'source'              => $source,
+                'intent'              => $agentResult['intent'] ?? null,
                 'product_suggestions' => $productSuggestions,
             ],
         ]);
@@ -750,12 +738,12 @@ class MessageController extends Controller
         return response()->json([
             'success' => true,
             'data' => [
-                'reply' => $assistantReply,
-                'actions' => $actions,
+                'reply'               => $assistantReply,
+                'actions'             => $actions,
                 'product_suggestions' => $productSuggestions,
-                'source' => $usedFallback ? 'local_fallback' : 'azure_openai',
+                'source'              => $source,
                 'chat_session' => [
-                    'id' => $session->id,
+                    'id'    => $session->id,
                     'title' => $session->title,
                 ],
             ],
@@ -1123,32 +1111,26 @@ class MessageController extends Controller
                 ->get(['order_number', 'quote_id', 'status', 'payment_status', 'total_amount', 'tracking_info', 'created_at'])
             : collect();
 
-        $approvedQuotes = $hasQuotesTable
+        $completedPaidQuotes = $hasQuotesTable
             ? Quote::where('user_id', $user->id)
-                ->where('status', 'approved')
+                ->whereIn('status', ['pending', 'approved', 'completed', 'submitted'])
                 ->with('order:id,quote_id,order_number,payment_status,status')
                 ->orderByDesc('created_at')
                 ->limit(10)
                 ->get(['quote_id', 'status', 'total_amount', 'created_at'])
-            : collect();
-
-        $completedPaidQuotes = $approvedQuotes
-            ->filter(function (Quote $quote) {
-                $paymentStatus = strtolower((string) optional($quote->order)->payment_status);
-                return in_array($paymentStatus, ['paid', 'completed'], true);
-            })
-            ->values()
-            ->map(function (Quote $quote) {
-                return [
-                    'quote_id' => $quote->quote_id,
-                    'total_amount' => (float) $quote->total_amount,
-                    'order_number' => optional($quote->order)->order_number,
-                    'payment_status' => optional($quote->order)->payment_status,
-                    'order_status' => optional($quote->order)->status,
-                    'created_at' => optional($quote->created_at)?->toIso8601String(),
-                ];
-            })
-            ->all();
+                ->map(function (Quote $quote) {
+                    return [
+                        'quote_id'       => $quote->quote_id,
+                        'status'         => $quote->status,
+                        'total_amount'   => (float) $quote->total_amount,
+                        'order_number'   => optional($quote->order)->order_number,
+                        'payment_status' => optional($quote->order)->payment_status,
+                        'order_status'   => optional($quote->order)->status,
+                        'created_at'     => optional($quote->created_at)?->toIso8601String(),
+                    ];
+                })
+                ->all()
+            : [];
 
         $invoiceNumber = $this->extractInvoiceNumber($question);
         $focusedInvoice = null;
@@ -1192,12 +1174,12 @@ class MessageController extends Controller
                 ->all();
         }
 
-            $historyPreferences = $this->extractPreferenceKeywordsFromHistory($recentChatTurns);
+        $historyPreferences    = $this->extractPreferenceKeywordsFromHistory($recentChatTurns);
         $shouldSuggestProducts = $this->isProductDiscoveryIntent($question, $recentChatTurns);
-            $searchContext = $this->buildProductSearchContext($question, $recentChatTurns);
-        $productSuggestions = $shouldSuggestProducts
-                ? $this->searchProductsForAssistant($question, $historyPreferences, 6, $searchContext)
-            : [];
+        $searchContext         = $this->buildProductSearchContext($question, $recentChatTurns);
+        // Always run the product search so the orchestrator's product agent has real catalog data.
+        // searchProductsForAssistant() short-circuits to [] when no meaningful keywords are extracted.
+        $productSuggestions = $this->searchProductsForAssistant($question, $historyPreferences, 6, $searchContext);
 
         return [
             'customer' => [
