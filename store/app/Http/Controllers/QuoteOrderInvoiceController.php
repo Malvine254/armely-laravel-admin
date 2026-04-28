@@ -18,6 +18,7 @@ use App\Services\NotificationService;
 use App\Services\InvoiceService;
 use App\Services\CustomerPricingService;
 use App\Services\AzureGraphMailService;
+use App\Support\FrontendUrl;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;
@@ -691,7 +692,7 @@ class QuoteOrderInvoiceController extends Controller
 
     private function buildProductShareUrl(string $productId): string
     {
-        return rtrim((string) config('app.frontend_url'), '/') . '/share/product/' . rawurlencode($productId);
+        return FrontendUrl::base() . '/share/product/' . rawurlencode($productId);
     }
 
     private function createPublicCartShareToken(int $sharedByUserId, string $sharedByName, string $note, array $items): string
@@ -713,7 +714,7 @@ class QuoteOrderInvoiceController extends Controller
 
     private function buildPublicCartShareUrl(string $token): string
     {
-        return rtrim((string) config('app.frontend_url'), '/') . '/share/cart/public/' . rawurlencode($token);
+        return FrontendUrl::base() . '/share/cart/public/' . rawurlencode($token);
     }
 
     private function publicCartShareCacheKey(string $token): string

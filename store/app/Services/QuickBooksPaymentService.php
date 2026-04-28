@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Invoice;
 use App\Models\AppSetting;
 use App\Models\User;
+use App\Support\FrontendUrl;
 use RuntimeException;
 
 class QuickBooksPaymentService
@@ -183,7 +184,7 @@ class QuickBooksPaymentService
 
     private function buildResultUrl(string $status, array $query = []): string
     {
-        $baseUrl = rtrim((string) config('app.frontend_url'), '/');
+        $baseUrl = FrontendUrl::base();
         $payload = array_merge(['quickbooks' => $status], $query);
 
         return $baseUrl . '/invoices?' . http_build_query($payload);

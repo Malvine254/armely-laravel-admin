@@ -8,6 +8,7 @@ use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
+use App\Support\FrontendUrl;
 
 class PasswordResetMail extends Mailable
 {
@@ -28,7 +29,7 @@ class PasswordResetMail extends Mailable
 
     public function content(): Content
     {
-        $frontendBaseUrl = rtrim((string) config('app.frontend_url'), '/');
+        $frontendBaseUrl = FrontendUrl::base();
         $resetUrl = $frontendBaseUrl . '/reset-password?token=' . urlencode($this->token) . '&email=' . urlencode($this->user->email);
 
         return new Content(
