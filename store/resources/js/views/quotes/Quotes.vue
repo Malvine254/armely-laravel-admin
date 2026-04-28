@@ -1075,7 +1075,7 @@ export default {
     const canCancelQuote = (quote) => {
       if (!quote) return false
       if (isQuoteLockedForPayment(quote)) return false
-      return ['draft', 'pending_review', 'approved'].includes(quote.status)
+      return ['draft', 'pending_review'].includes(quote.status)
     }
 
     const canReviseQuote = (quote) => {
