@@ -1927,7 +1927,7 @@ class ProductController extends Controller
     public function menuCategories(): JsonResponse
     {
         try {
-            $data = Cache::remember('menu_categories:v4', 3600, function () {
+            $data = Cache::remember('menu_categories:v5', 3600, function () {
                 $parents = \App\Models\Category::query()
                     ->select(['id', 'name', 'slug', 'segment_code', 'sort_order'])
                     ->whereNull('parent_id')
@@ -1948,6 +1948,22 @@ class ProductController extends Controller
                 $segmentsWithProducts = [];
 
                 if (!empty($segmentCodes)) {
+                    // Determine which segments actually have products (any product, regardless of manufacturer).
+                    $segmentCounts = Product::query()
+                        ->where('vendor_id', 'TD SYNNEX')
+                        ->where('is_hardware', 1)
+                        ->whereIn('category_segment', $segmentCodes)
+                        ->selectRaw('category_segment, COUNT(*) as cnt')
+                        ->groupBy('category_segment')
+                        ->get();
+
+                    foreach ($segmentCounts as $row) {
+                        if ((int) $row->cnt > 0) {
+                            $segmentsWithProducts[(string) $row->category_segment] = true;
+                        }
+                    }
+
+                    // Build brand list — only from products that have a manufacturer set.
                     $rows = Product::query()
                         ->where('vendor_id', 'TD SYNNEX')
                         ->where('is_hardware', 1)
@@ -1961,7 +1977,6 @@ class ProductController extends Controller
 
                     foreach ($rows as $row) {
                         $seg = (string) $row->category_segment;
-                        $segmentsWithProducts[$seg] = true;
                         if (!isset($brandsBySegment[$seg])) {
                             $brandsBySegment[$seg] = [];
                         }
