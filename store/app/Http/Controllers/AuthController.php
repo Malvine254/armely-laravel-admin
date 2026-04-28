@@ -11,6 +11,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
@@ -19,6 +20,7 @@ use Illuminate\Validation\ValidationException;
 class AuthController extends Controller
 {
     private const ACTIVATION_LINK_EXPIRY_HOURS = 24;
+    private const ACTIVATION_RESEND_COOLDOWN_SECONDS = 60;
 
     public function __construct(private AzureGraphMailService $azureGraphMailService)
     {
@@ -413,7 +415,26 @@ class AuthController extends Controller
             'email' => ['required', 'email'],
         ]);
 
-        $user = User::where('email', $data['email'])->first();
+        $email = Str::lower(trim((string) $data['email']));
+        $cooldownKey = 'activation-resend:' . sha1($email);
+        $cooldownUntil = (int) Cache::get($cooldownKey, 0);
+        $retryAfter = max(0, $cooldownUntil - now()->timestamp);
+
+        if ($retryAfter > 0) {
+            return response()->json([
+                'success' => false,
+                'message' => "Please wait {$retryAfter} seconds before requesting another activation email.",
+                'retry_after' => $retryAfter,
+            ], 429);
+        }
+
+        Cache::put(
+            $cooldownKey,
+            now()->addSeconds(self::ACTIVATION_RESEND_COOLDOWN_SECONDS)->timestamp,
+            self::ACTIVATION_RESEND_COOLDOWN_SECONDS
+        );
+
+        $user = User::where('email', $email)->first();
         if (!$user) {
             return response()->json([
                 'success' => true,

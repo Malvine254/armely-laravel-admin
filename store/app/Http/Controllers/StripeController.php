@@ -1043,8 +1043,9 @@ class StripeController extends Controller
         ]];
         $joinedNumbers = implode(',', $metadataNumbers);
 
-        $successUrl = config('app.url') . '/invoices?stripe=success';
-        $cancelUrl = config('app.url') . '/invoices?stripe=cancel';
+        $frontendBase = rtrim((string) env('FRONTEND_URL', config('app.url')), '/');
+        $successUrl = $frontendBase . '/invoices?stripe=success';
+        $cancelUrl  = $frontendBase . '/invoices?stripe=cancel';
 
         $session = $stripe->checkout->sessions->create([
             'mode' => 'payment',
@@ -1121,8 +1122,9 @@ class StripeController extends Controller
         $customerId = $this->ensureStripeCustomer($user, $stripe);
         $amountCents = (int)round($remaining * 100);
 
-        $successUrl = config('app.url') . '/invoices?stripe=success&invoice=' . urlencode($invoice->invoice_number);
-        $cancelUrl = config('app.url') . '/invoices?stripe=cancel&invoice=' . urlencode($invoice->invoice_number);
+        $frontendBase = rtrim((string) env('FRONTEND_URL', config('app.url')), '/');
+        $successUrl = $frontendBase . '/invoices?stripe=success&invoice=' . urlencode($invoice->invoice_number);
+        $cancelUrl  = $frontendBase . '/invoices?stripe=cancel&invoice=' . urlencode($invoice->invoice_number);
 
         $session = $stripe->checkout->sessions->create([
             'mode' => 'payment',
