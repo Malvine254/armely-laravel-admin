@@ -160,13 +160,15 @@ export const useAuthStore = defineStore('auth', () => {
       const response = await axios.post(`${API_BASE_URL}/auth/resend-activation`, { email })
       return {
         ok: !!response.data?.success,
-        message: response.data?.message || 'If the account exists, an activation email has been sent.'
+        message: response.data?.message || 'If the account exists, an activation email has been sent.',
+        retryAfter: response.data?.retry_after || response.data?.data?.retry_after || null,
       }
     } catch (error) {
       console.error('Resend activation error:', error)
       return {
         ok: false,
-        message: error.response?.data?.message || error.message || 'Failed to resend activation email'
+        message: error.response?.data?.message || error.message || 'Failed to resend activation email',
+        retryAfter: error.response?.data?.retry_after || error.response?.data?.data?.retry_after || null,
       }
     }
   }

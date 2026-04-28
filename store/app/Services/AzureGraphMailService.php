@@ -13,6 +13,19 @@ class AzureGraphMailService
 {
     private array $productNameLookupCache = [];
 
+    /**
+     * Returns the frontend base URL (no trailing slash).
+     * Prefers FRONTEND_URL env var so production domains never need code changes.
+     */
+    private function frontendUrl(): string
+    {
+        $configured = trim((string) env('FRONTEND_URL', ''));
+        if ($configured !== '') {
+            return rtrim($configured, '/');
+        }
+        return rtrim((string) config('app.url'), '/');
+    }
+
     public function sendTestEmail(string $recipientEmail, string $recipientName = 'Admin'): bool
     {
         if (!$this->isConfigured()) {
@@ -135,7 +148,7 @@ class AzureGraphMailService
         $safeName    = e($user->name ?: 'there');
         $safeEmail   = e($user->email);
         $companyName = e($user->company->name ?? '');
-        $loginUrl    = e(rtrim(config('app.url'), '/') . '/login');
+        $loginUrl    = e($this->frontendUrl() . '/login');
         $appName     = e(config('app.name', 'Armely Store'));
         $supportEmail = e(\App\Models\AppSetting::getValue('system.support_email', env('SUPPORT_EMAIL', 'info@armely.com')));
         $subject     = "Your {$appName} Account Has Been Approved";
@@ -240,7 +253,7 @@ class AzureGraphMailService
         $safeName    = e($user->name ?: 'there');
         $safeEmail   = e($user->email);
         $companyName = e($user->company->name ?? '');
-        $loginUrl    = e(rtrim(config('app.url'), '/') . '/login');
+        $loginUrl    = e($this->frontendUrl() . '/login');
         $appName     = e(config('app.name', 'Armely Store'));
         $supportEmail = e(\App\Models\AppSetting::getValue('system.support_email', env('SUPPORT_EMAIL', 'info@armely.com')));
         $subject     = "Your {$appName} Account Has Been Reactivated";
@@ -290,7 +303,7 @@ class AzureGraphMailService
         $quoteId   = e($quote->quote_id);
         $customer  = e($quote->user->name ?? 'Unknown');
         $amount    = number_format((float) ($quote->total_amount ?? 0), 2);
-        $appUrl    = config('app.url');
+        $appUrl    = $this->frontendUrl();
 
         $summaryHtml = $this->buildQuoteSummaryCard([
             ['label' => 'Quote ID', 'value' => $quoteId],
@@ -333,7 +346,7 @@ class AzureGraphMailService
         $amount = number_format((float) ($quote->total_amount ?? 0), 2);
         $itemCount = is_countable($quote->items) ? count($quote->items) : 0;
         $status = 'Pending Review';
-        $appUrl = config('app.url');
+        $appUrl = $this->frontendUrl();
 
         $summaryHtml = $this->buildQuoteSummaryCard([
             ['label' => 'Quote ID', 'value' => $quoteId],
@@ -377,7 +390,7 @@ class AzureGraphMailService
         $customer = e($quote->user->name ?? 'Unknown');
         $amount = number_format((float) ($quote->total_amount ?? 0), 2);
         $itemCount = is_countable($quote->items) ? count($quote->items) : 0;
-        $appUrl = config('app.url');
+        $appUrl = $this->frontendUrl();
 
         $summaryHtml = $this->buildQuoteSummaryCard([
             ['label' => 'New Quote ID', 'value' => $quoteId],
@@ -428,7 +441,7 @@ class AzureGraphMailService
         $amount = number_format((float) ($quote->total_amount ?? 0), 2);
         $itemCount = is_countable($quote->items) ? count($quote->items) : 0;
         $status = 'Pending Review';
-        $appUrl = config('app.url');
+        $appUrl = $this->frontendUrl();
 
         $summaryHtml = $this->buildQuoteSummaryCard([
             ['label' => 'New Quote ID', 'value' => $quoteId],
@@ -475,7 +488,7 @@ class AzureGraphMailService
         $amount     = number_format((float)($quote->total_amount ?? 0), 2);
         $itemCount  = count($quote->items ?? []);
         $validUntil = $quote->expires_at?->format('M d, Y') ?? 'N/A';
-        $appUrl     = config('app.url');
+        $appUrl     = $this->frontendUrl();
 
         $summaryHtml = $this->buildQuoteSummaryCard([
             ['label' => 'Quote ID',     'value' => $quoteId],
@@ -517,7 +530,7 @@ class AzureGraphMailService
         $safeName   = e($customer->name ?? 'Customer');
         $quoteId    = e($quote->quote_id);
         $safeReason = $reason ? e($reason) : 'No reason provided.';
-        $appUrl     = config('app.url');
+        $appUrl     = $this->frontendUrl();
 
         $summaryHtml = $this->buildQuoteSummaryCard([
             ['label' => 'Quote ID', 'value' => $quoteId],
@@ -556,7 +569,7 @@ class AzureGraphMailService
         $quoteId    = e($quote->quote_id);
         $amount     = number_format((float)($quote->total_amount ?? 0), 2);
         $validUntil = $quote->expires_at?->format('M d, Y') ?? 'N/A';
-        $appUrl     = config('app.url');
+        $appUrl     = $this->frontendUrl();
 
         $summaryHtml = $this->buildQuoteSummaryCard([
             ['label' => 'Quote ID',     'value' => $quoteId],
@@ -595,7 +608,7 @@ class AzureGraphMailService
         $orderNumber = e($order->order_number);
         $amount      = number_format((float)($order->total_amount ?? 0), 2);
         $itemCount   = is_countable($order->items ?? []) ? count($order->items ?? []) : 0;
-        $appUrl      = config('app.url');
+        $appUrl      = $this->frontendUrl();
 
         $summaryHtml = $this->buildQuoteSummaryCard([
             ['label' => 'Order Number', 'value' => $orderNumber],
@@ -633,7 +646,7 @@ class AzureGraphMailService
         $customer    = $order->user;
         $safeName    = e($customer->name ?? 'Customer');
         $orderNumber = e($order->order_number);
-        $appUrl      = config('app.url');
+        $appUrl      = $this->frontendUrl();
 
         $html = "
             <div style='font-family:Segoe UI,Arial,sans-serif;line-height:1.5;color:#1f2937'>
@@ -669,7 +682,7 @@ class AzureGraphMailService
 
         $invNumber = e($invoice->invoice_number);
         $safeName  = e($customer->name ?? 'Customer');
-        $appUrl    = config('app.url');
+        $appUrl    = $this->frontendUrl();
 
         $html = $this->buildFullInvoiceHtml($invoice, $customer, false);
         $text = "Hello {$safeName},\n\nYour invoice #{$invNumber} is ready for payment.\n{$appUrl}/invoices";
@@ -686,7 +699,7 @@ class AzureGraphMailService
         $invNumber = e($invoice->invoice_number);
         $safeName  = e($recipient->name ?? 'Customer');
         $balance   = number_format(($invoice->total_amount ?? 0) - ($invoice->paid_amount ?? 0), 2);
-        $appUrl    = config('app.url');
+        $appUrl    = $this->frontendUrl();
 
         $html = $this->buildFullInvoiceHtml($invoice, $recipient, true);
         $text = "Hello {$safeName},\n\nPayment reminder: Invoice #{$invNumber} has an outstanding balance of \${$balance}.\n{$appUrl}/invoices";
@@ -893,7 +906,7 @@ class AzureGraphMailService
 
     private function buildFullInvoiceHtml(\App\Models\Invoice $invoice, \App\Models\User $user, bool $isReminder): string
     {
-        $appUrl        = config('app.url');
+        $appUrl        = $this->frontendUrl();
         $supportEmail  = e((string) AppSetting::getValue('system.support_email', env('SUPPORT_EMAIL', 'info@armely.com')));
         $invNumber   = e($invoice->invoice_number);
         $issuedAt    = $invoice->issued_at?->format('M d, Y') ?? 'N/A';

@@ -91,18 +91,20 @@
           Don't have an account?
           <router-link to="/register" class="font-semibold" style="color: #2F5597;">Sign up for free</router-link>
         </p>
-        </div><!-- end p-8 -->
-      </div>
 
-      <div v-if="showResendActivation" class="mt-4 text-center">
-        <p class="text-sm text-slate-600 mb-2">Account not activated yet?</p>
-        <button
-          @click="handleResendActivation"
-          class="text-sm font-semibold"
-          style="color: #2F5597;"
-        >
-          Resend activation email
-        </button>
+        <div v-if="showResendActivation" class="mt-5 rounded-xl border border-blue-100 bg-blue-50/70 px-4 py-4 text-center shadow-sm">
+          <p class="text-sm text-slate-700 mb-2">Account not activated yet?</p>
+          <button
+            type="button"
+            @click="handleResendActivation"
+            :disabled="resendActivationDisabled"
+            class="text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+            style="color: #2F5597;"
+          >
+            {{ resendActivationButtonText }}
+          </button>
+        </div>
+        </div><!-- end p-8 -->
       </div>
 
       <!-- Help text -->
@@ -112,7 +114,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/authStore'
 import { useCartStore } from '../../stores/cartStore'
@@ -131,12 +133,48 @@ const showResendActivation = ref(false)
 const pendingApproval = ref(false)
 const accountSuspended = ref(false)
 const loading = ref(false)
+const resendActivationLoading = ref(false)
+const resendActivationCooldown = ref(0)
+let resendActivationTimer = null
+
+const RESEND_ACTIVATION_COOLDOWN_SECONDS = 60
 
 const isFormValid = computed(() => {
   const emailValue = email.value.trim()
   const passwordValue = password.value
   return emailValue.includes('@') && passwordValue.length >= 8
 })
+
+const resendActivationDisabled = computed(() => {
+  return resendActivationLoading.value || resendActivationCooldown.value > 0
+})
+
+const resendActivationButtonText = computed(() => {
+  if (resendActivationLoading.value) return 'Sending activation email...'
+  if (resendActivationCooldown.value > 0) {
+    return `Resend activation email in ${resendActivationCooldown.value}s`
+  }
+  return 'Resend activation email'
+})
+
+const stopResendActivationCooldown = () => {
+  if (resendActivationTimer) {
+    window.clearInterval(resendActivationTimer)
+    resendActivationTimer = null
+  }
+}
+
+const startResendActivationCooldown = (seconds = RESEND_ACTIVATION_COOLDOWN_SECONDS) => {
+  stopResendActivationCooldown()
+  resendActivationCooldown.value = Math.max(0, Number(seconds) || RESEND_ACTIVATION_COOLDOWN_SECONDS)
+
+  resendActivationTimer = window.setInterval(() => {
+    resendActivationCooldown.value = Math.max(0, resendActivationCooldown.value - 1)
+    if (resendActivationCooldown.value === 0) {
+      stopResendActivationCooldown()
+    }
+  }, 1000)
+}
 
 const resolvePostLoginRoute = () => {
   const redirectFromQuery = route.query.redirect ? String(route.query.redirect) : ''
@@ -225,7 +263,18 @@ const handleResendActivation = async () => {
     return
   }
 
+  if (resendActivationDisabled.value) {
+    return
+  }
+
+  resendActivationLoading.value = true
   const result = await authStore.resendActivation(email.value)
+  resendActivationLoading.value = false
+
+  if (result.ok || result.retryAfter) {
+    startResendActivationCooldown(result.retryAfter || RESEND_ACTIVATION_COOLDOWN_SECONDS)
+  }
+
   toastStore.addToast(result.message, result.ok ? 'success' : 'warning')
 }
 
@@ -246,5 +295,9 @@ onMounted(() => {
   } else {
     toastStore.addToast(message || 'Activation failed. Please request a new activation link.', 'warning')
   }
+})
+
+onUnmounted(() => {
+  stopResendActivationCooldown()
 })
 </script>
