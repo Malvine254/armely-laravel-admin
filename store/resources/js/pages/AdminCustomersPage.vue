@@ -407,10 +407,11 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import AdminLayout from '@/components/AdminLayout.vue'
 import api from '@/services/api'
 
+const route = useRoute()
 const router = useRouter()
 
 const customerUsers = ref([])
@@ -708,6 +709,9 @@ const executeBulkAction = async () => {
 }
 
 onMounted(() => {
+  if (route.query.search) {
+    searchQuery.value = String(route.query.search)
+  }
   fetchCustomers()
 })
 </script>

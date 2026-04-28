@@ -889,6 +889,9 @@ watch(() => route.query.company_id, (newCompanyId) => {
 })
 
 onMounted(() => {
+  if (route.query.search) {
+    searchQuery.value = String(route.query.search)
+  }
   fetchOrders()
 })
 </script>
