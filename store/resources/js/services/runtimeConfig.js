@@ -131,10 +131,17 @@ const shouldUseConfiguredApiBaseUrl = (value) => {
 
   const hostname = (window.location.hostname || '').toLowerCase()
   const isLocalHost = hostname === '127.0.0.1' || hostname === 'localhost'
+  const isConfiguredLocalHost = /^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?(\/|$)/i.test(configured)
 
   // On local/XAMPP, ignore production API env values so the app keeps using
   // runtime detection for the local backend.
   if (isLocalHost && /armely\.com/i.test(configured)) {
+    return false
+  }
+
+  // On real domains, never let a locally baked Vite URL send browser traffic
+  // back to the visitor's own machine.
+  if (!isLocalHost && isConfiguredLocalHost) {
     return false
   }
 

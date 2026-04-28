@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Message;
 use App\Models\Product;
+use App\Support\FrontendUrl;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
@@ -109,7 +110,7 @@ class SharePreviewController extends Controller
 
     private function frontendBaseUrl(): string
     {
-        return rtrim((string) config('app.frontend_url'), '/');
+        return FrontendUrl::base();
     }
 
     private function extractImageUrl($images): ?string

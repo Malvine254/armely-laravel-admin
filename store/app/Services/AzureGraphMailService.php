@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use App\Support\FrontendUrl;
 
 class AzureGraphMailService
 {
@@ -19,7 +20,7 @@ class AzureGraphMailService
      */
     private function frontendUrl(): string
     {
-        return rtrim((string) config('app.frontend_url', config('app.url')), '/');
+        return FrontendUrl::base();
     }
 
     public function sendTestEmail(string $recipientEmail, string $recipientName = 'Admin'): bool

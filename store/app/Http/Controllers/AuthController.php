@@ -7,6 +7,7 @@ use App\Models\Company;
 use App\Models\User;
 use App\Models\Address;
 use App\Services\AzureGraphMailService;
+use App\Support\FrontendUrl;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -778,7 +779,7 @@ class AuthController extends Controller
             'created_at' => now(),
         ]);
 
-        $frontendBaseUrl = rtrim((string) config('app.frontend_url'), '/');
+        $frontendBaseUrl = FrontendUrl::base();
         $resetUrl = $frontendBaseUrl . '/reset-password?token=' . urlencode($token) . '&email=' . urlencode($user->email);
 
         $sent = $this->azureGraphMailService->sendPasswordResetEmail(
@@ -897,13 +898,13 @@ class AuthController extends Controller
 
     private function buildActivationUrl(string $email, string $token): string
     {
-        $frontendBaseUrl = rtrim((string) config('app.frontend_url'), '/');
+        $frontendBaseUrl = FrontendUrl::base();
         return $frontendBaseUrl . '/activate-account?token=' . urlencode($token) . '&email=' . urlencode($email);
     }
 
     private function activationRedirect(bool $success, string $message)
     {
-        $frontendBaseUrl = rtrim((string) config('app.frontend_url'), '/');
+        $frontendBaseUrl = FrontendUrl::base();
         $query = http_build_query([
             'activation' => $success ? 'success' : 'failed',
             'message' => $message,
