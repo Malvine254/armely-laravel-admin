@@ -28,7 +28,7 @@ class PasswordResetMail extends Mailable
 
     public function content(): Content
     {
-        $frontendBaseUrl = rtrim((string) env('FRONTEND_URL', config('app.url')), '/');
+        $frontendBaseUrl = rtrim((string) config('app.frontend_url'), '/');
         $resetUrl = $frontendBaseUrl . '/reset-password?token=' . urlencode($this->token) . '&email=' . urlencode($this->user->email);
 
         return new Content(

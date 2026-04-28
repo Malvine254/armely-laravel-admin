@@ -691,12 +691,7 @@ class QuoteOrderInvoiceController extends Controller
 
     private function buildProductShareUrl(string $productId): string
     {
-        $configured = trim((string) env('FRONTEND_URL', ''));
-        if ($configured !== '') {
-            return rtrim($configured, '/') . '/share/product/' . rawurlencode($productId);
-        }
-
-        return route('store.share.product.preview', ['productId' => $productId]);
+        return rtrim((string) config('app.frontend_url'), '/') . '/share/product/' . rawurlencode($productId);
     }
 
     private function createPublicCartShareToken(int $sharedByUserId, string $sharedByName, string $note, array $items): string
@@ -718,12 +713,7 @@ class QuoteOrderInvoiceController extends Controller
 
     private function buildPublicCartShareUrl(string $token): string
     {
-        $configured = trim((string) env('FRONTEND_URL', ''));
-        if ($configured !== '') {
-            return rtrim($configured, '/') . '/share/cart/public/' . rawurlencode($token);
-        }
-
-        return route('store.share.cart.preview.public', ['token' => $token]);
+        return rtrim((string) config('app.frontend_url'), '/') . '/share/cart/public/' . rawurlencode($token);
     }
 
     private function publicCartShareCacheKey(string $token): string

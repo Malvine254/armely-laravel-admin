@@ -19,11 +19,7 @@ class AzureGraphMailService
      */
     private function frontendUrl(): string
     {
-        $configured = trim((string) env('FRONTEND_URL', ''));
-        if ($configured !== '') {
-            return rtrim($configured, '/');
-        }
-        return rtrim((string) config('app.url'), '/');
+        return rtrim((string) config('app.frontend_url', config('app.url')), '/');
     }
 
     public function sendTestEmail(string $recipientEmail, string $recipientName = 'Admin'): bool
@@ -1404,7 +1400,7 @@ class AzureGraphMailService
                 <p style='margin:18px 0 0;font-size:12px;color:#9ca3af'>Sent from Armely Store backend at " . now()->format('Y-m-d H:i:s T') . "</p>
             ",
             'Go to Admin Panel',
-            config('app.url') . '/store/admin',
+            $this->frontendUrl() . '/admin',
             "Contact {$supportEmail} if you have questions about this sync.",
             $headerColor,
             $badgeLabel,
