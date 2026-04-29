@@ -743,6 +743,7 @@ const reviewRatingOptions = computed(() => {
   let fourPlus = 0
   let threePlus = 0
   let hasReviews = 0
+  let noImages = 0
 
   products.value.forEach((product) => {
     const stats = getProductReviewStats(product.productId)
@@ -758,6 +759,9 @@ const reviewRatingOptions = computed(() => {
     if (stats.average >= 3) {
       threePlus += 1
     }
+    if (!getPrimaryImageUrl(product)) {
+      noImages += 1
+    }
   })
 
   return [
@@ -765,6 +769,7 @@ const reviewRatingOptions = computed(() => {
     { name: '4 Stars & Up', count: fourPlus },
     { name: '3 Stars & Up', count: threePlus },
     { name: 'Has Reviews', count: hasReviews },
+    { name: 'No Images', count: noImages },
   ]
 })
 
@@ -1148,7 +1153,7 @@ const filteredProducts = computed(() => {
     })
   }
 
-  // Filter by review rating
+  // Filter by review rating / image presence
   if (filters.mediaStatuses && filters.mediaStatuses.length > 0) {
     filtered = filtered.filter((product) => {
       const stats = getProductReviewStats(product.productId)
@@ -1157,6 +1162,7 @@ const filteredProducts = computed(() => {
         if (status === '4 Stars & Up') return stats.average >= 4
         if (status === '3 Stars & Up') return stats.average >= 3
         if (status === 'Has Reviews') return stats.total > 0
+        if (status === 'No Images') return !getPrimaryImageUrl(product)
         return false
       })
     })
