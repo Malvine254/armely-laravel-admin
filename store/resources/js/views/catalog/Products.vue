@@ -2407,8 +2407,7 @@ watch(
   () => {
     requestCache.clear()
     pendingRequests.clear()
-    currentPage.value = 1
-    performSearch(true)
+    performSearch(false)
   }
 )
 
