@@ -379,7 +379,7 @@
                                         <li class="{{ request()->is('events') ? 'active' : '' }}"><a href="{{ route('events.index') }}">Events</a></li>
                                     <li class="{{ request()->is('all-partners') ? 'active' : '' }}"><a href="{{ route('partners.index') }}">Partners</a></li>
                                     <li class="{{ request()->is('mela-ai') ? 'active' : '' }}"><a href="{{ route('mela-ai') }}">Mela AI</a></li>
-                                    {{-- <li class="{{ request()->is('store') || request()->is('armely-store') ? 'active' : '' }}"><a href="{{ route('armely-store') }}" target="_blank" rel="noopener noreferrer">Armely Store</a></li> --}}
+                                    <li class="{{ request()->is('store*') || request()->is('armely-store') ? 'active' : '' }}"><a href="{{ url('/store') }}">Store</a></li>
                                     <li class="{{ request()->is('contact') ? 'active' : '' }}"><a href="{{ route('contact') }}">Let's Talk</a></li>
                                 </ul>
                             </nav>
@@ -417,7 +417,7 @@
         <li><a href="{{ route('events.index') }}">Events</a></li>
         <li><a href="{{ route('partners.index') }}">Partners</a></li>
         <li><a href="{{ route('mela-ai') }}">Mela AI</a></li>
-        {{-- <li><a href="{{ route('armely-store') }}" target="_blank" rel="noopener noreferrer">Armely Store</a></li> --}}
+        <li><a href="{{ url('/store') }}">Store</a></li>
         <li><a href="{{ route('contact') }}">Let's Talk</a></li>
     </ul>
 </div>
