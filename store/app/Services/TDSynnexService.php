@@ -2963,22 +2963,19 @@ class TDSynnexService
 
     private function buildBingImageQuery(string $sku, array $meta, string $description = ''): string
     {
-        $title = $this->sanitizeSearchPhrase((string) ($meta['title'] ?? ''));
         $manufacturer = $this->sanitizeSearchPhrase((string) ($meta['manufacturer'] ?? ''));
-        $mpn = $this->sanitizeSearchPhrase((string) ($meta['mpn'] ?? ''));
-        $upc = $this->sanitizeSearchPhrase((string) ($meta['upc'] ?? ''));
-        $skuToken = $this->sanitizeSearchPhrase($sku);
+        $mpn          = $this->sanitizeSearchPhrase((string) ($meta['mpn'] ?? ''));
+        $title        = $this->sanitizeSearchPhrase((string) ($meta['title'] ?? ''));
+
+        // Require MPN — title-only or SKU-only queries return wrong products from unrelated brands.
+        if ($mpn === '') {
+            return '';
+        }
 
         $candidates = [
-            trim($title),
-            trim($title . ' ' . $mpn),
-            trim($manufacturer . ' ' . $mpn),
-            trim($manufacturer . ' ' . $skuToken),
-            trim($mpn),
-            trim($skuToken),
-            trim($manufacturer . ' ' . $upc),
-            trim($upc),
-            trim($description),
+            trim($manufacturer . ' ' . $mpn),  // "HP JL255A" — most precise
+            trim($title . ' ' . $mpn),          // "HPE Aruba Switch JL255A"
+            trim($mpn),                          // bare MPN as last resort
         ];
 
         foreach ($candidates as $candidate) {
