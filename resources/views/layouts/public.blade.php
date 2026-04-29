@@ -232,6 +232,44 @@
     padding: 20px 0 !important;
 }
 
+.menu-new-badge {
+    display: inline-flex;
+    align-items: center;
+    position: relative;
+    top: -1.1em;
+    margin-left: 4px;
+    padding: 2px 6px;
+    border-radius: 999px;
+    background: #2f5597;
+    color: #fff;
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 1;
+    text-transform: uppercase;
+    letter-spacing: 0;
+    vertical-align: middle;
+    animation: menuNewBadgePulse 1.8s ease-in-out infinite;
+    box-shadow: 0 0 0 rgba(47, 85, 151, 0.35);
+}
+
+.mobile-dropdown-menu .menu-new-badge {
+    top: -0.9em;
+    margin-left: 6px;
+    font-size: 8px;
+    padding: 2px 5px;
+}
+
+@keyframes menuNewBadgePulse {
+    0%, 100% {
+        transform: translateY(0) scale(1);
+        box-shadow: 0 0 0 0 rgba(47, 85, 151, 0.35);
+    }
+    50% {
+        transform: translateY(-1px) scale(1.05);
+        box-shadow: 0 0 0 4px rgba(47, 85, 151, 0);
+    }
+}
+
 /* Desktop header: keep ALL menu items on one row, original sizes */
 @media (min-width: 1301px) {
     /* Turn the Bootstrap row into a non-wrapping flex row */
@@ -312,9 +350,9 @@
 
 <div class="announcement-banner default-background mb-4" id="announcementBanner">
     <span class="banner-item">
-        🏆 <b>We Won Best AI Application – Global Hackathon!</b>
-        Explore how we built our Smart Waste Management AI solution.
-        <a target="_blank" href="https://github.com/Sammychesire/Smart-City-Waste-Management">Read More</a>
+        &#127881; <b>Armely Store is now live!</b>
+        Browse business technology products, request quotes, and manage orders online.
+        <a target="_blank" rel="noopener noreferrer" href="{{ url('/store') }}">Shop Now</a>
     </span>
     <span class="close-btn" onclick="closeBanner()">&times;</span>
 </div>
@@ -379,7 +417,7 @@
                                         <li class="{{ request()->is('events') ? 'active' : '' }}"><a href="{{ route('events.index') }}">Events</a></li>
                                     <li class="{{ request()->is('all-partners') ? 'active' : '' }}"><a href="{{ route('partners.index') }}">Partners</a></li>
                                     <li class="{{ request()->is('mela-ai') ? 'active' : '' }}"><a href="{{ route('mela-ai') }}">Mela AI</a></li>
-                                    <li class="{{ request()->is('store*') || request()->is('armely-store') ? 'active' : '' }}"><a href="{{ url('/store') }}">Store</a></li>
+                                    <li class="{{ request()->is('store*') || request()->is('armely-store') ? 'active' : '' }}"><a href="{{ url('/store') }}" target="_blank" rel="noopener noreferrer">Store <span class="menu-new-badge">New</span></a></li>
                                     <li class="{{ request()->is('contact') ? 'active' : '' }}"><a href="{{ route('contact') }}">Let's Talk</a></li>
                                 </ul>
                             </nav>
@@ -417,7 +455,7 @@
         <li><a href="{{ route('events.index') }}">Events</a></li>
         <li><a href="{{ route('partners.index') }}">Partners</a></li>
         <li><a href="{{ route('mela-ai') }}">Mela AI</a></li>
-        <li><a href="{{ url('/store') }}">Store</a></li>
+        <li><a href="{{ url('/store') }}" target="_blank" rel="noopener noreferrer">Store <span class="menu-new-badge">New</span></a></li>
         <li><a href="{{ route('contact') }}">Let's Talk</a></li>
     </ul>
 </div>
