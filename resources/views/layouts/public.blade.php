@@ -466,12 +466,20 @@
     var btn = document.getElementById('mobileHamburger');
     var menu = document.getElementById('mobileDropdownMenu');
     if (btn && menu) {
-        // Position menu below header on open
+        // Position menu below the visible header bar, including after the page has scrolled.
         function positionMenu() {
-            var header = document.querySelector('header.header');
-            if (header) {
-                menu.style.top = header.getBoundingClientRect().bottom + 'px';
+            var headerBar = btn.closest('.header-inner');
+            var headerRect = headerBar ? headerBar.getBoundingClientRect() : btn.getBoundingClientRect();
+            var top = headerRect.bottom;
+
+            if (top < 0 || top > window.innerHeight) {
+                top = btn.getBoundingClientRect().bottom;
             }
+
+            top = Math.max(0, Math.min(top + 1, window.innerHeight - 80));
+
+            menu.style.top = top + 'px';
+            menu.style.maxHeight = 'calc(100vh - ' + top + 'px)';
         }
         btn.addEventListener('click', function(e) {
             e.stopPropagation();
