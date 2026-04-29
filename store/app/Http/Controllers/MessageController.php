@@ -1101,7 +1101,7 @@ class MessageController extends Controller
                 ->orderByDesc('issued_at')
                 ->orderByDesc('id')
                 ->limit(8)
-                ->get(['invoice_number', 'status', 'total_amount', 'paid_amount', 'due_at', 'order_number'])
+                ->get(['invoice_number', 'status', 'total_amount', 'paid_amount', 'due_at', 'order_number', 'items'])
             : collect();
 
         $recentOrders = $hasOrdersTable
@@ -1137,11 +1137,21 @@ class MessageController extends Controller
         if ($hasInvoicesTable && $invoiceNumber !== null) {
             $focusedInvoice = Invoice::where('user_id', $user->id)
                 ->where('invoice_number', $invoiceNumber)
-                ->first(['invoice_number', 'status', 'total_amount', 'paid_amount', 'due_at', 'order_number']);
+                ->first(['invoice_number', 'status', 'total_amount', 'paid_amount', 'due_at', 'order_number', 'items']);
         }
 
         $invoiceSummaries = $recentInvoices->map(function (Invoice $invoice) {
             $remaining = max(0, (float) $invoice->total_amount - (float) $invoice->paid_amount);
+            $rawItems = is_array($invoice->items) ? $invoice->items : [];
+            $itemLines = collect($rawItems)->map(function ($it) {
+                if (!is_array($it)) return null;
+                $name = (string) ($it['product_name'] ?? $it['name'] ?? $it['description'] ?? '');
+                $qty  = (int) ($it['quantity'] ?? $it['qty'] ?? 1);
+                $unit = (float) ($it['unit_price'] ?? $it['price'] ?? 0);
+                if ($name === '') return null;
+                $priceStr = $unit > 0 ? ' x $' . number_format($unit, 2) : '';
+                return "{$name} (qty: {$qty}{$priceStr})";
+            })->filter()->values()->all();
             return [
                 'invoice_number' => $invoice->invoice_number,
                 'status' => $invoice->status,
@@ -1150,6 +1160,7 @@ class MessageController extends Controller
                 'paid_amount' => (float) $invoice->paid_amount,
                 'remaining_amount' => $remaining,
                 'due_at' => optional($invoice->due_at)?->toDateString(),
+                'items' => $itemLines,
             ];
         })->all();
 
@@ -1210,15 +1221,28 @@ class MessageController extends Controller
             'product_intent' => $shouldSuggestProducts,
             'history_preferences' => $historyPreferences,
             'recent_chat_turns' => $recentChatTurns,
-            'focused_invoice' => $focusedInvoice ? [
-                'invoice_number' => $focusedInvoice->invoice_number,
-                'status' => $focusedInvoice->status,
-                'order_number' => $focusedInvoice->order_number,
-                'total_amount' => (float) $focusedInvoice->total_amount,
-                'paid_amount' => (float) $focusedInvoice->paid_amount,
-                'remaining_amount' => max(0, (float) $focusedInvoice->total_amount - (float) $focusedInvoice->paid_amount),
-                'due_at' => optional($focusedInvoice->due_at)?->toDateString(),
-            ] : null,
+            'focused_invoice' => $focusedInvoice ? (function () use ($focusedInvoice) {
+                $rawItems = is_array($focusedInvoice->items) ? $focusedInvoice->items : [];
+                $itemLines = collect($rawItems)->map(function ($it) {
+                    if (!is_array($it)) return null;
+                    $name = (string) ($it['product_name'] ?? $it['name'] ?? $it['description'] ?? '');
+                    $qty  = (int) ($it['quantity'] ?? $it['qty'] ?? 1);
+                    $unit = (float) ($it['unit_price'] ?? $it['price'] ?? 0);
+                    if ($name === '') return null;
+                    $priceStr = $unit > 0 ? ' x $' . number_format($unit, 2) : '';
+                    return "{$name} (qty: {$qty}{$priceStr})";
+                })->filter()->values()->all();
+                return [
+                    'invoice_number' => $focusedInvoice->invoice_number,
+                    'status' => $focusedInvoice->status,
+                    'order_number' => $focusedInvoice->order_number,
+                    'total_amount' => (float) $focusedInvoice->total_amount,
+                    'paid_amount' => (float) $focusedInvoice->paid_amount,
+                    'remaining_amount' => max(0, (float) $focusedInvoice->total_amount - (float) $focusedInvoice->paid_amount),
+                    'due_at' => optional($focusedInvoice->due_at)?->toDateString(),
+                    'items' => $itemLines,
+                ];
+            })() : null,
         ];
     }
 
@@ -1480,7 +1504,7 @@ class MessageController extends Controller
 
     private function searchProductsForAssistant(string $question, array $historyPreferences = [], int $limit = 6, array $searchContext = []): array
     {
-        $keywords = $this->extractProductSearchKeywords($question);
+        $rawKeywords = $this->extractProductSearchKeywords($question);
         $deviceType = strtolower((string) ($searchContext['device_type'] ?? ''));
         $maxBudget = isset($searchContext['max_budget']) ? (float) $searchContext['max_budget'] : null;
         $requiredBrand = strtolower((string) ($searchContext['required_brand'] ?? ''));
@@ -1488,16 +1512,10 @@ class MessageController extends Controller
         $transactionalFollowUp = (bool) ($searchContext['transactional_follow_up'] ?? false);
         $recentSuggestedProducts = (array) ($searchContext['recent_suggested_products'] ?? []);
 
-        if ($deviceType !== '' && !in_array($deviceType, $keywords, true)) {
-            $keywords[] = $deviceType;
-        }
-
-        $preferenceKeywords = array_values(array_filter(array_map('strtolower', $historyPreferences)));
-        if (!empty($preferenceKeywords)) {
-            $keywords = array_values(array_unique(array_merge($keywords, $preferenceKeywords)));
-        }
-
-        if ($transactionalFollowUp && empty($keywords) && !empty($recentSuggestedProducts)) {
+        // Check transactional follow-up using raw question keywords (before deviceType from history is
+        // appended) so that "which one do you suggest?" or "add them to cart" correctly re-uses the
+        // products already shown rather than running a fresh search with the inherited device type.
+        if ($transactionalFollowUp && empty($rawKeywords) && !empty($recentSuggestedProducts)) {
             return collect($recentSuggestedProducts)
                 ->map(function (array $candidate) {
                     return [
@@ -1530,6 +1548,17 @@ class MessageController extends Controller
                 ->take($limit)
                 ->values()
                 ->all();
+        }
+
+        $keywords = $rawKeywords;
+
+        if ($deviceType !== '' && !in_array($deviceType, $keywords, true)) {
+            $keywords[] = $deviceType;
+        }
+
+        $preferenceKeywords = array_values(array_filter(array_map('strtolower', $historyPreferences)));
+        if (!empty($preferenceKeywords)) {
+            $keywords = array_values(array_unique(array_merge($keywords, $preferenceKeywords)));
         }
 
         if (empty($keywords)) {
@@ -2026,8 +2055,14 @@ class MessageController extends Controller
             'and', 'or', 'with', 'show', 'please', 'can', 'you', 'want', 'from', 'that', 'this',
             'have', 'all', 'more', 'details', 'about', 'find', 'search', 'suggestion', 'suggestions',
             'suggest', 'suggested', 'recommended', 'recommend', 'available', 'current',
-            'product', 'products', 'item', 'items', 'invoice', 'payment', 'quote', 'order',
-            'one', 'two', 'three', 'hi', 'hello', 'hey', 'to', 'today'
+            'product', 'products', 'item', 'items', 'invoice', 'invoices', 'payment', 'payments',
+            'quote', 'quotes', 'order', 'orders', 'one', 'two', 'three', 'hi', 'hello', 'hey', 'to', 'today',
+            // question words and common verbs that should never be product search terms
+            'which', 'what', 'where', 'when', 'why', 'how', 'who', 'whose',
+            'is', 'are', 'was', 'were', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should',
+            'be', 'been', 'being', 'get', 'got', 'go', 'going', 'see', 'check', 'tell', 'know', 'show',
+            'tied', 'linked', 'associated', 'related', 'connect', 'connected', 'belongs', 'belong',
+            'also', 'then', 'there', 'here', 'now', 'just', 'only', 'very', 'too', 'so', 'but', 'if',
         ];
 
         $priorityTerms = [
@@ -2137,7 +2172,10 @@ class MessageController extends Controller
         $questionLower = strtolower(trim($question));
         $transactionalSignals = [
             'request quote', 'proceed', 'add to cart', 'add them', 'order them', 'place order',
-            'make them quote', 'make quote', 'use suggested', 'best two', 'those two', 'them'
+            'make them quote', 'make quote', 'use suggested', 'best two', 'those two', 'them',
+            'which one', 'which do you', 'suggest one', 'recommend one', 'pick one', 'pick the best',
+            'what do you think', 'your recommendation', 'your suggestion', 'go with', 'choose for me',
+            'what would you', 'what should i', 'which is better', 'which is best', 'what\'s the best',
         ];
         $transactionalFollowUp = Str::contains($questionLower, $transactionalSignals);
 
@@ -2229,7 +2267,9 @@ class MessageController extends Controller
         $accessoryTerms = [
             'case', 'cover', 'sleeve', 'bag', 'dock', 'docking', 'adapter', 'cable', 'charger',
             'keyboard', 'mouse', 'headset', 'speaker', 'stand', 'screen protector', 'protector',
-            'hub', 'backpack', 'folio', 'power bank', 'battery', 'warranty', 'service plan', 'kit'
+            'hub', 'backpack', 'folio', 'power bank', 'battery', 'warranty', 'service plan', 'kit',
+            'mount', 'mounting', 'bracket', 'arm', 'riser', 'shelf', 'tray', 'cart', 'trolley',
+            'pdu', 'power distribution', 'power strip', 'surge protector',
         ];
 
         foreach ($accessoryTerms as $term) {

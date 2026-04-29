@@ -42,6 +42,13 @@ class AzureOpenAiChatService
         // Intent classification uses local keywords — instant, no API call, never times out.
         $intent = $this->classifyIntentLocally($question, $chatHistory);
 
+        // When the local classifier lands on general_support but the product search already
+        // found matching catalog results, upgrade to product_search. This catches implicit
+        // queries like "I need something fast for video editing" or "recommend me a good printer".
+        if ($intent === 'general_support' && !empty($context['product_suggestions'])) {
+            $intent = 'product_search';
+        }
+
         Log::info('Mela AI intent classified', [
             'question' => substr($question, 0, 120),
             'intent'   => $intent,
@@ -100,8 +107,13 @@ class AzureOpenAiChatService
             return 'quote_management';
         }
 
-        // Product / catalog signals
-        if (preg_match('/\b(laptop|notebook|desktop|printer|server|monitor|switch|router|firewall|wifi|wireless|tablet|projector|ups|storage|ssd|keyboard|mouse|webcam|headset|workstation|chromebook|thin client|mini pc|all.in.one|docking|dock|scanner|sku|catalog|buy|purchase|recommend|suggest|spec|model|find me|search for|looking for|need a|want a|compare)\b/', $q)) {
+        // Explicit product / catalog signals
+        if (preg_match('/\b(laptop|notebook|desktop|printer|server|monitor|switch|router|firewall|wifi|wireless|tablet|projector|ups|storage|ssd|keyboard|mouse|webcam|headset|workstation|chromebook|thin client|mini pc|all.in.one|docking|dock|scanner|sku|catalog|buy|purchase|spec|model|find me|search for|looking for|compare)\b/', $q)) {
+            return 'product_search';
+        }
+
+        // Implicit product interest — recommendation requests and need-based queries
+        if (preg_match('/\b(recommend|suggestion|suggest|what (should|would|can) (i|we)|what.*good|any good|best (for|option)|need (a|an|the)|want (a|an|the)|something (for|that|to)|option(s)? for|help me (find|choose|pick)|which (one|is better))\b/', $q)) {
             return 'product_search';
         }
 
@@ -272,8 +284,15 @@ class AzureOpenAiChatService
                     . "• Total: **\${$total}**\n"
                     . "• Paid: **\${$paid}**\n"
                     . "• Balance: **\${$rem}**\n"
-                    . "• Status: **{$status}**{$due}\n\n"
-                    . "Use the action links below to view, download a PDF, or pay.";
+                    . "• Status: **{$status}**{$due}\n";
+            $invItems = (array) ($inv['items'] ?? []);
+            if (!empty($invItems)) {
+                $reply .= "\n**Items on this invoice:**\n";
+                foreach ($invItems as $item) {
+                    $reply .= "• {$item}\n";
+                }
+            }
+            $reply .= "\nUse the action links below to view, download a PDF, or pay.";
         } elseif (empty($invoices)) {
             $reply = "Hi {$firstName}! No invoices found on your account yet.";
         } else {
@@ -327,34 +346,41 @@ class AzureOpenAiChatService
 
     private function runSupportAgent(string $question, array $context, array $chatHistory): array
     {
-        $customerName = trim((string) ($context['customer']['name'] ?? ''));
-        $firstName    = $this->firstName($context);
-        $historyText  = $this->formatHistory($chatHistory, 8);
-        $openCount    = (int) ($context['summary']['open_invoice_count'] ?? 0);
-        $orders       = (array) ($context['recent_orders'] ?? []);
-        $quotes       = (array) ($context['completed_paid_quotes'] ?? []);
+        $customerName       = trim((string) ($context['customer']['name'] ?? ''));
+        $firstName          = $this->firstName($context);
+        $historyText        = $this->formatHistory($chatHistory, 8);
+        $orders             = (array) ($context['recent_orders'] ?? []);
+        $quotes             = (array) ($context['completed_paid_quotes'] ?? []);
+        $invoices           = (array) ($context['recent_invoices'] ?? []);
+        $openCount          = (int) ($context['summary']['open_invoice_count'] ?? 0);
+        $openTotal          = (float) ($context['summary']['open_invoice_total'] ?? 0);
+        $productSuggestions = (array) ($context['product_suggestions'] ?? []);
+
+        $accountText = $this->buildAccountContextText($firstName, $orders, $quotes, $invoices, $openCount, $openTotal);
 
         $systemPrompt = implode("\n", [
             'You are Mela AI, the customer account assistant for Armely — a B2B IT procurement platform.',
             '',
             '## Personality',
-            '- Warm, professional, and helpful. Use the customer\'s first name.',
+            '- Warm, professional, and helpful. Always address the customer by their first name.',
             '- Be concise and action-oriented. Use bullet points for clarity.',
-            '- End responses with a helpful nudge or offer.',
+            '- End every response with a helpful nudge or next step.',
             '',
             '## Capabilities',
-            '- Handle greetings, thank-yous, account questions, and platform navigation.',
-            '- For specific order/invoice/quote questions, ask for a reference number.',
-            '- Suggest escalation to human support for complex issues.',
+            '- You have FULL access to the customer\'s account data — orders, quotes, and invoices — provided below.',
+            '- Answer account questions DIRECTLY from the provided data. Never redirect the customer to "check their page".',
+            '- Handle greetings, thank-yous, account questions, platform navigation, and general IT procurement questions.',
+            '- For issues you cannot resolve (technical errors, complex disputes), suggest escalation to human support.',
             '',
             '## Rules',
-            '- Never invent order, invoice, or quote details.',
-            '- Keep replies concise — users can see their data in the app.',
+            '- ALWAYS answer from the account data below. Never say "please check your orders page" — tell them what you see.',
+            '- If a specific reference (order number, invoice number) is not in the data, say it wasn\'t found in the last records.',
+            '- Never invent order, invoice, or quote details not present in the data.',
+            '- Keep replies concise but complete — quality over brevity.',
         ]);
 
         $greeting    = $customerName !== '' ? "Customer name: {$customerName}\n" : '';
-        $accountNote = $openCount > 0 ? "\n(Note: customer has {$openCount} open invoice(s).)" : '';
-        $userContent = "{$greeting}Question: {$question}{$accountNote}";
+        $userContent = "{$greeting}\n{$accountText}\n\nCustomer question: {$question}";
         if ($historyText !== '') {
             $userContent .= "\n\nConversation history:\n{$historyText}";
         }
@@ -424,17 +450,87 @@ class AzureOpenAiChatService
         if (!empty($quotes)) {
             $actions[] = ['label' => 'View quotes', 'link' => '/quotes'];
         }
+        if (!empty($productSuggestions)) {
+            $actions[] = ['label' => 'Browse products', 'link' => '/products'];
+        }
 
         return [
             'reply'               => $reply,
             'actions'             => $actions,
-            'product_suggestions' => [],
+            'product_suggestions' => $productSuggestions,
             'source'              => 'support_agent',
             'intent'              => 'general_support',
         ];
     }
 
     // ─── Shared helpers ────────────────────────────────────────────────────────
+
+    private function buildAccountContextText(string $firstName, array $orders, array $quotes, array $invoices, int $openCount, float $openTotal): string
+    {
+        $lines = ["## Account data for {$firstName}"];
+
+        if (!empty($orders)) {
+            $lines[] = '';
+            $lines[] = '### Orders (' . count($orders) . ')';
+            foreach ($orders as $order) {
+                $amount = (float) ($order['total_amount'] ?? 0) > 0
+                    ? ' | $' . number_format((float) $order['total_amount'], 2)
+                    : '';
+                $pay  = !empty($order['payment_status']) ? " | Payment: {$order['payment_status']}" : '';
+                $date = !empty($order['created_at']) ? ' | Date: ' . substr($order['created_at'], 0, 10) : '';
+                $lines[] = '- ' . ($order['order_number'] ?? 'N/A') . ': ' . ucfirst((string) ($order['status'] ?? 'unknown')) . "{$amount}{$pay}{$date}";
+            }
+        } else {
+            $lines[] = '';
+            $lines[] = '### Orders';
+            $lines[] = '- No orders on record.';
+        }
+
+        if (!empty($quotes)) {
+            $lines[] = '';
+            $lines[] = '### Quotes (' . count($quotes) . ')';
+            foreach ($quotes as $q) {
+                $amount = (float) ($q['total_amount'] ?? 0) > 0
+                    ? ' | $' . number_format((float) $q['total_amount'], 2)
+                    : '';
+                $ordRef = !empty($q['order_number']) ? " | Order: {$q['order_number']}" : '';
+                $date   = !empty($q['created_at']) ? ' | Date: ' . substr($q['created_at'], 0, 10) : '';
+                $lines[] = '- ' . ($q['quote_id'] ?? 'N/A') . ': ' . ucfirst((string) ($q['status'] ?? 'unknown')) . "{$amount}{$ordRef}{$date}";
+            }
+        } else {
+            $lines[] = '';
+            $lines[] = '### Quotes';
+            $lines[] = '- No quotes on record.';
+        }
+
+        if (!empty($invoices)) {
+            $lines[] = '';
+            $lines[] = '### Invoices (' . count($invoices) . ')';
+            foreach ($invoices as $inv) {
+                $total  = number_format((float) ($inv['total_amount'] ?? 0), 2);
+                $rem    = (float) ($inv['remaining_amount'] ?? 0);
+                $remStr = $rem > 0.01 ? ' | Balance due: $' . number_format($rem, 2) : ' | Fully paid';
+                $due    = !empty($inv['due_at']) ? " | Due: {$inv['due_at']}" : '';
+                $status = ucfirst((string) ($inv['status'] ?? 'unknown'));
+                $lines[] = '- ' . ($inv['invoice_number'] ?? 'N/A') . ": \${$total} [{$status}]{$remStr}{$due}";
+                $invItems = (array) ($inv['items'] ?? []);
+                if (!empty($invItems)) {
+                    foreach ($invItems as $item) {
+                        $lines[] = '    · ' . $item;
+                    }
+                }
+            }
+            if ($openCount > 0) {
+                $lines[] = '- Total outstanding balance: $' . number_format($openTotal, 2);
+            }
+        } else {
+            $lines[] = '';
+            $lines[] = '### Invoices';
+            $lines[] = '- No invoices on record.';
+        }
+
+        return implode("\n", $lines);
+    }
 
     private function callApi(array $messages, float $temperature = 0.35, int $maxTokens = 800): ?string
     {

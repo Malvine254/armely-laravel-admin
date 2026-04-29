@@ -175,6 +175,17 @@
           </div>
 
           <div ref="chatScrollRef" class="flex-1 min-h-0 overflow-y-auto themed-scrollbar p-4 sm:p-5 space-y-4 bg-gray-50">
+            <!-- Persistent welcome banner — always shown at the top of every chat -->
+            <div class="flex justify-start">
+              <div class="max-w-[90%] sm:max-w-[78%] rounded-2xl rounded-bl-md px-4 py-3 shadow-sm bg-white border border-gray-200 text-gray-900">
+                <p class="text-sm whitespace-pre-wrap leading-relaxed">Hi <strong>{{ chatWelcomeName }}</strong>! 👋 I'm Mela AI, your Armely assistant. I can help you find IT products, manage invoices and payments, track orders, and more. What can I help you with today?</p>
+                <div class="mt-3 flex flex-wrap gap-2">
+                  <button @click="openActionLink('/products')" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-[#2F5597]/30 text-[#2F5597] bg-[#2F5597]/10 hover:bg-[#2F5597]/20">Browse products</button>
+                  <button @click="openActionLink('/quotes')" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-[#2F5597]/30 text-[#2F5597] bg-[#2F5597]/10 hover:bg-[#2F5597]/20">Open quotes</button>
+                  <button @click="openActionLink('/invoices')" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-[#2F5597]/30 text-[#2F5597] bg-[#2F5597]/10 hover:bg-[#2F5597]/20">Open invoices</button>
+                </div>
+              </div>
+            </div>
             <div
               v-for="chat in chatMessages"
               :key="chat.id"
@@ -477,6 +488,12 @@ const quickPrompts = [
 
 const activeSession = computed(() => chatSessions.value.find((session) => session.id === activeChatSessionId.value) || null)
 
+const chatWelcomeName = computed(() => {
+  const name = (authStore.user?.name || '').trim()
+  if (!name) return 'there'
+  return name.split(' ')[0]
+})
+
 const activeSessionLabel = computed(() => {
   if (!activeSession.value) {
     return 'Start a conversation with Mela AI'
@@ -486,22 +503,8 @@ const activeSessionLabel = computed(() => {
   return title && title !== 'New chat' ? title : `Chat #${activeSession.value.id}`
 })
 
-const ensureChatWelcome = () => {
-  if (chatMessages.value.length > 0) return
-
-  chatMessages.value.push({
-    id: `assistant-welcome-${Date.now()}`,
-    role: 'assistant',
-    text: 'Hey there! \uD83D\uDC4B I\'m Mela AI, your Armely assistant. I can help you find IT products, manage invoices and payments, track orders, and more. What can I help you with today?',
-    createdAt: new Date().toISOString(),
-    actions: [
-      { label: 'Browse products', link: '/products' },
-      { label: 'Open quotes', link: '/quotes' },
-      { label: 'Open invoices', link: '/invoices' }
-    ],
-    productSuggestions: []
-  })
-}
+// Welcome message is now a static banner in the template \u2014 always visible, never needs to be injected.
+const ensureChatWelcome = () => {}
 
 const scrollChatToBottom = async (smooth = false) => {
   await nextTick()
