@@ -29,8 +29,13 @@
           <span>{{ cat }}</span>
           <button @click="removeCategory(cat)" class="hover:font-semibold">×</button>
         </div>
-        <!-- Review Rating Filter Badges -->
-        <div v-for="status in filters.mediaStatuses" :key="`media-${status}`" class="flex items-center gap-1 px-3 py-1 rounded-full text-sm" style="background-color: #eef7ec; color: #1f6e3e;">
+        <!-- Review Rating / Image Filter Badges -->
+        <div
+          v-for="status in filters.mediaStatuses"
+          :key="`media-${status}`"
+          class="flex items-center gap-1 px-3 py-1 rounded-full text-sm"
+          :style="status === 'No Images' ? 'background-color: #f5f3ff; color: #9333ea;' : 'background-color: #eef7ec; color: #1f6e3e;'"
+        >
           <span>{{ status }}</span>
           <button @click="toggleMediaStatus(status)" class="hover:font-semibold">×</button>
         </div>
@@ -206,6 +211,15 @@
             @mouseleave="$event.target.style.backgroundColor='transparent'"
           >
             Has Reviews
+          </button>
+          <button
+            @click="setNoImages"
+            class="px-3 py-1.5 text-xs font-semibold rounded-full border transition"
+            style="border-color: #9333ea; color: #9333ea;"
+            @mouseenter="$event.target.style.backgroundColor='#f5f3ff'"
+            @mouseleave="$event.target.style.backgroundColor='transparent'"
+          >
+            No Images
           </button>
           <button
             @click="clearMedia"
@@ -437,6 +451,11 @@ const setFourStarPlus = () => {
 
 const setHasReviews = () => {
   filters.value.mediaStatuses = ['Has Reviews']
+  applyFilters()
+}
+
+const setNoImages = () => {
+  filters.value.mediaStatuses = ['No Images']
   applyFilters()
 }
 
