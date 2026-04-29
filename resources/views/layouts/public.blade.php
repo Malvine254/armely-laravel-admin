@@ -151,7 +151,7 @@
 }
 .mobile-dropdown-menu a {
     display: block;
-    padding: 12px 20px;
+    padding: 14px 20px;
     color: #333;
     text-decoration: none;
     font-size: 15px;
@@ -172,10 +172,14 @@
 }
 .mobile-dropdown-menu .dropdown a {
     padding-left: 35px;
+    padding-top: 13px;
+    padding-bottom: 13px;
     font-size: 14px;
 }
 .mobile-dropdown-menu .dropdown .dropdown a {
     padding-left: 50px;
+    padding-top: 12px;
+    padding-bottom: 12px;
     font-size: 13px;
 }
 
@@ -255,6 +259,13 @@
 .mobile-dropdown-menu .menu-new-badge {
     top: -0.9em;
     margin-left: 6px;
+    font-size: 8px;
+    padding: 2px 5px;
+}
+
+.top-contact .menu-new-badge {
+    top: -0.45em;
+    margin-left: 4px;
     font-size: 8px;
     padding: 2px 5px;
 }
@@ -367,6 +378,7 @@
                         <li><i class="fa fa-phone"></i><a href="tel:+19724600643" class="text-decoration-none text-dark">+1 972 460 0643</a></li>
                         <li><i class="fa fa-envelope"></i><a href="mailto:info@armely.com">info@armely.com</a></li>
                         <li><i class="fa fa-user"></i><a href="https://armely.powerappsportals.com/">Customer support</a></li>
+                        <li><i class="fa fa-shopping-cart"></i><a href="{{ url('/store') }}" target="_blank" rel="noopener noreferrer">Armely Store <span class="menu-new-badge">New</span></a></li>
                         <li class="search-trigger"><i class="fa fa-search"></i> <a>Search</a></li>
                     </ul>
                 </div>
@@ -417,7 +429,6 @@
                                         <li class="{{ request()->is('events') ? 'active' : '' }}"><a href="{{ route('events.index') }}">Events</a></li>
                                     <li class="{{ request()->is('all-partners') ? 'active' : '' }}"><a href="{{ route('partners.index') }}">Partners</a></li>
                                     <li class="{{ request()->is('mela-ai') ? 'active' : '' }}"><a href="{{ route('mela-ai') }}">Mela AI</a></li>
-                                    <li class="{{ request()->is('store*') || request()->is('armely-store') ? 'active' : '' }}"><a href="{{ url('/store') }}" target="_blank" rel="noopener noreferrer">Store <span class="menu-new-badge">New</span></a></li>
                                     <li class="{{ request()->is('contact') ? 'active' : '' }}"><a href="{{ route('contact') }}">Let's Talk</a></li>
                                 </ul>
                             </nav>
@@ -455,7 +466,6 @@
         <li><a href="{{ route('events.index') }}">Events</a></li>
         <li><a href="{{ route('partners.index') }}">Partners</a></li>
         <li><a href="{{ route('mela-ai') }}">Mela AI</a></li>
-        <li><a href="{{ url('/store') }}" target="_blank" rel="noopener noreferrer">Store <span class="menu-new-badge">New</span></a></li>
         <li><a href="{{ route('contact') }}">Let's Talk</a></li>
     </ul>
 </div>
