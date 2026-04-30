@@ -937,12 +937,14 @@ export default {
       toastStore.addToast(`Invoice ${order.linked_invoice_number} is ready for payment`, 'info', 3000, { category: 'invoices' });
     };
 
+
     const fetchLiveShipping = async () => {
       if (!authStore.isAuthenticated) {
         return;
       }
 
-      if (liveShipments.value.length === 0) {
+      // Only show loading spinner on first load
+      if (liveShipments.value.length === 0 && !liveShippingLoading.value) {
         liveShippingLoading.value = true;
       }
       liveShippingError.value = null;
@@ -968,7 +970,7 @@ export default {
 
       liveRefreshTimer = setInterval(() => {
         fetchLiveShipping();
-      }, 20000);
+      }, 60000); // 60 seconds
     };
 
     const stopLiveShippingRefresh = () => {

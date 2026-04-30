@@ -42,6 +42,12 @@ class Invoice extends Model
         return $this->belongsTo(User::class);
     }
 
+
+    public function order(): BelongsTo
+    {
+        return $this->belongsTo(Order::class, 'order_number', 'order_number');
+    }
+
     public function isOverdue(): bool
     {
         return $this->status === 'pending' && $this->due_at && $this->due_at->isPast();
