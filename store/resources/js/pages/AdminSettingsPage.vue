@@ -244,6 +244,162 @@
     </div>
 
     <!-- Email Settings -->
+    <div v-if="activeTab === 'price_sync'" class="rounded-xl border-0 shadow-lg bg-white overflow-hidden">
+      <div class="p-6 border-b border-gray-200">
+        <h3 class="text-lg font-semibold text-gray-900">Price Availability Sync</h3>
+        <p class="text-sm text-gray-500 mt-1">Set when TD SYNNEX price availability refresh runs and who receives status emails.</p>
+      </div>
+
+      <div class="p-6 space-y-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Sync Time</label>
+            <input
+              v-model="priceSyncSettings.time"
+              type="time"
+              class="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Timezone</label>
+            <select
+              v-model="priceSyncSettings.timezone"
+              class="w-full px-4 py-2 border border-gray-200 bg-white text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
+            >
+              <option value="Africa/Nairobi" class="bg-white">Kenya Time (Africa/Nairobi)</option>
+              <option value="America/Chicago" class="bg-white">Central Time (America/Chicago)</option>
+              <option value="America/New_York" class="bg-white">Eastern Time (America/New_York)</option>
+              <option value="UTC" class="bg-white">UTC</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Status Email</label>
+            <input
+              v-model="priceSyncSettings.email"
+              type="email"
+              class="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-900 placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
+              placeholder="malvine.owuor@armely.com"
+            />
+          </div>
+        </div>
+
+        <div class="rounded-lg border border-[#2F5597]/20 bg-[#2F5597]/10 p-4">
+          <p class="text-sm font-semibold text-[#2F5597]">Schedule Check</p>
+          <p class="text-sm text-[#2F5597] mt-1">Next run: {{ priceSyncSettings.next_run_local || 'Save settings to calculate' }}</p>
+          <p class="text-xs text-[#2F5597] mt-1">Schedule name: {{ priceSyncSettings.schedule_name || 'refresh-live-prices-6pm-kenya' }}</p>
+        </div>
+
+        <!-- Live Sync Status Panel -->
+        <div v-if="syncState.status !== 'idle'" class="rounded-lg border p-4 space-y-2"
+          :class="{
+            'border-amber-300 bg-amber-50': syncState.status === 'running',
+            'border-emerald-300 bg-emerald-50': syncState.status === 'completed',
+            'border-orange-300 bg-orange-50': syncState.status === 'completed_with_errors',
+            'border-rose-300 bg-rose-50': syncState.status === 'failed',
+          }"
+        >
+          <div class="flex items-center justify-between">
+            <p class="text-sm font-semibold"
+              :class="{
+                'text-amber-700': syncState.status === 'running',
+                'text-emerald-700': syncState.status === 'completed',
+                'text-orange-700': syncState.status === 'completed_with_errors',
+                'text-rose-700': syncState.status === 'failed',
+              }"
+            >
+              <i :class="{
+                'fas fa-spinner fa-spin mr-2': syncState.status === 'running',
+                'fas fa-check-circle mr-2': syncState.status === 'completed',
+                'fas fa-exclamation-triangle mr-2': syncState.status === 'completed_with_errors',
+                'fas fa-times-circle mr-2': syncState.status === 'failed',
+              }"></i>
+              {{ syncState.status === 'running' ? 'Sync Running...' : syncState.status === 'completed' ? 'Last Sync Completed' : syncState.status === 'completed_with_errors' ? 'Completed with Skipped Batches' : 'Last Sync Failed' }}
+            </p>
+            <span class="text-xs text-gray-500">{{ syncState.updated_at ? new Date(syncState.updated_at).toLocaleString() : '' }}</span>
+          </div>
+          <p class="text-sm" :class="{
+            'text-amber-700': syncState.status === 'running',
+            'text-emerald-700': syncState.status === 'completed',
+            'text-orange-700': syncState.status === 'completed_with_errors',
+            'text-rose-700': syncState.status === 'failed',
+          }">
+            {{ syncState.message }}
+          </p>
+          <pre v-if="syncState.output" class="text-xs bg-white/70 rounded p-3 whitespace-pre-wrap font-mono max-h-40 overflow-y-auto border border-gray-100">{{ syncState.output }}</pre>
+        </div>
+
+        <div class="rounded-xl border border-gray-200 bg-white p-4 space-y-4">
+          <div>
+            <h4 class="text-sm font-semibold text-gray-900">Products To Sync</h4>
+            <p class="text-sm text-gray-500 mt-1">Choose whether the scheduled refresh should check every configured TD SYNNEX product or only selected SKUs.</p>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <label class="flex items-start gap-3 rounded-lg border p-4 cursor-pointer transition" :class="priceSyncSettings.scope === 'all' ? 'border-[#2F5597] bg-[#2F5597]/10' : 'border-gray-200 bg-gray-50'">
+              <input
+                v-model="priceSyncSettings.scope"
+                type="radio"
+                value="all"
+                class="mt-1"
+                style="accent-color: #2F5597"
+              />
+              <span>
+                <span class="block text-sm font-semibold text-gray-900">Sync everything</span>
+                <span class="block text-xs text-gray-500 mt-1">Refresh price, stock &amp; availability for all products in the database.</span>
+              </span>
+            </label>
+
+            <label class="flex items-start gap-3 rounded-lg border p-4 cursor-pointer transition" :class="priceSyncSettings.scope === 'specific' ? 'border-[#2F5597] bg-[#2F5597]/10' : 'border-gray-200 bg-gray-50'">
+              <input
+                v-model="priceSyncSettings.scope"
+                type="radio"
+                value="specific"
+                class="mt-1"
+                style="accent-color: #2F5597"
+              />
+              <span>
+                <span class="block text-sm font-semibold text-gray-900">Specific products</span>
+                <span class="block text-xs text-gray-500 mt-1">Refresh only the SKUs/Product IDs listed below.</span>
+              </span>
+            </label>
+          </div>
+
+          <div v-if="priceSyncSettings.scope === 'specific'">
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              TD SYNNEX SKUs/Product IDs
+              <span class="ml-2 text-xs font-normal px-2 py-0.5 rounded-full bg-[#2F5597]/10 text-[#2F5597]">{{ priceSyncSkuCount }} SKU{{ priceSyncSkuCount !== 1 ? 's' : '' }}</span>
+            </label>
+            <textarea
+              v-model="priceSyncSettings.skus"
+              rows="6"
+              class="w-full px-4 py-3 border border-gray-200 bg-gray-50 text-gray-900 placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
+              placeholder="141638&#10;230167&#10;MX85-HW"
+            ></textarea>
+            <p class="text-xs text-gray-500 mt-2">Separate with commas, spaces, or new lines. Run Now uses whatever is typed here — no need to save first.</p>
+          </div>
+        </div>
+
+        <div class="flex flex-col md:flex-row justify-end gap-3 border-t border-gray-200 pt-6">
+          <button
+            @click="runPriceSyncNow"
+            :disabled="syncState.status === 'running'"
+            class="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition disabled:opacity-50"
+          >
+            <i :class="syncState.status === 'running' ? 'fas fa-spinner fa-spin' : 'fas fa-play'" class="mr-2"></i>
+            {{ syncState.status === 'running' ? 'Sync Running...' : 'Run Now' }}
+          </button>
+          <button
+            @click="savePriceSyncSettings"
+            :disabled="isSaving"
+            class="px-6 py-2 bg-[#2F5597] hover:bg-[#1e3a6b] text-white font-medium rounded-lg transition disabled:opacity-50"
+          >
+            <i class="fas fa-save mr-2"></i>Save Schedule
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Email Settings -->
     <div v-if="activeTab === 'email'" class="rounded-xl border-0 shadow-lg bg-white overflow-hidden">
       <div class="p-6 border-b border-gray-200">
         <h3 class="text-lg font-semibold text-gray-900">Email & Notifications</h3>
@@ -1139,6 +1295,9 @@ import api from '@/services/api'
 
 const activeTab = ref('profile')
 const isSaving = ref(false)
+const isRunningSync = ref(false)
+const syncState = ref({ status: 'idle', message: '', output: '', started_at: null, updated_at: null, finished_at: null })
+let syncPollTimer = null
 const catalogActionLoading = ref(false)
 const showSecret = ref(false)
 const showQuickBooksSecret = ref(false)
@@ -1149,6 +1308,7 @@ const tabs = [
   { id: 'profile', label: 'Profile', icon: 'fa-user' },
   { id: 'api', label: 'API Configuration', icon: 'fa-plug' },
   { id: 'catalog', label: 'Catalog Ops', icon: 'fa-boxes-stacked' },
+  { id: 'price_sync', label: 'Price Sync', icon: 'fa-clock' },
   { id: 'email', label: 'Email & Notifications', icon: 'fa-envelope' },
   { id: 'system', label: 'System', icon: 'fa-cog' },
   { id: 'admins', label: 'Admin Users', icon: 'fa-users-cog' },
@@ -1185,6 +1345,19 @@ const emailSettings = ref({
   smtp_port: '587',
   smtp_username: '',
   smtp_password: ''
+})
+
+const priceSyncSettings = ref({
+  time: '18:00',
+  timezone: 'Africa/Nairobi',
+  email: 'malvine.owuor@armely.com',
+  scope: 'all',
+  skus: '',
+  sku_count: 0,
+  next_run_local: '',
+  next_run_utc: '',
+  schedule_name: 'refresh-live-prices-6pm-kenya',
+  queue: 'products-sync',
 })
 
 const systemSettings = ref({
@@ -1251,6 +1424,15 @@ const allAdminLogsSelected = computed(() =>
 const allUserLogsSelected = computed(() =>
   userLogs.value.length > 0 && userLogs.value.every(l => selectedUserLogs.value.includes(l.id))
 )
+
+const priceSyncSkuCount = computed(() => {
+  const tokens = String(priceSyncSettings.value.skus || '')
+    .split(/[\s,;]+/)
+    .map(item => item.trim())
+    .filter(Boolean)
+
+  return new Set(tokens).size
+})
 
 const adminLogsPageNumbers = computed(() => {
   const total = adminLogsLastPage.value
@@ -1346,6 +1528,7 @@ const fetchSettings = async () => {
       if (data.profile) profile.value = data.profile
       if (data.api_config) apiConfig.value = { ...apiConfig.value, ...data.api_config }
       if (data.email_settings) emailSettings.value = { ...emailSettings.value, ...data.email_settings }
+      if (data.price_sync_settings) priceSyncSettings.value = { ...priceSyncSettings.value, ...data.price_sync_settings }
       if (data.system_settings) systemSettings.value = { ...systemSettings.value, ...data.system_settings }
       if (data.catalog_operations) {
         catalogOperations.value = { ...catalogOperations.value, ...data.catalog_operations }
@@ -1496,6 +1679,85 @@ const saveEmailSettings = async () => {
   } catch (error) {
     console.error('Failed to save email settings:', error)
     showToast(error.response?.data?.message || 'Failed to save email settings', 'error')
+  } finally {
+    isSaving.value = false
+  }
+}
+
+const fetchSyncState = async () => {
+  try {
+    const response = await api.get('/admin/settings/price-sync/state')
+    if (response.data.success) {
+      syncState.value = response.data.data
+    }
+  } catch { /* silent */ }
+}
+
+const startSyncPolling = () => {
+  stopSyncPolling()
+  syncPollTimer = setInterval(async () => {
+    await fetchSyncState()
+    if (!['running'].includes(syncState.value.status)) {
+      stopSyncPolling()
+    }
+  }, 3000)
+}
+
+const stopSyncPolling = () => {
+  if (syncPollTimer) {
+    clearInterval(syncPollTimer)
+    syncPollTimer = null
+  }
+}
+
+const runPriceSyncNow = async () => {
+  try {
+    // Always send current textarea values — no need to save settings first
+    const payload = {
+      scope: priceSyncSettings.value.scope || 'all',
+      skus: priceSyncSettings.value.skus || '',
+    }
+    const response = await api.post('/admin/settings/price-sync/run-now', payload)
+    if (response.data.success) {
+      const scopeLabel = payload.scope === 'specific' ? 'Specific products' : 'All products'
+      syncState.value = {
+        status: 'running',
+        message: `Starting — ${scopeLabel}...`,
+        output: `Started at ${new Date().toLocaleString()}\nScope: ${scopeLabel}`,
+        started_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        finished_at: null
+      }
+      showToast(response.data.message || 'Price sync started in background.', 'success')
+      startSyncPolling()
+    } else {
+      showToast(response.data.message || 'Price sync failed to start', 'error')
+    }
+  } catch (error) {
+    console.error('Failed to run price sync:', error)
+    const msg = error.response?.data?.message || 'Failed to start price sync'
+    if (error.response?.status === 409) {
+      // Already running — show state and start polling
+      if (error.response?.data?.data) syncState.value = error.response.data.data
+      startSyncPolling()
+    }
+    showToast(msg, error.response?.status === 409 ? 'info' : 'error')
+  }
+}
+
+const savePriceSyncSettings = async () => {
+  isSaving.value = true
+  try {
+    const response = await api.post('/admin/settings/price-sync', priceSyncSettings.value)
+    if (response.data.success) {
+      if (response.data.data) {
+        priceSyncSettings.value = { ...priceSyncSettings.value, ...response.data.data }
+      }
+      showToast('Price sync schedule saved successfully!', 'success')
+    }
+  } catch (error) {
+    console.error('Failed to save price sync settings:', error)
+    showToast(error.response?.data?.message || 'Failed to save price sync settings', 'error')
   } finally {
     isSaving.value = false
   }
@@ -1776,9 +2038,16 @@ onMounted(() => {
       startCatalogStatusPolling()
     }
   })
+  // Load last sync state and resume polling if still running
+  fetchSyncState().then(() => {
+    if (syncState.value.status === 'running') {
+      startSyncPolling()
+    }
+  })
 })
 
 onBeforeUnmount(() => {
   stopCatalogStatusPolling()
+  stopSyncPolling()
 })
 </script>

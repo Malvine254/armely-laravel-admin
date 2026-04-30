@@ -1366,7 +1366,14 @@ class AzureGraphMailService
             return false;
         }
 
-        $adminEmail = env('FROM_EMAIL', env('ADMIN_EMAIL', env('SUPPORT_EMAIL', 'admin@armely.com')));
+        try {
+            $adminEmail = (string) AppSetting::getValue(
+                'price_sync.email',
+                config('mail.sync_status_email', env('SYNC_STATUS_EMAIL', 'malvine.owuor@armely.com'))
+            );
+        } catch (\Throwable) {
+            $adminEmail = config('mail.sync_status_email', env('SYNC_STATUS_EMAIL', 'malvine.owuor@armely.com'));
+        }
         $safeJob    = e($jobName);
         $safeStatus = e($status);
         $supportEmail = env('SUPPORT_EMAIL', 'info@armely.com');

@@ -31,6 +31,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Carbon;
 use App\Mail\AdminWelcomeMail;
 
 class AdminController extends Controller
@@ -1251,32 +1252,6 @@ class AdminController extends Controller
                     ],
                 ]);
             }
-
-            // Admin endpoint no longer submits orders directly.
-            // Orders are created automatically when invoice payment is captured.
-            $existingOrder = Order::where('quote_id', $quote->quote_id)->first();
-            if ($existingOrder && $existingOrder->status !== 'failed') {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Quote is already converted to an order automatically after payment.',
-                    'data' => [
-                        'quote' => $quote,
-                        'order' => $existingOrder,
-                        'status' => $quote->status,
-                        'auto_conversion' => true,
-                    ],
-                ]);
-            }
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Payment is complete. Order conversion is automatic and will be processed shortly.',
-                'data' => [
-                    'quote' => $quote,
-                    'invoice' => $paidQuoteInvoice,
-                    'auto_conversion' => true,
-                ],
-            ]);
 
             // Prevent duplicate orders for the same quote (unless the previous attempt failed at TD)
             $existingOrder = Order::where('quote_id', $quote->quote_id)->first();
@@ -2955,9 +2930,8 @@ class AdminController extends Controller
     {
         try {
             $user = $request->user();
-            
-            // Verify admin role
-            if ($user->role !== 'admin') {
+
+            if ($user->role !== 'admin' && $user->role !== 'super_admin') {
                 return response()->json([
                     'success' => false,
                     'message' => 'Unauthorized',
@@ -2995,9 +2969,8 @@ class AdminController extends Controller
     {
         try {
             $user = $request->user();
-            
-            // Verify admin role
-            if ($user->role !== 'admin') {
+
+            if ($user->role !== 'admin' && $user->role !== 'super_admin') {
                 return response()->json([
                     'success' => false,
                     'message' => 'Unauthorized',
@@ -3057,6 +3030,59 @@ class AdminController extends Controller
     /**
      * Get admin settings
      */
+    private function getPriceSyncSettingsPayload(): array
+    {
+        $time = (string) AppSetting::getValue('price_sync.time', '18:00');
+        if (!preg_match('/^\d{2}:\d{2}$/', $time)) {
+            $time = '18:00';
+        }
+
+        $timezone = (string) AppSetting::getValue('price_sync.timezone', 'Africa/Nairobi');
+        if (!in_array($timezone, timezone_identifiers_list(), true)) {
+            $timezone = 'Africa/Nairobi';
+        }
+
+        $email = (string) AppSetting::getValue(
+            'price_sync.email',
+            config('mail.sync_status_email', env('SYNC_STATUS_EMAIL', 'malvine.owuor@armely.com'))
+        );
+
+        $scope = (string) AppSetting::getValue('price_sync.scope', 'all');
+        if (!in_array($scope, ['all', 'specific'], true)) {
+            $scope = 'all';
+        }
+
+        $skus = (string) AppSetting::getValue('price_sync.skus', '');
+        $skuList = $this->normalizePriceSyncSkuList($skus);
+
+        [$hour, $minute] = array_map('intval', explode(':', $time));
+        $now = Carbon::now($timezone);
+        $nextRun = $now->copy()->setTime($hour, $minute, 0);
+        if ($nextRun->lessThanOrEqualTo($now)) {
+            $nextRun->addDay();
+        }
+
+        return [
+            'time' => $time,
+            'timezone' => $timezone,
+            'email' => $email,
+            'next_run_local' => $nextRun->format('Y-m-d H:i:s T'),
+            'next_run_utc' => $nextRun->copy()->utc()->format('Y-m-d H:i:s T'),
+            'schedule_name' => 'refresh-live-prices-6pm-kenya',
+            'queue' => 'products-sync',
+            'scope' => $scope,
+            'skus' => implode("\n", $skuList),
+            'sku_count' => count($skuList),
+        ];
+    }
+
+    private function normalizePriceSyncSkuList(?string $value): array
+    {
+        $tokens = preg_split('/[\s,;]+/', (string) $value) ?: [];
+
+        return array_values(array_unique(array_filter(array_map('trim', $tokens), fn ($sku) => $sku !== '')));
+    }
+
     public function getSettings(Request $request): JsonResponse
     {
         try {
@@ -3110,6 +3136,7 @@ class AdminController extends Controller
                         'tax_rate_percent' => AppSetting::getNumber('pricing.tax_rate_percent', (float) env('APP_TAX_RATE_PERCENT', 0)),
                         'profit_rate_percent' => AppSetting::getNumber('pricing.profit_rate_percent', (float) env('APP_PROFIT_RATE_PERCENT', 0)),
                     ],
+                    'price_sync_settings' => $this->getPriceSyncSettingsPayload(),
                     'catalog_operations' => [],
                 ],
             ]);
@@ -3527,6 +3554,146 @@ class AdminController extends Controller
                 'message' => 'Failed to update email settings',
             ], 500);
         }
+    }
+
+    public function updatePriceSyncSettings(Request $request): JsonResponse
+    {
+        try {
+            $user = $request->user();
+            if ($user->role !== 'admin' && $user->role !== 'super_admin') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized',
+                ], 403);
+            }
+
+            $validated = $request->validate([
+                'time' => ['required', 'date_format:H:i'],
+                'timezone' => ['required', 'timezone'],
+                'email' => ['required', 'email', 'max:255'],
+                'scope' => ['required', 'in:all,specific'],
+                'skus' => ['nullable', 'string', 'max:20000'],
+            ]);
+
+            $skuList = $this->normalizePriceSyncSkuList($validated['skus'] ?? '');
+            if ($validated['scope'] === 'specific' && empty($skuList)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Add at least one TD SYNNEX SKU/Product ID when syncing specific products.',
+                ], 422);
+            }
+
+            AppSetting::setValue('price_sync.time', $validated['time']);
+            AppSetting::setValue('price_sync.timezone', $validated['timezone']);
+            AppSetting::setValue('price_sync.email', strtolower(trim((string) $validated['email'])));
+            AppSetting::setValue('price_sync.scope', $validated['scope']);
+            AppSetting::setValue('price_sync.skus', implode("\n", $skuList));
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Price sync schedule updated successfully',
+                'data' => $this->getPriceSyncSettingsPayload(),
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Failed to update price sync settings: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update price sync settings: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function runPriceSyncNow(Request $request): JsonResponse
+    {
+        try {
+            $user = $request->user();
+            if ($user->role !== 'admin' && $user->role !== 'super_admin') {
+                return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+            }
+
+            // Check if already running (guard against duplicate spawns)
+            $existing = \App\Models\AppSetting::getValue('price_sync.run_state', []);
+            if (is_array($existing) && ($existing['status'] ?? '') === 'running') {
+                $startedAt  = $existing['started_at'] ?? null;
+                $stuckMins  = $startedAt ? now()->diffInMinutes(\Carbon\Carbon::parse($startedAt)) : 999;
+                if ($stuckMins < 30) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'A sync is already running. Check back for results.',
+                        'data'    => $existing,
+                    ], 409);
+                }
+            }
+
+            // Use scope/skus passed directly from the UI (current textarea content),
+            // so the user does NOT need to save settings before clicking Run Now.
+            $scope = trim((string) $request->input('scope', 'all'));
+            if (!in_array($scope, ['all', 'specific'], true)) {
+                $scope = 'all';
+            }
+            $skusRaw = trim((string) $request->input('skus', ''));
+
+            $scopeLabel = $scope === 'specific' ? 'Specific products' : 'All products in database';
+
+            // Write initial state so UI shows "running" before the process even starts
+            \App\Models\AppSetting::setValue('price_sync.run_state', [
+                'status'      => 'running',
+                'message'     => "Starting — {$scopeLabel}...",
+                'output'      => 'Started at ' . now()->format('Y-m-d H:i:s T') . "\nScope: {$scopeLabel}",
+                'started_at'  => now()->toDateTimeString(),
+                'updated_at'  => now()->toDateTimeString(),
+                'finished_at' => null,
+            ]);
+
+            // Spawn background PHP process — passes scope+skus as command arguments
+            // so the saved AppSetting values are NOT used for this run.
+            $phpBin  = PHP_BINARY;
+            $artisan = base_path('artisan');
+            $scopeArg = escapeshellarg('--scope=' . $scope);
+            $skusArg  = escapeshellarg('--skus=' . $skusRaw);
+
+            if (PHP_OS_FAMILY === 'Windows') {
+                $cmd = sprintf('start "" /B %s %s tdsynnex:refresh-live-prices %s %s',
+                    escapeshellarg($phpBin), escapeshellarg($artisan), $scopeArg, $skusArg);
+                pclose(popen($cmd, 'r'));
+            } else {
+                $cmd = sprintf('%s %s tdsynnex:refresh-live-prices %s %s > /dev/null 2>&1 &',
+                    escapeshellarg($phpBin), escapeshellarg($artisan), $scopeArg, $skusArg);
+                exec($cmd);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => "Price sync started ({$scopeLabel}). You can close this page — results will appear when you return.",
+                'data'    => ['status' => 'running', 'scope' => $scope],
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('runPriceSyncNow failed: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to start price sync: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function getPriceSyncRunState(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if ($user->role !== 'admin' && $user->role !== 'super_admin') {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
+
+        $state = \App\Models\AppSetting::getValue('price_sync.run_state', [
+            'status'      => 'idle',
+            'message'     => 'No sync has been run yet.',
+            'output'      => '',
+            'started_at'  => null,
+            'updated_at'  => null,
+            'finished_at' => null,
+        ]);
+
+        return response()->json(['success' => true, 'data' => $state]);
     }
 
     /**
@@ -4213,6 +4380,9 @@ class AdminController extends Controller
                 'paid_amount' => $invoice->total_amount,
             ]);
 
+            // Submit to TD SYNNEX if this invoice is tied to an approved quote
+            $this->submitTdSynnexOrderForPaidInvoice($invoice->fresh());
+
             return response()->json([
                 'success' => true,
                 'message' => 'Invoice marked as paid',
@@ -4615,5 +4785,189 @@ EOT;
             });
 
         return response()->json(['success' => true, 'results' => array_slice($results, 0, 10)]);
+    }
+
+    /**
+     * Submit a TD SYNNEX order for an invoice that has just been marked paid.
+     * Mirrors the Stripe webhook auto-conversion flow for admin-triggered payments.
+     */
+    private function submitTdSynnexOrderForPaidInvoice(Invoice $invoice): void
+    {
+        try {
+            // Extract quote_id from invoice notes (QUOTE:xxx) or raw_data
+            $rawData = is_array($invoice->raw_data) ? $invoice->raw_data : [];
+            $quoteId = trim((string) ($rawData['quote_id'] ?? ''));
+            if ($quoteId === '') {
+                if (preg_match('/QUOTE:([A-Za-z0-9\-]+)/', (string) ($invoice->notes ?? ''), $m)) {
+                    $quoteId = trim((string) ($m[1] ?? ''));
+                }
+            }
+            if ($quoteId === '') {
+                return;
+            }
+
+            $quote = Quote::with('user', 'user.company.addresses')
+                ->where('user_id', $invoice->user_id)
+                ->where('quote_id', $quoteId)
+                ->first();
+
+            if (!$quote) {
+                Log::warning("submitTdSynnexOrderForPaidInvoice: quote {$quoteId} not found for invoice {$invoice->invoice_number}");
+                return;
+            }
+
+            $existingOrder = Order::where('quote_id', $quote->quote_id)->first();
+            if ($existingOrder && $existingOrder->status !== 'failed') {
+                if (empty($invoice->order_number)) {
+                    $invoice->update(['order_number' => $existingOrder->order_number]);
+                }
+                return;
+            }
+
+            $items = is_array($quote->items) ? $quote->items : [];
+            $lineItems = array_map(function ($item, $index) {
+                if (!is_array($item)) {
+                    $item = [];
+                }
+                $qty = max(1, (int) ($item['quantity'] ?? 1));
+                $partNumber = $this->resolveTdPartNumber($item);
+                $description = (string) ($item['name'] ?? $item['description'] ?? $this->resolveOrderItemName($item) ?? 'Product');
+                $unitPrice = $this->resolveTdUnitPrice($item);
+                return [
+                    'lineNumber' => (string) ($index + 1),
+                    'partNumber' => $partNumber,
+                    'partDescription' => $description,
+                    'quantity' => $qty,
+                    'unitPrice' => (string) number_format($unitPrice, 2, '.', ''),
+                    'extendedPrice' => (string) number_format(($unitPrice * $qty), 2, '.', ''),
+                ];
+            }, $items, array_keys($items));
+
+            $invalidSkuLines = array_values(array_filter($lineItems, function ($line) {
+                $sku = trim((string) ($line['partNumber'] ?? ''));
+                return $sku === '' || str_starts_with(strtoupper($sku), 'PART-');
+            }));
+
+            if (!empty($invalidSkuLines)) {
+                Log::warning('submitTdSynnexOrderForPaidInvoice blocked: invalid SKU lines', [
+                    'quote_id' => $quote->quote_id,
+                    'invoice_number' => $invoice->invoice_number,
+                    'invalid_lines' => $invalidSkuLines,
+                ]);
+                Message::createMessage(
+                    $quote->user_id,
+                    'order',
+                    'Order pending SKU validation',
+                    "Invoice {$invoice->invoice_number} is paid but the order requires SKU validation by support before submission.",
+                    $quote->quote_id,
+                    'high'
+                );
+                return;
+            }
+
+            $company = $quote->user->company ?? null;
+            $shipAddr = $company ? $company->getDefaultShippingAddress() : null;
+            $billAddr = $company ? $company->getDefaultBillingAddress() : null;
+            $effectiveShipAddr = $shipAddr ?? $billAddr;
+            $effectiveBillAddr = $billAddr ?? $shipAddr;
+
+            $shippingAmount = (float) (is_array($invoice->raw_data) ? ($invoice->raw_data['shipping_amount'] ?? 0) : 0);
+
+            $orderData = [
+                'poNumber' => $quote->quote_id,
+                'poDate' => now()->format('Y-m-d'),
+                'shipDate' => now()->addDays(7)->format('Y-m-d'),
+                'vendor' => ['vendorId' => '12345', 'vendorName' => 'Armely Store'],
+                'billTo' => [
+                    'companyName' => $company->name ?? 'Company',
+                    'address1' => $effectiveBillAddr->street_1 ?? '',
+                    'address2' => $effectiveBillAddr->street_2 ?? '',
+                    'city' => $effectiveBillAddr->city ?? '',
+                    'state' => $effectiveBillAddr->state ?? '',
+                    'postalCode' => $effectiveBillAddr->postal_code ?? '',
+                    'country' => $effectiveBillAddr->country ?? 'US',
+                    'contactEmail' => $quote->user->email ?? '',
+                    'contactPhone' => $effectiveBillAddr->contact_phone ?? $quote->user->phone ?? '',
+                ],
+                'shipTo' => [
+                    'companyName' => $company->name ?? 'Company',
+                    'address1' => $effectiveShipAddr->street_1 ?? '',
+                    'address2' => $effectiveShipAddr->street_2 ?? '',
+                    'city' => $effectiveShipAddr->city ?? '',
+                    'state' => $effectiveShipAddr->state ?? '',
+                    'postalCode' => $effectiveShipAddr->postal_code ?? '',
+                    'country' => $effectiveShipAddr->country ?? 'US',
+                    'contactName' => $effectiveShipAddr->contact_name ?? $quote->user->name ?? '',
+                    'contactPhone' => $effectiveShipAddr->contact_phone ?? $quote->user->phone ?? '',
+                ],
+                'poLine' => $lineItems,
+                'poTotal' => (string) number_format((float) ($quote->total_amount ?? 0), 2, '.', ''),
+                'poTax' => (string) number_format((float) ($quote->tax_amount ?? 0), 2, '.', ''),
+                'poFreight' => (string) number_format($shippingAmount, 2, '.', ''),
+            ];
+
+            $tdService = app(TDSynnexService::class);
+            $tdResponse = $tdService->placeOrder($orderData);
+
+            $orderNumber = $this->findOrderNumber($tdResponse);
+            if (!$orderNumber) {
+                $orderNumber = 'ORD-' . now()->format('Y') . '-' . strtoupper(substr(md5($quote->quote_id . time()), 0, 6));
+            }
+
+            $normalizedPayload = $this->normalizeTdOrderStatusPayload($tdResponse);
+            $localStatus = $this->mapCanonicalToLocalOrderStatus($normalizedPayload['normalized_status'] ?? null);
+
+            $orderPayload = [
+                'user_id' => $quote->user_id,
+                'order_number' => $orderNumber,
+                'quote_id' => $quote->quote_id,
+                'tdsynnex_order_id' => $orderNumber,
+                'status' => $localStatus,
+                'payment_status' => 'paid',
+                'total_amount' => $quote->total_amount,
+                'tax_amount' => $quote->tax_amount,
+                'discount_amount' => $quote->discount_amount,
+                'shipping_amount' => $shippingAmount,
+                'items' => $quote->items,
+                'raw_data' => $tdResponse,
+                'ordered_at' => now(),
+            ];
+
+            if ($existingOrder && $existingOrder->status === 'failed') {
+                $existingOrder->update($orderPayload);
+                $order = $existingOrder;
+            } else {
+                $order = Order::create($orderPayload);
+            }
+
+            if ($quote->status !== 'approved') {
+                $quote->update(['status' => 'approved', 'approved_at' => now()]);
+            }
+
+            $invoice->update(['order_number' => $order->order_number]);
+
+            $this->notificationService->sendOrderConfirmationNotification($order);
+
+            Message::createMessage(
+                $order->user_id,
+                'order',
+                'Order submitted',
+                "Invoice paid. Order {$order->order_number} has been submitted to fulfillment.",
+                $order->order_number,
+                'normal',
+                [
+                    'quote_id' => $quote->quote_id,
+                    'invoice_id' => $invoice->id,
+                    'order_number' => $order->order_number,
+                ]
+            );
+
+            Log::info("TD SYNNEX order {$orderNumber} submitted after admin payment of invoice {$invoice->invoice_number}");
+        } catch (\Throwable $e) {
+            Log::error('submitTdSynnexOrderForPaidInvoice failed: ' . $e->getMessage(), [
+                'invoice_id' => $invoice->id,
+                'invoice_number' => $invoice->invoice_number ?? '',
+            ]);
+        }
     }
 }

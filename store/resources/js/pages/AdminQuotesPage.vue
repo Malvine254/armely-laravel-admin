@@ -108,7 +108,7 @@
       </div>
     </div>
 
-    <!-- Loading -->
+    <!-- Loading (initial only — background refreshes don't trigger this) -->
     <div v-if="isLoading" class="flex justify-center py-12">
       <svg class="animate-spin h-8 w-8 text-[#2F5597]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -533,6 +533,7 @@ const showFullRowDetails = ref(false)
 const isLoadingQuoteDetails = ref(false)
 const isSubmitting = ref(false)
 const isLoading = ref(false)
+const isRefreshing = ref(false)
 const stats = ref({
   total: 0,
   pending: 0,
@@ -772,8 +773,12 @@ const formatStatus = (status) => {
   return String(status).replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
 }
 
-const fetchQuotes = async () => {
-  isLoading.value = true
+const fetchQuotes = async ({ background = false } = {}) => {
+  if (background) {
+    isRefreshing.value = true
+  } else {
+    isLoading.value = true
+  }
   try {
     const response = await api.get('/admin/quotes', {
       params: {
@@ -784,7 +789,7 @@ const fetchQuotes = async () => {
         sortBy: sortBy.value || undefined
       }
     })
-    
+
     if (response.data.success) {
       quotes.value = (response.data.data || []).filter((quote) => {
         const status = String(quote?.status || '').toLowerCase()
@@ -795,9 +800,12 @@ const fetchQuotes = async () => {
     }
   } catch (error) {
     console.error('[fetchQuotes] Failed to fetch quotes:', error)
-    alert('Failed to fetch quotes: ' + error.message)
+    if (!background) {
+      alert('Failed to fetch quotes: ' + error.message)
+    }
   } finally {
     isLoading.value = false
+    isRefreshing.value = false
   }
 }
 
@@ -954,11 +962,11 @@ onMounted(() => {
   syncFiltersFromRoute()
   fetchStats()
   fetchQuotes()
-  // Refresh stats and quotes every 30 seconds to catch new submissions
+  // Background refresh every 2 minutes — won't show loading overlay
   pollInterval = setInterval(() => {
     fetchStats()
-    fetchQuotes()
-  }, 30_000)
+    fetchQuotes({ background: true })
+  }, 120_000)
 })
 
 onUnmounted(() => {
@@ -969,7 +977,7 @@ watch(
   () => route.query,
   () => {
     syncFiltersFromRoute()
-    fetchQuotes()
+    fetchQuotes({ background: quotes.value.length > 0 })
   }
 )
 </script>

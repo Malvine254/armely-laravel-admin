@@ -71,9 +71,16 @@ $actions = [
     ],
     'price_sync' => [
         'label' => 'Price & Catalog Sync',
-        'help' => 'Run TD SYNNEX PriceAvailability catalog sync (queued - requires queue worker running).',
+        'help' => 'Run TD SYNNEX PriceAvailability catalog sync (updates product list from TD SYNNEX).',
         'commands' => [
             ['name' => 'tdsynnex:sync-priceavailability-products', 'params' => []],
+        ],
+    ],
+    'run_live_price_refresh' => [
+        'label' => 'Run Live Price Refresh Now',
+        'help' => 'Immediately poll TD SYNNEX for latest prices and availability, and send status email. Same job the scheduler runs at your configured sync time.',
+        'commands' => [
+            ['name' => 'tdsynnex:refresh-live-prices', 'params' => []],
         ],
     ],
     'build_frontend' => [

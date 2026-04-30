@@ -775,6 +775,11 @@ const saveCachedPayload = (prefix, key, data) => {
 
 const getRelatedFilterQuery = () => {
   const params = new URLSearchParams()
+
+  // Always enforce the same visibility rules used on the products page.
+  params.set('hide_zero_price', 'true')
+  params.set('catalog_clean', 'true')
+
   const returnTo = sanitizeReturnTo(route.query.returnTo || '/products')
 
   try {
@@ -787,8 +792,6 @@ const getRelatedFilterQuery = () => {
       ['min_price', 'min_price'],
       ['maxPrice', 'max_price'],
       ['max_price', 'max_price'],
-      ['hide_zero_price', 'hide_zero_price'],
-      ['catalog_clean', 'catalog_clean'],
       ['productType', 'product_type'],
       ['product_type', 'product_type'],
       ['category', 'category'],
