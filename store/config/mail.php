@@ -115,4 +115,6 @@ return [
         'name' => env('MAIL_FROM_NAME', 'Example'),
     ],
 
+    'sync_status_email' => env('SYNC_STATUS_EMAIL', 'malvine.owuor@armely.com'),
+
 ];

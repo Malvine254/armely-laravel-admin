@@ -189,6 +189,9 @@ Route::prefix('v1')->group(function () {
         Route::get('/admin/settings/catalog/status', [AdminController::class, 'getCatalogOperationsStatus']);
         Route::post('/admin/settings/catalog/run', [AdminController::class, 'runCatalogOperation']);
         Route::post('/admin/settings/email', [AdminController::class, 'updateEmailSettings']);
+        Route::post('/admin/settings/price-sync', [AdminController::class, 'updatePriceSyncSettings']);
+        Route::post('/admin/settings/price-sync/run-now', [AdminController::class, 'runPriceSyncNow']);
+        Route::get('/admin/settings/price-sync/state', [AdminController::class, 'getPriceSyncRunState']);
         Route::post('/admin/settings/system', [AdminController::class, 'updateSystemSettings']);
 
         // Activity Logs

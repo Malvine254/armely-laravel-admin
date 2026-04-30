@@ -44,6 +44,22 @@ return Application::configure(basePath: dirname(__DIR__))
             ->name('sync-product-prices')
             ->withoutOverlapping();
 
+        $priceSyncTime = (string) \App\Models\AppSetting::getValue('price_sync.time', '18:00');
+        if (!preg_match('/^\d{2}:\d{2}$/', $priceSyncTime)) {
+            $priceSyncTime = '18:00';
+        }
+
+        $priceSyncTimezone = (string) \App\Models\AppSetting::getValue('price_sync.timezone', 'Africa/Nairobi');
+        if (!in_array($priceSyncTimezone, timezone_identifiers_list(), true)) {
+            $priceSyncTimezone = 'Africa/Nairobi';
+        }
+
+        $schedule->job(\App\Jobs\RefreshLivePricesJob::class, 'products-sync', 'database')
+            ->dailyAt($priceSyncTime)
+            ->timezone($priceSyncTimezone)
+            ->name('refresh-live-prices-6pm-kenya')
+            ->withoutOverlapping();
+
         $schedule->job(new \App\Jobs\SyncPriceAvailabilityCatalogJob(true), 'products-sync', 'database')
             ->hourly()
             ->name('sync-priceavailability-catalog')

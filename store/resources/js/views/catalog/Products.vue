@@ -181,7 +181,7 @@
             </div>
 
             <!-- Products Grid (3 columns on desktop, 2 on tablet, 1 on mobile) -->
-            <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8 transition-opacity duration-200" :class="{ 'opacity-50 pointer-events-none': pageLoading }">
+            <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
               <div v-for="product in paginatedProducts" :key="product.productId" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden group hover:shadow-lg transition" style="border: 1px solid rgb(229, 231, 235);" @mouseenter="$event.currentTarget.style.borderColor='#cce4f5'" @mouseleave="$event.currentTarget.style.borderColor='rgb(229, 231, 235)'">
                 <!-- Product Image -->
                 <div class="bg-white h-48 flex items-center justify-center transition relative overflow-hidden border-b border-gray-100">
@@ -191,8 +191,8 @@
                     :src="getPrimaryImageUrl(product)"
                     :alt="product.productName"
                     class="w-full h-full object-contain p-2"
-                    :loading="paginatedProducts.indexOf(product) < 2 ? 'eager' : 'lazy'"
-                    :fetchpriority="paginatedProducts.indexOf(product) === 0 ? 'high' : 'auto'"
+                    :loading="paginatedProducts.indexOf(product) < 6 ? 'eager' : 'lazy'"
+                    :fetchpriority="paginatedProducts.indexOf(product) < 3 ? 'high' : 'auto'"
                     decoding="async"
                     sizes="(min-width: 1024px) 320px, (min-width: 768px) 50vw, 100vw"
                     width="320" height="160"
@@ -1130,8 +1130,12 @@ const rankProductsByPersonalization = (items) => {
 const filteredProducts = computed(() => {
   // Access currentFilters.value to establish dependency
   const filters = currentFilters.value
-  
-  let filtered = products.value
+
+  // Always strip zero-price products client-side regardless of what the API returned.
+  let filtered = products.value.filter((p) => {
+    const price = Number(p?.productPrice?.[0]?.rsPrice ?? p?.price ?? 0)
+    return price > 0
+  })
 
   // Filter by part number
   if (filters.partNumber && String(filters.partNumber).trim().length > 0) {

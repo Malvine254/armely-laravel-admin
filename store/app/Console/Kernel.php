@@ -18,12 +18,26 @@ class Kernel extends ConsoleKernel
             ->name('check-expiring-quotes')
             ->withoutOverlapping();
 
-        // Poll TD Synnex every 2 hours and write into live_* shadow columns only.
+        // Daily 6:00 PM Kenya time: poll TD SYNNEX PriceAvailability and email status.
         // This does NOT change displayed prices — it just captures the latest data.
-        $schedule->job(\App\Jobs\RefreshLivePricesJob::class, 'products-sync', 'database')
-            ->everyTwoHours()
-            ->name('refresh-live-prices')
-            ->withoutOverlapping();
+        $priceSyncTime = (string) \App\Models\AppSetting::getValue('price_sync.time', '18:00');
+        if (!preg_match('/^\d{2}:\d{2}$/', $priceSyncTime)) {
+            $priceSyncTime = '18:00';
+        }
+
+        $priceSyncTimezone = (string) \App\Models\AppSetting::getValue('price_sync.timezone', 'Africa/Nairobi');
+        if (!in_array($priceSyncTimezone, timezone_identifiers_list(), true)) {
+            $priceSyncTimezone = 'Africa/Nairobi';
+        }
+
+        // Run as a command (synchronous Artisan call) so it works without a queue worker.
+        // Sends started + completed/failed emails via AzureGraphMailService.
+        $schedule->command('tdsynnex:refresh-live-prices')
+            ->dailyAt($priceSyncTime)
+            ->timezone($priceSyncTimezone)
+            ->name('refresh-live-prices-6pm-kenya')
+            ->withoutOverlapping()
+            ->runInBackground();
 
         // Midnight: compare live_* shadow columns against main columns and apply any changes
         // to base_price, retail_price, quantity, is_available. This is the only time
