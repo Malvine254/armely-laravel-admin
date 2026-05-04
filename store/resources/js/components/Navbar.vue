@@ -43,17 +43,17 @@
             <transition enter-active-class="transition ease-out duration-150" enter-from-class="opacity-0 translate-y-1" enter-to-class="opacity-100 translate-y-0" leave-active-class="transition ease-in duration-100" leave-from-class="opacity-100 translate-y-0" leave-to-class="opacity-0 translate-y-1">
               <div v-if="categoryDropdownOpen === cat.value" class="absolute left-0 mt-1 w-64 rounded-xl shadow-2xl overflow-hidden z-50 border border-white/20" style="background: #122d58;">
                 <div class="px-4 py-2.5 border-b border-white/20">
-                  <p class="text-xs font-semibold text-white uppercase tracking-widest">{{ cat.name }} Brands</p>
+                  <p class="text-xs font-semibold text-white uppercase tracking-widest">{{ cat.name }} Subcategories</p>
                 </div>
                 <div class="py-1.5">
                   <button
-                    v-for="brand in categoryBrandsMap[cat.value] || []"
-                    :key="`${cat.value}-${brand.value}`"
+                    v-for="sub in cat.children"
+                    :key="`${cat.value}-${sub.value}`"
                     type="button"
                     class="w-full text-left px-4 py-2.5 text-sm text-slate-200 hover:bg-white/10 hover:text-cyan-300 transition"
-                    @click="browseCategoryVendor(cat.value, brand.value)"
+                    @click="browseProducts(sub.value)"
                   >
-                    {{ brand.label }}
+                    {{ sub.name }}
                   </button>
                   <button
                     type="button"
@@ -80,7 +80,7 @@
               </svg>
             </button>
             <transition enter-active-class="transition ease-out duration-150" enter-from-class="opacity-0 translate-y-1" enter-to-class="opacity-100 translate-y-0" leave-active-class="transition ease-in duration-100" leave-from-class="opacity-100 translate-y-0" leave-to-class="opacity-0 translate-y-1">
-              <div v-if="moreCategoriesOpen" class="absolute left-0 mt-1 w-64 rounded-xl shadow-2xl overflow-visible z-50 border border-white/20" style="background: #122d58;">
+              <div v-if="moreCategoriesOpen" class="absolute left-0 mt-1 w-80 rounded-xl shadow-2xl overflow-visible z-50 border border-white/20" style="background: #122d58;">
                 <div class="px-4 py-2.5 border-b border-white/20">
                   <p class="text-xs font-semibold text-white uppercase tracking-widest">More Categories</p>
                 </div>
@@ -88,46 +88,26 @@
                   <div
                     v-for="cat in overflowCategories"
                     :key="cat.value"
-                    class="relative"
-                    @mouseenter="moreCategoryDropdownOpen = cat.value"
-                    @mouseleave="moreCategoryDropdownOpen = null"
+                    class="border-b border-white/10 last:border-none"
                   >
                     <button
                       type="button"
-                      class="w-full flex items-center justify-between text-left px-4 py-2.5 text-sm text-slate-200 hover:bg-white/10 hover:text-cyan-300 transition"
+                      class="w-full text-left px-4 py-2.5 text-sm font-semibold text-slate-200 hover:bg-white/10 hover:text-cyan-300 transition"
                       @click="browseProducts(cat.value)"
                     >
-                      <span>{{ cat.name }}</span>
-                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                      </svg>
+                      {{ cat.name }}
                     </button>
-
-                    <transition enter-active-class="transition ease-out duration-150" enter-from-class="opacity-0 translate-x-1" enter-to-class="opacity-100 translate-x-0" leave-active-class="transition ease-in duration-100" leave-from-class="opacity-100 translate-x-0" leave-to-class="opacity-0 translate-x-1">
-                      <div v-if="moreCategoryDropdownOpen === cat.value" class="absolute left-full top-0 ml-1 w-60 rounded-xl shadow-2xl overflow-hidden z-[60] border border-white/20" style="background: #122d58;">
-                        <div class="px-4 py-2.5 border-b border-white/20">
-                          <p class="text-xs font-semibold text-white uppercase tracking-widest">{{ cat.name }} Brands</p>
-                        </div>
-                        <div class="py-1.5">
-                          <button
-                            v-for="brand in categoryBrandsMap[cat.value] || []"
-                            :key="`${cat.value}-more-${brand.value}`"
-                            type="button"
-                            class="w-full text-left px-4 py-2.5 text-sm text-slate-200 hover:bg-white/10 hover:text-cyan-300 transition"
-                            @click="browseCategoryVendor(cat.value, brand.value)"
-                          >
-                            {{ brand.label }}
-                          </button>
-                          <button
-                            type="button"
-                            class="w-full text-left px-4 py-2.5 text-sm text-cyan-300 hover:bg-white/10 transition"
-                            @click="browseProducts(cat.value)"
-                          >
-                            View all in {{ cat.name }}
-                          </button>
-                        </div>
-                      </div>
-                    </transition>
+                    <div v-if="cat.children?.length > 0" class="px-4 pb-3">
+                      <button
+                        v-for="sub in cat.children"
+                        :key="`${cat.value}-${sub.value}`"
+                        type="button"
+                        class="w-full text-left px-4 py-2 text-sm text-slate-200 hover:bg-white/10 hover:text-cyan-300 transition"
+                        @click="browseProducts(sub.value)"
+                      >
+                        {{ sub.name }}
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -234,7 +214,20 @@
               <svg class="w-4 h-4 transition-transform" :class="mobileProductsOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
             </button>
             <div v-if="mobileProductsOpen" style="background: #122d58;">
-              <button v-for="cat in productCategories" :key="cat.value" type="button" @click="browseProducts(cat.value)" class="w-full text-left px-8 py-2.5 text-sm text-slate-300 hover:bg-white/10 transition">{{ cat.name }}</button>
+              <div v-for="cat in productCategories" :key="cat.value">
+                <button type="button" @click="browseProducts(cat.value)" class="w-full text-left px-8 py-2.5 text-sm text-slate-300 hover:bg-white/10 transition">{{ cat.name }}</button>
+                <div v-if="cat.children?.length > 0" class="pl-10">
+                  <button
+                    v-for="sub in cat.children"
+                    :key="`${cat.value}-${sub.value}`"
+                    type="button"
+                    @click="browseProducts(sub.value)"
+                    class="w-full text-left px-8 py-2 text-sm text-slate-300 hover:bg-white/10 transition"
+                  >
+                    {{ sub.name }}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
           <template v-if="authStore.isAuthenticated">
@@ -277,7 +270,6 @@ const toastStore = useToastStore()
 const mobileMenuOpen = ref(false)
 const categoryDropdownOpen = ref(null)
 const moreCategoriesOpen = ref(false)
-const moreCategoryDropdownOpen = ref(null)
 const mobileProductsOpen = ref(false)
 
 const productCategories = ref([])
@@ -288,22 +280,27 @@ const MENU_CATEGORIES_HARD_TTL_MS = 7 * 24 * 60 * 60 * 1000
 const primaryCategories = computed(() => productCategories.value.slice(0, 3))
 const overflowCategories = computed(() => productCategories.value.slice(3))
 
-const categoryBrandsMap = computed(() => {
-  const map = {}
-  for (const cat of productCategories.value) {
-    map[cat.name] = cat.brands || []
-  }
-  return map
-})
-
 const normalizeMenuCategories = (rows) => {
   if (!Array.isArray(rows)) return []
 
   return rows
     .map(cat => ({
+      id: cat?.id,
       name: cat?.name,
-      value: cat?.name,
-      brands: Array.isArray(cat?.brands) ? cat.brands : [],
+      slug: cat?.slug,
+      value: cat?.value ?? cat?.slug ?? cat?.name,
+      segment_code: cat?.segment_code,
+      children: Array.isArray(cat?.children)
+        ? cat.children
+            .map(child => ({
+              id: child?.id,
+              name: child?.name,
+              slug: child?.slug,
+              value: child?.value ?? child?.slug ?? child?.name,
+              segment_code: child?.segment_code,
+            }))
+            .filter(child => typeof child.name === 'string' && child.name.trim() !== '')
+        : [],
     }))
     .filter(cat => typeof cat.name === 'string' && cat.name.trim() !== '')
 }
@@ -483,7 +480,6 @@ const closeAll = () => {
   mobileMenuOpen.value = false
   categoryDropdownOpen.value = null
   moreCategoriesOpen.value = false
-  moreCategoryDropdownOpen.value = null
   mobileProductsOpen.value = false
 }
 

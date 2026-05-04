@@ -1389,7 +1389,7 @@ class AdminController extends Controller
             ]);
 
             $tdsynnexService = app(TDSynnexService::class);
-            $tdResponse = $tdsynnexService->placeOrder($orderData);
+            $tdResponse = $tdsynnexService->placeOrder($orderData, 'us', false);
             
             // Log full response for debugging
             \Log::debug('Order submission response details', [
@@ -2069,7 +2069,7 @@ class AdminController extends Controller
                 if ($order->tdsynnex_order_id || !str_starts_with((string) $order->order_number, 'ORD-')) {
                     try {
                         $poNumber = $order->po_number ?? $order->order_number;
-                        $poResponse = $tdsynnexService->checkPoStatus($poNumber);
+                        $poResponse = $tdsynnexService->checkPoStatus($poNumber, 'us', false);
                         if (is_array($poResponse) && !isset($poResponse['error'])) {
                             $liveStatus = $poResponse;
                             $packages = $this->extractPackagesFromPoStatus($poResponse);
@@ -4907,7 +4907,7 @@ EOT;
             ];
 
             $tdService = app(TDSynnexService::class);
-            $tdResponse = $tdService->placeOrder($orderData);
+            $tdResponse = $tdService->placeOrder($orderData, 'us', false);
 
             $orderNumber = $this->findOrderNumber($tdResponse);
             if (!$orderNumber) {
