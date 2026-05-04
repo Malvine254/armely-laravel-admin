@@ -124,7 +124,7 @@
     position: fixed;
     left: 0;
     right: 0;
-    background: #2F5597;
+    background: #2f5597;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     z-index: 9998;
     max-height: 80vh;
@@ -152,6 +152,7 @@
 .mobile-dropdown-menu a {
     display: block;
     padding: 14px 20px;
+    background: #2f5597;
     color: #fff;
     text-decoration: none;
     font-size: 15px;
@@ -165,7 +166,7 @@
 }
 .mobile-dropdown-menu .dropdown {
     display: none;
-    background: #2F5597;
+    background: #2f5597;
 }
 .mobile-dropdown-menu .dropdown.open {
     display: block;
@@ -174,6 +175,7 @@
     padding-left: 35px;
     padding-top: 13px;
     padding-bottom: 13px;
+    background: #2f5597;
     font-size: 14px;
     color: #fff;
 }
@@ -181,6 +183,7 @@
     padding-left: 50px;
     padding-top: 12px;
     padding-bottom: 12px;
+    background: #2f5597;
     font-size: 13px;
     color: #fff;
 }

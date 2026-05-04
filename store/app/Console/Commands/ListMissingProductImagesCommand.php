@@ -102,8 +102,8 @@ class ListMissingProductImagesCommand extends Command
         $this->info("💡 Naming convention: Use PRODUCT_ID.jpg for your image files");
         $this->info("   Example: 15204339.jpg");
         $this->newLine();
-        $this->info("📁 Place images in: public/uploads/products/");
-        $this->info("⏱️  Then run: php artisan products:sync-manual-images --by-id");
+        $this->info("📁 Place images in: public/images/products/");
+        $this->info("⏱️  Then run: php artisan products:sync-manual-images");
 
         return self::SUCCESS;
     }

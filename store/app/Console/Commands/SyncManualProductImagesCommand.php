@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Storage;
  *
  * Usage:
  *   php artisan products:sync-manual-images
- *     Scans public/uploads/products/ and updates images by PRODUCT ID
+ *     Scans public/images/products/ and updates images by PRODUCT ID
  *
  *   php artisan products:sync-manual-images --by-sku
  *     Match images by TD SYNNEX SKU instead
@@ -25,8 +25,9 @@ use Illuminate\Support\Facades\Storage;
 class SyncManualProductImagesCommand extends Command
 {
     protected $signature = 'products:sync-manual-images
-                            {--folder=public/uploads/products : Folder to scan for images}
+                            {--folder=public/images/products : Folder to scan for images}
                             {--by-sku                         : Match images by TD SYNNEX SKU}
+                            {--force                          : Replace existing product images}
                             {--dry-run                        : Preview changes without updating}
                             {--quiet-output                   : Suppress per-product lines}';
 
@@ -37,6 +38,7 @@ class SyncManualProductImagesCommand extends Command
         $folderPath = $this->option('folder');
         $byId       = !$this->option('by-sku');
         $bySku      = $this->option('by-sku');
+        $force      = (bool) $this->option('force');
         $dryRun     = $this->option('dry-run');
         $quiet      = $this->option('quiet-output');
 
@@ -55,7 +57,10 @@ class SyncManualProductImagesCommand extends Command
             return self::FAILURE;
         }
 
+        $publicRelativeDir = $this->publicRelativeDirectory($folderPath);
+
         $this->info("Scanning folder: {$folderPath}");
+        $this->info("Public URL path: /{$publicRelativeDir}/");
         $this->info("Match mode: " . ($byId ? 'BY PRODUCT ID' : 'BY TD SYNNEX SKU'));
         if ($dryRun) {
             $this->warn('DRY-RUN MODE — no database changes will be made');
@@ -115,14 +120,32 @@ class SyncManualProductImagesCommand extends Command
             }
 
             // Build image URL/path that will be stored
-            $imagePath = 'uploads/products/' . $filename;
-            $imageUrl  = url('/store/' . $imagePath);
+            $imagePath = $publicRelativeDir . '/' . $filename;
+            $imageUrl  = '/' . $imagePath;
 
             // Check if product already has images
             $existingImages = is_array($product->images) ? $product->images : [];
             $imageCount     = count($existingImages);
 
-            if ($imageCount > 0 && !$this->option('force')) {
+            if ($imageCount > 0 && !$force) {
+                $repairedImages = $this->repairLocalImageUrls($existingImages, $imagePath, $imageUrl);
+                if ($repairedImages !== $existingImages) {
+                    if (!$dryRun) {
+                        try {
+                            $product->update(['images' => $repairedImages]);
+                            $updated++;
+                        } catch (\Exception $e) {
+                            if (!$quiet) {
+                                $this->line("ERROR   {$filename} - " . $e->getMessage());
+                            }
+                            $failed++;
+                        }
+                    } else {
+                        $updated++;
+                    }
+                    continue;
+                }
+
                 if (!$quiet) {
                     $this->line("⊘ SKIP   {$filename} — product already has {$imageCount} image(s)");
                 }
@@ -140,7 +163,7 @@ class SyncManualProductImagesCommand extends Command
             ];
 
             // Update product images
-            $updatedImages = array_merge($existingImages, [$newImage]);
+            $updatedImages = $force ? [$newImage] : array_merge($existingImages, [$newImage]);
 
             if (!$dryRun) {
                 try {
@@ -209,5 +232,66 @@ class SyncManualProductImagesCommand extends Command
         }
 
         return $images;
+    }
+
+    /**
+     * Convert an absolute folder under public/ into the URL path stored in products.images.
+     */
+    private function publicRelativeDirectory(string $folderPath): string
+    {
+        $publicPath = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, public_path());
+        $folderPath = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $folderPath);
+
+        $publicPath = rtrim($publicPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+        $folderPath = rtrim($folderPath, DIRECTORY_SEPARATOR);
+
+        if (str_starts_with($folderPath . DIRECTORY_SEPARATOR, $publicPath)) {
+            $relativePath = substr($folderPath, strlen($publicPath));
+
+            return trim(str_replace(DIRECTORY_SEPARATOR, '/', $relativePath), '/');
+        }
+
+        return trim((string) config('tdsynnex.local_images.url_prefix', '/images/products'), '/');
+    }
+
+    private function repairLocalImageUrls(array $images, string $imagePath, string $imageUrl): array
+    {
+        $changed = false;
+        $expectedFile = basename($imagePath);
+
+        foreach ($images as $index => $image) {
+            if (!is_array($image)) {
+                continue;
+            }
+
+            $currentUrl = trim((string) ($image['imageUrl'] ?? ''));
+            $currentPath = trim((string) ($image['imagePath'] ?? ''));
+            $currentFile = basename(parse_url($currentUrl, PHP_URL_PATH) ?: $currentPath);
+            $currentStem = strtolower(pathinfo($currentFile, PATHINFO_FILENAME));
+            $expectedStem = strtolower(pathinfo($expectedFile, PATHINFO_FILENAME));
+
+            $isBadUploadUrl = str_contains($currentUrl, '/uploads/products/');
+            $isLocalAbsoluteUrl = str_starts_with($currentUrl, 'http://127.0.0.1:8001/images/products/')
+                || str_starts_with($currentUrl, 'http://localhost:8001/images/products/');
+            $isMissingLocalUrl = str_contains($currentUrl, '/images/products/')
+                && $currentFile !== ''
+                && !file_exists(public_path('images/products/' . $currentFile));
+
+            $isSameFile = strcasecmp($currentFile, $expectedFile) === 0;
+            $isSameImageWithWrongExtension = $currentStem !== ''
+                && $currentStem === $expectedStem
+                && $isMissingLocalUrl;
+
+            if ((!$isSameFile && !$isSameImageWithWrongExtension) || (!$isBadUploadUrl && !$isLocalAbsoluteUrl && !$isMissingLocalUrl)) {
+                continue;
+            }
+
+            $images[$index]['fileName'] = $images[$index]['fileName'] ?? $expectedFile;
+            $images[$index]['imagePath'] = $imagePath;
+            $images[$index]['imageUrl'] = $imageUrl;
+            $changed = true;
+        }
+
+        return $changed ? array_values($images) : $images;
     }
 }

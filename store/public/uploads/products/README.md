@@ -15,7 +15,7 @@
    This creates a CSV file you can use with image management tools.
 
 3. **Save images with the correct naming convention:**
-   - Place image files in this folder: `public/uploads/products/`
+   - Place image files in this folder: `public/images/products/`
    - **Name format: `{PRODUCT_ID}.jpg`**
    - Example: `15204339.jpg`
 
@@ -46,8 +46,8 @@ Images are stored in the `products.images` JSON column with this structure:
 [
   {
     "fileName": "15204339.jpg",
-    "imagePath": "uploads/products/15204339.jpg",
-    "imageUrl": "http://localhost:8001/store/uploads/products/15204339.jpg",
+    "imagePath": "images/products/15204339.jpg",
+    "imageUrl": "/images/products/15204339.jpg",
     "source": "manual",
     "addedAt": "2026-05-04T10:30:00Z"
   }
@@ -87,6 +87,9 @@ php artisan products:sync-manual-images --quiet-output
 
 # Match by SKU instead (if you named files by SKU)
 php artisan products:sync-manual-images --by-sku
+
+# Replace existing image JSON with the matching local image URL
+php artisan products:sync-manual-images --force
 ```
 
 ## Tips

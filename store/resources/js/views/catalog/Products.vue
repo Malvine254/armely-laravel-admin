@@ -221,6 +221,10 @@
                       <svg v-else class="w-16 h-16 mx-auto mb-2 text-gray-500" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
                       </svg>
+                      <p class="text-xs text-gray-500">Image not available</p>
+                      <p class="mt-1 px-2 text-[11px] font-mono text-gray-600 break-all">
+                        Save as: {{ getExpectedImageFileName(product) }}
+                      </p>
                     </div>
                   </template>
                 </div>
@@ -1993,6 +1997,41 @@ const getProductVendor = (product) => {
     product?.manufacturer_name ||
     'N/A'
   )
+}
+
+const fileNameFromImageValue = (value) => {
+  const rawUrl = String(value || '').trim()
+  if (!rawUrl) return ''
+
+  const path = rawUrl.split('?')[0].split('#')[0]
+  const fileName = path.split('/').filter(Boolean).pop() || ''
+
+  return /\.(?:jpg|jpeg|png|gif|webp|avif)$/i.test(fileName) ? fileName : ''
+}
+
+const getExpectedImageFileName = (product) => {
+  const imageSources = [
+    ...(Array.isArray(product?.productImages) ? product.productImages : []),
+    ...(Array.isArray(product?.images) ? product.images : []),
+    product?.image_url,
+    product?.thumbnailUrl,
+    product?.thumbnail,
+  ]
+
+  for (const image of imageSources) {
+    const fileName = typeof image === 'string'
+      ? fileNameFromImageValue(image)
+      : fileNameFromImageValue(image?.imagePath || image?.imageUrl || image?.imageURL || image?.image_url || image?.url || image?.thumbnailUrl)
+
+    if (fileName) return fileName
+  }
+
+  const identifier = String(product?.productId || product?.id || (getProductSku(product) !== 'N/A' ? getProductSku(product) : 'product'))
+    .trim()
+    .replace(/[^a-z0-9._-]+/gi, '-')
+    .replace(/^-+|-+$/g, '')
+
+  return `${identifier || 'product'}.jpg`
 }
 
 const getAvailableQuantity = (product) => {

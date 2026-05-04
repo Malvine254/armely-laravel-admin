@@ -14,7 +14,7 @@ class SyncLocalProductImagesBySkuCommand extends Command
                             {--priority-min-price=100 : Prioritize products whose preferred price is at least this amount}
                             {--dry-run : Preview updates without writing to the database}';
 
-    protected $description = 'Map local images named by SKU/MPN/title (e.g. public/images/products/12345.jpg) back into products.images';
+    protected $description = 'Map local images named by SKU/MPN/title back into products.images using product-ID filenames';
 
     public function handle(): int
     {
@@ -48,6 +48,7 @@ class SyncLocalProductImagesBySkuCommand extends Command
         $updated = 0;
         $scanned = 0;
         $matchedProducts = 0;
+        $copied = 0;
 
         $skuToFile = $this->numericSkuFileMap($imageFiles);
         $skuKeys = array_keys($skuToFile);
@@ -92,8 +93,26 @@ class SyncLocalProductImagesBySkuCommand extends Command
                 }
 
                 $matchedProducts++;
-                $localUrl = '/' . $relativeDir . '/' . $imageFiles[$matchedKey];
-                $newImages = $this->injectPrimaryLocalImage($product->images, $localUrl);
+                $sourceFile = $imageFiles[$matchedKey];
+                $localFile = $this->productIdImageFile($product, $sourceFile);
+
+                if ($localFile !== $sourceFile && !$dryRun) {
+                    $sourcePath = $absoluteDir . DIRECTORY_SEPARATOR . $sourceFile;
+                    $targetPath = $absoluteDir . DIRECTORY_SEPARATOR . $localFile;
+
+                    if (!file_exists($targetPath) && file_exists($sourcePath)) {
+                        copy($sourcePath, $targetPath);
+                        $copied++;
+                    }
+                }
+
+                $localUrl = '/' . $relativeDir . '/' . $localFile;
+                $newImages = $this->injectPrimaryLocalImage(
+                    $product->images,
+                    $localUrl,
+                    (string) ($product->tdsynnex_product_id ?? ''),
+                    (string) ($product->tdsynnex_sku_no ?? '')
+                );
 
                 if ($newImages === $product->images) {
                     continue;
@@ -114,6 +133,9 @@ class SyncLocalProductImagesBySkuCommand extends Command
 
         $mode = $dryRun ? 'DRY RUN' : 'APPLIED';
         $this->info("{$mode}: scanned={$scanned} matched_products={$matchedProducts} updated={$updated}");
+        if (!$dryRun) {
+            $this->line("Copied product-ID image files: {$copied}");
+        }
         $this->line("Priority rule: price >= {$priorityMinPrice} and availableQuantity > 0 were processed first.");
 
         return self::SUCCESS;
@@ -199,8 +221,8 @@ class SyncLocalProductImagesBySkuCommand extends Command
     {
         $spec = is_array($product->specifications) ? $product->specifications : [];
         $rawCandidates = [
-            (string) ($product->tdsynnex_sku_no ?? ''),
             (string) ($product->tdsynnex_product_id ?? ''),
+            (string) ($product->tdsynnex_sku_no ?? ''),
             (string) ($spec['sku'] ?? ''),
             (string) ($product->mfg_part_no ?? ''),
             (string) ($spec['mpn'] ?? ''),
@@ -242,7 +264,7 @@ class SyncLocalProductImagesBySkuCommand extends Command
         return array_keys($keys);
     }
 
-    private function injectPrimaryLocalImage($images, string $localUrl): array
+    private function injectPrimaryLocalImage($images, string $localUrl, string $productId = '', string $sku = ''): array
     {
         $normalized = [];
         $seen = [];
@@ -273,11 +295,46 @@ class SyncLocalProductImagesBySkuCommand extends Command
                 continue;
             }
 
+            if ($this->isSkuNamedLocalProductImage($url, $productId, $sku)) {
+                continue;
+            }
+
             $seen[$url] = true;
             $normalized[] = ['imageUrl' => $url];
         }
 
         return $normalized;
+    }
+
+    private function isSkuNamedLocalProductImage(string $url, string $productId, string $sku): bool
+    {
+        $productId = trim($productId);
+        $sku = trim($sku);
+
+        if ($productId === '' || $sku === '' || $productId === $sku) {
+            return false;
+        }
+
+        if (!str_starts_with($url, '/images/products/')) {
+            return false;
+        }
+
+        $path = parse_url($url, PHP_URL_PATH) ?: $url;
+        $stem = pathinfo(basename($path), PATHINFO_FILENAME);
+
+        return $stem === $sku;
+    }
+
+    private function productIdImageFile(Product $product, string $sourceFile): string
+    {
+        $productId = trim((string) ($product->tdsynnex_product_id ?? ''));
+        $extension = strtolower(pathinfo($sourceFile, PATHINFO_EXTENSION));
+
+        if ($productId === '' || $extension === '') {
+            return $sourceFile;
+        }
+
+        return $productId . '.' . $extension;
     }
 
     private function isPriorityCandidate(Product $product, float $minPrice): bool
