@@ -11,25 +11,21 @@ use Illuminate\Support\Facades\Storage;
  *
  * Usage:
  *   php artisan products:sync-manual-images
- *     Scans public/uploads/products/ and updates images in database
+ *     Scans public/uploads/products/ and updates images by PRODUCT ID
+ *
+ *   php artisan products:sync-manual-images --by-sku
+ *     Match images by TD SYNNEX SKU instead
  *
  *   php artisan products:sync-manual-images --folder=custom/path
  *     Scans custom folder and updates images
  *
  *   php artisan products:sync-manual-images --dry-run
  *     Preview changes without updating database
- *
- *   php artisan products:sync-manual-images --by-id
- *     Match images by product ID (e.g., 15204339.jpg)
- *
- *   php artisan products:sync-manual-images --by-sku
- *     Match images by TD SYNNEX SKU (e.g., 135048.jpg)
  */
 class SyncManualProductImagesCommand extends Command
 {
     protected $signature = 'products:sync-manual-images
                             {--folder=public/uploads/products : Folder to scan for images}
-                            {--by-id                          : Match images by product ID (default)}
                             {--by-sku                         : Match images by TD SYNNEX SKU}
                             {--dry-run                        : Preview changes without updating}
                             {--quiet-output                   : Suppress per-product lines}';
@@ -39,7 +35,7 @@ class SyncManualProductImagesCommand extends Command
     public function handle(): int
     {
         $folderPath = $this->option('folder');
-        $byId       = $this->option('by-id') || !$this->option('by-sku');
+        $byId       = !$this->option('by-sku');
         $bySku      = $this->option('by-sku');
         $dryRun     = $this->option('dry-run');
         $quiet      = $this->option('quiet-output');
@@ -48,6 +44,10 @@ class SyncManualProductImagesCommand extends Command
         if (!str_starts_with($folderPath, '/')) {
             $folderPath = base_path($folderPath);
         }
+        
+        // Fix mixed slashes on Windows
+        $folderPath = str_replace('/', DIRECTORY_SEPARATOR, $folderPath);
+        $folderPath = str_replace('\\', DIRECTORY_SEPARATOR, $folderPath);
 
         // Verify folder exists
         if (!is_dir($folderPath)) {
@@ -72,7 +72,18 @@ class SyncManualProductImagesCommand extends Command
         }
 
         $this->info("Found {$total} image files to process.");
+        if ($total > 50 && !$quiet) {
+            $this->warn('(Using --quiet-output for faster processing with many files)');
+        }
         $this->newLine();
+
+        // Build a lookup map of all product IDs to avoid N+1 queries
+        $query = Product::query();
+        if ($byId) {
+            $productMap = $query->pluck('id', 'tdsynnex_product_id')->toArray();
+        } else {
+            $productMap = $query->pluck('id', 'tdsynnex_sku_no')->toArray();
+        }
 
         $updated  = 0;
         $failed   = 0;
@@ -80,30 +91,32 @@ class SyncManualProductImagesCommand extends Command
 
         foreach ($imageFiles as $filename => $fullPath) {
             // Extract identifier (filename without extension)
-            $identifier = pathinfo($filename, PATHINFO_FILENAME);
+            $identifier = (int) pathinfo($filename, PATHINFO_FILENAME);
 
-            // Build image URL/path that will be stored
-            $imagePath = 'uploads/products/' . $filename;
-            $imageUrl  = url($imagePath);
-
-            // Find product
-            $product = null;
-
-            if ($byId) {
-                // Try matching by product ID
-                $product = Product::where('id', $identifier)->first();
-            } else {
-                // Try matching by TD SYNNEX SKU
-                $product = Product::where('tdsynnex_sku_no', $identifier)->first();
-            }
-
-            if (!$product) {
+            // Check if product exists in the map
+            if (!isset($productMap[$identifier])) {
                 if (!$quiet) {
                     $this->line("⊘ SKIP   {$filename} — no matching product");
                 }
                 $skipped++;
                 continue;
             }
+
+            // Get the database ID from the map
+            $productId = $productMap[$identifier];
+            $product   = Product::find($productId);
+
+            if (!$product) {
+                if (!$quiet) {
+                    $this->line("⊘ SKIP   {$filename} — product lookup failed");
+                }
+                $skipped++;
+                continue;
+            }
+
+            // Build image URL/path that will be stored
+            $imagePath = 'uploads/products/' . $filename;
+            $imageUrl  = url('/store/' . $imagePath);
 
             // Check if product already has images
             $existingImages = is_array($product->images) ? $product->images : [];

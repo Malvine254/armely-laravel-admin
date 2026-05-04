@@ -6,7 +6,7 @@
    ```bash
    php artisan products:list-missing-images
    ```
-   This shows all products without images and their corresponding image filenames.
+   This shows all products without images and their product IDs for naming.
 
 2. **Export to CSV (optional):**
    ```bash
@@ -16,19 +16,14 @@
 
 3. **Save images with the correct naming convention:**
    - Place image files in this folder: `public/uploads/products/`
-   - Name format: `{PRODUCT_ID}.jpg` or `{SKU}.jpg`
-   - Examples:
-     - `15204339.jpg` (using product ID)
-     - `135048.jpg` (using TD SYNNEX SKU)
+   - **Name format: `{PRODUCT_ID}.jpg`**
+   - Example: `15204339.jpg`
 
 4. **Sync images to database:**
    ```bash
-   # Match images by product ID
-   php artisan products:sync-manual-images --by-id
-   
-   # Or match images by SKU
-   php artisan products:sync-manual-images --by-sku
+   php artisan products:sync-manual-images
    ```
+   This matches images by product ID and updates the database.
 
 5. **Verify sync (dry-run):**
    ```bash
@@ -61,9 +56,9 @@ Images are stored in the `products.images` JSON column with this structure:
 
 ## Commands Reference
 
-### List Missing Images
+### List Missing Images (Product IDs)
 ```bash
-# Show as table
+# Show all products needing images with their product IDs
 php artisan products:list-missing-images
 
 # Show first 100 products
@@ -72,17 +67,14 @@ php artisan products:list-missing-images --limit=100
 # Export to CSV
 php artisan products:list-missing-images --export=missing.csv
 
-# Show with product ID instead of SKU
-php artisan products:list-missing-images --by-id
+# Include SKU if preferred
+php artisan products:list-missing-images --by-sku
 ```
 
-### Sync Manual Images
+### Sync Manual Images (by Product ID)
 ```bash
-# Match by product ID (default)
-php artisan products:sync-manual-images --by-id
-
-# Match by SKU
-php artisan products:sync-manual-images --by-sku
+# Match images by product ID (default, recommended)
+php artisan products:sync-manual-images
 
 # Preview without updating
 php artisan products:sync-manual-images --dry-run
@@ -92,11 +84,14 @@ php artisan products:sync-manual-images --folder=custom/path
 
 # Suppress verbose output
 php artisan products:sync-manual-images --quiet-output
+
+# Match by SKU instead (if you named files by SKU)
+php artisan products:sync-manual-images --by-sku
 ```
 
 ## Tips
 
-- Use product ID for more reliable matching
+- **Use product ID for naming** — it's the primary matching method
 - Keep image file sizes reasonable (< 5MB recommended)
 - Use PNG or WebP for better compression
 - Always run `--dry-run` first to verify changes
