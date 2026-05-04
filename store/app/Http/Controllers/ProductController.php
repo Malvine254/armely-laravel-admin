@@ -2005,13 +2005,13 @@ class ProductController extends Controller
 
     /**
      * Return the category tree for the store navbar.
-     * Top-level categories with their brand children, pulled from the categories table.
+     * Top-level categories with dynamic manufacturer/brand children based on products.
      * Cached for 1 hour.
      */
     public function menuCategories(): JsonResponse
     {
         try {
-            $data = Cache::remember('menu_categories:v5', 3600, function () {
+            $data = Cache::remember('menu_categories:v7', 3600, function () {
                 $parents = \App\Models\Category::query()
                     ->select(['id', 'name', 'slug', 'segment_code', 'sort_order'])
                     ->whereNull('parent_id')
@@ -2024,19 +2024,20 @@ class ProductController extends Controller
                     return [];
                 }
 
-                // Build top-brand map from products table, grouped by category_segment.
-                // Returns up to 8 brands per segment, ordered by product count descending.
-                $segmentCodes = $parents->pluck('segment_code')->filter()->unique()->values()->all();
-                $brandsBySegment = [];
+                // Check which parent categories have products
+                $parentSegments = $parents->pluck('segment_code')
+                    ->map(fn($seg) => trim((string) $seg))
+                    ->filter(fn($seg) => $seg !== '')
+                    ->unique()
+                    ->values()
+                    ->all();
 
                 $segmentsWithProducts = [];
-
-                if (!empty($segmentCodes)) {
-                    // Determine which segments actually have products (any product, regardless of manufacturer).
+                if (!empty($parentSegments)) {
                     $segmentCounts = Product::query()
                         ->where('vendor_id', 'TD SYNNEX')
                         ->where('is_hardware', 1)
-                        ->whereIn('category_segment', $segmentCodes)
+                        ->whereIn('category_segment', $parentSegments)
                         ->selectRaw('category_segment, COUNT(*) as cnt')
                         ->groupBy('category_segment')
                         ->get();
@@ -2046,47 +2047,48 @@ class ProductController extends Controller
                             $segmentsWithProducts[(string) $row->category_segment] = true;
                         }
                     }
-
-                    // Build brand list — only from products that have a manufacturer set.
-                    $rows = Product::query()
-                        ->where('vendor_id', 'TD SYNNEX')
-                        ->where('is_hardware', 1)
-                        ->whereIn('category_segment', $segmentCodes)
-                        ->whereNotNull('manufacturer')
-                        ->where('manufacturer', '<>', '')
-                        ->selectRaw('category_segment, manufacturer, COUNT(*) as cnt')
-                        ->groupBy('category_segment', 'manufacturer')
-                        ->orderByDesc('cnt')
-                        ->get();
-
-                    foreach ($rows as $row) {
-                        $seg = (string) $row->category_segment;
-                        if (!isset($brandsBySegment[$seg])) {
-                            $brandsBySegment[$seg] = [];
-                        }
-                        if (count($brandsBySegment[$seg]) < 8) {
-                            $name = trim((string) $row->manufacturer);
-                            $brandsBySegment[$seg][] = [
-                                'label' => $name,
-                                'value' => $name,
-                            ];
-                        }
-                    }
                 }
 
                 return $parents
                     ->filter(function ($cat) use ($segmentsWithProducts) {
-                        $seg = (string) ($cat->segment_code ?? '');
+                        $seg = trim((string) $cat->segment_code);
                         return $seg !== '' && isset($segmentsWithProducts[$seg]);
                     })
-                    ->map(function ($cat) use ($brandsBySegment) {
-                        $seg = (string) ($cat->segment_code ?? '');
+                    ->map(function ($cat) {
+                        $catSegment = trim((string) $cat->segment_code);
+                        
+                        // Dynamically fetch top manufacturers for this category
+                        $manufacturers = Product::query()
+                            ->where('vendor_id', 'TD SYNNEX')
+                            ->where('is_hardware', 1)
+                            ->where('category_segment', $catSegment)
+                            ->whereNotNull('manufacturer')
+                            ->where('manufacturer', '<>', '')
+                            ->distinct()
+                            ->orderByRaw('CASE WHEN manufacturer IN ("HP", "Dell", "Lenovo", "Apple", "Microsoft", "Cisco", "Brother", "Canon", "Epson") THEN 0 ELSE 1 END')
+                            ->orderBy('manufacturer')
+                            ->limit(12)
+                            ->pluck('manufacturer')
+                            ->map(fn($mfr) => trim((string) $mfr))
+                            ->filter(fn($mfr) => $mfr !== '')
+                            ->unique()
+                            ->values();
+
                         return [
                             'id' => $cat->id,
                             'name' => $cat->name,
                             'slug' => $cat->slug,
-                            'segment_code' => $seg,
-                            'brands' => $brandsBySegment[$seg] ?? [],
+                            'value' => $cat->slug ?: $cat->name,
+                            'segment_code' => $catSegment,
+                            'children' => $manufacturers->map(function ($manufacturer) {
+                                return [
+                                    'id' => null,
+                                    'name' => $manufacturer,
+                                    'slug' => \Illuminate\Support\Str::slug($manufacturer),
+                                    'value' => \Illuminate\Support\Str::slug($manufacturer),
+                                    'segment_code' => null,
+                                ];
+                            })->all(),
                         ];
                     })->values()->all();
             });
@@ -2381,7 +2383,6 @@ class ProductController extends Controller
 
         if (empty($segments)) {
             $menuCategory = \App\Models\Category::query()
-                ->whereNull('parent_id')
                 ->where(function ($q) use ($category) {
                     $q->where('slug', $category)
                         ->orWhereRaw('LOWER(name) = ?', [strtolower($category)]);

@@ -174,12 +174,39 @@ class TDSynnexService
     /**
      * Make authenticated XML API request
      */
+    private function getDefaultXmlTestMode(): bool
+    {
+        $environment = strtolower(trim((string) config('tdsynnex.environment', 'sandbox')));
+        if ($environment === 'production') {
+            return false;
+        }
+
+        if ($environment === 'sandbox') {
+            return true;
+        }
+
+        return (bool) config('tdsynnex.xml.use_test_by_default', true);
+    }
+
+    private function resolveXmlEndpoint(string $region, string $type, ?bool $useTest = null): string
+    {
+        $useTest = $useTest ?? $this->getDefaultXmlTestMode();
+        $urls = config("tdsynnex.xml.{$region}.{$type}", []);
+        $endpoint = $useTest ? ($urls['test'] ?? null) : ($urls['prod'] ?? null);
+
+        if (!$endpoint) {
+            throw new TDSynnexApiException("TD SYNNEX XML endpoint is not configured for region '{$region}', type '{$type}'.");
+        }
+
+        return (string) $endpoint;
+    }
+
     private function requestXml(
         string $method,
         string $endpoint,
         string $xmlBody
     ): array {
-        $url = $this->baseUrl . $endpoint;
+        $url = str_starts_with($endpoint, 'http') ? $endpoint : $this->baseUrl . $endpoint;
         $maxAttempts = config('tdsynnex.retry.max_attempts', 3);
         $attempt = 0;
 
@@ -4498,7 +4525,7 @@ class TDSynnexService
      * Place an order
      * Phase 1C - Order Management
      */
-    public function placeOrder(array $orderData): array
+    public function placeOrder(array $orderData, string $region = 'us', ?bool $useTest = null): array
     {
         // Clear pricing cache before placing order to ensure freshness
         if (isset($orderData['productId'])) {
@@ -4508,7 +4535,7 @@ class TDSynnexService
         // Build XML in TD SYNNEX PO Submission schema (Credential + OrderRequest + Items)
         $xmlBody = $this->buildPoSubmissionXmlPayload($orderData);
         
-        $response = $this->requestXml('post', '/api/v1/SynnexXML/PO', $xmlBody);
+        $response = $this->submitPurchaseOrderXml($xmlBody, $region, $useTest);
 
         // Normalize XML OrderResponse shape so existing callers can read order number/status.
         $orderResponse = is_array($response['OrderResponse'] ?? null) ? $response['OrderResponse'] : [];
@@ -4799,7 +4826,7 @@ class TDSynnexService
      * Check PO status from TD SYNNEX
      * Queries /api/v1/SynnexXML/POStatus endpoint
      */
-    public function checkPoStatus(string $poNumber): array
+    public function checkPoStatus(string $poNumber, string $region = 'us', ?bool $useTest = null): array
     {
         try {
             $customerNo = trim((string) config('tdsynnex.price_availability.customer_no', ''));
@@ -4836,7 +4863,8 @@ XML;
                 'xml_body' => $this->sanitizeXmlForLogs($xmlBody),
             ]);
             
-            $response = $this->requestXml('post', '/api/v1/SynnexXML/POStatus', $xmlBody);
+            $url = $this->resolveXmlEndpoint($region, 'postatus', $useTest);
+            $response = $this->requestXml('post', $url, $xmlBody);
             
             Log::debug('PO status response', [
                 'po_number' => $poNumber,
@@ -4871,13 +4899,7 @@ XML;
      */
     public function postPriceAvailabilityXml(string $xml, string $region = 'us', ?bool $useTest = null): array
     {
-        $useTest = $useTest ?? config('tdsynnex.xml.use_test_by_default', true);
-        $urls = config("tdsynnex.xml.{$region}.priceavailability", []);
-        $url = $useTest ? ($urls['test'] ?? null) : ($urls['prod'] ?? null);
-
-        if (!$url) {
-            throw new TDSynnexApiException('PriceAvailability URL not configured for region: ' . $region);
-        }
+        $url = $this->resolveXmlEndpoint($region, 'priceavailability', $useTest);
 
         try {
             $timeout = max(1, (int) config('tdsynnex.price_availability.request_timeout', config('tdsynnex.timeout', 30)));
@@ -4921,13 +4943,7 @@ XML;
             throw new TDSynnexApiException('PO submission is disabled by configuration (TDSYNNEX_ALLOW_SUBMIT_PO=false)');
         }
 
-        $useTest = $useTest ?? config('tdsynnex.xml.use_test_by_default', true);
-        $urls = config("tdsynnex.xml.{$region}.po", []);
-        $url = $useTest ? ($urls['test'] ?? null) : ($urls['prod'] ?? null);
-
-        if (!$url) {
-            throw new TDSynnexApiException('PO URL not configured for region: ' . $region);
-        }
+        $url = $this->resolveXmlEndpoint($region, 'po', $useTest);
 
         try {
             $response = Http::withHeaders(['Content-Type' => 'application/xml', 'Accept' => 'application/xml'])
