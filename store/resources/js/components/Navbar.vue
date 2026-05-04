@@ -1,5 +1,5 @@
 <template>
-  <nav class="sticky top-0 z-50 border-b border-white/10" style="background: linear-gradient(135deg, #0f172a 0%, #0a2948 45%, #1d4c6e 100%); box-shadow: 0 16px 45px rgba(2, 6, 23, 0.35);">
+  <nav class="sticky top-0 z-50 border-b border-white/10" style="background: #122d58; box-shadow: 0 16px 45px rgba(2, 6, 23, 0.35);">
     <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-5">
       <div class="flex items-center justify-between h-20">
         <!-- Logo Section -->
@@ -21,7 +21,7 @@
         </button>
 
         <!-- Nav Links: Categories - Hidden below xl -->
-        <div class="hidden xl:flex items-center justify-center gap-1 flex-1 mx-6 min-w-0">
+        <div class="hidden xl:flex items-center justify-center gap-0.5 flex-1 mx-4 min-w-0 whitespace-nowrap">
           <div
             v-for="cat in primaryCategories"
             :key="cat.value"
@@ -31,7 +31,7 @@
           >
             <button
               type="button"
-              class="flex items-center gap-1.5 flex-shrink-0 px-3 py-2 rounded-lg text-sm font-semibold text-slate-100 hover:text-cyan-300 hover:bg-white/10 transition"
+              class="flex items-center gap-1 flex-shrink-0 px-2.5 py-2 rounded-lg text-sm font-semibold text-slate-100 hover:text-cyan-300 hover:bg-white/10 transition"
               @click="browseProducts(cat.value)"
             >
               <span>{{ cat.name }}</span>
@@ -41,7 +41,7 @@
             </button>
 
             <transition enter-active-class="transition ease-out duration-150" enter-from-class="opacity-0 translate-y-1" enter-to-class="opacity-100 translate-y-0" leave-active-class="transition ease-in duration-100" leave-from-class="opacity-100 translate-y-0" leave-to-class="opacity-0 translate-y-1">
-              <div v-if="categoryDropdownOpen === cat.value" class="absolute left-0 mt-1 w-64 rounded-xl shadow-2xl overflow-hidden z-50 border border-white/20" style="background: linear-gradient(135deg, #0f172a 0%, #0a2948 45%, #1d4c6e 100%);">
+              <div v-if="categoryDropdownOpen === cat.value" class="absolute left-0 mt-1 w-64 rounded-xl shadow-2xl overflow-hidden z-50 border border-white/20" style="background: #122d58;">
                 <div class="px-4 py-2.5 border-b border-white/20">
                   <p class="text-xs font-semibold text-white uppercase tracking-widest">{{ cat.name }} Brands</p>
                 </div>
@@ -80,7 +80,7 @@
               </svg>
             </button>
             <transition enter-active-class="transition ease-out duration-150" enter-from-class="opacity-0 translate-y-1" enter-to-class="opacity-100 translate-y-0" leave-active-class="transition ease-in duration-100" leave-from-class="opacity-100 translate-y-0" leave-to-class="opacity-0 translate-y-1">
-              <div v-if="moreCategoriesOpen" class="absolute left-0 mt-1 w-64 rounded-xl shadow-2xl overflow-visible z-50 border border-white/20" style="background: linear-gradient(135deg, #0f172a 0%, #0a2948 45%, #1d4c6e 100%);">
+              <div v-if="moreCategoriesOpen" class="absolute left-0 mt-1 w-64 rounded-xl shadow-2xl overflow-visible z-50 border border-white/20" style="background: #122d58;">
                 <div class="px-4 py-2.5 border-b border-white/20">
                   <p class="text-xs font-semibold text-white uppercase tracking-widest">More Categories</p>
                 </div>
@@ -104,7 +104,7 @@
                     </button>
 
                     <transition enter-active-class="transition ease-out duration-150" enter-from-class="opacity-0 translate-x-1" enter-to-class="opacity-100 translate-x-0" leave-active-class="transition ease-in duration-100" leave-from-class="opacity-100 translate-x-0" leave-to-class="opacity-0 translate-x-1">
-                      <div v-if="moreCategoryDropdownOpen === cat.value" class="absolute left-full top-0 ml-1 w-60 rounded-xl shadow-2xl overflow-hidden z-[60] border border-white/20" style="background: linear-gradient(135deg, #0f172a 0%, #0a2948 45%, #1d4c6e 100%);">
+                      <div v-if="moreCategoryDropdownOpen === cat.value" class="absolute left-full top-0 ml-1 w-60 rounded-xl shadow-2xl overflow-hidden z-[60] border border-white/20" style="background: #122d58;">
                         <div class="px-4 py-2.5 border-b border-white/20">
                           <p class="text-xs font-semibold text-white uppercase tracking-widest">{{ cat.name }} Brands</p>
                         </div>
@@ -172,16 +172,16 @@
                 <!-- Profile Picture or Initials -->
                 <img v-if="userProfilePictureUrl" :src="userProfilePictureUrl" :alt="authStore.user?.name" class="w-8 h-8 rounded-full object-cover border border-slate-300">
                 <div v-else class="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-xs bg-gradient-to-br from-cyan-400 to-blue-500">{{ userInitials }}</div>
-                <span class="text-sm font-medium">{{ userFirstName }}</span>
+                <span class="text-sm font-medium">Hi, {{ userFirstName }} 👋</span>
               </button>
               <!-- Authenticated Dropdown Menu -->
-              <div class="hidden group-hover:block absolute right-0 mt-0 w-56 rounded-lg shadow-xl py-2 z-10 border border-white/20" style="background: linear-gradient(135deg, #0f172a 0%, #0a2948 45%, #1d4c6e 100%);">
+              <div class="hidden group-hover:block absolute right-0 mt-0 w-56 rounded-lg shadow-xl py-2 z-10 border border-white/20" style="background: #122d58;">
                 <div class="px-4 py-2 border-b border-white/20">
                   <div class="flex items-center gap-3 mb-2">
                     <img v-if="userProfilePictureUrl" :src="userProfilePictureUrl" :alt="authStore.user?.name" class="w-10 h-10 rounded-full object-cover border border-slate-400">
                     <div v-else class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold bg-gradient-to-br from-cyan-400 to-blue-500">{{ userInitials }}</div>
                     <div>
-                      <div class="font-semibold text-sm text-white">{{ authStore.user?.name }}</div>
+                      <div class="font-semibold text-sm text-white">Hi, {{ userFirstName }} 👋</div>
                       <div class="text-xs text-slate-300">{{ authStore.user?.email }}</div>
                     </div>
                   </div>
@@ -226,20 +226,20 @@
 
       <!-- Mobile Dropdown Menu -->
       <div v-if="mobileMenuOpen" class="xl:hidden pb-4">
-        <div class="rounded-lg border border-white/20 overflow-hidden" style="background: linear-gradient(135deg, #0f172a 0%, #0a2948 45%, #1d4c6e 100%);">
+        <div class="rounded-lg border border-white/20 overflow-hidden" style="background: #122d58;">
           <!-- Products Section -->
           <div class="border-b border-white/10">
             <button type="button" @click="mobileProductsOpen = !mobileProductsOpen" class="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold text-slate-100 hover:bg-white/10 transition">
               <span>Products</span>
               <svg class="w-4 h-4 transition-transform" :class="mobileProductsOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
             </button>
-            <div v-if="mobileProductsOpen" class="bg-black/20">
+            <div v-if="mobileProductsOpen" style="background: #122d58;">
               <button v-for="cat in productCategories" :key="cat.value" type="button" @click="browseProducts(cat.value)" class="w-full text-left px-8 py-2.5 text-sm text-slate-300 hover:bg-white/10 transition">{{ cat.name }}</button>
             </div>
           </div>
           <template v-if="authStore.isAuthenticated">
             <div class="px-4 py-3 border-b border-white/10">
-              <div class="font-semibold text-white">{{ authStore.user?.name }}</div>
+              <div class="font-semibold text-white">Hi, {{ userFirstName }} 👋</div>
               <div class="text-xs text-slate-300">{{ authStore.user?.email }}</div>
             </div>
             <button type="button" @click="goToAccount" class="w-full text-left px-4 py-3 text-sm text-slate-100 transition hover:bg-white/10">My Account</button>

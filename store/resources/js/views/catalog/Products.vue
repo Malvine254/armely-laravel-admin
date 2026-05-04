@@ -441,12 +441,13 @@ const LOCAL_SEARCH_HISTORY_LIMIT = 12
 const TOP_VENDOR_DISPLAY_LIMIT = 40
 const DEFAULT_VENDOR_SCOPE_LIMIT = 12
 const DEFAULT_BROWSE_MIN_PRICE = 100
-const CURATED_CACHE_VERSION = 3
+const DEFAULT_BROWSE_MAX_PRICE = 0
+const CURATED_CACHE_VERSION = 7
 const ENABLE_SERVER_PREFETCH = true
 const ENABLE_VENDOR_COUNTS_API = true
 const PRODUCTS_RESULTS_SOFT_TTL_MS = 5 * 60 * 1000
 const PRODUCTS_RESULTS_HARD_TTL_MS = 24 * 60 * 60 * 1000
-const PRODUCTS_RESULTS_CACHE_PREFIX = 'products_results_cache_v5'
+const PRODUCTS_RESULTS_CACHE_PREFIX = 'products_results_cache_v9'
 const SIDEBAR_FACETS_CACHE_TTL_MS = 10 * 60 * 1000
 const SIDEBAR_VENDORS_STORAGE_KEY = 'products_sidebar_vendors_v1'
 const SIDEBAR_CATEGORIES_STORAGE_KEY = 'products_sidebar_categories_v1'
@@ -666,7 +667,7 @@ const normalizeCategoriesForSidebar = (items = []) => {
 
 const currentFilters = ref({
   priceMin: 100,
-  priceMax: 10000,
+  priceMax: DEFAULT_BROWSE_MAX_PRICE,
   partNumber: '',
   productType: '',
   vendors: [],
@@ -682,7 +683,7 @@ const buildProductsRouteQuery = () => {
   if (currentFilters.value.vendors.length > 0) query.vendors = currentFilters.value.vendors.join(',')
   if (currentFilters.value.categories.length > 0) query.category = currentFilters.value.categories[0]
   if (currentFilters.value.priceMin > 0) query.minPrice = String(currentFilters.value.priceMin)
-  if (currentFilters.value.priceMax < 10000) query.maxPrice = String(currentFilters.value.priceMax)
+  if (currentFilters.value.priceMax > 0) query.maxPrice = String(currentFilters.value.priceMax)
   if (currentFilters.value.partNumber) query.partNumber = currentFilters.value.partNumber
   if (currentFilters.value.productType) query.productType = currentFilters.value.productType
   if (currentFilters.value.lifecycleStatuses.length > 0) query.lifecycle = currentFilters.value.lifecycleStatuses.join(',')
@@ -1554,7 +1555,7 @@ const performSearch = async (resetPage = true) => {
       if (currentFilters.value.priceMin > 0) {
         params.min_price = currentFilters.value.priceMin
       }
-      if (currentFilters.value.priceMax < 10000) {
+      if (currentFilters.value.priceMax > 0) {
         params.max_price = currentFilters.value.priceMax
       }
 
@@ -1711,7 +1712,7 @@ const fetchVendors = async () => {
       vendorParams.min_price = currentFilters.value.priceMin
     }
 
-    if (Number(currentFilters.value.priceMax || 10000) < 10000) {
+    if (Number(currentFilters.value.priceMax || 0) > 0) {
       vendorParams.max_price = currentFilters.value.priceMax
     }
 
@@ -1761,7 +1762,7 @@ const fetchCategories = async () => {
       params.min_price = currentFilters.value.priceMin
     }
 
-    if (Number(currentFilters.value.priceMax || 10000) < 10000) {
+    if (Number(currentFilters.value.priceMax || 0) > 0) {
       params.max_price = currentFilters.value.priceMax
     }
 
@@ -1821,7 +1822,7 @@ const updateVendorCounts = (sourceProducts = products.value) => {
 const handleFilterChange = (filters) => {
   const normalizeFilters = (value = {}) => ({
     priceMin: Number(value.priceMin ?? 0),
-    priceMax: Number(value.priceMax ?? 10000),
+    priceMax: Number(value.priceMax ?? DEFAULT_BROWSE_MAX_PRICE),
     partNumber: String(value.partNumber ?? '').trim(),
     productType: String(value.productType ?? '').toLowerCase() === 'software' ? 'software' : (String(value.productType ?? '').toLowerCase() === 'hardware' ? 'hardware' : ''),
     vendors: Array.isArray(value.vendors) ? [...value.vendors].map((v) => String(v).trim()) : [],
@@ -1848,8 +1849,8 @@ const resetFilters = () => {
   searchQuery.value = ''
   currentPage.value = 1
   currentFilters.value = {
-    priceMin: 0,
-    priceMax: 10000,
+    priceMin: DEFAULT_BROWSE_MIN_PRICE,
+    priceMax: DEFAULT_BROWSE_MAX_PRICE,
     partNumber: '',
     productType: '',
     vendors: [],
@@ -1915,7 +1916,7 @@ const prefetchPage = (page) => {
     params.min_price = DEFAULT_BROWSE_MIN_PRICE
   }
   if (currentFilters.value.priceMin > 0) params.min_price = currentFilters.value.priceMin
-  if (currentFilters.value.priceMax < 10000) params.max_price = currentFilters.value.priceMax
+  if (currentFilters.value.priceMax > 0) params.max_price = currentFilters.value.priceMax
 
   const cacheKey = getCacheKey(currentFilters.value, page, true)
 
@@ -2355,7 +2356,7 @@ watch(
     currentFilters.value = {
       ...currentFilters.value,
       priceMin: hasMinPriceQuery ? Number(minPrice || 0) : 100,
-      priceMax: hasMaxPriceQuery ? Number(maxPrice || 10000) : 10000,
+      priceMax: hasMaxPriceQuery ? Number(maxPrice || 0) : DEFAULT_BROWSE_MAX_PRICE,
       partNumber: hasPartNumberQuery ? String(partNumber || '').trim() : '',
       productType: hasProductTypeQuery ? String(productType || '').trim() : '',
       vendors: nextVendors,

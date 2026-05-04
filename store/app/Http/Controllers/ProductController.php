@@ -15,6 +15,9 @@ use Illuminate\Support\Facades\Log;
 
 class ProductController extends Controller
 {
+    private const STOREFRONT_MIN_PRICE = 100.0;
+    private const STOREFRONT_MAX_DEFAULT_PRODUCTS = 3000;
+
     protected TDSynnexService $tdsynnexService;
     protected CustomerPricingService $customerPricingService;
 
@@ -31,6 +34,44 @@ class ProductController extends Controller
     private function preferredDbPriceSql(): string
     {
         return 'COALESCE(NULLIF(retail_price, 0), NULLIF(base_price, 0), 0)';
+    }
+
+    private function storefrontMinPrice($requested = null): float
+    {
+        if ($requested === null || $requested === '') {
+            return self::STOREFRONT_MIN_PRICE;
+        }
+
+        return max(self::STOREFRONT_MIN_PRICE, (float) $requested);
+    }
+
+    private function storefrontMaxPrice($requested = null): ?float
+    {
+        if ($requested === null || $requested === '') {
+            return null;
+        }
+
+        $value = (float) $requested;
+
+        return $value > 0 ? $value : null;
+    }
+
+    private function hasUsableProductImageSql(): string
+    {
+        return "(images IS NOT NULL AND images <> '' AND images <> '[]' AND images <> 'null')";
+    }
+
+    private function applyPriorityItProductFilterToQuery(\Illuminate\Database\Eloquent\Builder $query): void
+    {
+        $query->whereIn('category_segment', $this->priorityItCategorySegments());
+    }
+
+    private function priorityItCategorySegments(): array
+    {
+        return array_values(array_unique(array_merge(...array_map(
+            static fn (array $category): array => $category['segment_codes'],
+            CatalogTaxonomy::curatedCategories()
+        ))));
     }
 
     /**
@@ -120,6 +161,11 @@ class ProductController extends Controller
             $hideZero = filter_var($request->query('hide_zero_price', true), FILTER_VALIDATE_BOOLEAN);
             // Optional catalog-only cleanup to hide obviously irrelevant line items.
             $catalogClean = filter_var($request->query('catalog_clean', false), FILTER_VALIDATE_BOOLEAN);
+
+            $minPrice = $this->storefrontMinPrice($minPrice);
+            $maxPrice = $this->storefrontMaxPrice($maxPrice);
+            $hideZero = true;
+            $catalogClean = true;
 
             if ($this->tdsynnexService->usesPriceAvailabilityAsProductSource()) {
                 $hasPriceAvailabilityDbCache = $this->tdsynnexService->hasPriceAvailabilityDatabaseCache();
@@ -482,6 +528,13 @@ class ProductController extends Controller
 
         $allProducts = $this->filterAllowedCatalogProducts($allProducts);
 
+        $allProducts = array_values(array_filter($allProducts, function (array $product) {
+            $quantity = (int) ($product['totalQuantity'] ?? $product['availableQuantity'] ?? 0);
+            $isDiscontinued = (bool) ($product['discontinueProduct'] ?? false);
+
+            return !$isDiscontinued && $quantity > 0;
+        }));
+
         $apiTotal = count($allProducts);
 
         if (!empty($search)) {
@@ -664,7 +717,7 @@ class ProductController extends Controller
         $cacheKey = sprintf(
             'pa_browse_page:%s',
             md5(json_encode([
-                'v' => 3,
+                'v' => 7,
                 'page' => (int) $pageNo,
                 'page_size' => (int) $pageSize,
                 'hide_zero' => $hideZero,
@@ -732,18 +785,17 @@ class ProductController extends Controller
         string $productType = 'hardware',
         string $category = ''
     ): array {
-        $showOutOfStock   = (bool) \App\Models\AppSetting::getValue('catalog.show_out_of_stock', false);
-        $showDiscontinued = (bool) \App\Models\AppSetting::getValue('catalog.show_discontinued', false);
+        $showOutOfStock   = false;
+        $showDiscontinued = false;
         $rawCatMin        = \App\Models\AppSetting::getValue('catalog.min_price', null);
-        $rawCatMax        = \App\Models\AppSetting::getValue('catalog.max_price', null);
-        $catalogMinPrice  = ($rawCatMin !== null && (float) $rawCatMin > 0) ? (float) $rawCatMin : null;
-        $catalogMaxPrice  = ($rawCatMax !== null && (float) $rawCatMax > 0) ? (float) $rawCatMax : null;
+        $catalogMinPrice  = $this->storefrontMinPrice($rawCatMin);
+        $catalogMaxPrice  = null;
 
         $query = Product::query()->where('vendor_id', 'TD SYNNEX');
 
         if (!$showOutOfStock) {
             $query->where('is_available', true)
-                ->whereRaw("CAST(COALESCE(JSON_UNQUOTE(JSON_EXTRACT(specifications, '$.availableQuantity')), JSON_UNQUOTE(JSON_EXTRACT(specifications, '$.totalQuantity')), quantity, 0) AS UNSIGNED) > 0");
+                ->whereRaw($this->stockQuantitySql() . ' > 0');
         }
 
         if (!$showDiscontinued) {
@@ -775,6 +827,10 @@ class ProductController extends Controller
 
         if ($isDefaultBrowse && (bool) config('tdsynnex.catalog.hardware_only', true)) {
             $this->applyHardwareOnlyExclusions($query);
+        }
+
+        if ($isDefaultBrowse) {
+            $this->applyPriorityItProductFilterToQuery($query);
         }
 
         if ($hideZero) {
@@ -899,15 +955,31 @@ class ProductController extends Controller
         $perPage = max(1, $pageSize);
         $currentPage = max(1, $pageNo);
         $offset = ($currentPage - 1) * $perPage;
+        $defaultBrowseMaxItems = $isDefaultBrowse ? self::STOREFRONT_MAX_DEFAULT_PRODUCTS : null;
 
-        // Show available products first, then order by id for stable pagination.
-        // Uses the indexed is_available column instead of expensive JSON_EXTRACT.
-        $query->orderByDesc('is_available')->orderBy('id');
+        // Prioritize sellable common IT items with images, then keep pagination stable.
+        $query
+            ->orderByRaw('CASE WHEN ' . $this->hasUsableProductImageSql() . ' THEN 0 ELSE 1 END')
+            ->orderByDesc('is_available')
+            ->orderBy('id');
 
         // Clone the fully-filtered query BEFORE pagination so we can COUNT later.
         $countQuery = $query->clone();
 
+        if ($defaultBrowseMaxItems !== null && $offset >= $defaultBrowseMaxItems) {
+            return [
+                'records' => [],
+                'total' => $defaultBrowseMaxItems,
+                'has_more' => false,
+                'total_is_estimate' => false,
+            ];
+        }
+
         $fetchLimit = $perPage + 1;
+        if ($defaultBrowseMaxItems !== null) {
+            $fetchLimit = min($fetchLimit, max(0, $defaultBrowseMaxItems - $offset));
+        }
+
         $products = $query
             ->offset($offset)
             ->limit($fetchLimit)
@@ -918,7 +990,14 @@ class ProductController extends Controller
             $products = $products->slice(0, $perPage);
         }
 
+        if ($defaultBrowseMaxItems !== null && ($offset + $products->count()) >= $defaultBrowseMaxItems) {
+            $hasMore = false;
+        }
+
         $total = $this->getFilteredTotal($countQuery, $currentPage, $perPage, $products->count(), $hasMore);
+        if ($defaultBrowseMaxItems !== null) {
+            $total = min($total, $defaultBrowseMaxItems);
+        }
 
         return [
             'records' => $products->map(fn (Product $product) => $this->mapPriceAvailabilityDatabaseProduct($product))->toArray(),
@@ -965,6 +1044,11 @@ class ProductController extends Controller
         $price = (float) ($product->retail_price ?? $product->base_price ?? 0);
         $images = $this->normalizeSavedProductImages($product->images);
         $primaryImage = (string) ($images[0]['imageUrl'] ?? '');
+        $quantity = max(
+            (int) ($spec['totalQuantity'] ?? 0),
+            (int) ($spec['availableQuantity'] ?? 0),
+            (int) ($product->quantity ?? 0)
+        );
         $vendor = trim((string) ($spec['manufacturer'] ?? $product->vendor_id ?? 'TD SYNNEX'));
         if ($vendor === '') {
             $vendor = 'TD SYNNEX';
@@ -986,9 +1070,9 @@ class ProductController extends Controller
             'description' => (string) ($product->description ?? ''),
             'status' => (string) ($spec['status'] ?? ''),
             'price' => (float) ($spec['price'] ?? $price),
-            'totalQuantity' => (int) ($spec['totalQuantity'] ?? $spec['availableQuantity'] ?? 0),
-            'availableQuantity' => (int) ($spec['availableQuantity'] ?? 0),
-            'qty' => (string) ($spec['availableQuantity'] ?? 0),
+            'totalQuantity' => $quantity,
+            'availableQuantity' => $quantity,
+            'qty' => (string) $quantity,
             'categoryCode' => (string) ($spec['categoryCode'] ?? '-'),
             'upc' => (string) ($spec['upc'] ?? ''),
             'manufacturer' => (string) ($spec['manufacturer'] ?? ''),
@@ -2150,8 +2234,10 @@ class ProductController extends Controller
         array $selectedVendors = [],
         string $category = ''
     ): void {
-        $showOutOfStock = (bool) \App\Models\AppSetting::getValue('catalog.show_out_of_stock', false);
-        $showDiscontinued = (bool) \App\Models\AppSetting::getValue('catalog.show_discontinued', false);
+        $showOutOfStock = false;
+        $showDiscontinued = false;
+        $minPrice = $this->storefrontMinPrice($minPrice);
+        $maxPrice = $this->storefrontMaxPrice($maxPrice);
 
         if (!$showOutOfStock) {
             $query->where('is_available', true)
@@ -2190,6 +2276,15 @@ class ProductController extends Controller
         $this->applySearchFilterToQuery($query, $search);
         $this->applyVendorFacetFilterToQuery($query, $selectedVendors);
         $this->applyCategorySegmentFilterToQuery($query, $category);
+
+        if (
+            trim($search) === ''
+            && empty($selectedVendors)
+            && trim($category) === ''
+            && $this->normalizeProductType($productType) === 'hardware'
+        ) {
+            $this->applyPriorityItProductFilterToQuery($query);
+        }
     }
 
     private function applyCatalogCleanFilterToQuery(\Illuminate\Database\Eloquent\Builder $query): void
@@ -2318,7 +2413,7 @@ class ProductController extends Controller
 
     private function stockQuantitySql(): string
     {
-        return "CAST(COALESCE(JSON_UNQUOTE(JSON_EXTRACT(specifications, '$.availableQuantity')), JSON_UNQUOTE(JSON_EXTRACT(specifications, '$.totalQuantity')), quantity, 0) AS UNSIGNED)";
+        return "GREATEST(CAST(COALESCE(JSON_UNQUOTE(JSON_EXTRACT(specifications, '$.availableQuantity')), 0) AS UNSIGNED), CAST(COALESCE(JSON_UNQUOTE(JSON_EXTRACT(specifications, '$.totalQuantity')), 0) AS UNSIGNED), COALESCE(quantity, 0))";
     }
 
     private function filterCuratedVendors(array $vendors): array

@@ -124,7 +124,7 @@
     position: fixed;
     left: 0;
     right: 0;
-    background: #fff;
+    background: #2F5597;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     z-index: 9998;
     max-height: 80vh;
@@ -152,20 +152,20 @@
 .mobile-dropdown-menu a {
     display: block;
     padding: 14px 20px;
-    color: #333;
+    color: #fff;
     text-decoration: none;
     font-size: 15px;
 }
 .mobile-dropdown-menu a:hover {
-    background: #f5f5f5;
-    color: #2f5597;
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
 }
 .mobile-dropdown-menu .sub-toggle {
     cursor: pointer;
 }
 .mobile-dropdown-menu .dropdown {
     display: none;
-    background: #f9f9f9;
+    background: #2F5597;
 }
 .mobile-dropdown-menu .dropdown.open {
     display: block;
@@ -175,12 +175,14 @@
     padding-top: 13px;
     padding-bottom: 13px;
     font-size: 14px;
+    color: #fff;
 }
 .mobile-dropdown-menu .dropdown .dropdown a {
     padding-left: 50px;
     padding-top: 12px;
     padding-bottom: 12px;
     font-size: 13px;
+    color: #fff;
 }
 
 /* Hide old slicknav and mobile-nav */
@@ -391,7 +393,7 @@
                 <div class="row align-items-center">
                     <div class="col-lg-3 col-md-3 col-12 d-flex align-items-center">
                         <div class="logo d-flex align-items-center" style="padding: 0; margin: 0;">
-                            <a href="{{ url('/products') }}" class="d-inline-flex align-items-center" style="margin: 0; padding: 0;">
+                            <a href="{{ url('/') }}" class="d-inline-flex align-items-center" style="margin: 0; padding: 0;">
                                 <img src="{{ asset('images/logo/logo-replace.png') }}" alt="Armely logo" class="img-fluid" style="max-height: 52px; width: auto; display: block;" />
                             </a>
                         </div>

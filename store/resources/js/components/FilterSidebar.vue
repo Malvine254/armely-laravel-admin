@@ -11,7 +11,7 @@
       <div class="flex flex-wrap gap-2">
         <!-- Price Filter Badge -->
         <div v-if="isPriceFiltered" class="flex items-center gap-1 px-3 py-1 rounded-full text-sm" style="background-color: #cce4f4; color: #2F5597;">
-          <span>${{ filters.priceMin }} - ${{ filters.priceMax }}</span>
+          <span>{{ priceFilterLabel }}</span>
           <button @click="clearPriceFilter" class="hover:font-semibold">×</button>
         </div>
         <!-- Part Number Filter Badge -->
@@ -56,14 +56,14 @@
             <label class="text-xs text-gray-600 font-medium block mb-1">MIN</label>
             <div class="flex items-center border border-gray-300 rounded px-2 py-2 w-full">
               <span class="text-gray-600">$</span>
-              <input v-model.number="filters.priceMin" type="number" min="0" step="10" class="flex-1 ml-1 border-0 outline-none text-sm w-full" />
+              <input v-model.number="filters.priceMin" type="number" :min="DEFAULT_MIN_PRICE" step="10" class="flex-1 ml-1 border-0 outline-none text-sm w-full" />
             </div>
           </div>
           <div class="w-full">
             <label class="text-xs text-gray-600 font-medium block mb-1">MAX</label>
             <div class="flex items-center border border-gray-300 rounded px-2 py-2 w-full">
               <span class="text-gray-600">$</span>
-              <input v-model.number="filters.priceMax" type="number" min="0" step="10" class="flex-1 ml-1 border-0 outline-none text-sm w-full" />
+              <input v-model.number="filters.priceMax" type="number" min="0" step="10" placeholder="No max" class="flex-1 ml-1 border-0 outline-none text-sm w-full" />
             </div>
           </div>
         </div>
@@ -284,10 +284,12 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['filter-change'])
+const DEFAULT_MIN_PRICE = 100
+const DEFAULT_MAX_PRICE = 0
 
 const filters = ref({
-  priceMin: 0,
-  priceMax: 10000,
+  priceMin: DEFAULT_MIN_PRICE,
+  priceMax: DEFAULT_MAX_PRICE,
   partNumber: '',
   vendors: [],
   categories: [],
@@ -298,8 +300,8 @@ const filters = ref({
 const syncFromActiveFilters = (source = {}) => {
   const next = source || {}
   filters.value = {
-    priceMin: Number(next.priceMin ?? 0),
-    priceMax: Number(next.priceMax ?? 10000),
+    priceMin: Math.max(DEFAULT_MIN_PRICE, Number(next.priceMin ?? DEFAULT_MIN_PRICE)),
+    priceMax: Math.max(0, Number(next.priceMax ?? DEFAULT_MAX_PRICE)),
     partNumber: String(next.partNumber ?? ''),
     vendors: Array.isArray(next.vendors) ? [...next.vendors] : [],
     categories: Array.isArray(next.categories) ? [...next.categories] : [],
@@ -356,7 +358,14 @@ const filteredCategories = computed(() => {
   return normalizedCategories.value.filter(c => c.name.toLowerCase().includes(categorySearch.value.toLowerCase()))
 })
 
-const isPriceFiltered = computed(() => filters.value.priceMin > 0 || filters.value.priceMax < 10000)
+const isPriceFiltered = computed(() => filters.value.priceMin > DEFAULT_MIN_PRICE || filters.value.priceMax > 0)
+
+const priceFilterLabel = computed(() => {
+  const min = Math.max(DEFAULT_MIN_PRICE, Number(filters.value.priceMin || DEFAULT_MIN_PRICE))
+  const max = Math.max(0, Number(filters.value.priceMax || 0))
+
+  return max > 0 ? `$${min} - $${max}` : `$${min}+`
+})
 
 const hasActiveFilters = computed(() => {
   return isPriceFiltered.value
@@ -465,15 +474,15 @@ const clearMedia = () => {
 }
 
 const clearPriceFilter = () => {
-  filters.value.priceMin = 0
-  filters.value.priceMax = 10000
+  filters.value.priceMin = DEFAULT_MIN_PRICE
+  filters.value.priceMax = DEFAULT_MAX_PRICE
   applyFilters()
 }
 
 const clearAllFilters = () => {
   filters.value = {
-    priceMin: 0,
-    priceMax: 10000,
+    priceMin: DEFAULT_MIN_PRICE,
+    priceMax: DEFAULT_MAX_PRICE,
     partNumber: '',
     productType: '',
     vendors: [],
@@ -487,6 +496,12 @@ const clearAllFilters = () => {
 }
 
 const applyFilters = () => {
+  filters.value.priceMin = Math.max(DEFAULT_MIN_PRICE, Number(filters.value.priceMin || DEFAULT_MIN_PRICE))
+  filters.value.priceMax = Math.max(0, Number(filters.value.priceMax || 0))
+  if (filters.value.priceMax > 0 && filters.value.priceMax < filters.value.priceMin) {
+    filters.value.priceMax = filters.value.priceMin
+  }
+
   emit('filter-change', { ...filters.value })
 }
 </script>
