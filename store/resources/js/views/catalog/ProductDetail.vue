@@ -40,6 +40,9 @@
                   <div>
                     <p class="text-sm font-semibold text-slate-500">{{ product.vendorName || product.manufacturer || 'Product' }}</p>
                     <p class="text-xs text-slate-400 mt-0.5">Image not available</p>
+                    <p class="mt-1 text-[11px] font-mono text-slate-500 break-all">
+                      Save as: {{ getExpectedImageFileName(product) }}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -1020,6 +1023,41 @@ const getProductSku = (item) => {
     item?.sku_no ||
     'N/A'
   )
+}
+
+const fileNameFromImageValue = (value) => {
+  const rawUrl = String(value || '').trim()
+  if (!rawUrl) return ''
+
+  const path = rawUrl.split('?')[0].split('#')[0]
+  const fileName = path.split('/').filter(Boolean).pop() || ''
+
+  return /\.(?:jpg|jpeg|png|gif|webp|avif)$/i.test(fileName) ? fileName : ''
+}
+
+const getExpectedImageFileName = (item) => {
+  const imageSources = [
+    ...(Array.isArray(item?.productImages) ? item.productImages : []),
+    ...(Array.isArray(item?.images) ? item.images : []),
+    item?.image_url,
+    item?.thumbnailUrl,
+    item?.thumbnail,
+  ]
+
+  for (const image of imageSources) {
+    const fileName = typeof image === 'string'
+      ? fileNameFromImageValue(image)
+      : fileNameFromImageValue(image?.imagePath || image?.imageUrl || image?.imageURL || image?.image_url || image?.url || image?.thumbnailUrl)
+
+    if (fileName) return fileName
+  }
+
+  const identifier = String(item?.productId || item?.id || (getProductSku(item) !== 'N/A' ? getProductSku(item) : 'product'))
+    .trim()
+    .replace(/[^a-z0-9._-]+/gi, '-')
+    .replace(/^-+|-+$/g, '')
+
+  return `${identifier || 'product'}.jpg`
 }
 
 const getAvailableQuantity = (item) => {

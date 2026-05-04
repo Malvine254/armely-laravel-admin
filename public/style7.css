@@ -528,7 +528,7 @@ body {
 }
 
 .header .nav li .dropdown {
-	background: #fff;
+	background: #2f5597;
 	width: 220px;
 	position: absolute;
 	left: -20px;
@@ -552,7 +552,8 @@ body {
 .header .nav li .dropdown li {
 	float: none;
 	margin: 0;
-	border-bottom: 1px dashed #eee
+	border-bottom: 1px dashed rgba(255,255,255,.28);
+	background: #2f5597
 }
 
 .contact-us .form button,
@@ -565,11 +566,11 @@ body {
 
 .header .nav li .dropdown li a {
 	padding: 12px 15px;
-	color: #666;
+	color: #fff;
 	display: block;
 	font-weight: 400;
 	text-transform: capitalize;
-	background: 0 0;
+	background: #2f5597;
 	transition: .2s
 }
 
@@ -578,7 +579,9 @@ body {
 }
 
 .header .nav li .dropdown li a:hover {
-	border-color: transparent
+	border-color: transparent;
+	background: rgba(255,255,255,.1);
+	color: #fff
 }
 
 .header .nav li .dropdown li .dropdown {
