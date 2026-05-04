@@ -28,8 +28,8 @@ class ListMissingProductImagesCommand extends Command
 {
     protected $signature = 'products:list-missing-images
                             {--export=            : Export to CSV file path}
-                            {--by-id              : Include product ID}
-                            {--by-sku             : Include TD SYNNEX SKU (default)}
+                            {--by-id              : Include product ID (default)}
+                            {--by-sku             : Include TD SYNNEX SKU}
                             {--limit=0            : Max products to show (0 = all)}
                             {--format=table       : Output format (table, csv, csv-only)}';
 
@@ -39,8 +39,8 @@ class ListMissingProductImagesCommand extends Command
     {
         $limit      = max(0, (int) $this->option('limit'));
         $export     = $this->option('export');
-        $byId       = $this->option('by-id');
-        $bySku      = $this->option('by-sku') || !$byId;
+        $byId       = $this->option('by-id') || !$this->option('by-sku');
+        $bySku      = $this->option('by-sku');
         $format     = $this->option('format') ?? 'table';
 
         $query = Product::whereNull('images')
@@ -51,7 +51,7 @@ class ListMissingProductImagesCommand extends Command
             $query = $query->limit($limit);
         }
 
-        $products = $query->get(['id', 'tdsynnex_sku_no', 'product_name', 'vendor_id']);
+        $products = $query->get(['id', 'tdsynnex_product_id', 'tdsynnex_sku_no', 'product_name', 'vendor_id']);
         $total    = $products->count();
 
         // Prepare data for output
@@ -60,7 +60,7 @@ class ListMissingProductImagesCommand extends Command
             $row = [];
 
             if ($byId) {
-                $row['ID'] = $product->id;
+                $row['Product ID'] = $product->tdsynnex_product_id;
             }
             if ($bySku) {
                 $row['SKU'] = $product->tdsynnex_sku_no ?? '—';
@@ -68,7 +68,7 @@ class ListMissingProductImagesCommand extends Command
 
             $row['Product Name'] = mb_substr($product->product_name, 0, 80);
             $row['Vendor']       = $product->vendor_id;
-            $row['File Name']    = ($byId ? $product->id : $product->tdsynnex_sku_no) . '.jpg';
+            $row['File Name']    = ($byId ? $product->tdsynnex_product_id : $product->tdsynnex_sku_no) . '.jpg';
 
             $rows[] = $row;
         }
@@ -99,11 +99,11 @@ class ListMissingProductImagesCommand extends Command
         }
 
         $this->newLine();
-        $this->info("💡 Naming convention: Use {ID|SKU}.jpg for your image files");
-        $this->info("   Example: 15204339.jpg or 135048.jpg");
+        $this->info("💡 Naming convention: Use PRODUCT_ID.jpg for your image files");
+        $this->info("   Example: 15204339.jpg");
         $this->newLine();
         $this->info("📁 Place images in: public/uploads/products/");
-        $this->info("⏱️  Then run: php artisan products:sync-manual-images");
+        $this->info("⏱️  Then run: php artisan products:sync-manual-images --by-id");
 
         return self::SUCCESS;
     }
