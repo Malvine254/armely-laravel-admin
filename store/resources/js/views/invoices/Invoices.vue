@@ -303,7 +303,7 @@
     </div>
 
     <div v-if="selectedInvoice" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[9999]" @click="selectedInvoice = null">
-      <div class="bg-white rounded-2xl shadow-2xl max-w-7xl w-full max-h-[92vh] overflow-y-auto" @click.stop>
+      <div class="bg-white rounded-2xl shadow-2xl max-w-7xl w-full max-h-[92vh] overflow-y-auto" @click.stop style="background: #fff;">
         <div class="sticky top-0 text-white px-6 py-6 flex items-center justify-between rounded-t-2xl" style="background: linear-gradient(90deg, #2F5597, #1f4788);">
           <div>
             <p class="text-sm font-semibold text-gray-200 uppercase tracking-wide">Invoice</p>

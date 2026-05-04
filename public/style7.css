@@ -3646,8 +3646,7 @@ body {
 	margin-bottom: 12px
 }
 
-.footer .single-footer.f-link li a {
-	display: block;
+.footer .single-footer ul li a {
 	color: #fff;
 	-webkit-transition: .4s;
 	-moz-transition: .4s;
@@ -3655,7 +3654,7 @@ body {
 	font-weight: 400
 }
 
-.footer .single-footer.f-link li a:hover {
+.footer .single-footer ul li a:hover {
 	padding-left: 8px
 }
 
