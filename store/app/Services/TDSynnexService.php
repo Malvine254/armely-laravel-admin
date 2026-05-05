@@ -13,163 +13,6 @@ use Illuminate\Support\Facades\Log;
 
 class TDSynnexService
 {
-    private string $clientId;
-    private string $clientSecret;
-    private string $tokenUrl;
-    private string $baseUrl;
-    private ?string $accessToken = null;
-
-    public function __construct()
-    {
-        $this->clientId = config('tdsynnex.client_id');
-        $this->clientSecret = config('tdsynnex.client_secret');
-        $this->tokenUrl = config('tdsynnex.token_url');
-        $this->baseUrl = rtrim(config('tdsynnex.base_url'), '/');
-    }
-
-    /**
-     * Authenticate with TD SYNNEX and get OAuth2 access token
-     */
-    public function authenticate(): string
-    {
-        // Check cache first (token valid for 2 hours, cached for 110 minutes)
-        $cachedToken = Cache::get('tdsynnex_access_token');
-        if ($cachedToken) {
-            $this->accessToken = $cachedToken;
-            return $cachedToken;
-        }
-
-        try {
-            $response = Http::asForm()->post($this->tokenUrl, [
-                'grant_type' => 'client_credentials',
-                'client_id' => $this->clientId,
-                'client_secret' => $this->clientSecret,
-            ]);
-
-            if ($response->failed()) {
-                throw new TDSynnexApiException(
-                    'TD SYNNEX authentication failed: ' . $response->body(),
-                    $response->status()
-                );
-            }
-
-            $data = $response->json();
-            $this->accessToken = $data['access_token'];
-
-            // Cache token for 110 minutes (safe margin before 2-hour expiry)
-            $ttl = (int) config('tdsynnex.cache.token_ttl', 6600);
-            Cache::put('tdsynnex_access_token', $this->accessToken, now()->addSeconds($ttl));
-
-            Log::info('TD SYNNEX API authenticated successfully');
-
-            return $this->accessToken;
-
-        } catch (TDSynnexApiException $e) {
-            throw $e;
-        } catch (\Exception $e) {
-            Log::error('TD SYNNEX authentication error: ' . $e->getMessage());
-            throw new TDSynnexApiException(
-                'Failed to authenticate with TD SYNNEX: ' . $e->getMessage()
-            );
-        }
-    }
-
-    /**
-     * Get authorization headers
-     */
-    private function getAuthHeaders(): array
-    {
-        if (!$this->accessToken) {
-            $this->authenticate();
-        }
-
-        return [
-            'Authorization' => 'Bearer ' . $this->accessToken,
-            'Accept' => 'application/json',
-        ];
-    }
-
-    /**
-     * Make authenticated API request with retry logic
-     */
-    private function request(
-        string $method,
-        string $endpoint,
-        array $params = [],
-        array $body = []
-    ): array {
-        $url = $this->baseUrl . $endpoint;
-        $maxAttempts = config('tdsynnex.retry.max_attempts', 3);
-        $attempt = 0;
-
-        while ($attempt < $maxAttempts) {
-            try {
-                $timeout = max(1, (int) config('tdsynnex.timeout', 30));
-                $response = Http::withHeaders($this->getAuthHeaders())
-                    ->connectTimeout(min(5, $timeout))
-                    ->timeout($timeout)
-                    ->{$method}($url, $method === 'get' ? $params : $body);
-
-                // Token expired, re-authenticate
-                if ($response->status() === 401) {
-                    Cache::forget('tdsynnex_access_token');
-                    $this->authenticate();
-                    
-                    // Retry request
-                    $timeout = max(1, (int) config('tdsynnex.timeout', 30));
-                    $response = Http::withHeaders($this->getAuthHeaders())
-                        ->connectTimeout(min(5, $timeout))
-                        ->timeout($timeout)
-                        ->{$method}($url, $method === 'get' ? $params : $body);
-                }
-
-                if ($response->failed()) {
-                    // Check if we should retry
-                    if ($attempt < $maxAttempts - 1 && $this->shouldRetry($response->status())) {
-                        $attempt++;
-                        sleep(pow(2, $attempt - 1)); // Exponential backoff: 1s, 2s, 4s
-                        continue;
-                    }
-
-                    Log::error('TD SYNNEX API error', [
-                        'endpoint' => $endpoint,
-                        'status' => $response->status(),
-                        'body' => $response->body(),
-                    ]);
-
-                    throw new TDSynnexApiException(
-                        'API request failed: ' . $response->body(),
-                        $response->status()
-                    );
-                }
-
-                // Log request if enabled
-                if (config('tdsynnex.logging.log_requests', true)) {
-                    Log::debug('TD SYNNEX API request', [
-                        'method' => $method,
-                        'endpoint' => $endpoint,
-                        'params' => $params,
-                    ]);
-                }
-
-                return $response->json();
-
-            } catch (TDSynnexApiException $e) {
-                throw $e;
-            } catch (\Exception $e) {
-                if ($attempt < $maxAttempts - 1) {
-                    $attempt++;
-                    sleep(pow(2, $attempt - 1));
-                    continue;
-                }
-                
-                Log::error('TD SYNNEX API exception: ' . $e->getMessage());
-                throw new TDSynnexApiException('API request exception: ' . $e->getMessage());
-            }
-        }
-
-        throw new TDSynnexApiException('Maximum retry attempts exceeded');
-    }
 
     /**
      * Make authenticated XML API request
@@ -199,141 +42,6 @@ class TDSynnexService
         }
 
         return (string) $endpoint;
-    }
-
-    private function requestXml(
-        string $method,
-        string $endpoint,
-        string $xmlBody
-    ): array {
-        $url = str_starts_with($endpoint, 'http') ? $endpoint : $this->baseUrl . $endpoint;
-        $maxAttempts = config('tdsynnex.retry.max_attempts', 3);
-        $attempt = 0;
-
-        while ($attempt < $maxAttempts) {
-            try {
-                $headers = $this->getAuthHeaders();
-                $headers['Accept'] = 'application/xml';
-                $headers['Content-Type'] = 'application/xml';
-                $timeout = max(1, (int) config('tdsynnex.timeout', 30));
-
-                $response = Http::withHeaders($headers)
-                    ->connectTimeout(min(5, $timeout))
-                    ->timeout($timeout)
-                    ->withBody($xmlBody, 'application/xml')
-                    ->{$method}($url);
-
-                // Token expired, re-authenticate
-                if ($response->status() === 401) {
-                    Cache::forget('tdsynnex_access_token');
-                    $this->authenticate();
-                    
-                    // Retry request
-                    $headers = $this->getAuthHeaders();
-                    $headers['Accept'] = 'application/xml';
-                    $headers['Content-Type'] = 'application/xml';
-                    $timeout = max(1, (int) config('tdsynnex.timeout', 30));
-                    
-                    $response = Http::withHeaders($headers)
-                        ->connectTimeout(min(5, $timeout))
-                        ->timeout($timeout)
-                        ->withBody($xmlBody, 'application/xml')
-                        ->{$method}($url);
-                }
-
-                if ($response->failed()) {
-                    // Check if we should retry
-                    if ($attempt < $maxAttempts - 1 && $this->shouldRetry($response->status())) {
-                        $attempt++;
-                        sleep(pow(2, $attempt - 1));
-                        continue;
-                    }
-
-                    Log::error('TD SYNNEX XML API error', [
-                        'endpoint' => $endpoint,
-                        'status' => $response->status(),
-                        'body' => $response->body(),
-                    ]);
-
-                    throw new TDSynnexApiException(
-                        'XML API request failed: ' . $response->body(),
-                        $response->status()
-                    );
-                }
-
-                // Log request if enabled
-                if (config('tdsynnex.logging.log_requests', true)) {
-                    Log::debug('TD SYNNEX XML API request', [
-                        'method' => $method,
-                        'endpoint' => $endpoint,
-                        'body' => $this->sanitizeXmlForLogs($xmlBody),
-                    ]);
-                }
-
-                Log::debug('TD SYNNEX XML Response', [
-                    'status_code' => $response->status(),
-                    'raw_body' => $response->body(),
-                    'headers' => $response->headers(),
-                ]);
-
-                $responseBody = (string) $response->body();
-                $contentTypeHeader = strtolower((string) ($response->header('Content-Type') ?? ''));
-
-                if (str_contains($contentTypeHeader, 'application/xml') || str_contains(trim($responseBody), '<')) {
-                    try {
-                        Log::debug('Attempting XML parse', ['body' => $responseBody]);
-
-                        $xml = simplexml_load_string($responseBody);
-                        if ($xml === false) {
-                            Log::warning('Failed to parse XML response, returning raw body', ['body' => $responseBody]);
-                            return ['response' => $responseBody, 'raw_body' => $responseBody];
-                        }
-
-                        $decoded = json_decode(json_encode($xml), true);
-                        $decoded = is_array($decoded) ? $decoded : [];
-                        Log::debug('Successfully parsed XML', ['decoded' => $decoded]);
-
-                        if (isset($decoded['errorMessage'])) {
-                            $detail = trim((string) ($decoded['errorDetail'] ?? ''));
-                            $message = trim((string) ($decoded['errorMessage'] ?? 'TD SYNNEX XML error'));
-                            Log::error('TD SYNNEX API error in response', [
-                                'errorMessage' => $message,
-                                'errorDetail' => $detail,
-                                'full_response' => $decoded,
-                            ]);
-
-                            throw new TDSynnexApiException($message . ($detail !== '' ? ': ' . $detail : ''));
-                        }
-
-                        return $decoded;
-                    } catch (TDSynnexApiException $e) {
-                        throw $e;
-                    } catch (\Exception $xmlError) {
-                        Log::warning('XML parsing error', ['error' => $xmlError->getMessage(), 'body' => $responseBody]);
-                        return ['response' => $responseBody];
-                    }
-                }
-
-                $jsonResponse = $response->json();
-                $jsonResponse = is_array($jsonResponse) ? $jsonResponse : [];
-                Log::debug('TD SYNNEX response parsed as JSON', ['response' => $jsonResponse]);
-                return $jsonResponse;
-
-            } catch (TDSynnexApiException $e) {
-                throw $e;
-            } catch (\Exception $e) {
-                if ($attempt < $maxAttempts - 1) {
-                    $attempt++;
-                    sleep(pow(2, $attempt - 1));
-                    continue;
-                }
-                
-                Log::error('TD SYNNEX XML API exception: ' . $e->getMessage());
-                throw new TDSynnexApiException('XML API request exception: ' . $e->getMessage());
-            }
-        }
-
-        throw new TDSynnexApiException('Maximum retry attempts exceeded');
     }
 
     /**
@@ -438,178 +146,11 @@ class TDSynnexService
     }
 
     /**
-     * Get list of authorized vendors
-     */
-    public function getVendors(): array
-    {
-        $cacheKey = 'tdsynnex:vendors';
-        $ttl = (int) config('tdsynnex.cache.vendors_ttl', 86400);
-        
-        return Cache::remember($cacheKey, now()->addSeconds($ttl), function () {
-            return $this->request('get', '/api/v1/cloud/vendors');
-        });
-    }
-
-    /**
-     * Get products for a vendor with pagination and filters
-     */
-    public function getProducts(
-        string $vendorId,
-        int $pageNo = 1,
-        int $pageSize = 100,
-        ?string $search = null,
-        ?string $mfgPartNo = null,
-        string $includeEOL = 'N'
-    ): array {
-        $params = [
-            'pageNo' => $pageNo,
-            'pageSize' => $pageSize,
-            'includeEOL' => $includeEOL,
-        ];
-
-        if ($search) {
-            $params['$search'] = $search;
-        }
-
-        if ($mfgPartNo) {
-            $params['mfgPartNo'] = $mfgPartNo;
-        }
-
-        // include client id so cache invalidates when credentials change
-        $cacheKey = 'tdsynnex:products:' . md5($this->clientId . ':' . $vendorId . json_encode($params));
-        $ttl = (int) config('tdsynnex.cache.products_ttl', 900);
-        
-        if (!config('tdsynnex.cache.enabled', true)) {
-            return $this->request('get', "/api/v2/vendors/{$vendorId}/cloud/products", $params);
-        }
-
-        return Cache::remember($cacheKey, now()->addSeconds($ttl), function () use ($vendorId, $params) {
-            return $this->request('get', "/api/v2/vendors/{$vendorId}/cloud/products", $params);
-        });
-    }
-
-    /**
-     * Get all products for a vendor (fetch all pages)
-     */
-    public function getAllProducts(
-        string $vendorId,
-        int $pageSize = 100,
-        ?string $search = null,
-        ?string $mfgPartNo = null,
-        string $includeEOL = 'N'
-    ): array {
-        $allProducts = [];
-        $pageNo = 1;
-
-        do {
-            $response = $this->getProducts($vendorId, $pageNo, $pageSize, $search, $mfgPartNo, $includeEOL);
-            $data = $response['data'] ?? [];
-            $records = $data['records'] ?? [];
-            
-            $allProducts = array_merge($allProducts, $records);
-            
-            $total = $data['total'] ?? 0;
-            $hasMore = count($allProducts) < $total && !empty($records);
-            
-            $pageNo++;
-        } while ($hasMore);
-
-        return $allProducts;
-    }
-
-    /**
-     * Get product details by product ID
-     */
-    public function getProduct(int $productId): array
-    {
-        $cacheKey = "tdsynnex:product:{$this->clientId}:{$productId}";
-        $ttl = (int) config('tdsynnex.cache.products_ttl', 900);
-        
-        if (!config('tdsynnex.cache.enabled', true)) {
-            return $this->request('get', "/api/v1/cloud/products/{$productId}");
-        }
-
-        return Cache::remember($cacheKey, now()->addSeconds($ttl), function () use ($productId) {
-            return $this->request('get', "/api/v1/cloud/products/{$productId}");
-        });
-    }
-
-    /**
-     * Get product details - alias for getProduct()
-     * Accepts string or int productId
-     */
-    public function getProductDetails($productId): array
-    {
-        return $this->getProduct((int)$productId);
-    }
-
-    /**
-     * Get product details by SKU number
-     */
-    public function getProductBySku(int $skuNo): array
-    {
-        $cacheKey = "tdsynnex:product:sku:{$this->clientId}:{$skuNo}";
-        $ttl = (int) config('tdsynnex.cache.products_ttl', 900);
-        
-        if (!config('tdsynnex.cache.enabled', true)) {
-            return $this->request('get', "/api/v1/cloud/products/skuNo/{$skuNo}");
-        }
-
-        return Cache::remember($cacheKey, now()->addSeconds($ttl), function () use ($skuNo) {
-            return $this->request('get', "/api/v1/cloud/products/skuNo/{$skuNo}");
-        });
-    }
-
-    /**
-     * Get related products for a product
-     */
-    public function getRelatedProducts(int $productId): array
-    {
-        $cacheKey = "tdsynnex:product:related:{$this->clientId}:{$productId}";
-        $ttl = (int) config('tdsynnex.cache.products_ttl', 900);
-        
-        if (!config('tdsynnex.cache.enabled', true)) {
-            return $this->request('get', "/api/v1/cloud/products/{$productId}/related");
-        }
-
-        return Cache::remember($cacheKey, now()->addSeconds($ttl), function () use ($productId) {
-            return $this->request('get', "/api/v1/cloud/products/{$productId}/related");
-        });
-    }
-
-    /**
-     * Get product images
-     */
-    public function getProductImages(int $productId): array
-    {
-        $cacheKey = "tdsynnex:product:images:{$this->clientId}:{$productId}";
-        $ttl = (int) config('tdsynnex.cache.products_ttl', 900);
-        
-        if (!config('tdsynnex.cache.enabled', true)) {
-            try {
-                return $this->request('get', "/api/v1/cloud/products/{$productId}/images");
-            } catch (\Exception $e) {
-                Log::warning("Failed to fetch images for product {$productId}: " . $e->getMessage());
-                return ['data' => ['images' => []]];
-            }
-        }
-
-        return Cache::remember($cacheKey, now()->addSeconds($ttl), function () use ($productId) {
-            try {
-                return $this->request('get', "/api/v1/cloud/products/{$productId}/images");
-            } catch (\Exception $e) {
-                Log::warning("Failed to fetch images for product {$productId}: " . $e->getMessage());
-                return ['data' => ['images' => []]];
-            }
-        });
-    }
-
-    /**
      * Check whether product endpoints should use XML PriceAvailability feed.
      */
     public function usesPriceAvailabilityAsProductSource(): bool
     {
-        return strtolower((string) config('tdsynnex.products_source', 'streamone')) === 'priceavailability';
+        return true;
     }
 
     /**
@@ -4471,59 +4012,9 @@ class TDSynnexService
     }
 
     /**
-     * Get quote details by quote ID
-     * Reference: https://api.synnex.com/api-center/reseller/api-specification?projectName=cis-partner-api#tag/Quotes
-     */
-    public function getQuote(string $quoteId): array
-    {
-        $cacheKey = "tdsynnex:quote:{$quoteId}";
-        $ttl = (int) config('tdsynnex.cache.quotes_ttl', 3600);
-        
-        return Cache::remember($cacheKey, now()->addSeconds($ttl), function () use ($quoteId) {
-            return $this->request('get', "/api/v1/cloud/quotes/{$quoteId}");
-        });
-    }
-
-    /**
-     * Create a new quote (submit quote request)
-     * Reference: https://api.synnex.com/api-center/reseller/api-specification?projectName=cis-partner-api#tag/Quotes
-     */
-    public function createQuote(array $quoteData): array
-    {
-        return $this->request('post', '/api/v1/cloud/quotes', [], $quoteData);
-    }
-
-    /**
-     * Get list of quotes for reseller
-     */
-    public function getQuotes(
-        int $pageNo = 1,
-        int $pageSize = 50,
-        ?string $status = null,
-        ?string $fromDate = null,
-        ?string $toDate = null
-    ): array {
-        $params = [
-            'pageNo' => $pageNo,
-            'pageSize' => $pageSize,
-        ];
-
-        if ($status) {
-            $params['status'] = $status;
-        }
-        if ($fromDate) {
-            $params['fromDate'] = $fromDate;
-        }
-        if ($toDate) {
-            $params['toDate'] = $toDate;
-        }
-
-        return $this->request('get', '/api/v1/cloud/quotes', $params);
-    }
-
-    /**
      * Place an order
-     * Phase 1C - Order Management
+     * XML PO submission. Local quotes are managed by Armely; TD SYNNEX receives
+     * only confirmed orders through the ECExpress PO endpoint.
      */
     public function placeOrder(array $orderData, string $region = 'us', ?bool $useTest = null): array
     {
@@ -4703,123 +4194,11 @@ class TDSynnexService
     }
 
     /**
-     * Get order by order number
-     * Reference: https://api.synnex.com/api-center/reseller/api-specification?projectName=cis-partner-api#tag/Orders
-     */
-    public function getOrder(string $orderNumber): array
-    {
-        $cacheKey = "tdsynnex:order:{$orderNumber}";
-        $ttl = (int) config('tdsynnex.cache.orders_ttl', 1800);
-        
-        return Cache::remember($cacheKey, now()->addSeconds($ttl), function () use ($orderNumber) {
-            return $this->request('get', "/api/v1/cloud/orders/{$orderNumber}");
-        });
-    }
-
-    /**
-     * Get order status
-     * Phase 1C - Order Management
-     */
-    public function getOrderStatus(string $orderId): array
-    {
-        return $this->getOrder($orderId);
-    }
-
-    /**
-     * Get list of orders for reseller
-     */
-    public function getOrders(
-        int $pageNo = 1,
-        int $pageSize = 50,
-        ?string $status = null,
-        ?string $fromDate = null,
-        ?string $toDate = null
-    ): array {
-        $params = [
-            'pageNo' => $pageNo,
-            'pageSize' => $pageSize,
-        ];
-
-        if ($status) {
-            $params['status'] = $status;
-        }
-        if ($fromDate) {
-            $params['fromDate'] = $fromDate;
-        }
-        if ($toDate) {
-            $params['toDate'] = $toDate;
-        }
-
-        return $this->request('get', '/api/v1/cloud/orders', $params);
-    }
-
-    /**
-     * Cancel an order
-     * Phase 1C - Order Management
-     */
-    public function cancelOrder(string $orderId, string $reason): bool
-    {
-        $response = $this->request('post', "/api/v1/cloud/orders/{$orderId}/cancel", [], [
-            'reason' => $reason,
-        ]);
-
-        return isset($response['success']) && $response['success'];
-    }
-
-    /**
-     * Get invoice details by invoice number
-     * Reference: https://api.synnex.com/api-center/reseller/api-specification?projectName=cis-partner-api#tag/Invoices
-     */
-    public function getInvoice(string $invoiceNumber): array
-    {
-        $cacheKey = "tdsynnex:invoice:{$invoiceNumber}";
-        $ttl = (int) config('tdsynnex.cache.invoices_ttl', 3600);
-        
-        return Cache::remember($cacheKey, now()->addSeconds($ttl), function () use ($invoiceNumber) {
-            return $this->request('get', "/api/v1/cloud/invoices/{$invoiceNumber}");
-        });
-    }
-
-    /**
-     * Get list of invoices for reseller
-     */
-    public function getInvoices(
-        int $pageNo = 1,
-        int $pageSize = 50,
-        ?string $status = null,
-        ?string $fromDate = null,
-        ?string $toDate = null
-    ): array {
-        $params = [
-            'pageNo' => $pageNo,
-            'pageSize' => $pageSize,
-        ];
-
-        if ($status) {
-            $params['status'] = $status;
-        }
-        if ($fromDate) {
-            $params['fromDate'] = $fromDate;
-        }
-        if ($toDate) {
-            $params['toDate'] = $toDate;
-        }
-
-        return $this->request('get', '/api/v1/cloud/invoices', $params);
-    }
-
-    /**
      * Get invoice PDF URL
      */
     public function getInvoicePdf(string $invoiceNumber): ?string
     {
-        try {
-            $invoice = $this->getInvoice($invoiceNumber);
-            return $invoice['pdfUrl'] ?? $invoice['pdf_url'] ?? null;
-        } catch (\Exception $e) {
-            Log::error("Failed to get invoice PDF: {$e->getMessage()}");
-            return null;
-        }
+        return null;
     }
 
     /**
@@ -4864,7 +4243,18 @@ XML;
             ]);
             
             $url = $this->resolveXmlEndpoint($region, 'postatus', $useTest);
-            $response = $this->requestXml('post', $url, $xmlBody);
+            $httpResponse = Http::withHeaders(['Content-Type' => 'application/xml', 'Accept' => 'application/xml'])
+                ->timeout(config('tdsynnex.timeout', 30))
+                ->withBody($xmlBody, 'application/xml')
+                ->post($url);
+
+            if ($httpResponse->failed()) {
+                throw new TDSynnexApiException('PO status request failed: ' . $httpResponse->body(), $httpResponse->status());
+            }
+
+            $body = $httpResponse->body();
+            $xmlResp = @simplexml_load_string($body);
+            $response = $xmlResp === false ? ['raw' => $body] : json_decode(json_encode($xmlResp), true);
             
             Log::debug('PO status response', [
                 'po_number' => $poNumber,
@@ -4951,11 +4341,22 @@ XML;
                 ->withBody($xml, 'application/xml')
                 ->post($url);
 
+            $body = $response->body();
             if ($response->failed()) {
-                throw new TDSynnexApiException('PO submission failed: ' . $response->body(), $response->status());
+                $parsedError = $this->parseTdSynnexErrorResponse($body);
+                $errorMessage = $parsedError['message'] ?? trim($body) ?: 'Unknown PO submission error';
+
+                throw new TDSynnexApiException(
+                    'PO submission failed: ' . $errorMessage,
+                    $response->status(),
+                    [
+                        'raw_body' => $body,
+                        'parsed' => $parsedError,
+                        'http_status' => $response->status(),
+                    ]
+                );
             }
 
-            $body = $response->body();
             $xmlResp = @simplexml_load_string($body);
             if ($xmlResp === false) {
                 return ['raw' => $body];
@@ -4965,9 +4366,67 @@ XML;
         } catch (TDSynnexApiException $e) {
             throw $e;
         } catch (\Exception $e) {
-            throw new TDSynnexApiException('PO XML request error: ' . $e->getMessage());
+            throw new TDSynnexApiException('PO XML request error: ' . $e->getMessage(), 0, ['exception' => $e->getMessage()]);
         }
     }
+
+    private function parseTdSynnexErrorResponse(string $body): array
+    {
+        $result = ['message' => null, 'details' => []];
+        $xmlResp = @simplexml_load_string($body);
+        if ($xmlResp === false) {
+            return $result;
+        }
+
+        $payload = json_decode(json_encode($xmlResp), true);
+        if (!is_array($payload)) {
+            return $result;
+        }
+
+        $messageCandidates = [];
+        $detailCandidates = [];
+
+        $searchKeys = ['errorMessage', 'errorDetail', 'message', 'Message', 'Error', 'ErrorMessage', 'Description', 'Reason'];
+        foreach ($searchKeys as $key) {
+            if (isset($payload[$key]) && $payload[$key] !== '') {
+                $messageCandidates[] = (string) $payload[$key];
+            }
+        }
+
+        if (isset($payload['OrderResponse']) && is_array($payload['OrderResponse'])) {
+            $orderResponse = $payload['OrderResponse'];
+            foreach (['Reason', 'errorMessage', 'errorDetail', 'Message', 'Description', 'Code'] as $key) {
+                if (isset($orderResponse[$key]) && $orderResponse[$key] !== '') {
+                    $messageCandidates[] = (string) $orderResponse[$key];
+                }
+            }
+
+            $items = $orderResponse['Items']['Item'] ?? null;
+            if (is_array($items)) {
+                if (isset($items[0]) && is_array($items[0])) {
+                    $items = $items[0];
+                }
+                foreach (['Reason', 'errorMessage', 'errorDetail', 'Message', 'Description', 'Code'] as $key) {
+                    if (isset($items[$key]) && $items[$key] !== '') {
+                        $messageCandidates[] = (string) $items[$key];
+                    }
+                }
+            }
+        }
+
+        if (empty($messageCandidates) && is_array($payload)) {
+            $serialized = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            if ($serialized !== false) {
+                $messageCandidates[] = $serialized;
+            }
+        }
+
+        $result['message'] = trim(implode(' | ', array_unique(array_filter($messageCandidates, fn ($value) => trim((string) $value) !== ''))));
+        $result['details'] = $payload;
+
+        return $result;
+    }
+
     public function authMode(): string
     {
         return 'OAuth2 client_credentials';

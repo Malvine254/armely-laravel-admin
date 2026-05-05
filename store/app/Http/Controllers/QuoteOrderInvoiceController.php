@@ -272,26 +272,6 @@ class QuoteOrderInvoiceController extends Controller
             $resolvedName = trim($localProductName);
         }
 
-        if (!$resolvedName) {
-            try {
-                $product = $this->tdsynnexService->getProductDetails($key);
-                $payload = is_array($product['data'] ?? null) ? $product['data'] : $product;
-                $resolvedName = $this->extractProductNameFromPayload((array) $payload);
-            } catch (\Throwable $e) {
-                Log::debug("Product detail lookup failed for key {$key}: {$e->getMessage()}");
-            }
-        }
-
-        if (!$resolvedName) {
-            try {
-                $productBySku = $this->tdsynnexService->getProductBySku($key);
-                $payload = is_array($productBySku['data'] ?? null) ? $productBySku['data'] : $productBySku;
-                $resolvedName = $this->extractProductNameFromPayload((array) $payload);
-            } catch (\Throwable $e) {
-                Log::debug("Product SKU lookup failed for key {$key}: {$e->getMessage()}");
-            }
-        }
-
         $this->productNameCache[$key] = $resolvedName ?: '';
 
         return $resolvedName;
@@ -774,23 +754,7 @@ class QuoteOrderInvoiceController extends Controller
                 ->where('quote_id', $quoteId)
                 ->first();
 
-            if (!$quote) {
-                // Fetch from TD SYNNEX API
-                $tdData = $this->tdsynnexService->getQuote($quoteId);
-                
-                // Store in local database
-                $quote = Quote::create([
-                    'user_id' => $user->id,
-                    'quote_id' => $quoteId,
-                    'status' => $tdData['status'] ?? 'draft',
-                    'total_amount' => $tdData['totalAmount'] ?? null,
-                    'tax_amount' => $tdData['taxAmount'] ?? 0,
-                    'discount_amount' => $tdData['discountAmount'] ?? 0,
-                    'items' => $tdData['items'] ?? [],
-                    'raw_data' => $tdData,
-                    'expires_at' => isset($tdData['expiryDate']) ? now()->parse($tdData['expiryDate']) : null,
-                ]);
-            }
+            abort_if(!$quote, 404, 'Quote not found');
 
             return response()->json([
                 'success' => true,
@@ -1398,27 +1362,7 @@ class QuoteOrderInvoiceController extends Controller
                 ->where('order_number', $orderNumber)
                 ->first();
 
-            if (!$order) {
-                // Fetch from TD SYNNEX API
-                $tdData = $this->tdsynnexService->getOrder($orderNumber);
-                
-                // Store in local database
-                $order = Order::create([
-                    'user_id' => $user->id,
-                    'order_number' => $orderNumber,
-                    'quote_id' => $tdData['quoteId'] ?? null,
-                    'status' => $tdData['status'] ?? 'pending',
-                    'total_amount' => $tdData['totalAmount'] ?? null,
-                    'tax_amount' => $tdData['taxAmount'] ?? 0,
-                    'discount_amount' => $tdData['discountAmount'] ?? 0,
-                    'items' => $tdData['items'] ?? [],
-                    'raw_data' => $tdData,
-                    'ordered_at' => isset($tdData['orderDate']) ? now()->parse($tdData['orderDate']) : now(),
-                    'shipped_at' => isset($tdData['shipDate']) ? now()->parse($tdData['shipDate']) : null,
-                    'delivered_at' => isset($tdData['deliveryDate']) ? now()->parse($tdData['deliveryDate']) : null,
-                    'tracking_info' => $tdData['trackingNumber'] ?? null,
-                ]);
-            }
+            abort_if(!$order, 404, 'Order not found');
 
             // Map field names for frontend
             $order->tracking_number = $this->normalizeTrackingNumber($order->tracking_info);
@@ -1611,27 +1555,7 @@ class QuoteOrderInvoiceController extends Controller
                 ->where('invoice_number', $invoiceNumber)
                 ->first();
 
-            if (!$invoice) {
-                // Fetch from TD SYNNEX API
-                $tdData = $this->tdsynnexService->getInvoice($invoiceNumber);
-                
-                // Store in local database
-                $invoice = Invoice::create([
-                    'user_id' => $user->id,
-                    'invoice_number' => $invoiceNumber,
-                    'order_number' => $tdData['orderNumber'] ?? null,
-                    'status' => $tdData['status'] ?? 'pending',
-                    'total_amount' => $tdData['totalAmount'] ?? null,
-                    'tax_amount' => $tdData['taxAmount'] ?? 0,
-                    'paid_amount' => $tdData['paidAmount'] ?? 0,
-                    'items' => $tdData['items'] ?? [],
-                    'raw_data' => $tdData,
-                    'issued_at' => isset($tdData['issuedDate']) ? now()->parse($tdData['issuedDate']) : now(),
-                    'due_at' => isset($tdData['dueDate']) ? now()->parse($tdData['dueDate']) : null,
-                    'paid_at' => isset($tdData['paidDate']) ? now()->parse($tdData['paidDate']) : null,
-                    'pdf_url' => $tdData['pdfUrl'] ?? null,
-                ]);
-            }
+            abort_if(!$invoice, 404, 'Invoice not found');
 
             $existingItems = is_array($invoice->items) ? $invoice->items : [];
             $enrichedItems = $this->enrichInvoiceItemsWithProductNames($existingItems);
@@ -1861,9 +1785,7 @@ class QuoteOrderInvoiceController extends Controller
                 ], 400);
             }
 
-            // Call TD SYNNEX API to cancel order
             $reason = $validated['reason'] ?? 'Cancelled by customer';
-            $this->tdsynnexService->cancelOrder($order->tdsynnex_order_id, $reason);
 
             // Update local database
             $order->update([

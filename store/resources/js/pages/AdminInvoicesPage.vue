@@ -306,7 +306,7 @@
 
     <!-- Invoice View Modal -->
     <div v-if="selectedInvoice" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" @click="selectedInvoice = null">
-      <div class="rounded-2xl border-0 shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" @click.stop>
+      <div class="bg-white rounded-2xl border-0 shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" @click.stop style="background:#fff;">
         <div class="sticky top-0 text-white p-6 border-b border-gray-200" style="background: linear-gradient(135deg, #2F5597, #1e3a6b);">
           <div class="flex justify-between items-center">
             <h3 class="text-xl font-bold">Invoice: {{ selectedInvoice.invoice_number }}</h3>
@@ -316,7 +316,7 @@
           </div>
         </div>
 
-        <div class="p-6 space-y-6">
+        <div class="bg-white p-6 space-y-6">
           <!-- Invoice Details -->
           <div class="grid grid-cols-2 gap-6">
             <div>
@@ -672,10 +672,10 @@ const recordPayment = async () => {
     })
 
     if (response.data.success) {
-      alert('Payment recorded successfully!')
+      alert(response.data.message || 'Payment recorded successfully!')
       selectedInvoice.value = null
-      fetchInvoices()
-      fetchStats()
+      await fetchInvoices()
+      await fetchStats()
     }
   } catch (error) {
     console.error('Failed to record payment:', error)

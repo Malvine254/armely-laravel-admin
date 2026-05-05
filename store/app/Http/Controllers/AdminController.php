@@ -1389,42 +1389,52 @@ class AdminController extends Controller
             ]);
 
             $tdsynnexService = app(TDSynnexService::class);
-            $tdResponse = $tdsynnexService->placeOrder($orderData, 'us', false);
-            
-            // Log full response for debugging
+            $tdResponse = $tdsynnexService->placeOrder($orderData, 'us', false); // false = production endpoint
+
             \Log::debug('Order submission response details', [
                 'response' => $tdResponse,
                 'response_keys' => array_keys((array)$tdResponse),
-                'response_json' => json_encode($tdResponse),
             ]);
-            
-            // Recursively search for order number in response
-            $orderNumber = $this->findOrderNumber($tdResponse);
 
-            // Fallback: If TD SYNNEX doesn't return order number, generate local one
-            if (!$orderNumber) {
-                \Log::warning('TD SYNNEX did not return order number, generating local one', [
-                    'response' => $tdResponse,
-                    'quote_id' => $quote->quote_id,
-                ]);
-                // Generate order ID: ORD-2026-XXXXXX format
+            // Detect top-level API error (errorMessage / errorDetail format)
+            $tdTopErrorMessage = trim((string) ($tdResponse['errorMessage'] ?? $tdResponse['error'] ?? ''));
+            $tdTopErrorDetail  = trim((string) ($tdResponse['errorDetail'] ?? ''));
+            if ($tdTopErrorMessage !== '') {
+                $tdRejectionReason = $tdTopErrorDetail ?: $tdTopErrorMessage;
+                $localStatus = 'failed';
                 $orderNumber = 'ORD-' . now()->format('Y') . '-' . strtoupper(substr(md5($quote->quote_id . time()), 0, 6));
+                \Log::warning("TD SYNNEX rejected order for quote {$quote->quote_id}: {$tdRejectionReason}");
+            } else {
+                // Recursively search for order number in response
+                $orderNumber = $this->findOrderNumber($tdResponse);
+                if (!$orderNumber) {
+                    \Log::warning('TD SYNNEX did not return order number, generating local one', [
+                        'response' => $tdResponse,
+                        'quote_id' => $quote->quote_id,
+                    ]);
+                    $orderNumber = 'ORD-' . now()->format('Y') . '-' . strtoupper(substr(md5($quote->quote_id . time()), 0, 6));
+                }
+                $tdRejectionReason = null;
             }
 
             $normalizedOrderData = $this->normalizeTdOrderStatusPayload($tdResponse);
-            $localStatus = $this->mapCanonicalToLocalOrderStatus($normalizedOrderData['normalized_status'] ?? null);
+            $localStatus = isset($localStatus) ? $localStatus : $this->mapCanonicalToLocalOrderStatus($normalizedOrderData['normalized_status'] ?? null);
 
-            // Extract TD rejection reason if present
-            $tdRejectionReason = null;
-            $orderResponse = is_array($tdResponse['OrderResponse'] ?? null) ? $tdResponse['OrderResponse'] : [];
-            if (!empty($orderResponse)) {
-                $tdRejectionReason = $orderResponse['Reason'] ?? null;
-                if (!$tdRejectionReason) {
-                    $item = $orderResponse['Items']['Item'] ?? null;
-                    if (is_array($item) && isset($item[0])) {
-                        $tdRejectionReason = $item[0]['Reason'] ?? null;
-                    } elseif (is_array($item)) {
-                        $tdRejectionReason = $item['Reason'] ?? null;
+            // Extract OrderResponse-level rejection reason if not already set from top-level error
+            if (!isset($tdRejectionReason)) {
+                $tdRejectionReason = null;
+            }
+            if ($tdRejectionReason === null) {
+                $orderResponse = is_array($tdResponse['OrderResponse'] ?? null) ? $tdResponse['OrderResponse'] : [];
+                if (!empty($orderResponse)) {
+                    $tdRejectionReason = $orderResponse['Reason'] ?? null;
+                    if (!$tdRejectionReason) {
+                        $item = $orderResponse['Items']['Item'] ?? null;
+                        if (is_array($item) && isset($item[0])) {
+                            $tdRejectionReason = $item[0]['Reason'] ?? null;
+                        } elseif (is_array($item)) {
+                            $tdRejectionReason = $item['Reason'] ?? null;
+                        }
                     }
                 }
             }
@@ -1483,11 +1493,14 @@ class AdminController extends Controller
                 ],
             ]);
         } catch (TDSynnexApiException $e) {
-            Log::error("TD SYNNEX order submission failed: " . $e->getMessage());
+            Log::error("TD SYNNEX order submission failed: " . $e->getMessage(), [
+                'details' => $e->getDetails(),
+            ]);
             return response()->json([
                 'success' => false,
                 'message' => 'Order submission failed: ' . $e->getMessage(),
                 'error' => $e->getMessage(),
+                'tdsynnex_details' => $e->getDetails(),
             ], 502);
         } catch (\Exception $e) {
             Log::error("Failed to approve quote: " . $e->getMessage());
@@ -1903,18 +1916,16 @@ class AdminController extends Controller
                 ]);
             }
 
-            $tdsynnexService = app(TDSynnexService::class);
             $externalOrderId = (string) ($order->tdsynnex_order_id ?: $orderNumber);
 
             $statusResponse = null;
-            $statusSource = 'esolution-api';
+            $statusSource = 'local-raw-data';
             try {
-                $statusResponse = $tdsynnexService->getOrderStatus($externalOrderId);
+                $statusResponse = app(TDSynnexService::class)->checkPoStatus($order->quote_id ?: $externalOrderId);
                 $normalized = $this->normalizeTdOrderStatusPayload($statusResponse, $order);
+                $statusSource = 'xml-postatus';
             } catch (\Exception $apiEx) {
-                // XML-PO orders cannot be looked up via the REST eSolution API.
-                // Fall back to the TD response we stored locally at submission time.
-                Log::debug('TD SYNNEX REST status lookup failed for ' . $externalOrderId . ', using local raw_data: ' . $apiEx->getMessage());
+                Log::debug('TD SYNNEX XML PO status lookup failed for ' . $externalOrderId . ', using local raw_data: ' . $apiEx->getMessage());
                 $rawData = is_array($order->raw_data) ? $order->raw_data : [];
                 $normalized = $this->normalizeTdOrderStatusPayload($rawData ?: null, $order);
                 $statusSource = 'local-raw-data';
@@ -1967,16 +1978,6 @@ class AdminController extends Controller
                     'success' => false,
                     'message' => "Order cannot be cancelled — current status is {$order->status}",
                 ], 400);
-            }
-
-            // Attempt TD SYNNEX cancellation for external orders
-            if ($order->tdsynnex_order_id) {
-                try {
-                    $tdsynnexService = app(TDSynnexService::class);
-                    $tdsynnexService->cancelOrder($order->tdsynnex_order_id, $validated['reason'] ?? 'Cancelled by admin');
-                } catch (\Exception $apiEx) {
-                    Log::warning("TD SYNNEX cancel failed for {$orderNumber}: {$apiEx->getMessage()}");
-                }
             }
 
             $order->update([
@@ -3104,8 +3105,6 @@ class AdminController extends Controller
                         'email' => $user->email,
                     ],
                     'api_config' => [
-                        'client_id' => (string) $this->getIntegrationSetting('integrations.tdsynnex.client_id', config('tdsynnex.client_id', '')),
-                        'client_secret' => (string) $this->getIntegrationSetting('integrations.tdsynnex.client_secret', ''),
                         'environment' => (string) $this->getIntegrationSetting('integrations.tdsynnex.environment', config('tdsynnex.environment', 'sandbox')),
                         'quickbooks_client_id' => (string) $this->getIntegrationSetting('integrations.quickbooks.client_id', config('services.quickbooks.client_id', '')),
                         'quickbooks_client_secret' => (string) $this->getIntegrationSetting('integrations.quickbooks.client_secret', config('services.quickbooks.client_secret', '')),
@@ -3214,8 +3213,6 @@ class AdminController extends Controller
             }
 
             $validated = $request->validate([
-                'client_id' => 'sometimes|nullable|string|max:255',
-                'client_secret' => 'sometimes|nullable|string|max:2048',
                 'environment' => 'sometimes|nullable|in:sandbox,production',
                 'quickbooks_client_id' => 'sometimes|nullable|string|max:255',
                 'quickbooks_client_secret' => 'sometimes|nullable|string|max:2048',
@@ -3223,14 +3220,6 @@ class AdminController extends Controller
                 'quickbooks_payment_url_template' => 'sometimes|nullable|url|max:2048',
                 'quickbooks_bulk_payment_url_template' => 'sometimes|nullable|url|max:2048',
             ]);
-
-            if (array_key_exists('client_id', $validated)) {
-                AppSetting::setValue('integrations.tdsynnex.client_id', trim((string) ($validated['client_id'] ?? '')));
-            }
-
-            if (array_key_exists('client_secret', $validated)) {
-                AppSetting::setValue('integrations.tdsynnex.client_secret', trim((string) ($validated['client_secret'] ?? '')));
-            }
 
             if (array_key_exists('environment', $validated)) {
                 AppSetting::setValue('integrations.tdsynnex.environment', trim((string) ($validated['environment'] ?? 'sandbox')) ?: 'sandbox');
@@ -3257,12 +3246,6 @@ class AdminController extends Controller
             }
 
             $envUpdates = [];
-            if (array_key_exists('client_id', $validated)) {
-                $envUpdates['TDSYNNEX_CLIENT_ID'] = trim((string) ($validated['client_id'] ?? ''));
-            }
-            if (array_key_exists('client_secret', $validated)) {
-                $envUpdates['TDSYNNEX_CLIENT_SECRET'] = trim((string) ($validated['client_secret'] ?? ''));
-            }
             if (array_key_exists('environment', $validated)) {
                 $envUpdates['TDSYNNEX_ENVIRONMENT'] = trim((string) ($validated['environment'] ?? 'sandbox')) ?: 'sandbox';
             }
@@ -3291,7 +3274,6 @@ class AdminController extends Controller
                 'success' => true,
                 'message' => 'API configuration updated successfully',
                 'data' => [
-                    'client_id' => (string) AppSetting::getValue('integrations.tdsynnex.client_id', ''),
                     'environment' => (string) AppSetting::getValue('integrations.tdsynnex.environment', 'sandbox'),
                     'quickbooks_client_id' => (string) AppSetting::getValue('integrations.quickbooks.client_id', ''),
                     'quickbooks_company_id' => (string) AppSetting::getValue('integrations.quickbooks.company_id', ''),
@@ -3324,13 +3306,15 @@ class AdminController extends Controller
                 ], 403);
             }
 
-            // Use TDSynnexService to test connection
-            $service = new \App\Services\TDSynnexService();
-            $service->authenticate();
+            $tdConfigured = trim((string) config('tdsynnex.price_availability.customer_no')) !== ''
+                && trim((string) config('tdsynnex.price_availability.username')) !== ''
+                && trim((string) config('tdsynnex.price_availability.password')) !== '';
 
             $quickBooksStatus = $this->buildQuickBooksConfigStatus();
 
-            $message = 'TD SYNNEX connection successful.';
+            $message = $tdConfigured
+                ? 'TD SYNNEX XML credentials are configured.'
+                : 'TD SYNNEX XML credentials are incomplete.';
             if ($quickBooksStatus['configured']) {
                 $message .= ' QuickBooks payment configuration is present.';
             } else {
@@ -3342,7 +3326,8 @@ class AdminController extends Controller
                 'message' => $message,
                 'data' => [
                     'tdsynnex' => [
-                        'connected' => true,
+                        'connected' => $tdConfigured,
+                        'mode' => 'xml_priceavailability_po',
                     ],
                     'quickbooks' => $quickBooksStatus,
                 ],
@@ -4326,8 +4311,8 @@ class AdminController extends Controller
                 $query->orderBy('created_at', 'desc');
             }
 
-            $total = $query->count();
             $invoices = $query->paginate($perPage, ['*'], 'page', $page);
+            $total = $invoices->total();
 
             return response()->json([
                 'success' => true,
@@ -4337,8 +4322,8 @@ class AdminController extends Controller
                     'per_page' => $perPage,
                     'current_page' => $page,
                     'last_page' => $invoices->lastPage(),
-                    'from' => ($page - 1) * $perPage + 1,
-                    'to' => min($page * $perPage, $total),
+                    'from' => $invoices->firstItem() ?? 0,
+                    'to' => $invoices->lastItem() ?? 0,
                 ],
             ]);
         } catch (\Exception $e) {
@@ -4372,21 +4357,41 @@ class AdminController extends Controller
 
             $invoice = Invoice::findOrFail($invoiceId);
 
-            // Update invoice status and payment details
+            // Step 1: attempt TD SYNNEX submission BEFORE marking paid.
+            // If TD rejects, we do not mark the invoice as paid.
+            $tdResult = $this->submitTdSynnexOrderForPaidInvoice($invoice);
+
+            // TD call was made and it failed — block payment
+            if (($tdResult['submitted'] ?? null) === false) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Payment not recorded — TD SYNNEX rejected the order: ' . $tdResult['error'],
+                    'data' => ['td_result' => $tdResult],
+                ], 422);
+            }
+
+            // Step 2: TD succeeded (or no quote linked) — safe to mark invoice paid
             $invoice->update([
-                'status' => 'paid',
-                'paid_at' => $validated['payment_date'] ?? now(),
-                'notes' => $validated['payment_notes'] ?? $invoice->notes,
+                'status'      => 'paid',
+                'paid_at'     => $validated['payment_date'] ?? now(),
+                'notes'       => $validated['payment_notes'] ?? $invoice->notes,
                 'paid_amount' => $invoice->total_amount,
             ]);
 
-            // Submit to TD SYNNEX if this invoice is tied to an approved quote
-            $this->submitTdSynnexOrderForPaidInvoice($invoice->fresh());
+            $responseMessage = 'Invoice marked as paid';
+            if (!empty($tdResult['submitted'])) {
+                $responseMessage .= ". Order {$tdResult['order_number']} submitted to TD SYNNEX (status: {$tdResult['status']}).";
+            } elseif (!empty($tdResult['skipped'])) {
+                $responseMessage .= ' ' . ($tdResult['reason'] ?? 'No linked quote.');
+            }
 
             return response()->json([
                 'success' => true,
-                'message' => 'Invoice marked as paid',
-                'data' => $invoice,
+                'message' => $responseMessage,
+                'data' => [
+                    'invoice'   => $invoice->fresh(),
+                    'td_result' => $tdResult,
+                ],
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
@@ -4788,10 +4793,10 @@ EOT;
     }
 
     /**
-     * Submit a TD SYNNEX order for an invoice that has just been marked paid.
-     * Mirrors the Stripe webhook auto-conversion flow for admin-triggered payments.
+     * Submit order to TD SYNNEX after an invoice is marked as paid.
+     * Returns an array with submission result details.
      */
-    private function submitTdSynnexOrderForPaidInvoice(Invoice $invoice): void
+    private function submitTdSynnexOrderForPaidInvoice(Invoice $invoice): array
     {
         try {
             // Extract quote_id from invoice notes (QUOTE:xxx) or raw_data
@@ -4803,7 +4808,7 @@ EOT;
                 }
             }
             if ($quoteId === '') {
-                return;
+                return ['skipped' => true, 'reason' => 'No quote linked to this invoice'];
             }
 
             $quote = Quote::with('user', 'user.company.addresses')
@@ -4813,33 +4818,41 @@ EOT;
 
             if (!$quote) {
                 Log::warning("submitTdSynnexOrderForPaidInvoice: quote {$quoteId} not found for invoice {$invoice->invoice_number}");
-                return;
+                return ['skipped' => true, 'reason' => "Quote {$quoteId} not found"];
             }
 
             $existingOrder = Order::where('quote_id', $quote->quote_id)->first();
-            if ($existingOrder && $existingOrder->status !== 'failed') {
-                if (empty($invoice->order_number)) {
-                    $invoice->update(['order_number' => $existingOrder->order_number]);
-                }
-                return;
+            if (!$existingOrder) {
+                Log::warning("submitTdSynnexOrderForPaidInvoice: no pending order for quote {$quoteId}");
+                return ['skipped' => true, 'reason' => 'No pending order found for quote'];
             }
 
-            $items = is_array($quote->items) ? $quote->items : [];
+            // Build line items from quote
+            $items = $quote->items;
+            if (is_string($items)) {
+                $items = json_decode($items, true) ?? [];
+            }
+            if (!is_array($items)) {
+                $items = [];
+            }
+
             $lineItems = array_map(function ($item, $index) {
                 if (!is_array($item)) {
                     $item = [];
                 }
-                $qty = max(1, (int) ($item['quantity'] ?? 1));
-                $partNumber = $this->resolveTdPartNumber($item);
+                $item['_line_index'] = $index + 1;
+                $quantity = max(1, (int) ($item['quantity'] ?? 1));
+                $partNumber = trim($this->resolveTdPartNumber($item));
                 $description = (string) ($item['name'] ?? $item['description'] ?? $this->resolveOrderItemName($item) ?? 'Product');
                 $unitPrice = $this->resolveTdUnitPrice($item);
+
                 return [
-                    'lineNumber' => (string) ($index + 1),
-                    'partNumber' => $partNumber,
+                    'lineNumber'     => (string) ($index + 1),
+                    'partNumber'     => $partNumber,
                     'partDescription' => $description,
-                    'quantity' => $qty,
-                    'unitPrice' => (string) number_format($unitPrice, 2, '.', ''),
-                    'extendedPrice' => (string) number_format(($unitPrice * $qty), 2, '.', ''),
+                    'quantity'       => $quantity,
+                    'unitPrice'      => (string) number_format($unitPrice, 2, '.', ''),
+                    'extendedPrice'  => (string) number_format($unitPrice * $quantity, 2, '.', ''),
                 ];
             }, $items, array_keys($items));
 
@@ -4849,125 +4862,136 @@ EOT;
             }));
 
             if (!empty($invalidSkuLines)) {
-                Log::warning('submitTdSynnexOrderForPaidInvoice blocked: invalid SKU lines', [
-                    'quote_id' => $quote->quote_id,
-                    'invoice_number' => $invoice->invoice_number,
-                    'invalid_lines' => $invalidSkuLines,
-                ]);
-                Message::createMessage(
-                    $quote->user_id,
-                    'order',
-                    'Order pending SKU validation',
-                    "Invoice {$invoice->invoice_number} is paid but the order requires SKU validation by support before submission.",
-                    $quote->quote_id,
-                    'high'
-                );
-                return;
+                Log::warning("submitTdSynnexOrderForPaidInvoice: invalid SKUs in quote {$quoteId}, skipping TD submission");
+                return ['skipped' => true, 'reason' => 'One or more items missing a valid TD SYNNEX SKU'];
             }
 
-            $company = $quote->user->company ?? null;
-            $shipAddr = $company ? $company->getDefaultShippingAddress() : null;
-            $billAddr = $company ? $company->getDefaultBillingAddress() : null;
-            $effectiveShipAddr = $shipAddr ?? $billAddr;
-            $effectiveBillAddr = $billAddr ?? $shipAddr;
-
-            $shippingAmount = (float) (is_array($invoice->raw_data) ? ($invoice->raw_data['shipping_amount'] ?? 0) : 0);
+            $orderCompany   = $quote->user->company ?? null;
+            $orderShipAddr  = $orderCompany ? $orderCompany->getDefaultShippingAddress() : null;
+            $orderBillAddr  = $orderCompany ? $orderCompany->getDefaultBillingAddress() : null;
+            $effectiveShip  = $orderShipAddr ?? $orderBillAddr;
+            $effectiveBill  = $orderBillAddr ?? $orderShipAddr;
 
             $orderData = [
-                'poNumber' => $quote->quote_id,
-                'poDate' => now()->format('Y-m-d'),
-                'shipDate' => now()->addDays(7)->format('Y-m-d'),
-                'vendor' => ['vendorId' => '12345', 'vendorName' => 'Armely Store'],
-                'billTo' => [
-                    'companyName' => $company->name ?? 'Company',
-                    'address1' => $effectiveBillAddr->street_1 ?? '',
-                    'address2' => $effectiveBillAddr->street_2 ?? '',
-                    'city' => $effectiveBillAddr->city ?? '',
-                    'state' => $effectiveBillAddr->state ?? '',
-                    'postalCode' => $effectiveBillAddr->postal_code ?? '',
-                    'country' => $effectiveBillAddr->country ?? 'US',
+                'poNumber'  => $quote->quote_id,
+                'poDate'    => now()->format('Y-m-d'),
+                'shipDate'  => now()->addDays(7)->format('Y-m-d'),
+                'vendor'    => ['vendorId' => '12345', 'vendorName' => 'Armely Store'],
+                'billTo'    => [
+                    'companyName'  => $orderCompany->name ?? 'Company',
+                    'address1'     => $effectiveBill->street_1 ?? '',
+                    'address2'     => $effectiveBill->street_2 ?? '',
+                    'city'         => $effectiveBill->city ?? '',
+                    'state'        => $effectiveBill->state ?? '',
+                    'postalCode'   => $effectiveBill->postal_code ?? '',
+                    'country'      => $effectiveBill->country ?? 'US',
                     'contactEmail' => $quote->user->email ?? '',
-                    'contactPhone' => $effectiveBillAddr->contact_phone ?? $quote->user->phone ?? '',
+                    'contactPhone' => $effectiveBill->contact_phone ?? $quote->user->phone ?? '',
                 ],
-                'shipTo' => [
-                    'companyName' => $company->name ?? 'Company',
-                    'address1' => $effectiveShipAddr->street_1 ?? '',
-                    'address2' => $effectiveShipAddr->street_2 ?? '',
-                    'city' => $effectiveShipAddr->city ?? '',
-                    'state' => $effectiveShipAddr->state ?? '',
-                    'postalCode' => $effectiveShipAddr->postal_code ?? '',
-                    'country' => $effectiveShipAddr->country ?? 'US',
-                    'contactName' => $effectiveShipAddr->contact_name ?? $quote->user->name ?? '',
-                    'contactPhone' => $effectiveShipAddr->contact_phone ?? $quote->user->phone ?? '',
+                'shipTo'    => [
+                    'companyName'  => $orderCompany->name ?? 'Company',
+                    'address1'     => $effectiveShip->street_1 ?? '',
+                    'address2'     => $effectiveShip->street_2 ?? '',
+                    'city'         => $effectiveShip->city ?? '',
+                    'state'        => $effectiveShip->state ?? '',
+                    'postalCode'   => $effectiveShip->postal_code ?? '',
+                    'country'      => $effectiveShip->country ?? 'US',
+                    'contactName'  => $effectiveShip->contact_name ?? $quote->user->name ?? '',
+                    'contactPhone' => $effectiveShip->contact_phone ?? $quote->user->phone ?? '',
                 ],
-                'poLine' => $lineItems,
-                'poTotal' => (string) number_format((float) ($quote->total_amount ?? 0), 2, '.', ''),
-                'poTax' => (string) number_format((float) ($quote->tax_amount ?? 0), 2, '.', ''),
-                'poFreight' => (string) number_format($shippingAmount, 2, '.', ''),
+                'poLine'    => $lineItems,
+                'poTotal'   => (string) number_format((float) ($quote->total_amount ?? 0), 2, '.', ''),
+                'poTax'     => (string) number_format((float) ($quote->tax_amount ?? 0), 2, '.', ''),
+                'poFreight' => '0.00',
             ];
 
-            $tdService = app(TDSynnexService::class);
-            $tdResponse = $tdService->placeOrder($orderData, 'us', false);
+            \Log::debug('submitTdSynnexOrderForPaidInvoice: submitting to TD SYNNEX', [
+                'quote_id' => $quoteId,
+                'invoice_number' => $invoice->invoice_number,
+                'line_count' => count($lineItems),
+            ]);
 
-            $orderNumber = $this->findOrderNumber($tdResponse);
-            if (!$orderNumber) {
-                $orderNumber = 'ORD-' . now()->format('Y') . '-' . strtoupper(substr(md5($quote->quote_id . time()), 0, 6));
+            $tdsynnexService = app(TDSynnexService::class);
+            $tdResponse = $tdsynnexService->placeOrder($orderData, 'us', false); // false = production endpoint
+
+            // Detect top-level API error (errorMessage / errorDetail format)
+            $tdErrorMessage = trim((string) ($tdResponse['errorMessage'] ?? $tdResponse['error'] ?? ''));
+            $tdErrorDetail  = trim((string) ($tdResponse['errorDetail'] ?? ''));
+            if ($tdErrorMessage !== '') {
+                $reason = $tdErrorDetail ?: $tdErrorMessage;
+                $existingOrder->update([
+                    'status'              => 'failed',
+                    'raw_data'            => $tdResponse,
+                    'cancellation_reason' => $reason,
+                    'tracking_info'       => ['td_rejection_reason' => $reason],
+                ]);
+                Log::warning("TD SYNNEX rejected order for invoice {$invoice->invoice_number}: {$reason}");
+                return ['submitted' => false, 'error' => $reason];
             }
 
-            $normalizedPayload = $this->normalizeTdOrderStatusPayload($tdResponse);
-            $localStatus = $this->mapCanonicalToLocalOrderStatus($normalizedPayload['normalized_status'] ?? null);
+            $orderNumber = $this->findOrderNumber($tdResponse) ?: $existingOrder->order_number;
+            $normalizedOrderData = $this->normalizeTdOrderStatusPayload($tdResponse);
+            $localStatus = $this->mapCanonicalToLocalOrderStatus($normalizedOrderData['normalized_status'] ?? null);
 
-            $orderPayload = [
-                'user_id' => $quote->user_id,
-                'order_number' => $orderNumber,
-                'quote_id' => $quote->quote_id,
+            $tdRejectionReason = null;
+            $orderResponse = is_array($tdResponse['OrderResponse'] ?? null) ? $tdResponse['OrderResponse'] : [];
+            if (!empty($orderResponse)) {
+                $tdRejectionReason = $orderResponse['Reason'] ?? null;
+                if (!$tdRejectionReason) {
+                    $item = $orderResponse['Items']['Item'] ?? null;
+                    if (is_array($item) && isset($item[0])) {
+                        $tdRejectionReason = $item[0]['Reason'] ?? null;
+                    } elseif (is_array($item)) {
+                        $tdRejectionReason = $item['Reason'] ?? null;
+                    }
+                }
+            }
+
+            $updateData = [
+                'order_number'      => $orderNumber,
                 'tdsynnex_order_id' => $orderNumber,
-                'status' => $localStatus,
-                'payment_status' => 'paid',
-                'total_amount' => $quote->total_amount,
-                'tax_amount' => $quote->tax_amount,
-                'discount_amount' => $quote->discount_amount,
-                'shipping_amount' => $shippingAmount,
-                'items' => $quote->items,
-                'raw_data' => $tdResponse,
-                'ordered_at' => now(),
+                'status'            => $localStatus,
+                'raw_data'          => $tdResponse,
+                'payment_status'    => 'paid',
+                'shipping_amount'   => (float) ($normalizedOrderData['freight_amount'] ?? 0),
+                'tracking_info'     => [
+                    'tracking_number'     => $normalizedOrderData['tracking_number'] ?? null,
+                    'shipping_status'     => $normalizedOrderData['shipping_status'] ?? null,
+                    'td_rejection_reason' => $tdRejectionReason,
+                ],
+                'ordered_at'        => now(),
             ];
 
-            if ($existingOrder && $existingOrder->status === 'failed') {
-                $existingOrder->update($orderPayload);
-                $order = $existingOrder;
-            } else {
-                $order = Order::create($orderPayload);
+            if ($localStatus === 'failed' && $tdRejectionReason) {
+                $updateData['cancellation_reason'] = $tdRejectionReason;
             }
 
-            if ($quote->status !== 'approved') {
-                $quote->update(['status' => 'approved', 'approved_at' => now()]);
-            }
+            $existingOrder->update($updateData);
+            $invoice->update(['order_number' => $orderNumber]);
+            $quote->update(['status' => 'approved']);
 
-            $invoice->update(['order_number' => $order->order_number]);
+            Log::info("TD SYNNEX order submitted for invoice {$invoice->invoice_number}: order {$orderNumber} status={$localStatus}");
 
-            $this->notificationService->sendOrderConfirmationNotification($order);
-
-            Message::createMessage(
-                $order->user_id,
-                'order',
-                'Order submitted',
-                "Invoice paid. Order {$order->order_number} has been submitted to fulfillment.",
-                $order->order_number,
-                'normal',
-                [
-                    'quote_id' => $quote->quote_id,
-                    'invoice_id' => $invoice->id,
-                    'order_number' => $order->order_number,
-                ]
-            );
-
-            Log::info("TD SYNNEX order {$orderNumber} submitted after admin payment of invoice {$invoice->invoice_number}");
+            return [
+                'submitted'    => true,
+                'order_number' => $orderNumber,
+                'status'       => $localStatus,
+                'td_rejection' => $tdRejectionReason,
+            ];
+        } catch (TDSynnexApiException $e) {
+            Log::error('TD SYNNEX submission failed for paid invoice: ' . $e->getMessage(), [
+                'invoice_id'     => $invoice->id,
+                'invoice_number' => $invoice->invoice_number ?? '',
+                'details'        => $e->getDetails(),
+            ]);
+            // Payment was already recorded — TD failure is non-fatal
+            return ['submitted' => false, 'error' => $e->getMessage()];
         } catch (\Throwable $e) {
             Log::error('submitTdSynnexOrderForPaidInvoice failed: ' . $e->getMessage(), [
-                'invoice_id' => $invoice->id,
+                'invoice_id'     => $invoice->id,
                 'invoice_number' => $invoice->invoice_number ?? '',
             ]);
+            return ['submitted' => false, 'error' => $e->getMessage()];
         }
     }
 }

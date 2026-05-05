@@ -82,15 +82,7 @@ class InvoiceService
     public function generateInvoiceForOrder(Order $order): Invoice
     {
         try {
-            // Fetch from TD SYNNEX if available
             $tdData = null;
-            if ($order->raw_data && isset($order->raw_data['invoiceNumber'])) {
-                try {
-                    $tdData = $this->tdsynnexService->getInvoice($order->raw_data['invoiceNumber']);
-                } catch (\Exception $e) {
-                    Log::warning("Could not fetch invoice data from TD SYNNEX for order {$order->order_number}: " . $e->getMessage());
-                }
-            }
 
             $existing = Invoice::where('order_number', $order->order_number)->first();
 
