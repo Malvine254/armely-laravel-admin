@@ -29,8 +29,8 @@ class UpdateOrderStatusJob implements ShouldQueue
     public function handle(TDSynnexService $tdsynnexService, NotificationService $notificationService): void
     {
         try {
-            // Fetch current status from TD SYNNEX
-            $tdStatus = $tdsynnexService->getOrderStatus($this->order->order_number);
+            // Fetch current status from TD SYNNEX XML POStatus when a PO number is available.
+            $tdStatus = $tdsynnexService->checkPoStatus($this->order->quote_id ?: $this->order->order_number);
 
             // Normalize the raw TD SYNNEX status code to our canonical set
             $rawStatus = (string) ($tdStatus['status'] ?? $tdStatus['Code'] ?? $tdStatus['orderStatus'] ?? '');

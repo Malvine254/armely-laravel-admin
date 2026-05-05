@@ -142,17 +142,8 @@ class PreflightQuoteConfirmation extends Command
         if (!$skipApiCheck) {
             $this->line('');
             $this->info('API preflight checks');
-            try {
-                $token = $tdsynnexService->authenticate();
-                $this->line('Auth: OK (' . substr($token, 0, 12) . '...)');
-
-                $vendorsResponse = $tdsynnexService->getVendors();
-                $vendors = $vendorsResponse['data']['records'] ?? [];
-                $this->line('Vendor access: OK (' . count($vendors) . ' vendors)');
-            } catch (\Throwable $e) {
-                $this->error('API preflight failed: ' . $e->getMessage());
-                return self::FAILURE;
-            }
+            $this->line('XML mode: PriceAvailability + PO submission');
+            $this->line('PO submit enabled: ' . (config('tdsynnex.allow_submit_po') ? 'yes' : 'no'));
         }
 
         if (!$submit) {

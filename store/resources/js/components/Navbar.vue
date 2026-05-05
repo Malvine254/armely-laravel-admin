@@ -20,8 +20,8 @@
           </div>
         </button>
 
-        <!-- Nav Links: Categories - Hidden below xl -->
-        <div class="hidden xl:flex items-center justify-center gap-0.5 flex-1 mx-4 min-w-0 whitespace-nowrap">
+        <!-- Nav Links: Categories - Hidden below md -->
+        <div class="hidden md:flex items-center justify-center gap-0.5 flex-1 mx-4 min-w-0 whitespace-nowrap">
           <div
             v-for="cat in primaryCategories"
             :key="cat.value"
@@ -41,19 +41,22 @@
             </button>
 
             <transition enter-active-class="transition ease-out duration-150" enter-from-class="opacity-0 translate-y-1" enter-to-class="opacity-100 translate-y-0" leave-active-class="transition ease-in duration-100" leave-from-class="opacity-100 translate-y-0" leave-to-class="opacity-0 translate-y-1">
-              <div v-if="categoryDropdownOpen === cat.value" class="absolute left-0 mt-1 w-64 rounded-xl shadow-2xl overflow-hidden z-50 border border-white/20" style="background: #122d58;">
+              <div v-if="categoryDropdownOpen === cat.value" class="store-menu-scroll absolute left-0 mt-1 w-80 max-h-[70vh] rounded-xl shadow-2xl overflow-y-auto overflow-x-hidden z-50 border border-white/20 whitespace-normal" style="background: #122d58;">
                 <div class="px-4 py-2.5 border-b border-white/20">
-                  <p class="text-xs font-semibold text-white uppercase tracking-widest">{{ cat.name }} Subcategories</p>
+                  <p class="text-xs font-semibold text-white uppercase tracking-widest">{{ cat.name }} Vendors</p>
                 </div>
                 <div class="py-1.5">
                   <button
                     v-for="sub in cat.children"
                     :key="`${cat.value}-${sub.value}`"
                     type="button"
-                    class="w-full text-left px-4 py-2.5 text-sm text-slate-200 hover:bg-white/10 hover:text-cyan-300 transition"
-                    @click="browseProducts(sub.value)"
+                    class="block w-full min-w-0 text-left px-4 py-2.5 text-sm text-slate-200 hover:bg-white/10 hover:text-cyan-300 transition"
+                    @click="browseCategoryVendor(cat.value, sub.name)"
                   >
-                    {{ sub.name }}
+                    <span class="flex min-w-0 items-center justify-between gap-3">
+                      <span class="min-w-0 flex-1 truncate">{{ sub.name }}</span>
+                      <span v-if="sub.count" class="text-[11px] text-slate-400">{{ sub.count }}</span>
+                    </span>
                   </button>
                   <button
                     type="button"
@@ -72,7 +75,7 @@
             <button
               type="button"
               class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold text-slate-100 hover:text-cyan-300 hover:bg-white/10 transition"
-              @click="moreCategoriesOpen = !moreCategoriesOpen"
+              @click="toggleMoreCategories"
             >
               More Categories
               <svg class="w-3.5 h-3.5 transition-transform" :class="moreCategoriesOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -80,34 +83,51 @@
               </svg>
             </button>
             <transition enter-active-class="transition ease-out duration-150" enter-from-class="opacity-0 translate-y-1" enter-to-class="opacity-100 translate-y-0" leave-active-class="transition ease-in duration-100" leave-from-class="opacity-100 translate-y-0" leave-to-class="opacity-0 translate-y-1">
-              <div v-if="moreCategoriesOpen" class="absolute left-0 mt-1 w-80 rounded-xl shadow-2xl overflow-visible z-50 border border-white/20" style="background: #122d58;">
+              <div v-if="moreCategoriesOpen" class="absolute right-0 mt-1 w-[42rem] max-w-[calc(100vw-2rem)] rounded-xl shadow-2xl overflow-hidden z-50 border border-white/20 whitespace-normal" style="background: #122d58;">
                 <div class="px-4 py-2.5 border-b border-white/20">
                   <p class="text-xs font-semibold text-white uppercase tracking-widest">More Categories</p>
                 </div>
-                <div class="py-1.5">
-                  <div
-                    v-for="cat in overflowCategories"
-                    :key="cat.value"
-                    class="border-b border-white/10 last:border-none"
-                  >
+                <div class="grid grid-cols-[14rem_minmax(0,1fr)]">
+                  <div class="store-menu-scroll max-h-[70vh] overflow-y-auto overflow-x-hidden border-r border-white/15 py-1.5">
                     <button
+                      v-for="cat in overflowCategories"
+                      :key="cat.value"
                       type="button"
-                      class="w-full text-left px-4 py-2.5 text-sm font-semibold text-slate-200 hover:bg-white/10 hover:text-cyan-300 transition"
-                      @click="browseProducts(cat.value)"
+                      class="flex w-full min-w-0 items-center justify-between gap-2 px-4 py-2.5 text-left text-sm font-semibold transition"
+                      :class="activeMoreCategory?.value === cat.value ? 'bg-white/10 text-cyan-300' : 'text-slate-200 hover:bg-white/10 hover:text-cyan-300'"
+                      @mouseenter="activeMoreCategoryValue = cat.value"
+                      @focus="activeMoreCategoryValue = cat.value"
+                      @click="activeMoreCategoryValue = cat.value"
                     >
-                      {{ cat.name }}
+                      <span class="min-w-0 flex-1 truncate">{{ cat.name }}</span>
+                      <svg class="h-3.5 w-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                      </svg>
                     </button>
-                    <div v-if="cat.children?.length > 0" class="px-4 pb-3">
+                  </div>
+
+                  <div class="store-menu-scroll max-h-[70vh] overflow-y-auto overflow-x-hidden py-1.5">
+                    <template v-if="activeMoreCategory">
                       <button
-                        v-for="sub in cat.children"
-                        :key="`${cat.value}-${sub.value}`"
                         type="button"
-                        class="w-full text-left px-4 py-2 text-sm text-slate-200 hover:bg-white/10 hover:text-cyan-300 transition"
-                        @click="browseProducts(sub.value)"
+                        class="block w-full min-w-0 border-b border-white/10 px-4 py-2.5 text-left text-sm font-semibold text-cyan-300 hover:bg-white/10 transition"
+                        @click="browseProducts(activeMoreCategory.value)"
                       >
-                        {{ sub.name }}
+                        View all in {{ activeMoreCategory.name }}
                       </button>
-                    </div>
+                      <button
+                        v-for="sub in activeMoreCategory.children"
+                        :key="`${activeMoreCategory.value}-${sub.value}`"
+                        type="button"
+                        class="block w-full min-w-0 text-left px-4 py-2 text-sm text-slate-200 hover:bg-white/10 hover:text-cyan-300 transition"
+                        @click="browseCategoryVendor(activeMoreCategory.value, sub.name)"
+                      >
+                        <span class="flex min-w-0 items-center justify-between gap-3">
+                          <span class="min-w-0 flex-1 truncate">{{ sub.name }}</span>
+                          <span v-if="sub.count" class="text-[11px] text-slate-400">{{ sub.count }}</span>
+                        </span>
+                      </button>
+                    </template>
                   </div>
                 </div>
               </div>
@@ -189,7 +209,7 @@
 
       <!-- Mobile Menu Button -->
           <button
-            class="xl:hidden p-2 rounded-lg transition text-slate-100 hover:text-cyan-300"
+            class="md:hidden p-2 rounded-lg transition text-slate-100 hover:text-cyan-300"
             @click="toggleMobileMenu"
             :aria-expanded="mobileMenuOpen ? 'true' : 'false'"
             aria-label="Toggle mobile menu"
@@ -205,7 +225,7 @@
       </div>
 
       <!-- Mobile Dropdown Menu -->
-      <div v-if="mobileMenuOpen" class="xl:hidden pb-4">
+      <div v-if="mobileMenuOpen" class="md:hidden pb-4">
         <div class="rounded-lg border border-white/20 overflow-hidden" style="background: #122d58;">
           <!-- Products Section -->
           <div class="border-b border-white/10">
@@ -215,13 +235,29 @@
             </button>
             <div v-if="mobileProductsOpen" style="background: #122d58;">
               <div v-for="cat in productCategories" :key="cat.value">
-                <button type="button" @click="browseProducts(cat.value)" class="w-full text-left px-8 py-2.5 text-sm text-slate-300 hover:bg-white/10 transition">{{ cat.name }}</button>
-                <div v-if="cat.children?.length > 0" class="pl-10">
+                <button
+                  type="button"
+                  @click="toggleMobileCategory(cat.value)"
+                  class="w-full flex items-center justify-between gap-3 px-8 py-2.5 text-sm text-slate-300 hover:bg-white/10 transition"
+                >
+                  <span class="min-w-0 flex-1 truncate text-left">{{ cat.name }}</span>
+                  <svg class="w-4 h-4 flex-shrink-0 transition-transform" :class="mobileOpenCategory === cat.value ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                  </svg>
+                </button>
+                <div v-if="mobileOpenCategory === cat.value" class="pl-10">
+                  <button
+                    type="button"
+                    @click="browseProducts(cat.value)"
+                    class="w-full text-left px-8 py-2 text-sm font-semibold text-cyan-300 hover:bg-white/10 transition"
+                  >
+                    View all in {{ cat.name }}
+                  </button>
                   <button
                     v-for="sub in cat.children"
                     :key="`${cat.value}-${sub.value}`"
                     type="button"
-                    @click="browseProducts(sub.value)"
+                    @click="browseCategoryVendor(cat.value, sub.name)"
                     class="w-full text-left px-8 py-2 text-sm text-slate-300 hover:bg-white/10 transition"
                   >
                     {{ sub.name }}
@@ -270,15 +306,21 @@ const toastStore = useToastStore()
 const mobileMenuOpen = ref(false)
 const categoryDropdownOpen = ref(null)
 const moreCategoriesOpen = ref(false)
+const activeMoreCategoryValue = ref(null)
 const mobileProductsOpen = ref(false)
+const mobileOpenCategory = ref(null)
 
 const productCategories = ref([])
-const MENU_CATEGORIES_STORAGE_KEY = 'store_menu_categories_v2'
+const MENU_CATEGORIES_STORAGE_KEY = 'store_menu_categories_v4'
 const MENU_CATEGORIES_SOFT_TTL_MS = 15 * 60 * 1000
 const MENU_CATEGORIES_HARD_TTL_MS = 7 * 24 * 60 * 60 * 1000
 
 const primaryCategories = computed(() => productCategories.value.slice(0, 3))
 const overflowCategories = computed(() => productCategories.value.slice(3))
+const activeMoreCategory = computed(() => {
+  if (overflowCategories.value.length === 0) return null
+  return overflowCategories.value.find(cat => cat.value === activeMoreCategoryValue.value) || overflowCategories.value[0]
+})
 
 const normalizeMenuCategories = (rows) => {
   if (!Array.isArray(rows)) return []
@@ -298,6 +340,8 @@ const normalizeMenuCategories = (rows) => {
               slug: child?.slug,
               value: child?.value ?? child?.slug ?? child?.name,
               segment_code: child?.segment_code,
+              count: Number(child?.count || 0),
+              type: child?.type || 'vendor',
             }))
             .filter(child => typeof child.name === 'string' && child.name.trim() !== '')
         : [],
@@ -419,6 +463,18 @@ const toggleMobileMenu = () => {
   mobileMenuOpen.value = !mobileMenuOpen.value
 }
 
+const toggleMoreCategories = () => {
+  moreCategoriesOpen.value = !moreCategoriesOpen.value
+
+  if (moreCategoriesOpen.value && !activeMoreCategoryValue.value && overflowCategories.value.length > 0) {
+    activeMoreCategoryValue.value = overflowCategories.value[0].value
+  }
+}
+
+const toggleMobileCategory = (category) => {
+  mobileOpenCategory.value = mobileOpenCategory.value === category ? null : category
+}
+
 const userFirstName = computed(() => {
   if (!authStore.user?.name) return 'User'
   const nameParts = authStore.user.name.trim().split(' ')
@@ -481,6 +537,7 @@ const closeAll = () => {
   categoryDropdownOpen.value = null
   moreCategoriesOpen.value = false
   mobileProductsOpen.value = false
+  mobileOpenCategory.value = null
 }
 
 const handleLogout = async () => {
@@ -491,3 +548,28 @@ const handleLogout = async () => {
 }
 
 </script>
+
+<style scoped>
+.store-menu-scroll {
+  scrollbar-color: #38bdf8 #122d58;
+  scrollbar-width: thin;
+}
+
+.store-menu-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.store-menu-scroll::-webkit-scrollbar-track {
+  background: #122d58;
+}
+
+.store-menu-scroll::-webkit-scrollbar-thumb {
+  background: #38bdf8;
+  border-radius: 999px;
+}
+
+.store-menu-scroll::-webkit-scrollbar-thumb:hover {
+  background: #67e8f9;
+}
+</style>

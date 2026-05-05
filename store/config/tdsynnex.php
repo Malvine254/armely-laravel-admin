@@ -6,36 +6,24 @@ return [
     |--------------------------------------------------------------------------
     | Product Catalog Source
     |--------------------------------------------------------------------------
-    | streamone: legacy StreamOne product APIs
-    | priceavailability: XML PriceAvailability API (customerNo/userName/password)
+    | XML PriceAvailability API (customerNo/userName/password)
     */
-    'products_source' => env('TDSYNNEX_PRODUCTS_SOURCE', 'priceavailability'),
+    'products_source' => 'priceavailability',
 
     /*
     |--------------------------------------------------------------------------
-    | TD SYNNEX StreamOne Ion API Configuration
+    | TD SYNNEX XML / ECExpress API Configuration
     |--------------------------------------------------------------------------
     |
-    | This configuration file manages the TD SYNNEX API integration settings.
-    | The API provides access to product catalog, pricing, inventory, orders,
-    | and tracking functionality.
+    | This configuration file manages TD SYNNEX XML integration settings.
+    | PriceAvailability provides catalog price/stock data; PO submission
+    | creates confirmed orders after local quote approval/payment.
     |
     | Environment: UAT (Sandbox) / Production
     |
     */
 
-    /*
-    | OAuth 2.0 Client Credentials
-    */
-    'client_id' => env('TDSYNNEX_CLIENT_ID'),
-    'client_secret' => env('TDSYNNEX_CLIENT_SECRET'),
     'environment' => env('TDSYNNEX_ENVIRONMENT', 'sandbox'),
-
-    /*
-    | API Endpoints
-    */
-    'token_url' => env('TDSYNNEX_TOKEN_URL', 'https://sso.us.tdsynnex.com/oauth2/v1/token'),
-    'base_url' => env('TDSYNNEX_BASE_URL', 'https://api.us.tdsynnex.com'),
 
     /*
     | Caching Configuration
@@ -227,7 +215,7 @@ return [
         // Restrict enrichment pool to storefront-like browse products by default.
         'current_showing_only' => env('IMAGE_SYNC_CURRENT_SHOWING_ONLY', true),
         'hide_zero_price' => env('IMAGE_SYNC_HIDE_ZERO_PRICE', true),
-        'min_price' => env('IMAGE_SYNC_MIN_PRICE', 200),
+        'min_price' => env('IMAGE_SYNC_MIN_PRICE', 100),
         'catalog_clean' => env('IMAGE_SYNC_CATALOG_CLEAN', true),
         // Cap sync scope to the first N currently-showing products (0 = uncapped).
         'scope_cap' => env('IMAGE_SYNC_SCOPE_CAP', 1000),

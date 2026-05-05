@@ -316,7 +316,7 @@
           </button>
         </div>
 
-        <div class="px-6 py-8">
+        <div class="bg-white px-6 py-8">
           <div class="mb-8 pb-8 border-b border-gray-200">
             <div class="flex items-center justify-between mb-4">
               <h3 class="text-lg font-bold text-gray-900">Payment Status</h3>

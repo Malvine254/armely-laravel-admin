@@ -100,7 +100,7 @@
     <div v-if="activeTab === 'api'" class="rounded-xl border-0 shadow-lg bg-white overflow-hidden">
       <div class="p-6 border-b border-gray-200">
         <h3 class="text-lg font-semibold text-gray-900">Integrations Configuration</h3>
-        <p class="text-sm text-gray-500 mt-1">Manage TD SYNNEX and QuickBooks credentials and payment URL templates</p>
+        <p class="text-sm text-gray-500 mt-1">Manage TD SYNNEX XML mode and QuickBooks payment settings</p>
       </div>
       
       <div class="p-6 space-y-6">
@@ -109,44 +109,17 @@
             <i class="fas fa-info-circle text-[#2F5597] mt-1"></i>
             <div class="text-sm text-[#2F5597]">
               <p class="font-medium">Integration Settings</p>
-              <p class="mt-1 text-[#2F5597]">These values are stored in app settings so production changes can be done from admin without editing code or .env.</p>
+              <p class="mt-1 text-[#2F5597]">TD SYNNEX uses XML PriceAvailability for pricing and XML PO submission for confirmed orders.</p>
             </div>
           </div>
         </div>
 
         <div class="grid grid-cols-1 gap-6">
           <div class="border border-gray-200 rounded-lg bg-gray-50 p-4">
-            <h4 class="font-semibold text-gray-900 mb-4">TD SYNNEX</h4>
+            <h4 class="font-semibold text-gray-900 mb-4">TD SYNNEX XML</h4>
             <div class="grid grid-cols-1 gap-6">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">API Client ID</label>
-            <input
-              v-model="apiConfig.client_id"
-              type="text"
-              class="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-900 placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
-              placeholder="Enter your TD SYNNEX Client ID"
-            />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">API Client Secret</label>
-            <div class="relative">
-              <input
-                v-model="apiConfig.client_secret"
-                :type="showSecret ? 'text' : 'password'"
-                class="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-900 placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597] pr-12"
-                placeholder="••••••••••••••••"
-              />
-              <button
-                @click="showSecret = !showSecret"
-                type="button"
-                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-              >
-                <i :class="['fas', showSecret ? 'fa-eye-slash' : 'fa-eye']"></i>
-              </button>
-            </div>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">API Environment</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">XML Environment</label>
             <select
               v-model="apiConfig.environment"
               class="w-full px-4 py-2 border border-gray-200 bg-white text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
@@ -167,7 +140,6 @@
                   v-model="apiConfig.quickbooks_client_id"
                   type="text"
                   class="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-900 placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
-                  placeholder="Enter QuickBooks Client ID"
                 />
               </div>
 
@@ -178,7 +150,6 @@
                     v-model="apiConfig.quickbooks_client_secret"
                     :type="showQuickBooksSecret ? 'text' : 'password'"
                     class="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-900 placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597] pr-12"
-                    placeholder="••••••••••••••••"
                   />
                   <button
                     @click="showQuickBooksSecret = !showQuickBooksSecret"
@@ -196,7 +167,6 @@
                   v-model="apiConfig.quickbooks_company_id"
                   type="text"
                   class="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-900 placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
-                  placeholder="Enter QuickBooks Company ID"
                 />
               </div>
 
@@ -206,7 +176,6 @@
                   v-model="apiConfig.quickbooks_payment_url_template"
                   type="url"
                   class="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-900 placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
-                  placeholder="https://.../{invoice_number}?amount={amount}&company={quickbooks_company_id}"
                 />
                 <p class="text-xs text-gray-500 mt-1">Supports placeholders like {invoice_number}, {amount}, {success_url}, {cancel_url}, {quickbooks_company_id}.</p>
               </div>
@@ -217,7 +186,6 @@
                   v-model="apiConfig.quickbooks_bulk_payment_url_template"
                   type="url"
                   class="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-900 placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
-                  placeholder="https://.../bulk?invoices={invoice_numbers}&amount={amount}"
                 />
                 <p class="text-xs text-gray-500 mt-1">Used when paying multiple invoices directly. If blank, users can combine invoices first and pay the combined invoice.</p>
               </div>
@@ -278,7 +246,6 @@
               v-model="priceSyncSettings.email"
               type="email"
               class="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-900 placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
-              placeholder="malvine.owuor@armely.com"
             />
           </div>
         </div>
@@ -373,7 +340,6 @@
               v-model="priceSyncSettings.skus"
               rows="6"
               class="w-full px-4 py-3 border border-gray-200 bg-gray-50 text-gray-900 placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
-              placeholder="141638&#10;230167&#10;MX85-HW"
             ></textarea>
             <p class="text-xs text-gray-500 mt-2">Separate with commas, spaces, or new lines. Run Now uses whatever is typed here — no need to save first.</p>
           </div>
@@ -458,7 +424,6 @@
                 v-model="emailSettings.smtp_host"
                 type="text"
                 class="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-900 placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
-                placeholder="smtp.example.com"
               />
             </div>
             <div>
@@ -467,7 +432,6 @@
                 v-model="emailSettings.smtp_port"
                 type="text"
                 class="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-900 placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
-                placeholder="587"
               />
             </div>
             <div>
@@ -545,7 +509,6 @@
               min="0.0001"
               step="0.0001"
               class="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-900 placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
-              placeholder="e.g. 4.44"
             />
             <p class="text-xs text-gray-500 mt-1">Example: set 4.44 to convert 1 USD to 4.44 in selected currency.</p>
           </div>
@@ -570,7 +533,6 @@
               max="100"
               step="0.01"
               class="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-900 placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
-              placeholder="e.g. 7.50"
             />
             <p class="text-xs text-gray-500 mt-1">Applied when building invoice tax if quote/order tax is not explicitly provided.</p>
           </div>
@@ -583,7 +545,6 @@
               max="500"
               step="0.01"
               class="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-900 placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
-              placeholder="e.g. 12.00"
             />
             <p class="text-xs text-gray-500 mt-1">Markup used to compute invoice subtotal and per-item unit prices.</p>
           </div>
@@ -646,7 +607,6 @@
                 min="0"
                 step="1"
                 class="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-900 placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
-                placeholder="e.g. 100"
               />
               <p class="text-xs text-gray-500 mt-1">Products below this price are hidden. Set to 0 to disable.</p>
             </div>
@@ -658,7 +618,6 @@
                 min="0"
                 step="1"
                 class="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-900 placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
-                placeholder="e.g. 3000"
               />
               <p class="text-xs text-gray-500 mt-1">Products above this price are hidden. Set to 0 to disable.</p>
             </div>
@@ -922,7 +881,6 @@
             v-model="adminLogsSearch"
             @input="adminLogsPage = 1; fetchAdminLogs()"
             type="text"
-            placeholder="Search logs…"
             class="px-3 py-2 text-sm border border-gray-200 bg-gray-50 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597] w-52"
           />
           <button
@@ -1074,7 +1032,6 @@
             v-model="userLogsSearch"
             @input="userLogsPage = 1; fetchUserLogs()"
             type="text"
-            placeholder="Search by user, action…"
             class="px-3 py-2 text-sm border border-gray-200 bg-gray-50 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597] w-56"
           />
           <button
@@ -1236,7 +1193,6 @@
               v-model="newAdmin.name"
               type="text"
               class="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-900 placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
-              placeholder="Enter admin name"
             />
           </div>
           <div>
@@ -1245,7 +1201,6 @@
               v-model="newAdmin.email"
               type="email"
               class="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-900 placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
-              placeholder="admin@example.com"
             />
           </div>
           <div>
@@ -1254,7 +1209,6 @@
               v-model="newAdmin.password"
               type="password"
               class="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-900 placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
-              placeholder="Min 8 characters"
             />
           </div>
           <div>
@@ -1299,7 +1253,6 @@ const isRunningSync = ref(false)
 const syncState = ref({ status: 'idle', message: '', output: '', started_at: null, updated_at: null, finished_at: null })
 let syncPollTimer = null
 const catalogActionLoading = ref(false)
-const showSecret = ref(false)
 const showQuickBooksSecret = ref(false)
 const showAddAdminModal = ref(false)
 const currentUserId = ref(null)
@@ -1327,8 +1280,6 @@ const passwords = ref({
 })
 
 const apiConfig = ref({
-  client_id: '',
-  client_secret: '',
   environment: 'sandbox',
   quickbooks_client_id: '',
   quickbooks_client_secret: '',

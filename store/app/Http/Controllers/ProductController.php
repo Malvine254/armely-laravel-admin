@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Log;
 
 class ProductController extends Controller
 {
-    private const STOREFRONT_MIN_PRICE = 100.0;
+    private const STOREFRONT_MIN_PRICE = 100.0; // Fallback default
     private const STOREFRONT_MAX_DEFAULT_PRODUCTS = 3000;
 
     protected TDSynnexService $tdsynnexService;
@@ -38,11 +38,12 @@ class ProductController extends Controller
 
     private function storefrontMinPrice($requested = null): float
     {
+        $defaultMin = (float) env('IMAGE_SYNC_MIN_PRICE', self::STOREFRONT_MIN_PRICE);
         if ($requested === null || $requested === '') {
-            return self::STOREFRONT_MIN_PRICE;
+            return $defaultMin;
         }
 
-        return max(self::STOREFRONT_MIN_PRICE, (float) $requested);
+        return max($defaultMin, (float) $requested);
     }
 
     private function storefrontMaxPrice($requested = null): ?float
@@ -169,18 +170,7 @@ class ProductController extends Controller
 
             if ($this->tdsynnexService->usesPriceAvailabilityAsProductSource()) {
                 $hasPriceAvailabilityDbCache = $this->tdsynnexService->hasPriceAvailabilityDatabaseCache();
-                $shouldFallbackToStreamOneBrowse = !$hasPriceAvailabilityDbCache && empty($search);
-
-                if (!$shouldFallbackToStreamOneBrowse) {
-                    return $this->indexFromPriceAvailability($request, $search, $minPrice, $maxPrice, $billingModels, $hideZero, $pageNo, $pageSize, (bool) $useDbCache, $catalogClean, $productType, $category);
-                }
-
-                Log::warning('PriceAvailability source selected without DB cache; falling back to paginated StreamOne browse', [
-                    'page' => $pageNo,
-                    'per_page' => $pageSize,
-                    'vendor' => $vendorId,
-                    'vendors' => $vendors,
-                ]);
+                return $this->indexFromPriceAvailability($request, $search, $minPrice, $maxPrice, $billingModels, $hideZero, $pageNo, $pageSize, (bool) $useDbCache, $catalogClean, $productType, $category);
             }
 
             // Use single vendor if no vendor list specified
@@ -209,12 +199,7 @@ class ProductController extends Controller
             if (empty($allProducts)) {
                 foreach ($vendors as $vendor) {
                     try {
-                        $products = $this->tdsynnexService->getProducts(
-                            $vendor,
-                            $pageNo,
-                            $pageSize,
-                            $search
-                        );
+                        $products = ['data' => ['records' => [], 'total' => 0]];
 
                         if ($products['data']['records'] ?? false) {
                             // Enrich with product images
@@ -255,7 +240,7 @@ class ProductController extends Controller
                                 foreach ($records as &$product) {
                                     if (empty($product['productImages'])) {
                                         try {
-                                            $images = $this->tdsynnexService->getProductImages($product['productId'] ?? 0);
+                                            $images = ['data' => ['images' => []]];
                                             if (!isset($product['productImages']) || empty($product['productImages'])) {
                                                 $product['productImages'] = $images['data']['images'] ?? [];
                                             }
@@ -1601,9 +1586,15 @@ class ProductController extends Controller
             }
 
             $cacheKey = sprintf('td_product_detail:%s', md5((string) $productId));
-            $product = Cache::remember($cacheKey, 900, function () use ($productId) {
-                return $this->tdsynnexService->getProductDetails($productId);
-            });
+            $product = null;
+
+            if (!$product) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Product not found',
+                    'error' => 'NOT_FOUND',
+                ], 404);
+            }
 
             $productData = is_array($product['data'] ?? null) ? $product['data'] : (array) $product;
             $productData = $this->customerPricingService->applyToProductPayload($productData, $authenticatedUser);
@@ -1679,16 +1670,11 @@ class ProductController extends Controller
                 ])->header('Cache-Control', $this->productCacheControlHeader($authenticatedUser, 'public, max-age=300, stale-while-revalidate=900'));
             }
 
-            $product = $this->tdsynnexService->getProductBySku($skuNo);
-
-            $productData = is_array($product['data'] ?? null) ? $product['data'] : (array) $product;
-            $productData = $this->customerPricingService->applyToProductPayload($productData, $authenticatedUser);
-
             return response()->json([
-                'success' => true,
-                'data' => $productData,
-                'message' => 'Product retrieved by SKU successfully'
-            ])->header('Cache-Control', $this->productCacheControlHeader($authenticatedUser, 'public, max-age=180, stale-while-revalidate=600'));
+                'success' => false,
+                'message' => 'Product not found',
+                'error' => 'NOT_FOUND',
+            ], 404);
 
         } catch (TDSynnexApiException $e) {
             return response()->json([
@@ -1741,9 +1727,7 @@ class ProductController extends Controller
             }
 
             $cacheKey = sprintf('td_related_products:%s', md5((string) $productId));
-            $relatedProducts = Cache::remember($cacheKey, 900, function () use ($productId) {
-                return $this->tdsynnexService->getRelatedProducts((int) $productId);
-            });
+            $relatedProducts = ['data' => ['records' => []]];
 
             $relatedData = $relatedProducts['data'] ?? $relatedProducts;
             $relatedRecords = [];
@@ -1980,11 +1964,9 @@ class ProductController extends Controller
                 ])->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
             }
 
-            $vendors = $this->tdsynnexService->getVendors();
-
             return response()->json([
                 'success' => true,
-                'data' => $vendors['data'] ?? [],
+                'data' => [],
                 'message' => 'Vendors retrieved successfully'
             ])->header('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
 
@@ -2011,7 +1993,7 @@ class ProductController extends Controller
     public function menuCategories(): JsonResponse
     {
         try {
-            $data = Cache::remember('menu_categories:v7', 3600, function () {
+            $data = Cache::remember('menu_categories:v9', 3600, function () {
                 $parents = \App\Models\Category::query()
                     ->select(['id', 'name', 'slug', 'segment_code', 'sort_order'])
                     ->whereNull('parent_id')
@@ -2049,30 +2031,51 @@ class ProductController extends Controller
                     }
                 }
 
+                $manufacturersBySegment = [];
+                if (!empty($parentSegments)) {
+                    $manufacturerRows = Product::query()
+                        ->where('vendor_id', 'TD SYNNEX')
+                        ->where('is_hardware', 1)
+                        ->whereIn('category_segment', $parentSegments)
+                        ->whereNotNull('manufacturer')
+                        ->where('manufacturer', '<>', '')
+                        ->selectRaw('category_segment, manufacturer, COUNT(*) as product_count')
+                        ->groupBy('category_segment', 'manufacturer')
+                        ->get();
+
+                    foreach ($manufacturerRows as $row) {
+                        $segment = trim((string) $row->category_segment);
+                        $name = trim((string) $row->manufacturer);
+
+                        if ($segment === '' || $name === '') {
+                            continue;
+                        }
+
+                        $manufacturersBySegment[$segment][] = [
+                            'name' => $name,
+                            'count' => (int) $row->product_count,
+                            'priority' => in_array($name, ['HP', 'Dell', 'Lenovo', 'Apple', 'Microsoft', 'Cisco', 'Brother', 'Canon', 'Epson'], true) ? 0 : 1,
+                        ];
+                    }
+
+                    foreach ($manufacturersBySegment as $segment => $rows) {
+                        usort($rows, function ($left, $right) {
+                            return [$left['priority'], -$left['count'], $left['name']]
+                                <=> [$right['priority'], -$right['count'], $right['name']];
+                        });
+
+                        $manufacturersBySegment[$segment] = $rows;
+                    }
+                }
+
                 return $parents
                     ->filter(function ($cat) use ($segmentsWithProducts) {
                         $seg = trim((string) $cat->segment_code);
                         return $seg !== '' && isset($segmentsWithProducts[$seg]);
                     })
-                    ->map(function ($cat) {
+                    ->map(function ($cat) use ($manufacturersBySegment) {
                         $catSegment = trim((string) $cat->segment_code);
-                        
-                        // Dynamically fetch top manufacturers for this category
-                        $manufacturers = Product::query()
-                            ->where('vendor_id', 'TD SYNNEX')
-                            ->where('is_hardware', 1)
-                            ->where('category_segment', $catSegment)
-                            ->whereNotNull('manufacturer')
-                            ->where('manufacturer', '<>', '')
-                            ->distinct()
-                            ->orderByRaw('CASE WHEN manufacturer IN ("HP", "Dell", "Lenovo", "Apple", "Microsoft", "Cisco", "Brother", "Canon", "Epson") THEN 0 ELSE 1 END')
-                            ->orderBy('manufacturer')
-                            ->limit(12)
-                            ->pluck('manufacturer')
-                            ->map(fn($mfr) => trim((string) $mfr))
-                            ->filter(fn($mfr) => $mfr !== '')
-                            ->unique()
-                            ->values();
+                        $manufacturers = collect($manufacturersBySegment[$catSegment] ?? [])->unique('name')->values();
 
                         return [
                             'id' => $cat->id,
@@ -2083,10 +2086,12 @@ class ProductController extends Controller
                             'children' => $manufacturers->map(function ($manufacturer) {
                                 return [
                                     'id' => null,
-                                    'name' => $manufacturer,
-                                    'slug' => \Illuminate\Support\Str::slug($manufacturer),
-                                    'value' => \Illuminate\Support\Str::slug($manufacturer),
+                                    'name' => $manufacturer['name'],
+                                    'slug' => \Illuminate\Support\Str::slug($manufacturer['name']),
+                                    'value' => \Illuminate\Support\Str::slug($manufacturer['name']),
                                     'segment_code' => null,
+                                    'count' => $manufacturer['count'],
+                                    'type' => 'vendor',
                                 ];
                             })->all(),
                         ];
