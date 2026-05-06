@@ -4315,7 +4315,10 @@ class AdminController extends Controller
     private function hasPermission(User $user, string $permission): bool
     {
         if ($user->role === 'super_admin') return true;
-        return in_array($permission, $user->permissions ?? []);
+        // null/empty permissions = no restrictions yet (backwards-compatible default)
+        $perms = $user->permissions;
+        if (empty($perms)) return true;
+        return in_array($permission, $perms);
     }
 
     /**

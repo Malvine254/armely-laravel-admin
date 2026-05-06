@@ -5,92 +5,69 @@
     <div class="admin-fit-page">
 
     <!-- Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-      <div class="rounded-xl border-0 shadow-lg bg-white p-6 transition hover:shadow-xl">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-xs text-gray-500 uppercase tracking-wide mb-1 font-semibold">Total Quotes</p>
-            <p class="text-3xl font-bold text-gray-900">{{ stats.total || 0 }}</p>
-            <p class="text-xs text-gray-500 mt-2">All submitted quotes</p>
-          </div>
-          <div class="w-14 h-14 rounded-xl flex items-center justify-center">
-            <i class="fas fa-file-invoice text-[#2F5597] text-2xl"></i>
-          </div>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+      <div class="rounded-xl border-0 shadow bg-white px-4 py-3 transition hover:shadow-md flex items-center gap-3">
+        <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-[#2F5597]/10 flex-shrink-0">
+          <i class="fas fa-file-invoice text-[#2F5597] text-base"></i>
+        </div>
+        <div>
+          <p class="text-[10px] text-gray-500 uppercase tracking-wide font-semibold">Total</p>
+          <p class="text-xl font-bold text-gray-900 leading-tight">{{ stats.total || 0 }}</p>
         </div>
       </div>
-      <div class="rounded-xl border-0 shadow-lg bg-white p-6 transition hover:shadow-xl">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-xs text-gray-500 uppercase tracking-wide mb-1 font-semibold">Awaiting Action</p>
-            <p class="text-3xl font-bold text-amber-600">{{ stats.pending || 0 }}</p>
-            <p class="text-xs text-gray-500 mt-2">Need approval</p>
-          </div>
-          <div class="w-14 h-14 rounded-xl flex items-center justify-center" style="background: rgba(251, 191, 36, 0.12);">
-            <i class="fas fa-clock text-amber-600 text-2xl"></i>
-          </div>
+      <div class="rounded-xl border-0 shadow bg-white px-4 py-3 transition hover:shadow-md flex items-center gap-3">
+        <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style="background: rgba(251, 191, 36, 0.12);">
+          <i class="fas fa-clock text-amber-600 text-base"></i>
+        </div>
+        <div>
+          <p class="text-[10px] text-gray-500 uppercase tracking-wide font-semibold">Awaiting</p>
+          <p class="text-xl font-bold text-amber-600 leading-tight">{{ stats.pending || 0 }}</p>
         </div>
       </div>
-      <div class="rounded-xl border-0 shadow-lg bg-white p-6 transition hover:shadow-xl">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-xs text-gray-500 uppercase tracking-wide mb-1 font-semibold">Approved</p>
-            <p class="text-3xl font-bold text-emerald-600">{{ stats.approved || 0 }}</p>
-            <p class="text-xs text-gray-500 mt-2">Converted to orders</p>
-          </div>
-          <div class="w-14 h-14 rounded-xl flex items-center justify-center">
-            <i class="fas fa-check-circle text-emerald-600 text-2xl"></i>
-          </div>
+      <div class="rounded-xl border-0 shadow bg-white px-4 py-3 transition hover:shadow-md flex items-center gap-3">
+        <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0">
+          <i class="fas fa-check-circle text-emerald-600 text-base"></i>
+        </div>
+        <div>
+          <p class="text-[10px] text-gray-500 uppercase tracking-wide font-semibold">Approved</p>
+          <p class="text-xl font-bold text-emerald-600 leading-tight">{{ stats.approved || 0 }}</p>
         </div>
       </div>
-      <div class="rounded-xl border-0 shadow-lg bg-white p-6 transition hover:shadow-xl">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-xs text-gray-500 uppercase tracking-wide mb-1 font-semibold">Rejected</p>
-            <p class="text-3xl font-bold text-rose-600">{{ stats.rejected || 0 }}</p>
-            <p class="text-xs text-gray-500 mt-2">Declined requests</p>
-          </div>
-          <div class="w-14 h-14 rounded-xl flex items-center justify-center" style="background: rgba(239, 68, 68, 0.1);">
-            <i class="fas fa-times-circle text-rose-600 text-2xl"></i>
-          </div>
+      <div class="rounded-xl border-0 shadow bg-white px-4 py-3 transition hover:shadow-md flex items-center gap-3">
+        <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style="background: rgba(239, 68, 68, 0.1);">
+          <i class="fas fa-times-circle text-rose-600 text-base"></i>
         </div>
-      </div>
-    </div>
-
-    <!-- Info Banner -->
-    <div class="rounded-lg border border-[#2F5597]/20 p-4 mb-6">
-      <div class="flex items-start gap-3">
-        <i class="fas fa-lightbulb text-[#2F5597] mt-0.5 text-lg flex-shrink-0"></i>
-        <p class="text-sm text-gray-700 font-medium">
-          <span class="text-[#2F5597] font-semibold">Manage customer quotes</span> across all statuses. Click <span class="font-semibold">Review</span> to view full details and take action where applicable.
-        </p>
+        <div>
+          <p class="text-[10px] text-gray-500 uppercase tracking-wide font-semibold">Rejected</p>
+          <p class="text-xl font-bold text-rose-600 leading-tight">{{ stats.rejected || 0 }}</p>
+        </div>
       </div>
     </div>
 
     <!-- Filters and Search -->
-    <div class="rounded-xl border-0 shadow-lg bg-white p-6 mb-6">
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div class="rounded-xl border-0 shadow bg-white px-4 py-3 mb-3">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Search Quote</label>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Search Quote</label>
           <input
             v-model="searchQuery"
             type="text"
             placeholder="Quote ID, customer name..."
             @keyup.enter="applyFilters"
-            class="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597] text-gray-900 placeholder-slate-500 transition"
-           
+            class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597] text-sm text-gray-900 placeholder-slate-400 transition"
           />
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
-          <select v-model="statusFilter" @change="applyFilters" class="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597] text-gray-900 transition">
+          <label class="block text-xs font-medium text-gray-600 mb-1">Status</label>
+          <select v-model="statusFilter" @change="applyFilters" class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597] text-sm text-gray-900 transition">
             <option value="" class="bg-white">Pending + Rejected</option>
             <option value="pending_review" class="bg-white">Pending Review</option>
             <option value="rejected" class="bg-white">Rejected</option>
           </select>
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Sort By</label>
-          <select v-model="sortBy" @change="applyFilters" class="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597] text-gray-900 transition">
+          <label class="block text-xs font-medium text-gray-600 mb-1">Sort By</label>
+          <select v-model="sortBy" @change="applyFilters" class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597] text-sm text-gray-900 transition">
             <option value="newest" class="bg-white">Newest First</option>
             <option value="oldest" class="bg-white">Oldest First</option>
             <option value="highest" class="bg-white">Highest Amount</option>
@@ -100,7 +77,7 @@
         <div class="flex items-end">
           <button
             @click="applyFilters"
-            class="w-full bg-[#2F5597] hover:bg-[#1e3a6b] text-white font-medium py-2.5 px-4 rounded-lg transition shadow-lg"
+            class="w-full bg-[#2F5597] hover:bg-[#1e3a6b] text-white font-medium py-2 px-4 rounded-lg text-sm transition shadow"
           >
             <i class="fas fa-search mr-2"></i>Apply Filters
           </button>
