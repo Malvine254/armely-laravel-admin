@@ -14,6 +14,7 @@ import AdminDashboard from '../pages/AdminDashboard.vue';
 import AdminQuotesPage from '../pages/AdminQuotesPage.vue';
 import AdminOrdersPage from '../pages/AdminOrdersPage.vue';
 import AdminCustomersPage from '../pages/AdminCustomersPage.vue';
+import AdminUsersPage from '../pages/AdminUsersPage.vue';
 import AdminReportsPage from '../pages/AdminReportsPage.vue';
 import AdminSettingsPage from '../pages/AdminSettingsPage.vue';
 import AdminInvoicesPage from '../pages/AdminInvoicesPage.vue';
@@ -115,8 +116,14 @@ const routes = [
   },
   {
     path: '/admin/customers',
-    name: 'admin-customers',
+    name: 'AdminCustomers',
     component: AdminCustomersPage,
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/admin/users',
+    name: 'AdminUsers',
+    component: AdminUsersPage,
     meta: { requiresAuth: true, requiresAdmin: true },
   },
   {
