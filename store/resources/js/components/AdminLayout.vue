@@ -108,10 +108,24 @@
           <span>Order Tracking</span>
         </router-link>
 
-        <!-- Admin / Users Management -->
+        <!-- Users Management -->
         <div class="mt-4 px-4">
-          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Admin</p>
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Users</p>
         </div>
+        <router-link
+          :to="{ name: 'AdminUsers' }"
+          :class="[
+            'flex items-center px-6 py-3 border-l-4 transition',
+            isActive('users')
+              ? 'bg-[#2F5597]/10 border-[#2F5597] text-[#2F5597] font-semibold'
+              : 'border-transparent hover:bg-gray-50 hover:border-[#2F5597]/50 text-gray-700'
+          ]"
+        >
+          <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+          </svg>
+          <span>Admins</span>
+        </router-link>
         <router-link
           :to="{ name: 'AdminCustomers' }"
           :class="[
@@ -128,20 +142,6 @@
           <span v-if="unseenCounts.pending_users > 0" class="ml-auto bg-amber-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center">
             {{ unseenCounts.pending_users }}
           </span>
-        </router-link>
-        <router-link
-          :to="{ name: 'AdminUsers' }"
-          :class="[
-            'flex items-center px-6 py-3 border-l-4 transition',
-            isActive('users')
-              ? 'bg-[#2F5597]/10 border-[#2F5597] text-[#2F5597] font-semibold'
-              : 'border-transparent hover:bg-gray-50 hover:border-[#2F5597]/50 text-gray-700'
-          ]"
-        >
-          <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-          </svg>
-          <span>Admins</span>
         </router-link>
 
         <!-- Support / Chat Escalations -->
