@@ -5,58 +5,13 @@
     <div class="admin-fit-page">
 
     <!-- Stats Summary -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-      <div class="bg-white rounded-xl shadow-lg border-0 p-5">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm text-gray-500">Accepted</p>
-            <p class="text-2xl font-bold text-gray-900">{{ statusCounts.accepted }}</p>
-          </div>
-          <div class="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center">
-            <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-        </div>
-      </div>
-      <div class="bg-white rounded-xl shadow-lg border-0 p-5">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm text-gray-500">Backordered</p>
-            <p class="text-2xl font-bold text-gray-900">{{ statusCounts.backordered }}</p>
-          </div>
-          <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-            <svg class="w-5 h-5 text-[#2F5597]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-        </div>
-      </div>
-      <div class="bg-white rounded-xl shadow-lg border-0 p-5">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm text-gray-500">Shipped</p>
-            <p class="text-2xl font-bold text-gray-900">{{ statusCounts.shipped }}</p>
-          </div>
-          <div class="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center">
-            <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
-            </svg>
-          </div>
-        </div>
-      </div>
-      <div class="bg-white rounded-xl shadow-lg border-0 p-5">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm text-gray-500">Invoiced</p>
-            <p class="text-2xl font-bold text-gray-900">{{ statusCounts.invoiced }}</p>
-          </div>
-          <div class="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
-            <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-            </svg>
-          </div>
-        </div>
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div v-for="stat in statCards" :key="stat.key"
+        class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 cursor-pointer transition hover:shadow-md"
+        :class="statusFilter === stat.key ? 'ring-2 ring-[#2F5597]' : ''"
+        @click="setStatusFilter(stat.key)">
+        <p class="text-xs text-gray-500 font-medium">{{ stat.label }}</p>
+        <p class="text-2xl font-bold mt-1" :class="stat.color">{{ statusCounts[stat.key] }}</p>
       </div>
     </div>
 
@@ -80,11 +35,13 @@
             @change="applyFilters"
             class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-[#2F5597]/30 focus:border-[#2F5597] text-gray-900"
           >
-            <option value="">All Active</option>
+            <option value="">All Orders</option>
+            <option value="pending">Pending</option>
             <option value="accepted">Accepted</option>
             <option value="backordered">Backordered</option>
             <option value="shipped">Shipped</option>
             <option value="invoiced">Invoiced</option>
+            <option value="failed">Failed</option>
           </select>
         </div>
         <div class="flex items-end">
@@ -189,8 +146,12 @@
                 <span :class="statusBadgeClass(order.status)">
                   {{ formatStatus(order.status) }}
                 </span>
-                <div v-if="order.shipping_status && order.shipping_status !== order.status" class="text-xs text-gray-500 mt-1">
-                  Ship: {{ formatStatus(order.shipping_status) }}
+                <div v-if="order.td_status" class="text-[10px] text-gray-400 mt-1 flex items-center gap-1">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block"></span>
+                  TD: {{ formatStatus(order.td_status) }}
+                </div>
+                <div v-else-if="order.po_number && order.po_number !== order.order_number" class="text-[10px] text-amber-500 mt-1">
+                  Checking TD…
                 </div>
               </td>
 
@@ -275,7 +236,7 @@
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
       </svg>
       <h3 class="text-lg font-semibold text-gray-700 mb-2">No Trackable Orders</h3>
-      <p class="text-gray-500">No accepted, backordered, shipped, or invoiced orders found with the current filters.</p>
+      <p class="text-gray-500">No orders found. Once quotes are approved and submitted to TD SYNNEX, they will appear here with live status.</p>
     </div>
 
     </div>
@@ -502,11 +463,20 @@ const lastPage = ref(1)
 const loading = ref(true)
 const refreshing = ref(false)
 
+const statCards = [
+  { key: '',            label: 'All',         color: 'text-gray-800' },
+  { key: 'pending',     label: 'Pending',     color: 'text-amber-600' },
+  { key: 'accepted',    label: 'Accepted',    color: 'text-[#2F5597]' },
+  { key: 'backordered', label: 'Backordered', color: 'text-orange-600' },
+  { key: 'shipped',     label: 'Shipped',     color: 'text-indigo-600' },
+  { key: 'invoiced',    label: 'Invoiced',    color: 'text-emerald-600' },
+]
+
 const statusCounts = computed(() => {
-  const counts = { accepted: 0, backordered: 0, shipped: 0, invoiced: 0 }
+  const counts = { '': orders.value.length, pending: 0, accepted: 0, backordered: 0, shipped: 0, invoiced: 0, failed: 0 }
   orders.value.forEach(o => {
-    const normalized = normalizeStatus(o.status)
-    if (counts[normalized] !== undefined) counts[normalized]++
+    const s = normalizeStatus(o.status)
+    if (s in counts) counts[s]++
   })
   return counts
 })
@@ -515,12 +485,17 @@ const normalizeStatus = (status) => {
   const raw = String(status || '').toLowerCase().trim()
   const map = {
     processing: 'accepted',
-    confirmed: 'accepted',
-    delivered: 'invoiced',
-    complete: 'invoiced',
-    completed: 'invoiced',
+    confirmed:  'accepted',
+    delivered:  'invoiced',
+    complete:   'invoiced',
+    completed:  'invoiced',
   }
   return map[raw] || raw
+}
+
+const setStatusFilter = (key) => {
+  statusFilter.value = key
+  applyFilters()
 }
 
 const orderTimeline = computed(() => {
