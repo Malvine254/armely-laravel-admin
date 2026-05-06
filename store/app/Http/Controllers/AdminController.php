@@ -982,13 +982,12 @@ class AdminController extends Controller
     {
         try {
             $user = $request->user();
-            
-            // Verify admin role
+
             if ($user->role !== 'admin' && $user->role !== 'super_admin') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Unauthorized',
-                ], 403);
+                return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+            }
+            if (!$this->hasPermission($user, 'manage_customers')) {
+                return response()->json(['success' => false, 'message' => 'You do not have permission to manage customers'], 403);
             }
 
             $page = $request->get('page', 1);
@@ -1206,13 +1205,11 @@ class AdminController extends Controller
     {
         try {
             $user = $request->user();
-            
-            // Verify admin role
             if ($user->role !== 'admin' && $user->role !== 'super_admin') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Unauthorized',
-                ], 403);
+                return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+            }
+            if (!$this->hasPermission($user, 'manage_quotes')) {
+                return response()->json(['success' => false, 'message' => 'You do not have permission to manage quotes'], 403);
             }
 
             $page = $request->get('page', 1);
@@ -2331,13 +2328,11 @@ class AdminController extends Controller
     {
         try {
             $user = $request->user();
-            
-            // Verify admin role
             if ($user->role !== 'admin' && $user->role !== 'super_admin') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Unauthorized',
-                ], 403);
+                return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+            }
+            if (!$this->hasPermission($user, 'manage_orders')) {
+                return response()->json(['success' => false, 'message' => 'You do not have permission to manage orders'], 403);
             }
 
             $page = $request->get('page', 1);
@@ -2430,13 +2425,11 @@ class AdminController extends Controller
     {
         try {
             $user = $request->user();
-            
-            // Verify admin role
             if ($user->role !== 'admin' && $user->role !== 'super_admin') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Unauthorized',
-                ], 403);
+                return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+            }
+            if (!$this->hasPermission($user, 'manage_reports')) {
+                return response()->json(['success' => false, 'message' => 'You do not have permission to view reports'], 403);
             }
 
             $period = $request->get('period', 'month'); // day, week, month, year
@@ -3240,13 +3233,11 @@ class AdminController extends Controller
     {
         try {
             $user = $request->user();
-            
-            // Verify admin role
             if ($user->role !== 'admin' && $user->role !== 'super_admin') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Unauthorized',
-                ], 403);
+                return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+            }
+            if (!$this->hasPermission($user, 'manage_settings')) {
+                return response()->json(['success' => false, 'message' => 'You do not have permission to access settings'], 403);
             }
 
             return response()->json([
@@ -4256,6 +4247,116 @@ class AdminController extends Controller
     }
 
     /**
+     * Check if an admin has a specific permission (super_admin always passes)
+     */
+    private function hasPermission(User $user, string $permission): bool
+    {
+        if ($user->role === 'super_admin') return true;
+        return in_array($permission, $user->permissions ?? []);
+    }
+
+    /**
+     * Update admin role
+     */
+    public function updateAdminRole(Request $request, $userId): JsonResponse
+    {
+        try {
+            $currentUser = $request->user();
+            if ($currentUser->role !== 'super_admin') {
+                return response()->json(['success' => false, 'message' => 'Only super admins can change roles'], 403);
+            }
+            if ($currentUser->id == $userId) {
+                return response()->json(['success' => false, 'message' => 'You cannot change your own role'], 400);
+            }
+
+            $role = $request->input('role');
+            if (!in_array($role, ['admin', 'super_admin'])) {
+                return response()->json(['success' => false, 'message' => 'Invalid role'], 422);
+            }
+
+            $admin = User::whereIn('role', ['admin', 'super_admin'])->findOrFail($userId);
+            $admin->role = $role;
+            if ($role === 'super_admin') $admin->permissions = null;
+            $admin->save();
+
+            return response()->json(['success' => true, 'message' => 'Role updated', 'data' => ['role' => $admin->role]]);
+        } catch (\Exception $e) {
+            Log::error('Failed to update admin role: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Failed to update role'], 500);
+        }
+    }
+
+    /**
+     * Bulk suspend admin users
+     */
+    public function bulkSuspendAdmins(Request $request): JsonResponse
+    {
+        try {
+            $currentUser = $request->user();
+            if ($currentUser->role !== 'super_admin') {
+                return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+            }
+            $ids = array_filter((array) $request->input('ids', []), fn($id) => $id != $currentUser->id);
+            if (empty($ids)) return response()->json(['success' => false, 'message' => 'No valid IDs provided'], 422);
+
+            $count = User::whereIn('id', $ids)->whereIn('role', ['admin', 'super_admin'])->count();
+            User::whereIn('id', $ids)->whereIn('role', ['admin', 'super_admin'])->update(['status' => 'suspended']);
+            \Laravel\Sanctum\PersonalAccessToken::whereIn('tokenable_id', $ids)->delete();
+
+            return response()->json(['success' => true, 'message' => "{$count} admin(s) suspended"]);
+        } catch (\Exception $e) {
+            Log::error('Bulk suspend admins failed: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Failed to suspend admins'], 500);
+        }
+    }
+
+    /**
+     * Bulk activate admin users
+     */
+    public function bulkActivateAdmins(Request $request): JsonResponse
+    {
+        try {
+            $currentUser = $request->user();
+            if ($currentUser->role !== 'super_admin') {
+                return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+            }
+            $ids = array_filter((array) $request->input('ids', []), fn($id) => $id != $currentUser->id);
+            if (empty($ids)) return response()->json(['success' => false, 'message' => 'No valid IDs provided'], 422);
+
+            $count = User::whereIn('id', $ids)->whereIn('role', ['admin', 'super_admin'])->count();
+            User::whereIn('id', $ids)->whereIn('role', ['admin', 'super_admin'])->update(['status' => 'active']);
+
+            return response()->json(['success' => true, 'message' => "{$count} admin(s) activated"]);
+        } catch (\Exception $e) {
+            Log::error('Bulk activate admins failed: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Failed to activate admins'], 500);
+        }
+    }
+
+    /**
+     * Bulk delete admin users
+     */
+    public function bulkDeleteAdmins(Request $request): JsonResponse
+    {
+        try {
+            $currentUser = $request->user();
+            if ($currentUser->role !== 'super_admin') {
+                return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+            }
+            $ids = array_filter((array) $request->input('ids', []), fn($id) => $id != $currentUser->id);
+            if (empty($ids)) return response()->json(['success' => false, 'message' => 'No valid IDs provided'], 422);
+
+            $count = User::whereIn('id', $ids)->whereIn('role', ['admin', 'super_admin'])->count();
+            User::whereIn('id', $ids)->whereIn('role', ['admin', 'super_admin'])->delete();
+
+            return response()->json(['success' => true, 'message' => "{$count} admin(s) deleted"]);
+        } catch (\Exception $e) {
+            Log::error('Bulk delete admins failed: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Failed to delete admins'], 500);
+        }
+    }
+
+    /**
      * Update admin user permissions
      */
     public function updateAdminPermissions(Request $request, $userId): JsonResponse
@@ -4477,10 +4578,10 @@ class AdminController extends Controller
             $currentUser = $request->user();
             
             if ($currentUser->role !== 'super_admin' && $currentUser->role !== 'admin') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Unauthorized',
-                ], 403);
+                return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+            }
+            if (!$this->hasPermission($currentUser, 'manage_invoices')) {
+                return response()->json(['success' => false, 'message' => 'You do not have permission to manage invoices'], 403);
             }
 
             $perPage = (int) $request->get('per_page', 15);
