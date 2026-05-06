@@ -208,6 +208,10 @@ Route::prefix('v1')->group(function () {
         Route::post('/admin/users/{userId}/suspend', [AdminController::class, 'suspendAdminUser']);
         Route::post('/admin/users/{userId}/activate', [AdminController::class, 'activateAdminUser']);
         Route::put('/admin/users/{userId}/permissions', [AdminController::class, 'updateAdminPermissions']);
+        Route::put('/admin/users/{userId}/role', [AdminController::class, 'updateAdminRole']);
+        Route::post('/admin/users/bulk-suspend', [AdminController::class, 'bulkSuspendAdmins']);
+        Route::post('/admin/users/bulk-activate', [AdminController::class, 'bulkActivateAdmins']);
+        Route::post('/admin/users/bulk-delete', [AdminController::class, 'bulkDeleteAdmins']);
         Route::delete('/admin/users/{userId}', [AdminController::class, 'deleteAdminUser']);
 
         // Admin Chat (escalated sessions inbox)
