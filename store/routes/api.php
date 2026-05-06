@@ -152,12 +152,14 @@ Route::prefix('v1')->group(function () {
         
         // Customer management
         Route::get('/admin/customers', [AdminController::class, 'getCustomers']);
+        Route::post('/admin/customers/invite', [AdminController::class, 'inviteCustomerUser']);
         Route::post('/admin/customers/users/{userId}/special-pricing', [AdminController::class, 'setUserSpecialPricing']);
         Route::post('/admin/customers/users/{userId}/approve', [AdminController::class, 'approveCustomerUser']);
         Route::post('/admin/customers/{companyId}/approve', [AdminController::class, 'approveCustomer']);
         Route::post('/admin/customers/bulk-approve', [AdminController::class, 'bulkApproveCustomers']);
         Route::post('/admin/customers/bulk-delete', [AdminController::class, 'bulkDeleteUsers']);
         Route::post('/admin/customers/bulk-suspend', [AdminController::class, 'bulkSuspendUsers']);
+        Route::post('/admin/customers/resend-invite', [AdminController::class, 'resendCustomerInvite']);
 
         // Quote management
         Route::get('/admin/quotes/stats', [AdminController::class, 'getQuoteStats']);
@@ -205,6 +207,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/admin/users/{userId}/resend-credentials', [AdminController::class, 'resendAdminCredentials']);
         Route::post('/admin/users/{userId}/suspend', [AdminController::class, 'suspendAdminUser']);
         Route::post('/admin/users/{userId}/activate', [AdminController::class, 'activateAdminUser']);
+        Route::put('/admin/users/{userId}/permissions', [AdminController::class, 'updateAdminPermissions']);
         Route::delete('/admin/users/{userId}', [AdminController::class, 'deleteAdminUser']);
 
         // Admin Chat (escalated sessions inbox)

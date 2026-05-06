@@ -32,17 +32,8 @@ return [
         // Global toggle (set to false to bypass all TD SYNNEX caching)
         'enabled' => env('TDSYNNEX_CACHE_ENABLED', true),
 
-        // Cache product catalog responses for 1 hour (increased for better performance)
+        // Cache product catalog responses for 1 hour.
         'products_ttl' => env('TDSYNNEX_CACHE_PRODUCTS_TTL', 3600), // 1 hour
-        
-        // Cache vendor list for 24 hours
-        'vendors_ttl' => env('TDSYNNEX_CACHE_VENDORS_TTL', 86400), // 24 hours
-        
-        // Cache pricing data for 30 minutes (sync prices more frequently)
-        'pricing_ttl' => env('TDSYNNEX_CACHE_PRICING_TTL', 1800), // 30 minutes
-        
-        // Cache access token for 110 minutes (safe margin before 2-hour expiry)
-        'token_ttl' => env('TDSYNNEX_CACHE_TOKEN_TTL', 6600), // 110 minutes
     ],
 
     /*
@@ -53,26 +44,6 @@ return [
     'retry' => [
         'max_attempts' => env('TDSYNNEX_RETRY_MAX_ATTEMPTS', 3),
         'delay' => env('TDSYNNEX_RETRY_DELAY', 1000), // milliseconds
-    ],
-
-    /*
-    | Order Status Sync Configuration
-    */
-    'sync' => [
-        // How often to check for order status updates
-        'interval' => env('TDSYNNEX_SYNC_INTERVAL', 30), // minutes
-        
-        // Only sync orders created within this many days
-        'lookback_days' => env('TDSYNNEX_SYNC_LOOKBACK_DAYS', 90),
-    ],
-
-    /*
-    | Feature Flags
-    */
-    'features' => [
-        'enable_caching' => env('TDSYNNEX_ENABLE_CACHING', true),
-        'enable_webhooks' => env('TDSYNNEX_ENABLE_WEBHOOKS', false),
-        'enable_auto_sync' => env('TDSYNNEX_ENABLE_AUTO_SYNC', true),
     ],
 
     /*

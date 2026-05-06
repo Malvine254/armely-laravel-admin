@@ -265,7 +265,7 @@ class StripeController extends Controller
 
             /** @var TDSynnexService $tdService */
             $tdService = app(TDSynnexService::class);
-            $tdResponse = $tdService->placeOrder($orderData);
+            $tdResponse = $tdService->placeOrder($orderData, 'us', false);
 
             $orderNumber = $this->findOrderNumber($tdResponse);
             if (!$orderNumber) {

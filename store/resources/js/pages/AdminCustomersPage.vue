@@ -1,10 +1,25 @@
 <template>
   <AdminLayout>
-    <template #title>Customers</template>
+    <template #title>Users</template>
 
     <div class="admin-fit-page">
 
     <div class="rounded-xl border-0 shadow-lg bg-white p-6 mb-6">
+      <div class="mb-5 flex flex-wrap gap-2 border-b border-gray-200 pb-4">
+        <button
+          v-for="tab in userTabs"
+          :key="tab.value"
+          @click="setActiveTab(tab.value)"
+          :class="[
+            'px-4 py-2 rounded-lg text-sm font-semibold transition border',
+            activeTab === tab.value
+              ? 'bg-[#2F5597] text-white border-[#2F5597]'
+              : 'bg-white text-gray-600 border-gray-200 hover:border-[#2F5597]/50 hover:text-[#2F5597]'
+          ]"
+        >
+          <i :class="['fas mr-2', tab.icon]"></i>{{ tab.label }}
+        </button>
+      </div>
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">Search User</label>
@@ -17,7 +32,7 @@
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">Filter by Status</label>
-          <select v-model="statusFilter" class="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597] text-gray-900 transition">
+          <select v-model="statusFilter" :disabled="activeTab === 'admins'" class="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597] text-gray-900 transition disabled:bg-gray-100 disabled:text-gray-400">
             <option value="" class="bg-white">All Status</option>
             <option value="pending" class="bg-white">Pending</option>
             <option value="active" class="bg-white">Active</option>
@@ -41,6 +56,15 @@
           </button>
         </div>
       </div>
+      <div class="mt-4 flex justify-end">
+        <button
+          @click="openInviteModal"
+          class="inline-flex items-center gap-2 bg-[#2F5597] hover:bg-[#1e3a6b] text-white font-semibold py-2.5 px-4 rounded-lg transition shadow-lg"
+        >
+          <i class="fas fa-user-plus"></i>
+          <span>{{ activeTab === 'admins' ? 'Invite Admin' : 'Invite User' }}</span>
+        </button>
+      </div>
     </div>
 
     <!-- Loading -->
@@ -51,11 +75,11 @@
       </svg>
     </div>
 
-    <div v-else class="admin-table-card rounded-xl border-0 shadow-lg bg-white overflow-hidden">
+    <div v-else-if="activeTab === 'customers'" class="admin-table-card rounded-xl border-0 shadow-lg bg-white overflow-hidden">
       <div class="px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h3 class="text-lg font-semibold text-gray-900">Customer Users</h3>
-          <p class="text-sm text-gray-500">Manage each customer user individually, including access and special pricing</p>
+          <p class="text-sm text-gray-500">Manage each customer user individually, including access, discounts, and assigned shipping</p>
         </div>
         <div class="flex items-center gap-3">
           <div v-if="selectedUsers.length > 0" class="flex gap-2 flex-wrap">
@@ -105,7 +129,7 @@
               <th class="px-6 py-3 text-left font-semibold text-gray-700 uppercase text-xs tracking-wide">User</th>
               <th class="px-6 py-3 text-left font-semibold text-gray-700 uppercase text-xs tracking-wide">Company</th>
               <th class="px-6 py-3 text-left font-semibold text-gray-700 uppercase text-xs tracking-wide">Status</th>
-              <th class="px-6 py-3 text-left font-semibold text-gray-700 uppercase text-xs tracking-wide">Special Pricing</th>
+              <th class="px-6 py-3 text-left font-semibold text-gray-700 uppercase text-xs tracking-wide">Commercial Terms</th>
               <th class="px-6 py-3 text-left font-semibold text-gray-700 uppercase text-xs tracking-wide">Joined</th>
               <th class="px-6 py-3 text-right font-semibold text-gray-700 uppercase text-xs tracking-wide">Actions</th>
             </tr>
@@ -141,16 +165,28 @@
                 </span>
               </td>
               <td class="px-6 py-4">
-                <div class="flex items-center gap-2 min-w-[170px]">
-                  <input
-                    v-model.number="specialPricingDrafts[user.id]"
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="0.01"
-                    class="w-24 px-2 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
-                  />
-                  <span class="text-xs text-gray-500">%</span>
+                <div class="flex flex-wrap items-end gap-2 min-w-[260px]">
+                  <label class="text-xs text-gray-500">
+                    Discount %
+                    <input
+                      v-model.number="specialPricingDrafts[user.id]"
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.01"
+                      class="mt-1 w-24 px-2 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
+                    />
+                  </label>
+                  <label class="text-xs text-gray-500">
+                    Shipping $
+                    <input
+                      v-model.number="shippingAmountDrafts[user.id]"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      class="mt-1 w-24 px-2 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
+                    />
+                  </label>
                   <button
                     @click="saveUserSpecialPricing(user)"
                     :disabled="isSubmitting"
@@ -250,6 +286,166 @@
       </div>
     </div>
 
+    <div v-else class="admin-table-card rounded-xl border-0 shadow-lg bg-white overflow-hidden">
+      <div class="px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h3 class="text-lg font-semibold text-gray-900">Admin Users</h3>
+          <p class="text-sm text-gray-500">Manage administrators and portal access from the same user page</p>
+        </div>
+        <p class="text-sm text-gray-500">Showing {{ filteredAdminUsers.length }} of {{ adminUsers.length }} admins</p>
+      </div>
+
+      <div class="overflow-x-auto admin-table-scroll">
+        <table class="w-full text-sm">
+          <thead class="border-b border-gray-200">
+            <tr>
+              <th class="px-6 py-3 text-left font-semibold text-gray-700 uppercase text-xs tracking-wide">Admin</th>
+              <th class="px-6 py-3 text-left font-semibold text-gray-700 uppercase text-xs tracking-wide">Role</th>
+              <th class="px-6 py-3 text-left font-semibold text-gray-700 uppercase text-xs tracking-wide">Status</th>
+              <th class="px-6 py-3 text-left font-semibold text-gray-700 uppercase text-xs tracking-wide">Credential State</th>
+              <th class="px-6 py-3 text-left font-semibold text-gray-700 uppercase text-xs tracking-wide">Joined</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200">
+            <tr v-if="filteredAdminUsers.length === 0">
+              <td colspan="5" class="px-6 py-16 text-center">
+                <i class="fas fa-user-shield text-5xl mb-4 block opacity-20 text-gray-500"></i>
+                <p class="text-gray-500 text-lg font-medium">No admin users found</p>
+              </td>
+            </tr>
+            <tr v-for="admin in filteredAdminUsers" :key="admin.id" class="hover:bg-gray-50 transition">
+              <td class="px-6 py-4">
+                <div class="font-semibold text-gray-900">{{ admin.name }}</div>
+                <div class="text-xs text-gray-500">{{ admin.email }}</div>
+              </td>
+              <td class="px-6 py-4">
+                <span class="px-3 py-1 rounded-full text-xs font-semibold bg-[#2F5597]/10 text-[#2F5597]">
+                  {{ admin.role === 'super_admin' ? 'Super Admin' : 'Admin' }}
+                </span>
+              </td>
+              <td class="px-6 py-4">
+                <span :class="['px-3 py-1 rounded-full text-xs font-semibold', statusBadgeClass(admin.status)]">
+                  {{ formatStatusLabel(admin.status) }}
+                </span>
+              </td>
+              <td class="px-6 py-4 text-gray-600">
+                <span v-if="admin.force_password_change" class="text-amber-700 font-medium">Awaiting password change</span>
+                <span v-else>Ready</span>
+              </td>
+              <td class="px-6 py-4 text-gray-500">{{ formatDate(admin.created_at) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    </div>
+
+    <div v-if="showInviteModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" @click="showInviteModal = false">
+      <div class="rounded-2xl bg-white shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border-0" @click.stop>
+        <div class="sticky top-0 text-white p-6 border-b border-gray-200" style="background: linear-gradient(135deg, #2F5597, #1e3a6b);">
+          <div class="flex justify-between items-center">
+            <div>
+              <p class="text-xs uppercase tracking-wide text-white/70 font-semibold">{{ activeTab === 'admins' ? 'Admin Access' : 'Customer Access' }}</p>
+              <h3 class="text-xl font-bold text-white mt-1">{{ activeTab === 'admins' ? 'Invite Admin' : 'Invite User' }}</h3>
+            </div>
+            <button @click="showInviteModal = false" class="text-white/60 hover:text-white transition text-2xl">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        </div>
+
+        <form class="p-6 space-y-5" @submit.prevent="submitInvite">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <label class="text-sm font-medium text-gray-700">
+              Full name
+              <input
+                v-model.trim="inviteForm.name"
+                type="text"
+                required
+                class="mt-1 w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
+              />
+            </label>
+            <label class="text-sm font-medium text-gray-700">
+              Email
+              <input
+                v-model.trim="inviteForm.email"
+                type="email"
+                required
+                class="mt-1 w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
+              />
+            </label>
+            <label v-if="activeTab === 'customers'" class="text-sm font-medium text-gray-700 sm:col-span-2">
+              Company name
+              <input
+                v-model.trim="inviteForm.company_name"
+                type="text"
+                placeholder="Required for a new company domain"
+                class="mt-1 w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
+              />
+            </label>
+            <label class="text-sm font-medium text-gray-700">
+              Role
+              <select
+                v-model="inviteForm.role"
+                class="mt-1 w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
+              >
+                <template v-if="activeTab === 'admins'">
+                  <option value="admin">Admin</option>
+                  <option value="super_admin">Super Admin</option>
+                </template>
+                <template v-else>
+                  <option value="buyer">Buyer</option>
+                  <option value="owner">Owner</option>
+                </template>
+              </select>
+            </label>
+            <label v-if="activeTab === 'customers'" class="text-sm font-medium text-gray-700">
+              Discount %
+              <input
+                v-model.number="inviteForm.special_pricing_percent"
+                type="number"
+                min="0"
+                max="100"
+                step="0.01"
+                class="mt-1 w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
+              />
+            </label>
+            <label v-if="activeTab === 'customers'" class="text-sm font-medium text-gray-700">
+              Assigned shipping cost
+              <input
+                v-model.number="inviteForm.assigned_shipping_amount"
+                type="number"
+                min="0"
+                step="0.01"
+                class="mt-1 w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
+              />
+            </label>
+          </div>
+
+          <div class="rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+            The {{ activeTab === 'admins' ? 'admin' : 'user' }} will be active immediately and will receive a temporary password that expires in 48 hours.
+          </div>
+
+          <div class="flex justify-end gap-3 border-t border-gray-200 pt-4">
+            <button
+              type="button"
+              @click="showInviteModal = false"
+              class="px-4 py-2 border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-100 transition text-sm font-medium"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              :disabled="isSubmitting"
+              class="px-5 py-2 bg-[#2F5597] hover:bg-[#1e3a6b] text-white font-semibold rounded-lg transition disabled:opacity-50 text-sm"
+            >
+              <i :class="['fas mr-2', isSubmitting ? 'fa-spinner fa-spin' : 'fa-paper-plane']"></i>
+              Send Invite
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
 
     <div v-if="selectedUser" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" @click="selectedUser = null">
@@ -300,23 +496,35 @@
           </div>
 
           <div class="rounded-xl border border-gray-200 p-4">
-            <h4 class="font-semibold text-[#2F5597] mb-3 text-sm uppercase tracking-wide">Special Pricing</h4>
-            <div class="flex flex-wrap items-center gap-2">
-              <input
-                v-model.number="specialPricingDrafts[selectedUser.id]"
-                type="number"
-                min="0"
-                max="100"
-                step="0.01"
-                class="w-28 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
-              />
-              <span class="text-sm text-gray-500">% off</span>
+            <h4 class="font-semibold text-[#2F5597] mb-3 text-sm uppercase tracking-wide">Commercial Terms</h4>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <label class="text-sm text-gray-600">
+                Discount percentage
+                <input
+                  v-model.number="specialPricingDrafts[selectedUser.id]"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                  class="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
+                />
+              </label>
+              <label class="text-sm text-gray-600">
+                Assigned shipping cost
+                <input
+                  v-model.number="shippingAmountDrafts[selectedUser.id]"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  class="mt-1 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
+                />
+              </label>
               <button
                 @click="saveUserSpecialPricing(selectedUser)"
                 :disabled="isSubmitting"
-                class="px-4 py-2 text-sm font-semibold rounded-lg bg-[#2F5597] hover:bg-[#1e3a6b] text-white transition disabled:opacity-50"
+                class="sm:col-span-2 px-4 py-2 text-sm font-semibold rounded-lg bg-[#2F5597] hover:bg-[#1e3a6b] text-white transition disabled:opacity-50"
               >
-                Save Pricing
+                Save Terms
               </button>
             </div>
           </div>
@@ -414,7 +622,13 @@ import api from '@/services/api'
 const route = useRoute()
 const router = useRouter()
 
+const activeTab = ref('customers')
+const userTabs = [
+  { value: 'customers', label: 'Customer Users', icon: 'fa-users' },
+  { value: 'admins', label: 'Admins', icon: 'fa-user-shield' }
+]
 const customerUsers = ref([])
+const adminUsers = ref([])
 const selectedUser = ref(null)
 const selectedUsers = ref([])
 const searchQuery = ref('')
@@ -425,9 +639,30 @@ const totalCustomers = ref(0)
 const lastPage = ref(1)
 const isSubmitting = ref(false)
 const showConfirmModal = ref(false)
+const showInviteModal = ref(false)
 const bulkAction = ref('')
 const specialPricingDrafts = ref({})
+const shippingAmountDrafts = ref({})
 const isLoading = ref(false)
+const inviteForm = ref({
+  name: '',
+  email: '',
+  company_name: '',
+  role: 'buyer',
+  special_pricing_percent: 0,
+  assigned_shipping_amount: 0
+})
+
+const filteredAdminUsers = computed(() => {
+  const search = searchQuery.value.trim().toLowerCase()
+  const rows = Array.isArray(adminUsers.value) ? adminUsers.value : []
+  if (!search) return rows
+
+  return rows.filter((admin) => {
+    return [admin.name, admin.email, admin.role, admin.status]
+      .some((value) => String(value || '').toLowerCase().includes(search))
+  })
+})
 
 const allSelected = computed(() => {
   if (customerUsers.value.length === 0) return false
@@ -507,14 +742,23 @@ const clampSpecialPricingPercent = (value) => {
   return Math.min(100, Math.max(0, Math.round(numeric * 100) / 100))
 }
 
+const clampMoneyAmount = (value) => {
+  const numeric = Number(value)
+  if (!Number.isFinite(numeric)) return 0
+  return Math.max(0, Math.round(numeric * 100) / 100)
+}
+
 const hydrateSpecialPricingDrafts = (users) => {
   const nextDrafts = { ...specialPricingDrafts.value }
+  const nextShippingDrafts = { ...shippingAmountDrafts.value }
 
   ;(Array.isArray(users) ? users : []).forEach((user) => {
     nextDrafts[user.id] = clampSpecialPricingPercent(user?.special_pricing_percent ?? 0)
+    nextShippingDrafts[user.id] = clampMoneyAmount(user?.assigned_shipping_amount ?? 0)
   })
 
   specialPricingDrafts.value = nextDrafts
+  shippingAmountDrafts.value = nextShippingDrafts
 }
 
 const syncUserRecord = (userId, updates) => {
@@ -524,6 +768,82 @@ const syncUserRecord = (userId, updates) => {
 
   if (selectedUser.value?.id === userId) {
     selectedUser.value = { ...selectedUser.value, ...updates }
+  }
+}
+
+const resetInviteForm = () => {
+  inviteForm.value = {
+    name: '',
+    email: '',
+    company_name: '',
+    role: activeTab.value === 'admins' ? 'admin' : 'buyer',
+    special_pricing_percent: 0,
+    assigned_shipping_amount: 0
+  }
+}
+
+const openInviteModal = () => {
+  resetInviteForm()
+  showInviteModal.value = true
+}
+
+const makeTemporaryPassword = () => {
+  const random = Math.random().toString(36).slice(2, 10)
+  return `${random}!A1x`
+}
+
+const submitInvite = async () => {
+  isSubmitting.value = true
+
+  try {
+    const payload = activeTab.value === 'admins'
+      ? {
+          name: inviteForm.value.name,
+          email: inviteForm.value.email,
+          role: inviteForm.value.role,
+          password: makeTemporaryPassword()
+        }
+      : {
+          ...inviteForm.value,
+          special_pricing_percent: clampSpecialPricingPercent(inviteForm.value.special_pricing_percent),
+          assigned_shipping_amount: clampMoneyAmount(inviteForm.value.assigned_shipping_amount)
+        }
+
+    const response = await api.post(activeTab.value === 'admins' ? '/admin/users' : '/admin/customers/invite', payload)
+
+    if (response?.data?.success) {
+      alert(response.data.message || `${activeTab.value === 'admins' ? 'Admin' : 'Customer user'} invited successfully`)
+      showInviteModal.value = false
+      resetInviteForm()
+      if (activeTab.value === 'admins') {
+        fetchAdminUsers()
+      } else {
+        currentPage.value = 1
+        fetchCustomers()
+      }
+    }
+  } catch (error) {
+    console.error('Failed to invite user:', error)
+    const errors = error.response?.data?.errors
+    const firstError = errors ? Object.values(errors).flat()[0] : null
+    alert(firstError || error.response?.data?.message || 'Failed to invite user')
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
+const setActiveTab = (tab) => {
+  activeTab.value = tab
+  selectedUsers.value = []
+  showConfirmModal.value = false
+  selectedUser.value = null
+  statusFilter.value = ''
+  resetInviteForm()
+
+  if (tab === 'admins') {
+    fetchAdminUsers()
+  } else {
+    fetchCustomers()
   }
 }
 
@@ -554,6 +874,20 @@ const fetchCustomers = async () => {
   }
 }
 
+const fetchAdminUsers = async () => {
+  isLoading.value = true
+  try {
+    const response = await api.get('/admin/users')
+    if (response.data.success) {
+      adminUsers.value = response.data.data
+    }
+  } catch (error) {
+    console.error('Failed to fetch admin users:', error)
+  } finally {
+    isLoading.value = false
+  }
+}
+
 const viewUser = (user) => {
   selectedUser.value = { ...user }
   hydrateSpecialPricingDrafts([user])
@@ -561,22 +895,29 @@ const viewUser = (user) => {
 
 const saveUserSpecialPricing = async (user) => {
   const draftValue = clampSpecialPricingPercent(specialPricingDrafts.value[user.id])
+  const shippingValue = clampMoneyAmount(shippingAmountDrafts.value[user.id])
   isSubmitting.value = true
 
   try {
     const response = await api.post(`/admin/customers/users/${user.id}/special-pricing`, {
-      special_pricing_percent: draftValue
+      special_pricing_percent: draftValue,
+      assigned_shipping_amount: shippingValue
     })
 
     if (response?.data?.success) {
       const updatedPercent = clampSpecialPricingPercent(response.data?.data?.special_pricing_percent ?? draftValue)
+      const updatedShipping = clampMoneyAmount(response.data?.data?.assigned_shipping_amount ?? shippingValue)
       specialPricingDrafts.value[user.id] = updatedPercent
-      syncUserRecord(user.id, { special_pricing_percent: updatedPercent })
-      alert('Special pricing updated successfully')
+      shippingAmountDrafts.value[user.id] = updatedShipping
+      syncUserRecord(user.id, {
+        special_pricing_percent: updatedPercent,
+        assigned_shipping_amount: updatedShipping
+      })
+      alert('Customer terms updated successfully')
     }
   } catch (error) {
-    console.error('Failed to update special pricing:', error)
-    alert(error.response?.data?.message || 'Failed to update special pricing')
+    console.error('Failed to update customer terms:', error)
+    alert(error.response?.data?.message || 'Failed to update customer terms')
   } finally {
     isSubmitting.value = false
   }
@@ -655,8 +996,12 @@ const viewCustomerOrders = (user) => {
 }
 
 const applyFilters = () => {
-  currentPage.value = 1
-  fetchCustomers()
+  if (activeTab.value === 'admins') {
+    fetchAdminUsers()
+  } else {
+    currentPage.value = 1
+    fetchCustomers()
+  }
 }
 
 const toggleSelectAll = () => {

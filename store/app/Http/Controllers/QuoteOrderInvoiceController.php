@@ -866,6 +866,7 @@ class QuoteOrderInvoiceController extends Controller
             $subtotal = round($baseSubtotal + $profitAmount, 2);
             $taxAmount = round(($subtotal * ((float) $pricing['tax_rate_percent'])) / 100, 2);
             $totalAmount = round($subtotal + $taxAmount, 2);
+            $shippingAmount = round((float) ($user->assigned_shipping_amount ?? 0), 2);
 
             if ($baseSubtotal > 0 && !empty($enrichedItems)) {
                 $runningDelta = 0.0;
@@ -908,11 +909,14 @@ class QuoteOrderInvoiceController extends Controller
                         'profit_amount' => $profitAmount,
                         'tax_rate_percent' => (float) $pricing['tax_rate_percent'],
                         'tax_amount' => $taxAmount,
+                        'shipping_amount' => $shippingAmount,
                         'subtotal' => $subtotal,
                         'total_amount' => $totalAmount,
                         'currency_code' => $pricing['currency_code'],
                         'currency_rate' => (float) $pricing['currency_rate'],
                     ],
+                    'shipping_amount' => $shippingAmount,
+                    'freight_amount' => $shippingAmount,
                 ],
                 'submitted_at' => now(),
                 'expires_at' => now()->addDays(max(1, (int) config('app.quote_expiry_days', 30))),
@@ -1001,6 +1005,12 @@ class QuoteOrderInvoiceController extends Controller
             // Map the response to ensure frontend field names match
             $mappedOrders = $orders->items();
 
+            foreach ($mappedOrders as $order) {
+                if ($order instanceof Order) {
+                    $this->refreshOrderStatusFromTdSynnex($order);
+                }
+            }
+
             $this->prefetchProductNamesForItems(
                 array_map(fn ($o) => is_array($o->items) ? $o->items : [], $mappedOrders)
             );
@@ -1062,6 +1072,8 @@ class QuoteOrderInvoiceController extends Controller
                 ->latest('created_at')
                 ->limit(12)
                 ->get();
+
+            $orders->each(fn (Order $order) => $this->refreshOrderStatusFromTdSynnex($order));
 
             $snapshots = $orders
                 ->map(fn (Order $order) => $this->buildShippingSnapshot($order))
@@ -1153,6 +1165,97 @@ class QuoteOrderInvoiceController extends Controller
                 ],
             ],
         ];
+    }
+
+    private function refreshOrderStatusFromTdSynnex(Order $order): void
+    {
+        $poNumber = trim((string) ($order->quote_id ?: $order->order_number));
+        if ($poNumber === '' || in_array((string) $order->status, ['cancelled', 'delivered'], true)) {
+            return;
+        }
+
+        try {
+            $response = $this->tdsynnexService->checkPoStatus($poNumber);
+            if (($response['success'] ?? true) === false) {
+                return;
+            }
+
+            $oldStatus = (string) ($order->status ?? '');
+            $oldTracking = is_array($order->tracking_info) ? $order->tracking_info : [];
+            $rawStatus = $this->deepFindFirstByKeys($response, ['status', 'Status', 'code', 'Code', 'orderStatus', 'OrderStatus', 'poStatus', 'POStatus']);
+            $shippingStatus = $this->deepFindFirstByKeys($response, ['shippingStatus', 'shipping_status', 'shipmentStatus', 'ShipmentStatus', 'deliveryStatus', 'DeliveryStatus', 'status', 'Status']);
+            $trackingNumber = $this->deepFindFirstByKeys($response, ['tracking_number', 'trackingNumber', 'TrackingNumber', 'carrierTrackingNumber', 'shipmentTrackingNumber', 'proNumber', 'ProNumber']);
+            $freightAmount = $this->deepFindFirstByKeys($response, ['freight', 'Freight', 'freightAmount', 'poFreight', 'shippingAmount', 'shipping_amount', 'totalFreight', 'TotalFreight']);
+            $estimatedDelivery = $this->deepFindFirstByKeys($response, ['estimatedDeliveryDate', 'EstimatedDeliveryDate', 'estimatedShipDate', 'EstimatedShipDate', 'estimatedArrivalDate', 'EstimatedArrivalDate']);
+
+            $newStatus = $this->normalizeTdOrderStatus((string) ($rawStatus ?? $shippingStatus ?? '')) ?: $oldStatus;
+            $newTracking = array_filter([
+                'tracking_number' => $trackingNumber ? (string) $trackingNumber : ($oldTracking['tracking_number'] ?? null),
+                'shipping_status' => $shippingStatus ? (string) $shippingStatus : ($oldTracking['shipping_status'] ?? $newStatus),
+                'estimated_delivery_date' => $estimatedDelivery ? (string) $estimatedDelivery : ($oldTracking['estimated_delivery_date'] ?? null),
+            ], fn ($value) => $value !== null && $value !== '');
+
+            $updates = [
+                'status' => $newStatus,
+                'raw_data' => $response,
+                'tracking_info' => array_merge($oldTracking, $newTracking),
+            ];
+
+            if ($freightAmount !== null && is_numeric((string) $freightAmount)) {
+                $updates['shipping_amount'] = (float) $freightAmount;
+            }
+
+            $trackingChanged = json_encode($oldTracking) !== json_encode($updates['tracking_info']);
+            $statusChanged = $oldStatus !== $newStatus;
+            $shippingChanged = array_key_exists('shipping_amount', $updates)
+                && (float) $updates['shipping_amount'] !== (float) ($order->shipping_amount ?? 0);
+
+            if ($statusChanged || $trackingChanged || $shippingChanged) {
+                $order->update($updates);
+                $order->refresh();
+
+                if ($statusChanged || $trackingChanged || $shippingChanged) {
+                    $this->notificationService->sendOrderShippedNotification($order);
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::debug("TD SYNNEX PO status refresh failed for order {$order->order_number}: {$e->getMessage()}");
+        }
+    }
+
+    private function deepFindFirstByKeys(mixed $data, array $keys): mixed
+    {
+        if (!is_array($data)) {
+            return null;
+        }
+
+        foreach ($keys as $key) {
+            if (array_key_exists($key, $data) && $data[$key] !== null && $data[$key] !== '') {
+                return $data[$key];
+            }
+        }
+
+        foreach ($data as $value) {
+            $found = $this->deepFindFirstByKeys($value, $keys);
+            if ($found !== null && $found !== '') {
+                return $found;
+            }
+        }
+
+        return null;
+    }
+
+    private function normalizeTdOrderStatus(string $raw): string
+    {
+        return match (strtolower(trim($raw))) {
+            'received', 'open', 'accepted', 'confirmed', 'pending', 'processing', 'draft' => 'accepted',
+            'backordered', 'back_ordered', 'back ordered', 'backorder' => 'backordered',
+            'partiallyshipped', 'partially_shipped', 'partial' => 'shipped',
+            'shipped' => 'shipped',
+            'invoiced', 'invoiced/complete', 'complete', 'completed', 'delivered' => 'invoiced',
+            'cancelled', 'canceled', 'voided', 'void' => 'cancelled',
+            default => '',
+        };
     }
 
     private function buildOrderItemPreview(Order $order): array
