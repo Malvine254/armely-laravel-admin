@@ -31,8 +31,10 @@ class User extends Authenticatable
         'stripe_customer_id',
         'payment_methods_consent',
         'special_pricing_percent',
+        'assigned_shipping_amount',
         'force_password_change',
         'temp_password_expires_at',
+        'permissions',
     ];
 
     /**
@@ -57,8 +59,10 @@ class User extends Authenticatable
             'password' => 'hashed',
             'payment_methods_consent' => 'boolean',
             'special_pricing_percent' => 'decimal:2',
+            'assigned_shipping_amount' => 'decimal:2',
             'force_password_change' => 'boolean',
             'temp_password_expires_at' => 'datetime',
+            'permissions' => 'array',
         ];
     }
 

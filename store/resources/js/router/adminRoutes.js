@@ -5,6 +5,7 @@ import AdminDashboard from '@/pages/AdminDashboard.vue'
 import AdminQuotesPage from '@/pages/AdminQuotesPage.vue'
 import AdminOrdersPage from '@/pages/AdminOrdersPage.vue'
 import AdminCustomersPage from '@/pages/AdminCustomersPage.vue'
+import AdminUsersPage from '@/pages/AdminUsersPage.vue'
 import AdminReportsPage from '@/pages/AdminReportsPage.vue'
 import AdminInvoicesPage from '@/pages/AdminInvoicesPage.vue'
 
@@ -58,6 +59,15 @@ export const adminRoutes = [
         meta: {
           title: 'Customers',
           breadcrumb: ['Admin', 'Customers']
+        }
+      },
+      {
+        path: 'users',
+        name: 'AdminUsers',
+        component: AdminUsersPage,
+        meta: {
+          title: 'Admin Users',
+          breadcrumb: ['Admin', 'Users']
         }
       },
       {

@@ -33,19 +33,41 @@ class UpdateOrderStatusJob implements ShouldQueue
             $tdStatus = $tdsynnexService->checkPoStatus($this->order->quote_id ?: $this->order->order_number);
 
             // Normalize the raw TD SYNNEX status code to our canonical set
-            $rawStatus = (string) ($tdStatus['status'] ?? $tdStatus['Code'] ?? $tdStatus['orderStatus'] ?? '');
+            $rawStatus = (string) ($this->deepFindFirstByKeys($tdStatus, ['status', 'Status', 'code', 'Code', 'orderStatus', 'OrderStatus', 'poStatus', 'POStatus']) ?? '');
+            $trackingNumber = $this->deepFindFirstByKeys($tdStatus, ['tracking_number', 'trackingNumber', 'TrackingNumber', 'carrierTrackingNumber', 'shipmentTrackingNumber', 'proNumber', 'ProNumber']);
+            $shippingStatus = $this->deepFindFirstByKeys($tdStatus, ['shippingStatus', 'shipping_status', 'shipmentStatus', 'ShipmentStatus', 'deliveryStatus', 'DeliveryStatus', 'status', 'Status']);
+            $freightAmount = $this->deepFindFirstByKeys($tdStatus, ['freight', 'Freight', 'freightAmount', 'poFreight', 'shippingAmount', 'shipping_amount', 'totalFreight', 'TotalFreight']);
+            $estimatedDelivery = $this->deepFindFirstByKeys($tdStatus, ['estimatedDeliveryDate', 'EstimatedDeliveryDate', 'estimatedShipDate', 'EstimatedShipDate', 'estimatedArrivalDate', 'EstimatedArrivalDate']);
             $normalized = self::normalizeTdStatus($rawStatus) ?: $this->order->status;
+            $oldTracking = is_array($this->order->tracking_info) ? $this->order->tracking_info : [];
+            $trackingInfo = array_merge($oldTracking, array_filter([
+                'tracking_number' => $trackingNumber ? (string) $trackingNumber : null,
+                'shipping_status' => $shippingStatus ? (string) $shippingStatus : null,
+                'estimated_delivery_date' => $estimatedDelivery ? (string) $estimatedDelivery : null,
+            ], fn ($value) => $value !== null && $value !== ''));
 
             // Update local order
             $oldStatus = $this->order->status;
-            $this->order->update([
+            $updates = [
                 'status'   => $normalized,
                 'raw_data' => $tdStatus,
-            ]);
+                'tracking_info' => $trackingInfo,
+            ];
+
+            if ($freightAmount !== null && is_numeric((string) $freightAmount)) {
+                $updates['shipping_amount'] = (float) $freightAmount;
+            }
+
+            $trackingChanged = json_encode($oldTracking) !== json_encode($trackingInfo);
+            $shippingChanged = array_key_exists('shipping_amount', $updates)
+                && (float) $updates['shipping_amount'] !== (float) ($this->order->shipping_amount ?? 0);
+
+            $this->order->update($updates);
+            $this->order->refresh();
 
             // If status changed, send notification
-            if ($oldStatus !== $this->order->status) {
-                if ($this->order->status === 'shipped') {
+            if ($oldStatus !== $this->order->status || $trackingChanged || $shippingChanged) {
+                if ($this->order->status === 'shipped' || $trackingChanged || $shippingChanged) {
                     $notificationService->sendOrderShippedNotification($this->order);
                 } elseif ($this->order->status === 'invoiced') {
                     // Mark invoice as paid when TD marks the order as invoiced/complete
@@ -63,6 +85,28 @@ class UpdateOrderStatusJob implements ShouldQueue
             Log::error("Failed to update order status for {$this->order->order_number}: " . $e->getMessage());
             throw $e;
         }
+    }
+
+    private function deepFindFirstByKeys(mixed $data, array $keys): mixed
+    {
+        if (!is_array($data)) {
+            return null;
+        }
+
+        foreach ($keys as $key) {
+            if (array_key_exists($key, $data) && $data[$key] !== null && $data[$key] !== '') {
+                return $data[$key];
+            }
+        }
+
+        foreach ($data as $value) {
+            $found = $this->deepFindFirstByKeys($value, $keys);
+            if ($found !== null && $found !== '') {
+                return $found;
+            }
+        }
+
+        return null;
     }
 
     /**

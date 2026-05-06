@@ -22,7 +22,6 @@ use App\Models\Message;
 use App\Models\Activity;
 use App\Exceptions\TDSynnexApiException;
 use App\Jobs\GenerateInvoiceJob;
-use App\Mail\AccountApprovedMail;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;
@@ -30,9 +29,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Carbon;
-use App\Mail\AdminWelcomeMail;
 
 class AdminController extends Controller
 {
@@ -1055,6 +1052,154 @@ class AdminController extends Controller
     }
 
     /**
+     * Invite a customer user with temporary credentials.
+     */
+    public function inviteCustomerUser(Request $request): JsonResponse
+    {
+        try {
+            $actor = $request->user();
+
+            if ($actor->role !== 'admin' && $actor->role !== 'super_admin') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized',
+                ], 403);
+            }
+
+            $validated = $request->validate([
+                'name' => ['required', 'string', 'max:255'],
+                'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+                'company_name' => ['nullable', 'string', 'max:255'],
+                'role' => ['nullable', 'in:owner,buyer'],
+                'special_pricing_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
+                'assigned_shipping_amount' => ['nullable', 'numeric', 'min:0', 'max:999999.99'],
+            ]);
+
+            $email = strtolower(trim((string) $validated['email']));
+            $domain = substr(strrchr($email, '@') ?: '', 1);
+            if ($domain === '') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'A valid company email is required.',
+                ], 422);
+            }
+
+            $company = Company::where('domain', $domain)->first();
+            if (!$company) {
+                $companyName = trim((string) ($validated['company_name'] ?? ''));
+                if ($companyName === '') {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Company name is required when inviting a user for a new company domain.',
+                    ], 422);
+                }
+
+                $company = Company::create([
+                    'name' => $companyName,
+                    'domain' => $domain,
+                    'status' => 'approved',
+                ]);
+            } elseif ($company->status !== 'approved') {
+                $company->status = 'approved';
+                $company->save();
+            }
+
+            $plainPassword = \Illuminate\Support\Str::random(10) . '!A1';
+
+            $customer = User::create([
+                'name' => trim((string) $validated['name']),
+                'email' => $email,
+                'password' => Hash::make($plainPassword),
+                'company_id' => $company->id,
+                'role' => $validated['role'] ?? 'buyer',
+                'status' => 'active',
+                'email_verified_at' => now(),
+                'special_pricing_percent' => round((float) ($validated['special_pricing_percent'] ?? 0), 2),
+                'assigned_shipping_amount' => round((float) ($validated['assigned_shipping_amount'] ?? 0), 2),
+                'force_password_change' => true,
+                'temp_password_expires_at' => now()->addHours(48),
+            ]);
+
+            $mailSent = false;
+            try {
+                $mailSent = app(AzureGraphMailService::class)->sendCustomerInviteEmail($customer->load('company'), $plainPassword);
+            } catch (\Throwable $mailEx) {
+                Log::warning('Failed to send customer invite email to ' . $customer->email . ': ' . $mailEx->getMessage());
+            }
+
+            if (!$mailSent) {
+                Log::warning('Customer invite email was not sent via Azure Graph', [
+                    'user_id' => $customer->id,
+                    'email' => $customer->email,
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => $mailSent
+                    ? 'Customer user invited successfully'
+                    : 'Customer user created, but the invitation email could not be sent. Check email settings.',
+                'data' => $customer->load('company:id,name,domain,status'),
+            ], 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
+        } catch (\Exception $e) {
+            Log::error('Failed to invite customer user: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to invite customer user',
+            ], 500);
+        }
+    }
+
+    /**
+     * Resend customer user invitation
+     */
+    public function resendCustomerInvite(Request $request): JsonResponse
+    {
+        try {
+            $currentUser = $request->user();
+
+            if ($currentUser->role !== 'super_admin' && $currentUser->role !== 'admin') {
+                return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+            }
+
+            $validated = $request->validate([
+                'user_id' => ['required', 'integer', 'exists:users,id'],
+            ]);
+
+            $customer = User::whereIn('role', ['owner', 'buyer'])->findOrFail($validated['user_id']);
+
+            // Generate a fresh temporary password
+            $newPassword = \Illuminate\Support\Str::random(10) . '!A1';
+
+            $customer->update([
+                'password' => Hash::make($newPassword),
+                'force_password_change' => true,
+                'temp_password_expires_at' => now()->addHours(48),
+            ]);
+
+            $mailSent = false;
+            try {
+                $mailSent = app(AzureGraphMailService::class)->sendCustomerInviteEmail($customer->load('company'), $newPassword);
+            } catch (\Throwable $e) {
+                Log::warning('Failed to resend customer welcome email: ' . $e->getMessage());
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => $mailSent
+                    ? 'Invitation resent successfully to ' . $customer->email . '. Expires in 48 hours.'
+                    : 'Invitation was reset, but the email could not be sent. Check email settings.',
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to resend customer invite: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Failed to resend invitation'], 500);
+        }
+    }
+
+    /**
      * Get pending quotes for review
      */
     public function getPendingQuotes(Request $request): JsonResponse
@@ -1345,6 +1490,8 @@ class AdminController extends Controller
             $effectiveShipAddr = $orderShipAddr ?? $orderBillAddr;
             $effectiveBillAddr = $orderBillAddr ?? $orderShipAddr;
 
+            $quoteShippingAmount = $this->extractQuoteShippingAmount($quote);
+
             $orderData = [
                 'poNumber' => $quote->quote_id,
                 'poDate' => now()->format('Y-m-d'),
@@ -1378,7 +1525,7 @@ class AdminController extends Controller
                 'poLine' => $lineItems,
                 'poTotal' => (string)number_format((float)($quote->total_amount ?? 0), 2, '.', ''),
                 'poTax' => (string)number_format((float)($quote->tax_amount ?? 0), 2, '.', ''),
-                'poFreight' => '0.00',
+                'poFreight' => (string) number_format($quoteShippingAmount, 2, '.', ''),
             ];
 
             \Log::debug('Order data being sent to TD SYNNEX', [
@@ -1451,7 +1598,7 @@ class AdminController extends Controller
                 'payment_status' => 'paid',
                 'items' => $quote->items,
                 'raw_data' => $tdResponse,
-                'shipping_amount' => (float) ($normalizedOrderData['freight_amount'] ?? 0),
+                'shipping_amount' => (float) ($normalizedOrderData['freight_amount'] ?? $quoteShippingAmount),
                 'tracking_info' => [
                     'tracking_number' => $normalizedOrderData['tracking_number'] ?? null,
                     'shipping_status' => $normalizedOrderData['shipping_status'] ?? null,
@@ -2438,7 +2585,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Set customer-specific special pricing percentage for a single user.
+     * Set customer-specific commercial terms for a single user.
      */
     public function setUserSpecialPricing(Request $request, string $userId): JsonResponse
     {
@@ -2454,6 +2601,7 @@ class AdminController extends Controller
 
             $validated = $request->validate([
                 'special_pricing_percent' => 'required|numeric|min:0|max:100',
+                'assigned_shipping_amount' => 'sometimes|nullable|numeric|min:0|max:999999.99',
             ]);
 
             $targetUser = User::where('id', $userId)
@@ -2468,6 +2616,9 @@ class AdminController extends Controller
             }
 
             $targetUser->special_pricing_percent = round((float) $validated['special_pricing_percent'], 2);
+            if (array_key_exists('assigned_shipping_amount', $validated)) {
+                $targetUser->assigned_shipping_amount = round((float) ($validated['assigned_shipping_amount'] ?? 0), 2);
+            }
             $targetUser->save();
 
             return response()->json([
@@ -2478,6 +2629,7 @@ class AdminController extends Controller
                     'name' => $targetUser->name,
                     'email' => $targetUser->email,
                     'special_pricing_percent' => (float) $targetUser->special_pricing_percent,
+                    'assigned_shipping_amount' => (float) $targetUser->assigned_shipping_amount,
                 ],
             ]);
         } catch (\Exception $e) {
@@ -2485,7 +2637,7 @@ class AdminController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update special pricing',
+                'message' => 'Failed to update customer terms',
             ], 500);
         }
     }
@@ -3855,7 +4007,7 @@ class AdminController extends Controller
 
             $admins = User::whereIn('role', ['admin', 'super_admin'])
                 ->orderBy('created_at', 'desc')
-                ->get(['id', 'name', 'email', 'role', 'status', 'created_at', 'force_password_change', 'temp_password_expires_at']);
+                ->get(['id', 'name', 'email', 'role', 'status', 'created_at', 'force_password_change', 'temp_password_expires_at', 'permissions']);
 
             return response()->json([
                 'success' => true,
@@ -3907,15 +4059,25 @@ class AdminController extends Controller
                 'temp_password_expires_at' => now()->addHours(48),
             ]);
 
+            $mailSent = false;
             try {
-                Mail::to($newAdmin->email)->send(new AdminWelcomeMail($newAdmin, $plainPassword));
+                $mailSent = app(AzureGraphMailService::class)->sendAdminInviteEmail($newAdmin, $plainPassword);
             } catch (\Throwable $e) {
                 Log::warning('Failed to send admin welcome email: ' . $e->getMessage());
             }
 
+            if (!$mailSent) {
+                Log::warning('Admin invite email was not sent via Azure Graph', [
+                    'user_id' => $newAdmin->id,
+                    'email' => $newAdmin->email,
+                ]);
+            }
+
             return response()->json([
                 'success' => true,
-                'message' => 'Admin user created and welcome email sent',
+                'message' => $mailSent
+                    ? 'Admin user created and welcome email sent'
+                    : 'Admin user created, but the welcome email could not be sent. Check email settings.',
                 'data' => $newAdmin,
             ]);
         } catch (\Exception $e) {
@@ -3950,15 +4112,18 @@ class AdminController extends Controller
                 'temp_password_expires_at' => now()->addHours(48),
             ]);
 
+            $mailSent = false;
             try {
-                Mail::to($admin->email)->send(new AdminWelcomeMail($admin, $newPassword));
+                $mailSent = app(AzureGraphMailService::class)->sendAdminInviteEmail($admin, $newPassword);
             } catch (\Throwable $e) {
                 Log::warning('Failed to resend admin welcome email: ' . $e->getMessage());
             }
 
             return response()->json([
                 'success' => true,
-                'message' => 'New credentials emailed to ' . $admin->email . '. Expires in 48 hours.',
+                'message' => $mailSent
+                    ? 'New credentials emailed to ' . $admin->email . '. Expires in 48 hours.'
+                    : 'Credentials were reset, but the email could not be sent. Check email settings.',
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to resend admin credentials: ' . $e->getMessage());
@@ -4087,6 +4252,44 @@ class AdminController extends Controller
                 'success' => false,
                 'message' => 'Failed to delete admin user',
             ], 500);
+        }
+    }
+
+    /**
+     * Update admin user permissions
+     */
+    public function updateAdminPermissions(Request $request, $userId): JsonResponse
+    {
+        try {
+            $currentUser = $request->user();
+
+            if ($currentUser->role !== 'super_admin') {
+                return response()->json(['success' => false, 'message' => 'Only super admins can manage permissions'], 403);
+            }
+
+            $admin = User::whereIn('role', ['admin', 'super_admin'])->findOrFail($userId);
+
+            if ($admin->id === $currentUser->id) {
+                return response()->json(['success' => false, 'message' => 'You cannot modify your own permissions'], 400);
+            }
+
+            $allowed = [
+                'manage_quotes', 'manage_orders', 'manage_customers',
+                'manage_invoices', 'manage_reports', 'manage_settings', 'manage_admins',
+            ];
+
+            $permissions = array_filter(
+                $request->input('permissions', []),
+                fn($p) => in_array($p, $allowed)
+            );
+
+            $admin->permissions = array_values($permissions);
+            $admin->save();
+
+            return response()->json(['success' => true, 'message' => 'Permissions updated', 'data' => ['permissions' => $admin->permissions]]);
+        } catch (\Exception $e) {
+            Log::error('Failed to update admin permissions: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Failed to update permissions'], 500);
         }
     }
 
@@ -4872,6 +5075,8 @@ EOT;
             $effectiveShip  = $orderShipAddr ?? $orderBillAddr;
             $effectiveBill  = $orderBillAddr ?? $orderShipAddr;
 
+            $quoteShippingAmount = $this->extractQuoteShippingAmount($quote);
+
             $orderData = [
                 'poNumber'  => $quote->quote_id,
                 'poDate'    => now()->format('Y-m-d'),
@@ -4902,7 +5107,7 @@ EOT;
                 'poLine'    => $lineItems,
                 'poTotal'   => (string) number_format((float) ($quote->total_amount ?? 0), 2, '.', ''),
                 'poTax'     => (string) number_format((float) ($quote->tax_amount ?? 0), 2, '.', ''),
-                'poFreight' => '0.00',
+                'poFreight' => (string) number_format($quoteShippingAmount, 2, '.', ''),
             ];
 
             \Log::debug('submitTdSynnexOrderForPaidInvoice: submitting to TD SYNNEX', [
@@ -4953,7 +5158,7 @@ EOT;
                 'status'            => $localStatus,
                 'raw_data'          => $tdResponse,
                 'payment_status'    => 'paid',
-                'shipping_amount'   => (float) ($normalizedOrderData['freight_amount'] ?? 0),
+                'shipping_amount'   => (float) ($normalizedOrderData['freight_amount'] ?? $quoteShippingAmount),
                 'tracking_info'     => [
                     'tracking_number'     => $normalizedOrderData['tracking_number'] ?? null,
                     'shipping_status'     => $normalizedOrderData['shipping_status'] ?? null,

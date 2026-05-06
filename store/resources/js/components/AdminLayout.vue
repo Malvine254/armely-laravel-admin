@@ -108,12 +108,12 @@
           <span>Order Tracking</span>
         </router-link>
 
-        <!-- Customers Management -->
+        <!-- Admin / Users Management -->
         <div class="mt-4 px-4">
-          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Customers</p>
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Admin</p>
         </div>
         <router-link
-          :to="{ name: 'admin-customers' }"
+          :to="{ name: 'AdminCustomers' }"
           :class="[
             'flex items-center px-6 py-3 border-l-4 transition',
             isActive('customers')
@@ -128,6 +128,20 @@
           <span v-if="unseenCounts.pending_users > 0" class="ml-auto bg-amber-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center">
             {{ unseenCounts.pending_users }}
           </span>
+        </router-link>
+        <router-link
+          :to="{ name: 'AdminUsers' }"
+          :class="[
+            'flex items-center px-6 py-3 border-l-4 transition',
+            isActive('users')
+              ? 'bg-[#2F5597]/10 border-[#2F5597] text-[#2F5597] font-semibold'
+              : 'border-transparent hover:bg-gray-50 hover:border-[#2F5597]/50 text-gray-700'
+          ]"
+        >
+          <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+          </svg>
+          <span>Admins</span>
         </router-link>
 
         <!-- Support / Chat Escalations -->
@@ -385,7 +399,7 @@
                     </router-link>
 
                     <!-- Pending Account Approvals -->
-                    <router-link v-if="stats.pending_users > 0" :to="{ name: 'admin-customers' }" @click="showNotifDropdown = false" class="flex items-start gap-3 px-4 py-3 hover:bg-blue-50/60 transition group">
+                    <router-link v-if="stats.pending_users > 0" :to="{ name: 'AdminCustomers' }" @click="showNotifDropdown = false" class="flex items-start gap-3 px-4 py-3 hover:bg-blue-50/60 transition group">
                       <div class="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0 mt-0.5">
                         <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
                       </div>
@@ -584,7 +598,7 @@ const navigateSearch = (section) => {
   const dest = {
     quotes: { name: 'admin-quotes', query: { search: q } },
     orders: { name: 'admin-orders', query: { search: q } },
-    customers: { name: 'admin-customers', query: { search: q } },
+    customers: { name: 'AdminCustomers', query: { search: q } },
   }
   router.push(dest[section] || dest.quotes)
 }

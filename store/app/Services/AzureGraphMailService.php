@@ -103,6 +103,100 @@ class AzureGraphMailService
         return $this->sendEmail($recipientEmail, $subject, $html, $text);
     }
 
+    public function sendCustomerInviteEmail(\App\Models\User $user, string $plainPassword): bool
+    {
+        if (!$this->isConfigured()) {
+            return false;
+        }
+
+        $safeName = e($user->name ?: 'there');
+        $safeEmail = e($user->email);
+        $companyName = e($user->company->name ?? '');
+        $companyRow = $companyName
+            ? "<tr><td style='padding:6px 0;color:#64748b'>Company</td><td style='padding:6px 0 6px 16px;font-weight:600'>{$companyName}</td></tr>"
+            : '';
+        $safePassword = e($plainPassword);
+        $loginUrl = e($this->frontendUrl() . '/login');
+        $appName = e(config('app.name', 'Armely Store'));
+        $subject = "Your {$appName} Account Invitation";
+
+        $html = "
+            <div style='font-family:Segoe UI,Arial,sans-serif;line-height:1.6;color:#1f2937;max-width:620px'>
+                <h2 style='margin:0 0 8px;color:#2F5597'>You have been invited to {$appName}</h2>
+                <p>Hello {$safeName},</p>
+                <p>An Armely customer account has been created for you. Use the temporary credentials below to sign in.</p>
+                <div style='background:#edf3fb;border:1px solid #d9e6f7;border-radius:10px;padding:16px;margin:24px 0'>
+                    <table style='border-collapse:collapse;width:100%'>
+                        <tr><td style='padding:6px 0;color:#64748b'>Email</td><td style='padding:6px 0 6px 16px;font-weight:600'>{$safeEmail}</td></tr>
+                        <tr><td style='padding:6px 0;color:#64748b'>Password</td><td style='padding:6px 0 6px 16px;font-weight:700;font-family:Consolas,monospace'>{$safePassword}</td></tr>
+                        {$companyRow}
+                    </table>
+                </div>
+                <p style='background:#fff8e1;border:1px solid #f6c948;border-radius:8px;padding:12px;color:#92610a'>
+                    This temporary password expires in 48 hours. You will be asked to change it after signing in.
+                </p>
+                <p style='margin:28px 0 8px'>
+                    <a href='{$loginUrl}' style='background:#2F5597;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:8px;display:inline-block;font-weight:600'>Sign in</a>
+                </p>
+            </div>
+        ";
+
+        $text = "Hello {$user->name},\n\n"
+            . "An Armely customer account has been created for you.\n"
+            . "Email: {$user->email}\n"
+            . "Temporary password: {$plainPassword}\n"
+            . "Sign in: {$this->frontendUrl()}/login\n\n"
+            . "This temporary password expires in 48 hours. You will be asked to change it after signing in.";
+
+        return $this->sendEmail($user->email, $subject, $html, $text);
+    }
+
+    public function sendAdminInviteEmail(\App\Models\User $user, string $plainPassword): bool
+    {
+        if (!$this->isConfigured()) {
+            return false;
+        }
+
+        $safeName = e($user->name ?: 'there');
+        $safeEmail = e($user->email);
+        $safePassword = e($plainPassword);
+        $role = e($user->role === 'super_admin' ? 'Super Admin' : 'Admin');
+        $loginUrl = e(rtrim(config('app.url'), '/') . '/admin/login');
+        $appName = e(config('app.name', 'Armely Store'));
+        $subject = "Your {$appName} Admin Account Invitation";
+
+        $html = "
+            <div style='font-family:Segoe UI,Arial,sans-serif;line-height:1.6;color:#1f2937;max-width:620px'>
+                <h2 style='margin:0 0 8px;color:#2F5597'>Admin account created</h2>
+                <p>Hello {$safeName},</p>
+                <p>An administrator account has been created for you on the Armely Store Admin Portal.</p>
+                <div style='background:#edf3fb;border:1px solid #d9e6f7;border-radius:10px;padding:16px;margin:24px 0'>
+                    <table style='border-collapse:collapse;width:100%'>
+                        <tr><td style='padding:6px 0;color:#64748b'>Email</td><td style='padding:6px 0 6px 16px;font-weight:600'>{$safeEmail}</td></tr>
+                        <tr><td style='padding:6px 0;color:#64748b'>Password</td><td style='padding:6px 0 6px 16px;font-weight:700;font-family:Consolas,monospace'>{$safePassword}</td></tr>
+                        <tr><td style='padding:6px 0;color:#64748b'>Role</td><td style='padding:6px 0 6px 16px;font-weight:600'>{$role}</td></tr>
+                    </table>
+                </div>
+                <p style='background:#fff8e1;border:1px solid #f6c948;border-radius:8px;padding:12px;color:#92610a'>
+                    This temporary password expires in 48 hours. You will be asked to change it after signing in.
+                </p>
+                <p style='margin:28px 0 8px'>
+                    <a href='{$loginUrl}' style='background:#2F5597;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:8px;display:inline-block;font-weight:600'>Sign in to Admin Portal</a>
+                </p>
+            </div>
+        ";
+
+        $text = "Hello {$user->name},\n\n"
+            . "An administrator account has been created for you.\n"
+            . "Email: {$user->email}\n"
+            . "Temporary password: {$plainPassword}\n"
+            . "Role: {$role}\n"
+            . "Sign in: " . rtrim(config('app.url'), '/') . "/admin/login\n\n"
+            . "This temporary password expires in 48 hours. You will be asked to change it after signing in.";
+
+        return $this->sendEmail($user->email, $subject, $html, $text);
+    }
+
     public function sendPasswordResetEmail(string $recipientEmail, string $recipientName, string $resetUrl): bool
     {
         if (!$this->isConfigured()) {
