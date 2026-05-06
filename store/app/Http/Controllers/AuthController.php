@@ -104,7 +104,8 @@ class AuthController extends Controller
         $baseUrl = '';
 
         // Prefer explicit asset base when one is configured for a deployment.
-        $configuredAssetBase = rtrim((string) env('ASSET_URL', ''), '/');
+        // Use config() not env() so this works when the config cache is active.
+        $configuredAssetBase = rtrim((string) config('app.asset_url', ''), '/');
         if ($configuredAssetBase !== '') {
             $baseUrl = $configuredAssetBase;
         }
