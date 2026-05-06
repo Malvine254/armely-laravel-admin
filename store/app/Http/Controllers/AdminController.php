@@ -2170,33 +2170,30 @@ class AdminController extends Controller
             $statusFilter = $request->get('status', '');
             $search = $request->get('search', '');
 
-            $query = Order::with(['user', 'company', 'invoice', 'items'])
-                ->whereIn('status', [
-                    'accepted',
-                    'backordered',
-                    'shipped',
-                    'invoiced',
-                    // Legacy/local aliases still present on older rows
-                    'confirmed',
-                    'processing',
-                    'delivered',
-                ]);
+            // Show all orders — status is refreshed live from TD SYNNEX below.
+            $query = Order::with(['user', 'company', 'invoice']);
 
             if ($statusFilter) {
-                $query->where('status', $statusFilter);
+                // Map frontend filter values to what may be stored locally
+                $statusMap = [
+                    'accepted'    => ['accepted', 'confirmed', 'processing', 'pending'],
+                    'backordered' => ['backordered'],
+                    'shipped'     => ['shipped'],
+                    'invoiced'    => ['invoiced', 'delivered', 'complete', 'completed'],
+                    'failed'      => ['failed'],
+                    'pending'     => ['pending'],
+                ];
+                $localStatuses = $statusMap[$statusFilter] ?? [$statusFilter];
+                $query->whereIn('status', $localStatuses);
             }
 
             if ($search) {
-                $searchTerm = $search;
-                $query->where(function ($q) use ($searchTerm) {
-                    $q->where('order_number', 'like', "%{$searchTerm}%")
-                      ->orWhere('tdsynnex_order_id', 'like', "%{$searchTerm}%")
-                      ->orWhereHas('user', function ($uq) use ($searchTerm) {
-                          $uq->where('name', 'like', "%{$searchTerm}%");
-                      })
-                      ->orWhereHas('company', function ($cq) use ($searchTerm) {
-                          $cq->where('name', 'like', "%{$searchTerm}%");
-                      });
+                $query->where(function ($q) use ($search) {
+                    $q->where('order_number', 'like', "%{$search}%")
+                      ->orWhere('quote_id', 'like', "%{$search}%")
+                      ->orWhere('tdsynnex_order_id', 'like', "%{$search}%")
+                      ->orWhereHas('user', fn($uq) => $uq->where('name', 'like', "%{$search}%"))
+                      ->orWhereHas('company', fn($cq) => $cq->where('name', 'like', "%{$search}%"));
                 });
             }
 
@@ -2208,64 +2205,88 @@ class AdminController extends Controller
             $orderRows = array_map(function ($order) use ($tdsynnexService) {
                 $trackingInfo = $this->parseTrackingInfoValue($order->tracking_info ?? null);
 
-                // Try to get live status for TD SYNNEX orders
+                // The PO number submitted to TD SYNNEX is the quote_id (e.g. Q-20260505-0003)
+                $poNumber = $order->quote_id ?: $order->tdsynnex_order_id ?: null;
+
                 $liveStatus = null;
-                $packages = [];
-                if ($order->tdsynnex_order_id || !str_starts_with((string) $order->order_number, 'ORD-')) {
+                $packages   = [];
+                $tdStatus   = null;
+
+                if ($poNumber) {
                     try {
-                        $poNumber = $order->po_number ?? $order->order_number;
                         $poResponse = $tdsynnexService->checkPoStatus($poNumber, 'us', false);
-                        if (is_array($poResponse) && !isset($poResponse['error'])) {
+                        if (is_array($poResponse) && empty($poResponse['error']) && empty($poResponse['errorMessage'])) {
                             $liveStatus = $poResponse;
-                            $packages = $this->extractPackagesFromPoStatus($poResponse);
+                            $packages   = $this->extractPackagesFromPoStatus($poResponse);
+                            // Extract TD SYNNEX canonical status from response
+                            $tdStatus = $this->extractTdStatusFromPoResponse($poResponse);
+                            // Persist updated status + tracking locally (fire-and-forget)
+                            if ($tdStatus && $tdStatus !== $order->status) {
+                                $update = ['status' => $tdStatus];
+                                if (!empty($packages[0]['tracking_number']) && !$order->tracking_info) {
+                                    $update['tracking_info'] = json_encode([
+                                        'tracking_number' => $packages[0]['tracking_number'],
+                                        'carrier'         => $packages[0]['carrier'] ?? null,
+                                    ]);
+                                    $update['shipped_at'] = $order->shipped_at ?? now();
+                                }
+                                $order->update($update);
+                            }
                         }
                     } catch (\Exception $ex) {
-                        Log::debug("Live PO status check failed for {$order->order_number}: {$ex->getMessage()}");
+                        Log::debug("Live PO status check failed for {$order->order_number} (PO {$poNumber}): {$ex->getMessage()}");
                     }
                 }
 
                 // Enrich items with product details
                 $rawItems = is_array($order->items) ? $order->items : [];
                 $enrichedItems = array_map(function ($item) {
-                    $product = null;
-                    $productId = $item['product_id'] ?? $item['productId'] ?? null;
-                    if ($productId) {
-                        $product = Product::find($productId);
-                    }
+                    $product    = null;
+                    $productId  = $item['product_id'] ?? $item['productId'] ?? null;
+                    if ($productId) $product = Product::find($productId);
                     return [
-                        'product_id' => $productId,
-                        'name' => $item['product_name'] ?? $item['name'] ?? ($product ? ($product->product_name ?: $product->description) : 'Unknown Product'),
-                        'sku' => $item['sku'] ?? ($product->tdsynnex_sku_no ?? null),
-                        'mfg_part_no' => $item['mfg_part_no'] ?? ($product->mfg_part_no ?? null),
-                        'manufacturer' => $item['manufacturer'] ?? ($product->manufacturer ?? null),
-                        'quantity' => (int) ($item['quantity'] ?? 1),
-                        'price' => (float) ($item['price'] ?? $item['unit_price'] ?? ($product->base_price ?? 0)),
-                        'image' => $item['image'] ?? ($product->images[0] ?? null),
+                        'product_id'  => $productId,
+                        'name'        => $item['product_name'] ?? $item['name'] ?? ($product ? ($product->product_name ?: $product->description) : 'Unknown Product'),
+                        'sku'         => $item['sku'] ?? ($product?->tdsynnex_sku_no ?? null),
+                        'mfg_part_no' => $item['mfg_part_no'] ?? ($product?->mfg_part_no ?? null),
+                        'manufacturer'=> $item['manufacturer'] ?? ($product?->manufacturer ?? null),
+                        'quantity'    => (int) ($item['quantity'] ?? 1),
+                        'price'       => (float) ($item['price'] ?? $item['unit_price'] ?? ($product?->base_price ?? 0)),
+                        'image'       => $item['image'] ?? ($product?->images[0] ?? null),
                     ];
                 }, $rawItems);
 
+                // Determine display status: prefer live TD status over local DB status
+                $displayStatus = $tdStatus ?: $order->status;
+
+                // Prefer tracking from live packages, fall back to stored tracking_info
+                $trackingNumber = $packages[0]['tracking_number'] ?? $trackingInfo['tracking_number'] ?? $trackingInfo['trackingNumber'] ?? null;
+                $carrier        = $packages[0]['carrier'] ?? $trackingInfo['carrier'] ?? null;
+
                 return [
-                    'order_number' => $order->order_number,
+                    'order_number'      => $order->order_number,
                     'tdsynnex_order_id' => $order->tdsynnex_order_id,
-                    'po_number' => $order->po_number ?? $order->order_number,
-                    'status' => $order->status,
-                    'payment_status' => $order->payment_status ?: (($order->invoice && (string) $order->invoice->status === 'paid') ? 'completed' : 'pending'),
-                    'total_amount' => $order->total_amount,
-                    'shipping_amount' => $order->shipping_amount,
-                    'customer_name' => $order->user?->name ?? 'N/A',
-                    'company_name' => $order->company?->name ?? 'N/A',
-                    'items' => $enrichedItems,
-                    'items_count' => count($rawItems),
-                    'tracking_number' => $trackingInfo['tracking_number'] ?? $trackingInfo['trackingNumber'] ?? null,
-                    'carrier' => $trackingInfo['carrier'] ?? null,
-                    'shipping_status' => $trackingInfo['shipping_status'] ?? $order->status,
+                    'po_number'         => $poNumber ?? $order->order_number,
+                    'status'            => $displayStatus,
+                    'local_status'      => $order->status,
+                    'td_status'         => $tdStatus,
+                    'payment_status'    => $order->payment_status ?: (($order->invoice && (string) $order->invoice->status === 'paid') ? 'completed' : 'pending'),
+                    'total_amount'      => $order->total_amount,
+                    'shipping_amount'   => $order->shipping_amount,
+                    'customer_name'     => $order->user?->name ?? 'N/A',
+                    'company_name'      => $order->company?->name ?? 'N/A',
+                    'items'             => $enrichedItems,
+                    'items_count'       => count($rawItems),
+                    'tracking_number'   => $trackingNumber,
+                    'carrier'           => $carrier,
+                    'shipping_status'   => $trackingInfo['shipping_status'] ?? $displayStatus,
                     'estimated_delivery_date' => $trackingInfo['estimated_delivery_date'] ?? null,
-                    'shipped_at' => $order->shipped_at,
-                    'delivered_at' => $order->delivered_at,
-                    'created_at' => $order->created_at,
-                    'updated_at' => $order->updated_at,
-                    'live_po_status' => $liveStatus,
-                    'packages' => $packages,
+                    'shipped_at'        => $order->shipped_at,
+                    'delivered_at'      => $order->delivered_at,
+                    'created_at'        => $order->created_at,
+                    'updated_at'        => $order->updated_at,
+                    'live_po_status'    => $liveStatus,
+                    'packages'          => $packages,
                 ];
             }, $orders->items());
 
@@ -2319,6 +2340,48 @@ class AdminController extends Controller
         }
 
         return $packages;
+    }
+
+    /**
+     * Extract a canonical local status from a TD SYNNEX PO status response.
+     * Returns null if the status cannot be determined.
+     */
+    private function extractTdStatusFromPoResponse(array $poResponse): ?string
+    {
+        // Navigate common response shapes
+        $header = $poResponse['POStatusResponse']['POHeader'] ?? $poResponse['POHeader'] ?? null;
+        $rawStatus = null;
+
+        if ($header) {
+            $rawStatus = $header['POStatus'] ?? $header['Status'] ?? $header['OrderStatus'] ?? null;
+        }
+
+        // Also check top-level keys
+        if (!$rawStatus) {
+            $rawStatus = $poResponse['status'] ?? $poResponse['Status'] ?? $poResponse['orderStatus'] ?? null;
+        }
+
+        if (!$rawStatus) return null;
+
+        $map = [
+            'accepted'    => 'accepted',
+            'accept'      => 'accepted',
+            'processing'  => 'accepted',
+            'backordered' => 'backordered',
+            'backorder'   => 'backordered',
+            'shipped'     => 'shipped',
+            'ship'        => 'shipped',
+            'invoiced'    => 'invoiced',
+            'invoice'     => 'invoiced',
+            'complete'    => 'invoiced',
+            'completed'   => 'invoiced',
+            'delivered'   => 'invoiced',
+            'cancelled'   => 'failed',
+            'canceled'    => 'failed',
+            'rejected'    => 'failed',
+        ];
+
+        return $map[strtolower(trim((string) $rawStatus))] ?? null;
     }
 
     /**
