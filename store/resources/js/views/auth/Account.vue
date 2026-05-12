@@ -109,12 +109,12 @@
         </div>
       </div>
 
-      <!-- QuickBooks Payments -->
+      <!-- Manual Billing -->
       <div class="bg-white rounded-lg shadow-lg p-6 mt-8">
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
           <div>
-            <h3 class="text-lg font-bold text-gray-900">QuickBooks Payments</h3>
-            <p class="text-sm text-gray-600">Invoice payments now open in QuickBooks hosted checkout instead of using saved cards in Armely.</p>
+            <h3 class="text-lg font-bold text-gray-900">Monthly Billing</h3>
+            <p class="text-sm text-gray-600">Online QuickBooks checkout is currently unavailable from the Armely store.</p>
           </div>
           <button
             @click="router.push({ name: 'invoices' })"
@@ -126,8 +126,8 @@
         </div>
 
         <div class="rounded-lg border border-[#d9e6f7] bg-[#f7fbff] p-4 text-sm text-gray-700 space-y-2">
-          <p>Pay invoice actions now redirect you to QuickBooks, where card and bank payment methods are managed securely.</p>
-          <p>If you need to pay multiple balances together, combine the invoices first and then open the combined invoice in QuickBooks.</p>
+          <p>Payments will be reviewed and processed manually at the end of each month.</p>
+          <p>Your invoices remain available here for review and PDF download. The Armely team will coordinate any month-end payment steps directly.</p>
         </div>
       </div>
 

@@ -7,6 +7,15 @@ use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 
 class Kernel extends ConsoleKernel
 {
+    private function settingValue(string $key, mixed $default = null): mixed
+    {
+        try {
+            return \App\Models\AppSetting::getValue($key, $default);
+        } catch (\Throwable) {
+            return $default;
+        }
+    }
+
     /**
      * Define the application's command schedule.
      */
@@ -20,12 +29,12 @@ class Kernel extends ConsoleKernel
 
         // Daily 6:00 PM Kenya time: poll TD SYNNEX PriceAvailability and email status.
         // This does NOT change displayed prices — it just captures the latest data.
-        $priceSyncTime = (string) \App\Models\AppSetting::getValue('price_sync.time', '18:00');
+        $priceSyncTime = (string) $this->settingValue('price_sync.time', '18:00');
         if (!preg_match('/^\d{2}:\d{2}$/', $priceSyncTime)) {
             $priceSyncTime = '18:00';
         }
 
-        $priceSyncTimezone = (string) \App\Models\AppSetting::getValue('price_sync.timezone', 'Africa/Nairobi');
+        $priceSyncTimezone = (string) $this->settingValue('price_sync.timezone', 'Africa/Nairobi');
         if (!in_array($priceSyncTimezone, timezone_identifiers_list(), true)) {
             $priceSyncTimezone = 'Africa/Nairobi';
         }
