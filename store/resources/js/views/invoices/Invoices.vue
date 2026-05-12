@@ -5,7 +5,7 @@
     <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-5 py-8">
       <div class="mb-8">
         <h1 class="text-4xl font-bold text-gray-900 mb-2">Invoices</h1>
-        <p class="text-gray-600 text-lg">Track balances, download PDFs, and pay invoices through QuickBooks</p>
+        <p class="text-gray-600 text-lg">Track balances and download PDFs. Payments are handled manually at month end.</p>
       </div>
 
       <div v-if="invoices.length > 0" class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
@@ -76,17 +76,11 @@
           <span class="font-semibold" style="color: #2F5597;">{{ formatCurrency(selectedOutstandingTotal) }}</span>
         </div>
         <div class="flex gap-2">
-          <button @click="combineSelectedInvoices" class="px-4 py-2 rounded-lg font-semibold border border-[#2F5597] text-[#2F5597] hover:bg-[#edf3fb] transition duration-200">
-            Combine for QuickBooks
-          </button>
           <button @click="selectAllUnpaid" class="px-4 py-2 rounded-lg font-semibold border border-[#2563eb] text-[#2563eb] hover:bg-[#eff6ff] transition duration-200">
             Select All Unpaid
           </button>
           <button @click="downloadSelectedPdfs" class="px-4 py-2 rounded-lg font-semibold border border-[#2F5597] text-[#2F5597] hover:bg-[#edf3fb] transition duration-200">
             Download PDFs
-          </button>
-          <button @click="paySelectedInvoices" :disabled="bulkPaying" class="px-4 py-2 rounded-lg text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition duration-200" style="background-color: #2F5597;" @mouseenter="$event.target.style.backgroundColor='#1f4788'" @mouseleave="$event.target.style.backgroundColor='#2F5597'">
-            {{ bulkPaying ? 'Opening QuickBooks...' : 'Pay Selected in QuickBooks' }}
           </button>
           <button @click="clearSelection" class="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 transition duration-200">
             Clear
@@ -233,17 +227,12 @@
                     >
                       PDF
                     </button>
-                    <button
+                    <span
                       v-if="canPayInvoice(invoice)"
-                      @click="startPayment(invoice)"
-                      :disabled="payingInvoiceNumber === invoice.invoice_number"
-                      class="px-3 py-1.5 text-xs rounded-md text-white font-semibold transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                      style="background-color: #2F5597;"
-                      @mouseenter="$event.target.style.backgroundColor='#1f4788'"
-                      @mouseleave="$event.target.style.backgroundColor='#2F5597'"
+                      class="px-3 py-1.5 text-xs rounded-md border border-[#d9e6f7] bg-[#f8fbff] font-semibold text-[#2F5597]"
                     >
-                      {{ payingInvoiceNumber === invoice.invoice_number ? 'Starting...' : 'Pay Now' }}
-                    </button>
+                      Month-end manual payment
+                    </span>
                   </div>
                 </td>
               </tr>
@@ -395,16 +384,12 @@
             <button @click="downloadPDF(selectedInvoice)" class="px-4 py-2.5 border border-[#2F5597] text-[#2F5597] rounded-lg font-semibold hover:bg-[#edf3fb] transition duration-200">
               Download PDF
             </button>
-            <button
+            <span
               v-if="canPayInvoice(selectedInvoice)"
-              @click="startPayment(selectedInvoice)"
-              class="px-4 py-2.5 rounded-lg text-white font-semibold transition duration-200"
-              style="background-color: #2F5597;"
-              @mouseenter="$event.target.style.backgroundColor='#1f4788'"
-              @mouseleave="$event.target.style.backgroundColor='#2F5597'"
+              class="px-4 py-2.5 rounded-lg border border-[#d9e6f7] bg-[#f8fbff] text-[#2F5597] font-semibold"
             >
-              Pay in QuickBooks
-            </button>
+              Payment handled manually at month end
+            </span>
           </div>
         </div>
       </div>

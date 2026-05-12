@@ -6,7 +6,7 @@
       <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8">
         <div class="mb-6">
           <h1 class="text-3xl font-bold text-slate-900">Payment</h1>
-          <p class="text-slate-600 mt-1">Review the invoice amount and continue to QuickBooks secure checkout.</p>
+          <p class="text-slate-600 mt-1">Review the invoice amount. Payments are handled manually at the end of each month.</p>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
@@ -25,16 +25,16 @@
         </div>
 
         <div class="mb-6 rounded-xl border border-slate-200 bg-slate-50 p-4">
-          <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-600 mb-2">Checkout Provider</h2>
+          <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-600 mb-2">Payment Handling</h2>
           <div class="flex flex-col sm:flex-row sm:items-center gap-3">
             <img
               :src="buildStoreUrl('images/payments/secure-checkout.svg')"
-              alt="QuickBooks secure checkout"
+              alt="Secure payment handling"
               class="h-12 w-auto"
             />
             <div>
-              <p class="font-semibold text-slate-900">QuickBooks Payments</p>
-              <p class="text-sm text-slate-600">Card and bank options are presented in the hosted QuickBooks payment page for the invoice you selected.</p>
+              <p class="font-semibold text-slate-900">Manual Month-End Payment</p>
+              <p class="text-sm text-slate-600">QuickBooks online checkout is currently unavailable from the Armely store.</p>
             </div>
           </div>
         </div>
@@ -47,7 +47,7 @@
               class="h-12 w-auto"
             />
             <p class="text-sm text-slate-700">
-              You will be redirected to QuickBooks secure checkout. Final available methods may vary based on invoice and region.
+              The Armely team will review outstanding invoices and coordinate payment manually at the end of the month.
             </p>
           </div>
         </div>
@@ -59,15 +59,6 @@
             class="px-5 py-3 rounded-lg border border-slate-300 text-slate-700 font-semibold hover:bg-slate-50 transition"
           >
             Back
-          </button>
-          <button
-            @click="continueToCheckout"
-            type="button"
-            :disabled="processing"
-            class="px-5 py-3 rounded-lg text-white font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed"
-            style="background-color: #2F5597;"
-          >
-            {{ processing ? 'Starting QuickBooks...' : 'Continue to QuickBooks' }}
           </button>
         </div>
       </div>

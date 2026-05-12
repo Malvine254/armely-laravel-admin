@@ -35,7 +35,7 @@
 
         <p class="text-center text-slate-600 mt-6 text-sm">
           Remember your password?
-          <router-link to="/login" class="font-semibold" style="color: #2F5597;">Back to Login</router-link>
+          <router-link :to="{ name: 'login' }" class="font-semibold" style="color: #2F5597;">Back to Login</router-link>
         </p>
       </div>
     </div>

@@ -61,7 +61,7 @@
               <input v-model="form.remember" type="checkbox" class="w-4 h-4 border-slate-300 rounded focus:ring-2 focus:ring-[#2f5597]" style="accent-color: #2f5597;">
               <span class="ml-2 text-sm text-slate-600">Remember me</span>
             </label>
-            <a href="#" class="text-sm font-medium" style="color: #2f5597;" @mouseenter="$event.target.style.color='#1f4788'" @mouseleave="$event.target.style.color='#2f5597'">Forgot password?</a>
+            <router-link :to="{ name: 'forgot-password' }" class="text-sm font-medium" style="color: #2f5597;">Forgot password?</router-link>
           </div>
 
           <!-- Submit Button -->

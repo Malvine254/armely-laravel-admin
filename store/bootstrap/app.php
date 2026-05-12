@@ -44,12 +44,20 @@ return Application::configure(basePath: dirname(__DIR__))
             ->name('sync-product-prices')
             ->withoutOverlapping();
 
-        $priceSyncTime = (string) \App\Models\AppSetting::getValue('price_sync.time', '18:00');
+        $settingValue = static function (string $key, mixed $default = null): mixed {
+            try {
+                return \App\Models\AppSetting::getValue($key, $default);
+            } catch (\Throwable) {
+                return $default;
+            }
+        };
+
+        $priceSyncTime = (string) $settingValue('price_sync.time', '18:00');
         if (!preg_match('/^\d{2}:\d{2}$/', $priceSyncTime)) {
             $priceSyncTime = '18:00';
         }
 
-        $priceSyncTimezone = (string) \App\Models\AppSetting::getValue('price_sync.timezone', 'Africa/Nairobi');
+        $priceSyncTimezone = (string) $settingValue('price_sync.timezone', 'Africa/Nairobi');
         if (!in_array($priceSyncTimezone, timezone_identifiers_list(), true)) {
             $priceSyncTimezone = 'Africa/Nairobi';
         }
