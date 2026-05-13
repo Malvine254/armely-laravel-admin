@@ -330,7 +330,7 @@
             </div>
             <div>
               <p class="text-sm text-gray-500 font-medium">Invoice Date</p>
-              <p class="text-lg font-semibold text-gray-900">{{ formatDate(selectedInvoice.invoice_date) }}</p>
+              <p class="text-lg font-semibold text-gray-900">{{ formatDate(selectedInvoice.invoice_date || selectedInvoice.issued_at || selectedInvoice.created_at) }}</p>
             </div>
             <div>
               <p class="text-sm text-gray-500 font-medium">Due Date</p>
@@ -509,7 +509,11 @@ const getInvoiceItemUnitPrice = (item) => {
 }
 
 const formatDate = (date) => {
-  return new Date(date).toLocaleDateString('en-US', {
+  if (!date) return '-'
+  const parsedDate = new Date(date)
+  if (Number.isNaN(parsedDate.getTime())) return '-'
+
+  return parsedDate.toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric'

@@ -206,6 +206,12 @@
                     View
                   </button>
                   <button
+                    @click="openEditModal(user)"
+                    class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 transition border border-indigo-200"
+                  >
+                    Edit
+                  </button>
+                  <button
                     v-if="canApproveUser(user)"
                     @click="approveUser(user)"
                     :disabled="isSubmitting"
@@ -572,6 +578,133 @@
       </div>
     </div>
 
+    <!-- Edit Customer Modal -->
+    <div v-if="showEditModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" @click="showEditModal = false">
+      <div class="rounded-2xl bg-white shadow-2xl max-w-4xl w-full border-0 max-h-[90vh] overflow-y-auto" @click.stop>
+        <div class="sticky top-0 text-white p-6 border-b border-gray-200 rounded-t-2xl" style="background: linear-gradient(135deg, #2F5597, #1e3a6b);">
+          <div class="flex justify-between items-center">
+            <div>
+              <p class="text-xs uppercase tracking-wide text-white/70 font-semibold">Customer User</p>
+              <h3 class="text-xl font-bold text-white mt-1">Edit Details</h3>
+            </div>
+            <button @click="showEditModal = false" class="text-white/60 hover:text-white transition text-2xl">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        </div>
+
+        <form class="p-6 space-y-4" @submit.prevent="saveEditUser">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <label class="text-sm font-medium text-gray-700">
+              Full Name <span class="text-rose-500">*</span>
+              <input
+                v-model.trim="editForm.name"
+                type="text"
+                required
+                class="mt-1 w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
+              />
+            </label>
+            <label class="text-sm font-medium text-gray-700">
+              Email Address <span class="text-rose-500">*</span>
+              <input
+                v-model.trim="editForm.email"
+                type="email"
+                required
+                class="mt-1 w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
+              />
+            </label>
+            <label class="text-sm font-medium text-gray-700">
+              Phone Number
+              <input
+                v-model.trim="editForm.phone"
+                type="tel"
+                placeholder="Optional"
+                class="mt-1 w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
+              />
+            </label>
+            <label class="text-sm font-medium text-gray-700">
+              Company Name
+              <input
+                v-model.trim="editForm.company_name"
+                type="text"
+                placeholder="Leave blank to keep unchanged"
+                class="mt-1 w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
+              />
+            </label>
+            <label class="text-sm font-medium text-gray-700">
+              Company Domain
+              <input
+                v-model.trim="editForm.company_domain"
+                type="text"
+                placeholder="example.com"
+                class="mt-1 w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
+              />
+            </label>
+            <label class="text-sm font-medium text-gray-700">
+              Role
+              <select
+                v-model="editForm.role"
+                class="mt-1 w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
+              >
+                <option value="owner">Owner</option>
+                <option value="buyer">Buyer</option>
+              </select>
+            </label>
+            <label class="text-sm font-medium text-gray-700">
+              Status
+              <select
+                v-model="editForm.status"
+                class="mt-1 w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
+              >
+                <option value="pending">Pending</option>
+                <option value="active">Active</option>
+                <option value="suspended">Suspended</option>
+              </select>
+            </label>
+            <label class="text-sm font-medium text-gray-700">
+              Discount %
+              <input
+                v-model.number="editForm.special_pricing_percent"
+                type="number"
+                min="0"
+                max="100"
+                step="0.01"
+                class="mt-1 w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
+              />
+            </label>
+            <label class="text-sm font-medium text-gray-700">
+              Assigned Shipping $
+              <input
+                v-model.number="editForm.assigned_shipping_amount"
+                type="number"
+                min="0"
+                step="0.01"
+                class="mt-1 w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
+              />
+            </label>
+          </div>
+
+          <div class="flex justify-end gap-3 border-t border-gray-200 pt-4">
+            <button
+              type="button"
+              @click="showEditModal = false"
+              class="px-4 py-2 border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-100 transition text-sm font-medium"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              :disabled="isSubmitting"
+              class="px-5 py-2 bg-[#2F5597] hover:bg-[#1e3a6b] text-white font-semibold rounded-lg transition disabled:opacity-50 text-sm"
+            >
+              <i :class="['fas mr-2', isSubmitting ? 'fa-spinner fa-spin' : 'fa-save']"></i>
+              Save Changes
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <div v-if="showConfirmModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" @click="showConfirmModal = false">
       <div class="rounded-2xl bg-white shadow-2xl max-w-md w-full border-0" @click.stop>
         <div class="p-6">
@@ -644,6 +777,19 @@ const bulkAction = ref('')
 const specialPricingDrafts = ref({})
 const shippingAmountDrafts = ref({})
 const isLoading = ref(false)
+const showEditModal = ref(false)
+const editingUser = ref(null)
+const editForm = ref({
+  name: '',
+  email: '',
+  phone: '',
+  company_name: '',
+  company_domain: '',
+  role: 'buyer',
+  status: 'pending',
+  special_pricing_percent: 0,
+  assigned_shipping_amount: 0
+})
 const inviteForm = ref({
   name: '',
   email: '',
@@ -891,6 +1037,53 @@ const fetchAdminUsers = async () => {
 const viewUser = (user) => {
   selectedUser.value = { ...user }
   hydrateSpecialPricingDrafts([user])
+}
+
+const openEditModal = (user) => {
+  editingUser.value = { ...user }
+  editForm.value = {
+    name: user.name || '',
+    email: user.email || '',
+    phone: user.phone || '',
+    company_name: user.company?.name || '',
+    company_domain: user.company?.domain || '',
+    role: user.role || 'buyer',
+    status: user.status || 'pending',
+    special_pricing_percent: clampSpecialPricingPercent(user.special_pricing_percent ?? 0),
+    assigned_shipping_amount: clampMoneyAmount(user.assigned_shipping_amount ?? 0)
+  }
+  showEditModal.value = true
+}
+
+const saveEditUser = async () => {
+  if (!editingUser.value) return
+  isSubmitting.value = true
+  try {
+    const response = await api.put(`/admin/customers/users/${editingUser.value.id}`, {
+      name: editForm.value.name.trim(),
+      email: editForm.value.email.trim(),
+      phone: editForm.value.phone.trim() || null,
+      company_name: editForm.value.company_name.trim() || null,
+      company_domain: editForm.value.company_domain.trim() || null,
+      role: editForm.value.role,
+      status: editForm.value.status,
+      special_pricing_percent: clampSpecialPricingPercent(editForm.value.special_pricing_percent),
+      assigned_shipping_amount: clampMoneyAmount(editForm.value.assigned_shipping_amount)
+    })
+
+    if (response?.data?.success) {
+      syncUserRecord(editingUser.value.id, response.data.data)
+      showEditModal.value = false
+      editingUser.value = null
+      alert('Customer details updated successfully')
+    }
+  } catch (error) {
+    const errors = error.response?.data?.errors
+    const firstError = errors ? Object.values(errors).flat()[0] : null
+    alert(firstError || error.response?.data?.message || 'Failed to update customer details')
+  } finally {
+    isSubmitting.value = false
+  }
 }
 
 const saveUserSpecialPricing = async (user) => {
