@@ -357,8 +357,8 @@
             <p class="text-sm font-semibold text-gray-700 mb-3">Items</p>
             <div class="space-y-2 bg-gray-50 border border-gray-200 p-4 rounded-lg max-h-48 overflow-y-auto">
               <div v-for="(item, index) in selectedInvoice.items" :key="index" class="text-sm">
-                <p class="font-medium text-gray-900">{{ item.name || 'Item ' + (index + 1) }}</p>
-                <p class="text-xs text-gray-500">Qty: {{ item.quantity }} × ${{ formatCurrency(item.price) }}</p>
+                <p class="font-medium text-gray-900">{{ getInvoiceItemName(item, index) }}</p>
+                <p class="text-xs text-gray-500">Qty: {{ getInvoiceItemQuantity(item) }} × ${{ formatCurrency(getInvoiceItemUnitPrice(item)) }}</p>
               </div>
             </div>
           </div>
@@ -491,6 +491,23 @@ const formatCurrency = (amount) => {
   })
 }
 
+const getInvoiceItemName = (item, index) => {
+  return item?.name || item?.product_name || item?.description || item?.title || item?.mfg_part_number || `Item ${index + 1}`
+}
+
+const getInvoiceItemQuantity = (item) => {
+  return Number(item?.quantity || item?.qty || 1)
+}
+
+const getInvoiceItemUnitPrice = (item) => {
+  const unitPrice = Number(item?.unit_price ?? item?.price ?? 0)
+  if (unitPrice > 0) return unitPrice
+
+  const quantity = getInvoiceItemQuantity(item)
+  const lineTotal = Number(item?.line_total ?? item?.total ?? 0)
+  return quantity > 0 ? lineTotal / quantity : 0
+}
+
 const formatDate = (date) => {
   return new Date(date).toLocaleDateString('en-US', {
     month: 'short',
@@ -570,7 +587,7 @@ const bulkDelete = async () => {
 
 const bulkMarkPaid = async () => {
   if (selectedIds.value.size === 0) return
-  if (!confirm(`Mark ${selectedIds.value.size} invoice(s) as paid?`)) return
+  if (!confirm(`WARNING: You are about to manually mark ${selectedIds.value.size} invoice(s) as paid.\n\nThis action affects payment status and may trigger downstream order processing.\n\nDo you want to continue?`)) return
 
   bulkLoading.value = true
   try {
@@ -664,6 +681,10 @@ const recordPayment = async () => {
     return
   }
 
+  if (!confirm(`WARNING: You are about to manually confirm payment for invoice ${selectedInvoice.value.invoice_number}.\n\nDo you want to proceed?`)) {
+    return
+  }
+
   isSubmitting.value = true
   try {
     const response = await api.post(`/admin/invoices/${selectedInvoice.value.id}/mark-paid`, {
@@ -686,6 +707,10 @@ const recordPayment = async () => {
 }
 
 const markAsPaid = async (invoice) => {
+  if (!confirm(`WARNING: You are about to start manual payment confirmation for invoice ${invoice.invoice_number}.\n\nContinue?`)) {
+    return
+  }
+
   selectedInvoice.value = invoice
   paymentDate.value = new Date().toISOString().split('T')[0]
   paymentNotes.value = ''

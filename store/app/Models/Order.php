@@ -54,7 +54,7 @@ class Order extends Model
 
     public function quote(): BelongsTo
     {
-        return $this->belongsTo(Quote::class);
+        return $this->belongsTo(Quote::class, 'quote_id', 'quote_id');
     }
 
     public function invoice(): HasOne

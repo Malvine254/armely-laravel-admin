@@ -1062,13 +1062,13 @@ class QuoteOrderInvoiceController extends Controller
 
             $orders = Order::where('user_id', $user->id)
                 ->whereNotIn('status', ['cancelled'])
-                ->where(function ($query) {
-                    $query->whereIn('payment_status', ['paid', 'completed'])
-                        ->orWhereIn('status', ['shipped', 'in_transit', 'delivered'])
-                        ->orWhereNotNull('tracking_info')
-                        ->orWhereHas('shipments');
-                })
-                ->with(['shipments' => fn ($q) => $q->latest('updated_at')])
+                ->whereHas('quote', fn ($query) => $query->where('status', 'approved'))
+                ->whereHas('invoice', fn ($query) => $query->where('status', 'paid'))
+                ->with([
+                    'quote',
+                    'invoice',
+                    'shipments' => fn ($q) => $q->latest('updated_at'),
+                ])
                 ->latest('created_at')
                 ->limit(12)
                 ->get();
@@ -1102,11 +1102,7 @@ class QuoteOrderInvoiceController extends Controller
     {
         $latestShipment = $order->shipments->first();
         $itemPreview = $this->buildOrderItemPreview($order);
-        $paymentStatus = strtolower((string) ($order->payment_status ?? ''));
-        $trackingEligible = in_array($paymentStatus, ['paid', 'completed'], true)
-            || in_array((string) $order->status, ['shipped', 'in_transit', 'delivered'], true)
-            || $latestShipment !== null
-            || !empty($order->tracking_info);
+        $trackingEligible = $this->canCheckShippingStatus($order);
 
         $status = $latestShipment?->status ?? $order->status ?? 'pending';
         if ($status === 'confirmed') {
@@ -1174,6 +1170,11 @@ class QuoteOrderInvoiceController extends Controller
             return;
         }
 
+        $order->loadMissing(['quote', 'invoice']);
+        if (!$this->canCheckShippingStatus($order)) {
+            return;
+        }
+
         try {
             $response = $this->tdsynnexService->checkPoStatus($poNumber);
             if (($response['success'] ?? true) === false) {
@@ -1221,6 +1222,15 @@ class QuoteOrderInvoiceController extends Controller
         } catch (\Throwable $e) {
             Log::debug("TD SYNNEX PO status refresh failed for order {$order->order_number}: {$e->getMessage()}");
         }
+    }
+
+    private function canCheckShippingStatus(Order $order): bool
+    {
+        $quote = $order->relationLoaded('quote') ? $order->quote : $order->quote()->first();
+        $invoice = $order->relationLoaded('invoice') ? $order->invoice : $order->invoice()->first();
+
+        return strtolower((string) ($quote?->status ?? '')) === 'approved'
+            && strtolower((string) ($invoice?->status ?? '')) === 'paid';
     }
 
     private function deepFindFirstByKeys(mixed $data, array $keys): mixed

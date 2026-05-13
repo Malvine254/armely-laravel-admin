@@ -44,11 +44,34 @@ class AuthController extends Controller
             return null;
         }
 
-        return $company->addresses()
+        $address = $company->addresses()
             ->where('is_active', true)
             ->where('is_default', true)
             ->whereIn('type', ['shipping', 'both'])
             ->first();
+
+        return $this->isPlaceholderShippingAddress($address) ? null : $address;
+    }
+
+    private function isPlaceholderShippingAddress(?Address $address): bool
+    {
+        if (!$address) {
+            return false;
+        }
+
+        $values = [
+            strtolower(trim((string) $address->street_1)),
+            strtolower(trim((string) $address->street_2)),
+            strtolower(trim((string) $address->city)),
+            strtolower(trim((string) $address->state)),
+            trim((string) $address->postal_code),
+            strtoupper(trim((string) $address->country)),
+        ];
+
+        return count(array_unique(array_slice($values, 0, 4))) === 1
+            && strlen($values[0]) === 3
+            && $values[4] === '01100'
+            && $values[5] === 'KE';
     }
 
     private function normalizeStoredProfilePicturePath(?string $path): ?string
@@ -613,19 +636,20 @@ class AuthController extends Controller
             $city = trim((string)($shippingAddressPayload['city'] ?? ''));
             $state = trim((string)($shippingAddressPayload['state'] ?? ''));
             $postalCode = trim((string)($shippingAddressPayload['postal_code'] ?? ''));
+            $country = strtoupper(trim((string)($shippingAddressPayload['country'] ?? '')));
 
             // Only save/update when required shipping fields are present.
-            if ($street !== '' && $city !== '' && $state !== '' && $postalCode !== '') {
+            if ($street !== '' && $city !== '' && $state !== '' && $postalCode !== '' && $country !== '') {
                 $addressData = [
-                    'label' => $shippingAddressPayload['label'] ?? 'Default Shipping',
-                    'contact_name' => $shippingAddressPayload['contact_name'] ?? $user->name,
-                    'contact_phone' => $shippingAddressPayload['contact_phone'] ?? $user->phone,
+                    'label' => trim((string)($shippingAddressPayload['label'] ?? '')) ?: null,
+                    'contact_name' => trim((string)($shippingAddressPayload['contact_name'] ?? '')) ?: null,
+                    'contact_phone' => trim((string)($shippingAddressPayload['contact_phone'] ?? '')) ?: null,
                     'street_1' => $street,
-                    'street_2' => $shippingAddressPayload['street_2'] ?? null,
+                    'street_2' => trim((string)($shippingAddressPayload['street_2'] ?? '')) ?: null,
                     'city' => $city,
                     'state' => $state,
                     'postal_code' => $postalCode,
-                    'country' => strtoupper((string)($shippingAddressPayload['country'] ?? 'US')),
+                    'country' => $country,
                     'type' => 'shipping',
                     'is_default' => true,
                     'is_active' => true,

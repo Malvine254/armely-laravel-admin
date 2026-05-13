@@ -5,7 +5,7 @@
     <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-5 py-8">
       <div class="mb-8">
         <h1 class="text-4xl font-bold text-gray-900 mb-2">Invoices</h1>
-        <p class="text-gray-600 text-lg">Track balances and download PDFs. Payments are handled manually at month end.</p>
+        <p class="text-gray-600 text-lg">Track balances, review invoice details, and download PDFs.</p>
       </div>
 
       <div v-if="invoices.length > 0" class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
@@ -227,12 +227,6 @@
                     >
                       PDF
                     </button>
-                    <span
-                      v-if="canPayInvoice(invoice)"
-                      class="px-3 py-1.5 text-xs rounded-md border border-[#d9e6f7] bg-[#f8fbff] font-semibold text-[#2F5597]"
-                    >
-                      Month-end manual payment
-                    </span>
                   </div>
                 </td>
               </tr>
@@ -384,12 +378,6 @@
             <button @click="downloadPDF(selectedInvoice)" class="px-4 py-2.5 border border-[#2F5597] text-[#2F5597] rounded-lg font-semibold hover:bg-[#edf3fb] transition duration-200">
               Download PDF
             </button>
-            <span
-              v-if="canPayInvoice(selectedInvoice)"
-              class="px-4 py-2.5 rounded-lg border border-[#d9e6f7] bg-[#f8fbff] text-[#2F5597] font-semibold"
-            >
-              Payment handled manually at month end
-            </span>
           </div>
         </div>
       </div>

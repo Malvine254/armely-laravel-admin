@@ -80,7 +80,7 @@
               <span class="font-semibold text-gray-900">{{ userRoleLabel }}</span>
             </div>
             <div class="pt-2 border-t border-gray-100">
-              <span class="text-gray-600 block mb-1">Default Shipping:</span>
+              <span class="text-gray-600 block mb-1">Shipping Address:</span>
               <span class="font-semibold text-gray-900 text-sm break-words">{{ shippingSummary }}</span>
             </div>
           </div>
@@ -114,7 +114,7 @@
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
           <div>
             <h3 class="text-lg font-bold text-gray-900">Monthly Billing</h3>
-            <p class="text-sm text-gray-600">Online QuickBooks checkout is currently unavailable from the Armely store.</p>
+            <p class="text-sm text-gray-600">Invoices will be sent to you for review and payment coordination.</p>
           </div>
           <button
             @click="router.push({ name: 'invoices' })"
@@ -126,8 +126,8 @@
         </div>
 
         <div class="rounded-lg border border-[#d9e6f7] bg-[#f7fbff] p-4 text-sm text-gray-700 space-y-2">
-          <p>Payments will be reviewed and processed manually at the end of each month.</p>
-          <p>Your invoices remain available here for review and PDF download. The Armely team will coordinate any month-end payment steps directly.</p>
+          <p>Invoices remain available here for review, tracking, and PDF download.</p>
+          <p>For billing questions or payment arrangements, contact Armely support and our team will assist you directly.</p>
         </div>
       </div>
 
@@ -210,8 +210,8 @@
               <h4 class="text-sm font-semibold text-gray-900 mb-2">Shipping Details</h4>
               <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Label</label>
-                  <input v-model="editForm.shipping.label" type="text" placeholder="Default Shipping" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Address Name</label>
+                  <input v-model="editForm.shipping.label" type="text" placeholder="Address name (optional)" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">Street 1</label>
@@ -243,7 +243,7 @@
                 </div>
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">Country</label>
-                  <input v-model="editForm.shipping.country" type="text" maxlength="2" placeholder="US" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase">
+                  <input v-model="editForm.shipping.country" type="text" maxlength="2" placeholder="Country code" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase">
                 </div>
               </div>
             </div>
@@ -565,9 +565,28 @@ const companyName = computed(() => {
   return typeof company === 'string' ? company : ''
 })
 
+const isPlaceholderShippingAddress = (shipping) => {
+  if (!shipping) return false
+
+  const values = [
+    String(shipping.street_1 || '').trim().toLowerCase(),
+    String(shipping.street_2 || '').trim().toLowerCase(),
+    String(shipping.city || '').trim().toLowerCase(),
+    String(shipping.state || '').trim().toLowerCase(),
+    String(shipping.postal_code || '').trim(),
+    String(shipping.country || '').trim().toUpperCase(),
+  ]
+
+  return new Set(values.slice(0, 4)).size === 1
+    && values[0].length === 3
+    && values[4] === '01100'
+    && values[5] === 'KE'
+}
+
 const shippingSummary = computed(() => {
   const shipping = authStore.user?.shipping_address
   if (!shipping) return 'Not set'
+  if (isPlaceholderShippingAddress(shipping)) return 'Not set'
 
   const parts = [
     shipping.street_1,
@@ -669,11 +688,10 @@ const submitProfilePictureUpload = async () => {
 
     // Update auth store with fresh user data
     if (data.user) {
-      authStore.user = {
+      authStore.setUser({
         ...authStore.user,
         ...data.user
-      }
-      localStorage.setItem('armely_user', JSON.stringify(authStore.user))
+      })
       console.log('User updated with profile picture:', authStore.user.profile_picture_url)
     }
 
@@ -794,8 +812,7 @@ const submitEditProfile = async () => {
 
     // Update auth store
     if (data.user) {
-      authStore.user = { ...data.user, incomplete_fields: data.incomplete_fields || [] }
-      localStorage.setItem('armely_user', JSON.stringify(authStore.user))
+      authStore.setUser({ ...data.user, incomplete_fields: data.incomplete_fields || [] })
     }
 
     toastStore.addToast('Profile updated successfully!', 'success')
