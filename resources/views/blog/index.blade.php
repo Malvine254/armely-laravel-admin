@@ -287,9 +287,77 @@ document.addEventListener('DOMContentLoaded', function() {
 			location.reload();
 		}
 	});
+
+	function applyForcedBlogBodyStyles() {
+		const content = document.getElementById('blog-content') || document.querySelector('.blog-text-content');
+		if (!content) return;
+
+		content.classList.add('blog-system-content-forced');
+
+		const resetSelector = 'p,span,div,h1,h2,h3,h4,h5,h6,ul,ol,li,a,strong,em,b,i,font,blockquote,table,thead,tbody,tr,th,td';
+		content.querySelectorAll(resetSelector).forEach(function(el) {
+			if (el.hasAttribute('style')) {
+				el.removeAttribute('style');
+			}
+		});
+
+		content.querySelectorAll('font').forEach(function(el) {
+			el.removeAttribute('color');
+			el.removeAttribute('face');
+			el.removeAttribute('size');
+		});
+
+		content.querySelectorAll('img').forEach(function(img) {
+			img.removeAttribute('width');
+			img.removeAttribute('height');
+			img.setAttribute('loading', 'lazy');
+			img.setAttribute('decoding', 'async');
+		});
+
+		content.querySelectorAll('table').forEach(function(table) {
+			if (!table.parentElement || !table.parentElement.classList.contains('blog-table-wrap')) {
+				const wrap = document.createElement('div');
+				wrap.className = 'blog-table-wrap';
+				table.parentNode.insertBefore(wrap, table);
+				wrap.appendChild(table);
+			}
+		});
+
+		content.querySelectorAll('iframe, video, embed, object').forEach(function(media) {
+			media.classList.add('blog-rich-media');
+		});
+
+		// Custom list normalization to ensure ordered/unordered markers are always visible.
+		content.querySelectorAll('ul, ol').forEach(function(listEl) {
+			listEl.classList.add('blog-list');
+			listEl.classList.add(listEl.tagName.toLowerCase() === 'ol' ? 'blog-list-ol' : 'blog-list-ul');
+
+			Array.from(listEl.childNodes).forEach(function(node) {
+				if (node.nodeType === Node.TEXT_NODE && node.textContent && node.textContent.trim()) {
+					const li = document.createElement('li');
+					li.textContent = node.textContent.trim();
+					listEl.replaceChild(li, node);
+				} else if (node.nodeType === Node.ELEMENT_NODE && node.tagName !== 'LI') {
+					const li = document.createElement('li');
+					node.parentNode.insertBefore(li, node);
+					li.appendChild(node);
+				}
+			});
+
+			Array.from(listEl.children).forEach(function(li) {
+				if (li.tagName === 'LI') {
+					li.classList.add('blog-list-item');
+					if (li.hasAttribute('style')) {
+						li.removeAttribute('style');
+					}
+				}
+			});
+		});
+	}
 	
 	// Function to reinitialize features after content update
 	function reinitializeBlogFeatures() {
+		applyForcedBlogBodyStyles();
 		// Diagnostic helper to log container/button metrics for debugging autoscroll/show-more
 		function _logBlogDiagnostics(context, contentEl, span) {
 			try {

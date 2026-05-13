@@ -77,10 +77,41 @@ class HomeController extends Controller
     {
         $dbErrorMessage = null;
         $coreValues = $this->safeDb(function () {
-            return DB::table('core_values')
-                ->select('id', 'title', 'body', 'icon_font as icon')
-                ->get();
+            $table = null;
+
+            foreach (['core_values', 'core_value'] as $candidateTable) {
+                if (Schema::hasTable($candidateTable)) {
+                    $table = $candidateTable;
+                    break;
+                }
+            }
+
+            if (!$table) {
+                return collect();
+            }
+
+            return DB::table($table)
+                ->orderBy('id')
+                ->get()
+                ->map(function ($value) {
+                    $title = $value->title ?? $value->name ?? $value->core_value_title ?? null;
+                    $body = $value->body ?? $value->description ?? $value->content ?? null;
+                    $icon = $value->icon_font ?? $value->icon ?? null;
+
+                    return (object) [
+                        'title' => $title,
+                        'body' => $body,
+                        'icon' => $icon,
+                    ];
+                })
+                ->filter(fn ($value) => !empty($value->title) || !empty($value->body))
+                ->values();
         }, $dbErrorMessage);
+
+        if ($coreValues->isEmpty()) {
+            $coreValues = $this->defaultCoreValues();
+            $dbErrorMessage = null;
+        }
 
         return view('company', [
             'coreValues' => $coreValues,
@@ -894,6 +925,27 @@ class HomeController extends Controller
             Log::warning('Database unavailable', ['error' => $e->getMessage()]);
             return collect();
         }
+    }
+
+    private function defaultCoreValues()
+    {
+        return collect([
+            (object) [
+                'title' => 'Integrity',
+                'body' => 'We operate with transparency, honesty, and accountability in every engagement.',
+                'icon' => 'ui-check',
+            ],
+            (object) [
+                'title' => 'Innovation',
+                'body' => 'We continuously adopt modern technologies and practical ideas to solve business challenges.',
+                'icon' => 'light-bulb',
+            ],
+            (object) [
+                'title' => 'Customer Success',
+                'body' => 'We align every solution to measurable client outcomes and long-term value.',
+                'icon' => 'users-alt-5',
+            ],
+        ]);
     }
 
     private function estimateReadingTime(string $html): int

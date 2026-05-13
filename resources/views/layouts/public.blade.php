@@ -122,14 +122,16 @@
 .mobile-dropdown-menu {
     display: none;
     position: fixed;
-    left: 0;
-    right: 0;
-    background: #2f5597;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    left: 12px;
+    right: 12px;
+    background: linear-gradient(180deg, #ffffff 0%, #f5f9ff 100%);
+    border: 1px solid #d8e4f8;
+    border-radius: 16px;
+    box-shadow: 0 14px 34px rgba(15, 38, 77, 0.22);
     z-index: 9998;
     max-height: 80vh;
     overflow-y: auto;
-    padding: 15px 0;
+    padding: 8px 0;
 }
 .mobile-dropdown-menu.open {
     display: block;
@@ -147,45 +149,95 @@
     padding: 0;
 }
 .mobile-dropdown-menu > ul > li {
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid #e5ecf9;
 }
 .mobile-dropdown-menu a {
     display: block;
-    padding: 14px 20px;
-    background: #2f5597;
-    color: #fff;
+    padding: 13px 18px;
+    background: transparent;
+    color: #17315f;
     text-decoration: none;
     font-size: 15px;
+    font-weight: 600;
+    line-height: 1.35;
+    transition: background-color 0.2s ease, color 0.2s ease;
 }
 .mobile-dropdown-menu a:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: #fff;
+    background: #eaf1ff;
+    color: #0f2f63;
 }
 .mobile-dropdown-menu .sub-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
     cursor: pointer;
+}
+.mobile-dropdown-menu .mobile-caret {
+    width: 9px;
+    height: 9px;
+    border-right: 2px solid #4f6a9e;
+    border-bottom: 2px solid #4f6a9e;
+    transform: rotate(45deg);
+    transition: transform 0.2s ease;
+    flex: 0 0 auto;
+    margin-top: -3px;
+}
+.mobile-dropdown-menu .sub-toggle.expanded .mobile-caret {
+    transform: rotate(225deg);
+    margin-top: 2px;
 }
 .mobile-dropdown-menu .dropdown {
     display: none;
-    background: #2f5597;
+    background: #f7faff;
+    border-top: 1px solid #e5ecf9;
+    padding: 4px 0;
 }
 .mobile-dropdown-menu .dropdown.open {
     display: block;
 }
 .mobile-dropdown-menu .dropdown a {
-    padding-left: 35px;
-    padding-top: 13px;
-    padding-bottom: 13px;
-    background: #2f5597;
+    padding-left: 32px;
+    padding-top: 12px;
+    padding-bottom: 12px;
+    background: transparent;
     font-size: 14px;
-    color: #fff;
+    font-weight: 500;
+    color: #2a467f;
 }
 .mobile-dropdown-menu .dropdown .dropdown a {
     padding-left: 50px;
     padding-top: 12px;
     padding-bottom: 12px;
-    background: #2f5597;
+    background: transparent;
     font-size: 13px;
-    color: #fff;
+    color: #3f588a;
+}
+.mobile-dropdown-menu .menu-store-link {
+    border-bottom: 0;
+    padding: 8px 12px 2px;
+}
+.mobile-dropdown-menu .menu-store-link a {
+    border-radius: 12px;
+    background: linear-gradient(135deg, #1f4788 0%, #2f5597 100%);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 8px 18px rgba(47, 85, 151, 0.28);
+}
+.mobile-dropdown-menu .menu-store-link a:hover {
+    background: linear-gradient(135deg, #1b3f79 0%, #284c89 100%);
+    color: #ffffff;
+}
+.mobile-dropdown-menu .menu-store-link .menu-new-badge {
+    top: 0;
+    margin-left: 8px;
+    font-size: 9px;
+    padding: 3px 7px;
+    background: #ff8a3d;
+    box-shadow: 0 0 0 rgba(255, 138, 61, 0.4);
+    animation: menuNewBadgePulseOrange 1.8s ease-in-out infinite;
 }
 
 /* Hide old slicknav and mobile-nav */
@@ -283,6 +335,17 @@
     50% {
         transform: translateY(-1px) scale(1.05);
         box-shadow: 0 0 0 4px rgba(47, 85, 151, 0);
+    }
+}
+
+@keyframes menuNewBadgePulseOrange {
+    0%, 100% {
+        transform: translateY(0) scale(1);
+        box-shadow: 0 0 0 0 rgba(255, 138, 61, 0.38);
+    }
+    50% {
+        transform: translateY(-1px) scale(1.05);
+        box-shadow: 0 0 0 5px rgba(255, 138, 61, 0);
     }
 }
 
@@ -450,7 +513,7 @@
 <div class="mobile-dropdown-menu" id="mobileDropdownMenu">
     <ul>
         <li>
-            <a class="sub-toggle">Who We Are &#9660;</a>
+            <a class="sub-toggle">Who We Are <span class="mobile-caret" aria-hidden="true"></span></a>
             <ul class="dropdown">
                 <li><a href="{{ route('company.index') }}">Company</a></li>
                 <li><a href="{{ route('career.index') }}">Career</a></li>
@@ -460,7 +523,7 @@
         <li><a href="{{ route('services') }}">What We Do</a></li>
         <li><a href="{{ route('industries.index') }}">Who We Serve</a></li>
         <li>
-            <a class="sub-toggle">Knowledge Hub &#9660;</a>
+            <a class="sub-toggle">Knowledge Hub <span class="mobile-caret" aria-hidden="true"></span></a>
             <ul class="dropdown">
                 <li><a href="{{ route('blog.index') }}">Blog Articles</a></li>
                 <li><a href="{{ route('customer-stories.index') }}">Customer Stories</a></li>
@@ -471,6 +534,7 @@
         <li><a href="{{ route('events.index') }}">Events</a></li>
         <li><a href="{{ route('partners.index') }}">Partners</a></li>
         <li><a href="{{ route('mela-ai') }}">Mela AI</a></li>
+        <li class="menu-store-link"><a href="{{ url('/store') }}" target="_blank" rel="noopener noreferrer">Armely Store <span class="menu-new-badge">New</span></a></li>
         <li><a href="{{ route('contact') }}">Let's Talk</a></li>
     </ul>
 </div>
@@ -525,7 +589,18 @@
             toggles[i].addEventListener('click', function(e) {
                 e.preventDefault();
                 var dd = this.nextElementSibling;
-                if (dd) dd.classList.toggle('open');
+                var isOpen = dd && dd.classList.contains('open');
+
+                for (var j = 0; j < toggles.length; j++) {
+                    toggles[j].classList.remove('expanded');
+                    var siblingDd = toggles[j].nextElementSibling;
+                    if (siblingDd) siblingDd.classList.remove('open');
+                }
+
+                if (dd && !isOpen) {
+                    dd.classList.add('open');
+                    this.classList.add('expanded');
+                }
             });
         }
     }
