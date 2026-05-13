@@ -9,23 +9,14 @@
 .modern-carousel-wrapper {
     position: relative;
     overflow: hidden;
-    background: linear-gradient(135deg, #2f5597 0%, #1e3a6d 100%);
-    border-radius: 20px;
+    background: transparent;
+    border-radius: 0;
     box-shadow: 0 25px 70px rgba(47, 85, 151, 0.4);
     margin-bottom: 60px;
 }
 
 .modern-carousel-wrapper::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    right: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
-    transform: rotate(8deg);
-    z-index: 1;
-    pointer-events: none;
+    content: none;
 }
 
 @keyframes rotateGlow {
@@ -34,7 +25,7 @@
 }
 
 #modernFadeCarousel {
-    border-radius: 20px;
+    border-radius: 0;
     overflow: hidden;
     position: relative;
     z-index: 2;
@@ -52,11 +43,12 @@
 /* Layer slides so outgoing/incoming overlap and never expose wrapper background */
 .carousel-inner {
     min-height: 550px;
+    background: #0f172a;
 }
 
 .carousel-fade .carousel-item {
     opacity: 0;
-    transition: opacity 0.85s ease-in-out;
+    transition: opacity 0.95s ease-in-out;
     display: block;
     position: absolute;
     top: 0;
@@ -67,15 +59,15 @@
 }
 
 .carousel-fade .carousel-item.active,
-.carousel-fade .carousel-item-next.carousel-item-start,
-.carousel-fade .carousel-item-prev.carousel-item-end {
+.carousel-fade .carousel-item-next.carousel-item-left,
+.carousel-fade .carousel-item-prev.carousel-item-right {
     opacity: 1;
     z-index: 1;
     pointer-events: auto;
 }
 
-.carousel-fade .active.carousel-item-start,
-.carousel-fade .active.carousel-item-end {
+.carousel-fade .active.carousel-item-left,
+.carousel-fade .active.carousel-item-right {
     opacity: 0;
     z-index: 0;
 }
@@ -101,6 +93,7 @@
     display: block;
     height: 550px;
     object-fit: cover;
+    border-radius: 0 !important;
     filter: brightness(0.7) contrast(1.15) saturate(1.2);
     animation: none;
     transform-origin: center;
