@@ -822,21 +822,89 @@ class ProductController extends Controller
             $query->whereRaw($this->preferredDbPriceSql() . ' > 0');
         }
 
-        if (!empty($search)) {
-            $searchTerm = trim((string) $search);
+        // Search relevance ordering vars — populated below when $search is present.
+        $searchOrderExpr     = null;
+        $searchOrderBindings = [];
 
-            if ($this->hasProductsFullTextIndex()) {
-                $query->whereRaw(
-                    'MATCH(product_name, description, mfg_part_no) AGAINST(? IN BOOLEAN MODE)',
-                    [$searchTerm . '*']
-                );
-            } else {
-                $like = '%' . strtolower($searchTerm) . '%';
-                $query->where(function ($q) use ($like) {
-                    $q->orWhereRaw("LOWER(COALESCE(product_name, '')) LIKE ?", [$like])
-                        ->orWhereRaw("LOWER(COALESCE(description, '')) LIKE ?", [$like])
-                        ->orWhereRaw("LOWER(COALESCE(mfg_part_no, '')) LIKE ?", [$like]);
+        if (!empty($search)) {
+            $searchTerm  = trim((string) $search);
+            $rawTerms    = array_values(array_filter(preg_split('/\s+/', $searchTerm)));
+            $lowerTerms  = array_map('strtolower', $rawTerms);
+            // Terms ≥ 4 chars can use MySQL FULLTEXT; shorter ones need LIKE.
+            $longTerms   = array_values(array_filter($lowerTerms, fn ($t) => strlen($t) >= 4));
+            $shortTerms  = array_values(array_filter($lowerTerms, fn ($t) => strlen($t) < 4));
+            $useFt       = $this->hasProductsFullTextIndex() && !empty($longTerms);
+
+            if ($useFt) {
+                // Build a boolean-mode query where EVERY long term is required (+).
+                // Also emit a de-pluralised stem so "laptops" also matches "laptop".
+                $boolParts = [];
+                foreach ($longTerms as $t) {
+                    $stem = (preg_match('/s$/i', $t) && strlen($t) > 4) ? substr($t, 0, -1) : $t;
+                    $boolParts[] = $stem !== $t
+                        ? '+(' . $stem . '* ' . $t . '*)' // OR-group so either form satisfies the term
+                        : '+' . $t . '*';
+                }
+                $boolQuery = implode(' ', $boolParts);
+
+                // Long terms: FULLTEXT hit OR manufacturer LIKE (catches brand searches like "HP").
+                $query->where(function ($q) use ($boolQuery, $longTerms) {
+                    $q->whereRaw(
+                        'MATCH(product_name, description, mfg_part_no) AGAINST(? IN BOOLEAN MODE)',
+                        [$boolQuery]
+                    );
+                    foreach ($longTerms as $t) {
+                        $q->orWhereRaw("LOWER(COALESCE(manufacturer, '')) LIKE ?", ['%' . $t . '%']);
+                    }
                 });
+
+                // Short terms (e.g. "HP") must additionally appear in at least one column.
+                foreach ($shortTerms as $t) {
+                    $like = '%' . $t . '%';
+                    $query->where(function ($q) use ($like) {
+                        $q->whereRaw("LOWER(COALESCE(product_name, '')) LIKE ?", [$like])
+                          ->orWhereRaw("LOWER(COALESCE(mfg_part_no, '')) LIKE ?", [$like])
+                          ->orWhereRaw("LOWER(COALESCE(manufacturer, '')) LIKE ?", [$like]);
+                    });
+                }
+
+                // Relevance scoring: product_name exact/prefix > contains > manufacturer > FT score.
+                $lowerFull  = strtolower($searchTerm);
+                $searchOrderExpr = "(
+                    CASE WHEN LOWER(COALESCE(product_name,'')) LIKE ? THEN 300 ELSE 0 END +
+                    CASE WHEN LOWER(COALESCE(product_name,'')) LIKE ? THEN 150 ELSE 0 END +
+                    CASE WHEN LOWER(COALESCE(manufacturer,''))  LIKE ? THEN  40 ELSE 0 END +
+                    MATCH(product_name, description, mfg_part_no) AGAINST(? IN BOOLEAN MODE) * 10
+                ) DESC";
+                $searchOrderBindings = [
+                    $lowerFull . '%',       // product_name starts with term  → 300
+                    '%' . $lowerFull . '%', // product_name contains term     → 150
+                    '%' . $lowerFull . '%', // manufacturer contains term     →  40
+                    $boolQuery,             // FT relevance score × 10
+                ];
+            } else {
+                // LIKE fallback — every term must appear in at least one column.
+                foreach ($lowerTerms as $t) {
+                    $like = '%' . $t . '%';
+                    $query->where(function ($q) use ($like) {
+                        $q->whereRaw("LOWER(COALESCE(product_name, '')) LIKE ?", [$like])
+                          ->orWhereRaw("LOWER(COALESCE(description, '')) LIKE ?", [$like])
+                          ->orWhereRaw("LOWER(COALESCE(mfg_part_no, '')) LIKE ?", [$like])
+                          ->orWhereRaw("LOWER(COALESCE(manufacturer, '')) LIKE ?", [$like]);
+                    });
+                }
+
+                $lowerFull = strtolower($searchTerm);
+                $searchOrderExpr = "(
+                    CASE WHEN LOWER(COALESCE(product_name,'')) LIKE ? THEN 300 ELSE 0 END +
+                    CASE WHEN LOWER(COALESCE(product_name,'')) LIKE ? THEN 150 ELSE 0 END +
+                    CASE WHEN LOWER(COALESCE(manufacturer,''))  LIKE ? THEN  40 ELSE 0 END
+                ) DESC";
+                $searchOrderBindings = [
+                    $lowerFull . '%',
+                    '%' . $lowerFull . '%',
+                    '%' . $lowerFull . '%',
+                ];
             }
         }
 
@@ -890,59 +958,18 @@ class ProductController extends Controller
                 ->whereRaw("NOT ((" . $this->preferredDbPriceSql() . " <= 0.05) AND (LOWER(COALESCE(product_name, '')) LIKE '%support%' OR LOWER(COALESCE(product_name, '')) LIKE '%warranty%' OR LOWER(COALESCE(product_name, '')) LIKE '%consulting%' OR LOWER(COALESCE(product_name, '')) LIKE '%implementation%' OR LOWER(COALESCE(product_name, '')) LIKE '%annual fee%' OR LOWER(COALESCE(product_name, '')) LIKE '%training%'))");
         }
 
-        // Filter by UNSPSC category segment prefix (e.g. "56" for Furniture)
-        if ($category !== '') {
-            if ($category === 'other') {
-                // "Other" matches any segment outside the curated workbook categories.
-                $namedSegments = [];
-                foreach (CatalogTaxonomy::curatedCategories() as $curatedCategory) {
-                    foreach ($curatedCategory['segment_codes'] as $segmentCode) {
-                        $namedSegments[] = $segmentCode;
-                    }
-                }
-                $namedSegments = array_values(array_unique($namedSegments));
-                $placeholders = implode(',', array_fill(0, count($namedSegments), '?'));
-                $query->whereRaw(
-                    "COALESCE(category_segment, '') NOT IN ($placeholders)",
-                    $namedSegments
-                );
-            } else {
-                $segments = array_values(array_filter(
-                    array_map('trim', explode(',', $category)),
-                    static fn (string $seg): bool => (bool) preg_match('/^\d{2}$/', $seg)
-                ));
-
-                if (empty($segments)) {
-                    $menuCategory = \App\Models\Category::query()
-                        ->whereNull('parent_id')
-                        ->where(function ($q) use ($category) {
-                            $q->where('slug', $category)
-                                ->orWhereRaw('LOWER(name) = ?', [strtolower($category)]);
-                        })
-                        ->first();
-
-                    if ($menuCategory) {
-                        $segments = array_values(array_filter(
-                            array_map('trim', explode(',', (string) $menuCategory->segment_code)),
-                            static fn (string $seg): bool => (bool) preg_match('/^\d{2}$/', $seg)
-                        ));
-                    }
-                }
-
-                if (count($segments) === 1) {
-                    $query->where('category_segment', $segments[0]);
-                } elseif (count($segments) > 1) {
-                    $query->whereIn('category_segment', $segments);
-                }
-            }
-        }
+        $this->applyCategorySegmentFilterToQuery($query, $category);
 
         $perPage = max(1, $pageSize);
         $currentPage = max(1, $pageNo);
         $offset = ($currentPage - 1) * $perPage;
         $defaultBrowseMaxItems = $isDefaultBrowse ? self::STOREFRONT_MAX_DEFAULT_PRODUCTS : null;
 
-        // Prioritize sellable common IT items with images, then keep pagination stable.
+        // When searching: sort by relevance score first, then by image/availability for stability.
+        if ($searchOrderExpr !== null) {
+            $query->orderByRaw($searchOrderExpr, $searchOrderBindings);
+        }
+
         $query
             ->orderByRaw('CASE WHEN ' . $this->hasUsableProductImageSql() . ' THEN 0 ELSE 1 END')
             ->orderByDesc('is_available')
@@ -2308,21 +2335,53 @@ class ProductController extends Controller
             return;
         }
 
-        if ($this->hasProductsFullTextIndex()) {
-            $query->whereRaw(
-                'MATCH(product_name, description, mfg_part_no) AGAINST(? IN BOOLEAN MODE)',
-                [$searchTerm . '*']
-            );
+        $rawTerms   = array_values(array_filter(preg_split('/\s+/', $searchTerm)));
+        $lowerTerms = array_map('strtolower', $rawTerms);
+        $longTerms  = array_values(array_filter($lowerTerms, fn ($t) => strlen($t) >= 4));
+        $shortTerms = array_values(array_filter($lowerTerms, fn ($t) => strlen($t) < 4));
+        $useFt      = $this->hasProductsFullTextIndex() && !empty($longTerms);
+
+        if ($useFt) {
+            $boolParts = [];
+            foreach ($longTerms as $t) {
+                $stem        = (preg_match('/s$/i', $t) && strlen($t) > 4) ? substr($t, 0, -1) : $t;
+                $boolParts[] = $stem !== $t
+                    ? '+(' . $stem . '* ' . $t . '*)'
+                    : '+' . $t . '*';
+            }
+            $boolQuery = implode(' ', $boolParts);
+
+            $query->where(function ($q) use ($boolQuery, $longTerms) {
+                $q->whereRaw(
+                    'MATCH(product_name, description, mfg_part_no) AGAINST(? IN BOOLEAN MODE)',
+                    [$boolQuery]
+                );
+                foreach ($longTerms as $t) {
+                    $q->orWhereRaw("LOWER(COALESCE(manufacturer, '')) LIKE ?", ['%' . $t . '%']);
+                }
+            });
+
+            foreach ($shortTerms as $t) {
+                $like = '%' . $t . '%';
+                $query->where(function ($q) use ($like) {
+                    $q->whereRaw("LOWER(COALESCE(product_name, '')) LIKE ?", [$like])
+                      ->orWhereRaw("LOWER(COALESCE(mfg_part_no, '')) LIKE ?", [$like])
+                      ->orWhereRaw("LOWER(COALESCE(manufacturer, '')) LIKE ?", [$like]);
+                });
+            }
             return;
         }
 
-        $like = '%' . strtolower($searchTerm) . '%';
-        $query->where(function ($q) use ($like) {
-            $q->orWhereRaw("LOWER(COALESCE(product_name, '')) LIKE ?", [$like])
-                ->orWhereRaw("LOWER(COALESCE(description, '')) LIKE ?", [$like])
-                ->orWhereRaw("LOWER(COALESCE(mfg_part_no, '')) LIKE ?", [$like])
-                ->orWhereRaw("LOWER(COALESCE(manufacturer, '')) LIKE ?", [$like]);
-        });
+        // LIKE fallback — every term must appear in at least one column.
+        foreach ($lowerTerms as $t) {
+            $like = '%' . $t . '%';
+            $query->where(function ($q) use ($like) {
+                $q->whereRaw("LOWER(COALESCE(product_name, '')) LIKE ?", [$like])
+                  ->orWhereRaw("LOWER(COALESCE(description, '')) LIKE ?", [$like])
+                  ->orWhereRaw("LOWER(COALESCE(mfg_part_no, '')) LIKE ?", [$like])
+                  ->orWhereRaw("LOWER(COALESCE(manufacturer, '')) LIKE ?", [$like]);
+            });
+        }
     }
 
     private function applyVendorFacetFilterToQuery(\Illuminate\Database\Eloquent\Builder $query, array $selectedVendors): void
@@ -2388,6 +2447,7 @@ class ProductController extends Controller
 
         if (empty($segments)) {
             $menuCategory = \App\Models\Category::query()
+                ->whereNull('parent_id')
                 ->where(function ($q) use ($category) {
                     $q->where('slug', $category)
                         ->orWhereRaw('LOWER(name) = ?', [strtolower($category)]);
@@ -2402,11 +2462,45 @@ class ProductController extends Controller
             }
         }
 
-        if (count($segments) === 1) {
-            $query->where('category_segment', $segments[0]);
-        } elseif (count($segments) > 1) {
-            $query->whereIn('category_segment', $segments);
+        if (empty($segments)) {
+            return;
         }
+
+        // Collect product_name keywords for the matched segments.
+        // These are only applied as a fallback for products that have NO segment code yet
+        // (null / empty) — products already tagged with a different segment are intentionally
+        // excluded so accessories like "Monitor Shelf" don't bleed into Monitors & Displays.
+        $keywordLikes = [];
+        foreach (CatalogTaxonomy::curatedCategories() as $cat) {
+            if (!empty(array_intersect($cat['segment_codes'], $segments))) {
+                foreach ($cat['keywords'] as $kw) {
+                    if (strlen($kw) >= 5) { // skip very short / generic words
+                        $keywordLikes[] = '%' . strtolower($kw) . '%';
+                    }
+                }
+            }
+        }
+
+        $query->where(function ($q) use ($segments, $keywordLikes) {
+            // Primary: correct segment code.
+            if (count($segments) === 1) {
+                $q->where('category_segment', $segments[0]);
+            } else {
+                $q->whereIn('category_segment', $segments);
+            }
+            // Fallback: product has no segment yet AND its name matches a category keyword.
+            // Restricting to untagged rows prevents cross-category bleed-through.
+            if (!empty($keywordLikes)) {
+                $q->orWhere(function ($inner) use ($keywordLikes) {
+                    $inner->whereRaw("COALESCE(category_segment, '') = ''");
+                    $inner->where(function ($kq) use ($keywordLikes) {
+                        foreach ($keywordLikes as $like) {
+                            $kq->orWhereRaw("LOWER(COALESCE(product_name, '')) LIKE ?", [$like]);
+                        }
+                    });
+                });
+            }
+        });
     }
 
     private function parseFacetVendors(string $vendors): array

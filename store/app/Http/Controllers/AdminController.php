@@ -2040,6 +2040,15 @@ class AdminController extends Controller
         }
     }
 
+    private function canCheckShippingStatus(Order $order): bool
+    {
+        $quote = $order->relationLoaded('quote') ? $order->quote : $order->quote()->first();
+        $invoice = $order->relationLoaded('invoice') ? $order->invoice : $order->invoice()->first();
+
+        return strtolower((string) ($quote?->status ?? '')) === 'approved'
+            && strtolower((string) ($invoice?->status ?? '')) === 'paid';
+    }
+
     /**
      * Get order status from TD SYNNEX eSolution API.
      */
@@ -2056,7 +2065,7 @@ class AdminController extends Controller
             }
 
             // Get order to verify it exists
-            $order = Order::where('order_number', $orderNumber)->firstOrFail();
+            $order = Order::with(['quote', 'invoice'])->where('order_number', $orderNumber)->firstOrFail();
 
             if (str_starts_with((string) $order->order_number, 'ORD-')) {
                 $localNormalized = $this->normalizeTdOrderStatusPayload(null, $order);
@@ -2081,15 +2090,18 @@ class AdminController extends Controller
 
             $statusResponse = null;
             $statusSource = 'local-raw-data';
-            try {
-                $statusResponse = app(TDSynnexService::class)->checkPoStatus($order->quote_id ?: $externalOrderId);
-                $normalized = $this->normalizeTdOrderStatusPayload($statusResponse, $order);
-                $statusSource = 'xml-postatus';
-            } catch (\Exception $apiEx) {
-                Log::debug('TD SYNNEX XML PO status lookup failed for ' . $externalOrderId . ', using local raw_data: ' . $apiEx->getMessage());
-                $rawData = is_array($order->raw_data) ? $order->raw_data : [];
-                $normalized = $this->normalizeTdOrderStatusPayload($rawData ?: null, $order);
-                $statusSource = 'local-raw-data';
+            $rawData = is_array($order->raw_data) ? $order->raw_data : [];
+            $normalized = $this->normalizeTdOrderStatusPayload($rawData ?: null, $order);
+
+            if ($this->canCheckShippingStatus($order)) {
+                try {
+                    $statusResponse = app(TDSynnexService::class)->checkPoStatus($order->quote_id ?: $externalOrderId);
+                    $normalized = $this->normalizeTdOrderStatusPayload($statusResponse, $order);
+                    $statusSource = 'xml-postatus';
+                } catch (\Exception $apiEx) {
+                    Log::debug('TD SYNNEX XML PO status lookup failed for ' . $externalOrderId . ', using local raw_data: ' . $apiEx->getMessage());
+                    $statusSource = 'local-raw-data';
+                }
             }
 
             return response()->json([
@@ -2188,7 +2200,7 @@ class AdminController extends Controller
             $search = $request->get('search', '');
 
             // Show all orders — status is refreshed live from TD SYNNEX below.
-            $query = Order::with(['user', 'company', 'invoice']);
+            $query = Order::with(['user', 'company', 'quote', 'invoice']);
 
             if ($statusFilter) {
                 // Map frontend filter values to what may be stored locally
@@ -2229,7 +2241,7 @@ class AdminController extends Controller
                 $packages   = [];
                 $tdStatus   = null;
 
-                if ($poNumber) {
+                if ($poNumber && $this->canCheckShippingStatus($order)) {
                     try {
                         $poResponse = $tdsynnexService->checkPoStatus($poNumber, 'us', false);
                         if (is_array($poResponse) && empty($poResponse['error']) && empty($poResponse['errorMessage'])) {

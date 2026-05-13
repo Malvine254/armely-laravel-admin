@@ -6,7 +6,7 @@
       <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8">
         <div class="mb-6">
           <h1 class="text-3xl font-bold text-slate-900">Payment</h1>
-          <p class="text-slate-600 mt-1">Review the invoice amount. Payments are handled manually at the end of each month.</p>
+          <p class="text-slate-600 mt-1">Review the invoice amount and billing reference.</p>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
@@ -33,8 +33,8 @@
               class="h-12 w-auto"
             />
             <div>
-              <p class="font-semibold text-slate-900">Manual Month-End Payment</p>
-              <p class="text-sm text-slate-600">QuickBooks online checkout is currently unavailable from the Armely store.</p>
+              <p class="font-semibold text-slate-900">Invoice Delivery</p>
+              <p class="text-sm text-slate-600">Your invoice will be sent to you for review and payment coordination.</p>
             </div>
           </div>
         </div>
@@ -47,7 +47,7 @@
               class="h-12 w-auto"
             />
             <p class="text-sm text-slate-700">
-              The Armely team will review outstanding invoices and coordinate payment manually at the end of the month.
+              You can return to your invoices at any time to review balances and download PDF copies.
             </p>
           </div>
         </div>

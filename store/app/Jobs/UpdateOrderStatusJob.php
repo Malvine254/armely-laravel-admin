@@ -29,8 +29,19 @@ class UpdateOrderStatusJob implements ShouldQueue
     public function handle(TDSynnexService $tdsynnexService, NotificationService $notificationService): void
     {
         try {
+            $this->order->loadMissing(['quote', 'invoice']);
+
+            if (!$this->canCheckShippingStatus($this->order)) {
+                return;
+            }
+
+            $poNumber = trim((string) ($this->order->quote_id ?: $this->order->order_number));
+            if ($poNumber === '' || in_array((string) $this->order->status, ['cancelled', 'delivered'], true)) {
+                return;
+            }
+
             // Fetch current status from TD SYNNEX XML POStatus when a PO number is available.
-            $tdStatus = $tdsynnexService->checkPoStatus($this->order->quote_id ?: $this->order->order_number);
+            $tdStatus = $tdsynnexService->checkPoStatus($poNumber);
 
             // Normalize the raw TD SYNNEX status code to our canonical set
             $rawStatus = (string) ($this->deepFindFirstByKeys($tdStatus, ['status', 'Status', 'code', 'Code', 'orderStatus', 'OrderStatus', 'poStatus', 'POStatus']) ?? '');
@@ -85,6 +96,15 @@ class UpdateOrderStatusJob implements ShouldQueue
             Log::error("Failed to update order status for {$this->order->order_number}: " . $e->getMessage());
             throw $e;
         }
+    }
+
+    private function canCheckShippingStatus(Order $order): bool
+    {
+        $quote = $order->relationLoaded('quote') ? $order->quote : $order->quote()->first();
+        $invoice = $order->relationLoaded('invoice') ? $order->invoice : $order->invoice()->first();
+
+        return strtolower((string) ($quote?->status ?? '')) === 'approved'
+            && strtolower((string) ($invoice?->status ?? '')) === 'paid';
     }
 
     private function deepFindFirstByKeys(mixed $data, array $keys): mixed

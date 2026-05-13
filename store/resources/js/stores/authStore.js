@@ -17,6 +17,83 @@ export const useAuthStore = defineStore('auth', () => {
   const REMEMBER_TIMEOUT = 30 * 24 * 60 * 60 * 1000 // 30 days in milliseconds
   const rememberSession = ref(localStorage.getItem(REMEMBER_KEY) === 'true')
 
+  const sanitizeStoredUser = (value, depth = 0) => {
+    if (!value || typeof value !== 'object') {
+      return value
+    }
+
+    if (Array.isArray(value)) {
+      return value.slice(0, 25).map(item => sanitizeStoredUser(item, depth + 1))
+    }
+
+    if (depth > 4) {
+      return undefined
+    }
+
+    return Object.entries(value).reduce((clean, [key, item]) => {
+      const normalizedKey = key.toLowerCase()
+      const isInlineMediaKey = ['avatar', 'image', 'photo', 'profile_picture'].includes(normalizedKey)
+
+      if (typeof item === 'string') {
+        const isInlineData = item.startsWith('data:image/') || item.startsWith('data:application/')
+        if (isInlineMediaKey || isInlineData || item.length > 20000) {
+          return clean
+        }
+      }
+
+      const nextValue = sanitizeStoredUser(item, depth + 1)
+      if (nextValue !== undefined) {
+        clean[key] = nextValue
+      }
+
+      return clean
+    }, {})
+  }
+
+  const minimalStoredUser = (value) => ({
+    id: value?.id,
+    name: value?.name,
+    email: value?.email,
+    phone: value?.phone,
+    role: value?.role,
+    status: value?.status,
+    company_name: value?.company_name,
+    company: value?.company ? sanitizeStoredUser(value.company) : undefined,
+    profile_picture_url: value?.profile_picture_url,
+    shipping_address: value?.shipping_address,
+    email_verified_at: value?.email_verified_at,
+    incomplete_fields: value?.incomplete_fields,
+    payment_methods_consent: value?.payment_methods_consent,
+  })
+
+  const isPlaceholderShippingAddress = (address) => {
+    if (!address || typeof address !== 'object') {
+      return false
+    }
+
+    const values = [
+      String(address.street_1 || '').trim().toLowerCase(),
+      String(address.street_2 || '').trim().toLowerCase(),
+      String(address.city || '').trim().toLowerCase(),
+      String(address.state || '').trim().toLowerCase(),
+      String(address.postal_code || '').trim(),
+      String(address.country || '').trim().toUpperCase(),
+    ]
+
+    return new Set(values.slice(0, 4)).size === 1
+      && values[0].length === 3
+      && values[4] === '01100'
+      && values[5] === 'KE'
+  }
+
+  const normalizeUserProfile = (value) => {
+    const clean = sanitizeStoredUser(value)
+    if (clean?.shipping_address && isPlaceholderShippingAddress(clean.shipping_address)) {
+      clean.shipping_address = null
+    }
+    return clean
+  }
+
   const clearAuthStorage = () => {
     localStorage.removeItem('auth_token')
     localStorage.removeItem('auth_restricted')
@@ -38,7 +115,7 @@ export const useAuthStore = defineStore('auth', () => {
     const saved = localStorage.getItem(USER_KEY) || sessionStorage.getItem(USER_KEY)
     if (saved) {
       try {
-        user.value = JSON.parse(saved)
+        user.value = normalizeUserProfile(JSON.parse(saved))
       } catch (e) {
         console.error('Failed to load user:', e)
         user.value = null
@@ -60,8 +137,24 @@ export const useAuthStore = defineStore('auth', () => {
 
   const saveUser = () => {
     if (user.value) {
-      getAuthStorage().setItem(USER_KEY, JSON.stringify(user.value))
+      const storage = getAuthStorage()
+      try {
+        storage.setItem(USER_KEY, JSON.stringify(normalizeUserProfile(user.value)))
+      } catch (error) {
+        console.warn('User profile was too large for browser storage; saving compact session profile.', error)
+        try {
+          storage.removeItem(USER_KEY)
+          storage.setItem(USER_KEY, JSON.stringify(minimalStoredUser(user.value)))
+        } catch (fallbackError) {
+          console.warn('Unable to persist user profile in browser storage.', fallbackError)
+        }
+      }
     }
+  }
+
+  const setUser = (nextUser) => {
+    user.value = normalizeUserProfile(nextUser)
+    saveUser()
   }
 
   const saveToken = (newToken, remember = false) => {
@@ -98,7 +191,7 @@ export const useAuthStore = defineStore('auth', () => {
           throw new Error('Invalid response from server')
         }
         
-        user.value = payload.user
+        user.value = normalizeUserProfile(payload.user)
                 saveToken(payload.token, remember)
                 saveUser()
         setRestricted(payload.restricted)
@@ -248,8 +341,7 @@ export const useAuthStore = defineStore('auth', () => {
         if (typeof nextUser === 'object' && payload?.incomplete_fields) {
           nextUser.incomplete_fields = payload.incomplete_fields
         }
-        user.value = nextUser
-        saveUser()
+        setUser(nextUser)
         setRestricted(!!payload?.restricted)
         return true
       }
@@ -394,6 +486,7 @@ export const useAuthStore = defineStore('auth', () => {
     resetPassword,
     logout,
     refreshUser,
+    setUser,
     clearForcePasswordChange,
     startStatusPolling,
     stopStatusPolling,

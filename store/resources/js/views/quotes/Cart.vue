@@ -151,7 +151,7 @@
                 </svg>
                 <span>Download Quote</span>
               </button>
-              <button @click="requestQuote" :disabled="isSubmittingQuote" class="w-full px-4 py-3 border-2 font-semibold rounded-lg transition inline-flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed" style="border-color: #2F5597; color: #2F5597;" @mouseenter="!isSubmittingQuote && ($event.target.style.backgroundColor='#cce4f4')" @mouseleave="$event.target.style.backgroundColor='transparent'">
+              <button @click="requestQuote()" :disabled="isSubmittingQuote" class="w-full px-4 py-3 border-2 font-semibold rounded-lg transition inline-flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed" style="border-color: #2F5597; color: #2F5597;" @mouseenter="!isSubmittingQuote && ($event.target.style.backgroundColor='#cce4f4')" @mouseleave="$event.target.style.backgroundColor='transparent'">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
                 </svg>
@@ -223,6 +223,35 @@
           </div>
         </div>
       </div>
+
+      <div v-if="showShippingConfirmModal" class="fixed inset-0 z-50 flex items-center justify-center px-4">
+        <div class="absolute inset-0 bg-slate-900/45" @click="closeShippingConfirmModal"></div>
+        <div class="relative w-full max-w-lg rounded-2xl border bg-white shadow-2xl" style="border-color:#cfe0f5;">
+          <div class="px-5 py-4 border-b" style="border-color:#e2e8f0;">
+            <h3 class="text-lg font-bold" style="color:#2F5597;">Confirm Shipping Address</h3>
+            <p class="text-sm text-slate-600 mt-1">Please confirm where this order should be delivered before submitting your quote.</p>
+          </div>
+
+          <div class="p-5 space-y-4">
+            <div class="rounded-xl border p-4" style="border-color:#d9e6f7;background:#f8fbff;">
+              <p class="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Saved Address</p>
+              <p class="text-sm font-semibold text-slate-900">{{ savedShippingAddressSummary }}</p>
+            </div>
+          </div>
+
+          <div class="px-5 py-4 border-t flex flex-col sm:flex-row sm:justify-end gap-2" style="border-color:#e2e8f0;">
+            <button @click="changeShippingAddress" type="button" class="px-4 py-2 text-sm font-semibold rounded-lg border" style="border-color:#2F5597;color:#2F5597;">
+              Change Address
+            </button>
+            <button @click="closeShippingConfirmModal" type="button" class="px-4 py-2 text-sm font-semibold rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50">
+              Cancel
+            </button>
+            <button @click="requestQuote(true)" type="button" :disabled="isSubmittingQuote" class="px-4 py-2 text-sm font-semibold rounded-lg text-white disabled:opacity-60" style="background-color:#2F5597;">
+              {{ isSubmittingQuote ? 'Submitting...' : 'Use This Address' }}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -248,6 +277,7 @@ const authStore = useAuthStore()
 const failedImageIds = ref([])
 const isSubmittingQuote = ref(false)
 const showCartShareModal = ref(false)
+const showShippingConfirmModal = ref(false)
 const cartShareRecipientEmail = ref('')
 const cartShareNote = ref('')
 const cartShareGeneratedLink = ref('')
@@ -268,6 +298,32 @@ const quoteSubtotalUsd = computed(() => {
 const formatAdjustedCurrency = (amountUsd) => {
   return formatWithCurrency(convertFromUsd(amountUsd))
 }
+
+const getSavedShippingAddress = () => {
+  return authStore.user?.shipping_address || {}
+}
+
+const hasUsableShippingAddress = (shipping = getSavedShippingAddress()) => {
+  return [
+    shipping.street_1,
+    shipping.city,
+    shipping.country,
+  ].some((value) => String(value || '').trim() !== '')
+}
+
+const savedShippingAddressSummary = computed(() => {
+  const shipping = getSavedShippingAddress()
+  const parts = [
+    shipping.label,
+    shipping.street_1,
+    shipping.street_2,
+    [shipping.city, shipping.state].filter(Boolean).join(', '),
+    shipping.postal_code,
+    shipping.country,
+  ].filter(Boolean)
+
+  return parts.length ? parts.join(' | ') : 'No shipping address saved'
+})
 
 const goBack = () => {
   router.push({ name: 'products' })
@@ -636,7 +692,17 @@ const downloadQuote = () => {
   }
 }
 
-const requestQuote = async () => {
+const closeShippingConfirmModal = () => {
+  showShippingConfirmModal.value = false
+}
+
+const changeShippingAddress = () => {
+  closeShippingConfirmModal()
+  toastStore.addToast('Update your shipping address, then return to your quote.', 'info', 3000, { category: 'quotes' })
+  router.push({ name: 'account' })
+}
+
+const requestQuote = async (shippingConfirmed = false) => {
   if (isSubmittingQuote.value) return
 
   if (authStore.isRestricted) {
@@ -657,18 +723,21 @@ const requestQuote = async () => {
     return
   }
 
-  const shipping = authStore.user?.shipping_address || {}
-  const hasSavedShippingAddress = [
-    shipping.street_1,
-    shipping.city,
-    shipping.country,
-  ].some((value) => String(value || '').trim() !== '')
+  const shipping = getSavedShippingAddress()
+  const hasSavedShippingAddress = hasUsableShippingAddress(shipping)
 
   if (!hasSavedShippingAddress) {
     toastStore.addToast('Add your shipping address in Account before requesting a quote', 'warning', 3000, { category: 'quotes' })
     router.push({ name: 'account' })
     return
   }
+
+  if (shippingConfirmed !== true) {
+    showShippingConfirmModal.value = true
+    return
+  }
+
+  closeShippingConfirmModal()
 
   let slowRequestTimer = null
   try {

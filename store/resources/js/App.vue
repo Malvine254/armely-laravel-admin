@@ -207,9 +207,9 @@ const showStoreFooter = computed(() => {
 
 const showFloatingChatLauncher = computed(() => {
   const routeName = String(route.name || '')
-  if (!authStore.isAuthenticated) return false
   if (routeName === 'messages') return false
   if (routeName === 'admin-login') return false
+  if (routeName.startsWith('admin-')) return false
   return true
 })
 
