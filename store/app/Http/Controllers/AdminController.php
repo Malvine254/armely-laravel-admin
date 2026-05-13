@@ -3469,7 +3469,7 @@ class AdminController extends Controller
             'next_run_local' => $nextRun->format('Y-m-d H:i:s T'),
             'next_run_utc' => $nextRun->copy()->utc()->format('Y-m-d H:i:s T'),
             'schedule_name' => 'refresh-live-prices-6pm-kenya',
-            'queue' => 'products-sync',
+            'queue' => 'scheduler command',
             'scope' => $scope,
             'skus' => implode("\n", $skuList),
             'sku_count' => count($skuList),

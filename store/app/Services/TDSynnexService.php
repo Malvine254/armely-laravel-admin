@@ -4293,9 +4293,20 @@ XML;
 
         try {
             $timeout = max(1, (int) config('tdsynnex.price_availability.request_timeout', config('tdsynnex.timeout', 30)));
+            $maxAttempts = max(1, (int) config('tdsynnex.retry.max_attempts', 3));
+            $retryDelayMs = max(0, (int) config('tdsynnex.retry.delay', 1000));
+
             $response = Http::withHeaders(['Content-Type' => 'application/xml', 'Accept' => 'application/xml'])
-                ->connectTimeout(min(5, $timeout))
+                ->connectTimeout(min(10, $timeout))
                 ->timeout($timeout)
+                ->retry($maxAttempts, $retryDelayMs, function (\Throwable $exception): bool {
+                    if ($exception instanceof \Illuminate\Http\Client\RequestException) {
+                        return $exception->response !== null
+                            && $this->shouldRetry($exception->response->status());
+                    }
+
+                    return true;
+                }, throw: false)
                 ->withBody($xml, 'application/xml')
                 ->post($url);
 

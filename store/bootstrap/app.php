@@ -62,11 +62,14 @@ return Application::configure(basePath: dirname(__DIR__))
             $priceSyncTimezone = 'Africa/Nairobi';
         }
 
-        $schedule->job(\App\Jobs\RefreshLivePricesJob::class, 'products-sync', 'database')
+        // Run synchronously from the scheduler so the daily price sync does not
+        // depend on a long-running queue worker being present.
+        $schedule->command('tdsynnex:refresh-live-prices')
             ->dailyAt($priceSyncTime)
             ->timezone($priceSyncTimezone)
             ->name('refresh-live-prices-6pm-kenya')
-            ->withoutOverlapping();
+            ->withoutOverlapping()
+            ->runInBackground();
 
         $schedule->job(new \App\Jobs\SyncPriceAvailabilityCatalogJob(true), 'products-sync', 'database')
             ->hourly()
