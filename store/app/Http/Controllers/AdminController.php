@@ -2200,7 +2200,7 @@ class AdminController extends Controller
             $search = $request->get('search', '');
 
             // Show all orders — status is refreshed live from TD SYNNEX below.
-            $query = Order::with(['user', 'company', 'quote', 'invoice']);
+            $query = Order::with(['user', 'user.company', 'quote', 'invoice']);
 
             if ($statusFilter) {
                 // Map frontend filter values to what may be stored locally
@@ -2222,7 +2222,7 @@ class AdminController extends Controller
                       ->orWhere('quote_id', 'like', "%{$search}%")
                       ->orWhere('tdsynnex_order_id', 'like', "%{$search}%")
                       ->orWhereHas('user', fn($uq) => $uq->where('name', 'like', "%{$search}%"))
-                      ->orWhereHas('company', fn($cq) => $cq->where('name', 'like', "%{$search}%"));
+                      ->orWhereHas('user.company', fn($cq) => $cq->where('name', 'like', "%{$search}%"));
                 });
             }
 
@@ -2666,6 +2666,114 @@ class AdminController extends Controller
                 'success' => false,
                 'message' => 'Failed to approve customer',
             ], 500);
+        }
+    }
+
+    /**
+     * Update customer user profile details from admin portal.
+     */
+    public function updateCustomerUser(Request $request, string $userId): JsonResponse
+    {
+        try {
+            $actor = $request->user();
+
+            if ($actor->role !== 'admin' && $actor->role !== 'super_admin') {
+                return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+            }
+
+            if (!$this->hasPermission($actor, 'manage_customers')) {
+                return response()->json(['success' => false, 'message' => 'You do not have permission to manage customers'], 403);
+            }
+
+            $validated = $request->validate([
+                'name'         => 'required|string|max:255',
+                'email'        => 'required|email|max:255',
+                'phone'        => 'sometimes|nullable|string|max:50',
+                'company_name' => 'sometimes|nullable|string|max:255',
+                'company_domain' => 'sometimes|nullable|string|max:255',
+                'role' => 'sometimes|required|in:owner,buyer',
+                'status' => 'sometimes|required|in:pending,active,suspended',
+                'special_pricing_percent' => 'sometimes|nullable|numeric|min:0|max:100',
+                'assigned_shipping_amount' => 'sometimes|nullable|numeric|min:0|max:999999.99',
+            ]);
+
+            $targetUser = User::with('company')
+                ->where('id', $userId)
+                ->whereNotIn('role', ['admin', 'super_admin'])
+                ->first();
+
+            if (!$targetUser) {
+                return response()->json(['success' => false, 'message' => 'Customer user not found'], 404);
+            }
+
+            // Check email uniqueness (allow keeping own email).
+            if (
+                $validated['email'] !== $targetUser->email &&
+                User::where('email', $validated['email'])->where('id', '!=', $targetUser->id)->exists()
+            ) {
+                return response()->json(['success' => false, 'message' => 'Email is already in use by another account'], 422);
+            }
+
+            $targetUser->name  = $validated['name'];
+            $targetUser->email = $validated['email'];
+            if (array_key_exists('phone', $validated)) {
+                $targetUser->phone = $validated['phone'] ?? null;
+            }
+            if (array_key_exists('role', $validated)) {
+                $targetUser->role = $validated['role'];
+            }
+            if (array_key_exists('status', $validated)) {
+                $targetUser->status = $validated['status'];
+            }
+            if (array_key_exists('special_pricing_percent', $validated)) {
+                $targetUser->special_pricing_percent = round((float) ($validated['special_pricing_percent'] ?? 0), 2);
+            }
+            if (array_key_exists('assigned_shipping_amount', $validated)) {
+                $targetUser->assigned_shipping_amount = round((float) ($validated['assigned_shipping_amount'] ?? 0), 2);
+            }
+            $targetUser->save();
+
+            if ($targetUser->company) {
+                if (array_key_exists('company_name', $validated) && !empty($validated['company_name'])) {
+                    $targetUser->company->name = $validated['company_name'];
+                }
+
+                if (array_key_exists('company_domain', $validated) && !empty($validated['company_domain'])) {
+                    $normalizedDomain = strtolower(trim((string) $validated['company_domain']));
+
+                    $domainTaken = Company::where('domain', $normalizedDomain)
+                        ->where('id', '!=', $targetUser->company->id)
+                        ->exists();
+
+                    if ($domainTaken) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Company domain is already in use by another company',
+                        ], 422);
+                    }
+
+                    $targetUser->company->domain = $normalizedDomain;
+                }
+
+                $targetUser->company->save();
+            }
+
+            $targetUser->refresh()->load('company:id,name,domain,status');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Customer details updated successfully',
+                'data'    => $targetUser,
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors'  => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('Failed to update customer user: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Failed to update customer details'], 500);
         }
     }
 
@@ -5299,6 +5407,7 @@ EOT;
                     'country'      => $effectiveShip->country ?? 'US',
                     'contactName'  => $effectiveShip->contact_name ?? $quote->user->name ?? '',
                     'contactPhone' => $effectiveShip->contact_phone ?? $quote->user->phone ?? '',
+                    'contactEmail' => $quote->user->email ?? '',
                 ],
                 'poLine'    => $lineItems,
                 'poTotal'   => (string) number_format((float) ($quote->total_amount ?? 0), 2, '.', ''),
@@ -5349,18 +5458,34 @@ EOT;
             }
 
             $updateData = [
-                'order_number'      => $orderNumber,
-                'tdsynnex_order_id' => $orderNumber,
-                'status'            => $localStatus,
-                'raw_data'          => $tdResponse,
-                'payment_status'    => 'paid',
-                'shipping_amount'   => (float) ($normalizedOrderData['freight_amount'] ?? $quoteShippingAmount),
-                'tracking_info'     => [
+                'order_number'       => $orderNumber,
+                'tdsynnex_order_id'  => $orderNumber,
+                'status'             => $localStatus,
+                'raw_data'           => $tdResponse,
+                'payment_status'     => 'paid',
+                'shipping_amount'    => (float) ($normalizedOrderData['freight_amount'] ?? $quoteShippingAmount),
+                'shipping_address_id' => $orderShipAddr->id ?? $effectiveShip->id ?? null,
+                'billing_address_id'  => $orderBillAddr->id ?? $effectiveBill->id ?? null,
+                'tracking_info'      => [
                     'tracking_number'     => $normalizedOrderData['tracking_number'] ?? null,
                     'shipping_status'     => $normalizedOrderData['shipping_status'] ?? null,
                     'td_rejection_reason' => $tdRejectionReason,
+                    'ship_to'             => [
+                        'company_name'  => $orderData['shipTo']['companyName'],
+                        'address'       => trim(implode(', ', array_filter([
+                            $orderData['shipTo']['address1'],
+                            $orderData['shipTo']['address2'],
+                            $orderData['shipTo']['city'],
+                            $orderData['shipTo']['state'],
+                            $orderData['shipTo']['postalCode'],
+                            $orderData['shipTo']['country'],
+                        ]))),
+                        'contact_name'  => $orderData['shipTo']['contactName'],
+                        'contact_phone' => $orderData['shipTo']['contactPhone'],
+                        'contact_email' => $orderData['shipTo']['contactEmail'],
+                    ],
                 ],
-                'ordered_at'        => now(),
+                'ordered_at'         => now(),
             ];
 
             if ($localStatus === 'failed' && $tdRejectionReason) {
