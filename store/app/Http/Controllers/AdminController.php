@@ -2480,6 +2480,60 @@ class AdminController extends Controller
                     ? max(0, (float) ($order->invoice->total_amount ?? 0) - (float) ($order->invoice->paid_amount ?? 0))
                     : 0;
 
+                $rawItems = $order->items;
+
+                if (is_string($rawItems)) {
+                    $decodedItems = json_decode($rawItems, true);
+                    $rawItems = is_array($decodedItems) ? $decodedItems : [];
+                }
+
+                if ($rawItems instanceof \Illuminate\Support\Collection) {
+                    $rawItems = $rawItems->toArray();
+                }
+
+                if (!is_array($rawItems)) {
+                    $rawItems = [];
+                }
+
+                $normalizedItems = collect($rawItems)
+                    ->map(function ($item, $index) {
+                        $itemArray = is_array($item) ? $item : (is_object($item) ? (array) $item : []);
+
+                        $resolvedName = $this->resolveOrderItemName($itemArray)
+                            ?? trim((string) (
+                                $itemArray['partNumber']
+                                ?? $itemArray['sku']
+                                ?? $itemArray['mfg_part_number']
+                                ?? $itemArray['mfgPartNo']
+                                ?? ''
+                            ));
+
+                        $quantity = (int) (
+                            $itemArray['quantity']
+                            ?? $itemArray['qty']
+                            ?? $itemArray['orderQuantity']
+                            ?? 1
+                        );
+
+                        $unitPrice = (float) (
+                            $itemArray['price']
+                            ?? $itemArray['unit_price']
+                            ?? $itemArray['unitPrice']
+                            ?? $itemArray['cost']
+                            ?? 0
+                        );
+
+                        $itemArray['name'] = $resolvedName !== '' ? $resolvedName : ('Item ' . ((int) $index + 1));
+                        $itemArray['quantity'] = max($quantity, 1);
+                        $itemArray['price'] = $unitPrice;
+
+                        return $itemArray;
+                    })
+                    ->values()
+                    ->all();
+
+                $order->items = $normalizedItems;
+
                 $order->primary_item_name = $itemPreview['primary_item_name'];
                 $order->additional_items_count = $itemPreview['additional_items_count'];
                 $order->linked_invoice_number = $order->invoice?->invoice_number;
