@@ -519,32 +519,64 @@
               'integrity' => 'fa fa-shield',
               'innovation' => 'fa fa-lightbulb-o',
               'collaboration' => 'fa fa-users',
-              'customer success' => 'fa fa-handshake-o',
               'accountability' => 'fa fa-check-circle',
+              'empowerment' => 'fa fa-rocket',
+              'customer centricity' => 'fa fa-heart',
+              'customer-centricity' => 'fa fa-heart',
+              'customer focus' => 'fa fa-heart',
+              'customer success' => 'fa fa-handshake-o',
               'excellence' => 'fa fa-star',
+              'ownership' => 'fa fa-flag',
+              'trust' => 'fa fa-shield',
+              'teamwork' => 'fa fa-users',
+              'service' => 'fa fa-heart',
           ];
-          $fallbackIcons = ['fa fa-shield', 'fa fa-lightbulb-o', 'fa fa-users', 'fa fa-handshake-o', 'fa fa-check-circle', 'fa fa-star'];
+          $approvedIcons = [
+              'fa fa-shield',
+              'fa fa-lightbulb-o',
+              'fa fa-users',
+              'fa fa-handshake-o',
+              'fa fa-check-circle',
+              'fa fa-star',
+              'fa fa-rocket',
+              'fa fa-heart',
+              'fa fa-flag',
+              'fa fa-bullseye',
+              'fa fa-line-chart',
+              'fa fa-trophy',
+              'icofont-shield-alt',
+              'icofont-light-bulb',
+              'icofont-users-alt-5',
+              'icofont-handshake-deal',
+              'icofont-rocket-alt-2',
+              'icofont-star',
+          ];
+          $fallbackIcons = ['fa fa-shield', 'fa fa-lightbulb-o', 'fa fa-users', 'fa fa-check-circle', 'fa fa-rocket', 'fa fa-heart'];
           $rawIcon = trim((string) ($value->icon ?? ''));
           $iconClass = $fallbackIcons[$loop->index % count($fallbackIcons)];
+          $hasTitleFallback = false;
 
           foreach ($titleIcons as $needle => $className) {
               if (str_contains($titleKey, $needle)) {
                   $iconClass = $className;
+                  $hasTitleFallback = true;
                   break;
               }
           }
 
-          if ($rawIcon !== '' && !str_contains($titleKey, 'integrity') && !str_contains($titleKey, 'innovation') && !str_contains($titleKey, 'collaboration')) {
-              $iconClass = $rawIcon;
-          }
+          if (!$hasTitleFallback && $rawIcon !== '') {
+              $normalizedRawIcon = $rawIcon;
 
-          if (!str_contains($iconClass, ' ')) {
-              if (str_starts_with($iconClass, 'icofont-')) {
-                  $iconClass = $iconClass;
-              } elseif (str_starts_with($iconClass, 'fa-')) {
-                  $iconClass = 'fa ' . $iconClass;
-              } else {
-                  $iconClass = 'icofont-' . ltrim($iconClass, '-');
+              if (!str_contains($normalizedRawIcon, ' ')) {
+                  if (str_starts_with($normalizedRawIcon, 'fa-')) {
+                      $normalizedRawIcon = 'fa ' . $normalizedRawIcon;
+                  } elseif (!str_starts_with($normalizedRawIcon, 'icofont-')) {
+                      $normalizedRawIcon = 'icofont-' . ltrim($normalizedRawIcon, '-');
+                  }
+              }
+
+              if (in_array($normalizedRawIcon, $approvedIcons, true)) {
+                  $iconClass = $normalizedRawIcon;
               }
           }
         @endphp
