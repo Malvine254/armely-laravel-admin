@@ -1,5 +1,22 @@
 @php
 use Illuminate\Support\Str;
+
+if (!function_exists('armely_blog_clean_html')) {
+	function armely_blog_clean_html(?string $html): string
+	{
+		if (!is_string($html) || trim($html) === '') {
+			return '';
+		}
+
+		$clean = preg_replace('/<(script|style|link|meta)\b[^>]*>.*?<\/\1>/is', '', $html) ?? $html;
+		$clean = preg_replace('/<(script|style|link|meta)\b[^>]*\/?>/is', '', $clean) ?? $clean;
+		$clean = preg_replace('/\sstyle\s*=\s*(".*?"|\'.*?\'|[^\s>]+)/is', '', $clean) ?? $clean;
+		$clean = preg_replace('/\s(class|id|align|bgcolor|border|cellpadding|cellspacing|color|face|size|width|height)\s*=\s*(".*?"|\'.*?\'|[^\s>]+)/is', '', $clean) ?? $clean;
+		$clean = preg_replace('/<\/?font\b[^>]*>/is', '', $clean) ?? $clean;
+
+		return $clean;
+	}
+}
 @endphp
 @extends('layouts.public')
 
@@ -7,7 +24,7 @@ use Illuminate\Support\Str;
 
 @push('head')
 	<!-- Blog Page Styles -->
-	<link rel="stylesheet" href="{{ asset('css/blog-modern.css') }}">
+	<link rel="stylesheet" href="{{ asset('css/blog-modern.css') }}?v={{ file_exists(public_path('css/blog-modern.css')) ? filemtime(public_path('css/blog-modern.css')) : '' }}">
 	
 @if(isset($main))
 	<!-- Open Graph Meta Tags for Social Media Sharing -->
@@ -35,7 +52,7 @@ use Illuminate\Support\Str;
 
 
 <!-- Blog Listing Section -->
-<section class="blog-listing-section">
+<section class="blog-listing-section blog-modern-page">
 	<div class="container">
 		@if(!empty($dbErrorMessage))
 			<div class="row mb-3">
@@ -89,7 +106,8 @@ use Illuminate\Support\Str;
 									</div>
 									<div class="blog-meta-item">
 										<button id="toggleSpeech" class="read-aloud-btn">
-											<i class="fa fa-volume-high text-light" id="volume-icons"></i>
+											<span class="sr-only">Toggle article narration</span>
+											<span class="read-aloud-icon"><i class="fa fa-volume-high" id="volume-icons"></i></span>
 											<span>Read Aloud</span>
 										</button>
 									</div>
@@ -97,7 +115,7 @@ use Illuminate\Support\Str;
 								
 								<!-- Blog Text -->
 								<div class="blog-text-content" id="blog-content">
-									{!! $main->body !!}
+									{!! armely_blog_clean_html($main->body ?? '') !!}
 								</div>
 
 								<!-- Blog Footer -->
@@ -473,7 +491,12 @@ document.addEventListener('DOMContentLoaded', function() {
 			if (synth && synth.speaking) synth.cancel();
 			const content = document.querySelector('.blog-text-content');
 			if (content) clearHighlights(content);
-			if (volumeIcon) volumeIcon.className = 'fa fa-volume-high text-light';
+			const activeToggle = document.getElementById('toggleSpeech');
+			if (activeToggle) {
+				activeToggle.classList.remove('is-speaking');
+				activeToggle.setAttribute('aria-pressed', 'false');
+			}
+			if (volumeIcon) volumeIcon.className = 'fa fa-volume-high';
 		}
 
 		// Speak words sequentially (per-word utterances) — fallback will work across browsers
@@ -481,7 +504,12 @@ document.addEventListener('DOMContentLoaded', function() {
 			if (!wordSpans || !wordSpans.length) return;
 			stopRequested = false;
 			speaking = true;
-			if (volumeIcon) volumeIcon.className = 'fa fa-pause text-light';
+			const activeToggle = document.getElementById('toggleSpeech');
+			if (activeToggle) {
+				activeToggle.classList.add('is-speaking');
+				activeToggle.setAttribute('aria-pressed', 'true');
+			}
+			if (volumeIcon) volumeIcon.className = 'fa fa-pause';
 			for (let i = startIndex; i < wordSpans.length; i++) {
 				if (stopRequested) break;
 				const span = wordSpans[i];
@@ -570,7 +598,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
 			stopRequested = false;
 			speaking = false;
-			if (volumeIcon) volumeIcon.className = 'fa fa-volume-high text-light';
+			const activeToggle = document.getElementById('toggleSpeech');
+			if (activeToggle) {
+				activeToggle.classList.remove('is-speaking');
+				activeToggle.setAttribute('aria-pressed', 'false');
+			}
+			if (volumeIcon) volumeIcon.className = 'fa fa-volume-high';
 			const content = document.querySelector('.blog-text-content');
 			if (content) clearHighlights(content);
 		}
