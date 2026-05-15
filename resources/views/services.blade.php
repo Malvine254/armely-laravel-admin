@@ -613,14 +613,42 @@
 				<div class="row" id="servicesContainer">
 					@forelse($services as $service)
 						@php
-							$iconClass = $service->image && trim($service->image) !== '' ? $service->image : 'icofont-ui-settings';
+							$fallbackIconClass = 'icofont-ui-settings';
+							$rawIconClass = trim((string) ($service->image ?? ''));
+
+							if ($rawIconClass === '') {
+								$iconClass = $fallbackIconClass;
+							} else {
+								$tokens = preg_split('/\s+/', $rawIconClass) ?: [];
+								$hasIconFamily = false;
+
+								foreach ($tokens as $token) {
+									if (str_starts_with($token, 'fa') || str_starts_with($token, 'icofont')) {
+										$hasIconFamily = true;
+										break;
+									}
+								}
+
+								if (!$hasIconFamily) {
+									if (str_starts_with($rawIconClass, 'fa-')) {
+										$iconClass = 'fa ' . $rawIconClass;
+									} else {
+										$normalizedToken = ltrim($rawIconClass, '-');
+										$iconClass = str_starts_with($normalizedToken, 'icofont-')
+											? $normalizedToken
+											: 'icofont-' . $normalizedToken;
+									}
+								} else {
+									$iconClass = $rawIconClass;
+								}
+							}
 						@endphp
 						<div class="col-lg-4 col-md-6 col-12 mb-4 service-card-wrapper" data-category="{{ $service->category }}">
 							<div class="single-table card-shadow default-background h-100">
 								<a class="text-light" href="{{ route('service-details', ['name' => $service->url_name]) }}" style="text-decoration: none;">
 									<div class="table-head">
 										<div class="icon text-light">
-											<i class="icofont text-light {{ $iconClass }}"></i>
+											<i class="service-icon text-light {{ $iconClass }}" data-fallback-icon="{{ $fallbackIconClass }}"></i>
 										</div>
 										<h4 class="title text-light">{{ $service->title }}</h4>
 										<div class="price text-light">
@@ -761,6 +789,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
 	const servicesContainer = document.getElementById('servicesContainer');
+	const serviceIcons = document.querySelectorAll('.service-icon');
 	
 	const searchInput = document.getElementById('serviceSearch');
 	const filterBtns = document.querySelectorAll('.filter-btn');
@@ -768,6 +797,18 @@ document.addEventListener('DOMContentLoaded', function() {
 	
 	let currentFilter = 'all';
 	let searchTerm = '';
+
+	function applyServiceIconFallbacks() {
+		serviceIcons.forEach(icon => {
+			const fallbackIcon = icon.getAttribute('data-fallback-icon') || 'icofont-ui-settings';
+			const beforeContent = window.getComputedStyle(icon, '::before').getPropertyValue('content');
+			const hasGlyph = beforeContent && beforeContent !== 'none' && beforeContent !== '""' && beforeContent !== "''";
+
+			if (!hasGlyph) {
+				icon.className = 'service-icon text-light ' + fallbackIcon;
+			}
+		});
+	}
 
 	// Search functionality
 	searchInput.addEventListener('input', function() {
@@ -836,6 +877,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 	// Initial count update
 	updateCounts();
+	applyServiceIconFallbacks();
 
 	// Smooth scroll for all internal links
 	document.querySelectorAll('a[href^="#"]').forEach(anchor => {
