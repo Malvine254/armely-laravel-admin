@@ -183,6 +183,167 @@
     color: #555;
 }
 
+.article-content {
+    padding: 56px 64px;
+    border-radius: 18px;
+    box-shadow: 0 18px 50px rgba(25, 43, 72, 0.08);
+    border: 1px solid #edf1f7;
+}
+
+.article-prose {
+    max-width: 780px;
+    margin: 0 auto;
+    font-size: 1.06rem;
+    line-height: 1.86;
+    color: #344054;
+    overflow-wrap: break-word;
+}
+
+.article-prose > *:first-child {
+    margin-top: 0 !important;
+}
+
+.article-prose > *:last-child {
+    margin-bottom: 0 !important;
+}
+
+.article-prose p {
+    margin: 0 0 1.35rem;
+}
+
+.article-prose p:empty {
+    display: none;
+}
+
+.article-prose h2,
+.article-prose h3,
+.article-prose h4 {
+    color: #182638;
+    font-weight: 750;
+    line-height: 1.25;
+    margin: 2.2rem 0 1rem;
+}
+
+.article-prose h2 {
+    font-size: 1.85rem;
+    padding: 0 0 0.7rem;
+    border-left: 0;
+    border-bottom: 1px solid #e6edf6;
+    position: relative;
+}
+
+.article-prose h2::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: -1px;
+    width: 72px;
+    height: 3px;
+    background: var(--default-background);
+    border-radius: 3px;
+}
+
+.article-prose h3 {
+    font-size: 1.42rem;
+}
+
+.article-prose h4 {
+    font-size: 1.2rem;
+}
+
+.article-prose strong,
+.article-prose b {
+    color: #1d2d44;
+    font-weight: 700;
+}
+
+.article-prose a {
+    color: var(--default-color);
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.article-prose img {
+    display: block;
+    border-radius: 14px;
+    margin: 34px auto;
+    box-shadow: 0 14px 36px rgba(25, 43, 72, 0.13);
+    max-width: 100%;
+    height: auto;
+}
+
+.article-prose ul,
+.article-prose ol {
+    margin: 0 0 1.5rem;
+    padding-left: 0;
+    list-style: none;
+}
+
+.article-prose li {
+    position: relative;
+    margin-bottom: 0.75rem;
+    padding-left: 1.65rem;
+}
+
+.article-prose ul li::before {
+    content: '';
+    position: absolute;
+    left: 0.2rem;
+    top: 0.78em;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--default-background);
+}
+
+.article-prose ol {
+    counter-reset: impact-counter;
+}
+
+.article-prose ol li {
+    counter-increment: impact-counter;
+}
+
+.article-prose ol li::before {
+    content: counter(impact-counter) '.';
+    position: absolute;
+    left: 0;
+    top: 0;
+    color: var(--default-color);
+    font-weight: 700;
+}
+
+.article-prose blockquote {
+    border-left: 4px solid var(--default-background);
+    background: #f6f9fd;
+    padding: 22px 26px;
+    margin: 2rem 0;
+    border-radius: 0 14px 14px 0;
+    color: #31435c;
+    font-size: 1.08rem;
+}
+
+.article-prose table {
+    width: 100%;
+    margin: 2rem 0;
+    border-collapse: collapse;
+    font-size: 0.98rem;
+}
+
+.article-prose th,
+.article-prose td {
+    padding: 14px 16px;
+    border: 1px solid #e5ebf3;
+    vertical-align: top;
+}
+
+.article-prose th {
+    background: #f5f8fc;
+    color: #182638;
+    font-weight: 700;
+}
+
 /* Share Section */
 .share-section {
     background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
@@ -652,6 +813,24 @@
     .blog-body {
         font-size: 1rem;
     }
+
+    .article-content {
+        padding: 34px 22px;
+        border-radius: 14px;
+    }
+
+    .article-prose {
+        font-size: 1rem;
+        line-height: 1.78;
+    }
+
+    .article-prose h2 {
+        font-size: 1.45rem;
+    }
+
+    .article-prose h3 {
+        font-size: 1.22rem;
+    }
     
     .section-title {
         font-size: 2rem;
@@ -724,8 +903,24 @@
 
                 <!-- Article Content -->
                 <div class="article-content">
-                    <div class="blog-body">
-                        {!! $initiative->body !!}
+                    @php
+                        $articleBody = trim((string) $initiative->body);
+                        $hasBlockMarkup = preg_match('/<(p|h[1-6]|ul|ol|li|blockquote|div|table|figure|img|br)\b/i', $articleBody);
+                        $hasAnyMarkup = $articleBody !== strip_tags($articleBody);
+
+                        if (!$hasBlockMarkup && !$hasAnyMarkup && $articleBody !== '') {
+                            $paragraphs = preg_split('/\R{2,}/', $articleBody);
+                            $articleBody = collect($paragraphs)
+                                ->map(fn ($paragraph) => trim($paragraph))
+                                ->filter()
+                                ->map(fn ($paragraph) => '<p>' . nl2br(e($paragraph)) . '</p>')
+                                ->implode('');
+                        } elseif (!$hasBlockMarkup && $articleBody !== '') {
+                            $articleBody = '<p>' . $articleBody . '</p>';
+                        }
+                    @endphp
+                    <div class="blog-body article-prose">
+                        {!! $articleBody !!}
                     </div>
                 </div>
 
