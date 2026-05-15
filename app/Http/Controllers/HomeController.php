@@ -845,26 +845,71 @@ class HomeController extends Controller
     private function recentBlogs(?string &$dbErrorMessage = null)
     {
         return $this->safeDb(function () {
-            return DB::table('blogs')
-                ->leftJoin('team', 'blogs.author', '=', 'team.team_name')
-                ->select(
-                    'blogs.blog_id', 
-                    'blogs.title', 
-                    'blogs.author', 
-                    'blogs.date', 
-                    'blogs.body', 
-                    'blogs.image_path',
-                    'team.team_image as author_image'
-                )
-                ->orderByDesc('blogs.id')
+            $blogTable = $this->resolveBlogTable();
+            if (!$blogTable) {
+                return collect();
+            }
+
+            $blogIdColumn = $this->firstExistingColumn($blogTable, ['blog_id', 'id']);
+            $titleColumn = $this->firstExistingColumn($blogTable, ['title', 'blog_title']);
+            $authorColumn = $this->firstExistingColumn($blogTable, ['author', 'blog_author']);
+            $dateColumn = $this->firstExistingColumn($blogTable, ['date', 'blog_date', 'created_at']);
+            $bodyColumn = $this->firstExistingColumn($blogTable, ['body', 'description', 'content']);
+            $imageColumn = $this->firstExistingColumn($blogTable, ['image_path', 'image', 'image_url']);
+            $orderColumn = $this->firstExistingColumn($blogTable, ['id', 'blog_id', 'created_at']) ?? $blogIdColumn;
+            $authorImageMap = $this->resolveAuthorImageMap();
+
+            return DB::table($blogTable)
+                ->selectRaw(($blogIdColumn ? $blogTable . '.' . $blogIdColumn : 'NULL') . ' as blog_id')
+                ->selectRaw(($titleColumn ? $blogTable . '.' . $titleColumn : 'NULL') . ' as title')
+                ->selectRaw(($authorColumn ? $blogTable . '.' . $authorColumn : 'NULL') . ' as author')
+                ->selectRaw(($dateColumn ? $blogTable . '.' . $dateColumn : 'NULL') . ' as date')
+                ->selectRaw(($bodyColumn ? $blogTable . '.' . $bodyColumn : 'NULL') . ' as body')
+                ->selectRaw(($imageColumn ? $blogTable . '.' . $imageColumn : 'NULL') . ' as image_path')
+                ->orderByDesc($blogTable . '.' . $orderColumn)
                 ->limit(3)
                 ->get()
-                ->map(function ($blog) {
+                ->map(function ($blog) use ($authorImageMap) {
+                    $blog->author_image = $authorImageMap[$blog->author ?? ''] ?? null;
                     $blog->reading_time = $this->estimateReadingTime($blog->body ?? '');
                     $blog->preview = $this->makePreviewText((string) ($blog->body ?? ''), 150);
                     return $blog;
                 });
         }, $dbErrorMessage);
+    }
+
+    private function resolveBlogTable(): ?string
+    {
+        foreach (['blogs', 'blog'] as $table) {
+            if (Schema::hasTable($table)) {
+                return $table;
+            }
+        }
+
+        return null;
+    }
+
+    private function firstExistingColumn(string $table, array $columns): ?string
+    {
+        foreach ($columns as $column) {
+            if (Schema::hasColumn($table, $column)) {
+                return $column;
+            }
+        }
+
+        return null;
+    }
+
+    private function resolveAuthorImageMap(): array
+    {
+        if (!Schema::hasTable('team') || !Schema::hasColumn('team', 'team_name') || !Schema::hasColumn('team', 'team_image')) {
+            return [];
+        }
+
+        return DB::table('team')
+            ->whereNotNull('team_name')
+            ->pluck('team_image', 'team_name')
+            ->toArray();
     }
 
     private function makePreviewText(string $html, int $limit = 150): string

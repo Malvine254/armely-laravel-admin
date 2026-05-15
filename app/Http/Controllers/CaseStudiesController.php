@@ -28,10 +28,7 @@ class CaseStudiesController extends Controller
         });
 
         // Paginate white papers (6 per page)
-        $whitePapers = DB::table('white_paper')
-            ->select('id', 'title', 'body', 'images', 'pdf')
-            ->orderByDesc('id')
-            ->paginate(6, ['*'], 'paper_page');
+        $whitePapers = $this->paginateWhitePapers($request);
 
         $whitePapers->getCollection()->transform(function ($paper) {
             $paper->preview = $this->makePreviewText((string) ($paper->body ?? ''), 120);
@@ -60,12 +57,16 @@ class CaseStudiesController extends Controller
             'website' => ['nullable', 'string', 'max:255'],
             'requested_resource' => ['nullable', 'string', 'max:255'],
             'case_study_id' => ['nullable', 'integer'],
-            'white_paper_id' => ['nullable', 'integer', 'exists:white_paper,id'],
+            'white_paper_id' => ['nullable', 'integer'],
             'g-recaptcha-response' => ['required', 'string'],
         ];
 
         if ($this->isTableQueryable('industry_listings')) {
             $rules['case_study_id'][] = 'exists:industry_listings,id';
+        }
+
+        if ($this->isTableQueryable('white_paper')) {
+            $rules['white_paper_id'][] = 'exists:white_paper,id';
         }
 
         $data = $request->validate($rules, [
@@ -239,6 +240,11 @@ class CaseStudiesController extends Controller
                 ->withErrors(['access' => 'This download link is invalid or has expired. Please request a new one.']);
         }
 
+        if (!$this->isTableQueryable('white_paper')) {
+            return redirect()->route('case-studies.index')
+                ->withErrors(['access' => 'White papers are temporarily unavailable.']);
+        }
+
         $item = DB::table('white_paper')
             ->select('id', 'pdf')
             ->where('id', $paper)
@@ -394,7 +400,7 @@ class CaseStudiesController extends Controller
         }
 
         $whitePaperId = (int) ($data['white_paper_id'] ?? 0);
-        if ($whitePaperId > 0) {
+        if ($whitePaperId > 0 && $this->isTableQueryable('white_paper')) {
             $record = DB::table('white_paper')
                 ->select('id', 'title')
                 ->where('id', $whitePaperId)
@@ -609,6 +615,31 @@ class CaseStudiesController extends Controller
                 ]);
 
                 return $this->emptyPaginator($request, 6, 'case_page');
+            }
+
+            throw $e;
+        }
+    }
+
+    private function paginateWhitePapers(Request $request): LengthAwarePaginator
+    {
+        if (!$this->isTableQueryable('white_paper')) {
+            return $this->emptyPaginator($request, 6, 'paper_page');
+        }
+
+        try {
+            return DB::table('white_paper')
+                ->select('id', 'title', 'body', 'images', 'pdf')
+                ->orderByDesc('id')
+                ->paginate(6, ['*'], 'paper_page');
+        } catch (QueryException $e) {
+            if ($this->isMissingTableException($e)) {
+                Log::warning('White papers table unavailable in database engine', [
+                    'table' => 'white_paper',
+                    'error' => $e->getMessage(),
+                ]);
+
+                return $this->emptyPaginator($request, 6, 'paper_page');
             }
 
             throw $e;
