@@ -229,21 +229,21 @@
   }
   
   .values-section {
-    background: linear-gradient(180deg, #ffffff 0%, #f6f8fc 100%);
-    padding: 70px 0;
+    background: #fff;
+    padding: 70px 0 80px;
   }
   
   .values-section .single-service {
     background: #fff;
-    padding: 34px 28px 32px;
-    border-radius: 12px;
-    box-shadow: 0 14px 35px rgba(31, 52, 88, 0.08);
+    padding: 42px 34px 38px;
+    border-radius: 10px;
+    box-shadow: 0 16px 38px rgba(23, 39, 67, 0.08);
     transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
     height: 100%;
-    border: 1px solid #e5ecf6;
+    border: 1px solid #e8edf5;
     position: relative;
     overflow: hidden;
-    text-align: left;
+    text-align: center;
   }
   
   .values-section .single-service::before {
@@ -252,65 +252,53 @@
     top: 0;
     left: 0;
     right: 0;
-    height: 5px;
-    background: linear-gradient(90deg, #2f5597 0%, #26a69a 55%, #f4b942 100%);
-  }
-
-  .values-section .single-service::after {
-    content: '';
-    position: absolute;
-    right: -58px;
-    top: -58px;
-    width: 135px;
-    height: 135px;
-    border-radius: 50%;
-    background: rgba(47, 85, 151, 0.07);
-    transition: transform 0.25s ease, opacity 0.25s ease;
+    height: 4px;
+    background: var(--default-background);
+    opacity: 0;
+    transition: opacity 0.25s ease;
   }
 
   .values-section .single-service:hover {
-    transform: translateY(-6px);
-    box-shadow: 0 22px 45px rgba(47,85,151,0.16);
+    transform: translateY(-5px);
+    box-shadow: 0 22px 45px rgba(23, 39, 67, 0.13);
     border-color: rgba(47, 85, 151, 0.28);
   }
 
-  .values-section .single-service:hover::after {
-    transform: scale(1.18);
-    opacity: 0.85;
+  .values-section .single-service:hover::before {
+    opacity: 1;
   }
   
   .value-icon-wrap {
-    width: 72px;
-    height: 72px;
+    width: 76px;
+    height: 76px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border-radius: 18px;
-    background: linear-gradient(135deg, rgba(47, 85, 151, 0.12), rgba(38, 166, 154, 0.12));
-    color: var(--default-color);
-    box-shadow: inset 0 0 0 1px rgba(47, 85, 151, 0.13);
-    margin-bottom: 24px;
+    border-radius: 50%;
+    background: var(--default-background);
+    color: #fff;
+    box-shadow: 0 12px 24px rgba(47, 85, 151, 0.24);
+    margin-bottom: 26px;
     position: relative;
     z-index: 1;
-    transition: transform 0.25s ease, background 0.25s ease, color 0.25s ease;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
   }
   
   .values-section .single-service:hover .value-icon-wrap {
-    transform: translateY(-2px);
-    background: linear-gradient(135deg, var(--default-color), #26a69a);
-    color: #fff;
+    transform: translateY(-3px);
+    box-shadow: 0 16px 30px rgba(47, 85, 151, 0.32);
   }
 
   .values-section .single-service i {
-    font-size: 2.05rem;
+    font-size: 2rem;
     line-height: 1 !important;
     color: inherit;
   }
   
   .values-section .single-service h4 {
-    font-size: 1.25rem;
+    font-size: 1.35rem;
     font-weight: 700;
-    margin: 0 0 12px 0;
+    margin: 0 0 16px 0;
     color: #2c3e50;
     position: relative;
     z-index: 1;
@@ -327,9 +315,9 @@
   }
   
   .values-section .single-service p {
-    font-size: 1.05rem;
-    line-height: 1.7;
-    color: #5c697a;
+    font-size: 1.02rem;
+    line-height: 1.75;
+    color: #68717d;
     margin: 0;
     position: relative;
     z-index: 1;
@@ -354,7 +342,7 @@
     }
 
     .values-section .single-service {
-      padding: 30px 24px;
+      padding: 34px 24px;
     }
   }
 </style>
@@ -523,12 +511,32 @@
         </div>
       </div>
     </div>
-    <div class="row">
+    <div class="row justify-content-center">
       @forelse($coreValues as $value)
         @php
-          $fallbackIcons = ['icofont-ui-check', 'icofont-light-bulb', 'icofont-users-alt-5', 'icofont-handshake-deal', 'icofont-rocket-alt-2', 'icofont-shield-alt'];
+          $titleKey = strtolower((string) ($value->title ?? ''));
+          $titleIcons = [
+              'integrity' => 'fa fa-shield',
+              'innovation' => 'fa fa-lightbulb-o',
+              'collaboration' => 'fa fa-users',
+              'customer success' => 'fa fa-handshake-o',
+              'accountability' => 'fa fa-check-circle',
+              'excellence' => 'fa fa-star',
+          ];
+          $fallbackIcons = ['fa fa-shield', 'fa fa-lightbulb-o', 'fa fa-users', 'fa fa-handshake-o', 'fa fa-check-circle', 'fa fa-star'];
           $rawIcon = trim((string) ($value->icon ?? ''));
-          $iconClass = $rawIcon !== '' ? $rawIcon : $fallbackIcons[$loop->index % count($fallbackIcons)];
+          $iconClass = $fallbackIcons[$loop->index % count($fallbackIcons)];
+
+          foreach ($titleIcons as $needle => $className) {
+              if (str_contains($titleKey, $needle)) {
+                  $iconClass = $className;
+                  break;
+              }
+          }
+
+          if ($rawIcon !== '' && !str_contains($titleKey, 'integrity') && !str_contains($titleKey, 'innovation') && !str_contains($titleKey, 'collaboration')) {
+              $iconClass = $rawIcon;
+          }
 
           if (!str_contains($iconClass, ' ')) {
               if (str_starts_with($iconClass, 'icofont-')) {
@@ -540,7 +548,7 @@
               }
           }
         @endphp
-        <div class="col-lg-4">
+        <div class="col-md-6 col-lg-4">
           <div class="single-service">
             <span class="value-icon-wrap" aria-hidden="true">
               <i class="{{ $iconClass }}"></i>
