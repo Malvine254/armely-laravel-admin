@@ -833,7 +833,8 @@ class ProductController extends Controller
             // Terms ≥ 4 chars can use MySQL FULLTEXT; shorter ones need LIKE.
             $longTerms   = array_values(array_filter($lowerTerms, fn ($t) => strlen($t) >= 4));
             $shortTerms  = array_values(array_filter($lowerTerms, fn ($t) => strlen($t) < 4));
-            $useFt       = $this->hasProductsFullTextIndex() && !empty($longTerms);
+            $hasSpecialTokenChars = (bool) array_filter($rawTerms, fn ($t) => preg_match('/[^a-z0-9]/i', (string) $t));
+            $useFt       = $this->hasProductsFullTextIndex() && !empty($longTerms) && !$hasSpecialTokenChars;
 
             if ($useFt) {
                 // Build a boolean-mode query where EVERY long term is required (+).
@@ -2339,7 +2340,8 @@ class ProductController extends Controller
         $lowerTerms = array_map('strtolower', $rawTerms);
         $longTerms  = array_values(array_filter($lowerTerms, fn ($t) => strlen($t) >= 4));
         $shortTerms = array_values(array_filter($lowerTerms, fn ($t) => strlen($t) < 4));
-        $useFt      = $this->hasProductsFullTextIndex() && !empty($longTerms);
+        $hasSpecialTokenChars = (bool) array_filter($rawTerms, fn ($t) => preg_match('/[^a-z0-9]/i', (string) $t));
+        $useFt      = $this->hasProductsFullTextIndex() && !empty($longTerms) && !$hasSpecialTokenChars;
 
         if ($useFt) {
             $boolParts = [];
