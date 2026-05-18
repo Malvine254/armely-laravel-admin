@@ -739,34 +739,25 @@ class AdminController extends Controller
 
     private function resolveTdUnitPrice(array $item): float
     {
+        // TD SYNNEX orders must always use base_price (our cost from TD).
+        // Never send retail/customer prices to TD — we are a reseller.
         $product = $this->findTdProductForItem($item);
         $basePrice = (float) ($product?->base_price ?? 0);
         if ($basePrice > 0) {
             return $basePrice;
         }
 
-        $retailPrice = (float) ($product?->retail_price ?? 0);
-        if ($retailPrice > 0) {
-            return $retailPrice;
+        // Live price is the current cost price synced from the TD PriceAvailability feed.
+        $livePrice = (float) ($product?->live_price ?? 0);
+        if ($livePrice > 0) {
+            return $livePrice;
         }
 
-        $candidatePrices = [
-            $item['price'] ?? null,
-            $item['unitPrice'] ?? null,
-            $item['unit_price'] ?? null,
-            $item['customer_price'] ?? null,
-        ];
-
-        foreach ($candidatePrices as $candidate) {
-            if ($candidate === null || $candidate === '') {
-                continue;
-            }
-
-            $value = (float) $candidate;
-            if ($value > 0) {
-                return $value;
-            }
-        }
+        \Log::warning('resolveTdUnitPrice: no base_price found for TD SYNNEX order line', [
+            'product_id'   => $item['product_id'] ?? $item['productId'] ?? null,
+            'sku'          => $item['sku'] ?? $item['partNumber'] ?? null,
+            'product_name' => $item['product_name'] ?? null,
+        ]);
 
         return 0.0;
     }
@@ -788,7 +779,7 @@ class AdminController extends Controller
 
         foreach ($lookupValues as $lookup) {
             $productQuery = Product::query()
-                ->select(['id', 'tdsynnex_product_id', 'tdsynnex_sku_no', 'mfg_part_no', 'specifications', 'base_price', 'retail_price'])
+                ->select(['id', 'tdsynnex_product_id', 'tdsynnex_sku_no', 'mfg_part_no', 'specifications', 'base_price', 'live_price', 'retail_price', 'live_retail_price'])
                 ->where('vendor_id', 'TD SYNNEX')
                 ->where(function ($query) use ($lookup) {
                     $query->where('mfg_part_no', $lookup)
