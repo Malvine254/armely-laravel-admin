@@ -22,7 +22,7 @@ class SharePreviewController extends Controller
         $productName = trim((string) ($product?->product_name ?? 'Shared product from Armely'));
         $vendor = trim((string) ($product?->vendor_id ?? ''));
         $sku = trim((string) ($product?->mfg_part_no ?? $product?->tdsynnex_sku_no ?? ''));
-        $price = $product ? (float) ($product->base_price ?? $product->retail_price ?? 0) : 0.0;
+        $price = $product ? (float) ($product->retail_price ?? $product->base_price ?? 0) : 0.0;
         $description = trim((string) ($product?->description ?? 'View this product on Armely.'));
 
         $descriptionParts = array_values(array_filter([
