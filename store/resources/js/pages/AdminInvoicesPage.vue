@@ -355,10 +355,22 @@
           <!-- Invoice Items -->
           <div>
             <p class="text-sm font-semibold text-gray-700 mb-3">Items</p>
-            <div class="space-y-2 bg-gray-50 border border-gray-200 p-4 rounded-lg max-h-48 overflow-y-auto">
-              <div v-for="(item, index) in selectedInvoice.items" :key="index" class="text-sm">
+            <div class="space-y-3 bg-gray-50 border border-gray-200 p-4 rounded-lg max-h-48 overflow-y-auto">
+              <div v-for="(item, index) in selectedInvoice.items" :key="index" class="text-sm border-b border-gray-100 last:border-0 pb-2 last:pb-0">
                 <p class="font-medium text-gray-900">{{ getInvoiceItemName(item, index) }}</p>
-                <p class="text-xs text-gray-500">Qty: {{ getInvoiceItemQuantity(item) }} × ${{ formatCurrency(getInvoiceItemUnitPrice(item)) }}</p>
+                <div class="flex flex-wrap gap-x-4 mt-0.5">
+                  <p class="text-xs text-gray-500">
+                    <span class="font-medium text-gray-600">Customer:</span>
+                    Qty {{ getInvoiceItemQuantity(item) }} × ${{ formatCurrency(getInvoiceItemUnitPrice(item)) }}
+                  </p>
+                  <p class="text-xs" :class="getTdBasePriceForItem(item) > 0 ? 'text-[#2F5597]' : 'text-amber-600'">
+                    <span class="font-medium">TD Cost:</span>
+                    <span v-if="getTdBasePriceForItem(item) > 0">
+                      Qty {{ getInvoiceItemQuantity(item) }} × ${{ formatCurrency(getTdBasePriceForItem(item)) }}
+                    </span>
+                    <span v-else class="italic">base price not set — submission will fail</span>
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -506,6 +518,10 @@ const getInvoiceItemUnitPrice = (item) => {
   const quantity = getInvoiceItemQuantity(item)
   const lineTotal = Number(item?.line_total ?? item?.total ?? 0)
   return quantity > 0 ? lineTotal / quantity : 0
+}
+
+const getTdBasePriceForItem = (item) => {
+  return Number(item?.td_base_price ?? 0)
 }
 
 const formatDate = (date) => {

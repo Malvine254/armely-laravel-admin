@@ -458,6 +458,14 @@ class AdminController extends Controller
             $unitPrice = (float) ($item['unit_price'] ?? $item['unitPrice'] ?? $item['price'] ?? $item['customer_price'] ?? 0);
             $lineTotal = (float) ($item['line_total'] ?? $item['lineTotal'] ?? $item['extendedPrice'] ?? ($unitPrice * $quantity));
 
+            // Look up the TD SYNNEX base/cost price so the admin modal can show
+            // what will actually be submitted to TD (distinct from the retail invoice price).
+            $tdBasePrice = 0.0;
+            $product = $this->findTdProductForItem($item);
+            if ($product) {
+                $tdBasePrice = (float) ($product->base_price ?? $product->live_price ?? 0);
+            }
+
             return [
                 'product_id' => (string) ($item['product_id'] ?? $item['productId'] ?? $item['id'] ?? ''),
                 'product_name' => $item['product_name']
@@ -474,6 +482,7 @@ class AdminController extends Controller
                 'quantity' => $quantity,
                 'unit_price' => round($unitPrice, 2),
                 'line_total' => round($lineTotal, 2),
+                'td_base_price' => round($tdBasePrice, 2),
             ];
         }, $rows, array_keys($rows));
 
@@ -780,7 +789,12 @@ class AdminController extends Controller
         foreach ($lookupValues as $lookup) {
             $productQuery = Product::query()
                 ->select(['id', 'tdsynnex_product_id', 'tdsynnex_sku_no', 'mfg_part_no', 'specifications', 'base_price', 'live_price', 'retail_price', 'live_retail_price'])
-                ->where('vendor_id', 'TD SYNNEX')
+                // Match any product sourced from TD SYNNEX (tdsynnex_product_id or tdsynnex_sku_no present).
+                // Do NOT filter by vendor_id — that column stores the manufacturer name (e.g. "APC"),
+                // not the distributor name, so vendor_id = 'TD SYNNEX' would miss almost all products.
+                ->where(function ($q) {
+                    $q->whereNotNull('tdsynnex_product_id')->orWhereNotNull('tdsynnex_sku_no');
+                })
                 ->where(function ($query) use ($lookup) {
                     $query->where('mfg_part_no', $lookup)
                         ->orWhere('specifications->sku', $lookup);
