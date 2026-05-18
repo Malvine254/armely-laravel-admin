@@ -364,16 +364,14 @@ class AdminController extends Controller
     private function findOrderNumber($data): ?string
     {
         if (is_array($data)) {
-            // Check common field names first
+            // Only match TD-assigned order number fields.
+            // Deliberately exclude poNumber/po_number/purchaseOrderNumber/po — those fields
+            // echo back OUR own PO number (the quote ID), not the TD-assigned order number.
             $commonFields = [
                 'orderNumber', 'orderId', 'order_number', 'order_id',
-                'poNumber', 'po_number', 'purchaseOrderNumber',
                 'salesOrderNumber', 'soNumber', 'so_number',
-                'id', 'orderNo', 'order_no',
+                'orderNo', 'order_no',
                 'confirmationNumber', 'confirmation_number',
-                'referenceNumber', 'reference_number',
-                'transactionNumber', 'transaction_number',
-                'po', 'so', 'order',
             ];
             
             foreach ($commonFields as $field) {

@@ -4225,15 +4225,15 @@ class TDSynnexService
 
             $xmlBody = <<<XML
 <?xml version="1.0" encoding="UTF-8"?>
-<SynnexB2B>
+<SynnexB2B version="2.2">
     <Credential>
         <UserID>{$escapedUsername}</UserID>
         <Password>{$escapedPassword}</Password>
     </Credential>
-    <POStatusRequest>
+    <OrderStatusRequest>
         <CustomerNumber>{$escapedCustomerNo}</CustomerNumber>
         <PONumber>{$escapedPoNumber}</PONumber>
-    </POStatusRequest>
+    </OrderStatusRequest>
 </SynnexB2B>
 XML;
             

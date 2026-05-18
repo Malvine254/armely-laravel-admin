@@ -16,7 +16,7 @@ php artisan db:seed --class=AdminSeeder
 ```
 
 This creates the default super admin with:
-- **Email:** admin@armely.com
+- **Email:** value from `ADMIN_EMAIL` in `.env` (fallback: `info@armely.com`)
 - **Password:** Armely@2024
 
 ### 3. ✅ Clear Application Cache (Optional but Recommended)
@@ -44,7 +44,7 @@ chmod -R 755 public/pdf/
 ## Verify Installation
 
 1. Visit `/admin/login` - you should see the login form
-2. Login with `admin@armely.com` / `Armely@2024`
+2. Login with your configured `ADMIN_EMAIL` / `ADMIN_PASSWORD`
 3. You should see the dashboard with statistics
 4. Test navigation through all admin sections
 
@@ -127,7 +127,7 @@ composer require spatie/laravel-backup
 
 **Admin Panel URL:** `/admin/login`  
 **Dashboard:** `/admin/dashboard` (after login)  
-**Default Email:** admin@armely.com  
+**Default Email:** value from `ADMIN_EMAIL` in `.env` (fallback: `info@armely.com`)  
 **Default Password:** Armely@2024  
 
 **Setup Time:** ~2 minutes  

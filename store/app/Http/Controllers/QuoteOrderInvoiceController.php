@@ -838,16 +838,22 @@ class QuoteOrderInvoiceController extends Controller
 
                 $baseUnitPrice = 0.0;
                 if ($product) {
-                    $baseUnitPrice = (float) (
-                        $product->base_price
-                        ?? $product->customer_price
-                        ?? $product->retail_price
-                        ?? $product->price
-                        ?? 0
-                    );
-                }
+                    // Use retail price as the authoritative quote price when available.
+                    $retailUnitPrice = (float) ($product->retail_price ?? 0);
 
-                $baseUnitPrice = $this->customerPricingService->applyDiscount($baseUnitPrice, $user);
+                    if ($retailUnitPrice > 0) {
+                        $baseUnitPrice = $retailUnitPrice;
+                    } else {
+                        $baseUnitPrice = (float) (
+                            $product->customer_price
+                            ?? $product->base_price
+                            ?? $product->price
+                            ?? 0
+                        );
+
+                        $baseUnitPrice = $this->customerPricingService->applyDiscount($baseUnitPrice, $user);
+                    }
+                }
 
                 $lineBase = round($baseUnitPrice * $qty, 2);
                 $baseSubtotal = round($baseSubtotal + $lineBase, 2);
@@ -1189,6 +1195,16 @@ class QuoteOrderInvoiceController extends Controller
             $freightAmount = $this->deepFindFirstByKeys($response, ['freight', 'Freight', 'freightAmount', 'poFreight', 'shippingAmount', 'shipping_amount', 'totalFreight', 'TotalFreight']);
             $estimatedDelivery = $this->deepFindFirstByKeys($response, ['estimatedDeliveryDate', 'EstimatedDeliveryDate', 'estimatedShipDate', 'EstimatedShipDate', 'estimatedArrivalDate', 'EstimatedArrivalDate']);
 
+            // Capture the TD-assigned order number from status response (excludes PO number fields that echo our own quote ID).
+            $tdOrderNumber = $this->deepFindFirstByKeys($response, ['OrderNumber', 'orderNumber', 'order_number', 'SynnexOrderNumber', 'synnexOrderNumber']);
+            $quoteId = trim((string) ($order->quote_id ?? ''));
+            $currentOrderNumber = trim((string) ($order->order_number ?? ''));
+            $tdOrderNumberIsNew = $tdOrderNumber
+                && trim((string) $tdOrderNumber) !== ''
+                && trim((string) $tdOrderNumber) !== $quoteId
+                && trim((string) $tdOrderNumber) !== $currentOrderNumber
+                && (str_starts_with($currentOrderNumber, 'ORD-') || $currentOrderNumber === $quoteId);
+
             $newStatus = $this->normalizeTdOrderStatus((string) ($rawStatus ?? $shippingStatus ?? '')) ?: $oldStatus;
             $newTracking = array_filter([
                 'tracking_number' => $trackingNumber ? (string) $trackingNumber : ($oldTracking['tracking_number'] ?? null),
@@ -1206,12 +1222,20 @@ class QuoteOrderInvoiceController extends Controller
                 $updates['shipping_amount'] = (float) $freightAmount;
             }
 
+            // When TD assigns the real order number (after processing from "Accepted" → "Allocated"),
+            // update the local record so it matches the TD portal order number.
+            if ($tdOrderNumberIsNew) {
+                $updates['order_number'] = trim((string) $tdOrderNumber);
+                $updates['tdsynnex_order_id'] = trim((string) $tdOrderNumber);
+            }
+
             $trackingChanged = json_encode($oldTracking) !== json_encode($updates['tracking_info']);
             $statusChanged = $oldStatus !== $newStatus;
             $shippingChanged = array_key_exists('shipping_amount', $updates)
                 && (float) $updates['shipping_amount'] !== (float) ($order->shipping_amount ?? 0);
+            $orderNumberChanged = $tdOrderNumberIsNew;
 
-            if ($statusChanged || $trackingChanged || $shippingChanged) {
+            if ($statusChanged || $trackingChanged || $shippingChanged || $orderNumberChanged) {
                 $order->update($updates);
                 $order->refresh();
 

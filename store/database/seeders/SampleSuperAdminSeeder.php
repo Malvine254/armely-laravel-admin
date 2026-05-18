@@ -11,6 +11,8 @@ class SampleSuperAdminSeeder extends Seeder
 {
     public function run(): void
     {
+        $adminEmail = env('ADMIN_EMAIL', 'info@armely.com');
+
         $company = Company::updateOrCreate(
             ['domain' => 'armely.com'],
             [
@@ -20,7 +22,7 @@ class SampleSuperAdminSeeder extends Seeder
         );
 
         User::updateOrCreate(
-            ['email' => 'superadmin@armely.com'],
+            ['email' => $adminEmail],
             [
                 'name' => 'Sample Super Admin',
                 'password' => Hash::make('SuperAdmin@2026!'),

@@ -11,7 +11,7 @@ php artisan db:seed --class=AdminSeeder
 
 # 3. Login
 # URL: http://localhost/admin/login
-# Email: admin@armely.com
+# Email: value from ADMIN_EMAIL in .env (fallback: info@armely.com)
 # Password: Armely@2024
 ```
 
@@ -39,7 +39,7 @@ GET  /admin/reports                        Reports
 ## Default Credentials
 
 ```
-Email:    admin@armely.com
+Email:    value from ADMIN_EMAIL in .env (fallback: info@armely.com)
 Password: Armely@2024
 ```
 
