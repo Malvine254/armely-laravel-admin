@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Invoice;
 use App\Models\Order;
 use App\Models\AppSetting;
+use App\Models\Product;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Log;
 
@@ -15,6 +16,129 @@ class InvoiceService
     public function __construct(TDSynnexService $tdsynnexService)
     {
         $this->tdsynnexService = $tdsynnexService;
+    }
+
+    private function deepFindFirstByKeys(mixed $data, array $keys): mixed
+    {
+        if (!is_array($data)) {
+            return null;
+        }
+
+        foreach ($keys as $key) {
+            if (array_key_exists($key, $data) && $data[$key] !== null && $data[$key] !== '') {
+                return $data[$key];
+            }
+        }
+
+        foreach ($data as $value) {
+            if (is_array($value)) {
+                $found = $this->deepFindFirstByKeys($value, $keys);
+                if ($found !== null && $found !== '') {
+                    return $found;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private function resolveOrderShippingAmount(Order $order): float
+    {
+        $raw = is_array($order->raw_data) ? $order->raw_data : [];
+        $freight = $this->deepFindFirstByKeys($raw, [
+            'freight',
+            'Freight',
+            'freightAmount',
+            'poFreight',
+            'shippingAmount',
+            'shipping_amount',
+            'totalFreight',
+            'TotalFreight',
+        ]);
+
+        if ($freight !== null && $freight !== '' && is_numeric((string) $freight)) {
+            return max(0, round((float) $freight, 2));
+        }
+
+        return max(0, round((float) ($order->shipping_amount ?? 0), 2));
+    }
+
+    private function findProductForInvoiceItem(array $item): ?Product
+    {
+        $lookupValues = [
+            (string) ($item['product_id'] ?? ''),
+            (string) ($item['productId'] ?? ''),
+            (string) ($item['id'] ?? ''),
+            (string) ($item['sku'] ?? ''),
+            (string) ($item['partNumber'] ?? ''),
+            (string) ($item['mfg_part_number'] ?? ''),
+            (string) ($item['mfgPartNo'] ?? ''),
+        ];
+
+        $lookupValues = array_values(array_unique(array_filter(array_map('trim', $lookupValues), fn ($v) => $v !== '')));
+
+        foreach ($lookupValues as $lookup) {
+            $query = Product::query()
+                ->select(['id', 'tdsynnex_product_id', 'tdsynnex_sku_no', 'mfg_part_no', 'retail_price'])
+                ->where('vendor_id', 'TD SYNNEX')
+                ->where(function ($q) use ($lookup) {
+                    $q->where('mfg_part_no', $lookup)
+                        ->orWhere('specifications->sku', $lookup);
+
+                    if (ctype_digit($lookup)) {
+                        $numeric = (int) $lookup;
+                        $q->orWhere('id', $numeric)
+                            ->orWhere('tdsynnex_product_id', $numeric)
+                            ->orWhere('tdsynnex_sku_no', $numeric);
+                    }
+                })
+                ->orderByDesc('updated_at')
+                ->orderByDesc('id');
+
+            $product = $query->first();
+            if ($product) {
+                return $product;
+            }
+        }
+
+        return null;
+    }
+
+    private function buildRetailInvoiceLineItems(array $rows): array
+    {
+        return array_map(function ($item, $idx) {
+            if (!is_array($item)) {
+                $item = [];
+            }
+
+            $quantity = max(1, (int) ($item['quantity'] ?? 1));
+            $product = $this->findProductForInvoiceItem($item);
+
+            $retailUnitPrice = (float) ($product?->retail_price ?? 0);
+            if ($retailUnitPrice <= 0) {
+                $retailUnitPrice = (float) ($item['unit_price'] ?? $item['unitPrice'] ?? $item['price'] ?? 0);
+            }
+
+            $lineTotal = round($retailUnitPrice * $quantity, 2);
+
+            return [
+                'product_id' => (string) ($item['product_id'] ?? $item['productId'] ?? $item['id'] ?? ''),
+                'product_name' => $item['product_name']
+                    ?? $item['productName']
+                    ?? $item['partDescription']
+                    ?? $item['name']
+                    ?? $item['description']
+                    ?? ('Item ' . ($idx + 1)),
+                'mfg_part_number' => $item['mfg_part_number']
+                    ?? $item['mfgPartNo']
+                    ?? $item['partNumber']
+                    ?? $item['sku']
+                    ?? (string) ($product?->mfg_part_no ?? ''),
+                'quantity' => $quantity,
+                'unit_price' => round($retailUnitPrice, 2),
+                'line_total' => $lineTotal,
+            ];
+        }, $rows, array_keys($rows));
     }
 
     private function normalizeInvoiceLineItems(array $rows, float $targetSubtotal = 0): array
@@ -86,20 +210,17 @@ class InvoiceService
 
             $existing = Invoice::where('order_number', $order->order_number)->first();
 
-            $baseSubtotal = (float) ($order->total_amount ?? 0);
-            $profitRate = max(0, AppSetting::getNumber('pricing.profit_rate_percent', 0));
-            $taxRate = max(0, AppSetting::getNumber('pricing.tax_rate_percent', 0));
-            $profitAmount = round(($baseSubtotal * $profitRate) / 100, 2);
-            $subtotal = round($baseSubtotal + $profitAmount, 2);
+            $sourceItems = is_array($order->items) ? $order->items : [];
+            $retailItems = $this->buildRetailInvoiceLineItems($sourceItems);
+            $retailSubtotal = round((float) array_reduce($retailItems, function ($sum, $item) {
+                return $sum + (float) ($item['line_total'] ?? 0);
+            }, 0), 2);
 
-            $tax = $taxRate > 0
-                ? round(($subtotal * $taxRate) / 100, 2)
-                : (float) ($order->tax_amount ?? 0);
-
-            $shipping = (float) ($order->shipping_amount ?? 0);
+            $tax = round((float) ($order->tax_amount ?? 0), 2);
+            $shipping = $this->resolveOrderShippingAmount($order);
             $discount = (float) ($order->discount_amount ?? 0);
-            $computedPayableTotal = max(0, $subtotal + $tax + $shipping - $discount);
-            $normalizedItems = $this->normalizeInvoiceLineItems(is_array($order->items) ? $order->items : [], $subtotal);
+            $computedPayableTotal = max(0, round($retailSubtotal + $tax + $shipping - $discount, 2));
+            $normalizedItems = $this->normalizeInvoiceLineItems($retailItems, $retailSubtotal);
 
             // Keep stable invoice number per order to avoid accidental remapping.
             $invoiceNumber = $tdData['invoiceNumber']
@@ -119,11 +240,9 @@ class InvoiceService
                         is_array($tdData) ? $tdData : (is_array($order->raw_data) ? $order->raw_data : []),
                         [
                             'invoice_charge_breakdown' => [
-                                'base_subtotal' => $baseSubtotal,
-                                'profit_rate_percent' => $profitRate,
-                                'profit_amount' => $profitAmount,
-                                'tax_rate_percent' => $taxRate,
-                                'subtotal' => $subtotal,
+                                'pricing_model' => 'retail',
+                                'retail_subtotal' => $retailSubtotal,
+                                'subtotal' => $retailSubtotal,
                                 'tax_amount' => $tax,
                                 'shipping_amount' => $shipping,
                                 'discount_amount' => $discount,
@@ -152,11 +271,9 @@ class InvoiceService
                         is_array($tdData) ? $tdData : (is_array($order->raw_data) ? $order->raw_data : []),
                         [
                             'invoice_charge_breakdown' => [
-                                'base_subtotal' => $baseSubtotal,
-                                'profit_rate_percent' => $profitRate,
-                                'profit_amount' => $profitAmount,
-                                'tax_rate_percent' => $taxRate,
-                                'subtotal' => $subtotal,
+                                'pricing_model' => 'retail',
+                                'retail_subtotal' => $retailSubtotal,
+                                'subtotal' => $retailSubtotal,
                                 'tax_amount' => $tax,
                                 'shipping_amount' => $shipping,
                                 'discount_amount' => $discount,

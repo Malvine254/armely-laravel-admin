@@ -7,6 +7,14 @@
 </head>
 <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; color: #111827;">
 	<div style="max-width: 640px; margin: 0 auto; padding: 24px; background: #ffffff;">
+		@php
+			$breakdown = is_array($invoice->raw_data['invoice_charge_breakdown'] ?? null)
+				? $invoice->raw_data['invoice_charge_breakdown']
+				: [];
+			$shippingAmount = (float) ($breakdown['shipping_amount'] ?? 0);
+			$taxAmount = (float) ($invoice->tax_amount ?? 0);
+			$subtotalAmount = max(0, (float) ($invoice->total_amount ?? 0) - $taxAmount - $shippingAmount);
+		@endphp
 		<h2 style="margin: 0 0 12px;">Invoice Ready</h2>
 		<p style="margin: 0 0 16px;">Hello {{ $customer->name ?? 'Customer' }},</p>
 		<p style="margin: 0 0 16px;">
@@ -16,6 +24,8 @@
 		<div style="border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px; margin-bottom: 16px;">
 			<p style="margin: 0 0 8px;"><strong>Invoice:</strong> {{ $invoice->invoice_number }}</p>
 			<p style="margin: 0 0 8px;"><strong>Order:</strong> {{ $invoice->order_number }}</p>
+			<p style="margin: 0 0 8px;"><strong>Subtotal (Retail):</strong> ${{ number_format($subtotalAmount, 2) }}</p>
+			<p style="margin: 0 0 8px;"><strong>Shipping (TD SYNNEX):</strong> ${{ number_format($shippingAmount, 2) }}</p>
 			<p style="margin: 0 0 8px;"><strong>Total:</strong> ${{ number_format($invoice->total_amount ?? 0, 2) }}</p>
 			<p style="margin: 0;"><strong>Due:</strong> {{ $invoice->due_at?->format('M d, Y') ?? 'On Demand' }}</p>
 		</div>

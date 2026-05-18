@@ -1005,7 +1005,20 @@ class AzureGraphMailService
         $totalAmt    = (float)($invoice->total_amount ?? 0);
         $taxAmt      = (float)($invoice->tax_amount ?? 0);
         $paidAmt     = (float)($invoice->paid_amount ?? 0);
-        $subtotal    = number_format($totalAmt - $taxAmt, 2);
+
+        // Best-effort: load related order for billing/shipping addresses and freight fallback.
+        $order = \App\Models\Order::where('order_number', $invoice->order_number)
+            ->with(['billingAddress', 'shippingAddress'])
+            ->first();
+
+        $breakdownRaw = is_array($invoice->raw_data) ? $invoice->raw_data : [];
+        $breakdown = is_array($breakdownRaw['invoice_charge_breakdown'] ?? null)
+            ? $breakdownRaw['invoice_charge_breakdown']
+            : [];
+        $shippingAmt = (float) ($breakdown['shipping_amount'] ?? ($order?->shipping_amount ?? 0));
+        $subtotalValue = max(0, $totalAmt - $taxAmt - $shippingAmt);
+        $subtotal    = number_format($subtotalValue, 2);
+        $shipping    = number_format($shippingAmt, 2);
         $tax         = number_format($taxAmt, 2);
         $total       = number_format($totalAmt, 2);
         $paid        = number_format($paidAmt, 2);
@@ -1017,11 +1030,6 @@ class AzureGraphMailService
         $safeName    = e($user->name ?? 'Customer');
         $companyName = e($user->company?->name ?? '');
         $companyHtml = $companyName ? "<p style='margin:0 0 3px;font-size:13px;'>{$companyName}</p>" : '';
-
-        // Best-effort: load related order for billing/shipping addresses
-        $order = \App\Models\Order::where('order_number', $invoice->order_number)
-            ->with(['billingAddress', 'shippingAddress'])
-            ->first();
 
         $billAddr = 'Address not provided';
         if ($order && $order->billingAddress) {
@@ -1168,6 +1176,8 @@ class AzureGraphMailService
             . "<table cellpadding='0' cellspacing='0' align='right' style='width:260px;margin-bottom:30px;'>"
             . "<tr><td style='padding:8px 0;font-size:13px;border-bottom:1px solid #ddd;'>Subtotal:</td>"
             .     "<td style='padding:8px 0;font-size:13px;border-bottom:1px solid #ddd;text-align:right;'>\${$subtotal}</td></tr>"
+            . "<tr><td style='padding:8px 0;font-size:13px;border-bottom:1px solid #ddd;'>Shipping (TD SYNNEX):</td>"
+            .     "<td style='padding:8px 0;font-size:13px;border-bottom:1px solid #ddd;text-align:right;'>\${$shipping}</td></tr>"
             . "<tr><td style='padding:8px 0;font-size:13px;border-bottom:1px solid #ddd;'>Tax ({$taxRate}%):</td>"
             .     "<td style='padding:8px 0;font-size:13px;border-bottom:1px solid #ddd;text-align:right;'>\${$tax}</td></tr>"
             . "<tr><td style='padding:12px 0;font-size:16px;font-weight:bold;color:#2F5597;border-bottom:2px solid #333;'>Total:</td>"

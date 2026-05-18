@@ -902,15 +902,27 @@ class AdminController extends Controller
             'tracking_number' => null,
             'freight_amount' => null,
             'estimated_delivery_date' => null,
+            'invoice_number' => null,
+            'invoice_total' => null,
+            'amount_to_be_invoiced' => null,
+            'invoice_amount_source' => null,
         ];
 
         if (!is_array($payload)) {
             if ($order) {
                 $trackingInfo = $this->parseTrackingInfoValue($order->tracking_info ?? null);
+                $orderInvoice = $order->relationLoaded('invoice') ? $order->invoice : $order->invoice()->first();
                 $normalized['normalized_status'] = strtolower((string) ($order->status ?? 'unknown'));
                 $normalized['shipping_status'] = (string) ($trackingInfo['shipping_status'] ?? $order->status ?? '');
                 $normalized['tracking_number'] = (string) ($trackingInfo['tracking_number'] ?? $trackingInfo['trackingNumber'] ?? '');
                 $normalized['freight_amount'] = $this->toMoneyString($order->shipping_amount ?? null);
+                $normalized['invoice_number'] = (string) ($orderInvoice?->invoice_number ?? '');
+                $normalized['invoice_total'] = $this->toMoneyString($orderInvoice?->total_amount ?? null)
+                    ?: $this->toMoneyString($order->total_amount ?? null);
+                $normalized['amount_to_be_invoiced'] = $this->toMoneyString(
+                    max(0, ((float) ($orderInvoice?->total_amount ?? $order->total_amount ?? 0)) - ((float) ($orderInvoice?->paid_amount ?? 0)))
+                );
+                $normalized['invoice_amount_source'] = $orderInvoice ? 'local-invoice' : 'local-order-total';
             }
 
             return $normalized;
@@ -921,6 +933,8 @@ class AdminController extends Controller
         $trackingNumber = $this->deepFindFirstByKeys($payload, ['tracking_number', 'trackingNumber', 'TrackingNumber', 'carrierTrackingNumber', 'shipmentTrackingNumber', 'proNumber', 'ProNumber']);
         $freight = $this->deepFindFirstByKeys($payload, ['freight', 'Freight', 'freightAmount', 'poFreight', 'shippingAmount', 'shipping_amount', 'totalFreight', 'TotalFreight']);
         $estimatedDelivery = $this->deepFindFirstByKeys($payload, ['estimatedDeliveryDate', 'EstimatedDeliveryDate', 'estimatedShipDate', 'EstimatedShipDate', 'estimatedArrivalDate', 'EstimatedArrivalDate']);
+        $invoiceNumber = $this->deepFindFirstByKeys($payload, ['invoiceNumber', 'InvoiceNumber', 'invoiceNo', 'invoice_id', 'invoiceId']);
+        $invoiceTotal = $this->deepFindFirstByKeys($payload, ['invoiceTotal', 'InvoiceTotal', 'totalInvoice', 'amountToInvoice', 'amount_to_be_invoiced', 'invoiceAmount']);
 
         $normalized['raw_status'] = $rawStatus !== null ? (string) $rawStatus : null;
         $normalized['normalized_status'] = $this->normalizeCanonicalOrderStatus($normalized['raw_status']);
@@ -928,12 +942,28 @@ class AdminController extends Controller
         $normalized['tracking_number'] = $trackingNumber !== null ? (string) $trackingNumber : null;
         $normalized['freight_amount'] = $this->toMoneyString($freight);
         $normalized['estimated_delivery_date'] = $estimatedDelivery !== null ? (string) $estimatedDelivery : null;
+        $normalized['invoice_number'] = $invoiceNumber !== null ? (string) $invoiceNumber : null;
+        $normalized['invoice_total'] = $this->toMoneyString($invoiceTotal);
+        $normalized['amount_to_be_invoiced'] = $normalized['invoice_total'];
+        $normalized['invoice_amount_source'] = $normalized['invoice_total'] ? 'td-status' : null;
 
         if ($order) {
             $trackingInfo = $this->parseTrackingInfoValue($order->tracking_info ?? null);
+            $orderInvoice = $order->relationLoaded('invoice') ? $order->invoice : $order->invoice()->first();
             $normalized['tracking_number'] = $normalized['tracking_number'] ?: (string) ($trackingInfo['tracking_number'] ?? $trackingInfo['trackingNumber'] ?? '');
             $normalized['shipping_status'] = $normalized['shipping_status'] ?: (string) ($trackingInfo['shipping_status'] ?? $order->status ?? '');
             $normalized['freight_amount'] = $normalized['freight_amount'] ?: $this->toMoneyString($order->shipping_amount ?? null);
+            $normalized['invoice_number'] = $normalized['invoice_number'] ?: (string) ($orderInvoice?->invoice_number ?? '');
+
+            if (!$normalized['invoice_total']) {
+                $normalized['invoice_total'] = $this->toMoneyString($orderInvoice?->total_amount ?? null)
+                    ?: $this->toMoneyString($order->total_amount ?? null);
+                $normalized['invoice_amount_source'] = $orderInvoice ? 'local-invoice' : 'local-order-total';
+            }
+
+            $baseTotal = (float) ($normalized['invoice_total'] ?? 0);
+            $paidTotal = (float) ($orderInvoice?->paid_amount ?? 0);
+            $normalized['amount_to_be_invoiced'] = $this->toMoneyString(max(0, $baseTotal - $paidTotal));
         }
 
         return $normalized;
@@ -2110,6 +2140,10 @@ class AdminController extends Controller
                         'tracking_number' => $localNormalized['tracking_number'],
                         'freight_amount' => $localNormalized['freight_amount'],
                         'estimated_delivery_date' => $localNormalized['estimated_delivery_date'],
+                        'invoice_number' => $localNormalized['invoice_number'],
+                        'invoice_total' => $localNormalized['invoice_total'],
+                        'amount_to_be_invoiced' => $localNormalized['amount_to_be_invoiced'],
+                        'invoice_amount_source' => $localNormalized['invoice_amount_source'],
                         'status_source' => 'local-order',
                     ],
                 ]);
@@ -2145,6 +2179,10 @@ class AdminController extends Controller
                     'tracking_number' => $normalized['tracking_number'],
                     'freight_amount' => $normalized['freight_amount'],
                     'estimated_delivery_date' => $normalized['estimated_delivery_date'],
+                    'invoice_number' => $normalized['invoice_number'],
+                    'invoice_total' => $normalized['invoice_total'],
+                    'amount_to_be_invoiced' => $normalized['amount_to_be_invoiced'],
+                    'invoice_amount_source' => $normalized['invoice_amount_source'],
                     'status_source' => $statusSource,
                 ],
             ]);
@@ -5511,6 +5549,61 @@ EOT;
                 'poTax'     => (string) number_format((float) ($quote->tax_amount ?? 0), 2, '.', ''),
                 'poFreight' => (string) number_format($quoteShippingAmount, 2, '.', ''),
             ];
+
+            $requiredFieldMap = [
+                'poNumber' => $orderData['poNumber'] ?? null,
+                'billTo.companyName' => $orderData['billTo']['companyName'] ?? null,
+                'billTo.address1' => $orderData['billTo']['address1'] ?? null,
+                'billTo.city' => $orderData['billTo']['city'] ?? null,
+                'billTo.state' => $orderData['billTo']['state'] ?? null,
+                'billTo.postalCode' => $orderData['billTo']['postalCode'] ?? null,
+                'billTo.country' => $orderData['billTo']['country'] ?? null,
+                'billTo.contactEmail' => $orderData['billTo']['contactEmail'] ?? null,
+                'shipTo.companyName' => $orderData['shipTo']['companyName'] ?? null,
+                'shipTo.address1' => $orderData['shipTo']['address1'] ?? null,
+                'shipTo.city' => $orderData['shipTo']['city'] ?? null,
+                'shipTo.state' => $orderData['shipTo']['state'] ?? null,
+                'shipTo.postalCode' => $orderData['shipTo']['postalCode'] ?? null,
+                'shipTo.country' => $orderData['shipTo']['country'] ?? null,
+                'shipTo.contactName' => $orderData['shipTo']['contactName'] ?? null,
+                'shipTo.contactEmail' => $orderData['shipTo']['contactEmail'] ?? null,
+            ];
+
+            $missingFields = array_keys(array_filter($requiredFieldMap, function ($value) {
+                return trim((string) $value) === '';
+            }));
+
+            if (empty($orderData['poLine']) || !is_array($orderData['poLine'])) {
+                $missingFields[] = 'poLine';
+            }
+
+            foreach ($orderData['poLine'] as $idx => $line) {
+                if (trim((string) ($line['partNumber'] ?? '')) === '') {
+                    $missingFields[] = 'poLine[' . $idx . '].partNumber';
+                }
+                if ((int) ($line['quantity'] ?? 0) <= 0) {
+                    $missingFields[] = 'poLine[' . $idx . '].quantity';
+                }
+                if ((float) ($line['unitPrice'] ?? 0) <= 0) {
+                    $missingFields[] = 'poLine[' . $idx . '].unitPrice';
+                }
+            }
+
+            if (!empty($missingFields)) {
+                $missingFields = array_values(array_unique($missingFields));
+                $errorMessage = 'TD submission blocked: missing required API fields - ' . implode(', ', $missingFields);
+                Log::warning('submitTdSynnexOrderForPaidInvoice validation failed', [
+                    'quote_id' => $quoteId,
+                    'invoice_number' => $invoice->invoice_number,
+                    'missing_fields' => $missingFields,
+                ]);
+
+                return ['submitted' => false, 'error' => $errorMessage];
+            }
+
+            if ((float) ($orderData['poTotal'] ?? 0) <= 0) {
+                return ['submitted' => false, 'error' => 'TD submission blocked: poTotal must be greater than 0'];
+            }
 
             \Log::debug('submitTdSynnexOrderForPaidInvoice: submitting to TD SYNNEX', [
                 'quote_id' => $quoteId,
