@@ -699,63 +699,40 @@ class AdminController extends Controller
 
     private function resolveTdPartNumber(array $item): string
     {
+        $product = $this->findTdProductForItem($item);
+        if ($product) {
+            $specifications = is_array($product->specifications ?? null) ? $product->specifications : [];
+            $resolvedCandidates = [
+                $specifications['sku'] ?? null,
+                $product->tdsynnex_sku_no ?? null,
+                $product->tdsynnex_product_id ?? null,
+                $product->mfg_part_no ?? null,
+            ];
+
+            foreach ($resolvedCandidates as $resolved) {
+                $resolvedValue = trim((string) ($resolved ?? ''));
+                if ($resolvedValue !== '' && !str_starts_with(strtoupper($resolvedValue), 'PART-')) {
+                    return $resolvedValue;
+                }
+            }
+        }
+
+        // Last resort for legacy rows: accept only plausible TD numeric SKU values.
         $directCandidates = [
             $item['partNumber'] ?? null,
             $item['sku'] ?? null,
-            $item['mfgPartNo'] ?? null,
-            $item['mfg_part_number'] ?? null,
             $item['tdsynnex_sku_no'] ?? null,
             is_array($item['specifications'] ?? null) ? ($item['specifications']['sku'] ?? null) : null,
         ];
 
         foreach ($directCandidates as $candidate) {
             $value = trim((string) ($candidate ?? ''));
-            if ($value !== '' && !str_starts_with(strtoupper($value), 'PART-')) {
+            if ($value === '' || str_starts_with(strtoupper($value), 'PART-')) {
+                continue;
+            }
+
+            if (ctype_digit($value) && strlen($value) >= 6) {
                 return $value;
-            }
-        }
-
-        $lookupValues = [
-            (string) ($item['product_id'] ?? ''),
-            (string) ($item['productId'] ?? ''),
-            (string) ($item['id'] ?? ''),
-            (string) ($item['sku'] ?? ''),
-            (string) ($item['partNumber'] ?? ''),
-        ];
-
-        foreach ($lookupValues as $lookup) {
-            $lookup = trim($lookup);
-            if ($lookup === '') {
-                continue;
-            }
-
-            $productQuery = Product::query()
-                ->select(['tdsynnex_sku_no', 'mfg_part_no', 'specifications'])
-                ->where('tdsynnex_product_id', $lookup)
-                ->orWhere('tdsynnex_sku_no', $lookup)
-                ->orWhere('mfg_part_no', $lookup);
-
-            if (ctype_digit($lookup)) {
-                $productQuery->orWhere('id', (int) $lookup);
-            }
-
-            $product = $productQuery->first();
-            if (!$product) {
-                continue;
-            }
-
-            $specifications = is_array($product->specifications ?? null) ? $product->specifications : [];
-            $resolvedCandidates = [
-                $product->tdsynnex_sku_no ?? null,
-                $specifications['sku'] ?? null,
-                $product->mfg_part_no ?? null,
-            ];
-
-            foreach ($resolvedCandidates as $resolved) {
-                $resolvedValue = trim((string) ($resolved ?? ''));
-                if ($resolvedValue !== '') {
-                    return $resolvedValue;
-                }
             }
         }
 
@@ -764,26 +741,78 @@ class AdminController extends Controller
 
     private function resolveTdUnitPrice(array $item): float
     {
-        $price = (float) ($item['price'] ?? $item['unitPrice'] ?? 0);
-        if ($price > 0) {
-            return $price;
+        $product = $this->findTdProductForItem($item);
+        $basePrice = (float) ($product?->base_price ?? 0);
+        if ($basePrice > 0) {
+            return $basePrice;
         }
 
-        $productId = (int) ($item['product_id'] ?? $item['productId'] ?? 0);
-        if ($productId > 0) {
-            $product = Product::query()
-                ->select(['base_price', 'retail_price'])
-                ->where('id', $productId)
-                ->orWhere('tdsynnex_product_id', $productId)
-                ->first();
+        $retailPrice = (float) ($product?->retail_price ?? 0);
+        if ($retailPrice > 0) {
+            return $retailPrice;
+        }
 
-            $fallbackPrice = (float) ($product?->base_price ?? $product?->retail_price ?? 0);
-            if ($fallbackPrice > 0) {
-                return $fallbackPrice;
+        $candidatePrices = [
+            $item['price'] ?? null,
+            $item['unitPrice'] ?? null,
+            $item['unit_price'] ?? null,
+            $item['customer_price'] ?? null,
+        ];
+
+        foreach ($candidatePrices as $candidate) {
+            if ($candidate === null || $candidate === '') {
+                continue;
+            }
+
+            $value = (float) $candidate;
+            if ($value > 0) {
+                return $value;
             }
         }
 
         return 0.0;
+    }
+
+    private function findTdProductForItem(array $item): ?Product
+    {
+        $lookupValues = [
+            (string) ($item['product_id'] ?? ''),
+            (string) ($item['productId'] ?? ''),
+            (string) ($item['id'] ?? ''),
+            (string) ($item['sku'] ?? ''),
+            (string) ($item['partNumber'] ?? ''),
+            (string) ($item['mfg_part_number'] ?? ''),
+            (string) ($item['mfgPartNo'] ?? ''),
+            (string) ($item['tdsynnex_sku_no'] ?? ''),
+        ];
+
+        $lookupValues = array_values(array_unique(array_filter(array_map('trim', $lookupValues), fn ($v) => $v !== '')));
+
+        foreach ($lookupValues as $lookup) {
+            $productQuery = Product::query()
+                ->select(['id', 'tdsynnex_product_id', 'tdsynnex_sku_no', 'mfg_part_no', 'specifications', 'base_price', 'retail_price'])
+                ->where('vendor_id', 'TD SYNNEX')
+                ->where(function ($query) use ($lookup) {
+                    $query->where('mfg_part_no', $lookup)
+                        ->orWhere('specifications->sku', $lookup);
+
+                    if (ctype_digit($lookup)) {
+                        $numeric = (int) $lookup;
+                        $query->orWhere('id', $numeric)
+                            ->orWhere('tdsynnex_product_id', $numeric)
+                            ->orWhere('tdsynnex_sku_no', $numeric);
+                    }
+                })
+                ->orderByDesc('updated_at')
+                ->orderByDesc('id');
+
+            $product = $productQuery->first();
+            if ($product) {
+                return $product;
+            }
+        }
+
+        return null;
     }
 
     private function parseTrackingInfoValue(mixed $trackingInfo): array
@@ -5382,7 +5411,7 @@ EOT;
                 return ['skipped' => true, 'reason' => "Quote {$quoteId} not found"];
             }
 
-            $existingOrder = Order::where('quote_id', $quote->quote_id)->first();
+            $existingOrder = Order::with(['shippingAddress', 'billingAddress'])->where('quote_id', $quote->quote_id)->first();
             if (!$existingOrder) {
                 Log::warning("submitTdSynnexOrderForPaidInvoice: no pending order for quote {$quoteId}");
                 return ['skipped' => true, 'reason' => 'No pending order found for quote'];
@@ -5428,10 +5457,24 @@ EOT;
             }
 
             $orderCompany   = $quote->user->company ?? null;
-            $orderShipAddr  = $orderCompany ? $orderCompany->getDefaultShippingAddress() : null;
-            $orderBillAddr  = $orderCompany ? $orderCompany->getDefaultBillingAddress() : null;
+            $orderShipAddr  = $existingOrder->shippingAddress ?? ($orderCompany ? $orderCompany->getDefaultShippingAddress() : null);
+            $orderBillAddr  = $existingOrder->billingAddress ?? ($orderCompany ? $orderCompany->getDefaultBillingAddress() : null);
             $effectiveShip  = $orderShipAddr ?? $orderBillAddr;
             $effectiveBill  = $orderBillAddr ?? $orderShipAddr;
+
+            if (!$effectiveShip || !method_exists($effectiveShip, 'isComplete') || !$effectiveShip->isComplete()) {
+                return [
+                    'submitted' => false,
+                    'error' => 'Customer shipping address is missing or incomplete. Please update the customer shipping address before marking invoice paid.',
+                ];
+            }
+
+            if (!$effectiveBill || !method_exists($effectiveBill, 'isComplete') || !$effectiveBill->isComplete()) {
+                return [
+                    'submitted' => false,
+                    'error' => 'Customer billing address is missing or incomplete. Please update the customer billing address before marking invoice paid.',
+                ];
+            }
 
             $quoteShippingAmount = $this->extractQuoteShippingAmount($quote);
 
