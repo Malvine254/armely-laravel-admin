@@ -838,20 +838,16 @@ class QuoteOrderInvoiceController extends Controller
 
                 $baseUnitPrice = 0.0;
                 if ($product) {
-                    // Use retail price as the authoritative quote price when available.
+                    // Customer quotes always use retail price — never cost/base price.
+                    // Prefer the stored retail_price; fall back to live_retail_price from
+                    // the most-recent PriceAvailability feed sync.
                     $retailUnitPrice = (float) ($product->retail_price ?? 0);
+                    if ($retailUnitPrice <= 0) {
+                        $retailUnitPrice = (float) ($product->live_retail_price ?? 0);
+                    }
 
                     if ($retailUnitPrice > 0) {
                         $baseUnitPrice = $retailUnitPrice;
-                    } else {
-                        $baseUnitPrice = (float) (
-                            $product->customer_price
-                            ?? $product->base_price
-                            ?? $product->price
-                            ?? 0
-                        );
-
-                        $baseUnitPrice = $this->customerPricingService->applyDiscount($baseUnitPrice, $user);
                     }
                 }
 
