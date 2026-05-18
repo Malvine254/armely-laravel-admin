@@ -1489,6 +1489,7 @@ class AdminController extends Controller
             }
             
             // Build line items with proper structure and enforce real SKU resolution.
+            // unitPrice is always base_price (our cost from TD) — never retail price.
             $lineItems = array_map(function($item, $index) {
                 if (!is_array($item)) {
                     $item = [];
@@ -1509,6 +1510,12 @@ class AdminController extends Controller
                     'extendedPrice' => (string) number_format(($unitPrice * $quantity), 2, '.', ''),
                 ];
             }, $items, array_keys($items));
+
+            // poTotal = sum of base-price line items (our cost to TD, not retail).
+            // poTax = 0 — TD bills us as a reseller with no sales tax.
+            $poBaseTotalFromLines = array_reduce($lineItems, function (float $carry, array $line): float {
+                return $carry + (float) ($line['extendedPrice'] ?? 0);
+            }, 0.0);
 
             $invalidSkuLines = array_values(array_filter($lineItems, function ($line) {
                 $sku = trim((string) ($line['partNumber'] ?? ''));
@@ -1569,8 +1576,8 @@ class AdminController extends Controller
                     'contactEmail' => $quote->user->email ?? '',
                 ],
                 'poLine' => $lineItems,
-                'poTotal' => (string)number_format((float)($quote->total_amount ?? 0), 2, '.', ''),
-                'poTax' => (string)number_format((float)($quote->tax_amount ?? 0), 2, '.', ''),
+                'poTotal' => (string) number_format($poBaseTotalFromLines, 2, '.', ''),
+                'poTax' => '0.00',
                 'poFreight' => (string) number_format($quoteShippingAmount, 2, '.', ''),
             ];
 
@@ -5473,6 +5480,12 @@ EOT;
                 ];
             }, $items, array_keys($items));
 
+            // poTotal = sum of base-price line items (our cost to TD, not retail).
+            // poTax = 0 — TD bills us as a reseller with no sales tax.
+            $poBaseTotalFromLines = array_reduce($lineItems, function (float $carry, array $line): float {
+                return $carry + (float) ($line['extendedPrice'] ?? 0);
+            }, 0.0);
+
             $invalidSkuLines = array_values(array_filter($lineItems, function ($line) {
                 $sku = trim((string) ($line['partNumber'] ?? ''));
                 return $sku === '' || str_starts_with(strtoupper($sku), 'PART-');
@@ -5534,8 +5547,8 @@ EOT;
                     'contactEmail' => $quote->user->email ?? '',
                 ],
                 'poLine'    => $lineItems,
-                'poTotal'   => (string) number_format((float) ($quote->total_amount ?? 0), 2, '.', ''),
-                'poTax'     => (string) number_format((float) ($quote->tax_amount ?? 0), 2, '.', ''),
+                'poTotal'   => (string) number_format($poBaseTotalFromLines, 2, '.', ''),
+                'poTax'     => '0.00',
                 'poFreight' => (string) number_format($quoteShippingAmount, 2, '.', ''),
             ];
 
