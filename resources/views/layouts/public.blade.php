@@ -290,7 +290,7 @@
 
 /* Add padding to menu items */
 .navigation .nav.menu > li > a {
-    padding: 20px 0 !important;
+    padding: 20px 10px !important;
 }
 
 .menu-new-badge {
@@ -311,6 +311,64 @@
     vertical-align: middle;
     animation: menuNewBadgePulse 1.8s ease-in-out infinite;
     box-shadow: 0 0 0 rgba(47, 85, 151, 0.35);
+}
+
+/* Navbar brand logo with explicit registered mark (keeps spacing stable) */
+.header .armely-logo-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    line-height: 1;
+    padding: 4px 10px 4px 4px;
+}
+
+.header .armely-logo {
+    height: 76px;
+    width: auto;
+    display: block;
+}
+
+.header .armely-registered {
+    position: absolute;
+    top: 0;
+    right: -12px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    line-height: 1;
+    color: #2f5597;
+    pointer-events: none;
+}
+
+@media (max-width: 1300px) {
+    .navigation .nav.menu > li > a {
+        padding: 18px 8px !important;
+    }
+
+    .header .armely-logo {
+        height: 66px;
+    }
+
+    .header .armely-registered {
+        top: 2px;
+        right: -8px;
+        font-size: 0.78rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .header .armely-logo-wrap {
+        padding: 3px 8px 3px 2px;
+    }
+
+    .header .armely-logo {
+        height: 58px;
+    }
+
+    .header .armely-registered {
+        top: 2px;
+        right: -7px;
+        font-size: 0.7rem;
+    }
 }
 
 .mobile-dropdown-menu .menu-new-badge {
@@ -459,8 +517,9 @@
                 <div class="row align-items-center">
                     <div class="col-lg-3 col-md-3 col-12 d-flex align-items-center">
                         <div class="logo d-flex align-items-center" style="padding: 0; margin: 0;">
-                            <a href="{{ url('/') }}" class="d-inline-flex align-items-center" style="margin: 0; padding: 0;">
-                                <img src="{{ asset('images/logo/logo-replace.png') }}" alt="Armely logo" class="img-fluid" style="max-height: 52px; width: auto; display: block;" />
+                            <a href="{{ url('/') }}" class="armely-logo-wrap" style="margin: 0; padding: 0;" aria-label="Armely home">
+                                <img src="{{ asset('images/logo/logo.svg') }}" alt="Armely logo" class="img-fluid armely-logo" />
+                                <span class="armely-registered" aria-hidden="true">&reg;</span>
                             </a>
                         </div>
                     </div>

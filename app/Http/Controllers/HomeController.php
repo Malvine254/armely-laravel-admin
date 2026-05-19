@@ -76,6 +76,74 @@ class HomeController extends Controller
     public function company()
     {
         $dbErrorMessage = null;
+
+        $portfolioItems = $this->safeDb(function () {
+            if (!Schema::hasTable('company_portfolios')) {
+                return collect();
+            }
+
+            return DB::table('company_portfolios')
+                ->where('is_active', 1)
+                ->orderBy('display_order')
+                ->orderBy('id')
+                ->get()
+                ->map(function ($item) {
+                    $features = [];
+                    if (!empty($item->features)) {
+                        $decoded = json_decode((string) $item->features, true);
+                        if (is_array($decoded)) {
+                            $features = array_values(array_filter(array_map('trim', $decoded)));
+                        }
+                    }
+
+                    return (object) [
+                        'title' => $item->title,
+                        'category' => $item->category,
+                        'short_description' => $item->short_description,
+                        'long_description' => $item->long_description,
+                        'features' => $features,
+                        'logo_url' => !empty($item->logo_path) ? asset('storage/' . ltrim((string) $item->logo_path, '/')) : null,
+                        'cta_label' => $item->cta_label,
+                        'cta_url' => $item->cta_url,
+                    ];
+                })
+                ->values();
+        }, $dbErrorMessage);
+
+        if ($portfolioItems->isEmpty()) {
+            $portfolioItems = $this->defaultPortfolioItems();
+        }
+
+        $adBanners = $this->safeDb(function () {
+            if (!Schema::hasTable('website_ad_banners')) {
+                return collect();
+            }
+
+            return DB::table('website_ad_banners')
+                ->where('is_active', 1)
+                ->whereIn('page', ['company', 'global'])
+                ->where(function ($query) {
+                    $query->whereNull('starts_at')->orWhere('starts_at', '<=', now());
+                })
+                ->where(function ($query) {
+                    $query->whereNull('ends_at')->orWhere('ends_at', '>=', now());
+                })
+                ->orderBy('display_order')
+                ->orderByDesc('id')
+                ->get()
+                ->map(function ($banner) {
+                    return (object) [
+                        'headline' => $banner->headline,
+                        'message' => $banner->message,
+                        'button_label' => $banner->button_label,
+                        'button_url' => $banner->button_url,
+                        'background_style' => $banner->background_style,
+                        'image_url' => !empty($banner->image_path) ? asset('storage/' . ltrim((string) $banner->image_path, '/')) : null,
+                    ];
+                })
+                ->values();
+        }, $dbErrorMessage);
+
         $coreValues = $this->safeDb(function () {
             $table = null;
 
@@ -114,6 +182,8 @@ class HomeController extends Controller
         }
 
         return view('company', [
+            'portfolioItems' => $portfolioItems,
+            'adBanners' => $adBanners,
             'coreValues' => $coreValues,
             'dbErrorMessage' => $dbErrorMessage,
         ]);
@@ -989,6 +1059,44 @@ class HomeController extends Controller
                 'title' => 'Customer Success',
                 'body' => 'We align every solution to measurable client outcomes and long-term value.',
                 'icon' => 'users-alt-5',
+            ],
+        ]);
+    }
+
+    private function defaultPortfolioItems()
+    {
+        return collect([
+            (object) [
+                'title' => 'Mela - Your AI CoPilot',
+                'category' => 'AI & Machine Learning',
+                'short_description' => "Mela represents Armely's AI experience for demonstrating how intelligent copilots and automation can be embedded into modern business workflows.",
+                'long_description' => 'It showcases practical delivery patterns from Copilot Studio use cases to Azure OpenAI and enterprise AI governance.',
+                'features' => [
+                    'Copilot Studio development',
+                    'Retrieval-Augmented Generation (RAG)',
+                    'Natural Language Processing (NLP)',
+                    'AI governance and security',
+                    'Azure OpenAI integration',
+                ],
+                'logo_url' => asset('images/logo/mela-logo.jpg'),
+                'cta_label' => 'Explore Mela',
+                'cta_url' => '/mela-ai',
+            ],
+            (object) [
+                'title' => 'Step & Sip - Data-Driven Coffee',
+                'category' => 'Data Analytics & BI',
+                'short_description' => "Step & Sip represents Armely's analytics experience, showing how modern retail operations can be improved through connected insights and automation.",
+                'long_description' => 'We demonstrate how coffee and data blend through real-time insights powered by Microsoft Fabric and Power Platform.',
+                'features' => [
+                    'Microsoft Fabric Lakehouse architecture',
+                    'Power BI dashboards and insights',
+                    'Customer segmentation and behavior',
+                    'Inventory and sales forecasting',
+                    'Workflow automation with Power Automate',
+                ],
+                'logo_url' => asset('images/logo/logo-step.png'),
+                'cta_label' => 'Visit Experience',
+                'cta_url' => '/store',
             ],
         ]);
     }

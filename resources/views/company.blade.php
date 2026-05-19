@@ -134,6 +134,8 @@
     border: 2px solid #f0f0f0;
     position: relative;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
   }
   
   .modern-card::before {
@@ -183,6 +185,10 @@
     color: #666;
     margin-bottom: 15px;
   }
+
+  .modern-card .list-unstyled {
+    margin-bottom: 18px;
+  }
   
   .modern-card h6 {
     font-size: 1.1rem;
@@ -226,6 +232,10 @@
   .affiliation-section img:hover {
     transform: scale(1.05);
     filter: grayscale(0%);
+  }
+
+  .company-section.default-background {
+    background: linear-gradient(145deg, #2f5597 0%, #1f3f80 100%);
   }
   
   .values-section {
@@ -326,6 +336,103 @@
   .values-section .col-lg-4 {
     margin-bottom: 30px;
   }
+
+  .ad-banner-section {
+    padding: 30px 0 10px;
+    background: #f8f9fa;
+  }
+
+  .company-ad-banner {
+    border-radius: 16px;
+    padding: 28px;
+    color: #fff;
+    box-shadow: 0 10px 30px rgba(23, 39, 67, 0.18);
+    overflow: hidden;
+    position: relative;
+  }
+
+  .company-ad-banner::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(120deg, rgba(255,255,255,0.12), rgba(255,255,255,0));
+    pointer-events: none;
+  }
+
+  .company-ad-banner h3 {
+    font-size: 1.45rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+    color: #fff;
+  }
+
+  .company-ad-banner p {
+    font-size: 1.02rem;
+    line-height: 1.7;
+    margin-bottom: 0;
+    color: rgba(255, 255, 255, 0.95);
+  }
+
+  .banner-image {
+    max-width: 180px;
+    width: 100%;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+
+  .portfolio-empty {
+    border: 1px dashed rgba(47, 85, 151, 0.35);
+    border-radius: 14px;
+    padding: 24px;
+    color: #5f6c80;
+    background: #fff;
+  }
+
+  .portfolio-cta-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: auto;
+    width: fit-content;
+    min-height: 42px;
+    padding: 10px 18px;
+    border-radius: 10px;
+    border: 1px solid #1f3f80;
+    background: linear-gradient(135deg, #2f5597 0%, #1f3f80 100%);
+    color: #ffffff !important;
+    font-weight: 600;
+    text-decoration: none;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+  }
+
+  .portfolio-cta-btn:hover {
+    transform: translateY(-2px);
+    color: #ffffff !important;
+    box-shadow: 0 8px 20px rgba(31, 63, 128, 0.28);
+    filter: brightness(1.02);
+  }
+
+  .banner-cta-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 42px;
+    padding: 10px 18px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    background: #ffffff;
+    color: #1f3f80 !important;
+    font-weight: 700;
+    text-decoration: none;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .banner-cta-btn:hover {
+    transform: translateY(-2px);
+    color: #163268 !important;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.2);
+  }
   
   @media (max-width: 768px) {
     .section-title h2 {
@@ -343,6 +450,10 @@
 
     .values-section .single-service {
       padding: 34px 24px;
+    }
+
+    .company-ad-banner {
+      padding: 22px;
     }
   }
 </style>
@@ -404,6 +515,49 @@
   </div>
 </section>
 
+@if(($adBanners ?? collect())->isNotEmpty())
+<section class="ad-banner-section">
+  <div class="container">
+    <div id="companyAdBannerCarousel" class="carousel slide" data-bs-ride="carousel">
+      <div class="carousel-inner">
+        @foreach($adBanners as $banner)
+          <div class="carousel-item {{ $loop->first ? 'active' : '' }}">
+            <div class="company-ad-banner" style="background: {{ $banner->background_style ?: 'linear-gradient(135deg, #2f5597 0%, #1e3a6d 100%)' }};">
+              <div class="row align-items-center g-3">
+                <div class="col-lg-8">
+                  <h3>{{ $banner->headline }}</h3>
+                  @if(!empty($banner->message))
+                    <p>{{ $banner->message }}</p>
+                  @endif
+                  @if(!empty($banner->button_label) && !empty($banner->button_url))
+                    <a href="{{ $banner->button_url }}" class="banner-cta-btn mt-3">{{ $banner->button_label }}</a>
+                  @endif
+                </div>
+                <div class="col-lg-4 text-lg-end text-center">
+                  @if(!empty($banner->image_url))
+                    <img src="{{ $banner->image_url }}" alt="Website banner image" class="banner-image">
+                  @endif
+                </div>
+              </div>
+            </div>
+          </div>
+        @endforeach
+      </div>
+      @if(($adBanners ?? collect())->count() > 1)
+        <button class="carousel-control-prev" type="button" data-bs-target="#companyAdBannerCarousel" data-bs-slide="prev">
+          <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+          <span class="visually-hidden">Previous</span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#companyAdBannerCarousel" data-bs-slide="next">
+          <span class="carousel-control-next-icon" aria-hidden="true"></span>
+          <span class="visually-hidden">Next</span>
+        </button>
+      @endif
+    </div>
+  </div>
+</section>
+@endif
+
 <!-- Start portfolio -->
 <section class="affiliation-section">
   <div class="container">
@@ -446,54 +600,54 @@
           <p style="font-size: 1.1rem;  margin-top: 15px; max-width: 800px; margin-left: auto; margin-right: auto;" class="text-light">Explore the brands and solution experiences we use to showcase cutting-edge technology in action</p>
         </div>
         <div class="row g-4">
-          <!-- Mela Card -->
-          <div class="col-md-6" id="mela-ai">
-            <div class="modern-card h-100">
-              <div class="d-flex align-items-start mb-4">
-                <div class="entity-logo-wrapper me-3">
-                  <img src="{{ asset('images/logo/mela-logo.jpg') }}" alt="Mela Logo" />
+          @forelse($portfolioItems as $item)
+            <div class="col-md-6">
+              <div class="modern-card h-100">
+                <div class="d-flex align-items-start mb-4">
+                  <div class="entity-logo-wrapper me-3">
+                    @if(!empty($item->logo_url))
+                      <img src="{{ $item->logo_url }}" alt="{{ $item->title }} logo" />
+                    @else
+                      <i class="fa fa-briefcase" style="font-size: 1.75rem; color: #2f5597;"></i>
+                    @endif
+                  </div>
+                  <div>
+                    <h5 class="mb-2">{{ $item->title }}</h5>
+                    @if(!empty($item->category))
+                      <span class="badge" style="background: linear-gradient(135deg, #2f5597 0%, #1e3a6d 100%); color: #fff; padding: 5px 12px; border-radius: 20px; font-size: 0.8rem;">{{ $item->category }}</span>
+                    @endif
+                  </div>
                 </div>
-                <div>
-                  <h5 class="mb-2">Mela – Your AI CoPilot</h5>
-                  <span class="badge" style="background: linear-gradient(135deg, #2f5597 0%, #1e3a6d 100%); color: #fff; padding: 5px 12px; border-radius: 20px; font-size: 0.8rem;">AI & Machine Learning</span>
-                </div>
+
+                @if(!empty($item->short_description))
+                  <p>{{ $item->short_description }}</p>
+                @endif
+
+                @if(!empty($item->long_description))
+                  <p>{{ $item->long_description }}</p>
+                @endif
+
+                @if(!empty($item->features))
+                  <h6 class="mt-4 mb-3" style="color: #2c3e50; font-weight: 600; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px;">Use Cases Demonstrated:</h6>
+                  <ul class="list-unstyled">
+                    @foreach($item->features as $feature)
+                      <li style="margin-bottom: 12px;"><i class="fa fa-check-circle" style="margin-right: 10px; color: #2f5597;"></i> {{ $feature }}</li>
+                    @endforeach
+                  </ul>
+                @endif
+
+                @if(!empty($item->cta_label) && !empty($item->cta_url))
+                  <a href="{{ $item->cta_url }}" class="portfolio-cta-btn">{{ $item->cta_label }}</a>
+                @endif
               </div>
-              <p><strong>Mela</strong> represents Armely's AI experience for demonstrating how intelligent copilots, automation, and generative AI can be embedded into modern business workflows.</p>
-              <p>It showcases how organizations embed AI in workflows—from building copilots with <strong>Copilot Studio</strong> to deploying machine learning and generative AI solutions.</p>
-              <h6 class="mt-4 mb-3" style="color: #2c3e50; font-weight: 600; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px;">Use Cases Demonstrated:</h6>
-              <ul class="list-unstyled">
-                <li style="margin-bottom: 12px;"><i class="fa fa-check-circle default-color" style="margin-right: 10px;"></i> Copilot Studio development</li>
-                <li style="margin-bottom: 12px;"><i class="fa fa-check-circle default-color" style="margin-right: 10px;"></i> Retrieval-Augmented Generation (RAG)</li>
-                <li style="margin-bottom: 12px;"><i class="fa fa-check-circle default-color" style="margin-right: 10px;"></i> Natural Language Processing (NLP)</li>
-                <li style="margin-bottom: 12px;"><i class="fa fa-check-circle default-color" style="margin-right: 10px;"></i> AI governance and security</li>
-                <li style="margin-bottom: 12px;"><i class="fa fa-check-circle default-color" style="margin-right: 10px;"></i> Azure OpenAI integration</li>
-              </ul>
             </div>
-          </div>
-          <!-- Step & Sip Card -->
-          <div class="col-md-6" id="armely-store">
-            <div class="modern-card h-100">
-              <div class="d-flex align-items-start mb-4">
-                <div class="entity-logo-wrapper me-3">
-                  <img src="{{ asset('images/logo/logo-step.png') }}" alt="Step & Sip Logo" />
-                </div>
-                <div>
-                  <h5 class="mb-2">Step & Sip – Data-Driven Coffee</h5>
-                  <span class="badge" style="background: linear-gradient(135deg, #2f5597 0%, #1e3a6d 100%); color: #fff; padding: 5px 12px; border-radius: 20px; font-size: 0.8rem;">Data Analytics & BI</span>
-                </div>
+          @empty
+            <div class="col-12">
+              <div class="portfolio-empty text-center">
+                Portfolio items are not yet available. Please add them in the admin Company Content page.
               </div>
-              <p><strong>Step & Sip</strong> represents Armely's data and analytics experience, showing how modern retail operations can be improved through connected insights, forecasting, and automation.</p>
-              <p>We demonstrate how coffee and data blend through real-time insights, automation, and intelligence—powered by <strong>Microsoft Fabric</strong> and <strong>Power Platform</strong>.</p>
-              <h6 class="mt-4 mb-3" style="color: #2c3e50; font-weight: 600; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px;">Use Cases Demonstrated:</h6>
-              <ul class="list-unstyled">
-                <li style="margin-bottom: 12px;"><i class="fa fa-check-circle default-color" style="margin-right: 10px;"></i> Microsoft Fabric Lakehouse architecture</li>
-                <li style="margin-bottom: 12px;"><i class="fa fa-check-circle default-color" style="margin-right: 10px;"></i> Power BI dashboards and insights</li>
-                <li style="margin-bottom: 12px;"><i class="fa fa-check-circle default-color" style="margin-right: 10px;"></i> Customer segmentation and behavior</li>
-                <li style="margin-bottom: 12px;"><i class="fa fa-check-circle default-color" style="margin-right: 10px;"></i> Inventory and sales forecasting</li>
-                <li style="margin-bottom: 12px;"><i class="fa fa-check-circle default-color" style="margin-right: 10px;"></i> Workflow automation with Power Automate</li>
-              </ul>
             </div>
-          </div>
+          @endforelse
         </div>
       </div>
     </div>

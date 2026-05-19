@@ -17,10 +17,13 @@ class DashboardController extends Controller
         $today = Carbon::today();
         $weekAgo = Carbon::today()->subDays(7);
         $monthAgo = Carbon::today()->subDays(30);
+        $consultationDateColumn = $this->resolveFirstExistingColumn('consultation', ['date_now', 'created_at', 'date']);
+        $contactsDateColumn = $this->resolveFirstExistingColumn('contacts', ['sent_date', 'created_at', 'date']);
+        $jobApplicationsDateColumn = $this->resolveFirstExistingColumn('job_applications', ['application_date', 'created_at', 'date']);
 
         $blogTable = $this->resolveBlogTable();
 
-        $stats = Cache::remember('admin_dashboard_stats', 300, function () use ($today, $weekAgo, $monthAgo, $blogTable) {
+        $stats = Cache::remember('admin_dashboard_stats', 300, function () use ($today, $weekAgo, $monthAgo, $blogTable, $consultationDateColumn, $contactsDateColumn, $jobApplicationsDateColumn) {
         return [
             'blogs' => $this->safeCountAny(['blog', 'blogs']),
             'videos' => $this->safeCountAny(['videos', 'video']),
@@ -28,12 +31,12 @@ class DashboardController extends Controller
             'admins' => $this->countActiveAdmins(),
             'unique_authors' => $this->countUniqueBlogAuthors($blogTable),
             'total_consultations' => $this->safeCount('consultation'),
-            'consultations_today' => $this->safeCountOnDate('consultation', 'date_now', $today),
-            'consultations_this_week' => $this->safeCountSince('consultation', 'date_now', $weekAgo),
+            'consultations_today' => $this->safeCountOnDate('consultation', $consultationDateColumn, $today),
+            'consultations_this_week' => $this->safeCountSince('consultation', $consultationDateColumn, $weekAgo),
             'total_contacts' => $this->safeCount('contacts'),
-            'contacts_today' => $this->safeCountOnDate('contacts', 'sent_date', $today),
+            'contacts_today' => $this->safeCountOnDate('contacts', $contactsDateColumn, $today),
             'total_job_apps' => $this->safeCount('job_applications'),
-            'job_apps_this_month' => $this->safeCountSince('job_applications', 'application_date', $monthAgo),
+            'job_apps_this_month' => $this->safeCountSince('job_applications', $jobApplicationsDateColumn, $monthAgo),
             'total_campaigns' => $this->safeCount('campaigns'),
             'total_admins' => $this->safeCount('admin'),
             'active_admins' => $this->countActiveAdmins(),
@@ -51,15 +54,6 @@ class DashboardController extends Controller
         $recentBlogs = collect();
         if ($blogTable) {
             $query = DB::table($blogTable);
-            
-            // Try to join with team table for profile pictures
-            if (Schema::hasTable('team')) {
-                $authorCol = $this->resolveBlogAuthorColumn($blogTable);
-                if ($authorCol && Schema::hasColumn('team', 'team_name')) {
-                    $query->leftJoin('team', $blogTable . '.' . $authorCol, '=', 'team.team_name')
-                          ->select($blogTable . '.*', 'team.team_image as author_image');
-                }
-            }
 
             $orderCol = $this->resolveBlogDateColumn($blogTable);
             if ($orderCol) {
@@ -67,6 +61,39 @@ class DashboardController extends Controller
                 $query->orderByRaw($this->dateExpression($blogTable . '.' . $orderCol) . " DESC");
             }
             $recentBlogs = $query->limit(10)->get();
+
+            // Attach author images without SQL join to avoid collation mismatch issues.
+            $authorCol = $this->resolveBlogAuthorColumn($blogTable);
+            if (
+                $authorCol &&
+                Schema::hasTable('team') &&
+                Schema::hasColumn('team', 'team_name') &&
+                Schema::hasColumn('team', 'team_image')
+            ) {
+                $authorNames = $recentBlogs
+                    ->pluck($authorCol)
+                    ->filter(fn ($name) => is_string($name) && trim($name) !== '')
+                    ->map(fn ($name) => trim((string) $name))
+                    ->unique()
+                    ->values();
+
+                if ($authorNames->isNotEmpty()) {
+                    $teamImageMap = DB::table('team')
+                        ->whereIn('team_name', $authorNames)
+                        ->pluck('team_image', 'team_name');
+
+                    $recentBlogs = $recentBlogs->map(function ($blog) use ($authorCol, $teamImageMap) {
+                        $authorName = trim((string) ($blog->{$authorCol} ?? ''));
+                        $blog->author_image = $authorName !== '' ? ($teamImageMap[$authorName] ?? null) : null;
+                        return $blog;
+                    });
+                } else {
+                    $recentBlogs = $recentBlogs->map(function ($blog) {
+                        $blog->author_image = null;
+                        return $blog;
+                    });
+                }
+            }
         }
 
         // Fetch all videos safely
@@ -138,9 +165,9 @@ class DashboardController extends Controller
             ->count();
     }
 
-    private function safeCountOnDate(string $table, string $column, Carbon $date): int
+    private function safeCountOnDate(string $table, ?string $column, Carbon $date): int
     {
-        if (!Schema::hasTable($table)) return 0;
+        if (!Schema::hasTable($table) || !$column || !Schema::hasColumn($table, $column)) return 0;
         return (int) DB::table($table)
             ->whereRaw($this->dateExpression($column) . ' = ?', [$date->toDateString()])
             ->count();
@@ -153,9 +180,9 @@ class DashboardController extends Controller
             ->count();
     }
 
-    private function safeCountSince(string $table, string $column, Carbon $date): int
+    private function safeCountSince(string $table, ?string $column, Carbon $date): int
     {
-        if (!Schema::hasTable($table)) return 0;
+        if (!Schema::hasTable($table) || !$column || !Schema::hasColumn($table, $column)) return 0;
         return (int) DB::table($table)
             ->whereRaw($this->dateExpression($column) . ' >= ?', [$date->toDateString()])
             ->count();
@@ -168,9 +195,9 @@ class DashboardController extends Controller
             ->count();
     }
 
-    private function safeCountBetween(string $table, string $column, Carbon $start, Carbon $end): int
+    private function safeCountBetween(string $table, ?string $column, Carbon $start, Carbon $end): int
     {
-        if (!Schema::hasTable($table)) return 0;
+        if (!Schema::hasTable($table) || !$column || !Schema::hasColumn($table, $column)) return 0;
         return (int) DB::table($table)
             ->whereBetween(DB::raw($this->dateExpression($column)), [$start->toDateString(), $end->toDateString()])
             ->count();
@@ -269,6 +296,11 @@ class DashboardController extends Controller
     private function buildMonthlyTrend(): array
     {
         return Cache::remember('admin_monthly_trend', 1800, function () {
+        $consultationDateColumn = $this->resolveFirstExistingColumn('consultation', ['date_now', 'created_at', 'date']);
+        $contactsDateColumn = $this->resolveFirstExistingColumn('contacts', ['sent_date', 'created_at', 'date']);
+        $jobApplicationsDateColumn = $this->resolveFirstExistingColumn('job_applications', ['application_date', 'created_at', 'date']);
+        $campaignsDateColumn = $this->resolveFirstExistingColumn('campaigns', ['sent_date', 'created_at', 'date']);
+
         $labels = [];
         $consultations = [];
         $contacts = [];
@@ -280,10 +312,10 @@ class DashboardController extends Controller
             $end = Carbon::now()->endOfMonth()->subMonths($i);
 
             $labels[] = $start->format('M');
-            $consultations[] = $this->safeCountBetween('consultation', 'date_now', $start, $end);
-            $contacts[] = $this->safeCountBetween('contacts', 'sent_date', $start, $end);
-            $jobApplications[] = $this->safeCountBetween('job_applications', 'application_date', $start, $end);
-            $campaigns[] = $this->safeCountBetween('campaigns', 'sent_date', $start, $end);
+            $consultations[] = $this->safeCountBetween('consultation', $consultationDateColumn, $start, $end);
+            $contacts[] = $this->safeCountBetween('contacts', $contactsDateColumn, $start, $end);
+            $jobApplications[] = $this->safeCountBetween('job_applications', $jobApplicationsDateColumn, $start, $end);
+            $campaigns[] = $this->safeCountBetween('campaigns', $campaignsDateColumn, $start, $end);
         }
 
         return [$labels, $consultations, $contacts, $jobApplications, $campaigns];
@@ -421,5 +453,20 @@ class DashboardController extends Controller
         $quoted = implode('.', $quotedParts);
 
         return "DATE(COALESCE(STR_TO_DATE($quoted, '%d %b %Y'), $quoted))";
+    }
+
+    private function resolveFirstExistingColumn(string $table, array $candidates): ?string
+    {
+        if (!Schema::hasTable($table)) {
+            return null;
+        }
+
+        foreach ($candidates as $column) {
+            if (Schema::hasColumn($table, $column)) {
+                return $column;
+            }
+        }
+
+        return null;
     }
 }

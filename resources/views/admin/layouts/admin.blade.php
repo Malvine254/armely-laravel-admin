@@ -316,6 +316,12 @@
                 <span>Analytics</span>
             </a>
         </li>
+        <li>
+            <a href="{{ route('admin.company-content') }}" class="nav-link {{ request()->routeIs('admin.company-content*') ? 'active' : '' }}">
+                <i class="fas fa-layer-group"></i>
+                <span>Company Content</span>
+            </a>
+        </li>
     </ul>
     <div class="sidebar-user mt-3">
         <strong>{{ auth('admin')->user()->name ?? 'Admin' }}</strong>
