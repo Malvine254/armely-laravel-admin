@@ -17,7 +17,7 @@
     .modal-dialog {
         z-index: 10000 !important;
     }
-    
+
     /* MODERN MODAL STYLING */
     .modal-content {
         border: none;
@@ -25,48 +25,48 @@
         box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
         overflow: hidden;
     }
-    
+
     .modal-header {
         background: linear-gradient(135deg, #2f5597 0%, #1e3a6b 100%);
         color: white;
         padding: 1.75rem 2rem;
         border-bottom: none;
     }
-    
+
     .modal-header .modal-title {
         font-weight: 600;
         font-size: 1.5rem;
         color: white;
     }
-    
+
     .modal-header .btn-close {
         filter: brightness(0) invert(1);
         opacity: 0.8;
     }
-    
+
     .modal-body {
         padding: 2rem;
         background: #f8f9fa;
     }
-    
+
     .modal-body form {
         background: white;
         padding: 1.5rem;
         border-radius: 16px;
     }
-    
+
     .modal-footer {
         padding: 1.5rem 2rem;
         background: white;
         border-top: 1px solid #e9ecef;
     }
-    
+
     .modal .form-label {
         font-weight: 600;
         color: #344054;
         margin-bottom: 0.5rem;
     }
-    
+
     .modal .form-control,
     .modal .form-select {
         border: 2px solid #e5e7eb;
@@ -74,43 +74,40 @@
         padding: 0.75rem 1rem;
         transition: all 0.2s ease;
     }
-    
+
     .modal .form-control:focus,
     .modal .form-select:focus {
         border-color: #2f5597;
         box-shadow: 0 0 0 4px rgba(47, 85, 151, 0.1);
     }
-    
+
     .modal .btn {
         padding: 0.75rem 1.5rem;
         border-radius: 10px;
         font-weight: 600;
         border: none;
     }
-    
+
     .modal .btn-primary {
         background: linear-gradient(135deg, #2f5597 0%, #1e3a6b 100%);
         box-shadow: 0 4px 12px rgba(47, 85, 151, 0.3);
     }
-    
+
     .modal .btn-secondary {
         background: #e5e7eb;
         color: #6b7280;
     }
-    
+
     .admin-stats-card {
         border: none;
         border-radius: 16px;
-        transition: all 0.3s ease;
-        overflow: hidden;
-        height: 100%;
-    }
-    .admin-stats-card .card-body {
-        padding: 1.5rem;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        background: linear-gradient(135deg, #ffffff, #f8f9fa);
     }
     .admin-stats-card:hover {
         transform: translateY(-5px);
-        box-shadow: 0 12px 24px rgba(0,0,0,0.08);
+        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
     }
     .stat-icon-box {
         width: 48px;
@@ -138,31 +135,118 @@
         margin: 0 !important;
     }
     #adminsDataTable thead th {
-        background: #f8f9fa;
-        color: #475467;
-        font-weight: 600;
+        background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+        color: #0d47a1;
+        font-weight: bold;
         text-transform: uppercase;
-        font-size: 0.75rem;
+        font-size: 0.85rem;
         letter-spacing: 0.5px;
         padding: 1rem 1.5rem;
-        border-bottom: 1px solid #e4e7ec;
+        border-bottom: 2px solid #90caf9;
+    }
+    #adminsDataTable tbody tr:hover {
+        background-color: #e3f2fd;
     }
     #adminsDataTable tbody td {
         padding: 1rem 1.5rem;
         vertical-align: middle;
-        border-bottom: 1px solid #f2f4f7;
+        border-bottom: 1px solid #e0e0e0;
+        color: #37474f;
+    }
+
+    /* Refined page styling overrides */
+    .admins-page-title {
+        margin-bottom: 1rem;
+    }
+    .admins-page-title h2 {
+        font-size: 1.45rem;
+        color: #1f3f80;
+        margin-bottom: 0.35rem;
+    }
+    .admins-page-title p {
+        font-size: 0.9rem;
+        color: #667085;
+        margin: 0;
+    }
+
+    .admins-actions .btn {
+        border-radius: 10px;
+        font-weight: 600;
+        padding: 0.55rem 1rem;
+    }
+
+    .admins-stats .admin-stats-card {
+        border: 1px solid #edf1f7;
+        border-left-width: 3px;
+        box-shadow: 0 2px 8px rgba(31, 63, 128, 0.06);
+    }
+    .admins-stats .admin-stats-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 16px rgba(31, 63, 128, 0.1);
+    }
+    .admins-stats .stat-icon-box {
+        margin-bottom: 0.6rem;
+    }
+    .admins-stats h3 {
+        font-size: 1.4rem;
+        line-height: 1.2;
+    }
+
+    .admins-table-card {
+        border-radius: 12px;
+        border: 1px solid #e4e7ec;
+        box-shadow: 0 2px 8px rgba(31, 63, 128, 0.06);
+    }
+
+    .bg-soft-primary { background: #eef2ff !important; }
+    .bg-soft-success { background: #ecfdf3 !important; }
+    .bg-soft-danger { background: #fef3f2 !important; }
+    .bg-soft-secondary { background: #f2f4f7 !important; }
+
+    .avatar-circle {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 0.85rem;
+        letter-spacing: 0.3px;
+    }
+
+    .pulse-indicator {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        display: inline-block;
+    }
+
+    .btn-white {
+        background: #fff;
+        border: 1px solid #e4e7ec;
+    }
+    .btn-white:hover {
+        background: #f8fafc;
+    }
+
+    .dataTables_wrapper .dataTables_filter input,
+    .dataTables_wrapper .dataTables_length select {
+        border: 1px solid #d0d9e8;
+        border-radius: 8px;
+        min-height: 36px;
     }
 </style>
 @endpush
 
 @section('content')
-<div class="mb-4">
-    <h2 class="fw-bold text-dark mb-1">Admin Management</h2>
-    <p class="text-muted">Monitor and manage access levels for your team members</p>
+<div class="admins-page-title">
+    <h2 class="fw-bold">Admin Users</h2>
+    <p>Manage administrator accounts and access.</p>
 </div>
 
 <!-- Stats -->
-<div class="row g-3 mb-4">
+<div class="row g-3 mb-4 admins-stats">
     <div class="col-md-6 col-lg-3">
         <div class="card admin-stats-card border-start border-4 border-primary">
             <div class="card-body">
@@ -180,7 +264,7 @@
                 <div class="stat-icon-box bg-soft-success text-success">
                     <i class="fas fa-shield-alt"></i>
                 </div>
-                <p class="text-muted mb-1 fw-bold small uppercase">Active Sessions</p>
+                <p class="text-muted mb-1 fw-bold small uppercase">Active</p>
                 <h3 class="mb-0 fw-bold text-success">{{ $stats['active'] ?? 0 }}</h3>
             </div>
         </div>
@@ -209,27 +293,27 @@
     </div>
 </div>
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h5 class="mb-0 fw-bold"><i class="fas fa-list-ul me-2 text-primary"></i>System Administrators</h5>
-    <button class="btn btn-primary px-4 rounded-pill shadow-sm" data-bs-toggle="modal" data-bs-target="#addAdminModal">
-        <i class="fas fa-plus-circle me-2"></i>Provision New Admin
+<div class="d-flex justify-content-between align-items-center mb-3 admins-actions">
+    <h5 class="mb-0 fw-bold"><i class="fas fa-list-ul me-2 text-primary"></i>Administrators</h5>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addAdminModal">
+        <i class="fas fa-plus-circle me-2"></i>Add Admin
     </button>
 </div>
 
 <!-- Admins Table -->
-<div class="table-container-fixed">
+<div class="table-container-fixed admins-table-card">
     <div class="card-body p-0">
         @if($admins->count() > 0)
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0" id="adminsDataTable">
                     <thead>
                         <tr>
-                            <th>Member</th>
-                            <th>Email Identity</th>
-                            <th>Privilege</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Role</th>
                             <th>Status</th>
-                            <th>Joined On</th>
-                            <th class="text-end px-4">Management</th>
+                            <th>Joined</th>
+                            <th class="text-end px-4">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -256,7 +340,7 @@
                                     </span>
                                 @else
                                     <span class="badge bg-soft-primary text-primary border-0 px-3 py-2 rounded-pill">
-                                        <i class="fas fa-user-lock me-1"></i> Standard Admin
+                                        <i class="fas fa-user-lock me-1"></i> Admin
                                     </span>
                                 @endif
                             </td>
@@ -275,14 +359,14 @@
                             </td>
                             <td class="text-end px-4">
                                 <div class="btn-group shadow-sm rounded-pill overflow-hidden">
-                                    <button class="btn btn-sm btn-white border-end" data-bs-toggle="modal" data-bs-target="#editAdminModal" onclick='editAdmin(@json($admin))' title="Settings">
+                                    <button class="btn btn-sm btn-white border-end" data-bs-toggle="modal" data-bs-target="#editAdminModal" onclick='editAdmin(@json($admin))' title="Edit">
                                         <i class="fas fa-cog text-primary"></i>
                                     </button>
                                     @if(auth('admin')->user()->id !== $admin->id)
                                         <form action="{{ route('admin.admins.delete', $admin->id) }}" method="POST" class="d-inline">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" class="btn btn-sm btn-white" onclick="return confirm('Immediately revoke access for {{ $admin->name }}?')" title="Delete Account">
+                                            <button type="submit" class="btn btn-sm btn-white" onclick="return confirm('Remove access for {{ $admin->name }}?')" title="Delete">
                                                 <i class="fas fa-trash-alt text-danger"></i>
                                             </button>
                                         </form>
@@ -297,7 +381,7 @@
         @else
             <div class="text-center py-5">
                 <i class="fas fa-users-slash fa-3x text-muted mb-3 opacity-25"></i>
-                <p class="text-muted">No administrative accounts found in the system</p>
+                <p class="text-muted">No admin users found.</p>
             </div>
         @endif
     </div>
@@ -308,7 +392,7 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Add New Admin</h5>
+                <h5 class="modal-title">Add Admin User</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form action="{{ route('admin.admins.store') }}" method="POST">
@@ -365,7 +449,7 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Edit Admin</h5>
+                <h5 class="modal-title">Edit Admin User</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form id="editAdminForm" method="POST">
