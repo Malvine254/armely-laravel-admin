@@ -1,6 +1,6 @@
 @extends('layouts.public')
 
-@section('title', 'Career Opportunities - Armely')
+@section('title', 'Careers')
 
 @push('styles')
 <link rel="stylesheet" href="{{ asset('css/career-modern.css') }}">

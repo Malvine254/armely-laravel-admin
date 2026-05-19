@@ -1,6 +1,6 @@
 @extends('layouts.public')
 
-@section('title', 'Case Studies & White Papers - Armely')
+@section('title', 'Case Studies')
 
 @push('styles')
 <link rel="stylesheet" href="{{ asset('css/case-studies-modern.css') }}">

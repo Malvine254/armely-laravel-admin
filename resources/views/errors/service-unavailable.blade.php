@@ -1,6 +1,6 @@
 @extends('layouts.public')
 
-@section('title', 'Service Temporarily Unavailable - Armely')
+@section('title', 'Unavailable')
 
 @section('content')
 <div class="breadcrumbs overlay">

@@ -1,6 +1,6 @@
 @extends('layouts.public')
 
-@section('title', 'Services - Armely')
+@section('title', 'Services')
 
 @push('styles')
 <style>

@@ -15,7 +15,7 @@
 
                     <!-- Header with Logo -->
                     <div class="readiness-head text-center">
-                        <img src="{{ asset('images/logo/logo-replace.png') }}" alt="Armely" class="readiness-logo">
+                        <img src="{{ asset('images/logo/logo-replace-v2.png') }}" alt="Armely" class="readiness-logo">
                         <span class="readiness-kicker">AI Data Readiness Assessment</span>
                     </div>
 

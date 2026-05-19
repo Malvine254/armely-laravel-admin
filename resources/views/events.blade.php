@@ -1,6 +1,6 @@
 @extends('layouts.public')
 
-@section('title', 'Events - Armely')
+@section('title', 'Events')
 
 @push('styles')
 <link rel="stylesheet" href="{{ asset('css/events-modern.css') }}">

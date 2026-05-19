@@ -1,6 +1,6 @@
 @extends('layouts.public')
 
-@section('title', 'Social Impact - Armely')
+@section('title', 'Social Impact')
 
 @push('styles')
 <link rel="stylesheet" href="{{ asset('more_style.css') }}">

@@ -1,6 +1,6 @@
 @extends('layouts.public')
 
-@section('title', 'Our Team - Armely')
+@section('title', 'Team')
 
 @push('styles')
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/simple-line-icons/2.5.5/css/simple-line-icons.min.css" integrity="sha384-EOIFvWlYqs+vg+JcLG3gMBEZ0lRbDNgxcYH9Kmkk8+b0Iv7vNWdLzHQ4ud9IX2tv" crossorigin="anonymous">

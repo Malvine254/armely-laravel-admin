@@ -1,6 +1,6 @@
 @extends('layouts.public')
 
-@section('title', 'Mela AI - Your Intelligent AI Agent - Armely')
+@section('title', 'Mela AI')
 
 @push('styles')
 <style>
