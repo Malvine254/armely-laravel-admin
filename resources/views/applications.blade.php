@@ -1,6 +1,6 @@
 @extends('layouts.public')
 
-@section('title', 'Job Application - Armely')
+@section('title', 'Application')
 
 @section('content')
 <!-- Breadcrumbs -->

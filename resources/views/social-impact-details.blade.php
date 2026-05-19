@@ -1,6 +1,6 @@
 @extends('layouts.public')
 
-@section('title', $initiative->title . ' - Social Impact - Armely')
+@section('title', 'Social Impact')
 
 @push('styles')
 <style>

@@ -1,6 +1,6 @@
 @extends('layouts.public')
 
-@section('title', 'Company - Armely')
+@section('title', 'Company')
 
 @push('styles')
 <link rel="stylesheet" href="{{ asset('css/company-modern.css') }}">

@@ -1,6 +1,6 @@
 @extends('layouts.public')
 
-@section('title', isset($service) ? $service->title . ' Details - Armely' : 'Service Details - Armely')
+@section('title', 'Service')
 
 @push('styles')
 <style>

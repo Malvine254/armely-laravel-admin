@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="keywords" content="Site keywords here">
     <meta name="description" content="">
-    <title>{{ $title ?? 'Armely' }}</title>
+    <title>@yield('title', $title ?? 'Armely')</title>
 
     <link rel="icon" href="{{ asset('images/logo/logo1.png') }}">
 
@@ -290,7 +290,7 @@
 
 /* Add padding to menu items */
 .navigation .nav.menu > li > a {
-    padding: 20px 10px !important;
+    padding: 20px 0 !important;
 }
 
 .menu-new-badge {
@@ -323,16 +323,16 @@
 }
 
 .header .armely-logo {
-    height: 76px;
+    height: 84px;
     width: auto;
     display: block;
 }
 
 .header .armely-registered {
     position: absolute;
-    top: 0;
-    right: -12px;
-    font-size: 0.9rem;
+    top: -1px;
+    right: -13px;
+    font-size: 1rem;
     font-weight: 700;
     line-height: 1;
     color: #2f5597;
@@ -340,18 +340,14 @@
 }
 
 @media (max-width: 1300px) {
-    .navigation .nav.menu > li > a {
-        padding: 18px 8px !important;
-    }
-
     .header .armely-logo {
-        height: 66px;
+        height: 72px;
     }
 
     .header .armely-registered {
         top: 2px;
-        right: -8px;
-        font-size: 0.78rem;
+        right: -10px;
+        font-size: 0.85rem;
     }
 }
 
@@ -361,13 +357,13 @@
     }
 
     .header .armely-logo {
-        height: 58px;
+        height: 62px;
     }
 
     .header .armely-registered {
-        top: 2px;
-        right: -7px;
-        font-size: 0.7rem;
+        top: 1px;
+        right: -8px;
+        font-size: 0.78rem;
     }
 }
 
@@ -444,7 +440,7 @@
 
     /* Slightly larger nav font */
     .header .nav li a {
-        font-size: 15px !important;
+        font-size: 16px !important;
     }
 
     /* The nav list itself: single-line flex */

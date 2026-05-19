@@ -20,7 +20,7 @@ if (!function_exists('armely_blog_clean_html')) {
 @endphp
 @extends('layouts.public')
 
-@section('title', isset($main) ? $main->title . ' - Armely Blog' : 'Our Insights & Stories - Armely Blog')
+@section('title', 'Blog')
 
 @push('head')
 	<!-- Blog Page Styles -->
