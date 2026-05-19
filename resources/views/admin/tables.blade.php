@@ -10,12 +10,71 @@
 @push('styles')
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css" integrity="sha384-ok3J6xA9oQqai5C9ytYveFsBeKgoGk4T+NExsr6hoIKjZdv9SJcmx2mafwUWRNf9" crossorigin="anonymous">
 <style>
+    .page-title,
+    .card,
+    .table,
+    .modal,
+    .dataTables_wrapper {
+        font-family: 'Inter', sans-serif;
+    }
+
+    body.admin-body {
+        overflow: hidden;
+    }
+
+    .content-area {
+        height: calc(100vh - 72px);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .page-title {
+        flex: 0 0 auto;
+    }
+
     .content-preview {
         max-height: 100px;
         overflow: hidden;
     }
+
+    .table {
+        width: 100% !important;
+        table-layout: fixed;
+        font-size: 0.88rem;
+        margin-bottom: 0;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .table thead th {
+        background: #eef2f7;
+        color: #334e77;
+        border-bottom: 1px solid #d8e1ee;
+        font-size: 0.79rem;
+        font-weight: 600;
+        letter-spacing: 0.35px;
+        text-transform: uppercase;
+        padding-top: 0.78rem;
+        padding-bottom: 0.78rem;
+    }
+
+    .table th,
     .table td {
         vertical-align: middle;
+        white-space: normal !important;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+        border-color: #e4eaf3;
+        padding-top: 0.86rem;
+        padding-bottom: 0.86rem;
+    }
+
+    .table td:last-child,
+    .table th:last-child {
+        white-space: nowrap !important;
+        word-break: normal;
+        overflow-wrap: normal;
     }
     
     /* Clean modal styling */
@@ -109,34 +168,327 @@
     /* Icon-only action button layout */
     .action-btns{display:flex;gap:.5rem;align-items:center}
     .action-btns .btn{min-width:36px;padding:6px;display:inline-flex;align-items:center;justify-content:center}
+    .cv-btns{display:inline-flex;gap:.35rem;align-items:center;flex-wrap:wrap}
+    .cv-btns .btn{min-width:34px;padding:5px;display:inline-flex;align-items:center;justify-content:center}
+    .cv-btns .btn i{font-size:.9rem}
     @media(max-width:576px){.action-btns{flex-direction:row;flex-wrap:wrap}.action-btns .btn{min-width:40px}}
     
     /* DataTables custom styling */
     .dataTables_wrapper {
         display: flex;
         flex-direction: column;
+        width: 100%;
+        max-width: 100%;
+        overflow-x: hidden;
+    }
+
+    .dataTables_wrapper .row {
+        width: 100%;
+        margin-left: 0;
+        margin-right: 0;
+    }
+
+    .content-management-card .dataTables_wrapper .dataTables_filter,
+    .content-management-card .dataTables_wrapper .dataTables_length,
+    .content-management-card .dataTables_wrapper .dataTables_info,
+    .content-management-card .dataTables_wrapper .dataTables_paginate {
+        font-size: 0.82rem;
+        color: #5f6c80;
+    }
+
+    /* Top toolbar matches Job Applications feel: clean and compact */
+    .content-management-card .dt-toolbar {
+        margin: 0 0 0.75rem 0 !important;
+        padding: 0.25rem 0;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: nowrap;
+        gap: 0.6rem;
+    }
+
+    .content-management-card .dt-toolbar .dt-length,
+    .content-management-card .dt-toolbar .dt-search {
+        display: flex;
+        align-items: center;
+        min-height: 42px;
+        flex: 0 0 auto;
+    }
+
+    .content-management-card .dt-toolbar .dt-search {
+        justify-content: flex-start;
+    }
+
+    .content-management-card .dt-toolbar .dt-length {
+        justify-content: flex-end;
+        margin-left: auto;
+    }
+
+    .content-management-card .dt-toolbar .dataTables_filter,
+    .content-management-card .dt-toolbar .dataTables_length {
+        margin: 0 !important;
+    }
+
+    .content-management-card .dt-toolbar .dataTables_length label,
+    .content-management-card .dt-toolbar .dataTables_filter label {
+        width: auto;
+        margin: 0;
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #5b6678;
+        font-weight: 500;
+        font-size: 0.86rem;
+        white-space: nowrap;
+    }
+
+    .content-management-card .dt-toolbar .dataTables_filter label {
+        justify-content: flex-start;
+    }
+
+    .content-management-card .dt-toolbar .dataTables_filter label::before {
+        content: "\f002";
+        font-family: "Font Awesome 6 Free";
+        font-weight: 900;
+        color: #233a59;
+        position: absolute;
+        left: 0.8rem;
+        pointer-events: none;
+        font-size: 0.95rem;
+    }
+
+    .content-management-card .dt-toolbar .dataTables_length select {
+        height: 42px;
+        border: 1px solid #cfd9e8;
+        border-radius: 0.5rem;
+        background: #fff;
+        min-width: 105px;
+        color: #233a59;
+        padding-left: 0.65rem;
+    }
+
+    .content-management-card .dt-toolbar .dataTables_filter input {
+        height: 42px;
+        border: 1px solid #cfd9e8;
+        border-radius: 0.5rem;
+        background: #fff;
+        width: min(100%, 560px);
+        min-width: 260px;
+        padding-left: 2.3rem;
+        margin-left: 0;
+    }
+
+    @media (max-width: 992px) {
+        .content-management-card .dt-toolbar {
+            flex-wrap: wrap;
+            justify-content: flex-start;
+        }
+
+        .content-management-card .dt-toolbar .dt-length {
+            margin-left: 0;
+        }
+    }
+
+    .content-management-card .dt-toolbar .dataTables_filter input:focus,
+    .content-management-card .dt-toolbar .dataTables_length select:focus {
+        border-color: #9fb4d6;
+        box-shadow: 0 0 0 0.2rem rgba(47, 85, 151, 0.12);
+        outline: none;
     }
     
-    .dataTables_wrapper .dataTables_paginate .paginate_button {
-        padding: 0.25rem 0.5rem;
-        margin: 0 2px;
+    .content-management-card .dataTables_wrapper .dataTables_paginate .paginate_button {
+        padding: 0.32rem 0.62rem;
+        margin: 0 1px;
+        border-radius: 0.4rem !important;
     }
-    .dataTables_wrapper .dataTables_length select {
-        padding: 0.25rem 2rem 0.25rem 0.5rem;
-    }
-    .dataTables_wrapper .dataTables_filter input {
-        margin-left: 0.5rem;
+
+    .content-management-card .dataTables_wrapper .dataTables_paginate .paginate_button.current,
+    .content-management-card .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+        background: #2f5597 !important;
+        color: #fff !important;
+        border: 1px solid #2f5597 !important;
     }
     
     /* Uniform table styling */
     .table-responsive {
-        border: 1px solid #dee2e6;
-        border-radius: 0.25rem;
+        border: 1px solid #e5ebf3;
+        border-radius: 0.55rem;
+        width: 100%;
+        max-width: 100%;
+        overflow-x: hidden !important;
+        overflow-y: hidden !important;
+        background: #fff;
+        max-height: none;
+        box-shadow: 0 2px 8px rgba(31, 63, 128, 0.05);
+    }
+
+    .card-body {
+        width: 100%;
+        max-width: 100%;
+        overflow-x: hidden;
+    }
+
+    /* Keep tabbed table area contained inside viewport so pagination remains visible */
+    .card.mb-4 {
+        flex: 1 1 auto;
+        display: flex;
+        flex-direction: column;
+        height: auto;
+        min-height: 0;
+        overflow: hidden;
+        margin-bottom: 0 !important;
+    }
+
+    .card.mb-4 > .tab-content {
+        flex: 1;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    .card.mb-4 > .tab-content > .tab-pane {
+        height: 100%;
+    }
+
+    .card.mb-4 > .tab-content > .tab-pane > .card-body {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+    }
+
+    .card.mb-4 > .tab-content > .tab-pane > .card-body > .btn.btn-primary.mb-3 {
+        align-self: flex-start;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        width: auto !important;
+        max-width: 100%;
+    }
+
+    .card.mb-4 > .tab-content > .tab-pane > .card-body > .table-responsive,
+    .card.mb-4 > .tab-content > .tab-pane > .card-body > .row > .col-12 > .table-responsive {
+        flex: 1;
+        min-height: 0;
+    }
+
+    .dataTables_wrapper {
+        height: 100%;
+    }
+
+    .dataTables_wrapper .dataTables_scroll {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .content-management-card .dataTables_wrapper .dataTables_scrollHead {
+        flex: 0 0 auto;
+        overflow: visible !important;
+        background: #eef2f7;
+        border-bottom: 1px solid #d8e1ee;
+    }
+
+    .content-management-card .dataTables_wrapper .dataTables_scrollHeadInner,
+    .content-management-card .dataTables_wrapper .dataTables_scrollHeadInner table {
+        width: 100% !important;
+    }
+
+    .content-management-card .dataTables_wrapper .dataTables_scrollHead th {
+        color: #334e77 !important;
+        font-size: 0.79rem !important;
+        font-weight: 600 !important;
+        text-transform: uppercase;
+        letter-spacing: 0.35px;
+        padding-top: 0.78rem !important;
+        padding-bottom: 0.78rem !important;
+        background: #eef2f7 !important;
+        border-bottom: 1px solid #d8e1ee !important;
+    }
+
+    .dataTables_wrapper .dataTables_scrollBody {
+        flex: 1 1 auto !important;
+        min-height: 0;
+        max-height: none !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        border-bottom: 1px solid #edf1f6;
+    }
+
+    .content-management-card .dataTables_wrapper .dataTables_paginate,
+    .content-management-card .dataTables_wrapper .dataTables_info {
+        position: static;
+        background: #fff;
+        z-index: 2;
     }
     
-    .dataTables_wrapper .dataTables_paginate {
+    .content-management-card .dataTables_wrapper .dataTables_paginate {
+        margin-top: auto;
         padding-top: 1rem;
         border-top: 1px solid #dee2e6;
+    }
+
+    .content-management-card .dt-footer {
+        margin: 0 !important;
+        padding-top: 0.65rem;
+        border-top: 1px solid #e8edf5;
+        align-items: center;
+        background: #fff;
+    }
+
+    .content-management-card .dt-footer .dataTables_info {
+        padding: 0;
+    }
+
+    .content-management-card .dt-footer .dataTables_paginate {
+        padding: 0;
+        border-top: none;
+    }
+
+    @media (max-width: 768px) {
+        .content-area {
+            height: calc(100vh - 64px);
+        }
+
+        .card.mb-4 {
+            min-height: 0;
+        }
+
+        .table {
+            font-size: 0.8rem;
+        }
+
+        .table thead th {
+            font-size: 0.72rem;
+        }
+
+        .dataTables_wrapper .dataTables_filter input {
+            width: 100%;
+            margin-left: 0;
+            margin-top: 0.35rem;
+            min-width: 0;
+        }
+
+        .content-management-card .dt-toolbar {
+            gap: 0.45rem;
+        }
+
+        .content-management-card .dt-toolbar .dataTables_length label,
+        .content-management-card .dt-toolbar .dataTables_filter label {
+            justify-content: flex-start;
+        }
+
+        .content-management-card .dt-toolbar .dt-search {
+            justify-content: flex-start;
+        }
+
+        .action-btns {
+            flex-wrap: wrap;
+        }
     }
 </style>
 @endpush
@@ -148,7 +500,7 @@
 </div>
 
 <!-- Nav Tabs -->
-<div class="card mb-4">
+<div class="card mb-4 content-management-card">
     <div class="card-header border-bottom">
         <ul class="nav nav-tabs card-header-tabs" role="tablist">
             <li class="nav-item">
@@ -1162,12 +1514,14 @@ $(document).ready(function() {
                             <td>${appliedDate}</td>
                             <td>${cvPreview}</td>
                             <td>
-                                <button class="btn btn-sm btn-success shortlist-btn" data-id="${app.id}" title="Shortlist">
-                                    <i class="fas fa-check"></i>
-                                </button>
-                                <button class="btn btn-sm btn-danger delete-cv-btn" data-id="${app.id}" title="Delete">
-                                    <i class="fas fa-trash"></i>
-                                </button>
+                                <div class="action-btns">
+                                    <button class="btn btn-sm btn-success shortlist-btn" data-id="${app.id}" title="Shortlist">
+                                        <i class="fas fa-check"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger delete-cv-btn" data-id="${app.id}" title="Delete Application">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
                             </td>
                         </tr>`;
                     });
@@ -1245,8 +1599,13 @@ $(document).ready(function() {
                 searchPlaceholder: "Search blogs...",
                 processing: '<span class="spinner-border spinner-border-sm"></span> Loading...'
             },
+                  dom: "<'dt-toolbar'<'dt-search'f><'dt-length'l>>" +
+                 "t" +
+                      "<'dt-footer row'<'col-md-5 col-12'i><'col-md-7 col-12'p>>",
             responsive: true,
-            autoWidth: false
+            autoWidth: false,
+            scrollY: '42vh',
+            scrollCollapse: true
         });
     }
 
@@ -2267,18 +2626,18 @@ $(document).ready(function() {
     const cvDeleteBase = "{{ url('/admin/career/cv') }}";
     function buildCvPreview(app) {
         const cvValue = app.cv_path || app.cv || app.resume || '';
-        
-        // Always include delete button
-        let deleteBtn = `<button class="btn btn-sm btn-outline-danger delete-cv-btn" data-id="${app.id}" title="Delete Application"><i class="fas fa-trash"></i></button>`;
-        
+
         if (!cvValue) {
-            return '<span class="text-muted">N/A</span> ' + deleteBtn;
+            return '<span class="text-muted">N/A</span>';
         }
 
+        const downloadUrl = `${cvDownloadBase}/${app.id}`;
+
         if (/^https?:\/\//i.test(cvValue)) {
-            return `<a href="${cvValue}" target="_blank" rel="noopener" class="btn btn-link btn-sm"><i class="fas fa-file-pdf"></i> View CV</a>` +
-                   ` <a href="${downloadUrl}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary" title="Download CV"><i class="fas fa-download"></i></a>` +
-                   ` ${deleteBtn}`;
+            return `<div class="cv-btns">` +
+                   `<a href="${cvValue}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary" title="View CV"><i class="fas fa-file-lines"></i></a>` +
+                   `<a href="${downloadUrl}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary" title="Download CV"><i class="fas fa-download"></i></a>` +
+                   `</div>`;
         }
 
         // Normalize stored value to a direct public URL
@@ -2288,11 +2647,11 @@ $(document).ready(function() {
         }
 
         const storageUrl = `${cvStorageBase}/${cleaned}`;
-        // Fallback to download route if storage URL fails (user can still click to download)
-        const downloadUrl = `${cvDownloadBase}/${app.id}`;
-        return `<a href="${storageUrl}" target="_blank" rel="noopener" class="btn btn-link btn-sm"><i class="fas fa-file-pdf"></i> View CV</a>` +
-               ` <a href="${downloadUrl}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary" title="Download CV"><i class="fas fa-download"></i></a>` +
-               ` ${deleteBtn}`;
+
+         return `<div class="cv-btns">` +
+             `<a href="${storageUrl}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary" title="View CV"><i class="fas fa-file-lines"></i></a>` +
+             `<a href="${downloadUrl}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary" title="Download CV"><i class="fas fa-download"></i></a>` +
+             `</div>`;
     }
 
     function loadApplications() {
@@ -2314,12 +2673,17 @@ $(document).ready(function() {
                         <td>${appliedDate}</td>
                         <td>${cvPreview}</td>
                         <td>
-                            <button class="btn btn-sm btn-success shortlist-btn" data-id="${app.id}" title="Shortlist">
-                                <i class="fas fa-check"></i>
-                            </button>
-                            <button class="btn btn-sm btn-danger reject-btn" data-id="${app.id}" title="Reject">
-                                <i class="fas fa-times"></i>
-                            </button>
+                            <div class="action-btns">
+                                <button class="btn btn-sm btn-success shortlist-btn" data-id="${app.id}" title="Shortlist">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger reject-btn" data-id="${app.id}" title="Reject">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger delete-cv-btn" data-id="${app.id}" title="Delete Application">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
                         </td>
                     </tr>`;
                 });
@@ -2347,12 +2711,17 @@ $(document).ready(function() {
                         <td>${appliedDate}</td>
                         <td>${cvPreview}</td>
                         <td>
-                            <button class="btn btn-sm btn-primary hire-btn" data-id="${app.id}" title="Hire">
-                                <i class="fas fa-user-check"></i>
-                            </button>
-                            <button class="btn btn-sm btn-danger reject-btn" data-id="${app.id}" title="Reject">
-                                <i class="fas fa-times"></i>
-                            </button>
+                            <div class="action-btns">
+                                <button class="btn btn-sm btn-primary hire-btn" data-id="${app.id}" title="Hire">
+                                    <i class="fas fa-user-check"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger reject-btn" data-id="${app.id}" title="Reject">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger delete-cv-btn" data-id="${app.id}" title="Delete Application">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
                         </td>
                     </tr>`;
                 });
@@ -2379,9 +2748,14 @@ $(document).ready(function() {
                         <td>${appliedDate}</td>
                         <td>${cvPreview}</td>
                         <td>
-                            <button class="btn btn-sm btn-danger delete-hire-btn" data-id="${app.id}" title="Delete">
-                                <i class="fas fa-trash"></i>
-                            </button>
+                            <div class="action-btns">
+                                <button class="btn btn-sm btn-outline-danger delete-cv-btn" data-id="${app.id}" title="Delete Application">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger delete-hire-btn" data-id="${app.id}" title="Remove From Hired">
+                                    <i class="fas fa-user-minus"></i>
+                                </button>
+                            </div>
                         </td>
                     </tr>`;
                 });
@@ -2622,7 +2996,11 @@ $(document).ready(function() {
                         ],
                         responsive: true,
                         autoWidth: false,
-                        dom: 'lBfrtip',
+                        scrollY: '42vh',
+                        scrollCollapse: true,
+                                dom: "<'dt-toolbar'<'dt-search'f><'dt-length'l>>" +
+                             "t" +
+                             "<'dt-footer row'<'col-md-5 col-12'i><'col-md-7 col-12'p>>",
                         buttons: []
                     });
                 }

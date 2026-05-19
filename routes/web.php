@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\ReportsController;
 use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\CareerController;
 use App\Http\Controllers\Admin\AnalyticsController;
+use App\Http\Controllers\Admin\CompanyContentController;
 use App\Http\Controllers\ServicesController;
 use App\Http\Controllers\BlogController;
 use App\Http\Controllers\CaseStudiesController;
@@ -274,6 +275,15 @@ Route::prefix('admin')->middleware(['admin'])->group(function () {
     Route::get('/analytics', [AnalyticsController::class, 'index'])->name('admin.analytics');
     Route::get('/analytics/export/csv', [AnalyticsController::class, 'exportCsv'])->name('admin.analytics.export.csv');
     Route::get('/analytics/export/pdf', [AnalyticsController::class, 'exportPdf'])->name('admin.analytics.export.pdf');
+
+    // Company Content Management
+    Route::get('/company-content', [CompanyContentController::class, 'index'])->name('admin.company-content');
+    Route::post('/company-content/portfolios', [CompanyContentController::class, 'storePortfolio'])->name('admin.company-content.portfolios.store');
+    Route::put('/company-content/portfolios/{id}', [CompanyContentController::class, 'updatePortfolio'])->name('admin.company-content.portfolios.update');
+    Route::delete('/company-content/portfolios/{id}', [CompanyContentController::class, 'deletePortfolio'])->name('admin.company-content.portfolios.delete');
+    Route::post('/company-content/banners', [CompanyContentController::class, 'storeBanner'])->name('admin.company-content.banners.store');
+    Route::put('/company-content/banners/{id}', [CompanyContentController::class, 'updateBanner'])->name('admin.company-content.banners.update');
+    Route::delete('/company-content/banners/{id}', [CompanyContentController::class, 'deleteBanner'])->name('admin.company-content.banners.delete');
     
     // File Upload Handlers
     Route::post('/upload/image', [TablesController::class, 'uploadImage'])->name('admin.upload.image');
