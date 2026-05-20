@@ -21,9 +21,18 @@ class AzureMailService
      */
     protected function getAccessToken(): string
     {
-        $tenantId = env('AZURE_TENANT_ID');
-        $clientId = env('AZURE_CLIENT_ID');
+        $tenantId     = env('AZURE_TENANT_ID');
+        $clientId     = env('AZURE_CLIENT_ID');
         $clientSecret = env('AZURE_CLIENT_SECRET');
+
+        if (!$tenantId || !$clientId || !$clientSecret) {
+            Log::error('AzureMailService: missing Azure credentials in .env', [
+                'AZURE_TENANT_ID'     => $tenantId     ? 'set' : 'MISSING',
+                'AZURE_CLIENT_ID'     => $clientId     ? 'set' : 'MISSING',
+                'AZURE_CLIENT_SECRET' => $clientSecret ? 'set' : 'MISSING',
+            ]);
+            return '';
+        }
 
         $tokenUrl = "https://login.microsoftonline.com/{$tenantId}/oauth2/v2.0/token";
 
