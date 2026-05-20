@@ -62,6 +62,11 @@ $actions = [
         'help' => 'Pull latest code from GitHub (origin main), then clear caches and run migrations.',
         'commands' => [],
     ],
+    'test_email' => [
+        'label'    => 'Send Test Email',
+        'help'     => 'Send a test email via AzureMailService to verify mail is working on this server.',
+        'commands' => [],
+    ],
     'full_rebuild' => [
         'label' => 'Full Production Rebuild',
         'help' => 'Clear caches, relink storage, run migrations, then rebuild caches.',
@@ -381,6 +386,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
         }
+    } elseif ($selectedAction === 'test_email') {
+        $to      = isset($_POST['test_email_to']) ? trim((string) $_POST['test_email_to']) : '';
+        $fromEnv = \App\Services\AzureMailService::outboundFromEmail();
+
+        if ($to === '' || !filter_var($to, FILTER_VALIDATE_EMAIL)) {
+            $results[] = ['command' => 'test_email', 'status' => 'ERROR', 'output' => 'Please enter a valid recipient email address in the field below.'];
+        } else {
+            try {
+                $mailer  = app(\App\Services\AzureMailService::class);
+                $subject = 'Armely Mail Test — ' . date('Y-m-d H:i:s');
+                $body    = '<p style="font-family:Arial,sans-serif;">This is a test email sent from <strong>fix_storage.php</strong> on <strong>' . htmlspecialchars((string) config('app.url')) . '</strong> at ' . date('Y-m-d H:i:s') . '.</p>';
+                $sent    = $mailer->sendEmail($fromEnv, $to, $subject, $body);
+
+                $results[] = [
+                    'command' => 'test_email → ' . $to,
+                    'status'  => $sent ? 'OK' : 'ERROR',
+                    'output'  => $sent
+                        ? 'Email accepted by Microsoft Graph. Check inbox/spam at ' . $to . '. FROM=' . $fromEnv
+                        : 'sendEmail() returned false. Check Laravel logs (storage/logs/laravel.log) for details. FROM=' . $fromEnv,
+                ];
+            } catch (\Throwable $e) {
+                $results[] = ['command' => 'test_email', 'status' => 'ERROR', 'output' => $e->getMessage()];
+            }
+        }
     } elseif ($selectedAction === 'build_frontend') {
         $results[] = buildFrontendAssets();
 
@@ -454,8 +483,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </label>
           <?php endforeach; ?>
         </div>
+        <div id="test-email-field" style="display:none;margin-top:10px;">
+          <label style="font-size:14px;font-weight:600;">Recipient email for test:&nbsp;
+            <input type="email" name="test_email_to" placeholder="you@example.com"
+              style="padding:7px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:14px;width:260px;">
+          </label>
+        </div>
         <p style="margin-top:12px;"><button class="btn" type="submit">Run Selected Action</button></p>
       </form>
+      <script>
+        document.querySelectorAll('input[name="action"]').forEach(function(r){
+          r.addEventListener('change', function(){
+            document.getElementById('test-email-field').style.display = this.value === 'test_email' ? 'block' : 'none';
+          });
+        });
+        // Show on page load if pre-selected
+        (function(){
+          var sel = document.querySelector('input[name="action"]:checked');
+          if (sel && sel.value === 'test_email') document.getElementById('test-email-field').style.display = 'block';
+        })();
+      </script>
     </div>
 
     <?php if (!empty($results)): ?>
