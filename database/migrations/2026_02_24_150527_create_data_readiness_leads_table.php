@@ -11,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::hasTable('data_readiness_leads')) {
+            return;
+        }
+
         Schema::create('data_readiness_leads', function (Blueprint $table) {
             $table->id();
             $table->string('first_name');
