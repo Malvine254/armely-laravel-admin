@@ -21,12 +21,12 @@ class AzureMailService
      */
     protected function getAccessToken(): string
     {
-        $tenantId     = env('AZURE_TENANT_ID');
-        $clientId     = env('AZURE_CLIENT_ID');
-        $clientSecret = env('AZURE_CLIENT_SECRET');
+        $tenantId     = config('services.azure_mail.tenant_id');
+        $clientId     = config('services.azure_mail.client_id');
+        $clientSecret = config('services.azure_mail.client_secret');
 
         if (!$tenantId || !$clientId || !$clientSecret) {
-            Log::error('AzureMailService: missing Azure credentials in .env', [
+            Log::error('AzureMailService: missing Azure credentials', [
                 'AZURE_TENANT_ID'     => $tenantId     ? 'set' : 'MISSING',
                 'AZURE_CLIENT_ID'     => $clientId     ? 'set' : 'MISSING',
                 'AZURE_CLIENT_SECRET' => $clientSecret ? 'set' : 'MISSING',
