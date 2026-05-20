@@ -111,6 +111,12 @@ if (!function_exists('armely_blog_clean_html')) {
 											<span>Read Aloud</span>
 										</button>
 									</div>
+									<div class="blog-meta-item">
+										<button id="btn-download-pdf" class="read-aloud-btn" data-blog-id="{{ $main->blog_id ?? '' }}" data-blog-title="{{ $main->title ?? 'Article' }}">
+											<i class="fa fa-file-pdf"></i>
+											<span>Download PDF</span>
+										</button>
+									</div>
 								</div>
 								
 								<!-- Blog Text -->
@@ -127,7 +133,7 @@ if (!function_exists('armely_blog_clean_html')) {
 										<li class="instagram"><a class="shareBtn text-light" data-social="instagram"><i class="fa-brands fa-instagram"></i><span>Post</span></a></li>
 										<li class="linkedin"><a class="shareBtn text-light" data-social="linkedin"><i class="fa-brands fa-linkedin"></i><span>Share</span></a></li>
 									</ul>
-									
+
 									<!-- Scroll More Button -->
 									<button id="show-more" class="scroll-more-btn show-more">
 										Scroll to Read More <i class="icofont-long-arrow-down"></i>
@@ -882,5 +888,200 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 @endpush
+
+{{-- ── PDF Download Modal ── --}}
+@if(isset($main) && $main)
+<div id="pdf-download-modal" role="dialog" aria-modal="true" aria-labelledby="pdm-title" style="display:none;position:fixed;inset:0;z-index:9999;align-items:center;justify-content:center;">
+    {{-- Backdrop --}}
+    <div id="pdm-backdrop" style="position:absolute;inset:0;background:rgba(15,23,42,0.55);backdrop-filter:blur(3px);"></div>
+
+    {{-- Panel --}}
+    <div style="position:relative;z-index:1;background:#fff;border-radius:18px;box-shadow:0 24px 64px rgba(15,23,42,0.2);max-width:460px;width:calc(100% - 32px);overflow:hidden;animation:pdm-in 0.22s ease;">
+        {{-- Header --}}
+        <div style="background:linear-gradient(135deg,#153462 0%,#2f5597 100%);padding:22px 26px 18px;">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+                <div>
+                    <p style="margin:0 0 4px;color:#9cc8ff;font-size:11px;letter-spacing:1.1px;text-transform:uppercase;font-weight:700;">Armely Insights</p>
+                    <h2 id="pdm-title" style="margin:0;color:#fff;font-size:18px;font-weight:700;line-height:1.25;">Download Article as PDF</h2>
+                </div>
+                <button id="pdm-close" aria-label="Close" style="background:rgba(255,255,255,0.15);border:none;color:#fff;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;">&times;</button>
+            </div>
+            <p style="margin:10px 0 0;color:#c8dbf7;font-size:13px;line-height:1.45;" id="pdm-article-title">{{ Str::limit($main->title ?? '', 80) }}</p>
+        </div>
+
+        {{-- Body --}}
+        <div style="padding:22px 26px 26px;">
+            <p style="margin:0 0 18px;font-size:13.5px;color:#4b5563;line-height:1.6;">Enter your details below and we'll email you a secure download link for this article in PDF format. The link will be valid for 24 hours.</p>
+
+            <form id="pdm-form" novalidate>
+                @csrf
+                <div style="margin-bottom:14px;">
+                    <label for="pdm-name" style="display:block;font-size:12.5px;font-weight:600;color:#1f2937;margin-bottom:5px;">Full Name <span style="color:#ef4444;">*</span></label>
+                    <input id="pdm-name" name="name" type="text" placeholder="Your full name" autocomplete="name"
+                        style="width:100%;padding:10px 13px;border:1.5px solid #d1d5db;border-radius:9px;font-size:14px;color:#1f2937;outline:none;transition:border-color 0.18s;box-sizing:border-box;"
+                        onfocus="this.style.borderColor='#2f5597'" onblur="this.style.borderColor='#d1d5db'">
+                    <p class="pdm-field-error" id="pdm-name-error" style="display:none;margin:4px 0 0;font-size:12px;color:#ef4444;"></p>
+                </div>
+                <div style="margin-bottom:20px;">
+                    <label for="pdm-email" style="display:block;font-size:12.5px;font-weight:600;color:#1f2937;margin-bottom:5px;">Email Address <span style="color:#ef4444;">*</span></label>
+                    <input id="pdm-email" name="email" type="email" placeholder="you@example.com" autocomplete="email"
+                        style="width:100%;padding:10px 13px;border:1.5px solid #d1d5db;border-radius:9px;font-size:14px;color:#1f2937;outline:none;transition:border-color 0.18s;box-sizing:border-box;"
+                        onfocus="this.style.borderColor='#2f5597'" onblur="this.style.borderColor='#d1d5db'">
+                    <p class="pdm-field-error" id="pdm-email-error" style="display:none;margin:4px 0 0;font-size:12px;color:#ef4444;"></p>
+                </div>
+
+                {{-- Error / success banners --}}
+                <div id="pdm-alert" style="display:none;padding:10px 14px;border-radius:9px;font-size:13px;margin-bottom:16px;line-height:1.5;"></div>
+
+                <button id="pdm-submit" type="submit"
+                    style="width:100%;padding:12px 20px;background:linear-gradient(135deg,#153462 0%,#2f5597 100%);color:#fff;border:none;border-radius:10px;font-size:14.5px;font-weight:700;cursor:pointer;transition:opacity 0.18s,transform 0.18s;letter-spacing:0.2px;">
+                    <span id="pdm-btn-label"><i class="fa fa-paper-plane" style="margin-right:7px;"></i>Send Download Link</span>
+                    <span id="pdm-btn-loading" style="display:none;"><i class="fa fa-circle-notch fa-spin" style="margin-right:7px;"></i>Sending…</span>
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+@keyframes pdm-in {
+    from { opacity:0; transform:translateY(18px) scale(0.97); }
+    to   { opacity:1; transform:translateY(0) scale(1); }
+}
+#pdf-download-modal.is-open { display:flex !important; }
+</style>
+
+<script>
+(function () {
+    const modal     = document.getElementById('pdf-download-modal');
+    const backdrop  = document.getElementById('pdm-backdrop');
+    const closeBtn  = document.getElementById('pdm-close');
+    const form      = document.getElementById('pdm-form');
+    const nameInput = document.getElementById('pdm-name');
+    const emailInput= document.getElementById('pdm-email');
+    const alert     = document.getElementById('pdm-alert');
+    const btnLabel  = document.getElementById('pdm-btn-label');
+    const btnLoading= document.getElementById('pdm-btn-loading');
+    const submitBtn = document.getElementById('pdm-submit');
+
+    function openModal() {
+        modal.classList.add('is-open');
+        document.body.style.overflow = 'hidden';
+        nameInput.focus();
+    }
+    function closeModal() {
+        modal.classList.remove('is-open');
+        document.body.style.overflow = '';
+        form.reset();
+        hideAlert();
+        clearErrors();
+    }
+    function showAlert(msg, isSuccess) {
+        alert.textContent = msg;
+        alert.style.display = 'block';
+        if (isSuccess) {
+            alert.style.background = '#f0fdf4';
+            alert.style.border     = '1px solid #bbf7d0';
+            alert.style.color      = '#166534';
+        } else {
+            alert.style.background = '#fef2f2';
+            alert.style.border     = '1px solid #fecaca';
+            alert.style.color      = '#991b1b';
+        }
+    }
+    function hideAlert() { alert.style.display = 'none'; }
+    function clearErrors() {
+        ['pdm-name-error','pdm-email-error'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.style.display = 'none';
+        });
+    }
+    function showFieldError(id, msg) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.textContent = msg;
+        el.style.display = 'block';
+    }
+    function setLoading(on) {
+        btnLabel.style.display  = on ? 'none' : 'inline';
+        btnLoading.style.display= on ? 'inline' : 'none';
+        submitBtn.disabled = on;
+    }
+
+    // Wire the download button — handle both static and AJAX-replaced content
+    function wireDownloadBtn() {
+        const btn = document.getElementById('btn-download-pdf');
+        if (btn && !btn._pdmWired) {
+            btn._pdmWired = true;
+            btn.addEventListener('click', openModal);
+        }
+    }
+    wireDownloadBtn();
+    document.addEventListener('blog:loaded', wireDownloadBtn); // fired by AJAX switcher
+
+    closeBtn.addEventListener('click', closeModal);
+    backdrop.addEventListener('click', closeModal);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+    form.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        hideAlert();
+        clearErrors();
+
+        const name  = nameInput.value.trim();
+        const email = emailInput.value.trim();
+        let valid = true;
+
+        if (!name) { showFieldError('pdm-name-error', 'Please enter your name.'); valid = false; }
+        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            showFieldError('pdm-email-error', 'Please enter a valid email address.'); valid = false;
+        }
+        if (!valid) return;
+
+        const blogId = document.getElementById('btn-download-pdf')?.dataset.blogId;
+        if (!blogId) { showAlert('Unable to identify the article. Please refresh and try again.', false); return; }
+
+        setLoading(true);
+
+        try {
+            const token = form.querySelector('input[name="_token"]')?.value
+                       || document.querySelector('meta[name="csrf-token"]')?.content
+                       || '';
+            const res = await fetch(`/blog/${blogId}/request-download`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': token,
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify({ name, email }),
+            });
+
+            const json = await res.json();
+
+            if (res.ok && json.success) {
+                showAlert('✓ ' + json.message, true);
+                form.reset();
+                submitBtn.style.display = 'none';
+                setTimeout(closeModal, 4000);
+            } else {
+                const errors = json.errors;
+                if (errors) {
+                    if (errors.name)  showFieldError('pdm-name-error',  errors.name[0]);
+                    if (errors.email) showFieldError('pdm-email-error', errors.email[0]);
+                } else {
+                    showAlert(json.message || 'Something went wrong. Please try again.', false);
+                }
+            }
+        } catch (err) {
+            showAlert('A network error occurred. Please check your connection and try again.', false);
+        } finally {
+            setLoading(false);
+            submitBtn.style.display = '';
+        }
+    });
+})();
+</script>
+@endif
 
 @endsection
