@@ -514,8 +514,7 @@
                     <div class="col-lg-3 col-md-3 col-12 d-flex align-items-center">
                         <div class="logo d-flex align-items-center" style="padding: 0; margin: 0;">
                             <a href="{{ url('/') }}" class="armely-logo-wrap" style="margin: 0; padding: 0;" aria-label="Armely home">
-                                <img src="{{ asset('images/logo/logo.svg') }}" alt="Armely logo" class="img-fluid armely-logo" />
-                                <span class="armely-registered" aria-hidden="true">&reg;</span>
+                                <img src="{{ asset('images/logo/logo-replace-v2.png') }}" alt="Armely logo" class="img-fluid armely-logo" />
                             </a>
                         </div>
                     </div>

@@ -238,7 +238,7 @@
                 <i class="fas fa-bars"></i>
             </button>
             <a class="navbar-brand d-flex align-items-center gap-2 text-white" href="{{ route('admin.dashboard') }}">
-                <img width="140" height="auto" src="{{ asset('images/logo/logo.svg') }}" alt="Armely logo">
+                <img width="140" height="auto" src="{{ asset('images/logo/logo-replace-v2.png') }}" alt="Armely logo">
             </a>
         </div>
         <div class="d-flex align-items-center gap-3">
@@ -277,7 +277,7 @@
 <!-- Sidebar -->
 <aside id="sidebarMenu" class="admin-sidebar">
     <div class="sidebar-brand">
-        <img src="{{ asset('images/logo/logo.svg') }}" alt="Armely logo">
+        <img src="{{ asset('images/logo/logo-replace-v2.png') }}" alt="Armely logo">
     </div>
     <ul class="admin-nav">
         <li>
