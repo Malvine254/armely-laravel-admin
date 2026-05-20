@@ -3539,17 +3539,15 @@ class AdminController extends Controller
             $nextRun->addDay();
         }
 
+        $lastTriggeredDate = (string) AppSetting::getValue('price_sync.last_triggered_date', '');
+
         return [
-            'time' => $time,
-            'timezone' => $timezone,
-            'email' => $email,
-            'next_run_local' => $nextRun->format('Y-m-d H:i:s T'),
-            'next_run_utc' => $nextRun->copy()->utc()->format('Y-m-d H:i:s T'),
-            'schedule_name' => 'refresh-live-prices-6pm-kenya',
-            'queue' => 'scheduler command',
-            'scope' => $scope,
-            'skus' => implode("\n", $skuList),
-            'sku_count' => count($skuList),
+            'time'                 => $time,
+            'timezone'             => $timezone,
+            'email'                => $email,
+            'next_run_local'       => $nextRun->format('Y-m-d H:i:s T'),
+            'next_run_utc'         => $nextRun->copy()->utc()->format('Y-m-d H:i:s T'),
+            'last_triggered_date'  => $lastTriggeredDate,
         ];
     }
 
@@ -3854,13 +3852,30 @@ class AdminController extends Controller
             }
 
             $validated = $request->validate([
-                'action' => 'required|string|in:sync_catalog,enrich_images,download_images,reindex_products',
+                'action' => 'required|string|in:sync_catalog,enrich_images,download_images,reindex_products,sync_manual_images',
             ]);
 
             $action = (string) $validated['action'];
             $message = '';
             $stateService = app(CatalogOperationStateService::class);
             $isAsyncQueue = config('queue.default') !== 'sync';
+
+            // sync_manual_images runs synchronously (fast folder scan — no queue needed).
+            if ($action === 'sync_manual_images') {
+                \Artisan::call('products:sync-manual-images', ['--quiet-output' => true]);
+                $output = \Artisan::output();
+                // Flush product listing caches so newly-linked images are visible immediately.
+                \Artisan::call('cache:clear');
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Manual image sync complete. Product caches cleared — images are now visible.',
+                    'data' => [
+                        'output' => trim($output),
+                        // Immediately stop polling by reporting the operation as complete.
+                        'status' => ['catalog_operation' => ['status' => 'done', 'output' => trim($output)]],
+                    ],
+                ]);
+            }
 
             if (in_array($action, ['sync_catalog', 'enrich_images', 'download_images', 'reindex_products'], true) && !$isAsyncQueue) {
                 return response()->json([
@@ -4030,23 +4045,14 @@ class AdminController extends Controller
                 'time' => ['required', 'date_format:H:i'],
                 'timezone' => ['required', 'timezone'],
                 'email' => ['required', 'email', 'max:255'],
-                'scope' => ['required', 'in:all,specific'],
-                'skus' => ['nullable', 'string', 'max:20000'],
             ]);
-
-            $skuList = $this->normalizePriceSyncSkuList($validated['skus'] ?? '');
-            if ($validated['scope'] === 'specific' && empty($skuList)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Add at least one TD SYNNEX SKU/Product ID when syncing specific products.',
-                ], 422);
-            }
 
             AppSetting::setValue('price_sync.time', $validated['time']);
             AppSetting::setValue('price_sync.timezone', $validated['timezone']);
             AppSetting::setValue('price_sync.email', strtolower(trim((string) $validated['email'])));
-            AppSetting::setValue('price_sync.scope', $validated['scope']);
-            AppSetting::setValue('price_sync.skus', implode("\n", $skuList));
+            // Scheduled sync always covers all products — no scope or SKU list needed.
+            AppSetting::setValue('price_sync.scope', 'all');
+            AppSetting::setValue('price_sync.skus', '');
 
             return response()->json([
                 'success' => true,
@@ -4085,15 +4091,9 @@ class AdminController extends Controller
                 }
             }
 
-            // Use scope/skus passed directly from the UI (current textarea content),
-            // so the user does NOT need to save settings before clicking Run Now.
-            $scope = trim((string) $request->input('scope', 'all'));
-            if (!in_array($scope, ['all', 'specific'], true)) {
-                $scope = 'all';
-            }
-            $skusRaw = trim((string) $request->input('skus', ''));
-
-            $scopeLabel = $scope === 'specific' ? 'Specific products' : 'All products in database';
+            $scope      = 'all';
+            $skusRaw    = '';
+            $scopeLabel = 'All products in database';
 
             // Write initial state so UI shows "running" before the process even starts
             \App\Models\AppSetting::setValue('price_sync.run_state', [
