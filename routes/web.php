@@ -58,6 +58,8 @@ Route::get('/white_paper_docs/{file}', [CaseStudiesController::class, 'legacyWhi
 
 Route::get('/blog/{blogId?}', [BlogController::class, 'index'])->name('blog.index');
 Route::post('/blog/{blogId}/increment-clicks', [BlogController::class, 'incrementClicks'])->name('blog.increment-clicks');
+Route::post('/blog/{blogId}/request-download', [BlogController::class, 'requestDownload'])->name('blog.request-download');
+Route::get('/blog/{blogId}/download-pdf', [BlogController::class, 'downloadPdf'])->name('blog.download-pdf');
 Route::get('/all-partners', [HomeController::class, 'allPartners'])->name('partners.index');
 Route::get('/all-partners/{slug}', [HtmlPageController::class, 'show'])
     ->where('slug', '^(aws|snowflake|microsoft|redhat|cisco|guardz|td-synnex|td|veeam)$')
