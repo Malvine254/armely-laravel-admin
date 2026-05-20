@@ -702,7 +702,7 @@ class ProductController extends Controller
         $cacheKey = sprintf(
             'pa_browse_page:%s',
             md5(json_encode([
-                'v' => 7,
+                'v' => 9,
                 'page' => (int) $pageNo,
                 'page_size' => (int) $pageSize,
                 'hide_zero' => $hideZero,
@@ -961,6 +961,8 @@ class ProductController extends Controller
 
         $this->applyCategorySegmentFilterToQuery($query, $category);
 
+        $query->whereRaw($this->hasUsableProductImageSql());
+
         $perPage = max(1, $pageSize);
         $currentPage = max(1, $pageNo);
         $offset = ($currentPage - 1) * $perPage;
@@ -972,7 +974,6 @@ class ProductController extends Controller
         }
 
         $query
-            ->orderByRaw('CASE WHEN ' . $this->hasUsableProductImageSql() . ' THEN 0 ELSE 1 END')
             ->orderByDesc('is_available')
             ->orderBy('id');
 
@@ -1055,7 +1056,7 @@ class ProductController extends Controller
         $spec = is_array($product->specifications) ? $product->specifications : [];
         $sku = (string) ($spec['sku'] ?? $product->tdsynnex_sku_no ?? $product->tdsynnex_product_id);
         $price = (float) ($product->retail_price ?? $product->base_price ?? 0);
-        $images = $this->normalizeSavedProductImages($product->images);
+        $images = $this->normalizeSavedProductImages($product->images, $product);
         $primaryImage = (string) ($images[0]['imageUrl'] ?? '');
         $quantity = max(
             (int) ($spec['totalQuantity'] ?? 0),
@@ -1454,7 +1455,7 @@ class ProductController extends Controller
                 ->get();
 
             return $products->map(function ($product) {
-                $images = $this->normalizeSavedProductImages($product->images ?? []);
+                $images = $this->normalizeSavedProductImages($product->images ?? [], $product);
 
                 return [
                     'productId' => $product->tdsynnex_product_id,
@@ -1483,7 +1484,7 @@ class ProductController extends Controller
         }
     }
 
-    private function normalizeSavedProductImages($images): array
+    private function normalizeSavedProductImages($images, ?\App\Models\Product $productForFallback = null): array
     {
         // Guard against double-encoded DB values: Eloquent's 'array' cast on a stored
         // '"[]"' gives back a PHP string '[]', not an array. Try to recover from that.
@@ -1493,7 +1494,7 @@ class ProductController extends Controller
         }
 
         if (!is_array($images)) {
-            return [];
+            $images = [];
         }
 
         $normalized = [];
@@ -1529,6 +1530,37 @@ class ProductController extends Controller
 
             $seen[$absoluteUrl] = true;
             $normalized[] = ['imageUrl' => $absoluteUrl];
+        }
+
+        // Filesystem fallback: if no images found in DB, check if a manually-saved file exists
+        // on disk matching {tdsynnex_product_id}.{ext}. This means saving a file is sufficient
+        // to make the image appear without needing to run the sync command.
+        if (empty($normalized) && $productForFallback !== null) {
+            $productId = (int) $productForFallback->tdsynnex_product_id;
+            if ($productId > 0) {
+                foreach (['jpg', 'jpeg', 'png', 'webp'] as $ext) {
+                    $relativePath = 'images/products/' . $productId . '.' . $ext;
+                    $diskPath = public_path($relativePath);
+                    if (file_exists($diskPath)) {
+                        $imageUrl = '/images/products/' . $productId . '.' . $ext;
+                        $normalized[] = ['imageUrl' => $this->resolveImageUrl($imageUrl)];
+                        // Lazily sync to DB so future SQL queries (e.g. "No Images" filter) stay correct.
+                        try {
+                            $productForFallback->images = [[
+                                'fileName'  => $productId . '.' . $ext,
+                                'imagePath' => $relativePath,
+                                'imageUrl'  => $imageUrl,
+                                'source'    => 'manual',
+                                'addedAt'   => now()->toIso8601String(),
+                            ]];
+                            $productForFallback->saveQuietly();
+                        } catch (\Throwable $e) {
+                            Log::warning('Failed lazy image sync for product ' . $productId . ': ' . $e->getMessage());
+                        }
+                        break;
+                    }
+                }
+            }
         }
 
         return $normalized;
@@ -1952,6 +1984,7 @@ class ProductController extends Controller
                     $vendorCacheKey = sprintf(
                         'pa_vendor_counts:%s',
                         md5(json_encode([
+                            'v' => 2,
                             'curated_it_mix' => $curatedItMix,
                             'min_price' => $minPrice,
                             'max_price' => $maxPrice,
@@ -2158,6 +2191,7 @@ class ProductController extends Controller
             $cacheKey = sprintf(
                 'pa_category_counts:%s',
                 md5(json_encode([
+                    'v' => 2,
                     'hide_zero' => $hideZero,
                     'min_price' => $minPrice,
                     'max_price' => $maxPrice,
@@ -2311,6 +2345,9 @@ class ProductController extends Controller
         $this->applySearchFilterToQuery($query, $search);
         $this->applyVendorFacetFilterToQuery($query, $selectedVendors);
         $this->applyCategorySegmentFilterToQuery($query, $category);
+
+        // Only count products that actually have images — matches what the main listing shows.
+        $query->whereRaw($this->hasUsableProductImageSql());
 
         if (
             trim($search) === ''
@@ -2574,6 +2611,7 @@ class ProductController extends Controller
         $cacheKey = sprintf(
             'pa_default_browse_vendors:%s',
             md5(json_encode([
+                'v' => 2,
                 'min_price' => $minPrice,
                 'max_price' => $maxPrice,
                 'hide_zero' => $hideZero,

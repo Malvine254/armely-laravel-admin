@@ -188,7 +188,7 @@
                   <!-- Actual Product Image if available -->
                   <img
                     v-if="getPrimaryImageUrl(product) && !imgErrorMap[product.productId]"
-                    :src="getPrimaryImageUrl(product)"
+                    :src="imgFallbackMap[product.productId] || getPrimaryImageUrl(product)"
                     :alt="product.productName"
                     class="w-full h-full object-contain p-2"
                     :loading="paginatedProducts.indexOf(product) < 6 ? 'eager' : 'lazy'"
@@ -196,7 +196,7 @@
                     decoding="async"
                     sizes="(min-width: 1024px) 320px, (min-width: 768px) 50vw, 100vw"
                     width="320" height="160"
-                    @error="onImgError(product.productId)"
+                    @error="onImgError(product.productId, product)"
                   />
                   
                   <!-- Fallback: Animated background + Icon -->
@@ -430,11 +430,36 @@ const authStore = useAuthStore()
 const { loadPricingSettings, getCatalogPriceWithRules, convertFromUsd, formatWithCurrency } = usePricingSettings()
 const pricingReady = ref(false)
 const imgErrorMap = reactive({})
-const onImgError = (productId) => { imgErrorMap[productId] = true }
+const imgFallbackMap = reactive({})
+
+const getImgFallbackUrl = (product) => {
+  const primary = getPrimaryImageUrl(product)
+  if (!primary) return ''
+  // Primary is /images/products/... → fallback is /store/images/products/...
+  if (primary.startsWith('/images/products/')) {
+    const alt = buildStoreUrl(primary)
+    return alt !== primary ? alt : ''
+  }
+  // Primary is /store/images/products/... → fallback is /images/products/...
+  if (primary.includes('/store/images/products/')) {
+    return primary.replace(/^.*\/store\/images\/products\//, '/images/products/')
+  }
+  return ''
+}
+
+const onImgError = (productId, product) => {
+  if (!imgFallbackMap[productId]) {
+    const fallback = getImgFallbackUrl(product)
+    if (fallback) {
+      imgFallbackMap[productId] = fallback
+      return
+    }
+  }
+  imgErrorMap[productId] = true
+}
 const resetImgErrorMap = () => {
-  Object.keys(imgErrorMap).forEach((key) => {
-    delete imgErrorMap[key]
-  })
+  Object.keys(imgErrorMap).forEach((key) => { delete imgErrorMap[key] })
+  Object.keys(imgFallbackMap).forEach((key) => { delete imgFallbackMap[key] })
 }
 const ITEMS_PER_PAGE = 9
 const API_PAGE_SIZE = 100
@@ -451,7 +476,7 @@ const ENABLE_SERVER_PREFETCH = true
 const ENABLE_VENDOR_COUNTS_API = true
 const PRODUCTS_RESULTS_SOFT_TTL_MS = 5 * 60 * 1000
 const PRODUCTS_RESULTS_HARD_TTL_MS = 24 * 60 * 60 * 1000
-const PRODUCTS_RESULTS_CACHE_PREFIX = 'products_results_cache_v9'
+const PRODUCTS_RESULTS_CACHE_PREFIX = 'products_results_cache_v10'
 const SIDEBAR_FACETS_CACHE_TTL_MS = 10 * 60 * 1000
 const SIDEBAR_VENDORS_STORAGE_KEY = 'products_sidebar_vendors_v1'
 const SIDEBAR_CATEGORIES_STORAGE_KEY = 'products_sidebar_categories_v1'
@@ -1162,16 +1187,15 @@ const filteredProducts = computed(() => {
     })
   }
 
-  // Filter by review rating / image presence
-  if (filters.mediaStatuses && filters.mediaStatuses.length > 0) {
+  if ((filters.mediaStatuses || []).length > 0) {
     filtered = filtered.filter((product) => {
       const stats = getProductReviewStats(product.productId)
       return filters.mediaStatuses.some((status) => {
+        if (status === 'No Images') return !getPrimaryImageUrl(product)
         if (status === '5 Stars') return stats.average >= 4.5
         if (status === '4 Stars & Up') return stats.average >= 4
         if (status === '3 Stars & Up') return stats.average >= 3
         if (status === 'Has Reviews') return stats.total > 0
-        if (status === 'No Images') return !getPrimaryImageUrl(product)
         return false
       })
     })
@@ -1342,12 +1366,12 @@ const loadReviewStatsForProducts = async (items = []) => {
 }
 
 const fetchAllProductPages = async (params) => {
-  // Fetch a large batch for client-side filtering (categories, partNumber, lifecycle, media)
+  // Fetch up to the storefront cap for client-side filtering (partNumber, lifecycle, media)
   const response = await api.get('/products', {
     params: {
       ...params,
       page: 1,
-      per_page: 500,
+      per_page: 3000,
       hide_zero_price: true,
       catalog_clean: true,
     }
@@ -1916,6 +1940,11 @@ const prefetchPage = (page) => {
     const selectedVendorValues = resolveVendorApiValues(currentFilters.value.vendors)
     if (selectedVendorValues.length > 0) params.vendors = selectedVendorValues.join(',')
   }
+  if (currentFilters.value.categories.length > 0) {
+    const selectedCategoryName = currentFilters.value.categories[0]
+    const categoryEntry = availableCategories.value.find(c => c.name === selectedCategoryName)
+    if (categoryEntry?.value) params.category = categoryEntry.value
+  }
   if (isDefaultBrowse && Number(currentFilters.value.priceMin || 0) <= 0) {
     params.min_price = DEFAULT_BROWSE_MIN_PRICE
   }
@@ -2118,19 +2147,12 @@ const getPrimaryImageUrl = (product) => {
     const rawUrl = String(value || '').trim()
     if (!rawUrl) return
     if (rawUrl.startsWith('/images/')) {
-      const host = (typeof window !== 'undefined' ? String(window.location.hostname || '').toLowerCase() : '')
-      const isLocalHost = host === '127.0.0.1' || host === 'localhost'
       const storeUrl = buildStoreUrl(rawUrl)
-
-      // Local XAMPP serves product files at /images/*; production subpath deployments
-      // may require /store/images/*. Keep both, but prefer the right one per host.
-      if (isLocalHost) {
-        candidates.push(rawUrl)
-        if (storeUrl !== rawUrl) candidates.push(storeUrl)
-      } else {
-        candidates.push(storeUrl)
-        if (storeUrl !== rawUrl) candidates.push(rawUrl)
-      }
+      // Raw /images/... is the direct public path (works when artisan serve root = public/).
+      // /store/images/... is the fallback for subpath deployments.
+      // The error handler will try the other if the first 404s.
+      candidates.push(rawUrl)
+      if (storeUrl !== rawUrl) candidates.push(storeUrl)
       return
     }
 

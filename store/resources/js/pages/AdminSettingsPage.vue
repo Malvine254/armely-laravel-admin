@@ -211,14 +211,14 @@
       </div>
     </div>
 
-    <!-- Email Settings -->
     <div v-if="activeTab === 'price_sync'" class="rounded-xl border-0 shadow-lg bg-white overflow-hidden">
       <div class="p-6 border-b border-gray-200">
         <h3 class="text-lg font-semibold text-gray-900">Price Availability Sync</h3>
-        <p class="text-sm text-gray-500 mt-1">Set when TD SYNNEX price availability refresh runs and who receives status emails.</p>
+        <p class="text-sm text-gray-500 mt-1">Set when TD SYNNEX price &amp; availability refresh runs automatically. The sync always covers all products.</p>
       </div>
 
       <div class="p-6 space-y-6">
+        <!-- Schedule settings -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Sync Time</label>
@@ -251,9 +251,10 @@
         </div>
 
         <div class="rounded-lg border border-[#2F5597]/20 bg-[#2F5597]/10 p-4">
-          <p class="text-sm font-semibold text-[#2F5597]">Schedule Check</p>
-          <p class="text-sm text-[#2F5597] mt-1">Next run: {{ priceSyncSettings.next_run_local || 'Save settings to calculate' }}</p>
-          <p class="text-xs text-[#2F5597] mt-1">Schedule name: {{ priceSyncSettings.schedule_name || 'refresh-live-prices-6pm-kenya' }}</p>
+          <p class="text-sm font-semibold text-[#2F5597]">Next Scheduled Run</p>
+          <p class="text-sm text-[#2F5597] mt-1">{{ priceSyncSettings.next_run_local || 'Save settings to calculate' }}</p>
+          <p class="text-xs text-[#2F5597]/70 mt-1">Runs automatically at the saved time — all products, no configuration needed.</p>
+          <p v-if="priceSyncSettings.last_triggered_date" class="text-xs text-[#2F5597]/70 mt-1">Last auto-triggered: {{ priceSyncSettings.last_triggered_date }}</p>
         </div>
 
         <!-- Live Sync Status Panel -->
@@ -295,56 +296,6 @@
           <pre v-if="syncState.output" class="text-xs bg-white/70 rounded p-3 whitespace-pre-wrap font-mono max-h-40 overflow-y-auto border border-gray-100">{{ syncState.output }}</pre>
         </div>
 
-        <div class="rounded-xl border border-gray-200 bg-white p-4 space-y-4">
-          <div>
-            <h4 class="text-sm font-semibold text-gray-900">Products To Sync</h4>
-            <p class="text-sm text-gray-500 mt-1">Choose whether the scheduled refresh should check every configured TD SYNNEX product or only selected SKUs.</p>
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <label class="flex items-start gap-3 rounded-lg border p-4 cursor-pointer transition" :class="priceSyncSettings.scope === 'all' ? 'border-[#2F5597] bg-[#2F5597]/10' : 'border-gray-200 bg-gray-50'">
-              <input
-                v-model="priceSyncSettings.scope"
-                type="radio"
-                value="all"
-                class="mt-1"
-                style="accent-color: #2F5597"
-              />
-              <span>
-                <span class="block text-sm font-semibold text-gray-900">Sync everything</span>
-                <span class="block text-xs text-gray-500 mt-1">Refresh price, stock &amp; availability for all products in the database.</span>
-              </span>
-            </label>
-
-            <label class="flex items-start gap-3 rounded-lg border p-4 cursor-pointer transition" :class="priceSyncSettings.scope === 'specific' ? 'border-[#2F5597] bg-[#2F5597]/10' : 'border-gray-200 bg-gray-50'">
-              <input
-                v-model="priceSyncSettings.scope"
-                type="radio"
-                value="specific"
-                class="mt-1"
-                style="accent-color: #2F5597"
-              />
-              <span>
-                <span class="block text-sm font-semibold text-gray-900">Specific products</span>
-                <span class="block text-xs text-gray-500 mt-1">Refresh only the SKUs/Product IDs listed below.</span>
-              </span>
-            </label>
-          </div>
-
-          <div v-if="priceSyncSettings.scope === 'specific'">
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              TD SYNNEX SKUs/Product IDs
-              <span class="ml-2 text-xs font-normal px-2 py-0.5 rounded-full bg-[#2F5597]/10 text-[#2F5597]">{{ priceSyncSkuCount }} SKU{{ priceSyncSkuCount !== 1 ? 's' : '' }}</span>
-            </label>
-            <textarea
-              v-model="priceSyncSettings.skus"
-              rows="6"
-              class="w-full px-4 py-3 border border-gray-200 bg-gray-50 text-gray-900 placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
-            ></textarea>
-            <p class="text-xs text-gray-500 mt-2">Separate with commas, spaces, or new lines. Run Now uses whatever is typed here — no need to save first.</p>
-          </div>
-        </div>
-
         <div class="flex flex-col md:flex-row justify-end gap-3 border-t border-gray-200 pt-6">
           <button
             @click="runPriceSyncNow"
@@ -352,7 +303,7 @@
             class="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition disabled:opacity-50"
           >
             <i :class="syncState.status === 'running' ? 'fas fa-spinner fa-spin' : 'fas fa-play'" class="mr-2"></i>
-            {{ syncState.status === 'running' ? 'Sync Running...' : 'Run Now' }}
+            {{ syncState.status === 'running' ? 'Sync Running...' : 'Run Now (All Products)' }}
           </button>
           <button
             @click="savePriceSyncSettings"
@@ -728,6 +679,21 @@
             </button>
           </div>
 
+          <div class="rounded-lg border border-purple-200 bg-purple-50 p-5">
+            <h4 class="text-gray-900 font-semibold">Sync Manual Images</h4>
+            <p class="mt-2 text-sm text-gray-500">
+              After uploading image files to <code class="bg-purple-100 px-1 rounded text-xs">public/images/products/</code> named as
+              <code class="bg-purple-100 px-1 rounded text-xs">{tdsynnex_product_id}.jpg</code>, click here to link them to products in the database.
+            </p>
+            <button
+              @click="runCatalogOperation('sync_manual_images')"
+              :disabled="catalogActionLoading"
+              class="mt-4 w-full px-4 py-2 rounded-lg bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-400 hover:to-pink-500 text-white font-medium transition disabled:opacity-50"
+            >
+              <i class="fas fa-link mr-2"></i>Sync Manual Images
+            </button>
+          </div>
+
           <div class="rounded-lg border border-amber-200 bg-amber-50 p-5">
             <h4 class="text-gray-900 font-semibold">Re-index Products</h4>
             <p class="mt-2 text-sm text-gray-500">Backfill <code class="bg-amber-100 px-1 rounded text-xs">category_segment</code> and <code class="bg-amber-100 px-1 rounded text-xs">is_hardware</code> for all rows, then clear all browse caches for instant fast loads.</p>
@@ -869,19 +835,50 @@
       </div>
     </div>
 
-    <!-- Admin Logs -->
-    <div v-if="activeTab === 'admin_logs'" class="rounded-xl border-0 shadow-lg bg-white overflow-hidden">
-      <div class="p-6 border-b border-gray-200 flex items-center justify-between bg-gray-50">
-        <div>
-          <h3 class="text-lg font-semibold text-gray-900">Admin Activity Logs</h3>
-          <p class="text-sm text-gray-500 mt-1">Actions performed by admin and super admin accounts</p>
-        </div>
-        <div class="flex items-center gap-3">
+    <!-- Activity Logs (combined) -->
+    <div v-if="activeTab === 'activity_logs'" class="rounded-xl border-0 shadow-lg bg-white overflow-hidden">
+      <div class="p-6 border-b border-gray-200 bg-gray-50">
+        <h3 class="text-lg font-semibold text-gray-900">Activity Logs</h3>
+        <p class="text-sm text-gray-500 mt-1">Admin actions and user activity across the platform</p>
+      </div>
+
+      <!-- Nested tabs -->
+      <div class="border-b border-gray-200 px-6">
+        <nav class="flex gap-1 -mb-px">
+          <button
+            @click="activeLogTab = 'admin'; adminLogsPage = 1; fetchAdminLogs()"
+            :class="[
+              'px-4 py-3 text-sm font-semibold border-b-2 transition whitespace-nowrap',
+              activeLogTab === 'admin'
+                ? 'border-[#2F5597] text-[#2F5597]'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            ]"
+          >
+            <i class="fas fa-shield-halved mr-2"></i>Admin Logs
+          </button>
+          <button
+            @click="activeLogTab = 'user'; userLogsPage = 1; fetchUserLogs()"
+            :class="[
+              'px-4 py-3 text-sm font-semibold border-b-2 transition whitespace-nowrap',
+              activeLogTab === 'user'
+                ? 'border-[#2F5597] text-[#2F5597]'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            ]"
+          >
+            <i class="fas fa-clock-rotate-left mr-2"></i>User Activity
+          </button>
+        </nav>
+      </div>
+
+      <!-- ── Admin Logs pane ── -->
+      <template v-if="activeLogTab === 'admin'">
+        <div class="px-6 py-3 border-b border-gray-200 flex flex-wrap items-center gap-3">
           <input
             v-model="adminLogsSearch"
             @input="adminLogsPage = 1; fetchAdminLogs()"
             type="text"
-            class="px-3 py-2 text-sm border border-gray-200 bg-gray-50 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597] w-52"
+            placeholder="Search admin logs…"
+            class="px-3 py-2 text-sm border border-gray-200 bg-gray-50 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597] w-56"
           />
           <button
             @click="fetchAdminLogs"
@@ -895,143 +892,88 @@
             <i v-else class="fas fa-sync-alt"></i>
             Refresh
           </button>
+          <div class="ml-auto flex items-center gap-2">
+            <template v-if="selectedAdminLogs.length > 0">
+              <span class="text-sm font-medium text-[#2F5597]">{{ selectedAdminLogs.length }} selected</span>
+              <button @click="bulkDeleteLogs('admin_selected')" class="px-3 py-1.5 text-xs bg-rose-500 hover:bg-rose-600 text-white rounded-lg transition font-medium">
+                <i class="fas fa-trash mr-1"></i>Delete Selected
+              </button>
+              <button @click="selectedAdminLogs = []" class="text-xs text-gray-500 hover:text-gray-700 transition">
+                <i class="fas fa-times mr-1"></i>Deselect
+              </button>
+            </template>
+            <button @click="bulkDeleteLogs('admin_all')" class="px-3 py-1.5 text-xs border border-rose-500/40 text-rose-600 bg-rose-500/10 hover:bg-rose-500/20 rounded-lg transition font-medium">
+              <i class="fas fa-broom mr-1"></i>Clear All
+            </button>
+          </div>
         </div>
-      </div>
 
-      <!-- Bulk action bar -->
-      <div v-if="selectedAdminLogs.length > 0" class="px-6 py-3 bg-[#2F5597]/10 border-b border-[#2F5597]/20 flex items-center gap-3">
-        <span class="text-sm font-medium text-[#2F5597]">{{ selectedAdminLogs.length }} selected</span>
-        <button
-          @click="bulkDeleteLogs('admin_selected')"
-          class="px-3 py-1.5 text-xs bg-rose-500 hover:bg-rose-600 text-white rounded-lg transition font-medium"
-        >
-          <i class="fas fa-trash mr-1"></i>Delete Selected
-        </button>
-        <button
-          @click="bulkDeleteLogs('admin_all')"
-          class="px-3 py-1.5 text-xs border border-rose-500/40 text-rose-600 bg-rose-500/10 hover:bg-rose-500/20 rounded-lg transition font-medium"
-        >
-          <i class="fas fa-broom mr-1"></i>Clear All Admin Logs
-        </button>
-        <button @click="selectedAdminLogs = []" class="ml-auto text-xs text-gray-500 hover:text-gray-700 transition">
-          <i class="fas fa-times mr-1"></i>Deselect All
-        </button>
-      </div>
-      <div v-else class="px-6 py-2.5 bg-gray-50 border-b border-gray-200 flex items-center">
-        <button
-          @click="bulkDeleteLogs('admin_all')"
-          class="px-3 py-1.5 text-xs border border-rose-500/40 text-rose-600 bg-rose-500/10 hover:bg-rose-500/20 rounded-lg transition font-medium"
-        >
-          <i class="fas fa-broom mr-1"></i>Clear All Logs
-        </button>
-      </div>
+        <div v-if="adminLogsLoading" class="flex justify-center py-12">
+          <svg class="animate-spin h-8 w-8 text-[#2F5597]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+        </div>
+        <div v-else class="overflow-x-auto">
+          <table class="w-full">
+            <thead class="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th class="px-4 py-3 text-left w-10">
+                  <input type="checkbox" :checked="allAdminLogsSelected" @change="toggleAllAdminLogs" class="w-4 h-4 rounded border-gray-300" style="accent-color: #2F5597" />
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Time</th>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Admin</th>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Type</th>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Action</th>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Description</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+              <tr v-if="adminLogs.length === 0">
+                <td colspan="6" class="px-6 py-12 text-center text-gray-500">
+                  <i class="fas fa-shield-halved text-4xl mb-3 block text-gray-400"></i>
+                  <p>No admin activity logs found</p>
+                </td>
+              </tr>
+              <tr v-for="log in adminLogs" :key="log.id" class="hover:bg-gray-50 transition">
+                <td class="px-4 py-3">
+                  <input type="checkbox" :value="log.id" v-model="selectedAdminLogs" class="w-4 h-4 rounded border-gray-300" style="accent-color: #2F5597" />
+                </td>
+                <td class="px-6 py-3 text-xs text-gray-500 whitespace-nowrap">{{ formatLogTime(log.created_at) }}</td>
+                <td class="px-6 py-3">
+                  <div class="font-medium text-gray-900 text-sm">{{ log.user?.name || '—' }}</div>
+                  <div class="text-xs text-gray-500">{{ log.user?.email }}</div>
+                </td>
+                <td class="px-6 py-3">
+                  <span :class="['px-2 py-0.5 rounded-full text-xs font-semibold', logTypeBadge(log.type)]">{{ log.type }}</span>
+                </td>
+                <td class="px-6 py-3 text-sm font-mono text-gray-700">{{ log.action }}</td>
+                <td class="px-6 py-3 text-sm text-gray-700">{{ log.description }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="px-6 py-4 border-t border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div class="text-sm text-gray-500">
+            <p>Showing {{ adminLogs.length }} of {{ adminLogsTotal }} entries &nbsp;·&nbsp; Page {{ adminLogsPage }} of {{ adminLogsLastPage }}</p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button :disabled="adminLogsPage === 1" @click="adminLogsPage--; fetchAdminLogs()" class="px-3 py-2 border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-[#2F5597] transition disabled:opacity-50 disabled:cursor-not-allowed text-sm">Previous</button>
+            <button v-for="page in adminLogsPageNumbers" :key="page" @click="adminLogsPage = page; fetchAdminLogs()"
+              :class="['px-3 py-2 rounded-lg border text-sm font-semibold transition', page === adminLogsPage ? 'bg-gradient-to-r from-[#2F5597] to-[#1e3a6b] text-white border-[#2F5597]' : 'border-gray-200 text-gray-500 hover:border-[#2F5597]/50 hover:text-[#2F5597]']">{{ page }}</button>
+            <button :disabled="adminLogsPage >= adminLogsLastPage" @click="adminLogsPage++; fetchAdminLogs()" class="px-3 py-2 border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-[#2F5597] transition disabled:opacity-50 disabled:cursor-not-allowed text-sm">Next</button>
+          </div>
+        </div>
+      </template>
 
-      <div v-if="adminLogsLoading" class="flex justify-center py-12">
-        <svg class="animate-spin h-8 w-8 text-[#2F5597]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
-      </div>
-      <div v-else class="overflow-x-auto">
-        <table class="w-full">
-          <thead class="bg-gray-50 border-b border-gray-200">
-            <tr>
-              <th class="px-4 py-3 text-left w-10">
-                <input
-                  type="checkbox"
-                  :checked="allAdminLogsSelected"
-                  @change="toggleAllAdminLogs"
-                  class="w-4 h-4 rounded border-gray-300"
-                  style="accent-color: #2F5597"
-                />
-              </th>
-              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Time</th>
-              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Admin</th>
-              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Type</th>
-              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Action</th>
-              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Description</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-gray-200">
-            <tr v-if="adminLogs.length === 0">
-              <td colspan="6" class="px-6 py-12 text-center text-gray-500">
-                <i class="fas fa-shield-halved text-4xl mb-3 block text-gray-400"></i>
-                <p>No admin activity logs found</p>
-              </td>
-            </tr>
-            <tr v-for="log in adminLogs" :key="log.id" class="hover:bg-gray-50 transition">
-              <td class="px-4 py-3">
-                <input
-                  type="checkbox"
-                  :value="log.id"
-                  v-model="selectedAdminLogs"
-                  class="w-4 h-4 rounded border-gray-300"
-                  style="accent-color: #2F5597"
-                />
-              </td>
-              <td class="px-6 py-3 text-xs text-gray-500 whitespace-nowrap">{{ formatLogTime(log.created_at) }}</td>
-              <td class="px-6 py-3">
-                <div class="font-medium text-gray-900 text-sm">{{ log.user?.name || '—' }}</div>
-                <div class="text-xs text-gray-500">{{ log.user?.email }}</div>
-              </td>
-              <td class="px-6 py-3">
-                <span :class="['px-2 py-0.5 rounded-full text-xs font-semibold', logTypeBadge(log.type)]">{{ log.type }}</span>
-              </td>
-              <td class="px-6 py-3 text-sm font-mono text-gray-700">{{ log.action }}</td>
-              <td class="px-6 py-3 text-sm text-gray-700">{{ log.description }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <div class="admin-table-pagination px-6 py-4 border-t border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div class="text-sm text-gray-500">
-          <p>Showing {{ adminLogs.length }} of {{ adminLogsTotal }} admin log entries</p>
-          <p class="mt-1 text-xs text-gray-500">Page {{ adminLogsPage }} of {{ adminLogsLastPage }}</p>
-        </div>
-        <div class="flex flex-wrap gap-2">
-          <button
-            :disabled="adminLogsPage === 1"
-            @click="adminLogsPage--; fetchAdminLogs()"
-            class="px-3 py-2 border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-[#2F5597] transition disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-          >
-            Previous
-          </button>
-          <button
-            v-for="page in adminLogsPageNumbers"
-            :key="page"
-            @click="adminLogsPage = page; fetchAdminLogs()"
-            :class="[
-              'px-3 py-2 rounded-lg border text-sm font-semibold transition',
-              page === adminLogsPage
-                ? 'bg-gradient-to-r from-[#2F5597] to-[#1e3a6b] text-white border-[#2F5597]'
-                : 'border-gray-200 text-gray-500 hover:border-[#2F5597]/50 hover:text-[#2F5597]'
-            ]"
-          >
-            {{ page }}
-          </button>
-          <button
-            :disabled="adminLogsPage >= adminLogsLastPage"
-            @click="adminLogsPage++; fetchAdminLogs()"
-            class="px-3 py-2 border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-[#2F5597] transition disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-          >
-            Next
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- User Activity Logs -->
-    <div v-if="activeTab === 'user_logs'" class="rounded-xl border-0 shadow-lg bg-white overflow-hidden">
-      <div class="p-6 border-b border-gray-200 flex items-center justify-between bg-gray-50">
-        <div>
-          <h3 class="text-lg font-semibold text-gray-900">User Activity Logs</h3>
-          <p class="text-sm text-gray-500 mt-1">All activity across every user account</p>
-        </div>
-        <div class="flex items-center gap-3">
+      <!-- ── User Activity pane ── -->
+      <template v-if="activeLogTab === 'user'">
+        <div class="px-6 py-3 border-b border-gray-200 flex flex-wrap items-center gap-3">
           <input
             v-model="userLogsSearch"
             @input="userLogsPage = 1; fetchUserLogs()"
             type="text"
+            placeholder="Search user activity…"
             class="px-3 py-2 text-sm border border-gray-200 bg-gray-50 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597] w-56"
           />
           <button
@@ -1046,138 +988,83 @@
             <i v-else class="fas fa-sync-alt"></i>
             Refresh
           </button>
+          <div class="ml-auto flex items-center gap-2">
+            <template v-if="selectedUserLogs.length > 0">
+              <span class="text-sm font-medium text-[#2F5597]">{{ selectedUserLogs.length }} selected</span>
+              <button @click="bulkDeleteLogs('user_selected')" class="px-3 py-1.5 text-xs bg-rose-500 hover:bg-rose-600 text-white rounded-lg transition font-medium">
+                <i class="fas fa-trash mr-1"></i>Delete Selected
+              </button>
+              <button @click="selectedUserLogs = []" class="text-xs text-gray-500 hover:text-gray-700 transition">
+                <i class="fas fa-times mr-1"></i>Deselect
+              </button>
+            </template>
+            <button @click="bulkDeleteLogs('user_all')" class="px-3 py-1.5 text-xs border border-rose-500/40 text-rose-600 bg-rose-500/10 hover:bg-rose-500/20 rounded-lg transition font-medium">
+              <i class="fas fa-broom mr-1"></i>Clear All
+            </button>
+          </div>
         </div>
-      </div>
 
-      <!-- Bulk action bar -->
-      <div v-if="selectedUserLogs.length > 0" class="px-6 py-3 bg-[#2F5597]/10 border-b border-[#2F5597]/20 flex items-center gap-3">
-        <span class="text-sm font-medium text-[#2F5597]">{{ selectedUserLogs.length }} selected</span>
-        <button
-          @click="bulkDeleteLogs('user_selected')"
-          class="px-3 py-1.5 text-xs bg-rose-500 hover:bg-rose-600 text-white rounded-lg transition font-medium"
-        >
-          <i class="fas fa-trash mr-1"></i>Delete Selected
-        </button>
-        <button
-          @click="bulkDeleteLogs('user_all')"
-          class="px-3 py-1.5 text-xs border border-rose-500/40 text-rose-600 bg-rose-500/10 hover:bg-rose-500/20 rounded-lg transition font-medium"
-        >
-          <i class="fas fa-broom mr-1"></i>Clear All User Logs
-        </button>
-        <button @click="selectedUserLogs = []" class="ml-auto text-xs text-gray-500 hover:text-gray-700 transition">
-          <i class="fas fa-times mr-1"></i>Deselect All
-        </button>
-      </div>
-      <div v-else class="px-6 py-2.5 bg-gray-50 border-b border-gray-200 flex items-center">
-        <button
-          @click="bulkDeleteLogs('user_all')"
-          class="px-3 py-1.5 text-xs border border-rose-500/40 text-rose-600 bg-rose-500/10 hover:bg-rose-500/20 rounded-lg transition font-medium"
-        >
-          <i class="fas fa-broom mr-1"></i>Clear All Logs
-        </button>
-      </div>
-
-      <div v-if="userLogsLoading" class="flex justify-center py-12">
-        <svg class="animate-spin h-8 w-8 text-[#2F5597]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
-      </div>
-      <div v-else class="overflow-x-auto">
-        <table class="w-full">
-          <thead class="bg-gray-50 border-b border-gray-200">
-            <tr>
-              <th class="px-4 py-3 text-left w-10">
-                <input
-                  type="checkbox"
-                  :checked="allUserLogsSelected"
-                  @change="toggleAllUserLogs"
-                  class="w-4 h-4 rounded border-gray-300"
-                  style="accent-color: #2F5597"
-                />
-              </th>
-              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Time</th>
-              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">User</th>
-              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Role</th>
-              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Type</th>
-              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Action</th>
-              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Description</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-gray-200">
-            <tr v-if="userLogs.length === 0">
-              <td colspan="7" class="px-6 py-12 text-center text-gray-500">
-                <i class="fas fa-clock-rotate-left text-4xl mb-3 block text-gray-400"></i>
-                <p>No user activity logs found</p>
-              </td>
-            </tr>
-            <tr v-for="log in userLogs" :key="log.id" class="hover:bg-gray-50 transition">
-              <td class="px-4 py-3">
-                <input
-                  type="checkbox"
-                  :value="log.id"
-                  v-model="selectedUserLogs"
-                  class="w-4 h-4 rounded border-gray-300"
-                  style="accent-color: #2F5597"
-                />
-              </td>
-              <td class="px-6 py-3 text-xs text-gray-500 whitespace-nowrap">{{ formatLogTime(log.created_at) }}</td>
-              <td class="px-6 py-3">
-                <div class="font-medium text-gray-900 text-sm">{{ log.user?.name || '—' }}</div>
-                <div class="text-xs text-gray-500">{{ log.user?.email }}</div>
-              </td>
-              <td class="px-6 py-3">
-                <span :class="[
-                  'px-2 py-0.5 rounded-full text-xs font-semibold',
-                  log.user?.role === 'super_admin' ? 'bg-violet-500/10 text-violet-700' :
-                  log.user?.role === 'admin' ? 'bg-[#2F5597]/10 text-[#2F5597]' :
-                  'bg-gray-100 text-gray-600'
-                ]">{{ log.user?.role || 'user' }}</span>
-              </td>
-              <td class="px-6 py-3">
-                <span :class="['px-2 py-0.5 rounded-full text-xs font-semibold', logTypeBadge(log.type)]">{{ log.type }}</span>
-              </td>
-              <td class="px-6 py-3 text-sm font-mono text-gray-700">{{ log.action }}</td>
-              <td class="px-6 py-3 text-sm text-gray-700">{{ log.description }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <div class="admin-table-pagination px-6 py-4 border-t border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div class="text-sm text-gray-500">
-          <p>Showing {{ userLogs.length }} of {{ userLogsTotal }} activity log entries</p>
-          <p class="mt-1 text-xs text-gray-500">Page {{ userLogsPage }} of {{ userLogsLastPage }}</p>
+        <div v-if="userLogsLoading" class="flex justify-center py-12">
+          <svg class="animate-spin h-8 w-8 text-[#2F5597]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
         </div>
-        <div class="flex flex-wrap gap-2">
-          <button
-            :disabled="userLogsPage === 1"
-            @click="userLogsPage--; fetchUserLogs()"
-            class="px-3 py-2 border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-[#2F5597] transition disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-          >
-            Previous
-          </button>
-          <button
-            v-for="page in userLogsPageNumbers"
-            :key="page"
-            @click="userLogsPage = page; fetchUserLogs()"
-            :class="[
-              'px-3 py-2 rounded-lg border text-sm font-semibold transition',
-              page === userLogsPage
-                ? 'bg-gradient-to-r from-[#2F5597] to-[#1e3a6b] text-white border-[#2F5597]'
-                : 'border-gray-200 text-gray-500 hover:border-[#2F5597]/50 hover:text-[#2F5597]'
-            ]"
-          >
-            {{ page }}
-          </button>
-          <button
-            :disabled="userLogsPage >= userLogsLastPage"
-            @click="userLogsPage++; fetchUserLogs()"
-            class="px-3 py-2 border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-[#2F5597] transition disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-          >
-            Next
-          </button>
+        <div v-else class="overflow-x-auto">
+          <table class="w-full">
+            <thead class="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th class="px-4 py-3 text-left w-10">
+                  <input type="checkbox" :checked="allUserLogsSelected" @change="toggleAllUserLogs" class="w-4 h-4 rounded border-gray-300" style="accent-color: #2F5597" />
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Time</th>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">User</th>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Role</th>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Type</th>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Action</th>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Description</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+              <tr v-if="userLogs.length === 0">
+                <td colspan="7" class="px-6 py-12 text-center text-gray-500">
+                  <i class="fas fa-clock-rotate-left text-4xl mb-3 block text-gray-400"></i>
+                  <p>No user activity logs found</p>
+                </td>
+              </tr>
+              <tr v-for="log in userLogs" :key="log.id" class="hover:bg-gray-50 transition">
+                <td class="px-4 py-3">
+                  <input type="checkbox" :value="log.id" v-model="selectedUserLogs" class="w-4 h-4 rounded border-gray-300" style="accent-color: #2F5597" />
+                </td>
+                <td class="px-6 py-3 text-xs text-gray-500 whitespace-nowrap">{{ formatLogTime(log.created_at) }}</td>
+                <td class="px-6 py-3">
+                  <div class="font-medium text-gray-900 text-sm">{{ log.user?.name || '—' }}</div>
+                  <div class="text-xs text-gray-500">{{ log.user?.email }}</div>
+                </td>
+                <td class="px-6 py-3">
+                  <span :class="['px-2 py-0.5 rounded-full text-xs font-semibold', log.user?.role === 'super_admin' ? 'bg-violet-500/10 text-violet-700' : log.user?.role === 'admin' ? 'bg-[#2F5597]/10 text-[#2F5597]' : 'bg-gray-100 text-gray-600']">{{ log.user?.role || 'user' }}</span>
+                </td>
+                <td class="px-6 py-3">
+                  <span :class="['px-2 py-0.5 rounded-full text-xs font-semibold', logTypeBadge(log.type)]">{{ log.type }}</span>
+                </td>
+                <td class="px-6 py-3 text-sm font-mono text-gray-700">{{ log.action }}</td>
+                <td class="px-6 py-3 text-sm text-gray-700">{{ log.description }}</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
-      </div>
+        <div class="px-6 py-4 border-t border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div class="text-sm text-gray-500">
+            <p>Showing {{ userLogs.length }} of {{ userLogsTotal }} entries &nbsp;·&nbsp; Page {{ userLogsPage }} of {{ userLogsLastPage }}</p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button :disabled="userLogsPage === 1" @click="userLogsPage--; fetchUserLogs()" class="px-3 py-2 border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-[#2F5597] transition disabled:opacity-50 disabled:cursor-not-allowed text-sm">Previous</button>
+            <button v-for="page in userLogsPageNumbers" :key="page" @click="userLogsPage = page; fetchUserLogs()"
+              :class="['px-3 py-2 rounded-lg border text-sm font-semibold transition', page === userLogsPage ? 'bg-gradient-to-r from-[#2F5597] to-[#1e3a6b] text-white border-[#2F5597]' : 'border-gray-200 text-gray-500 hover:border-[#2F5597]/50 hover:text-[#2F5597]']">{{ page }}</button>
+            <button :disabled="userLogsPage >= userLogsLastPage" @click="userLogsPage++; fetchUserLogs()" class="px-3 py-2 border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-[#2F5597] transition disabled:opacity-50 disabled:cursor-not-allowed text-sm">Next</button>
+          </div>
+        </div>
+      </template>
     </div>
 
     <!-- Add Admin Modal -->
@@ -1248,6 +1135,7 @@ import AdminLayout from '@/components/AdminLayout.vue'
 import api from '@/services/api'
 
 const activeTab = ref('profile')
+const activeLogTab = ref('admin')
 const isSaving = ref(false)
 const isRunningSync = ref(false)
 const syncState = ref({ status: 'idle', message: '', output: '', started_at: null, updated_at: null, finished_at: null })
@@ -1265,8 +1153,7 @@ const tabs = [
   { id: 'email', label: 'Email & Notifications', icon: 'fa-envelope' },
   { id: 'system', label: 'System', icon: 'fa-cog' },
   { id: 'admins', label: 'Admin Users', icon: 'fa-users-cog' },
-  { id: 'admin_logs', label: 'Admin Logs', icon: 'fa-shield-halved' },
-  { id: 'user_logs', label: 'User Activity', icon: 'fa-clock-rotate-left' }
+  { id: 'activity_logs', label: 'Activity Logs', icon: 'fa-list-check' }
 ]
 
 const profile = ref({
@@ -1302,13 +1189,8 @@ const priceSyncSettings = ref({
   time: '18:00',
   timezone: 'Africa/Nairobi',
   email: 'malvine.owuor@armely.com',
-  scope: 'all',
-  skus: '',
-  sku_count: 0,
   next_run_local: '',
-  next_run_utc: '',
-  schedule_name: 'refresh-live-prices-6pm-kenya',
-  queue: 'products-sync',
+  last_triggered_date: '',
 })
 
 const systemSettings = ref({
@@ -1376,14 +1258,6 @@ const allUserLogsSelected = computed(() =>
   userLogs.value.length > 0 && userLogs.value.every(l => selectedUserLogs.value.includes(l.id))
 )
 
-const priceSyncSkuCount = computed(() => {
-  const tokens = String(priceSyncSettings.value.skus || '')
-    .split(/[\s,;]+/)
-    .map(item => item.trim())
-    .filter(Boolean)
-
-  return new Set(tokens).size
-})
 
 const adminLogsPageNumbers = computed(() => {
   const total = adminLogsLastPage.value
@@ -1663,18 +1537,12 @@ const stopSyncPolling = () => {
 
 const runPriceSyncNow = async () => {
   try {
-    // Always send current textarea values — no need to save settings first
-    const payload = {
-      scope: priceSyncSettings.value.scope || 'all',
-      skus: priceSyncSettings.value.skus || '',
-    }
-    const response = await api.post('/admin/settings/price-sync/run-now', payload)
+    const response = await api.post('/admin/settings/price-sync/run-now', {})
     if (response.data.success) {
-      const scopeLabel = payload.scope === 'specific' ? 'Specific products' : 'All products'
       syncState.value = {
         status: 'running',
-        message: `Starting — ${scopeLabel}...`,
-        output: `Started at ${new Date().toLocaleString()}\nScope: ${scopeLabel}`,
+        message: 'Starting — All products...',
+        output: `Started at ${new Date().toLocaleString()}\nScope: All products`,
         started_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         finished_at: null
@@ -1699,7 +1567,8 @@ const runPriceSyncNow = async () => {
 const savePriceSyncSettings = async () => {
   isSaving.value = true
   try {
-    const response = await api.post('/admin/settings/price-sync', priceSyncSettings.value)
+    const { time, timezone, email } = priceSyncSettings.value
+    const response = await api.post('/admin/settings/price-sync', { time, timezone, email })
     if (response.data.success) {
       if (response.data.data) {
         priceSyncSettings.value = { ...priceSyncSettings.value, ...response.data.data }
@@ -1958,8 +1827,9 @@ const bulkDeleteLogs = async (scope) => {
 
 const switchTab = (id) => {
   activeTab.value = id
-  if (id === 'admin_logs' && adminLogs.value.length === 0) fetchAdminLogs()
-  if (id === 'user_logs' && userLogs.value.length === 0) fetchUserLogs()
+  if (id === 'activity_logs') {
+    if (adminLogs.value.length === 0) fetchAdminLogs()
+  }
 }
 
 const formatLogTime = (dateStr) => {
