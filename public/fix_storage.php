@@ -92,30 +92,35 @@ $results = [];
 
 function runArtisanCommand(string $command, array $params = []): array
 {
+    $label = $command . (empty($params) ? '' : ' ' . json_encode($params));
+
     try {
         Artisan::call($command, $params);
 
         return [
-            'command' => $command . (empty($params) ? '' : ' ' . json_encode($params)),
-            'status' => 'OK',
-            'output' => trim(Artisan::output()),
+            'command' => $label,
+            'status'  => 'OK',
+            'output'  => trim(Artisan::output()),
         ];
     } catch (Throwable $e) {
         $message = $e->getMessage();
 
+        // storage:link complains if the symlink already exists — that is fine.
         if ($command === 'storage:link' && stripos($message, 'already exists') !== false) {
+            return ['command' => $label, 'status' => 'OK', 'output' => $message];
+        }
+
+        // Migrations fail with "table already exists" when a table was created
+        // outside of artisan. Treat as a warning, not a hard error.
+        if ($command === 'migrate' && stripos($message, 'already exists') !== false) {
             return [
-                'command' => $command . (empty($params) ? '' : ' ' . json_encode($params)),
-                'status' => 'OK',
-                'output' => $message,
+                'command' => $label,
+                'status'  => 'WARNING',
+                'output'  => 'One or more tables already existed and were skipped. ' . $message,
             ];
         }
 
-        return [
-            'command' => $command . (empty($params) ? '' : ' ' . json_encode($params)),
-            'status' => 'ERROR',
-            'output' => $message,
-        ];
+        return ['command' => $label, 'status' => 'ERROR', 'output' => $message];
     }
 }
 
@@ -423,8 +428,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     .btn:hover { background: #254780; }
     table { width: 100%; border-collapse: collapse; margin-top: 10px; }
     th, td { text-align: left; border-bottom: 1px solid #e7edf4; padding: 10px; vertical-align: top; font-size: 14px; }
-    .ok { color: #0f766e; font-weight: 700; }
+    .ok  { color: #0f766e; font-weight: 700; }
     .err { color: #b91c1c; font-weight: 700; }
+    .warn { color: #b45309; font-weight: 700; }
     pre { white-space: pre-wrap; word-break: break-word; margin: 0; }
     .notice { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e3a8a; border-radius: 10px; padding: 10px 12px; }
   </style>
@@ -467,7 +473,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php foreach ($results as $row): ?>
               <tr>
                 <td><pre><?= htmlspecialchars((string) ($row['command'] ?? ''), ENT_QUOTES, 'UTF-8') ?></pre></td>
-                <td class="<?= (($row['status'] ?? '') === 'OK') ? 'ok' : 'err' ?>"><?= htmlspecialchars((string) ($row['status'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
+                <td class="<?= match($row['status'] ?? '') { 'OK' => 'ok', 'WARNING' => 'warn', default => 'err' } ?>"><?= htmlspecialchars((string) ($row['status'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
                 <td><pre><?= htmlspecialchars((string) ($row['output'] ?? ''), ENT_QUOTES, 'UTF-8') ?></pre></td>
               </tr>
             <?php endforeach; ?>
