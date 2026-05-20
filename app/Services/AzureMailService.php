@@ -49,6 +49,14 @@ class AzureMailService
         try {
             $resolvedFromEmail = self::normalizeEmail($fromEmail !== '' ? $fromEmail : self::outboundFromEmail());
             $normalizedToEmail = self::normalizeEmail($toEmail);
+
+            // Check suppression cache first so we can give a specific log message
+            if (Cache::get(self::suppressionKey($normalizedToEmail), false) === true) {
+                Log::warning('AzureMailService: recipient is in suppression cache', ['to' => $normalizedToEmail]);
+                // Clear the suppression so it does not block indefinitely
+                Cache::forget(self::suppressionKey($normalizedToEmail));
+            }
+
             if (!self::isDeliverableEmail($normalizedToEmail)) {
                 Log::warning('AzureMailService: blocked send to undeliverable recipient', [
                     'to' => $normalizedToEmail,
@@ -58,15 +66,17 @@ class AzureMailService
             }
 
             if ($resolvedFromEmail === '') {
-                Log::warning('AzureMailService: missing outbound sender address');
+                Log::warning('AzureMailService: missing outbound sender address — set MAIL_FROM_ADDRESS in .env');
                 return false;
             }
 
             $token = $this->getAccessToken();
             if (!$token) {
-                Log::error('AzureMailService: Failed to obtain access token');
+                Log::error('AzureMailService: failed to obtain access token — check AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET');
                 return false;
             }
+
+            Log::info('AzureMailService: sending email', ['from' => $resolvedFromEmail, 'to' => $normalizedToEmail, 'subject' => $subject]);
 
             $endpoint = "https://graph.microsoft.com/v1.0/users/" . rawurlencode($resolvedFromEmail) . "/sendMail";
 
