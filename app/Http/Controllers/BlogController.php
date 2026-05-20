@@ -177,7 +177,7 @@ class BlogController extends Controller
     {
         $data = $request->validate([
             'name'  => ['required', 'string', 'max:120'],
-            'email' => ['required', 'email:rfc,dns', 'max:255'],
+            'email' => ['required', 'email:rfc', 'max:255'],
         ], [
             'name.required'  => 'Please enter your name.',
             'email.required' => 'Please enter your email address.',
@@ -235,7 +235,14 @@ class BlogController extends Controller
                 'downloadUrl' => $downloadUrl,
             ])->render();
 
-            $mailer->sendEmail($fromEmail, $data['email'], $subject, $htmlBody);
+            $sent = $mailer->sendEmail($fromEmail, $data['email'], $subject, $htmlBody);
+            if (!$sent) {
+                Log::error('Blog download email not sent (sendEmail returned false)', ['to' => $data['email']]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'We could not send the email. Please try again.',
+                ], 500);
+            }
         } catch (\Throwable $e) {
             Log::error('Blog download email failed: ' . $e->getMessage());
             return response()->json([

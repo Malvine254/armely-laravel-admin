@@ -177,8 +177,12 @@ class AzureMailService
             return false;
         }
 
-        if (!checkdnsrr($domain, 'MX') && !checkdnsrr($domain, 'A')) {
-            return false;
+        try {
+            if (function_exists('checkdnsrr') && !checkdnsrr($domain, 'MX') && !checkdnsrr($domain, 'A')) {
+                return false;
+            }
+        } catch (\Throwable) {
+            // DNS lookups can fail on restricted hosting — allow the email through
         }
 
         return true;
