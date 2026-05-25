@@ -4974,6 +4974,117 @@ class AdminController extends Controller
     }
 
     /**
+     * Update editable invoice charges before the customer pays.
+     */
+    public function updateInvoiceCharges(Request $request, $invoiceId): JsonResponse
+    {
+        try {
+            $currentUser = $request->user();
+
+            if ($currentUser->role !== 'super_admin' && $currentUser->role !== 'admin') {
+                return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+            }
+            if (!$this->hasPermission($currentUser, 'manage_invoices')) {
+                return response()->json(['success' => false, 'message' => 'You do not have permission to manage invoices'], 403);
+            }
+
+            $validated = $request->validate([
+                'tax_amount' => 'required|numeric|min:0|max:999999.99',
+                'shipping_amount' => 'required|numeric|min:0|max:999999.99',
+                'notes' => 'nullable|string|max:500',
+            ]);
+
+            $invoice = Invoice::with('order')->findOrFail($invoiceId);
+            if (in_array((string) $invoice->status, ['paid', 'cancelled', 'merged'], true)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Only unpaid active invoices can be edited.',
+                ], 422);
+            }
+
+            $rawData = is_array($invoice->raw_data) ? $invoice->raw_data : [];
+            $breakdown = $rawData['invoice_charge_breakdown'] ?? [];
+            if (!is_array($breakdown)) {
+                $breakdown = [];
+            }
+
+            $tax = round((float) $validated['tax_amount'], 2);
+            $shipping = round((float) $validated['shipping_amount'], 2);
+            $discount = round((float) ($breakdown['discount_amount'] ?? 0), 2);
+            $subtotal = round((float) ($breakdown['subtotal'] ?? $breakdown['retail_subtotal'] ?? 0), 2);
+
+            if ($subtotal <= 0 && is_array($invoice->items)) {
+                $subtotal = round(array_reduce($invoice->items, function (float $sum, mixed $item): float {
+                    if (!is_array($item)) {
+                        return $sum;
+                    }
+
+                    $quantity = max(1, (float) ($item['quantity'] ?? $item['qty'] ?? 1));
+                    $lineTotal = (float) ($item['line_total'] ?? $item['total'] ?? 0);
+                    if ($lineTotal > 0) {
+                        return $sum + $lineTotal;
+                    }
+
+                    return $sum + ((float) ($item['unit_price'] ?? $item['price'] ?? 0) * $quantity);
+                }, 0.0), 2);
+            }
+
+            if ($subtotal <= 0) {
+                $subtotal = max(0, round((float) $invoice->total_amount - (float) $invoice->tax_amount - (float) $invoice->shipping_amount + $discount, 2));
+            }
+
+            $total = max(0, round($subtotal + $tax + $shipping - $discount, 2));
+
+            $rawData['invoice_charge_breakdown'] = array_merge($breakdown, [
+                'pricing_model' => $breakdown['pricing_model'] ?? 'retail',
+                'subtotal' => $subtotal,
+                'retail_subtotal' => $breakdown['retail_subtotal'] ?? $subtotal,
+                'tax_amount' => $tax,
+                'shipping_amount' => $shipping,
+                'discount_amount' => $discount,
+                'payable_total' => $total,
+                'edited_by_admin_id' => $currentUser->id,
+                'edited_at' => now()->toISOString(),
+            ]);
+
+            $invoice->update([
+                'tax_amount' => $tax,
+                'total_amount' => $total,
+                'raw_data' => $rawData,
+                'notes' => array_key_exists('notes', $validated) ? $validated['notes'] : $invoice->notes,
+            ]);
+
+            if ($invoice->order && !in_array((string) $invoice->order->payment_status, ['paid', 'completed'], true)) {
+                $invoice->order->update([
+                    'tax_amount' => $tax,
+                    'shipping_amount' => $shipping,
+                    'total_amount' => $total,
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Invoice charges updated successfully.',
+                'data' => [
+                    'invoice' => $invoice->fresh(['user', 'user.company', 'order']),
+                ],
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('Failed to update invoice charges: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update invoice charges',
+            ], 500);
+        }
+    }
+
+    /**
      * Mark invoice as paid and record payment details
      */
     public function markInvoiceAsPaid(Request $request, $invoiceId): JsonResponse

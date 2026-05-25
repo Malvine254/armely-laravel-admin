@@ -341,6 +341,11 @@
             <div>
               <p class="text-sm text-gray-500 font-medium">Amount</p>
               <p class="text-2xl font-bold text-[#2F5597]">${{ formatCurrency(selectedInvoice.total_amount) }}</p>
+              <p class="mt-1 text-xs text-gray-500">
+                Subtotal ${{ formatCurrency(getInvoiceSubtotal(selectedInvoice)) }}
+                · Tax ${{ formatCurrency(selectedInvoice.tax_amount) }}
+                · Shipping ${{ formatCurrency(getInvoiceShippingAmount(selectedInvoice)) }}
+              </p>
             </div>
             <div>
               <p class="text-sm text-gray-500 font-medium">Status</p>
@@ -351,6 +356,60 @@
           </div>
 
           <hr class="my-4 border-gray-200" />
+
+          <!-- Editable Charges -->
+          <div v-if="canEditInvoiceCharges(selectedInvoice)" class="rounded-lg border border-[#2F5597]/20 bg-[#2F5597]/5 p-4">
+            <div class="mb-3 flex items-start justify-between gap-3">
+              <div>
+                <h4 class="font-semibold text-gray-900">Edit Customer Charges</h4>
+                <p class="text-xs text-gray-500 mt-1">Adjust tax and shipping before sending a reminder or recording payment.</p>
+              </div>
+              <span class="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-[#2F5597]">
+                New total ${{ formatCurrency(editInvoiceTotal) }}
+              </span>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Subtotal</label>
+                <input
+                  :value="formatCurrency(getInvoiceSubtotal(selectedInvoice))"
+                  disabled
+                  class="w-full px-3 py-2 border border-gray-200 bg-white/70 text-gray-500 rounded-lg"
+                />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Tax</label>
+                <input
+                  v-model.number="editTaxAmount"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  class="w-full px-3 py-2 border border-gray-200 bg-white text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
+                />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Shipping Fee</label>
+                <input
+                  v-model.number="editShippingAmount"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  class="w-full px-3 py-2 border border-gray-200 bg-white text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
+                />
+              </div>
+            </div>
+            <div class="mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <p class="text-xs text-gray-500">Customer balance updates immediately after saving.</p>
+              <button
+                @click="saveInvoiceCharges"
+                :disabled="savingInvoiceCharges"
+                class="inline-flex items-center justify-center gap-2 rounded-lg bg-[#2F5597] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1e3a6b] disabled:opacity-50"
+              >
+                <i :class="savingInvoiceCharges ? 'fas fa-spinner fa-spin' : 'fas fa-save'"></i>
+                {{ savingInvoiceCharges ? 'Saving...' : 'Save Charges' }}
+              </button>
+            </div>
+          </div>
 
           <!-- Invoice Items -->
           <div>
@@ -455,6 +514,9 @@ const isLoading = ref(false)
 const sendingReminderInvoiceId = ref(null)
 const paymentDate = ref('')
 const paymentNotes = ref('')
+const editTaxAmount = ref(0)
+const editShippingAmount = ref(0)
+const savingInvoiceCharges = ref(false)
 const stats = ref({
   total: 0,
   pending: 0,
@@ -523,6 +585,45 @@ const getInvoiceItemUnitPrice = (item) => {
 const getTdBasePriceForItem = (item) => {
   return Number(item?.td_base_price ?? 0)
 }
+
+const getInvoiceShippingAmount = (invoice) => {
+  const direct = Number(invoice?.shipping_amount ?? 0)
+  if (direct > 0) return direct
+
+  return Number(invoice?.raw_data?.invoice_charge_breakdown?.shipping_amount ?? 0)
+}
+
+const getInvoiceDiscountAmount = (invoice) => {
+  return Number(invoice?.raw_data?.invoice_charge_breakdown?.discount_amount ?? 0)
+}
+
+const getInvoiceSubtotal = (invoice) => {
+  const breakdown = invoice?.raw_data?.invoice_charge_breakdown || {}
+  const storedSubtotal = Number(breakdown.subtotal ?? breakdown.retail_subtotal ?? 0)
+  if (storedSubtotal > 0) return storedSubtotal
+
+  const total = Number(invoice?.total_amount || 0)
+  const tax = Number(invoice?.tax_amount || 0)
+  const shipping = getInvoiceShippingAmount(invoice)
+  const discount = getInvoiceDiscountAmount(invoice)
+  return Math.max(0, total - tax - shipping + discount)
+}
+
+const canEditInvoiceCharges = (invoice) => {
+  if (!invoice) return false
+  return !['paid', 'cancelled', 'merged'].includes(String(invoice.status || '').toLowerCase())
+}
+
+const editInvoiceTotal = computed(() => {
+  if (!selectedInvoice.value) return 0
+  return Math.max(
+    0,
+    getInvoiceSubtotal(selectedInvoice.value)
+      + Number(editTaxAmount.value || 0)
+      + Number(editShippingAmount.value || 0)
+      - getInvoiceDiscountAmount(selectedInvoice.value)
+  )
+})
 
 const formatDate = (date) => {
   if (!date) return '-'
@@ -693,6 +794,40 @@ const viewInvoice = (invoice) => {
   selectedInvoice.value = invoice
   paymentDate.value = ''
   paymentNotes.value = ''
+  editTaxAmount.value = Number(invoice?.tax_amount || 0)
+  editShippingAmount.value = getInvoiceShippingAmount(invoice)
+}
+
+const saveInvoiceCharges = async () => {
+  if (!selectedInvoice.value || !canEditInvoiceCharges(selectedInvoice.value)) return
+
+  savingInvoiceCharges.value = true
+  try {
+    const response = await api.put(`/admin/invoices/${selectedInvoice.value.id}`, {
+      tax_amount: Number(editTaxAmount.value || 0),
+      shipping_amount: Number(editShippingAmount.value || 0),
+      notes: selectedInvoice.value.notes || ''
+    })
+
+    if (response.data?.success) {
+      const updatedInvoice = response.data?.data?.invoice
+      if (updatedInvoice) {
+        selectedInvoice.value = updatedInvoice
+        editTaxAmount.value = Number(updatedInvoice.tax_amount || 0)
+        editShippingAmount.value = getInvoiceShippingAmount(updatedInvoice)
+      }
+      alert(response.data.message || 'Invoice charges updated')
+      await fetchInvoices()
+      await fetchStats()
+    } else {
+      alert(response.data?.message || 'Failed to update invoice charges')
+    }
+  } catch (error) {
+    console.error('Failed to update invoice charges:', error)
+    alert(error.response?.data?.message || 'Failed to update invoice charges')
+  } finally {
+    savingInvoiceCharges.value = false
+  }
 }
 
 const recordPayment = async () => {

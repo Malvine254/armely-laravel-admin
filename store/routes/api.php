@@ -228,6 +228,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/admin/invoices/bulk-delete', [AdminController::class, 'bulkDeleteInvoices']);
         Route::post('/admin/invoices/bulk-mark-paid', [AdminController::class, 'bulkMarkInvoicesPaid']);
         Route::post('/admin/invoices/bulk-cancel', [AdminController::class, 'bulkCancelInvoices']);
+        Route::put('/admin/invoices/{invoiceId}', [AdminController::class, 'updateInvoiceCharges']);
         Route::get('/admin/invoices/{status}', [AdminController::class, 'getInvoicesByStatus']);
         Route::post('/admin/invoices/{invoiceId}/mark-paid', [AdminController::class, 'markInvoiceAsPaid']);
         Route::post('/admin/invoices/{invoiceId}/send-reminder', [AdminController::class, 'sendInvoiceReminder']);
