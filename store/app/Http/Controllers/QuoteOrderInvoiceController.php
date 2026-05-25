@@ -1469,7 +1469,7 @@ class QuoteOrderInvoiceController extends Controller
     private function fallbackTrackingUrl(?string $carrier, string $trackingNumber): ?string
     {
         $templates = [
-            'fedex' => 'https://tracking.fedex.com/track?tracknumbers=%s',
+            'fedex' => 'https://www.fedex.com/fedextrack/?trknbr=%s',
             'ups' => 'https://www.ups.com/track?tracknum=%s',
             'usps' => 'https://tools.usps.com/go/TrackConfirmAction?tLabels=%s',
             'dhl' => 'https://www.dhl.com/en/en/home/tracking/tracking-express.html?submit=1&tracking-id=%s',

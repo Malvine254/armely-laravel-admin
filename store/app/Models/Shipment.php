@@ -39,11 +39,11 @@ class Shipment extends Model
     public function getTrackingUrl(): ?string
     {
         if ($this->tracking_url) {
-            return $this->tracking_url;
+            return $this->normalizeTrackingUrl($this->tracking_url);
         }
 
         $carriers = [
-            'fedex' => 'https://tracking.fedex.com/track?tracknumbers={number}',
+            'fedex' => 'https://www.fedex.com/fedextrack/?trknbr={number}',
             'ups' => 'https://www.ups.com/track?tracknum={number}',
             'usps' => 'https://tools.usps.com/go/TrackConfirmAction?tLabels={number}',
             'dhl' => 'https://www.dhl.com/en/en/shipped.html?tracking_number={number}',
@@ -57,5 +57,20 @@ class Shipment extends Model
         }
 
         return null;
+    }
+
+    private function normalizeTrackingUrl(string $url): string
+    {
+        if (str_contains($url, 'tracking.fedex.com/track')) {
+            $query = [];
+            parse_str((string) parse_url($url, PHP_URL_QUERY), $query);
+            $trackingNumber = trim((string) ($query['tracknumbers'] ?? $query['trknbr'] ?? $this->tracking_number ?? ''));
+
+            if ($trackingNumber !== '') {
+                return 'https://www.fedex.com/fedextrack/?trknbr=' . rawurlencode($trackingNumber);
+            }
+        }
+
+        return $url;
     }
 }

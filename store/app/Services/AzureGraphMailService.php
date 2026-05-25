@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\AppSetting;
 use App\Models\Product;
+use App\Models\User;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -160,7 +161,7 @@ class AzureGraphMailService
         $safeName = e($user->name ?: 'there');
         $safeEmail = e($user->email);
         $safePassword = e($plainPassword);
-        $role = e($user->role === 'super_admin' ? 'Super Admin' : 'Admin');
+        $role = e('Admin');
         $loginUrl = e(rtrim(config('app.url'), '/') . '/admin/login');
         $appName = e(config('app.name', 'Armely Store'));
         $subject = "Your {$appName} Admin Account Invitation";
@@ -726,6 +727,50 @@ class AzureGraphMailService
         $text = "Hello {$safeName},\n\nYour order {$orderNumber} has been confirmed. Total: \${$amount}.\n{$appUrl}/orders/{$order->id}";
 
         return $this->sendEmail($customer->email, "Order Confirmed: {$orderNumber}", $html, $text);
+    }
+
+    public function sendOrderCreatedAdminEmails(\App\Models\Order $order): bool
+    {
+        if (!$this->isConfigured()) {
+            return false;
+        }
+
+        $customer    = $order->user;
+        $customerName = e($customer->name ?? 'Customer');
+        $orderNumber = e($order->order_number);
+        $amount      = number_format((float)($order->total_amount ?? 0), 2);
+        $itemCount   = is_countable($order->items ?? []) ? count($order->items ?? []) : 0;
+        $appUrl      = $this->frontendUrl();
+
+        $summaryHtml = $this->buildQuoteSummaryCard([
+            ['label' => 'Order Number', 'value' => $orderNumber],
+            ['label' => 'Customer',     'value' => $customerName],
+            ['label' => 'Items',        'value' => (string) $itemCount],
+            ['label' => 'Total',        'value' => '$' . $amount],
+        ]);
+
+        $html = $this->buildModernNotificationEmail(
+            'New Order Placed',
+            "
+                <p style='margin:0 0 14px;font-size:16px;color:#1f2937'>A new order has been confirmed on Armely Store.</p>
+                {$summaryHtml}
+            ",
+            'View Orders',
+            $appUrl . '/admin/orders',
+            'This notice was sent to all active admins.',
+            '#15803d',
+            'Order Placed',
+            '#15803d'
+        );
+
+        $text = "A new order has been confirmed.\n\nOrder: {$orderNumber}\nCustomer: {$customerName}\nItems: {$itemCount}\nTotal: \${$amount}\n{$appUrl}/admin/orders";
+        $sent = false;
+
+        foreach ($this->activeAdminEmails() as $adminEmail) {
+            $sent = $this->sendEmail($adminEmail, "New Order Placed: {$orderNumber}", $html, $text) || $sent;
+        }
+
+        return $sent;
     }
 
     public function sendOrderShippedEmail(\App\Models\Order $order): bool
@@ -1470,14 +1515,6 @@ class AzureGraphMailService
             return false;
         }
 
-        try {
-            $adminEmail = (string) AppSetting::getValue(
-                'price_sync.email',
-                config('mail.sync_status_email', env('SYNC_STATUS_EMAIL', 'malvine.owuor@armely.com'))
-            );
-        } catch (\Throwable) {
-            $adminEmail = config('mail.sync_status_email', env('SYNC_STATUS_EMAIL', 'malvine.owuor@armely.com'));
-        }
         $safeJob    = e($jobName);
         $safeStatus = e($status);
         $supportEmail = env('SUPPORT_EMAIL', 'info@armely.com');
@@ -1526,7 +1563,60 @@ class AzureGraphMailService
             }
         }
 
-        return $this->sendEmail($adminEmail, "Armely Sync: {$safeJob} {$badgeLabel}", $html, $text);
+        $sent = false;
+        foreach ($this->syncStatusEmails() as $adminEmail) {
+            $sent = $this->sendEmail($adminEmail, "Armely Sync: {$safeJob} {$badgeLabel}", $html, $text) || $sent;
+        }
+
+        return $sent;
+    }
+
+    private function activeAdminEmails(): array
+    {
+        try {
+            $admins = User::where('role', 'admin')
+                ->where('status', 'active')
+                ->orderBy('id')
+                ->pluck('email')
+                ->all();
+        } catch (\Throwable $e) {
+            Log::warning('Unable to load active admin email recipients: ' . $e->getMessage());
+            return [];
+        }
+
+        return $this->uniqueEmails($admins);
+    }
+
+    private function syncStatusEmails(): array
+    {
+        $emails = $this->activeAdminEmails();
+
+        try {
+            $emails[] = (string) AppSetting::getValue(
+                'price_sync.email',
+                config('mail.sync_status_email', env('SYNC_STATUS_EMAIL', 'malvine.owuor@armely.com'))
+            );
+        } catch (\Throwable) {
+            $emails[] = config('mail.sync_status_email', env('SYNC_STATUS_EMAIL', 'malvine.owuor@armely.com'));
+        }
+
+        return $this->uniqueEmails($emails);
+    }
+
+    private function uniqueEmails(array $emails): array
+    {
+        $unique = [];
+
+        foreach ($emails as $email) {
+            $normalized = $this->normalizeEmail((string) $email);
+            if ($normalized === '' || isset($unique[$normalized])) {
+                continue;
+            }
+
+            $unique[$normalized] = $normalized;
+        }
+
+        return array_values($unique);
     }
 
     private function isRecipientDeliveryFailure(int $status, string $body): bool

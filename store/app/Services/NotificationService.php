@@ -18,6 +18,14 @@ class NotificationService
         return filter_var((string) AppSetting::getValue($key, $default), FILTER_VALIDATE_BOOL);
     }
 
+    private function activeAdmins()
+    {
+        return User::where('role', 'admin')
+            ->where('status', 'active')
+            ->orderBy('id')
+            ->get();
+    }
+
     /**
      * Send quote created notification to admin
      */
@@ -29,12 +37,8 @@ class NotificationService
             }
 
             $requesterEmail = strtolower(trim((string) ($quote->user->email ?? '')));
-            $admins = User::where('role', 'admin')
-                ->where('status', 'active')
-                ->get();
-
             $sentAdminEmails = [];
-            foreach ($admins as $admin) {
+            foreach ($this->activeAdmins() as $admin) {
                 $adminEmail = strtolower(trim((string) $admin->email));
                 if ($adminEmail === '' || isset($sentAdminEmails[$adminEmail])) {
                     continue;
@@ -72,12 +76,8 @@ class NotificationService
             }
 
             $requesterEmail = strtolower(trim((string) ($quote->user->email ?? '')));
-            $admins = User::where('role', 'admin')
-                ->where('status', 'active')
-                ->get();
-
             $sentAdminEmails = [];
-            foreach ($admins as $admin) {
+            foreach ($this->activeAdmins() as $admin) {
                 $adminEmail = strtolower(trim((string) $admin->email));
                 if ($adminEmail === '' || isset($sentAdminEmails[$adminEmail])) {
                     continue;
@@ -143,6 +143,7 @@ class NotificationService
             }
 
             $this->mailer->sendOrderConfirmationEmail($order);
+            $this->mailer->sendOrderCreatedAdminEmails($order);
 
             Log::info("Order confirmation notification sent to user {$order->user_id}");
         } catch (\Exception $e) {

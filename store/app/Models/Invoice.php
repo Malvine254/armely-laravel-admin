@@ -7,6 +7,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Invoice extends Model
 {
+    protected $appends = [
+        'shipping_amount',
+    ];
+
     protected $fillable = [
         'user_id',
         'invoice_number',
@@ -61,5 +65,17 @@ class Invoice extends Model
     public function getRemainingAmount(): float
     {
         return max(0, floatval($this->total_amount - $this->paid_amount));
+    }
+
+    public function getShippingAmountAttribute(): float
+    {
+        $rawData = is_array($this->raw_data) ? $this->raw_data : [];
+        $breakdown = $rawData['invoice_charge_breakdown'] ?? [];
+
+        if (!is_array($breakdown)) {
+            return 0.0;
+        }
+
+        return round((float) ($breakdown['shipping_amount'] ?? 0), 2);
     }
 }

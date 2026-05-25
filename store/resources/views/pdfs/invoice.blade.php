@@ -251,6 +251,7 @@
             <tbody>
                 @php
                     $invoiceTax = (float) ($invoice->tax_amount ?? 0);
+                    $invoiceShipping = (float) ($invoice->shipping_amount ?? 0);
                     $preTaxSubtotal = collect($items)->sum(function ($item) {
                         return (float) ($item['line_total'] ?? 0);
                     });
@@ -298,6 +299,13 @@
             <div class="totals-row">
                 <div class="totals-label">Tax:</div>
                 <div class="totals-value">${{ number_format($invoice->tax_amount, 2) }}</div>
+            </div>
+            @endif
+
+            @if($invoiceShipping > 0)
+            <div class="totals-row">
+                <div class="totals-label">Shipping:</div>
+                <div class="totals-value">${{ number_format($invoiceShipping, 2) }}</div>
             </div>
             @endif
 

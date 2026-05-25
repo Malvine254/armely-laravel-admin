@@ -171,16 +171,21 @@
               </p>
             </div>
 
-            <button
-              v-if="shipment.tracking_url"
-              @click="openTracking(shipment.tracking_url)"
-              class="w-full px-3 py-2 text-xs font-semibold text-white rounded-md transition duration-200"
-              style="background-color: #2F5597;"
-              @mouseenter="$event.target.style.backgroundColor='#1f4788'"
-              @mouseleave="$event.target.style.backgroundColor='#2F5597'"
-            >
-              Open Carrier Tracking
-            </button>
+            <div v-if="shipment.tracking_url" class="mt-3 flex justify-start">
+              <button
+                @click="openTracking(shipment.tracking_url)"
+                class="inline-flex h-9 items-center gap-2 rounded-md border border-[#2F5597]/20 bg-[#2F5597] px-3 text-xs font-semibold text-white shadow-sm shadow-[#2F5597]/10 transition duration-200 hover:bg-[#24467f] focus:outline-none focus:ring-2 focus:ring-[#2F5597]/30"
+                aria-label="Open carrier tracking"
+              >
+                <span class="inline-flex h-4 w-4 items-center justify-center" aria-hidden="true">
+                  <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M11.5 3a.75.75 0 0 0 0 1.5h2.94l-7.47 7.47a.75.75 0 1 0 1.06 1.06l7.47-7.47V8.5a.75.75 0 0 0 1.5 0V3.75A.75.75 0 0 0 16.25 3H11.5Z" />
+                    <path d="M4.75 5A1.75 1.75 0 0 0 3 6.75v8.5C3 16.216 3.784 17 4.75 17h8.5A1.75 1.75 0 0 0 15 15.25v-3a.75.75 0 0 0-1.5 0v3a.25.25 0 0 1-.25.25h-8.5a.25.25 0 0 1-.25-.25v-8.5a.25.25 0 0 1 .25-.25h3a.75.75 0 0 0 0-1.5h-3Z" />
+                  </svg>
+                </span>
+                Track shipment
+              </button>
+            </div>
 
             <p v-if="shipment.last_updated_at" class="text-[11px] text-gray-500 mt-2">Updated {{ formatDate(shipment.last_updated_at) }}</p>
           </article>
@@ -904,11 +909,31 @@ export default {
       return dots[status] || '#6b7280';
     };
 
+    const normalizeTrackingUrl = (trackingUrl) => {
+      const rawUrl = String(trackingUrl || '').trim();
+      if (!rawUrl) return '';
+
+      try {
+        const url = new URL(rawUrl);
+        if (url.hostname === 'tracking.fedex.com' && url.pathname === '/track') {
+          const trackingNumber = url.searchParams.get('tracknumbers') || url.searchParams.get('trknbr');
+          if (trackingNumber) {
+            return `https://www.fedex.com/fedextrack/?trknbr=${encodeURIComponent(trackingNumber)}`;
+          }
+        }
+      } catch (_) {
+        return rawUrl;
+      }
+
+      return rawUrl;
+    };
+
     const openTracking = (trackingUrl) => {
-      if (!trackingUrl) {
+      const normalizedTrackingUrl = normalizeTrackingUrl(trackingUrl);
+      if (!normalizedTrackingUrl) {
         return;
       }
-      window.open(trackingUrl, '_blank', 'noopener,noreferrer');
+      window.open(normalizedTrackingUrl, '_blank', 'noopener,noreferrer');
     };
 
     const hasPayableInvoice = (order) => {

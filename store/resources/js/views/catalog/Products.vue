@@ -4,20 +4,20 @@
     <Navbar />
 
     <!-- Main Content -->
-    <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-5 py-8">
+    <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-5 py-5 sm:py-8">
       <!-- Page Title -->
-      <div class="mb-8">
-        <h1 class="text-4xl font-bold text-gray-900 mb-2">B2B Procurements</h1>
-        <p class="text-gray-600 text-lg">Browse our complete catalog of enterprise solutions</p>
+      <div class="mb-5 sm:mb-8">
+        <h1 class="text-3xl font-bold leading-tight text-gray-900 sm:text-4xl">B2B Procurements</h1>
+        <p class="mt-2 text-base text-gray-600 sm:text-lg">Browse our complete catalog of enterprise solutions</p>
       </div>
 
       <!-- Search Bar -->
-      <div class="sticky top-20 z-40 -mx-3 mb-8 px-3 sm:-mx-4 sm:px-4 lg:-mx-5 lg:px-5">
-        <div class="rounded-2xl border border-slate-200/80 bg-white/95 p-4 shadow-lg shadow-slate-200/60 backdrop-blur-sm sm:p-5">
-          <div class="flex flex-col lg:flex-row gap-4">
-            <div class="flex-1">
+      <div class="sticky top-20 z-40 -mx-3 mb-6 px-3 sm:-mx-4 sm:mb-8 sm:px-4 lg:-mx-5 lg:px-5">
+        <div class="rounded-xl border border-slate-200/80 bg-white/95 p-2.5 shadow-md shadow-slate-200/60 backdrop-blur-sm sm:p-3">
+          <div class="flex items-stretch gap-2">
+            <div class="min-w-0 flex-1">
               <div class="relative">
-                <svg class="absolute left-3 top-3 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                 </svg>
                 <input
@@ -31,12 +31,24 @@
                   @keydown.enter.prevent="handleSearchEnter"
                   type="text"
                   placeholder="Search products..."
-                  class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent transition"
+                  class="h-12 w-full rounded-lg border border-slate-300 bg-white pl-11 pr-10 text-base text-slate-900 shadow-sm transition placeholder:text-slate-400 focus:border-transparent focus:outline-none focus:ring-2"
+                  style="--tw-ring-color: #2F5597;"
                 >
+                <button
+                  v-if="searchQuery"
+                  @click="clearSearch"
+                  type="button"
+                  class="absolute right-2 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                  aria-label="Clear search"
+                >
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18 18 6M6 6l12 12"></path>
+                  </svg>
+                </button>
 
                 <div
                   v-if="showSearchSuggestions && searchSuggestionItems.length > 0"
-                  class="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden"
+                  class="absolute z-20 mt-1 w-full overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg"
                 >
                   <button
                     v-for="(item, index) in searchSuggestionItems"
@@ -53,14 +65,14 @@
               </div>
             </div>
             <button
-              v-if="searchQuery"
-              @click="clearSearch"
-              class="px-6 py-3 bg-gray-100 text-gray-700 font-semibold rounded-lg border border-gray-300 hover:bg-gray-200 transition"
+              @click="performSearch"
+              class="inline-flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg text-white shadow-sm shadow-[#2F5597]/20 transition hover:bg-[#24467f] focus:outline-none focus:ring-2 focus:ring-[#2F5597]/30"
+              style="background-color: #2F5597;"
+              aria-label="Search products"
             >
-              Clear Search
-            </button>
-            <button @click="performSearch" class="px-6 py-3 text-white font-semibold rounded-lg transition" style="background-color: #2F5597;" @mouseenter="$event.target.style.backgroundColor='#1f4788'" @mouseleave="$event.target.style.backgroundColor='#2F5597'">
-              Search
+              <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+              </svg>
             </button>
           </div>
         </div>
