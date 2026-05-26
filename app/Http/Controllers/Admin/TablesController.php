@@ -47,6 +47,10 @@ class TablesController extends Controller
         $customerStoriesTable = $this->tableExists('customer_stories') ? 'customer_stories' : ($this->tableExists('customer_story') ? 'customer_story' : null);
         $customerStories = $customerStoriesTable ? DB::table($customerStoriesTable)->orderBy('id', 'desc')->limit(50)->get() : collect();
 
+        $caseStudies = $this->tableExists('industry_listings')
+            ? DB::table('industry_listings')->orderBy('id', 'desc')->limit(50)->get()
+            : collect();
+
         $eventsTable = $this->tableExists('events') ? 'events' : ($this->tableExists('event') ? 'event' : null);
         $events = $eventsTable ? DB::table($eventsTable)->orderBy('id', 'desc')->limit(50)->get() : collect();
 
@@ -65,7 +69,7 @@ class TablesController extends Controller
                 ->values()
             : collect();
 
-        return view('admin.tables', compact('blogs', 'videos', 'careers', 'socialImpact', 'customerStories', 'events', 'team', 'contacts', 'adminAuthors'));
+        return view('admin.tables', compact('blogs', 'videos', 'careers', 'socialImpact', 'customerStories', 'caseStudies', 'events', 'team', 'contacts', 'adminAuthors'));
     }
     
     // ========== LIST ENDPOINTS FOR AJAX TABLE RELOAD ==========
@@ -187,6 +191,19 @@ class TablesController extends Controller
         $table = $this->tableExists('customer_stories') ? 'customer_stories' : 'customer_story';
         $stories = DB::table($table)->orderBy('id', 'desc')->limit($limit)->get();
         return response()->json(['success' => true, 'data' => $stories, 'limit' => $limit]);
+    }
+
+    public function listCaseStudies(Request $request)
+    {
+        $limit = (int) $request->query('limit', 50);
+        $limit = max(1, min($limit, 500));
+
+        if (!$this->tableExists('industry_listings')) {
+            return response()->json(['success' => true, 'data' => [], 'limit' => $limit]);
+        }
+
+        $caseStudies = DB::table('industry_listings')->orderBy('id', 'desc')->limit($limit)->get();
+        return response()->json(['success' => true, 'data' => $caseStudies, 'limit' => $limit]);
     }
     
     public function listEvents(Request $request)
@@ -656,6 +673,66 @@ class TablesController extends Controller
         DB::table($table)->where('id', $id)->delete();
         ActivityLogger::log('delete', 'CustomerStory', $id, 'Deleted customer story #' . $id);
         return response()->json(['success' => true, 'message' => 'Customer Story deleted successfully']);
+    }
+
+    public function storeOrUpdateCaseStudy(Request $request)
+    {
+        if (!$this->tableExists('industry_listings')) {
+            return response()->json(['success' => false, 'message' => 'Case studies table is not available.'], 422);
+        }
+
+        $validated = $request->validate([
+            'id' => ['nullable', 'integer'],
+            'category' => ['required', 'string', 'max:255'],
+            'body' => ['nullable', 'string'],
+            'listing_image' => ['nullable', 'image', 'max:5120'],
+            'pdf' => ['nullable', 'mimes:pdf', 'max:20480'],
+            'pdf_url' => ['nullable', 'string', 'max:2048'],
+        ]);
+
+        $data = [
+            'category' => $validated['category'],
+            'body' => $validated['body'] ?? '',
+        ];
+
+        if ($request->hasFile('listing_image')) {
+            $image = $request->file('listing_image');
+            $filename = time() . '_' . Str::slug(pathinfo($image->getClientOriginalName(), PATHINFO_FILENAME)) . '.' . $image->getClientOriginalExtension();
+            $image->move(public_path('images/case-study'), $filename);
+            $data['listing_image'] = $filename;
+        }
+
+        if ($request->hasFile('pdf')) {
+            $pdf = $request->file('pdf');
+            $filename = time() . '_' . Str::slug(pathinfo($pdf->getClientOriginalName(), PATHINFO_FILENAME)) . '.pdf';
+            $pdf->move(public_path('case_docs'), $filename);
+            $data['pdf_url'] = $filename;
+        } elseif ($request->filled('pdf_url')) {
+            $data['pdf_url'] = trim((string) $validated['pdf_url']);
+        }
+
+        if ($request->has('id') && $request->id) {
+            DB::table('industry_listings')->where('id', $request->id)->update($data);
+            $caseStudy = DB::table('industry_listings')->where('id', $request->id)->first();
+            ActivityLogger::log('update', 'CaseStudy', $request->id, 'Updated case study ' . ($caseStudy->category ?? ''));
+            return response()->json(['success' => true, 'message' => 'Case study updated successfully', 'data' => $caseStudy]);
+        }
+
+        $id = DB::table('industry_listings')->insertGetId($data);
+        $caseStudy = DB::table('industry_listings')->where('id', $id)->first();
+        ActivityLogger::log('create', 'CaseStudy', $id, 'Created case study ' . ($caseStudy->category ?? ''));
+        return response()->json(['success' => true, 'message' => 'Case study created successfully', 'data' => $caseStudy]);
+    }
+
+    public function deleteCaseStudy($id)
+    {
+        if (!$this->tableExists('industry_listings')) {
+            return response()->json(['success' => false, 'message' => 'Case studies table is not available.'], 422);
+        }
+
+        DB::table('industry_listings')->where('id', $id)->delete();
+        ActivityLogger::log('delete', 'CaseStudy', $id, 'Deleted case study #' . $id);
+        return response()->json(['success' => true, 'message' => 'Case study deleted successfully']);
     }
     
     // Image Upload Handler (for CKEditor)
@@ -1208,4 +1285,3 @@ class TablesController extends Controller
         return response()->json(['success' => true, 'message' => 'Contact deleted successfully']);
     }
 }
-

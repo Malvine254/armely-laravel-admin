@@ -62,15 +62,24 @@
         font-weight: 600;
     }
     
+    .reports-page {
+        color: #1f2937;
+        font-size: 0.94rem;
+    }
+    .reports-page .mr-1 { margin-right: 0.25rem !important; }
+    .reports-page .mr-2 { margin-right: 0.5rem !important; }
+    .reports-page .mr-3 { margin-right: 0.75rem !important; }
+    .reports-page .text-right { text-align: right !important; }
+    .reports-page .rounded-4 { border-radius: 14px !important; }
     .report-hero {
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-        border-radius: 15px;
-        padding: 40px;
+        background: linear-gradient(135deg, #244a86 0%, #17345f 100%);
+        border-radius: 14px;
+        padding: 28px;
         color: white;
-        margin-bottom: 30px;
+        margin-bottom: 24px;
         position: relative;
         overflow: hidden;
-        box-shadow: 0 10px 30px rgba(30, 60, 114, 0.2);
+        box-shadow: 0 12px 28px rgba(30, 60, 114, 0.18);
     }
     .report-hero::after {
         content: '';
@@ -82,25 +91,37 @@
         background: rgba(255, 255, 255, 0.05);
         border-radius: 50%;
     }
+    .report-hero h5 {
+        font-size: 0.72rem;
+        letter-spacing: 0.08em;
+        font-weight: 700;
+    }
+    .report-hero h1 {
+        font-size: clamp(1.45rem, 2.3vw, 2.05rem);
+        line-height: 1.15;
+        letter-spacing: 0;
+    }
+    .report-hero p {
+        font-size: 0.95rem;
+    }
     .kpi-card {
         border-radius: 12px;
         overflow: hidden;
         border: none;
         box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-        transition: all 0.3s ease;
+        transition: box-shadow 0.2s ease, border-color 0.2s ease;
     }
     .kpi-card:hover {
-        transform: translateY(-5px);
         box-shadow: 0 8px 25px rgba(0,0,0,0.1);
     }
     .kpi-icon {
-        width: 48px;
-        height: 48px;
+        width: 40px;
+        height: 40px;
         border-radius: 10px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.5rem;
+        font-size: 1rem;
     }
     .bg-soft-primary { background: #eef2ff !important; color: #2f5597 !important; }
     .bg-soft-info { background: #e0f2fe !important; color: #0891b2 !important; }
@@ -108,9 +129,9 @@
     .bg-soft-warning { background: #fffbeb !important; color: #d97706 !important; }
     
     .chart-container {
-        padding: 20px;
+        padding: 16px;
         background: white;
-        border-radius: 15px;
+        border-radius: 12px;
     }
     .activity-feed-item {
         border-left: 2px solid #eef2ff;
@@ -134,11 +155,67 @@
     }
     .btn-export {
         border-radius: 8px;
-        padding: 8px 16px;
+        padding: 7px 13px;
         font-weight: 600;
         display: inline-flex;
         align-items: center;
-        gap: 8px;
+        gap: 6px;
+        font-size: 0.88rem;
+    }
+    .reports-page .card-body {
+        padding: 1.25rem !important;
+    }
+    .reports-page .card-header {
+        padding: 1.1rem 1.25rem !important;
+    }
+    .reports-page h2 {
+        font-size: 1.55rem;
+        line-height: 1.15;
+    }
+    .reports-page h5 {
+        font-size: 1rem;
+        line-height: 1.25;
+    }
+    .reports-page h6 {
+        font-size: 0.86rem;
+    }
+    .reports-page .badge {
+        font-size: 0.74rem;
+        padding: 0.35rem 0.55rem;
+    }
+    .reports-page .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.38rem;
+        font-size: 0.9rem;
+    }
+    .reports-page .table th {
+        font-size: 0.72rem;
+        letter-spacing: 0.04em;
+    }
+    .reports-page .table td {
+        font-size: 0.88rem;
+    }
+    .reports-page .decorative-report-icon {
+        bottom: -14px !important;
+        right: -6px !important;
+        font-size: 86px !important;
+        opacity: 0.08 !important;
+    }
+    .reports-page .empty-state-icon {
+        font-size: 2rem !important;
+    }
+    @media (max-width: 768px) {
+        .report-hero {
+            padding: 22px 18px;
+        }
+        .reports-page .card-body {
+            padding: 1rem !important;
+        }
+        .reports-page h2 {
+            font-size: 1.35rem;
+        }
     }
     .indicator-pulse {
         width: 8px;
@@ -159,6 +236,7 @@
 @endpush
 
 @section('content')
+<div class="reports-page">
 <div class="report-hero shadow">
     <div class="row align-items-center">
         <div class="col-md-7">
@@ -343,7 +421,7 @@
                         <tr>
                             <td colspan="5" class="text-center py-5">
                                 <div class="opacity-25 mb-3">
-                                    <i class="fas fa-database fa-4x text-muted"></i>
+                                    <i class="fas fa-database fa-4x text-muted empty-state-icon"></i>
                                 </div>
                                 <h6 class="text-muted">No activity data available in the selected range.</h6>
                             </td>
@@ -366,7 +444,7 @@
                     <button class="btn btn-outline-light rounded-pill px-4 btn-sm font-weight-bold">View History</button>
                 </div>
             </div>
-            <i class="fas fa-microchip position-absolute" style="bottom: -20px; right: -10px; font-size: 150px; opacity: 0.1; transform: rotate(-15deg);"></i>
+            <i class="fas fa-microchip position-absolute decorative-report-icon" style="bottom: -20px; right: -10px; font-size: 150px; opacity: 0.1; transform: rotate(-15deg);"></i>
         </div>
     </div>
     <div class="col-md-6 mb-4">
@@ -402,6 +480,7 @@
             </div>
         </div>
     </div>
+</div>
 </div>
 
 @endsection

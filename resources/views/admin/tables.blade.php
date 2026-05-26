@@ -31,6 +31,22 @@
 
     .page-title {
         flex: 0 0 auto;
+        margin-bottom: 0.85rem;
+    }
+
+    .page-title h1 {
+        font-size: clamp(1.35rem, 2vw, 1.75rem);
+        line-height: 1.15;
+        letter-spacing: 0;
+        color: #1f3f80;
+        margin-bottom: 0.3rem;
+        font-weight: 700;
+    }
+
+    .page-title p {
+        font-size: 0.9rem;
+        color: #667085;
+        margin-bottom: 0;
     }
 
     .content-preview {
@@ -529,6 +545,11 @@
                 </a>
             </li>
             <li class="nav-item">
+                <a class="nav-link" id="case-studies-tab" data-bs-toggle="tab" href="#case-studies" role="tab">
+                    <i class="fas fa-file-alt"></i> Case Studies
+                </a>
+            </li>
+            <li class="nav-item">
                 <a class="nav-link" id="events-tab" data-bs-toggle="tab" href="#events" role="tab">
                     <i class="fas fa-calendar-alt"></i> Events
                 </a>
@@ -762,6 +783,67 @@
                 @else
                     <p class="text-muted"><i class="fas fa-info-circle"></i> No customer stories yet. Add one!</p>
                 @endif
+            </div>
+        </div>
+
+        <!-- Case Studies Tab -->
+        <div class="tab-pane fade" id="case-studies" role="tabpanel">
+            <div class="card-body">
+                <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#caseStudyModal" onclick="resetCaseStudyForm()">
+                    <i class="fas fa-plus"></i> Add New Case Study
+                </button>
+
+                <div class="table-responsive">
+                    <table class="table table-hover" id="caseStudiesDataTable">
+                        <thead>
+                            <tr>
+                                <th>Category</th>
+                                <th>Image</th>
+                                <th>PDF</th>
+                                <th>Summary</th>
+                                <th width="200">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="caseStudiesTable">
+                            @forelse(($caseStudies ?? collect()) as $caseStudy)
+                            <tr data-id="{{ $caseStudy->id }}">
+                                <td>{{ $caseStudy->category ?? 'N/A' }}</td>
+                                <td>
+                                    @if(!empty($caseStudy->listing_image))
+                                        <img src="{{ asset('images/case-study/' . $caseStudy->listing_image) }}" alt="{{ $caseStudy->category ?? 'Case Study' }}" style="width: 48px; height: 36px; object-fit: cover; border-radius: 6px;">
+                                    @else
+                                        <span class="text-muted">N/A</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if(!empty($caseStudy->pdf_url))
+                                        @php($casePdfUrl = str_starts_with($caseStudy->pdf_url, 'http') ? $caseStudy->pdf_url : url('case_docs/' . $caseStudy->pdf_url))
+                                        <a href="{{ $casePdfUrl }}" target="_blank" class="btn btn-sm btn-outline-primary" title="Preview PDF"><i class="fas fa-file-pdf"></i></a>
+                                    @else
+                                        <span class="text-muted">N/A</span>
+                                    @endif
+                                </td>
+                                <td>{{ \Illuminate\Support\Str::limit(strip_tags($caseStudy->body ?? ''), 90) }}</td>
+                                <td>
+                                    <div class="action-btns">
+                                        <button class="btn btn-sm btn-info view-case-study" data-case-study='@json($caseStudy)' title="View">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-warning edit-case-study" data-case-study='@json($caseStudy)' title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-danger delete-case-study" data-id="{{ $caseStudy->id }}" title="Delete">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            @empty
+                            <tr><td colspan="5" class="text-center text-muted">No case studies yet. Add one!</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
@@ -1095,6 +1177,83 @@
                 </button>
                 <button type="button" class="btn btn-primary" id="saveBlogBtn">
                     <i class="fas fa-save me-2"></i>Save Blog
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Case Study View Modal -->
+<div class="modal fade" id="viewCaseStudyModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">View Case Study</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <h4 id="viewCaseStudyCategory"></h4>
+                <p class="text-muted mb-3">
+                    <a id="viewCaseStudyPdf" href="#" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary d-none">
+                        <i class="fas fa-file-pdf me-1"></i> Preview PDF
+                    </a>
+                </p>
+                <div id="viewCaseStudyImageWrap" class="mb-3 d-none">
+                    <img id="viewCaseStudyImage" src="" alt="" class="img-fluid rounded border" style="max-height: 220px; object-fit: cover;">
+                </div>
+                <hr>
+                <div id="viewCaseStudyBody"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Case Study Edit/Add Modal -->
+<div class="modal fade" id="caseStudyModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="caseStudyModalTitle">Add New Case Study</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="caseStudyForm" enctype="multipart/form-data">
+                    @csrf
+                    <input type="hidden" id="caseStudyId" name="id">
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="caseStudyCategory" class="form-label">Category / Title *</label>
+                            <input type="text" class="form-control" id="caseStudyCategory" name="category" required placeholder="e.g. Healthcare Cloud Migration">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="caseStudyPdfUrl" class="form-label">Existing PDF Filename or URL</label>
+                            <input type="text" class="form-control" id="caseStudyPdfUrl" name="pdf_url" placeholder="case-study.pdf or https://...">
+                            <small class="text-muted">Upload a new PDF below to replace this value.</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="caseStudyImage" class="form-label">Listing Image</label>
+                            <input type="file" class="form-control" id="caseStudyImage" name="listing_image" accept="image/*">
+                            <small class="text-muted">Saved to public/images/case-study.</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="caseStudyPdf" class="form-label">PDF</label>
+                            <input type="file" class="form-control" id="caseStudyPdf" name="pdf" accept="application/pdf,.pdf">
+                            <small class="text-muted">Saved to public/case_docs.</small>
+                        </div>
+                        <div class="col-12">
+                            <label for="caseStudyBody" class="form-label">Summary / Body</label>
+                            <textarea class="form-control" id="caseStudyBody" name="body" rows="12"></textarea>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Cancel
+                </button>
+                <button type="button" class="btn btn-primary" id="saveCaseStudyBtn">
+                    <i class="fas fa-save me-2"></i>Save Case Study
                 </button>
             </div>
         </div>
@@ -1766,6 +1925,75 @@ $(document).ready(function() {
             }
         });
     }
+
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function stripTags(value) {
+        return String(value ?? '').replace(/<[^>]*>/g, '');
+    }
+
+    function caseStudyPdfUrl(pdfValue) {
+        const value = String(pdfValue || '').trim();
+        if (!value) return '';
+        if (/^https?:\/\//i.test(value)) return value;
+        return `{{ url('case_docs') }}/${encodeURIComponent(value)}`;
+    }
+
+    function caseStudyImageUrl(imageValue) {
+        const value = String(imageValue || '').trim();
+        if (!value) return '';
+        if (/^https?:\/\//i.test(value)) return value;
+        return `{{ asset('images/case-study') }}/${encodeURIComponent(value)}`;
+    }
+
+    function reloadCaseStudiesTable() {
+        $.ajax({
+            url: '/admin/tables/case-studies/list',
+            type: 'GET',
+            success: function(response) {
+                const tbody = $('#caseStudiesTable');
+                tbody.empty();
+
+                if (response.data && Array.isArray(response.data) && response.data.length > 0) {
+                    response.data.forEach(function(item) {
+                        const imageHtml = item.listing_image
+                            ? `<img src="${caseStudyImageUrl(item.listing_image)}" alt="${escapeHtml(item.category || 'Case Study')}" style="width:48px;height:36px;object-fit:cover;border-radius:6px;">`
+                            : '<span class="text-muted">N/A</span>';
+                        const pdfUrl = caseStudyPdfUrl(item.pdf_url);
+                        const pdfHtml = pdfUrl
+                            ? `<a href="${pdfUrl}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary" title="Preview PDF"><i class="fas fa-file-pdf"></i></a>`
+                            : '<span class="text-muted">N/A</span>';
+                        const btns = `
+                            <div class="action-btns">
+                                <button class="btn btn-sm btn-info view-case-study" data-case-study='${JSON.stringify(item).replace(/'/g, "&apos;")}' title="View"><i class="fas fa-eye"></i></button>
+                                <button class="btn btn-sm btn-warning edit-case-study" data-case-study='${JSON.stringify(item).replace(/'/g, "&apos;")}' title="Edit"><i class="fas fa-edit"></i></button>
+                                <button class="btn btn-sm btn-danger delete-case-study" data-id="${item.id}" title="Delete"><i class="fas fa-trash"></i></button>
+                            </div>`;
+                        const summary = stripTags(item.body || '').slice(0, 90);
+                        tbody.append(`<tr data-id="${item.id}">
+                            <td>${escapeHtml(item.category || 'N/A')}</td>
+                            <td>${imageHtml}</td>
+                            <td>${pdfHtml}</td>
+                            <td>${escapeHtml(summary)}${summary.length >= 90 ? '...' : ''}</td>
+                            <td>${btns}</td>
+                        </tr>`);
+                    });
+                } else {
+                    tbody.html('<tr><td colspan="5" class="text-center text-muted">No case studies yet. Add one!</td></tr>');
+                }
+            },
+            error: function(xhr) {
+                console.error('Error reloading case studies table:', xhr);
+            }
+        });
+    }
     
     // Reload events table
     function reloadEventsTable() {
@@ -2377,6 +2605,125 @@ $(document).ready(function() {
             }
         });
     });
+
+    // === CASE STUDY HANDLERS ===
+    let caseStudyEditor;
+
+    window.resetCaseStudyForm = function() {
+        $('#caseStudyModalTitle').text('Add New Case Study');
+        $('#caseStudyForm')[0].reset();
+        $('#caseStudyId').val('');
+        if (caseStudyEditor) {
+            caseStudyEditor.setData('');
+        }
+    };
+
+    $('[data-bs-target="#caseStudyModal"]').click(function() {
+        if (!caseStudyEditor) {
+            caseStudyEditor = CKEDITOR.replace('caseStudyBody');
+        }
+    });
+
+    $(document).on('click', '.view-case-study', function() {
+        const item = $(this).data('case-study');
+        $('#viewCaseStudyCategory').text(item.category || 'Case Study');
+        $('#viewCaseStudyBody').html(item.body || '');
+
+        const imageUrl = caseStudyImageUrl(item.listing_image);
+        if (imageUrl) {
+            $('#viewCaseStudyImage').attr('src', imageUrl).attr('alt', item.category || 'Case Study');
+            $('#viewCaseStudyImageWrap').removeClass('d-none');
+        } else {
+            $('#viewCaseStudyImageWrap').addClass('d-none');
+        }
+
+        const pdfUrl = caseStudyPdfUrl(item.pdf_url);
+        if (pdfUrl) {
+            $('#viewCaseStudyPdf').attr('href', pdfUrl).removeClass('d-none');
+        } else {
+            $('#viewCaseStudyPdf').addClass('d-none');
+        }
+
+        $('#viewCaseStudyModal').modal('show');
+    });
+
+    $(document).on('click', '.edit-case-study', function() {
+        const item = $(this).data('case-study');
+        $('#caseStudyModalTitle').text('Edit Case Study');
+        $('#caseStudyId').val(item.id || '');
+        $('#caseStudyCategory').val(item.category || '');
+        $('#caseStudyPdfUrl').val(item.pdf_url || '');
+
+        if (!caseStudyEditor) {
+            caseStudyEditor = CKEDITOR.replace('caseStudyBody');
+        }
+        caseStudyEditor.setData(item.body || '');
+
+        $('#caseStudyModal').modal('show');
+    });
+
+    $('#saveCaseStudyBtn').click(function() {
+        const id = $('#caseStudyId').val();
+        const isEdit = id !== '';
+        const formData = new FormData();
+
+        formData.append('_token', '{{ csrf_token() }}');
+        if (isEdit) {
+            formData.append('_method', 'PUT');
+            formData.append('id', id);
+        }
+        formData.append('category', $('#caseStudyCategory').val());
+        formData.append('pdf_url', $('#caseStudyPdfUrl').val());
+        formData.append('body', caseStudyEditor ? caseStudyEditor.getData() : $('#caseStudyBody').val());
+
+        const imageFile = $('#caseStudyImage')[0].files[0];
+        if (imageFile) {
+            formData.append('listing_image', imageFile);
+        }
+
+        const pdfFile = $('#caseStudyPdf')[0].files[0];
+        if (pdfFile) {
+            formData.append('pdf', pdfFile);
+        }
+
+        $.ajax({
+            url: isEdit ? `/admin/tables/case-studies/${id}` : '/admin/tables/case-studies',
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                $('#caseStudyModal').modal('hide');
+                reloadCaseStudiesTable();
+                alert(response.message || 'Case study saved successfully!');
+            },
+            error: function(xhr) {
+                alert('Error saving case study: ' + (xhr.responseJSON?.message || 'Unknown error'));
+            }
+        });
+    });
+
+    $(document).on('click', '.delete-case-study', function() {
+        const id = $(this).data('id');
+        if (!confirm('Are you sure you want to delete this case study?')) {
+            return;
+        }
+
+        $.ajax({
+            url: `/admin/tables/case-studies/${id}`,
+            type: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            success: function() {
+                reloadCaseStudiesTable();
+                alert('Case study deleted successfully!');
+            },
+            error: function(xhr) {
+                alert('Error deleting case study: ' + (xhr.responseJSON?.message || 'Unknown error'));
+            }
+        });
+    });
     
     // ==================== EVENT HANDLERS ====================
     
@@ -2944,6 +3291,7 @@ $(document).ready(function() {
             { id: '#careersDataTable', pageLength: 10 },
             { id: '#socialDataTable', pageLength: 10 },
             { id: '#storiesDataTable', pageLength: 10 },
+            { id: '#caseStudiesDataTable', pageLength: 10 },
             { id: '#eventsDataTable', pageLength: 10 },
             { id: '#teamDataTable', pageLength: 10 }
             // Skip blogsDataTable - initialized separately for Server-Side
@@ -3015,7 +3363,7 @@ $(document).ready(function() {
         reloadBlogsTable();
     });
 
-    $('#videos-tab, #careers-tab, #social-tab, #stories-tab, #events-tab, #team-tab').on('click', function() {
+    $('#videos-tab, #careers-tab, #social-tab, #stories-tab, #case-studies-tab, #events-tab, #team-tab').on('click', function() {
         setTimeout(function() {
             initializeDataTables();
         }, 100);
