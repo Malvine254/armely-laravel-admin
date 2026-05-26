@@ -695,6 +695,10 @@ class TablesController extends Controller
             'body' => $validated['body'] ?? '',
         ];
 
+        if ($this->columnExists('industry_listings', 'title')) {
+            $data['title'] = $validated['category'];
+        }
+
         if ($request->hasFile('listing_image')) {
             $image = $request->file('listing_image');
             $filename = time() . '_' . Str::slug(pathinfo($image->getClientOriginalName(), PATHINFO_FILENAME)) . '.' . $image->getClientOriginalExtension();
