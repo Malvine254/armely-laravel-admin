@@ -892,6 +892,16 @@ class TablesController extends Controller
             return response()->json(['success' => true, 'message' => 'White paper updated successfully', 'data' => $whitePaper]);
         }
 
+        // Some production schemas have NOT NULL `images`/`pdf` columns without defaults.
+        // Ensure inserts always provide those fields even when upload is omitted.
+        if ($imageColumn && !array_key_exists($imageColumn, $data)) {
+            $data[$imageColumn] = '';
+        }
+
+        if ($pdfColumn && !array_key_exists($pdfColumn, $data)) {
+            $data[$pdfColumn] = '';
+        }
+
         $id = DB::table('white_paper')->insertGetId($data);
         $whitePaper = DB::table('white_paper')->where('id', $id)->first();
 
