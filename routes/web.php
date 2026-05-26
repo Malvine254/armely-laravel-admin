@@ -250,6 +250,11 @@ Route::prefix('admin')->middleware(['admin'])->group(function () {
     Route::post('/tables/case-studies', [TablesController::class, 'storeOrUpdateCaseStudy'])->name('admin.tables.case-studies.store');
     Route::put('/tables/case-studies/{id}', [TablesController::class, 'storeOrUpdateCaseStudy'])->name('admin.tables.case-studies.update');
     Route::delete('/tables/case-studies/{id}', [TablesController::class, 'deleteCaseStudy'])->name('admin.tables.case-studies.delete');
+
+    // White Papers
+    Route::post('/tables/white-papers', [TablesController::class, 'storeOrUpdateWhitePaper'])->name('admin.tables.white-papers.store');
+    Route::put('/tables/white-papers/{id}', [TablesController::class, 'storeOrUpdateWhitePaper'])->name('admin.tables.white-papers.update');
+    Route::delete('/tables/white-papers/{id}', [TablesController::class, 'deleteWhitePaper'])->name('admin.tables.white-papers.delete');
     
     // Events
     Route::post('/tables/events', [TablesController::class, 'storeOrUpdateEvent'])->name('admin.tables.events.store');

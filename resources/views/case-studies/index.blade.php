@@ -217,27 +217,29 @@
 		@forelse($caseStudies as $caseStudy)
 			@php($caseStudyTitle = trim((string) ($caseStudy->title ?? '')))
 			@php($caseStudyDisplayTitle = $caseStudyTitle !== '' ? $caseStudyTitle : (string) ($caseStudy->category ?? 'Case Study'))
+			@php($caseStudyFullTitle = trim($caseStudyDisplayTitle . ' Solution'))
+			@php($caseStudyPlainPreview = trim(preg_replace('/\s+/', ' ', strip_tags((string) ($caseStudy->preview ?? '')))))
 			<div class="col-md-4 mb-4">
 				<div class="case-study-card">
 					<div class="card-image-wrapper">
 						@if($caseStudy->listing_image && file_exists(public_path('images/case-study/' . $caseStudy->listing_image)))
-							<img src="{{ asset('images/case-study/' . $caseStudy->listing_image) }}" class="card-image lazy-img" alt="{{ $caseStudy->category }}">
+							<img src="{{ asset('images/case-study/' . $caseStudy->listing_image) }}" class="card-image lazy-img" alt="{{ $caseStudyFullTitle }}">
 						@else
-							<div style="width: 100%; height: 100%; background: linear-gradient(135deg, #2f5597 0%, #1e3a6d 100%); display: flex; align-items: center; justify-content: center;">
-								<i class="icofont-briefcase" style="font-size: 4rem; color: rgba(255,255,255,0.3);"></i>
+							<div class="case-study-default-image" aria-hidden="true">
+								<i class="icofont-briefcase"></i>
 							</div>
 						@endif
 						<div class="card-overlay"></div>
 						<div class="card-badge">{{ $caseStudy->category }}</div>
 					</div>
 					<div class="card-content">
-						<h5 class="card-title">{{ $caseStudyDisplayTitle }} Solution</h5>
-						<p class="card-description">{{ $caseStudy->preview ?? '' }}</p>
+						<h5 class="card-title" title="{{ $caseStudyFullTitle }}">{{ $caseStudyFullTitle }}</h5>
+						<p class="card-description" title="{{ $caseStudyPlainPreview }}">{{ $caseStudy->preview ?? '' }}</p>
 						<div class="card-footer">
 							<a class="read-more-btn text-light case-study-gated-link"
 							   href="#"
 							   data-case-study-id="{{ $caseStudy->id }}"
-							   data-resource-title="{{ $caseStudyDisplayTitle }} Solution">
+							   data-resource-title="{{ $caseStudyFullTitle }}">
 								Request Download Link <i class="fa fa-envelope"></i>
 							</a>
 						</div>
@@ -405,14 +407,16 @@
 <div class="container">
 	<div class="row">
 		@forelse($whitePapers as $paper)
+			@php($whitePaperFullTitle = trim((string) ($paper->title ?? 'White Paper')))
+			@php($whitePaperPlainPreview = trim(preg_replace('/\s+/', ' ', strip_tags((string) ($paper->preview ?? '')))))
 			<div class="col-md-4 mb-4">
 				<div class="white-paper-card">
 					<div class="card-image-wrapper">
 						@if($paper->images && file_exists(public_path('images/white-papers/' . $paper->images)))
-							<img src="{{ asset('images/white-papers/' . $paper->images) }}" class="card-image lazy-img" alt="{{ $paper->title }}">
+							<img src="{{ asset('images/white-papers/' . $paper->images) }}" class="card-image lazy-img" alt="{{ $whitePaperFullTitle }}">
 						@else
-							<div style="width: 100%; height: 100%; background: linear-gradient(135deg, #2f5597 0%, #1e3a6d 100%); display: flex; align-items: center; justify-content: center;">
-								<i class="icofont-document" style="font-size: 4rem; color: rgba(255,255,255,0.3);"></i>
+							<div class="white-paper-default-image" aria-hidden="true">
+								<i class="icofont-document"></i>
 							</div>
 						@endif
 						<div class="card-overlay"></div>
@@ -421,14 +425,14 @@
 						</div>
 					</div>
 					<div class="card-content">
-						<h5 class="card-title">{{ $paper->title }}</h5>
-						<p class="card-description">{{ $paper->preview ?? '' }}</p>
+						<h5 class="card-title" title="{{ $whitePaperFullTitle }}">{{ $whitePaperFullTitle }}</h5>
+						<p class="card-description" title="{{ $whitePaperPlainPreview }}">{{ $paper->preview ?? '' }}</p>
 						<div class="card-footer">
 							<a class="read-more-btn white-paper-gated-link"
 							   href="#"
 							   data-white-paper-id="{{ $paper->id }}"
 							   data-resource-type="white-paper"
-							   data-resource-title="{{ $paper->title }}">
+							   data-resource-title="{{ $whitePaperFullTitle }}">
 								Request Download Link <i class="fa fa-envelope"></i>
 							</a>
 						</div>
