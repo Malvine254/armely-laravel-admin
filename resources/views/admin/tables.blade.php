@@ -528,6 +528,11 @@
                 <a class="nav-link" id="videos-tab" data-bs-toggle="tab" href="#videos" role="tab">
                     <i class="fas fa-video"></i> Videos
                 </a>
+                        <div class="col-md-6 d-none" id="caseStudyExistingImageGroup">
+                            <label for="caseStudyExistingImage" class="form-label" id="caseStudyExistingImageLabel">Existing White Paper Image Filename or URL</label>
+                            <input type="text" class="form-control" id="caseStudyExistingImage" name="existing_image" placeholder="white-paper.jpg or https://...">
+                            <small class="text-muted" id="caseStudyExistingImageHelp">Upload a new image below to replace this value.</small>
+                        </div>
             </li>
             <li class="nav-item">
                 <a class="nav-link" id="careers-tab" data-bs-toggle="tab" href="#careers" role="tab">
@@ -2661,10 +2666,13 @@ $(document).ready(function() {
         const isEditMode = $('#caseStudyMode').val() === 'edit';
 
         $('#caseStudyCategoryGroup').toggleClass('d-none', isWhitePaper);
+        $('#caseStudyExistingImageGroup').toggleClass('d-none', !isWhitePaper);
         $('#caseStudyCategory').prop('required', !isWhitePaper);
         $('#caseStudyTitleLabel').text(isWhitePaper ? 'White Paper Title *' : 'Case Study Title *');
         $('#caseStudyImageLabel').text(isWhitePaper ? 'White Paper Image' : 'Listing Image');
         $('#caseStudyImageHelp').text(isWhitePaper ? 'Saved to public/images/white-papers.' : 'Saved to public/images/case-study.');
+        $('#caseStudyExistingImageLabel').text(isWhitePaper ? 'Existing White Paper Image Filename or URL' : 'Existing White Paper Image Filename or URL');
+        $('#caseStudyExistingImageHelp').text(isWhitePaper ? 'Upload a new image below to replace this value.' : '');
         $('#caseStudyPdfPathHelp').text(isWhitePaper ? 'Saved to public/white_paper_docs.' : 'Saved to public/case_docs.');
 
         if (!isEditMode) {
@@ -2736,6 +2744,7 @@ $(document).ready(function() {
         $('#caseStudyId').val(item.id || '');
         $('#caseStudyCategory').val(item.category || '');
         $('#caseStudyTitle').val(item.title || '');
+        $('#caseStudyExistingImage').val(item.listing_image || item.images || item.image || '');
         $('#caseStudyPdfUrl').val(item.pdf_url || '');
         if (isWhitePaper) {
             $('#resourceTypeWhitePaper').prop('checked', true);
@@ -2790,6 +2799,8 @@ $(document).ready(function() {
         const imageFile = $('#caseStudyImage')[0].files[0];
         if (imageFile) {
             formData.append(isWhitePaper ? 'white_paper_image' : 'listing_image', imageFile);
+        } else if (isWhitePaper && $('#caseStudyExistingImage').val().trim() !== '') {
+            formData.append('existing_image', $('#caseStudyExistingImage').val().trim());
         }
 
         const pdfFile = $('#caseStudyPdf')[0].files[0];
