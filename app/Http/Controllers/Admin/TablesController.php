@@ -722,6 +722,10 @@ class TablesController extends Controller
             return response()->json(['success' => true, 'message' => 'Case study updated successfully', 'data' => $caseStudy]);
         }
 
+        if ($this->columnExists('industry_listings', 'listing_id')) {
+            $data['listing_id'] = time();
+        }
+
         $id = DB::table('industry_listings')->insertGetId($data);
         $caseStudy = DB::table('industry_listings')->where('id', $id)->first();
         ActivityLogger::log('create', 'CaseStudy', $id, 'Created case study ' . ($caseStudy->category ?? ''));
