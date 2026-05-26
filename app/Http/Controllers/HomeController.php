@@ -912,7 +912,7 @@ class HomeController extends Controller
                 ->map(function ($listing) {
                     $listing->image_path = $listing->listing_image ? asset('images/case-study/' . $listing->listing_image) : asset('images/default-image.png');
                     $listing->pdf_link = $listing->pdf_url ? url('case_docs/' . $listing->pdf_url) : '#';
-                    $listing->excerpt = Str::limit($listing->body ?? '', 150, '...');
+                    $listing->excerpt = $this->makePreviewText((string) ($listing->body ?? ''), 150);
                     return $listing;
                 });
         }, $dbErrorMessage);
