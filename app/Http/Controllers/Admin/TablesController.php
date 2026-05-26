@@ -684,6 +684,7 @@ class TablesController extends Controller
         $validated = $request->validate([
             'id' => ['nullable', 'integer'],
             'category' => ['required', 'string', 'max:255'],
+            'title' => ['nullable', 'string', 'max:255'],
             'body' => ['nullable', 'string'],
             'listing_image' => ['nullable', 'image', 'max:5120'],
             'pdf' => ['nullable', 'mimes:pdf', 'max:20480'],
@@ -696,7 +697,15 @@ class TablesController extends Controller
         ];
 
         if ($this->columnExists('industry_listings', 'title')) {
-            $data['title'] = $validated['category'];
+            $title = trim((string) ($validated['title'] ?? ''));
+            if ($title === '') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Case study title is required.',
+                    'errors' => ['title' => ['Case study title is required.']],
+                ], 422);
+            }
+            $data['title'] = $title;
         }
 
         if ($request->hasFile('listing_image')) {

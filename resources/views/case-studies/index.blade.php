@@ -215,6 +215,8 @@
 <div class="container">
 	<div class="row">
 		@forelse($caseStudies as $caseStudy)
+			@php($caseStudyTitle = trim((string) ($caseStudy->title ?? '')))
+			@php($caseStudyDisplayTitle = $caseStudyTitle !== '' ? $caseStudyTitle : (string) ($caseStudy->category ?? 'Case Study'))
 			<div class="col-md-4 mb-4">
 				<div class="case-study-card">
 					<div class="card-image-wrapper">
@@ -229,13 +231,13 @@
 						<div class="card-badge">{{ $caseStudy->category }}</div>
 					</div>
 					<div class="card-content">
-						<h5 class="card-title">{{ $caseStudy->category }} Solution</h5>
+						<h5 class="card-title">{{ $caseStudyDisplayTitle }} Solution</h5>
 						<p class="card-description">{{ $caseStudy->preview ?? '' }}</p>
 						<div class="card-footer">
 							<a class="read-more-btn text-light case-study-gated-link"
 							   href="#"
 							   data-case-study-id="{{ $caseStudy->id }}"
-							   data-resource-title="{{ $caseStudy->category }} Solution">
+							   data-resource-title="{{ $caseStudyDisplayTitle }} Solution">
 								Request Download Link <i class="fa fa-envelope"></i>
 							</a>
 						</div>

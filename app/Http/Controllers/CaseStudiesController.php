@@ -384,14 +384,24 @@ class CaseStudiesController extends Controller
         $expiresAt = now()->addHour();
         $caseStudyId = (int) ($data['case_study_id'] ?? 0);
         if ($caseStudyId > 0 && $this->isTableQueryable('industry_listings')) {
-            $record = DB::table('industry_listings')
+            $query = DB::table('industry_listings')
                 ->select('id', 'category')
-                ->where('id', $caseStudyId)
-                ->first();
+                ->where('id', $caseStudyId);
+
+            if (Schema::hasColumn('industry_listings', 'title')) {
+                $query->addSelect('title');
+            }
+
+            $record = $query->first();
 
             if ($record) {
+                $resourceTitle = trim((string) ($record->title ?? ''));
+                if ($resourceTitle === '') {
+                    $resourceTitle = (string) ($record->category ?? ('Case Study #' . $caseStudyId));
+                }
+
                 return [
-                    'resource_title' => (string) ($record->category ?? ('Case Study #' . $caseStudyId)),
+                    'resource_title' => $resourceTitle,
                     'resource_type_label' => 'Case Study',
                     'download_url' => URL::temporarySignedRoute('case-studies.access', $expiresAt, ['caseStudy' => $caseStudyId, 'em' => sha1($email)]),
                     'expires_at' => $expiresAt->format('M d, Y h:i A T'),
@@ -603,10 +613,15 @@ class CaseStudiesController extends Controller
         }
 
         try {
-            return DB::table('industry_listings')
+            $query = DB::table('industry_listings')
                 ->select('id', 'category', 'listing_image', 'body', 'pdf_url')
-                ->orderByDesc('id')
-                ->paginate(6, ['*'], 'case_page');
+                ->orderByDesc('id');
+
+            if (Schema::hasColumn('industry_listings', 'title')) {
+                $query->addSelect('title');
+            }
+
+            return $query->paginate(6, ['*'], 'case_page');
         } catch (QueryException $e) {
             if ($this->isMissingTableException($e)) {
                 Log::warning('Case studies table unavailable in database engine', [
