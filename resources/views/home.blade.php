@@ -1169,18 +1169,13 @@
 <section class="slider">
     <div class="hero-slider">
         <div class="single-slider" style="background-image:url('{{ asset('images/sliders/slider-1.webp') }}')" role="img" aria-label="Digital Excellence Banner">
-                @php($blogFullTitle = trim(strip_tags((string) ($blog->title ?? 'Blog Article'))))
-                @php($blogFullSnippet = trim(preg_replace('/\s+/', ' ', strip_tags((string) ($blog->preview ?? '')))))
-                @php($blogFullDetails = trim($blogFullTitle . "\n" . ($blogFullSnippet !== '' ? $blogFullSnippet : '')))
             <div class="container"><div class="row"><div class="col-lg-7"><div class="text">
                 <h1><span class="text-light">Your Trusted Source For Digital Excellence</span></h1>
                 <p class="text-light">Beyond Imagination</p>
                 <div class="button">
                     <a href="/services#consultation-form" class="btn">Get Appointment</a>
-                                 alt="{{ $blogFullTitle }}"
                 </div>
             </div></div></div></div>
-                        <div class="blog-content" data-full-details="{{ $blogFullDetails }}">
         <div class="single-slider" style="background-image:url('{{ asset('images/sliders/slider-2.webp') }}')">
             <div class="container"><div class="row"><div class="col-lg-7"><div class="text">
                 <h1><span class="text-light"> We Provide AI Services That You Can Trust!</span></h1>
@@ -1548,15 +1543,18 @@ document.addEventListener('DOMContentLoaded', function () {
         
         <div class="row">
             @forelse($blogs as $blog)
+                @php($blogFullTitle = trim(strip_tags((string) ($blog->title ?? 'Blog Article'))))
+                @php($blogFullSnippet = trim(preg_replace('/\s+/', ' ', strip_tags((string) ($blog->preview ?? '')))))
+                @php($blogFullDetails = trim($blogFullTitle . "\n" . ($blogFullSnippet !== '' ? $blogFullSnippet : '')))
                 <div class="col-lg-4 col-md-6 col-12" data-aos="fade-up">
                     <article class="blog-card-wrapper">
                         <div class="blog-image-box">
                             <img class="lazy-img" loading="lazy" 
                                  src="{{ $blog->image_path ?: asset('images/blog/default.svg') }}" 
-                                 alt="{{ $blog->title }}"
+                                 alt="{{ $blogFullTitle }}"
                                  onerror="this.src='{{ asset('images/blog/default.svg') }}'">
                         </div>
-                        <div class="blog-content">
+                        <div class="blog-content" data-full-details="{{ $blogFullDetails }}">
                             <div class="blog-author-info">
                                 <img src="{{ $blog->author_image ? asset('images/team/' . $blog->author_image) : asset('images/blog/profile.svg') }}" 
                                      class="author-avatar" alt="Author"
@@ -1567,9 +1565,9 @@ document.addEventListener('DOMContentLoaded', function () {
                                 </div>
                             </div>
                             <h4 class="blog-title">
-                                <a href="{{ route('blog.index', ['blogId' => $blog->blog_id]) }}">{{ $blog->title }}</a>
+                                <a href="{{ route('blog.index', ['blogId' => $blog->blog_id]) }}" title="{{ $blogFullTitle }}">{{ $blogFullTitle }}</a>
                             </h4>
-                            <p class="blog-snippet">{{ $blog->preview ?? '' }}</p>
+                            <p class="blog-snippet" title="{{ $blogFullSnippet }}">{{ $blog->preview ?? '' }}</p>
                             <div class="blog-footer">
                                 <span class="blog-date">{{ \Carbon\Carbon::parse($blog->date)->format('M d, Y') }}</span>
                                 <a href="{{ route('blog.index', ['blogId' => $blog->blog_id]) }}" class="blog-btn-circle">
