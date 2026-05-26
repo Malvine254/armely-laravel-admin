@@ -897,9 +897,15 @@ class TablesController extends Controller
         if ($imageColumn && !array_key_exists($imageColumn, $data)) {
             $data[$imageColumn] = '';
         }
+        if ($this->columnExists('white_paper', 'images') && !array_key_exists('images', $data)) {
+            $data['images'] = '';
+        }
 
         if ($pdfColumn && !array_key_exists($pdfColumn, $data)) {
             $data[$pdfColumn] = '';
+        }
+        if ($this->columnExists('white_paper', 'pdf') && !array_key_exists('pdf', $data)) {
+            $data['pdf'] = '';
         }
 
         $id = DB::table('white_paper')->insertGetId($data);
