@@ -210,6 +210,7 @@ Route::prefix('admin')->middleware(['admin'])->group(function () {
     Route::get('/tables/careers/list', [TablesController::class, 'listCareers'])->name('admin.tables.careers.list');
     Route::get('/tables/social-impact/list', [TablesController::class, 'listSocialImpact'])->name('admin.tables.social-impact.list');
     Route::get('/tables/customer-stories/list', [TablesController::class, 'listCustomerStories'])->name('admin.tables.customer-stories.list');
+    Route::get('/tables/case-studies/list', [TablesController::class, 'listCaseStudies'])->name('admin.tables.case-studies.list');
     Route::get('/tables/events/list', [TablesController::class, 'listEvents'])->name('admin.tables.events.list');
     Route::get('/tables/team/list', [TablesController::class, 'listTeam'])->name('admin.tables.team.list');
     Route::get('/tables/contacts/list', [TablesController::class, 'listContacts'])->name('admin.tables.contacts.list');
@@ -244,6 +245,11 @@ Route::prefix('admin')->middleware(['admin'])->group(function () {
     Route::post('/tables/customer-stories', [TablesController::class, 'storeOrUpdateCustomerStory'])->name('admin.tables.customer-stories.store');
     Route::put('/tables/customer-stories/{id}', [TablesController::class, 'updateCustomerStory'])->name('admin.tables.customer-stories.update');
     Route::delete('/tables/customer-stories/{id}', [TablesController::class, 'deleteCustomerStory'])->name('admin.tables.customer-stories.delete');
+
+    // Case Studies
+    Route::post('/tables/case-studies', [TablesController::class, 'storeOrUpdateCaseStudy'])->name('admin.tables.case-studies.store');
+    Route::put('/tables/case-studies/{id}', [TablesController::class, 'storeOrUpdateCaseStudy'])->name('admin.tables.case-studies.update');
+    Route::delete('/tables/case-studies/{id}', [TablesController::class, 'deleteCaseStudy'])->name('admin.tables.case-studies.delete');
     
     // Events
     Route::post('/tables/events', [TablesController::class, 'storeOrUpdateEvent'])->name('admin.tables.events.store');

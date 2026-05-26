@@ -99,31 +99,50 @@
     }
 
     .admin-stats-card {
-        border: none;
-        border-radius: 16px;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-        background: linear-gradient(135deg, #ffffff, #f8f9fa);
+        border: 1px solid #e5e7eb !important;
+        border-radius: 12px;
+        box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
+        transition: box-shadow 0.2s ease, border-color 0.2s ease;
+        background: #fff;
+        overflow: hidden;
     }
     .admin-stats-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
+        border-color: #cbd5e1 !important;
+        box-shadow: 0 14px 30px rgba(15, 23, 42, 0.1);
+    }
+    .admin-stats-card::before {
+        content: '';
+        display: block;
+        height: 3px;
+        background: #2f5597;
+    }
+    .admin-stats-card.border-success::before {
+        background: #0891b2;
+    }
+    .admin-stats-card.border-danger::before {
+        background: #d97706;
+    }
+    .admin-stats-card.border-secondary::before {
+        background: #475569;
     }
     .stat-icon-box {
-        width: 48px;
-        height: 48px;
-        border-radius: 12px;
+        width: 42px;
+        height: 42px;
+        border-radius: 10px;
         display: flex;
         align-items: center;
         justify-content: center;
-        margin-bottom: 1rem;
-        font-size: 1.25rem;
+        margin-bottom: 0.8rem;
+        font-size: 1rem;
+        border: 1px solid #dbe7ff;
+        background: #eef4ff !important;
+        color: #2f5597 !important;
     }
     .table-container-fixed {
         background: #fff;
-        border-radius: 16px;
-        box-shadow: 0 10px 30px rgba(15, 27, 51, 0.05);
-        border: 1px solid #e4e7ec;
+        border-radius: 12px;
+        box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
+        border: 1px solid #e5e7eb;
         overflow: hidden;
     }
     .table-responsive {
@@ -133,25 +152,38 @@
     #adminsDataTable {
         width: 100% !important;
         margin: 0 !important;
+        border-collapse: separate;
+        border-spacing: 0;
     }
     #adminsDataTable thead th {
-        background: linear-gradient(135deg, #e3f2fd, #bbdefb);
-        color: #0d47a1;
-        font-weight: bold;
+        background: #f8fafc;
+        color: #475569;
+        font-weight: 700;
         text-transform: uppercase;
-        font-size: 0.85rem;
-        letter-spacing: 0.5px;
-        padding: 1rem 1.5rem;
-        border-bottom: 2px solid #90caf9;
+        font-size: 0.74rem;
+        letter-spacing: 0.04em;
+        padding: 0.9rem 1.25rem;
+        border-bottom: 1px solid #e5e7eb;
     }
     #adminsDataTable tbody tr:hover {
-        background-color: #e3f2fd;
+        background-color: #f8fafc;
     }
     #adminsDataTable tbody td {
-        padding: 1rem 1.5rem;
+        padding: 0.95rem 1.25rem;
         vertical-align: middle;
-        border-bottom: 1px solid #e0e0e0;
-        color: #37474f;
+        border-bottom: 1px solid #eef2f7;
+        color: #334155;
+    }
+    #adminsDataTable tbody tr:last-child td {
+        border-bottom: 0;
+    }
+    #adminsDataTable .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        min-height: 30px;
+        font-weight: 700;
+        letter-spacing: 0;
     }
 
     /* Refined page styling overrides */
@@ -176,32 +208,64 @@
     }
 
     .admins-stats .admin-stats-card {
-        border: 1px solid #edf1f7;
-        border-left-width: 3px;
-        box-shadow: 0 2px 8px rgba(31, 63, 128, 0.06);
+        border-left-width: 1px !important;
     }
     .admins-stats .admin-stats-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 16px rgba(31, 63, 128, 0.1);
+        transform: none;
     }
     .admins-stats .stat-icon-box {
         margin-bottom: 0.6rem;
     }
     .admins-stats h3 {
-        font-size: 1.4rem;
-        line-height: 1.2;
+        font-size: 1.55rem;
+        line-height: 1.15;
+        color: #111827 !important;
+    }
+    .admins-stats p {
+        color: #64748b !important;
+        font-size: 0.74rem;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
     }
 
     .admins-table-card {
         border-radius: 12px;
-        border: 1px solid #e4e7ec;
-        box-shadow: 0 2px 8px rgba(31, 63, 128, 0.06);
+        border: 1px solid #e5e7eb;
+        box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
+    }
+    .admins-table-header {
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid #e5e7eb;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    }
+    .admins-table-header h5 {
+        font-size: 1rem;
+        color: #111827;
+    }
+    .admins-table-header .section-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 9px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: #eef4ff;
+        color: #2f5597;
+        border: 1px solid #dbe7ff;
     }
 
-    .bg-soft-primary { background: #eef2ff !important; }
-    .bg-soft-success { background: #ecfdf3 !important; }
-    .bg-soft-danger { background: #fef3f2 !important; }
-    .bg-soft-secondary { background: #f2f4f7 !important; }
+    .bg-soft-primary,
+    .bg-soft-success,
+    .bg-soft-danger,
+    .bg-soft-secondary {
+        background: #eef4ff !important;
+        color: #2f5597 !important;
+    }
+    .admins-stats .text-success,
+    .admins-stats .text-danger,
+    .admins-stats .text-secondary {
+        color: #111827 !important;
+    }
 
     .avatar-circle {
         width: 40px;
@@ -214,12 +278,25 @@
         font-size: 0.85rem;
         letter-spacing: 0.3px;
     }
+    .admin-email {
+        color: #334155;
+        font-size: 0.92rem;
+    }
+    .admin-id {
+        color: #64748b;
+        font-size: 0.78rem;
+    }
 
     .pulse-indicator {
         width: 8px;
         height: 8px;
         border-radius: 50%;
         display: inline-block;
+        box-shadow: 0 0 0 3px rgba(47, 85, 151, 0.08);
+    }
+    .pulse-indicator.bg-success,
+    .pulse-indicator.bg-secondary {
+        background: #2f5597 !important;
     }
 
     .btn-white {
@@ -229,12 +306,97 @@
     .btn-white:hover {
         background: #f8fafc;
     }
+    .admin-action-group {
+        border: 1px solid #e5e7eb;
+        background: #fff;
+        box-shadow: 0 3px 10px rgba(15, 23, 42, 0.06) !important;
+    }
+    .admin-action-group .btn {
+        width: 36px;
+        height: 34px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 0 !important;
+        border-radius: 0;
+    }
+    .admin-action-group .btn + form .btn,
+    .admin-action-group form + .btn {
+        border-left: 1px solid #e5e7eb !important;
+    }
+    .admin-action-group .btn:hover {
+        background: #eef4ff;
+    }
+    .admin-action-group .text-danger {
+        color: #b91c1c !important;
+    }
 
     .dataTables_wrapper .dataTables_filter input,
     .dataTables_wrapper .dataTables_length select {
         border: 1px solid #d0d9e8;
-        border-radius: 8px;
-        min-height: 36px;
+        border-radius: 10px;
+        min-height: 38px;
+        background: #fff;
+        color: #111827;
+    }
+    .dataTables_wrapper {
+        padding: 1rem 1.25rem 1.25rem;
+    }
+    .dataTables_wrapper .row:first-child {
+        margin: 0 0 0.9rem;
+        padding: 0.75rem;
+        background: #f8fafc;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        align-items: center;
+    }
+    .dataTables_wrapper .dataTables_length label,
+    .dataTables_wrapper .dataTables_filter label {
+        color: #64748b;
+        font-size: 0.86rem;
+        font-weight: 600;
+    }
+    .dataTables_wrapper .dataTables_filter input {
+        min-width: 260px;
+        padding: 0.48rem 0.75rem 0.48rem 2rem;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'%3E%3C/circle%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'%3E%3C/line%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: 0.65rem center;
+        background-size: 15px;
+    }
+    .dataTables_wrapper .dataTables_filter input:focus,
+    .dataTables_wrapper .dataTables_length select:focus {
+        border-color: #2f5597;
+        box-shadow: 0 0 0 4px rgba(47, 85, 151, 0.12);
+        outline: none;
+    }
+    .dataTables_wrapper .dataTables_info {
+        color: #64748b;
+        font-size: 0.86rem;
+        padding-top: 0.9rem;
+    }
+    .dataTables_wrapper .dataTables_paginate {
+        padding-top: 0.75rem;
+    }
+    .dataTables_wrapper .page-link {
+        border: 0;
+        border-radius: 999px !important;
+        color: #334155;
+        margin: 0 0.12rem;
+    }
+    .dataTables_wrapper .page-item.active .page-link {
+        background: #2f5597;
+        color: #fff;
+        box-shadow: 0 8px 16px rgba(47, 85, 151, 0.2);
+    }
+    @media (max-width: 768px) {
+        .dataTables_wrapper .dataTables_filter input {
+            min-width: 0;
+            width: 100%;
+        }
+        .admins-table-header {
+            gap: 0.75rem;
+        }
     }
 </style>
 @endpush
@@ -300,8 +462,17 @@
     </button>
 </div>
 
-<!-- Admins Table -->
 <div class="table-container-fixed admins-table-card">
+    <div class="admins-table-header d-flex justify-content-between align-items-center flex-wrap">
+        <div class="d-flex align-items-center gap-2">
+            <span class="section-icon"><i class="fas fa-users-gear"></i></span>
+            <div>
+                <h5 class="mb-0 fw-bold">Administrator Directory</h5>
+                <div class="small text-muted">Search, review roles, and manage access.</div>
+            </div>
+        </div>
+        <span class="badge bg-soft-primary text-primary rounded-pill px-3 py-2">{{ $admins->count() }} records</span>
+    </div>
     <div class="card-body p-0">
         @if($admins->count() > 0)
             <div class="table-responsive">
@@ -326,12 +497,12 @@
                                     </div>
                                     <div>
                                         <div class="fw-bold text-dark">{{ $admin->name }}</div>
-                                        <div class="small text-muted">ID: #{{ str_pad($admin->id, 4, '0', STR_PAD_LEFT) }}</div>
+                                        <div class="admin-id">ID: #{{ str_pad($admin->id, 4, '0', STR_PAD_LEFT) }}</div>
                                     </div>
                                 </div>
                             </td>
                             <td>
-                                <div class="text-dark">{{ $admin->email }}</div>
+                                <div class="admin-email">{{ $admin->email }}</div>
                             </td>
                             <td>
                                 @if($admin->role === 'Super Admin')
@@ -358,7 +529,7 @@
                                 </div>
                             </td>
                             <td class="text-end px-4">
-                                <div class="btn-group shadow-sm rounded-pill overflow-hidden">
+                                <div class="btn-group rounded-pill overflow-hidden admin-action-group">
                                     <button class="btn btn-sm btn-white border-end" data-bs-toggle="modal" data-bs-target="#editAdminModal" onclick='editAdmin(@json($admin))' title="Edit">
                                         <i class="fas fa-cog text-primary"></i>
                                     </button>

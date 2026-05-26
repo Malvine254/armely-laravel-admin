@@ -2,15 +2,22 @@
 
 @section('title', 'Analytics Dashboard')
 
-@push('css')
+@push('styles')
 <style>
+    .analytics-page {
+        color: #1f2937;
+        font-size: 0.94rem;
+    }
+    .analytics-page .mr-1 { margin-right: 0.25rem !important; }
+    .analytics-page .mr-2 { margin-right: 0.5rem !important; }
+    .analytics-page .mr-3 { margin-right: 0.75rem !important; }
     .analytics-header {
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        background: linear-gradient(135deg, #244a86 0%, #17345f 100%);
         color: white;
-        padding: 2.5rem 1.5rem;
-        border-radius: 15px;
-        margin-bottom: 2rem;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        padding: 2rem 1.5rem;
+        border-radius: 14px;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 12px 28px rgba(31, 63, 127, 0.18);
         position: relative;
         overflow: hidden;
     }
@@ -26,47 +33,182 @@
         z-index: 0;
     }
     .analytics-card {
-        border: none;
+        border: 1px solid #e5e7eb;
         border-radius: 12px;
-        transition: all 0.3s ease;
+        transition: box-shadow 0.2s ease, border-color 0.2s ease;
         overflow: hidden;
+        background: #fff !important;
+        color: #1f2937 !important;
+        box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06) !important;
+    }
+    .analytics-card.text-white,
+    .analytics-card.text-white * {
+        color: #1f2937 !important;
     }
     .analytics-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+        border-color: #cbd5e1;
+        box-shadow: 0 14px 30px rgba(15, 23, 42, 0.1) !important;
+    }
+    .analytics-card::before {
+        content: '';
+        display: block;
+        height: 3px;
+        background: #2f5597;
+    }
+    .analytics-card.bg-success::before,
+    .analytics-card.bg-info::before {
+        background: #0891b2;
+    }
+    .analytics-card.bg-warning::before {
+        background: #d97706;
+    }
+    .analytics-card.bg-danger::before {
+        background: #b91c1c;
+    }
+    .analytics-card.bg-secondary::before {
+        background: #475569;
     }
     .card-icon-shape {
-        width: 48px;
-        height: 48px;
-        background-color: rgba(255,255,255,0.2);
+        width: 42px;
+        height: 42px;
+        background: #eef4ff !important;
+        color: #2f5597 !important;
         display: flex;
         align-items: center;
         justify-content: center;
         border-radius: 10px;
-        font-size: 1.5rem;
+        font-size: 1rem;
+        border: 1px solid #dbe7ff;
+    }
+    .analytics-card .card-icon-shape,
+    .analytics-card .card-icon-shape * {
+        color: #2f5597 !important;
     }
     .metric-label {
-        font-size: 0.8rem;
+        font-size: 0.74rem;
         font-weight: 600;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
-        opacity: 0.8;
+        letter-spacing: 0.04em;
+        color: #64748b;
     }
     .metric-value {
-        font-size: 1.8rem;
+        font-size: 1.55rem;
         font-weight: 700;
-        margin: 0.5rem 0;
+        margin: 0.35rem 0;
+        color: #111827;
+    }
+    .analytics-card .small,
+    .analytics-card .opacity-75 {
+        color: #64748b !important;
+        opacity: 1 !important;
+    }
+    .analytics-page .card:not(.analytics-card) {
+        border: 1px solid #e5e7eb !important;
+        border-radius: 12px;
+        box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06) !important;
+    }
+    .analytics-page .card-header {
+        border-bottom: 1px solid #eef2f7;
+        color: #1f2937 !important;
+    }
+    .analytics-page .card-header.bg-secondary,
+    .analytics-page .card-header.bg-dark {
+        background: #f8fafc !important;
+        color: #1f2937 !important;
+    }
+    .analytics-page .card-header.text-white,
+    .analytics-page .card-header.text-white * {
+        color: #1f2937 !important;
+    }
+    .analytics-page h1 {
+        font-size: clamp(1.45rem, 2.2vw, 2rem);
+        line-height: 1.15;
+    }
+    .analytics-page h6 {
+        font-size: 0.9rem;
+    }
+    .analytics-page .text-success,
+    .analytics-page .text-info,
+    .analytics-page .text-warning,
+    .analytics-page .text-danger {
+        color: #2f5597 !important;
+    }
+    .analytics-page .bg-primary:not(.analytics-card),
+    .analytics-page .bg-success:not(.analytics-card),
+    .analytics-page .bg-info:not(.analytics-card),
+    .analytics-page .bg-danger:not(.analytics-card),
+    .analytics-page .bg-secondary:not(.analytics-card) {
+        background-color: #2f5597 !important;
+    }
+    .analytics-page .badge.bg-primary,
+    .analytics-page .badge.bg-info,
+    .analytics-page .badge.bg-danger,
+    .analytics-page .badge.bg-secondary {
+        background-color: #eef4ff !important;
+        color: #2f5597 !important;
+    }
+    .analytics-page .traffic-dot-admin {
+        background-color: #2f5597 !important;
+    }
+    .analytics-page .traffic-dot-user {
+        background-color: #0891b2 !important;
+    }
+    .analytics-page .traffic-dot-guest {
+        background-color: #94a3b8 !important;
+    }
+    .analytics-page .bg-soft-primary,
+    .analytics-page .bg-soft-info,
+    .analytics-page .bg-soft-success {
+        background: #eef4ff !important;
+        color: #2f5597 !important;
+    }
+    .analytics-page .progress-bar {
+        background-color: #2f5597 !important;
+    }
+    .analytics-page .analytics-card {
+        background: #fff !important;
+    }
+    .analytics-page .analytics-card.bg-primary,
+    .analytics-page .analytics-card.bg-success,
+    .analytics-page .analytics-card.bg-info,
+    .analytics-page .analytics-card.bg-warning,
+    .analytics-page .analytics-card.bg-danger,
+    .analytics-page .analytics-card.bg-secondary {
+        background: #fff !important;
+    }
+    .analytics-page .bg-primary.text-white:not(.analytics-card),
+    .analytics-page .bg-secondary.text-white:not(.analytics-card),
+    .analytics-page .bg-dark.text-white:not(.analytics-card) {
+        color: #fff !important;
+    }
+    .analytics-page .bg-primary.text-white:not(.analytics-card) *,
+    .analytics-page .bg-secondary.text-white:not(.analytics-card) *,
+    .analytics-page .bg-dark.text-white:not(.analytics-card) * {
+        color: #fff !important;
+    }
+    .analytics-header .btn-light {
+        color: #1f2937;
+    }
+    .analytics-header .btn-light .fa-download {
+        color: #2f5597 !important;
+    }
+    .analytics-header .dropdown-menu .fa-file-csv {
+        color: #16a34a !important;
+    }
+    .analytics-header .dropdown-menu .fa-file-pdf {
+        color: #dc2626 !important;
     }
     .chart-container {
         position: relative;
         height: 350px;
     }
     .table-modern thead th {
-        background-color: #f8f9fa;
+        background-color: #f8fafc;
         text-transform: uppercase;
         font-size: 0.75rem;
         letter-spacing: 0.5px;
         border-top: none;
+        color: #475569;
     }
     .pulse-live {
         display: inline-block;
@@ -83,11 +225,19 @@
         70% { box-shadow: 0 0 0 10px rgba(46, 204, 113, 0); }
         100% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0); }
     }
+    @media (max-width: 768px) {
+        .analytics-header {
+            padding: 1.5rem 1rem;
+        }
+        .metric-value {
+            font-size: 1.35rem;
+        }
+    }
 </style>
 @endpush
 
 @section('content')
-<div class="container-fluid py-4">
+<div class="container-fluid py-4 analytics-page">
     <!-- Modern Header -->
     <div class="analytics-header">
         <div class="row align-items-center relative z-index-1">
@@ -253,17 +403,17 @@
                     </div>
                     <div class="mt-4">
                         <div class="d-flex align-items-center mb-2">
-                            <span class="badge bg-primary rounded-circle p-1 me-2"><i class="fas fa-circle invisible"></i></span>
+                            <span class="badge traffic-dot-admin rounded-circle p-1 me-2"><i class="fas fa-circle invisible"></i></span>
                             <span class="text-muted small flex-grow-1">Authenticated Admins</span>
                             <span class="fw-bold" data-summary="admin_percent">--%</span>
                         </div>
                         <div class="d-flex align-items-center mb-2">
-                            <span class="badge bg-info rounded-circle p-1 me-2"><i class="fas fa-circle invisible"></i></span>
+                            <span class="badge traffic-dot-user rounded-circle p-1 me-2"><i class="fas fa-circle invisible"></i></span>
                             <span class="text-muted small flex-grow-1">Standard Users</span>
                             <span class="fw-bold" data-summary="user_percent">--%</span>
                         </div>
                         <div class="d-flex align-items-center">
-                            <span class="badge bg-danger rounded-circle p-1 me-2"><i class="fas fa-circle invisible"></i></span>
+                            <span class="badge traffic-dot-guest rounded-circle p-1 me-2"><i class="fas fa-circle invisible"></i></span>
                             <span class="text-muted small flex-grow-1">Public Guests</span>
                             <span class="fw-bold" data-summary="guest_percent">--%</span>
                         </div>
@@ -519,12 +669,12 @@
         
         // Create Gradient
         const gradient1 = visitorCtx.createLinearGradient(0, 0, 0, 400);
-        gradient1.addColorStop(0, 'rgba(30, 60, 114, 0.4)');
+        gradient1.addColorStop(0, 'rgba(47, 85, 151, 0.22)');
         gradient1.addColorStop(1, 'rgba(30, 60, 114, 0.0)');
         
         const gradient2 = visitorCtx.createLinearGradient(0, 0, 0, 400);
-        gradient2.addColorStop(0, 'rgba(40, 167, 69, 0.4)');
-        gradient2.addColorStop(1, 'rgba(40, 167, 69, 0.0)');
+        gradient2.addColorStop(0, 'rgba(8, 145, 178, 0.16)');
+        gradient2.addColorStop(1, 'rgba(8, 145, 178, 0.0)');
 
         visitorChart = new Chart(visitorCtx, {
             type: 'line',
@@ -537,21 +687,21 @@
                     {
                         label: 'Total Visits',
                         data: visitorData.map(d => d.visits),
-                        borderColor: '#1e3c72',
+                        borderColor: '#2f5597',
                         backgroundColor: gradient1,
                         borderWidth: 3,
                         fill: true,
                         tension: 0.4,
                         pointBackgroundColor: '#fff',
-                        pointBorderColor: '#1e3c72',
+                        pointBorderColor: '#2f5597',
                         pointHoverRadius: 6,
-                        pointHoverBackgroundColor: '#1e3c72',
+                        pointHoverBackgroundColor: '#2f5597',
                         pointHoverBorderColor: '#fff',
                     },
                     {
                         label: 'Unique Visitors',
                         data: visitorData.map(d => d.unique_visitors),
-                        borderColor: '#28a745',
+                        borderColor: '#0891b2',
                         backgroundColor: gradient2,
                         borderWidth: 2,
                         borderDash: [5, 5],
@@ -605,9 +755,10 @@
                 labels: activityData.map(d => d.type.charAt(0).toUpperCase() + d.type.slice(1)),
                 datasets: [{
                     data: activityData.map(d => d.count),
-                    backgroundColor: ['#2a5298', '#17a2b8', '#dc3545', '#ffc107'],
-                    borderWidth: 0,
-                    hoverOffset: 15
+                    backgroundColor: ['#2f5597', '#0891b2', '#94a3b8', '#cbd5e1'],
+                    borderColor: '#fff',
+                    borderWidth: 3,
+                    hoverOffset: 8
                 }]
             },
             options: {

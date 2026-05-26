@@ -237,9 +237,6 @@
             <button class="btn btn-link text-white d-lg-none px-2" type="button" data-sidebar-toggle aria-label="Toggle sidebar">
                 <i class="fas fa-bars"></i>
             </button>
-            <a class="navbar-brand d-flex align-items-center gap-2 text-white" href="{{ route('admin.dashboard') }}">
-                <img width="140" height="auto" src="{{ asset('images/logo/logo-replace-v2.png') }}" alt="Armely logo">
-            </a>
         </div>
         <div class="d-flex align-items-center gap-3">
             <span class="text-white-50 small">Welcome, {{ auth('admin')->user()->name ?? 'Admin' }}</span>
