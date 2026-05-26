@@ -440,44 +440,81 @@
 
     .blog.section .blog-image-box {
         position: relative;
-        height: 260px;
-        min-height: 260px;
-        max-height: 260px;
+        height: 290px;
+        min-height: 290px;
+        max-height: 290px;
         aspect-ratio: auto;
         overflow: hidden;
-        background: linear-gradient(135deg, #eef4ff 0%, #dde8fb 100%);
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #dbe6fb 100%);
         display: flex;
         align-items: center;
         justify-content: center;
         margin-bottom: 0;
         flex-shrink: 0;
         line-height: 0;
-        padding: 14px;
+        padding: 18px;
+    }
+
+    .blog.section .blog-image-box::before {
+        content: '';
+        position: absolute;
+        inset: -20px;
+        background-image: var(--blog-image);
+        background-size: cover;
+        background-position: center;
+        filter: blur(28px) saturate(1.15);
+        transform: scale(1.18);
+        opacity: 0.28;
+        pointer-events: none;
     }
 
     .blog.section .blog-image-box::after {
         content: '';
         position: absolute;
         inset: 0;
-        background: linear-gradient(180deg, rgba(15, 23, 42, 0) 50%, rgba(15, 23, 42, 0.08) 100%);
+        background: linear-gradient(180deg, rgba(15, 23, 42, 0.08) 0%, rgba(15, 23, 42, 0.02) 48%, rgba(15, 23, 42, 0.16) 100%);
         pointer-events: none;
     }
 
+    .blog.section .blog-image-badge {
+        position: absolute;
+        top: 16px;
+        left: 16px;
+        z-index: 3;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: rgba(15, 23, 42, 0.78);
+        color: #fff;
+        font-size: 0.75rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 10px 28px rgba(15, 23, 42, 0.18);
+    }
+
     .blog.section .blog-image-box img {
-        width: 100%;
-        height: 100%;
+        width: calc(100% - 12px);
+        height: calc(100% - 12px);
         object-fit: contain;
         object-position: center;
-        transition: transform 0.45s ease;
+        transition: transform 0.45s ease, filter 0.45s ease;
         transform: scale(1);
         padding: 0;
         box-sizing: border-box;
         display: block;
         margin: 0;
+        position: relative;
+        z-index: 2;
+        filter: drop-shadow(0 18px 28px rgba(15, 23, 42, 0.14));
     }
 
     .blog.section .blog-card-wrapper:hover .blog-image-box img {
-        transform: scale(1.02);
+        transform: scale(1.03);
+        filter: drop-shadow(0 24px 36px rgba(15, 23, 42, 0.18));
     }
 
     /* title overlay inside image */
@@ -679,10 +716,16 @@
         .blog.section .blog-card-wrapper { margin-bottom: 0; }
         .blog.section .blog-title { font-size: 1.15rem; min-height: auto; }
         .blog.section .blog-image-box {
-            height: 230px;
-            min-height: 230px;
-            max-height: 230px;
-            padding: 12px;
+            height: 250px;
+            min-height: 250px;
+            max-height: 250px;
+            padding: 14px;
+        }
+        .blog.section .blog-image-badge {
+            top: 12px;
+            left: 12px;
+            padding: 7px 10px;
+            font-size: 0.72rem;
         }
         .blog.section .blog-content {
             padding: 16px 18px 18px;
@@ -704,10 +747,14 @@
     @media (max-width: 480px) {
         .blog.section { padding: 40px 0; }
         .blog.section .blog-image-box {
-            height: 205px;
-            min-height: 205px;
-            max-height: 205px;
-            padding: 10px;
+            height: 220px;
+            min-height: 220px;
+            max-height: 220px;
+            padding: 12px;
+        }
+        .blog.section .blog-image-badge {
+            top: 10px;
+            left: 10px;
         }
         .blog.section .blog-title { font-size: 1.05rem; min-height: auto; }
         .blog.section .blog-snippet { font-size: 0.88rem; -webkit-line-clamp: 2; min-height: auto; }
@@ -1537,11 +1584,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 @php($blogFullTitle = trim(strip_tags((string) ($blog->title ?? 'Blog Article'))))
                 @php($blogFullSnippet = trim(preg_replace('/\s+/', ' ', strip_tags((string) ($blog->preview ?? '')))))
                 @php($blogFullDetails = trim($blogFullTitle . "\n" . ($blogFullSnippet !== '' ? $blogFullSnippet : '')))
+                @php($blogImageUrl = $blog->image_path ?: asset('images/blog/default.svg'))
                 <div class="col-lg-4 col-md-6 col-12" data-aos="fade-up">
                     <article class="blog-card-wrapper">
-                        <div class="blog-image-box">
+                        <div class="blog-image-box" style="--blog-image: url('{{ $blogImageUrl }}');">
+                            <span class="blog-image-badge">Blog Insight</span>
                             <img class="lazy-img" loading="lazy" 
-                                 src="{{ $blog->image_path ?: asset('images/blog/default.svg') }}" 
+                                 src="{{ $blogImageUrl }}" 
                                  alt="{{ $blogFullTitle }}"
                                  onerror="this.src='{{ asset('images/blog/default.svg') }}'">
                         </div>
