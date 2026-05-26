@@ -200,17 +200,18 @@
 <!-- Case Studies Section -->
 <section class="case-studies-section">
 <div class="container">
-	<!-- <div class="row">
+	<div class="row">
 		<div class="col-lg-12">
 			<div class="section-header">
 				<div class="section-badge">
 					<i class="icofont-briefcase"></i> Case Studies
 				</div>
 				<h2 class="section-title">Success Stories</h2>
-				<p class="section-subtitle">See how our solutions have delivered measurable impact</p>
+				<p class="section-subtitle">Real transformation outcomes across industries, platforms, and teams.</p>
+				<div class="section-divider"></div>
 			</div>
 		</div>
-	</div> -->
+	</div>
 </div>
 <div class="container">
 	<div class="row">
@@ -219,6 +220,7 @@
 			@php($caseStudyDisplayTitle = $caseStudyTitle !== '' ? $caseStudyTitle : (string) ($caseStudy->category ?? 'Case Study'))
 			@php($caseStudyFullTitle = trim($caseStudyDisplayTitle . ' Solution'))
 			@php($caseStudyPlainPreview = trim(preg_replace('/\s+/', ' ', strip_tags((string) ($caseStudy->preview ?? '')))))
+			@php($caseStudyFullDetails = trim($caseStudyFullTitle . "\n" . ($caseStudyPlainPreview !== '' ? $caseStudyPlainPreview : 'No summary available.')))
 			<div class="col-md-4 mb-4">
 				<div class="case-study-card">
 					<div class="card-image-wrapper">
@@ -232,7 +234,7 @@
 						<div class="card-overlay"></div>
 						<div class="card-badge">{{ $caseStudy->category }}</div>
 					</div>
-					<div class="card-content">
+					<div class="card-content" data-full-details="{{ $caseStudyFullDetails }}">
 						<h5 class="card-title" title="{{ $caseStudyFullTitle }}">{{ $caseStudyFullTitle }}</h5>
 						<p class="card-description" title="{{ $caseStudyPlainPreview }}">{{ $caseStudy->preview ?? '' }}</p>
 						<div class="card-footer">
@@ -409,6 +411,7 @@
 		@forelse($whitePapers as $paper)
 			@php($whitePaperFullTitle = trim((string) ($paper->title ?? 'White Paper')))
 			@php($whitePaperPlainPreview = trim(preg_replace('/\s+/', ' ', strip_tags((string) ($paper->preview ?? '')))))
+			@php($whitePaperFullDetails = trim($whitePaperFullTitle . "\n" . ($whitePaperPlainPreview !== '' ? $whitePaperPlainPreview : 'No summary available.')))
 			<div class="col-md-4 mb-4">
 				<div class="white-paper-card">
 					<div class="card-image-wrapper">
@@ -424,7 +427,7 @@
 							<i class="icofont-document"></i> Resource
 						</div>
 					</div>
-					<div class="card-content">
+					<div class="card-content" data-full-details="{{ $whitePaperFullDetails }}">
 						<h5 class="card-title" title="{{ $whitePaperFullTitle }}">{{ $whitePaperFullTitle }}</h5>
 						<p class="card-description" title="{{ $whitePaperPlainPreview }}">{{ $paper->preview ?? '' }}</p>
 						<div class="card-footer">

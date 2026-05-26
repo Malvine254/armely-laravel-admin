@@ -1233,6 +1233,7 @@
                     @csrf
                     <input type="hidden" id="caseStudyId" name="id">
                     <input type="hidden" id="caseStudyMode" value="create">
+                    <input type="hidden" id="caseStudySourceType" value="case_study">
 
                     <div class="row g-3">
                         <div class="col-12">
@@ -2680,6 +2681,7 @@ $(document).ready(function() {
 
     window.resetCaseStudyForm = function() {
         $('#caseStudyMode').val('create');
+        $('#caseStudySourceType').val('case_study');
         $('#caseStudyModalTitle').text('Add New Case Study');
         $('#caseStudyForm')[0].reset();
         $('#caseStudyId').val('');
@@ -2729,6 +2731,7 @@ $(document).ready(function() {
         const resourceType = item.resource_type || 'case_study';
         const isWhitePaper = resourceType === 'white_paper';
         $('#caseStudyMode').val('edit');
+        $('#caseStudySourceType').val(resourceType);
         $('#caseStudyModalTitle').text(isWhitePaper ? 'Edit White Paper' : 'Edit Case Study');
         $('#caseStudyId').val(item.id || '');
         $('#caseStudyCategory').val(item.category || '');
@@ -2775,6 +2778,8 @@ $(document).ready(function() {
             formData.append('id', id);
         }
         formData.append('title', $('#caseStudyTitle').val());
+        formData.append('resource_type', resourceType);
+        formData.append('source_resource_type', $('#caseStudySourceType').val() || resourceType);
         formData.append('pdf_url', $('#caseStudyPdfUrl').val());
         formData.append('body', caseStudyEditor ? caseStudyEditor.getData() : $('#caseStudyBody').val());
 

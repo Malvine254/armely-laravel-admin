@@ -748,6 +748,12 @@ class TablesController extends Controller
 
     public function storeOrUpdateCaseStudy(Request $request)
     {
+        if ($request->input('resource_type') === 'white_paper') {
+            return $this->storeOrUpdateWhitePaper($request);
+        }
+
+        $sourceResourceType = (string) $request->input('source_resource_type', 'case_study');
+
         if (!$this->tableExists('industry_listings')) {
             return response()->json(['success' => false, 'message' => 'Case studies table is not available.'], 422);
         }
@@ -795,7 +801,9 @@ class TablesController extends Controller
             $data['pdf_url'] = trim((string) $validated['pdf_url']);
         }
 
-        if ($request->has('id') && $request->id) {
+        $isCrossTypeMove = $request->has('id') && $request->id && $sourceResourceType === 'white_paper';
+
+        if ($request->has('id') && $request->id && !$isCrossTypeMove) {
             DB::table('industry_listings')->where('id', $request->id)->update($data);
             $caseStudy = DB::table('industry_listings')->where('id', $request->id)->first();
             ActivityLogger::log('update', 'CaseStudy', $request->id, 'Updated case study ' . ($caseStudy->category ?? ''));
@@ -808,6 +816,11 @@ class TablesController extends Controller
 
         $id = DB::table('industry_listings')->insertGetId($data);
         $caseStudy = DB::table('industry_listings')->where('id', $id)->first();
+
+        if ($isCrossTypeMove && $this->tableExists('white_paper')) {
+            DB::table('white_paper')->where('id', $request->id)->delete();
+        }
+
         ActivityLogger::log('create', 'CaseStudy', $id, 'Created case study ' . ($caseStudy->category ?? ''));
         return response()->json(['success' => true, 'message' => 'Case study created successfully', 'data' => $caseStudy]);
     }
@@ -825,6 +838,12 @@ class TablesController extends Controller
 
     public function storeOrUpdateWhitePaper(Request $request)
     {
+        if ($request->input('resource_type') === 'case_study') {
+            return $this->storeOrUpdateCaseStudy($request);
+        }
+
+        $sourceResourceType = (string) $request->input('source_resource_type', 'white_paper');
+
         if (!$this->tableExists('white_paper')) {
             return response()->json(['success' => false, 'message' => 'White papers table is not available.'], 422);
         }
@@ -864,7 +883,9 @@ class TablesController extends Controller
             $data[$pdfColumn] = trim((string) $validated['pdf_url']);
         }
 
-        if ($request->has('id') && $request->id) {
+        $isCrossTypeMove = $request->has('id') && $request->id && $sourceResourceType === 'case_study';
+
+        if ($request->has('id') && $request->id && !$isCrossTypeMove) {
             DB::table('white_paper')->where('id', $request->id)->update($data);
             $whitePaper = DB::table('white_paper')->where('id', $request->id)->first();
             ActivityLogger::log('update', 'WhitePaper', $request->id, 'Updated white paper ' . ((string) ($whitePaper->{$titleColumn} ?? '')));
@@ -873,6 +894,11 @@ class TablesController extends Controller
 
         $id = DB::table('white_paper')->insertGetId($data);
         $whitePaper = DB::table('white_paper')->where('id', $id)->first();
+
+        if ($isCrossTypeMove && $this->tableExists('industry_listings')) {
+            DB::table('industry_listings')->where('id', $request->id)->delete();
+        }
+
         ActivityLogger::log('create', 'WhitePaper', $id, 'Created white paper ' . ((string) ($whitePaper->{$titleColumn} ?? '')));
         return response()->json(['success' => true, 'message' => 'White paper created successfully', 'data' => $whitePaper]);
     }
