@@ -797,7 +797,8 @@
                     <table class="table table-hover" id="caseStudiesDataTable">
                         <thead>
                             <tr>
-                                <th>Category</th>
+                                <th>Industry Type</th>
+                                <th>Case Study Title</th>
                                 <th>Image</th>
                                 <th>PDF</th>
                                 <th>Summary</th>
@@ -808,6 +809,7 @@
                             @forelse(($caseStudies ?? collect()) as $caseStudy)
                             <tr data-id="{{ $caseStudy->id }}">
                                 <td>{{ $caseStudy->category ?? 'N/A' }}</td>
+                                <td>{{ $caseStudy->title ?? ($caseStudy->category ?? 'N/A') }}</td>
                                 <td>
                                     @if(!empty($caseStudy->listing_image))
                                         <img src="{{ asset('images/case-study/' . $caseStudy->listing_image) }}" alt="{{ $caseStudy->category ?? 'Case Study' }}" style="width: 48px; height: 36px; object-fit: cover; border-radius: 6px;">
@@ -839,7 +841,7 @@
                                 </td>
                             </tr>
                             @empty
-                            <tr><td colspan="5" class="text-center text-muted">No case studies yet. Add one!</td></tr>
+                            <tr><td colspan="6" class="text-center text-muted">No case studies yet. Add one!</td></tr>
                             @endforelse
                         </tbody>
                     </table>
@@ -1223,8 +1225,12 @@
 
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label for="caseStudyCategory" class="form-label">Category / Title *</label>
-                            <input type="text" class="form-control" id="caseStudyCategory" name="category" required placeholder="e.g. Healthcare Cloud Migration">
+                            <label for="caseStudyCategory" class="form-label">Industry Type *</label>
+                            <input type="text" class="form-control" id="caseStudyCategory" name="category" required placeholder="e.g. Transportation">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="caseStudyTitle" class="form-label">Case Study Title *</label>
+                            <input type="text" class="form-control" id="caseStudyTitle" name="title" required placeholder="e.g. SmartWay Transportation">
                         </div>
                         <div class="col-md-6">
                             <label for="caseStudyPdfUrl" class="form-label">Existing PDF Filename or URL</label>
@@ -1253,7 +1259,10 @@
                     <i class="fas fa-times me-2"></i>Cancel
                 </button>
                 <button type="button" class="btn btn-primary" id="saveCaseStudyBtn">
-                    <i class="fas fa-save me-2"></i>Save Case Study
+                    <span class="btn-label">
+                        <i class="fas fa-save me-2"></i>Save Case Study
+                    </span>
+                    <span class="spinner-border spinner-border-sm ms-2 d-none" role="status" aria-hidden="true"></span>
                 </button>
             </div>
         </div>
@@ -1979,6 +1988,7 @@ $(document).ready(function() {
                         const summary = stripTags(item.body || '').slice(0, 90);
                         tbody.append(`<tr data-id="${item.id}">
                             <td>${escapeHtml(item.category || 'N/A')}</td>
+                            <td>${escapeHtml(item.title || item.category || 'N/A')}</td>
                             <td>${imageHtml}</td>
                             <td>${pdfHtml}</td>
                             <td>${escapeHtml(summary)}${summary.length >= 90 ? '...' : ''}</td>
@@ -1986,7 +1996,7 @@ $(document).ready(function() {
                         </tr>`);
                     });
                 } else {
-                    tbody.html('<tr><td colspan="5" class="text-center text-muted">No case studies yet. Add one!</td></tr>');
+                    tbody.html('<tr><td colspan="6" class="text-center text-muted">No case studies yet. Add one!</td></tr>');
                 }
             },
             error: function(xhr) {
@@ -2652,6 +2662,7 @@ $(document).ready(function() {
         $('#caseStudyModalTitle').text('Edit Case Study');
         $('#caseStudyId').val(item.id || '');
         $('#caseStudyCategory').val(item.category || '');
+        $('#caseStudyTitle').val(item.title || '');
         $('#caseStudyPdfUrl').val(item.pdf_url || '');
 
         if (!caseStudyEditor) {
@@ -2663,6 +2674,19 @@ $(document).ready(function() {
     });
 
     $('#saveCaseStudyBtn').click(function() {
+        const $saveBtn = $('#saveCaseStudyBtn');
+        if ($saveBtn.prop('disabled')) {
+            return;
+        }
+
+        const setCaseStudySavingState = function(isSaving) {
+            $saveBtn.prop('disabled', isSaving);
+            $saveBtn.find('.btn-label').toggleClass('d-none', isSaving);
+            $saveBtn.find('.spinner-border').toggleClass('d-none', !isSaving);
+        };
+
+        setCaseStudySavingState(true);
+
         const id = $('#caseStudyId').val();
         const isEdit = id !== '';
         const formData = new FormData();
@@ -2673,6 +2697,7 @@ $(document).ready(function() {
             formData.append('id', id);
         }
         formData.append('category', $('#caseStudyCategory').val());
+        formData.append('title', $('#caseStudyTitle').val());
         formData.append('pdf_url', $('#caseStudyPdfUrl').val());
         formData.append('body', caseStudyEditor ? caseStudyEditor.getData() : $('#caseStudyBody').val());
 
@@ -2699,6 +2724,9 @@ $(document).ready(function() {
             },
             error: function(xhr) {
                 alert('Error saving case study: ' + (xhr.responseJSON?.message || 'Unknown error'));
+            },
+            complete: function() {
+                setCaseStudySavingState(false);
             }
         });
     });

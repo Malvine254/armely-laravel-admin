@@ -1233,7 +1233,9 @@
     <div class="container">
         <div class="owl-carousel portfolio-slider">
             @foreach($industryListings as $listing)
-                @php($fullCaseStudyTitle = trim(($listing->category ?? 'Case Study') . ' Transformation Solution'))
+                @php($baseCaseStudyTitle = trim((string) ($listing->title ?? '')))
+                @php($baseCaseStudyTitle = $baseCaseStudyTitle !== '' ? $baseCaseStudyTitle : (string) ($listing->category ?? 'Case Study'))
+                @php($fullCaseStudyTitle = trim($baseCaseStudyTitle . ' Solution'))
                 @php($cardCaseStudyTitle = \Illuminate\Support\Str::limit($fullCaseStudyTitle, 44, '...'))
                 <div class="single-pf">
                     <div class="card-wrapper">

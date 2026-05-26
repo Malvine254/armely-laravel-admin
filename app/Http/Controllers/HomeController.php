@@ -899,9 +899,15 @@ class HomeController extends Controller
     private function industryListings(?string &$dbErrorMessage = null)
     {
         return $this->safeDb(function () {
-            return DB::table('industry_listings')
+            $query = DB::table('industry_listings')
                 ->select('id', 'category', 'listing_image', 'body', 'pdf_url')
-                ->orderByDesc('id')
+                ->orderByDesc('id');
+
+            if (Schema::hasColumn('industry_listings', 'title')) {
+                $query->addSelect('title');
+            }
+
+            return $query
                 ->get()
                 ->map(function ($listing) {
                     $listing->image_path = $listing->listing_image ? asset('images/case-study/' . $listing->listing_image) : asset('images/default-image.png');
