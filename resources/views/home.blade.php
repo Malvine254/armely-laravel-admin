@@ -452,7 +452,7 @@
         margin-bottom: 0;
         flex-shrink: 0;
         line-height: 0;
-        padding: 18px;
+        padding: 10px;
     }
 
     .blog.section .blog-image-box::before {
@@ -497,8 +497,8 @@
     }
 
     .blog.section .blog-image-box img {
-        width: calc(100% - 12px);
-        height: calc(100% - 12px);
+        width: calc(100% - 6px);
+        height: calc(100% - 6px);
         object-fit: contain;
         object-position: center;
         transition: transform 0.45s ease, filter 0.45s ease;
@@ -719,7 +719,7 @@
             height: 250px;
             min-height: 250px;
             max-height: 250px;
-            padding: 14px;
+            padding: 8px;
         }
         .blog.section .blog-image-badge {
             top: 12px;
@@ -750,7 +750,7 @@
             height: 220px;
             min-height: 220px;
             max-height: 220px;
-            padding: 12px;
+            padding: 6px;
         }
         .blog.section .blog-image-badge {
             top: 10px;
