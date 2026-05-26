@@ -203,9 +203,6 @@
 	<div class="row">
 		<div class="col-lg-12">
 			<div class="section-header">
-				<div class="section-badge">
-					<i class="icofont-briefcase"></i> Case Studies
-				</div>
 				<h2 class="section-title">Success Stories</h2>
 				<p class="section-subtitle">Real transformation outcomes across industries, platforms, and teams.</p>
 				<div class="section-divider"></div>
@@ -255,47 +252,46 @@
 		@endforelse
 	</div>
 
-	<!-- Pagination for Case Studies -->
-	<div class="row mt-5">
-		<div class="col-12">
-			<nav class="pagination-nav" role="navigation" aria-label="Pagination Navigation">
-				<div class="pagination-container">
-					<!-- Previous Button -->
-					@if ($caseStudies->onFirstPage())
-						<span class="pagination-btn pagination-btn-disabled" disabled>
-							<i class="fa fa-chevron-left"></i> Previous
-						</span>
-					@else
-						<a href="{{ $caseStudies->previousPageUrl() }}" class="pagination-btn pagination-btn-prev">
-							<i class="fa fa-chevron-left"></i> Previous
-						</a>
-					@endif
+	@if ($caseStudies->hasPages())
+		<!-- Pagination for Case Studies -->
+		<div class="row mt-5">
+			<div class="col-12">
+				<nav class="pagination-nav" role="navigation" aria-label="Pagination Navigation">
+					<div class="pagination-container">
+						@if ($caseStudies->onFirstPage())
+							<span class="pagination-btn pagination-btn-disabled" aria-disabled="true">
+								<i class="fa fa-chevron-left"></i>
+							</span>
+						@else
+							<a href="{{ $caseStudies->previousPageUrl() }}" class="pagination-btn pagination-btn-prev" aria-label="Previous page">
+								<i class="fa fa-chevron-left"></i>
+							</a>
+						@endif
 
-					<!-- Page Numbers -->
-					<div class="pagination-numbers">
-						@foreach ($caseStudies->getUrlRange(1, $caseStudies->lastPage()) as $page => $url)
-							@if ($page == $caseStudies->currentPage())
-								<span class="pagination-number pagination-number-active">{{ $page }}</span>
-							@else
-								<a href="{{ $url }}" class="pagination-number">{{ $page }}</a>
-							@endif
-						@endforeach
+						<div class="pagination-numbers">
+							@foreach ($caseStudies->getUrlRange(1, $caseStudies->lastPage()) as $page => $url)
+								@if ($page == $caseStudies->currentPage())
+									<span class="pagination-number pagination-number-active" aria-current="page">{{ $page }}</span>
+								@else
+									<a href="{{ $url }}" class="pagination-number" aria-label="Go to page {{ $page }}">{{ $page }}</a>
+								@endif
+							@endforeach
+						</div>
+
+						@if ($caseStudies->hasMorePages())
+							<a href="{{ $caseStudies->nextPageUrl() }}" class="pagination-btn pagination-btn-next" aria-label="Next page">
+								<i class="fa fa-chevron-right"></i>
+							</a>
+						@else
+							<span class="pagination-btn pagination-btn-disabled" aria-disabled="true">
+								<i class="fa fa-chevron-right"></i>
+							</span>
+						@endif
 					</div>
-
-					<!-- Next Button -->
-					@if ($caseStudies->hasMorePages())
-						<a href="{{ $caseStudies->nextPageUrl() }}" class="pagination-btn pagination-btn-next">
-							Next <i class="fa fa-chevron-right"></i>
-						</a>
-					@else
-						<span class="pagination-btn pagination-btn-disabled" disabled>
-							Next <i class="fa fa-chevron-right"></i>
-						</span>
-					@endif
-				</div>
-			</nav>
+				</nav>
+			</div>
 		</div>
-	</div>
+	@endif
 </div>
 </section>
 
@@ -449,47 +445,46 @@
 		@endforelse
 	</div>
 
-	<!-- Pagination for White Papers -->
-	<div class="row mt-5">
-		<div class="col-12">
-			<nav class="pagination-nav" role="navigation" aria-label="Pagination Navigation">
-				<div class="pagination-container">
-					<!-- Previous Button -->
-					@if ($whitePapers->onFirstPage())
-						<span class="pagination-btn pagination-btn-disabled" disabled>
-							<i class="fa fa-chevron-left"></i> Previous
-						</span>
-					@else
-						<a href="{{ $whitePapers->previousPageUrl() }}" class="pagination-btn pagination-btn-prev">
-							<i class="fa fa-chevron-left"></i> Previous
-						</a>
-					@endif
+	@if ($whitePapers->hasPages())
+		<!-- Pagination for White Papers -->
+		<div class="row mt-5">
+			<div class="col-12">
+				<nav class="pagination-nav" role="navigation" aria-label="Pagination Navigation">
+					<div class="pagination-container">
+						@if ($whitePapers->onFirstPage())
+							<span class="pagination-btn pagination-btn-disabled" aria-disabled="true">
+								<i class="fa fa-chevron-left"></i>
+							</span>
+						@else
+							<a href="{{ $whitePapers->previousPageUrl() }}" class="pagination-btn pagination-btn-prev" aria-label="Previous page">
+								<i class="fa fa-chevron-left"></i>
+							</a>
+						@endif
 
-					<!-- Page Numbers -->
-					<div class="pagination-numbers">
-						@foreach ($whitePapers->getUrlRange(1, $whitePapers->lastPage()) as $page => $url)
-							@if ($page == $whitePapers->currentPage())
-								<span class="pagination-number pagination-number-active">{{ $page }}</span>
-							@else
-								<a href="{{ $url }}" class="pagination-number">{{ $page }}</a>
-							@endif
-						@endforeach
+						<div class="pagination-numbers">
+							@foreach ($whitePapers->getUrlRange(1, $whitePapers->lastPage()) as $page => $url)
+								@if ($page == $whitePapers->currentPage())
+									<span class="pagination-number pagination-number-active" aria-current="page">{{ $page }}</span>
+								@else
+									<a href="{{ $url }}" class="pagination-number" aria-label="Go to page {{ $page }}">{{ $page }}</a>
+								@endif
+							@endforeach
+						</div>
+
+						@if ($whitePapers->hasMorePages())
+							<a href="{{ $whitePapers->nextPageUrl() }}" class="pagination-btn pagination-btn-next" aria-label="Next page">
+								<i class="fa fa-chevron-right"></i>
+							</a>
+						@else
+							<span class="pagination-btn pagination-btn-disabled" aria-disabled="true">
+								<i class="fa fa-chevron-right"></i>
+							</span>
+						@endif
 					</div>
-
-					<!-- Next Button -->
-					@if ($whitePapers->hasMorePages())
-						<a href="{{ $whitePapers->nextPageUrl() }}" class="pagination-btn pagination-btn-next">
-							Next <i class="fa fa-chevron-right"></i>
-						</a>
-					@else
-						<span class="pagination-btn pagination-btn-disabled" disabled>
-							Next <i class="fa fa-chevron-right"></i>
-						</span>
-					@endif
-				</div>
-			</nav>
+				</nav>
+			</div>
 		</div>
-	</div>
+	@endif
 </div>
 </section>
 
