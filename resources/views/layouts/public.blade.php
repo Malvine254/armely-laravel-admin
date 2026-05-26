@@ -323,7 +323,7 @@
 }
 
 .header .armely-logo {
-    height: 84px;
+    height: 76px;
     width: auto;
     display: block;
 }
@@ -341,7 +341,7 @@
 
 @media (max-width: 1300px) {
     .header .armely-logo {
-        height: 72px;
+        height: 66px;
     }
 
     .header .armely-registered {
@@ -357,7 +357,7 @@
     }
 
     .header .armely-logo {
-        height: 62px;
+        height: 56px;
     }
 
     .header .armely-registered {
