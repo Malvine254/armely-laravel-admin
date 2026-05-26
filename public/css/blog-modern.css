@@ -101,18 +101,25 @@
     width: 200%;
     height: 200%;
     background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
-    animation: pulse 8s ease-in-out infinite;
+    border-radius: 18px 18px 0 0 !important;
+    background: linear-gradient(135deg, #0f172a 0%, #1e3a6d 45%, #d8e4fb 100%);
+    padding: 16px;
 }
 
 @keyframes pulse {
     0%, 100% {
         transform: scale(1) translate(-25%, -25%);
-        opacity: 0.5;
-    }
+    object-fit: contain;
+    object-position: center;
+    transition: transform 0.5s ease, filter 0.5s ease;
+    position: relative;
+    z-index: 1;
+    filter: drop-shadow(0 14px 26px rgba(15, 23, 42, 0.18));
     50% {
         transform: scale(1.1) translate(-25%, -25%);
         opacity: 0.8;
-    }
+    transform: scale(1.02);
+    filter: drop-shadow(0 18px 32px rgba(15, 23, 42, 0.2));
 }
 
 .blog-modern-page .default-blog-gradient .gradient-icon,
@@ -122,19 +129,48 @@
     color: rgba(255, 255, 255, 0.9);
     font-size: 5rem;
     animation: float 3s ease-in-out infinite;
+    background: linear-gradient(135deg, #0f172a 0%, #1e3a6d 45%, #d8e4fb 100%);
+    padding: 8px;
 }
 
 .blog-modern-page .sidebar-blog-image.no-image .default-blog-gradient i {
     font-size: 2rem;
 }
-
-@keyframes float {
+    object-fit: contain;
+    object-position: center;
+    transition: transform 0.3s ease, filter 0.3s ease;
+    position: relative;
+    z-index: 1;
+    filter: drop-shadow(0 10px 18px rgba(15, 23, 42, 0.12));
     0%, 100% {
         transform: translateY(0);
     }
-    50% {
+    transform: scale(1.03);
+    filter: drop-shadow(0 12px 20px rgba(15, 23, 42, 0.16));
         transform: translateY(-10px);
     }
+.blog-modern-page .blog-image-wrapper::before,
+.blog-modern-page .sidebar-blog-image::before {
+    content: '';
+    position: absolute;
+    inset: -20px;
+    background-image: var(--blog-feature-image);
+    background-size: cover;
+    background-position: center;
+    filter: blur(24px) saturate(1.1);
+    transform: scale(1.15);
+    opacity: 0.24;
+    pointer-events: none;
+}
+
+.blog-modern-page .blog-image-wrapper::after,
+.blog-modern-page .sidebar-blog-image::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.06) 0%, rgba(15, 23, 42, 0.18) 100%);
+    pointer-events: none;
+}
 }
 
 .blog-modern-page .gradient-icon i {

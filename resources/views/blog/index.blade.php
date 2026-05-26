@@ -69,7 +69,7 @@ if (!function_exists('armely_blog_clean_html')) {
 					@if($main)
 						<div class="modern-blog-card">
 							<!-- Blog Image -->
-							<div class="blog-image-wrapper {{ !$main->image_path ? 'no-image' : '' }}">
+							<div class="blog-image-wrapper {{ !$main->image_path ? 'no-image' : '' }}" style="{{ $main->image_path ? '--blog-feature-image: url(' . e(asset($main->image_path)) . ');' : '' }}">
 								@if($main->image_path)
 									<img src="{{ asset($main->image_path) }}" alt="{{ $main->title }}">
 								@else
@@ -169,7 +169,7 @@ if (!function_exists('armely_blog_clean_html')) {
 						<div class="recent-posts-list">
 							@forelse($recent as $blog)
 								<a href="{{ route('blog.index', ['blogId' => $blog->blog_id]) }}" class="sidebar-blog-card data-item">
-									<div class="sidebar-blog-image {{ !$blog->image_path ? 'no-image' : '' }}">
+									<div class="sidebar-blog-image {{ !$blog->image_path ? 'no-image' : '' }}" style="{{ $blog->image_path ? '--blog-feature-image: url(' . e(asset($blog->image_path)) . ');' : '' }}">
 										@if($blog->image_path)
 											<img src="{{ asset($blog->image_path) }}" alt="{{ $blog->title }}">
 										@else
