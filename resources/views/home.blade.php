@@ -1176,6 +1176,7 @@
                     <a href="/services#consultation-form" class="btn">Get Appointment</a>
                 </div>
             </div></div></div></div>
+        </div>
         <div class="single-slider" style="background-image:url('{{ asset('images/sliders/slider-2.webp') }}')">
             <div class="container"><div class="row"><div class="col-lg-7"><div class="text">
                 <h1><span class="text-light"> We Provide AI Services That You Can Trust!</span></h1>
@@ -1183,16 +1184,6 @@
                 <div class="button">
                     <a href="/services#consultation-form" class="btn">Get Appointment</a>
                     <a href="/company" class="btn primary">About Us</a>
-                </div>
-            </div></div></div></div>
-        </div>
-                                <a href="{{ route('blog.index', ['blogId' => $blog->blog_id]) }}" title="{{ $blogFullTitle }}">{{ $blogFullTitle }}</a>
-            <div class="container"><div class="row"><div class="col-lg-7"><div class="text">
-                            <p class="blog-snippet" title="{{ $blogFullSnippet }}">{{ $blog->preview ?? '' }}</p>
-                <p class="text-light">Beyond Imagination</p>
-                <div class="button">
-                    <a href="/services#consultation-form" class="btn">Get Appointment</a>
-                    <a href="/contact" class="btn primary">Contact Us</a>
                 </div>
             </div></div></div></div>
         </div>
