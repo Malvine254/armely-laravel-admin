@@ -853,6 +853,7 @@ class TablesController extends Controller
             'title' => ['required', 'string', 'max:255'],
             'body' => ['nullable', 'string'],
             'white_paper_image' => ['nullable', 'image', 'max:5120'],
+            'existing_image' => ['nullable', 'string', 'max:2048'],
             'pdf' => ['nullable', 'mimes:pdf', 'max:20480'],
             'pdf_url' => ['nullable', 'string', 'max:2048'],
         ]);
@@ -872,6 +873,8 @@ class TablesController extends Controller
             $filename = time() . '_' . Str::slug(pathinfo($image->getClientOriginalName(), PATHINFO_FILENAME)) . '.' . $image->getClientOriginalExtension();
             $image->move(public_path('images/white-papers'), $filename);
             $data[$imageColumn] = $filename;
+        } elseif ($imageColumn && $request->filled('existing_image')) {
+            $data[$imageColumn] = trim((string) $validated['existing_image']);
         }
 
         if ($request->hasFile('pdf') && $pdfColumn) {

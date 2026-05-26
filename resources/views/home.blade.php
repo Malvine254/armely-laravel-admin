@@ -419,8 +419,8 @@
     }
 
     .blog.section .blog-card-wrapper {
-        background: #fff;
-        border-radius: 18px;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+        border-radius: 22px;
         overflow: hidden;
         box-shadow: 0 18px 44px rgba(15, 23, 42, 0.08);
         transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
@@ -428,30 +428,31 @@
         display: flex;
         flex-direction: column;
         margin-bottom: 0;
-        border: 1px solid rgba(47, 85, 151, 0.08);
+        border: 1px solid rgba(47, 85, 151, 0.1);
         text-align: left;
     }
 
     .blog.section .blog-card-wrapper:hover {
-        transform: translateY(-6px);
+        transform: translateY(-8px);
         border-color: rgba(47, 85, 151, 0.18);
-        box-shadow: 0 24px 54px rgba(15, 23, 42, 0.12);
+        box-shadow: 0 28px 60px rgba(15, 23, 42, 0.14);
     }
 
     .blog.section .blog-image-box {
         position: relative;
-        height: 230px;
-        min-height: 230px;
-        max-height: 230px;
-        aspect-ratio: 16 / 9;
+        height: 260px;
+        min-height: 260px;
+        max-height: 260px;
+        aspect-ratio: auto;
         overflow: hidden;
-        background: #e8eef7;
+        background: linear-gradient(135deg, #eef4ff 0%, #dde8fb 100%);
         display: flex;
         align-items: center;
         justify-content: center;
         margin-bottom: 0;
         flex-shrink: 0;
         line-height: 0;
+        padding: 14px;
     }
 
     .blog.section .blog-image-box::after {
@@ -465,7 +466,7 @@
     .blog.section .blog-image-box img {
         width: 100%;
         height: 100%;
-        object-fit: cover;
+        object-fit: contain;
         object-position: center;
         transition: transform 0.45s ease;
         transform: scale(1);
@@ -476,7 +477,7 @@
     }
 
     .blog.section .blog-card-wrapper:hover .blog-image-box img {
-        transform: scale(1.04);
+        transform: scale(1.02);
     }
 
     /* title overlay inside image */
@@ -507,6 +508,7 @@
         flex-direction: column;
         align-items: flex-start;
         text-align: left;
+        position: relative;
     }
 
     .blog.section .blog-author-info {
@@ -573,6 +575,30 @@
         letter-spacing: 0;
     }
 
+    .blog.section .blog-content::after {
+        content: attr(data-full-details);
+        white-space: pre-line;
+        position: absolute;
+        inset: 16px;
+        padding: 14px;
+        border-radius: 14px;
+        background: rgba(15, 23, 42, 0.95);
+        color: #f8fbff;
+        font-size: 0.9rem;
+        line-height: 1.5;
+        opacity: 0;
+        transform: translateY(6px);
+        pointer-events: none;
+        z-index: 4;
+        box-shadow: 0 18px 40px rgba(2, 8, 23, 0.35);
+        transition: opacity 0.18s ease, transform 0.18s ease;
+    }
+
+    .blog.section .blog-card-wrapper:hover .blog-content::after {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
     .blog.section .blog-title a,
     .blog.section .blog-snippet,
     .blog.section .blog-author-info,
@@ -592,6 +618,11 @@
         -webkit-box-orient: vertical;
         overflow: hidden;
         min-height: 4.65em;
+    }
+
+    .blog.section .blog-title[title],
+    .blog.section .blog-snippet[title] {
+        cursor: help;
     }
 
     .blog.section .blog-card-wrapper:hover .blog-title {
@@ -648,9 +679,10 @@
         .blog.section .blog-card-wrapper { margin-bottom: 0; }
         .blog.section .blog-title { font-size: 1.15rem; min-height: auto; }
         .blog.section .blog-image-box {
-            height: 210px;
-            min-height: 210px;
-            max-height: 210px;
+            height: 230px;
+            min-height: 230px;
+            max-height: 230px;
+            padding: 12px;
         }
         .blog.section .blog-content {
             padding: 16px 18px 18px;
@@ -672,9 +704,10 @@
     @media (max-width: 480px) {
         .blog.section { padding: 40px 0; }
         .blog.section .blog-image-box {
-            height: 185px;
-            min-height: 185px;
-            max-height: 185px;
+            height: 205px;
+            min-height: 205px;
+            max-height: 205px;
+            padding: 10px;
         }
         .blog.section .blog-title { font-size: 1.05rem; min-height: auto; }
         .blog.section .blog-snippet { font-size: 0.88rem; -webkit-line-clamp: 2; min-height: auto; }
@@ -1136,15 +1169,18 @@
 <section class="slider">
     <div class="hero-slider">
         <div class="single-slider" style="background-image:url('{{ asset('images/sliders/slider-1.webp') }}')" role="img" aria-label="Digital Excellence Banner">
+                @php($blogFullTitle = trim(strip_tags((string) ($blog->title ?? 'Blog Article'))))
+                @php($blogFullSnippet = trim(preg_replace('/\s+/', ' ', strip_tags((string) ($blog->preview ?? '')))))
+                @php($blogFullDetails = trim($blogFullTitle . "\n" . ($blogFullSnippet !== '' ? $blogFullSnippet : '')))
             <div class="container"><div class="row"><div class="col-lg-7"><div class="text">
                 <h1><span class="text-light">Your Trusted Source For Digital Excellence</span></h1>
                 <p class="text-light">Beyond Imagination</p>
                 <div class="button">
                     <a href="/services#consultation-form" class="btn">Get Appointment</a>
-                    <a href="/company" class="btn primary">Learn More</a>
+                                 alt="{{ $blogFullTitle }}"
                 </div>
             </div></div></div></div>
-        </div>
+                        <div class="blog-content" data-full-details="{{ $blogFullDetails }}">
         <div class="single-slider" style="background-image:url('{{ asset('images/sliders/slider-2.webp') }}')">
             <div class="container"><div class="row"><div class="col-lg-7"><div class="text">
                 <h1><span class="text-light"> We Provide AI Services That You Can Trust!</span></h1>
@@ -1155,9 +1191,9 @@
                 </div>
             </div></div></div></div>
         </div>
-        <div class="single-slider" style="background-image:url('{{ asset('images/sliders/slider-3.webp') }}')">
+                                <a href="{{ route('blog.index', ['blogId' => $blog->blog_id]) }}" title="{{ $blogFullTitle }}">{{ $blogFullTitle }}</a>
             <div class="container"><div class="row"><div class="col-lg-7"><div class="text">
-                <h1><span class="text-light">We Provide Data Services That You Can Trust!</span></h1>
+                            <p class="blog-snippet" title="{{ $blogFullSnippet }}">{{ $blog->preview ?? '' }}</p>
                 <p class="text-light">Beyond Imagination</p>
                 <div class="button">
                     <a href="/services#consultation-form" class="btn">Get Appointment</a>
