@@ -30,6 +30,17 @@ class TablesController extends Controller
         return self::$columnExists[$key] ??= Schema::hasColumn($table, $column);
     }
 
+    private function firstExistingColumn(string $table, array $columns): ?string
+    {
+        foreach ($columns as $column) {
+            if ($this->columnExists($table, $column)) {
+                return $column;
+            }
+        }
+
+        return null;
+    }
+
     public function index()
     {
         $blogTable = $this->tableExists('blog') ? 'blog' : ($this->tableExists('blogs') ? 'blogs' : null);
@@ -47,9 +58,7 @@ class TablesController extends Controller
         $customerStoriesTable = $this->tableExists('customer_stories') ? 'customer_stories' : ($this->tableExists('customer_story') ? 'customer_story' : null);
         $customerStories = $customerStoriesTable ? DB::table($customerStoriesTable)->orderBy('id', 'desc')->limit(50)->get() : collect();
 
-        $caseStudies = $this->tableExists('industry_listings')
-            ? DB::table('industry_listings')->orderBy('id', 'desc')->limit(50)->get()
-            : collect();
+        $caseStudies = $this->listCaseStudyResources(50);
 
         $eventsTable = $this->tableExists('events') ? 'events' : ($this->tableExists('event') ? 'event' : null);
         $events = $eventsTable ? DB::table($eventsTable)->orderBy('id', 'desc')->limit(50)->get() : collect();
@@ -198,12 +207,74 @@ class TablesController extends Controller
         $limit = (int) $request->query('limit', 50);
         $limit = max(1, min($limit, 500));
 
-        if (!$this->tableExists('industry_listings')) {
-            return response()->json(['success' => true, 'data' => [], 'limit' => $limit]);
+        $caseStudies = $this->listCaseStudyResources($limit);
+        return response()->json(['success' => true, 'data' => $caseStudies, 'limit' => $limit]);
+    }
+
+    private function listCaseStudyResources(int $limit)
+    {
+        $items = collect();
+
+        if ($this->tableExists('industry_listings')) {
+            $caseStudyQuery = DB::table('industry_listings')
+                ->select('id', 'category', 'body', 'listing_image', 'pdf_url')
+                ->orderBy('id', 'desc')
+                ->limit($limit);
+
+            if ($this->columnExists('industry_listings', 'title')) {
+                $caseStudyQuery->addSelect('title');
+            }
+
+            if ($this->columnExists('industry_listings', 'created_at')) {
+                $caseStudyQuery->addSelect('created_at');
+            }
+
+            $caseStudies = $caseStudyQuery->get()->map(function ($item) {
+                $item->resource_type = 'case_study';
+                return $item;
+            });
+
+            $items = $items->concat($caseStudies);
         }
 
-        $caseStudies = DB::table('industry_listings')->orderBy('id', 'desc')->limit($limit)->get();
-        return response()->json(['success' => true, 'data' => $caseStudies, 'limit' => $limit]);
+        if ($this->tableExists('white_paper')) {
+            $titleColumn = $this->firstExistingColumn('white_paper', ['title']);
+            $bodyColumn = $this->firstExistingColumn('white_paper', ['body', 'description', 'content']);
+            $imageColumn = $this->firstExistingColumn('white_paper', ['images', 'image', 'image_path']);
+            $pdfColumn = $this->firstExistingColumn('white_paper', ['pdf', 'pdf_url']);
+
+            $whitePaperQuery = DB::table('white_paper')
+                ->select('id')
+                ->orderBy('id', 'desc')
+                ->limit($limit);
+
+            $whitePaperQuery->selectRaw(($titleColumn ? $titleColumn : 'NULL') . ' as title');
+            $whitePaperQuery->selectRaw(($bodyColumn ? $bodyColumn : 'NULL') . ' as body');
+            $whitePaperQuery->selectRaw(($imageColumn ? $imageColumn : 'NULL') . ' as listing_image');
+            $whitePaperQuery->selectRaw(($pdfColumn ? $pdfColumn : 'NULL') . ' as pdf_url');
+            $whitePaperQuery->selectRaw('NULL as category');
+
+            if ($this->columnExists('white_paper', 'created_at')) {
+                $whitePaperQuery->addSelect('created_at');
+            } else {
+                $whitePaperQuery->selectRaw('NULL as created_at');
+            }
+
+            $whitePapers = $whitePaperQuery->get()->map(function ($item) {
+                $item->resource_type = 'white_paper';
+                return $item;
+            });
+
+            $items = $items->concat($whitePapers);
+        }
+
+        return $items
+            ->sortByDesc(function ($item) {
+                $createdAt = isset($item->created_at) ? strtotime((string) $item->created_at) : 0;
+                return $createdAt > 0 ? $createdAt : (int) ($item->id ?? 0);
+            })
+            ->take($limit)
+            ->values();
     }
     
     public function listEvents(Request $request)
@@ -750,6 +821,71 @@ class TablesController extends Controller
         DB::table('industry_listings')->where('id', $id)->delete();
         ActivityLogger::log('delete', 'CaseStudy', $id, 'Deleted case study #' . $id);
         return response()->json(['success' => true, 'message' => 'Case study deleted successfully']);
+    }
+
+    public function storeOrUpdateWhitePaper(Request $request)
+    {
+        if (!$this->tableExists('white_paper')) {
+            return response()->json(['success' => false, 'message' => 'White papers table is not available.'], 422);
+        }
+
+        $validated = $request->validate([
+            'id' => ['nullable', 'integer'],
+            'title' => ['required', 'string', 'max:255'],
+            'body' => ['nullable', 'string'],
+            'white_paper_image' => ['nullable', 'image', 'max:5120'],
+            'pdf' => ['nullable', 'mimes:pdf', 'max:20480'],
+            'pdf_url' => ['nullable', 'string', 'max:2048'],
+        ]);
+
+        $titleColumn = $this->firstExistingColumn('white_paper', ['title']) ?? 'title';
+        $bodyColumn = $this->firstExistingColumn('white_paper', ['body', 'description', 'content']) ?? 'body';
+        $imageColumn = $this->firstExistingColumn('white_paper', ['images', 'image', 'image_path']);
+        $pdfColumn = $this->firstExistingColumn('white_paper', ['pdf', 'pdf_url']);
+
+        $data = [
+            $titleColumn => $validated['title'],
+            $bodyColumn => $validated['body'] ?? '',
+        ];
+
+        if ($request->hasFile('white_paper_image') && $imageColumn) {
+            $image = $request->file('white_paper_image');
+            $filename = time() . '_' . Str::slug(pathinfo($image->getClientOriginalName(), PATHINFO_FILENAME)) . '.' . $image->getClientOriginalExtension();
+            $image->move(public_path('images/white-papers'), $filename);
+            $data[$imageColumn] = $filename;
+        }
+
+        if ($request->hasFile('pdf') && $pdfColumn) {
+            $pdf = $request->file('pdf');
+            $filename = time() . '_' . Str::slug(pathinfo($pdf->getClientOriginalName(), PATHINFO_FILENAME)) . '.pdf';
+            $pdf->move(public_path('white_paper_docs'), $filename);
+            $data[$pdfColumn] = $filename;
+        } elseif ($request->filled('pdf_url') && $pdfColumn) {
+            $data[$pdfColumn] = trim((string) $validated['pdf_url']);
+        }
+
+        if ($request->has('id') && $request->id) {
+            DB::table('white_paper')->where('id', $request->id)->update($data);
+            $whitePaper = DB::table('white_paper')->where('id', $request->id)->first();
+            ActivityLogger::log('update', 'WhitePaper', $request->id, 'Updated white paper ' . ((string) ($whitePaper->{$titleColumn} ?? '')));
+            return response()->json(['success' => true, 'message' => 'White paper updated successfully', 'data' => $whitePaper]);
+        }
+
+        $id = DB::table('white_paper')->insertGetId($data);
+        $whitePaper = DB::table('white_paper')->where('id', $id)->first();
+        ActivityLogger::log('create', 'WhitePaper', $id, 'Created white paper ' . ((string) ($whitePaper->{$titleColumn} ?? '')));
+        return response()->json(['success' => true, 'message' => 'White paper created successfully', 'data' => $whitePaper]);
+    }
+
+    public function deleteWhitePaper($id)
+    {
+        if (!$this->tableExists('white_paper')) {
+            return response()->json(['success' => false, 'message' => 'White papers table is not available.'], 422);
+        }
+
+        DB::table('white_paper')->where('id', $id)->delete();
+        ActivityLogger::log('delete', 'WhitePaper', $id, 'Deleted white paper #' . $id);
+        return response()->json(['success' => true, 'message' => 'White paper deleted successfully']);
     }
     
     // Image Upload Handler (for CKEditor)

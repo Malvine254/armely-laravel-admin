@@ -790,15 +790,16 @@
         <div class="tab-pane fade" id="case-studies" role="tabpanel">
             <div class="card-body">
                 <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#caseStudyModal" onclick="resetCaseStudyForm()">
-                    <i class="fas fa-plus"></i> Add New Case Study
+                    <i class="fas fa-plus"></i> Add New Resource
                 </button>
 
                 <div class="table-responsive">
                     <table class="table table-hover" id="caseStudiesDataTable">
                         <thead>
                             <tr>
+                                <th>Type</th>
                                 <th>Industry Type</th>
-                                <th>Case Study Title</th>
+                                <th>Title</th>
                                 <th>Image</th>
                                 <th>PDF</th>
                                 <th>Summary</th>
@@ -808,18 +809,27 @@
                         <tbody id="caseStudiesTable">
                             @forelse(($caseStudies ?? collect()) as $caseStudy)
                             <tr data-id="{{ $caseStudy->id }}">
-                                <td>{{ $caseStudy->category ?? 'N/A' }}</td>
+                                @php($resourceType = $caseStudy->resource_type ?? 'case_study')
+                                @php($isWhitePaper = $resourceType === 'white_paper')
+                                <td>
+                                    <span class="badge {{ $isWhitePaper ? 'bg-secondary' : 'bg-primary' }}">
+                                        {{ $isWhitePaper ? 'White Paper' : 'Case Study' }}
+                                    </span>
+                                </td>
+                                <td>{{ $isWhitePaper ? 'N/A' : ($caseStudy->category ?? 'N/A') }}</td>
                                 <td>{{ $caseStudy->title ?? ($caseStudy->category ?? 'N/A') }}</td>
                                 <td>
                                     @if(!empty($caseStudy->listing_image))
-                                        <img src="{{ asset('images/case-study/' . $caseStudy->listing_image) }}" alt="{{ $caseStudy->category ?? 'Case Study' }}" style="width: 48px; height: 36px; object-fit: cover; border-radius: 6px;">
+                                        @php($imageBase = $isWhitePaper ? asset('images/white-papers') : asset('images/case-study'))
+                                        <img src="{{ $imageBase . '/' . $caseStudy->listing_image }}" alt="{{ $caseStudy->title ?? $caseStudy->category ?? 'Resource' }}" style="width: 48px; height: 36px; object-fit: cover; border-radius: 6px;">
                                     @else
                                         <span class="text-muted">N/A</span>
                                     @endif
                                 </td>
                                 <td>
                                     @if(!empty($caseStudy->pdf_url))
-                                        @php($casePdfUrl = str_starts_with($caseStudy->pdf_url, 'http') ? $caseStudy->pdf_url : url('case_docs/' . $caseStudy->pdf_url))
+                                        @php($pdfFolder = $isWhitePaper ? 'white_paper_docs' : 'case_docs')
+                                        @php($casePdfUrl = str_starts_with($caseStudy->pdf_url, 'http') ? $caseStudy->pdf_url : url($pdfFolder . '/' . $caseStudy->pdf_url))
                                         <a href="{{ $casePdfUrl }}" target="_blank" class="btn btn-sm btn-outline-primary" title="Preview PDF"><i class="fas fa-file-pdf"></i></a>
                                     @else
                                         <span class="text-muted">N/A</span>
@@ -834,14 +844,14 @@
                                         <button class="btn btn-sm btn-warning edit-case-study" data-case-study='@json($caseStudy)' title="Edit">
                                             <i class="fas fa-edit"></i>
                                         </button>
-                                        <button class="btn btn-sm btn-danger delete-case-study" data-id="{{ $caseStudy->id }}" title="Delete">
+                                        <button class="btn btn-sm btn-danger delete-case-study" data-id="{{ $caseStudy->id }}" data-type="{{ $resourceType }}" title="Delete">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </div>
                                 </td>
                             </tr>
                             @empty
-                            <tr><td colspan="6" class="text-center text-muted">No case studies yet. Add one!</td></tr>
+                            <tr><td colspan="7" class="text-center text-muted">No resources yet. Add one!</td></tr>
                             @endforelse
                         </tbody>
                     </table>
@@ -1222,30 +1232,44 @@
                 <form id="caseStudyForm" enctype="multipart/form-data">
                     @csrf
                     <input type="hidden" id="caseStudyId" name="id">
+                    <input type="hidden" id="caseStudyMode" value="create">
 
                     <div class="row g-3">
-                        <div class="col-md-6">
+                        <div class="col-12">
+                            <label class="form-label d-block">Resource Type *</label>
+                            <div class="d-flex gap-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="resource_type" id="resourceTypeCaseStudy" value="case_study" checked>
+                                    <label class="form-check-label" for="resourceTypeCaseStudy">Case Study</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="resource_type" id="resourceTypeWhitePaper" value="white_paper">
+                                    <label class="form-check-label" for="resourceTypeWhitePaper">White Paper</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6" id="caseStudyCategoryGroup">
                             <label for="caseStudyCategory" class="form-label">Industry Type *</label>
                             <input type="text" class="form-control" id="caseStudyCategory" name="category" required placeholder="e.g. Transportation">
                         </div>
                         <div class="col-md-6">
-                            <label for="caseStudyTitle" class="form-label">Case Study Title *</label>
+                            <label for="caseStudyTitle" class="form-label" id="caseStudyTitleLabel">Case Study Title *</label>
                             <input type="text" class="form-control" id="caseStudyTitle" name="title" required placeholder="e.g. SmartWay Transportation">
                         </div>
                         <div class="col-md-6">
                             <label for="caseStudyPdfUrl" class="form-label">Existing PDF Filename or URL</label>
                             <input type="text" class="form-control" id="caseStudyPdfUrl" name="pdf_url" placeholder="case-study.pdf or https://...">
-                            <small class="text-muted">Upload a new PDF below to replace this value.</small>
+                            <small class="text-muted" id="caseStudyPdfHelp">Upload a new PDF below to replace this value.</small>
                         </div>
                         <div class="col-md-6">
-                            <label for="caseStudyImage" class="form-label">Listing Image</label>
+                            <label for="caseStudyImage" class="form-label" id="caseStudyImageLabel">Listing Image</label>
                             <input type="file" class="form-control" id="caseStudyImage" name="listing_image" accept="image/*">
-                            <small class="text-muted">Saved to public/images/case-study.</small>
+                            <small class="text-muted" id="caseStudyImageHelp">Saved to public/images/case-study.</small>
                         </div>
                         <div class="col-md-6">
                             <label for="caseStudyPdf" class="form-label">PDF</label>
                             <input type="file" class="form-control" id="caseStudyPdf" name="pdf" accept="application/pdf,.pdf">
-                            <small class="text-muted">Saved to public/case_docs.</small>
+                            <small class="text-muted" id="caseStudyPdfPathHelp">Saved to public/case_docs.</small>
                         </div>
                         <div class="col-12">
                             <label for="caseStudyBody" class="form-label">Summary / Body</label>
@@ -1948,18 +1972,20 @@ $(document).ready(function() {
         return String(value ?? '').replace(/<[^>]*>/g, '');
     }
 
-    function caseStudyPdfUrl(pdfValue) {
+    function caseStudyPdfUrl(pdfValue, item = {}) {
         const value = String(pdfValue || '').trim();
         if (!value) return '';
         if (/^https?:\/\//i.test(value)) return value;
-        return `{{ url('case_docs') }}/${encodeURIComponent(value)}`;
+        const basePath = item.resource_type === 'white_paper' ? `{{ url('white_paper_docs') }}` : `{{ url('case_docs') }}`;
+        return `${basePath}/${encodeURIComponent(value)}`;
     }
 
-    function caseStudyImageUrl(imageValue) {
+    function caseStudyImageUrl(imageValue, item = {}) {
         const value = String(imageValue || '').trim();
         if (!value) return '';
         if (/^https?:\/\//i.test(value)) return value;
-        return `{{ asset('images/case-study') }}/${encodeURIComponent(value)}`;
+        const basePath = item.resource_type === 'white_paper' ? `{{ asset('images/white-papers') }}` : `{{ asset('images/case-study') }}`;
+        return `${basePath}/${encodeURIComponent(value)}`;
     }
 
     function reloadCaseStudiesTable() {
@@ -1972,10 +1998,14 @@ $(document).ready(function() {
 
                 if (response.data && Array.isArray(response.data) && response.data.length > 0) {
                     response.data.forEach(function(item) {
+                        const isWhitePaper = item.resource_type === 'white_paper';
+                        const typeBadge = isWhitePaper
+                            ? '<span class="badge bg-secondary">White Paper</span>'
+                            : '<span class="badge bg-primary">Case Study</span>';
                         const imageHtml = item.listing_image
-                            ? `<img src="${caseStudyImageUrl(item.listing_image)}" alt="${escapeHtml(item.category || 'Case Study')}" style="width:48px;height:36px;object-fit:cover;border-radius:6px;">`
+                            ? `<img src="${caseStudyImageUrl(item.listing_image, item)}" alt="${escapeHtml(item.title || item.category || 'Resource')}" style="width:48px;height:36px;object-fit:cover;border-radius:6px;">`
                             : '<span class="text-muted">N/A</span>';
-                        const pdfUrl = caseStudyPdfUrl(item.pdf_url);
+                        const pdfUrl = caseStudyPdfUrl(item.pdf_url, item);
                         const pdfHtml = pdfUrl
                             ? `<a href="${pdfUrl}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary" title="Preview PDF"><i class="fas fa-file-pdf"></i></a>`
                             : '<span class="text-muted">N/A</span>';
@@ -1983,11 +2013,12 @@ $(document).ready(function() {
                             <div class="action-btns">
                                 <button class="btn btn-sm btn-info view-case-study" data-case-study='${JSON.stringify(item).replace(/'/g, "&apos;")}' title="View"><i class="fas fa-eye"></i></button>
                                 <button class="btn btn-sm btn-warning edit-case-study" data-case-study='${JSON.stringify(item).replace(/'/g, "&apos;")}' title="Edit"><i class="fas fa-edit"></i></button>
-                                <button class="btn btn-sm btn-danger delete-case-study" data-id="${item.id}" title="Delete"><i class="fas fa-trash"></i></button>
+                                <button class="btn btn-sm btn-danger delete-case-study" data-id="${item.id}" data-type="${item.resource_type || 'case_study'}" title="Delete"><i class="fas fa-trash"></i></button>
                             </div>`;
                         const summary = stripTags(item.body || '').slice(0, 90);
                         tbody.append(`<tr data-id="${item.id}">
-                            <td>${escapeHtml(item.category || 'N/A')}</td>
+                            <td>${typeBadge}</td>
+                            <td>${isWhitePaper ? 'N/A' : escapeHtml(item.category || 'N/A')}</td>
                             <td>${escapeHtml(item.title || item.category || 'N/A')}</td>
                             <td>${imageHtml}</td>
                             <td>${pdfHtml}</td>
@@ -1996,7 +2027,7 @@ $(document).ready(function() {
                         </tr>`);
                     });
                 } else {
-                    tbody.html('<tr><td colspan="6" class="text-center text-muted">No case studies yet. Add one!</td></tr>');
+                    tbody.html('<tr><td colspan="7" class="text-center text-muted">No resources yet. Add one!</td></tr>');
                 }
             },
             error: function(xhr) {
@@ -2619,14 +2650,47 @@ $(document).ready(function() {
     // === CASE STUDY HANDLERS ===
     let caseStudyEditor;
 
+    function getSelectedResourceType() {
+        return $('input[name="resource_type"]:checked').val() || 'case_study';
+    }
+
+    function applyCaseStudyResourceTypeUI() {
+        const resourceType = getSelectedResourceType();
+        const isWhitePaper = resourceType === 'white_paper';
+        const isEditMode = $('#caseStudyMode').val() === 'edit';
+
+        $('#caseStudyCategoryGroup').toggleClass('d-none', isWhitePaper);
+        $('#caseStudyCategory').prop('required', !isWhitePaper);
+        $('#caseStudyTitleLabel').text(isWhitePaper ? 'White Paper Title *' : 'Case Study Title *');
+        $('#caseStudyImageLabel').text(isWhitePaper ? 'White Paper Image' : 'Listing Image');
+        $('#caseStudyImageHelp').text(isWhitePaper ? 'Saved to public/images/white-papers.' : 'Saved to public/images/case-study.');
+        $('#caseStudyPdfPathHelp').text(isWhitePaper ? 'Saved to public/white_paper_docs.' : 'Saved to public/case_docs.');
+
+        if (!isEditMode) {
+            $('#caseStudyModalTitle').text(isWhitePaper ? 'Add New White Paper' : 'Add New Case Study');
+            $('#saveCaseStudyBtn .btn-label').html(isWhitePaper
+                ? '<i class="fas fa-save me-2"></i>Save White Paper'
+                : '<i class="fas fa-save me-2"></i>Save Case Study');
+        } else {
+            $('#saveCaseStudyBtn .btn-label').html(isWhitePaper
+                ? '<i class="fas fa-save me-2"></i>Update White Paper'
+                : '<i class="fas fa-save me-2"></i>Update Case Study');
+        }
+    }
+
     window.resetCaseStudyForm = function() {
+        $('#caseStudyMode').val('create');
         $('#caseStudyModalTitle').text('Add New Case Study');
         $('#caseStudyForm')[0].reset();
         $('#caseStudyId').val('');
+        $('#resourceTypeCaseStudy').prop('checked', true);
+        applyCaseStudyResourceTypeUI();
         if (caseStudyEditor) {
             caseStudyEditor.setData('');
         }
     };
+
+    $('input[name="resource_type"]').on('change', applyCaseStudyResourceTypeUI);
 
     $('[data-bs-target="#caseStudyModal"]').click(function() {
         if (!caseStudyEditor) {
@@ -2636,18 +2700,21 @@ $(document).ready(function() {
 
     $(document).on('click', '.view-case-study', function() {
         const item = $(this).data('case-study');
-        $('#viewCaseStudyCategory').text(item.category || 'Case Study');
+        const isWhitePaper = item.resource_type === 'white_paper';
+        const typeLabel = isWhitePaper ? 'White Paper' : 'Case Study';
+        const headerText = item.title || item.category || typeLabel;
+        $('#viewCaseStudyCategory').text(`${typeLabel}: ${headerText}`);
         $('#viewCaseStudyBody').html(item.body || '');
 
-        const imageUrl = caseStudyImageUrl(item.listing_image);
+        const imageUrl = caseStudyImageUrl(item.listing_image, item);
         if (imageUrl) {
-            $('#viewCaseStudyImage').attr('src', imageUrl).attr('alt', item.category || 'Case Study');
+            $('#viewCaseStudyImage').attr('src', imageUrl).attr('alt', item.title || item.category || typeLabel);
             $('#viewCaseStudyImageWrap').removeClass('d-none');
         } else {
             $('#viewCaseStudyImageWrap').addClass('d-none');
         }
 
-        const pdfUrl = caseStudyPdfUrl(item.pdf_url);
+        const pdfUrl = caseStudyPdfUrl(item.pdf_url, item);
         if (pdfUrl) {
             $('#viewCaseStudyPdf').attr('href', pdfUrl).removeClass('d-none');
         } else {
@@ -2659,11 +2726,20 @@ $(document).ready(function() {
 
     $(document).on('click', '.edit-case-study', function() {
         const item = $(this).data('case-study');
-        $('#caseStudyModalTitle').text('Edit Case Study');
+        const resourceType = item.resource_type || 'case_study';
+        const isWhitePaper = resourceType === 'white_paper';
+        $('#caseStudyMode').val('edit');
+        $('#caseStudyModalTitle').text(isWhitePaper ? 'Edit White Paper' : 'Edit Case Study');
         $('#caseStudyId').val(item.id || '');
         $('#caseStudyCategory').val(item.category || '');
         $('#caseStudyTitle').val(item.title || '');
         $('#caseStudyPdfUrl').val(item.pdf_url || '');
+        if (isWhitePaper) {
+            $('#resourceTypeWhitePaper').prop('checked', true);
+        } else {
+            $('#resourceTypeCaseStudy').prop('checked', true);
+        }
+        applyCaseStudyResourceTypeUI();
 
         if (!caseStudyEditor) {
             caseStudyEditor = CKEDITOR.replace('caseStudyBody');
@@ -2688,6 +2764,8 @@ $(document).ready(function() {
         setCaseStudySavingState(true);
 
         const id = $('#caseStudyId').val();
+        const resourceType = getSelectedResourceType();
+        const isWhitePaper = resourceType === 'white_paper';
         const isEdit = id !== '';
         const formData = new FormData();
 
@@ -2696,14 +2774,17 @@ $(document).ready(function() {
             formData.append('_method', 'PUT');
             formData.append('id', id);
         }
-        formData.append('category', $('#caseStudyCategory').val());
         formData.append('title', $('#caseStudyTitle').val());
         formData.append('pdf_url', $('#caseStudyPdfUrl').val());
         formData.append('body', caseStudyEditor ? caseStudyEditor.getData() : $('#caseStudyBody').val());
 
+        if (!isWhitePaper) {
+            formData.append('category', $('#caseStudyCategory').val());
+        }
+
         const imageFile = $('#caseStudyImage')[0].files[0];
         if (imageFile) {
-            formData.append('listing_image', imageFile);
+            formData.append(isWhitePaper ? 'white_paper_image' : 'listing_image', imageFile);
         }
 
         const pdfFile = $('#caseStudyPdf')[0].files[0];
@@ -2711,8 +2792,11 @@ $(document).ready(function() {
             formData.append('pdf', pdfFile);
         }
 
+        const endpointBase = isWhitePaper ? '/admin/tables/white-papers' : '/admin/tables/case-studies';
+        const resourceLabel = isWhitePaper ? 'white paper' : 'case study';
+
         $.ajax({
-            url: isEdit ? `/admin/tables/case-studies/${id}` : '/admin/tables/case-studies',
+            url: isEdit ? `${endpointBase}/${id}` : endpointBase,
             type: 'POST',
             data: formData,
             processData: false,
@@ -2720,10 +2804,10 @@ $(document).ready(function() {
             success: function(response) {
                 $('#caseStudyModal').modal('hide');
                 reloadCaseStudiesTable();
-                alert(response.message || 'Case study saved successfully!');
+                alert(response.message || `${resourceLabel.charAt(0).toUpperCase()}${resourceLabel.slice(1)} saved successfully!`);
             },
             error: function(xhr) {
-                alert('Error saving case study: ' + (xhr.responseJSON?.message || 'Unknown error'));
+                alert(`Error saving ${resourceLabel}: ` + (xhr.responseJSON?.message || 'Unknown error'));
             },
             complete: function() {
                 setCaseStudySavingState(false);
@@ -2733,22 +2817,27 @@ $(document).ready(function() {
 
     $(document).on('click', '.delete-case-study', function() {
         const id = $(this).data('id');
-        if (!confirm('Are you sure you want to delete this case study?')) {
+        const resourceType = $(this).data('type') || 'case_study';
+        const isWhitePaper = resourceType === 'white_paper';
+        const endpointBase = isWhitePaper ? '/admin/tables/white-papers' : '/admin/tables/case-studies';
+        const resourceLabel = isWhitePaper ? 'white paper' : 'case study';
+
+        if (!confirm(`Are you sure you want to delete this ${resourceLabel}?`)) {
             return;
         }
 
         $.ajax({
-            url: `/admin/tables/case-studies/${id}`,
+            url: `${endpointBase}/${id}`,
             type: 'DELETE',
             headers: {
                 'X-CSRF-TOKEN': '{{ csrf_token() }}'
             },
             success: function() {
                 reloadCaseStudiesTable();
-                alert('Case study deleted successfully!');
+                alert(`${resourceLabel.charAt(0).toUpperCase()}${resourceLabel.slice(1)} deleted successfully!`);
             },
             error: function(xhr) {
-                alert('Error deleting case study: ' + (xhr.responseJSON?.message || 'Unknown error'));
+                alert(`Error deleting ${resourceLabel}: ` + (xhr.responseJSON?.message || 'Unknown error'));
             }
         });
     });
