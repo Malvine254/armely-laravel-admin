@@ -14,39 +14,23 @@ use Symfony\Component\HttpFoundation\Response;
 
 class LogActivity
 {
+    private const DB_FAILURE_COOLDOWN_SECONDS = 120;
+
     /**
      * Handle an incoming request and log the page visit.
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // Write to a separate test file to confirm middleware runs
-        file_put_contents(storage_path('logs/middleware-test.txt'), 
-            date('Y-m-d H:i:s') . " - Middleware executed: " . $request->path() . "\n", 
-            FILE_APPEND
-        );
-        
-        Log::info('LogActivity: Middleware executed', [
-            'url' => $request->path(),
-            'method' => $request->method()
-        ]);
-
         $response = $next($request);
 
-        // Only log successful GET requests to avoid duplicate logs on form submissions
-        if ($request->isMethod('GET') && $response->getStatusCode() === 200) {
-            Log::info('LogActivity: Attempting to log', [
-                'url' => $request->path(),
-                'status' => $response->getStatusCode(),
-                'method' => $request->method()
-            ]);
+        // Only log successful GET requests and skip noisy/static paths.
+        if (
+            $request->isMethod('GET')
+            && $response->getStatusCode() === 200
+            && !$this->shouldSkipLogging($request->path())
+            && !$this->isDatabaseInCooldown()
+        ) {
             $this->logPageVisit($request);
-        } else {
-            Log::info('LogActivity: Skipped', [
-                'url' => $request->path(),
-                'status' => $response->getStatusCode(),
-                'method' => $request->method(),
-                'reason' => !$request->isMethod('GET') ? 'Not GET' : 'Status not 200'
-            ]);
         }
 
         return $response;
@@ -79,11 +63,6 @@ class LogActivity
             $routeName = $request->route()?->getName() ?? 'unknown';
             $url = $request->path();
             $fullUrl = $request->fullUrl();
-
-            // Skip logging for assets, ajax calls, and certain routes
-            if ($this->shouldSkipLogging($url)) {
-                return;
-            }
 
             // Get user details
             $userName = $user ? ($user->name ?? $user->email ?? 'Unknown') : 'Guest';
@@ -128,9 +107,36 @@ class LogActivity
                 'created_at' => now(),
             ]);
 
+            // Database is healthy again.
+            Cache::forget('activity_log_db_unavailable_until');
+
         } catch (\Throwable $e) {
-            // Silently fail to not interrupt the request
-            Log::error('LogActivity middleware failed: ' . $e->getMessage());
+            $this->markDatabaseCooldown($e->getMessage());
+            // Silently fail to avoid affecting page response time.
+            Log::warning('LogActivity skipped due to DB issue: ' . $e->getMessage());
+        }
+    }
+
+    protected function isDatabaseInCooldown(): bool
+    {
+        $until = (int) Cache::get('activity_log_db_unavailable_until', 0);
+        return $until > time();
+    }
+
+    protected function markDatabaseCooldown(string $errorMessage): void
+    {
+        $message = strtolower($errorMessage);
+        $isConnectionFailure = str_contains($message, 'sqlstate')
+            || str_contains($message, 'connection')
+            || str_contains($message, 'refused')
+            || str_contains($message, 'not allowed to connect');
+
+        if ($isConnectionFailure) {
+            Cache::put(
+                'activity_log_db_unavailable_until',
+                time() + self::DB_FAILURE_COOLDOWN_SECONDS,
+                now()->addSeconds(self::DB_FAILURE_COOLDOWN_SECONDS)
+            );
         }
     }
 
@@ -228,6 +234,10 @@ class LogActivity
         }
 
         $attempted = false;
+
+        if (!env('GEOIP_HTTP_LOOKUP', false)) {
+            return 'Unknown';
+        }
 
         // Use Laravel HTTP client to query ipapi (returns country code)
         try {

@@ -1,6 +1,20 @@
 <?php
 declare(strict_types=1);
 
+$remoteAddr = $_SERVER['REMOTE_ADDR'] ?? '';
+$isLocalRequest = in_array($remoteAddr, ['127.0.0.1', '::1'], true);
+$expectedToken = (string) getenv('FIX_STORAGE_TOKEN');
+$providedToken = (string) ($_GET['token'] ?? $_POST['token'] ?? '');
+
+if (!$isLocalRequest) {
+    if ($expectedToken === '' || !hash_equals($expectedToken, $providedToken)) {
+        http_response_code(403);
+        header('Content-Type: text/plain; charset=utf-8');
+        echo 'Forbidden';
+        exit;
+    }
+}
+
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\Artisan;
 
