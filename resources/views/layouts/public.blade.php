@@ -543,7 +543,6 @@
                                     <li class="{{ request()->is('blog','customer-stories','case-studies') ? 'active' : '' }}"><a>Knowledge Hub <i class="icofont-rounded-down"></i></a>
                                         <ul class="dropdown">
                                             <li><a href="{{ route('blog.index') }}">Blog Articles</a></li>
-                                            <li><a href="{{ route('customer-stories.index') }}">Customer Stories</a></li>
                                             <li><a href="{{ route('case-studies.index') }}">Case Studies</a></li>
                                             <li><a href="{{ route('case-studies.index') }}#white-papers">White Papers</a></li>
                                         </ul>
@@ -580,7 +579,6 @@
             <a class="sub-toggle">Knowledge Hub <span class="mobile-caret" aria-hidden="true"></span></a>
             <ul class="dropdown">
                 <li><a href="{{ route('blog.index') }}">Blog Articles</a></li>
-                <li><a href="{{ route('customer-stories.index') }}">Customer Stories</a></li>
                 <li><a href="{{ route('case-studies.index') }}">Case Studies</a></li>
                 <li><a href="{{ route('case-studies.index') }}#white-papers">White Papers</a></li>
             </ul>

@@ -77,10 +77,9 @@ class BlogController extends Controller
                     ->first();
             }
 
-            // Load a limited set of recent posts for the sidebar to avoid scanning a huge table.
+            // Load all posts for the sidebar so /blog can list every available article.
             $recent = (clone $baseQuery)
                 ->orderByDesc($blogTable . '.' . $orderColumn)
-                ->limit(50)
                 ->get();
 
             $authorImageMap = $this->resolveAuthorImageMap();
