@@ -1120,14 +1120,31 @@
         .fun-facts .single-fun {
             padding-left: 0;
             min-height: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
         }
 
         .fun-facts .single-fun i {
             width: 74px;
             height: 74px;
-            margin-top: 0;
+            position: relative !important;
+            left: auto !important;
+            top: auto !important;
+            transform: none !important;
+            margin: 0 0 10px;
             padding: 13px;
-            top: 0;
+        }
+
+        .fun-facts .single-fun .content {
+            padding-left: 0 !important;
+            text-align: center;
+        }
+
+        .fun-facts .single-fun span {
+            line-height: 1.1;
+            margin-bottom: 8px;
         }
     }
 
