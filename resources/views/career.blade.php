@@ -1,6 +1,7 @@
 @extends('layouts.public')
 
 @section('title', 'Careers')
+@section('meta_description', 'Explore careers at Armely and discover open roles in data, AI, Microsoft platform delivery, and consulting services.')
 
 @push('styles')
 <link rel="stylesheet" href="{{ asset('css/career-modern.css') }}">

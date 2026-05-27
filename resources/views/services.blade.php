@@ -1,6 +1,7 @@
 @extends('layouts.public')
 
 @section('title', 'Services')
+@section('meta_description', 'Explore Armely services across data, AI, business intelligence, managed services, and advisory solutions on Microsoft platforms.')
 
 @push('styles')
 <style>
@@ -555,37 +556,257 @@
 		text-overflow: ellipsis;
 		text-align: left;
 	}
+
+	/* Modern services directory refresh */
+	.services-page-shell {
+		background: #f6f8fb;
+	}
+
+	.service-navigation {
+		background: #eef4fb !important;
+		padding: 58px 0 34px !important;
+		box-shadow: none !important;
+		margin-bottom: 0 !important;
+		border-bottom: 1px solid #dbe6f3;
+	}
+
+	.service-navigation-panel {
+		background: #fff;
+		border: 1px solid #dbe6f3;
+		box-shadow: 0 18px 48px rgba(28, 54, 93, 0.1);
+		padding: 28px;
+	}
+
+	.service-nav-header {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) minmax(280px, 460px);
+		gap: 24px;
+		align-items: end;
+		margin-bottom: 22px;
+	}
+
+	.service-nav-kicker {
+		color: #2f5597;
+		font-size: 0.78rem;
+		font-weight: 900;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		margin-bottom: 8px;
+	}
+
+	.service-nav-title {
+		color: #172033;
+		font-size: 2.15rem;
+		font-weight: 900;
+		line-height: 1.15;
+		margin: 0 0 8px;
+	}
+
+	.service-nav-copy {
+		color: #5f6f86;
+		line-height: 1.7;
+		margin: 0;
+		max-width: 660px;
+	}
+
+	.service-search-box {
+		max-width: none !important;
+		margin: 0 !important;
+	}
+
+	.service-search-box input {
+		border: 1px solid #cbd9ea !important;
+		border-radius: 0 !important;
+		box-shadow: none !important;
+		min-height: 54px;
+		padding-left: 48px !important;
+		padding-right: 18px !important;
+	}
+
+	.service-search-box i {
+		left: 18px;
+		right: auto !important;
+		color: #2f5597 !important;
+	}
+
+	.category-filters {
+		justify-content: flex-start !important;
+		gap: 10px !important;
+	}
+
+	.filter-btn {
+		border: 1px solid #cbd9ea !important;
+		background: #f7faff !important;
+		color: #1e3357 !important;
+		border-radius: 0 !important;
+		padding: 10px 14px !important;
+		box-shadow: none !important;
+	}
+
+	.filter-btn.active {
+		background: #2f5597 !important;
+		border-color: #2f5597 !important;
+		color: #fff !important;
+	}
+
+	.service-count {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		min-width: 24px;
+		height: 24px;
+		margin-left: 8px;
+		padding: 0 7px;
+		background: rgba(47, 85, 151, 0.12);
+		color: inherit;
+		font-size: 0.78rem;
+		font-weight: 900;
+	}
+
+	.filter-btn.active .service-count {
+		background: rgba(255, 255, 255, 0.18);
+	}
+
+	.pricing-table {
+		background: #f6f8fb;
+		padding: 54px 0 72px;
+		margin-top: 0 !important;
+	}
+
+	.pricing-table .section-title {
+		text-align: left;
+		margin-bottom: 34px;
+	}
+
+	.pricing-table .section-title h2 {
+		color: #172033;
+		font-size: 2rem;
+		font-weight: 900;
+	}
+
+	.pricing-table .section-title p {
+		max-width: 760px;
+		color: #5f6f86;
+		margin-left: 0;
+	}
+
+	.pricing-table .section-title center {
+		display: none;
+	}
+
+	.pricing-table .single-table {
+		background: #fff !important;
+		border: 1px solid #dbe6f3 !important;
+		box-shadow: 0 16px 36px rgba(28, 54, 93, 0.08) !important;
+		color: #172033 !important;
+	}
+
+	.pricing-table .single-table:hover {
+		transform: translateY(-6px) !important;
+		box-shadow: 0 22px 52px rgba(28, 54, 93, 0.13) !important;
+	}
+
+	.pricing-table .single-table .icon {
+		width: 52px;
+		height: 52px;
+		border-radius: 0;
+		background: #eef4fb;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		margin-bottom: 10px;
+	}
+
+	.pricing-table .single-table .icon i {
+		color: #2f5597 !important;
+		font-size: 1.55rem !important;
+	}
+
+	.pricing-table .single-table .title,
+	.pricing-table .single-table .price,
+	.pricing-table .single-table .price p,
+	.pricing-table .single-table a {
+		color: #172033 !important;
+	}
+
+	.pricing-table .single-table .title {
+		font-size: 1.22rem;
+		font-weight: 900;
+		margin-bottom: 8px;
+	}
+
+	.pricing-table .single-table .price p {
+		color: #5f6f86 !important;
+	}
+
+	.service-card-meta {
+		display: inline-flex;
+		align-items: center;
+		gap: 7px;
+		color: #2f5597;
+		font-weight: 900;
+		font-size: 0.82rem;
+		margin-top: 14px;
+	}
+
+	@media (max-width: 992px) {
+		.service-nav-header {
+			grid-template-columns: 1fr;
+		}
+	}
+
+	@media (max-width: 576px) {
+		.service-navigation-panel {
+			padding: 20px 16px;
+		}
+		.service-nav-title {
+			font-size: 1.65rem;
+		}
+		.category-filters {
+			padding: 0 0 8px !important;
+		}
+	}
 </style>
 @endpush
 
 @section('content')
 
+<div class="services-page-shell">
 <!-- Service Navigation & Filters -->
 <section class="service-navigation">
 	<div class="container">
-		<div class="service-search-box">
-			<input type="text" id="serviceSearch" placeholder="Search services...">
-			<i class="fa fa-search"></i>
-		</div>
-		<div class="category-filters">
-			<button class="filter-btn active" data-filter="all">
-				All <span class="service-count" id="count-all">{{ $counts['all'] }}</span>
-			</button>
-			<button class="filter-btn" data-filter="data">
-				Data <span class="service-count" id="count-data">{{ $counts['data'] }}</span>
-			</button>
-			<button class="filter-btn" data-filter="digital">
-				Digital <span class="service-count" id="count-digital">{{ $counts['digital'] }}</span>
-			</button>
-			<button class="filter-btn" data-filter="ai">
-				AI & ML <span class="service-count" id="count-ai">{{ $counts['ai'] }}</span>
-			</button>
-			<button class="filter-btn" data-filter="managed">
-				Managed <span class="service-count" id="count-managed">{{ $counts['managed'] }}</span>
-			</button>
-			<button class="filter-btn" data-filter="advisory">
-				Advisory <span class="service-count" id="count-advisory">{{ $counts['advisory'] }}</span>
-			</button>
+		<div class="service-navigation-panel">
+			<div class="service-nav-header">
+				<div>
+					<div class="service-nav-kicker">Service Directory</div>
+					<h1 class="service-nav-title">Find the Microsoft, data, AI, and support services that fit your next move.</h1>
+					<p class="service-nav-copy">Search by outcome, platform, or capability. Filter the catalog to compare advisory, implementation, automation, data, and managed service offers.</p>
+				</div>
+				<div class="service-search-box">
+					<input type="text" id="serviceSearch" placeholder="Search services, platforms, or outcomes">
+					<i class="fa fa-search"></i>
+				</div>
+			</div>
+			<div class="category-filters" aria-label="Service categories">
+				<button class="filter-btn active" data-filter="all">
+					All <span class="service-count" id="count-all">{{ $counts['all'] }}</span>
+				</button>
+				<button class="filter-btn" data-filter="data">
+					Data <span class="service-count" id="count-data">{{ $counts['data'] }}</span>
+				</button>
+				<button class="filter-btn" data-filter="digital">
+					Digital <span class="service-count" id="count-digital">{{ $counts['digital'] }}</span>
+				</button>
+				<button class="filter-btn" data-filter="ai">
+					AI & ML <span class="service-count" id="count-ai">{{ $counts['ai'] }}</span>
+				</button>
+				<button class="filter-btn" data-filter="managed">
+					Managed <span class="service-count" id="count-managed">{{ $counts['managed'] }}</span>
+				</button>
+				<button class="filter-btn" data-filter="advisory">
+					Advisory <span class="service-count" id="count-advisory">{{ $counts['advisory'] }}</span>
+				</button>
+			</div>
 		</div>
 	</div>
 </section>
@@ -654,6 +875,7 @@
 										<div class="price text-light">
 											<p class="text-light">{{ \Illuminate\Support\Str::limit($service->body, 150) }}</p>
 										</div>
+										<div class="service-card-meta">Explore service <i class="fa fa-arrow-right"></i></div>
 									</div>
 								</a>
 							</div>
@@ -732,14 +954,8 @@
 						</div>
 						<div class="col-lg-4 col-md-4 col-12">
 							<div class="form-group">
-								<label class="text-start text-light">Phone Number *</label>
-								<input required class="remove-input-background" name="phone" type="text" placeholder="Phone" value="{{ old('phone') }}">
-							</div>
-						</div>
-						<div class="col-lg-4 col-md-4 col-12">
-							<div class="form-group">
-								<label class="text-start text-light">Organization Name *</label>
-								<input required class="remove-input-background" name="organization" type="text" placeholder="Organization Name" value="{{ old('organization') }}">
+								<label class="text-start text-light">Organization Name</label>
+								<input class="remove-input-background" name="organization" type="text" placeholder="Organization Name" value="{{ old('organization') }}">
 							</div>
 						</div>
 						<div class="col-lg-4 col-md-4 col-12">
@@ -784,6 +1000,7 @@
 	</div>
 </section>
 <!-- End Appointment -->
+</div>
 
 @push('scripts')
 <script>

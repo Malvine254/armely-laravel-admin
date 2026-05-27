@@ -1,6 +1,7 @@
 @extends('layouts.public')
 
 @section('title', 'Privacy Policy')
+@section('meta_description', 'Read Armely privacy policy details covering data collection, usage, protection, and user rights.')
 
 @push('styles')
 <style>

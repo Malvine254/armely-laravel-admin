@@ -1,6 +1,7 @@
 @extends('layouts.public')
 
 @section('title', 'Customer Stories')
+@section('meta_description', 'Read customer stories from Armely engagements and see measurable business outcomes across Microsoft platform projects.')
 
 @push('styles')
 <style>

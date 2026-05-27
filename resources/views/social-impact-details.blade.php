@@ -1,6 +1,7 @@
 @extends('layouts.public')
 
 @section('title', 'Social Impact')
+@section('meta_description', 'Read detailed Armely social impact stories, including initiative goals, actions, and results.')
 
 @push('styles')
 <style>

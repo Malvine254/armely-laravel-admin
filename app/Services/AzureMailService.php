@@ -53,7 +53,7 @@ class AzureMailService
      * Send an HTML email via Microsoft Graph using application permissions.
      * Requires Mail.Send application permission and a licensed mailbox for FROM address.
      */
-    public function sendEmail(string $fromEmail, string $toEmail, string $subject, string $htmlBody, bool $saveToSent = true): bool
+    public function sendEmail(string $fromEmail, string $toEmail, string $subject, string $htmlBody, bool $saveToSent = true, bool $validateRecipient = true): bool
     {
         try {
             $resolvedFromEmail = self::normalizeEmail($fromEmail !== '' ? $fromEmail : self::outboundFromEmail());
@@ -66,7 +66,7 @@ class AzureMailService
                 Cache::forget(self::suppressionKey($normalizedToEmail));
             }
 
-            if (!self::isDeliverableEmail($normalizedToEmail)) {
+            if ($validateRecipient && !self::isDeliverableEmail($normalizedToEmail)) {
                 Log::warning('AzureMailService: blocked send to undeliverable recipient', [
                     'to' => $normalizedToEmail,
                     'subject' => $subject,
@@ -196,12 +196,15 @@ class AzureMailService
             return false;
         }
 
-        try {
-            if (function_exists('checkdnsrr') && !checkdnsrr($domain, 'MX') && !checkdnsrr($domain, 'A')) {
-                return false;
+        $verifyDns = (bool) config('services.azure_mail.verify_dns', false);
+        if ($verifyDns) {
+            try {
+                if (function_exists('checkdnsrr') && !checkdnsrr($domain, 'MX') && !checkdnsrr($domain, 'A')) {
+                    return false;
+                }
+            } catch (\Throwable) {
+                // DNS lookups can fail on restricted hosting — allow the email through
             }
-        } catch (\Throwable) {
-            // DNS lookups can fail on restricted hosting — allow the email through
         }
 
         return true;

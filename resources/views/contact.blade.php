@@ -1,6 +1,8 @@
 @extends('layouts.public')
 
 @php($title = 'Contact')
+@section('title', 'Contact | Armely')
+@section('meta_description', 'Contact Armely to discuss your data, AI, cloud, and Microsoft platform transformation goals.')
 
 @push('styles')
 <style>
@@ -322,15 +324,6 @@
                             </div>
                             <div class="col-md-6">
                                 <div class="cf-field">
-                                    <label>Phone Number <span class="req">*</span></label>
-                                    <div class="cf-input-wrap">
-                                        <i class="cf-icon icofont-phone"></i>
-                                        <input type="text" name="phone" placeholder="+1 (555) 000-0000" required value="{{ old('phone') }}">
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="cf-field">
                                     <label>Subject <span class="req">*</span></label>
                                     <div class="cf-input-wrap">
                                         <i class="cf-icon icofont-tag"></i>
@@ -338,12 +331,12 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-12">
+                            <div class="col-md-6">
                                 <div class="cf-field">
-                                    <label>Organization <span class="req">*</span></label>
+                                    <label>Organization</label>
                                     <div class="cf-input-wrap">
                                         <i class="cf-icon icofont-building-alt"></i>
-                                        <input type="text" name="organization" placeholder="Your company or organization" required value="{{ old('organization') }}">
+                                        <input type="text" name="organization" placeholder="Your company or organization" value="{{ old('organization') }}">
                                     </div>
                                 </div>
                             </div>

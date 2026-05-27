@@ -1,6 +1,7 @@
 @extends('layouts.public')
 
 @section('title', 'Company')
+@section('meta_description', 'Learn about Armely, our mission, leadership, and how we help organizations modernize with Microsoft data, AI, and cloud services.')
 
 @push('styles')
 <link rel="stylesheet" href="{{ asset('css/company-modern.css') }}">

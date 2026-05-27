@@ -1,6 +1,7 @@
 @extends('layouts.public')
 
 @section('title', 'Application')
+@section('meta_description', 'Apply for open career opportunities at Armely and submit your application to join our Microsoft-focused consulting and delivery team.')
 
 @section('content')
 <!-- Breadcrumbs -->
@@ -127,12 +128,6 @@
 							<label class="text-start text-light">Email *</label>
 							<div class="form-group">
 								<input id="email" required class="remove-input-background" name="email" type="email" placeholder="Email" value="{{ old('email') }}">
-							</div>
-						</div>
-						<div class="col-lg-6 col-md-6 col-12">
-							<label class="text-start text-light">Phone Number *</label>
-							<div class="form-group">
-								<input id="phone" required class="remove-input-background" name="phone" type="text" placeholder="Phone" value="{{ old('phone') }}">
 							</div>
 						</div>
 						<div class="col-lg-6 col-md-6 col-12">

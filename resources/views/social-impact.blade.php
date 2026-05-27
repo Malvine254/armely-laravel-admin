@@ -1,6 +1,7 @@
 @extends('layouts.public')
 
 @section('title', 'Social Impact')
+@section('meta_description', 'Learn about Armely social impact initiatives and community programs that create measurable positive outcomes.')
 
 @push('styles')
 <link rel="stylesheet" href="{{ asset('more_style.css') }}">

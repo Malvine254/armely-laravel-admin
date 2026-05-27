@@ -1,6 +1,7 @@
 @extends('layouts.public')
 
-@section('title', 'Case Studies')
+@section('title', 'Case Studies | Microsoft Data and AI Results | Armely')
+@section('meta_description', 'See how Armely has delivered Microsoft Fabric, Power BI, Copilot, and Power Platform results for healthcare, government, education, and energy clients. Download case studies.')
 
 @push('styles')
 <link rel="stylesheet" href="{{ asset('css/case-studies-modern.css') }}">
@@ -32,8 +33,241 @@
 	color: #6a768a;
 	margin-top: 12px;
 }
+.case-stats-band {
+	background:
+		radial-gradient(1200px 260px at 12% -30%, rgba(84, 140, 255, 0.36), rgba(84, 140, 255, 0) 65%),
+		linear-gradient(125deg, #10213f 0%, #1f3f76 45%, #173b6f 100%);
+	padding: 34px 0 26px;
+	position: relative;
+	overflow: hidden;
+}
+.case-stats-band::after {
+	content: '';
+	position: absolute;
+	inset: 0;
+	background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0));
+	pointer-events: none;
+}
+.case-stat-grid {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 14px;
+}
+.case-stat-item {
+	border: 1px solid rgba(177, 205, 255, 0.28);
+	background: rgba(255, 255, 255, 0.08);
+	backdrop-filter: blur(7px);
+	padding: 20px 16px;
+	border-radius: 14px;
+	text-align: center;
+	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+.case-stat-value {
+	color: #f4f8ff;
+	font-size: 2.1rem;
+	font-weight: 800;
+	line-height: 1;
+	letter-spacing: -0.02em;
+}
+.case-stat-label {
+	color: rgba(226, 237, 255, 0.92);
+	font-size: 0.83rem;
+	font-weight: 700;
+	margin-top: 8px;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+.case-filter-panel {
+	background:
+		linear-gradient(155deg, rgba(255, 255, 255, 0.99), rgba(244, 249, 255, 0.99));
+	border: 1px solid #d4e1f5;
+	border-radius: 18px;
+	padding: 20px;
+	margin-bottom: 28px;
+	box-shadow: 0 15px 34px rgba(22, 48, 91, 0.09);
+	position: sticky;
+	top: 90px;
+	z-index: 12;
+}
+.case-studies-section > .container {
+	max-width: 100%;
+	width: 100%;
+	padding-left: 28px;
+	padding-right: 28px;
+}
+.case-filter-toolbar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	margin-bottom: 14px;
+	padding-bottom: 12px;
+	border-bottom: 1px solid #e2ebfa;
+}
+.case-filter-title {
+	font-size: 1.04rem;
+	font-weight: 800;
+	color: #163365;
+	margin: 0;
+}
+.case-filter-meta {
+	display: inline-flex;
+	align-items: center;
+	gap: 10px;
+	font-size: 0.83rem;
+	font-weight: 700;
+	color: #4a5f85;
+}
+.case-filter-count {
+	padding: 6px 10px;
+	border-radius: 999px;
+	background: #edf4ff;
+	border: 1px solid #d4e3fb;
+}
+.case-filter-reset {
+	color: #1f4e96;
+	text-decoration: none;
+}
+.case-filter-reset:hover {
+	text-decoration: underline;
+}
+.case-filter-group {
+	margin-bottom: 16px;
+	display: none;
+}
+.case-filter-group.active {
+	display: block;
+}
+.case-filter-label {
+	color: #1e3a6d;
+	font-weight: 800;
+	font-size: 0.77rem;
+	text-transform: uppercase;
+	letter-spacing: 0.1em;
+	margin-bottom: 12px;
+}
+.case-filter-list {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+}
+.case-filter-tabs {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 6px;
+	border: 1px solid #d4e3fb;
+	background: #eef4ff;
+	border-radius: 12px;
+	margin-bottom: 14px;
+}
+.case-filter-tab {
+	appearance: none;
+	border: 0;
+	background: transparent;
+	color: #274a84;
+	font-size: 0.84rem;
+	font-weight: 800;
+	line-height: 1;
+	padding: 10px 14px;
+	border-radius: 8px;
+	cursor: pointer;
+	transition: all 0.2s ease;
+}
+.case-filter-tab:hover {
+	background: #dfe9fb;
+}
+.case-filter-tab.active {
+	background: linear-gradient(135deg, #2f5597 0%, #22447d 100%);
+	color: #fff;
+	box-shadow: 0 7px 14px rgba(47, 85, 151, 0.24);
+}
+.case-filter-chip {
+	border: 1px solid #c4d6f3;
+	background: #ffffff;
+	color: #26457d;
+	padding: 10px 13px;
+	font-size: 0.85rem;
+	font-weight: 700;
+	border-radius: 999px;
+	line-height: 1;
+	transition: all 0.2s ease;
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+}
+.case-filter-chip::before {
+	content: '';
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	background: #87a7de;
+	box-shadow: 0 0 0 3px rgba(135, 167, 222, 0.2);
+}
+.case-filter-chip.active {
+	background: linear-gradient(135deg, #2f5597 0%, #22447d 100%);
+	border-color: #22447d;
+	color: #fff;
+	box-shadow: 0 8px 18px rgba(47, 85, 151, 0.3);
+}
+.case-filter-chip.active::before {
+	background: #cfe0ff;
+	box-shadow: 0 0 0 3px rgba(207, 224, 255, 0.25);
+}
+.case-filter-chip:hover {
+	color: #18366b;
+	border-color: #9eb8e7;
+	background: #edf3ff;
+	text-decoration: none;
+	transform: translateY(-1px);
+}
+.case-filter-chip.active:hover {
+	color: #fff;
+	background: linear-gradient(135deg, #2f5597 0%, #22447d 100%);
+}
 #white-papers {
 	scroll-margin-top: 110px;
+}
+
+.case-study-card,
+.white-paper-card {
+	border-radius: 14px;
+	border: 1px solid #dce7fb;
+	background: #fff;
+	box-shadow: 0 10px 22px rgba(24, 54, 107, 0.08);
+	overflow: hidden;
+	transition: transform .25s ease, box-shadow .25s ease;
+}
+.case-study-card:hover,
+.white-paper-card:hover {
+	transform: translateY(-6px);
+	box-shadow: 0 20px 34px rgba(24, 54, 107, 0.16);
+}
+.card-image-wrapper {
+	height: 220px;
+}
+.card-content {
+	padding: 22px;
+}
+.card-title {
+	font-size: 1.18rem;
+	line-height: 1.35;
+	min-height: 3.2em;
+	margin-bottom: 10px;
+}
+.card-description {
+	color: #4f6181;
+	line-height: 1.6;
+	min-height: 4.8em;
+}
+.card-footer {
+	padding-top: 14px;
+	border-top: 1px solid #e8eefb;
+}
+.read-more-btn {
+	border-radius: 10px;
+	font-weight: 800;
+	background: linear-gradient(135deg, #2f5597 0%, #23457f 100%);
 }
 .lead-form .field-label {
 	display: block;
@@ -172,6 +406,58 @@
 		right: 12px;
 		max-width: none;
 	}
+	.case-stat-grid {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+	.case-stats-band {
+		padding-bottom: 16px;
+	}
+	.case-stat-value {
+		font-size: 1.65rem;
+	}
+	.case-filter-panel {
+		padding: 16px;
+		border-radius: 14px;
+		top: 74px;
+		position: static;
+		width: 100%;
+		margin-left: 0;
+		margin-right: 0;
+	}
+	.case-studies-section > .container {
+		padding-left: 14px;
+		padding-right: 14px;
+	}
+	.case-filter-toolbar {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+	.case-filter-list {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 8px;
+	}
+	.case-filter-tabs {
+		width: 100%;
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+	.case-filter-tab {
+		width: 100%;
+	}
+	.case-filter-chip {
+		padding: 10px 11px;
+		font-size: 0.8rem;
+		width: 100%;
+		justify-content: flex-start;
+		white-space: normal;
+		line-height: 1.25;
+	}
+}
+@media (max-width: 479px) {
+	.case-filter-list {
+		grid-template-columns: minmax(0, 1fr);
+	}
 }
 </style>
 @endpush
@@ -200,17 +486,38 @@
 <!-- Case Studies Section -->
 <section class="case-studies-section">
 <div class="container">
-	<div class="row">
-		<div class="col-lg-12">
-			<div class="section-header">
-				<h2 class="section-title">Success Stories</h2>
-				<p class="section-subtitle">Real transformation outcomes across industries, platforms, and teams.</p>
-				<div class="section-divider"></div>
+	@php($activeFilterCount = ($selectedIndustry !== '' ? 1 : 0) + ($selectedTopic !== '' ? 1 : 0))
+	<div class="case-filter-panel">
+		<div class="case-filter-toolbar">
+			<h3 class="case-filter-title">Find Relevant Stories Faster</h3>
+			<div class="case-filter-meta">
+				<span id="caseFilterCount" class="case-filter-count">{{ $activeFilterCount }} active {{ $activeFilterCount === 1 ? 'filter' : 'filters' }}</span>
+				<a id="caseFilterReset" class="case-filter-reset" href="{{ route('case-studies.index') }}">Clear all</a>
+			</div>
+		</div>
+		<div class="case-filter-tabs" role="tablist" aria-label="Filter groups">
+			<button type="button" class="case-filter-tab" data-filter-tab="technology" role="tab" aria-selected="false">Technology</button>
+			<button type="button" class="case-filter-tab" data-filter-tab="industry" role="tab" aria-selected="false">Industry</button>
+		</div>
+		<div class="case-filter-group" data-filter-panel="technology">
+			<div class="case-filter-label">Technology</div>
+			<div class="case-filter-list">
+				<a class="case-filter-chip {{ $selectedTopic === '' ? 'active' : '' }}" data-filter-group="topic" data-filter-value="" href="{{ route('case-studies.index', array_filter(['industry' => $selectedIndustry])) }}">All technologies</a>
+				@foreach($topicFilters as $key => $label)
+					<a class="case-filter-chip {{ $selectedTopic === $key ? 'active' : '' }}" data-filter-group="topic" data-filter-value="{{ $key }}" href="{{ route('case-studies.index', array_filter(['industry' => $selectedIndustry, 'topic' => $key])) }}">{{ $label }}</a>
+				@endforeach
+			</div>
+		</div>
+		<div class="case-filter-group mb-0" data-filter-panel="industry">
+			<div class="case-filter-label">Industry</div>
+			<div class="case-filter-list">
+				<a class="case-filter-chip {{ $selectedIndustry === '' ? 'active' : '' }}" data-filter-group="industry" data-filter-value="" href="{{ route('case-studies.index', array_filter(['topic' => $selectedTopic])) }}">All industries</a>
+				@foreach($industryFilters as $key => $label)
+					<a class="case-filter-chip {{ $selectedIndustry === $key ? 'active' : '' }}" data-filter-group="industry" data-filter-value="{{ $key }}" href="{{ route('case-studies.index', array_filter(['industry' => $key, 'topic' => $selectedTopic])) }}">{{ $label }}</a>
+				@endforeach
 			</div>
 		</div>
 	</div>
-</div>
-<div class="container">
 	<div class="row">
 		@forelse($caseStudies as $caseStudy)
 			@php($caseStudyTitle = trim((string) ($caseStudy->title ?? '')))
@@ -218,7 +525,7 @@
 			@php($caseStudyFullTitle = trim($caseStudyDisplayTitle . ' Solution'))
 			@php($caseStudyPlainPreview = trim(preg_replace('/\s+/', ' ', strip_tags((string) ($caseStudy->preview ?? '')))))
 			@php($caseStudyFullDetails = trim($caseStudyFullTitle . "\n" . ($caseStudyPlainPreview !== '' ? $caseStudyPlainPreview : 'No summary available.')))
-			<div class="col-md-4 mb-4">
+			<div class="col-md-4 mb-4 js-case-card" data-industry="{{ $caseStudy->industry_filter ?? '' }}" data-topics="{{ implode(',', $caseStudy->technology_filters ?? []) }}">
 				<div class="case-study-card">
 					<div class="card-image-wrapper">
 						@if($caseStudy->listing_image && file_exists(public_path('images/case-study/' . $caseStudy->listing_image)))
@@ -235,11 +542,11 @@
 						<h5 class="card-title" title="{{ $caseStudyFullTitle }}">{{ $caseStudyFullTitle }}</h5>
 						<p class="card-description" title="{{ $caseStudyPlainPreview }}">{{ $caseStudy->preview ?? '' }}</p>
 						<div class="card-footer">
-							<a class="read-more-btn text-light case-study-gated-link"
-							   href="#"
+							<a class="read-more-btn text-light"
+							   href="{{ route('case-studies.show', $caseStudy->slug) }}"
 							   data-case-study-id="{{ $caseStudy->id }}"
 							   data-resource-title="{{ $caseStudyFullTitle }}">
-								Request Download Link <i class="fa fa-envelope"></i>
+								View Case Study <i class="fa fa-arrow-right"></i>
 							</a>
 						</div>
 					</div>
@@ -324,9 +631,9 @@
 
 				<div class="row">
 					<div class="col-lg-6">
-						<label class="field-label text-start">Name *</label>
+						<label class="field-label text-start">First name *</label>
 						<div class="form-group">
-							<input class="lead-field" type="text" name="name" placeholder="Name" required>
+							<input class="lead-field" type="text" name="name" placeholder="First name" required>
 						</div>
 					</div>
 					<div class="col-lg-6">
@@ -336,27 +643,22 @@
 						</div>
 					</div>
 					<div class="col-lg-6">
-						<label class="field-label text-start">Work phone number *</label>
+						<label class="field-label text-start">Company</label>
 						<div class="form-group">
-							<input class="lead-field" type="text" name="phone" placeholder="Phone number" required>
-						</div>
-					</div>
-					<div class="col-lg-6">
-						<label class="field-label text-start">Company name *</label>
-						<div class="form-group">
-							<input class="lead-field" type="text" name="organization" placeholder="Company name" required>
+							<input class="lead-field" type="text" name="organization" placeholder="Company">
 						</div>
 					</div>
 					<div class="col-lg-6">
 						<label class="field-label text-start">Job title</label>
 						<div class="form-group">
-							<input class="lead-field" type="text" name="job_title" placeholder="Job title">
-						</div>
-					</div>
-					<div class="col-lg-6">
-						<label class="field-label text-start">Country/Region</label>
-						<div class="form-group">
-							<input class="lead-field" type="text" name="country" placeholder="Country/Region">
+							<select class="lead-field" name="job_title">
+								<option value="">Select job title</option>
+								<option>Executive leader</option>
+								<option>Technology leader</option>
+								<option>Data leader</option>
+								<option>Operations leader</option>
+								<option>Practitioner or analyst</option>
+							</select>
 						</div>
 					</div>
 					<div class="col-lg-12">
@@ -392,9 +694,6 @@
 	<div class="row">
 		<div class="col-lg-12">
 			<div class="section-header">
-				<div class="section-badge">
-					<i class="icofont-document-multiple"></i> Resources
-				</div>
 				<h2 class="section-title">White Papers</h2>
 				<p class="section-subtitle">In-depth insights and strategic guidance for digital transformation</p>
 				<div class="section-divider"></div>
@@ -427,12 +726,12 @@
 						<h5 class="card-title" title="{{ $whitePaperFullTitle }}">{{ $whitePaperFullTitle }}</h5>
 						<p class="card-description" title="{{ $whitePaperPlainPreview }}">{{ $paper->preview ?? '' }}</p>
 						<div class="card-footer">
-							<a class="read-more-btn white-paper-gated-link"
-							   href="#"
+							<a class="read-more-btn"
+							   href="{{ route('resources.show', $paper->slug) }}"
 							   data-white-paper-id="{{ $paper->id }}"
 							   data-resource-type="white-paper"
 							   data-resource-title="{{ $whitePaperFullTitle }}">
-								Request Download Link <i class="fa fa-envelope"></i>
+								View Resource <i class="fa fa-arrow-right"></i>
 							</a>
 						</div>
 					</div>
@@ -648,6 +947,137 @@
 			closeModal();
 		}
 	});
+})();
+
+(function () {
+	var filterChips = Array.prototype.slice.call(document.querySelectorAll('.case-filter-chip[data-filter-group]'));
+	if (!filterChips.length) {
+		return;
+	}
+
+	var caseCards = Array.prototype.slice.call(document.querySelectorAll('.js-case-card'));
+	var caseFilterCount = document.getElementById('caseFilterCount');
+	var resetLink = document.getElementById('caseFilterReset');
+	var casePagination = document.querySelector('.case-studies-section .pagination-nav');
+	var filterTabs = Array.prototype.slice.call(document.querySelectorAll('.case-filter-tab[data-filter-tab]'));
+	var filterPanels = Array.prototype.slice.call(document.querySelectorAll('.case-filter-group[data-filter-panel]'));
+
+	var selected = {
+		industry: @json((string) $selectedIndustry),
+		topic: @json((string) $selectedTopic)
+	};
+
+	var activeTab = @json($selectedTopic !== '' ? 'technology' : (($selectedIndustry !== '') ? 'industry' : 'technology'));
+
+	function setActiveTab(tab) {
+		activeTab = tab;
+
+		filterTabs.forEach(function (btn) {
+			var isActive = btn.getAttribute('data-filter-tab') === tab;
+			btn.classList.toggle('active', isActive);
+			btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+		});
+
+		filterPanels.forEach(function (panel) {
+			panel.classList.toggle('active', panel.getAttribute('data-filter-panel') === tab);
+		});
+	}
+
+	function setActiveChip(group, value) {
+		filterChips
+			.filter(function (chip) { return chip.getAttribute('data-filter-group') === group; })
+			.forEach(function (chip) {
+				chip.classList.toggle('active', chip.getAttribute('data-filter-value') === value);
+			});
+	}
+
+	function updateActiveCount() {
+		var count = 0;
+		if (selected.industry) {
+			count += 1;
+		}
+		if (selected.topic) {
+			count += 1;
+		}
+
+		if (caseFilterCount) {
+			caseFilterCount.textContent = count + ' active ' + (count === 1 ? 'filter' : 'filters');
+		}
+	}
+
+	function applyFilters() {
+		caseCards.forEach(function (card) {
+			var cardIndustry = card.getAttribute('data-industry') || '';
+			var cardTopics = (card.getAttribute('data-topics') || '').split(',').filter(Boolean);
+
+			var matchesIndustry = !selected.industry || selected.industry === cardIndustry;
+			var matchesTopic = !selected.topic || cardTopics.indexOf(selected.topic) !== -1;
+
+			card.style.display = (matchesIndustry && matchesTopic) ? '' : 'none';
+		});
+
+		if (casePagination) {
+			casePagination.style.display = (selected.industry || selected.topic) ? 'none' : '';
+		}
+	}
+
+	function updateUrl() {
+		if (!window.history || !window.history.replaceState) {
+			return;
+		}
+
+		var url = new URL(window.location.href);
+		if (selected.industry) {
+			url.searchParams.set('industry', selected.industry);
+		} else {
+			url.searchParams.delete('industry');
+		}
+
+		if (selected.topic) {
+			url.searchParams.set('topic', selected.topic);
+		} else {
+			url.searchParams.delete('topic');
+		}
+
+		window.history.replaceState({}, '', url.toString());
+	}
+
+	filterChips.forEach(function (chip) {
+		chip.addEventListener('click', function (event) {
+			event.preventDefault();
+			var group = chip.getAttribute('data-filter-group');
+			var value = chip.getAttribute('data-filter-value') || '';
+
+			selected[group] = value;
+			setActiveChip(group, value);
+			updateActiveCount();
+			applyFilters();
+			updateUrl();
+		});
+	});
+
+	if (resetLink) {
+		resetLink.addEventListener('click', function (event) {
+			event.preventDefault();
+			selected.industry = '';
+			selected.topic = '';
+			setActiveChip('industry', '');
+			setActiveChip('topic', '');
+			updateActiveCount();
+			applyFilters();
+			updateUrl();
+		});
+	}
+
+	filterTabs.forEach(function (tab) {
+		tab.addEventListener('click', function () {
+			setActiveTab(tab.getAttribute('data-filter-tab') || 'technology');
+		});
+	});
+
+	setActiveTab(activeTab);
+	updateActiveCount();
+	applyFilters();
 })();
 </script>
 

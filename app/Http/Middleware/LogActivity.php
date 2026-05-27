@@ -318,6 +318,7 @@ class LogActivity
         $skipPatterns = [
             'css/', 'js/', 'images/', 'fonts/', 'img/',
             'ckeditor/', 'downloads/', 'pdf/',
+            'case-studies/access/', 'white-papers/access/',
             'livewire/', '_debugbar/', 'favicon.ico',
             'api/analytics/', // Skip API analytics endpoints to avoid duplicate logging
             'api/search', // Skip search API

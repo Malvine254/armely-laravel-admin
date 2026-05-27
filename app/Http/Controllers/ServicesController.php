@@ -64,23 +64,13 @@ class ServicesController extends Controller
         // If we want real server-side filtering, we'd need to adjust the JS.
         $all_services = $services_query->get()
             ->map(function ($service) {
-                $service->url_name = $this->titleToUrl[$service->title] ?? Str::slug($service->title);
-                
-                // Assign category based on title
-                $titleLower = strtolower($service->title);
-                $service->category = 'other';
-                
-                foreach ($this->serviceMap as $cat => $keywords) {
-                    foreach ($keywords as $keyword) {
-                        if (str_contains($titleLower, $keyword)) {
-                            $service->category = $cat;
-                            break 2;
-                        }
-                    }
-                }
-                
-                return $service;
+                return $this->prepareService($service);
             });
+
+        if ($all_services->isEmpty()) {
+            $all_services = collect($this->fallbackServices())
+                ->map(fn ($service) => $this->prepareService((object) $service));
+        }
 
         $counts = [
             'all' => $all_services->count(),
@@ -97,6 +87,44 @@ class ServicesController extends Controller
             'counts' => $counts,
             'recaptchaSiteKey' => config('services.recaptcha.site_key', ''),
         ]);
+    }
+
+    private function prepareService(object $service): object
+    {
+        $service->url_name = $this->titleToUrl[$service->title] ?? Str::slug($service->title);
+
+        $titleLower = strtolower((string) $service->title);
+        $bodyLower = strtolower(strip_tags((string) ($service->body ?? '')));
+        $service->category = 'other';
+
+        foreach ($this->serviceMap as $cat => $keywords) {
+            foreach ($keywords as $keyword) {
+                if (str_contains($titleLower, $keyword) || str_contains($bodyLower, $keyword)) {
+                    $service->category = $cat;
+                    break 2;
+                }
+            }
+        }
+
+        return $service;
+    }
+
+    private function fallbackServices(): array
+    {
+        return [
+            ['title' => 'AI Consulting', 'image' => 'fa fa-brain', 'body' => 'Strategy, solution design, and implementation support for practical AI use cases across Microsoft Azure and Copilot.'],
+            ['title' => 'AI Advisory', 'image' => 'fa fa-compass', 'body' => 'Executive guidance for AI readiness, governance, operating model design, and responsible adoption.'],
+            ['title' => 'Generative AI', 'image' => 'fa fa-wand-magic-sparkles', 'body' => 'Custom copilots, knowledge assistants, retrieval workflows, and generative AI experiences for business teams.'],
+            ['title' => 'Microsoft Fabric', 'image' => 'fa fa-database', 'body' => 'Modern analytics architecture, lakehouse design, Power BI reporting, and Microsoft Fabric implementation.'],
+            ['title' => 'Data Strategy', 'image' => 'fa fa-chart-line', 'body' => 'Roadmaps for data platforms, governance, analytics maturity, and measurable business outcomes.'],
+            ['title' => 'Data Science and Analytics', 'image' => 'fa fa-chart-pie', 'body' => 'Predictive analytics, dashboards, reporting automation, and operational insight delivery.'],
+            ['title' => 'Microsoft PowerApps', 'image' => 'fa fa-mobile-screen-button', 'body' => 'Low-code business applications built for process modernization, field operations, and workflow improvement.'],
+            ['title' => 'Microsoft Power Automate', 'image' => 'fa fa-gears', 'body' => 'Workflow automation, approval flows, integrations, and productivity improvements across Microsoft 365.'],
+            ['title' => 'SharePoint Online', 'image' => 'fa fa-share-nodes', 'body' => 'Collaboration portals, document management, intranet modernization, and governance.'],
+            ['title' => 'SQL Server Support', 'image' => 'fa fa-server', 'body' => 'Database administration, performance tuning, monitoring, and managed SQL support.'],
+            ['title' => 'Applications Support', 'image' => 'fa fa-headset', 'body' => 'Managed application support, issue triage, enhancements, and operational continuity.'],
+            ['title' => 'Freemiums', 'image' => 'fa fa-file-lines', 'body' => 'Guides, templates, and practical resources for leaders planning Microsoft platform initiatives.'],
+        ];
     }
 
     public function show(string $name)

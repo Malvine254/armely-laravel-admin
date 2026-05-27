@@ -1,6 +1,7 @@
 @extends('layouts.public')
 
 @section('title', 'Mela AI')
+@section('meta_description', 'Discover Mela AI from Armely and how AI-driven solutions can improve productivity, decision-making, and customer outcomes.')
 
 @push('styles')
 <style>

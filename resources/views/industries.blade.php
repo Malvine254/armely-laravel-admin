@@ -1,29 +1,443 @@
 @extends('layouts.public')
 
-@section('title', 'Industries')
+@section('title', 'Industries | Microsoft Data, AI, and Cloud Solutions | Armely')
+@section('meta_description', 'Explore Armely industry solutions for healthcare, energy, local government, and legal organizations using Microsoft Fabric, Power Platform, Azure AI, and data strategy.')
 
 @push('styles')
 <link rel="stylesheet" href="{{ asset('css/industries-modern.css') }}">
+<style>
+.industries-page-refresh {
+	background: #f7f9fc;
+	color: #172033;
+}
+.industries-hero {
+	background: #f7f9fc;
+	border-bottom: 1px solid #dbe6f3;
+	padding: 54px 0 42px;
+}
+.industries-hero-grid {
+	display: grid;
+	grid-template-columns: minmax(0, 1.25fr) minmax(280px, .75fr);
+	gap: 30px;
+	align-items: center;
+}
+.industries-kicker {
+	color: #2f5597;
+	font-size: .78rem;
+	font-weight: 900;
+	letter-spacing: .08em;
+	text-transform: uppercase;
+	margin-bottom: 12px;
+}
+.industries-hero h1 {
+	color: #172033;
+	font-size: 2.45rem;
+	font-weight: 900;
+	line-height: 1.16;
+	margin: 0 0 14px;
+	max-width: 760px;
+}
+.industries-hero-copy {
+	color: #5f6f86;
+	font-size: 1.02rem;
+	line-height: 1.75;
+	margin: 0 0 22px;
+	max-width: 700px;
+}
+.industries-hero-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+}
+.industries-primary-btn,
+.industries-secondary-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	min-height: 44px;
+	padding: 11px 16px;
+	font-weight: 800;
+	border: 1px solid transparent;
+	text-decoration: none;
+}
+.industries-primary-btn {
+	background: #2f5597;
+	color: #fff;
+}
+.industries-primary-btn:hover {
+	background: #1e3a6d;
+	color: #fff;
+	text-decoration: none;
+}
+.industries-secondary-btn {
+	background: #fff;
+	color: #1e3a6d;
+	border-color: #cbd9ea;
+}
+.industries-secondary-btn:hover {
+	color: #2f5597;
+	border-color: #aebfda;
+	text-decoration: none;
+}
+.industries-hero-panel {
+	background: #fff;
+	border: 1px solid #dbe6f3;
+	box-shadow: 0 14px 34px rgba(28, 54, 93, .07);
+	padding: 22px;
+}
+.industries-panel-top {
+	border-bottom: 1px solid #dbe6f3;
+	padding-bottom: 14px;
+	margin-bottom: 14px;
+}
+.industries-panel-top h2 {
+	color: #172033;
+	font-size: 1.08rem;
+	font-weight: 900;
+	margin: 0 0 6px;
+}
+.industries-panel-top p {
+	color: #5f6f86;
+	font-size: .94rem;
+	line-height: 1.65;
+	margin: 0;
+}
+.industries-panel-body h3 {
+	color: #2f5597;
+	font-size: .78rem;
+	font-weight: 900;
+	letter-spacing: .08em;
+	text-transform: uppercase;
+	margin: 0 0 12px;
+}
+.industries-focus-list {
+	display: grid;
+	gap: 10px;
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+.industries-focus-list li {
+	display: grid;
+	grid-template-columns: 34px minmax(0, 1fr);
+	gap: 10px;
+	align-items: start;
+}
+.industries-focus-icon {
+	width: 34px;
+	height: 34px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	background: #f2f6fc;
+	border: 1px solid #dbe6f3;
+	color: #2f5597;
+	font-size: .9rem;
+	font-weight: 900;
+}
+.industries-focus-list strong {
+	display: block;
+	color: #172033;
+	font-size: .95rem;
+	font-weight: 900;
+	margin-bottom: 2px;
+}
+.industries-focus-list span {
+	color: #5f6f86;
+	font-size: .88rem;
+	line-height: 1.5;
+}
+.industries-section-modern {
+	background: #f7f9fc;
+	padding: 46px 0 66px;
+}
+.industries-section-modern > .mt-5 {
+	max-width: 1140px;
+	margin: 0 auto !important;
+	padding: 0 15px;
+}
+.modern-tabs-industries,
+.modern-tab-content,
+.modern-solution-card,
+.benefit-card,
+.feature-item {
+	border-radius: 0 !important;
+	border: 1px solid #dbe6f3 !important;
+	box-shadow: 0 12px 30px rgba(28, 54, 93, .06) !important;
+}
+.modern-tabs-industries {
+	margin-bottom: 22px !important;
+}
+.modern-tabs-industries .nav-link {
+	border-radius: 0 !important;
+	color: #1e3357 !important;
+	font-weight: 800 !important;
+}
+.modern-tabs-industries .nav-link.active {
+	background: #2f5597 !important;
+	box-shadow: none !important;
+	color: #fff !important;
+}
+.tab-content-wrapper {
+	padding: 32px !important;
+}
+.industry-tag {
+	border-radius: 0 !important;
+	background: #f2f6fc !important;
+	border: 1px solid #dbe6f3 !important;
+	color: #2f5597 !important;
+}
+.industry-title {
+	color: #172033 !important;
+	font-size: 2.25rem !important;
+}
+.industry-description,
+.industry-intro-content p,
+.solution-description,
+.benefit-description,
+.feature-description {
+	color: #5f6f86 !important;
+}
+.industry-img,
+.modern-solution-card,
+.benefit-card,
+.feature-item {
+	border-radius: 0 !important;
+}
+.modern-solution-card {
+	background: #fff !important;
+	min-height: 270px !important;
+	height: 100% !important;
+	padding: 24px !important;
+	display: flex !important;
+	flex-direction: column;
+	gap: 12px;
+}
+.modern-solution-card.mt-4 {
+	margin-top: 0 !important;
+}
+.modern-tab-content .row.g-4 > [class*="col-"] {
+	margin-bottom: 24px;
+}
+.modern-solution-card::before {
+	transform: none !important;
+	height: 3px !important;
+	background: #2f5597 !important;
+}
+.modern-solution-card:hover {
+	transform: translateY(-6px) !important;
+	box-shadow: 0 18px 42px rgba(28, 54, 93, .11) !important;
+}
+.modern-solution-card .solution-icon-wrapper {
+	width: 52px !important;
+	height: 52px !important;
+	border-radius: 0 !important;
+	background: #eef4fb !important;
+	border: 1px solid #dbe6f3;
+	box-shadow: none !important;
+	margin: 0 0 4px !important;
+	display: inline-flex !important;
+	align-items: center;
+	justify-content: center;
+}
+.modern-solution-card:hover .solution-icon-wrapper {
+	transform: none !important;
+	box-shadow: none !important;
+}
+.modern-solution-card .solution-icon-wrapper i {
+	color: #2f5597;
+	font-size: 1.35rem;
+	line-height: 1;
+}
+.modern-solution-card .solution-title {
+	color: #172033 !important;
+	font-size: 1.05rem !important;
+	font-weight: 900 !important;
+	line-height: 1.35 !important;
+	margin: 0 !important;
+}
+.modern-solution-card .solution-description {
+	color: #5f6f86 !important;
+	font-size: .94rem !important;
+	line-height: 1.65 !important;
+	margin: 0 !important;
+	flex: 1;
+}
+.benefit-card {
+	background: #fff !important;
+	min-height: 220px !important;
+	height: 100% !important;
+	padding: 24px !important;
+	display: flex !important;
+	flex-direction: column;
+	gap: 12px;
+	position: relative;
+}
+.benefit-card::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 3px;
+	background: #2f5597;
+}
+.benefit-card:hover {
+	transform: translateY(-6px) !important;
+	box-shadow: 0 18px 42px rgba(28, 54, 93, .11) !important;
+}
+.benefit-card .benefit-icon {
+	width: 52px !important;
+	height: 52px !important;
+	border-radius: 0 !important;
+	background: #eef4fb !important;
+	border: 1px solid #dbe6f3;
+	box-shadow: none !important;
+	margin: 0 0 4px !important;
+	display: inline-flex !important;
+	align-items: center;
+	justify-content: center;
+}
+.benefit-card .benefit-icon i {
+	color: #2f5597 !important;
+	font-size: 1.35rem !important;
+	line-height: 1;
+}
+.benefit-card .benefit-title {
+	color: #172033 !important;
+	font-size: 1.05rem !important;
+	font-weight: 900 !important;
+	line-height: 1.35 !important;
+	margin: 0 !important;
+}
+.benefit-card .benefit-description {
+	color: #5f6f86 !important;
+	font-size: .94rem !important;
+	line-height: 1.65 !important;
+	margin: 0 !important;
+	flex: 1;
+}
+.industry-img {
+	border: 1px solid #dbe6f3;
+	box-shadow: 0 14px 34px rgba(28, 54, 93, .09) !important;
+}
+.features-section-industries {
+	background: #fff !important;
+	padding: 68px 0 !important;
+	border-top: 1px solid #dbe6f3;
+	border-bottom: 1px solid #dbe6f3;
+}
+.features-section-industries .features-section-title {
+	color: #172033 !important;
+	font-size: 2rem !important;
+	font-weight: 900 !important;
+}
+.features-section-industries .features-section-subtitle {
+	color: #5f6f86 !important;
+	max-width: 620px;
+	margin: 0 auto !important;
+	line-height: 1.7;
+}
+.features-section-industries .feature-item {
+	padding: 24px !important;
+	height: 100%;
+	text-align: left !important;
+}
+.features-section-industries .feature-gradient-icon {
+	border-radius: 0 !important;
+	background: #eef4fb !important;
+	border: 1px solid #dbe6f3;
+	box-shadow: none !important;
+	width: 54px !important;
+	height: 54px !important;
+	display: inline-flex !important;
+	align-items: center;
+	justify-content: center;
+	color: #2f5597;
+	font-size: 1.35rem;
+}
+.features-section-industries .feature-gradient-icon i {
+	color: #2f5597;
+	line-height: 1;
+}
+.features-section-industries .feature-title {
+	color: #172033 !important;
+	font-weight: 900 !important;
+	margin-bottom: 8px !important;
+}
+.cta-section-industries {
+	background: #2f5597 !important;
+}
+@media (max-width: 991px) {
+	.industries-hero-grid {
+		grid-template-columns: 1fr;
+	}
+	.industries-hero h1 {
+		font-size: 2rem;
+	}
+	.tab-content-wrapper {
+		padding: 22px !important;
+	}
+}
+@media (max-width: 575px) {
+	.industries-hero {
+		padding: 38px 0 34px;
+	}
+	.industries-hero h1 {
+		font-size: 1.72rem;
+	}
+	.industries-hero-actions {
+		flex-direction: column;
+	}
+	.industries-primary-btn,
+	.industries-secondary-btn {
+		width: 100%;
+	}
+}
+</style>
 @endpush
 
 @section('content')
-<!-- Breadcrumbs -->
-<div class="breadcrumbs overlay">
+<main class="industries-page-refresh">
+<section class="industries-hero">
 	<div class="container">
-		<div class="bread-inner">
-			<div class="row">
-				<div class="col-12">
-					<h2>Industries We Transform</h2>
-					<ul class="bread-list">
-						<li><a href="{{ route('home') }}">Home</a></li>
-						<li><i class="icofont-simple-right"></i></li>
-						<li class="active">Industries We Transform</li>
+		<div class="industries-hero-grid">
+			<div>
+				<div class="industries-kicker"><i class="fa fa-layer-group"></i> Industries</div>
+				<h1>Industry solutions for regulated teams modernizing data, AI, and operations.</h1>
+				<p class="industries-hero-copy">Armely helps healthcare, energy, government, and legal organizations turn Microsoft platforms into secure workflows, trusted analytics, and measurable productivity gains.</p>
+				<div class="industries-hero-actions">
+					<a class="industries-primary-btn" href="#tabsMenu"><i class="fa fa-arrow-down"></i> Explore industries</a>
+					<a class="industries-secondary-btn" href="{{ route('case-studies.index') }}"><i class="fa fa-briefcase"></i> View case studies</a>
+				</div>
+			</div>
+			<div class="industries-hero-panel">
+				<div class="industries-panel-top">
+					<h2>Armely focus areas</h2>
+					<p>Microsoft platform delivery shaped around security, data quality, and real adoption.</p>
+				</div>
+				<div class="industries-panel-body">
+					<h3>Where we help</h3>
+					<ul class="industries-focus-list">
+						<li>
+							<span class="industries-focus-icon">4</span>
+							<span><strong>Core industries</strong> Healthcare, energy, government, and legal.</span>
+						</li>
+						<li>
+							<span class="industries-focus-icon"><i class="fa fa-brain"></i></span>
+							<span><strong>Practical AI</strong> Copilot and Azure AI with governance.</span>
+						</li>
+						<li>
+							<span class="industries-focus-icon"><i class="fa fa-chart-line"></i></span>
+							<span><strong>Trusted data</strong> Fabric, Power BI, integration, and analytics.</span>
+						</li>
 					</ul>
 				</div>
 			</div>
 		</div>
 	</div>
-</div>
+</section>
 
 <section class="industries-section-modern ">
 	<div class="mt-5 ">
@@ -84,7 +498,7 @@
 								<div class="col-md-4 mb-3">
 									<div class="card modern-solution-card p-4">
 										<div class="solution-icon-wrapper default-background">
-											<img class="img-fluid" width="48" height="48" src="https://www.microsoft.com/content/dam/microsoft/final/en-us/microsoft-brand/icons/Icon-Microsoft-fabric-24x24.svg" alt="microsoft-fabric"/>
+											<i class="fa fa-database"></i>
 										</div>
 										<h6 class="solution-title"><strong>Microsoft Fabric in healthcare</strong></h6>
 										<p class="solution-description">Unlock powerful analytics in healthcare data. As Microsoft Fabric Partners we empower organizations build data-driven decisions solutions</p>
@@ -93,7 +507,7 @@
 								<div class="col-md-4">
 									<div class="card modern-solution-card p-4">
 										<div class="solution-icon-wrapper default-background">
-											<img class="img-fluid" width="48" height="48" src="https://www.microsoft.com/content/dam/microsoft/final/en-us/microsoft-brand/icons/Icon-Power-Platform-24x24.svg" alt="power-platform"/>
+											<i class="fa fa-layer-group"></i>
 										</div>
 										<h6 class="solution-title"><strong>Power Platform in healthcare</strong></h6>
 										<p class="solution-description">Streamline workflows and automates tasks, building low-code/no-code solutions that empower organizations to transform data into actionable insights.</p>
@@ -102,7 +516,7 @@
 								<div class="col-md-4">
 									<div class="card modern-solution-card p-4">
 										<div class="solution-icon-wrapper default-background">
-											<img class="img-fluid" width="48" height="48" src="https://www.microsoft.com/content/dam/microsoft/final/en-us/microsoft-brand/icons/Icon-Microsft-Cloud-for-Healthcare-24x24.svg" alt="cloud-healthcare"/>
+											<i class="fa fa-cloud"></i>
 										</div>
 										<h6 class="solution-title"><strong>Microsoft Cloud for healthcare</strong></h6>
 										<p class="solution-description">Cloud for healthcare brings together secure, scalable cloud services to empower healthcare organizations with data-driven insights.</p>
@@ -111,7 +525,7 @@
 								<div class="col-md-4">
 									<div class="card modern-solution-card p-4 mt-4">
 										<div class="solution-icon-wrapper default-background">
-											<img class="img-fluid" width="48" height="48" src="https://img.icons8.com/fluency/48/microsoft-power-automate-2020.png" alt="azure-ai"/>
+											<i class="fa fa-brain"></i>
 										</div>
 										<h6 class="solution-title"><strong>Azure AI in healthcare</strong></h6>
 										<p class="solution-description">Empowers organizations with intelligent capabilities, enabling tasks like analyzing medical images for faster diagnoses, predicting patient outcomes and extracting insights from unstructured data to improve research and development.</p>
@@ -120,7 +534,7 @@
 								<div class="col-md-4">
 									<div class="card modern-solution-card p-4 mt-4">
 										<div class="solution-icon-wrapper default-background">
-											<img class="img-fluid" width="48" height="48" src="https://www.bridgeheadsoftware.com/wp-content/uploads/2023/12/FHIR-Logo.png" alt="fhir"/>
+											<i class="fa fa-code-branch"></i>
 										</div>
 										<h6 class="solution-title"><strong>FHIR Integration</strong></h6>
 										<p class="solution-description">Unlocks seamless data exchange within healthcare ecosystems, enabling secure sharing of patient information across different applications and platforms for improved care coordination and decision-making.</p>
@@ -129,7 +543,7 @@
 								<div class="col-md-4">
 									<div class="card modern-solution-card p-4 mt-4">
 										<div class="solution-icon-wrapper default-background">
-											<img class="img-fluid" width="48" height="48" src="https://www.microsoft.com/content/dam/microsoft/final/en-us/microsoft-brand/icons/Icon-Azure-AI-24x24-1.svg" alt="tableau"/>
+											<i class="fa fa-chart-column"></i>
 										</div>
 										<h6 class="solution-title"><strong>Tableau in healthcare</strong></h6>
 										<p class="solution-description">Transform complex healthcare data into clear, insightful visualizations allowing organization to identify trends, patterns leading to better patient care, optimized resource allocation, and informed decision-making.</p>
@@ -164,7 +578,7 @@
 									<div class="col-md-3">
 										<div class="card modern-solution-card p-4">
 											<div class="solution-icon-wrapper default-background">
-												<img class="img-fluid" width="48" height="48" src="https://www.microsoft.com/content/dam/microsoft/final/en-us/microsoft-brand/icons/Icon-Microsoft-fabric-24x24.svg" alt="microsoft-fabric"/>
+												<i class="fa fa-database"></i>
 											</div>
 											<h6 class="solution-title"><strong>Microsoft Fabric in oil & gas</strong></h6>
 											<p class="solution-description">Unlock powerful analytics in oil & gas data. As Microsoft Fabric Partners we empower organizations build data-driven decisions solutions </p>
@@ -173,7 +587,7 @@
 									<div class="col-md-3">
 										<div class="card modern-solution-card p-4">
 											<div class="solution-icon-wrapper default-background">
-												<img class="img-fluid" width="48" height="48" src="https://www.microsoft.com/content/dam/microsoft/final/en-us/microsoft-brand/icons/Icon-Power-Platform-24x24.svg" alt="power-platform"/>
+												<i class="fa fa-layer-group"></i>
 											</div>
 											<h6 class="solution-title"><strong>Power Platform in oil & gas</strong></h6>
 											<p class="solution-description">Streamline workflows and automates tasks, building low-code/no-code solutions that empower organizations to transform data into actionable insights</p>
@@ -182,7 +596,7 @@
 									<div class="col-md-3">
 										<div class="card modern-solution-card p-4">
 											<div class="solution-icon-wrapper default-background">
-												<img class="img-fluid" width="48" height="48" src="https://img.icons8.com/fluency/48/azure-1.png" alt="azure-ai"/>
+												<i class="fa fa-brain"></i>
 											</div>
 											<h6 class="solution-title"><strong>Azure AI in oil & gas</strong></h6>
 											<p class="solution-description">Empowers organizations with intelligent capabilities, enabling tasks like analyzing medical images for faster diagnoses, predicting patient outcomes and extracting insights from unstructured data to improve research and development.</p>
@@ -191,7 +605,7 @@
 									<div class="col-md-3">
 										<div class="card modern-solution-card p-4">
 											<div class="solution-icon-wrapper default-background">
-												<img class="img-fluid" width="48" height="48" src="https://img.icons8.com/bubbles/50/azure-api-manager.png" alt="api-integration"/>
+												<i class="fa fa-plug"></i>
 											</div>
 											<h6 class="solution-title"><strong>API Integration</strong></h6>
 											<p class="solution-description">Transform complex oil & gas data into clear, insightful visualizations allowing organization to identify trends by integrating with external data</p>
@@ -228,7 +642,7 @@
 										<div class="col-md-6">
 											<div class="benefit-card">
 												<div class="benefit-icon default-background">
-													<i class="icofont-chart-line"></i>
+													<i class="fa fa-chart-line"></i>
 												</div>
 												<h6 class="benefit-title">Harnessing Data Insights</h6>
 												<p class="benefit-description">We help you collect, analyze, and utilize data to gain valuable insights into your community's needs.</p>
@@ -237,7 +651,7 @@
 										<div class="col-md-6">
 											<div class="benefit-card">
 												<div class="benefit-icon default-background">
-													<i class="icofont-speed-meter"></i>
+													<i class="fa fa-gauge-high"></i>
 												</div>
 												<h6 class="benefit-title">Streamlined Operations</h6>
 												<p class="benefit-description">Our solutions optimize processes, improve efficiency, and free up valuable resources for what matters most – serving your citizens.</p>
@@ -246,7 +660,7 @@
 										<div class="col-md-6">
 											<div class="benefit-card">
 												<div class="benefit-icon default-background">
-													<i class="icofont-chart-growth"></i>
+													<i class="fa fa-arrow-trend-up"></i>
 												</div>
 												<h6 class="benefit-title">Data-Driven Decisions</h6>
 												<p class="benefit-description">Empower your leaders with real-time information to make informed decisions that truly benefit your community.</p>
@@ -255,7 +669,7 @@
 										<div class="col-md-6">
 											<div class="benefit-card">
 												<div class="benefit-icon default-background">
-													<i class="icofont-users-alt-5"></i>
+													<i class="fa fa-users"></i>
 												</div>
 												<h6 class="benefit-title">Enhanced Citizen Engagement</h6>
 												<p class="benefit-description">We help foster transparency and build trust through open data initiatives and citizen-friendly applications.</p>
@@ -296,7 +710,7 @@
 										<div class="col-md-4">
 											<div class="benefit-card">
 												<div class="benefit-icon default-background">
-													<i class="icofont-database"></i>
+													<i class="fa fa-database"></i>
 												</div>
 												<h6 class="benefit-title">Extract value from data</h6>
 												<p class="benefit-description">We help implement solutions to collect, organize, and analyze legal data, turning it into actionable insights.</p>
@@ -305,7 +719,7 @@
 										<div class="col-md-4">
 											<div class="benefit-card">
 												<div class="benefit-icon default-background">
-													<i class="icofont-robot"></i>
+													<i class="fa fa-robot"></i>
 												</div>
 												<h6 class="benefit-title">Automate routine tasks</h6>
 												<p class="benefit-description">By leveraging data and automation, we free up valuable time for legal professionals to focus on high-value strategy and client service.</p>
@@ -314,7 +728,7 @@
 										<div class="col-md-4">
 											<div class="benefit-card">
 												<div class="benefit-icon default-background">
-													<i class="icofont-trophy-alt"></i>
+													<i class="fa fa-trophy"></i>
 												</div>
 												<h6 class="benefit-title">Gain a competitive edge</h6>
 												<p class="benefit-description">Data-driven insights empower lawyers to build stronger cases, deliver more efficient services, and gain a competitive advantage in the market.</p>
@@ -342,7 +756,7 @@
 		<div class="row justify-content-center text-center">
 			<div class="col-12">
 				<h3 class="features-section-title">Why Partner With Armely?</h3>
-				<p class="features-section-subtitle">Delivering industry-leading solutions across all sectors</p>
+				<p class="features-section-subtitle">Industry teams choose Armely when they need secure Microsoft platform delivery, clearer data, and practical automation that survives real operations.</p>
 			</div>
 		</div>
 		<div class="row justify-content-center align-items-center mt-5 g-4">
@@ -350,10 +764,10 @@
 				<div class="feature-item">
 					<div class="feature-icon-wrapper-large">
 						<div class="feature-gradient-icon">
-							<img class="img-fluid" width="60" height="60" src="{{ asset('images/industry/svg1.svg') }}" alt="Connected">
+							<i class="fa fa-plug"></i>
 						</div>
 					</div>
-					<h5 class="feature-title mt-3">Connected</h5>
+					<h5 class="feature-title">Connected systems</h5>
 					<p class="feature-description">Seamlessly integrate systems and data across your organization</p>
 				</div>
 			</div>
@@ -361,10 +775,10 @@
 				<div class="feature-item">
 					<div class="feature-icon-wrapper-large">
 						<div class="feature-gradient-icon">
-							<img class="img-fluid" width="60" height="60" src="{{ asset('images/industry/svg2.svg') }}" alt="Secure">
+							<i class="fa fa-shield-halved"></i>
 						</div>
 					</div>
-					<h5 class="feature-title mt-3">Secure</h5>
+					<h5 class="feature-title">Secure by design</h5>
 					<p class="feature-description">Enterprise-grade security with compliance and data protection</p>
 				</div>
 			</div>
@@ -372,10 +786,10 @@
 				<div class="feature-item">
 					<div class="feature-icon-wrapper-large">
 						<div class="feature-gradient-icon">
-							<img class="img-fluid" width="60" height="60" src="{{ asset('images/industry/svg3.svg') }}" alt="Productive">
+							<i class="fa fa-gears"></i>
 						</div>
 					</div>
-					<h5 class="feature-title mt-3">Productive</h5>
+					<h5 class="feature-title">Productive teams</h5>
 					<p class="feature-description">Streamline workflows and boost team efficiency instantly</p>
 				</div>
 			</div>
@@ -383,10 +797,10 @@
 				<div class="feature-item">
 					<div class="feature-icon-wrapper-large">
 						<div class="feature-gradient-icon">
-							<img class="img-fluid" width="60" height="60" src="{{ asset('images/industry/svg4.svg') }}" alt="Insights">
+							<i class="fa fa-chart-line"></i>
 						</div>
 					</div>
-					<h5 class="feature-title mt-3">Insights</h5>
+					<h5 class="feature-title">Decision-ready insights</h5>
 					<p class="feature-description">Data-driven intelligence to power strategic decisions</p>
 				</div>
 			</div>
@@ -407,4 +821,5 @@
 		</div>
 	</div>
 </section>
+</main>
 @endsection

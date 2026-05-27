@@ -4,6 +4,9 @@
     $title = 'Home';
 @endphp
 
+@section('title', 'Armely | Microsoft Data, AI, and Digital Transformation Services')
+@section('meta_description', 'Armely helps organizations modernize with Microsoft Fabric, Power BI, Copilot, Power Platform, and advisory services for measurable outcomes.')
+
 
 @push('styles')
 <style>
@@ -1203,7 +1206,7 @@
         padding: 20px 25px;
     }
 
-    .video-tag {
+        .video-tag {
         font-size: 0.7rem;
         font-weight: 800;
         color: var(--default-background);
@@ -1225,6 +1228,86 @@
         0% { transform: translate(-50%, -50%) scale(0.95); box-shadow: 0 0 0 0 rgba(47, 85, 151, 0.7); }
         70% { transform: translate(-50%, -50%) scale(1); box-shadow: 0 0 0 15px rgba(47, 85, 151, 0); }
         100% { transform: translate(-50%, -50%) scale(0.95); box-shadow: 0 0 0 0 rgba(47, 85, 151, 0); }
+    }
+
+    .home-contact-section {
+        background: #f7f9fc;
+        padding: 72px 0;
+    }
+
+    .home-contact-section .section-title {
+        margin-bottom: 28px;
+    }
+
+    .home-contact-card {
+        background: #fff !important;
+        border: 1px solid #dbe6f3;
+        box-shadow: 0 18px 44px rgba(28, 54, 93, 0.09);
+        padding: 34px !important;
+        margin-bottom: 0 !important;
+    }
+
+    .home-contact-card label {
+        color: #1e3357 !important;
+        font-weight: 800;
+        font-size: 0.9rem;
+        margin-bottom: 8px;
+    }
+
+    .home-contact-card .form-group {
+        margin-bottom: 18px;
+    }
+
+    .home-contact-card .remove-input-background,
+    .home-contact-card textarea.remove-input-background {
+        width: 100%;
+        background: #f8fbff !important;
+        border: 1px solid #cbd9ea !important;
+        color: #172033 !important;
+        min-height: 50px;
+        padding: 12px 14px;
+        border-radius: 0;
+        transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+    }
+
+    .home-contact-card textarea.remove-input-background {
+        min-height: 140px;
+        resize: vertical;
+    }
+
+    .home-contact-card .remove-input-background::placeholder {
+        color: #7a8799 !important;
+    }
+
+    .home-contact-card .remove-input-background:focus {
+        outline: none;
+        background: #fff !important;
+        border-color: #2f5597 !important;
+        box-shadow: 0 0 0 4px rgba(47, 85, 151, 0.12);
+    }
+
+    .home-contact-card .send-message-btn {
+        background: #2f5597 !important;
+        color: #fff !important;
+        border-radius: 0;
+        min-height: 48px;
+        padding: 12px 24px;
+        font-weight: 900;
+        border: 0;
+    }
+
+    .home-contact-card .send-message-btn:hover {
+        background: #1e3a6d !important;
+        color: #fff !important;
+    }
+
+    @media (max-width: 768px) {
+        .home-contact-section {
+            padding: 54px 0;
+        }
+        .home-contact-card {
+            padding: 22px !important;
+        }
     }
 </style>
 @endpush
@@ -1388,15 +1471,9 @@
                         </div>
                     </div>
                     <div class="col-lg-6">
-                        <label class="field-label text-start">Work phone number *</label>
+                        <label class="field-label text-start">Company name</label>
                         <div class="form-group">
-                            <input class="lead-field" type="text" name="phone" placeholder="Phone number" required>
-                        </div>
-                    </div>
-                    <div class="col-lg-6">
-                        <label class="field-label text-start">Company name *</label>
-                        <div class="form-group">
-                            <input class="lead-field" type="text" name="organization" placeholder="Company name" required>
+                            <input class="lead-field" type="text" name="organization" placeholder="Company name">
                         </div>
                     </div>
                     <div class="col-lg-6">
@@ -1695,12 +1772,12 @@ document.addEventListener('DOMContentLoaded', function () {
     </div>
 </section>
 
-<section class="appointment">
+<section class="appointment home-contact-section">
     <div class="container">
         <div class="row"><div class="col-lg-12"><div class="section-title"><h2>Contact Us</h2><center><hr class="default-background hr"></center></div></div></div>
         <div class="row">
-            <div class="col-lg-12 col-md-6 col-12 d-flex default-background mb-5">
-                <form class="form p-5 w-100" id="contact-form" method="post" action="{{ route('contact.submit') }}">
+            <div class="col-lg-10 col-md-12 col-12 mx-auto">
+                <form class="form p-5 w-100 home-contact-card" id="contact-form" method="post" action="{{ route('contact.submit') }}">
                     @csrf
                     <p class="p-3 alert" id="SubmitMessage"></p>
                     @if($errors->any())
@@ -1720,16 +1797,12 @@ document.addEventListener('DOMContentLoaded', function () {
                             <div class="form-group"><input required class="remove-input-background" name="email" type="email" placeholder="Email" value="{{ old('email') }}"></div>
                         </div>
                         <div class="col-lg-6 col-md-6 col-12">
-                            <label class="text-start text-light">Phone Number *</label>
-                            <div class="form-group"><input required class="remove-input-background" name="phone" type="text" placeholder="Phone" value="{{ old('phone') }}"></div>
+                            <label class="text-start text-light">Organization Name</label>
+                            <div class="form-group"><input class="remove-input-background" name="organization" type="text" placeholder="Organization Name" value="{{ old('organization') }}"></div>
                         </div>
                         <div class="col-lg-6 col-md-6 col-12">
                             <label class="text-start text-light">Subject *</label>
                             <div class="form-group"><input required class="remove-input-background" name="subject" type="text" placeholder="Subject" value="{{ request('subject') ?? old('subject') }}"></div>
-                        </div>
-                        <div class="col-lg-12 col-md-12 col-12">
-                            <label class="text-start text-light">Organization Name *</label>
-                            <div class="form-group"><input required class="remove-input-background" name="organization" type="text" placeholder="Organization Name" value="{{ old('organization') }}"></div>
                         </div>
                         <div class="col-lg-12 col-md-12 col-12">
                             <label class="text-start text-light">Message *</label>
