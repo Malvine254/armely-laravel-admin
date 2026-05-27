@@ -49,12 +49,14 @@ Route::get('/case-studies', [CaseStudiesController::class, 'index'])->name('case
 Route::post('/case-studies/lead', [CaseStudiesController::class, 'submitLead'])->name('case-studies.lead.submit');
 Route::get('/case-studies/access/{caseStudy}', [CaseStudiesController::class, 'accessCaseStudy'])->name('case-studies.access');
 Route::get('/white-papers/access/{paper}', [CaseStudiesController::class, 'accessWhitePaper'])->name('white-papers.access');
+Route::get('/resources/{slug}', [CaseStudiesController::class, 'showResource'])->name('resources.show');
 Route::get('/case_docs/{file}', [CaseStudiesController::class, 'legacyCaseDoc'])
     ->where('file', '.*')
     ->name('case-studies.legacy-doc');
 Route::get('/white_paper_docs/{file}', [CaseStudiesController::class, 'legacyWhitePaperDoc'])
     ->where('file', '.*')
     ->name('white-papers.legacy-doc');
+Route::get('/case-studies/{slug}', [CaseStudiesController::class, 'showCaseStudy'])->name('case-studies.show');
 
 Route::get('/blog/{blogId?}', [BlogController::class, 'index'])->name('blog.index');
 Route::post('/blog/{blogId}/increment-clicks', [BlogController::class, 'incrementClicks'])->name('blog.increment-clicks');

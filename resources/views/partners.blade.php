@@ -1,6 +1,7 @@
 @extends('layouts.public')
 
 @section('title', 'Partners')
+@section('meta_description', 'Explore Armely technology partners and strategic alliances supporting Microsoft-led transformation programs.')
 
 @push('styles')
 <link rel="stylesheet" href="{{ asset('css/partners-modern.css') }}">

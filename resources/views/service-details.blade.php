@@ -1,6 +1,7 @@
 @extends('layouts.public')
 
 @section('title', 'Service')
+@section('meta_description', 'View detailed Armely service capabilities, delivery approach, and engagement options for Microsoft-focused transformation initiatives.')
 
 @push('styles')
 <style>
@@ -212,15 +213,9 @@
 								</div> 
 							</div>
 							<div class="col-lg-6 col-md-6 col-12">
-								<label class="text-start text-light">Phone Number *</label>
+								<label class="text-start text-light">Organization Name</label>
 								<div class="form-group">
-									<input required class="remove-input-background" name="phone" type="text" placeholder="Phone" value="{{ old('phone') }}">
-								</div>
-							</div>
-							<div class="col-lg-6 col-md-6 col-12">
-								<label class="text-start text-light">Organization Name *</label>
-								<div class="form-group">
-									<input required class="remove-input-background" name="organization" type="text" placeholder="Organization Name" value="{{ old('organization') }}">
+									<input class="remove-input-background" name="organization" type="text" placeholder="Organization Name" value="{{ old('organization') }}">
 								</div>
 							</div>
 							<div class="col-lg-12 col-md-12 col-12">

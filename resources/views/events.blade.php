@@ -1,6 +1,7 @@
 @extends('layouts.public')
 
 @section('title', 'Events')
+@section('meta_description', 'Explore Armely events, sessions, and announcements focused on Microsoft data, AI, and digital transformation.')
 
 @push('styles')
 <link rel="stylesheet" href="{{ asset('css/events-modern.css') }}">

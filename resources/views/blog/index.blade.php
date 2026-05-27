@@ -21,6 +21,7 @@ if (!function_exists('armely_blog_clean_html')) {
 @extends('layouts.public')
 
 @section('title', 'Blog')
+@section('meta_description', 'Read Armely blog insights on Microsoft Fabric, Power BI, Copilot, Power Platform, and enterprise transformation strategy.')
 
 @push('head')
 	<!-- Blog Page Styles -->
@@ -123,6 +124,21 @@ if (!function_exists('armely_blog_clean_html')) {
 								<div class="blog-text-content" id="blog-content">
 									{!! armely_blog_clean_html($main->body ?? '') !!}
 								</div>
+
+								@php($blogTopicText = strtolower(($main->title ?? '') . ' ' . strip_tags($main->body ?? '')))
+								@if(str_contains($blogTopicText, 'fabric') || str_contains($blogTopicText, 'power bi') || str_contains($blogTopicText, 'copilot') || str_contains($blogTopicText, 'ai') || str_contains($blogTopicText, 'foundry') || str_contains($blogTopicText, 'power platform'))
+									<div class="blog-related-resource" style="border:1px solid #dfe8f7; background:#f8fbff; padding:20px; margin:28px 0;">
+										<h3 style="font-size:1.15rem; color:#1e3357; font-weight:800; margin-bottom:8px;">Related Armely Results</h3>
+										<p style="color:#536176; margin-bottom:14px;">See how these Microsoft platform ideas translate into client outcomes across data, AI, automation, and collaboration work.</p>
+										<a class="read-aloud-btn" href="{{ route('case-studies.index') }}">Explore case studies</a>
+										@if(str_contains($blogTopicText, 'copilot'))
+											<a class="read-aloud-btn" href="{{ route('resources.show', 'microsoft-copilot-commercial-enterprise') }}">Read Copilot guidance</a>
+										@endif
+										@if(str_contains($blogTopicText, 'fabric') || str_contains($blogTopicText, 'power bi'))
+											<a class="read-aloud-btn" href="{{ route('resources.show', 'microsoft-fabric-case-study-agricultural-operations') }}">View Fabric resource</a>
+										@endif
+									</div>
+								@endif
 
 								<!-- Blog Footer -->
 								<div class="blog-footer-actions">

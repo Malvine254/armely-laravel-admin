@@ -1,6 +1,8 @@
 ﻿@extends('layouts.public')
 
 @php($title = 'Services')
+@section('title', 'Services | Armely')
+@section('meta_description', 'Review Armely service offerings and discover how our team delivers Microsoft-powered business and technology transformation.')
 
 @section('content')
 <div class="breadcrumbs overlay">

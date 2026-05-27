@@ -1,6 +1,7 @@
 @extends('layouts.public')
 
 @section('title', 'Jobs')
+@section('meta_description', 'Review job details and open opportunities at Armely, then apply to join our consulting and technology delivery teams.')
 
 @push('styles')
 <link rel="stylesheet" href="{{ asset('css/job-board-modern.css') }}">
@@ -104,15 +105,9 @@
 							</div> 
 						</div>
 						<div class="col-lg-6 col-md-6 col-12">
-							<label class="text-start text-light">Phone Number *</label>
+							<label class="text-start text-light">Organization Name</label>
 							<div class="form-group">
-								<input required class="remove-input-background" name="phone" type="text" placeholder="Phone">
-							</div>
-						</div>
-						<div class="col-lg-6 col-md-6 col-12">
-							<label class="text-start text-light">Organization Name *</label>
-							<div class="form-group">
-								<input required class="remove-input-background" name="organization" type="text" placeholder="Organization Name">
+								<input class="remove-input-background" name="organization" type="text" placeholder="Organization Name">
 							</div>
 						</div>
 						<div class="col-lg-12 col-md-12 col-12">

@@ -1,6 +1,8 @@
 @extends('layouts.public')
 
 @php($title = 'Thank You')
+@section('title', 'Thank You | Armely')
+@section('meta_description', 'Thank you for contacting Armely. Our team has received your message and will follow up with you shortly.')
 
 @push('styles')
 <style>

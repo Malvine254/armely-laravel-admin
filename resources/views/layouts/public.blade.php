@@ -4,8 +4,9 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="keywords" content="Site keywords here">
-    <meta name="description" content="">
+    <meta name="keywords" content="@yield('meta_keywords', $metaKeywords ?? 'Microsoft Fabric, Power BI, Copilot, Power Platform, Armely')">
+    <meta name="description" content="@yield('meta_description', $metaDescription ?? 'Armely helps organizations modernize data, AI, cloud, and business applications with Microsoft platform expertise.')">
+    <link rel="canonical" href="@yield('canonical_url', request()->url())">
     <title>@yield('title', $title ?? 'Armely')</title>
 
     <link rel="icon" href="{{ asset('images/logo/logo1.png') }}">

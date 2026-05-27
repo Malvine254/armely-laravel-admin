@@ -375,8 +375,8 @@ class HomeController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email:rfc,dns,filter', 'max:255'],
-            'organization' => ['required', 'string', 'max:255'],
-            'phone' => ['required', 'string', 'max:50'],
+            'organization' => ['nullable', 'string', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:50'],
             'service_type' => ['required', 'string', 'max:255'],
             'message' => ['required', 'string'],
             'website' => ['nullable', 'string', 'max:255'], // honeypot
@@ -385,8 +385,6 @@ class HomeController extends Controller
             'name.required' => 'Name is required.',
             'email.required' => 'Email is required.',
             'email.email' => 'Invalid email format.',
-            'organization.required' => 'Organization is required.',
-            'phone.required' => 'Phone is required.',
             'service_type.required' => 'Service of interest is required.',
             'message.required' => 'Message is required.',
             'g-recaptcha-response.required' => 'Please verify you are not a robot.',
@@ -426,8 +424,8 @@ class HomeController extends Controller
         $payload = [
             'name' => $data['name'],
             'email' => $email,
-            'organization' => $data['organization'],
-            'phone' => $data['phone'],
+            'organization' => $data['organization'] ?? '',
+            'phone' => $data['phone'] ?? '',
             'message' => $data['message'],
         ];
 
@@ -454,8 +452,8 @@ class HomeController extends Controller
         $this->notifyConsultationViaGraph(
             $data['name'],
             $email,
-            $data['organization'],
-            $data['phone'],
+            $data['organization'] ?? '',
+            $data['phone'] ?? '',
             $data['service_type'],
             $data['message']
         );
@@ -567,7 +565,7 @@ class HomeController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email:rfc,dns,filter', 'max:255'],
-            'phone' => ['required', 'string', 'max:50'],
+            'phone' => ['nullable', 'string', 'max:50'],
             'address' => ['required', 'string', 'max:255'],
             'city' => ['required', 'string', 'max:100'],
             'zip' => ['required', 'string', 'max:20'],
@@ -690,7 +688,7 @@ class HomeController extends Controller
         $emailData = [
             'name' => $data['name'],
             'email' => $normalizedEmail,
-            'phone' => $data['phone'],
+            'phone' => $data['phone'] ?? '',
             'city' => $data['city'],
             'address' => $data['address'],
             'state' => $data['state'],
@@ -705,7 +703,7 @@ class HomeController extends Controller
             'name' => $data['name'],
             'email' => $normalizedEmail,
             'city' => $data['city'],
-            'phone' => $data['phone'],
+            'phone' => $data['phone'] ?? '',
             'address' => $data['address'],
             'state' => $data['state'],
             'zip' => $data['zip'],

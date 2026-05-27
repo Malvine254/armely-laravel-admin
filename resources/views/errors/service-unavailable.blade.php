@@ -1,6 +1,7 @@
 @extends('layouts.public')
 
 @section('title', 'Unavailable')
+@section('meta_description', 'This Armely page is temporarily unavailable. Please try again shortly.')
 
 @section('content')
 <div class="breadcrumbs overlay">
