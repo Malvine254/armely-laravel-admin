@@ -209,7 +209,7 @@
 		/*====================================
 			Nice Select JS
 		======================================*/ 	
-		$('select').niceSelect();
+		$('select').not('.no-nice-select').niceSelect();
 		
 		/*=====================================
 			Date Picker JS

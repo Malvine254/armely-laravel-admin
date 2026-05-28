@@ -47,6 +47,15 @@ return [
             'report' => false,
         ],
 
+        'resources' => [
+            'driver' => 'local',
+            'root' => storage_path('app/public/resources'),
+            'url' => env('RESOURCE_PUBLIC_STORAGE_URL', env('APP_URL').'/storage/resources'),
+            'visibility' => 'public',
+            'throw' => false,
+            'report' => false,
+        ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),
