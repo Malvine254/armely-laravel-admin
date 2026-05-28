@@ -82,18 +82,40 @@
 		linear-gradient(155deg, rgba(255, 255, 255, 0.99), rgba(244, 249, 255, 0.99));
 	border: 1px solid #d4e1f5;
 	border-radius: 18px;
-	padding: 20px;
+	padding: 16px;
 	margin-bottom: 28px;
 	box-shadow: 0 15px 34px rgba(22, 48, 91, 0.09);
 	position: sticky;
 	top: 90px;
 	z-index: 12;
+	align-self: flex-start;
 }
 .case-studies-section > .container {
-	max-width: 100%;
-	width: 100%;
-	padding-left: 28px;
-	padding-right: 28px;
+	max-width: 1180px;
+}
+.case-studies-layout {
+	align-items: flex-start;
+}
+.case-filter-column .case-filter-panel {
+	margin-bottom: 0;
+}
+@media (min-width: 992px) {
+	.case-filter-column .case-filter-toolbar {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+	.case-filter-column .case-filter-list {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr);
+	}
+	.case-filter-column .case-filter-chip {
+		width: 100%;
+		justify-content: flex-start;
+		align-items: flex-start;
+		white-space: normal;
+		overflow-wrap: anywhere;
+		line-height: 1.25;
+	}
 }
 .case-filter-toolbar {
 	display: flex;
@@ -133,9 +155,6 @@
 }
 .case-filter-group {
 	margin-bottom: 16px;
-	display: none;
-}
-.case-filter-group.active {
 	display: block;
 }
 .case-filter-label {
@@ -151,37 +170,6 @@
 	flex-wrap: wrap;
 	gap: 10px;
 }
-.case-filter-tabs {
-	display: inline-flex;
-	align-items: center;
-	gap: 8px;
-	padding: 6px;
-	border: 1px solid #d4e3fb;
-	background: #eef4ff;
-	border-radius: 12px;
-	margin-bottom: 14px;
-}
-.case-filter-tab {
-	appearance: none;
-	border: 0;
-	background: transparent;
-	color: #274a84;
-	font-size: 0.84rem;
-	font-weight: 800;
-	line-height: 1;
-	padding: 10px 14px;
-	border-radius: 8px;
-	cursor: pointer;
-	transition: all 0.2s ease;
-}
-.case-filter-tab:hover {
-	background: #dfe9fb;
-}
-.case-filter-tab.active {
-	background: linear-gradient(135deg, #2f5597 0%, #22447d 100%);
-	color: #fff;
-	box-shadow: 0 7px 14px rgba(47, 85, 151, 0.24);
-}
 .case-filter-chip {
 	border: 1px solid #c4d6f3;
 	background: #ffffff;
@@ -190,19 +178,23 @@
 	font-size: 0.85rem;
 	font-weight: 700;
 	border-radius: 999px;
-	line-height: 1;
+	line-height: 1.25;
 	transition: all 0.2s ease;
 	display: inline-flex;
-	align-items: center;
+	align-items: flex-start;
 	gap: 8px;
+	white-space: normal;
+	overflow-wrap: anywhere;
 }
 .case-filter-chip::before {
 	content: '';
+	flex: 0 0 7px;
 	width: 7px;
 	height: 7px;
 	border-radius: 50%;
 	background: #87a7de;
 	box-shadow: 0 0 0 3px rgba(135, 167, 222, 0.2);
+	margin-top: 4px;
 }
 .case-filter-chip.active {
 	background: linear-gradient(135deg, #2f5597 0%, #22447d 100%);
@@ -228,6 +220,58 @@
 #white-papers {
 	scroll-margin-top: 110px;
 }
+.white-papers-section > .container {
+	max-width: 1180px;
+}
+.resource-side-panel {
+	background: #ffffff;
+	border: 1px solid #dce7fb;
+	border-radius: 14px;
+	padding: 18px;
+	box-shadow: 0 10px 22px rgba(24, 54, 107, 0.08);
+	position: sticky;
+	top: 90px;
+	align-self: flex-start;
+}
+.resource-side-label {
+	color: #2f5597;
+	font-size: 0.78rem;
+	font-weight: 800;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	margin-bottom: 10px;
+}
+.resource-side-title {
+	color: #163365;
+	font-size: 1.18rem;
+	font-weight: 800;
+	line-height: 1.35;
+	margin-bottom: 10px;
+}
+.resource-side-text {
+	color: #4f6181;
+	line-height: 1.6;
+	margin-bottom: 18px;
+}
+.resource-topic-list {
+	display: grid;
+	gap: 10px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+.resource-topic-list li {
+	border: 1px solid #dce7fb;
+	border-radius: 10px;
+	color: #294a84;
+	font-size: 0.9rem;
+	font-weight: 700;
+	padding: 10px 12px;
+	background: #f7faff;
+	line-height: 1.28;
+	white-space: normal;
+	overflow-wrap: anywhere;
+}
 
 .case-study-card,
 .white-paper-card {
@@ -244,24 +288,25 @@
 	box-shadow: 0 20px 34px rgba(24, 54, 107, 0.16);
 }
 .card-image-wrapper {
-	height: 220px;
+	height: 180px;
 }
 .card-content {
-	padding: 22px;
+	padding: 18px;
 }
 .card-title {
-	font-size: 1.18rem;
+	font-size: 1.08rem;
 	line-height: 1.35;
 	min-height: 3.2em;
-	margin-bottom: 10px;
+	margin-bottom: 8px;
 }
 .card-description {
 	color: #4f6181;
-	line-height: 1.6;
-	min-height: 4.8em;
+	font-size: 0.94rem;
+	line-height: 1.55;
+	min-height: 4.65em;
 }
 .card-footer {
-	padding-top: 14px;
+	padding-top: 12px;
 	border-top: 1px solid #e8eefb;
 }
 .read-more-btn {
@@ -437,14 +482,6 @@
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 		gap: 8px;
 	}
-	.case-filter-tabs {
-		width: 100%;
-		display: grid;
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-	}
-	.case-filter-tab {
-		width: 100%;
-	}
 	.case-filter-chip {
 		padding: 10px 11px;
 		font-size: 0.8rem;
@@ -452,6 +489,10 @@
 		justify-content: flex-start;
 		white-space: normal;
 		line-height: 1.25;
+	}
+	.resource-side-panel {
+		position: static;
+		margin-bottom: 22px;
 	}
 }
 @media (max-width: 479px) {
@@ -487,45 +528,45 @@
 <section class="case-studies-section">
 <div class="container">
 	@php($activeFilterCount = ($selectedIndustry !== '' ? 1 : 0) + ($selectedTopic !== '' ? 1 : 0))
-	<div class="case-filter-panel">
-		<div class="case-filter-toolbar">
-			<h3 class="case-filter-title">Find Relevant Stories Faster</h3>
-			<div class="case-filter-meta">
-				<span id="caseFilterCount" class="case-filter-count">{{ $activeFilterCount }} active {{ $activeFilterCount === 1 ? 'filter' : 'filters' }}</span>
-				<a id="caseFilterReset" class="case-filter-reset" href="{{ route('case-studies.index') }}">Clear all</a>
+	<div class="row case-studies-layout justify-content-center">
+		<div class="col-12 col-lg-4 col-xl-3 mb-4 mb-lg-0 case-filter-column">
+			<div class="case-filter-panel">
+				<div class="case-filter-toolbar">
+					<h3 class="case-filter-title">Find Relevant Stories Faster</h3>
+					<div class="case-filter-meta">
+						<span id="caseFilterCount" class="case-filter-count">{{ $activeFilterCount }} active {{ $activeFilterCount === 1 ? 'filter' : 'filters' }}</span>
+						<a id="caseFilterReset" class="case-filter-reset" href="{{ route('case-studies.index') }}">Clear all</a>
+					</div>
+				</div>
+				<div class="case-filter-group" data-filter-panel="technology">
+					<div class="case-filter-label">Technology</div>
+					<div class="case-filter-list">
+						<a class="case-filter-chip {{ $selectedTopic === '' ? 'active' : '' }}" data-filter-group="topic" data-filter-value="" href="{{ route('case-studies.index', array_filter(['industry' => $selectedIndustry])) }}">All technologies</a>
+						@foreach($topicFilters as $key => $label)
+							<a class="case-filter-chip {{ $selectedTopic === $key ? 'active' : '' }}" data-filter-group="topic" data-filter-value="{{ $key }}" href="{{ route('case-studies.index', array_filter(['industry' => $selectedIndustry, 'topic' => $key])) }}">{{ $label }}</a>
+						@endforeach
+					</div>
+				</div>
+				<div class="case-filter-group mb-0" data-filter-panel="industry">
+					<div class="case-filter-label">Industry</div>
+					<div class="case-filter-list">
+						<a class="case-filter-chip {{ $selectedIndustry === '' ? 'active' : '' }}" data-filter-group="industry" data-filter-value="" href="{{ route('case-studies.index', array_filter(['topic' => $selectedTopic])) }}">All industries</a>
+						@foreach($industryFilters as $key => $label)
+							<a class="case-filter-chip {{ $selectedIndustry === $key ? 'active' : '' }}" data-filter-group="industry" data-filter-value="{{ $key }}" href="{{ route('case-studies.index', array_filter(['industry' => $key, 'topic' => $selectedTopic])) }}">{{ $label }}</a>
+						@endforeach
+					</div>
+				</div>
 			</div>
 		</div>
-		<div class="case-filter-tabs" role="tablist" aria-label="Filter groups">
-			<button type="button" class="case-filter-tab" data-filter-tab="technology" role="tab" aria-selected="false">Technology</button>
-			<button type="button" class="case-filter-tab" data-filter-tab="industry" role="tab" aria-selected="false">Industry</button>
-		</div>
-		<div class="case-filter-group" data-filter-panel="technology">
-			<div class="case-filter-label">Technology</div>
-			<div class="case-filter-list">
-				<a class="case-filter-chip {{ $selectedTopic === '' ? 'active' : '' }}" data-filter-group="topic" data-filter-value="" href="{{ route('case-studies.index', array_filter(['industry' => $selectedIndustry])) }}">All technologies</a>
-				@foreach($topicFilters as $key => $label)
-					<a class="case-filter-chip {{ $selectedTopic === $key ? 'active' : '' }}" data-filter-group="topic" data-filter-value="{{ $key }}" href="{{ route('case-studies.index', array_filter(['industry' => $selectedIndustry, 'topic' => $key])) }}">{{ $label }}</a>
-				@endforeach
-			</div>
-		</div>
-		<div class="case-filter-group mb-0" data-filter-panel="industry">
-			<div class="case-filter-label">Industry</div>
-			<div class="case-filter-list">
-				<a class="case-filter-chip {{ $selectedIndustry === '' ? 'active' : '' }}" data-filter-group="industry" data-filter-value="" href="{{ route('case-studies.index', array_filter(['topic' => $selectedTopic])) }}">All industries</a>
-				@foreach($industryFilters as $key => $label)
-					<a class="case-filter-chip {{ $selectedIndustry === $key ? 'active' : '' }}" data-filter-group="industry" data-filter-value="{{ $key }}" href="{{ route('case-studies.index', array_filter(['industry' => $key, 'topic' => $selectedTopic])) }}">{{ $label }}</a>
-				@endforeach
-			</div>
-		</div>
-	</div>
-	<div class="row">
+		<div class="col-12 col-lg-8 col-xl-9">
+			<div class="row">
 		@forelse($caseStudies as $caseStudy)
 			@php($caseStudyTitle = trim((string) ($caseStudy->title ?? '')))
 			@php($caseStudyDisplayTitle = $caseStudyTitle !== '' ? $caseStudyTitle : (string) ($caseStudy->category ?? 'Case Study'))
 			@php($caseStudyFullTitle = trim($caseStudyDisplayTitle . ' Solution'))
 			@php($caseStudyPlainPreview = trim(preg_replace('/\s+/', ' ', strip_tags((string) ($caseStudy->preview ?? '')))))
 			@php($caseStudyFullDetails = trim($caseStudyFullTitle . "\n" . ($caseStudyPlainPreview !== '' ? $caseStudyPlainPreview : 'No summary available.')))
-			<div class="col-md-4 mb-4 js-case-card" data-industry="{{ $caseStudy->industry_filter ?? '' }}" data-topics="{{ implode(',', $caseStudy->technology_filters ?? []) }}">
+			<div class="col-12 col-md-6 mb-4 js-case-card" data-industry="{{ $caseStudy->industry_filter ?? '' }}" data-topics="{{ implode(',', $caseStudy->technology_filters ?? []) }}">
 				<div class="case-study-card">
 					<div class="card-image-wrapper">
 						@if($caseStudy->listing_image && file_exists(public_path('images/case-study/' . $caseStudy->listing_image)))
@@ -557,7 +598,7 @@
 				<p>No case studies available at this time.</p>
 			</div>
 		@endforelse
-	</div>
+			</div>
 
 	@if ($caseStudies->hasPages())
 		<!-- Pagination for Case Studies -->
@@ -599,6 +640,8 @@
 			</div>
 		</div>
 	@endif
+		</div>
+	</div>
 </div>
 </section>
 
@@ -691,58 +734,61 @@
 <!-- White Papers Section -->
 <section id="white-papers" class="white-papers-section">
 <div class="container">
-	<div class="row">
-		<div class="col-lg-12">
-			<div class="section-header">
-				<h2 class="section-title">White Papers</h2>
-				<p class="section-subtitle">In-depth insights and strategic guidance for digital transformation</p>
-				<div class="section-divider"></div>
-			</div>
+	<div class="row case-studies-layout justify-content-center">
+		<div class="col-12 col-lg-4 col-xl-3 mb-4 mb-lg-0">
+			<aside class="resource-side-panel">
+				<div class="resource-side-label">White Papers</div>
+				<h2 class="resource-side-title">Microsoft platform guidance for leaders</h2>
+				<p class="resource-side-text">In-depth resources for teams planning data, AI, governance, and Copilot initiatives.</p>
+				<ul class="resource-topic-list">
+					<li>Copilot readiness</li>
+					<li>Power Platform governance</li>
+					<li>Data and Fabric strategy</li>
+				</ul>
+			</aside>
 		</div>
-	</div>
-</div>
-<div class="container">
-	<div class="row">
-		@forelse($whitePapers as $paper)
-			@php($whitePaperFullTitle = trim((string) ($paper->title ?? 'White Paper')))
-			@php($whitePaperPlainPreview = trim(preg_replace('/\s+/', ' ', strip_tags((string) ($paper->preview ?? '')))))
-			@php($whitePaperFullDetails = trim($whitePaperFullTitle . "\n" . ($whitePaperPlainPreview !== '' ? $whitePaperPlainPreview : 'No summary available.')))
-			<div class="col-md-4 mb-4">
-				<div class="white-paper-card">
-					<div class="card-image-wrapper">
-						@if($paper->images && file_exists(public_path('images/white-papers/' . $paper->images)))
-							<img src="{{ asset('images/white-papers/' . $paper->images) }}" class="card-image lazy-img" alt="{{ $whitePaperFullTitle }}">
-						@else
-							<div class="white-paper-default-image" aria-hidden="true">
-								<i class="icofont-document"></i>
+		<div class="col-12 col-lg-8 col-xl-9">
+			<div class="row">
+			@forelse($whitePapers as $paper)
+				@php($whitePaperFullTitle = trim((string) ($paper->title ?? 'White Paper')))
+				@php($whitePaperPlainPreview = trim(preg_replace('/\s+/', ' ', strip_tags((string) ($paper->preview ?? '')))))
+				@php($whitePaperFullDetails = trim($whitePaperFullTitle . "\n" . ($whitePaperPlainPreview !== '' ? $whitePaperPlainPreview : 'No summary available.')))
+				<div class="col-12 col-md-6 mb-4">
+					<div class="white-paper-card">
+						<div class="card-image-wrapper">
+							@if($paper->images && file_exists(public_path('images/white-papers/' . $paper->images)))
+								<img src="{{ asset('images/white-papers/' . $paper->images) }}" class="card-image lazy-img" alt="{{ $whitePaperFullTitle }}">
+							@else
+								<div class="white-paper-default-image" aria-hidden="true">
+									<i class="icofont-document"></i>
+								</div>
+							@endif
+							<div class="card-overlay"></div>
+							<div class="card-badge white-paper-badge">
+								<i class="icofont-document"></i> Resource
 							</div>
-						@endif
-						<div class="card-overlay"></div>
-						<div class="card-badge white-paper-badge">
-							<i class="icofont-document"></i> Resource
 						</div>
-					</div>
-					<div class="card-content" data-full-details="{{ $whitePaperFullDetails }}">
-						<h5 class="card-title" title="{{ $whitePaperFullTitle }}">{{ $whitePaperFullTitle }}</h5>
-						<p class="card-description" title="{{ $whitePaperPlainPreview }}">{{ $paper->preview ?? '' }}</p>
-						<div class="card-footer">
-							<a class="read-more-btn"
-							   href="{{ route('resources.show', $paper->slug) }}"
-							   data-white-paper-id="{{ $paper->id }}"
-							   data-resource-type="white-paper"
-							   data-resource-title="{{ $whitePaperFullTitle }}">
-								View Resource <i class="fa fa-arrow-right"></i>
-							</a>
+						<div class="card-content" data-full-details="{{ $whitePaperFullDetails }}">
+							<h5 class="card-title" title="{{ $whitePaperFullTitle }}">{{ $whitePaperFullTitle }}</h5>
+							<p class="card-description" title="{{ $whitePaperPlainPreview }}">{{ $paper->preview ?? '' }}</p>
+							<div class="card-footer">
+								<a class="read-more-btn"
+								   href="{{ route('resources.show', $paper->slug) }}"
+								   data-white-paper-id="{{ $paper->id }}"
+								   data-resource-type="white-paper"
+								   data-resource-title="{{ $whitePaperFullTitle }}">
+									View Resource <i class="fa fa-arrow-right"></i>
+								</a>
+							</div>
 						</div>
 					</div>
 				</div>
+			@empty
+				<div class="col-12 text-center text-muted py-5">
+					<p>No white papers available at this time.</p>
+				</div>
+			@endforelse
 			</div>
-		@empty
-			<div class="col-12 text-center text-muted py-5">
-				<p>No white papers available at this time.</p>
-			</div>
-		@endforelse
-	</div>
 
 	@if ($whitePapers->hasPages())
 		<!-- Pagination for White Papers -->
@@ -784,6 +830,8 @@
 			</div>
 		</div>
 	@endif
+		</div>
+	</div>
 </div>
 </section>
 
@@ -959,29 +1007,11 @@
 	var caseFilterCount = document.getElementById('caseFilterCount');
 	var resetLink = document.getElementById('caseFilterReset');
 	var casePagination = document.querySelector('.case-studies-section .pagination-nav');
-	var filterTabs = Array.prototype.slice.call(document.querySelectorAll('.case-filter-tab[data-filter-tab]'));
-	var filterPanels = Array.prototype.slice.call(document.querySelectorAll('.case-filter-group[data-filter-panel]'));
 
 	var selected = {
 		industry: @json((string) $selectedIndustry),
 		topic: @json((string) $selectedTopic)
 	};
-
-	var activeTab = @json($selectedTopic !== '' ? 'technology' : (($selectedIndustry !== '') ? 'industry' : 'technology'));
-
-	function setActiveTab(tab) {
-		activeTab = tab;
-
-		filterTabs.forEach(function (btn) {
-			var isActive = btn.getAttribute('data-filter-tab') === tab;
-			btn.classList.toggle('active', isActive);
-			btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
-		});
-
-		filterPanels.forEach(function (panel) {
-			panel.classList.toggle('active', panel.getAttribute('data-filter-panel') === tab);
-		});
-	}
 
 	function setActiveChip(group, value) {
 		filterChips
@@ -1069,13 +1099,6 @@
 		});
 	}
 
-	filterTabs.forEach(function (tab) {
-		tab.addEventListener('click', function () {
-			setActiveTab(tab.getAttribute('data-filter-tab') || 'technology');
-		});
-	});
-
-	setActiveTab(activeTab);
 	updateActiveCount();
 	applyFilters();
 })();

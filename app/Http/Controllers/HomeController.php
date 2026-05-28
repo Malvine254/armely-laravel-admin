@@ -419,7 +419,7 @@ class HomeController extends Controller
                 : back()->withErrors(['email' => 'Please provide a valid email that can receive messages.'])->withInput();
         }
 
-        $now = Carbon::now()->toIso8601String();
+        $now = Carbon::now()->format('Y-m-d H:i:s');
 
         $payload = [
             'name' => $data['name'],

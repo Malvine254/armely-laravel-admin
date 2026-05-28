@@ -1,7 +1,19 @@
 @extends('layouts.public')
 
-@section('title', 'Services')
+@section('title', 'Services | Microsoft Data, AI, and Managed Solutions | Armely')
 @section('meta_description', 'Explore Armely services across data, AI, business intelligence, managed services, and advisory solutions on Microsoft platforms.')
+@section('meta_keywords', 'Armely services, Microsoft Fabric services, Power Platform consulting, AI advisory, managed services, business intelligence, data strategy')
+@section('canonical_url', url('/services'))
+
+@push('head')
+<meta property="og:type" content="website">
+<meta property="og:title" content="Services | Microsoft Data, AI, and Managed Solutions | Armely">
+<meta property="og:description" content="Explore Armely services across data, AI, business intelligence, managed services, and advisory solutions on Microsoft platforms.">
+<meta property="og:url" content="{{ url('/services') }}">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Services | Microsoft Data, AI, and Managed Solutions | Armely">
+<meta name="twitter:description" content="Explore Armely services across data, AI, business intelligence, managed services, and advisory solutions on Microsoft platforms.">
+@endpush
 
 @push('styles')
 <style>
@@ -952,13 +964,13 @@
 								<input required class="remove-input-background" name="email" type="email" placeholder="Email" value="{{ old('email') }}">
 							</div>
 						</div>
-						<div class="col-lg-4 col-md-4 col-12">
+						<div class="col-lg-6 col-md-6 col-12">
 							<div class="form-group">
 								<label class="text-start text-light">Organization Name</label>
 								<input class="remove-input-background" name="organization" type="text" placeholder="Organization Name" value="{{ old('organization') }}">
 							</div>
 						</div>
-						<div class="col-lg-4 col-md-4 col-12">
+						<div class="col-lg-6 col-md-6 col-12">
 							<div class="form-group">
 								<label class="text-start text-light">Service of Interest *</label>
 								<select required name="service_type" class="form-control remove-input-background">
