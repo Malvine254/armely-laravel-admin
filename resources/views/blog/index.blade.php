@@ -20,32 +20,61 @@ if (!function_exists('armely_blog_clean_html')) {
 @endphp
 @extends('layouts.public')
 
-@section('title', 'Blog')
-@section('meta_description', 'Read Armely blog insights on Microsoft Fabric, Power BI, Copilot, Power Platform, and enterprise transformation strategy.')
+@php
+    $hasMain = !empty($main);
+    $mainTitle = $hasMain ? trim((string) ($main->title ?? '')) : '';
+    $mainBodyText = $hasMain ? trim(preg_replace('/\s+/', ' ', strip_tags((string) ($main->body ?? '')))) : '';
+
+    $seoTitle = $hasMain && $mainTitle !== ''
+        ? $mainTitle . ' | Armely Blog'
+        : 'Blogs | Armely Insights on Data, AI, and Microsoft Technologies';
+
+    $seoDescription = $hasMain && $mainBodyText !== ''
+        ? Str::limit($mainBodyText, 158)
+        : 'Read Armely blog insights on Microsoft Fabric, Power BI, Copilot, Power Platform, and enterprise transformation strategy.';
+
+    $seoKeywords = $hasMain && $mainTitle !== ''
+        ? 'Armely blog, ' . Str::lower($mainTitle) . ', Microsoft Fabric, Power BI, Copilot, enterprise AI'
+        : 'Armely blog, Microsoft Fabric, Power BI, Copilot, Power Platform, enterprise AI, data modernization';
+
+    $canonicalUrl = ($hasMain && !empty($main->blog_id))
+        ? route('blog.index', ['blogId' => $main->blog_id])
+        : route('blog.index');
+
+    $shareImage = ($hasMain && !empty($main->image_path))
+        ? asset($main->image_path)
+        : asset('images/logo/logo1.png');
+@endphp
+
+@section('title', $seoTitle)
+@section('meta_description', $seoDescription)
+@section('meta_keywords', $seoKeywords)
+@section('canonical_url', $canonicalUrl)
 
 @push('head')
+	<meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
+	<meta property="og:site_name" content="Armely">
+	<meta property="og:locale" content="en_US">
+	<meta property="og:title" content="{{ $seoTitle }}">
+	<meta property="og:description" content="{{ $seoDescription }}">
+	<meta property="og:url" content="{{ $canonicalUrl }}">
+	<meta property="og:image" content="{{ $shareImage }}">
+	<meta property="og:image:secure_url" content="{{ $shareImage }}">
+	<meta property="og:image:width" content="1200">
+	<meta property="og:image:height" content="630">
+	<meta name="twitter:card" content="summary_large_image">
+	<meta name="twitter:title" content="{{ $seoTitle }}">
+	<meta name="twitter:description" content="{{ $seoDescription }}">
+	<meta name="twitter:image" content="{{ $shareImage }}">
+
+	@if($hasMain && !empty($main->blog_id))
+		<meta property="article:published_time" content="{{ \Carbon\Carbon::parse($main->date)->toIso8601String() }}">
+		<meta property="article:author" content="{{ $main->author ?? 'Armely Team' }}">
+		<meta property="article:section" content="Insights">
+	@endif
+
 	<!-- Blog Page Styles -->
 	<link rel="stylesheet" href="{{ asset('css/blog-modern.css') }}?v={{ file_exists(public_path('css/blog-modern.css')) ? filemtime(public_path('css/blog-modern.css')) : '' }}">
-	
-@if(isset($main))
-	<!-- Open Graph Meta Tags for Social Media Sharing -->
-	<meta property="og:type" content="article">
-	<meta property="og:title" content="{{ $main->title }}">
-	<meta property="og:description" content="{{ \Illuminate\Support\Str::limit(strip_tags($main->body), 160) }}">
-	<meta property="og:url" content="{{ request()->url() }}">
-	@if($main->image_path)
-		<meta property="og:image" content="{{ url($main->image_path) }}">
-		<meta property="og:image:secure_url" content="{{ url($main->image_path) }}">
-		<meta property="og:image:width" content="1200">
-		<meta property="og:image:height" content="630">
-	@endif
-	<meta name="twitter:card" content="summary_large_image">
-	<meta name="twitter:title" content="{{ $main->title }}">
-	<meta name="twitter:description" content="{{ \Illuminate\Support\Str::limit(strip_tags($main->body), 160) }}">
-	@if($main->image_path)
-		<meta name="twitter:image" content="{{ url($main->image_path) }}">
-	@endif
-@endif
 @endpush
 
 @section('content')
