@@ -569,6 +569,12 @@
     font-size: 0.92rem;
     margin: 10px 0 0;
 }
+.file-description p {
+    margin: 0 0 0.65rem;
+}
+.file-description p:last-child {
+    margin-bottom: 0;
+}
 .folder-location {
     margin-top: 12px;
     border-radius: 9px;
@@ -915,7 +921,16 @@
                                         <span class="file-type">{{ $iconConfig[2] }}</span>
                                         <span class="file-date">Added {{ optional($resource->created_at)->format('M d, Y') }}</span>
                                     </div>
-                                    <p class="file-description">{{ $resource->description ?: 'Practical implementation guidance from Armely.' }}</p>
+                                    <div class="file-description">
+                                        @php
+                                            $descriptionHtml = trim((string) ($resource->description ?? ''));
+                                        @endphp
+                                        @if($descriptionHtml !== '')
+                                            {!! html_entity_decode($descriptionHtml, ENT_QUOTES | ENT_HTML5, 'UTF-8') !!}
+                                        @else
+                                            <p>Practical implementation guidance from Armely.</p>
+                                        @endif
+                                    </div>
                                     <div class="folder-location">📁 Folder Location: {{ $resource->category ?: 'General' }} / {{ ucfirst($resource->resource_type) }}</div>
                                 </div>
 
