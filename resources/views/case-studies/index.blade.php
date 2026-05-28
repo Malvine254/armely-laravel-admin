@@ -277,6 +277,18 @@
 	color: inherit;
 	text-decoration: none;
 }
+.resource-topic-list li a.case-filter-chip {
+	padding: 0;
+	border: 0;
+	background: transparent;
+	box-shadow: none;
+	width: 100%;
+	justify-content: flex-start;
+	color: inherit;
+}
+.resource-topic-list li a.case-filter-chip::before {
+	display: none;
+}
 .resource-topic-list li.active {
 	background: linear-gradient(135deg, #2f5597 0%, #22447d 100%);
 	border-color: #22447d;
@@ -587,7 +599,7 @@
 			@php($caseStudyFullTitle = trim($caseStudyDisplayTitle . ' Solution'))
 			@php($caseStudyPlainPreview = trim(preg_replace('/\s+/', ' ', strip_tags((string) ($caseStudy->preview ?? '')))))
 			@php($caseStudyFullDetails = trim($caseStudyFullTitle . "\n" . ($caseStudyPlainPreview !== '' ? $caseStudyPlainPreview : 'No summary available.')))
-			<div class="col-12 col-md-6 mb-4 js-case-card" data-industry="{{ $caseStudy->industry_filter ?? '' }}" data-topics="{{ implode(',', $caseStudy->technology_filters ?? []) }}">
+			<div class="col-12 col-md-6 col-lg-4 mb-4 js-case-card" data-industry="{{ $caseStudy->industry_filter ?? '' }}" data-topics="{{ implode(',', $caseStudy->technology_filters ?? []) }}">
 				<div class="case-study-card">
 					<div class="card-image-wrapper">
 						@if($caseStudy->listing_image && file_exists(public_path('images/case-study/' . $caseStudy->listing_image)))
@@ -763,16 +775,16 @@
 				<p class="resource-side-text">In-depth resources for teams planning data, AI, governance, and Copilot initiatives.</p>
 				<ul class="resource-topic-list">
 					<li class="{{ $selectedTopic === '' ? 'active' : '' }}">
-						<a href="{{ route('case-studies.index', array_filter(['industry' => $selectedIndustry])) }}#white-papers">All topics</a>
+						<a class="case-filter-chip js-filter-chip {{ $selectedTopic === '' ? 'active' : '' }}" data-filter-group="topic" data-filter-value="" href="{{ route('case-studies.index', array_filter(['industry' => $selectedIndustry])) }}#white-papers">All topics</a>
 					</li>
 					@foreach($topicFilters as $key => $label)
 						<li class="{{ $selectedTopic === $key ? 'active' : '' }}">
-							<a href="{{ route('case-studies.index', array_filter(['industry' => $selectedIndustry, 'topic' => $key])) }}#white-papers">{{ $label }}</a>
+							<a class="case-filter-chip js-filter-chip {{ $selectedTopic === $key ? 'active' : '' }}" data-filter-group="topic" data-filter-value="{{ $key }}" href="{{ route('case-studies.index', array_filter(['industry' => $selectedIndustry, 'topic' => $key])) }}#white-papers">{{ $label }}</a>
 						</li>
 					@endforeach
 				</ul>
 				<div class="resource-filter-actions">
-					<a class="case-filter-reset" href="{{ route('case-studies.index') }}#white-papers">Clear white paper filters</a>
+					<a id="whiteFilterReset" class="case-filter-reset" href="{{ route('case-studies.index') }}#white-papers">Clear white paper filters</a>
 				</div>
 			</aside>
 		</div>
@@ -782,7 +794,8 @@
 				@php($whitePaperFullTitle = trim((string) ($paper->title ?? 'White Paper')))
 				@php($whitePaperPlainPreview = trim(preg_replace('/\s+/', ' ', strip_tags((string) ($paper->preview ?? '')))))
 				@php($whitePaperFullDetails = trim($whitePaperFullTitle . "\n" . ($whitePaperPlainPreview !== '' ? $whitePaperPlainPreview : 'No summary available.')))
-				<div class="col-12 col-md-6 mb-4">
+				@php($whitePaperFilterText = strtolower(trim($whitePaperFullTitle . ' ' . $whitePaperPlainPreview)))
+				<div class="col-12 col-md-6 col-lg-4 mb-4 js-white-paper-card" data-filter-text="{{ $whitePaperFilterText }}">
 					<div class="white-paper-card">
 						<div class="card-image-wrapper">
 							@if($paper->images && file_exists(public_path('images/white-papers/' . $paper->images)))
@@ -801,7 +814,7 @@
 							<h5 class="card-title" title="{{ $whitePaperFullTitle }}">{{ $whitePaperFullTitle }}</h5>
 							<p class="card-description" title="{{ $whitePaperPlainPreview }}">{{ $paper->preview ?? '' }}</p>
 							<div class="card-footer">
-								<a class="read-more-btn"
+								<a class="read-more-btn text-light"
 								   href="{{ route('resources.show', $paper->slug) }}"
 								   data-white-paper-id="{{ $paper->id }}"
 								   data-resource-type="white-paper"
@@ -1027,19 +1040,38 @@
 })();
 
 (function () {
-	var filterChips = Array.prototype.slice.call(document.querySelectorAll('.case-filter-chip[data-filter-group]'));
+	var filterChips = Array.prototype.slice.call(document.querySelectorAll('.js-filter-chip[data-filter-group], .case-filter-chip[data-filter-group]'));
 	if (!filterChips.length) {
 		return;
 	}
 
 	var caseCards = Array.prototype.slice.call(document.querySelectorAll('.js-case-card'));
+	var whitePaperCards = Array.prototype.slice.call(document.querySelectorAll('.js-white-paper-card'));
 	var caseFilterCount = document.getElementById('caseFilterCount');
 	var resetLink = document.getElementById('caseFilterReset');
+	var whiteResetLink = document.getElementById('whiteFilterReset');
 	var casePagination = document.querySelector('.case-studies-section .pagination-nav');
+	var whitePagination = document.querySelector('.white-papers-section .pagination-nav');
 
 	var selected = {
 		industry: @json((string) $selectedIndustry),
 		topic: @json((string) $selectedTopic)
+	};
+
+	var topicTermsByKey = {
+		'fabric-data': ['fabric', 'power bi', 'data', 'analytics', 'warehouse', 'lakehouse'],
+		'power-platform': ['power platform', 'power apps', 'power automate', 'power pages'],
+		'ai-cognitive-services': ['ai', 'copilot', 'cognitive', 'agent'],
+		'sharepoint-collaboration': ['sharepoint', 'teams', 'collaboration', 'intranet']
+	};
+
+	var industryTermsByKey = {
+		healthcare: ['health', 'healthcare', 'swope', 'unmc', 'patient', 'medical'],
+		'government-public-sector': ['government', 'public sector', 'city', 'county', 'agency', 'plano'],
+		education: ['education', 'university', 'college', 'school', 'unmc'],
+		'energy-utilities': ['energy', 'utility', 'utilities', 'sage', 'butte'],
+		'high-tech-consulting': ['high tech', 'consulting', 'technology', 'tetratech', 'tetra tech'],
+		'social-services': ['social', 'nonprofit', 'community', 'swope']
 	};
 
 	function setActiveChip(group, value) {
@@ -1047,6 +1079,10 @@
 			.filter(function (chip) { return chip.getAttribute('data-filter-group') === group; })
 			.forEach(function (chip) {
 				chip.classList.toggle('active', chip.getAttribute('data-filter-value') === value);
+				var parent = chip.closest('li');
+				if (parent) {
+					parent.classList.toggle('active', chip.classList.contains('active'));
+				}
 			});
 	}
 
@@ -1077,6 +1113,26 @@
 
 		if (casePagination) {
 			casePagination.style.display = (selected.industry || selected.topic) ? 'none' : '';
+		}
+
+		whitePaperCards.forEach(function (card) {
+			var haystack = String(card.getAttribute('data-filter-text') || '').toLowerCase();
+			var topicTerms = selected.topic ? (topicTermsByKey[selected.topic] || [selected.topic.replace(/-/g, ' ')]) : [];
+			var industryTerms = selected.industry ? (industryTermsByKey[selected.industry] || [selected.industry.replace(/-/g, ' ')]) : [];
+
+			var matchesTopic = !selected.topic || topicTerms.some(function (term) {
+				return haystack.indexOf(String(term).toLowerCase()) !== -1;
+			});
+
+			var matchesIndustry = !selected.industry || industryTerms.some(function (term) {
+				return haystack.indexOf(String(term).toLowerCase()) !== -1;
+			});
+
+			card.style.display = (matchesIndustry && matchesTopic) ? '' : 'none';
+		});
+
+		if (whitePagination) {
+			whitePagination.style.display = (selected.industry || selected.topic) ? 'none' : '';
 		}
 	}
 
@@ -1117,6 +1173,19 @@
 
 	if (resetLink) {
 		resetLink.addEventListener('click', function (event) {
+			event.preventDefault();
+			selected.industry = '';
+			selected.topic = '';
+			setActiveChip('industry', '');
+			setActiveChip('topic', '');
+			updateActiveCount();
+			applyFilters();
+			updateUrl();
+		});
+	}
+
+	if (whiteResetLink) {
+		whiteResetLink.addEventListener('click', function (event) {
 			event.preventDefault();
 			selected.industry = '';
 			selected.topic = '';
