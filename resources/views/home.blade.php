@@ -448,7 +448,7 @@
         max-height: 290px;
         aspect-ratio: auto;
         overflow: hidden;
-        background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #dbe6fb 100%);
+        background: linear-gradient(135deg, #2f5597 0%, #2a4b87 52%, #244177 100%);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -475,7 +475,7 @@
         content: '';
         position: absolute;
         inset: 0;
-        background: linear-gradient(180deg, rgba(15, 23, 42, 0.08) 0%, rgba(15, 23, 42, 0.02) 48%, rgba(15, 23, 42, 0.16) 100%);
+        background: linear-gradient(180deg, rgba(19, 38, 74, 0.14) 0%, rgba(24, 46, 88, 0.08) 48%, rgba(17, 34, 66, 0.22) 100%);
         pointer-events: none;
     }
 
@@ -489,14 +489,14 @@
         gap: 6px;
         padding: 8px 12px;
         border-radius: 999px;
-        background: rgba(15, 23, 42, 0.78);
+        background: rgba(29, 57, 111, 0.94);
         color: #fff;
         font-size: 0.75rem;
         font-weight: 800;
         letter-spacing: 0.08em;
         text-transform: uppercase;
         backdrop-filter: blur(10px);
-        box-shadow: 0 10px 28px rgba(15, 23, 42, 0.18);
+        box-shadow: 0 10px 28px rgba(19, 38, 74, 0.30);
     }
 
     .blog.section .blog-image-box img {
@@ -512,12 +512,12 @@
         margin: 0;
         position: relative;
         z-index: 2;
-        filter: drop-shadow(0 18px 28px rgba(15, 23, 42, 0.14));
+        filter: drop-shadow(0 18px 28px rgba(47, 85, 151, 0.16));
     }
 
     .blog.section .blog-card-wrapper:hover .blog-image-box img {
         transform: scale(1.03);
-        filter: drop-shadow(0 24px 36px rgba(15, 23, 42, 0.18));
+        filter: drop-shadow(0 24px 36px rgba(47, 85, 151, 0.22));
     }
 
     /* title overlay inside image */
@@ -1113,6 +1113,15 @@
         padding-left: 0;
     }
 
+    .fun-facts .single-fun .years-metric {
+        white-space: nowrap;
+        display: inline-block;
+    }
+
+    .fun-facts .single-fun .years-metric .counter {
+        display: inline !important;
+    }
+
     .fun-facts.no-radius,
     #fun-facts.no-radius {
         border-radius: 0 !important;
@@ -1519,10 +1528,9 @@
     <div class="container">
         <h2 id="stats-heading" class="sr-only">Customer Statistics</h2>
         <div class="row" style="content-visibility:auto; contain-intrinsic-size: auto 300px;">
-            <div class="col-lg-4 col-md-6 col-12"><div class="single-fun"><i class="icofont icofont-ui-user-group"></i><div class="content"><span class="counter plus">72</span><p>Customer Retention Rate</p></div></div></div>
-            <div class="col-lg-4 col-md-6 col-12"><div class="single-fun"><i class="icofont icofont-users-social"></i><div class="content"><span class="counter percent">82</span><p>Customer Satisfaction</p></div></div></div>
-            <div class="col-lg-4 col-md-6 col-12"><div class="single-fun"><i class="icofont-simple-smile"></i><div class="content"><span>Very Easy</span><p>Customer Effort Score</p></div></div></div>
-            <div class="col-lg-4 col-md-6 col-12"></div>
+            <div class="col-lg-4 col-md-6 col-12"><div class="single-fun"><i class="icofont icofont-ui-user-group"></i><div class="content"><span class="counter plus">85</span><p>Client Retention</p></div></div></div>
+            <div class="col-lg-4 col-md-6 col-12"><div class="single-fun"><i class="icofont icofont-users-social"></i><div class="content"><span class="counter plus">90</span><p>Client Satisfaction / NPS</p></div></div></div>
+            <div class="col-lg-4 col-md-6 col-12"><div class="single-fun"><i class="icofont icofont-badge"></i><div class="content"><span class="years-metric"><span class="counter">9</span>&nbsp;Years</span><p>Years of Delivery</p></div></div></div>
         </div>
     </div>
 </section>
@@ -1869,7 +1877,7 @@ document.addEventListener('DOMContentLoaded', function() {
         messageDiv.className = 'p-3 alert';
         messageDiv.style.display = 'none';
 
-        const recaptchaResponse = grecaptcha.getResponse();
+        const recaptchaResponse = (form.querySelector('textarea[name="g-recaptcha-response"]')?.value || '').trim();
         if (!recaptchaResponse) {
             messageDiv.className = 'p-3 alert alert-danger alert-dismissible fade show';
             messageDiv.innerHTML = '<strong>Error:</strong> Please verify that you are not a robot.' +
@@ -1887,7 +1895,7 @@ document.addEventListener('DOMContentLoaded', function() {
         fetch('{{ route("contact.submit") }}', {
             method: 'POST',
             headers: {
-                'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value,
+                'X-CSRF-TOKEN': form.querySelector('input[name="_token"]').value,
                 'Accept': 'application/json'
             },
             body: formData
@@ -1918,7 +1926,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 form.reset();
-                grecaptcha.reset();
+                if (window.grecaptcha && typeof window.grecaptcha.reset === 'function') {
+                    window.grecaptcha.reset();
+                }
             } else {
                 messageDiv.classList.add('alert-danger');
                 messageDiv.textContent = '❌ ' + (data.message || 'An error occurred. Please try again.');

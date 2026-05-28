@@ -369,6 +369,358 @@
 .cta-section-industries {
 	background: #2f5597 !important;
 }
+
+/* Quiet professional pass */
+.industries-hero {
+	background: #fff;
+	padding: 48px 0 34px;
+}
+.industries-hero-grid {
+	display: block;
+	max-width: 900px;
+}
+.industries-kicker {
+	color: #2f5597;
+	font-size: .76rem;
+	font-weight: 800;
+	margin-bottom: 10px;
+}
+.industries-hero h1 {
+	font-size: 2.15rem;
+	font-weight: 800;
+	line-height: 1.22;
+	max-width: 820px;
+	margin-bottom: 12px;
+}
+.industries-hero-copy {
+	font-size: 1rem;
+	line-height: 1.72;
+	max-width: 760px;
+	margin-bottom: 20px;
+}
+.industries-hero-panel {
+	display: none;
+}
+.industries-primary-btn,
+.industries-secondary-btn {
+	min-height: 42px;
+	padding: 10px 14px;
+	font-weight: 700;
+}
+.industries-primary-btn {
+	background: #2f5597;
+}
+.industries-secondary-btn {
+	background: transparent;
+}
+.industries-section-modern {
+	background: #f8fafc;
+	padding: 42px 0 64px;
+}
+.industries-section-modern::after {
+	content: "";
+	display: block;
+	clear: both;
+}
+.industries-section-modern > .container {
+	max-width: 1180px;
+}
+.industries-layout {
+	align-items: flex-start;
+}
+.industries-sidebar-col {
+	align-self: flex-start;
+	position: relative;
+	z-index: 20;
+}
+.industry-nav-panel {
+	background: #fff;
+	border: 1px solid #dbe6f3;
+	box-shadow: 0 10px 22px rgba(24, 54, 107, .08);
+	padding: 16px;
+	position: sticky;
+	top: 90px;
+	align-self: flex-start;
+	height: auto !important;
+	min-height: 0 !important;
+	z-index: 21;
+}
+.industry-nav-kicker {
+	color: #2f5597;
+	font-size: .76rem;
+	font-weight: 800;
+	letter-spacing: .08em;
+	text-transform: uppercase;
+	margin-bottom: 8px;
+}
+.industry-nav-title {
+	color: #172033;
+	font-size: 1.12rem;
+	font-weight: 800;
+	line-height: 1.35;
+	margin-bottom: 8px;
+}
+.industry-nav-copy {
+	color: #5f6f86;
+	font-size: .92rem;
+	line-height: 1.6;
+	margin-bottom: 16px;
+}
+.modern-tabs-industries {
+	background: transparent !important;
+	border: 0 !important;
+	box-shadow: none !important;
+	display: grid;
+	gap: 10px;
+	padding: 0 !important;
+	margin: 0 !important;
+	height: auto !important;
+	min-height: 0 !important;
+}
+.modern-tabs-industries .nav-item {
+	margin: 0 !important;
+}
+.modern-tabs-industries .nav-link {
+	background: #fff !important;
+	border: 1px solid #dbe6f3 !important;
+	color: #1e3357 !important;
+	display: flex;
+	align-items: flex-start;
+	gap: 10px;
+	justify-content: flex-start;
+	padding: 11px 12px !important;
+	font-weight: 700 !important;
+	font-size: .92rem;
+	line-height: 1.28;
+	width: 100%;
+	white-space: normal;
+	overflow-wrap: anywhere;
+}
+.modern-tabs-industries .nav-link i {
+	color: #2f5597;
+	font-size: 1rem !important;
+	flex: 0 0 18px;
+	width: 18px;
+	margin-top: 1px;
+	text-align: center;
+}
+.modern-tabs-industries .nav-link strong {
+	display: block;
+	min-width: 0;
+	white-space: normal;
+	overflow-wrap: anywhere;
+}
+.modern-tabs-industries .nav-link.active {
+	background: #2f5597 !important;
+	border-color: #2f5597 !important;
+	color: #fff !important;
+}
+.modern-tabs-industries .nav-link.active i {
+	color: #fff;
+}
+.modern-tab-content {
+	box-shadow: none !important;
+	min-height: 0 !important;
+	background: transparent !important;
+	border: 0 !important;
+}
+.tab-content-wrapper {
+	padding: 28px !important;
+	min-height: 0 !important;
+}
+.tab-content-wrapper > .mt-5:first-child {
+	margin-top: 0 !important;
+}
+.industries-section-modern .tab-pane {
+	background: transparent !important;
+	min-height: 0 !important;
+}
+.industries-tab-inner {
+	height: auto !important;
+	min-height: 0 !important;
+}
+.industry-tag {
+	font-size: .72rem !important;
+	font-weight: 800 !important;
+	letter-spacing: .08em !important;
+	padding: 6px 10px !important;
+}
+.industry-title {
+	font-size: 2rem !important;
+	font-weight: 800 !important;
+}
+.title-underline,
+.subtitle-underline {
+	height: 2px !important;
+	width: 54px !important;
+	background: #2f5597 !important;
+}
+.industry-img {
+	box-shadow: none !important;
+}
+.modern-solution-card,
+.benefit-card,
+.feature-item {
+	box-shadow: none !important;
+}
+.modern-solution-card:hover,
+.benefit-card:hover,
+.feature-item:hover {
+	transform: none !important;
+	box-shadow: 0 10px 24px rgba(28, 54, 93, .08) !important;
+}
+.modern-solution-card::before,
+.benefit-card::before {
+	display: none;
+}
+.modern-solution-card,
+.benefit-card {
+	min-height: 0 !important;
+	padding: 20px !important;
+}
+.modern-solution-card .solution-icon-wrapper,
+.benefit-card .benefit-icon,
+.features-section-industries .feature-gradient-icon {
+	width: 44px !important;
+	height: 44px !important;
+	background: #f7f9fc !important;
+}
+.modern-solution-card .solution-icon-wrapper i,
+.benefit-card .benefit-icon i,
+.features-section-industries .feature-gradient-icon i {
+	font-size: 1.05rem !important;
+}
+.modern-solution-card .solution-title,
+.benefit-card .benefit-title,
+.features-section-industries .feature-title {
+	font-size: 1rem !important;
+	font-weight: 800 !important;
+}
+.modern-solution-card .solution-description,
+.benefit-card .benefit-description,
+.features-section-industries .feature-description {
+	font-size: .92rem !important;
+	line-height: 1.62 !important;
+}
+.modern-solution-card,
+.benefit-card {
+	border-radius: 12px !important;
+	border: 1px solid #dce7fb !important;
+	background: #fff !important;
+	box-shadow: 0 10px 22px rgba(24, 54, 107, .08) !important;
+	gap: 10px;
+	overflow: hidden;
+	position: relative;
+	transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease !important;
+}
+.modern-solution-card::after,
+.benefit-card::after {
+	content: "";
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 3px;
+	background: #2f5597;
+}
+.modern-solution-card:hover,
+.benefit-card:hover {
+	border-color: #bdd0ef !important;
+	box-shadow: 0 18px 34px rgba(24, 54, 107, .14) !important;
+	transform: translateY(-4px) !important;
+}
+.modern-solution-card .solution-icon-wrapper,
+.benefit-card .benefit-icon {
+	border-radius: 10px !important;
+	border: 1px solid #dce7fb !important;
+	background: #f4f8ff !important;
+	color: #2f5597 !important;
+}
+.modern-solution-card .solution-title,
+.benefit-card .benefit-title {
+	color: #172033 !important;
+	line-height: 1.34 !important;
+	margin-bottom: 2px !important;
+}
+.features-section-industries {
+	padding: 56px 0 !important;
+	background: #fff !important;
+}
+.features-section-industries .features-section-title {
+	font-size: 1.75rem !important;
+	font-weight: 800 !important;
+}
+.features-section-industries .feature-item {
+	border-radius: 12px !important;
+	border: 1px solid #dce7fb !important;
+	background: #fff !important;
+	box-shadow: 0 10px 22px rgba(24, 54, 107, .08) !important;
+	padding: 22px !important;
+	min-height: 220px;
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	text-align: left !important;
+	overflow: hidden;
+	position: relative;
+	transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease !important;
+}
+.features-section-industries .row.g-4 > [class*="col-"] {
+	display: flex;
+}
+.features-section-industries .row.g-4 > [class*="col-"] > .feature-item {
+	width: 100%;
+}
+.features-section-industries .feature-item::after {
+	content: "";
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 3px;
+	background: #2f5597;
+}
+.features-section-industries .feature-item:hover {
+	border-color: #bdd0ef !important;
+	box-shadow: 0 18px 34px rgba(24, 54, 107, .14) !important;
+	transform: translateY(-4px) !important;
+}
+.features-section-industries .feature-icon-wrapper-large {
+	margin-bottom: 14px;
+	min-height: 46px;
+}
+.features-section-industries .feature-gradient-icon {
+	border-radius: 10px !important;
+	border: 1px solid #dce7fb !important;
+	background: #f4f8ff !important;
+	color: #2f5597 !important;
+	width: 46px !important;
+	height: 46px !important;
+}
+.features-section-industries .feature-title {
+	color: #172033 !important;
+	font-size: 1rem !important;
+	line-height: 1.34 !important;
+	margin-bottom: 8px !important;
+	min-height: 2.8em;
+	display: flex;
+	align-items: flex-start;
+}
+.features-section-industries .feature-description {
+	color: #5f6f86 !important;
+	font-size: .92rem !important;
+	line-height: 1.62 !important;
+	margin: 0 !important;
+	flex: 1;
+}
+.cta-section-industries {
+	background: #2f5597 !important;
+	padding: 48px 0 !important;
+}
+.cta-section-industries .cta-heading {
+	font-weight: 800 !important;
+}
 @media (max-width: 991px) {
 	.industries-hero-grid {
 		grid-template-columns: 1fr;
@@ -378,6 +730,51 @@
 	}
 	.tab-content-wrapper {
 		padding: 22px !important;
+	}
+	.industry-nav-panel {
+		position: static;
+	}
+	.modern-tabs-industries {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+@media (min-width: 992px) {
+	.industries-layout {
+		display: block;
+		margin-left: 0;
+		margin-right: 0;
+	}
+	.industries-sidebar-col {
+		float: left;
+		width: 280px;
+		max-width: 280px;
+		padding-left: 0;
+		padding-right: 0;
+		margin-right: 40px;
+		margin-bottom: 28px !important;
+	}
+	.industries-content-col {
+		display: block;
+		float: none;
+		width: auto;
+		max-width: none;
+		padding-left: 0;
+		padding-right: 0;
+		position: relative;
+		z-index: 1;
+	}
+	.tab-content-wrapper {
+		overflow: visible;
+		padding-top: 0 !important;
+	}
+	.tab-content-wrapper > .mt-5,
+	.industries-tab-inner > .mt-4 {
+		margin-top: 0 !important;
+	}
+	.tab-content-wrapper > .row.mt-5,
+	.industries-tab-inner > .row.mt-5,
+	.tab-content-wrapper > .mt-5 > .mt-5 {
+		clear: none;
 	}
 }
 @media (max-width: 575px) {
@@ -394,57 +791,46 @@
 	.industries-secondary-btn {
 		width: 100%;
 	}
+	.modern-tabs-industries {
+		grid-template-columns: minmax(0, 1fr);
+	}
 }
 </style>
 @endpush
 
 @section('content')
-<main class="industries-page-refresh">
-<section class="industries-hero">
+<!-- Breadcrumbs -->
+<div class="breadcrumbs overlay">
 	<div class="container">
-		<div class="industries-hero-grid">
-			<div>
-				<div class="industries-kicker"><i class="fa fa-layer-group"></i> Industries</div>
-				<h1>Industry solutions for regulated teams modernizing data, AI, and operations.</h1>
-				<p class="industries-hero-copy">Armely helps healthcare, energy, government, and legal organizations turn Microsoft platforms into secure workflows, trusted analytics, and measurable productivity gains.</p>
-				<div class="industries-hero-actions">
-					<a class="industries-primary-btn" href="#tabsMenu"><i class="fa fa-arrow-down"></i> Explore industries</a>
-					<a class="industries-secondary-btn" href="{{ route('case-studies.index') }}"><i class="fa fa-briefcase"></i> View case studies</a>
-				</div>
-			</div>
-			<div class="industries-hero-panel">
-				<div class="industries-panel-top">
-					<h2>Armely focus areas</h2>
-					<p>Microsoft platform delivery shaped around security, data quality, and real adoption.</p>
-				</div>
-				<div class="industries-panel-body">
-					<h3>Where we help</h3>
-					<ul class="industries-focus-list">
-						<li>
-							<span class="industries-focus-icon">4</span>
-							<span><strong>Core industries</strong> Healthcare, energy, government, and legal.</span>
-						</li>
-						<li>
-							<span class="industries-focus-icon"><i class="fa fa-brain"></i></span>
-							<span><strong>Practical AI</strong> Copilot and Azure AI with governance.</span>
-						</li>
-						<li>
-							<span class="industries-focus-icon"><i class="fa fa-chart-line"></i></span>
-							<span><strong>Trusted data</strong> Fabric, Power BI, integration, and analytics.</span>
-						</li>
+		<div class="bread-inner">
+			<div class="row">
+				<div class="col-12">
+					<h2>Industries</h2>
+					<ul class="bread-list">
+						<li><a href="{{ route('home') }}">Home</a></li>
+						<li><i class="icofont-simple-right"></i></li>
+						<li class="active">Industries</li>
 					</ul>
 				</div>
 			</div>
 		</div>
 	</div>
-</section>
+</div>
+<!-- End Breadcrumbs -->
 
-<section class="industries-section-modern ">
-	<div class="mt-5 ">
-		<div class="row"> <div class="col-12"> <button class="btn btn-modern-toggle default-background btn-block d-md-none mb-3" type="button" data-toggle="collapse" data-target="#tabsMenu" aria-expanded="false" aria-controls="tabsMenu">
-					<i class="fa fa-bars"></i> SELECT INDUSTRY
-				</button>
-				<div class="collapse d-md-block" id="tabsMenu">
+<main class="industries-page-refresh">
+<section class="industries-section-modern">
+	<div class="container">
+		<div class="row industries-layout justify-content-center">
+			<div class="col-12 col-lg-4 col-xl-3 mb-4 mb-lg-0 industries-sidebar-col">
+				<aside class="industry-nav-panel">
+					<div class="industry-nav-kicker">Industries</div>
+					<h2 class="industry-nav-title">Choose an industry</h2>
+					<p class="industry-nav-copy">Explore Microsoft platform solutions shaped for regulated, data-heavy teams.</p>
+					<button class="btn btn-modern-toggle default-background btn-block d-lg-none mb-3" type="button" data-toggle="collapse" data-target="#tabsMenu" aria-expanded="false" aria-controls="tabsMenu">
+						<i class="fa fa-bars"></i> Select industry
+					</button>
+					<div class="collapse d-lg-block" id="tabsMenu">
 					<ul class="nav nav-tabs modern-tabs-industries" id="myTab" role="tablist">
 						<li class="nav-item" role="presentation">
 							<a class="nav-link active" id="home-tab" data-toggle="tab" href="#home" role="tab" aria-controls="home" aria-selected="true">
@@ -472,6 +858,9 @@
 						</li>
 					</ul>
 				</div>
+				</aside>
+			</div>
+			<div class="col-12 col-lg-8 col-xl-9 industries-content-col">
 				<div class="tab-content modern-tab-content" id="myTabContent">
 					<div class="tab-pane fade show active" id="home" role="tabpanel" aria-labelledby="home-tab">
 						<div class="tab-content-wrapper">
@@ -484,7 +873,6 @@
 											<div class="title-underline"></div>
 											<p class="industry-description">Data empowers personalized healthcare journeys. Analyzing medical history and wearables allows providers to tailor treatments and optimize workflows, leading to better patient outcomes.</p>
 											<p class="industry-description">We partner with you to unlock this potential. Our expertise in data analytics and EHR integration empowers you to consolidate patient data, generate actionable insights for personalized care, and make data-driven decisions for better resource allocation and cost reduction.</p>
-											<p class="industry-description">Accelerate innovation while improving healthcare experience with AI-powered Solutions, actionable insights and trustworthy capabilities</p>
 										</div>
 									</div>
 									<div class="col-md-6">
@@ -495,7 +883,7 @@
 								</div>
 							</div>
 							<div class="row mt-5 g-4">
-								<div class="col-md-4 mb-3">
+								<div class="col-12 col-md-6 col-xl-4 mb-3">
 									<div class="card modern-solution-card p-4">
 										<div class="solution-icon-wrapper default-background">
 											<i class="fa fa-database"></i>
@@ -504,7 +892,7 @@
 										<p class="solution-description">Unlock powerful analytics in healthcare data. As Microsoft Fabric Partners we empower organizations build data-driven decisions solutions</p>
 									</div>
 								</div>
-								<div class="col-md-4">
+								<div class="col-12 col-md-6 col-xl-4">
 									<div class="card modern-solution-card p-4">
 										<div class="solution-icon-wrapper default-background">
 											<i class="fa fa-layer-group"></i>
@@ -513,7 +901,7 @@
 										<p class="solution-description">Streamline workflows and automates tasks, building low-code/no-code solutions that empower organizations to transform data into actionable insights.</p>
 									</div>
 								</div>
-								<div class="col-md-4">
+								<div class="col-12 col-md-6 col-xl-4">
 									<div class="card modern-solution-card p-4">
 										<div class="solution-icon-wrapper default-background">
 											<i class="fa fa-cloud"></i>
@@ -522,7 +910,7 @@
 										<p class="solution-description">Cloud for healthcare brings together secure, scalable cloud services to empower healthcare organizations with data-driven insights.</p>
 									</div>
 								</div>
-								<div class="col-md-4">
+								<div class="col-12 col-md-6 col-xl-4">
 									<div class="card modern-solution-card p-4 mt-4">
 										<div class="solution-icon-wrapper default-background">
 											<i class="fa fa-brain"></i>
@@ -531,7 +919,7 @@
 										<p class="solution-description">Empowers organizations with intelligent capabilities, enabling tasks like analyzing medical images for faster diagnoses, predicting patient outcomes and extracting insights from unstructured data to improve research and development.</p>
 									</div>
 								</div>
-								<div class="col-md-4">
+								<div class="col-12 col-md-6 col-xl-4">
 									<div class="card modern-solution-card p-4 mt-4">
 										<div class="solution-icon-wrapper default-background">
 											<i class="fa fa-code-branch"></i>
@@ -540,7 +928,7 @@
 										<p class="solution-description">Unlocks seamless data exchange within healthcare ecosystems, enabling secure sharing of patient information across different applications and platforms for improved care coordination and decision-making.</p>
 									</div>
 								</div>
-								<div class="col-md-4">
+								<div class="col-12 col-md-6 col-xl-4">
 									<div class="card modern-solution-card p-4 mt-4">
 										<div class="solution-icon-wrapper default-background">
 											<i class="fa fa-chart-column"></i>
@@ -555,7 +943,7 @@
 
 					<div class="tab-pane fade" id="energy" role="tabpanel" aria-labelledby="energy-tab-nav">
 						<div class="tab-content-wrapper">
-							<div style="min-height: 65vh; height: auto;">
+							<div class="industries-tab-inner">
 								<div class="mt-4">
 									<div class="row align-items-center industry-intro-section">
 										<div class="col-md-6">
@@ -575,7 +963,7 @@
 									</div>
 								</div>
 								<div class="row mt-5 g-4">
-									<div class="col-md-3">
+									<div class="col-12 col-md-6 col-xl-4">
 										<div class="card modern-solution-card p-4">
 											<div class="solution-icon-wrapper default-background">
 												<i class="fa fa-database"></i>
@@ -584,7 +972,7 @@
 											<p class="solution-description">Unlock powerful analytics in oil & gas data. As Microsoft Fabric Partners we empower organizations build data-driven decisions solutions </p>
 										</div>
 									</div>
-									<div class="col-md-3">
+									<div class="col-12 col-md-6 col-xl-4">
 										<div class="card modern-solution-card p-4">
 											<div class="solution-icon-wrapper default-background">
 												<i class="fa fa-layer-group"></i>
@@ -593,7 +981,7 @@
 											<p class="solution-description">Streamline workflows and automates tasks, building low-code/no-code solutions that empower organizations to transform data into actionable insights</p>
 										</div>
 									</div>
-									<div class="col-md-3">
+									<div class="col-12 col-md-6 col-xl-4">
 										<div class="card modern-solution-card p-4">
 											<div class="solution-icon-wrapper default-background">
 												<i class="fa fa-brain"></i>
@@ -602,7 +990,7 @@
 											<p class="solution-description">Empowers organizations with intelligent capabilities, enabling tasks like analyzing medical images for faster diagnoses, predicting patient outcomes and extracting insights from unstructured data to improve research and development.</p>
 										</div>
 									</div>
-									<div class="col-md-3">
+									<div class="col-12 col-md-6 col-xl-4">
 										<div class="card modern-solution-card p-4">
 											<div class="solution-icon-wrapper default-background">
 												<i class="fa fa-plug"></i>
@@ -639,7 +1027,7 @@
 									<h5 class="section-subtitle">Here's how Armely makes a difference:</h5>
 									<div class="subtitle-underline"></div>
 									<div class="row mt-4 g-4">
-										<div class="col-md-6">
+										<div class="col-12 col-md-6 col-xl-4">
 											<div class="benefit-card">
 												<div class="benefit-icon default-background">
 													<i class="fa fa-chart-line"></i>
@@ -648,7 +1036,7 @@
 												<p class="benefit-description">We help you collect, analyze, and utilize data to gain valuable insights into your community's needs.</p>
 											</div>
 										</div>
-										<div class="col-md-6">
+										<div class="col-12 col-md-6 col-xl-4">
 											<div class="benefit-card">
 												<div class="benefit-icon default-background">
 													<i class="fa fa-gauge-high"></i>
@@ -657,7 +1045,7 @@
 												<p class="benefit-description">Our solutions optimize processes, improve efficiency, and free up valuable resources for what matters most – serving your citizens.</p>
 											</div>
 										</div>
-										<div class="col-md-6">
+										<div class="col-12 col-md-6 col-xl-4">
 											<div class="benefit-card">
 												<div class="benefit-icon default-background">
 													<i class="fa fa-arrow-trend-up"></i>
@@ -666,7 +1054,7 @@
 												<p class="benefit-description">Empower your leaders with real-time information to make informed decisions that truly benefit your community.</p>
 											</div>
 										</div>
-										<div class="col-md-6">
+										<div class="col-12 col-md-6 col-xl-4">
 											<div class="benefit-card">
 												<div class="benefit-icon default-background">
 													<i class="fa fa-users"></i>
@@ -707,7 +1095,7 @@
 									<h6 class="subsection-title">Armely: Your Trusted Partner in Legal Data Transformation</h6>
 									<p class="section-text">Our proven track record speaks for itself. We partner with legal organizations to:</p>
 									<div class="row mt-4 g-4">
-										<div class="col-md-4">
+										<div class="col-12 col-md-6 col-xl-4">
 											<div class="benefit-card">
 												<div class="benefit-icon default-background">
 													<i class="fa fa-database"></i>
@@ -716,7 +1104,7 @@
 												<p class="benefit-description">We help implement solutions to collect, organize, and analyze legal data, turning it into actionable insights.</p>
 											</div>
 										</div>
-										<div class="col-md-4">
+										<div class="col-12 col-md-6 col-xl-4">
 											<div class="benefit-card">
 												<div class="benefit-icon default-background">
 													<i class="fa fa-robot"></i>
@@ -725,7 +1113,7 @@
 												<p class="benefit-description">By leveraging data and automation, we free up valuable time for legal professionals to focus on high-value strategy and client service.</p>
 											</div>
 										</div>
-										<div class="col-md-4">
+										<div class="col-12 col-md-6 col-xl-4">
 											<div class="benefit-card">
 												<div class="benefit-icon default-background">
 													<i class="fa fa-trophy"></i>
@@ -760,7 +1148,7 @@
 			</div>
 		</div>
 		<div class="row justify-content-center align-items-center mt-5 g-4">
-			<div class="col-md-3 col-6">
+			<div class="col-12 col-sm-6 col-lg-3">
 				<div class="feature-item">
 					<div class="feature-icon-wrapper-large">
 						<div class="feature-gradient-icon">
@@ -771,7 +1159,7 @@
 					<p class="feature-description">Seamlessly integrate systems and data across your organization</p>
 				</div>
 			</div>
-			<div class="col-md-3 col-6">
+			<div class="col-12 col-sm-6 col-lg-3">
 				<div class="feature-item">
 					<div class="feature-icon-wrapper-large">
 						<div class="feature-gradient-icon">
@@ -782,7 +1170,7 @@
 					<p class="feature-description">Enterprise-grade security with compliance and data protection</p>
 				</div>
 			</div>
-			<div class="col-md-3 col-6">
+			<div class="col-12 col-sm-6 col-lg-3">
 				<div class="feature-item">
 					<div class="feature-icon-wrapper-large">
 						<div class="feature-gradient-icon">
@@ -793,7 +1181,7 @@
 					<p class="feature-description">Streamline workflows and boost team efficiency instantly</p>
 				</div>
 			</div>
-			<div class="col-md-3 col-6">
+			<div class="col-12 col-sm-6 col-lg-3">
 				<div class="feature-item">
 					<div class="feature-icon-wrapper-large">
 						<div class="feature-gradient-icon">
@@ -823,3 +1211,62 @@
 </section>
 </main>
 @endsection
+
+@push('scripts')
+<script>
+function initIndustryTabs() {
+	var tabLinks = Array.prototype.slice.call(document.querySelectorAll('#myTab .nav-link[href^="#"]'));
+	var tabPanes = Array.prototype.slice.call(document.querySelectorAll('#myTabContent .tab-pane'));
+
+	if (!tabLinks.length || !tabPanes.length) {
+		return;
+	}
+
+	function activateIndustryTab(link) {
+		var targetSelector = link.getAttribute('href');
+		var targetPane = targetSelector ? document.querySelector(targetSelector) : null;
+
+		if (!targetPane) {
+			return;
+		}
+
+		tabLinks.forEach(function (tabLink) {
+			var isActive = tabLink === link;
+			tabLink.classList.toggle('active', isActive);
+			tabLink.setAttribute('aria-selected', isActive ? 'true' : 'false');
+		});
+
+		tabPanes.forEach(function (pane) {
+			var isActive = pane === targetPane;
+			pane.classList.toggle('active', isActive);
+			pane.classList.toggle('show', isActive);
+		});
+	}
+
+	tabLinks.forEach(function (link) {
+		link.addEventListener('click', function (event) {
+			event.preventDefault();
+			event.stopPropagation();
+			activateIndustryTab(link);
+		});
+	});
+
+	document.addEventListener('click', function (event) {
+		var link = event.target.closest('#myTab .nav-link[href^="#"]');
+		if (!link) {
+			return;
+		}
+
+		event.preventDefault();
+		event.stopPropagation();
+		activateIndustryTab(link);
+	}, true);
+}
+
+if (document.readyState === 'loading') {
+	document.addEventListener('DOMContentLoaded', initIndustryTabs);
+} else {
+	initIndustryTabs();
+}
+</script>
+@endpush

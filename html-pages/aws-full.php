@@ -241,6 +241,7 @@ hr {
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 28px;
     margin-bottom: 40px;
+    align-items: stretch;
 }
 
 .modern-card {
@@ -251,6 +252,10 @@ hr {
     transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     overflow: hidden;
+    box-shadow: 0 12px 28px rgba(19, 48, 92, 0.08);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
 }
 
 .modern-card::before {
@@ -275,15 +280,23 @@ hr {
 }
 
 .card-icon {
-    font-size: 3rem;
+    width: 58px;
+    height: 58px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, rgba(47,85,151,0.15), rgba(30,58,109,0.1));
+    color: var(--aws-orange);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6rem;
     margin-bottom: 16px;
-    filter: drop-shadow(0 4px 8px rgba(47,85,151,0.2));
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
 }
 
 .card-title {
     font-size: 1.2rem;
     font-weight: 700;
-    color: var(--ms-dark);
+    color: var(--aws-dark);
     margin-bottom: 14px;
     line-height: 1.4;
 }
@@ -292,7 +305,7 @@ hr {
     font-size: 0.95rem;
     color: #4b5563;
     line-height: 1.6;
-    margin-bottom: 16px;
+    margin-bottom: 10px;
 }
 
 .card-features {
@@ -317,6 +330,48 @@ hr {
     color: var(--aws-orange);
     font-weight: bold;
     font-size: 1.2rem;
+}
+
+.modern-card.aws-legacy-collapse-disabled.is-collapsed .card-desc {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.modern-card.aws-legacy-collapse-disabled.is-collapsed .card-features {
+    max-height: 8.4rem;
+    overflow: hidden;
+}
+
+.modern-card.aws-legacy-collapse-disabled.has-more.is-collapsed::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 54px;
+    height: 48px;
+    background: linear-gradient(to bottom, rgba(255,255,255,0), #ffffff 78%);
+    pointer-events: none;
+}
+
+.card-readmore {
+    margin-top: auto;
+    border: 1px solid #c8d9f3;
+    background: #f3f8ff;
+    color: #1e3a6d;
+    font-size: 0.84rem;
+    font-weight: 800;
+    border-radius: 999px;
+    padding: 8px 14px;
+    align-self: flex-start;
+    position: relative;
+    z-index: 2;
+}
+
+.card-readmore:hover {
+    background: #e4efff;
+    border-color: #a7bfeb;
 }
 
 .stats-grid {
@@ -382,6 +437,19 @@ hr {
     color: #666;
 }
 
+.container > h3.section-title,
+.container > .section-title {
+    display: block;
+    margin-top: 12px;
+    margin-bottom: 14px;
+}
+
+.container > p.partner-lead,
+.container > .partner-lead {
+    max-width: 980px;
+    margin-bottom: 18px;
+}
+
 /* ----------------------------
    Responsive Tweaks
    ---------------------------- */
@@ -445,7 +513,7 @@ hr {
                 <h1 class="hero-title">Build. Modernize. Innovate with AWS</h1>
                 <p class="hero-sub">Your cloud journey goals are attainable—no matter the size or scope. As an AWS Partner Network member and growing services partner, we apply future-focused best practices and hands-on experience to help you thrive in a technology-centric world.</p>
                 <div class="hero-ctas">
-                    <a class="hero-cta" href="#services">AWS Services</a>
+                    <a class="hero-cta" href="#services">Services</a>
                     <a class="hero-cta" href="#migration">Cloud Migration</a>
                     <a class="hero-cta" href="/contact">Start Your Journey</a>
                 </div>
@@ -460,8 +528,8 @@ hr {
 <div class="container">
 
 <div class="mb-5">
-    <h3 class="section-title">AWS Partner Network Services Partner</h3>
-    <p class="partner-lead">Achieve your business transformation goals and create limitless possibilities for the future with our comprehensive AWS services and expertise.</p>
+    <h3 class="section-title">Partner Network Services</h3>
+    <p class="partner-lead">Achieve transformation goals with practical cloud services, architecture support, and delivery expertise.</p>
 </div>
 
 <hr class="my-5">
@@ -476,15 +544,15 @@ hr {
 <p class="partner-lead">From advisory, design, migration and implementation to adoption and innovation, we deliver end-to-end solutions that align with your strategic objectives.</p>
 
 <hr class="my-5">
-<h3 class="section-title mt-3">AWS Service Capabilities</h3>
-<p class="partner-lead">Our team is actively building expertise across core AWS services and solution areas to support the breadth of your business goals. We're committed to continuous learning and certification to deliver high-quality AWS solutions.</p>
+<h3 class="section-title mt-3">Service Capabilities</h3>
+<p class="partner-lead">Core cloud capabilities to support migration, modernization, analytics, security, and operations.</p>
 
 <div class="modern-grid">
     <div class="modern-card">
         <div class="card-icon">🛫</div>
         <h5 class="card-title">Cloud Migration & Modernization</h5>
         <p class="card-desc">Navigate your path from legacy infrastructure to cloud-native solutions.</p>
-        <p class="card-desc">Move to the cloud with confidence using proven methodologies and AWS best practices. We help organizations migrate applications, databases, and workloads to AWS while minimizing risk and ensuring business continuity.</p>
+        <p class="card-desc">Migrate applications, databases, and workloads with lower risk and clear continuity planning.</p>
         <ul class="card-features">
             <li>Cloud readiness assessment and planning</li>
             <li>Application discovery & portfolio analysis</li>
@@ -498,7 +566,7 @@ hr {
     <div class="modern-card">
         <div class="card-icon">📊</div>
         <h5 class="card-title">Data & Analytics</h5>
-        <p class="card-desc">Transform data into actionable insights using AWS analytics services.</p>
+        <p class="card-desc">Turn business data into trusted analytics and actionable insights.</p>
         <ul class="card-features">
             <li>Data lake architecture with Amazon S3</li>
             <li>Data warehousing with Amazon Redshift</li>
@@ -511,7 +579,7 @@ hr {
     <div class="modern-card">
         <div class="card-icon">🛠️</div>
         <h5 class="card-title">Application Development & Modernization</h5>
-        <p class="card-desc">Build and modernize cloud-native applications with AWS.</p>
+        <p class="card-desc">Build and modernize cloud-native applications.</p>
         <ul class="card-features">
             <li>Microservices and containerization (ECS, EKS)</li>
             <li>Serverless with AWS Lambda & API Gateway</li>
@@ -523,7 +591,7 @@ hr {
     <div class="modern-card">
         <div class="card-icon">🖧</div>
         <h5 class="card-title">Infrastructure & Cloud Operations</h5>
-        <p class="card-desc">Design and operate scalable cloud infrastructure on AWS.</p>
+        <p class="card-desc">Design and operate scalable cloud infrastructure.</p>
         <ul class="card-features">
             <li>VPC, network design and connectivity</li>
             <li>Compute optimization (EC2, ECS, EKS, Lambda)</li>
@@ -535,7 +603,7 @@ hr {
     <div class="modern-card">
         <div class="card-icon">🔐</div>
         <h5 class="card-title">Security & Compliance</h5>
-        <p class="card-desc">Protect your AWS environment with proven controls and automation.</p>
+        <p class="card-desc">Protect cloud environments with proven controls and automation.</p>
         <ul class="card-features">
             <li>Security assessments & Well-Architected security reviews</li>
             <li>IAM, network segmentation, encryption, and DLP</li>
@@ -558,7 +626,7 @@ hr {
 </div>
 
 <hr class="my-5">
-<h3 class="section-title">AWS Service Areas</h3>
+<h3 class="section-title">Service Areas</h3>
 
 <div class="modern-grid">
     <div class="modern-card">
@@ -697,8 +765,8 @@ hr {
 </div>
 
 <hr class="my-5">
-<h3 class="section-title">AWS Well-Architected Framework</h3>
-<p class="partner-lead">We design and review solutions using the AWS Well-Architected Framework to ensure best practices across six pillars.</p>
+<h3 class="section-title">Well-Architected Framework</h3>
+<p class="partner-lead">We review designs against proven architecture pillars for security, reliability, performance, cost, operations, and sustainability.</p>
 
 <div class="modern-grid">
     <div class="modern-card"><div class="card-icon">⚙️</div><h5 class="card-title">Operational Excellence</h5><p class="card-desc">Run and monitor systems to deliver business value.</p></div>
@@ -725,34 +793,34 @@ hr {
 <h3 class="section-title">Our Differentiators</h3>
 
 <div class="modern-grid">
-    <div class="modern-card"><div class="card-icon">🎓</div><h5 class="card-title">AWS Certified Professionals</h5><p class="card-desc">Certified architects, developers and sysops committed to continuous learning.</p></div>
+    <div class="modern-card"><div class="card-icon">🎓</div><h5 class="card-title">Certified Professionals</h5><p class="card-desc">Architects, developers, and sysops committed to continuous learning.</p></div>
     <div class="modern-card"><div class="card-icon">🤝</div><h5 class="card-title">Customer-First Approach</h5><p class="card-desc">Recommendations aligned to your business outcomes.</p></div>
     <div class="modern-card"><div class="card-icon">🧰</div><h5 class="card-title">Practical Experience</h5><p class="card-desc">Real-world delivery across industries and use cases.</p></div>
     <div class="modern-card"><div class="card-icon">⚡</div><h5 class="card-title">Agile Methodology</h5><p class="card-desc">Iterative delivery and rapid feedback loops.</p></div>
     <div class="modern-card"><div class="card-icon">🔁</div><h5 class="card-title">End-to-End Capabilities</h5><p class="card-desc">Strategy through managed services with single-partner accountability.</p></div>
-    <div class="modern-card"><div class="card-icon">📈</div><h5 class="card-title">Growing AWS Partnership</h5><p class="card-desc">Active investment in certifications, competencies and customer success.</p></div>
+    <div class="modern-card"><div class="card-icon">📈</div><h5 class="card-title">Growing Partnership</h5><p class="card-desc">Active investment in certifications, competencies, and customer success.</p></div>
 </div>
 
 <hr class="my-5">
-<h3 class="section-title">Getting Started with AWS</h3>
+<h3 class="section-title">Getting Started</h3>
 
 <div class="modern-grid">
     <div class="modern-card"><div class="card-icon">🔎</div><h5 class="card-title">Assessment</h5><p class="card-desc">Understand environment, objectives and technical requirements.</p></div>
     <div class="modern-card"><div class="card-icon">🗺️</div><h5 class="card-title">Planning</h5><p class="card-desc">Migration plans, architecture designs and implementation roadmaps.</p></div>
-    <div class="modern-card"><div class="card-icon">🚀</div><h5 class="card-title">Implementation</h5><p class="card-desc">Execute migration and deploy solutions using AWS best practices.</p></div>
+    <div class="modern-card"><div class="card-icon">🚀</div><h5 class="card-title">Implementation</h5><p class="card-desc">Execute migration and deploy solutions using proven practices.</p></div>
     <div class="modern-card"><div class="card-icon">🔧</div><h5 class="card-title">Optimization & Support</h5><p class="card-desc">Continuously improve performance, security and cost efficiency.</p></div>
 </div>
 
 <hr class="my-5">
-<h3 class="section-title">Ready to Start Your AWS Journey?</h3>
-<p class="partner-lead mb-4">Whether you're exploring cloud possibilities, planning your first migration, or looking to optimize existing AWS workloads, we're here to help. Our team brings AWS expertise, proven methodologies, and commitment to your success.</p>
+<h3 class="section-title">Ready to Start?</h3>
+<p class="partner-lead mb-4">Whether you are exploring cloud possibilities, planning a migration, or optimizing current workloads, our team can help.</p>
 
 <div class="text-center mb-5">
     <a href="/contact.php" class="btn btn-cta">Get Started Today</a>
 </div>
 
 <div class="ms-card">
-    <h5 class="ms-list-title">Connect with our AWS team to discuss your cloud goals and discover how we can help you:</h5>
+    <h5 class="ms-list-title">Connect with our team to discuss your cloud goals and how we can help you:</h5>
     <ul class="ms-list mt-3">
         <li>Reduce infrastructure costs with cloud migration</li>
         <li>Improve application performance and scalability</li>
@@ -761,12 +829,133 @@ hr {
         <li>Build data analytics and ML capabilities</li>
         <li>Modernize legacy applications</li>
         <li>Establish DevOps practices and automation</li>
-        <li>Optimize existing AWS environments</li>
+        <li>Optimize existing cloud environments</li>
     </ul>
 
-    <p class="partner-lead mt-4">Contact us to schedule a consultation and learn how our AWS partnership can accelerate your cloud transformation.</p>
+    <p class="partner-lead mt-4">Contact us to schedule a consultation and explore the next step in your cloud transformation.</p>
 </div>
 
 <p class="partner-lead mt-4"><strong>As an AWS Partner Network member, we're committed to helping organizations of all sizes achieve their cloud goals.</strong> With growing expertise, proven capabilities, and a customer-first approach, we're your trusted partner for building, modernizing, and innovating on AWS.</p>
 
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var iconMap = {
+        '🛫': 'fa fa-plane',
+        '📊': 'fa fa-bar-chart',
+        '🛠️': 'fa fa-wrench',
+        '🖧': 'fa fa-sitemap',
+        '🔐': 'fa fa-lock',
+        '⚙️': 'fa fa-cogs',
+        '🖥️': 'fa fa-desktop',
+        '💾': 'fa fa-hdd-o',
+        '🗄️': 'fa fa-database',
+        '🌐': 'fa fa-globe',
+        '📈': 'fa fa-line-chart',
+        '🤖': 'fa fa-microchip',
+        '⚕️': 'fa fa-heartbeat',
+        '🏦': 'fa fa-bank',
+        '🏭': 'fa fa-industry',
+        '🛍️': 'fa fa-shopping-bag',
+        '🏛️': 'fa fa-university',
+        '🎬': 'fa fa-film',
+        '🧭': 'fa fa-compass',
+        '🚚': 'fa fa-truck',
+        '🏗️': 'fa fa-building',
+        '🛡️': 'fa fa-shield',
+        '🎓': 'fa fa-graduation-cap',
+        '🔁': 'fa fa-refresh',
+        '⚡': 'fa fa-bolt',
+        '💰': 'fa fa-money',
+        '🌱': 'fa fa-leaf',
+        '🌍': 'fa fa-globe',
+        '🧩': 'fa fa-puzzle-piece',
+        '🚀': 'fa fa-rocket',
+        '💵': 'fa fa-usd',
+        '🏅': 'fa fa-trophy',
+        '🤝': 'fa fa-handshake-o',
+        '🧰': 'fa fa-briefcase',
+        '🔎': 'fa fa-search',
+        '🗺️': 'fa fa-map-o',
+        '🔧': 'fa fa-wrench'
+    };
+
+    document.querySelectorAll('.card-icon').forEach(function (iconEl) {
+        var token = (iconEl.textContent || '').trim();
+        if (iconMap[token]) {
+            iconEl.innerHTML = '<i class="' + iconMap[token] + '" aria-hidden="true"></i>';
+        }
+    });
+
+    var grids = [];
+
+    function gridHasExpandedCard(grid) {
+        return !!grid.querySelector('.modern-card.is-expanded');
+    }
+
+    function equalizeGridHeights(grid) {
+        var cards = Array.prototype.slice.call(grid.querySelectorAll('.modern-card'));
+        cards.forEach(function (card) { card.style.minHeight = ''; });
+
+        if (gridHasExpandedCard(grid)) {
+            return;
+        }
+
+        var maxHeight = 0;
+        cards.forEach(function (card) {
+            maxHeight = Math.max(maxHeight, card.offsetHeight);
+        });
+
+        cards.forEach(function (card) {
+            card.style.minHeight = maxHeight + 'px';
+        });
+    }
+
+    function evaluateOverflow(card) {
+        var descOverflow = Array.prototype.slice.call(card.querySelectorAll('.card-desc')).some(function (desc) {
+            return desc.scrollHeight > desc.clientHeight + 2;
+        });
+
+        var list = card.querySelector('.card-features');
+        var listOverflow = !!(list && list.scrollHeight > list.clientHeight + 2);
+
+        return descOverflow || listOverflow;
+    }
+
+    grids.forEach(function (grid) {
+        var cards = Array.prototype.slice.call(grid.querySelectorAll('.modern-card'));
+
+        cards.forEach(function (card) {
+            card.classList.add('is-collapsed');
+
+            if (!evaluateOverflow(card)) {
+                return;
+            }
+
+            card.classList.add('has-more');
+            var button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'card-readmore';
+            button.textContent = 'Read more';
+            button.addEventListener('click', function () {
+                var isExpanded = card.classList.toggle('is-expanded');
+                card.classList.toggle('is-collapsed', !isExpanded);
+                button.textContent = isExpanded ? 'Read less' : 'Read more';
+                equalizeGridHeights(grid);
+            });
+            card.appendChild(button);
+        });
+
+        equalizeGridHeights(grid);
+    });
+
+    var resizeTimer;
+    window.addEventListener('resize', function () {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(function () {
+            grids.forEach(equalizeGridHeights);
+        }, 150);
+    });
+});
+</script>

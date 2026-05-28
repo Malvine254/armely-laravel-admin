@@ -1,7 +1,19 @@
 @extends('layouts.public')
 
-@section('title', 'Partners')
-@section('meta_description', 'Explore Armely technology partners and strategic alliances supporting Microsoft-led transformation programs.')
+@section('title', 'Partners | Technology Alliances and Ecosystems | Armely')
+@section('meta_description', 'Explore Armely technology partners and strategic alliances across Microsoft, AWS, Snowflake, Red Hat, Cisco, Guardz, TD SYNNEX, and Veeam.')
+@section('meta_keywords', 'Armely partners, Microsoft partner, AWS partner, Snowflake partner, Red Hat partner, Cisco partner, Veeam partner, TD SYNNEX partner, Guardz partner')
+@section('canonical_url', url('/all-partners'))
+
+@push('head')
+<meta property="og:type" content="website">
+<meta property="og:title" content="Partners | Technology Alliances and Ecosystems | Armely">
+<meta property="og:description" content="Explore Armely technology partners and strategic alliances across Microsoft, AWS, Snowflake, Red Hat, Cisco, Guardz, TD SYNNEX, and Veeam.">
+<meta property="og:url" content="{{ url('/all-partners') }}">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Partners | Technology Alliances and Ecosystems | Armely">
+<meta name="twitter:description" content="Explore Armely technology partners and strategic alliances across Microsoft, AWS, Snowflake, Red Hat, Cisco, Guardz, TD SYNNEX, and Veeam.">
+@endpush
 
 @push('styles')
 <link rel="stylesheet" href="{{ asset('css/partners-modern.css') }}">
@@ -694,10 +706,305 @@
         margin-bottom: 1rem;
     }
 }
+
+/* Quiet professional refresh */
+.partners-page-refresh {
+    background: #f8fafc;
+}
+.modern-carousel-wrapper {
+    display: none;
+}
+.partners-intro-section {
+    background: #fff;
+    border-bottom: 1px solid #dbe6f3;
+    padding: 42px 0;
+}
+.partners-intro-section .container,
+.partner-section .container,
+.partnership-benefits .container,
+.partnership-tiers .container,
+.success-stories .container,
+.partner-cta .container {
+    max-width: 1180px;
+}
+.partners-kicker {
+    color: #2f5597;
+    font-size: .76rem;
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+}
+.partners-intro-title {
+    color: #172033;
+    font-size: 2.1rem;
+    font-weight: 800;
+    line-height: 1.22;
+    margin-bottom: 12px;
+}
+.partners-intro-copy {
+    color: #5f6f86;
+    font-size: 1rem;
+    line-height: 1.72;
+    max-width: 780px;
+    margin-bottom: 0;
+}
+.partners-intro-panel {
+    background: #f7faff;
+    border: 1px solid #dce7fb;
+    border-radius: 14px;
+    padding: 22px;
+    height: 100%;
+}
+.partners-intro-panel-title {
+    color: #172033;
+    font-size: 1.05rem;
+    font-weight: 800;
+    margin-bottom: 10px;
+}
+.partners-intro-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 10px;
+}
+.partners-intro-list li {
+    color: #294a84;
+    font-size: .92rem;
+    font-weight: 700;
+    line-height: 1.4;
+    display: flex;
+    gap: 10px;
+}
+.partners-intro-list i {
+    color: #2f5597;
+    margin-top: 3px;
+}
+.partner-section {
+    background: #f8fafc !important;
+    padding: 36px 0 60px !important;
+}
+.partner-section .section-header {
+    display: none;
+}
+.partner-section .section-title,
+.partnership-benefits .section-title,
+.partnership-tiers .section-title,
+.success-stories .section-title {
+    color: #172033 !important;
+    font-size: 1.8rem !important;
+    font-weight: 800 !important;
+}
+.partner-section .section-header .d-flex {
+    justify-content: flex-start !important;
+}
+.partner-section .section-header hr {
+    width: 58px !important;
+    height: 2px !important;
+    border-radius: 0 !important;
+}
+.partner-section .lead,
+.partner-section .section-header p,
+.partnership-benefits .lead,
+.partnership-tiers .lead,
+.success-stories .lead {
+    color: #5f6f86 !important;
+    font-size: .98rem !important;
+    line-height: 1.68 !important;
+}
+.expertise-box {
+    background: #fff !important;
+    border: 1px solid #dce7fb !important;
+    border-radius: 14px !important;
+    box-shadow: 0 10px 22px rgba(24, 54, 107, .08) !important;
+    padding: 26px !important;
+}
+.expertise-box h4,
+.expertise-box p,
+.expertise-card h6,
+.expertise-card p,
+.expertise-card i {
+    color: #172033 !important;
+}
+.expertise-box > p,
+.expertise-card p {
+    color: #5f6f86 !important;
+}
+.expertise-card {
+    background: #f7faff !important;
+    border: 1px solid #dce7fb !important;
+    border-radius: 12px !important;
+    box-shadow: none !important;
+}
+.expertise-card i {
+    color: #2f5597 !important;
+    font-size: 1.65rem !important;
+}
+.modern-partner-grid {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 18px !important;
+}
+.partner-card {
+    background: #fff !important;
+    border: 1px solid #dce7fb !important;
+    border-radius: 12px !important;
+    box-shadow: 0 10px 22px rgba(24, 54, 107, .08) !important;
+    min-height: 145px;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    padding: 22px !important;
+    transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
+}
+.partner-card:hover {
+    transform: translateY(-4px);
+    border-color: #bdd0ef !important;
+    box-shadow: 0 18px 34px rgba(24, 54, 107, .14) !important;
+}
+.partner-card a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+}
+.partner-card img {
+    max-width: 160px !important;
+    max-height: 72px !important;
+    object-fit: contain;
+    filter: none !important;
+}
+.partnership-benefits,
+.success-stories {
+    background: #fff !important;
+    border-top: 1px solid #dbe6f3;
+    border-bottom: 1px solid #dbe6f3;
+}
+.partnership-benefits .text-light,
+.success-stories .text-light {
+    color: inherit !important;
+}
+.partnership-benefits .benefit-card,
+.tier-card,
+.story-card {
+    background: #fff !important;
+    border: 1px solid #dce7fb !important;
+    border-radius: 12px !important;
+    box-shadow: 0 10px 22px rgba(24, 54, 107, .08) !important;
+    color: #172033 !important;
+    overflow: hidden;
+    position: relative;
+}
+.partnership-benefits .benefit-card::after,
+.tier-card::after,
+.story-card::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: #2f5597;
+}
+.partnership-benefits .benefit-card h4,
+.tier-card h3,
+.story-card h5 {
+    color: #172033 !important;
+    font-weight: 800 !important;
+}
+.partnership-benefits .benefit-card p,
+.tier-card li,
+.tier-card p,
+.story-card p,
+.story-card small {
+    color: #5f6f86 !important;
+}
+.partnership-benefits .benefit-icon i {
+    color: #2f5597 !important;
+    font-size: 1.45rem !important;
+}
+.partnership-tiers {
+    background: #f8fafc !important;
+}
+.tier-header,
+.story-badge {
+    background: #f4f8ff !important;
+    border-bottom: 1px solid #dce7fb;
+}
+.tier-header h3,
+.story-badge span {
+    color: #172033 !important;
+}
+.partner-cta {
+    background: #2f5597 !important;
+    margin: 0 !important;
+    padding: 48px 0 !important;
+}
+.partner-cta .btn {
+    border-radius: 12px !important;
+    color: #2f5597 !important;
+}
+@media (max-width: 991px) {
+    .modern-partner-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+@media (max-width: 575px) {
+    .partners-intro-title {
+        font-size: 1.65rem;
+    }
+    .modern-partner-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
 </style>
 @endpush
 
 @section('content')
+<!-- Breadcrumbs -->
+<div class="breadcrumbs overlay">
+    <div class="container">
+        <div class="bread-inner">
+            <div class="row">
+                <div class="col-12">
+                    <h2>Partners</h2>
+                    <ul class="bread-list">
+                        <li><a href="{{ route('home') }}">Home</a></li>
+                        <li><i class="icofont-simple-right"></i></li>
+                        <li class="active">Partners</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- End Breadcrumbs -->
+
+<main class="partners-page-refresh">
+<section class="partners-intro-section">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <div class="partners-kicker">Partner Ecosystem</div>
+                <h1 class="partners-intro-title">Technology partnerships that strengthen Microsoft-led transformation.</h1>
+                <p class="partners-intro-copy">Armely works across cloud, data, security, and infrastructure ecosystems to help clients integrate the right platforms, reduce delivery risk, and move faster with trusted technology partners.</p>
+            </div>
+            <div class="col-lg-4 mt-4 mt-lg-0">
+                <div class="partners-intro-panel">
+                    <div class="partners-intro-panel-title">How partners support delivery</div>
+                    <ul class="partners-intro-list">
+                        <li><i class="fas fa-check-circle"></i><span>Platform expertise across cloud, data, AI, and security.</span></li>
+                        <li><i class="fas fa-check-circle"></i><span>Integrated solutions aligned to business outcomes.</span></li>
+                        <li><i class="fas fa-check-circle"></i><span>Vendor-aware guidance without locking teams into one path.</span></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
 <div class="modern-carousel-wrapper">
     <div id="modernFadeCarousel" class="carousel slide carousel-fade" data-ride="carousel" data-interval="6500" data-pause="hover">
 
@@ -1077,22 +1384,7 @@
     </div>
 </section>
 
-<!-- ===== Partner CTA Section ===== -->
-<section class="partner-cta py-5 default-background" style=" margin: 60px 0;">
-    <div class="container">
-        <div class="row align-items-center">
-            <div class="col-lg-8">
-                <h2 class="text-white mb-3">Ready to Join Our Partner Ecosystem?</h2>
-                <p class="text-white-50 lead mb-0 text-light">Unlock new revenue streams and expand your market reach through strategic partnership with Armely.</p>
-            </div>
-            <div class="col-lg-4 text-lg-end text-center mt-3 mt-lg-0">
-                <a href="{{ route('contact') }}" class="btn btn-light btn-lg rounded-pill px-5 fw-bold text-light" style="color: #667eea;">
-                    <i class="fas fa-handshake me-2 text-light"></i> Become a Partner
-                </a>
-            </div>
-        </div>
-    </div>
-</section>
+</main>
 @endsection
 
 @push('scripts')
