@@ -2,6 +2,20 @@
 
 @section('title', 'Mela AI')
 @section('meta_description', 'Discover Mela AI from Armely and how AI-driven solutions can improve productivity, decision-making, and customer outcomes.')
+@section('meta_keywords', 'Mela AI, Armely AI, Microsoft AI, business automation, AI productivity, AI solutions')
+@section('canonical_url', url('/mela-ai'))
+
+@push('head')
+<meta name="robots" content="index,follow">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Mela AI | Armely">
+<meta property="og:description" content="Discover Mela AI from Armely and how AI-driven solutions can improve productivity, decision-making, and customer outcomes.">
+<meta property="og:url" content="{{ url('/mela-ai') }}">
+<meta property="og:site_name" content="Armely">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Mela AI | Armely">
+<meta name="twitter:description" content="Discover Mela AI from Armely and how AI-driven solutions can improve productivity, decision-making, and customer outcomes.">
+@endpush
 
 @push('styles')
 <style>

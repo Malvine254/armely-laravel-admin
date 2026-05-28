@@ -6,6 +6,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="keywords" content="@yield('meta_keywords', $metaKeywords ?? 'Microsoft Fabric, Power BI, Copilot, Power Platform, Armely')">
     <meta name="description" content="@yield('meta_description', $metaDescription ?? 'Armely helps organizations modernize data, AI, cloud, and business applications with Microsoft platform expertise.')">
+    <meta property="og:type" content="@yield('og_type', 'website')">
+    <meta property="og:title" content="@yield('og_title', $metaTitle ?? trim($__env->yieldContent('title', $title ?? 'Armely')))">
+    <meta property="og:description" content="@yield('og_description', $metaDescription ?? 'Armely helps organizations modernize data, AI, cloud, and business applications with Microsoft platform expertise.')">
+    <meta property="og:url" content="@yield('canonical_url', request()->url())">
+    <meta property="og:site_name" content="@yield('og_site_name', 'Armely')">
+    <meta property="og:image" content="@yield('meta_image', $metaImage ?? asset('images/logo/logo1.png'))">
+    <meta property="og:image:secure_url" content="@yield('meta_image', $metaImage ?? asset('images/logo/logo1.png'))">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="@yield('twitter_title', $metaTitle ?? trim($__env->yieldContent('title', $title ?? 'Armely')))">
+    <meta name="twitter:description" content="@yield('twitter_description', $metaDescription ?? 'Armely helps organizations modernize data, AI, cloud, and business applications with Microsoft platform expertise.')">
+    <meta name="twitter:image" content="@yield('meta_image', $metaImage ?? asset('images/logo/logo1.png'))">
+    <meta name="robots" content="@yield('robots', 'index,follow')">
     <link rel="canonical" href="@yield('canonical_url', request()->url())">
     <title>@yield('title', $title ?? 'Armely')</title>
 

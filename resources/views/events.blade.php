@@ -2,6 +2,20 @@
 
 @section('title', 'Events')
 @section('meta_description', 'Explore Armely events, sessions, and announcements focused on Microsoft data, AI, and digital transformation.')
+@section('meta_keywords', 'Armely events, Microsoft events, data transformation events, AI events, Power Platform events, webinars, workshops')
+@section('canonical_url', route('events.index'))
+
+@push('head')
+<meta name="robots" content="index,follow">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Events | Armely">
+<meta property="og:description" content="Explore Armely events, sessions, and announcements focused on Microsoft data, AI, and digital transformation.">
+<meta property="og:url" content="{{ route('events.index') }}">
+<meta property="og:site_name" content="Armely">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Events | Armely">
+<meta name="twitter:description" content="Explore Armely events, sessions, and announcements focused on Microsoft data, AI, and digital transformation.">
+@endpush
 
 @push('styles')
 <link rel="stylesheet" href="{{ asset('css/events-modern.css') }}">

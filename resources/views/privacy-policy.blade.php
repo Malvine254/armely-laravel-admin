@@ -2,6 +2,20 @@
 
 @section('title', 'Privacy Policy')
 @section('meta_description', 'Read Armely privacy policy details covering data collection, usage, protection, and user rights.')
+@section('meta_keywords', 'Armely privacy policy, privacy notice, data protection, cookies policy, user rights, website privacy')
+@section('canonical_url', url('/privacy-policy'))
+
+@push('head')
+<meta name="robots" content="index,follow">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Privacy Policy | Armely">
+<meta property="og:description" content="Read Armely privacy policy details covering data collection, usage, protection, and user rights.">
+<meta property="og:url" content="{{ url('/privacy-policy') }}">
+<meta property="og:site_name" content="Armely">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Privacy Policy | Armely">
+<meta name="twitter:description" content="Read Armely privacy policy details covering data collection, usage, protection, and user rights.">
+@endpush
 
 @push('styles')
 <style>
