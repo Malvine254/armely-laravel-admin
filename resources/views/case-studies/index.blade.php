@@ -305,6 +305,16 @@
 .resource-filter-actions {
 	margin-top: 12px;
 }
+.filter-empty-state {
+	display: none;
+	border: 1px dashed #c8d8f3;
+	background: #f7faff;
+	color: #2f4f85;
+	border-radius: 12px;
+	padding: 18px 16px;
+	font-weight: 600;
+	line-height: 1.45;
+}
 
 .case-study-card,
 .white-paper-card {
@@ -633,6 +643,10 @@
 		@endforelse
 			</div>
 
+			<div id="caseFilterEmptyState" class="filter-empty-state mt-2" role="status" aria-live="polite">
+				No case studies match the selected filters. Try another Category or Technology.
+			</div>
+
 	@if ($caseStudies->hasPages())
 		<!-- Pagination for Case Studies -->
 		<div class="row mt-5">
@@ -830,6 +844,10 @@
 					<p>No white papers available at this time.</p>
 				</div>
 			@endforelse
+			</div>
+
+			<div id="whitePaperFilterEmptyState" class="filter-empty-state mt-2" role="status" aria-live="polite">
+				No white papers match the selected filters. Try another topic or clear filters.
 			</div>
 
 	@if ($whitePapers->hasPages())
@@ -1052,6 +1070,8 @@
 	var whiteResetLink = document.getElementById('whiteFilterReset');
 	var casePagination = document.querySelector('.case-studies-section .pagination-nav');
 	var whitePagination = document.querySelector('.white-papers-section .pagination-nav');
+	var caseEmptyState = document.getElementById('caseFilterEmptyState');
+	var whiteEmptyState = document.getElementById('whitePaperFilterEmptyState');
 
 	var selected = {
 		industry: @json((string) $selectedIndustry),
@@ -1101,6 +1121,7 @@
 	}
 
 	function applyFilters() {
+		var visibleCaseCards = 0;
 		caseCards.forEach(function (card) {
 			var cardIndustry = card.getAttribute('data-industry') || '';
 			var cardTopics = (card.getAttribute('data-topics') || '').split(',').filter(Boolean);
@@ -1108,13 +1129,22 @@
 			var matchesIndustry = !selected.industry || selected.industry === cardIndustry;
 			var matchesTopic = !selected.topic || cardTopics.indexOf(selected.topic) !== -1;
 
-			card.style.display = (matchesIndustry && matchesTopic) ? '' : 'none';
+			var isVisible = matchesIndustry && matchesTopic;
+			card.style.display = isVisible ? '' : 'none';
+			if (isVisible) {
+				visibleCaseCards += 1;
+			}
 		});
 
-		if (casePagination) {
-			casePagination.style.display = (selected.industry || selected.topic) ? 'none' : '';
+		if (caseEmptyState) {
+			caseEmptyState.style.display = visibleCaseCards === 0 ? 'block' : 'none';
 		}
 
+		if (casePagination) {
+			casePagination.style.display = (selected.industry || selected.topic || visibleCaseCards === 0) ? 'none' : '';
+		}
+
+		var visibleWhiteCards = 0;
 		whitePaperCards.forEach(function (card) {
 			var haystack = String(card.getAttribute('data-filter-text') || '').toLowerCase();
 			var topicTerms = selected.topic ? (topicTermsByKey[selected.topic] || [selected.topic.replace(/-/g, ' ')]) : [];
@@ -1128,11 +1158,19 @@
 				return haystack.indexOf(String(term).toLowerCase()) !== -1;
 			});
 
-			card.style.display = (matchesIndustry && matchesTopic) ? '' : 'none';
+			var isVisible = matchesIndustry && matchesTopic;
+			card.style.display = isVisible ? '' : 'none';
+			if (isVisible) {
+				visibleWhiteCards += 1;
+			}
 		});
 
+		if (whiteEmptyState) {
+			whiteEmptyState.style.display = visibleWhiteCards === 0 ? 'block' : 'none';
+		}
+
 		if (whitePagination) {
-			whitePagination.style.display = (selected.industry || selected.topic) ? 'none' : '';
+			whitePagination.style.display = (selected.industry || selected.topic || visibleWhiteCards === 0) ? 'none' : '';
 		}
 	}
 
