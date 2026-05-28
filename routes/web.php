@@ -59,6 +59,7 @@ Route::get('/white_paper_docs/{file}', [CaseStudiesController::class, 'legacyWhi
 Route::get('/case-studies/{slug}', [CaseStudiesController::class, 'showCaseStudy'])->name('case-studies.show');
 
 Route::get('/blog/{blogId?}', [BlogController::class, 'index'])->name('blog.index');
+Route::get('/blogs/{blogId?}', [BlogController::class, 'index'])->name('blogs.index');
 Route::post('/blog/{blogId}/increment-clicks', [BlogController::class, 'incrementClicks'])->name('blog.increment-clicks');
 Route::post('/blog/{blogId}/request-download', [BlogController::class, 'requestDownload'])->name('blog.request-download');
 Route::get('/blog/{blogId}/download-pdf', [BlogController::class, 'downloadPdf'])->name('blog.download-pdf');

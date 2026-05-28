@@ -548,9 +548,9 @@
 					</div>
 				</div>
 				<div class="case-filter-group mb-0" data-filter-panel="industry">
-					<div class="case-filter-label">Industry</div>
+					<div class="case-filter-label">Category</div>
 					<div class="case-filter-list">
-						<a class="case-filter-chip {{ $selectedIndustry === '' ? 'active' : '' }}" data-filter-group="industry" data-filter-value="" href="{{ route('case-studies.index', array_filter(['topic' => $selectedTopic])) }}">All industries</a>
+						<a class="case-filter-chip {{ $selectedIndustry === '' ? 'active' : '' }}" data-filter-group="industry" data-filter-value="" href="{{ route('case-studies.index', array_filter(['topic' => $selectedTopic])) }}">All categories</a>
 						@foreach($industryFilters as $key => $label)
 							<a class="case-filter-chip {{ $selectedIndustry === $key ? 'active' : '' }}" data-filter-group="industry" data-filter-value="{{ $key }}" href="{{ route('case-studies.index', array_filter(['industry' => $key, 'topic' => $selectedTopic])) }}">{{ $label }}</a>
 						@endforeach

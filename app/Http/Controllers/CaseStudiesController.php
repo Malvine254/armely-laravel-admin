@@ -401,6 +401,14 @@ class CaseStudiesController extends Controller
 
     private function inferIndustryFilter(object $caseStudy): string
     {
+        $category = trim((string) ($caseStudy->category ?? ''));
+        if ($category !== '') {
+            $slug = Str::slug(Str::lower($category));
+            if ($slug !== '') {
+                return $slug;
+            }
+        }
+
         $haystack = Str::lower($this->caseStudyDisplayTitle($caseStudy) . ' ' . (string) ($caseStudy->category ?? '') . ' ' . strip_tags((string) ($caseStudy->body ?? '')));
 
         foreach ($this->industryFilters() as $key => $label) {
@@ -560,14 +568,59 @@ class CaseStudiesController extends Controller
 
     private function industryFilters(): array
     {
-        return [
-            'healthcare' => 'Healthcare',
-            'government-public-sector' => 'Government and Public Sector',
-            'education' => 'Education',
-            'energy-utilities' => 'Energy and Utilities',
-            'high-tech-consulting' => 'High Tech and Consulting',
-            'social-services' => 'Social Services',
-        ];
+        return Cache::remember('case_studies_industry_filters', now()->addMinutes(15), function (): array {
+            if (!$this->isTableQueryable('industry_listings')) {
+                return [
+                    'healthcare' => 'Healthcare',
+                    'government-public-sector' => 'Government and Public Sector',
+                    'education' => 'Education',
+                    'energy-utilities' => 'Energy and Utilities',
+                    'high-tech-consulting' => 'High Tech and Consulting',
+                    'social-services' => 'Social Services',
+                ];
+            }
+
+            try {
+                $categories = DB::table('industry_listings')
+                    ->select('category')
+                    ->whereNotNull('category')
+                    ->where('category', '!=', '')
+                    ->orderBy('category')
+                    ->pluck('category');
+
+                $filters = [];
+                foreach ($categories as $category) {
+                    $label = trim((string) $category);
+                    if ($label === '') {
+                        continue;
+                    }
+
+                    $key = Str::slug(Str::lower($label));
+                    if ($key === '' || isset($filters[$key])) {
+                        continue;
+                    }
+
+                    $filters[$key] = $label;
+                }
+
+                if (!empty($filters)) {
+                    return $filters;
+                }
+            } catch (QueryException $e) {
+                Log::warning('Failed to build dynamic case-study industry filters', [
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
+            return [
+                'healthcare' => 'Healthcare',
+                'government-public-sector' => 'Government and Public Sector',
+                'education' => 'Education',
+                'energy-utilities' => 'Energy and Utilities',
+                'high-tech-consulting' => 'High Tech and Consulting',
+                'social-services' => 'Social Services',
+            ];
+        });
     }
 
     private function topicFilters(): array
@@ -1012,11 +1065,22 @@ class CaseStudiesController extends Controller
                 ->select($this->caseStudySelectColumns())
                 ->orderByDesc('id');
 
-            $industry = (string) $request->query('industry', '');
-            if ($industry !== '' && array_key_exists($industry, $this->industryFilters())) {
-                $terms = $this->industryQueryTerms($industry);
-                $query->where(function ($inner) use ($terms) {
-                    foreach ($terms as $term) {
+            $industryFilters = $this->industryFilters();
+            $industry = Str::slug(Str::lower((string) $request->query('industry', '')));
+            if ($industry !== '' && array_key_exists($industry, $industryFilters)) {
+                $industryLabel = trim((string) $industryFilters[$industry]);
+                $industryTerms = array_values(array_unique(array_filter([
+                    Str::lower($industryLabel),
+                    Str::lower(str_replace('-', ' ', $industry)),
+                    Str::lower($industry),
+                ])));
+
+                $query->where(function ($inner) use ($industryLabel, $industryTerms) {
+                    if ($industryLabel !== '') {
+                        $inner->orWhereRaw('LOWER(TRIM(category)) = ?', [Str::lower($industryLabel)]);
+                    }
+
+                    foreach ($industryTerms as $term) {
                         $inner->orWhere('category', 'like', '%' . $term . '%')
                             ->orWhere('body', 'like', '%' . $term . '%');
                     }
@@ -1062,10 +1126,53 @@ class CaseStudiesController extends Controller
         }
 
         try {
-            return DB::table('white_paper')
+            $query = DB::table('white_paper')
                 ->select($this->whitePaperSelectColumns())
-                ->orderByDesc('id')
-                ->paginate(6, ['*'], 'paper_page');
+                ->orderByDesc('id');
+
+            $searchableColumns = $this->whitePaperSearchColumns();
+            $industryFilters = $this->industryFilters();
+            $industry = Str::slug(Str::lower((string) $request->query('industry', '')));
+
+            if ($industry !== '' && array_key_exists($industry, $industryFilters) && !empty($searchableColumns)) {
+                $industryLabel = trim((string) $industryFilters[$industry]);
+                $industryTerms = array_values(array_unique(array_filter([
+                    Str::lower($industryLabel),
+                    ...array_map(fn ($term) => Str::lower((string) $term), $this->industryQueryTerms($industry)),
+                    Str::lower(str_replace('-', ' ', $industry)),
+                    Str::lower($industry),
+                ])));
+
+                $query->where(function ($inner) use ($searchableColumns, $industryTerms) {
+                    foreach ($industryTerms as $term) {
+                        foreach ($searchableColumns as $column) {
+                            $inner->orWhere($column, 'like', '%' . $term . '%');
+                        }
+                    }
+                });
+            }
+
+            $topic = (string) $request->query('topic', '');
+            if ($topic !== '' && array_key_exists($topic, $this->topicFilters()) && !empty($searchableColumns)) {
+                $terms = match ($topic) {
+                    'fabric-data' => ['fabric', 'power bi', 'data', 'analytics', 'warehouse', 'lakehouse'],
+                    'power-platform' => ['power platform', 'power apps', 'power automate', 'power pages'],
+                    'ai-cognitive-services' => ['ai', 'copilot', 'cognitive', 'agent'],
+                    'sharepoint-collaboration' => ['sharepoint', 'teams', 'collaboration', 'intranet'],
+                    default => [Str::lower((string) ($this->topicFilters()[$topic] ?? $topic))],
+                };
+
+                $query->where(function ($inner) use ($searchableColumns, $terms) {
+                    foreach ($terms as $term) {
+                        $needle = Str::lower((string) $term);
+                        foreach ($searchableColumns as $column) {
+                            $inner->orWhere($column, 'like', '%' . $needle . '%');
+                        }
+                    }
+                });
+            }
+
+            return $query->paginate(6, ['*'], 'paper_page');
         } catch (QueryException $e) {
             if ($this->isMissingTableException($e)) {
                 Log::warning('White papers table unavailable in database engine', [
@@ -1105,6 +1212,18 @@ class CaseStudiesController extends Controller
         } catch (QueryException $e) {
             return false;
         }
+    }
+
+    private function whitePaperSearchColumns(): array
+    {
+        $columns = [];
+        foreach (['title', 'body', 'meta_description', 'slug', 'category', 'topic', 'industry'] as $column) {
+            if ($this->safeHasColumn('white_paper', $column)) {
+                $columns[] = $column;
+            }
+        }
+
+        return $columns;
     }
 
     private function industryQueryTerms(string $industry): array
