@@ -272,6 +272,27 @@
 	white-space: normal;
 	overflow-wrap: anywhere;
 }
+.resource-topic-list li a {
+	display: block;
+	color: inherit;
+	text-decoration: none;
+}
+.resource-topic-list li.active {
+	background: linear-gradient(135deg, #2f5597 0%, #22447d 100%);
+	border-color: #22447d;
+	color: #ffffff;
+	box-shadow: 0 8px 18px rgba(47, 85, 151, 0.25);
+}
+.resource-topic-list li:hover {
+	border-color: #9eb8e7;
+	background: #edf3ff;
+}
+.resource-topic-list li.active:hover {
+	background: linear-gradient(135deg, #2f5597 0%, #22447d 100%);
+}
+.resource-filter-actions {
+	margin-top: 12px;
+}
 
 .case-study-card,
 .white-paper-card {
@@ -741,10 +762,18 @@
 				<h2 class="resource-side-title">Microsoft platform guidance for leaders</h2>
 				<p class="resource-side-text">In-depth resources for teams planning data, AI, governance, and Copilot initiatives.</p>
 				<ul class="resource-topic-list">
-					<li>Copilot readiness</li>
-					<li>Power Platform governance</li>
-					<li>Data and Fabric strategy</li>
+					<li class="{{ $selectedTopic === '' ? 'active' : '' }}">
+						<a href="{{ route('case-studies.index', array_filter(['industry' => $selectedIndustry])) }}#white-papers">All topics</a>
+					</li>
+					@foreach($topicFilters as $key => $label)
+						<li class="{{ $selectedTopic === $key ? 'active' : '' }}">
+							<a href="{{ route('case-studies.index', array_filter(['industry' => $selectedIndustry, 'topic' => $key])) }}#white-papers">{{ $label }}</a>
+						</li>
+					@endforeach
 				</ul>
+				<div class="resource-filter-actions">
+					<a class="case-filter-reset" href="{{ route('case-studies.index') }}#white-papers">Clear white paper filters</a>
+				</div>
 			</aside>
 		</div>
 		<div class="col-12 col-lg-8 col-xl-9">
