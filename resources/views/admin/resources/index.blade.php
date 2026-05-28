@@ -1,0 +1,656 @@
+@extends('admin.layouts.admin')
+
+@section('title', 'Resources Management')
+@section('page-title', 'Resources Management')
+
+@push('styles')
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css" integrity="sha384-ok3J6xA9oQqai5C9ytYveFsBeKgoGk4T+NExsr6hoIKjZdv9SJcmx2mafwUWRNf9" crossorigin="anonymous">
+<style>
+    .resources-page-title {
+        margin-bottom: 1rem;
+    }
+
+    .resources-page-title h2 {
+        font-size: 1.45rem;
+        color: #1f3f80;
+        margin-bottom: 0.35rem;
+        font-weight: 700;
+    }
+
+    .resources-page-title p {
+        font-size: 0.9rem;
+        color: #667085;
+        margin-bottom: 0;
+    }
+
+    .resources-stats .admin-stats-card {
+        border: 1px solid #e5e7eb !important;
+        border-radius: 14px;
+        box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
+        transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+        background: #fff;
+        overflow: hidden;
+    }
+
+    .resources-stats .admin-stats-card:hover {
+        border-color: #cbd5e1 !important;
+        box-shadow: 0 14px 30px rgba(15, 23, 42, 0.1);
+        transform: translateY(-1px);
+    }
+
+    .resources-stats .admin-stats-card::before {
+        content: '';
+        display: block;
+        height: 3px;
+        background: #2f5597;
+    }
+
+    .resources-stats .admin-stats-card.border-success::before {
+        background: #0891b2;
+    }
+
+    .resources-stats .admin-stats-card.border-danger::before {
+        background: #d97706;
+    }
+
+    .resources-stats .admin-stats-card.border-secondary::before {
+        background: #475569;
+    }
+
+    .resources-stats .stat-icon-box {
+        width: 42px;
+        height: 42px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 0.8rem;
+        font-size: 1rem;
+        border: 1px solid #dbe7ff;
+        background: #eef4ff !important;
+        color: #2f5597 !important;
+    }
+
+    .bg-soft-primary,
+    .bg-soft-success,
+    .bg-soft-danger,
+    .bg-soft-secondary {
+        background: #eef4ff !important;
+        color: #2f5597 !important;
+    }
+
+    .resources-table-card {
+        border-radius: 14px;
+        border: 1px solid #e5e7eb;
+        box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
+        overflow: hidden;
+        background: #fff;
+    }
+
+    .resources-table-header {
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid #e5e7eb;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    }
+
+    .resources-table-header h5 {
+        font-size: 1rem;
+        color: #111827;
+    }
+
+    .resources-table-header .section-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 9px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: #eef4ff;
+        color: #2f5597;
+        border: 1px solid #dbe7ff;
+        flex: 0 0 auto;
+    }
+
+    .resources-table-card .table-responsive {
+        margin: 0;
+        padding: 0;
+    }
+
+    #resourcesTable {
+        width: 100% !important;
+        margin: 0 !important;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    #resourcesTable thead th {
+        background: #f8fafc;
+        color: #475569;
+        font-weight: 700;
+        text-transform: uppercase;
+        font-size: 0.74rem;
+        letter-spacing: 0.04em;
+        padding: 0.9rem 1.15rem;
+        border-bottom: 1px solid #e5e7eb;
+        white-space: nowrap;
+    }
+
+    #resourcesTable tbody tr:hover {
+        background-color: #f8fafc;
+    }
+
+    #resourcesTable tbody td {
+        padding: 0.95rem 1.15rem;
+        vertical-align: middle;
+        border-bottom: 1px solid #eef2f7;
+        color: #334155;
+    }
+
+    #resourcesTable tbody tr:last-child td {
+        border-bottom: 0;
+    }
+
+    .resource-avatar {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+        color: #fff;
+        font-size: 1rem;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    }
+
+    .resource-avatar-pdf { background: linear-gradient(135deg, #d73838 0%, #b62727 100%); }
+    .resource-avatar-video { background: linear-gradient(135deg, #6a57d8 0%, #503fc0 100%); }
+    .resource-avatar-image { background: linear-gradient(135deg, #ea9c2f 0%, #d57b11 100%); }
+    .resource-avatar-checklist { background: linear-gradient(135deg, #3a80df 0%, #2a61b8 100%); }
+    .resource-avatar-guide { background: linear-gradient(135deg, #2f77d7 0%, #215db0 100%); }
+    .resource-avatar-default { background: linear-gradient(135deg, #526b92 0%, #3f5887 100%); }
+
+    .resource-title-block .resource-title {
+        color: #111827;
+        font-weight: 700;
+        line-height: 1.25;
+        margin-bottom: 0.15rem;
+    }
+
+    .resource-title-block .resource-slug {
+        color: #64748b;
+        font-size: 0.78rem;
+        word-break: break-word;
+    }
+
+    .resource-type-badge,
+    .resource-category-badge,
+    .resource-status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        min-height: 30px;
+        font-weight: 700;
+        letter-spacing: 0;
+        border-radius: 999px;
+        padding: 0.35rem 0.75rem;
+    }
+
+    .resource-status-stack {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+    }
+
+    .resource-link-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        border-radius: 999px;
+        border: 1px solid #dbe7ff;
+        background: #eef4ff;
+        color: #2f5597;
+        padding: 0.45rem 0.7rem;
+        text-decoration: none;
+        font-weight: 700;
+        font-size: 0.82rem;
+        transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .resource-link-chip:hover {
+        background: #e1ecff;
+        color: #1f4784;
+        text-decoration: none;
+        transform: translateY(-1px);
+        box-shadow: 0 8px 14px rgba(47, 85, 151, 0.12);
+    }
+
+    .admin-action-group {
+        border: 1px solid #e5e7eb;
+        background: #fff;
+        box-shadow: 0 3px 10px rgba(15, 23, 42, 0.06) !important;
+        border-radius: 10px;
+        overflow: hidden;
+        display: inline-flex;
+        align-items: stretch;
+    }
+
+    .admin-action-group .btn,
+    .admin-action-group .action-link {
+        width: 36px;
+        height: 34px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 0 !important;
+        border-radius: 0;
+        text-decoration: none;
+        color: #334155;
+        background: #fff;
+    }
+
+    .admin-action-group .btn + form .btn,
+    .admin-action-group form + .btn,
+    .admin-action-group .action-link + .action-link,
+    .admin-action-group .action-link + form .btn {
+        border-left: 1px solid #e5e7eb !important;
+    }
+
+    .admin-action-group .btn:hover,
+    .admin-action-group .action-link:hover {
+        background: #eef4ff;
+        color: #1f4784;
+    }
+
+    .admin-action-group .text-danger,
+    .admin-action-group .action-link.text-danger {
+        color: #b91c1c !important;
+    }
+
+    .resources-modal .modal-content {
+        border: none;
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.28);
+        overflow: hidden;
+    }
+
+    .resources-modal.modal {
+        z-index: 9999 !important;
+    }
+
+    .resources-modal + .modal-backdrop {
+        z-index: 9998 !important;
+    }
+
+    .resources-modal .modal-header {
+        background: linear-gradient(135deg, #2f5597 0%, #1e3a6b 100%);
+        color: #fff;
+        padding: 1.35rem 1.75rem;
+        border-bottom: none;
+    }
+
+    .resources-modal .modal-title {
+        color: #fff;
+        font-weight: 700;
+        font-size: 1.35rem;
+    }
+
+    .resources-modal .btn-close {
+        filter: brightness(0) invert(1);
+        opacity: 0.85;
+    }
+
+    .resources-modal .modal-body {
+        padding: 1.5rem;
+        background: #f8fafc;
+    }
+
+    .resources-modal .modal-footer {
+        background: #fff;
+        border-top: 1px solid #e9ecef;
+        padding: 1rem 1.5rem;
+    }
+
+    .resources-modal .resource-form-panel {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 16px;
+        padding: 1.25rem;
+    }
+
+    .resources-modal .form-label,
+    .resource-form-panel .form-label {
+        font-weight: 600;
+        color: #344054;
+    }
+
+    .resources-modal .form-control,
+    .resources-modal .form-select {
+        border: 1px solid #d6deea;
+        border-radius: 12px;
+        min-height: 44px;
+        box-shadow: none;
+    }
+
+    .resources-modal .form-control:focus,
+    .resources-modal .form-select:focus {
+        border-color: #2f5597;
+        box-shadow: 0 0 0 4px rgba(47, 85, 151, 0.12);
+    }
+
+    .resources-modal .btn-primary {
+        background: linear-gradient(135deg, #2f5597 0%, #1e3a6b 100%);
+        border: 0;
+        box-shadow: 0 8px 18px rgba(47, 85, 151, 0.22);
+    }
+
+    .resources-modal .btn-outline-secondary {
+        border-color: #d6deea;
+        color: #344054;
+        background: #fff;
+    }
+
+    .resources-modal .btn-outline-secondary:hover {
+        background: #f8fafc;
+    }
+
+    .resources-modal .alert {
+        border-radius: 14px;
+    }
+
+    @media (max-width: 768px) {
+        .resources-page-title h2 {
+            font-size: 1.2rem;
+        }
+
+        .resources-table-header {
+            gap: 0.75rem;
+        }
+
+        .resource-link-chip {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .admin-action-group {
+            width: 100%;
+            justify-content: space-between;
+        }
+
+        .admin-action-group .btn,
+        .admin-action-group .action-link {
+            flex: 1;
+        }
+
+        #resourcesTable tbody td,
+        #resourcesTable thead th {
+            padding-left: 0.85rem;
+            padding-right: 0.85rem;
+        }
+    }
+</style>
+@endpush
+
+@section('content')
+<div class="container-fluid py-3">
+    <div class="resources-page-title d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+            <h2>Resources Management</h2>
+            <p>Manage public resource pages, files, and shareable links.</p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{{ route('admin.resource-categories.index') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-tags me-2"></i>Manage Categories
+            </a>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addResourceModal">
+                <i class="fas fa-plus me-2"></i>Add Resource
+            </button>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4 resources-stats">
+        <div class="col-md-6 col-lg-3">
+            <div class="card admin-stats-card border-start border-4 border-primary">
+                <div class="card-body">
+                    <div class="stat-icon-box bg-soft-primary text-primary">
+                        <i class="fas fa-layer-group"></i>
+                    </div>
+                    <p class="text-muted mb-1 fw-bold small text-uppercase">Total Resources</p>
+                    <h3 class="mb-0 fw-bold">{{ $stats['total'] ?? 0 }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+            <div class="card admin-stats-card border-start border-4 border-success">
+                <div class="card-body">
+                    <div class="stat-icon-box bg-soft-success text-success">
+                        <i class="fas fa-circle-check"></i>
+                    </div>
+                    <p class="text-muted mb-1 fw-bold small text-uppercase">Published</p>
+                    <h3 class="mb-0 fw-bold text-success">{{ $stats['published'] ?? 0 }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+            <div class="card admin-stats-card border-start border-4 border-danger">
+                <div class="card-body">
+                    <div class="stat-icon-box bg-soft-danger text-danger">
+                        <i class="fas fa-file-circle-plus"></i>
+                    </div>
+                    <p class="text-muted mb-1 fw-bold small text-uppercase">Drafts</p>
+                    <h3 class="mb-0 fw-bold text-danger">{{ $stats['draft'] ?? 0 }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+            <div class="card admin-stats-card border-start border-4 border-secondary">
+                <div class="card-body">
+                    <div class="stat-icon-box bg-soft-secondary text-secondary">
+                        <i class="fas fa-star"></i>
+                    </div>
+                    <p class="text-muted mb-1 fw-bold small text-uppercase">Featured</p>
+                    <h3 class="mb-0 fw-bold text-secondary">{{ $stats['featured'] ?? 0 }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="resources-table-card">
+        <div class="resources-table-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-2">
+                <span class="section-icon"><i class="fas fa-folder-open"></i></span>
+                <div>
+                    <h5 class="mb-0 fw-bold">Resource Library</h5>
+                    <div class="small text-muted">Search, share, edit, and manage public resources.</div>
+                </div>
+            </div>
+            <span class="badge bg-soft-primary text-primary rounded-pill px-3 py-2">{{ $resources->total() }} records</span>
+        </div>
+
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" id="resourcesTable">
+                    <thead>
+                        <tr>
+                            <th style="width: 28%;">Resource</th>
+                            <th>Type</th>
+                            <th>Category</th>
+                            <th>Status</th>
+                            <th>Updated</th>
+                            <th>Public Link</th>
+                            <th class="text-end px-4">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($resources as $resource)
+                            @php
+                                $publicLink = $shareBaseUrl . '/resources/' . $resource->slug;
+                                $type = strtolower((string) $resource->resource_type);
+                                $iconMap = [
+                                    'pdf' => ['fas fa-file-pdf', 'resource-avatar-pdf', 'PDF'],
+                                    'video' => ['fas fa-circle-play', 'resource-avatar-video', 'Video'],
+                                    'image' => ['fas fa-image', 'resource-avatar-image', 'Image'],
+                                    'checklist' => ['fas fa-list-check', 'resource-avatar-checklist', 'Checklist'],
+                                    'guide' => ['fas fa-book-open', 'resource-avatar-guide', 'Guide'],
+                                ];
+                                $icon = $iconMap[$type] ?? ['fas fa-file-lines', 'resource-avatar-default', 'File'];
+                            @endphp
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center gap-3">
+                                        <span class="resource-avatar {{ $icon[1] }}">
+                                            <i class="{{ $icon[0] }}"></i>
+                                        </span>
+                                        <div class="resource-title-block">
+                                            <div class="resource-title">{{ $resource->title }}</div>
+                                            <div class="resource-slug">/{{ $resource->slug }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge resource-type-badge bg-soft-primary text-primary">
+                                        <i class="{{ $icon[0] }}"></i>{{ ucfirst($resource->resource_type) }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge resource-category-badge bg-light text-dark border border-1 border-light-subtle">
+                                        {{ $resource->category ?: 'Uncategorized' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="resource-status-stack">
+                                        @if($resource->is_published)
+                                            <span class="badge resource-status-badge bg-success text-white">Published</span>
+                                        @else
+                                            <span class="badge resource-status-badge bg-secondary text-white">Draft</span>
+                                        @endif
+                                        @if($resource->is_featured)
+                                            <span class="badge resource-status-badge bg-info text-dark">Featured</span>
+                                        @endif
+                                        @if($resource->is_noindex)
+                                            <span class="badge resource-status-badge bg-warning text-dark">Noindex</span>
+                                        @endif
+                                    </div>
+                                </td>
+                                <td>{{ optional($resource->updated_at)->format('M d, Y') }}</td>
+                                <td>
+                                    <a href="{{ $publicLink }}" target="_blank" rel="noopener" class="resource-link-chip">
+                                        <i class="fas fa-arrow-up-right-from-square"></i> Open
+                                    </a>
+                                </td>
+                                <td class="text-end">
+                                    <div class="admin-action-group">
+                                        <button type="button" class="action-link copy-link-btn" data-link="{{ $publicLink }}" title="Copy link">
+                                            <i class="fas fa-link"></i>
+                                        </button>
+                                        <a href="{{ route('admin.resources.edit', $resource) }}" class="action-link" title="Edit">
+                                            <i class="fas fa-pen"></i>
+                                        </a>
+                                        <form action="{{ route('admin.resources.destroy', $resource) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this resource?');">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="action-link text-danger" title="Delete">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="7" class="text-center text-muted py-5">No resources yet.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="px-3 px-md-4 py-3">
+                {{ $resources->links() }}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade resources-modal" id="addResourceModal" tabindex="-1" aria-labelledby="addResourceModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title mb-1" id="addResourceModalLabel">Add Resource</h5>
+                    <div class="small text-white-50">Create a new resource entry with files, metadata, and publishing controls.</div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                @if($errors->any())
+                    <div class="alert alert-danger mb-3">
+                        <strong>Please review the form errors below.</strong>
+                    </div>
+                @endif
+                <div class="resource-form-panel">
+                    <form action="{{ $formAction }}" method="POST" enctype="multipart/form-data" id="resourceCreateForm">
+                        @csrf
+                        @if($formMethod !== 'POST')
+                            @method($formMethod)
+                        @endif
+
+                        @include('admin.resources._fields', [
+                            'resource' => $resourceForm,
+                            'types' => $types,
+                            'formKey' => 'resourceModal'
+                        ])
+                    </form>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" form="resourceCreateForm" class="btn btn-primary px-4">Save Resource</button>
+            </div>
+        </div>
+    </div>
+</div>
+@endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.copy-link-btn').forEach(function (button) {
+        button.addEventListener('click', async function () {
+            const url = button.getAttribute('data-link') || '';
+            if (!url) {
+                return;
+            }
+
+            try {
+                await navigator.clipboard.writeText(url);
+                button.innerHTML = '<i class="fas fa-check"></i>';
+                button.classList.add('text-success');
+            } catch (error) {
+                const helper = document.createElement('textarea');
+                helper.value = url;
+                document.body.appendChild(helper);
+                helper.select();
+                document.execCommand('copy');
+                document.body.removeChild(helper);
+                button.innerHTML = '<i class="fas fa-check"></i>';
+                button.classList.add('text-success');
+            }
+
+            setTimeout(function () {
+                button.classList.remove('text-success');
+                button.innerHTML = '<i class="fas fa-link"></i>';
+            }, 1500);
+        });
+    });
+
+    @if($errors->any())
+        const modalEl = document.getElementById('addResourceModal');
+        if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.show();
+        }
+    @endif
+});
+</script>
+@endpush

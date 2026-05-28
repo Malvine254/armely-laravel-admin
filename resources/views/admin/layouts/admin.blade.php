@@ -290,6 +290,12 @@
             </a>
         </li>
         <li>
+            <a href="{{ route('admin.resources.index') }}" class="nav-link {{ request()->routeIs('admin.resources*') ? 'active' : '' }}">
+                <i class="fas fa-folder-open"></i>
+                <span>Resources</span>
+            </a>
+        </li>
+        <li>
             <a href="{{ route('admin.admins') }}" class="nav-link {{ request()->routeIs('admin.admins*') ? 'active' : '' }}">
                 <i class="fas fa-user-shield"></i>
                 <span>Manage Admins</span>

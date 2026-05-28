@@ -11,12 +11,15 @@ use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\CareerController;
 use App\Http\Controllers\Admin\AnalyticsController;
 use App\Http\Controllers\Admin\CompanyContentController;
+use App\Http\Controllers\Admin\ResourceCategoryController;
 use App\Http\Controllers\ServicesController;
 use App\Http\Controllers\BlogController;
 use App\Http\Controllers\CaseStudiesController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\HtmlPageController;
 use App\Http\Controllers\DataReadinessLeadController;
+use App\Http\Controllers\ResourceController;
+use App\Http\Controllers\Admin\ResourceController as AdminResourceController;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/contact', [HomeController::class, 'contact'])->name('contact');
@@ -49,7 +52,8 @@ Route::get('/case-studies', [CaseStudiesController::class, 'index'])->name('case
 Route::post('/case-studies/lead', [CaseStudiesController::class, 'submitLead'])->name('case-studies.lead.submit');
 Route::get('/case-studies/access/{caseStudy}', [CaseStudiesController::class, 'accessCaseStudy'])->name('case-studies.access');
 Route::get('/white-papers/access/{paper}', [CaseStudiesController::class, 'accessWhitePaper'])->name('white-papers.access');
-Route::get('/resources/{slug}', [CaseStudiesController::class, 'showResource'])->name('resources.show');
+Route::get('/resources', [ResourceController::class, 'index'])->name('resources.index');
+Route::get('/resources/{slug}', [ResourceController::class, 'show'])->name('resources.show');
 Route::get('/case_docs/{file}', [CaseStudiesController::class, 'legacyCaseDoc'])
     ->where('file', '.*')
     ->name('case-studies.legacy-doc');
@@ -203,6 +207,17 @@ Route::prefix('admin')->middleware(['admin'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('admin.logout');
     // Graceful fallback: allow GET logout to handle cases where JS/form submission fails
     Route::get('/logout', [AuthController::class, 'logout'])->name('admin.logout.get');
+
+    // Resource Management
+    Route::get('/resources', [AdminResourceController::class, 'index'])->name('admin.resources.index');
+    Route::get('/resources/create', [AdminResourceController::class, 'create'])->name('admin.resources.create');
+    Route::post('/resources', [AdminResourceController::class, 'store'])->name('admin.resources.store');
+    Route::get('/resources/{resource}/edit', [AdminResourceController::class, 'edit'])->name('admin.resources.edit');
+    Route::put('/resources/{resource}', [AdminResourceController::class, 'update'])->name('admin.resources.update');
+    Route::delete('/resources/{resource}', [AdminResourceController::class, 'destroy'])->name('admin.resources.destroy');
+    Route::get('/resource-categories', [ResourceCategoryController::class, 'index'])->name('admin.resource-categories.index');
+    Route::post('/resource-categories', [ResourceCategoryController::class, 'store'])->name('admin.resource-categories.store');
+    Route::delete('/resource-categories/{resourceCategory}', [ResourceCategoryController::class, 'destroy'])->name('admin.resource-categories.destroy');
     
     // Tables Management (CRUD for content)
     Route::get('/tables', [TablesController::class, 'index'])->name('admin.tables');
