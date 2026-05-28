@@ -400,7 +400,7 @@
         font-size: 1.1rem;
         font-weight: 800;
         text-decoration: none;
-        padding: 15px 0;
+        padding: 8px 0;
         transition: all 0.3s ease;
     }
 
@@ -613,30 +613,6 @@
         min-height: 3.2em;
         font-family: 'Poppins', sans-serif;
         letter-spacing: 0;
-    }
-
-    .blog.section .blog-content::after {
-        content: attr(data-full-details);
-        white-space: pre-line;
-        position: absolute;
-        inset: 16px;
-        padding: 14px;
-        border-radius: 14px;
-        background: rgba(15, 23, 42, 0.95);
-        color: #f8fbff;
-        font-size: 0.9rem;
-        line-height: 1.5;
-        opacity: 0;
-        transform: translateY(6px);
-        pointer-events: none;
-        z-index: 4;
-        box-shadow: 0 18px 40px rgba(2, 8, 23, 0.35);
-        transition: opacity 0.18s ease, transform 0.18s ease;
-    }
-
-    .blog.section .blog-card-wrapper:hover .blog-content::after {
-        opacity: 1;
-        transform: translateY(0);
     }
 
     .blog.section .blog-title a,
@@ -948,7 +924,7 @@
 
     /* Video Section Enhancements */
     .video-section {
-        padding: 100px 0;
+        padding: 72px 0 56px;
         background: #fcfcfc;
     }
 
@@ -1241,11 +1217,11 @@
 
     .home-contact-section {
         background: #f7f9fc;
-        padding: 72px 0;
+        padding: 56px 0;
     }
 
     .home-contact-section .section-title {
-        margin-bottom: 28px;
+        margin-bottom: 20px;
     }
 
     .home-contact-card {
@@ -1312,7 +1288,7 @@
 
     @media (max-width: 768px) {
         .home-contact-section {
-            padding: 54px 0;
+            padding: 42px 0;
         }
         .home-contact-card {
             padding: 22px !important;
@@ -1726,7 +1702,7 @@ document.addEventListener('DOMContentLoaded', function () {
             @endforelse
         </div>
         
-        <div class="text-center mt-5">
+        <div class="text-center mt-3">
             <a class="explore-btn" href="/blog">
                 <strong>View All Insights</strong>
                 <i class="fa fa-long-arrow-right"></i>
@@ -1771,7 +1747,7 @@ document.addEventListener('DOMContentLoaded', function () {
             @endforelse
         </div>
         
-        <div class="text-center mt-4">
+        <div class="text-center mt-3">
             <a class="explore-btn" href="https://www.youtube.com/@armelyarmely" target="_blank">
                 <strong>Explore more on YouTube</strong>
                 <i class="fa fa-long-arrow-right"></i>
