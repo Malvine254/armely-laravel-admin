@@ -6,7 +6,6 @@ use App\Models\Resource;
 use App\Services\AzureMailService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Response;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cookie;
@@ -16,6 +15,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 class ResourceController extends Controller
 {
@@ -194,7 +194,7 @@ class ResourceController extends Controller
         return app(CaseStudiesController::class)->showResource($request, $slug);
     }
 
-    public function download(Request $request, string $slug): RedirectResponse|Response
+    public function download(Request $request, string $slug): RedirectResponse|SymfonyResponse
     {
         if (!Schema::hasTable('resources')) {
             abort(404);
