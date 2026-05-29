@@ -63,6 +63,12 @@
     box-shadow: 0 12px 26px rgba(17, 44, 86, 0.08);
     padding: 24px;
 }
+.resource-split {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(320px, 0.8fr);
+    gap: 22px;
+    align-items: start;
+}
 .resource-meta-list {
     display: flex;
     flex-wrap: wrap;
@@ -77,6 +83,16 @@
     padding: 6px 12px;
     font-size: 0.78rem;
     font-weight: 800;
+}
+.meta-chip-click {
+    background: #eef4ff;
+    border-color: #cfdffa;
+    color: #274a82;
+}
+.meta-chip-download {
+    background: #edf9f2;
+    border-color: #c6e9d4;
+    color: #1f6b47;
 }
 .resource-preview {
     border-radius: 12px;
@@ -141,6 +157,16 @@
     font-size: 0.8rem;
     font-weight: 700;
 }
+.folder-location a {
+    color: #1f467f;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    font-weight: 800;
+}
+.folder-location a:hover,
+.folder-location a:focus {
+    color: #173766;
+}
 .resource-actions {
     display: flex;
     flex-wrap: wrap;
@@ -162,16 +188,17 @@
     color: #fff !important;
 }
 .resource-btn-secondary {
-    border-color: #2f5597;
-    color: #2f5597 !important;
+    background: #e9f1ff !important;
+    border-color: #c6d8f8 !important;
+    color: #1f4583 !important;
     font-weight: 700;
 }
 .resource-btn-secondary:hover,
 .resource-btn-secondary:focus,
 .resource-btn-secondary:active,
 .resource-btn-secondary:visited {
-    background: #e9f1ff;
-    border-color: #2f5597;
+    background: #dce9ff !important;
+    border-color: #b3caf2 !important;
     color: #1f4583 !important;
 }
 .resource-embed-wrap {
@@ -258,7 +285,78 @@
     font-weight: 800;
     line-height: 1.35;
 }
+.resource-request-panel {
+    border: 1px solid #dce7fb;
+    border-radius: 14px;
+    background: linear-gradient(180deg, #ffffff 0%, #f7faff 100%);
+    box-shadow: 0 12px 26px rgba(17, 44, 86, 0.08);
+    padding: 22px;
+    position: sticky;
+    top: 92px;
+}
+.resource-request-kicker {
+    color: #2f5597;
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 8px;
+}
+.resource-request-title {
+    color: #16386b;
+    font-size: 1.22rem;
+    font-weight: 900;
+    margin: 0 0 8px;
+}
+.resource-request-copy {
+    color: #4b6187;
+    line-height: 1.65;
+    font-size: 0.94rem;
+    margin-bottom: 16px;
+}
+.resource-request-form .form-group {
+    margin-bottom: 14px;
+}
+.resource-request-form label {
+    display: block;
+    color: #27497f;
+    font-size: 0.86rem;
+    font-weight: 700;
+    margin-bottom: 7px;
+}
+.resource-request-form .form-control,
+.resource-request-form textarea {
+    border: 1px solid #cbd9f4;
+    border-radius: 12px;
+    background: #f7faff;
+    color: #193763;
+    padding: 12px 14px;
+    min-height: 48px;
+    box-shadow: none;
+}
+.resource-request-form textarea {
+    min-height: 112px;
+    resize: vertical;
+}
+.resource-request-form .form-control:focus,
+.resource-request-form textarea:focus {
+    border-color: #2f5597;
+    background: #fff;
+    box-shadow: 0 0 0 4px rgba(47, 85, 151, 0.12);
+}
+.resource-request-note {
+    margin: 10px 0 0;
+    color: #5b6f91;
+    font-size: 0.86rem;
+    line-height: 1.55;
+}
 @media (max-width: 992px) {
+    .resource-split {
+        grid-template-columns: 1fr;
+    }
+    .resource-request-panel {
+        position: static;
+    }
     .related-grid {
         grid-template-columns: 1fr;
     }
@@ -306,75 +404,233 @@
             $iconConfig = $typeIconMap[$type] ?? ['fa-file-text-o', 'icon-default', 'Document'];
             $isImageFile = str_starts_with((string) ($resource->file_url ?? ''), 'data:image') || preg_match('/\.(png|jpe?g|webp|gif)$/i', (string) ($resource->file_url ?? ''));
             $isPdfFile = preg_match('/\.pdf($|\?)/i', (string) ($resource->file_url ?? ''));
+            $folderCategory = trim((string) ($resource->category ?? ''));
+            $folderCategoryLabel = $folderCategory !== '' ? $folderCategory : 'General';
+            $folderCategoryUrl = $folderCategory !== ''
+                ? route('resources.index', ['category' => $folderCategory])
+                : route('resources.index');
+            $folderTypeUrl = route('resources.index', array_filter([
+                'category' => $folderCategory !== '' ? $folderCategory : null,
+                'type' => $resource->resource_type,
+            ]));
+            $resourceInlineUrl = route('resources.download', ['slug' => $resource->slug, 'mode' => 'inline']);
         @endphp
 
-        <div class="resource-panel">
-            <div class="resource-meta-list">
-                <span class="meta-chip">{{ ucfirst($resource->resource_type) }}</span>
-                @if($resource->category)
-                    <span class="meta-chip">{{ $resource->category }}</span>
+        <div class="resource-split">
+            <div class="resource-panel">
+                @if(session('resource_request_status'))
+                    <div class="alert alert-success">{{ session('resource_request_status') }}</div>
                 @endif
-                <span class="meta-chip">Added {{ optional($resource->created_at)->format('M d, Y') }}</span>
-            </div>
 
-            <p class="folder-location">📁 Folder Location: {{ $resource->category ?: 'General' }} / {{ ucfirst($resource->resource_type) }}</p>
+                @if($errors->has('resource_request'))
+                    <div class="alert alert-danger">{{ $errors->first('resource_request') }}</div>
+                @endif
 
-            <div class="resource-preview">
-                <div class="resource-file-tile">
-                    <span class="resource-file-icon {{ $iconConfig[1] }}">
-                        <i class="fa {{ $iconConfig[0] }}" aria-hidden="true"></i>
-                    </span>
-                    <div>
-                        <p class="resource-file-label">{{ $iconConfig[2] }}</p>
-                        <p class="resource-file-name">{{ $resource->file_name ?: ($resource->slug . '.asset') }}</p>
+                <div class="resource-meta-list">
+                    <span class="meta-chip">{{ ucfirst($resource->resource_type) }}</span>
+                    @if($resource->category)
+                        <span class="meta-chip">{{ $resource->category }}</span>
+                    @endif
+                    <span class="meta-chip">Added {{ optional($resource->created_at)->format('M d, Y') }}</span>
+                    <span class="meta-chip meta-chip-click"><i class="fa fa-mouse-pointer" aria-hidden="true" style="margin-right:6px;"></i>{{ (int) ($resource->click_count ?? 0) }} clicks</span>
+                    <span class="meta-chip meta-chip-download"><i class="fa fa-download" aria-hidden="true" style="margin-right:6px;"></i>{{ (int) ($resource->download_count ?? 0) }} downloads</span>
+                </div>
+
+                <p class="folder-location">📁 Folder Location: <a href="{{ $folderCategoryUrl }}">{{ $folderCategoryLabel }}</a> / <a href="{{ $folderTypeUrl }}">{{ ucfirst($resource->resource_type) }}</a></p>
+
+                <div class="resource-preview">
+                    <div class="resource-file-tile">
+                        <span class="resource-file-icon {{ $iconConfig[1] }}">
+                            <i class="fa {{ $iconConfig[0] }}" aria-hidden="true"></i>
+                        </span>
+                        <div>
+                            <p class="resource-file-label">{{ $iconConfig[2] }}</p>
+                            <p class="resource-file-name">{{ $resource->file_name ?: ($resource->slug . '.asset') }}</p>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="resource-actions">
+                <div class="resource-actions">
+                    @if($resource->file_url)
+                        <a href="{{ route('resources.download', $resource->slug) }}" class="btn resource-btn-primary">
+                            {{ $resource->resource_type === 'video' ? 'Open Full Video' : 'Download / Open File' }}
+                        </a>
+                    @endif
+                    <a href="{{ route('resources.index') }}" class="btn resource-btn-secondary">Back to repository</a>
+                </div>
+
                 @if($resource->file_url)
-                    <a href="{{ $resource->file_url }}" target="_blank" rel="noopener" class="btn resource-btn-primary">
-                        {{ $resource->resource_type === 'video' ? 'Open Full Video' : 'Download / Open File' }}
-                    </a>
+                    <div class="resource-embed-wrap">
+                        <div class="resource-embed-head">Embedded Content Preview</div>
+                        <div class="resource-embed-body">
+                            @if($resource->isVideo())
+                                <video controls preload="metadata" playsinline>
+                                    <source src="{{ $resourceInlineUrl }}">
+                                    Your browser does not support the video element.
+                                </video>
+                            @elseif($isImageFile)
+                                <img src="{{ $resourceInlineUrl }}" alt="{{ $resource->title }}">
+                            @elseif($isPdfFile)
+                                <iframe src="{{ $resourceInlineUrl }}#view=FitH" title="{{ $resource->title }}"></iframe>
+                            @else
+                                <iframe src="{{ $resourceInlineUrl }}" title="{{ $resource->title }}"></iframe>
+                                <p class="resource-embed-note">If this file cannot be previewed here due to browser or source restrictions, use the Open File button above.</p>
+                            @endif
+                        </div>
+                    </div>
                 @endif
-                <a href="{{ route('resources.index') }}" class="btn resource-btn-secondary">Back to repository</a>
+
+                @if(($relatedResources ?? collect())->isNotEmpty())
+                    <div class="related-wrap">
+                        <h3 class="related-title">Recommended Next Resources</h3>
+                        <div class="related-grid">
+                            @foreach($relatedResources as $related)
+                                <a href="{{ route('resources.show', $related->slug) }}" class="related-card">
+                                    <div class="meta">{{ ucfirst($related->resource_type) }} @if($related->category) · {{ $related->category }} @endif</div>
+                                    <p class="name">{{ $related->title }}</p>
+                                </a>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
             </div>
 
-            @if($resource->file_url)
-                <div class="resource-embed-wrap">
-                    <div class="resource-embed-head">Embedded Content Preview</div>
-                    <div class="resource-embed-body">
-                        @if($resource->isVideo())
-                            <video controls preload="metadata" playsinline>
-                                <source src="{{ $resource->file_url }}">
-                                Your browser does not support the video element.
-                            </video>
-                        @elseif($isImageFile)
-                            <img src="{{ $resource->file_url }}" alt="{{ $resource->title }}">
-                        @elseif($isPdfFile)
-                            <iframe src="{{ $resource->file_url }}#view=FitH" title="{{ $resource->title }}"></iframe>
-                        @else
-                            <iframe src="{{ $resource->file_url }}" title="{{ $resource->title }}"></iframe>
-                            <p class="resource-embed-note">If this file cannot be previewed here due to browser or source restrictions, use the Open File button above.</p>
-                        @endif
-                    </div>
-                </div>
-            @endif
+            <aside id="resource-request-form" class="resource-request-panel">
+                <div class="resource-request-kicker">Request By Email</div>
+                <h2 class="resource-request-title">Get this resource in your inbox</h2>
+                <p class="resource-request-copy">Fill in your details and Armely will send this resource link to your email so you can review or forward it later.</p>
+                <div id="resourceRequestAjaxAlert" class="alert d-none" role="alert"></div>
 
-            @if(($relatedResources ?? collect())->isNotEmpty())
-                <div class="related-wrap">
-                    <h3 class="related-title">Recommended Next Resources</h3>
-                    <div class="related-grid">
-                        @foreach($relatedResources as $related)
-                            <a href="{{ route('resources.show', $related->slug) }}" class="related-card">
-                                <div class="meta">{{ ucfirst($related->resource_type) }} @if($related->category) · {{ $related->category }} @endif</div>
-                                <p class="name">{{ $related->title }}</p>
-                            </a>
-                        @endforeach
+                <form id="resourceRequestForm" method="POST" action="{{ route('resources.request', $resource->slug) }}" class="resource-request-form">
+                    @csrf
+
+                    <div class="form-group">
+                        <label for="resourceRequestName">Name</label>
+                        <input id="resourceRequestName" type="text" name="name" class="form-control" value="{{ old('name') }}" required>
+                        @error('name')
+                            <small class="text-danger d-block mt-1">{{ $message }}</small>
+                        @enderror
                     </div>
-                </div>
-            @endif
+
+                    <div class="form-group">
+                        <label for="resourceRequestEmail">Work Email</label>
+                        <input id="resourceRequestEmail" type="email" name="email" class="form-control" value="{{ old('email') }}" required>
+                        @error('email')
+                            <small class="text-danger d-block mt-1">{{ $message }}</small>
+                        @enderror
+                    </div>
+
+                    <div class="form-group">
+                        <label for="resourceRequestOrganization">Company</label>
+                        <input id="resourceRequestOrganization" type="text" name="organization" class="form-control" value="{{ old('organization') }}">
+                        @error('organization')
+                            <small class="text-danger d-block mt-1">{{ $message }}</small>
+                        @enderror
+                    </div>
+
+                    <div class="form-group">
+                        <label for="resourceRequestRole">Job Title</label>
+                        <input id="resourceRequestRole" type="text" name="job_title" class="form-control" value="{{ old('job_title') }}">
+                        @error('job_title')
+                            <small class="text-danger d-block mt-1">{{ $message }}</small>
+                        @enderror
+                    </div>
+
+                    <div class="form-group">
+                        <label for="resourceRequestMessage">What are you interested in?</label>
+                        <textarea id="resourceRequestMessage" name="message">{{ old('message') }}</textarea>
+                        @error('message')
+                            <small class="text-danger d-block mt-1">{{ $message }}</small>
+                        @enderror
+                    </div>
+
+                    <button type="submit" class="btn resource-btn-primary w-100">Email Me This Resource</button>
+                    <p class="resource-request-note">The submitted details are recorded so the team can follow up with related content if needed.</p>
+                </form>
+            </aside>
         </div>
     </div>
 </section>
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var form = document.getElementById('resourceRequestForm');
+    if (!form) {
+        return;
+    }
+
+    var submitBtn = form.querySelector('button[type="submit"]');
+    var alertBox = document.getElementById('resourceRequestAjaxAlert');
+    var originalBtnText = submitBtn ? submitBtn.textContent : 'Email Me This Resource';
+
+    var showAlert = function (message, type) {
+        if (!alertBox) {
+            return;
+        }
+
+        alertBox.textContent = message;
+        alertBox.classList.remove('d-none', 'alert-success', 'alert-danger');
+        alertBox.classList.add(type === 'success' ? 'alert-success' : 'alert-danger');
+    };
+
+    var setSubmitting = function (isSubmitting) {
+        if (!submitBtn) {
+            return;
+        }
+
+        submitBtn.disabled = isSubmitting;
+        submitBtn.textContent = isSubmitting ? 'Sending...' : originalBtnText;
+    };
+
+    form.addEventListener('submit', function (event) {
+        event.preventDefault();
+        setSubmitting(true);
+
+        var formData = new FormData(form);
+
+        fetch(form.action, {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            credentials: 'same-origin',
+            body: formData
+        })
+            .then(function (response) {
+                return response.json().catch(function () {
+                    return {};
+                }).then(function (json) {
+                    return { ok: response.ok, status: response.status, json: json };
+                });
+            })
+            .then(function (result) {
+                if (!result.ok || !(result.json && result.json.success)) {
+                    if (result.status === 422 && result.json && result.json.errors) {
+                        var firstField = Object.keys(result.json.errors)[0];
+                        var firstError = firstField && result.json.errors[firstField] && result.json.errors[firstField][0]
+                            ? result.json.errors[firstField][0]
+                            : 'Please check the form and try again.';
+                        showAlert(firstError, 'error');
+                        return;
+                    }
+
+                    showAlert((result.json && result.json.message) || 'We could not send your request right now. Please try again.', 'error');
+                    return;
+                }
+
+                showAlert(result.json.message || 'Resource link sent successfully.', 'success');
+                form.reset();
+            })
+            .catch(function () {
+                showAlert('Network issue. Please try again.', 'error');
+            })
+            .finally(function () {
+                setSubmitting(false);
+            });
+    });
+});
+</script>
+@endpush

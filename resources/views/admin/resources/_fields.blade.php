@@ -22,7 +22,7 @@
 
     <div class="col-lg-4">
         <label class="form-label fw-semibold">Slug</label>
-        <input id="{{ $formKey }}Slug" type="text" name="slug" class="form-control" value="{{ $slugValue }}" placeholder="auto-generated-from-title">
+        <input id="{{ $formKey }}Slug" type="text" name="slug" class="form-control" value="{{ $slugValue }}" placeholder="http://127.0.0.1:8000/resources/field-data-to-copilot-checklist">
         <small class="text-muted">Lowercase letters, numbers, and hyphens only.</small>
         @error('slug')
             <div class="invalid-feedback d-block">{{ $message }}</div>
@@ -81,7 +81,7 @@
         <input type="file" name="file" class="form-control" {{ $resource->exists ? '' : 'required' }}>
         <small class="text-muted">Allowed: PDF, image, and video files.</small>
         @if($resource->file_url)
-            <div class="mt-2"><a href="{{ $resource->file_url }}" target="_blank" rel="noopener">Current file</a></div>
+            <div class="mt-2"><a href="{{ route('admin.resources.download', ['resource' => $resource, 'mode' => 'inline']) }}" target="_blank" rel="noopener">Current file</a></div>
         @endif
         @error('file')
             <div class="invalid-feedback d-block">{{ $message }}</div>
