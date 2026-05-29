@@ -17,6 +17,7 @@ use App\Services\PdfService;
 use App\Services\NotificationService;
 use App\Services\InvoiceService;
 use App\Services\CustomerPricingService;
+use App\Services\CarrierTrackingService;
 use App\Services\AzureGraphMailService;
 use App\Support\FrontendUrl;
 use Illuminate\Http\Request;
@@ -32,6 +33,7 @@ class QuoteOrderInvoiceController extends Controller
     private NotificationService $notificationService;
     private InvoiceService $invoiceService;
     private CustomerPricingService $customerPricingService;
+    private CarrierTrackingService $carrierTrackingService;
     private array $productNameCache = [];
 
     public function __construct(
@@ -39,13 +41,15 @@ class QuoteOrderInvoiceController extends Controller
         PdfService $pdfService,
         NotificationService $notificationService,
         InvoiceService $invoiceService,
-        CustomerPricingService $customerPricingService
+        CustomerPricingService $customerPricingService,
+        CarrierTrackingService $carrierTrackingService
     ) {
         $this->tdsynnexService = $tdsynnexService;
         $this->pdfService = $pdfService;
         $this->notificationService = $notificationService;
         $this->invoiceService = $invoiceService;
         $this->customerPricingService = $customerPricingService;
+        $this->carrierTrackingService = $carrierTrackingService;
     }
 
     /**
@@ -1105,8 +1109,13 @@ class QuoteOrderInvoiceController extends Controller
         $latestShipment = $order->shipments->first();
         $itemPreview = $this->buildOrderItemPreview($order);
         $trackingEligible = $this->canCheckShippingStatus($order);
+        $trackingInfo = is_array($order->tracking_info) ? $order->tracking_info : [];
 
         $status = $latestShipment?->status ?? $order->status ?? 'pending';
+        $carrierLiveStatus = strtolower((string) ($trackingInfo['carrier_live_status_normalized'] ?? ''));
+        if (in_array($carrierLiveStatus, ['shipped', 'in_transit', 'delivered'], true)) {
+            $status = $carrierLiveStatus;
+        }
         if ($status === 'confirmed') {
             $status = 'processing';
         }
@@ -1135,6 +1144,8 @@ class QuoteOrderInvoiceController extends Controller
             'carrier' => $carrier,
             'tracking_number' => $trackingNumber,
             'tracking_url' => $trackingUrl,
+            'carrier_live_status' => $trackingInfo['carrier_live_status'] ?? null,
+            'carrier_live_checked_at' => $trackingInfo['carrier_live_checked_at'] ?? null,
             'ordered_at' => optional($orderedAt)?->toIso8601String(),
             'shipped_at' => optional($shippedAt)?->toIso8601String(),
             'estimated_delivery_at' => optional($etaAt)?->toIso8601String(),
@@ -1212,6 +1223,37 @@ class QuoteOrderInvoiceController extends Controller
                 'estimated_delivery_date' => $estimatedDelivery ? (string) $estimatedDelivery : ($oldTracking['estimated_delivery_date'] ?? null),
             ], fn ($value) => $value !== null && $value !== '');
 
+            $candidateTrackingNumber = $this->normalizeTrackingNumber($newTracking['tracking_number'] ?? null);
+            $carrier = $this->guessCarrierFromTrackingNumber($candidateTrackingNumber);
+            $candidateTrackingUrl = $oldTracking['carrier_tracking_url']
+                ?? $oldTracking['tracking_url']
+                ?? $this->fallbackTrackingUrl($carrier, (string) ($candidateTrackingNumber ?? ''));
+
+            $carrierLive = $this->carrierTrackingService->resolveLiveStatus(
+                $carrier,
+                $candidateTrackingNumber,
+                $candidateTrackingUrl
+            );
+
+            if (is_array($carrierLive)) {
+                $carrierLiveStatus = strtolower((string) ($carrierLive['status'] ?? ''));
+
+                $newTracking = array_merge($newTracking, array_filter([
+                    'carrier_live_status' => (string) ($carrierLive['raw_status'] ?? $carrierLiveStatus),
+                    'carrier_live_status_normalized' => $carrierLiveStatus !== '' ? $carrierLiveStatus : null,
+                    'carrier_live_checked_at' => (string) ($carrierLive['checked_at'] ?? now()->toIso8601String()),
+                    'carrier_tracking_url' => (string) ($carrierLive['tracking_url'] ?? $candidateTrackingUrl),
+                ], fn ($value) => $value !== null && $value !== ''));
+
+                if ($carrierLiveStatus === 'delivered') {
+                    $newStatus = 'delivered';
+                } elseif ($carrierLiveStatus === 'in_transit' && in_array($newStatus, ['accepted', 'backordered', 'invoiced'], true)) {
+                    $newStatus = 'in_transit';
+                } elseif ($carrierLiveStatus === 'shipped' && in_array($newStatus, ['accepted', 'backordered', 'invoiced'], true)) {
+                    $newStatus = 'shipped';
+                }
+            }
+
             $updates = [
                 'status' => $newStatus,
                 'raw_data' => $response,
@@ -1236,6 +1278,10 @@ class QuoteOrderInvoiceController extends Controller
             $orderNumberChanged = $tdOrderNumberIsNew;
 
             if ($statusChanged || $trackingChanged || $shippingChanged || $orderNumberChanged) {
+                if ($newStatus === 'delivered' && $order->delivered_at === null) {
+                    $updates['delivered_at'] = now();
+                }
+
                 $order->update($updates);
                 $order->refresh();
 
@@ -1326,6 +1372,12 @@ class QuoteOrderInvoiceController extends Controller
     {
         if (is_string($trackingValue)) {
             $trimmed = trim($trackingValue);
+            if (preg_match('#^https?://#i', $trimmed) === 1) {
+                $fromUrl = $this->extractTrackingNumberFromUrl($trimmed);
+                if ($fromUrl !== null) {
+                    return $fromUrl;
+                }
+            }
             return $this->isLikelyTrackingNumber($trimmed) ? $trimmed : null;
         }
 
@@ -1360,6 +1412,25 @@ class QuoteOrderInvoiceController extends Controller
                 if ($normalized !== null) {
                     return $normalized;
                 }
+            }
+        }
+
+        return null;
+    }
+
+    private function extractTrackingNumberFromUrl(string $url): ?string
+    {
+        $query = [];
+        parse_str((string) parse_url($url, PHP_URL_QUERY), $query);
+
+        foreach (['trknbr', 'tracknumbers', 'trackingnumber', 'tracknum', 'tracking_number', 'tLabels', 'AWB'] as $key) {
+            if (!array_key_exists($key, $query)) {
+                continue;
+            }
+
+            $value = trim((string) $query[$key]);
+            if ($this->isLikelyTrackingNumber($value)) {
+                return $value;
             }
         }
 

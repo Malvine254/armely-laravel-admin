@@ -608,6 +608,7 @@ export default {
     const liveShipments = ref([]);
     const liveShippingLoading = ref(false);
     const liveShippingError = ref(null);
+    const liveRefreshIntervalMs = ref(60000);
     let liveRefreshTimer = null;
 
     const filteredOrders = computed(() => {
@@ -825,6 +826,7 @@ export default {
         confirmed:   'bg-blue-100 text-blue-800',
         backordered: 'bg-orange-100 text-orange-800',
         shipped:     'bg-indigo-100 text-indigo-800',
+        in_transit:  'bg-indigo-100 text-indigo-800',
         invoiced:    'bg-green-100 text-green-800',
         // legacy
         delivered:   'bg-green-100 text-green-800',
@@ -1045,6 +1047,17 @@ export default {
         const response = await axios.get('/api/v1/orders/shipping/live');
         if (response.data?.success) {
           liveShipments.value = response.data.data || [];
+
+          const suggestedSeconds = Number(response.data?.meta?.refresh_after_seconds || 60);
+          const clampedSeconds = Number.isFinite(suggestedSeconds)
+            ? Math.min(300, Math.max(10, suggestedSeconds))
+            : 60;
+          const nextIntervalMs = clampedSeconds * 1000;
+
+          if (nextIntervalMs !== liveRefreshIntervalMs.value) {
+            liveRefreshIntervalMs.value = nextIntervalMs;
+            startLiveShippingRefresh();
+          }
         } else {
           liveShippingError.value = response.data?.message || 'Failed to load live shipping data';
         }
@@ -1062,7 +1075,7 @@ export default {
 
       liveRefreshTimer = setInterval(() => {
         fetchLiveShipping();
-      }, 60000); // 60 seconds
+      }, liveRefreshIntervalMs.value);
     };
 
     const stopLiveShippingRefresh = () => {
