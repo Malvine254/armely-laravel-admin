@@ -222,6 +222,70 @@
     min-height: 520px;
     background: #fff;
 }
+.resource-pdf-teaser {
+    min-height: 520px;
+    padding: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(180deg, #fbfdff 0%, #f4f8ff 100%);
+}
+.resource-pdf-teaser-card {
+    width: 100%;
+    max-width: 680px;
+    padding: 26px;
+    border-radius: 18px;
+    border: 1px solid #d7e4fb;
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 18px 40px rgba(18, 54, 108, 0.08);
+}
+.resource-pdf-teaser-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: #eaf2ff;
+    color: #1d4b8f;
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.resource-pdf-teaser-title {
+    margin: 14px 0 10px;
+    color: #12315f;
+    font-size: 1.28rem;
+    font-weight: 900;
+}
+.resource-pdf-teaser-summary {
+    margin: 0;
+    color: #3f5277;
+    font-size: 0.92rem;
+    line-height: 1.75;
+}
+.resource-pdf-teaser-sample {
+    margin-top: 18px;
+    padding: 18px;
+    border-radius: 14px;
+    border: 1px dashed #c8d9f6;
+    background: #f8fbff;
+}
+.resource-pdf-teaser-sample-line {
+    height: 10px;
+    border-radius: 999px;
+    margin-bottom: 10px;
+    background: linear-gradient(90deg, #cddbf5 0%, #e7eefb 50%, #cddbf5 100%);
+    filter: blur(1.5px);
+}
+.resource-pdf-teaser-sample-line:last-child {
+    margin-bottom: 0;
+}
+.resource-pdf-teaser-note {
+    margin: 18px 0 0;
+    color: #4a6188;
+    font-size: 0.92rem;
+}
 .resource-embed-body iframe,
 .resource-embed-body img,
 .resource-embed-body video {
@@ -414,6 +478,7 @@
                 'type' => $resource->resource_type,
             ]));
             $resourceInlineUrl = route('resources.download', ['slug' => $resource->slug, 'mode' => 'inline']);
+            $requiresRequestForFullContent = $isPdfFile || $type === 'pdf';
         @endphp
 
         <div class="resource-split">
@@ -452,18 +517,43 @@
 
                 <div class="resource-actions">
                     @if($resource->file_url)
-                        <a href="{{ route('resources.download', $resource->slug) }}" class="btn resource-btn-primary">
-                            {{ $resource->resource_type === 'video' ? 'Open Full Video' : 'Download / Open File' }}
-                        </a>
+                        @if($requiresRequestForFullContent)
+                            <a href="#resource-request-form" class="btn resource-btn-primary">
+                                Request Full Contents
+                            </a>
+                        @else
+                            <a href="{{ route('resources.download', $resource->slug) }}" class="btn resource-btn-primary">
+                                {{ $resource->resource_type === 'video' ? 'Open Full Video' : 'Download / Open File' }}
+                            </a>
+                        @endif
                     @endif
                     <a href="{{ route('resources.index') }}" class="btn resource-btn-secondary">Back to repository</a>
                 </div>
 
                 @if($resource->file_url)
                     <div class="resource-embed-wrap">
-                        <div class="resource-embed-head">Embedded Content Preview</div>
+                        <div class="resource-embed-head">{{ $requiresRequestForFullContent ? 'Preview Locked' : 'Embedded Content Preview' }}</div>
                         <div class="resource-embed-body">
-                            @if($resource->isVideo())
+                            @if($requiresRequestForFullContent)
+                                <div class="resource-pdf-teaser">
+                                    <div class="resource-pdf-teaser-card">
+                                        <span class="resource-pdf-teaser-badge"><i class="fa fa-lock" aria-hidden="true"></i> Full PDF Required</span>
+                                        <h3 class="resource-pdf-teaser-title">{{ $resource->title }}</h3>
+                                        <p class="resource-pdf-teaser-summary">
+                                            {{ \\Illuminate\\Support\\Str::limit(trim(strip_tags((string) ($resource->description ?: 'This PDF is available on request.'))), 220) }}
+                                        </p>
+                                        <div class="resource-pdf-teaser-sample" aria-hidden="true">
+                                            <div class="resource-pdf-teaser-sample-line" style="width: 94%;"></div>
+                                            <div class="resource-pdf-teaser-sample-line" style="width: 88%;"></div>
+                                            <div class="resource-pdf-teaser-sample-line" style="width: 73%;"></div>
+                                            <div class="resource-pdf-teaser-sample-line" style="width: 85%;"></div>
+                                            <div class="resource-pdf-teaser-sample-line" style="width: 60%;"></div>
+                                        </div>
+                                        <p class="resource-pdf-teaser-note">Request the full contents to receive the complete PDF by email.</p>
+                                        <a href="#resource-request-form" class="btn resource-btn-primary mt-3">Request Full Contents</a>
+                                    </div>
+                                </div>
+                            @elseif($resource->isVideo())
                                 <video controls preload="metadata" playsinline>
                                     <source src="{{ $resourceInlineUrl }}">
                                     Your browser does not support the video element.
