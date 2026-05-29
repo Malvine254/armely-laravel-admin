@@ -49,7 +49,11 @@ class UpdateOrderStatusJob implements ShouldQueue
             $shippingStatus = $this->deepFindFirstByKeys($tdStatus, ['shippingStatus', 'shipping_status', 'shipmentStatus', 'ShipmentStatus', 'deliveryStatus', 'DeliveryStatus', 'status', 'Status']);
             $freightAmount = $this->deepFindFirstByKeys($tdStatus, ['freight', 'Freight', 'freightAmount', 'poFreight', 'shippingAmount', 'shipping_amount', 'totalFreight', 'TotalFreight']);
             $estimatedDelivery = $this->deepFindFirstByKeys($tdStatus, ['estimatedDeliveryDate', 'EstimatedDeliveryDate', 'estimatedShipDate', 'EstimatedShipDate', 'estimatedArrivalDate', 'EstimatedArrivalDate']);
-            $normalized = self::normalizeTdStatus($rawStatus) ?: $this->order->status;
+            $deliverySignal = strtolower((string) ($shippingStatus ?? ''));
+            $statusToNormalize = str_contains($deliverySignal, 'deliver')
+                ? 'delivered'
+                : $rawStatus;
+            $normalized = self::normalizeTdStatus((string) $statusToNormalize) ?: $this->order->status;
             $oldTracking = is_array($this->order->tracking_info) ? $this->order->tracking_info : [];
             $trackingInfo = array_merge($oldTracking, array_filter([
                 'tracking_number' => $trackingNumber ? (string) $trackingNumber : null,
