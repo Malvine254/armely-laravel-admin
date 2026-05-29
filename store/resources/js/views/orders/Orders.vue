@@ -27,8 +27,8 @@
         </div>
         <div class="group relative overflow-hidden rounded-2xl border p-5 sm:p-6 transition duration-300 hover:-translate-y-0.5" style="background: linear-gradient(160deg, #ffffff 0%, #f6fff9 62%, #edfff3 100%); border-color: #cce9d6; box-shadow: 0 12px 24px rgba(22,163,74,0.1);">
           <div class="pointer-events-none absolute -right-6 -top-6 h-16 w-16 rounded-full" style="background: radial-gradient(circle, rgba(34,197,94,0.22) 0%, rgba(34,197,94,0) 70%);"></div>
-          <p class="text-gray-600 text-xs font-semibold uppercase tracking-wide">Delivered</p>
-          <p class="text-3xl font-bold text-green-600 mt-2">{{ getOrdersCountByStatus('delivered') }}</p>
+          <p class="text-gray-600 text-xs font-semibold uppercase tracking-wide">Completed</p>
+          <p class="text-3xl font-bold text-green-600 mt-2">{{ getOrdersCountByStatus('completed') }}</p>
           <div class="mt-4 h-1.5 w-16 rounded-full" style="background: linear-gradient(90deg, #16a34a, #86efac);"></div>
         </div>
         <div class="group relative overflow-hidden rounded-2xl border p-5 sm:p-6 transition duration-300 hover:-translate-y-0.5" style="background: linear-gradient(160deg, #ffffff 0%, #fff6f6 62%, #ffeded 100%); border-color: #f4cccc; box-shadow: 0 12px 24px rgba(220,38,38,0.1);">
@@ -205,7 +205,10 @@
               <option value="accepted">Accepted</option>
               <option value="backordered">Backordered</option>
               <option value="shipped">Shipped</option>
+              <option value="in_transit">In Transit</option>
               <option value="invoiced">Invoiced / Complete</option>
+              <option value="delivered">Delivered</option>
+              <option value="completed">Completed</option>
               <option value="cancelled">Cancelled</option>
             </select>
           </div>
@@ -438,8 +441,13 @@
     </div>
 
     <!-- Order Detail Modal -->
-    <div v-if="selectedOrder" class="fixed inset-0 z-[9999] flex items-center justify-center bg-[rgba(227,236,247,0.55)] backdrop-blur-[2px] p-4" @click="selectedOrder = null">
-      <div class="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-3xl border shadow-2xl" style="border-color:#d9e6f7; background: linear-gradient(160deg, rgba(255,255,255,0.98) 0%, rgba(247,251,255,0.96) 52%, rgba(238,245,255,0.98) 100%);" @click.stop>
+    <div
+      v-if="selectedOrder"
+      class="fixed inset-0 z-[9999] flex items-center justify-center p-4 backdrop-blur-[1.5px]"
+      style="background-color: rgba(232, 240, 250, 0.48);"
+      @click="selectedOrder = null"
+    >
+      <div class="max-h-[94vh] w-full max-w-5xl overflow-y-auto rounded-3xl border shadow-2xl" style="border-color:#d9e6f7; background: linear-gradient(160deg, rgba(255,255,255,0.98) 0%, rgba(247,251,255,0.96) 52%, rgba(238,245,255,0.98) 100%);" @click.stop>
         <!-- Modal Header -->
         <div class="sticky top-0 z-10 rounded-t-3xl border-b px-6 py-5 backdrop-blur-sm" style="border-color:#d9e6f7; background: linear-gradient(95deg, rgba(47,85,151,0.94) 0%, rgba(74,121,198,0.9) 72%);">
           <div>
@@ -661,7 +669,10 @@ export default {
     });
 
     const activeShipmentsCount = computed(() => {
-      return liveShipments.value.filter((shipment) => shipment.status !== 'delivered').length;
+      return liveShipments.value.filter((shipment) => {
+        const status = String(shipment?.status || '').toLowerCase();
+        return !['delivered', 'completed', 'invoiced', 'complete'].includes(status);
+      }).length;
     });
 
     const fetchOrders = async () => {
@@ -714,7 +725,7 @@ export default {
 
     const canMarkDelivered = (order) => {
       if (!order) return false;
-      const status = String(order.status || '').toLowerCase();
+      const status = String(resolveJourneyStatus(order) || '').toLowerCase();
       return ['shipped', 'invoiced', 'in_transit'].includes(status);
     };
 
@@ -926,7 +937,20 @@ export default {
     };
 
     const getOrdersCountByStatus = (status) => {
-      return orders.value.filter(order => order.status === status).length;
+      const wanted = String(status || '').toLowerCase();
+      return orders.value.filter((order) => {
+        const journey = String(resolveJourneyStatus(order) || '').toLowerCase();
+
+        if (wanted === 'processing') {
+          return ['pending', 'accepted', 'backordered', 'shipped', 'in_transit'].includes(journey);
+        }
+
+        if (wanted === 'completed') {
+          return ['invoiced', 'delivered'].includes(journey);
+        }
+
+        return journey === wanted;
+      }).length;
     };
 
     const getStatusProgress = (status) => {
@@ -948,7 +972,7 @@ export default {
       { key: 'backordered', label: 'Backordered',          desc: 'Item(s) awaiting stock availability'        },
       { key: 'shipped',     label: 'Shipped',              desc: 'Your order is on the way'                   },
       { key: 'in_transit',  label: 'In Transit',           desc: 'Package is moving through the carrier network' },
-      { key: 'invoiced',    label: 'Invoiced',             desc: 'Order invoiced and finalized by supplier'    },
+      { key: 'invoiced',    label: 'Invoiced / Complete',  desc: 'Order fulfilled and invoice issued'           },
       { key: 'delivered',   label: 'Delivered',            desc: 'Order has been delivered'                   },
     ];
     // Old local statuses mapped to the canonical step keys for display
