@@ -7,6 +7,7 @@ use App\Models\Quote;
 use App\Models\Order;
 use App\Models\Invoice;
 use App\Models\User;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 class NotificationService
@@ -158,6 +159,20 @@ class NotificationService
     {
         try {
             if (!$this->emailNotificationsEnabled('notifications.email.new_orders', true)) {
+                return;
+            }
+
+            $tracking = is_array($order->tracking_info) ? $order->tracking_info : [];
+            $fingerprint = sha1(json_encode([
+                'status' => strtolower((string) ($order->status ?? '')),
+                'tracking_number' => strtolower(trim((string) ($tracking['tracking_number'] ?? ''))),
+                'shipping_status' => strtolower(trim((string) ($tracking['shipping_status'] ?? ''))),
+                'carrier_live_status_normalized' => strtolower(trim((string) ($tracking['carrier_live_status_normalized'] ?? ''))),
+            ]));
+            $cacheKey = 'notify:order-shipped:' . (string) $order->id . ':' . $fingerprint;
+
+            // Idempotency guard: don't resend the same shipping event repeatedly.
+            if (!Cache::add($cacheKey, 1, now()->addHours(24))) {
                 return;
             }
 

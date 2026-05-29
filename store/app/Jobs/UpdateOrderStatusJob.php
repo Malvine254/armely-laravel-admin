@@ -84,13 +84,14 @@ class UpdateOrderStatusJob implements ShouldQueue
             $trackingChanged = json_encode($oldTracking) !== json_encode($trackingInfo);
             $shippingChanged = array_key_exists('shipping_amount', $updates)
                 && (float) $updates['shipping_amount'] !== (float) ($this->order->shipping_amount ?? 0);
+            $statusChanged = $oldStatus !== (string) $updates['status'];
 
             $this->order->update($updates);
             $this->order->refresh();
 
             // If status changed, send notification
-            if ($oldStatus !== $this->order->status || $trackingChanged || $shippingChanged) {
-                if ($this->order->status === 'shipped' || $trackingChanged || $shippingChanged) {
+            if ($statusChanged || $trackingChanged || $shippingChanged) {
+                if ($this->shouldSendShippingNotification($oldStatus, (string) $this->order->status, $oldTracking, $trackingInfo)) {
                     $notificationService->sendOrderShippedNotification($this->order);
                 } elseif ($this->order->status === 'invoiced') {
                     // Mark invoice as paid when TD marks the order as invoiced/complete
@@ -180,6 +181,34 @@ class UpdateOrderStatusJob implements ShouldQueue
             if (str_contains(strtolower($candidate), 'deliver')) {
                 return true;
             }
+        }
+
+        return false;
+    }
+
+    private function shouldSendShippingNotification(string $oldStatus, string $newStatus, array $oldTracking, array $newTracking): bool
+    {
+        $shippingMilestones = ['shipped', 'in_transit', 'delivered'];
+        if ($oldStatus !== $newStatus && in_array($newStatus, $shippingMilestones, true)) {
+            return true;
+        }
+
+        $oldTrackingNumber = strtolower(trim((string) ($oldTracking['tracking_number'] ?? '')));
+        $newTrackingNumber = strtolower(trim((string) ($newTracking['tracking_number'] ?? '')));
+        if ($oldTrackingNumber !== $newTrackingNumber && $newTrackingNumber !== '') {
+            return true;
+        }
+
+        $oldShippingStatus = strtolower(trim((string) ($oldTracking['shipping_status'] ?? '')));
+        $newShippingStatus = strtolower(trim((string) ($newTracking['shipping_status'] ?? '')));
+        if ($oldShippingStatus !== $newShippingStatus && $newShippingStatus !== '') {
+            return true;
+        }
+
+        $oldCarrierStatus = strtolower(trim((string) ($oldTracking['carrier_live_status_normalized'] ?? '')));
+        $newCarrierStatus = strtolower(trim((string) ($newTracking['carrier_live_status_normalized'] ?? '')));
+        if ($oldCarrierStatus !== $newCarrierStatus && in_array($newCarrierStatus, $shippingMilestones, true)) {
+            return true;
         }
 
         return false;
