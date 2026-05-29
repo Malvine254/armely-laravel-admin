@@ -1201,7 +1201,11 @@ class QuoteOrderInvoiceController extends Controller
                 && trim((string) $tdOrderNumber) !== $currentOrderNumber
                 && (str_starts_with($currentOrderNumber, 'ORD-') || $currentOrderNumber === $quoteId);
 
-            $newStatus = $this->normalizeTdOrderStatus((string) ($rawStatus ?? $shippingStatus ?? '')) ?: $oldStatus;
+            $deliverySignal = strtolower((string) ($shippingStatus ?? ''));
+            $statusToNormalize = str_contains($deliverySignal, 'deliver')
+                ? 'delivered'
+                : (string) ($rawStatus ?? $shippingStatus ?? '');
+            $newStatus = $this->normalizeTdOrderStatus($statusToNormalize) ?: $oldStatus;
             $newTracking = array_filter([
                 'tracking_number' => $trackingNumber ? (string) $trackingNumber : ($oldTracking['tracking_number'] ?? null),
                 'shipping_status' => $shippingStatus ? (string) $shippingStatus : ($oldTracking['shipping_status'] ?? $newStatus),
