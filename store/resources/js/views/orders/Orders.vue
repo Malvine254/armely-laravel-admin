@@ -995,13 +995,37 @@ export default {
       return readTrackingSignal(order).includes('deliver');
     };
 
+    const findLiveShipmentForOrder = (order) => {
+      if (!order?.order_number) {
+        return null;
+      }
+
+      const orderNumber = String(order.order_number);
+      return liveShipments.value.find((shipment) => String(shipment?.order_number || '') === orderNumber) || null;
+    };
+
     const resolveJourneyStatus = (orderOrStatus) => {
       if (typeof orderOrStatus === 'string') {
         return resolveStatus(String(orderOrStatus || '').toLowerCase());
       }
 
       const order = orderOrStatus;
+      const liveShipment = findLiveShipmentForOrder(order);
       const base = resolveStatus(String(order?.status || '').toLowerCase());
+
+      if (liveShipment?.status) {
+        const liveStatus = resolveStatus(String(liveShipment.status || '').toLowerCase());
+        if (liveStatus === 'delivered') {
+          return 'delivered';
+        }
+        if (liveStatus === 'in_transit') {
+          return 'in_transit';
+        }
+        if (liveStatus === 'shipped' && ['pending', 'accepted', 'backordered', 'invoiced'].includes(base)) {
+          return 'shipped';
+        }
+      }
+
       if (hasDeliveredEvidence(order)) {
         return 'delivered';
       }
@@ -1035,6 +1059,15 @@ export default {
       const resolved = resolveJourneyStatus(order);
       if (resolved === 'cancelled') {
         return 0;
+      }
+
+      const liveShipment = findLiveShipmentForOrder(order);
+      if (liveShipment && Number.isFinite(Number(liveShipment.progress))) {
+        const liveProgress = Math.max(0, Math.min(100, Number(liveShipment.progress)));
+        if (resolved === 'delivered') {
+          return 100;
+        }
+        return Math.max(liveProgress, 20);
       }
 
       const idx = _stepOrder.indexOf(resolved);
@@ -1238,6 +1271,7 @@ export default {
       resolveStatus,
       resolveJourneyStatus,
       getJourneyProgress,
+      findLiveShipmentForOrder,
     };
   },
 };
