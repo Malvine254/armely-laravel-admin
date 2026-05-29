@@ -67,6 +67,11 @@ $actions = [
         'help'     => 'Send a test email via AzureMailService to verify mail is working on this server.',
         'commands' => [],
     ],
+    'test_resources_api' => [
+        'label' => 'Test Resources API',
+        'help' => 'Call the new /api/resources endpoints and show sample JSON request and response data for admin use.',
+        'commands' => [],
+    ],
     'full_rebuild' => [
         'label' => 'Full Production Rebuild',
         'help' => 'Clear caches, relink storage, run migrations, then rebuild caches.',
@@ -326,6 +331,74 @@ function getStorageStatus(): array
     ];
 }
 
+function runInternalJsonRequest(string $path, string $method = 'GET', array $payload = []): array
+{
+    $server = [
+        'HTTP_ACCEPT' => 'application/json',
+        'CONTENT_TYPE' => 'application/json',
+    ];
+
+    $request = \Illuminate\Http\Request::create(
+        $path,
+        strtoupper($method),
+        [],
+        [],
+        [],
+        $server,
+        empty($payload) ? null : json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)
+    );
+
+    $response = app()->handle($request);
+    $content = (string) $response->getContent();
+    $decoded = json_decode($content, true);
+
+    return [
+        'status_code' => $response->getStatusCode(),
+        'content' => $content,
+        'json' => is_array($decoded) ? $decoded : null,
+    ];
+}
+
+function buildResourcesApiSamplePayload(): array
+{
+    return [
+        'name' => 'Admin API Test',
+        'email' => 'admin.api.test@example.com',
+        'organization' => 'Armely Admin',
+        'job_title' => 'Platform Administrator',
+        'message' => 'Sample JSON payload from fix_storage admin test.',
+    ];
+}
+
+function runResourcesApiTest(string $slug): array
+{
+    $baseUrl = rtrim((string) config('app.url'), '/');
+    $slug = trim($slug) !== '' ? trim($slug) : 'modern-data-platform-brief';
+    $samplePayload = buildResourcesApiSamplePayload();
+
+    $listResponse = runInternalJsonRequest('/api/resources', 'GET');
+    $detailResponse = runInternalJsonRequest('/api/resources/' . rawurlencode($slug), 'GET');
+    $accessResponse = runInternalJsonRequest('/api/resources/' . rawurlencode($slug) . '/access-links', 'POST', $samplePayload);
+
+    return [
+        'command' => 'resources_api_test',
+        'status' => ($listResponse['status_code'] === 200 && $detailResponse['status_code'] === 200 && $accessResponse['status_code'] === 200) ? 'OK' : 'ERROR',
+        'output' => implode("\n\n", [
+            'BASE_URL=' . $baseUrl,
+            'LIST_ENDPOINT=' . $baseUrl . '/api/resources',
+            'DETAIL_ENDPOINT=' . $baseUrl . '/api/resources/' . $slug,
+            'ACCESS_LINKS_ENDPOINT=' . $baseUrl . '/api/resources/' . $slug . '/access-links',
+            'SAMPLE_REQUEST_JSON=' . json_encode($samplePayload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
+            'LIST_STATUS=' . $listResponse['status_code'],
+            'LIST_RESPONSE_JSON=' . json_encode($listResponse['json'] ?? ['raw' => $listResponse['content']], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
+            'DETAIL_STATUS=' . $detailResponse['status_code'],
+            'DETAIL_RESPONSE_JSON=' . json_encode($detailResponse['json'] ?? ['raw' => $detailResponse['content']], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
+            'ACCESS_LINKS_STATUS=' . $accessResponse['status_code'],
+            'ACCESS_LINKS_RESPONSE_JSON=' . json_encode($accessResponse['json'] ?? ['raw' => $accessResponse['content']], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
+        ]),
+    ];
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($selectedAction === 'status') {
         $build = getFrontendBuildStatus();
@@ -410,6 +483,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $results[] = ['command' => 'test_email', 'status' => 'ERROR', 'output' => $e->getMessage()];
             }
         }
+    } elseif ($selectedAction === 'test_resources_api') {
+        $slug = isset($_POST['resource_api_slug']) ? trim((string) $_POST['resource_api_slug']) : 'modern-data-platform-brief';
+        $results[] = runResourcesApiTest($slug);
     } elseif ($selectedAction === 'build_frontend') {
         $results[] = buildFrontendAssets();
 
@@ -489,18 +565,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               style="padding:7px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:14px;width:260px;">
           </label>
         </div>
+                <div id="resources-api-field" style="display:none;margin-top:10px;">
+                    <label style="font-size:14px;font-weight:600;">Resource slug to test:&nbsp;
+                        <input type="text" name="resource_api_slug" placeholder="modern-data-platform-brief"
+                            value="<?= htmlspecialchars((string) ($_POST['resource_api_slug'] ?? 'modern-data-platform-brief'), ENT_QUOTES, 'UTF-8') ?>"
+                            style="padding:7px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:14px;width:320px;">
+                    </label>
+                    <p style="margin:8px 0 0;font-size:13px;color:#475569;">This will test <code>/api/resources</code>, <code>/api/resources/{slug}</code>, and <code>/api/resources/{slug}/access-links</code> and print sample JSON for admin reference.</p>
+                </div>
         <p style="margin-top:12px;"><button class="btn" type="submit">Run Selected Action</button></p>
       </form>
       <script>
+                function syncActionFields(value) {
+                    document.getElementById('test-email-field').style.display = value === 'test_email' ? 'block' : 'none';
+                    document.getElementById('resources-api-field').style.display = value === 'test_resources_api' ? 'block' : 'none';
+                }
         document.querySelectorAll('input[name="action"]').forEach(function(r){
           r.addEventListener('change', function(){
-            document.getElementById('test-email-field').style.display = this.value === 'test_email' ? 'block' : 'none';
+                        syncActionFields(this.value);
           });
         });
         // Show on page load if pre-selected
         (function(){
           var sel = document.querySelector('input[name="action"]:checked');
-          if (sel && sel.value === 'test_email') document.getElementById('test-email-field').style.display = 'block';
+                    if (sel) syncActionFields(sel.value);
         })();
       </script>
     </div>

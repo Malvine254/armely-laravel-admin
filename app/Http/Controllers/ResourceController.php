@@ -19,6 +19,74 @@ use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 class ResourceController extends Controller
 {
+    public function apiIndex(Request $request): JsonResponse
+    {
+        if (!Schema::hasTable('resources')) {
+            return response()->json([
+                'success' => true,
+                'data' => [],
+                'meta' => ['total' => 0],
+            ]);
+        }
+
+        $resources = Resource::query()
+            ->published()
+            ->orderByDesc('is_featured')
+            ->orderBy('title')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $resources->map(fn (Resource $resource) => $this->resourceApiPayload($resource))->values(),
+            'meta' => ['total' => $resources->count()],
+        ]);
+    }
+
+    public function apiShow(Request $request, string $slug): JsonResponse
+    {
+        if (!Schema::hasTable('resources')) {
+            abort(404);
+        }
+
+        $resource = Resource::query()
+            ->published()
+            ->where('slug', $slug)
+            ->firstOrFail();
+
+        return response()->json([
+            'success' => true,
+            'data' => $this->resourceApiPayload($resource),
+        ]);
+    }
+
+    public function apiAccessLinks(Request $request, string $slug): JsonResponse
+    {
+        if (!Schema::hasTable('resources')) {
+            abort(404);
+        }
+
+        $resource = Resource::query()
+            ->published()
+            ->where('slug', $slug)
+            ->firstOrFail();
+
+        $customer = $this->validateResourceCustomerData($request);
+        $this->recordResourceLead($resource, $customer);
+        $links = $this->permanentResourceAccessLinks($resource, $customer);
+
+        return response()->json([
+            'success' => true,
+            'data' => array_merge(
+                $this->resourceApiPayload($resource, $customer),
+                [
+                    'customer' => $customer,
+                    'resource_url' => $links['resource_url'],
+                    'download_url' => $links['download_url'],
+                ]
+            ),
+        ]);
+    }
+
     public function index(Request $request)
     {
         if (!Schema::hasTable('resources')) {
@@ -200,17 +268,22 @@ class ResourceController extends Controller
             abort(404);
         }
 
-        // When a signed URL is used (e.g. emailed link), enforce expiration/signature.
-        if (($request->has('expires') || $request->has('signature')) && !$request->hasValidSignature()) {
-            abort(403, 'This download link is invalid or has expired. Please request a new one.');
-        }
-
         $resource = Resource::query()
             ->published()
             ->where('slug', $slug)
             ->firstOrFail();
 
-        $isSignedAccess = $request->has('expires') || $request->has('signature');
+        $hasLegacySignedAccess = $request->has('expires') || ($request->has('signature') && !$request->has('access_sig'));
+        if ($hasLegacySignedAccess && !$request->hasValidSignature()) {
+            abort(403, 'This download link is invalid or has expired. Please request a new one.');
+        }
+
+        $hasPermanentAccess = $this->hasPermanentResourceAccess($request, $resource);
+        if (($request->has('access') || $request->has('access_sig')) && !$hasPermanentAccess) {
+            abort(403, 'This resource access link is invalid. Please request a new link.');
+        }
+
+        $isSignedAccess = $hasLegacySignedAccess || $hasPermanentAccess;
         if (strtolower((string) ($resource->resource_type ?? '')) === 'pdf' && !$isSignedAccess) {
             return redirect()
                 ->route('resources.show', $resource->slug)
@@ -298,53 +371,15 @@ class ResourceController extends Controller
             ->where('slug', $slug)
             ->firstOrFail();
 
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:120'],
-            'email' => ['required', 'email:rfc', 'max:255'],
-            'organization' => ['nullable', 'string', 'max:255'],
-            'job_title' => ['nullable', 'string', 'max:255'],
-            'message' => ['nullable', 'string', 'max:2000'],
-        ], [
-            'name.required' => 'Please enter your name.',
-            'email.required' => 'Please enter your work email.',
-            'email.email' => 'Please enter a valid email address.',
-        ]);
-
-        $normalizedEmail = AzureMailService::normalizeEmail((string) ($data['email'] ?? ''));
-        if (!AzureMailService::isDeliverableEmail($normalizedEmail)) {
+        $data = $this->validateResourceCustomerData($request);
+        if (!AzureMailService::isDeliverableEmail((string) ($data['email'] ?? ''))) {
             return $this->requestErrorResponse($request, 'Please provide a valid business email that can receive the resource link.');
         }
 
-        $resourceUrl = route('resources.show', $resource->slug);
-        $downloadUrl = $resource->file_url ? $this->temporaryResourceDownloadUrl($resource) : $resourceUrl;
-
-        try {
-            if (Schema::hasTable('contacts')) {
-                DB::table('contacts')->insert([
-                    'name' => (string) $data['name'],
-                    'email' => $normalizedEmail,
-                    'organization' => (string) ($data['organization'] ?? ''),
-                    'phone' => '',
-                    'message' => trim(implode("\n", array_filter([
-                        'Resource request: ' . $resource->title,
-                        'Resource slug: ' . $resource->slug,
-                        'Resource URL: ' . $resourceUrl,
-                        'Download URL: ' . $downloadUrl,
-                        'Job title: ' . (string) ($data['job_title'] ?? ''),
-                        'Notes: ' . (string) ($data['message'] ?? ''),
-                        'Lead source: Resources detail page',
-                    ]))),
-                    'subject' => 'Resource Request: ' . $resource->title,
-                    'sent_date' => now()->format('Y-m-d H:i:s'),
-                ]);
-            }
-        } catch (\Throwable $e) {
-            Log::warning('Resource request contact insert failed', [
-                'resource_id' => $resource->id,
-                'email' => $normalizedEmail,
-                'error' => $e->getMessage(),
-            ]);
-        }
+        $links = $this->permanentResourceAccessLinks($resource, $data);
+        $resourceUrl = $links['resource_url'];
+        $downloadUrl = $links['download_url'];
+        $this->recordResourceLead($resource, $data);
 
         try {
             $mailer = app(AzureMailService::class);
@@ -357,21 +392,21 @@ class ResourceController extends Controller
                 'downloadUrl' => $downloadUrl,
             ])->render();
 
-            $sent = $mailer->sendEmail((string) $fromEmail, $normalizedEmail, $subject, $htmlBody);
+            $sent = $mailer->sendEmail((string) $fromEmail, (string) $data['email'], $subject, $htmlBody);
             if (!$sent) {
                 return $this->requestErrorResponse($request, 'We could not send the resource email right now. Please try again.');
             }
         } catch (\Throwable $e) {
             Log::error('Resource request email failed', [
                 'resource_id' => $resource->id,
-                'email' => $normalizedEmail,
+                'email' => (string) $data['email'],
                 'error' => $e->getMessage(),
             ]);
 
             return $this->requestErrorResponse($request, 'We could not send the resource email right now. Please try again.');
         }
 
-        $message = 'The resource link has been sent to ' . $normalizedEmail . '.';
+        $message = 'The resource link has been sent to ' . $data['email'] . '.';
 
         if ($request->expectsJson() || $request->ajax()) {
             return response()->json([
@@ -403,16 +438,157 @@ class ResourceController extends Controller
             ->withFragment('resource-request-form');
     }
 
-    private function temporaryResourceDownloadUrl(Resource $resource): string
+    private function validateResourceCustomerData(Request $request): array
     {
-        $fileUrl = trim((string) ($resource->file_url ?? ''));
-        if ($fileUrl === '') {
-            return route('resources.show', $resource->slug);
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:120'],
+            'email' => ['required', 'email:rfc', 'max:255'],
+            'organization' => ['nullable', 'string', 'max:255'],
+            'job_title' => ['nullable', 'string', 'max:255'],
+            'message' => ['nullable', 'string', 'max:2000'],
+        ], [
+            'name.required' => 'Please enter your name.',
+            'email.required' => 'Please enter your work email.',
+            'email.email' => 'Please enter a valid email address.',
+        ]);
+
+        $data['email'] = AzureMailService::normalizeEmail((string) ($data['email'] ?? ''));
+
+        return $data;
+    }
+
+    private function recordResourceLead(Resource $resource, array $data): void
+    {
+        try {
+            if (!Schema::hasTable('contacts')) {
+                return;
+            }
+
+            $links = $this->permanentResourceAccessLinks($resource, $data);
+
+            DB::table('contacts')->insert([
+                'name' => (string) $data['name'],
+                'email' => (string) $data['email'],
+                'organization' => (string) ($data['organization'] ?? ''),
+                'phone' => '',
+                'message' => trim(implode("\n", array_filter([
+                    'Resource request: ' . $resource->title,
+                    'Resource slug: ' . $resource->slug,
+                    'Resource URL: ' . $links['resource_url'],
+                    'Download URL: ' . $links['download_url'],
+                    'Job title: ' . (string) ($data['job_title'] ?? ''),
+                    'Notes: ' . (string) ($data['message'] ?? ''),
+                    'Lead source: Resources detail page',
+                ]))),
+                'subject' => 'Resource Request: ' . $resource->title,
+                'sent_date' => now()->format('Y-m-d H:i:s'),
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('Resource request contact insert failed', [
+                'resource_id' => $resource->id,
+                'email' => (string) ($data['email'] ?? ''),
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    private function resourceApiPayload(Resource $resource, ?array $customer = null): array
+    {
+        $publicResourceUrl = route('resources.show', $resource->slug);
+        $hasFile = trim((string) ($resource->file_url ?? '')) !== '';
+        $isPdf = strtolower((string) ($resource->resource_type ?? '')) === 'pdf';
+        $publicDownloadUrl = $hasFile && !$isPdf
+            ? route('resources.download', $resource->slug)
+            : null;
+
+        $resourceUrl = $publicResourceUrl;
+        $downloadUrl = $publicDownloadUrl;
+
+        if ($customer !== null) {
+            $links = $this->permanentResourceAccessLinks($resource, $customer);
+            $resourceUrl = $links['resource_url'];
+            $downloadUrl = $links['download_url'];
         }
 
-        return URL::temporarySignedRoute('resources.download', now()->addHour(), [
+        return [
+            'id' => $resource->id,
+            'title' => $resource->title,
             'slug' => $resource->slug,
-        ]);
+            'description' => $resource->description,
+            'category' => $resource->category,
+            'resource_type' => $resource->resource_type,
+            'is_featured' => (bool) $resource->is_featured,
+            'thumbnail_url' => $resource->thumbnail_url,
+            'resource_url' => $resourceUrl,
+            'download_url' => $downloadUrl,
+            'public_resource_url' => $publicResourceUrl,
+            'public_download_url' => $publicDownloadUrl,
+            'access_link_endpoint' => route('api.resources.access-links', $resource->slug),
+            'requires_customer_access' => $isPdf,
+            'updated_at' => optional($resource->updated_at)?->toIso8601String(),
+        ];
+    }
+
+    private function permanentResourceAccessLinks(Resource $resource, array $customer): array
+    {
+        $payload = $this->encodePermanentAccessPayload($resource, $customer);
+        $params = [
+            'access' => $payload['access'],
+            'access_sig' => $payload['access_sig'],
+        ];
+
+        return [
+            'resource_url' => route('resources.show', array_merge(['slug' => $resource->slug], $params)),
+            'download_url' => trim((string) ($resource->file_url ?? '')) !== ''
+                ? route('resources.download', array_merge(['slug' => $resource->slug], $params))
+                : route('resources.show', array_merge(['slug' => $resource->slug], $params)),
+        ];
+    }
+
+    private function encodePermanentAccessPayload(Resource $resource, array $customer): array
+    {
+        $payload = [
+            'slug' => $resource->slug,
+            'name' => trim((string) ($customer['name'] ?? '')),
+            'email' => AzureMailService::normalizeEmail((string) ($customer['email'] ?? '')),
+            'organization' => trim((string) ($customer['organization'] ?? '')),
+            'job_title' => trim((string) ($customer['job_title'] ?? '')),
+        ];
+
+        $json = json_encode($payload, JSON_UNESCAPED_SLASHES);
+        $encoded = rtrim(strtr(base64_encode((string) $json), '+/', '-_'), '=');
+
+        return [
+            'access' => $encoded,
+            'access_sig' => hash_hmac('sha256', $encoded, (string) config('app.key', 'resource-access')),
+        ];
+    }
+
+    private function hasPermanentResourceAccess(Request $request, Resource $resource): bool
+    {
+        $access = trim((string) $request->query('access', ''));
+        $accessSig = trim((string) $request->query('access_sig', ''));
+
+        if ($access === '' || $accessSig === '') {
+            return false;
+        }
+
+        $expectedSig = hash_hmac('sha256', $access, (string) config('app.key', 'resource-access'));
+        if (!hash_equals($expectedSig, $accessSig)) {
+            return false;
+        }
+
+        $decoded = base64_decode(strtr($access, '-_', '+/'), true);
+        if ($decoded === false) {
+            return false;
+        }
+
+        $payload = json_decode($decoded, true);
+        if (!is_array($payload)) {
+            return false;
+        }
+
+        return trim((string) ($payload['slug'] ?? '')) === (string) $resource->slug;
     }
 
     private function resolveLocalFilePathFromUrl(string $url): ?string
