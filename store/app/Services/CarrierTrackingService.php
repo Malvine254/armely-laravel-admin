@@ -72,13 +72,9 @@ class CarrierTrackingService
     {
         $trackingUrl = trim((string) ($trackingUrl ?? ''));
         if ($trackingUrl !== '') {
-            if (str_contains($trackingUrl, 'tracking.fedex.com/track') || str_contains($trackingUrl, 'fedex.com/fedextrack')) {
-                $number = $this->extractTrackingNumberFromUrl($trackingUrl) ?? $trackingNumber;
-                if ($number !== null) {
-                    return 'https://www.fedex.com/wtrk/track/?trknbr=' . rawurlencode($number);
-                }
-            }
-
+            // Keep the original carrier URL when available. Some carriers include
+            // additional query context (for example FedEx trkqual) that can improve
+            // status page resolution and should not be stripped.
             return $trackingUrl;
         }
 

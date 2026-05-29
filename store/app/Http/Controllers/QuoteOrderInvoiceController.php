@@ -1112,6 +1112,9 @@ class QuoteOrderInvoiceController extends Controller
         $trackingInfo = is_array($order->tracking_info) ? $order->tracking_info : [];
 
         $status = $latestShipment?->status ?? $order->status ?? 'pending';
+        if ((string) $order->status === 'delivered') {
+            $status = 'delivered';
+        }
         $carrierLiveStatus = strtolower((string) ($trackingInfo['carrier_live_status_normalized'] ?? ''));
         if (in_array($carrierLiveStatus, ['shipped', 'in_transit', 'delivered'], true)) {
             $status = $carrierLiveStatus;
@@ -1134,7 +1137,11 @@ class QuoteOrderInvoiceController extends Controller
         $orderedAt = $order->ordered_at ?? $order->created_at;
         $shippedAt = $latestShipment?->shipped_at ?? $order->shipped_at;
         $etaAt = $latestShipment?->expected_delivery_at ?? $order->delivered_at;
-        $deliveredAt = $latestShipment?->delivered_at ?? ($status === 'delivered' ? $order->delivered_at : null);
+        $deliveredAt = $latestShipment?->delivered_at ?? $order->delivered_at;
+
+        if ($deliveredAt !== null) {
+            $status = 'delivered';
+        }
 
         return [
             'order_number' => $order->order_number,
