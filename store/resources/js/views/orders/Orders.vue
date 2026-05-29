@@ -333,31 +333,33 @@
                     <template v-for="(step, idx) in statusSteps" :key="step.key">
                       <!-- connector line -->
                       <div v-if="idx > 0" class="h-px w-5 flex-shrink-0 mt-3.5 transition-colors duration-300"
-                        :class="['completed','current'].includes(getStepState(order.status, step.key)) ? 'bg-[#2F5597]' : 'bg-gray-200'"
+                        :class="['completed','current'].includes(getStepState(order, step.key)) ? 'bg-[#2F5597]' : 'bg-gray-200'"
                       ></div>
                       <!-- step node + label -->
                       <div class="flex flex-col items-center" style="min-width:52px;">
                         <div class="w-7 h-7 rounded-full flex items-center justify-center transition-all duration-300 shadow-sm"
                           :class="{
-                            'bg-[#2F5597] text-white':                               getStepState(order.status, step.key) === 'completed',
-                            'bg-[#2F5597] text-white ring-2 ring-blue-200 ring-offset-1': getStepState(order.status, step.key) === 'current',
-                            'bg-gray-100 text-gray-400':                             getStepState(order.status, step.key) === 'upcoming',
-                            'bg-red-100 text-red-500':                               getStepState(order.status, step.key) === 'cancelled',
-                            'bg-gray-50  text-gray-300':                             getStepState(order.status, step.key) === 'disabled',
+                            'bg-[#2F5597] text-white':                               getStepState(order, step.key) === 'completed',
+                            'bg-[#2F5597] text-white ring-2 ring-blue-200 ring-offset-1': getStepState(order, step.key) === 'current',
+                            'bg-gray-100 text-gray-400':                             getStepState(order, step.key) === 'upcoming',
+                            'bg-red-100 text-red-500':                               getStepState(order, step.key) === 'cancelled',
+                            'bg-gray-50  text-gray-300':                             getStepState(order, step.key) === 'disabled',
                           }"
                         >
                           <svg v-if="step.key === 'pending'" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
                           <svg v-else-if="step.key === 'accepted'" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                           <svg v-else-if="step.key === 'backordered'" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                           <svg v-else-if="step.key === 'shipped'" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"/></svg>
-                          <svg v-else-if="step.key === 'invoiced'" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                          <svg v-else-if="step.key === 'in_transit'" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7h8m-8 4h8m-8 4h5M5 4h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5a1 1 0 011-1z"/></svg>
+                          <svg v-else-if="step.key === 'invoiced'" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                          <svg v-else-if="step.key === 'delivered'" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                         </div>
                         <span class="mt-1 text-center leading-tight"
                           :class="{
-                            'text-[#2F5597] font-semibold': getStepState(order.status, step.key) === 'current',
-                            'text-gray-700 font-medium':    getStepState(order.status, step.key) === 'completed',
-                            'text-gray-400':                ['upcoming','disabled'].includes(getStepState(order.status, step.key)),
-                            'text-red-500 font-semibold':   getStepState(order.status, step.key) === 'cancelled',
+                            'text-[#2F5597] font-semibold': getStepState(order, step.key) === 'current',
+                            'text-gray-700 font-medium':    getStepState(order, step.key) === 'completed',
+                            'text-gray-400':                ['upcoming','disabled'].includes(getStepState(order, step.key)),
+                            'text-red-500 font-semibold':   getStepState(order, step.key) === 'cancelled',
                           }"
                           style="font-size:9px; max-width:52px; word-break:break-word;"
                         >{{ step.label }}</span>
@@ -436,19 +438,25 @@
     </div>
 
     <!-- Order Detail Modal -->
-    <div v-if="selectedOrder" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[9999]" @click="selectedOrder = null">
-      <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" @click.stop>
+    <div v-if="selectedOrder" class="fixed inset-0 z-[9999] flex items-center justify-center bg-[rgba(227,236,247,0.55)] backdrop-blur-[2px] p-4" @click="selectedOrder = null">
+      <div class="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-3xl border shadow-2xl" style="border-color:#d9e6f7; background: linear-gradient(160deg, rgba(255,255,255,0.98) 0%, rgba(247,251,255,0.96) 52%, rgba(238,245,255,0.98) 100%);" @click.stop>
         <!-- Modal Header -->
-        <div class="sticky top-0 bg-gradient-to-r from-gray-900 to-gray-800 text-white px-6 py-6 flex items-center justify-between rounded-t-2xl">
+        <div class="sticky top-0 z-10 rounded-t-3xl border-b px-6 py-5 backdrop-blur-sm" style="border-color:#d9e6f7; background: linear-gradient(95deg, rgba(47,85,151,0.94) 0%, rgba(74,121,198,0.9) 72%);">
           <div>
-            <p class="text-sm font-semibold text-gray-200 uppercase tracking-wide">Order</p>
+            <p class="text-xs font-semibold text-blue-100 uppercase tracking-wide">Order</p>
             <h2 class="text-2xl font-bold text-white">{{ selectedOrder.order_number }}</h2>
           </div>
-          <button @click="selectedOrder = null" class="text-gray-300 hover:text-white transition duration-200">
+          <div class="flex items-center gap-3">
+            <div class="rounded-xl border px-3 py-2 text-right" style="border-color: rgba(255,255,255,0.28); background-color: rgba(255,255,255,0.14);">
+              <p class="text-[10px] uppercase tracking-wide text-blue-100">Journey Progress</p>
+              <p class="text-sm font-bold text-white">{{ getJourneyProgress(selectedOrder) }}%</p>
+            </div>
+            <button @click="selectedOrder = null" class="text-blue-100 hover:text-white transition duration-200">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
-          </button>
+            </button>
+          </div>
         </div>
 
         <!-- Modal Body -->
@@ -457,9 +465,18 @@
           <div class="mb-8 pb-8 border-b border-gray-200">
             <div class="flex items-center justify-between mb-6">
               <h3 class="text-lg font-bold text-gray-900">Order Journey</h3>
-              <span :class="getStatusBadge(selectedOrder.status)" class="px-4 py-2 rounded-full text-sm font-semibold">
-                {{ formatStatus(selectedOrder.status) }}
+              <span :class="getStatusBadge(resolveJourneyStatus(selectedOrder))" class="px-4 py-2 rounded-full text-sm font-semibold">
+                {{ formatStatus(resolveJourneyStatus(selectedOrder)) }}
               </span>
+            </div>
+            <div class="mb-5 rounded-xl border px-4 py-3" style="border-color:#d9e6f7; background-color:#ffffffc7;">
+              <div class="mb-1.5 flex items-center justify-between">
+                <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-600">Full Process</p>
+                <p class="text-xs font-bold" style="color:#2F5597;">{{ getJourneyProgress(selectedOrder) }}%</p>
+              </div>
+              <div class="h-2.5 w-full rounded-full" style="background-color:#d9e6f7;">
+                <div class="h-2.5 rounded-full" style="background: linear-gradient(90deg, #2F5597, #4a79c6);" :style="{ inlineSize: getJourneyProgress(selectedOrder) + '%' }"></div>
+              </div>
             </div>
             <!-- vertical timeline -->
             <ol class="relative ml-1">
@@ -467,48 +484,50 @@
                 <!-- vertical connector -->
                 <div v-if="idx < statusSteps.length - 1"
                   class="absolute left-[15px] top-8 bottom-0 w-0.5 transition-colors duration-300"
-                  :class="['completed','current'].includes(getStepState(selectedOrder.status, statusSteps[idx + 1].key)) ? 'bg-[#2F5597]' : 'bg-gray-200'"
+                  :class="['completed','current'].includes(getStepState(selectedOrder, statusSteps[idx + 1].key)) ? 'bg-[#2F5597]' : 'bg-gray-200'"
                 ></div>
                 <!-- icon node -->
                 <div class="relative z-10 flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center shadow-sm transition-all duration-300"
                   :class="{
-                    'bg-[#2F5597] text-white':                                 getStepState(selectedOrder.status, step.key) === 'completed',
-                    'bg-[#2F5597] text-white ring-4 ring-blue-100':            getStepState(selectedOrder.status, step.key) === 'current',
-                    'bg-gray-100  text-gray-400':                              getStepState(selectedOrder.status, step.key) === 'upcoming',
-                    'bg-red-100   text-red-500':                               getStepState(selectedOrder.status, step.key) === 'cancelled',
-                    'bg-gray-50   text-gray-300':                              getStepState(selectedOrder.status, step.key) === 'disabled',
+                    'bg-[#2F5597] text-white':                                 getStepState(selectedOrder, step.key) === 'completed',
+                    'bg-[#2F5597] text-white ring-4 ring-blue-100':            getStepState(selectedOrder, step.key) === 'current',
+                    'bg-gray-100  text-gray-400':                              getStepState(selectedOrder, step.key) === 'upcoming',
+                    'bg-red-100   text-red-500':                               getStepState(selectedOrder, step.key) === 'cancelled',
+                    'bg-gray-50   text-gray-300':                              getStepState(selectedOrder, step.key) === 'disabled',
                   }"
                 >
                   <!-- check for completed -->
-                  <svg v-if="getStepState(selectedOrder.status, step.key) === 'completed'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                  <svg v-if="getStepState(selectedOrder, step.key) === 'completed'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                   <!-- x for cancelled -->
-                  <svg v-else-if="getStepState(selectedOrder.status, step.key) === 'cancelled'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                  <svg v-else-if="getStepState(selectedOrder, step.key) === 'cancelled'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                   <!-- individual icons for current/upcoming/disabled -->
                   <template v-else>
                     <svg v-if="step.key === 'pending'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
                     <svg v-else-if="step.key === 'accepted'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     <svg v-else-if="step.key === 'backordered'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     <svg v-else-if="step.key === 'shipped'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"/></svg>
-                    <svg v-else-if="step.key === 'invoiced'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                    <svg v-else-if="step.key === 'in_transit'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7h8m-8 4h8m-8 4h5M5 4h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5a1 1 0 011-1z"/></svg>
+                    <svg v-else-if="step.key === 'invoiced'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <svg v-else-if="step.key === 'delivered'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                   </template>
                 </div>
                 <!-- text -->
                 <div class="flex-1 min-w-0 pt-0.5">
                   <p class="text-sm font-semibold leading-tight"
                     :class="{
-                      'text-[#2F5597]': getStepState(selectedOrder.status, step.key) === 'current',
-                      'text-gray-900':  getStepState(selectedOrder.status, step.key) === 'completed',
-                      'text-gray-400':  ['upcoming','disabled'].includes(getStepState(selectedOrder.status, step.key)),
-                      'text-red-600':   getStepState(selectedOrder.status, step.key) === 'cancelled',
+                      'text-[#2F5597]': getStepState(selectedOrder, step.key) === 'current',
+                      'text-gray-900':  getStepState(selectedOrder, step.key) === 'completed',
+                      'text-gray-400':  ['upcoming','disabled'].includes(getStepState(selectedOrder, step.key)),
+                      'text-red-600':   getStepState(selectedOrder, step.key) === 'cancelled',
                     }"
                   >{{ step.label }}
-                    <span v-if="getStepState(selectedOrder.status, step.key) === 'current'" class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-[#2F5597] uppercase tracking-wide">Current</span>
+                    <span v-if="getStepState(selectedOrder, step.key) === 'current'" class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-[#2F5597] uppercase tracking-wide">Current</span>
                   </p>
                   <p class="text-xs mt-0.5"
                     :class="{
-                      'text-gray-600': ['completed','current'].includes(getStepState(selectedOrder.status, step.key)),
-                      'text-gray-300': ['upcoming','disabled'].includes(getStepState(selectedOrder.status, step.key)),
-                      'text-red-400':  getStepState(selectedOrder.status, step.key) === 'cancelled',
+                      'text-gray-600': ['completed','current'].includes(getStepState(selectedOrder, step.key)),
+                      'text-gray-300': ['upcoming','disabled'].includes(getStepState(selectedOrder, step.key)),
+                      'text-red-400':  getStepState(selectedOrder, step.key) === 'cancelled',
                     }"
                   >{{ step.desc }}</p>
                 </div>
@@ -530,9 +549,9 @@
               <p class="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2">Tracking Number</p>
               <p class="font-mono text-gray-900 font-semibold">{{ selectedOrder.tracking_number }}</p>
             </div>
-            <div v-if="selectedOrder.estimated_delivery">
+            <div v-if="selectedOrder.estimated_delivery || selectedOrder.delivered_at">
               <p class="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2">Est. Delivery</p>
-              <p class="text-lg font-semibold text-gray-900">{{ formatDate(selectedOrder.estimated_delivery) }}</p>
+              <p class="text-lg font-semibold text-gray-900">{{ formatDate(selectedOrder.delivered_at || selectedOrder.estimated_delivery) }}</p>
             </div>
           </div>
 
@@ -928,19 +947,79 @@ export default {
       { key: 'accepted',    label: 'Accepted by Supplier', desc: 'TD SYNNEX has accepted your order'          },
       { key: 'backordered', label: 'Backordered',          desc: 'Item(s) awaiting stock availability'        },
       { key: 'shipped',     label: 'Shipped',              desc: 'Your order is on the way'                   },
+      { key: 'in_transit',  label: 'In Transit',           desc: 'Package is moving through the carrier network' },
       { key: 'invoiced',    label: 'Invoiced',             desc: 'Order invoiced and finalized by supplier'    },
       { key: 'delivered',   label: 'Delivered',            desc: 'Order has been delivered'                   },
     ];
     // Old local statuses mapped to the canonical step keys for display
     const _statusAlias = {
-      processing: 'accepted', confirmed: 'accepted',
+      processing: 'accepted',
+      confirmed: 'accepted',
+      complete: 'invoiced',
+      completed: 'invoiced',
     };
-    const _stepOrder = ['pending', 'accepted', 'backordered', 'shipped', 'invoiced', 'delivered'];
+    const _stepOrder = ['pending', 'accepted', 'backordered', 'shipped', 'in_transit', 'invoiced', 'delivered'];
 
     const resolveStatus = (s) => _statusAlias[s] ?? s;
 
-    const getStepState = (orderStatus, stepKey) => {
-      const resolved = resolveStatus(orderStatus);
+    const readTrackingSignal = (order) => {
+      const trackingInfo = order?.tracking_info;
+      if (!trackingInfo || typeof trackingInfo !== 'object') {
+        return '';
+      }
+
+      return [
+        trackingInfo.shipping_status,
+        trackingInfo.carrier_live_status_normalized,
+        trackingInfo.carrier_live_status,
+        trackingInfo.delivery_status,
+        trackingInfo.latest_status,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+    };
+
+    const hasDeliveredEvidence = (order) => {
+      if (!order) return false;
+
+      const status = String(order.status || '').toLowerCase();
+      if (status === 'delivered') {
+        return true;
+      }
+
+      if (order.delivered_at) {
+        return true;
+      }
+
+      return readTrackingSignal(order).includes('deliver');
+    };
+
+    const resolveJourneyStatus = (orderOrStatus) => {
+      if (typeof orderOrStatus === 'string') {
+        return resolveStatus(String(orderOrStatus || '').toLowerCase());
+      }
+
+      const order = orderOrStatus;
+      const base = resolveStatus(String(order?.status || '').toLowerCase());
+      if (hasDeliveredEvidence(order)) {
+        return 'delivered';
+      }
+
+      if (base === 'in_transit') {
+        return 'in_transit';
+      }
+
+      const trackingSignal = readTrackingSignal(order);
+      if (trackingSignal.includes('in transit') || trackingSignal.includes('on the way') || trackingSignal.includes('out for delivery')) {
+        return 'in_transit';
+      }
+
+      return base;
+    };
+
+    const getStepState = (orderOrStatus, stepKey) => {
+      const resolved = resolveJourneyStatus(orderOrStatus);
       if (resolved === 'cancelled') {
         return stepKey === 'pending' ? 'cancelled' : 'disabled';
       }
@@ -950,6 +1029,20 @@ export default {
       if (stepIdx < currentIdx)  return 'completed';
       if (stepIdx === currentIdx) return 'current';
       return 'upcoming';
+    };
+
+    const getJourneyProgress = (order) => {
+      const resolved = resolveJourneyStatus(order);
+      if (resolved === 'cancelled') {
+        return 0;
+      }
+
+      const idx = _stepOrder.indexOf(resolved);
+      if (idx < 0) {
+        return 20;
+      }
+
+      return Math.round((idx / (_stepOrder.length - 1)) * 100);
     };
 
     const liveStatusBadge = (status) => {
@@ -1143,6 +1236,8 @@ export default {
       statusSteps,
       getStepState,
       resolveStatus,
+      resolveJourneyStatus,
+      getJourneyProgress,
     };
   },
 };
