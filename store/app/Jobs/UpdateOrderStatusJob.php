@@ -143,7 +143,8 @@ class UpdateOrderStatusJob implements ShouldQueue
             'partiallyshipped', 'partially_shipped', 'partial'           => 'shipped',
             'shipped'                                                     => 'shipped',
             'invoiced', 'invoiced/complete', 'complete',
-            'completed', 'delivered'                                     => 'invoiced',
+            'completed'                                                   => 'invoiced',
+            'delivered'                                                   => 'delivered',
             'cancelled', 'canceled', 'voided', 'void'                   => 'cancelled',
             default                                                       => '',
         };

@@ -1,0 +1,118 @@
+<?php
+
+namespace App\Services;
+
+use App\Models\AppSetting;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
+
+class PriceSyncSchedulerService
+{
+    public function startBackgroundRun(string $scope = 'all', string $skusRaw = '', string $reason = 'manual'): array
+    {
+        $scope = $scope === 'specific' ? 'specific' : 'all';
+        $scopeLabel = $scope === 'specific' ? 'Specific products' : 'All products in database';
+        $startedAt = now();
+
+        AppSetting::setValue('price_sync.run_state', [
+            'status' => 'running',
+            'message' => "Starting - {$scopeLabel}...",
+            'output' => "Started at {$startedAt->format('Y-m-d H:i:s T')}\nScope: {$scopeLabel}\nStarted by: {$reason}",
+            'started_at' => $startedAt->toDateTimeString(),
+            'updated_at' => $startedAt->toDateTimeString(),
+            'finished_at' => null,
+        ]);
+
+        $this->spawnRefreshCommand($scope, $skusRaw);
+
+        return [
+            'status' => 'running',
+            'scope' => $scope,
+            'scope_label' => $scopeLabel,
+        ];
+    }
+
+    public function kickOffDueScheduledRun(): void
+    {
+        if (!Cache::add('price_sync.schedule_tick', true, now()->addMinute())) {
+            return;
+        }
+
+        try {
+            $timezone = (string) AppSetting::getValue('price_sync.timezone', 'Africa/Nairobi');
+            if (!in_array($timezone, timezone_identifiers_list(), true)) {
+                $timezone = 'Africa/Nairobi';
+            }
+
+            $time = (string) AppSetting::getValue('price_sync.time', '18:00');
+            if (!preg_match('/^\d{2}:\d{2}$/', $time)) {
+                $time = '18:00';
+            }
+
+            [$hour, $minute] = array_map('intval', explode(':', $time));
+            $now = Carbon::now($timezone);
+            $scheduledAt = $now->copy()->setTime($hour, $minute, 0);
+            $todayKey = $now->format('Y-m-d');
+
+            if ($now->lessThan($scheduledAt)) {
+                return;
+            }
+
+            if ((string) AppSetting::getValue('price_sync.last_triggered_date', '') === $todayKey) {
+                return;
+            }
+
+            $existing = AppSetting::getValue('price_sync.run_state', []);
+            if (is_array($existing) && ($existing['status'] ?? '') === 'running') {
+                $startedAt = $existing['started_at'] ?? null;
+                $stuckMins = $startedAt ? now()->diffInMinutes(Carbon::parse($startedAt)) : 999;
+                if ($stuckMins < 30) {
+                    return;
+                }
+            }
+
+            $this->startBackgroundRun('all', '', 'scheduled fallback');
+            AppSetting::setValue('price_sync.last_triggered_date', $todayKey);
+        } catch (\Throwable $e) {
+            Log::warning('Price sync schedule fallback check failed', [
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    private function spawnRefreshCommand(string $scope, string $skusRaw): void
+    {
+        $phpBin = PHP_BINARY;
+        $artisan = base_path('artisan');
+        $scopeArg = '--scope=' . $scope;
+        $skusArg = '--skus=' . $skusRaw;
+
+        if (PHP_OS_FAMILY === 'Windows') {
+            $cmd = sprintf(
+                'cmd /C start "" /B %s %s tdsynnex:refresh-live-prices %s %s > NUL 2>&1',
+                $this->shellArg($phpBin),
+                $this->shellArg($artisan),
+                $this->shellArg($scopeArg),
+                $this->shellArg($skusArg)
+            );
+            pclose(popen($cmd, 'r'));
+
+            return;
+        }
+
+        $cmd = sprintf(
+            '%s %s tdsynnex:refresh-live-prices %s %s > /dev/null 2>&1 &',
+            escapeshellarg($phpBin),
+            escapeshellarg($artisan),
+            escapeshellarg($scopeArg),
+            escapeshellarg($skusArg)
+        );
+        exec($cmd);
+    }
+
+    private function shellArg(string $value): string
+    {
+        return '"' . str_replace('"', '\"', $value) . '"';
+    }
+}

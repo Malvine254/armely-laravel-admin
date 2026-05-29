@@ -419,70 +419,46 @@ class TDSynnexService
         foreach ($batches as $skuBatch) {
             $batchNum++;
             try {
-                $metadata   = $this->readApMetadata($skuBatch);
-                $xmlPayload = $this->buildPriceAvailabilityXmlPayload($skuBatch);
-                $response   = $this->postPriceAvailabilityXml($xmlPayload, $region, $useTest);
-
-                // Map SKU → live data. We only UPDATE existing products — never INSERT new ones
-                // during a live price check (upsert would fail on NOT NULL columns like vendor_id).
-                $skuData = [];
-
-                foreach ($this->extractPriceAvailabilityRows($response) as $row) {
-                    $normalized = $this->normalizePriceAvailabilityProduct($row, $metadata);
-                    if (empty($normalized)) {
-                        continue;
-                    }
-
-                    $sku = trim((string) ($normalized['sku'] ?? $normalized['productId'] ?? ''));
-                    if ($sku === '') {
-                        continue;
-                    }
-
-                    $skuData[$sku] = [
-                        'live_price'           => (float) ($normalized['productPrice'][0]['rsPrice'] ?? 0),
-                        'live_retail_price'    => (float) ($normalized['productPrice'][0]['msrp'] ?? $normalized['productPrice'][0]['rsPrice'] ?? 0),
-                        'live_quantity'        => (int) ($normalized['totalQuantity'] ?? $normalized['availableQuantity'] ?? 0),
-                        'live_is_available'    => !((bool) ($normalized['discontinueProduct'] ?? false)),
-                        'live_is_discontinued' => (bool) ($normalized['discontinueProduct'] ?? false),
-                        'live_checked_at'      => $now,
-                        'updated_at'           => $now,
-                    ];
-                }
-
-                if (!empty($skuData)) {
-                    // Batch-update: find existing products by tdsynnex_sku_no, update live_* columns
-                    // AND apply immediately to main display columns (quantity, availability, price).
-                    $existingProducts = \DB::table('products')
-                        ->whereIn('tdsynnex_sku_no', array_keys($skuData))
-                        ->pluck('tdsynnex_sku_no', 'id');
-
-                    foreach ($existingProducts as $productId => $sku) {
-                        if (!isset($skuData[$sku])) {
-                            continue;
-                        }
-                        $live = $skuData[$sku];
-                        \DB::table('products')
-                            ->where('id', $productId)
-                            ->update(array_merge($live, [
-                                'base_price'      => $live['live_price'],
-                                'retail_price'    => $live['live_retail_price'],
-                                'quantity'        => $live['live_quantity'],
-                                'is_available'    => $live['live_is_available'],
-                                'is_discontinued' => $live['live_is_discontinued'],
-                                'last_synced_at'  => $now,
-                            ]));
-                        $checked++;
-                    }
-                }
+                $checked += $this->processLivePriceBatch($skuBatch, $region, $useTest, $now);
             } catch (\Throwable $e) {
-                // Log the error but continue processing remaining batches — one failed
-                // batch (timeout, network blip) must not abort the entire sync run.
-                $batchErrors[] = "Batch {$batchNum}: " . $e->getMessage();
-                Log::warning('Live price sync batch failed, continuing', [
-                    'batch'  => $batchNum,
-                    'skus'   => $skuBatch,
-                    'error'  => $e->getMessage(),
-                ]);
+                $errorMessage = $e->getMessage();
+                $isTransient = $this->isTransientPriceAvailabilityError($errorMessage);
+
+                if ($isTransient && count($skuBatch) > 1) {
+                    // If one large batch fails due to transient network issues, retry in smaller chunks.
+                    $subBatchSize = max(1, min(10, (int) ceil(count($skuBatch) / 5)));
+                    $subBatches = array_chunk($skuBatch, $subBatchSize);
+
+                    Log::warning('Live price sync batch failed, retrying in smaller chunks', [
+                        'batch' => $batchNum,
+                        'size' => count($skuBatch),
+                        'sub_batch_size' => $subBatchSize,
+                        'error' => $errorMessage,
+                    ]);
+
+                    foreach ($subBatches as $subIdx => $subBatch) {
+                        try {
+                            $checked += $this->processLivePriceBatch($subBatch, $region, $useTest, $now);
+                        } catch (\Throwable $subError) {
+                            $batchErrors[] = "Batch {$batchNum}." . ($subIdx + 1) . ": " . $subError->getMessage();
+                            Log::warning('Live price sync sub-batch failed, skipped', [
+                                'batch' => $batchNum,
+                                'sub_batch' => $subIdx + 1,
+                                'skus' => $subBatch,
+                                'error' => $subError->getMessage(),
+                            ]);
+                        }
+                    }
+                } else {
+                    // Log the error but continue processing remaining batches — one failed
+                    // batch (timeout, network blip) must not abort the entire sync run.
+                    $batchErrors[] = "Batch {$batchNum}: " . $errorMessage;
+                    Log::warning('Live price sync batch failed, continuing', [
+                        'batch'  => $batchNum,
+                        'skus'   => $skuBatch,
+                        'error'  => $errorMessage,
+                    ]);
+                }
             }
 
             if ($onBatch !== null) {
@@ -498,6 +474,92 @@ class TDSynnexService
         ]);
 
         return ['checked' => $checked, 'requested' => count($skus), 'batch_errors' => $batchErrors];
+    }
+
+    private function processLivePriceBatch(array $skuBatch, string $region, bool $useTest, $now): int
+    {
+        $metadata   = $this->readApMetadata($skuBatch);
+        $xmlPayload = $this->buildPriceAvailabilityXmlPayload($skuBatch);
+        $response   = $this->postPriceAvailabilityXml($xmlPayload, $region, $useTest);
+
+        $skuData = [];
+
+        foreach ($this->extractPriceAvailabilityRows($response) as $row) {
+            $normalized = $this->normalizePriceAvailabilityProduct($row, $metadata);
+            if (empty($normalized)) {
+                continue;
+            }
+
+            $sku = trim((string) ($normalized['sku'] ?? $normalized['productId'] ?? ''));
+            if ($sku === '') {
+                continue;
+            }
+
+            $skuData[$sku] = [
+                'live_price'           => (float) ($normalized['productPrice'][0]['rsPrice'] ?? 0),
+                'live_retail_price'    => (float) ($normalized['productPrice'][0]['msrp'] ?? $normalized['productPrice'][0]['rsPrice'] ?? 0),
+                'live_quantity'        => (int) ($normalized['totalQuantity'] ?? $normalized['availableQuantity'] ?? 0),
+                'live_is_available'    => !((bool) ($normalized['discontinueProduct'] ?? false)),
+                'live_is_discontinued' => (bool) ($normalized['discontinueProduct'] ?? false),
+                'live_checked_at'      => $now,
+                'updated_at'           => $now,
+            ];
+        }
+
+        if (empty($skuData)) {
+            return 0;
+        }
+
+        $checked = 0;
+
+        // Batch-update: find existing products by tdsynnex_sku_no, update live_* columns
+        // AND apply immediately to main display columns (quantity, availability, price).
+        $existingProducts = \DB::table('products')
+            ->whereIn('tdsynnex_sku_no', array_keys($skuData))
+            ->pluck('tdsynnex_sku_no', 'id');
+
+        foreach ($existingProducts as $productId => $sku) {
+            if (!isset($skuData[$sku])) {
+                continue;
+            }
+
+            $live = $skuData[$sku];
+            \DB::table('products')
+                ->where('id', $productId)
+                ->update(array_merge($live, [
+                    'base_price'      => $live['live_price'],
+                    'retail_price'    => $live['live_retail_price'],
+                    'quantity'        => $live['live_quantity'],
+                    'is_available'    => $live['live_is_available'],
+                    'is_discontinued' => $live['live_is_discontinued'],
+                    'last_synced_at'  => $now,
+                ]));
+            $checked++;
+        }
+
+        return $checked;
+    }
+
+    private function isTransientPriceAvailabilityError(string $message): bool
+    {
+        $haystack = strtolower($message);
+
+        foreach ([
+            'curl error 52',
+            'empty reply from server',
+            'timed out',
+            'timeout',
+            'connection reset',
+            'could not resolve host',
+            'failed to connect',
+            'temporarily unavailable',
+        ] as $needle) {
+            if (str_contains($haystack, $needle)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

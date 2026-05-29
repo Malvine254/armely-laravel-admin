@@ -377,6 +377,17 @@
                       View
                     </button>
                     <button
+                      v-if="canMarkDelivered(order)"
+                      @click="markOrderDelivered(order)"
+                      :disabled="processingOrderNumber === order.order_number"
+                      class="px-3 py-1.5 text-xs rounded-md text-white font-semibold transition duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
+                      style="background-color: #16a34a;"
+                      @mouseenter="$event.target.style.backgroundColor='#15803d'"
+                      @mouseleave="$event.target.style.backgroundColor='#16a34a'"
+                    >
+                      Mark Delivered
+                    </button>
+                    <button
                       v-if="hasPayableInvoice(order)"
                       @click="payViaInvoice(order)"
                       class="px-3 py-1.5 text-xs rounded-md text-white font-semibold transition duration-200"
@@ -531,6 +542,17 @@
               Close
             </button>
             <button
+              v-if="canMarkDelivered(selectedOrder)"
+              @click="markOrderDelivered(selectedOrder)"
+              :disabled="processingOrderNumber === selectedOrder.order_number"
+              class="flex-1 px-4 py-3 text-white rounded-lg font-semibold transition duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
+              style="background-color: #16a34a;"
+              @mouseenter="$event.target.style.backgroundColor='#15803d'"
+              @mouseleave="$event.target.style.backgroundColor='#16a34a'"
+            >
+              Mark Delivered
+            </button>
+            <button
               v-if="hasPayableInvoice(selectedOrder)"
               @click="payViaInvoice(selectedOrder)"
               class="flex-1 px-4 py-3 text-white rounded-lg font-semibold transition duration-200"
@@ -670,6 +692,12 @@ export default {
       return ['pending', 'processing', 'confirmed'].includes(order.status);
     };
 
+    const canMarkDelivered = (order) => {
+      if (!order) return false;
+      const status = String(order.status || '').toLowerCase();
+      return ['shipped', 'invoiced', 'in_transit'].includes(status);
+    };
+
     const cancelOrder = async (order) => {
       if (!canCancelOrder(order)) {
         return;
@@ -704,6 +732,44 @@ export default {
       } catch (err) {
         console.error('Error cancelling order:', err);
         toastStore.addToast(err.response?.data?.message || 'Failed to cancel order', 'error');
+      } finally {
+        processingOrderNumber.value = null;
+      }
+    };
+
+    const markOrderDelivered = async (order) => {
+      if (!canMarkDelivered(order)) {
+        return;
+      }
+
+      if (authStore.isRestricted) {
+        toastStore.addToast('Account suspended: updating order delivery is disabled', 'error');
+        return;
+      }
+
+      const confirmed = window.confirm(`Mark order ${order.order_number} as delivered?`);
+      if (!confirmed) {
+        return;
+      }
+
+      processingOrderNumber.value = order.order_number;
+
+      try {
+        const response = await axios.post(`/api/v1/orders/${order.order_number}/mark-delivered`);
+
+        if (response.data?.success) {
+          toastStore.addToast('Order marked as delivered', 'success', 3000, { category: 'orders' });
+          if (selectedOrder.value?.order_number === order.order_number) {
+            selectedOrder.value = response.data.data;
+          }
+          await fetchOrders();
+          await fetchLiveShipping();
+        } else {
+          toastStore.addToast(response.data?.message || 'Failed to update order status', 'error');
+        }
+      } catch (err) {
+        console.error('Error marking order delivered:', err);
+        toastStore.addToast(err.response?.data?.message || 'Failed to update order status', 'error');
       } finally {
         processingOrderNumber.value = null;
       }
@@ -860,13 +926,14 @@ export default {
       { key: 'accepted',    label: 'Accepted by Supplier', desc: 'TD SYNNEX has accepted your order'          },
       { key: 'backordered', label: 'Backordered',          desc: 'Item(s) awaiting stock availability'        },
       { key: 'shipped',     label: 'Shipped',              desc: 'Your order is on the way'                   },
-      { key: 'invoiced',    label: 'Invoiced / Complete',  desc: 'Order fulfilled and invoice issued'         },
+      { key: 'invoiced',    label: 'Invoiced',             desc: 'Order invoiced and finalized by supplier'    },
+      { key: 'delivered',   label: 'Delivered',            desc: 'Order has been delivered'                   },
     ];
     // Old local statuses mapped to the canonical step keys for display
     const _statusAlias = {
-      processing: 'accepted', confirmed: 'accepted', delivered: 'invoiced',
+      processing: 'accepted', confirmed: 'accepted',
     };
-    const _stepOrder = ['pending', 'accepted', 'backordered', 'shipped', 'invoiced'];
+    const _stepOrder = ['pending', 'accepted', 'backordered', 'shipped', 'invoiced', 'delivered'];
 
     const resolveStatus = (s) => _statusAlias[s] ?? s;
 
@@ -1032,6 +1099,8 @@ export default {
       viewOrder,
       canCancelOrder,
       cancelOrder,
+      canMarkDelivered,
+      markOrderDelivered,
       nextPage,
       previousPage,
       resetFilters,
