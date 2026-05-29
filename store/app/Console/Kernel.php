@@ -45,8 +45,7 @@ class Kernel extends ConsoleKernel
             ->dailyAt($priceSyncTime)
             ->timezone($priceSyncTimezone)
             ->name('refresh-live-prices-6pm-kenya')
-            ->withoutOverlapping()
-            ->runInBackground();
+            ->withoutOverlapping();
 
         // Midnight: compare live_* shadow columns against main columns and apply any changes
         // to base_price, retail_price, quantity, is_available. This is the only time

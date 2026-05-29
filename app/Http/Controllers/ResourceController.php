@@ -210,6 +210,14 @@ class ResourceController extends Controller
             ->where('slug', $slug)
             ->firstOrFail();
 
+        $isSignedAccess = $request->has('expires') || $request->has('signature');
+        if (strtolower((string) ($resource->resource_type ?? '')) === 'pdf' && !$isSignedAccess) {
+            return redirect()
+                ->route('resources.show', $resource->slug)
+                ->with('resource_request_status', 'Please request full contents to access this PDF.')
+                ->withFragment('resource-request-form');
+        }
+
         $fileUrl = trim((string) ($resource->file_url ?? ''));
         if ($fileUrl === '') {
             return redirect()

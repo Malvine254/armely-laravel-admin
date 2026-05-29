@@ -16,6 +16,7 @@ use App\Services\CatalogOperationStateService;
 use App\Services\EnvironmentSettingsService;
 use App\Services\TDSynnexService;
 use App\Services\AzureGraphMailService;
+use App\Services\PriceSyncSchedulerService;
 use App\Jobs\SyncPriceAvailabilityCatalogJob;
 use App\Jobs\ReindexProductsJob;
 use App\Models\Message;
@@ -35,12 +36,17 @@ class AdminController extends Controller
 {
     private NotificationService $notificationService;
     private EnvironmentSettingsService $environmentSettingsService;
+    private PriceSyncSchedulerService $priceSyncSchedulerService;
     private array $productNameCache = [];
 
-    public function __construct(NotificationService $notificationService, EnvironmentSettingsService $environmentSettingsService)
-    {
+    public function __construct(
+        NotificationService $notificationService,
+        EnvironmentSettingsService $environmentSettingsService,
+        PriceSyncSchedulerService $priceSyncSchedulerService
+    ) {
         $this->notificationService = $notificationService;
         $this->environmentSettingsService = $environmentSettingsService;
+        $this->priceSyncSchedulerService = $priceSyncSchedulerService;
     }
 
     /**
@@ -2285,7 +2291,8 @@ class AdminController extends Controller
                     'accepted'    => ['accepted', 'confirmed', 'processing', 'pending'],
                     'backordered' => ['backordered'],
                     'shipped'     => ['shipped'],
-                    'invoiced'    => ['invoiced', 'delivered', 'complete', 'completed'],
+                    'invoiced'    => ['invoiced', 'complete', 'completed'],
+                    'delivered'   => ['delivered'],
                     'failed'      => ['failed'],
                     'pending'     => ['pending'],
                 ];
@@ -2481,7 +2488,7 @@ class AdminController extends Controller
             'invoice'     => 'invoiced',
             'complete'    => 'invoiced',
             'completed'   => 'invoiced',
-            'delivered'   => 'invoiced',
+            'delivered'   => 'delivered',
             'cancelled'   => 'failed',
             'canceled'    => 'failed',
             'rejected'    => 'failed',
@@ -4094,38 +4101,13 @@ class AdminController extends Controller
             $scope      = 'all';
             $skusRaw    = '';
             $scopeLabel = 'All products in database';
+            $runState = $this->priceSyncSchedulerService->startBackgroundRun($scope, $skusRaw, 'manual');
 
-            // Write initial state so UI shows "running" before the process even starts
-            \App\Models\AppSetting::setValue('price_sync.run_state', [
-                'status'      => 'running',
-                'message'     => "Starting — {$scopeLabel}...",
-                'output'      => 'Started at ' . now()->format('Y-m-d H:i:s T') . "\nScope: {$scopeLabel}",
-                'started_at'  => now()->toDateTimeString(),
-                'updated_at'  => now()->toDateTimeString(),
-                'finished_at' => null,
-            ]);
-
-            // Spawn background PHP process — passes scope+skus as command arguments
-            // so the saved AppSetting values are NOT used for this run.
-            $phpBin  = PHP_BINARY;
-            $artisan = base_path('artisan');
-            $scopeArg = escapeshellarg('--scope=' . $scope);
-            $skusArg  = escapeshellarg('--skus=' . $skusRaw);
-
-            if (PHP_OS_FAMILY === 'Windows') {
-                $cmd = sprintf('start "" /B %s %s tdsynnex:refresh-live-prices %s %s',
-                    escapeshellarg($phpBin), escapeshellarg($artisan), $scopeArg, $skusArg);
-                pclose(popen($cmd, 'r'));
-            } else {
-                $cmd = sprintf('%s %s tdsynnex:refresh-live-prices %s %s > /dev/null 2>&1 &',
-                    escapeshellarg($phpBin), escapeshellarg($artisan), $scopeArg, $skusArg);
-                exec($cmd);
-            }
 
             return response()->json([
                 'success' => true,
                 'message' => "Price sync started ({$scopeLabel}). You can close this page — results will appear when you return.",
-                'data'    => ['status' => 'running', 'scope' => $scope],
+                'data'    => $runState,
             ]);
         } catch (\Throwable $e) {
             Log::error('runPriceSyncNow failed: ' . $e->getMessage());

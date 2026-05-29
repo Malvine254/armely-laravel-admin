@@ -1282,7 +1282,8 @@ class QuoteOrderInvoiceController extends Controller
             'backordered', 'back_ordered', 'back ordered', 'backorder' => 'backordered',
             'partiallyshipped', 'partially_shipped', 'partial' => 'shipped',
             'shipped' => 'shipped',
-            'invoiced', 'invoiced/complete', 'complete', 'completed', 'delivered' => 'invoiced',
+            'invoiced', 'invoiced/complete', 'complete', 'completed' => 'invoiced',
+            'delivered' => 'delivered',
             'cancelled', 'canceled', 'voided', 'void' => 'cancelled',
             default => '',
         };
@@ -1946,6 +1947,71 @@ class QuoteOrderInvoiceController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to cancel order',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Mark an order as delivered by customer confirmation.
+     */
+    public function markOrderDelivered(Request $request, string $orderNumber): JsonResponse
+    {
+        try {
+            $user = $request->user();
+
+            if ($denied = $this->ensureWriteAccess($user)) {
+                return $denied;
+            }
+
+            $order = Order::where('user_id', $user->id)
+                ->where('order_number', $orderNumber)
+                ->firstOrFail();
+
+            if (in_array((string) $order->status, ['cancelled', 'delivered'], true)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Order cannot be marked as delivered in its current state.',
+                ], 400);
+            }
+
+            $trackingInfo = is_array($order->tracking_info) ? $order->tracking_info : [];
+            $trackingInfo['shipping_status'] = 'delivered';
+            if (!isset($trackingInfo['delivered_by']) || trim((string) $trackingInfo['delivered_by']) === '') {
+                $trackingInfo['delivered_by'] = 'customer';
+            }
+            $trackingInfo['customer_confirmed_delivered_at'] = now()->toIso8601String();
+
+            $order->update([
+                'status' => 'delivered',
+                'delivered_at' => now(),
+                'tracking_info' => $trackingInfo,
+            ]);
+
+            Activity::log(
+                $user->id,
+                'order',
+                'delivered',
+                "Order {$orderNumber} marked as delivered by customer",
+                ['order_number' => $orderNumber]
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Order marked as delivered',
+                'data' => $order->fresh(),
+            ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Order not found',
+            ], 404);
+        } catch (\Exception $e) {
+            Log::error("Failed to mark order {$orderNumber} as delivered: " . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to mark order as delivered',
                 'error' => $e->getMessage(),
             ], 500);
         }

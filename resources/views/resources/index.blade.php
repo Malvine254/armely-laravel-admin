@@ -910,6 +910,7 @@
                                     $fileUrl = (string) ($resource->file_url ?? '');
                                     $isImagePreview = str_starts_with($fileUrl, 'data:image') || preg_match('/\.(png|jpe?g|webp|gif)$/i', $fileUrl);
                                     $isVideoPreview = $type === 'video';
+                                    $requiresRequestForFullContent = $type === 'pdf';
                                     $thumbImage = $resource->thumbnail_url ?: ($isImagePreview ? $fileUrl : null);
                                     $folderCategory = trim((string) ($resource->category ?? ''));
                                     $folderCategoryLabel = $folderCategory !== '' ? $folderCategory : 'General';
@@ -993,7 +994,11 @@
                                             <li><a class="dropdown-item copy-link-btn" href="#" data-url="{{ route('resources.show', $resource->slug) }}">Copy Link</a></li>
                                             <li><a class="dropdown-item" href="{{ route('resources.show', $resource->slug) }}">Open Resource</a></li>
                                             @if($resource->file_url)
-                                                <li><a class="dropdown-item" href="{{ route('resources.download', $resource->slug) }}">Download</a></li>
+                                                @if($requiresRequestForFullContent)
+                                                    <li><a class="dropdown-item" href="{{ route('resources.show', $resource->slug) }}#resource-request-form">Request Full Contents</a></li>
+                                                @else
+                                                    <li><a class="dropdown-item" href="{{ route('resources.download', $resource->slug) }}">Download</a></li>
+                                                @endif
                                             @endif
                                         </ul>
                                     </div>

@@ -6,20 +6,20 @@
       <div class="absolute inset-0 pointer-events-none dashboard-orb"></div>
       <div class="relative z-10 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <p class="text-xs uppercase tracking-[0.2em] text-blue-200 font-semibold">Operations Center</p>
-          <h2 class="text-3xl md:text-4xl font-semibold text-white mt-1">Store Performance Radar</h2>
-          <p class="text-blue-100/80 mt-2 max-w-2xl text-sm md:text-base">
+          <p class="text-[11px] uppercase tracking-[0.18em] text-blue-200 font-semibold">Operations Center</p>
+          <h2 class="text-2xl md:text-3xl font-semibold text-white mt-1">Store Performance Radar</h2>
+          <p class="text-blue-100/80 mt-2 max-w-2xl text-xs md:text-sm">
             Live command view of quotes, orders, and invoice pressure for the current business cycle.
           </p>
         </div>
         <div class="flex items-center gap-3">
-          <span class="rounded-full border border-white/25 bg-white/10 px-4 py-2 text-xs text-white/80">
+          <span class="rounded-full border border-white/25 bg-white/10 px-4 py-2 text-[11px] text-white/80">
             Last sync: {{ lastSyncLabel }}
           </span>
           <button
             @click="refreshStats"
             :disabled="refreshing"
-            class="rounded-full bg-white/20 hover:bg-white/30 backdrop-blur px-5 py-2 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-60"
+            class="rounded-full bg-white/20 hover:bg-white/30 backdrop-blur px-5 py-2 text-xs font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-60"
           >
             {{ refreshing ? 'Refreshing...' : 'Refresh' }}
           </button>
@@ -34,10 +34,10 @@
         class="glass-card rounded-2xl p-5"
       >
         <div class="flex items-center justify-between">
-          <p class="text-sm text-gray-500">{{ card.label }}</p>
+          <p class="text-xs text-gray-500">{{ card.label }}</p>
           <span :class="['rounded-full px-3 py-1 text-[11px] font-semibold', card.pillClass]">{{ card.pill }}</span>
         </div>
-        <p class="mt-4 text-3xl font-semibold text-gray-900">{{ card.value }}</p>
+        <p class="mt-4 text-2xl font-semibold text-gray-900">{{ card.value }}</p>
         <p class="mt-2 text-xs text-gray-500">{{ card.hint }}</p>
       </article>
     </section>
@@ -45,7 +45,7 @@
     <section class="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-8">
       <article class="glass-card rounded-2xl p-6 xl:col-span-1">
         <div class="flex items-center justify-between mb-5">
-          <h3 class="text-gray-900 text-lg font-semibold">Invoice Pressure</h3>
+          <h3 class="text-gray-900 text-base font-semibold">Invoice Pressure</h3>
           <span class="text-xs text-gray-500">Current snapshot</span>
         </div>
 
@@ -54,7 +54,7 @@
             <div class="size-48 rounded-full chart-ring" :style="invoiceDonutStyle"></div>
             <div class="absolute inset-4 rounded-full bg-white flex flex-col items-center justify-center">
               <span class="text-xs text-gray-500">Revenue</span>
-              <span class="text-xl font-semibold text-[#2F5597]">${{ formatCurrency(stats.monthly_revenue) }}</span>
+              <span class="text-lg font-semibold text-[#2F5597]">${{ formatCurrency(stats.monthly_revenue) }}</span>
             </div>
           </div>
         </div>
@@ -72,7 +72,7 @@
 
       <article class="glass-card rounded-2xl p-6 xl:col-span-1">
         <div class="flex items-center justify-between mb-5">
-          <h3 class="text-gray-900 text-lg font-semibold">Quote Funnel</h3>
+          <h3 class="text-gray-900 text-base font-semibold">Quote Funnel</h3>
           <router-link :to="{ name: 'admin-quotes' }" class="text-[#2F5597] text-xs hover:text-[#2F5597]">Manage quotes</router-link>
         </div>
 
@@ -91,7 +91,7 @@
 
       <article class="glass-card rounded-2xl p-6 xl:col-span-1">
         <div class="flex items-center justify-between mb-5">
-          <h3 class="text-gray-900 text-lg font-semibold">Order Flow</h3>
+          <h3 class="text-gray-900 text-base font-semibold">Order Flow</h3>
           <router-link :to="{ name: 'admin-orders' }" class="text-[#2F5597] text-xs hover:text-[#2F5597]">Open orders</router-link>
         </div>
 
@@ -112,7 +112,7 @@
     <section class="grid grid-cols-1 xl:grid-cols-5 gap-6">
       <article class="glass-card rounded-2xl p-6 xl:col-span-3">
         <div class="flex justify-between items-center mb-4">
-          <h3 class="text-lg font-semibold text-gray-900">Recent Pending Quotes</h3>
+          <h3 class="text-base font-semibold text-gray-900">Recent Pending Quotes</h3>
           <router-link :to="{ name: 'admin-quotes' }" class="text-[#2F5597] text-sm hover:text-[#2F5597]">View all</router-link>
         </div>
         <div class="overflow-x-auto">
@@ -146,7 +146,7 @@
 
       <article class="glass-card rounded-2xl p-6 xl:col-span-2">
         <div class="flex justify-between items-center mb-4">
-          <h3 class="text-lg font-semibold text-gray-900">Recent Orders</h3>
+          <h3 class="text-base font-semibold text-gray-900">Recent Orders</h3>
           <router-link :to="{ name: 'admin-orders' }" class="text-[#2F5597] text-sm hover:text-[#2F5597]">View all</router-link>
         </div>
 

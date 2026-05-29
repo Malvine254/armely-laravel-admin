@@ -470,10 +470,11 @@ const statCards = [
   { key: 'backordered', label: 'Backordered', color: 'text-orange-600' },
   { key: 'shipped',     label: 'Shipped',     color: 'text-indigo-600' },
   { key: 'invoiced',    label: 'Invoiced',    color: 'text-emerald-600' },
+  { key: 'delivered',   label: 'Delivered',   color: 'text-green-600' },
 ]
 
 const statusCounts = computed(() => {
-  const counts = { '': orders.value.length, pending: 0, accepted: 0, backordered: 0, shipped: 0, invoiced: 0, failed: 0 }
+  const counts = { '': orders.value.length, pending: 0, accepted: 0, backordered: 0, shipped: 0, invoiced: 0, delivered: 0, failed: 0 }
   orders.value.forEach(o => {
     const s = normalizeStatus(o.status)
     if (s in counts) counts[s]++
@@ -486,7 +487,6 @@ const normalizeStatus = (status) => {
   const map = {
     processing: 'accepted',
     confirmed:  'accepted',
-    delivered:  'invoiced',
     complete:   'invoiced',
     completed:  'invoiced',
   }
@@ -505,9 +505,10 @@ const orderTimeline = computed(() => {
     { key: 'accepted', label: 'Accepted by Supplier', date: formatDate(selectedOrder.value.created_at) },
     { key: 'backordered', label: 'Backordered', date: null },
     { key: 'shipped', label: 'Shipped', date: selectedOrder.value.shipped_at ? formatDate(selectedOrder.value.shipped_at) : null },
-    { key: 'invoiced', label: 'Invoiced / Complete', date: selectedOrder.value.delivered_at ? formatDate(selectedOrder.value.delivered_at) : null },
+    { key: 'invoiced', label: 'Invoiced', date: null },
+    { key: 'delivered', label: 'Delivered', date: selectedOrder.value.delivered_at ? formatDate(selectedOrder.value.delivered_at) : null },
   ]
-  const statusOrder = ['accepted', 'backordered', 'shipped', 'invoiced']
+  const statusOrder = ['accepted', 'backordered', 'shipped', 'invoiced', 'delivered']
   const currentIdx = statusOrder.indexOf(status)
   return steps.map((step, idx) => ({
     ...step,

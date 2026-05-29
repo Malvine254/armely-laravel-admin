@@ -99,6 +99,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/orders/shipping/live', [QuoteOrderInvoiceController::class, 'getLiveShipping']);
         Route::get('/orders/{orderNumber}', [QuoteOrderInvoiceController::class, 'getOrder']);
         Route::post('/orders/{orderNumber}/cancel', [QuoteOrderInvoiceController::class, 'cancelOrder']);
+        Route::post('/orders/{orderNumber}/mark-delivered', [QuoteOrderInvoiceController::class, 'markOrderDelivered']);
     });
 
     // Invoices endpoints (protected)
