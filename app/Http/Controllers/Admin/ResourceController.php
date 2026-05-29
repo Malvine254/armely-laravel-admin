@@ -9,11 +9,11 @@ use App\Services\ActivityLogger;
 use App\Services\ResourceStorageService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 class ResourceController extends Controller
 {
@@ -166,7 +166,7 @@ class ResourceController extends Controller
         return redirect()->route('admin.resources.index')->with('success', 'Resource deleted successfully.');
     }
 
-    public function download(Request $request, Resource $resource): RedirectResponse|Response
+    public function download(Request $request, Resource $resource): RedirectResponse|SymfonyResponse
     {
         $fileUrl = trim((string) ($resource->file_url ?? ''));
         $filePath = trim((string) ($resource->file_path ?? ''));
