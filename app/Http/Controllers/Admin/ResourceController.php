@@ -9,7 +9,9 @@ use App\Services\ActivityLogger;
 use App\Services\ResourceStorageService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
@@ -164,6 +166,68 @@ class ResourceController extends Controller
         return redirect()->route('admin.resources.index')->with('success', 'Resource deleted successfully.');
     }
 
+    public function download(Request $request, Resource $resource): RedirectResponse|Response
+    {
+        $fileUrl = trim((string) ($resource->file_url ?? ''));
+        $filePath = trim((string) ($resource->file_path ?? ''));
+
+        if ($fileUrl === '' && $filePath === '') {
+            return redirect()
+                ->route('admin.resources.edit', $resource)
+                ->withErrors(['file' => 'No file is attached to this resource.']);
+        }
+
+        $downloadName = $this->resolveDownloadName($resource, $fileUrl);
+        $mode = strtolower((string) $request->query('mode', 'download'));
+        $inlineMode = $mode === 'inline';
+
+        $disk = (string) config('resources.storage_disk', 'resources');
+        if ($filePath !== '') {
+            try {
+                if (Storage::disk($disk)->exists($filePath)) {
+                    if ($inlineMode) {
+                        $stream = Storage::disk($disk)->readStream($filePath);
+                        if ($stream !== false) {
+                            $mimeType = (string) (Storage::disk($disk)->mimeType($filePath) ?: 'application/octet-stream');
+                            return response()->stream(function () use ($stream) {
+                                fpassthru($stream);
+                                if (is_resource($stream)) {
+                                    fclose($stream);
+                                }
+                            }, 200, [
+                                'Content-Type' => $mimeType,
+                                'Content-Disposition' => 'inline; filename="' . addslashes($downloadName) . '"',
+                            ]);
+                        }
+                    }
+
+                    return Storage::disk($disk)->download($filePath, $downloadName);
+                }
+            } catch (\Throwable) {
+                // Fall through to URL/local-path based access below.
+            }
+        }
+
+        $localFilePath = $this->resolveLocalFilePathFromUrl($fileUrl);
+        if ($localFilePath !== null && is_file($localFilePath)) {
+            if ($inlineMode) {
+                return response()->file($localFilePath, [
+                    'Content-Disposition' => 'inline; filename="' . addslashes($downloadName) . '"',
+                ]);
+            }
+
+            return response()->download($localFilePath, $downloadName);
+        }
+
+        if ($fileUrl !== '') {
+            return redirect()->away($fileUrl);
+        }
+
+        return redirect()
+            ->route('admin.resources.edit', $resource)
+            ->withErrors(['file' => 'Unable to resolve this file.']);
+    }
+
     private function validatedData(Request $request, ?Resource $resource = null): array
     {
         $maxFileKb = (int) config('resources.uploads.max_file_kb', 51200);
@@ -238,5 +302,61 @@ class ResourceController extends Controller
         }
 
         return ResourceCategory::query()->whereKey($categoryId)->value('name');
+    }
+
+    private function resolveLocalFilePathFromUrl(string $url): ?string
+    {
+        if ($url === '') {
+            return null;
+        }
+
+        $parsedPath = (string) parse_url($url, PHP_URL_PATH);
+        if ($parsedPath === '') {
+            return null;
+        }
+
+        $normalized = '/' . ltrim($parsedPath, '/');
+
+        if (str_starts_with($normalized, '/pdf/')) {
+            return public_path(ltrim($normalized, '/'));
+        }
+
+        if (str_starts_with($normalized, '/storage/resources/')) {
+            $relative = ltrim(Str::after($normalized, '/storage/resources/'), '/');
+            return storage_path('app/public/resources/' . $relative);
+        }
+
+        if (str_starts_with($normalized, '/storage/')) {
+            $relative = ltrim(Str::after($normalized, '/storage/'), '/');
+            return storage_path('app/public/' . $relative);
+        }
+
+        return null;
+    }
+
+    private function resolveDownloadName(Resource $resource, string $fileUrl): string
+    {
+        $original = trim((string) ($resource->file_name ?? ''));
+        if ($original !== '') {
+            return $original;
+        }
+
+        $path = (string) parse_url($fileUrl, PHP_URL_PATH);
+        $basename = trim((string) basename($path));
+        if ($basename !== '' && str_contains($basename, '.')) {
+            return $basename;
+        }
+
+        $extension = pathinfo($basename, PATHINFO_EXTENSION);
+        if ($extension === '') {
+            $extension = strtolower((string) $resource->resource_type) === 'video' ? 'mp4' : 'bin';
+        }
+
+        $nameBase = Str::slug((string) ($resource->title ?: 'resource-file'));
+        if ($nameBase === '') {
+            $nameBase = 'resource-file';
+        }
+
+        return $nameBase . '.' . $extension;
     }
 }

@@ -53,6 +53,8 @@ Route::post('/case-studies/lead', [CaseStudiesController::class, 'submitLead'])-
 Route::get('/case-studies/access/{caseStudy}', [CaseStudiesController::class, 'accessCaseStudy'])->name('case-studies.access');
 Route::get('/white-papers/access/{paper}', [CaseStudiesController::class, 'accessWhitePaper'])->name('white-papers.access');
 Route::get('/resources', [ResourceController::class, 'index'])->name('resources.index');
+Route::post('/resources/{slug}/request', [ResourceController::class, 'requestResource'])->name('resources.request');
+Route::get('/resources/{slug}/download', [ResourceController::class, 'download'])->name('resources.download');
 Route::get('/resources/{slug}', [ResourceController::class, 'show'])->name('resources.show');
 Route::get('/case_docs/{file}', [CaseStudiesController::class, 'legacyCaseDoc'])
     ->where('file', '.*')
@@ -212,6 +214,7 @@ Route::prefix('admin')->middleware(['admin'])->group(function () {
     Route::get('/resources', [AdminResourceController::class, 'index'])->name('admin.resources.index');
     Route::get('/resources/create', [AdminResourceController::class, 'create'])->name('admin.resources.create');
     Route::post('/resources', [AdminResourceController::class, 'store'])->name('admin.resources.store');
+    Route::get('/resources/{resource}/file', [AdminResourceController::class, 'download'])->name('admin.resources.download');
     Route::get('/resources/{resource}/edit', [AdminResourceController::class, 'edit'])->name('admin.resources.edit');
     Route::put('/resources/{resource}', [AdminResourceController::class, 'update'])->name('admin.resources.update');
     Route::delete('/resources/{resource}', [AdminResourceController::class, 'destroy'])->name('admin.resources.destroy');

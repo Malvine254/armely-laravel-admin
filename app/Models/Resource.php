@@ -27,12 +27,16 @@ class Resource extends Model
         'is_published',
         'is_featured',
         'is_noindex',
+        'click_count',
+        'download_count',
     ];
 
     protected $casts = [
         'is_published' => 'boolean',
         'is_featured' => 'boolean',
         'is_noindex' => 'boolean',
+        'click_count' => 'integer',
+        'download_count' => 'integer',
     ];
 
     public function scopePublished(Builder $query): Builder

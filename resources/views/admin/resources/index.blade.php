@@ -183,6 +183,15 @@
         word-break: break-word;
     }
 
+    .resource-title-block .resource-engagement {
+        margin-top: 0.25rem;
+        color: #475569;
+        font-size: 0.78rem;
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+    }
+
     .resource-type-badge,
     .resource-category-badge,
     .resource-status-badge {
@@ -476,6 +485,7 @@
                             <th>Type</th>
                             <th>Category</th>
                             <th>Status</th>
+                            <th>Engagement</th>
                             <th>Updated</th>
                             <th>Public Link</th>
                             <th class="text-end px-4">Actions</th>
@@ -504,6 +514,10 @@
                                         <div class="resource-title-block">
                                             <div class="resource-title">{{ $resource->title }}</div>
                                             <div class="resource-slug">/{{ $resource->slug }}</div>
+                                            <div class="resource-engagement">
+                                                <span><i class="fas fa-mouse-pointer" style="margin-right:6px;"></i>{{ (int) ($resource->click_count ?? 0) }} clicks</span>
+                                                <span><i class="fas fa-download" style="margin-right:6px;"></i>{{ (int) ($resource->download_count ?? 0) }} downloads</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </td>
@@ -532,6 +546,10 @@
                                         @endif
                                     </div>
                                 </td>
+                                <td>
+                                    <span class="small text-muted d-block">Clicks: <strong>{{ (int) ($resource->click_count ?? 0) }}</strong></span>
+                                    <span class="small text-muted d-block">Downloads: <strong>{{ (int) ($resource->download_count ?? 0) }}</strong></span>
+                                </td>
                                 <td>{{ optional($resource->updated_at)->format('M d, Y') }}</td>
                                 <td>
                                     <a href="{{ $publicLink }}" target="_blank" rel="noopener" class="resource-link-chip">
@@ -540,6 +558,11 @@
                                 </td>
                                 <td class="text-end">
                                     <div class="admin-action-group">
+                                        @if(!empty($resource->file_url) || !empty($resource->file_path))
+                                            <a href="{{ route('admin.resources.download', ['resource' => $resource, 'mode' => 'inline']) }}" target="_blank" rel="noopener" class="action-link" title="Open file">
+                                                <i class="fas fa-file-arrow-down"></i>
+                                            </a>
+                                        @endif
                                         <button type="button" class="action-link copy-link-btn" data-link="{{ $publicLink }}" title="Copy link">
                                             <i class="fas fa-link"></i>
                                         </button>
@@ -558,7 +581,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="text-center text-muted py-5">No resources yet.</td>
+                                <td colspan="8" class="text-center text-muted py-5">No resources yet.</td>
                             </tr>
                         @endforelse
                     </tbody>

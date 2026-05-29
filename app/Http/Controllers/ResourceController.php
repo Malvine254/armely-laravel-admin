@@ -3,10 +3,19 @@
 namespace App\Http\Controllers;
 
 use App\Models\Resource;
+use App\Services\AzureMailService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Response;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cookie;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Str;
 
 class ResourceController extends Controller
 {
@@ -148,6 +157,14 @@ class ResourceController extends Controller
             ->first();
 
         if ($resource) {
+            $clickCookie = 'resource_click_' . $resource->id;
+            $countUniqueClick = Schema::hasColumn('resources', 'click_count') && !$request->cookies->has($clickCookie);
+
+            if ($countUniqueClick) {
+                $resource->increment('click_count');
+                $resource->refresh();
+            }
+
             $relatedResources = Resource::query()
                 ->published()
                 ->where('id', '!=', $resource->id)
@@ -161,13 +178,288 @@ class ResourceController extends Controller
                 ->limit(3)
                 ->get();
 
-            return view('resources.show', [
+            $response = response()->view('resources.show', [
                 'resource' => $resource,
                 'relatedResources' => $relatedResources,
             ]);
+
+            if ($countUniqueClick) {
+                $response->cookie($clickCookie, '1', 60 * 24 * 30);
+            }
+
+            return $response;
         }
 
         // Backward compatibility for existing static and white-paper resource URLs.
         return app(CaseStudiesController::class)->showResource($request, $slug);
+    }
+
+    public function download(Request $request, string $slug): RedirectResponse|Response
+    {
+        if (!Schema::hasTable('resources')) {
+            abort(404);
+        }
+
+        // When a signed URL is used (e.g. emailed link), enforce expiration/signature.
+        if (($request->has('expires') || $request->has('signature')) && !$request->hasValidSignature()) {
+            abort(403, 'This download link is invalid or has expired. Please request a new one.');
+        }
+
+        $resource = Resource::query()
+            ->published()
+            ->where('slug', $slug)
+            ->firstOrFail();
+
+        $fileUrl = trim((string) ($resource->file_url ?? ''));
+        if ($fileUrl === '') {
+            return redirect()
+                ->route('resources.show', $resource->slug)
+                ->withErrors(['download' => 'No downloadable file is attached to this resource.']);
+        }
+
+        $downloadCookie = 'resource_download_' . $resource->id;
+        $countUniqueDownload = Schema::hasColumn('resources', 'download_count') && !$request->cookies->has($downloadCookie);
+
+        if ($countUniqueDownload) {
+            $resource->increment('download_count');
+            Cookie::queue($downloadCookie, '1', 60 * 24 * 30);
+        }
+
+        $downloadName = $this->resolveDownloadName($resource, $fileUrl);
+        $mode = strtolower((string) $request->query('mode', 'download'));
+        $inlineMode = $mode === 'inline';
+
+        // Prefer direct storage download (forces attachment and targets actual file path).
+        $disk = (string) config('resources.storage_disk', 'resources');
+        $filePath = trim((string) ($resource->file_path ?? ''));
+        if ($filePath !== '') {
+            try {
+                if (Storage::disk($disk)->exists($filePath)) {
+                    if ($inlineMode) {
+                        $stream = Storage::disk($disk)->readStream($filePath);
+                        if ($stream !== false) {
+                            $mimeType = (string) (Storage::disk($disk)->mimeType($filePath) ?: 'application/octet-stream');
+                            return response()->stream(function () use ($stream) {
+                                fpassthru($stream);
+                                if (is_resource($stream)) {
+                                    fclose($stream);
+                                }
+                            }, 200, [
+                                'Content-Type' => $mimeType,
+                                'Content-Disposition' => 'inline; filename="' . addslashes($downloadName) . '"',
+                            ]);
+                        }
+                    }
+
+                    return Storage::disk($disk)->download($filePath, $downloadName);
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Resource storage download fallback triggered', [
+                    'resource_id' => $resource->id,
+                    'disk' => $disk,
+                    'path' => $filePath,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        // If file_url points to a local file path under this app, serve it directly.
+        $localFilePath = $this->resolveLocalFilePathFromUrl($fileUrl);
+        if ($localFilePath !== null && is_file($localFilePath)) {
+            if ($inlineMode) {
+                return response()->file($localFilePath, [
+                    'Content-Disposition' => 'inline; filename="' . addslashes($downloadName) . '"',
+                ]);
+            }
+
+            return response()->download($localFilePath, $downloadName);
+        }
+
+        // Avoid proxying remote files through PHP to prevent request timeouts.
+        return redirect()->away($fileUrl);
+    }
+
+    public function requestResource(Request $request, string $slug): RedirectResponse|JsonResponse
+    {
+        if (!Schema::hasTable('resources')) {
+            abort(404);
+        }
+
+        $resource = Resource::query()
+            ->published()
+            ->where('slug', $slug)
+            ->firstOrFail();
+
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:120'],
+            'email' => ['required', 'email:rfc', 'max:255'],
+            'organization' => ['nullable', 'string', 'max:255'],
+            'job_title' => ['nullable', 'string', 'max:255'],
+            'message' => ['nullable', 'string', 'max:2000'],
+        ], [
+            'name.required' => 'Please enter your name.',
+            'email.required' => 'Please enter your work email.',
+            'email.email' => 'Please enter a valid email address.',
+        ]);
+
+        $normalizedEmail = AzureMailService::normalizeEmail((string) ($data['email'] ?? ''));
+        if (!AzureMailService::isDeliverableEmail($normalizedEmail)) {
+            return $this->requestErrorResponse($request, 'Please provide a valid business email that can receive the resource link.');
+        }
+
+        $resourceUrl = route('resources.show', $resource->slug);
+        $downloadUrl = $resource->file_url ? $this->temporaryResourceDownloadUrl($resource) : $resourceUrl;
+
+        try {
+            if (Schema::hasTable('contacts')) {
+                DB::table('contacts')->insert([
+                    'name' => (string) $data['name'],
+                    'email' => $normalizedEmail,
+                    'organization' => (string) ($data['organization'] ?? ''),
+                    'phone' => '',
+                    'message' => trim(implode("\n", array_filter([
+                        'Resource request: ' . $resource->title,
+                        'Resource slug: ' . $resource->slug,
+                        'Resource URL: ' . $resourceUrl,
+                        'Download URL: ' . $downloadUrl,
+                        'Job title: ' . (string) ($data['job_title'] ?? ''),
+                        'Notes: ' . (string) ($data['message'] ?? ''),
+                        'Lead source: Resources detail page',
+                    ]))),
+                    'subject' => 'Resource Request: ' . $resource->title,
+                    'sent_date' => now()->format('Y-m-d H:i:s'),
+                ]);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Resource request contact insert failed', [
+                'resource_id' => $resource->id,
+                'email' => $normalizedEmail,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        try {
+            $mailer = app(AzureMailService::class);
+            $fromEmail = config('mail.from.address', AzureMailService::outboundFromEmail());
+            $subject = 'Your Armely Resource: ' . $resource->title;
+            $htmlBody = view('emails.resources.download-link', [
+                'name' => (string) $data['name'],
+                'resource' => $resource,
+                'resourceUrl' => $resourceUrl,
+                'downloadUrl' => $downloadUrl,
+            ])->render();
+
+            $sent = $mailer->sendEmail((string) $fromEmail, $normalizedEmail, $subject, $htmlBody);
+            if (!$sent) {
+                return $this->requestErrorResponse($request, 'We could not send the resource email right now. Please try again.');
+            }
+        } catch (\Throwable $e) {
+            Log::error('Resource request email failed', [
+                'resource_id' => $resource->id,
+                'email' => $normalizedEmail,
+                'error' => $e->getMessage(),
+            ]);
+
+            return $this->requestErrorResponse($request, 'We could not send the resource email right now. Please try again.');
+        }
+
+        $message = 'The resource link has been sent to ' . $normalizedEmail . '.';
+
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'resource_url' => $resourceUrl,
+                'download_url' => $downloadUrl,
+            ]);
+        }
+
+        return redirect()
+            ->route('resources.show', $resource->slug)
+            ->with('resource_request_status', $message)
+            ->withFragment('resource-request-form');
+    }
+
+    private function requestErrorResponse(Request $request, string $message): RedirectResponse|JsonResponse
+    {
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => false,
+                'message' => $message,
+            ], 422);
+        }
+
+        return back()
+            ->withErrors(['resource_request' => $message])
+            ->withInput()
+            ->withFragment('resource-request-form');
+    }
+
+    private function temporaryResourceDownloadUrl(Resource $resource): string
+    {
+        $fileUrl = trim((string) ($resource->file_url ?? ''));
+        if ($fileUrl === '') {
+            return route('resources.show', $resource->slug);
+        }
+
+        return URL::temporarySignedRoute('resources.download', now()->addHour(), [
+            'slug' => $resource->slug,
+        ]);
+    }
+
+    private function resolveLocalFilePathFromUrl(string $url): ?string
+    {
+        if ($url === '') {
+            return null;
+        }
+
+        $parsedPath = (string) parse_url($url, PHP_URL_PATH);
+        if ($parsedPath === '') {
+            return null;
+        }
+
+        $normalized = '/' . ltrim($parsedPath, '/');
+
+        if (str_starts_with($normalized, '/pdf/')) {
+            return public_path(ltrim($normalized, '/'));
+        }
+
+        if (str_starts_with($normalized, '/storage/resources/')) {
+            $relative = ltrim(Str::after($normalized, '/storage/resources/'), '/');
+            return storage_path('app/public/resources/' . $relative);
+        }
+
+        if (str_starts_with($normalized, '/storage/')) {
+            $relative = ltrim(Str::after($normalized, '/storage/'), '/');
+            return storage_path('app/public/' . $relative);
+        }
+
+        return null;
+    }
+
+    private function resolveDownloadName(Resource $resource, string $fileUrl): string
+    {
+        $original = trim((string) ($resource->file_name ?? ''));
+        if ($original !== '') {
+            return $original;
+        }
+
+        $path = (string) parse_url($fileUrl, PHP_URL_PATH);
+        $basename = trim((string) basename($path));
+        if ($basename !== '' && str_contains($basename, '.')) {
+            return $basename;
+        }
+
+        $extension = pathinfo($basename, PATHINFO_EXTENSION);
+        if ($extension === '') {
+            $extension = strtolower((string) $resource->resource_type) === 'video' ? 'mp4' : 'bin';
+        }
+
+        $nameBase = Str::slug((string) ($resource->title ?: 'resource-file'));
+        if ($nameBase === '') {
+            $nameBase = 'resource-file';
+        }
+
+        return $nameBase . '.' . $extension;
     }
 }

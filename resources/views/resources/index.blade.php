@@ -79,6 +79,7 @@
     padding: 56px 0 88px;
     background: linear-gradient(180deg, #edf4ff 0%, #f8fbff 42%, #ffffff 100%);
     position: relative;
+    overflow-x: clip;
 }
 .resources-section::before,
 .resources-section::after {
@@ -104,6 +105,9 @@
 .resources-section .container {
     position: relative;
     z-index: 1;
+    max-width: min(1320px, calc(100vw - 120px));
+    padding-left: 24px;
+    padding-right: 24px;
 }
 .featured-wrap {
     margin-bottom: 20px;
@@ -161,6 +165,7 @@
     backdrop-filter: blur(2px);
     box-shadow: 0 24px 48px rgba(19, 44, 88, 0.12);
     overflow: visible;
+    max-width: 100%;
 }
 .repo-shell.is-loading {
     opacity: 0.62;
@@ -300,6 +305,7 @@
     display: grid;
     grid-template-columns: 290px minmax(0, 1fr);
     min-height: 520px;
+    max-width: 100%;
 }
 .folder-pane {
     border-right: 1px solid #e7eefc;
@@ -424,6 +430,7 @@
 }
 .repo-files {
     padding: 12px 14px 16px;
+    min-width: 0;
 }
 .file-row {
     border: 1px solid #dce7fb;
@@ -436,6 +443,7 @@
     gap: 14px;
     align-items: start;
     transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+    min-width: 0;
 }
 .file-row:hover {
     transform: translateY(-2px);
@@ -537,6 +545,7 @@
     line-height: 1.3;
     margin: 0;
     font-weight: 800;
+    overflow-wrap: anywhere;
 }
 .file-meta {
     display: flex;
@@ -563,17 +572,45 @@
     color: #4d6489;
     border: 1px solid #e0e8f8;
 }
+.file-engagement {
+    background: #f0f5ff;
+    color: #2a4f89;
+    border: 1px solid #d7e3fb;
+}
+.file-engagement-click {
+    background: #eef4ff;
+    color: #274a82;
+    border: 1px solid #cfdffa;
+}
+.file-engagement-download {
+    background: #edf9f2;
+    color: #1f6b47;
+    border: 1px solid #c6e9d4;
+}
 .file-description {
     color: #4a5d7e;
     line-height: 1.65;
     font-size: 0.92rem;
     margin: 10px 0 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
 }
 .file-description p {
     margin: 0 0 0.65rem;
 }
 .file-description p:last-child {
     margin-bottom: 0;
+}
+.file-description img,
+.file-description video,
+.file-description iframe {
+    max-width: 100%;
+    height: auto;
+}
+.file-description table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
 }
 .folder-location {
     margin-top: 12px;
@@ -588,6 +625,16 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+.folder-location a {
+    color: #1f467f;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    font-weight: 800;
+}
+.folder-location a:hover,
+.folder-location a:focus {
+    color: #173766;
 }
 .file-actions {
     display: flex;
@@ -724,33 +771,16 @@
     .repo-shell {
         overflow: hidden;
     }
+    .resources-section .container {
+        max-width: calc(100vw - 36px);
+        padding-left: 12px;
+        padding-right: 12px;
+    }
 }
 </style>
 @endpush
 
 @section('content')
-<section class="resources-hero">
-    <div class="container">
-        <h1 class="resources-title">Resources Repository</h1>
-        <p class="resources-subtitle">Practical AI, Copilot, Governance, and Data transformation resources from Armely.</p>
-        <p class="resources-availability">{{ $stats['total'] ?? 0 }} Resources Available</p>
-        <div class="resources-stats">
-            <div class="resources-stat">
-                <strong>{{ $stats['total'] ?? 0 }}</strong>
-                <span>Resources</span>
-            </div>
-            <div class="resources-stat">
-                <strong>{{ $stats['categories'] ?? 0 }}</strong>
-                <span>Categories</span>
-            </div>
-            <div class="resources-stat">
-                <strong>{{ $stats['updated_label'] ?? 'No updates yet' }}</strong>
-                <span>Status</span>
-            </div>
-        </div>
-    </div>
-</section>
-
 <section class="resources-section">
     <div class="container">
         @if(($featuredResources ?? collect())->isNotEmpty())
@@ -881,6 +911,22 @@
                                     $isImagePreview = str_starts_with($fileUrl, 'data:image') || preg_match('/\.(png|jpe?g|webp|gif)$/i', $fileUrl);
                                     $isVideoPreview = $type === 'video';
                                     $thumbImage = $resource->thumbnail_url ?: ($isImagePreview ? $fileUrl : null);
+                                    $folderCategory = trim((string) ($resource->category ?? ''));
+                                    $folderCategoryLabel = $folderCategory !== '' ? $folderCategory : 'General';
+                                    $folderTypeLabel = ucfirst((string) $resource->resource_type);
+                                    $folderCategoryUrl = $folderCategory !== ''
+                                        ? route('resources.index', array_filter([
+                                            'category' => $folderCategory,
+                                            'sort' => $selectedSort,
+                                        ]))
+                                        : route('resources.index', array_filter([
+                                            'sort' => $selectedSort,
+                                        ]));
+                                    $folderTypeUrl = route('resources.index', array_filter([
+                                        'category' => $folderCategory !== '' ? $folderCategory : null,
+                                        'type' => $resource->resource_type,
+                                        'sort' => $selectedSort,
+                                    ]));
                                 @endphp
                             <article class="file-row">
                                 <div class="file-thumb">
@@ -920,6 +966,8 @@
                                     <div class="file-meta">
                                         <span class="file-type">{{ $iconConfig[2] }}</span>
                                         <span class="file-date">Added {{ optional($resource->created_at)->format('M d, Y') }}</span>
+                                        <span class="file-date file-engagement file-engagement-click"><i class="fa fa-mouse-pointer" aria-hidden="true" style="margin-right:6px;"></i>{{ (int) ($resource->click_count ?? 0) }} clicks</span>
+                                        <span class="file-date file-engagement file-engagement-download"><i class="fa fa-download" aria-hidden="true" style="margin-right:6px;"></i>{{ (int) ($resource->download_count ?? 0) }} downloads</span>
                                     </div>
                                     <div class="file-description">
                                         @php
@@ -931,7 +979,7 @@
                                             <p>Practical implementation guidance from Armely.</p>
                                         @endif
                                     </div>
-                                    <div class="folder-location">📁 Folder Location: {{ $resource->category ?: 'General' }} / {{ ucfirst($resource->resource_type) }}</div>
+                                    <div class="folder-location">📁 Folder Location: <a href="{{ $folderCategoryUrl }}">{{ $folderCategoryLabel }}</a> / <a href="{{ $folderTypeUrl }}">{{ $folderTypeLabel }}</a></div>
                                 </div>
 
                                 <div class="file-actions">
@@ -941,11 +989,11 @@
                                             <i class="fa fa-ellipsis-v" aria-hidden="true"></i>
                                         </button>
                                         <ul class="dropdown-menu dropdown-menu-end dropdown-menu-right">
-                                            <li><a class="dropdown-item preview-resource-btn" href="#" data-title="{{ $resource->title }}" data-type="{{ $resource->resource_type }}" data-url="{{ $resource->file_url ?: route('resources.show', $resource->slug) }}">Preview</a></li>
+                                            <li><a class="dropdown-item preview-resource-btn" href="#" data-title="{{ $resource->title }}" data-type="{{ $resource->resource_type }}" data-url="{{ route('resources.download', ['slug' => $resource->slug, 'mode' => 'inline']) }}">Preview</a></li>
                                             <li><a class="dropdown-item copy-link-btn" href="#" data-url="{{ route('resources.show', $resource->slug) }}">Copy Link</a></li>
                                             <li><a class="dropdown-item" href="{{ route('resources.show', $resource->slug) }}">Open Resource</a></li>
                                             @if($resource->file_url)
-                                                <li><a class="dropdown-item" href="{{ $resource->file_url }}" target="_blank" rel="noopener">Download</a></li>
+                                                <li><a class="dropdown-item" href="{{ route('resources.download', $resource->slug) }}">Download</a></li>
                                             @endif
                                         </ul>
                                     </div>

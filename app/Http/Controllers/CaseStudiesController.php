@@ -47,6 +47,7 @@ class CaseStudiesController extends Controller
             'recaptchaSiteKey' => config('services.recaptcha.site_key', ''),
             'selectedIndustry' => (string) $request->query('industry', ''),
             'selectedTopic' => (string) $request->query('topic', ''),
+            'selectedWhiteTopic' => (string) $request->query('white_topic', ''),
             'industryFilters' => $this->industryFilters(),
             'topicFilters' => $this->topicFilters(),
             'portfolioStats' => $this->portfolioStats(),
@@ -1131,28 +1132,7 @@ class CaseStudiesController extends Controller
                 ->orderByDesc('id');
 
             $searchableColumns = $this->whitePaperSearchColumns();
-            $industryFilters = $this->industryFilters();
-            $industry = Str::slug(Str::lower((string) $request->query('industry', '')));
-
-            if ($industry !== '' && array_key_exists($industry, $industryFilters) && !empty($searchableColumns)) {
-                $industryLabel = trim((string) $industryFilters[$industry]);
-                $industryTerms = array_values(array_unique(array_filter([
-                    Str::lower($industryLabel),
-                    ...array_map(fn ($term) => Str::lower((string) $term), $this->industryQueryTerms($industry)),
-                    Str::lower(str_replace('-', ' ', $industry)),
-                    Str::lower($industry),
-                ])));
-
-                $query->where(function ($inner) use ($searchableColumns, $industryTerms) {
-                    foreach ($industryTerms as $term) {
-                        foreach ($searchableColumns as $column) {
-                            $inner->orWhere($column, 'like', '%' . $term . '%');
-                        }
-                    }
-                });
-            }
-
-            $topic = (string) $request->query('topic', '');
+            $topic = (string) $request->query('white_topic', '');
             if ($topic !== '' && array_key_exists($topic, $this->topicFilters()) && !empty($searchableColumns)) {
                 $terms = match ($topic) {
                     'fabric-data' => ['fabric', 'power bi', 'data', 'analytics', 'warehouse', 'lakehouse'],
