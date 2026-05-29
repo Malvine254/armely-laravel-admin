@@ -35,20 +35,18 @@ class PriceSyncSchedulerService
 
     public function kickOffDueScheduledRun(): void
     {
+        $fallbackEnabled = (bool) AppSetting::getValue('price_sync.enable_http_fallback', false);
+        if (!$fallbackEnabled) {
+            return;
+        }
+
         if (!Cache::add('price_sync.schedule_tick', true, now()->addMinute())) {
             return;
         }
 
         try {
-            $timezone = (string) AppSetting::getValue('price_sync.timezone', 'Africa/Nairobi');
-            if (!in_array($timezone, timezone_identifiers_list(), true)) {
-                $timezone = 'Africa/Nairobi';
-            }
-
-            $time = (string) AppSetting::getValue('price_sync.time', '18:00');
-            if (!preg_match('/^\d{2}:\d{2}$/', $time)) {
-                $time = '18:00';
-            }
+            $timezone = $this->resolveTimezone();
+            $time = $this->resolveScheduledTime();
 
             [$hour, $minute] = array_map('intval', explode(':', $time));
             $now = Carbon::now($timezone);
@@ -63,13 +61,8 @@ class PriceSyncSchedulerService
                 return;
             }
 
-            $existing = AppSetting::getValue('price_sync.run_state', []);
-            if (is_array($existing) && ($existing['status'] ?? '') === 'running') {
-                $startedAt = $existing['started_at'] ?? null;
-                $stuckMins = $startedAt ? now()->diffInMinutes(Carbon::parse($startedAt)) : 999;
-                if ($stuckMins < 30) {
-                    return;
-                }
+            if ($this->isRunCurrentlyInProgress()) {
+                return;
             }
 
             $this->startBackgroundRun('all', '', 'scheduled fallback');
@@ -79,6 +72,84 @@ class PriceSyncSchedulerService
                 'error' => $e->getMessage(),
             ]);
         }
+    }
+
+    /**
+     * Trigger scheduled price sync only when local time exactly matches configured HH:MM.
+     * Returns true when a run is dispatched.
+     */
+    public function triggerExactScheduledRun(): bool
+    {
+        try {
+            $timezone = $this->resolveTimezone();
+            $time = $this->resolveScheduledTime();
+            $now = Carbon::now($timezone);
+
+            if ($now->format('H:i') !== $time) {
+                return false;
+            }
+
+            $slotKey = $now->format('Y-m-d H:i');
+            if ((string) AppSetting::getValue('price_sync.last_triggered_slot', '') === $slotKey) {
+                return false;
+            }
+
+            if (!$this->acquireSlotLock($slotKey)) {
+                return false;
+            }
+
+            if ($this->isRunCurrentlyInProgress()) {
+                return false;
+            }
+
+            $this->startBackgroundRun('all', '', 'scheduled exact');
+            AppSetting::setValue('price_sync.last_triggered_slot', $slotKey);
+            AppSetting::setValue('price_sync.last_triggered_date', $now->format('Y-m-d'));
+
+            return true;
+        } catch (\Throwable $e) {
+            Log::warning('Price sync exact scheduler check failed', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return false;
+        }
+    }
+
+    private function resolveTimezone(): string
+    {
+        $timezone = (string) AppSetting::getValue('price_sync.timezone', 'Africa/Nairobi');
+
+        return in_array($timezone, timezone_identifiers_list(), true)
+            ? $timezone
+            : 'Africa/Nairobi';
+    }
+
+    private function resolveScheduledTime(): string
+    {
+        $time = (string) AppSetting::getValue('price_sync.time', '18:00');
+
+        return preg_match('/^\d{2}:\d{2}$/', $time)
+            ? $time
+            : '18:00';
+    }
+
+    private function acquireSlotLock(string $slotKey): bool
+    {
+        return Cache::add('price_sync.schedule_slot_lock:' . md5($slotKey), true, now()->addMinutes(2));
+    }
+
+    private function isRunCurrentlyInProgress(): bool
+    {
+        $existing = AppSetting::getValue('price_sync.run_state', []);
+        if (!is_array($existing) || ($existing['status'] ?? '') !== 'running') {
+            return false;
+        }
+
+        $startedAt = $existing['started_at'] ?? null;
+        $stuckMins = $startedAt ? now()->diffInMinutes(Carbon::parse($startedAt)) : 999;
+
+        return $stuckMins < 30;
     }
 
     private function spawnRefreshCommand(string $scope, string $skusRaw): void

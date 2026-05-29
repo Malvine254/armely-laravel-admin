@@ -27,24 +27,11 @@ class Kernel extends ConsoleKernel
             ->name('check-expiring-quotes')
             ->withoutOverlapping();
 
-        // Daily 6:00 PM Kenya time: poll TD SYNNEX PriceAvailability and email status.
-        // This does NOT change displayed prices — it just captures the latest data.
-        $priceSyncTime = (string) $this->settingValue('price_sync.time', '18:00');
-        if (!preg_match('/^\d{2}:\d{2}$/', $priceSyncTime)) {
-            $priceSyncTime = '18:00';
-        }
-
-        $priceSyncTimezone = (string) $this->settingValue('price_sync.timezone', 'Africa/Nairobi');
-        if (!in_array($priceSyncTimezone, timezone_identifiers_list(), true)) {
-            $priceSyncTimezone = 'Africa/Nairobi';
-        }
-
-        // Run as a command (synchronous Artisan call) so it works without a queue worker.
-        // Sends started + completed/failed emails via AzureGraphMailService.
-        $schedule->command('tdsynnex:refresh-live-prices')
-            ->dailyAt($priceSyncTime)
-            ->timezone($priceSyncTimezone)
-            ->name('refresh-live-prices-6pm-kenya')
+        // Check every minute and dispatch only at exact configured HH:MM in configured timezone.
+        // This keeps schedule timing accurate even when timezone/time are changed in settings.
+        $schedule->command('price-sync:dispatch-scheduled')
+            ->everyMinute()
+            ->name('dispatch-scheduled-price-sync')
             ->withoutOverlapping();
 
         // Midnight: compare live_* shadow columns against main columns and apply any changes
