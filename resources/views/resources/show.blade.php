@@ -479,6 +479,7 @@
             ]));
             $resourceInlineUrl = route('resources.download', ['slug' => $resource->slug, 'mode' => 'inline']);
             $requiresRequestForFullContent = $isPdfFile || $type === 'pdf';
+            $pdfTeaserSummary = \Illuminate\Support\Str::limit(trim(strip_tags((string) ($resource->description ?: 'This PDF is available on request.'))), 220);
         @endphp
 
         <div class="resource-split">
@@ -539,9 +540,7 @@
                                     <div class="resource-pdf-teaser-card">
                                         <span class="resource-pdf-teaser-badge"><i class="fa fa-lock" aria-hidden="true"></i> Full PDF Required</span>
                                         <h3 class="resource-pdf-teaser-title">{{ $resource->title }}</h3>
-                                        <p class="resource-pdf-teaser-summary">
-                                            {{ \\Illuminate\\Support\\Str::limit(trim(strip_tags((string) ($resource->description ?: 'This PDF is available on request.'))), 220) }}
-                                        </p>
+                                        <p class="resource-pdf-teaser-summary">{{ $pdfTeaserSummary }}</p>
                                         <div class="resource-pdf-teaser-sample" aria-hidden="true">
                                             <div class="resource-pdf-teaser-sample-line" style="width: 94%;"></div>
                                             <div class="resource-pdf-teaser-sample-line" style="width: 88%;"></div>
