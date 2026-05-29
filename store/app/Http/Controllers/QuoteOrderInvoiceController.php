@@ -1240,11 +1240,15 @@ class QuoteOrderInvoiceController extends Controller
 
             if (is_array($carrierLive)) {
                 $carrierLiveStatus = strtolower((string) ($carrierLive['status'] ?? ''));
+                $previousCarrierLiveStatus = strtolower((string) ($oldTracking['carrier_live_status_normalized'] ?? ''));
+                $statusActuallyChanged = $carrierLiveStatus !== '' && $carrierLiveStatus !== $previousCarrierLiveStatus;
 
                 $newTracking = array_merge($newTracking, array_filter([
                     'carrier_live_status' => (string) ($carrierLive['raw_status'] ?? $carrierLiveStatus),
                     'carrier_live_status_normalized' => $carrierLiveStatus !== '' ? $carrierLiveStatus : null,
-                    'carrier_live_checked_at' => (string) ($carrierLive['checked_at'] ?? now()->toIso8601String()),
+                    'carrier_live_checked_at' => $statusActuallyChanged
+                        ? (string) ($carrierLive['checked_at'] ?? now()->toIso8601String())
+                        : ($oldTracking['carrier_live_checked_at'] ?? null),
                     'carrier_tracking_url' => (string) ($carrierLive['tracking_url'] ?? $candidateTrackingUrl),
                 ], fn ($value) => $value !== null && $value !== ''));
 
@@ -1293,7 +1297,7 @@ class QuoteOrderInvoiceController extends Controller
                 $order->update($updates);
                 $order->refresh();
 
-                if ($statusChanged || $trackingChanged || $shippingChanged) {
+                if ($this->shouldSendShippingNotification($oldStatus, $newStatus, $oldTracking, $updates['tracking_info'])) {
                     $this->notificationService->sendOrderShippedNotification($order);
                 }
             }
@@ -1544,6 +1548,34 @@ class QuoteOrderInvoiceController extends Controller
             if (str_contains(strtolower($candidate), 'deliver')) {
                 return true;
             }
+        }
+
+        return false;
+    }
+
+    private function shouldSendShippingNotification(string $oldStatus, string $newStatus, array $oldTracking, array $newTracking): bool
+    {
+        $shippingMilestones = ['shipped', 'in_transit', 'delivered'];
+        if ($oldStatus !== $newStatus && in_array($newStatus, $shippingMilestones, true)) {
+            return true;
+        }
+
+        $oldTrackingNumber = strtolower(trim((string) ($oldTracking['tracking_number'] ?? '')));
+        $newTrackingNumber = strtolower(trim((string) ($newTracking['tracking_number'] ?? '')));
+        if ($oldTrackingNumber !== $newTrackingNumber && $newTrackingNumber !== '') {
+            return true;
+        }
+
+        $oldShippingStatus = strtolower(trim((string) ($oldTracking['shipping_status'] ?? '')));
+        $newShippingStatus = strtolower(trim((string) ($newTracking['shipping_status'] ?? '')));
+        if ($oldShippingStatus !== $newShippingStatus && $newShippingStatus !== '') {
+            return true;
+        }
+
+        $oldCarrierStatus = strtolower(trim((string) ($oldTracking['carrier_live_status_normalized'] ?? '')));
+        $newCarrierStatus = strtolower(trim((string) ($newTracking['carrier_live_status_normalized'] ?? '')));
+        if ($oldCarrierStatus !== $newCarrierStatus && in_array($newCarrierStatus, $shippingMilestones, true)) {
+            return true;
         }
 
         return false;
