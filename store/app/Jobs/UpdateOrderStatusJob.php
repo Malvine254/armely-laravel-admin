@@ -61,13 +61,21 @@ class UpdateOrderStatusJob implements ShouldQueue
                 'estimated_delivery_date' => $estimatedDelivery ? (string) $estimatedDelivery : null,
             ], fn ($value) => $value !== null && $value !== ''));
 
+            $oldStatus = (string) ($this->order->status ?? '');
+            if ($oldStatus === 'delivered' || self::trackingPayloadIndicatesDelivered($trackingInfo)) {
+                $normalized = 'delivered';
+            }
+
             // Update local order
-            $oldStatus = $this->order->status;
             $updates = [
                 'status'   => $normalized,
                 'raw_data' => $tdStatus,
                 'tracking_info' => $trackingInfo,
             ];
+
+            if ($normalized === 'delivered' && $this->order->delivered_at === null) {
+                $updates['delivered_at'] = now();
+            }
 
             if ($freightAmount !== null && is_numeric((string) $freightAmount)) {
                 $updates['shipping_amount'] = (float) $freightAmount;
@@ -152,5 +160,28 @@ class UpdateOrderStatusJob implements ShouldQueue
             'cancelled', 'canceled', 'voided', 'void'                   => 'cancelled',
             default                                                       => '',
         };
+    }
+
+    private static function trackingPayloadIndicatesDelivered(array $tracking): bool
+    {
+        $candidates = [
+            $tracking['carrier_live_status_normalized'] ?? null,
+            $tracking['carrier_live_status'] ?? null,
+            $tracking['shipping_status'] ?? null,
+            $tracking['delivery_status'] ?? null,
+            $tracking['latest_status'] ?? null,
+        ];
+
+        foreach ($candidates as $candidate) {
+            if (!is_string($candidate)) {
+                continue;
+            }
+
+            if (str_contains(strtolower($candidate), 'deliver')) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

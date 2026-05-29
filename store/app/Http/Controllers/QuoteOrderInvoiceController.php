@@ -1116,6 +1116,9 @@ class QuoteOrderInvoiceController extends Controller
         if (in_array($carrierLiveStatus, ['shipped', 'in_transit', 'delivered'], true)) {
             $status = $carrierLiveStatus;
         }
+        if ($this->trackingPayloadIndicatesDelivered($trackingInfo)) {
+            $status = 'delivered';
+        }
         if ($status === 'confirmed') {
             $status = 'processing';
         }
@@ -1254,10 +1257,15 @@ class QuoteOrderInvoiceController extends Controller
                 }
             }
 
+            $mergedTracking = array_merge($oldTracking, $newTracking);
+            if ($this->trackingPayloadIndicatesDelivered($mergedTracking) || $oldStatus === 'delivered') {
+                $newStatus = 'delivered';
+            }
+
             $updates = [
                 'status' => $newStatus,
                 'raw_data' => $response,
-                'tracking_info' => array_merge($oldTracking, $newTracking),
+                'tracking_info' => $mergedTracking,
             ];
 
             if ($freightAmount !== null && is_numeric((string) $freightAmount)) {
@@ -1516,6 +1524,29 @@ class QuoteOrderInvoiceController extends Controller
             'returned' => 100,
             default => 20,
         };
+    }
+
+    private function trackingPayloadIndicatesDelivered(array $tracking): bool
+    {
+        $candidates = [
+            $tracking['carrier_live_status_normalized'] ?? null,
+            $tracking['carrier_live_status'] ?? null,
+            $tracking['shipping_status'] ?? null,
+            $tracking['delivery_status'] ?? null,
+            $tracking['latest_status'] ?? null,
+        ];
+
+        foreach ($candidates as $candidate) {
+            if (!is_string($candidate)) {
+                continue;
+            }
+
+            if (str_contains(strtolower($candidate), 'deliver')) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function guessCarrierFromTrackingNumber(?string $trackingNumber): ?string

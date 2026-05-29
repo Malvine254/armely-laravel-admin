@@ -132,6 +132,29 @@ class CarrierTrackingService
             ];
         }
 
+        $deliveredHints = [
+            ' delivered ',
+            ' delivered\n',
+            ' delivered\r',
+            'delivery complete',
+            'package delivered',
+            'was delivered',
+            'proof of delivery',
+            'delivered at',
+            'shipment facts delivered',
+        ];
+
+        foreach ($deliveredHints as $hint) {
+            if (!str_contains($plain, trim($hint))) {
+                continue;
+            }
+
+            return [
+                'status' => 'delivered',
+                'raw_status' => 'delivered',
+            ];
+        }
+
         $rules = [
             'delivered' => [
                 'delivered',
@@ -144,8 +167,10 @@ class CarrierTrackingService
                 'in transit',
                 'on the way',
                 'out for delivery',
+                'on fedex vehicle for delivery',
                 'at local facility',
                 'arrived at fedex location',
+                'departed fedex location',
             ],
             'shipped' => [
                 'picked up',
