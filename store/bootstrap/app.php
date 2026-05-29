@@ -46,32 +46,12 @@ return Application::configure(basePath: dirname(__DIR__))
             ->name('sync-product-prices')
             ->withoutOverlapping();
 
-        $settingValue = static function (string $key, mixed $default = null): mixed {
-            try {
-                return \App\Models\AppSetting::getValue($key, $default);
-            } catch (\Throwable) {
-                return $default;
-            }
-        };
-
-        $priceSyncTime = (string) $settingValue('price_sync.time', '18:00');
-        if (!preg_match('/^\d{2}:\d{2}$/', $priceSyncTime)) {
-            $priceSyncTime = '18:00';
-        }
-
-        $priceSyncTimezone = (string) $settingValue('price_sync.timezone', 'Africa/Nairobi');
-        if (!in_array($priceSyncTimezone, timezone_identifiers_list(), true)) {
-            $priceSyncTimezone = 'Africa/Nairobi';
-        }
-
-        // Run synchronously from the scheduler so the daily price sync does not
-        // depend on a long-running queue worker being present.
-        $schedule->command('tdsynnex:refresh-live-prices')
-            ->dailyAt($priceSyncTime)
-            ->timezone($priceSyncTimezone)
-            ->name('refresh-live-prices-6pm-kenya')
-            ->withoutOverlapping()
-            ->runInBackground();
+        // Evaluate schedule every minute and dispatch only on exact configured
+        // HH:MM in the configured timezone.
+        $schedule->command('price-sync:dispatch-scheduled')
+            ->everyMinute()
+            ->name('dispatch-scheduled-price-sync')
+            ->withoutOverlapping();
 
         $schedule->job(new \App\Jobs\SyncPriceAvailabilityCatalogJob(true), 'products-sync', 'database')
             ->hourly()
