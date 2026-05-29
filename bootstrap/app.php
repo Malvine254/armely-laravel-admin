@@ -14,6 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
+            'admin.api' => \App\Http\Middleware\AdminApiMiddleware::class,
         ]);
 
         // Avoid request blocking in local/dev when DB or geo lookups are unstable.
