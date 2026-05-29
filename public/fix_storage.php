@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Route;
 
 require __DIR__ . '/../vendor/autoload.php';
 
@@ -375,16 +376,36 @@ function runResourcesApiTest(string $slug): array
     $baseUrl = rtrim((string) config('app.url'), '/');
     $slug = trim($slug) !== '' ? trim($slug) : 'modern-data-platform-brief';
     $samplePayload = buildResourcesApiSamplePayload();
+    $routeCachePath = realpath(__DIR__ . '/../bootstrap/cache/routes-v7.php') ?: (__DIR__ . '/../bootstrap/cache/routes-v7.php');
+    $routeNames = [
+        'api.resources.index',
+        'api.resources.show',
+        'api.resources.access-links',
+    ];
+    $routeFlags = [];
+    foreach ($routeNames as $routeName) {
+        $routeFlags[] = $routeName . '=' . (Route::has($routeName) ? 'true' : 'false');
+    }
 
     $listResponse = runInternalJsonRequest('/api/resources', 'GET');
     $detailResponse = runInternalJsonRequest('/api/resources/' . rawurlencode($slug), 'GET');
     $accessResponse = runInternalJsonRequest('/api/resources/' . rawurlencode($slug) . '/access-links', 'POST', $samplePayload);
+
+    $allRoutesPresent = Route::has('api.resources.index') && Route::has('api.resources.show') && Route::has('api.resources.access-links');
+    $diagnosticMessage = $allRoutesPresent
+        ? 'Resource API routes are registered in this app instance.'
+        : 'Resource API routes are NOT registered in this app instance. Deploy bootstrap/app.php and routes/api.php, then run route:clear and route:cache or Full Production Rebuild.';
 
     return [
         'command' => 'resources_api_test',
         'status' => ($listResponse['status_code'] === 200 && $detailResponse['status_code'] === 200 && $accessResponse['status_code'] === 200) ? 'OK' : 'ERROR',
         'output' => implode("\n\n", [
             'BASE_URL=' . $baseUrl,
+            'APP_ENV=' . (string) config('app.env'),
+            'ROUTE_CACHE_FILE=' . $routeCachePath,
+            'ROUTE_CACHE_EXISTS=' . (file_exists($routeCachePath) ? 'true' : 'false'),
+            'ROUTE_REGISTRATION=' . implode(', ', $routeFlags),
+            'ROUTE_DIAGNOSTIC=' . $diagnosticMessage,
             'LIST_ENDPOINT=' . $baseUrl . '/api/resources',
             'DETAIL_ENDPOINT=' . $baseUrl . '/api/resources/' . $slug,
             'ACCESS_LINKS_ENDPOINT=' . $baseUrl . '/api/resources/' . $slug . '/access-links',

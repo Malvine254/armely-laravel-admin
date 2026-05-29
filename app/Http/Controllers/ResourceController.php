@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Resource;
+use App\Models\ResourceCategory;
 use App\Services\AzureMailService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -24,21 +25,129 @@ class ResourceController extends Controller
         if (!Schema::hasTable('resources')) {
             return response()->json([
                 'success' => true,
-                'data' => [],
-                'meta' => ['total' => 0],
+                'resources' => [],
+                'featured_resources' => [],
+                'categories' => [],
+                'types' => [],
+                'stats' => [
+                    'total_resources' => 0,
+                    'total_categories' => 0,
+                    'last_updated_at' => null,
+                ],
             ]);
         }
 
-        $resources = Resource::query()
-            ->published()
-            ->orderByDesc('is_featured')
-            ->orderBy('title')
+        $query = Resource::query()->published()->with('resourceCategory');
+        $hierarchyQuery = Resource::query()->published();
+
+        $search = trim((string) $request->query('q', ''));
+        if ($search !== '') {
+            $query->where(function ($builder) use ($search) {
+                $builder->where('title', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%")
+                    ->orWhere('category', 'like', "%{$search}%")
+                    ->orWhere('resource_type', 'like', "%{$search}%");
+            });
+
+            $hierarchyQuery->where(function ($builder) use ($search) {
+                $builder->where('title', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%")
+                    ->orWhere('category', 'like', "%{$search}%")
+                    ->orWhere('resource_type', 'like', "%{$search}%");
+            });
+        }
+
+        $category = trim((string) $request->query('category', ''));
+        if ($category !== '') {
+            $query->where('category', $category);
+        }
+
+        $type = trim((string) $request->query('type', ''));
+        if ($type !== '') {
+            $query->where('resource_type', $type);
+            $hierarchyQuery->where('resource_type', $type);
+        }
+
+        $sort = trim((string) $request->query('sort', 'newest'));
+        switch ($sort) {
+            case 'alphabetical':
+                $query->orderBy('title');
+                break;
+            case 'updated':
+                $query->orderByDesc('updated_at');
+                break;
+            case 'featured':
+                $query->orderByDesc('is_featured')->orderByDesc('created_at');
+                break;
+            case 'newest':
+            default:
+                $sort = 'newest';
+                $query->orderByDesc('created_at');
+                break;
+        }
+
+        $resources = $query
             ->get();
+
+        $featuredResources = Resource::query()
+            ->published()
+            ->with('resourceCategory')
+            ->where('is_featured', true)
+            ->orderByDesc('updated_at')
+            ->limit(3)
+            ->get();
+
+        $latestUpdatedAt = Resource::query()->published()->max('updated_at');
+
+        $stats = [
+            'total_resources' => (int) Resource::query()->published()->count(),
+            'total_categories' => (int) Resource::query()->published()
+                ->whereNotNull('category')
+                ->where('category', '!=', '')
+                ->distinct('category')
+                ->count('category'),
+            'last_updated_at' => $latestUpdatedAt ? now()->parse($latestUpdatedAt)->toIso8601String() : null,
+        ];
+
+        $categoryCounts = $hierarchyQuery
+            ->selectRaw("COALESCE(NULLIF(category, ''), 'General') as category_name, COUNT(*) as total")
+            ->groupBy('category_name')
+            ->orderBy('category_name')
+            ->get()
+            ->mapWithKeys(function ($row) {
+                return [(string) $row->category_name => (int) $row->total];
+            });
+
+        $types = Resource::query()
+            ->published()
+            ->selectRaw("resource_type, COUNT(*) as total")
+            ->whereNotNull('resource_type')
+            ->where('resource_type', '!=', '')
+            ->groupBy('resource_type')
+            ->orderBy('resource_type')
+            ->get()
+            ->map(function ($row) {
+                return [
+                    'name' => (string) $row->resource_type,
+                    'label' => ucfirst((string) $row->resource_type),
+                    'total' => (int) $row->total,
+                ];
+            })
+            ->values();
 
         return response()->json([
             'success' => true,
-            'data' => $resources->map(fn (Resource $resource) => $this->resourceApiPayload($resource))->values(),
-            'meta' => ['total' => $resources->count()],
+            'resources' => $resources->map(fn (Resource $resource) => $this->resourceApiPayload($resource))->values(),
+            'featured_resources' => $featuredResources->map(fn (Resource $resource) => $this->resourceApiPayload($resource))->values(),
+            'categories' => $this->resourceApiCategories($categoryCounts),
+            'types' => $types,
+            'stats' => $stats,
+            'filters' => [
+                'search' => $search,
+                'category' => $category,
+                'type' => $type,
+                'sort' => $sort,
+            ],
         ]);
     }
 
@@ -55,7 +164,7 @@ class ResourceController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $this->resourceApiPayload($resource),
+            'resource' => $this->resourceApiPayload($resource),
         ]);
     }
 
@@ -76,14 +185,17 @@ class ResourceController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => array_merge(
-                $this->resourceApiPayload($resource, $customer),
-                [
-                    'customer' => $customer,
-                    'resource_url' => $links['resource_url'],
-                    'download_url' => $links['download_url'],
-                ]
-            ),
+            'resource' => $this->resourceApiPayload($resource, $customer),
+            'customer' => [
+                'name' => $customer['name'],
+                'email' => $customer['email'],
+                'organization' => $customer['organization'] ?? null,
+                'job_title' => $customer['job_title'] ?? null,
+            ],
+            'links' => [
+                'resource_url' => $links['resource_url'],
+                'download_url' => $links['download_url'],
+            ],
         ]);
     }
 
@@ -515,18 +627,54 @@ class ResourceController extends Controller
             'title' => $resource->title,
             'slug' => $resource->slug,
             'description' => $resource->description,
-            'category' => $resource->category,
-            'resource_type' => $resource->resource_type,
-            'is_featured' => (bool) $resource->is_featured,
+            'category' => $resource->resourceCategory?->name ?? $resource->category,
+            'type' => $resource->resource_type,
+            'featured' => (bool) $resource->is_featured,
             'thumbnail_url' => $resource->thumbnail_url,
             'resource_url' => $resourceUrl,
             'download_url' => $downloadUrl,
-            'public_resource_url' => $publicResourceUrl,
-            'public_download_url' => $publicDownloadUrl,
-            'access_link_endpoint' => route('api.resources.access-links', $resource->slug),
             'requires_customer_access' => $isPdf,
             'updated_at' => optional($resource->updated_at)?->toIso8601String(),
         ];
+    }
+
+    private function resourceApiCategories($categoryCounts)
+    {
+        $categories = collect();
+
+        if (Schema::hasTable('resource_categories')) {
+            $categories = ResourceCategory::query()
+                ->active()
+                ->orderBy('sort_order')
+                ->orderBy('name')
+                ->get()
+                ->map(function (ResourceCategory $category) use ($categoryCounts) {
+                    $count = (int) ($categoryCounts->get($category->name) ?? 0);
+
+                    return [
+                        'name' => $category->name,
+                        'slug' => $category->slug,
+                        'total' => $count,
+                    ];
+                });
+        }
+
+        $missing = $categoryCounts
+            ->keys()
+            ->reject(function ($name) use ($categories) {
+                return $categories->contains(fn (array $category) => (string) $category['name'] === (string) $name);
+            })
+            ->map(function ($name) use ($categoryCounts) {
+                return [
+                    'name' => (string) $name,
+                    'slug' => Str::slug((string) $name),
+                    'total' => (int) ($categoryCounts->get($name) ?? 0),
+                ];
+            });
+
+        return $categories
+            ->concat($missing)
+            ->values();
     }
 
     private function permanentResourceAccessLinks(Resource $resource, array $customer): array
