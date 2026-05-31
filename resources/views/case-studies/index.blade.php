@@ -584,18 +584,18 @@
 				<div class="case-filter-group" data-filter-panel="technology">
 					<div class="case-filter-label">Technology</div>
 					<div class="case-filter-list">
-						<a class="case-filter-chip {{ $selectedTopic === '' ? 'active' : '' }}" data-filter-group="topic" data-filter-value="" href="{{ route('case-studies.index', array_filter(['industry' => $selectedIndustry])) }}">All technologies</a>
+						<a class="case-filter-chip {{ $selectedTopic === '' ? 'active' : '' }}" data-filter-scope="case" data-filter-group="topic" data-filter-value="" href="{{ route('case-studies.index', array_filter(['industry' => $selectedIndustry])) }}">All technologies</a>
 						@foreach($topicFilters as $key => $label)
-							<a class="case-filter-chip {{ $selectedTopic === $key ? 'active' : '' }}" data-filter-group="topic" data-filter-value="{{ $key }}" href="{{ route('case-studies.index', array_filter(['industry' => $selectedIndustry, 'topic' => $key])) }}">{{ $label }}</a>
+							<a class="case-filter-chip {{ $selectedTopic === $key ? 'active' : '' }}" data-filter-scope="case" data-filter-group="topic" data-filter-value="{{ $key }}" href="{{ route('case-studies.index', array_filter(['industry' => $selectedIndustry, 'topic' => $key])) }}">{{ $label }}</a>
 						@endforeach
 					</div>
 				</div>
 				<div class="case-filter-group mb-0" data-filter-panel="industry">
 					<div class="case-filter-label">Category</div>
 					<div class="case-filter-list">
-						<a class="case-filter-chip {{ $selectedIndustry === '' ? 'active' : '' }}" data-filter-group="industry" data-filter-value="" href="{{ route('case-studies.index', array_filter(['topic' => $selectedTopic])) }}">All categories</a>
+						<a class="case-filter-chip {{ $selectedIndustry === '' ? 'active' : '' }}" data-filter-scope="case" data-filter-group="industry" data-filter-value="" href="{{ route('case-studies.index', array_filter(['topic' => $selectedTopic])) }}">All categories</a>
 						@foreach($industryFilters as $key => $label)
-							<a class="case-filter-chip {{ $selectedIndustry === $key ? 'active' : '' }}" data-filter-group="industry" data-filter-value="{{ $key }}" href="{{ route('case-studies.index', array_filter(['industry' => $key, 'topic' => $selectedTopic])) }}">{{ $label }}</a>
+							<a class="case-filter-chip {{ $selectedIndustry === $key ? 'active' : '' }}" data-filter-scope="case" data-filter-group="industry" data-filter-value="{{ $key }}" href="{{ route('case-studies.index', array_filter(['industry' => $key, 'topic' => $selectedTopic])) }}">{{ $label }}</a>
 						@endforeach
 					</div>
 				</div>
@@ -789,11 +789,11 @@
 				<p class="resource-side-text">In-depth resources for teams planning data, AI, governance, and Copilot initiatives.</p>
 				<ul class="resource-topic-list">
 					<li class="{{ $selectedTopic === '' ? 'active' : '' }}">
-						<a class="case-filter-chip js-filter-chip {{ $selectedTopic === '' ? 'active' : '' }}" data-filter-group="topic" data-filter-value="" href="{{ route('case-studies.index', array_filter(['industry' => $selectedIndustry])) }}#white-papers">All topics</a>
+						<a class="case-filter-chip js-filter-chip {{ $selectedTopic === '' ? 'active' : '' }}" data-filter-scope="white" data-filter-group="topic" data-filter-value="" href="{{ route('case-studies.index', array_filter(['industry' => $selectedIndustry])) }}#white-papers">All topics</a>
 					</li>
 					@foreach($topicFilters as $key => $label)
 						<li class="{{ $selectedTopic === $key ? 'active' : '' }}">
-							<a class="case-filter-chip js-filter-chip {{ $selectedTopic === $key ? 'active' : '' }}" data-filter-group="topic" data-filter-value="{{ $key }}" href="{{ route('case-studies.index', array_filter(['industry' => $selectedIndustry, 'topic' => $key])) }}#white-papers">{{ $label }}</a>
+							<a class="case-filter-chip js-filter-chip {{ $selectedTopic === $key ? 'active' : '' }}" data-filter-scope="white" data-filter-group="topic" data-filter-value="{{ $key }}" href="{{ route('case-studies.index', array_filter(['industry' => $selectedIndustry, 'topic' => $key])) }}#white-papers">{{ $label }}</a>
 						</li>
 					@endforeach
 				</ul>
@@ -1058,8 +1058,9 @@
 })();
 
 (function () {
-	var filterChips = Array.prototype.slice.call(document.querySelectorAll('.js-filter-chip[data-filter-group], .case-filter-chip[data-filter-group]'));
-	if (!filterChips.length) {
+	var caseFilterChips = Array.prototype.slice.call(document.querySelectorAll('.case-filter-chip[data-filter-scope="case"][data-filter-group]'));
+	var whiteFilterChips = Array.prototype.slice.call(document.querySelectorAll('.case-filter-chip[data-filter-scope="white"][data-filter-group]'));
+	if (!caseFilterChips.length && !whiteFilterChips.length) {
 		return;
 	}
 
@@ -1073,9 +1074,13 @@
 	var caseEmptyState = document.getElementById('caseFilterEmptyState');
 	var whiteEmptyState = document.getElementById('whitePaperFilterEmptyState');
 
-	var selected = {
-		industry: @json((string) $selectedIndustry),
-		topic: @json((string) $selectedTopic)
+	var url = new URL(window.location.href);
+	var selectedCase = {
+		industry: url.searchParams.get('case_industry') || url.searchParams.get('industry') || @json((string) $selectedIndustry),
+		topic: url.searchParams.get('case_topic') || url.searchParams.get('topic') || @json((string) $selectedTopic)
+	};
+	var selectedWhite = {
+		topic: url.searchParams.get('white_topic') || @json((string) $selectedTopic)
 	};
 
 	var topicTermsByKey = {
@@ -1094,8 +1099,9 @@
 		'social-services': ['social', 'nonprofit', 'community', 'swope']
 	};
 
-	function setActiveChip(group, value) {
-		filterChips
+	function setActiveChip(scope, group, value) {
+		var chips = scope === 'white' ? whiteFilterChips : caseFilterChips;
+		chips
 			.filter(function (chip) { return chip.getAttribute('data-filter-group') === group; })
 			.forEach(function (chip) {
 				chip.classList.toggle('active', chip.getAttribute('data-filter-value') === value);
@@ -1108,10 +1114,10 @@
 
 	function updateActiveCount() {
 		var count = 0;
-		if (selected.industry) {
+		if (selectedCase.industry) {
 			count += 1;
 		}
-		if (selected.topic) {
+		if (selectedCase.topic) {
 			count += 1;
 		}
 
@@ -1120,14 +1126,14 @@
 		}
 	}
 
-	function applyFilters() {
+	function applyCaseFilters() {
 		var visibleCaseCards = 0;
 		caseCards.forEach(function (card) {
 			var cardIndustry = card.getAttribute('data-industry') || '';
 			var cardTopics = (card.getAttribute('data-topics') || '').split(',').filter(Boolean);
 
-			var matchesIndustry = !selected.industry || selected.industry === cardIndustry;
-			var matchesTopic = !selected.topic || cardTopics.indexOf(selected.topic) !== -1;
+			var matchesIndustry = !selectedCase.industry || selectedCase.industry === cardIndustry;
+			var matchesTopic = !selectedCase.topic || cardTopics.indexOf(selectedCase.topic) !== -1;
 
 			var isVisible = matchesIndustry && matchesTopic;
 			card.style.display = isVisible ? '' : 'none';
@@ -1141,24 +1147,21 @@
 		}
 
 		if (casePagination) {
-			casePagination.style.display = (selected.industry || selected.topic || visibleCaseCards === 0) ? 'none' : '';
+			casePagination.style.display = (selectedCase.industry || selectedCase.topic || visibleCaseCards === 0) ? 'none' : '';
 		}
+	}
 
+	function applyWhiteFilters() {
 		var visibleWhiteCards = 0;
 		whitePaperCards.forEach(function (card) {
 			var haystack = String(card.getAttribute('data-filter-text') || '').toLowerCase();
-			var topicTerms = selected.topic ? (topicTermsByKey[selected.topic] || [selected.topic.replace(/-/g, ' ')]) : [];
-			var industryTerms = selected.industry ? (industryTermsByKey[selected.industry] || [selected.industry.replace(/-/g, ' ')]) : [];
+			var topicTerms = selectedWhite.topic ? (topicTermsByKey[selectedWhite.topic] || [selectedWhite.topic.replace(/-/g, ' ')]) : [];
 
-			var matchesTopic = !selected.topic || topicTerms.some(function (term) {
+			var matchesTopic = !selectedWhite.topic || topicTerms.some(function (term) {
 				return haystack.indexOf(String(term).toLowerCase()) !== -1;
 			});
 
-			var matchesIndustry = !selected.industry || industryTerms.some(function (term) {
-				return haystack.indexOf(String(term).toLowerCase()) !== -1;
-			});
-
-			var isVisible = matchesIndustry && matchesTopic;
+			var isVisible = matchesTopic;
 			card.style.display = isVisible ? '' : 'none';
 			if (isVisible) {
 				visibleWhiteCards += 1;
@@ -1170,7 +1173,7 @@
 		}
 
 		if (whitePagination) {
-			whitePagination.style.display = (selected.industry || selected.topic || visibleWhiteCards === 0) ? 'none' : '';
+			whitePagination.style.display = (selectedWhite.topic || visibleWhiteCards === 0) ? 'none' : '';
 		}
 	}
 
@@ -1180,31 +1183,54 @@
 		}
 
 		var url = new URL(window.location.href);
-		if (selected.industry) {
-			url.searchParams.set('industry', selected.industry);
+		url.searchParams.delete('industry');
+		url.searchParams.delete('topic');
+
+		if (selectedCase.industry) {
+			url.searchParams.set('case_industry', selectedCase.industry);
 		} else {
-			url.searchParams.delete('industry');
+			url.searchParams.delete('case_industry');
 		}
 
-		if (selected.topic) {
-			url.searchParams.set('topic', selected.topic);
+		if (selectedCase.topic) {
+			url.searchParams.set('case_topic', selectedCase.topic);
 		} else {
-			url.searchParams.delete('topic');
+			url.searchParams.delete('case_topic');
+		}
+
+		if (selectedWhite.topic) {
+			url.searchParams.set('white_topic', selectedWhite.topic);
+		} else {
+			url.searchParams.delete('white_topic');
 		}
 
 		window.history.replaceState({}, '', url.toString());
 	}
 
-	filterChips.forEach(function (chip) {
+	caseFilterChips.forEach(function (chip) {
 		chip.addEventListener('click', function (event) {
 			event.preventDefault();
 			var group = chip.getAttribute('data-filter-group');
 			var value = chip.getAttribute('data-filter-value') || '';
 
-			selected[group] = value;
-			setActiveChip(group, value);
+			selectedCase[group] = value;
+			setActiveChip('case', group, value);
 			updateActiveCount();
-			applyFilters();
+			applyCaseFilters();
+			applyWhiteFilters();
+			updateUrl();
+		});
+	});
+
+	whiteFilterChips.forEach(function (chip) {
+		chip.addEventListener('click', function (event) {
+			event.preventDefault();
+			var group = chip.getAttribute('data-filter-group');
+			var value = chip.getAttribute('data-filter-value') || '';
+
+			selectedWhite[group] = value;
+			setActiveChip('white', group, value);
+			applyWhiteFilters();
 			updateUrl();
 		});
 	});
@@ -1212,12 +1238,13 @@
 	if (resetLink) {
 		resetLink.addEventListener('click', function (event) {
 			event.preventDefault();
-			selected.industry = '';
-			selected.topic = '';
-			setActiveChip('industry', '');
-			setActiveChip('topic', '');
+			selectedCase.industry = '';
+			selectedCase.topic = '';
+			setActiveChip('case', 'industry', '');
+			setActiveChip('case', 'topic', '');
 			updateActiveCount();
-			applyFilters();
+			applyCaseFilters();
+			applyWhiteFilters();
 			updateUrl();
 		});
 	}
@@ -1225,18 +1252,19 @@
 	if (whiteResetLink) {
 		whiteResetLink.addEventListener('click', function (event) {
 			event.preventDefault();
-			selected.industry = '';
-			selected.topic = '';
-			setActiveChip('industry', '');
-			setActiveChip('topic', '');
-			updateActiveCount();
-			applyFilters();
+			selectedWhite.topic = '';
+			setActiveChip('white', 'topic', '');
+			applyWhiteFilters();
 			updateUrl();
 		});
 	}
 
+	setActiveChip('case', 'industry', selectedCase.industry || '');
+	setActiveChip('case', 'topic', selectedCase.topic || '');
+	setActiveChip('white', 'topic', selectedWhite.topic || '');
 	updateActiveCount();
-	applyFilters();
+	applyCaseFilters();
+	applyWhiteFilters();
 })();
 </script>
 
