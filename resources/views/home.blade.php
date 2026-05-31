@@ -599,8 +599,8 @@
     }
 
     .blog.section .blog-title {
-        font-size: 1.22rem;
-        font-weight: 800;
+        font-size: 1.08rem;
+        font-weight: 900;
         color: #111827;
         text-align: left !important;
         line-height: 1.32;
@@ -621,6 +621,10 @@
     .blog.section .blog-footer {
         text-align: left !important;
         width: 100%;
+    }
+
+    .blog.section .blog-title a {
+        font-weight: 900;
     }
 
     .blog.section .blog-snippet {
@@ -693,7 +697,7 @@
     @media (max-width: 768px) {
         .blog.section { padding: 60px 0; }
         .blog.section .blog-card-wrapper { margin-bottom: 0; }
-        .blog.section .blog-title { font-size: 1.15rem; min-height: auto; }
+        .blog.section .blog-title { font-size: 1rem; min-height: auto; }
         .blog.section .blog-image-box {
             height: 250px;
             min-height: 250px;
@@ -735,7 +739,7 @@
             top: 10px;
             left: 10px;
         }
-        .blog.section .blog-title { font-size: 1.05rem; min-height: auto; }
+        .blog.section .blog-title { font-size: 0.95rem; min-height: auto; }
         .blog.section .blog-snippet { font-size: 0.88rem; -webkit-line-clamp: 2; min-height: auto; }
         .blog.section .blog-content { padding: 14px 15px 16px; }
     }

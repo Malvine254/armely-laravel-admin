@@ -16,6 +16,12 @@ Requirements:
 
 If you are not logged in as an active admin, the API returns `401 Unauthorized`.
 
+Direct credential option:
+
+1. Send `X-Admin-Email`
+2. Send `X-Admin-Password`
+3. The API will authenticate that admin for the request without a prior browser login
+
 ## List all resources
 
 Request:
@@ -38,6 +44,18 @@ fetch('/api/resources', {
   credentials: 'include',
   headers: {
     'Accept': 'application/json'
+  }
+}).then(r => r.json()).then(console.log)
+```
+
+Direct credential example:
+
+```js
+fetch('/api/resources', {
+  headers: {
+    'Accept': 'application/json',
+    'X-Admin-Email': 'admin.armely@armely.com',
+    'X-Admin-Password': '@armelyLLC$'
   }
 }).then(r => r.json()).then(console.log)
 ```
@@ -123,6 +141,24 @@ fetch('/api/resources/microsoft-fabric-for-energy/access-links', {
     'Accept': 'application/json',
     'Content-Type': 'application/json',
     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+  },
+  body: JSON.stringify({
+    name: 'Jane Doe',
+    email: 'jane@example.com'
+  })
+}).then(r => r.json()).then(console.log)
+```
+
+Direct credential example:
+
+```js
+fetch('/api/resources/microsoft-fabric-for-energy/access-links', {
+  method: 'POST',
+  headers: {
+    'Accept': 'application/json',
+    'Content-Type': 'application/json',
+    'X-Admin-Email': 'admin.armely@armely.com',
+    'X-Admin-Password': '@armelyLLC$'
   },
   body: JSON.stringify({
     name: 'Jane Doe',
