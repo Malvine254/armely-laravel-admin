@@ -960,7 +960,7 @@ class CaseStudiesController extends Controller
         $caseStudyId = (int) ($data['case_study_id'] ?? 0);
         if ($caseStudyId > 0 && $this->isTableQueryable('industry_listings')) {
             $query = DB::table('industry_listings')
-                ->select('id', 'category')
+                ->select('id', 'category', 'pdf_url')
                 ->where('id', $caseStudyId);
 
             if (Schema::hasColumn('industry_listings', 'title')) {
@@ -969,7 +969,7 @@ class CaseStudiesController extends Controller
 
             $record = $query->first();
 
-            if ($record) {
+            if ($record && trim((string) ($record->pdf_url ?? '')) !== '') {
                 $resourceTitle = trim((string) ($record->title ?? ''));
                 if ($resourceTitle === '') {
                     $resourceTitle = (string) ($record->category ?? ('Case Study #' . $caseStudyId));
@@ -986,12 +986,27 @@ class CaseStudiesController extends Controller
 
         $whitePaperId = (int) ($data['white_paper_id'] ?? 0);
         if ($whitePaperId > 0 && $this->isTableQueryable('white_paper')) {
-            $record = DB::table('white_paper')
-                ->select('id', 'title')
-                ->where('id', $whitePaperId)
-                ->first();
+            $whitePaperFileColumn = null;
+            if (Schema::hasColumn('white_paper', 'pdf')) {
+                $whitePaperFileColumn = 'pdf';
+            } elseif (Schema::hasColumn('white_paper', 'pdf_url')) {
+                $whitePaperFileColumn = 'pdf_url';
+            }
 
-            if ($record) {
+            $query = DB::table('white_paper')
+                ->select('id', 'title')
+                ->where('id', $whitePaperId);
+
+            if ($whitePaperFileColumn !== null) {
+                $query->addSelect($whitePaperFileColumn);
+            }
+
+            $record = $query->first();
+            $whitePaperFileValue = $whitePaperFileColumn !== null
+                ? trim((string) ($record->{$whitePaperFileColumn} ?? ''))
+                : '';
+
+            if ($record && $whitePaperFileValue !== '') {
                 return [
                     'resource_title' => (string) ($record->title ?? ('White Paper #' . $whitePaperId)),
                     'resource_type_label' => 'White Paper',
