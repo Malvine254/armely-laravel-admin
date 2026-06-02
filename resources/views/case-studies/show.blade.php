@@ -783,9 +783,14 @@
 				});
 			}).then(function (result) {
 				if (result.ok) {
-					var successType = result.payload && result.payload.email_sent === false ? 'error' : 'success';
+					var emailSent = !(result.payload && result.payload.email_sent === false);
+					var successType = emailSent ? 'success' : 'error';
 					setFormStatus(result.payload.message || 'Thanks! Your secure download link has been sent.', successType);
-					setDirectDownload(result.payload.download_url || '', result.payload.expires_at || '');
+					if (emailSent) {
+						setDirectDownload('', '');
+					} else {
+						setDirectDownload(result.payload.download_url || '', result.payload.expires_at || '');
+					}
 					leadForm.reset();
 					if (typeof grecaptcha !== 'undefined' && grecaptcha.reset && recaptchaRendered) {
 						grecaptcha.reset();
