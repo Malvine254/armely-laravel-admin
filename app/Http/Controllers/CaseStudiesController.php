@@ -252,7 +252,12 @@ class CaseStudiesController extends Controller
             ->first();
 
         if (!$item || empty($item->pdf_url)) {
-            abort(404);
+            Log::warning('Case study secure access failed: missing record or pdf_url', [
+                'case_study_id' => $caseStudy,
+            ]);
+
+            return redirect()->route('case-studies.index')
+                ->withErrors(['access' => 'This file could not be located. Please request a new secure download link.']);
         }
 
         $pdfUrl = (string) $item->pdf_url;
@@ -278,7 +283,14 @@ class CaseStudiesController extends Controller
             }
         }
 
-        abort(404);
+        Log::warning('Case study secure access failed: file not found in any known path', [
+            'case_study_id' => $caseStudy,
+            'pdf_url' => $pdfUrl,
+            'resolved_file' => $fileName,
+        ]);
+
+        return redirect()->route('case-studies.index')
+            ->withErrors(['access' => 'This file could not be located. Please request a new secure download link.']);
     }
 
     public function legacyCaseDoc(Request $request, string $file)
@@ -309,7 +321,12 @@ class CaseStudiesController extends Controller
             ->first();
 
         if (!$item || empty($item->pdf)) {
-            abort(404);
+            Log::warning('White paper secure access failed: missing record or pdf', [
+                'white_paper_id' => $paper,
+            ]);
+
+            return redirect()->route('case-studies.index')
+                ->withErrors(['access' => 'This file could not be located. Please request a new secure download link.']);
         }
 
         $pdfValue = (string) $item->pdf;
@@ -335,7 +352,14 @@ class CaseStudiesController extends Controller
             }
         }
 
-        abort(404);
+        Log::warning('White paper secure access failed: file not found in any known path', [
+            'white_paper_id' => $paper,
+            'pdf_value' => $pdfValue,
+            'resolved_file' => $fileName,
+        ]);
+
+        return redirect()->route('case-studies.index')
+            ->withErrors(['access' => 'This file could not be located. Please request a new secure download link.']);
     }
 
     public function legacyWhitePaperDoc(Request $request, string $file)
@@ -999,7 +1023,13 @@ class CaseStudiesController extends Controller
         try {
             $response = Http::timeout(20)->get($url);
             if (!$response->successful()) {
-                abort(404);
+                Log::warning('Failed to proxy remote PDF download: non-success status', [
+                    'url' => $url,
+                    'status' => $response->status(),
+                ]);
+
+                return redirect()->route('case-studies.index')
+                    ->withErrors(['access' => 'This file could not be retrieved right now. Please request a fresh secure link and try again.']);
             }
 
             $filename = basename(parse_url($url, PHP_URL_PATH) ?: $fallbackName);
@@ -1014,7 +1044,9 @@ class CaseStudiesController extends Controller
             ]);
         } catch (\Throwable $e) {
             Log::warning('Failed to proxy remote PDF download', ['url' => $url, 'error' => $e->getMessage()]);
-            abort(404);
+
+            return redirect()->route('case-studies.index')
+                ->withErrors(['access' => 'This file could not be retrieved right now. Please request a fresh secure link and try again.']);
         }
     }
 
