@@ -1,7 +1,7 @@
 @extends('layouts.public')
 
 @section('title', 'Industries | Microsoft Data, AI, and Cloud Solutions | Armely')
-@section('meta_description', 'Explore Armely industry solutions for healthcare, energy, local government, and legal organizations using Microsoft Fabric, Power Platform, Azure AI, and data strategy.')
+@section('meta_description', 'Explore Armely industry solutions for healthcare, energy, state and local government, transportation and logistics, and legal organizations using Microsoft Fabric, Power Platform, Azure AI, and data strategy.')
 
 @push('styles')
 <link rel="stylesheet" href="{{ asset('css/industries-modern.css') }}">
@@ -847,7 +847,13 @@
 						<li class="nav-item" role="presentation">
 							<a class="nav-link" id="government-tab" data-toggle="tab" href="#government" role="tab" aria-controls="government" aria-selected="false">
 								<i class="icofont-building-alt"></i>
-								<strong>Local Government</strong>
+								<strong>State &amp; Local Government</strong>
+							</a>
+						</li>
+						<li class="nav-item" role="presentation">
+							<a class="nav-link" id="transportation-tab" data-toggle="tab" href="#transportation" role="tab" aria-controls="transportation" aria-selected="false">
+								<i class="icofont-delivery-time"></i>
+								<strong>Transportation &amp; Logistics</strong>
 							</a>
 						</li>
 						<li class="nav-item" role="presentation">
@@ -1011,17 +1017,31 @@
 									<div class="col-md-6">
 										<div class="industry-intro-content">
 											<span class="industry-tag">GOVERNMENT SOLUTIONS</span>
-											<h2 class="industry-title">Local Government</h2>
+											<h2 class="industry-title">State &amp; Local Government</h2>
 											<div class="title-underline"></div>
-											<p class="industry-description">In today's data-driven world, local governments are undergoing a revolution. Data is no longer just numbers; it's the fuel that propels smarter decision-making, improved service delivery, and a more responsive government.</p>
-											<p class="industry-description">Armely, a trusted partner with a proven track record, empowers local governments to unlock the transformative potential of data through forward-thinking solutions.</p>
+											<p class="industry-description">In today's data-driven world, state and local governments are undergoing a revolution. Data is no longer just numbers; it's the fuel that propels smarter decision-making, improved service delivery, and a more responsive government.</p>
+											<p class="industry-description">Armely, a trusted partner with a proven track record, empowers state and local agencies to unlock the transformative potential of data through forward-thinking solutions.</p>
 										</div>
 									</div>
 									<div class="col-md-6">
 										<div class="industry-image-wrapper">
-											<img class="img-fluid industry-img" src="{{ asset('images/industry/government.png') }}" alt="Local Government">
+											<img class="img-fluid industry-img" src="{{ asset('images/industry/government.png') }}" alt="State and Local Government">
 										</div>
 									</div>
+								</div>
+								<div class="mt-5">
+									<h5 class="section-subtitle">Government Contracting Credentials</h5>
+									<div class="subtitle-underline"></div>
+									<p class="section-text">Armely is a qualified government contractor with active certifications and registrations:</p>
+									<ul class="benefit-list mt-3">
+										<li><strong>✓ Active SAM.gov registration with Unique Entity ID</strong></li>
+										<li><strong>✓ MWBE certified minority-owned business</strong></li>
+										<li><strong>✓ CJIS certified for law enforcement data handling</strong></li>
+										<li><strong>✓ Microsoft Fabric Engineering Partner</strong></li>
+										<li><strong>✓ TD Synnex CSP for government cloud licensing</strong></li>
+										<li><strong>✓ Carahsoft Technology Solutions partner</strong></li>
+										<li><strong>✓ Experienced with state and municipal procurement processes</strong></li>
+									</ul>
 								</div>
 								<div class="mt-5">
 									<h5 class="section-subtitle">Here's how Armely makes a difference:</h5>
@@ -1063,6 +1083,41 @@
 												<p class="benefit-description">We help foster transparency and build trust through open data initiatives and citizen-friendly applications.</p>
 											</div>
 										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<div class="tab-pane fade" id="transportation" role="tabpanel" aria-labelledby="transportation-tab">
+						<div class="tab-content-wrapper">
+							<div class="mt-5">
+								<div class="row align-items-center industry-intro-section">
+									<div class="col-md-6">
+										<div class="industry-intro-content">
+											<span class="industry-tag">TRANSPORTATION SOLUTIONS</span>
+											<h2 class="industry-title">Transportation &amp; Logistics</h2>
+											<div class="title-underline"></div>
+											<p class="industry-description">Transportation and logistics teams rely on accurate operations data, dependable reporting, and fast coordination across dispatch, warehouse, and field operations.</p>
+											<p class="industry-description">Armely helps organizations modernize planning, tracking, and analytics using Microsoft Fabric, Power Platform, and Azure AI so teams can reduce delays and improve delivery performance.</p>
+										</div>
+									</div>
+									<div class="col-md-6">
+										<div class="industry-image-wrapper">
+											<img class="img-fluid industry-img" src="{{ asset('images/industry/oil.png') }}" alt="Transportation and Logistics">
+										</div>
+									</div>
+								</div>
+								<div class="mt-5">
+									<h5 class="section-subtitle">Featured Client Example</h5>
+									<div class="subtitle-underline"></div>
+									<div class="card modern-solution-card p-4">
+										<div class="solution-icon-wrapper default-background">
+											<i class="fa fa-truck"></i>
+										</div>
+										<h6 class="solution-title"><strong>MHC Case Study</strong></h6>
+										<p class="solution-description">See how Armely supports transportation operations with modern Microsoft data and workflow solutions that improve visibility, speed, and execution quality.</p>
+										<a href="{{ route('case-studies.index', ['industry' => 'transportation-logistics']) }}" class="btn default-background text-light btn-modern-cta mt-3">View MHC Case Study</a>
 									</div>
 								</div>
 							</div>

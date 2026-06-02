@@ -404,8 +404,13 @@ class CaseStudiesController extends Controller
     {
         $category = trim((string) ($caseStudy->category ?? ''));
         if ($category !== '') {
+            $normalized = $this->normalizedIndustryKey($category);
+            if ($normalized !== null) {
+                return $normalized;
+            }
+
             $slug = Str::slug(Str::lower($category));
-            if ($slug !== '') {
+            if ($slug !== '' && !in_array($slug, ['education', 'high-tech', 'high-tech-consulting', 'power-platform'], true)) {
                 return $slug;
             }
         }
@@ -415,11 +420,11 @@ class CaseStudiesController extends Controller
         foreach ($this->industryFilters() as $key => $label) {
             $terms = match ($key) {
                 'healthcare' => ['health', 'healthcare', 'swope', 'unmc', 'patient', 'medical'],
-                'government-public-sector' => ['government', 'public sector', 'city', 'county', 'agency', 'plano'],
-                'education' => ['education', 'university', 'college', 'school', 'unmc'],
-                'energy-utilities' => ['energy', 'utility', 'utilities', 'sage', 'butte'],
-                'high-tech-consulting' => ['consulting', 'technology', 'tetratech', 'high tech'],
-                'social-services' => ['social', 'nonprofit', 'community', 'swope'],
+                'energy-oil-gas' => ['energy', 'oil', 'gas', 'utility', 'utilities', 'sage', 'butte'],
+                'state-local-government' => ['government', 'public sector', 'state', 'city', 'county', 'agency', 'municipal', 'plano'],
+                'legal-social-services' => ['legal', 'social services', 'social service', 'nonprofit', 'community'],
+                'transportation-logistics' => ['transportation', 'logistics', 'supply chain', 'fleet', 'shipping', 'freight', 'mhc'],
+                'agriculture-cannabis' => ['agriculture', 'agri', 'farming', 'farm', 'cannabis', 'cultivation'],
                 default => [$label],
             };
 
@@ -430,7 +435,7 @@ class CaseStudiesController extends Controller
             }
         }
 
-        return 'high-tech-consulting';
+        return 'healthcare';
     }
 
     private function inferTechnologyFilters(object $caseStudy): array
@@ -465,11 +470,11 @@ class CaseStudiesController extends Controller
 
         $results = [
             'healthcare' => ['Faster reporting cycles', 'Cleaner patient and operations data', 'Better executive visibility'],
-            'government-public-sector' => ['Improved constituent service workflows', 'Modernized reporting', 'Lower manual follow-up'],
-            'education' => ['Unified institutional data', 'Streamlined collaboration', 'Improved decision support'],
-            'energy-utilities' => ['Operational data consolidated', 'Field workflows simplified', 'Leadership reporting improved'],
-            'high-tech-consulting' => ['Reusable Microsoft platform patterns', 'Faster delivery cadence', 'Improved client visibility'],
-            'social-services' => ['Reduced manual intake effort', 'Improved service coordination', 'Better outcome tracking'],
+            'energy-oil-gas' => ['Operational data consolidated', 'Field workflows simplified', 'Leadership reporting improved'],
+            'state-local-government' => ['Improved constituent service workflows', 'Modernized reporting', 'Lower manual follow-up'],
+            'legal-social-services' => ['Reduced manual intake effort', 'Improved service coordination', 'Better outcome tracking'],
+            'transportation-logistics' => ['Faster dispatch visibility', 'Reduced manual status updates', 'Improved delivery performance tracking'],
+            'agriculture-cannabis' => ['Improved production visibility', 'Better compliance reporting', 'Simplified operations monitoring'],
         ][$industry] ?? ['Measurable productivity gains', 'Microsoft workloads deployed', 'Improved reporting confidence'];
 
         if (in_array('power-platform', $topics, true)) {
@@ -570,58 +575,92 @@ class CaseStudiesController extends Controller
     private function industryFilters(): array
     {
         return Cache::remember('case_studies_industry_filters', now()->addMinutes(15), function (): array {
-            if (!$this->isTableQueryable('industry_listings')) {
-                return [
-                    'healthcare' => 'Healthcare',
-                    'government-public-sector' => 'Government and Public Sector',
-                    'education' => 'Education',
-                    'energy-utilities' => 'Energy and Utilities',
-                    'high-tech-consulting' => 'High Tech and Consulting',
-                    'social-services' => 'Social Services',
-                ];
+            if (Schema::hasTable('case_study_categories')) {
+                try {
+                    $managed = DB::table('case_study_categories')
+                        ->select('slug', 'name')
+                        ->where('is_active', true)
+                        ->orderBy('sort_order')
+                        ->orderBy('name')
+                        ->get();
+
+                    if ($managed->isNotEmpty()) {
+                        $filters = [];
+                        foreach ($managed as $category) {
+                            $key = trim((string) ($category->slug ?? ''));
+                            $label = trim((string) ($category->name ?? ''));
+                            if ($key === '' || $label === '') {
+                                continue;
+                            }
+
+                            $filters[$key] = $label;
+                        }
+
+                        if (!empty($filters)) {
+                            return $filters;
+                        }
+                    }
+                } catch (QueryException $e) {
+                    Log::warning('Failed to load managed case-study categories', [
+                        'error' => $e->getMessage(),
+                    ]);
+                }
             }
 
-            try {
-                $categories = DB::table('industry_listings')
-                    ->select('category')
-                    ->whereNotNull('category')
-                    ->where('category', '!=', '')
-                    ->orderBy('category')
-                    ->pluck('category');
-
-                $filters = [];
-                foreach ($categories as $category) {
-                    $label = trim((string) $category);
-                    if ($label === '') {
-                        continue;
-                    }
-
-                    $key = Str::slug(Str::lower($label));
-                    if ($key === '' || isset($filters[$key])) {
-                        continue;
-                    }
-
-                    $filters[$key] = $label;
-                }
-
-                if (!empty($filters)) {
-                    return $filters;
-                }
-            } catch (QueryException $e) {
-                Log::warning('Failed to build dynamic case-study industry filters', [
-                    'error' => $e->getMessage(),
-                ]);
-            }
-
-            return [
-                'healthcare' => 'Healthcare',
-                'government-public-sector' => 'Government and Public Sector',
-                'education' => 'Education',
-                'energy-utilities' => 'Energy and Utilities',
-                'high-tech-consulting' => 'High Tech and Consulting',
-                'social-services' => 'Social Services',
-            ];
+            return $this->defaultIndustryFilters();
         });
+    }
+
+    private function defaultIndustryFilters(): array
+    {
+        return [
+            'healthcare' => 'Healthcare',
+            'energy-oil-gas' => 'Energy (Oil & Gas)',
+            'state-local-government' => 'Government & Public Sector',
+            'legal-social-services' => 'Legal (Social Services)',
+            'transportation-logistics' => 'Transportation & Logistics',
+            'agriculture-cannabis' => 'Agriculture/Cannabis',
+        ];
+    }
+
+    private function normalizedIndustryKey(string $value): ?string
+    {
+        $slug = Str::slug(Str::lower(trim($value)));
+        if ($slug === '') {
+            return null;
+        }
+
+        $aliases = [
+            'healthcare' => 'healthcare',
+            'health-care' => 'healthcare',
+            'energy' => 'energy-oil-gas',
+            'energy-utilities' => 'energy-oil-gas',
+            'oil-gas' => 'energy-oil-gas',
+            'oil-and-gas' => 'energy-oil-gas',
+            'government-public-sector' => 'state-local-government',
+            'public-sector' => 'state-local-government',
+            'state-local-government' => 'state-local-government',
+            'local-government' => 'state-local-government',
+            'legal' => 'legal-social-services',
+            'social-services' => 'legal-social-services',
+            'legal-social-services' => 'legal-social-services',
+            'transportation' => 'transportation-logistics',
+            'transportation-logistics' => 'transportation-logistics',
+            'logistics' => 'transportation-logistics',
+            'agriculture' => 'agriculture-cannabis',
+            'agriculture-cannabis' => 'agriculture-cannabis',
+            'cannabis' => 'agriculture-cannabis',
+            'education' => null,
+            'high-tech' => null,
+            'high-tech-consulting' => null,
+            'power-platform' => null,
+        ];
+
+        if (array_key_exists($slug, $aliases)) {
+            return $aliases[$slug];
+        }
+
+        return array_key_exists($slug, $this->defaultIndustryFilters()) ? $slug : null;
     }
 
     private function topicFilters(): array

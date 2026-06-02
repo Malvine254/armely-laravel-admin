@@ -1,7 +1,7 @@
 @extends('layouts.public')
 
 @section('title', 'Case Studies | Microsoft Data and AI Results | Armely')
-@section('meta_description', 'See how Armely has delivered Microsoft Fabric, Power BI, Copilot, and Power Platform results for healthcare, government, education, and energy clients. Download case studies.')
+@section('meta_description', 'See how Armely has delivered Microsoft Fabric, Power BI, Copilot, and Power Platform results for healthcare, energy, state and local government, legal social services, transportation and logistics, and agriculture clients. Download case studies.')
 
 @push('styles')
 <link rel="stylesheet" href="{{ asset('css/case-studies-modern.css') }}">
@@ -1092,11 +1092,11 @@
 
 	var industryTermsByKey = {
 		healthcare: ['health', 'healthcare', 'swope', 'unmc', 'patient', 'medical'],
-		'government-public-sector': ['government', 'public sector', 'city', 'county', 'agency', 'plano'],
-		education: ['education', 'university', 'college', 'school', 'unmc'],
-		'energy-utilities': ['energy', 'utility', 'utilities', 'sage', 'butte'],
-		'high-tech-consulting': ['high tech', 'consulting', 'technology', 'tetratech', 'tetra tech'],
-		'social-services': ['social', 'nonprofit', 'community', 'swope']
+		'energy-oil-gas': ['energy', 'oil', 'gas', 'utility', 'utilities', 'sage', 'butte'],
+		'state-local-government': ['government', 'public sector', 'state', 'city', 'county', 'agency', 'municipal', 'plano'],
+		'legal-social-services': ['legal', 'social services', 'social service', 'nonprofit', 'community'],
+		'transportation-logistics': ['transportation', 'logistics', 'supply chain', 'fleet', 'shipping', 'freight', 'mhc'],
+		'agriculture-cannabis': ['agriculture', 'agri', 'farming', 'farm', 'cannabis', 'cultivation']
 	};
 
 	function setActiveChip(scope, group, value) {
