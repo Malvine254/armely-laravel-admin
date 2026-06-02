@@ -265,15 +265,20 @@ router.beforeEach((to, from, next) => {
     return;
   }
   
-  // Force password change: admin must set a new password before accessing anything else
+  // Password-change reminder for admin first-login credentials.
+  // Keep the prompt, but do not hard-trap navigation on the change-password page.
   if (
     authStore.isAuthenticated &&
     authStore.forcePasswordChange &&
     to.name !== 'admin-change-password' &&
     to.name !== 'admin-login'
   ) {
-    next({ name: 'admin-change-password' })
-    return
+    const reminderKey = 'armely_pw_change_reminder_shown';
+    if (!sessionStorage.getItem(reminderKey)) {
+      const toastStore = useToastStore();
+      toastStore.addToast('Please change your temporary password soon for account security.', 'warning');
+      sessionStorage.setItem(reminderKey, 'true');
+    }
   }
 
   // Check admin requirement
