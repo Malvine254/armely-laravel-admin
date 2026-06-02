@@ -201,7 +201,7 @@ class NotificationService
     /**
      * Send invoice payment reminder notification to customer.
      */
-    public function sendInvoiceReminderNotification(Invoice $invoice): bool
+    public function sendInvoiceReminderNotification(Invoice $invoice, ?string $customMessage = null): bool
     {
         try {
             $recipient = User::find($invoice->user_id);
@@ -210,7 +210,7 @@ class NotificationService
                 return false;
             }
 
-            $sent = $this->mailer->sendInvoiceReminderEmail($invoice, $recipient);
+            $sent = $this->mailer->sendInvoiceReminderEmail($invoice, $recipient, $customMessage);
 
             if (!$sent) {
                 Log::warning("Invoice reminder notification mailer returned false for user {$invoice->user_id}");

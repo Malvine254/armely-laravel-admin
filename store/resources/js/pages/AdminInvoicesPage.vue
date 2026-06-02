@@ -398,6 +398,24 @@
                 />
               </div>
             </div>
+            <div class="mt-3">
+              <label class="block text-xs font-semibold text-gray-600 mb-1">Invoice Notes (visible to customer)</label>
+              <textarea
+                v-model="selectedInvoice.notes"
+                rows="3"
+                placeholder="Add or update invoice notes shown to the customer..."
+                class="w-full px-3 py-2 border border-gray-200 bg-white text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
+              ></textarea>
+            </div>
+            <div class="mt-3">
+              <label class="block text-xs font-semibold text-gray-600 mb-1">Reminder Message (optional)</label>
+              <textarea
+                v-model="reminderCustomMessage"
+                rows="3"
+                placeholder="Add a custom message to include in this reminder email..."
+                class="w-full px-3 py-2 border border-gray-200 bg-white text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
+              ></textarea>
+            </div>
             <div class="mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <p class="text-xs text-gray-500">Customer balance updates immediately after saving.</p>
               <button
@@ -514,6 +532,7 @@ const isLoading = ref(false)
 const sendingReminderInvoiceId = ref(null)
 const paymentDate = ref('')
 const paymentNotes = ref('')
+const reminderCustomMessage = ref('')
 const editTaxAmount = ref(0)
 const editShippingAmount = ref(0)
 const savingInvoiceCharges = ref(false)
@@ -801,6 +820,7 @@ const viewInvoice = (invoice) => {
   selectedInvoice.value = invoice
   paymentDate.value = ''
   paymentNotes.value = ''
+  reminderCustomMessage.value = ''
   editTaxAmount.value = Number(invoice?.tax_amount || 0)
   editShippingAmount.value = getInvoiceShippingAmount(invoice)
 }
@@ -895,9 +915,32 @@ const sendReminder = async (invoice) => {
   sendingReminderInvoiceId.value = invoice.id
 
   try {
-    const response = await api.post(`/admin/invoices/${invoice.id}/send-reminder`)
+    const payload = {}
+    const selectedMatchesInvoice = selectedInvoice.value?.id === invoice.id
+
+    if (selectedMatchesInvoice && canEditInvoiceCharges(selectedInvoice.value)) {
+      payload.tax_amount = Number(editTaxAmount.value || 0)
+      payload.shipping_amount = Number(editShippingAmount.value || 0)
+      payload.notes = String(selectedInvoice.value?.notes || '')
+
+      const customMessage = String(reminderCustomMessage.value || '').trim()
+      if (customMessage) {
+        payload.reminder_message = customMessage
+      }
+    }
+
+    const response = await api.post(`/admin/invoices/${invoice.id}/send-reminder`, payload)
     if (response.data?.success) {
       alert(response.data?.message || 'Payment reminder sent successfully')
+      if (selectedMatchesInvoice) {
+        const updatedInvoice = response.data?.data?.invoice
+        if (updatedInvoice) {
+          selectedInvoice.value = updatedInvoice
+        }
+        reminderCustomMessage.value = ''
+      }
+      await fetchInvoices()
+      await fetchStats()
     } else {
       alert(response.data?.message || 'Failed to send payment reminder')
     }
