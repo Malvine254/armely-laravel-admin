@@ -36,7 +36,7 @@ class UpdateOrderStatusJob implements ShouldQueue
             }
 
             $poNumber = trim((string) ($this->order->quote_id ?: $this->order->order_number));
-            if ($poNumber === '' || in_array((string) $this->order->status, ['cancelled', 'delivered'], true)) {
+            if ($poNumber === '' || in_array((string) $this->order->status, ['cancelled'], true)) {
                 return;
             }
 
@@ -62,7 +62,7 @@ class UpdateOrderStatusJob implements ShouldQueue
             ], fn ($value) => $value !== null && $value !== ''));
 
             $oldStatus = (string) ($this->order->status ?? '');
-            if ($oldStatus === 'delivered' || self::trackingPayloadIndicatesDelivered($trackingInfo)) {
+            if (self::trackingPayloadIndicatesDelivered($trackingInfo)) {
                 $normalized = 'delivered';
             }
 
@@ -75,6 +75,10 @@ class UpdateOrderStatusJob implements ShouldQueue
 
             if ($normalized === 'delivered' && $this->order->delivered_at === null) {
                 $updates['delivered_at'] = now();
+            }
+
+            if ($normalized !== 'delivered' && $this->order->delivered_at !== null) {
+                $updates['delivered_at'] = null;
             }
 
             if ($freightAmount !== null && is_numeric((string) $freightAmount)) {

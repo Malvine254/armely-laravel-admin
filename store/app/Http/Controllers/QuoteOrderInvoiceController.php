@@ -1184,7 +1184,7 @@ class QuoteOrderInvoiceController extends Controller
 
     private function refreshOrderStatusFromTdSynnex(Order $order): void
     {
-        if (in_array((string) $order->status, ['cancelled', 'delivered'], true)) {
+        if (in_array((string) $order->status, ['cancelled'], true)) {
             return;
         }
 
@@ -1249,7 +1249,7 @@ class QuoteOrderInvoiceController extends Controller
             }
 
             $mergedTracking = array_merge($oldTracking, $newTracking);
-            if ($this->trackingPayloadIndicatesDelivered($mergedTracking) || $oldStatus === 'delivered') {
+            if ($this->trackingPayloadIndicatesDelivered($mergedTracking)) {
                 $newStatus = 'delivered';
             }
 
@@ -1285,6 +1285,10 @@ class QuoteOrderInvoiceController extends Controller
             if ($statusChanged || $trackingChanged || $shippingChanged || $orderNumberChanged) {
                 if ($newStatus === 'delivered' && $order->delivered_at === null) {
                     $updates['delivered_at'] = now();
+                }
+
+                if ($newStatus !== 'delivered' && $order->delivered_at !== null) {
+                    $updates['delivered_at'] = null;
                 }
 
                 $order->update($updates);
