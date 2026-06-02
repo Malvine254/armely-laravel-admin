@@ -69,7 +69,7 @@ class ResourceController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request): RedirectResponse|\Illuminate\Http\JsonResponse
     {
         $data = $this->validatedData($request);
         $resource = new Resource();
@@ -100,6 +100,14 @@ class ResourceController extends Controller
         $resource->save();
         ActivityLogger::log('create', 'Resource', $resource->id, 'Created resource ' . $resource->title);
 
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Resource created successfully.',
+                'resource' => $resource->fresh('resourceCategory'),
+            ]);
+        }
+
         return redirect()->route('admin.resources.index')->with('success', 'Resource created successfully.');
     }
 
@@ -117,7 +125,7 @@ class ResourceController extends Controller
         ]);
     }
 
-    public function update(Request $request, Resource $resource): RedirectResponse
+    public function update(Request $request, Resource $resource): RedirectResponse|\Illuminate\Http\JsonResponse
     {
         $data = $this->validatedData($request, $resource);
 
@@ -149,10 +157,18 @@ class ResourceController extends Controller
         $resource->save();
         ActivityLogger::log('update', 'Resource', $resource->id, 'Updated resource ' . $resource->title);
 
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Resource updated successfully.',
+                'resource' => $resource->fresh('resourceCategory'),
+            ]);
+        }
+
         return redirect()->route('admin.resources.index')->with('success', 'Resource updated successfully.');
     }
 
-    public function destroy(Resource $resource): RedirectResponse
+    public function destroy(Resource $resource): RedirectResponse|\Illuminate\Http\JsonResponse
     {
         $this->storageService->delete($resource->file_path);
         $this->storageService->delete($resource->thumbnail_path);
@@ -162,6 +178,13 @@ class ResourceController extends Controller
         $resource->delete();
 
         ActivityLogger::log('delete', 'Resource', $resourceId, 'Deleted resource ' . $resourceTitle);
+
+        if (request()->expectsJson() || request()->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Resource deleted successfully.',
+            ]);
+        }
 
         return redirect()->route('admin.resources.index')->with('success', 'Resource deleted successfully.');
     }

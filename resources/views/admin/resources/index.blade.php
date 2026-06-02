@@ -566,16 +566,22 @@
                                         <button type="button" class="action-link copy-link-btn" data-link="{{ $publicLink }}" title="Copy link">
                                             <i class="fas fa-link"></i>
                                         </button>
-                                        <a href="{{ route('admin.resources.edit', $resource) }}" class="action-link" title="Edit">
+                                        <button type="button" class="action-link edit-resource-btn" title="Edit" data-resource='@json([
+                                            'id' => $resource->id,
+                                            'title' => $resource->title,
+                                            'slug' => $resource->slug,
+                                            'description' => $resource->description,
+                                            'resource_type' => $resource->resource_type,
+                                            'category_id' => $resource->category_id,
+                                            'is_published' => (bool) $resource->is_published,
+                                            'is_featured' => (bool) $resource->is_featured,
+                                            'is_noindex' => (bool) $resource->is_noindex,
+                                        ])'>
                                             <i class="fas fa-pen"></i>
-                                        </a>
-                                        <form action="{{ route('admin.resources.destroy', $resource) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this resource?');">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="action-link text-danger" title="Delete">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </form>
+                                        </button>
+                                        <button type="button" class="action-link text-danger delete-resource-btn" title="Delete" data-id="{{ $resource->id }}">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
                                     </div>
                                 </td>
                             </tr>
@@ -617,6 +623,8 @@
                         @if($formMethod !== 'POST')
                             @method($formMethod)
                         @endif
+                        <input type="hidden" name="id" id="resourceModalId" value="">
+                        <input type="hidden" id="resourceModalMode" value="create">
 
                         @include('admin.resources._fields', [
                             'resource' => $resourceForm,
@@ -628,7 +636,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="submit" form="resourceCreateForm" class="btn btn-primary px-4">Save Resource</button>
+                <button type="submit" form="resourceCreateForm" class="btn btn-primary px-4" id="saveResourceBtn">Save Resource</button>
             </div>
         </div>
     </div>
@@ -638,40 +646,340 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    document.querySelectorAll('.copy-link-btn').forEach(function (button) {
-        button.addEventListener('click', async function () {
-            const url = button.getAttribute('data-link') || '';
-            if (!url) {
+    const modalEl = document.getElementById('addResourceModal');
+    const formEl = document.getElementById('resourceCreateForm');
+    const saveBtn = document.getElementById('saveResourceBtn');
+    const modeInput = document.getElementById('resourceModalMode');
+    const idInput = document.getElementById('resourceModalId');
+    const tokenInput = formEl ? formEl.querySelector('input[name="_token"]') : null;
+    const csrfToken = tokenInput ? tokenInput.value : '';
+    const resourceModal = (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal)
+        ? bootstrap.Modal.getOrCreateInstance(modalEl)
+        : null;
+
+    function getDescriptionHtml() {
+        if (typeof CKEDITOR !== 'undefined' && CKEDITOR.instances && CKEDITOR.instances.resourceModalDescription) {
+            return CKEDITOR.instances.resourceModalDescription.getData();
+        }
+
+        const description = document.getElementById('resourceModalDescription');
+        return description ? description.value : '';
+    }
+
+    function setDescriptionHtml(value) {
+        if (typeof CKEDITOR !== 'undefined' && CKEDITOR.instances && CKEDITOR.instances.resourceModalDescription) {
+            CKEDITOR.instances.resourceModalDescription.setData(value || '');
+            return;
+        }
+
+        const description = document.getElementById('resourceModalDescription');
+        if (description) {
+            description.value = value || '';
+        }
+    }
+
+    function setSavingState(isSaving) {
+        if (!saveBtn) {
+            return;
+        }
+
+        saveBtn.disabled = isSaving;
+        saveBtn.textContent = isSaving ? 'Saving...' : (modeInput && modeInput.value === 'edit' ? 'Update Resource' : 'Save Resource');
+    }
+
+    function resetResourceModal() {
+        if (!formEl) {
+            return;
+        }
+
+        formEl.reset();
+        if (idInput) {
+            idInput.value = '';
+        }
+        if (modeInput) {
+            modeInput.value = 'create';
+        }
+
+        const modalTitle = document.getElementById('addResourceModalLabel');
+        if (modalTitle) {
+            modalTitle.textContent = 'Add Resource';
+        }
+
+        setDescriptionHtml('');
+        setSavingState(false);
+    }
+
+    function toBool(value) {
+        return value === true || value === 1 || value === '1' || value === 'true';
+    }
+
+    function populateResourceModal(resource) {
+        if (!formEl || !resource) {
+            return;
+        }
+
+        if (idInput) {
+            idInput.value = resource.id || '';
+        }
+        if (modeInput) {
+            modeInput.value = 'edit';
+        }
+
+        const modalTitle = document.getElementById('addResourceModalLabel');
+        if (modalTitle) {
+            modalTitle.textContent = 'Edit Resource';
+        }
+
+        const setValue = function(selector, value) {
+            const field = formEl.querySelector(selector);
+            if (field) {
+                field.value = value || '';
+            }
+        };
+
+        setValue('#resourceModalTitle', resource.title);
+        setValue('#resourceModalSlug', resource.slug);
+        setValue('select[name="resource_type"]', resource.resource_type);
+        setValue('select[name="category_id"]', resource.category_id ? String(resource.category_id) : '');
+
+        const published = formEl.querySelector('#resourceModalPublished');
+        const featured = formEl.querySelector('#resourceModalFeatured');
+        const noindex = formEl.querySelector('#resourceModalNoindex');
+        if (published) {
+            published.checked = toBool(resource.is_published);
+        }
+        if (featured) {
+            featured.checked = toBool(resource.is_featured);
+        }
+        if (noindex) {
+            noindex.checked = toBool(resource.is_noindex);
+        }
+
+        const fileInput = formEl.querySelector('input[name="file"]');
+        const thumbInput = formEl.querySelector('input[name="thumbnail"]');
+        if (fileInput) {
+            fileInput.value = '';
+            fileInput.required = false;
+        }
+        if (thumbInput) {
+            thumbInput.value = '';
+        }
+
+        setDescriptionHtml(resource.description || '');
+        setSavingState(false);
+    }
+
+    async function refreshResourcesSection() {
+        const response = await fetch(window.location.href, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            cache: 'no-store',
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to refresh resources list.');
+        }
+
+        const html = await response.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+
+        const currentStats = document.querySelector('.resources-stats');
+        const newStats = doc.querySelector('.resources-stats');
+        if (currentStats && newStats) {
+            currentStats.replaceWith(newStats);
+        }
+
+        const currentTableCard = document.querySelector('.resources-table-card');
+        const newTableCard = doc.querySelector('.resources-table-card');
+        if (currentTableCard && newTableCard) {
+            currentTableCard.replaceWith(newTableCard);
+        }
+
+        bindDynamicActions();
+    }
+
+    async function handleResourceDelete(resourceId) {
+        if (!csrfToken) {
+            alert('Missing CSRF token. Please refresh and try again.');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('_token', csrfToken);
+        formData.append('_method', 'DELETE');
+
+        const response = await fetch('/admin/resources/' + resourceId, {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: formData,
+        });
+
+        const payload = await response.json().catch(function () { return {}; });
+        if (!response.ok) {
+            throw new Error(payload.message || 'Failed to delete resource.');
+        }
+
+        await refreshResourcesSection();
+        alert(payload.message || 'Resource deleted successfully.');
+    }
+
+    async function submitResourceForm(event) {
+        event.preventDefault();
+        if (!formEl) {
+            return;
+        }
+
+        setSavingState(true);
+
+        try {
+            const mode = modeInput ? modeInput.value : 'create';
+            const resourceId = idInput ? idInput.value : '';
+            const isEdit = mode === 'edit' && resourceId !== '';
+            const endpoint = isEdit ? '/admin/resources/' + resourceId : '/admin/resources';
+
+            const formData = new FormData(formEl);
+            formData.set('description', getDescriptionHtml());
+            if (isEdit) {
+                formData.append('_method', 'PUT');
+            }
+
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: formData,
+            });
+
+            const payload = await response.json().catch(function () { return {}; });
+            if (!response.ok) {
+                const firstValidation = payload.errors ? Object.values(payload.errors)[0] : null;
+                const validationMessage = Array.isArray(firstValidation) ? firstValidation[0] : null;
+                throw new Error(validationMessage || payload.message || 'Failed to save resource.');
+            }
+
+            if (resourceModal) {
+                resourceModal.hide();
+            }
+            resetResourceModal();
+            await refreshResourcesSection();
+            alert(payload.message || 'Resource saved successfully.');
+        } catch (error) {
+            alert(error.message || 'Failed to save resource.');
+        } finally {
+            setSavingState(false);
+        }
+    }
+
+    function bindCopyButtons() {
+        document.querySelectorAll('.copy-link-btn').forEach(function (button) {
+            if (button.dataset.bound === '1') {
                 return;
             }
+            button.dataset.bound = '1';
 
-            try {
-                await navigator.clipboard.writeText(url);
-                button.innerHTML = '<i class="fas fa-check"></i>';
-                button.classList.add('text-success');
-            } catch (error) {
-                const helper = document.createElement('textarea');
-                helper.value = url;
-                document.body.appendChild(helper);
-                helper.select();
-                document.execCommand('copy');
-                document.body.removeChild(helper);
-                button.innerHTML = '<i class="fas fa-check"></i>';
-                button.classList.add('text-success');
-            }
+            button.addEventListener('click', async function () {
+                const url = button.getAttribute('data-link') || '';
+                if (!url) {
+                    return;
+                }
 
-            setTimeout(function () {
-                button.classList.remove('text-success');
-                button.innerHTML = '<i class="fas fa-link"></i>';
-            }, 1500);
+                try {
+                    await navigator.clipboard.writeText(url);
+                    button.innerHTML = '<i class="fas fa-check"></i>';
+                    button.classList.add('text-success');
+                } catch (error) {
+                    const helper = document.createElement('textarea');
+                    helper.value = url;
+                    document.body.appendChild(helper);
+                    helper.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(helper);
+                    button.innerHTML = '<i class="fas fa-check"></i>';
+                    button.classList.add('text-success');
+                }
+
+                setTimeout(function () {
+                    button.classList.remove('text-success');
+                    button.innerHTML = '<i class="fas fa-link"></i>';
+                }, 1500);
+            });
         });
-    });
+    }
+
+    function bindDynamicActions() {
+        bindCopyButtons();
+
+        document.querySelectorAll('.edit-resource-btn').forEach(function (button) {
+            if (button.dataset.bound === '1') {
+                return;
+            }
+            button.dataset.bound = '1';
+
+            button.addEventListener('click', function () {
+                const raw = button.getAttribute('data-resource');
+                if (!raw) {
+                    return;
+                }
+
+                try {
+                    const resource = JSON.parse(raw);
+                    populateResourceModal(resource);
+                    if (resourceModal) {
+                        resourceModal.show();
+                    }
+                } catch (error) {
+                    alert('Unable to load resource details for editing.');
+                }
+            });
+        });
+
+        document.querySelectorAll('.delete-resource-btn').forEach(function (button) {
+            if (button.dataset.bound === '1') {
+                return;
+            }
+            button.dataset.bound = '1';
+
+            button.addEventListener('click', async function () {
+                const resourceId = button.getAttribute('data-id');
+                if (!resourceId) {
+                    return;
+                }
+
+                if (!confirm('Delete this resource?')) {
+                    return;
+                }
+
+                try {
+                    await handleResourceDelete(resourceId);
+                } catch (error) {
+                    alert(error.message || 'Failed to delete resource.');
+                }
+            });
+        });
+    }
+
+    if (formEl) {
+        formEl.addEventListener('submit', submitResourceForm);
+    }
+
+    if (modalEl) {
+        modalEl.addEventListener('hidden.bs.modal', function () {
+            resetResourceModal();
+        });
+    }
+
+    bindDynamicActions();
 
     @if($errors->any())
-        const modalEl = document.getElementById('addResourceModal');
         if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-            modal.show();
+            resourceModal.show();
         }
     @endif
 });
