@@ -29,6 +29,51 @@
 .lead-field { width:100%; border:1px solid #c9d8f3; background:#f7faff; height:50px; padding:0 14px; color:#1e3357; }
 .lead-form .form-group { margin-bottom:16px; }
 .lead-form .btn { padding:12px 18px; font-weight:800; }
+.btn-content { display:inline-flex; align-items:center; justify-content:center; gap:10px; }
+.btn-loader {
+	display:none;
+	width:14px;
+	height:14px;
+	border:2px solid rgba(255,255,255,.45);
+	border-top-color:#fff;
+	border-radius:50%;
+	animation: caseSpin .75s linear infinite;
+}
+.lead-form .btn.is-loading .btn-loader { display:inline-block; }
+.case-form-status {
+	display:none;
+	margin-top:12px;
+	padding:10px 12px;
+	border:1px solid transparent;
+	border-radius:10px;
+	font-size:.9rem;
+	font-weight:600;
+}
+.case-form-status.is-success {
+	display:block;
+	color:#0f5132;
+	background:#e8f9ef;
+	border-color:#b7e7cc;
+}
+.case-form-status.is-error {
+	display:block;
+	color:#7a1f2a;
+	background:#fdecef;
+	border-color:#f2bec6;
+}
+.case-direct-download {
+	display:none;
+	margin-top:12px;
+	padding:10px 12px;
+	border-radius:10px;
+	border:1px dashed #9eb5db;
+	background:#f7fbff;
+	color:#274879;
+	font-size:.9rem;
+}
+.case-direct-download.is-visible { display:block; }
+.case-direct-download a { font-weight:700; color:#1f4d99; text-decoration:underline; }
+@keyframes caseSpin { to { transform: rotate(360deg); } }
 @media (max-width: 991px) { .resource-grid { grid-template-columns:1fr; } .resource-title { font-size:2rem; } }
 </style>
 @endpush
@@ -85,11 +130,137 @@
 					@if(!empty($recaptchaSiteKey))
 						<div class="form-group"><div class="g-recaptcha" data-sitekey="{{ $recaptchaSiteKey }}"></div></div>
 					@endif
-					<button class="btn default-background text-light" type="submit">Email Download Link</button>
+					<button class="btn default-background text-light" id="whitePaperLeadSubmitBtn" type="submit">
+						<span class="btn-content">
+							<span class="btn-loader" aria-hidden="true"></span>
+							<span id="whitePaperLeadSubmitText">Email Download Link</span>
+						</span>
+					</button>
+					<div class="case-form-status" id="whitePaperFormStatus" aria-live="polite"></div>
+					<div class="case-direct-download" id="whitePaperDirectDownload" aria-live="polite"></div>
+					<p class="text-muted mt-2 mb-0" style="font-size:.9rem;">We will send a secure download link to your work email. The link expires in 1 hour.</p>
 				</form>
 			</aside>
 		</div>
 	</div>
 </section>
 <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+	var form = document.querySelector('.lead-card form.lead-form');
+	if (!form) {
+		return;
+	}
+
+	var submitBtn = document.getElementById('whitePaperLeadSubmitBtn');
+	var submitText = document.getElementById('whitePaperLeadSubmitText');
+	var formStatus = document.getElementById('whitePaperFormStatus');
+	var directDownload = document.getElementById('whitePaperDirectDownload');
+
+	var setSubmitting = function (isSubmitting) {
+		if (!submitBtn) {
+			return;
+		}
+
+		submitBtn.disabled = isSubmitting;
+		submitBtn.classList.toggle('is-loading', isSubmitting);
+		if (submitText) {
+			submitText.textContent = isSubmitting ? 'Sending secure link...' : 'Email Download Link';
+		}
+	};
+
+	var setFormStatus = function (message, type) {
+		if (!formStatus) {
+			return;
+		}
+
+		formStatus.className = 'case-form-status';
+		formStatus.textContent = '';
+		if (!message) {
+			return;
+		}
+
+		formStatus.classList.add(type === 'success' ? 'is-success' : 'is-error');
+		formStatus.textContent = message;
+	};
+
+	var setDirectDownload = function (url, expiresAt) {
+		if (!directDownload) {
+			return;
+		}
+
+		directDownload.className = 'case-direct-download';
+		directDownload.innerHTML = '';
+
+		if (!url) {
+			return;
+		}
+
+		var expiresText = expiresAt ? (' Link expires at ' + expiresAt + '.') : '';
+		directDownload.classList.add('is-visible');
+		directDownload.innerHTML = 'Download now: <a href="' + url + '" target="_blank" rel="noopener noreferrer">Open secure file</a>.' + expiresText;
+	};
+
+	form.addEventListener('submit', function (event) {
+		event.preventDefault();
+		setFormStatus('', '');
+		setDirectDownload('', '');
+		setSubmitting(true);
+
+		var formData = new FormData(form);
+
+		fetch(form.action, {
+			method: 'POST',
+			headers: {
+				'Accept': 'application/json',
+				'X-Requested-With': 'XMLHttpRequest'
+			},
+			body: formData,
+			credentials: 'same-origin'
+		}).then(function (response) {
+			return response.json().catch(function () {
+				return {};
+			}).then(function (payload) {
+				return { ok: response.ok, status: response.status, payload: payload };
+			});
+		}).then(function (result) {
+			if (result.ok) {
+				var emailSent = !(result.payload && result.payload.email_sent === false);
+				var statusType = emailSent ? 'success' : 'error';
+				setFormStatus(result.payload.message || 'Thanks! Your secure download link has been sent.', statusType);
+
+				if (emailSent) {
+					setDirectDownload('', '');
+				} else {
+					setDirectDownload(result.payload.download_url || '', result.payload.expires_at || '');
+				}
+
+				form.reset();
+				if (typeof grecaptcha !== 'undefined' && grecaptcha.reset) {
+					grecaptcha.reset();
+				}
+				return;
+			}
+
+			var firstError = 'Unable to submit right now. Please try again.';
+			if (result.payload && result.payload.errors) {
+				for (var key in result.payload.errors) {
+					if (Object.prototype.hasOwnProperty.call(result.payload.errors, key)) {
+						firstError = result.payload.errors[key][0];
+						break;
+					}
+				}
+			} else if (result.payload && result.payload.message) {
+				firstError = result.payload.message;
+			}
+
+			setFormStatus(firstError, 'error');
+		}).catch(function () {
+			setFormStatus('Unable to submit right now. Please check your connection and try again.', 'error');
+		}).finally(function () {
+			setSubmitting(false);
+		});
+	});
+});
+</script>
 @endsection

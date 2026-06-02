@@ -332,7 +332,7 @@
 	margin-bottom: 14px;
 	min-height: 78px;
 }
-.lead-form .g-recaptcha {
+.lead-form .case-recaptcha {
 	display: inline-block;
 	max-width: 100%;
 	transform-origin: left top;
@@ -581,7 +581,7 @@
 			</div>
 			@if(!empty($recaptchaSiteKey))
 				<div class="form-group captcha-wrap">
-					<div id="caseRecaptcha" class="g-recaptcha" data-sitekey="{{ $recaptchaSiteKey }}"></div>
+					<div id="caseRecaptcha" class="case-recaptcha" data-sitekey="{{ $recaptchaSiteKey }}"></div>
 				</div>
 			@endif
 			<button class="btn default-background text-light" id="caseLeadSubmitBtn" type="submit">
@@ -615,6 +615,7 @@
 	var firstInput = document.getElementById('lead_name');
 	var recaptchaContainer = document.getElementById('caseRecaptcha');
 	var recaptchaRendered = false;
+	var recaptchaWidgetId = null;
 	var leadForm = document.getElementById('caseLeadForm');
 	var submitBtn = document.getElementById('caseLeadSubmitBtn');
 	var submitText = document.getElementById('caseLeadSubmitText');
@@ -793,7 +794,11 @@
 					}
 					leadForm.reset();
 					if (typeof grecaptcha !== 'undefined' && grecaptcha.reset && recaptchaRendered) {
-						grecaptcha.reset();
+						if (recaptchaWidgetId !== null) {
+							grecaptcha.reset(recaptchaWidgetId);
+						} else {
+							grecaptcha.reset();
+						}
 					}
 					return;
 				}
@@ -834,7 +839,7 @@
 		}
 
 		if (!recaptchaRendered) {
-			grecaptcha.render('caseRecaptcha', {
+			recaptchaWidgetId = grecaptcha.render('caseRecaptcha', {
 				sitekey: recaptchaContainer.getAttribute('data-sitekey')
 			});
 			recaptchaRendered = true;
