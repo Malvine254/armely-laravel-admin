@@ -808,6 +808,28 @@ class CaseStudiesController extends Controller
                 return false;
             }
 
+            $mailer = new AzureMailService();
+            $subject = 'Case Studies Lead: ' . $payload['interest'];
+
+            $userHtml = view('emails.case-studies.resource-download', [
+                'name' => $payload['name'],
+                'resourceTitle' => $payload['resource_title'],
+                'resourceTypeLabel' => $payload['resource_type_label'],
+                'downloadUrl' => $payload['download_url'],
+                'expiresAt' => $payload['expires_at'],
+            ])->render();
+
+            // Prioritize customer delivery first, then send admin notifications best-effort.
+            $userSent = $this->sendEmailWithFallback(
+                $mailer,
+                $fromEmail,
+                (string) $payload['email'],
+                'Your secure Armely download link',
+                $userHtml,
+                true,
+                false
+            );
+
             $html = view('emails.case-studies.admin-lead-notification', [
                 'name' => (string) ($payload['name'] ?? ''),
                 'email' => (string) ($payload['email'] ?? ''),
@@ -823,32 +845,13 @@ class CaseStudiesController extends Controller
                 'message' => (string) ($payload['message'] ?? ''),
             ])->render();
 
-            $mailer = new AzureMailService();
-            $subject = 'Case Studies Lead: ' . $payload['interest'];
-
             $this->sendEmailWithFallback($mailer, $fromEmail, $adminEmail, $subject, $html);
 
             if (strtolower($adminEmail) !== 'ask.me@armely.com') {
                 $this->sendEmailWithFallback($mailer, $fromEmail, 'ask.me@armely.com', $subject, $html);
             }
 
-            $userHtml = view('emails.case-studies.resource-download', [
-                'name' => $payload['name'],
-                'resourceTitle' => $payload['resource_title'],
-                'resourceTypeLabel' => $payload['resource_type_label'],
-                'downloadUrl' => $payload['download_url'],
-                'expiresAt' => $payload['expires_at'],
-            ])->render();
-
-            return $this->sendEmailWithFallback(
-                $mailer,
-                $fromEmail,
-                (string) $payload['email'],
-                'Your secure Armely download link',
-                $userHtml,
-                true,
-                false
-            );
+            return $userSent;
         } catch (\Throwable $e) {
             Log::warning('Case studies lead email failed', ['error' => $e->getMessage()]);
             return false;
