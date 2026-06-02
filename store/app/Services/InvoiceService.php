@@ -49,11 +49,17 @@ class InvoiceService
             'freight',
             'Freight',
             'freightAmount',
+            'FreightAmount',
             'poFreight',
+            'shippingExpenses',
+            'ShippingExpenses',
             'shippingAmount',
+            'ShippingAmount',
             'shipping_amount',
             'totalFreight',
             'TotalFreight',
+            'shipCharge',
+            'ShipCharge',
         ]);
 
         if ($freight !== null && $freight !== '' && is_numeric((string) $freight)) {
@@ -61,6 +67,40 @@ class InvoiceService
         }
 
         return max(0, round((float) ($order->shipping_amount ?? 0), 2));
+    }
+
+    private function resolveOrderTaxAmount(Order $order): float
+    {
+        $raw = is_array($order->raw_data) ? $order->raw_data : [];
+        $tax = $this->deepFindFirstByKeys($raw, [
+            'estimatedTax',
+            'EstimatedTax',
+            'taxAmount',
+            'TaxAmount',
+            'tax',
+            'Tax',
+            'salesTax',
+            'SalesTax',
+            'vatAmount',
+            'VatAmount',
+        ]);
+
+        if ($tax !== null && $tax !== '' && is_numeric((string) $tax)) {
+            return max(0, round((float) $tax, 2));
+        }
+
+        return max(0, round((float) ($order->tax_amount ?? 0), 2));
+    }
+
+    private function resolveOrderFeeAmount(Order $order, array $keys): float
+    {
+        $raw = is_array($order->raw_data) ? $order->raw_data : [];
+        $amount = $this->deepFindFirstByKeys($raw, $keys);
+        if ($amount !== null && $amount !== '' && is_numeric((string) $amount)) {
+            return max(0, round((float) $amount, 2));
+        }
+
+        return 0.0;
     }
 
     private function findProductForInvoiceItem(array $item): ?Product
@@ -216,10 +256,14 @@ class InvoiceService
                 return $sum + (float) ($item['line_total'] ?? 0);
             }, 0), 2);
 
-            $tax = round((float) ($order->tax_amount ?? 0), 2);
+            $tax = $this->resolveOrderTaxAmount($order);
             $shipping = $this->resolveOrderShippingAmount($order);
+            $adultSignatureFee = $this->resolveOrderFeeAmount($order, ['adultSignatureFee', 'AdultSignatureFee', 'adult_signature_fee', 'Adult Signature Fee']);
+            $minimumOrderFee = $this->resolveOrderFeeAmount($order, ['minimumOrderFee', 'MinimumOrderFee', 'minimum_order_fee', 'Minimum Order Fee']);
+            $recyclingFee = $this->resolveOrderFeeAmount($order, ['estimatedRecyclingFee', 'EstimatedRecyclingFee', 'recyclingFee', 'RecyclingFee', 'estimated_recycling_fee']);
+            $additionalFeesTotal = round($adultSignatureFee + $minimumOrderFee + $recyclingFee, 2);
             $discount = (float) ($order->discount_amount ?? 0);
-            $computedPayableTotal = max(0, round($retailSubtotal + $tax + $shipping - $discount, 2));
+            $computedPayableTotal = max(0, round($retailSubtotal + $tax + $shipping + $additionalFeesTotal - $discount, 2));
             $normalizedItems = $this->normalizeInvoiceLineItems($retailItems, $retailSubtotal);
 
             // Keep stable invoice number per order to avoid accidental remapping.
@@ -245,6 +289,10 @@ class InvoiceService
                                 'subtotal' => $retailSubtotal,
                                 'tax_amount' => $tax,
                                 'shipping_amount' => $shipping,
+                                'adult_signature_fee' => $adultSignatureFee,
+                                'minimum_order_fee' => $minimumOrderFee,
+                                'recycling_fee' => $recyclingFee,
+                                'additional_fees_total' => $additionalFeesTotal,
                                 'discount_amount' => $discount,
                                 'payable_total' => $computedPayableTotal,
                             ],
@@ -276,6 +324,10 @@ class InvoiceService
                                 'subtotal' => $retailSubtotal,
                                 'tax_amount' => $tax,
                                 'shipping_amount' => $shipping,
+                                'adult_signature_fee' => $adultSignatureFee,
+                                'minimum_order_fee' => $minimumOrderFee,
+                                'recycling_fee' => $recyclingFee,
+                                'additional_fees_total' => $additionalFeesTotal,
                                 'discount_amount' => $discount,
                                 'payable_total' => $computedPayableTotal,
                             ],
