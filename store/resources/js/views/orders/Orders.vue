@@ -447,28 +447,60 @@
       style="background-color: rgba(232, 240, 250, 0.48);"
       @click="selectedOrder = null"
     >
-      <div class="max-h-[94vh] w-full max-w-5xl overflow-y-auto rounded-3xl border shadow-2xl" style="border-color:#d9e6f7; background: linear-gradient(160deg, rgba(255,255,255,0.98) 0%, rgba(247,251,255,0.96) 52%, rgba(238,245,255,0.98) 100%);" @click.stop>
+      <div class="flex max-h-[94vh] w-full max-w-5xl flex-col overflow-hidden rounded-3xl border shadow-2xl" style="border-color:#d9e6f7; background: linear-gradient(160deg, rgba(255,255,255,0.98) 0%, rgba(247,251,255,0.96) 52%, rgba(238,245,255,0.98) 100%);" @click.stop>
         <!-- Modal Header -->
-        <div class="sticky top-0 z-10 rounded-t-3xl border-b px-6 py-5 backdrop-blur-sm" style="border-color:#d9e6f7; background: linear-gradient(95deg, rgba(47,85,151,0.94) 0%, rgba(74,121,198,0.9) 72%);">
-          <div>
-            <p class="text-xs font-semibold text-blue-100 uppercase tracking-wide">Order</p>
-            <h2 class="text-2xl font-bold text-white">{{ selectedOrder.order_number }}</h2>
-          </div>
-          <div class="flex items-center gap-3">
-            <div class="rounded-xl border px-3 py-2 text-right" style="border-color: rgba(255,255,255,0.28); background-color: rgba(255,255,255,0.14);">
-              <p class="text-[10px] uppercase tracking-wide text-blue-100">Journey Progress</p>
-              <p class="text-sm font-bold text-white">{{ getJourneyProgress(selectedOrder) }}%</p>
+        <div class="shrink-0 rounded-t-3xl border-b px-6 py-5 backdrop-blur-sm" style="border-color:#d9e6f7; background: linear-gradient(95deg, rgba(47,85,151,0.94) 0%, rgba(74,121,198,0.9) 72%);">
+          <div class="flex flex-wrap items-start justify-between gap-4">
+            <div class="min-w-0">
+              <p class="text-xs font-semibold text-blue-100 uppercase tracking-wide">Order</p>
+              <h2 class="text-2xl font-bold text-white">{{ selectedOrder.order_number }}</h2>
+              <p class="mt-1 text-xs text-blue-100/95">
+                {{ selectedOrder.tracking_number ? 'Shipment tracking is active for this order.' : 'Tracking will appear here as soon as a carrier scan is available.' }}
+              </p>
             </div>
-            <button @click="selectedOrder = null" class="text-blue-100 hover:text-white transition duration-200">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-            </button>
+            <div class="flex items-center gap-3">
+              <div class="rounded-xl border px-3 py-2 text-right" style="border-color: rgba(255,255,255,0.28); background-color: rgba(255,255,255,0.14);">
+                <p class="text-[10px] uppercase tracking-wide text-blue-100">Journey Progress</p>
+                <p class="text-sm font-bold text-white">{{ getJourneyProgress(selectedOrder) }}%</p>
+              </div>
+              <button @click="selectedOrder = null" class="text-blue-100 hover:text-white transition duration-200">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            <div class="rounded-lg border px-3 py-2" style="border-color: rgba(255,255,255,0.28); background-color: rgba(255,255,255,0.14);">
+              <p class="text-[10px] uppercase tracking-wide text-blue-100">Carrier</p>
+              <p class="mt-0.5 text-xs font-semibold text-white truncate">{{ getTopCarrier(selectedOrder) || 'Awaiting assignment' }}</p>
+            </div>
+            <div class="rounded-lg border px-3 py-2" style="border-color: rgba(255,255,255,0.28); background-color: rgba(255,255,255,0.14);">
+              <p class="text-[10px] uppercase tracking-wide text-blue-100">Tracking</p>
+              <p class="mt-0.5 font-mono text-xs font-semibold text-white truncate">{{ getTopTrackingNumber(selectedOrder) || 'Pending assignment' }}</p>
+            </div>
+            <div class="rounded-lg border px-3 py-2" style="border-color: rgba(255,255,255,0.28); background-color: rgba(255,255,255,0.14);">
+              <p class="text-[10px] uppercase tracking-wide text-blue-100">ETA / Delivered</p>
+              <p class="mt-0.5 text-xs font-semibold text-white truncate">{{ getTopEtaLabel(selectedOrder) }}</p>
+            </div>
+            <div class="rounded-lg border px-3 py-2" style="border-color: rgba(255,255,255,0.28); background-color: rgba(255,255,255,0.14);">
+              <p class="text-[10px] uppercase tracking-wide text-blue-100">Tracking Link</p>
+              <button
+                v-if="getTopTrackingUrl(selectedOrder)"
+                @click="openTracking(getTopTrackingUrl(selectedOrder))"
+                class="mt-0.5 text-xs font-semibold text-white underline underline-offset-2"
+                type="button"
+              >
+                Open carrier page
+              </button>
+              <p v-else class="mt-0.5 text-xs font-semibold text-white/90">Not available yet</p>
+            </div>
           </div>
         </div>
 
         <!-- Modal Body -->
-        <div class="px-6 py-8">
+        <div class="min-h-0 overflow-y-auto px-6 py-8">
           <!-- Status Section - vertical timeline tree -->
           <div class="mb-8 pb-8 border-b border-gray-200">
             <div class="flex items-center justify-between mb-6">
@@ -1028,6 +1060,72 @@ export default {
       return liveShipments.value.find((shipment) => String(shipment?.order_number || '') === orderNumber) || null;
     };
 
+    const readTrackingInfoObject = (order) => {
+      const raw = order?.tracking_info;
+      if (!raw) return null;
+      if (typeof raw === 'object') return raw;
+      if (typeof raw === 'string') {
+        try {
+          const parsed = JSON.parse(raw);
+          return parsed && typeof parsed === 'object' ? parsed : null;
+        } catch (_) {
+          return null;
+        }
+      }
+      return null;
+    };
+
+    const getTopCarrier = (order) => {
+      const liveShipment = findLiveShipmentForOrder(order);
+      const trackingInfo = readTrackingInfoObject(order);
+      return String(
+        liveShipment?.carrier
+          || trackingInfo?.carrier
+          || trackingInfo?.carrier_name
+          || order?.carrier
+          || ''
+      ).trim();
+    };
+
+    const getTopTrackingNumber = (order) => {
+      const liveShipment = findLiveShipmentForOrder(order);
+      const trackingInfo = readTrackingInfoObject(order);
+      return String(
+        order?.tracking_number
+          || liveShipment?.tracking_number
+          || trackingInfo?.tracking_number
+          || trackingInfo?.trackingNumber
+          || ''
+      ).trim();
+    };
+
+    const getTopEtaLabel = (order) => {
+      const liveShipment = findLiveShipmentForOrder(order);
+      const deliveredAt = order?.delivered_at || liveShipment?.delivered_at;
+      if (deliveredAt) {
+        return `Delivered ${formatDate(deliveredAt)}`;
+      }
+
+      const eta = order?.estimated_delivery || liveShipment?.estimated_delivery_at;
+      if (eta) {
+        return formatDate(eta);
+      }
+
+      return 'Awaiting update';
+    };
+
+    const getTopTrackingUrl = (order) => {
+      const liveShipment = findLiveShipmentForOrder(order);
+      const trackingInfo = readTrackingInfoObject(order);
+      return String(
+        liveShipment?.tracking_url
+          || order?.tracking_url
+          || trackingInfo?.tracking_url
+          || trackingInfo?.trackingUrl
+          || ''
+      ).trim();
+    };
+
     const resolveJourneyStatus = (orderOrStatus) => {
       if (typeof orderOrStatus === 'string') {
         return resolveStatus(String(orderOrStatus || '').toLowerCase());
@@ -1296,6 +1394,10 @@ export default {
       resolveJourneyStatus,
       getJourneyProgress,
       findLiveShipmentForOrder,
+      getTopCarrier,
+      getTopTrackingNumber,
+      getTopEtaLabel,
+      getTopTrackingUrl,
     };
   },
 };
