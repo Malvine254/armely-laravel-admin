@@ -1210,6 +1210,10 @@ class QuoteOrderInvoiceController extends Controller
             $trackingNumber = $this->deepFindFirstByKeys($response, ['tracking_number', 'trackingNumber', 'TrackingNumber', 'carrierTrackingNumber', 'shipmentTrackingNumber', 'proNumber', 'ProNumber']);
             $freightAmount = $this->deepFindFirstByKeys($response, ['freight', 'Freight', 'freightAmount', 'poFreight', 'shippingAmount', 'shipping_amount', 'totalFreight', 'TotalFreight']);
             $estimatedDelivery = $this->deepFindFirstByKeys($response, ['estimatedDeliveryDate', 'EstimatedDeliveryDate', 'estimatedShipDate', 'EstimatedShipDate', 'estimatedArrivalDate', 'EstimatedArrivalDate']);
+            $tdPoNumber = $this->deepFindFirstByKeys($response, ['PONumber', 'poNumber', 'po_number']);
+            $tdOrderType = $this->deepFindFirstByKeys($response, ['OrderType', 'orderType', 'order_type']);
+            $tdShipMethod = $this->deepFindFirstByKeys($response, ['ShipMethodDescription', 'shipMethodDescription', 'ShipMethod', 'shipMethod']);
+            $tdShipDate = $this->deepFindFirstByKeys($response, ['ShipDatetime', 'shipDatetime', 'shipDate', 'ShipDate']);
 
             // Capture the TD-assigned order number from status response (excludes PO number fields that echo our own quote ID).
             $tdOrderNumber = $this->deepFindFirstByKeys($response, ['OrderNumber', 'orderNumber', 'order_number', 'SynnexOrderNumber', 'synnexOrderNumber']);
@@ -1226,6 +1230,12 @@ class QuoteOrderInvoiceController extends Controller
                 'tracking_number' => $trackingNumber ? (string) $trackingNumber : ($oldTracking['tracking_number'] ?? null),
                 'shipping_status' => $shippingStatus ? (string) $shippingStatus : ($oldTracking['shipping_status'] ?? $newStatus),
                 'estimated_delivery_date' => $estimatedDelivery ? (string) $estimatedDelivery : ($oldTracking['estimated_delivery_date'] ?? null),
+                'td_po_number' => $tdPoNumber ? (string) $tdPoNumber : ($oldTracking['td_po_number'] ?? null),
+                'td_order_number' => $normalizedTdOrderNumber !== '' ? $normalizedTdOrderNumber : ($oldTracking['td_order_number'] ?? null),
+                'td_order_status_code' => $rawStatus ? (string) $rawStatus : ($oldTracking['td_order_status_code'] ?? null),
+                'td_order_type' => $tdOrderType ? (string) $tdOrderType : ($oldTracking['td_order_type'] ?? null),
+                'td_ship_method' => $tdShipMethod ? (string) $tdShipMethod : ($oldTracking['td_ship_method'] ?? null),
+                'td_ship_datetime' => $tdShipDate ? (string) $tdShipDate : ($oldTracking['td_ship_datetime'] ?? null),
             ], fn ($value) => $value !== null && $value !== '');
 
             $candidateTrackingNumber = $this->normalizeTrackingNumber($newTracking['tracking_number'] ?? null);
@@ -1295,9 +1305,8 @@ class QuoteOrderInvoiceController extends Controller
         $orderNumber = trim((string) ($order->order_number ?? ''));
         $tdOrderId = trim((string) ($order->tdsynnex_order_id ?? ''));
 
-        $preferPoCandidates = str_starts_with($quoteId, 'Q-')
-            ? [$quoteId, $orderNumber, $tdOrderId]
-            : [$orderNumber, $tdOrderId, $quoteId];
+        // Always prefer quote_id (PO) first for TD status checks.
+        $preferPoCandidates = [$quoteId, $orderNumber, $tdOrderId];
 
         $candidates = array_values(array_unique(array_filter(array_map(
             static fn ($value) => trim((string) $value),
