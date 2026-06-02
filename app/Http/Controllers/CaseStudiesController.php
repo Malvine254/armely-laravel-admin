@@ -22,6 +22,10 @@ class CaseStudiesController extends Controller
         // Paginate case studies (6 per page)
         $caseStudies = $this->paginateCaseStudies($request);
 
+        if ($redirect = $this->redirectIfOutOfRangePage($request, $caseStudies, 'case_page')) {
+            return $redirect;
+        }
+
         $caseStudies->getCollection()->transform(function ($caseStudy) {
             $caseStudy->preview = $this->makePreviewText((string) ($caseStudy->body ?? ''), 120);
             $caseStudy->slug = $this->caseStudySlug($caseStudy);
@@ -34,6 +38,10 @@ class CaseStudiesController extends Controller
 
         // Paginate white papers (6 per page)
         $whitePapers = $this->paginateWhitePapers($request);
+
+        if ($redirect = $this->redirectIfOutOfRangePage($request, $whitePapers, 'paper_page')) {
+            return $redirect;
+        }
 
         $whitePapers->getCollection()->transform(function ($paper) {
             $paper->preview = $this->makePreviewText((string) ($paper->body ?? ''), 120);
@@ -1410,5 +1418,22 @@ class CaseStudiesController extends Controller
                 'pageName' => $pageName,
             ]
         );
+    }
+
+    private function redirectIfOutOfRangePage(Request $request, LengthAwarePaginator $paginator, string $pageName)
+    {
+        $requestedPage = (int) $request->query($pageName, 1);
+        if ($requestedPage <= 1 || $requestedPage <= $paginator->lastPage()) {
+            return null;
+        }
+
+        $query = $request->query();
+        unset($query[$pageName]);
+
+        if (empty($query)) {
+            return redirect()->route('case-studies.index');
+        }
+
+        return redirect()->route('case-studies.index', $query);
     }
 }
