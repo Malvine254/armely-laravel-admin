@@ -421,7 +421,7 @@ class CaseStudiesController extends Controller
             $terms = match ($key) {
                 'healthcare' => ['health', 'healthcare', 'swope', 'unmc', 'patient', 'medical'],
                 'energy-oil-gas' => ['energy', 'oil', 'gas', 'utility', 'utilities', 'sage', 'butte'],
-                'state-local-government' => ['government', 'public sector', 'state', 'city', 'county', 'agency', 'municipal', 'plano'],
+                'government-public-sector' => ['government', 'public sector', 'state', 'city', 'county', 'agency', 'municipal', 'plano', 'isd'],
                 'legal-social-services' => ['legal', 'social services', 'social service', 'nonprofit', 'community'],
                 'transportation-logistics' => ['transportation', 'logistics', 'supply chain', 'fleet', 'shipping', 'freight', 'mhc'],
                 'agriculture-cannabis' => ['agriculture', 'agri', 'farming', 'farm', 'cannabis', 'cultivation'],
@@ -435,7 +435,7 @@ class CaseStudiesController extends Controller
             }
         }
 
-        return 'healthcare';
+        return '';
     }
 
     private function inferTechnologyFilters(object $caseStudy): array
@@ -471,7 +471,7 @@ class CaseStudiesController extends Controller
         $results = [
             'healthcare' => ['Faster reporting cycles', 'Cleaner patient and operations data', 'Better executive visibility'],
             'energy-oil-gas' => ['Operational data consolidated', 'Field workflows simplified', 'Leadership reporting improved'],
-            'state-local-government' => ['Improved constituent service workflows', 'Modernized reporting', 'Lower manual follow-up'],
+            'government-public-sector' => ['Improved constituent service workflows', 'Modernized reporting', 'Lower manual follow-up'],
             'legal-social-services' => ['Reduced manual intake effort', 'Improved service coordination', 'Better outcome tracking'],
             'transportation-logistics' => ['Faster dispatch visibility', 'Reduced manual status updates', 'Improved delivery performance tracking'],
             'agriculture-cannabis' => ['Improved production visibility', 'Better compliance reporting', 'Simplified operations monitoring'],
@@ -616,7 +616,7 @@ class CaseStudiesController extends Controller
         return [
             'healthcare' => 'Healthcare',
             'energy-oil-gas' => 'Energy (Oil & Gas)',
-            'state-local-government' => 'Government & Public Sector',
+            'government-public-sector' => 'Government & Public Sector',
             'legal-social-services' => 'Legal (Social Services)',
             'transportation-logistics' => 'Transportation & Logistics',
             'agriculture-cannabis' => 'Agriculture/Cannabis',
@@ -637,10 +637,10 @@ class CaseStudiesController extends Controller
             'energy-utilities' => 'energy-oil-gas',
             'oil-gas' => 'energy-oil-gas',
             'oil-and-gas' => 'energy-oil-gas',
-            'government-public-sector' => 'state-local-government',
-            'public-sector' => 'state-local-government',
-            'state-local-government' => 'state-local-government',
-            'local-government' => 'state-local-government',
+            'government-public-sector' => 'government-public-sector',
+            'public-sector' => 'government-public-sector',
+            'state-local-government' => 'government-public-sector',
+            'local-government' => 'government-public-sector',
             'legal' => 'legal-social-services',
             'social-services' => 'legal-social-services',
             'legal-social-services' => 'legal-social-services',
@@ -650,7 +650,7 @@ class CaseStudiesController extends Controller
             'agriculture' => 'agriculture-cannabis',
             'agriculture-cannabis' => 'agriculture-cannabis',
             'cannabis' => 'agriculture-cannabis',
-            'education' => null,
+            'education' => 'government-public-sector',
             'high-tech' => null,
             'high-tech-consulting' => null,
             'power-platform' => null,
