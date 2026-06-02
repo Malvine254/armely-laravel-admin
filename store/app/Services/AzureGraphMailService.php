@@ -885,7 +885,7 @@ class AzureGraphMailService
         return $this->sendEmail($customer->email, "Invoice #{$invNumber}", $html, $text);
     }
 
-    public function sendInvoiceReminderEmail(\App\Models\Invoice $invoice, \App\Models\User $recipient): bool
+    public function sendInvoiceReminderEmail(\App\Models\Invoice $invoice, \App\Models\User $recipient, ?string $customMessage = null): bool
     {
         if (!$this->isConfigured()) {
             return false;
@@ -896,8 +896,13 @@ class AzureGraphMailService
         $balance   = number_format(($invoice->total_amount ?? 0) - ($invoice->paid_amount ?? 0), 2);
         $appUrl    = $this->frontendUrl();
 
-        $html = $this->buildFullInvoiceHtml($invoice, $recipient, true);
-        $text = "Hello {$safeName},\n\nPayment reminder: Invoice #{$invNumber} has an outstanding balance of \${$balance}.\n{$appUrl}/invoices";
+        $safeCustomMessage = trim((string) $customMessage);
+        $html = $this->buildFullInvoiceHtml($invoice, $recipient, true, $safeCustomMessage !== '' ? $safeCustomMessage : null);
+        $text = "Hello {$safeName},\n\nPayment reminder: Invoice #{$invNumber} has an outstanding balance of \${$balance}.";
+        if ($safeCustomMessage !== '') {
+            $text .= "\n\nAdditional message from your account manager:\n{$safeCustomMessage}";
+        }
+        $text .= "\n{$appUrl}/invoices";
 
         return $this->sendEmail($recipient->email, "Payment Reminder: Invoice #{$invNumber}", $html, $text);
     }
@@ -1099,7 +1104,7 @@ class AzureGraphMailService
         ";
     }
 
-    private function buildFullInvoiceHtml(\App\Models\Invoice $invoice, \App\Models\User $user, bool $isReminder): string
+    private function buildFullInvoiceHtml(\App\Models\Invoice $invoice, \App\Models\User $user, bool $isReminder, ?string $customReminderMessage = null): string
     {
         $appUrl        = $this->frontendUrl();
         $supportEmail  = e((string) AppSetting::getValue('system.support_email', env('SUPPORT_EMAIL', 'info@armely.com')));
@@ -1315,6 +1320,15 @@ class AzureGraphMailService
             $reminderBanner = "<div style='background:#fff3cd;border:1px solid #ffc107;border-radius:6px;padding:14px 16px;margin-bottom:24px;'>"
                 . "<p style='margin:0;font-size:14px;font-weight:bold;color:#856404;'>&#9888; Payment Reminder &mdash; Outstanding balance: \${$balance}</p>"
                 . "</div>";
+
+            $safeReminderMessage = trim((string) $customReminderMessage);
+            if ($safeReminderMessage !== '') {
+                $safeReminderMessage = nl2br(e($safeReminderMessage));
+                $reminderBanner .= "<div style='background:#eef4ff;border:1px solid #bcd0f3;border-radius:6px;padding:12px 14px;margin-bottom:24px;'>"
+                    . "<p style='margin:0 0 6px;font-size:12px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:#1f4788;'>Message From Armely Team</p>"
+                    . "<p style='margin:0;font-size:14px;color:#1e3a6e;line-height:1.55;'>{$safeReminderMessage}</p>"
+                    . "</div>";
+            }
         }
 
         return "<!DOCTYPE html><html lang='en'><head><meta charset='UTF-8'>"

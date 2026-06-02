@@ -5262,7 +5262,21 @@ class AdminController extends Controller
                 ], 403);
             }
 
-            $invoice = Invoice::findOrFail($invoiceId);
+            if (!$this->hasPermission($currentUser, 'manage_invoices')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You do not have permission to manage invoices',
+                ], 403);
+            }
+
+            $validated = $request->validate([
+                'tax_amount' => 'sometimes|numeric|min:0|max:999999.99',
+                'shipping_amount' => 'sometimes|numeric|min:0|max:999999.99',
+                'notes' => 'nullable|string|max:500',
+                'reminder_message' => 'nullable|string|max:2000',
+            ]);
+
+            $invoice = Invoice::with('order')->findOrFail($invoiceId);
             $recipient = User::find($invoice->user_id);
 
             if (!$recipient || !$recipient->email) {
@@ -5270,6 +5284,92 @@ class AdminController extends Controller
                     'success' => false,
                     'message' => 'No valid recipient email found for this invoice user.',
                 ], 422);
+            }
+
+            $hasEditPayload = array_key_exists('tax_amount', $validated)
+                || array_key_exists('shipping_amount', $validated)
+                || array_key_exists('notes', $validated);
+
+            if ($hasEditPayload && in_array((string) $invoice->status, ['paid', 'cancelled', 'merged'], true)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Only unpaid active invoices can be edited before reminders.',
+                ], 422);
+            }
+
+            if ($hasEditPayload) {
+                $rawData = is_array($invoice->raw_data) ? $invoice->raw_data : [];
+                $breakdown = $rawData['invoice_charge_breakdown'] ?? [];
+                if (!is_array($breakdown)) {
+                    $breakdown = [];
+                }
+
+                $existingShipping = (float) (
+                    $breakdown['shipping_amount']
+                    ?? $invoice->shipping_amount
+                    ?? $invoice->order?->shipping_amount
+                    ?? 0
+                );
+
+                $tax = array_key_exists('tax_amount', $validated)
+                    ? round((float) $validated['tax_amount'], 2)
+                    : round((float) ($invoice->tax_amount ?? 0), 2);
+                $shipping = array_key_exists('shipping_amount', $validated)
+                    ? round((float) $validated['shipping_amount'], 2)
+                    : round($existingShipping, 2);
+                $discount = round((float) ($breakdown['discount_amount'] ?? 0), 2);
+                $subtotal = round((float) ($breakdown['subtotal'] ?? $breakdown['retail_subtotal'] ?? 0), 2);
+
+                if ($subtotal <= 0 && is_array($invoice->items)) {
+                    $subtotal = round(array_reduce($invoice->items, function (float $sum, mixed $item): float {
+                        if (!is_array($item)) {
+                            return $sum;
+                        }
+
+                        $quantity = max(1, (float) ($item['quantity'] ?? $item['qty'] ?? 1));
+                        $lineTotal = (float) ($item['line_total'] ?? $item['total'] ?? 0);
+                        if ($lineTotal > 0) {
+                            return $sum + $lineTotal;
+                        }
+
+                        return $sum + ((float) ($item['unit_price'] ?? $item['price'] ?? 0) * $quantity);
+                    }, 0.0), 2);
+                }
+
+                if ($subtotal <= 0) {
+                    $subtotal = max(0, round((float) $invoice->total_amount - (float) $invoice->tax_amount - $existingShipping + $discount, 2));
+                }
+
+                $total = max(0, round($subtotal + $tax + $shipping - $discount, 2));
+
+                $rawData['invoice_charge_breakdown'] = array_merge($breakdown, [
+                    'pricing_model' => $breakdown['pricing_model'] ?? 'retail',
+                    'subtotal' => $subtotal,
+                    'retail_subtotal' => $breakdown['retail_subtotal'] ?? $subtotal,
+                    'tax_amount' => $tax,
+                    'shipping_amount' => $shipping,
+                    'discount_amount' => $discount,
+                    'payable_total' => $total,
+                    'edited_by_admin_id' => $currentUser->id,
+                    'edited_at' => now()->toISOString(),
+                ]);
+
+                $invoice->update([
+                    'tax_amount' => $tax,
+                    'total_amount' => $total,
+                    'raw_data' => $rawData,
+                    'notes' => array_key_exists('notes', $validated) ? $validated['notes'] : $invoice->notes,
+                ]);
+
+                if ($invoice->order && !in_array((string) $invoice->order->payment_status, ['paid', 'completed'], true)) {
+                    $invoice->order->update([
+                        'tax_amount' => $tax,
+                        'shipping_amount' => $shipping,
+                        'total_amount' => $total,
+                    ]);
+                }
+
+                $invoice = $invoice->fresh();
             }
 
             $totalAmount = (float) ($invoice->total_amount ?? 0);
@@ -5283,7 +5383,14 @@ class AdminController extends Controller
                 ], 422);
             }
 
-            $this->notificationService->sendInvoiceReminderNotification($invoice);
+            $customReminderMessage = array_key_exists('reminder_message', $validated)
+                ? trim((string) $validated['reminder_message'])
+                : null;
+            if ($customReminderMessage === '') {
+                $customReminderMessage = null;
+            }
+
+            $this->notificationService->sendInvoiceReminderNotification($invoice, $customReminderMessage);
 
             return response()->json([
                 'success' => true,
@@ -5293,6 +5400,7 @@ class AdminController extends Controller
                     'invoice_number' => $invoice->invoice_number,
                     'email' => $recipient->email,
                     'balance_due' => $balanceDue,
+                    'invoice' => $invoice->fresh(['user', 'user.company', 'order']),
                 ],
             ]);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
