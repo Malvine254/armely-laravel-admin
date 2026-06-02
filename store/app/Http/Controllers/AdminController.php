@@ -1152,9 +1152,26 @@ class AdminController extends Controller
                 ], 422);
             }
 
-            $company = Company::where('domain', $domain)->first();
-            $companyHasStatusColumn = Schema::hasColumn('companies', 'status');
-            if (!$company) {
+            $hasCompaniesTable = Schema::hasTable('companies');
+            $hasCompanyDomainColumn = $hasCompaniesTable && Schema::hasColumn('companies', 'domain');
+            $companyHasStatusColumn = $hasCompaniesTable && Schema::hasColumn('companies', 'status');
+            $hasUserCompanyId = Schema::hasColumn('users', 'company_id');
+
+            if ($hasUserCompanyId && (!$hasCompaniesTable || !$hasCompanyDomainColumn)) {
+                Log::error('Customer invite schema mismatch: users.company_id requires companies table/domain column');
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Customer company schema is incomplete. Please run the latest store migrations.',
+                ], 500);
+            }
+
+            $company = null;
+            if ($hasCompaniesTable && $hasCompanyDomainColumn) {
+                $company = Company::where('domain', $domain)->first();
+            }
+
+            if (!$company && $hasCompaniesTable && $hasCompanyDomainColumn) {
                 $companyName = trim((string) ($validated['company_name'] ?? ''));
                 if ($companyName === '') {
                     return response()->json([
@@ -1173,7 +1190,7 @@ class AdminController extends Controller
                 }
 
                 $company = Company::create($companyData);
-            } elseif ($companyHasStatusColumn && $company->status !== 'approved') {
+            } elseif ($company && $companyHasStatusColumn && $company->status !== 'approved') {
                 $company->status = 'approved';
                 $company->save();
             }
@@ -1187,7 +1204,7 @@ class AdminController extends Controller
                 'email_verified_at' => now(),
             ];
 
-            if (Schema::hasColumn('users', 'company_id')) {
+            if ($hasUserCompanyId && $company !== null) {
                 $userData['company_id'] = $company->id;
             }
             if (Schema::hasColumn('users', 'role')) {
