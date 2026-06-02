@@ -1189,7 +1189,7 @@ class AdminController extends Controller
                     $companyData['status'] = 'approved';
                 }
 
-                $company = Company::create($companyData);
+                $company = $this->createCompanyRecord($companyData);
             } elseif ($company && $companyHasStatusColumn && $company->status !== 'approved') {
                 $company->status = 'approved';
                 $company->save();
@@ -1242,12 +1242,16 @@ class AdminController extends Controller
                 ]);
             }
 
+            $companyRelation = $companyHasStatusColumn
+                ? 'company:id,name,domain,status'
+                : 'company:id,name,domain';
+
             return response()->json([
                 'success' => true,
                 'message' => $mailSent
                     ? 'Customer user invited successfully'
                     : 'Customer user created, but the invitation email could not be sent. Check email settings.',
-                'data' => $customer->load('company:id,name,domain,status'),
+                'data' => $customer->load($companyRelation),
             ], 201);
         } catch (\Illuminate\Validation\ValidationException $e) {
             throw $e;
@@ -1315,6 +1319,36 @@ class AdminController extends Controller
         } catch (\Exception $e) {
             Log::error('Failed to resend customer invite: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Failed to resend invitation'], 500);
+        }
+    }
+
+    /**
+     * Create a company record while supporting legacy schemas where companies.id
+     * is not auto-increment and must be explicitly set.
+     */
+    private function createCompanyRecord(array $companyData): Company
+    {
+        try {
+            return Company::create($companyData);
+        } catch (\Illuminate\Database\QueryException $e) {
+            if (!str_contains((string) $e->getMessage(), "Field 'id' doesn't have a default value")) {
+                throw $e;
+            }
+
+            $nextId = DB::transaction(function () {
+                $maxId = (int) DB::table('companies')->lockForUpdate()->max('id');
+                return $maxId + 1;
+            });
+
+            $insertData = array_merge($companyData, [
+                'id' => $nextId,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            DB::table('companies')->insert($insertData);
+
+            return Company::query()->findOrFail($nextId);
         }
     }
 
