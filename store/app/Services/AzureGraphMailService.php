@@ -1119,14 +1119,61 @@ class AzureGraphMailService
         $breakdown = is_array($breakdownRaw['invoice_charge_breakdown'] ?? null)
             ? $breakdownRaw['invoice_charge_breakdown']
             : [];
+        $tdChargeLines = is_array($breakdown['td_charge_lines'] ?? null)
+            ? $breakdown['td_charge_lines']
+            : [];
+
+        $sumTdCharges = function (array $needles) use ($tdChargeLines): float {
+            $sum = 0.0;
+            foreach ($tdChargeLines as $line) {
+                if (!is_array($line)) {
+                    continue;
+                }
+
+                $label = strtolower(trim((string) ($line['label'] ?? '')));
+                $amount = (float) ($line['amount'] ?? 0);
+                if ($label === '') {
+                    continue;
+                }
+
+                foreach ($needles as $needle) {
+                    if (str_contains($label, strtolower($needle))) {
+                        $sum += $amount;
+                        break;
+                    }
+                }
+            }
+
+            return round($sum, 2);
+        };
+
         $shippingAmt = (float) ($breakdown['shipping_amount']
             ?? ($order?->shipping_amount
             ?? ($this->findFirstNumericValue($order?->raw_data, [
                 'freight', 'Freight', 'freightAmount', 'FreightAmount', 'poFreight', 'shippingAmount', 'ShippingAmount', 'shipping_amount', 'totalFreight', 'TotalFreight', 'shipCharge', 'ShipCharge',
             ]) ?? 0)));
+        if ($shippingAmt <= 0) {
+            $shippingAmt = $sumTdCharges(['shipping', 'freight', 'handling', 'ship charge']);
+        }
+
+        if ($taxAmt <= 0) {
+            $taxAmt = $sumTdCharges(['tax']);
+        }
+
         $adultSignatureFeeAmt = (float) ($breakdown['adult_signature_fee'] ?? 0);
+        if ($adultSignatureFeeAmt <= 0) {
+            $adultSignatureFeeAmt = $sumTdCharges(['adult signature']);
+        }
+
         $minimumOrderFeeAmt = (float) ($breakdown['minimum_order_fee'] ?? 0);
+        if ($minimumOrderFeeAmt <= 0) {
+            $minimumOrderFeeAmt = $sumTdCharges(['minimum order fee']);
+        }
+
         $recyclingFeeAmt = (float) ($breakdown['recycling_fee'] ?? 0);
+        if ($recyclingFeeAmt <= 0) {
+            $recyclingFeeAmt = $sumTdCharges(['recycling']);
+        }
         $subtotalValue = max(0, $totalAmt - $taxAmt - $shippingAmt - $adultSignatureFeeAmt - $minimumOrderFeeAmt - $recyclingFeeAmt);
         $subtotal    = number_format($subtotalValue, 2);
         $shipping    = number_format($shippingAmt, 2);
@@ -1222,6 +1269,38 @@ class AzureGraphMailService
                 . "<td style='padding:8px 0;font-size:13px;font-weight:bold;text-align:right;'>\${$balance}</td></tr>";
         }
 
+        $knownChargeNeedles = ['shipping', 'freight', 'handling', 'tax', 'adult signature', 'minimum order fee', 'recycling'];
+        $extraTdChargeRows = '';
+        foreach ($tdChargeLines as $line) {
+            if (!is_array($line)) {
+                continue;
+            }
+
+            $label = trim((string) ($line['label'] ?? ''));
+            $amount = (float) ($line['amount'] ?? 0);
+            if ($label === '') {
+                continue;
+            }
+
+            $labelLower = strtolower($label);
+            $isKnown = false;
+            foreach ($knownChargeNeedles as $needle) {
+                if (str_contains($labelLower, $needle)) {
+                    $isKnown = true;
+                    break;
+                }
+            }
+
+            if ($isKnown) {
+                continue;
+            }
+
+            $displayLabel = e(ucwords(strtolower($label)));
+            $displayAmount = number_format($amount, 2);
+            $extraTdChargeRows .= "<tr><td style='padding:8px 0;font-size:13px;border-bottom:1px solid #ddd;'>{$displayLabel}:</td>"
+                . "<td style='padding:8px 0;font-size:13px;border-bottom:1px solid #ddd;text-align:right;'>\${$displayAmount}</td></tr>";
+        }
+
         // Notes block
         $notesHtml = '';
         if (!empty($invoice->notes)) {
@@ -1299,6 +1378,7 @@ class AzureGraphMailService
             .     "<td style='padding:8px 0;font-size:13px;border-bottom:1px solid #ddd;text-align:right;'>\${$minimumOrderFee}</td></tr>"
             . "<tr><td style='padding:8px 0;font-size:13px;border-bottom:1px solid #ddd;'>Estimated Recycling Fee:</td>"
             .     "<td style='padding:8px 0;font-size:13px;border-bottom:1px solid #ddd;text-align:right;'>\${$recyclingFee}</td></tr>"
+            . $extraTdChargeRows
             . "<tr><td style='padding:8px 0;font-size:13px;border-bottom:1px solid #ddd;'>Tax ({$taxRate}%):</td>"
             .     "<td style='padding:8px 0;font-size:13px;border-bottom:1px solid #ddd;text-align:right;'>\${$tax}</td></tr>"
             . "<tr><td style='padding:12px 0;font-size:16px;font-weight:bold;color:#2F5597;border-bottom:2px solid #333;'>Total:</td>"
