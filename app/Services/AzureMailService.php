@@ -123,9 +123,22 @@ class AzureMailService
             ]);
 
             // Graph returns 202 Accepted on success
-            return $resp->getStatusCode() >= 200 && $resp->getStatusCode() < 300;
+            $status = (int) $resp->getStatusCode();
+            if ($status >= 200 && $status < 300) {
+                return true;
+            }
+
+            $body = (string) $resp->getBody();
+            Log::warning('AzureMailService: Graph sendMail non-success response', [
+                'status' => $status,
+                'from' => $resolvedFromEmail,
+                'to' => $normalizedToEmail,
+                'subject' => $subject,
+                'body' => mb_substr($body, 0, 1500),
+            ]);
+
+            return false;
         } catch (\Throwable $e) {
-            self::markEmailAsSuppressed($toEmail);
             Log::error('AzureMailService sendEmail error: ' . $e->getMessage(), ['exception' => $e]);
             return false;
         }
