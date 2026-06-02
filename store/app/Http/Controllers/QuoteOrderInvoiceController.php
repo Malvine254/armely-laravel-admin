@@ -17,7 +17,6 @@ use App\Services\PdfService;
 use App\Services\NotificationService;
 use App\Services\InvoiceService;
 use App\Services\CustomerPricingService;
-use App\Services\CarrierTrackingService;
 use App\Services\AzureGraphMailService;
 use App\Support\FrontendUrl;
 use Illuminate\Http\Request;
@@ -33,7 +32,6 @@ class QuoteOrderInvoiceController extends Controller
     private NotificationService $notificationService;
     private InvoiceService $invoiceService;
     private CustomerPricingService $customerPricingService;
-    private CarrierTrackingService $carrierTrackingService;
     private array $productNameCache = [];
 
     public function __construct(
@@ -41,15 +39,13 @@ class QuoteOrderInvoiceController extends Controller
         PdfService $pdfService,
         NotificationService $notificationService,
         InvoiceService $invoiceService,
-        CustomerPricingService $customerPricingService,
-        CarrierTrackingService $carrierTrackingService
+        CustomerPricingService $customerPricingService
     ) {
         $this->tdsynnexService = $tdsynnexService;
         $this->pdfService = $pdfService;
         $this->notificationService = $notificationService;
         $this->invoiceService = $invoiceService;
         $this->customerPricingService = $customerPricingService;
-        $this->carrierTrackingService = $carrierTrackingService;
     }
 
     /**
