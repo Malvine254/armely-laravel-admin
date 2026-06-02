@@ -235,6 +235,17 @@
                     <span>View</span>
                   </button>
 
+                  <!-- Edit -->
+                  <button
+                    v-if="canEditInvoiceCharges(invoice)"
+                    @click="viewInvoice(invoice)"
+                    title="Edit Invoice Charges"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-amber-500/10 text-amber-700 border border-amber-500/30 hover:bg-amber-500/20 transition-colors duration-150"
+                  >
+                    <i class="fas fa-pen"></i>
+                    <span>Edit</span>
+                  </button>
+
                   <!-- Send Reminder -->
                   <button
                     v-if="invoice.status !== 'paid' && invoice.status !== 'cancelled'"
@@ -244,7 +255,7 @@
                     class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-blue-500/10 text-blue-700 border border-blue-500/30 hover:bg-blue-500/20 transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <i :class="sendingReminderInvoiceId === invoice.id ? 'fas fa-spinner fa-spin' : 'fas fa-envelope'"></i>
-                    <span>{{ sendingReminderInvoiceId === invoice.id ? 'Sending…' : 'Reminder' }}</span>
+                    <span>{{ sendingReminderInvoiceId === invoice.id ? 'Sending…' : 'Resend' }}</span>
                   </button>
 
                   <!-- Mark Paid -->
