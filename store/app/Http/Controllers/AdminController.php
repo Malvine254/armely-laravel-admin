@@ -5085,10 +5085,10 @@ class AdminController extends Controller
             ]);
 
             $invoice = Invoice::with('order')->findOrFail($invoiceId);
-            if (in_array((string) $invoice->status, ['paid', 'cancelled', 'merged'], true)) {
+            if (in_array((string) $invoice->status, ['cancelled', 'merged'], true)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Only unpaid active invoices can be edited.',
+                    'message' => 'Cancelled or merged invoices cannot be edited.',
                 ], 422);
             }
 
