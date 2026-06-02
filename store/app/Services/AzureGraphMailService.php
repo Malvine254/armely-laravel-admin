@@ -1165,26 +1165,9 @@ class AzureGraphMailService
             $taxAmt = $sumTdCharges(['tax']);
         }
 
-        $adultSignatureFeeAmt = (float) ($breakdown['adult_signature_fee'] ?? 0);
-        if ($adultSignatureFeeAmt <= 0) {
-            $adultSignatureFeeAmt = $sumTdCharges(['adult signature']);
-        }
-
-        $minimumOrderFeeAmt = (float) ($breakdown['minimum_order_fee'] ?? 0);
-        if ($minimumOrderFeeAmt <= 0) {
-            $minimumOrderFeeAmt = $sumTdCharges(['minimum order fee']);
-        }
-
-        $recyclingFeeAmt = (float) ($breakdown['recycling_fee'] ?? 0);
-        if ($recyclingFeeAmt <= 0) {
-            $recyclingFeeAmt = $sumTdCharges(['recycling']);
-        }
-        $subtotalValue = max(0, $totalAmt - $taxAmt - $shippingAmt - $adultSignatureFeeAmt - $minimumOrderFeeAmt - $recyclingFeeAmt);
+        $subtotalValue = max(0, $totalAmt - $taxAmt - $shippingAmt);
         $subtotal    = number_format($subtotalValue, 2);
         $shipping    = number_format($shippingAmt, 2);
-        $adultSignatureFee = number_format($adultSignatureFeeAmt, 2);
-        $minimumOrderFee = number_format($minimumOrderFeeAmt, 2);
-        $recyclingFee = number_format($recyclingFeeAmt, 2);
         $tax         = number_format($taxAmt, 2);
         $total       = number_format($totalAmt, 2);
         $paid        = number_format($paidAmt, 2);
@@ -1386,12 +1369,6 @@ class AzureGraphMailService
             .     "<td style='padding:8px 0;font-size:13px;border-bottom:1px solid #ddd;text-align:right;'>\${$subtotal}</td></tr>"
             . "<tr><td style='padding:8px 0;font-size:13px;border-bottom:1px solid #ddd;'>Shipping &amp; Handling:</td>"
             .     "<td style='padding:8px 0;font-size:13px;border-bottom:1px solid #ddd;text-align:right;'>\${$shipping}</td></tr>"
-            . "<tr><td style='padding:8px 0;font-size:13px;border-bottom:1px solid #ddd;'>Adult Signature Fee:</td>"
-            .     "<td style='padding:8px 0;font-size:13px;border-bottom:1px solid #ddd;text-align:right;'>\${$adultSignatureFee}</td></tr>"
-            . "<tr><td style='padding:8px 0;font-size:13px;border-bottom:1px solid #ddd;'>Minimum Order Fee:</td>"
-            .     "<td style='padding:8px 0;font-size:13px;border-bottom:1px solid #ddd;text-align:right;'>\${$minimumOrderFee}</td></tr>"
-            . "<tr><td style='padding:8px 0;font-size:13px;border-bottom:1px solid #ddd;'>Estimated Recycling Fee:</td>"
-            .     "<td style='padding:8px 0;font-size:13px;border-bottom:1px solid #ddd;text-align:right;'>\${$recyclingFee}</td></tr>"
             . $extraTdChargeRows
             . "<tr><td style='padding:8px 0;font-size:13px;border-bottom:1px solid #ddd;'>Tax ({$taxRate}%):</td>"
             .     "<td style='padding:8px 0;font-size:13px;border-bottom:1px solid #ddd;text-align:right;'>\${$tax}</td></tr>"
