@@ -601,7 +601,7 @@ class ResourceController extends Controller
         $publicResourceUrl = route('resources.show', $resource->slug);
         $assetUrl = $this->resolvePublicAssetUrl($resource);
         $publicDownloadUrl = $assetUrl
-            ?: route('resources.download', $resource->slug);
+            ?: $publicResourceUrl;
 
         $resourceUrl = $publicResourceUrl;
         $downloadUrl = $publicDownloadUrl;
@@ -675,7 +675,7 @@ class ResourceController extends Controller
 
         return [
             'resource_url' => $resourceUrl,
-            'download_url' => $assetUrl ?: route('resources.download', ['slug' => $resource->slug]),
+            'download_url' => $assetUrl ?: $resourceUrl,
         ];
     }
 
