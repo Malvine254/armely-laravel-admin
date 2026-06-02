@@ -5376,13 +5376,6 @@ class AdminController extends Controller
             $paidAmount = (float) ($invoice->paid_amount ?? 0);
             $balanceDue = max(0, $totalAmount - $paidAmount);
 
-            if ($invoice->status === 'paid' || $balanceDue <= 0) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'This invoice is already fully paid. No reminder needed.',
-                ], 422);
-            }
-
             $customReminderMessage = array_key_exists('reminder_message', $validated)
                 ? trim((string) $validated['reminder_message'])
                 : null;
