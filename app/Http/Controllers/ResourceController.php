@@ -602,6 +602,13 @@ class ResourceController extends Controller
         $assetUrl = $this->resolvePublicAssetUrl($resource);
         $publicDownloadUrl = $assetUrl
             ?: $publicResourceUrl;
+        $thumbnailUrl = trim((string) ($resource->thumbnail_url ?? ''));
+        if ($thumbnailUrl !== '') {
+            $thumbnailUrl = $this->makeAbsoluteUrl($thumbnailUrl);
+        } else {
+            $thumbnailUrl = $publicResourceUrl;
+        }
+        $resolvedAssetUrl = $assetUrl ?: $publicDownloadUrl;
 
         $resourceUrl = $publicResourceUrl;
         $downloadUrl = $publicDownloadUrl;
@@ -620,8 +627,8 @@ class ResourceController extends Controller
             'category' => $resource->resourceCategory?->name ?? $resource->category,
             'type' => $resource->resource_type,
             'featured' => (bool) $resource->is_featured,
-            'thumbnail_url' => $resource->thumbnail_url,
-            'asset_url' => $assetUrl,
+            'thumbnail_url' => $thumbnailUrl,
+            'asset_url' => $resolvedAssetUrl,
             'resource_url' => $resourceUrl,
             'download_url' => $downloadUrl,
             'requires_customer_access' => false,
