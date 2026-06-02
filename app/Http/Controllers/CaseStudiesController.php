@@ -828,13 +828,6 @@ class CaseStudiesController extends Controller
                 $this->sendEmailWithFallback($mailer, $fromEmail, 'ask.me@armely.com', $subject, $html);
             }
 
-            if (!$this->isDeliverableEmail((string) $payload['email'])) {
-                Log::warning('Case studies lead user email skipped due to deliverability verification failure', [
-                    'email' => $payload['email'],
-                ]);
-                return false;
-            }
-
             $userHtml = view('emails.case-studies.resource-download', [
                 'name' => $payload['name'],
                 'resourceTitle' => $payload['resource_title'],
@@ -869,6 +862,17 @@ class CaseStudiesController extends Controller
     ): bool {
         $azureSent = $mailer->sendEmail($fromEmail, $toEmail, $subject, $html, $saveToSent, $validateRecipient);
         if ($azureSent) {
+            return true;
+        }
+
+        // Retry Graph once before falling back to SMTP/log driver.
+        $azureRetrySent = (new AzureMailService())->sendEmail($fromEmail, $toEmail, $subject, $html, $saveToSent, $validateRecipient);
+        if ($azureRetrySent) {
+            Log::warning('Case studies email sent via Graph retry', [
+                'to' => $toEmail,
+                'subject' => $subject,
+            ]);
+
             return true;
         }
 
