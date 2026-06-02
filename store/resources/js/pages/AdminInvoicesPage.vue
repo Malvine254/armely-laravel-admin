@@ -583,7 +583,14 @@ const getInvoiceItemUnitPrice = (item) => {
 }
 
 const getTdBasePriceForItem = (item) => {
-  return Number(item?.td_base_price ?? 0)
+  return Number(
+    item?.td_base_price
+    ?? item?.base_price
+    ?? item?.td_cost
+    ?? item?.cost_price
+    ?? item?.live_price
+    ?? 0
+  )
 }
 
 const getInvoiceShippingAmount = (invoice) => {
