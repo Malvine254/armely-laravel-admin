@@ -248,14 +248,14 @@
 
                   <!-- Send Reminder -->
                   <button
-                    v-if="invoice.status !== 'paid' && invoice.status !== 'cancelled'"
+                    v-if="invoice.status !== 'cancelled' && invoice.status !== 'merged'"
                     @click="sendReminder(invoice)"
                     :disabled="sendingReminderInvoiceId === invoice.id"
                     title="Send Payment Reminder"
                     class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-blue-500/10 text-blue-700 border border-blue-500/30 hover:bg-blue-500/20 transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <i :class="sendingReminderInvoiceId === invoice.id ? 'fas fa-spinner fa-spin' : 'fas fa-envelope'"></i>
-                    <span>{{ sendingReminderInvoiceId === invoice.id ? 'Sending…' : 'Resend' }}</span>
+                    <span>{{ sendingReminderInvoiceId === invoice.id ? 'Sending…' : 'Send Reminder' }}</span>
                   </button>
 
                   <!-- Mark Paid -->
@@ -508,7 +508,7 @@
               <i class="fas fa-download mr-2"></i>Download PDF
             </button>
             <button
-              v-if="selectedInvoice.status !== 'paid' && selectedInvoice.status !== 'cancelled'"
+              v-if="selectedInvoice.status !== 'cancelled' && selectedInvoice.status !== 'merged'"
               @click="sendReminder(selectedInvoice)"
               :disabled="sendingReminderInvoiceId === selectedInvoice.id"
               class="px-6 py-2 border border-[#2F5597]/50 rounded-lg text-[#2F5597] font-medium hover:bg-[#2F5597]/20 disabled:opacity-50 disabled:cursor-not-allowed transition"
