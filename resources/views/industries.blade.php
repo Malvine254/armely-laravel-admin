@@ -1117,7 +1117,7 @@
 										</div>
 										<h6 class="solution-title"><strong>MHC Case Study</strong></h6>
 										<p class="solution-description">See how Armely supports transportation operations with modern Microsoft data and workflow solutions that improve visibility, speed, and execution quality.</p>
-										<a href="{{ route('case-studies.index', ['industry' => 'transportation-logistics']) }}" class="btn default-background text-light btn-modern-cta mt-3">View MHC Case Study</a>
+										<a href="{{ route('case-studies.index', ['industry' => 'transportation-logistics', 'case_industry' => 'transportation-logistics']) }}" class="btn default-background text-light btn-modern-cta mt-3">View MHC Case Study</a>
 									</div>
 								</div>
 							</div>
