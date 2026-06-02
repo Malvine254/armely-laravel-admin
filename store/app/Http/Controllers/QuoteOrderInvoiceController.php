@@ -1609,7 +1609,7 @@ class QuoteOrderInvoiceController extends Controller
 
     private function shouldSendShippingNotification(string $oldStatus, string $newStatus, array $oldTracking, array $newTracking): bool
     {
-        $shippingMilestones = ['shipped', 'in_transit', 'delivered'];
+        $shippingMilestones = ['invoiced', 'shipped', 'in_transit', 'delivered'];
         if ($oldStatus !== $newStatus && in_array($newStatus, $shippingMilestones, true)) {
             return true;
         }
