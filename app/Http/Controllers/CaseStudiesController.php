@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
@@ -819,10 +820,12 @@ class CaseStudiesController extends Controller
             ])->render();
 
             $mailer = new AzureMailService();
-            $mailer->sendEmail($fromEmail, $adminEmail, 'Case Studies Lead: ' . $payload['interest'], $html);
+            $subject = 'Case Studies Lead: ' . $payload['interest'];
+
+            $this->sendEmailWithFallback($mailer, $fromEmail, $adminEmail, $subject, $html);
 
             if (strtolower($adminEmail) !== 'ask.me@armely.com') {
-                $mailer->sendEmail($fromEmail, 'ask.me@armely.com', 'Case Studies Lead: ' . $payload['interest'], $html);
+                $this->sendEmailWithFallback($mailer, $fromEmail, 'ask.me@armely.com', $subject, $html);
             }
 
             if (!$this->isDeliverableEmail((string) $payload['email'])) {
@@ -840,15 +843,71 @@ class CaseStudiesController extends Controller
                 'expiresAt' => $payload['expires_at'],
             ])->render();
 
-            $sent = $mailer->sendEmail($fromEmail, $payload['email'], 'Your secure Armely download link', $userHtml, true, false);
-            if (!$sent) {
-                AzureMailService::markEmailAsSuppressed((string) $payload['email']);
+            return $this->sendEmailWithFallback(
+                $mailer,
+                $fromEmail,
+                (string) $payload['email'],
+                'Your secure Armely download link',
+                $userHtml,
+                true,
+                false
+            );
+        } catch (\Throwable $e) {
+            Log::warning('Case studies lead email failed', ['error' => $e->getMessage()]);
+            return false;
+        }
+    }
+
+    private function sendEmailWithFallback(
+        AzureMailService $mailer,
+        string $fromEmail,
+        string $toEmail,
+        string $subject,
+        string $html,
+        bool $saveToSent = true,
+        bool $validateRecipient = true
+    ): bool {
+        $azureSent = $mailer->sendEmail($fromEmail, $toEmail, $subject, $html, $saveToSent, $validateRecipient);
+        if ($azureSent) {
+            return true;
+        }
+
+        try {
+            $resolvedFrom = trim($fromEmail) !== '' ? trim($fromEmail) : (string) config('mail.from.address', '');
+
+            if (trim((string) $resolvedFrom) === '') {
+                Log::warning('Case studies email fallback skipped: missing from address', [
+                    'to' => $toEmail,
+                    'subject' => $subject,
+                ]);
+
                 return false;
             }
 
+            Mail::html($html, function ($message) use ($resolvedFrom, $toEmail, $subject) {
+                $message->from($resolvedFrom, (string) config('mail.from.name', config('app.name', 'Armely')))
+                    ->to($toEmail)
+                    ->subject($subject);
+
+                $replyTo = AzureMailService::replyToEmail();
+                if ($replyTo !== null && $replyTo !== '') {
+                    $message->replyTo($replyTo);
+                }
+            });
+
+            Log::warning('Case studies email sent via fallback mailer', [
+                'to' => $toEmail,
+                'subject' => $subject,
+            ]);
+
             return true;
         } catch (\Throwable $e) {
-            Log::warning('Case studies lead email failed', ['error' => $e->getMessage()]);
+            Log::warning('Case studies email fallback failed', [
+                'to' => $toEmail,
+                'subject' => $subject,
+                'error' => $e->getMessage(),
+            ]);
+
             return false;
         }
     }
