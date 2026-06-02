@@ -1188,8 +1188,7 @@ class QuoteOrderInvoiceController extends Controller
 
     private function refreshOrderStatusFromTdSynnex(Order $order): void
     {
-        $poNumber = trim((string) ($order->quote_id ?: $order->order_number));
-        if ($poNumber === '' || in_array((string) $order->status, ['cancelled', 'delivered'], true)) {
+        if (in_array((string) $order->status, ['cancelled', 'delivered'], true)) {
             return;
         }
 
@@ -1199,7 +1198,11 @@ class QuoteOrderInvoiceController extends Controller
         }
 
         try {
-            $response = $this->tdsynnexService->checkPoStatus($poNumber);
+            $response = $this->resolveTdPoStatusResponse($order);
+            if ($response === null) {
+                return;
+            }
+
             if (($response['success'] ?? true) === false) {
                 return;
             }
@@ -1239,38 +1242,21 @@ class QuoteOrderInvoiceController extends Controller
                 ?? $oldTracking['tracking_url']
                 ?? $this->fallbackTrackingUrl($carrier, (string) ($candidateTrackingNumber ?? ''));
 
-            $carrierLive = $this->carrierTrackingService->resolveLiveStatus(
-                $carrier,
-                $candidateTrackingNumber,
-                $candidateTrackingUrl
-            );
-
-            if (is_array($carrierLive)) {
-                $carrierLiveStatus = strtolower((string) ($carrierLive['status'] ?? ''));
-                $previousCarrierLiveStatus = strtolower((string) ($oldTracking['carrier_live_status_normalized'] ?? ''));
-                $statusActuallyChanged = $carrierLiveStatus !== '' && $carrierLiveStatus !== $previousCarrierLiveStatus;
-
-                $newTracking = array_merge($newTracking, array_filter([
-                    'carrier_live_status' => (string) ($carrierLive['raw_status'] ?? $carrierLiveStatus),
-                    'carrier_live_status_normalized' => $carrierLiveStatus !== '' ? $carrierLiveStatus : null,
-                    'carrier_live_checked_at' => $statusActuallyChanged
-                        ? (string) ($carrierLive['checked_at'] ?? now()->toIso8601String())
-                        : ($oldTracking['carrier_live_checked_at'] ?? null),
-                    'carrier_tracking_url' => (string) ($carrierLive['tracking_url'] ?? $candidateTrackingUrl),
-                ], fn ($value) => $value !== null && $value !== ''));
-
-                if ($carrierLiveStatus === 'delivered') {
-                    $newStatus = 'delivered';
-                } elseif ($carrierLiveStatus === 'in_transit' && in_array($newStatus, ['accepted', 'backordered', 'invoiced'], true)) {
-                    $newStatus = 'in_transit';
-                } elseif ($carrierLiveStatus === 'shipped' && in_array($newStatus, ['accepted', 'backordered', 'invoiced'], true)) {
-                    $newStatus = 'shipped';
-                }
+            if ($candidateTrackingUrl) {
+                $newTracking['carrier_tracking_url'] = $candidateTrackingUrl;
             }
 
             $mergedTracking = array_merge($oldTracking, $newTracking);
             if ($this->trackingPayloadIndicatesDelivered($mergedTracking) || $oldStatus === 'delivered') {
                 $newStatus = 'delivered';
+            }
+
+            if ($newStatus === 'invoiced') {
+                $this->ensureOrderInvoiceExists($order);
+            }
+
+            if ($newStatus === 'delivered') {
+                $this->ensureDeliveredOrderInvoiceAvailableAndSent($order);
             }
 
             $updates = [
@@ -1311,6 +1297,68 @@ class QuoteOrderInvoiceController extends Controller
         } catch (\Throwable $e) {
             Log::debug("TD SYNNEX PO status refresh failed for order {$order->order_number}: {$e->getMessage()}");
         }
+    }
+
+    private function resolveTdPoStatusResponse(Order $order): ?array
+    {
+        $candidates = array_values(array_unique(array_filter(array_map(
+            static fn ($value) => trim((string) $value),
+            [
+                $order->order_number,
+                $order->tdsynnex_order_id,
+                $order->quote_id,
+            ]
+        ), static fn ($value) => $value !== '')));
+
+        foreach ($candidates as $candidate) {
+            $response = $this->tdsynnexService->checkPoStatus($candidate);
+            if (($response['success'] ?? true) === false) {
+                continue;
+            }
+
+            $statusCode = strtolower(trim((string) ($this->deepFindFirstByKeys($response, ['Code', 'code', 'Status', 'status']) ?? '')));
+            if ($statusCode === 'notfound') {
+                continue;
+            }
+
+            return $response;
+        }
+
+        return null;
+    }
+
+    private function ensureOrderInvoiceExists(Order $order): ?Invoice
+    {
+        $order->loadMissing('invoice');
+        if ($order->invoice) {
+            return $order->invoice;
+        }
+
+        try {
+            $invoice = $this->invoiceService->generateInvoiceForOrder($order);
+            $order->load('invoice');
+
+            return $invoice;
+        } catch (\Throwable $e) {
+            Log::warning("Failed generating invoice for order {$order->order_number}: {$e->getMessage()}");
+
+            return null;
+        }
+    }
+
+    private function ensureDeliveredOrderInvoiceAvailableAndSent(Order $order): void
+    {
+        $invoice = $this->ensureOrderInvoiceExists($order);
+        if (!$invoice) {
+            return;
+        }
+
+        $cacheKey = 'notify:delivered-invoice:' . (string) $invoice->id;
+        if (!Cache::add($cacheKey, 1, now()->addHours(24))) {
+            return;
+        }
+
+        $this->notificationService->sendInvoiceNotification($invoice);
     }
 
     private function canCheckShippingStatus(Order $order): bool
@@ -1638,6 +1686,7 @@ class QuoteOrderInvoiceController extends Controller
 
             // Check local database first
             $order = Order::where('user_id', $user->id)
+                ->with('invoice')
                 ->where('order_number', $orderNumber)
                 ->first();
 
@@ -2133,6 +2182,9 @@ class QuoteOrderInvoiceController extends Controller
                 'tracking_info' => $trackingInfo,
             ]);
 
+            $order->refresh();
+            $this->ensureDeliveredOrderInvoiceAvailableAndSent($order);
+
             Activity::log(
                 $user->id,
                 'order',
@@ -2144,7 +2196,7 @@ class QuoteOrderInvoiceController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Order marked as delivered',
-                'data' => $order->fresh(),
+                'data' => $order->fresh()->load('invoice'),
             ]);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json([
