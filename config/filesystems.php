@@ -49,8 +49,8 @@ return [
 
         'resources' => [
             'driver' => 'local',
-            'root' => storage_path('app/public/resources'),
-            'url' => env('RESOURCE_PUBLIC_STORAGE_URL', env('APP_URL').'/storage/resources'),
+            'root' => public_path('resources'),
+            'url' => env('RESOURCE_PUBLIC_STORAGE_URL', env('APP_URL').'/resources'),
             'visibility' => 'public',
             'throw' => false,
             'report' => false,

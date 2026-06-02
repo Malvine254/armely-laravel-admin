@@ -179,19 +179,11 @@ class ResourceController extends Controller
             ->where('slug', $slug)
             ->firstOrFail();
 
-        $customer = $this->validateResourceCustomerData($request);
-        $this->recordResourceLead($resource, $customer);
-        $links = $this->permanentResourceAccessLinks($resource, $customer);
+        $links = $this->permanentResourceAccessLinks($resource, []);
 
         return response()->json([
             'success' => true,
-            'resource' => $this->resourceApiPayload($resource, $customer),
-            'customer' => [
-                'name' => $customer['name'],
-                'email' => $customer['email'],
-                'organization' => $customer['organization'] ?? null,
-                'job_title' => $customer['job_title'] ?? null,
-            ],
+            'resource' => $this->resourceApiPayload($resource),
             'links' => [
                 'resource_url' => $links['resource_url'],
                 'download_url' => $links['download_url'],
@@ -607,11 +599,9 @@ class ResourceController extends Controller
     private function resourceApiPayload(Resource $resource, ?array $customer = null): array
     {
         $publicResourceUrl = route('resources.show', $resource->slug);
-        $hasFile = trim((string) ($resource->file_url ?? '')) !== '';
-        $isPdf = strtolower((string) ($resource->resource_type ?? '')) === 'pdf';
-        $publicDownloadUrl = $hasFile && !$isPdf
-            ? route('resources.download', $resource->slug)
-            : null;
+        $assetUrl = $this->resolvePublicAssetUrl($resource);
+        $publicDownloadUrl = $assetUrl
+            ?: route('resources.download', $resource->slug);
 
         $resourceUrl = $publicResourceUrl;
         $downloadUrl = $publicDownloadUrl;
@@ -631,9 +621,10 @@ class ResourceController extends Controller
             'type' => $resource->resource_type,
             'featured' => (bool) $resource->is_featured,
             'thumbnail_url' => $resource->thumbnail_url,
+            'asset_url' => $assetUrl,
             'resource_url' => $resourceUrl,
             'download_url' => $downloadUrl,
-            'requires_customer_access' => $isPdf,
+            'requires_customer_access' => false,
             'updated_at' => optional($resource->updated_at)?->toIso8601String(),
         ];
     }
@@ -679,18 +670,44 @@ class ResourceController extends Controller
 
     private function permanentResourceAccessLinks(Resource $resource, array $customer): array
     {
-        $payload = $this->encodePermanentAccessPayload($resource, $customer);
-        $params = [
-            'access' => $payload['access'],
-            'access_sig' => $payload['access_sig'],
-        ];
+        $assetUrl = $this->resolvePublicAssetUrl($resource);
+        $resourceUrl = route('resources.show', ['slug' => $resource->slug]);
 
         return [
-            'resource_url' => route('resources.show', array_merge(['slug' => $resource->slug], $params)),
-            'download_url' => trim((string) ($resource->file_url ?? '')) !== ''
-                ? route('resources.download', array_merge(['slug' => $resource->slug], $params))
-                : route('resources.show', array_merge(['slug' => $resource->slug], $params)),
+            'resource_url' => $resourceUrl,
+            'download_url' => $assetUrl ?: route('resources.download', ['slug' => $resource->slug]),
         ];
+    }
+
+    private function resolvePublicAssetUrl(Resource $resource): ?string
+    {
+        $fileUrl = trim((string) ($resource->file_url ?? ''));
+        if ($fileUrl !== '') {
+            return $this->makeAbsoluteUrl($fileUrl);
+        }
+
+        $filePath = trim((string) ($resource->file_path ?? ''));
+        if ($filePath === '') {
+            return null;
+        }
+
+        try {
+            $disk = (string) config('resources.storage_disk', 'resources');
+            $url = Storage::disk($disk)->url($filePath);
+            return $this->makeAbsoluteUrl((string) $url);
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    private function makeAbsoluteUrl(string $url): string
+    {
+        if (Str::startsWith($url, ['http://', 'https://'])) {
+            return $url;
+        }
+
+        $base = rtrim((string) config('app.url'), '/');
+        return $base . '/' . ltrim($url, '/');
     }
 
     private function encodePermanentAccessPayload(Resource $resource, array $customer): array
@@ -754,6 +771,11 @@ class ResourceController extends Controller
 
         if (str_starts_with($normalized, '/pdf/')) {
             return public_path(ltrim($normalized, '/'));
+        }
+
+        if (str_starts_with($normalized, '/resources/')) {
+            $relative = ltrim(Str::after($normalized, '/resources/'), '/');
+            return public_path('resources/' . $relative);
         }
 
         if (str_starts_with($normalized, '/storage/resources/')) {

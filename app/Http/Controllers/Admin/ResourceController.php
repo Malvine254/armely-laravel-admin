@@ -85,14 +85,14 @@ class ResourceController extends Controller
         $resource->is_noindex = $request->boolean('is_noindex');
 
         if ($request->hasFile('file')) {
-            $storedFile = $this->storageService->store($request->file('file'), 'resources/files');
+            $storedFile = $this->storageService->store($request->file('file'), 'files');
             $resource->file_name = $storedFile['name'];
             $resource->file_path = $storedFile['path'];
             $resource->file_url = $storedFile['url'];
         }
 
         if ($request->hasFile('thumbnail')) {
-            $storedThumb = $this->storageService->store($request->file('thumbnail'), 'resources/thumbnails');
+            $storedThumb = $this->storageService->store($request->file('thumbnail'), 'thumbnails');
             $resource->thumbnail_path = $storedThumb['path'];
             $resource->thumbnail_url = $storedThumb['url'];
         }
@@ -133,7 +133,7 @@ class ResourceController extends Controller
 
         if ($request->hasFile('file')) {
             $this->storageService->delete($resource->file_path);
-            $storedFile = $this->storageService->store($request->file('file'), 'resources/files');
+            $storedFile = $this->storageService->store($request->file('file'), 'files');
             $resource->file_name = $storedFile['name'];
             $resource->file_path = $storedFile['path'];
             $resource->file_url = $storedFile['url'];
@@ -141,7 +141,7 @@ class ResourceController extends Controller
 
         if ($request->hasFile('thumbnail')) {
             $this->storageService->delete($resource->thumbnail_path);
-            $storedThumb = $this->storageService->store($request->file('thumbnail'), 'resources/thumbnails');
+            $storedThumb = $this->storageService->store($request->file('thumbnail'), 'thumbnails');
             $resource->thumbnail_path = $storedThumb['path'];
             $resource->thumbnail_url = $storedThumb['url'];
         }
@@ -319,6 +319,11 @@ class ResourceController extends Controller
 
         if (str_starts_with($normalized, '/pdf/')) {
             return public_path(ltrim($normalized, '/'));
+        }
+
+        if (str_starts_with($normalized, '/resources/')) {
+            $relative = ltrim(Str::after($normalized, '/resources/'), '/');
+            return public_path('resources/' . $relative);
         }
 
         if (str_starts_with($normalized, '/storage/resources/')) {
