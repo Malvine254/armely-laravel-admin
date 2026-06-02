@@ -1099,6 +1099,30 @@
 		'agriculture-cannabis': ['agriculture', 'agri', 'farming', 'farm', 'cannabis', 'cultivation']
 	};
 
+	function normalizeIndustryKey(value) {
+		var key = String(value || '').toLowerCase().trim();
+		if (!key) {
+			return '';
+		}
+
+		var map = {
+			'state-local-government': 'government-public-sector',
+			'local-government': 'government-public-sector',
+			'public-sector': 'government-public-sector',
+			'government-public-sector': 'government-public-sector',
+			'energy-utilities': 'energy-oil-gas',
+			'oil-gas': 'energy-oil-gas',
+			'oil-and-gas': 'energy-oil-gas',
+			'energy-oil-gas': 'energy-oil-gas',
+			'social-services': 'legal-social-services',
+			'legal-social-services': 'legal-social-services'
+		};
+
+		return map[key] || key;
+	}
+
+	selectedCase.industry = normalizeIndustryKey(selectedCase.industry);
+
 	function setActiveChip(scope, group, value) {
 		var chips = scope === 'white' ? whiteFilterChips : caseFilterChips;
 		chips
@@ -1129,7 +1153,7 @@
 	function applyCaseFilters() {
 		var visibleCaseCards = 0;
 		caseCards.forEach(function (card) {
-			var cardIndustry = card.getAttribute('data-industry') || '';
+			var cardIndustry = normalizeIndustryKey(card.getAttribute('data-industry') || '');
 			var cardTopics = (card.getAttribute('data-topics') || '').split(',').filter(Boolean);
 
 			var matchesIndustry = !selectedCase.industry || selectedCase.industry === cardIndustry;

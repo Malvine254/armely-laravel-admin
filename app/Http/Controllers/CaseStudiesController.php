@@ -1169,11 +1169,13 @@ class CaseStudiesController extends Controller
             $industry = Str::slug(Str::lower($industryParam));
             if ($industry !== '' && array_key_exists($industry, $industryFilters)) {
                 $industryLabel = trim((string) $industryFilters[$industry]);
-                $industryTerms = array_values(array_unique(array_filter([
-                    Str::lower($industryLabel),
-                    Str::lower(str_replace('-', ' ', $industry)),
-                    Str::lower($industry),
-                ])));
+                $industryTerms = array_values(array_unique(array_filter(array_map(
+                    static fn ($term) => Str::lower(trim((string) $term)),
+                    array_merge(
+                        [$industryLabel, str_replace('-', ' ', $industry), $industry],
+                        $this->industryQueryTerms($industry)
+                    )
+                ))));
 
                 $query->where(function ($inner) use ($industryLabel, $industryTerms) {
                     if ($industryLabel !== '') {
@@ -1309,11 +1311,11 @@ class CaseStudiesController extends Controller
     {
         return match ($industry) {
             'healthcare' => ['Healthcare', 'health', 'Swope', 'UNMC', 'patient', 'medical'],
-            'government-public-sector' => ['Government', 'public sector', 'city', 'county', 'agency', 'Plano'],
-            'education' => ['Education', 'university', 'college', 'school', 'UNMC'],
-            'energy-utilities' => ['Energy', 'utilities', 'utility', 'Sage', 'Butte'],
-            'high-tech-consulting' => ['High Tech', 'consulting', 'technology', 'TetraTech', 'Tetra Tech'],
-            'social-services' => ['Social Services', 'social', 'nonprofit', 'community', 'Swope'],
+            'government-public-sector' => ['Government', 'Public Sector', 'State & Local Government', 'city', 'county', 'agency', 'municipal', 'Plano', 'ISD'],
+            'energy-oil-gas' => ['Energy', 'Oil & Gas', 'Oil and Gas', 'utility', 'utilities', 'Sage', 'Butte'],
+            'legal-social-services' => ['Legal', 'Social Services', 'social', 'nonprofit', 'community', 'Swope'],
+            'transportation-logistics' => ['Transportation', 'Logistics', 'supply chain', 'fleet', 'shipping', 'freight', 'MHC'],
+            'agriculture-cannabis' => ['Agriculture', 'agri', 'farming', 'farm', 'Cannabis', 'cultivation'],
             default => [$this->industryFilters()[$industry] ?? $industry, str_replace('-', ' ', $industry)],
         };
     }
