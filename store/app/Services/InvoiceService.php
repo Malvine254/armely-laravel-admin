@@ -75,10 +75,12 @@ class InvoiceService
         $tax = $this->deepFindFirstByKeys($raw, [
             'estimatedTax',
             'EstimatedTax',
+            'ESTIMATED TAX',
             'taxAmount',
             'TaxAmount',
             'tax',
             'Tax',
+            'TAX',
             'salesTax',
             'SalesTax',
             'vatAmount',
@@ -101,6 +103,56 @@ class InvoiceService
         }
 
         return 0.0;
+    }
+
+    private function extractTdChargeLines(Order $order): array
+    {
+        $raw = is_array($order->raw_data) ? $order->raw_data : [];
+        if (empty($raw)) {
+            return [];
+        }
+
+        $linesByKey = [];
+        $walk = function (array $node) use (&$walk, &$linesByKey): void {
+            foreach ($node as $key => $value) {
+                if (is_array($value)) {
+                    $walk($value);
+                    continue;
+                }
+
+                if (!is_numeric((string) $value)) {
+                    continue;
+                }
+
+                $rawKey = trim((string) $key);
+                if ($rawKey === '' || ctype_digit($rawKey)) {
+                    continue;
+                }
+
+                $normalizedKey = strtolower(preg_replace('/[^a-z0-9]+/', ' ', $rawKey));
+                if ($normalizedKey === '') {
+                    continue;
+                }
+
+                $include = preg_match('/(shipping|freight|tax|fee|surcharge|handling|recycling|signature)/', $normalizedKey) === 1;
+                $exclude = preg_match('/(subtotal|total|unit|price|qty|quantity|weight|line|order number|invoice number|id|sku|zip)/', $normalizedKey) === 1;
+
+                if (!$include || $exclude) {
+                    continue;
+                }
+
+                $amount = round((float) $value, 2);
+                $label = ucwords(strtolower(str_replace(['_', '-'], ' ', $rawKey)));
+                $linesByKey[$normalizedKey] = [
+                    'label' => $label,
+                    'amount' => $amount,
+                ];
+            }
+        };
+
+        $walk($raw);
+
+        return array_values($linesByKey);
     }
 
     private function findProductForInvoiceItem(array $item): ?Product
@@ -258,9 +310,10 @@ class InvoiceService
 
             $tax = $this->resolveOrderTaxAmount($order);
             $shipping = $this->resolveOrderShippingAmount($order);
-            $adultSignatureFee = $this->resolveOrderFeeAmount($order, ['adultSignatureFee', 'AdultSignatureFee', 'adult_signature_fee', 'Adult Signature Fee']);
-            $minimumOrderFee = $this->resolveOrderFeeAmount($order, ['minimumOrderFee', 'MinimumOrderFee', 'minimum_order_fee', 'Minimum Order Fee']);
-            $recyclingFee = $this->resolveOrderFeeAmount($order, ['estimatedRecyclingFee', 'EstimatedRecyclingFee', 'recyclingFee', 'RecyclingFee', 'estimated_recycling_fee']);
+            $adultSignatureFee = $this->resolveOrderFeeAmount($order, ['adultSignatureFee', 'AdultSignatureFee', 'ADULT SIGNATURE FEE', 'adult_signature_fee', 'Adult Signature Fee']);
+            $minimumOrderFee = $this->resolveOrderFeeAmount($order, ['minimumOrderFee', 'MinimumOrderFee', 'MINIMUM ORDER FEE', 'minimum_order_fee', 'Minimum Order Fee']);
+            $recyclingFee = $this->resolveOrderFeeAmount($order, ['estimatedRecyclingFee', 'EstimatedRecyclingFee', 'ESTIMATED RECYCLING FEE', 'recyclingFee', 'RecyclingFee', 'estimated_recycling_fee']);
+            $tdChargeLines = $this->extractTdChargeLines($order);
             $additionalFeesTotal = round($adultSignatureFee + $minimumOrderFee + $recyclingFee, 2);
             $discount = (float) ($order->discount_amount ?? 0);
             $computedPayableTotal = max(0, round($retailSubtotal + $tax + $shipping + $additionalFeesTotal - $discount, 2));
@@ -293,6 +346,7 @@ class InvoiceService
                                 'minimum_order_fee' => $minimumOrderFee,
                                 'recycling_fee' => $recyclingFee,
                                 'additional_fees_total' => $additionalFeesTotal,
+                                'td_charge_lines' => $tdChargeLines,
                                 'discount_amount' => $discount,
                                 'payable_total' => $computedPayableTotal,
                             ],
@@ -328,6 +382,7 @@ class InvoiceService
                                 'minimum_order_fee' => $minimumOrderFee,
                                 'recycling_fee' => $recyclingFee,
                                 'additional_fees_total' => $additionalFeesTotal,
+                                'td_charge_lines' => $tdChargeLines,
                                 'discount_amount' => $discount,
                                 'payable_total' => $computedPayableTotal,
                             ],
