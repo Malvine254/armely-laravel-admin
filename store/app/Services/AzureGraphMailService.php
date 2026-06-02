@@ -800,18 +800,21 @@ class AzureGraphMailService
         $trackingUrl = e((string) ($tracking['carrier_tracking_url'] ?? ($tracking['tracking_url'] ?? '')));
 
         $title = match ($status) {
+            'invoiced' => 'Your Order Is Invoiced',
             'delivered' => 'Your Order Was Delivered',
             'in_transit' => 'Your Order Is In Transit',
             default => 'Your Order Has Shipped',
         };
 
         $intro = match ($status) {
+            'invoiced' => 'Your order has been invoiced and is now in fulfillment with our logistics partners.',
             'delivered' => 'Your shipment has been delivered. Thank you for choosing Armely Store.',
             'in_transit' => 'Your order is in transit and on its way to your delivery address.',
             default => 'Great news! Your order has shipped and is now on its way.',
         };
 
         $badgeLabel = match ($status) {
+            'invoiced' => 'Invoiced',
             'delivered' => 'Delivered',
             'in_transit' => 'In Transit',
             default => 'Shipped',
