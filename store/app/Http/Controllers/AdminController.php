@@ -2421,6 +2421,8 @@ class AdminController extends Controller
                             $tdStatus = $this->extractTdStatusFromPoResponse($poResponse);
                             // Persist updated status + tracking locally (fire-and-forget)
                             if ($tdStatus && $tdStatus !== $order->status) {
+                                $oldStatus = (string) ($order->status ?? '');
+                                $oldTrackingInfo = $this->parseTrackingInfoValue($order->tracking_info ?? null);
                                 $update = ['status' => $tdStatus];
                                 if (!empty($packages[0]['tracking_number']) && !$order->tracking_info) {
                                     $update['tracking_info'] = json_encode([
@@ -2430,6 +2432,16 @@ class AdminController extends Controller
                                     $update['shipped_at'] = $order->shipped_at ?? now();
                                 }
                                 $order->update($update);
+
+                                $newTrackingInfo = $this->parseTrackingInfoValue($order->fresh()->tracking_info ?? null);
+                                $newStatus = (string) ($order->fresh()->status ?? $tdStatus);
+                                $shippingMilestones = ['invoiced', 'shipped', 'in_transit', 'delivered'];
+                                $trackingAdded = trim((string) ($oldTrackingInfo['tracking_number'] ?? '')) === ''
+                                    && trim((string) ($newTrackingInfo['tracking_number'] ?? '')) !== '';
+
+                                if (($oldStatus !== $newStatus && in_array($newStatus, $shippingMilestones, true)) || $trackingAdded) {
+                                    $this->notificationService->sendOrderShippedNotification($order->fresh());
+                                }
                             }
                         }
                     } catch (\Exception $ex) {
@@ -5018,6 +5030,16 @@ class AdminController extends Controller
             }
 
             $invoices = $query->paginate($perPage, ['*'], 'page', $page);
+            $invoices->getCollection()->transform(function (Invoice $invoice) {
+                $items = is_array($invoice->items) ? $invoice->items : [];
+                $breakdown = is_array($invoice->raw_data ?? null)
+                    ? (is_array(($invoice->raw_data['invoice_charge_breakdown'] ?? null)) ? $invoice->raw_data['invoice_charge_breakdown'] : [])
+                    : [];
+                $targetSubtotal = (float) ($breakdown['subtotal'] ?? $breakdown['retail_subtotal'] ?? 0);
+                $invoice->items = $this->normalizeInvoiceLineItems($items, $targetSubtotal);
+
+                return $invoice;
+            });
             $total = $invoices->total();
 
             return response()->json([
@@ -5319,6 +5341,16 @@ class AdminController extends Controller
 
             $total = $query->count();
             $invoices = $query->orderBy('created_at', 'desc')->paginate($perPage, ['*'], 'page', $page);
+            $invoices->getCollection()->transform(function (Invoice $invoice) {
+                $items = is_array($invoice->items) ? $invoice->items : [];
+                $breakdown = is_array($invoice->raw_data ?? null)
+                    ? (is_array(($invoice->raw_data['invoice_charge_breakdown'] ?? null)) ? $invoice->raw_data['invoice_charge_breakdown'] : [])
+                    : [];
+                $targetSubtotal = (float) ($breakdown['subtotal'] ?? $breakdown['retail_subtotal'] ?? 0);
+                $invoice->items = $this->normalizeInvoiceLineItems($items, $targetSubtotal);
+
+                return $invoice;
+            });
 
             return response()->json([
                 'success' => true,
