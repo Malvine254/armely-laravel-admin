@@ -1213,13 +1213,9 @@ class QuoteOrderInvoiceController extends Controller
 
             // Capture the TD-assigned order number from status response (excludes PO number fields that echo our own quote ID).
             $tdOrderNumber = $this->deepFindFirstByKeys($response, ['OrderNumber', 'orderNumber', 'order_number', 'SynnexOrderNumber', 'synnexOrderNumber']);
-            $quoteId = trim((string) ($order->quote_id ?? ''));
-            $currentOrderNumber = trim((string) ($order->order_number ?? ''));
-            $tdOrderNumberIsNew = $tdOrderNumber
-                && trim((string) $tdOrderNumber) !== ''
-                && trim((string) $tdOrderNumber) !== $quoteId
-                && trim((string) $tdOrderNumber) !== $currentOrderNumber
-                && (str_starts_with($currentOrderNumber, 'ORD-') || $currentOrderNumber === $quoteId);
+            $normalizedTdOrderNumber = trim((string) ($tdOrderNumber ?? ''));
+            $currentTdOrderNumber = trim((string) ($order->tdsynnex_order_id ?? ''));
+            $tdOrderIdChanged = $normalizedTdOrderNumber !== '' && $normalizedTdOrderNumber !== $currentTdOrderNumber;
 
             $deliverySignal = strtolower((string) ($shippingStatus ?? ''));
             $statusToNormalize = str_contains($deliverySignal, 'deliver')
@@ -1265,18 +1261,16 @@ class QuoteOrderInvoiceController extends Controller
                 $updates['shipping_amount'] = (float) $freightAmount;
             }
 
-            // When TD assigns the real order number (after processing from "Accepted" → "Allocated"),
-            // update the local record so it matches the TD portal order number.
-            if ($tdOrderNumberIsNew) {
-                $updates['order_number'] = trim((string) $tdOrderNumber);
-                $updates['tdsynnex_order_id'] = trim((string) $tdOrderNumber);
+            // Keep local PO/order reference immutable; only persist TD order id in its dedicated column.
+            if ($tdOrderIdChanged) {
+                $updates['tdsynnex_order_id'] = $normalizedTdOrderNumber;
             }
 
             $trackingChanged = json_encode($oldTracking) !== json_encode($updates['tracking_info']);
             $statusChanged = $oldStatus !== $newStatus;
             $shippingChanged = array_key_exists('shipping_amount', $updates)
                 && (float) $updates['shipping_amount'] !== (float) ($order->shipping_amount ?? 0);
-            $orderNumberChanged = $tdOrderNumberIsNew;
+            $orderNumberChanged = $tdOrderIdChanged;
 
             if ($statusChanged || $trackingChanged || $shippingChanged || $orderNumberChanged) {
                 if ($newStatus === 'delivered' && $order->delivered_at === null) {
@@ -1297,13 +1291,17 @@ class QuoteOrderInvoiceController extends Controller
 
     private function resolveTdPoStatusResponse(Order $order): ?array
     {
+        $quoteId = trim((string) ($order->quote_id ?? ''));
+        $orderNumber = trim((string) ($order->order_number ?? ''));
+        $tdOrderId = trim((string) ($order->tdsynnex_order_id ?? ''));
+
+        $preferPoCandidates = str_starts_with($quoteId, 'Q-')
+            ? [$quoteId, $orderNumber, $tdOrderId]
+            : [$orderNumber, $tdOrderId, $quoteId];
+
         $candidates = array_values(array_unique(array_filter(array_map(
             static fn ($value) => trim((string) $value),
-            [
-                $order->order_number,
-                $order->tdsynnex_order_id,
-                $order->quote_id,
-            ]
+            $preferPoCandidates
         ), static fn ($value) => $value !== '')));
 
         foreach ($candidates as $candidate) {
