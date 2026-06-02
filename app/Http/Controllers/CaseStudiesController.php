@@ -261,19 +261,21 @@ class CaseStudiesController extends Controller
         }
 
         $fileName = basename($pdfUrl);
-        $privatePath = storage_path('app/private/case_docs/' . $fileName);
-        $publicPath = public_path('case_docs/' . $fileName);
+        $candidatePaths = [
+            storage_path('app/private/case_docs/' . $fileName),
+            public_path('case_docs/' . $fileName),
+            // Backward compatibility for older uploads saved under /public/admin/case_docs.
+            public_path('admin/case_docs/' . $fileName),
+            // Support values already containing relative folders.
+            public_path(ltrim($pdfUrl, '/')),
+        ];
 
-        if (is_file($privatePath)) {
-            return response()->download($privatePath, $fileName, [
-                'Content-Type' => 'application/pdf',
-            ]);
-        }
-
-        if (is_file($publicPath)) {
-            return response()->download($publicPath, $fileName, [
-                'Content-Type' => 'application/pdf',
-            ]);
+        foreach ($candidatePaths as $path) {
+            if (is_file($path)) {
+                return response()->download($path, $fileName, [
+                    'Content-Type' => 'application/pdf',
+                ]);
+            }
         }
 
         abort(404);
@@ -316,19 +318,21 @@ class CaseStudiesController extends Controller
         }
 
         $fileName = basename($pdfValue);
-        $privatePath = storage_path('app/private/white_paper_docs/' . $fileName);
-        $publicPath = public_path('white_paper_docs/' . $fileName);
+        $candidatePaths = [
+            storage_path('app/private/white_paper_docs/' . $fileName),
+            public_path('white_paper_docs/' . $fileName),
+            // Backward compatibility for older uploads saved under /public/admin/white_paper_docs.
+            public_path('admin/white_paper_docs/' . $fileName),
+            // Support values already containing relative folders.
+            public_path(ltrim($pdfValue, '/')),
+        ];
 
-        if (is_file($privatePath)) {
-            return response()->download($privatePath, $fileName, [
-                'Content-Type' => 'application/pdf',
-            ]);
-        }
-
-        if (is_file($publicPath)) {
-            return response()->download($publicPath, $fileName, [
-                'Content-Type' => 'application/pdf',
-            ]);
+        foreach ($candidatePaths as $path) {
+            if (is_file($path)) {
+                return response()->download($path, $fileName, [
+                    'Content-Type' => 'application/pdf',
+                ]);
+            }
         }
 
         abort(404);
