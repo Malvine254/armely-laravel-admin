@@ -2187,6 +2187,7 @@ class QuoteOrderInvoiceController extends Controller
 
             $order->refresh();
             $this->ensureDeliveredOrderInvoiceAvailableAndSent($order);
+            $this->notificationService->sendOrderShippedNotification($order);
 
             Activity::log(
                 $user->id,

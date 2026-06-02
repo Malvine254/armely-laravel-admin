@@ -310,13 +310,10 @@ class InvoiceService
 
             $tax = $this->resolveOrderTaxAmount($order);
             $shipping = $this->resolveOrderShippingAmount($order);
-            $adultSignatureFee = $this->resolveOrderFeeAmount($order, ['adultSignatureFee', 'AdultSignatureFee', 'ADULT SIGNATURE FEE', 'adult_signature_fee', 'Adult Signature Fee']);
-            $minimumOrderFee = $this->resolveOrderFeeAmount($order, ['minimumOrderFee', 'MinimumOrderFee', 'MINIMUM ORDER FEE', 'minimum_order_fee', 'Minimum Order Fee']);
-            $recyclingFee = $this->resolveOrderFeeAmount($order, ['estimatedRecyclingFee', 'EstimatedRecyclingFee', 'ESTIMATED RECYCLING FEE', 'recyclingFee', 'RecyclingFee', 'estimated_recycling_fee']);
             $tdChargeLines = $this->extractTdChargeLines($order);
-            $additionalFeesTotal = round($adultSignatureFee + $minimumOrderFee + $recyclingFee, 2);
+            $additionalFeesTotal = 0.0;
             $discount = (float) ($order->discount_amount ?? 0);
-            $computedPayableTotal = max(0, round($retailSubtotal + $tax + $shipping + $additionalFeesTotal - $discount, 2));
+            $computedPayableTotal = max(0, round($retailSubtotal + $tax + $shipping - $discount, 2));
             $normalizedItems = $this->normalizeInvoiceLineItems($retailItems, $retailSubtotal);
 
             // Keep stable invoice number per order to avoid accidental remapping.
@@ -342,9 +339,9 @@ class InvoiceService
                                 'subtotal' => $retailSubtotal,
                                 'tax_amount' => $tax,
                                 'shipping_amount' => $shipping,
-                                'adult_signature_fee' => $adultSignatureFee,
-                                'minimum_order_fee' => $minimumOrderFee,
-                                'recycling_fee' => $recyclingFee,
+                                'adult_signature_fee' => 0,
+                                'minimum_order_fee' => 0,
+                                'recycling_fee' => 0,
                                 'additional_fees_total' => $additionalFeesTotal,
                                 'td_charge_lines' => $tdChargeLines,
                                 'discount_amount' => $discount,
@@ -378,9 +375,9 @@ class InvoiceService
                                 'subtotal' => $retailSubtotal,
                                 'tax_amount' => $tax,
                                 'shipping_amount' => $shipping,
-                                'adult_signature_fee' => $adultSignatureFee,
-                                'minimum_order_fee' => $minimumOrderFee,
-                                'recycling_fee' => $recyclingFee,
+                                'adult_signature_fee' => 0,
+                                'minimum_order_fee' => 0,
+                                'recycling_fee' => 0,
                                 'additional_fees_total' => $additionalFeesTotal,
                                 'td_charge_lines' => $tdChargeLines,
                                 'discount_amount' => $discount,
