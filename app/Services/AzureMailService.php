@@ -119,6 +119,7 @@ class AzureMailService
                     'Authorization' => 'Bearer ' . $token,
                     'Content-Type' => 'application/json',
                 ],
+                'http_errors' => false,
                 'json' => $payload,
             ]);
 
