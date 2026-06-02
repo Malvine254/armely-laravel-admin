@@ -648,7 +648,7 @@ const getInvoiceSubtotal = (invoice) => {
 
 const canEditInvoiceCharges = (invoice) => {
   if (!invoice) return false
-  return !['paid', 'cancelled', 'merged'].includes(String(invoice.status || '').toLowerCase())
+  return !['cancelled', 'merged'].includes(String(invoice.status || '').toLowerCase())
 }
 
 const editInvoiceTotal = computed(() => {
