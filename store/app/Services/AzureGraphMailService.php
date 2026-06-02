@@ -783,26 +783,82 @@ class AzureGraphMailService
         $safeName    = e($customer->name ?? 'Customer');
         $orderNumber = e($order->order_number);
         $appUrl      = $this->frontendUrl();
+        $status      = strtolower(trim((string) ($order->status ?? 'shipped')));
+        $tracking    = is_array($order->tracking_info) ? $order->tracking_info : [];
 
-        $html = "
-            <div style='font-family:Segoe UI,Arial,sans-serif;line-height:1.5;color:#1f2937'>
-                <h2 style='margin:0 0 12px;color:#2F5597'>Your Order Has Shipped</h2>
-                <p>Hello {$safeName},</p>
-                <p>Great news! Your order has been shipped and is on its way to you.</p>
-                <div style='border:1px solid #d9e6f7;background:#edf3fb;border-radius:8px;padding:14px;margin:16px 0'>
-                    <p style='margin:0'><strong>Order Number:</strong> {$orderNumber}</p>
+        $items = is_array($order->items) ? $order->items : [];
+        $primaryItem = 'your item';
+        if (!empty($items) && is_array($items[0])) {
+            $primaryItem = $this->resolveLineItemName($items[0], 'your item');
+        }
+        $additionalCount = max(count($items) - 1, 0);
+        $itemSummary = $additionalCount > 0
+            ? e($primaryItem . ' +' . $additionalCount . ' more')
+            : e($primaryItem);
+
+        $trackingNumber = e((string) ($tracking['tracking_number'] ?? ''));
+        $trackingUrl = e((string) ($tracking['carrier_tracking_url'] ?? ($tracking['tracking_url'] ?? '')));
+
+        $title = match ($status) {
+            'delivered' => 'Your Order Was Delivered',
+            'in_transit' => 'Your Order Is In Transit',
+            default => 'Your Order Has Shipped',
+        };
+
+        $intro = match ($status) {
+            'delivered' => 'Your shipment has been delivered. Thank you for choosing Armely Store.',
+            'in_transit' => 'Your order is in transit and on its way to your delivery address.',
+            default => 'Great news! Your order has shipped and is now on its way.',
+        };
+
+        $badgeLabel = match ($status) {
+            'delivered' => 'Delivered',
+            'in_transit' => 'In Transit',
+            default => 'Shipped',
+        };
+
+        $trackingHtml = '';
+        if ($trackingNumber !== '') {
+            $trackingHtml = "<p style='margin:6px 0 0'><strong>Tracking #:</strong> {$trackingNumber}</p>";
+        }
+        if ($trackingUrl !== '') {
+            $trackingHtml .= "<p style='margin:10px 0 0'><a href='{$trackingUrl}' style='color:#2F5597;text-decoration:none'>View carrier tracking</a></p>";
+        }
+
+        $summaryHtml = $this->buildQuoteSummaryCard([
+            ['label' => 'Order Number', 'value' => $orderNumber],
+            ['label' => 'Status', 'value' => $badgeLabel],
+            ['label' => 'Item', 'value' => $itemSummary],
+        ]);
+
+        $html = $this->buildModernNotificationEmail(
+            $title,
+            "
+                <p style='margin:0 0 14px;font-size:16px;color:#1f2937'>Hello {$safeName},</p>
+                <p style='margin:0 0 18px;color:#4b5563'>{$intro}</p>
+                {$summaryHtml}
+                <div style='margin:16px 0;padding:14px 16px;border:1px solid #dbe5f5;background:#f8fbff;border-radius:10px;color:#334155;font-size:14px'>
+                    {$trackingHtml}
                 </div>
-                <p style='margin:24px 0'>
-                    <a href='{$appUrl}/orders/{$order->id}' style='background:#2F5597;color:#ffffff;padding:10px 16px;border-radius:6px;text-decoration:none;display:inline-block'>
-                        Track Order
-                    </a>
-                </p>
-            </div>
-        ";
+            ",
+            'View Order Details',
+            $appUrl . '/orders/' . $order->id,
+            'This notification is generated from live order status updates.',
+            '#2F5597',
+            $badgeLabel,
+            '#2F5597'
+        );
 
-        $text = "Hello {$safeName},\n\nYour order {$orderNumber} has shipped.\n{$appUrl}/orders/{$order->id}";
+        $text = "Hello {$safeName},\n\n{$title}\nOrder: {$orderNumber}\nStatus: {$badgeLabel}\nItem: {$itemSummary}";
+        if ($trackingNumber !== '') {
+            $text .= "\nTracking #: {$trackingNumber}";
+        }
+        if ($trackingUrl !== '') {
+            $text .= "\nCarrier Tracking: {$trackingUrl}";
+        }
+        $text .= "\nOrder Details: {$appUrl}/orders/{$order->id}";
 
-        return $this->sendEmail($customer->email, "Your Order Has Shipped: {$orderNumber}", $html, $text);
+        return $this->sendEmail($customer->email, "{$title}: {$orderNumber}", $html, $text);
     }
 
     public function sendInvoiceEmail(\App\Models\Invoice $invoice): bool
@@ -1060,7 +1116,11 @@ class AzureGraphMailService
         $breakdown = is_array($breakdownRaw['invoice_charge_breakdown'] ?? null)
             ? $breakdownRaw['invoice_charge_breakdown']
             : [];
-        $shippingAmt = (float) ($breakdown['shipping_amount'] ?? ($order?->shipping_amount ?? 0));
+        $shippingAmt = (float) ($breakdown['shipping_amount']
+            ?? ($order?->shipping_amount
+            ?? ($this->findFirstNumericValue($order?->raw_data, [
+                'freight', 'Freight', 'freightAmount', 'FreightAmount', 'poFreight', 'shippingAmount', 'ShippingAmount', 'shipping_amount', 'totalFreight', 'TotalFreight', 'shipCharge', 'ShipCharge',
+            ]) ?? 0)));
         $subtotalValue = max(0, $totalAmt - $taxAmt - $shippingAmt);
         $subtotal    = number_format($subtotalValue, 2);
         $shipping    = number_format($shippingAmt, 2);
@@ -1221,7 +1281,7 @@ class AzureGraphMailService
             . "<table cellpadding='0' cellspacing='0' align='right' style='width:260px;margin-bottom:30px;'>"
             . "<tr><td style='padding:8px 0;font-size:13px;border-bottom:1px solid #ddd;'>Subtotal:</td>"
             .     "<td style='padding:8px 0;font-size:13px;border-bottom:1px solid #ddd;text-align:right;'>\${$subtotal}</td></tr>"
-            . "<tr><td style='padding:8px 0;font-size:13px;border-bottom:1px solid #ddd;'>Shipping (TD SYNNEX):</td>"
+            . "<tr><td style='padding:8px 0;font-size:13px;border-bottom:1px solid #ddd;'>Shipping &amp; Handling:</td>"
             .     "<td style='padding:8px 0;font-size:13px;border-bottom:1px solid #ddd;text-align:right;'>\${$shipping}</td></tr>"
             . "<tr><td style='padding:8px 0;font-size:13px;border-bottom:1px solid #ddd;'>Tax ({$taxRate}%):</td>"
             .     "<td style='padding:8px 0;font-size:13px;border-bottom:1px solid #ddd;text-align:right;'>\${$tax}</td></tr>"
@@ -1240,6 +1300,37 @@ class AzureGraphMailService
             . "<p style='margin:0;'>Thank you for your business! | www.armely.com | {$supportEmail}</p>"
             . "</div>"
             . "</div></div></body></html>";
+    }
+
+    private function findFirstNumericValue(mixed $data, array $keys): ?float
+    {
+        if (!is_array($data)) {
+            return null;
+        }
+
+        foreach ($keys as $key) {
+            if (!array_key_exists($key, $data)) {
+                continue;
+            }
+
+            $value = $data[$key];
+            if (is_numeric((string) $value)) {
+                return (float) $value;
+            }
+        }
+
+        foreach ($data as $value) {
+            if (!is_array($value)) {
+                continue;
+            }
+
+            $found = $this->findFirstNumericValue($value, $keys);
+            if ($found !== null) {
+                return $found;
+            }
+        }
+
+        return null;
     }
 
     private function resolveLineItemName(array $line, string $fallback = 'Unknown Product'): string

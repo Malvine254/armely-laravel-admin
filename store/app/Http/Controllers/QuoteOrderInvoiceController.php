@@ -1208,7 +1208,7 @@ class QuoteOrderInvoiceController extends Controller
             $rawStatus = $this->deepFindFirstByKeys($response, ['status', 'Status', 'code', 'Code', 'orderStatus', 'OrderStatus', 'poStatus', 'POStatus']);
             $shippingStatus = $this->deepFindFirstByKeys($response, ['shippingStatus', 'shipping_status', 'shipmentStatus', 'ShipmentStatus', 'deliveryStatus', 'DeliveryStatus', 'status', 'Status']);
             $trackingNumber = $this->deepFindFirstByKeys($response, ['tracking_number', 'trackingNumber', 'TrackingNumber', 'carrierTrackingNumber', 'shipmentTrackingNumber', 'proNumber', 'ProNumber']);
-            $freightAmount = $this->deepFindFirstByKeys($response, ['freight', 'Freight', 'freightAmount', 'poFreight', 'shippingAmount', 'shipping_amount', 'totalFreight', 'TotalFreight']);
+            $freightAmount = $this->deepFindFirstByKeys($response, ['freight', 'Freight', 'freightAmount', 'FreightAmount', 'poFreight', 'shippingAmount', 'ShippingAmount', 'shipping_amount', 'totalFreight', 'TotalFreight', 'shipCharge', 'ShipCharge']);
             $estimatedDelivery = $this->deepFindFirstByKeys($response, ['estimatedDeliveryDate', 'EstimatedDeliveryDate', 'estimatedShipDate', 'EstimatedShipDate', 'estimatedArrivalDate', 'EstimatedArrivalDate']);
             $tdPoNumber = $this->deepFindFirstByKeys($response, ['PONumber', 'poNumber', 'po_number']);
             $tdOrderType = $this->deepFindFirstByKeys($response, ['OrderType', 'orderType', 'order_type']);
@@ -1332,12 +1332,8 @@ class QuoteOrderInvoiceController extends Controller
 
     private function ensureOrderInvoiceExists(Order $order): ?Invoice
     {
-        $order->loadMissing('invoice');
-        if ($order->invoice) {
-            return $order->invoice;
-        }
-
         try {
+            // Always regenerate to keep freight/shipping and totals in sync with latest TD status payload.
             $invoice = $this->invoiceService->generateInvoiceForOrder($order);
             $order->load('invoice');
 
@@ -1626,7 +1622,7 @@ class QuoteOrderInvoiceController extends Controller
 
         $oldShippingStatus = strtolower(trim((string) ($oldTracking['shipping_status'] ?? '')));
         $newShippingStatus = strtolower(trim((string) ($newTracking['shipping_status'] ?? '')));
-        if ($oldShippingStatus !== $newShippingStatus && $newShippingStatus !== '') {
+        if ($oldShippingStatus !== $newShippingStatus && in_array($newShippingStatus, $shippingMilestones, true)) {
             return true;
         }
 
