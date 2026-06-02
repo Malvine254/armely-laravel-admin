@@ -45,7 +45,7 @@ class CaseStudiesController extends Controller
             'caseStudies' => $caseStudies,
             'whitePapers' => $whitePapers,
             'recaptchaSiteKey' => config('services.recaptcha.site_key', ''),
-            'selectedIndustry' => (string) $request->query('industry', ''),
+            'selectedIndustry' => (string) ($request->query('case_industry', $request->query('industry', ''))),
             'selectedTopic' => (string) $request->query('topic', ''),
             'selectedWhiteTopic' => (string) $request->query('white_topic', ''),
             'industryFilters' => $this->industryFilters(),
@@ -1106,7 +1106,8 @@ class CaseStudiesController extends Controller
                 ->orderByDesc('id');
 
             $industryFilters = $this->industryFilters();
-            $industry = Str::slug(Str::lower((string) $request->query('industry', '')));
+            $industryParam = (string) $request->query('case_industry', $request->query('industry', ''));
+            $industry = Str::slug(Str::lower($industryParam));
             if ($industry !== '' && array_key_exists($industry, $industryFilters)) {
                 $industryLabel = trim((string) $industryFilters[$industry]);
                 $industryTerms = array_values(array_unique(array_filter([
