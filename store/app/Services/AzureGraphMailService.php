@@ -1121,14 +1121,21 @@ class AzureGraphMailService
             ?? ($this->findFirstNumericValue($order?->raw_data, [
                 'freight', 'Freight', 'freightAmount', 'FreightAmount', 'poFreight', 'shippingAmount', 'ShippingAmount', 'shipping_amount', 'totalFreight', 'TotalFreight', 'shipCharge', 'ShipCharge',
             ]) ?? 0)));
-        $subtotalValue = max(0, $totalAmt - $taxAmt - $shippingAmt);
+        $adultSignatureFeeAmt = (float) ($breakdown['adult_signature_fee'] ?? 0);
+        $minimumOrderFeeAmt = (float) ($breakdown['minimum_order_fee'] ?? 0);
+        $recyclingFeeAmt = (float) ($breakdown['recycling_fee'] ?? 0);
+        $subtotalValue = max(0, $totalAmt - $taxAmt - $shippingAmt - $adultSignatureFeeAmt - $minimumOrderFeeAmt - $recyclingFeeAmt);
         $subtotal    = number_format($subtotalValue, 2);
         $shipping    = number_format($shippingAmt, 2);
+        $adultSignatureFee = number_format($adultSignatureFeeAmt, 2);
+        $minimumOrderFee = number_format($minimumOrderFeeAmt, 2);
+        $recyclingFee = number_format($recyclingFeeAmt, 2);
         $tax         = number_format($taxAmt, 2);
         $total       = number_format($totalAmt, 2);
         $paid        = number_format($paidAmt, 2);
         $balance     = number_format($totalAmt - $paidAmt, 2);
-        $taxRate     = ($totalAmt - $taxAmt) > 0 ? round(($taxAmt / ($totalAmt - $taxAmt)) * 100) : 0;
+        $taxBase = max(0.0, $totalAmt - $taxAmt);
+        $taxRate     = $taxBase > 0 ? round(($taxAmt / $taxBase) * 100) : 0;
         $statusText  = strtoupper($invoice->status ?? 'PENDING');
         $statusBg    = ($invoice->status === 'paid') ? '#d4edda' : '#fff3cd';
         $statusColor = ($invoice->status === 'paid') ? '#155724' : '#856404';
@@ -1283,6 +1290,12 @@ class AzureGraphMailService
             .     "<td style='padding:8px 0;font-size:13px;border-bottom:1px solid #ddd;text-align:right;'>\${$subtotal}</td></tr>"
             . "<tr><td style='padding:8px 0;font-size:13px;border-bottom:1px solid #ddd;'>Shipping &amp; Handling:</td>"
             .     "<td style='padding:8px 0;font-size:13px;border-bottom:1px solid #ddd;text-align:right;'>\${$shipping}</td></tr>"
+            . "<tr><td style='padding:8px 0;font-size:13px;border-bottom:1px solid #ddd;'>Adult Signature Fee:</td>"
+            .     "<td style='padding:8px 0;font-size:13px;border-bottom:1px solid #ddd;text-align:right;'>\${$adultSignatureFee}</td></tr>"
+            . "<tr><td style='padding:8px 0;font-size:13px;border-bottom:1px solid #ddd;'>Minimum Order Fee:</td>"
+            .     "<td style='padding:8px 0;font-size:13px;border-bottom:1px solid #ddd;text-align:right;'>\${$minimumOrderFee}</td></tr>"
+            . "<tr><td style='padding:8px 0;font-size:13px;border-bottom:1px solid #ddd;'>Estimated Recycling Fee:</td>"
+            .     "<td style='padding:8px 0;font-size:13px;border-bottom:1px solid #ddd;text-align:right;'>\${$recyclingFee}</td></tr>"
             . "<tr><td style='padding:8px 0;font-size:13px;border-bottom:1px solid #ddd;'>Tax ({$taxRate}%):</td>"
             .     "<td style='padding:8px 0;font-size:13px;border-bottom:1px solid #ddd;text-align:right;'>\${$tax}</td></tr>"
             . "<tr><td style='padding:12px 0;font-size:16px;font-weight:bold;color:#2F5597;border-bottom:2px solid #333;'>Total:</td>"
