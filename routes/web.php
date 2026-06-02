@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\CareerController;
 use App\Http\Controllers\Admin\AnalyticsController;
 use App\Http\Controllers\Admin\CompanyContentController;
+use App\Http\Controllers\Admin\CaseStudyCategoryController;
 use App\Http\Controllers\Admin\ResourceCategoryController;
 use App\Http\Controllers\ServicesController;
 use App\Http\Controllers\BlogController;
@@ -221,6 +222,9 @@ Route::prefix('admin')->middleware(['admin'])->group(function () {
     Route::get('/resource-categories', [ResourceCategoryController::class, 'index'])->name('admin.resource-categories.index');
     Route::post('/resource-categories', [ResourceCategoryController::class, 'store'])->name('admin.resource-categories.store');
     Route::delete('/resource-categories/{resourceCategory}', [ResourceCategoryController::class, 'destroy'])->name('admin.resource-categories.destroy');
+    Route::get('/case-study-categories', [CaseStudyCategoryController::class, 'index'])->name('admin.case-study-categories.index');
+    Route::post('/case-study-categories', [CaseStudyCategoryController::class, 'store'])->name('admin.case-study-categories.store');
+    Route::delete('/case-study-categories/{caseStudyCategory}', [CaseStudyCategoryController::class, 'destroy'])->name('admin.case-study-categories.destroy');
     
     // Tables Management (CRUD for content)
     Route::get('/tables', [TablesController::class, 'index'])->name('admin.tables');

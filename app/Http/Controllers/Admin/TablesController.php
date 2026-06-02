@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\CaseStudyCategory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -78,7 +79,9 @@ class TablesController extends Controller
                 ->values()
             : collect();
 
-        return view('admin.tables', compact('blogs', 'videos', 'careers', 'socialImpact', 'customerStories', 'caseStudies', 'events', 'team', 'contacts', 'adminAuthors'));
+        $caseStudyCategories = $this->caseStudyCategoryOptions();
+
+        return view('admin.tables', compact('blogs', 'videos', 'careers', 'socialImpact', 'customerStories', 'caseStudies', 'events', 'team', 'contacts', 'adminAuthors', 'caseStudyCategories'));
     }
     
     // ========== LIST ENDPOINTS FOR AJAX TABLE RELOAD ==========
@@ -275,6 +278,75 @@ class TablesController extends Controller
             })
             ->take($limit)
             ->values();
+    }
+
+    private function caseStudyCategoryDefaults(): array
+    {
+        return [
+            'Healthcare',
+            'Energy (Oil & Gas)',
+            'Government & Public Sector',
+            'Legal (Social Services)',
+            'Transportation & Logistics',
+            'Agriculture/Cannabis',
+        ];
+    }
+
+    private function caseStudyCategoryOptions(): \Illuminate\Support\Collection
+    {
+        if ($this->tableExists('case_study_categories')) {
+            try {
+                CaseStudyCategory::syncDefaults();
+
+                $categories = DB::table('case_study_categories')
+                    ->select('name')
+                    ->where('is_active', true)
+                    ->orderBy('sort_order')
+                    ->orderBy('name')
+                    ->pluck('name');
+
+                if ($categories->isNotEmpty()) {
+                    return $categories;
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Unable to load case study categories', ['error' => $e->getMessage()]);
+            }
+        }
+
+        return collect($this->caseStudyCategoryDefaults());
+    }
+
+    private function normalizeCaseStudyCategory(string $value): string
+    {
+        $normalized = Str::slug(Str::lower(trim($value)));
+
+        $map = [
+            'government-public-sector' => 'Government & Public Sector',
+            'public-sector' => 'Government & Public Sector',
+            'local-government' => 'Government & Public Sector',
+            'state-local-government' => 'Government & Public Sector',
+            'energy' => 'Energy (Oil & Gas)',
+            'energy-utilities' => 'Energy (Oil & Gas)',
+            'oil-gas' => 'Energy (Oil & Gas)',
+            'legal' => 'Legal (Social Services)',
+            'social-services' => 'Legal (Social Services)',
+            'transportation' => 'Transportation & Logistics',
+            'transportation-logistics' => 'Transportation & Logistics',
+            'logistics' => 'Transportation & Logistics',
+            'agriculture' => 'Agriculture/Cannabis',
+            'cannabis' => 'Agriculture/Cannabis',
+            'agriculture-cannabis' => 'Agriculture/Cannabis',
+            'education' => 'Government & Public Sector',
+            'high-tech' => 'Transportation & Logistics',
+            'high-tech-consulting' => 'Transportation & Logistics',
+            'power-platform' => 'Government & Public Sector',
+        ];
+
+        if (array_key_exists($normalized, $map)) {
+            return $map[$normalized];
+        }
+
+        return trim($value);
     }
     
     public function listEvents(Request $request)
@@ -768,8 +840,28 @@ class TablesController extends Controller
             'pdf_url' => ['nullable', 'string', 'max:2048'],
         ]);
 
+        $normalizedCategory = $this->normalizeCaseStudyCategory((string) $validated['category']);
+
+        if ($this->tableExists('case_study_categories')) {
+            CaseStudyCategory::syncDefaults();
+            $allowed = DB::table('case_study_categories')
+                ->where('is_active', true)
+                ->pluck('name')
+                ->map(fn ($name) => trim((string) $name))
+                ->filter()
+                ->all();
+
+            if (!in_array($normalizedCategory, $allowed, true)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Please choose a valid case study category from the managed list.',
+                    'errors' => ['category' => ['Please choose a valid case study category from the managed list.']],
+                ], 422);
+            }
+        }
+
         $data = [
-            'category' => $validated['category'],
+            'category' => $normalizedCategory,
             'body' => $validated['body'] ?? '',
         ];
 

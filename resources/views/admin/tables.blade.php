@@ -528,11 +528,6 @@
                 <a class="nav-link" id="videos-tab" data-bs-toggle="tab" href="#videos" role="tab">
                     <i class="fas fa-video"></i> Videos
                 </a>
-                        <div class="col-md-6 d-none" id="caseStudyExistingImageGroup">
-                            <label for="caseStudyExistingImage" class="form-label" id="caseStudyExistingImageLabel">Existing White Paper Image Filename or URL</label>
-                            <input type="text" class="form-control" id="caseStudyExistingImage" name="existing_image" placeholder="white-paper.jpg or https://...">
-                            <small class="text-muted" id="caseStudyExistingImageHelp">Upload a new image below to replace this value.</small>
-                        </div>
             </li>
             <li class="nav-item">
                 <a class="nav-link" id="careers-tab" data-bs-toggle="tab" href="#careers" role="tab">
@@ -794,9 +789,14 @@
         <!-- Case Studies Tab -->
         <div class="tab-pane fade" id="case-studies" role="tabpanel">
             <div class="card-body">
-                <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#caseStudyModal" onclick="resetCaseStudyForm()">
-                    <i class="fas fa-plus"></i> Add New Resource
-                </button>
+                <div class="d-flex flex-wrap gap-2 mb-3">
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#caseStudyModal" onclick="resetCaseStudyForm()">
+                        <i class="fas fa-plus"></i> Add New Resource
+                    </button>
+                    <a class="btn btn-outline-primary" href="{{ route('admin.case-study-categories.index') }}">
+                        <i class="fas fa-tags"></i> Manage Categories
+                    </a>
+                </div>
 
                 <div class="table-responsive">
                     <table class="table table-hover" id="caseStudiesDataTable">
@@ -1256,11 +1256,26 @@
                         </div>
                         <div class="col-md-6" id="caseStudyCategoryGroup">
                             <label for="caseStudyCategory" class="form-label">Industry Type *</label>
-                            <input type="text" class="form-control" id="caseStudyCategory" name="category" required placeholder="e.g. Transportation">
+                            <div class="d-flex align-items-center gap-2">
+                                <select class="form-select" id="caseStudyCategory" name="category" required>
+                                    <option value="" selected disabled>Select a category</option>
+                                    @foreach(($caseStudyCategories ?? collect()) as $category)
+                                        <option value="{{ $category }}">{{ $category }}</option>
+                                    @endforeach
+                                </select>
+                                <a href="{{ route('admin.case-study-categories.index') }}" class="btn btn-outline-secondary btn-sm" title="Manage categories">
+                                    <i class="fas fa-pen"></i>
+                                </a>
+                            </div>
                         </div>
                         <div class="col-md-6">
                             <label for="caseStudyTitle" class="form-label" id="caseStudyTitleLabel">Case Study Title *</label>
                             <input type="text" class="form-control" id="caseStudyTitle" name="title" required placeholder="e.g. SmartWay Transportation">
+                        </div>
+                        <div class="col-md-6 d-none" id="caseStudyExistingImageGroup">
+                            <label for="caseStudyExistingImage" class="form-label" id="caseStudyExistingImageLabel">Existing White Paper Image Filename or URL</label>
+                            <input type="text" class="form-control" id="caseStudyExistingImage" name="existing_image" placeholder="white-paper.jpg or https://...">
+                            <small class="text-muted" id="caseStudyExistingImageHelp">Upload a new image below to replace this value.</small>
                         </div>
                         <div class="col-md-6">
                             <label for="caseStudyPdfUrl" class="form-label">Existing PDF Filename or URL</label>
@@ -2693,6 +2708,7 @@ $(document).ready(function() {
         $('#caseStudyModalTitle').text('Add New Case Study');
         $('#caseStudyForm')[0].reset();
         $('#caseStudyId').val('');
+        $('#caseStudyCategory').val('');
         $('#resourceTypeCaseStudy').prop('checked', true);
         applyCaseStudyResourceTypeUI();
         if (caseStudyEditor) {
@@ -2742,6 +2758,14 @@ $(document).ready(function() {
         $('#caseStudySourceType').val(resourceType);
         $('#caseStudyModalTitle').text(isWhitePaper ? 'Edit White Paper' : 'Edit Case Study');
         $('#caseStudyId').val(item.id || '');
+
+        if (!isWhitePaper && item.category) {
+            const categoryValue = String(item.category);
+            if ($('#caseStudyCategory option').filter(function() { return $(this).val() === categoryValue; }).length === 0) {
+                $('#caseStudyCategory').append(new Option(categoryValue, categoryValue));
+            }
+        }
+
         $('#caseStudyCategory').val(item.category || '');
         $('#caseStudyTitle').val(item.title || '');
         $('#caseStudyExistingImage').val(item.listing_image || item.images || item.image || '');
