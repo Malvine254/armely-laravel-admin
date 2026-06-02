@@ -30,6 +30,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Carbon;
 
 class AdminController extends Controller
@@ -1152,6 +1153,7 @@ class AdminController extends Controller
             }
 
             $company = Company::where('domain', $domain)->first();
+            $companyHasStatusColumn = Schema::hasColumn('companies', 'status');
             if (!$company) {
                 $companyName = trim((string) ($validated['company_name'] ?? ''));
                 if ($companyName === '') {
@@ -1161,31 +1163,53 @@ class AdminController extends Controller
                     ], 422);
                 }
 
-                $company = Company::create([
+                $companyData = [
                     'name' => $companyName,
                     'domain' => $domain,
-                    'status' => 'approved',
-                ]);
-            } elseif ($company->status !== 'approved') {
+                ];
+
+                if ($companyHasStatusColumn) {
+                    $companyData['status'] = 'approved';
+                }
+
+                $company = Company::create($companyData);
+            } elseif ($companyHasStatusColumn && $company->status !== 'approved') {
                 $company->status = 'approved';
                 $company->save();
             }
 
             $plainPassword = \Illuminate\Support\Str::random(10) . '!A1';
 
-            $customer = User::create([
+            $userData = [
                 'name' => trim((string) $validated['name']),
                 'email' => $email,
                 'password' => Hash::make($plainPassword),
-                'company_id' => $company->id,
-                'role' => $validated['role'] ?? 'buyer',
-                'status' => 'active',
                 'email_verified_at' => now(),
-                'special_pricing_percent' => round((float) ($validated['special_pricing_percent'] ?? 0), 2),
-                'assigned_shipping_amount' => round((float) ($validated['assigned_shipping_amount'] ?? 0), 2),
-                'force_password_change' => true,
-                'temp_password_expires_at' => now()->addHours(48),
-            ]);
+            ];
+
+            if (Schema::hasColumn('users', 'company_id')) {
+                $userData['company_id'] = $company->id;
+            }
+            if (Schema::hasColumn('users', 'role')) {
+                $userData['role'] = $validated['role'] ?? 'buyer';
+            }
+            if (Schema::hasColumn('users', 'status')) {
+                $userData['status'] = 'active';
+            }
+            if (Schema::hasColumn('users', 'special_pricing_percent')) {
+                $userData['special_pricing_percent'] = round((float) ($validated['special_pricing_percent'] ?? 0), 2);
+            }
+            if (Schema::hasColumn('users', 'assigned_shipping_amount')) {
+                $userData['assigned_shipping_amount'] = round((float) ($validated['assigned_shipping_amount'] ?? 0), 2);
+            }
+            if (Schema::hasColumn('users', 'force_password_change')) {
+                $userData['force_password_change'] = true;
+            }
+            if (Schema::hasColumn('users', 'temp_password_expires_at')) {
+                $userData['temp_password_expires_at'] = now()->addHours(48);
+            }
+
+            $customer = User::create($userData);
 
             $mailSent = false;
             try {
@@ -1211,7 +1235,11 @@ class AdminController extends Controller
         } catch (\Illuminate\Validation\ValidationException $e) {
             throw $e;
         } catch (\Exception $e) {
-            Log::error('Failed to invite customer user: ' . $e->getMessage());
+            Log::error('Failed to invite customer user', [
+                'error' => $e->getMessage(),
+                'line' => $e->getLine(),
+                'file' => $e->getFile(),
+            ]);
 
             return response()->json([
                 'success' => false,
@@ -1241,11 +1269,18 @@ class AdminController extends Controller
             // Generate a fresh temporary password
             $newPassword = \Illuminate\Support\Str::random(10) . '!A1';
 
-            $customer->update([
+            $resetData = [
                 'password' => Hash::make($newPassword),
-                'force_password_change' => true,
-                'temp_password_expires_at' => now()->addHours(48),
-            ]);
+            ];
+
+            if (Schema::hasColumn('users', 'force_password_change')) {
+                $resetData['force_password_change'] = true;
+            }
+            if (Schema::hasColumn('users', 'temp_password_expires_at')) {
+                $resetData['temp_password_expires_at'] = now()->addHours(48);
+            }
+
+            $customer->update($resetData);
 
             $mailSent = false;
             try {
