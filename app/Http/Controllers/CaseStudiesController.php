@@ -801,12 +801,17 @@ class CaseStudiesController extends Controller
     private function sendCaseStudyLeadEmail(array $payload): bool
     {
         try {
-            $fromEmail = AzureMailService::outboundFromEmail();
-            $adminEmail = env('ADMIN_EMAIL', $fromEmail);
-            if (!$fromEmail || !$adminEmail) {
-                Log::warning('Case studies lead email skipped: missing NO_REPLY_EMAIL/FROM_EMAIL/ADMIN_EMAIL');
+            $fromEmail = trim((string) AzureMailService::outboundFromEmail());
+            if ($fromEmail === '') {
+                $fromEmail = trim((string) config('mail.from.address', ''));
+            }
+
+            if ($fromEmail === '') {
+                Log::warning('Case studies lead email skipped: missing sender address');
                 return false;
             }
+
+            $adminEmail = trim((string) env('ADMIN_EMAIL', ''));
 
             $mailer = new AzureMailService();
             $subject = 'Case Studies Lead: ' . $payload['interest'];
@@ -845,9 +850,11 @@ class CaseStudiesController extends Controller
                 'message' => (string) ($payload['message'] ?? ''),
             ])->render();
 
-            $this->sendEmailWithFallback($mailer, $fromEmail, $adminEmail, $subject, $html);
+            if ($adminEmail !== '') {
+                $this->sendEmailWithFallback($mailer, $fromEmail, $adminEmail, $subject, $html);
+            }
 
-            if (strtolower($adminEmail) !== 'ask.me@armely.com') {
+            if ($adminEmail === '' || strtolower($adminEmail) !== 'ask.me@armely.com') {
                 $this->sendEmailWithFallback($mailer, $fromEmail, 'ask.me@armely.com', $subject, $html);
             }
 
