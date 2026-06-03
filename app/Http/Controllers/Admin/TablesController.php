@@ -144,11 +144,10 @@ class TablesController extends Controller
             
             // Map column indices to actual DB columns
             $columns = [
-                0 => $this->columnExists($blogTable, 'blog_id') ? 'blog_id' : 'id',
-                1 => $this->columnExists($blogTable, 'title') ? 'title' : ($this->columnExists($blogTable, 'blog_title') ? 'blog_title' : 'id'),
-                2 => $this->columnExists($blogTable, 'author') ? 'author' : 'id',
-                3 => $this->columnExists($blogTable, 'date') ? 'date' : ($this->columnExists($blogTable, 'blog_date') ? 'blog_date' : 'id'),
-                4 => $this->columnExists($blogTable, 'id') ? 'id' : 'blog_id'
+                0 => $this->columnExists($blogTable, 'title') ? 'title' : ($this->columnExists($blogTable, 'blog_title') ? 'blog_title' : 'id'),
+                1 => $this->columnExists($blogTable, 'author') ? 'author' : 'id',
+                2 => $this->columnExists($blogTable, 'date') ? 'date' : ($this->columnExists($blogTable, 'blog_date') ? 'blog_date' : 'id'),
+                3 => $this->columnExists($blogTable, 'blog_id') ? 'blog_id' : 'id',
             ];
             
             $orderBy = $columns[$orderColIndex] ?? $columns[0];
