@@ -1982,7 +1982,6 @@ $(document).ready(function() {
                 }
             },
             columns: [
-                { data: null, render: function(data) { return data.blog_id || data.id || ''; }, visible: false },
                 { data: null, render: function(data) { return data.title || data.blog_title || 'N/A'; } },
                 { data: 'author', defaultContent: 'N/A' },
                 { data: null, render: function(data) { return data.date || data.blog_date || 'N/A'; } },
@@ -2008,7 +2007,7 @@ $(document).ready(function() {
             ],
             pageLength: 10,
             lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
-            order: [[0, 'desc']], // Order by ID column (most recent first)
+            order: [[2, 'desc']],
             language: {
                 search: "_INPUT_",
                 searchPlaceholder: "Search blogs...",
@@ -2021,6 +2020,9 @@ $(document).ready(function() {
                   dom: "<'dt-toolbar'<'dt-search'f><'dt-length'l>>" +
                  "t" +
                       "<'dt-footer row'<'col-md-5 col-12'i><'col-md-7 col-12'p>>",
+            columnDefs: [
+                { orderable: false, targets: 3 }
+            ],
             responsive: true,
             autoWidth: false
         });
