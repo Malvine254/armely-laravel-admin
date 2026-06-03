@@ -264,6 +264,75 @@
 	margin: 0 !important;
 	flex: 1;
 }
+.modern-solution-card .btn-modern-cta {
+	align-self: flex-start;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: auto;
+	min-width: 0;
+	padding-left: 22px;
+	padding-right: 22px;
+}
+.government-credentials-panel {
+	background: linear-gradient(180deg, #ffffff 0%, #f7faff 100%);
+	border: 1px solid #dbe6f3;
+	box-shadow: 0 18px 42px rgba(28, 54, 93, .08);
+	padding: 26px;
+	margin-top: 18px;
+}
+.government-credentials-copy {
+	color: #40516c !important;
+	font-size: 1rem;
+	line-height: 1.7;
+	margin: 0 0 22px;
+	max-width: 820px;
+}
+.government-credentials-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 14px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+.government-credential-item {
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+	background: #ffffff;
+	border: 1px solid #e0e9f6;
+	padding: 14px 15px;
+	min-height: 76px;
+}
+.government-credential-icon {
+	width: 34px;
+	height: 34px;
+	flex: 0 0 34px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	background: #eef4fb;
+	border: 1px solid #d3e2f4;
+	color: #2f5597;
+	font-size: .95rem;
+}
+.government-credential-text {
+	display: block;
+}
+.government-credential-text strong {
+	display: block;
+	color: #172033;
+	font-size: .96rem;
+	line-height: 1.35;
+	margin-bottom: 3px;
+}
+.government-credential-text span {
+	display: block;
+	color: #66758c;
+	font-size: .84rem;
+	line-height: 1.45;
+}
 .benefit-card {
 	background: #fff !important;
 	min-height: 220px !important;
@@ -367,7 +436,7 @@
 	margin-bottom: 8px !important;
 }
 .cta-section-industries {
-	background: #2f5597 !important;
+	background: #f5f8fc !important;
 }
 
 /* Quiet professional pass */
@@ -715,11 +784,112 @@
 	flex: 1;
 }
 .cta-section-industries {
-	background: #2f5597 !important;
-	padding: 48px 0 !important;
+	background: #f5f8fc !important;
+	padding: 72px 0 !important;
+	border-top: 1px solid #dbe6f3;
+}
+.industries-contact-panel {
+	background: #fff;
+	border: 1px solid #dbe6f3;
+	box-shadow: 0 22px 54px rgba(28, 54, 93, .10);
+	padding: 34px;
+}
+.industries-contact-copy {
+	padding-right: 18px;
+}
+.industries-contact-kicker {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	color: #2f5597;
+	font-size: .78rem;
+	font-weight: 900;
+	letter-spacing: .08em;
+	text-transform: uppercase;
+	margin-bottom: 14px;
 }
 .cta-section-industries .cta-heading {
-	font-weight: 800 !important;
+	color: #172033 !important;
+	font-size: 2rem;
+	font-weight: 900 !important;
+	line-height: 1.2;
+	margin-bottom: 16px;
+}
+.cta-section-industries .cta-description {
+	color: #5f6f86 !important;
+	font-size: 1rem;
+	line-height: 1.75;
+	margin-bottom: 22px;
+}
+.industries-contact-points {
+	display: grid;
+	gap: 12px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+.industries-contact-points li {
+	display: flex;
+	gap: 10px;
+	color: #40516c;
+	font-weight: 700;
+	line-height: 1.45;
+}
+.industries-contact-points i {
+	color: #2f5597;
+	margin-top: 4px;
+}
+.industries-contact-form {
+	background: #f8fbff !important;
+	border: 1px solid #dce7f6;
+	padding: 26px !important;
+	margin: 0 !important;
+}
+.industries-contact-form label {
+	color: #1e3357 !important;
+	font-weight: 800;
+	font-size: .9rem;
+	margin-bottom: 8px;
+}
+.industries-contact-form .form-group {
+	margin-bottom: 16px;
+}
+.industries-contact-form .remove-input-background,
+.industries-contact-form textarea.remove-input-background {
+	width: 100%;
+	background: #fff !important;
+	border: 1px solid #cbd9ea !important;
+	color: #172033 !important;
+	min-height: 50px;
+	padding: 12px 14px;
+	border-radius: 0;
+	transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+}
+.industries-contact-form textarea.remove-input-background {
+	min-height: 132px;
+	resize: vertical;
+}
+.industries-contact-form .remove-input-background::placeholder {
+	color: #7a8799 !important;
+}
+.industries-contact-form .remove-input-background:focus {
+	outline: none;
+	background: #fff !important;
+	border-color: #2f5597 !important;
+	box-shadow: 0 0 0 4px rgba(47, 85, 151, .12);
+}
+.industries-contact-form .send-message-btn {
+	background: #2f5597 !important;
+	color: #fff !important;
+	border-radius: 0;
+	min-height: 48px;
+	padding: 12px 24px;
+	font-weight: 900;
+	border: 0;
+}
+.industries-contact-form .send-message-btn:hover {
+	background: #24457c !important;
+	color: #fff !important;
 }
 @media (max-width: 991px) {
 	.industries-hero-grid {
@@ -731,11 +901,18 @@
 	.tab-content-wrapper {
 		padding: 22px !important;
 	}
+	.industries-contact-copy {
+		padding-right: 0;
+		margin-bottom: 28px;
+	}
 	.industry-nav-panel {
 		position: static;
 	}
 	.modern-tabs-industries {
 		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+	.government-credentials-grid {
+		grid-template-columns: 1fr;
 	}
 }
 @media (min-width: 992px) {
@@ -793,6 +970,16 @@
 	}
 	.modern-tabs-industries {
 		grid-template-columns: minmax(0, 1fr);
+	}
+	.government-credentials-panel {
+		padding: 18px;
+	}
+	.industries-contact-panel,
+	.industries-contact-form {
+		padding: 20px !important;
+	}
+	.cta-section-industries .cta-heading {
+		font-size: 1.55rem;
 	}
 }
 </style>
@@ -1032,16 +1219,39 @@
 								<div class="mt-5">
 									<h5 class="section-subtitle">Government Contracting Credentials</h5>
 									<div class="subtitle-underline"></div>
-									<p class="section-text">Armely is a qualified government contractor with active certifications and registrations:</p>
-									<ul class="benefit-list mt-3">
-										<li><strong>✓ Active SAM.gov registration with Unique Entity ID</strong></li>
-										<li><strong>✓ MWBE certified minority-owned business</strong></li>
-										<li><strong>✓ CJIS certified for law enforcement data handling</strong></li>
-										<li><strong>✓ Microsoft Fabric Engineering Partner</strong></li>
-										<li><strong>✓ TD Synnex CSP for government cloud licensing</strong></li>
-										<li><strong>✓ Carahsoft Technology Solutions partner</strong></li>
-										<li><strong>✓ Experienced with state and municipal procurement processes</strong></li>
-									</ul>
+										<div class="government-credentials-panel">
+											<p class="government-credentials-copy">Armely is a qualified government contractor with active certifications, partner registrations, and procurement experience for public-sector technology programs.</p>
+											<ul class="government-credentials-grid">
+												<li class="government-credential-item">
+													<span class="government-credential-icon"><i class="fa fa-id-badge"></i></span>
+													<span class="government-credential-text"><strong>Active SAM.gov Registration</strong><span>Registered with Unique Entity ID for public-sector contracting.</span></span>
+												</li>
+												<li class="government-credential-item">
+													<span class="government-credential-icon"><i class="fa fa-certificate"></i></span>
+													<span class="government-credential-text"><strong>MWBE Certified</strong><span>Minority-owned business certification for supplier diversity goals.</span></span>
+												</li>
+												<li class="government-credential-item">
+													<span class="government-credential-icon"><i class="fa fa-shield"></i></span>
+													<span class="government-credential-text"><strong>CJIS Certified</strong><span>Prepared for law enforcement data handling requirements.</span></span>
+												</li>
+												<li class="government-credential-item">
+													<span class="government-credential-icon"><i class="fa fa-windows"></i></span>
+													<span class="government-credential-text"><strong>Microsoft Fabric Engineering Partner</strong><span>Modern data platform delivery with Microsoft technologies.</span></span>
+												</li>
+												<li class="government-credential-item">
+													<span class="government-credential-icon"><i class="fa fa-cloud"></i></span>
+													<span class="government-credential-text"><strong>TD Synnex CSP</strong><span>Government cloud licensing support through TD Synnex.</span></span>
+												</li>
+												<li class="government-credential-item">
+													<span class="government-credential-icon"><i class="fa fa-handshake-o"></i></span>
+													<span class="government-credential-text"><strong>Carahsoft Partner</strong><span>Technology Solutions partner for public-sector channels.</span></span>
+												</li>
+												<li class="government-credential-item">
+													<span class="government-credential-icon"><i class="fa fa-file-text-o"></i></span>
+													<span class="government-credential-text"><strong>Procurement Experience</strong><span>Experienced with state and municipal procurement processes.</span></span>
+												</li>
+											</ul>
+										</div>
 								</div>
 								<div class="mt-5">
 									<h5 class="section-subtitle">Here's how Armely makes a difference:</h5>
@@ -1104,7 +1314,7 @@
 									</div>
 									<div class="col-md-6">
 										<div class="industry-image-wrapper">
-											<img class="img-fluid industry-img" src="{{ asset('images/industry/oil.png') }}" alt="Transportation and Logistics">
+											<img class="img-fluid industry-img" src="{{ asset('images/industry/logistic.png') }}" alt="Transportation and Logistics">
 										</div>
 									</div>
 								</div>
@@ -1117,7 +1327,7 @@
 										</div>
 										<h6 class="solution-title"><strong>MHC Case Study</strong></h6>
 										<p class="solution-description">See how Armely supports transportation operations with modern Microsoft data and workflow solutions that improve visibility, speed, and execution quality.</p>
-										<a href="{{ route('case-studies.index', ['industry' => 'transportation-logistics', 'case_industry' => 'transportation-logistics']) }}" class="btn default-background text-light btn-modern-cta mt-3">View MHC Case Study</a>
+										<a href="{{ route('case-studies.index', ['industry' => 'transportation-logistics', 'case_industry' => 'transportation-logistics']) }}" class="btn default-background text-light btn-modern-cta mt-3">View Case Study</a>
 									</div>
 								</div>
 							</div>
@@ -1182,7 +1392,6 @@
 												See our Case Studies for Legal
 											</a>
 										</div>
-										<p class="section-text mt-4">Get started today, work with Armely to extend and develop solutions that will transform your business today. Using our knowledge and expertise in the industry, we will partner in transform your business</p>
 									</div>
 								</div>
 							</div>
@@ -1251,15 +1460,73 @@
 	</div>
 </section>
 
-<section class="cta-section-industries default-background">
+<section class="cta-section-industries">
 	<div class="container">
-		<div class="row align-items-center justify-content-center text-center">
-			<div class="col-lg-8 col-md-10 col-sm-12">
-				<h3 class="cta-heading">Ready to Transform Your Business?</h3>
-				<p class="cta-description text-light">Get started today, work with Armely to extend and develop solutions that will transform your business. Using our knowledge and expertise in the industry, we will partner to transform your business.</p>
-				<a href="{{ route('contact') }}" class="btn btn-modern-cta-white">
-					<i class="fa fa-phone"></i> Contact Us Today
-				</a>
+		<div class="industries-contact-panel">
+			<div class="row align-items-start">
+				<div class="col-lg-5">
+					<div class="industries-contact-copy">
+						<span class="industries-contact-kicker"><i class="fa fa-paper-plane"></i> Start a conversation</span>
+						<h3 class="cta-heading">Ready to Transform Your Business?</h3>
+						<p class="cta-description">Tell us what you are trying to modernize. Armely will help shape the right path across data, AI, cloud, and Microsoft platform delivery.</p>
+						<ul class="industries-contact-points">
+							<li><i class="fa fa-check"></i><span>Industry-aware discovery and solution planning</span></li>
+							<li><i class="fa fa-check"></i><span>Microsoft Fabric, Power Platform, Azure AI, and cloud expertise</span></li>
+							<li><i class="fa fa-check"></i><span>Practical next steps for procurement, delivery, and adoption</span></li>
+						</ul>
+					</div>
+				</div>
+				<div class="col-lg-7">
+					<form class="form industries-contact-form" id="industries-contact-form" method="post" action="{{ route('contact.submit') }}">
+						@csrf
+						<p class="p-3 alert" id="IndustriesSubmitMessage" style="display:none;"></p>
+						@if($errors->any())
+							<div class="alert alert-danger">
+								@foreach($errors->all() as $error)
+									<div>{{ $error }}</div>
+								@endforeach
+							</div>
+						@endif
+						<div class="row">
+							<div class="col-lg-6 col-md-6 col-12">
+								<label class="text-start">Name *</label>
+								<div class="form-group"><input required class="remove-input-background" name="name" type="text" placeholder="Name" value="{{ old('name') }}"></div>
+							</div>
+							<div class="col-lg-6 col-md-6 col-12">
+								<label class="text-start">Email *</label>
+								<div class="form-group"><input required class="remove-input-background" name="email" type="email" placeholder="Email" value="{{ old('email') }}"></div>
+							</div>
+							<div class="col-lg-6 col-md-6 col-12">
+								<label class="text-start">Organization Name</label>
+								<div class="form-group"><input class="remove-input-background" name="organization" type="text" placeholder="Organization Name" value="{{ old('organization') }}"></div>
+							</div>
+							<div class="col-lg-6 col-md-6 col-12">
+								<label class="text-start">Subject *</label>
+								<div class="form-group"><input required class="remove-input-background" name="subject" type="text" placeholder="Subject" value="{{ request('subject') ?? old('subject', 'Industry transformation consultation') }}"></div>
+							</div>
+							<div class="col-lg-12 col-md-12 col-12">
+								<label class="text-start">Message *</label>
+								<div class="form-group"><textarea required class="remove-input-background" name="message" placeholder="Tell us about your industry, goals, timeline, or current platform needs.">{{ old('message') }}</textarea></div>
+							</div>
+							<input style="display: none;" type="text" name="website" class="honeypot">
+							<div class="col-lg-12">
+								<div class="form-group">
+									<label class="text-start">Confirm you are not a robot *</label>
+									@if(!empty(config('services.recaptcha.site_key')))
+										<div class="g-recaptcha" data-sitekey="{{ config('services.recaptcha.site_key') }}"></div>
+									@else
+										<div class="alert alert-warning">reCAPTCHA is not configured. Please set <strong>CAPTURE_SITE_KEY</strong>.</div>
+									@endif
+								</div>
+							</div>
+							<div class="col-12">
+								<div class="form-group mb-0">
+									<button type="submit" class="btn send-message-btn" name="submit_form">Send Message</button>
+								</div>
+							</div>
+						</div>
+					</form>
+				</div>
 			</div>
 		</div>
 	</div>
@@ -1269,6 +1536,113 @@
 
 @push('scripts')
 <script>
+document.addEventListener('DOMContentLoaded', function() {
+	var recaptchaEl = document.querySelector('#industries-contact-form .g-recaptcha');
+	if (!recaptchaEl) {
+		return;
+	}
+
+	var scriptLoaded = false;
+	var loadRecaptcha = function () {
+		if (scriptLoaded) {
+			return;
+		}
+		scriptLoaded = true;
+		var script = document.createElement('script');
+		script.src = 'https://www.google.com/recaptcha/api.js';
+		script.async = true;
+		script.defer = true;
+		document.body.appendChild(script);
+	};
+
+	if ('IntersectionObserver' in window) {
+		var observer = new IntersectionObserver(function(entries) {
+			entries.forEach(function(entry) {
+				if (entry.isIntersecting) {
+					loadRecaptcha();
+					observer.disconnect();
+				}
+			});
+		}, { rootMargin: '200px 0px' });
+		observer.observe(recaptchaEl);
+	} else {
+		loadRecaptcha();
+	}
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+	var form = document.getElementById('industries-contact-form');
+	if (!form) {
+		return;
+	}
+
+	form.addEventListener('submit', function(event) {
+		event.preventDefault();
+		event.stopPropagation();
+
+		var submitBtn = form.querySelector('button[name="submit_form"]');
+		var messageDiv = document.getElementById('IndustriesSubmitMessage');
+		var originalBtnText = submitBtn ? submitBtn.textContent : 'Send Message';
+
+		messageDiv.textContent = '';
+		messageDiv.className = 'p-3 alert';
+		messageDiv.style.display = 'none';
+
+		var recaptchaResponse = (form.querySelector('textarea[name="g-recaptcha-response"]')?.value || '').trim();
+		if (!recaptchaResponse) {
+			messageDiv.className = 'p-3 alert alert-danger';
+			messageDiv.textContent = 'Please verify that you are not a robot.';
+			messageDiv.style.display = 'block';
+			return false;
+		}
+
+		submitBtn.disabled = true;
+		submitBtn.textContent = 'Sending...';
+
+		var formData = new FormData(form);
+		formData.append('g-recaptcha-response', recaptchaResponse);
+
+		fetch(form.action, {
+			method: 'POST',
+			headers: {
+				'X-CSRF-TOKEN': form.querySelector('input[name="_token"]').value,
+				'Accept': 'application/json'
+			},
+			body: formData
+		})
+			.then(function(response) {
+				return response.json();
+			})
+			.then(function(data) {
+				messageDiv.className = 'p-3 alert';
+				if (data.success) {
+					messageDiv.classList.add('alert-success');
+					messageDiv.textContent = data.message || 'Message sent successfully.';
+					form.reset();
+					if (window.grecaptcha && typeof window.grecaptcha.reset === 'function') {
+						window.grecaptcha.reset();
+					}
+				} else {
+					messageDiv.classList.add('alert-danger');
+					messageDiv.textContent = data.message || 'An error occurred. Please try again.';
+				}
+				messageDiv.style.display = 'block';
+			})
+			.catch(function(error) {
+				console.error('Error:', error);
+				messageDiv.className = 'p-3 alert alert-danger';
+				messageDiv.textContent = 'An error occurred. Please try again.';
+				messageDiv.style.display = 'block';
+			})
+			.finally(function() {
+				submitBtn.disabled = false;
+				submitBtn.textContent = originalBtnText;
+			});
+
+		return false;
+	}, true);
+});
+
 function initIndustryTabs() {
 	var tabLinks = Array.prototype.slice.call(document.querySelectorAll('#myTab .nav-link[href^="#"]'));
 	var tabPanes = Array.prototype.slice.call(document.querySelectorAll('#myTabContent .tab-pane'));

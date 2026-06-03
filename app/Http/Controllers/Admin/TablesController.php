@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use App\Services\ActivityLogger;
+use App\Services\NewsletterNotificationService;
 
 class TablesController extends Controller
 {
@@ -42,6 +43,29 @@ class TablesController extends Controller
         return null;
     }
 
+    private function storeBlogImage(Request $request, string $blogTable): ?array
+    {
+        if (!$request->hasFile('image')) {
+            return null;
+        }
+
+        $request->validate([
+            'image' => ['image', 'mimes:jpeg,jpg,png,webp', 'max:5120', 'dimensions:min_width=900,min_height=500'],
+        ], [
+            'image.dimensions' => 'Please upload a blog image that is at least 900px wide and 500px tall so it displays consistently on the site.',
+            'image.mimes' => 'Please upload a JPG, PNG, or WEBP blog image.',
+            'image.max' => 'Blog images must be 5MB or smaller.',
+        ]);
+
+        $image = $request->file('image');
+        $filename = time() . '_' . Str::slug($request->title ?? 'blog') . '.' . strtolower($image->getClientOriginalExtension());
+        $image->move(public_path('images/blog'), $filename);
+
+        $imageColumn = $this->columnExists($blogTable, 'image_path') ? 'image_path' : 'image';
+
+        return [$imageColumn => 'images/blog/' . $filename];
+    }
+
     public function index()
     {
         $blogTable = $this->tableExists('blog') ? 'blog' : ($this->tableExists('blogs') ? 'blogs' : null);
@@ -68,6 +92,7 @@ class TablesController extends Controller
         $team = $teamTable ? DB::table($teamTable)->orderBy('id', 'desc')->limit(50)->get() : collect();
 
         $contacts = $this->tableExists('contacts') ? DB::table('contacts')->orderBy('id', 'desc')->limit(50)->get() : collect();
+        $newsletterSubscribers = $this->tableExists('newsletter_subscribers') ? DB::table('newsletter_subscribers')->orderByDesc('id')->limit(250)->get() : collect();
 
         $adminAuthors = $this->tableExists('admin')
             ? DB::table('admin')
@@ -81,7 +106,7 @@ class TablesController extends Controller
 
         $caseStudyCategories = $this->caseStudyCategoryOptions();
 
-        return view('admin.tables', compact('blogs', 'videos', 'careers', 'socialImpact', 'customerStories', 'caseStudies', 'events', 'team', 'contacts', 'adminAuthors', 'caseStudyCategories'));
+        return view('admin.tables', compact('blogs', 'videos', 'careers', 'socialImpact', 'customerStories', 'caseStudies', 'events', 'team', 'contacts', 'newsletterSubscribers', 'adminAuthors', 'caseStudyCategories'));
     }
     
     // ========== LIST ENDPOINTS FOR AJAX TABLE RELOAD ==========
@@ -426,12 +451,8 @@ class TablesController extends Controller
                 $data[$bodyColumn] = $request->body;
             }
             
-            if ($request->hasFile('image')) {
-                $image = $request->file('image');
-                $filename = time() . '_' . Str::slug($request->title ?? 'blog') . '.' . $image->getClientOriginalExtension();
-                $image->move(public_path('images/blog'), $filename);
-                $imageColumn = $this->columnExists($blogTable, 'image_path') ? 'image_path' : 'image';
-                $data[$imageColumn] = 'images/blog/' . $filename;
+            if ($imageData = $this->storeBlogImage($request, $blogTable)) {
+                $data = array_merge($data, $imageData);
             }
             
             DB::table($blogTable)->where($idColumn, $request->id)->update($data);
@@ -461,12 +482,8 @@ class TablesController extends Controller
                 $data[$bodyColumn] = $request->body;
             }
             
-            if ($request->hasFile('image')) {
-                $image = $request->file('image');
-                $filename = time() . '_' . Str::slug($request->title ?? 'blog') . '.' . $image->getClientOriginalExtension();
-                $image->move(public_path('images/blog'), $filename);
-                $imageColumn = $this->columnExists($blogTable, 'image_path') ? 'image_path' : 'image';
-                $data[$imageColumn] = 'images/blog/' . $filename;
+            if ($imageData = $this->storeBlogImage($request, $blogTable)) {
+                $data = array_merge($data, $imageData);
             }
             
             // Generate IDs if needed
@@ -494,6 +511,7 @@ class TablesController extends Controller
             DB::table($blogTable)->insert($data);
             $blog = DB::table($blogTable)->orderBy('id', 'desc')->first();
             ActivityLogger::log('create', 'Blog', $blog->{$idColumn} ?? ($blog->id ?? null), 'Created blog ' . ($request->title ?? ($blog->title ?? $blog->blog_title ?? '')));
+            app(NewsletterNotificationService::class)->sendBlogNotification($blog, $idColumn);
             return response()->json(['success' => true, 'message' => 'Blog created successfully', 'data' => $blog]);
         }
     }
@@ -1119,12 +1137,8 @@ class TablesController extends Controller
             $data[$bodyColumn] = $request->body;
         }
         
-        if ($request->hasFile('image')) {
-            $image = $request->file('image');
-            $filename = time() . '_' . Str::slug($request->title ?? 'blog') . '.' . $image->getClientOriginalExtension();
-            $image->move(public_path('images/blog'), $filename);
-            $imageColumn = $this->columnExists($blogTable, 'image_path') ? 'image_path' : 'image';
-            $data[$imageColumn] = 'images/blog/' . $filename;
+        if ($imageData = $this->storeBlogImage($request, $blogTable)) {
+            $data = array_merge($data, $imageData);
         }
         
         Log::info('Data to update', ['data' => $data]);
@@ -1369,6 +1383,7 @@ class TablesController extends Controller
             $eventId = DB::table($table)->insertGetId($data);
             $event = DB::table($table)->where('id', $eventId)->first();
             ActivityLogger::log('create', 'Event', $eventId, 'Created event ' . ($event->title ?? ''));
+            app(NewsletterNotificationService::class)->sendEventNotification($event);
             
             return response()->json(['success' => true, 'message' => 'Event created successfully', 'data' => $event]);
         }
@@ -1573,5 +1588,49 @@ class TablesController extends Controller
         DB::table('contacts')->where('id', $id)->delete();
         ActivityLogger::log('delete', 'Contact', $id, 'Deleted contact #' . $id);
         return response()->json(['success' => true, 'message' => 'Contact deleted successfully']);
+    }
+
+    public function unsubscribeNewsletterSubscriber($id)
+    {
+        if (!$this->tableExists('newsletter_subscribers')) {
+            return response()->json(['success' => false, 'message' => 'Newsletter subscribers table is not available.'], 422);
+        }
+
+        DB::table('newsletter_subscribers')->where('id', $id)->update([
+            'status' => 'unsubscribed',
+            'unsubscribed_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        ActivityLogger::log('update', 'NewsletterSubscriber', $id, 'Unsubscribed newsletter subscriber #' . $id);
+        return response()->json(['success' => true, 'message' => 'Subscriber unsubscribed successfully']);
+    }
+
+    public function resubscribeNewsletterSubscriber($id)
+    {
+        if (!$this->tableExists('newsletter_subscribers')) {
+            return response()->json(['success' => false, 'message' => 'Newsletter subscribers table is not available.'], 422);
+        }
+
+        DB::table('newsletter_subscribers')->where('id', $id)->update([
+            'status' => 'active',
+            'unsubscribed_at' => null,
+            'subscribed_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        ActivityLogger::log('update', 'NewsletterSubscriber', $id, 'Reactivated newsletter subscriber #' . $id);
+        return response()->json(['success' => true, 'message' => 'Subscriber reactivated successfully']);
+    }
+
+    public function deleteNewsletterSubscriber($id)
+    {
+        if (!$this->tableExists('newsletter_subscribers')) {
+            return response()->json(['success' => false, 'message' => 'Newsletter subscribers table is not available.'], 422);
+        }
+
+        DB::table('newsletter_subscribers')->where('id', $id)->delete();
+        ActivityLogger::log('delete', 'NewsletterSubscriber', $id, 'Deleted newsletter subscriber #' . $id);
+        return response()->json(['success' => true, 'message' => 'Subscriber deleted successfully']);
     }
 }

@@ -908,9 +908,16 @@ class HomeController extends Controller
             return $query
                 ->get()
                 ->map(function ($listing) {
+                    $title = trim((string) ($listing->title ?? ''));
+                    $category = trim((string) ($listing->category ?? 'Case Study'));
+                    $displayTitle = $title !== ''
+                        ? $title
+                        : (Str::endsWith(Str::lower($category), 'case study') ? $category : $category . ' Case Study');
+
                     $listing->image_path = $listing->listing_image ? asset('images/case-study/' . $listing->listing_image) : asset('images/default-image.png');
                     $listing->pdf_link = $listing->pdf_url ? url('case_docs/' . $listing->pdf_url) : '#';
                     $listing->excerpt = $this->makePreviewText((string) ($listing->body ?? ''), 150);
+                    $listing->slug = Str::slug($displayTitle) ?: 'case-study-' . (string) ($listing->id ?? 'resource');
                     return $listing;
                 });
         }, $dbErrorMessage);
@@ -944,7 +951,7 @@ class HomeController extends Controller
                 ->limit(3)
                 ->get()
                 ->map(function ($blog) use ($authorImageMap) {
-                    $blog->author_image = $authorImageMap[$blog->author ?? ''] ?? null;
+                    $blog->author_image = $this->resolveAuthorImageForName((string) ($blog->author ?? ''), $authorImageMap);
                     $blog->reading_time = $this->estimateReadingTime($blog->body ?? '');
                     $blog->preview = $this->makePreviewText((string) ($blog->body ?? ''), 150);
                     return $blog;
@@ -982,8 +989,35 @@ class HomeController extends Controller
 
         return DB::table('team')
             ->whereNotNull('team_name')
-            ->pluck('team_image', 'team_name')
-            ->toArray();
+            ->get(['team_name', 'team_image'])
+            ->reduce(function (array $map, object $member) {
+                $name = trim((string) ($member->team_name ?? ''));
+                $image = trim((string) ($member->team_image ?? ''));
+
+                if ($name === '' || $image === '') {
+                    return $map;
+                }
+
+                $filename = basename($image);
+                if (!is_file(public_path('images/team/' . $filename))) {
+                    return $map;
+                }
+
+                $map[$name] = $filename;
+                $map[Str::lower($name)] = $filename;
+
+                return $map;
+            }, []);
+    }
+
+    private function resolveAuthorImageForName(string $authorName, array $authorImageMap): ?string
+    {
+        $authorName = trim($authorName);
+        if ($authorName === '') {
+            return null;
+        }
+
+        return $authorImageMap[$authorName] ?? $authorImageMap[Str::lower($authorName)] ?? null;
     }
 
     private function makePreviewText(string $html, int $limit = 150): string

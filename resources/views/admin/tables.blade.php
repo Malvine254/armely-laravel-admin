@@ -18,15 +18,11 @@
         font-family: 'Inter', sans-serif;
     }
 
-    body.admin-body {
-        overflow: hidden;
-    }
-
     .content-area {
-        height: calc(100vh - 72px);
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
+        height: auto;
+        min-height: calc(100vh - 72px);
+        overflow: visible;
+        display: block;
     }
 
     .page-title {
@@ -212,6 +208,48 @@
         color: #5f6c80;
     }
 
+    .content-management-tabs {
+        align-items: center;
+        gap: 0.2rem;
+    }
+
+    .content-management-tabs .nav-link {
+        white-space: nowrap;
+    }
+
+    .content-management-tabs .more-tabs-item .dropdown-menu {
+        border: 1px solid #d8e1ee;
+        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+        border-radius: 8px;
+        padding: 0.4rem;
+        min-width: 220px;
+    }
+
+    .content-management-tabs .more-tabs-item .dropdown-item {
+        border-radius: 6px;
+        color: #334e77;
+        font-size: 0.9rem;
+        font-weight: 600;
+        padding: 0.62rem 0.75rem;
+    }
+
+    .content-management-tabs .more-tabs-item .dropdown-item i {
+        width: 18px;
+        margin-right: 0.45rem;
+        color: #2f5597;
+    }
+
+    .content-management-tabs .more-tabs-item .dropdown-item.active,
+    .content-management-tabs .more-tabs-item .dropdown-item:active {
+        background: #2f5597;
+        color: #fff;
+    }
+
+    .content-management-tabs .more-tabs-item .dropdown-item.active i,
+    .content-management-tabs .more-tabs-item .dropdown-item:active i {
+        color: #fff;
+    }
+
     /* Top toolbar matches Job Applications feel: clean and compact */
     .content-management-card .dt-toolbar {
         margin: 0 0 0.75rem 0 !important;
@@ -335,8 +373,8 @@
         border-radius: 0.55rem;
         width: 100%;
         max-width: 100%;
-        overflow-x: hidden !important;
-        overflow-y: hidden !important;
+        overflow-x: auto !important;
+        overflow-y: visible !important;
         background: #fff;
         max-height: none;
         box-shadow: 0 2px 8px rgba(31, 63, 128, 0.05);
@@ -348,31 +386,25 @@
         overflow-x: hidden;
     }
 
-    /* Keep tabbed table area contained inside viewport so pagination remains visible */
     .card.mb-4 {
-        flex: 1 1 auto;
-        display: flex;
-        flex-direction: column;
+        display: block;
         height: auto;
         min-height: 0;
-        overflow: hidden;
-        margin-bottom: 0 !important;
+        overflow: visible;
     }
 
     .card.mb-4 > .tab-content {
-        flex: 1;
         min-height: 0;
-        overflow: hidden;
+        overflow: visible;
     }
 
     .card.mb-4 > .tab-content > .tab-pane {
-        height: 100%;
+        height: auto;
     }
 
     .card.mb-4 > .tab-content > .tab-pane > .card-body {
-        height: 100%;
-        display: flex;
-        flex-direction: column;
+        height: auto;
+        display: block;
         min-height: 0;
     }
 
@@ -387,51 +419,17 @@
 
     .card.mb-4 > .tab-content > .tab-pane > .card-body > .table-responsive,
     .card.mb-4 > .tab-content > .tab-pane > .card-body > .row > .col-12 > .table-responsive {
-        flex: 1;
         min-height: 0;
     }
 
     .dataTables_wrapper {
-        height: 100%;
-    }
-
-    .dataTables_wrapper .dataTables_scroll {
-        flex: 1 1 auto;
-        min-height: 0;
-        display: flex;
-        flex-direction: column;
-    }
-
-    .content-management-card .dataTables_wrapper .dataTables_scrollHead {
-        flex: 0 0 auto;
-        overflow: visible !important;
-        background: #eef2f7;
-        border-bottom: 1px solid #d8e1ee;
-    }
-
-    .content-management-card .dataTables_wrapper .dataTables_scrollHeadInner,
-    .content-management-card .dataTables_wrapper .dataTables_scrollHeadInner table {
-        width: 100% !important;
-    }
-
-    .content-management-card .dataTables_wrapper .dataTables_scrollHead th {
-        color: #334e77 !important;
-        font-size: 0.79rem !important;
-        font-weight: 600 !important;
-        text-transform: uppercase;
-        letter-spacing: 0.35px;
-        padding-top: 0.78rem !important;
-        padding-bottom: 0.78rem !important;
-        background: #eef2f7 !important;
-        border-bottom: 1px solid #d8e1ee !important;
+        height: auto;
     }
 
     .dataTables_wrapper .dataTables_scrollBody {
-        flex: 1 1 auto !important;
-        min-height: 0;
         max-height: none !important;
-        overflow-y: auto !important;
-        overflow-x: hidden !important;
+        overflow-y: visible !important;
+        overflow-x: auto !important;
         border-bottom: 1px solid #edf1f6;
     }
 
@@ -467,7 +465,7 @@
 
     @media (max-width: 768px) {
         .content-area {
-            height: calc(100vh - 64px);
+            min-height: calc(100vh - 64px);
         }
 
         .card.mb-4 {
@@ -518,7 +516,7 @@
 <!-- Nav Tabs -->
 <div class="card mb-4 content-management-card">
     <div class="card-header border-bottom">
-        <ul class="nav nav-tabs card-header-tabs" role="tablist">
+        <ul class="nav nav-tabs card-header-tabs content-management-tabs" id="contentManagementTabs" role="tablist">
             <li class="nav-item">
                 <a class="nav-link active" id="blogs-tab" data-bs-toggle="tab" href="#blogs" role="tab">
                     <i class="fas fa-blog"></i> Blogs
@@ -560,9 +558,20 @@
                 </a>
             </li>
             <li class="nav-item">
+                <a class="nav-link" id="newsletter-tab" data-bs-toggle="tab" href="#newsletter" role="tab">
+                    <i class="fas fa-envelope-open-text"></i> Newsletter
+                </a>
+            </li>
+            <li class="nav-item">
                 <a class="nav-link" id="jobs-tab" data-bs-toggle="tab" href="#jobs" role="tab">
                     <i class="fas fa-briefcase"></i> Job Applications
                 </a>
+            </li>
+            <li class="nav-item dropdown more-tabs-item d-none" id="contentTabsMoreItem">
+                <a class="nav-link dropdown-toggle" href="#" id="contentTabsMoreToggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-ellipsis-h"></i> More
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end" id="contentTabsMoreMenu" aria-labelledby="contentTabsMoreToggle"></ul>
             </li>
         </ul>
     </div>
@@ -970,6 +979,67 @@
             </div>
         </div>
 
+        <!-- Newsletter Tab -->
+        <div class="tab-pane fade" id="newsletter" role="tabpanel">
+            <div class="card-body">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                    <div>
+                        <h5 class="mb-1">Newsletter Subscribers</h5>
+                        <p class="text-muted mb-0">Manage footer signups and email subscription status.</p>
+                    </div>
+                    <span class="badge bg-primary">{{ ($newsletterSubscribers ?? collect())->count() }} shown</span>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover" id="newsletterDataTable">
+                        <thead>
+                            <tr>
+                                <th>Email</th>
+                                <th>Name</th>
+                                <th>Status</th>
+                                <th>Subscribed</th>
+                                <th>Last Notified</th>
+                                <th width="220">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="newsletterTable">
+                            @forelse(($newsletterSubscribers ?? collect()) as $subscriber)
+                            <tr data-id="{{ $subscriber->id }}">
+                                <td>{{ $subscriber->email }}</td>
+                                <td>{{ $subscriber->name ?: 'N/A' }}</td>
+                                <td>
+                                    <span class="badge {{ ($subscriber->status ?? 'active') === 'active' ? 'bg-success' : 'bg-secondary' }}">
+                                        {{ ucfirst($subscriber->status ?? 'active') }}
+                                    </span>
+                                </td>
+                                <td>{{ $subscriber->subscribed_at ? \Carbon\Carbon::parse($subscriber->subscribed_at)->format('M d, Y g:i A') : 'N/A' }}</td>
+                                <td>{{ $subscriber->last_notified_at ? \Carbon\Carbon::parse($subscriber->last_notified_at)->format('M d, Y g:i A') : 'Never' }}</td>
+                                <td>
+                                    <div class="action-btns">
+                                        @if(($subscriber->status ?? 'active') === 'active')
+                                            <button class="btn btn-sm btn-warning unsubscribe-newsletter" data-id="{{ $subscriber->id }}" title="Unsubscribe">
+                                                <i class="fas fa-user-slash"></i>
+                                            </button>
+                                        @else
+                                            <button class="btn btn-sm btn-success resubscribe-newsletter" data-id="{{ $subscriber->id }}" title="Resubscribe">
+                                                <i class="fas fa-user-check"></i>
+                                            </button>
+                                        @endif
+                                        <button class="btn btn-sm btn-danger delete-newsletter" data-id="{{ $subscriber->id }}" title="Delete">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            @empty
+                            <tr><td colspan="6" class="text-center text-muted">No newsletter subscribers yet.</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
         <!-- Job Applications Tab -->
         <div class="tab-pane fade" id="jobs" role="tabpanel">
             <div class="card-body">
@@ -1178,7 +1248,7 @@
                         <div class="col-md-6">
                             <label for="blogImage" class="form-label">Featured Image</label>
                             <input type="file" class="form-control" id="blogImage" name="image" accept="image/*">
-                            <small class="text-muted">Current image will be preserved if no new image is uploaded</small>
+                            <small class="text-muted">Use a JPG, PNG, or WEBP image at least 900x500px. Current image will be preserved if no new image is uploaded.</small>
                         </div>
                         
                         <div class="col-12">
@@ -1706,6 +1776,138 @@
 <script src="{{ asset('ckeditor/ckeditor.js') }}"></script>
 <script>
 $(document).ready(function() {
+        const $contentTabs = $('#contentManagementTabs');
+        const $contentTabsMoreItem = $('#contentTabsMoreItem');
+        const $contentTabsMoreMenu = $('#contentTabsMoreMenu');
+        const contentTabItems = $contentTabs.children('.nav-item').not($contentTabsMoreItem).toArray();
+
+        function getContentTabsVisibleLimit() {
+            const width = window.innerWidth || document.documentElement.clientWidth;
+
+            if (width >= 1200) return 8;
+            if (width >= 992) return 6;
+            if (width >= 768) return 5;
+            if (width >= 576) return 4;
+            if (width >= 420) return 3;
+
+            return 2;
+        }
+
+        function updateContentTabsMoreActive() {
+            const hasHiddenActive = $contentTabsMoreMenu.find('.dropdown-item.active').length > 0;
+            $('#contentTabsMoreToggle').toggleClass('active', hasHiddenActive);
+        }
+
+        function syncContentTabActiveState(target) {
+            if (!target) return;
+
+            $contentTabs.find('[data-bs-toggle="tab"]').removeClass('active');
+            $contentTabs.find('[data-bs-toggle="tab"][href="' + target + '"]').addClass('active');
+            updateContentTabsMoreActive();
+        }
+
+        function rebuildContentTabsMore() {
+            const visibleLimit = Math.min(getContentTabsVisibleLimit(), contentTabItems.length);
+            $contentTabsMoreMenu.empty();
+
+            let hiddenCount = 0;
+            contentTabItems.forEach(function(item, index) {
+                const $item = $(item);
+                const $link = $item.find('[data-bs-toggle="tab"]').first();
+
+                if (index < visibleLimit) {
+                    $item.removeClass('d-none');
+                    return;
+                }
+
+                $item.addClass('d-none');
+                hiddenCount += 1;
+
+                const $dropdownLink = $link.clone(false)
+                    .removeClass('nav-link')
+                    .addClass('dropdown-item')
+                    .attr('id', ($link.attr('id') || 'content-tab') + '-more')
+                    .attr('role', 'menuitem');
+
+                $('<li>').append($dropdownLink).appendTo($contentTabsMoreMenu);
+            });
+
+            $contentTabsMoreItem.toggleClass('d-none', hiddenCount === 0);
+            const activeTarget = $contentTabs.find('.nav-link.active, .dropdown-item.active').first().attr('href') || '#blogs';
+            syncContentTabActiveState(activeTarget);
+        }
+
+        let contentTabsResizeTimer;
+        $(window).on('resize', function() {
+            clearTimeout(contentTabsResizeTimer);
+            contentTabsResizeTimer = setTimeout(rebuildContentTabsMore, 120);
+        });
+
+        $(document).on('shown.bs.tab', '#contentManagementTabs [data-bs-toggle="tab"]', function(event) {
+            const target = $(event.target).attr('href');
+            syncContentTabActiveState(target);
+
+            if (target === '#blogs') {
+                reloadBlogsTable();
+            } else if (target === '#jobs') {
+                loadApplications();
+                loadShortlisted();
+                loadHired();
+                loadRejected();
+            } else {
+                setTimeout(function() {
+                    initializeDataTables();
+                }, 100);
+            }
+        });
+
+        rebuildContentTabsMore();
+
+        function setModalStatus($button, type, message) {
+            const $footer = $button.closest('.modal-content').find('.modal-footer').first();
+            if (!$footer.length) return;
+
+            let $status = $footer.find('.ajax-status-message');
+            if (!$status.length) {
+                $status = $('<div class="ajax-status-message small me-auto" role="status" aria-live="polite"></div>');
+                $footer.prepend($status);
+            }
+
+            $status
+                .removeClass('text-muted text-success text-danger')
+                .addClass(type === 'success' ? 'text-success' : (type === 'error' ? 'text-danger' : 'text-muted'))
+                .html(message || '');
+        }
+
+        function setButtonSaving($button, isSaving, savingText) {
+            if (!$button.length) return;
+
+            if (isSaving) {
+                if (!$button.data('original-html')) {
+                    $button.data('original-html', $button.html());
+                }
+                $button.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>' +
+                    (savingText || 'Saving...')
+                );
+                setModalStatus($button, 'muted', '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>' + (savingText || 'Saving...'));
+                return;
+            }
+
+            $button.prop('disabled', false).html($button.data('original-html') || $button.html());
+        }
+
+        function markAjaxSaveSuccess($button, message) {
+            setModalStatus($button, 'success', '<i class="fas fa-check-circle me-1"></i>' + (message || 'Saved successfully.'));
+        }
+
+        function markAjaxSaveError($button, message) {
+            setModalStatus($button, 'error', '<i class="fas fa-exclamation-circle me-1"></i>' + (message || 'Something went wrong.'));
+        }
+
+        $('.modal').on('hidden.bs.modal', function() {
+            $(this).find('.ajax-status-message').remove();
+        });
         
         // Initialize CKEditor when needed
         let blogEditor;
@@ -1810,15 +2012,17 @@ $(document).ready(function() {
             language: {
                 search: "_INPUT_",
                 searchPlaceholder: "Search blogs...",
-                processing: '<span class="spinner-border spinner-border-sm"></span> Loading...'
+                processing: '<span class="spinner-border spinner-border-sm"></span> Loading...',
+                paginate: {
+                    next: 'Read more',
+                    previous: 'Previous'
+                }
             },
                   dom: "<'dt-toolbar'<'dt-search'f><'dt-length'l>>" +
                  "t" +
                       "<'dt-footer row'<'col-md-5 col-12'i><'col-md-7 col-12'p>>",
             responsive: true,
-            autoWidth: false,
-            scrollY: '42vh',
-            scrollCollapse: true
+            autoWidth: false
         });
     }
 
@@ -2203,6 +2407,12 @@ $(document).ready(function() {
     // Save Blog (Add/Edit)
     $('#saveBlogBtn').on('click', function(e) {
         e.preventDefault();
+        const $saveBtn = $(this);
+        if ($saveBtn.prop('disabled')) {
+            return;
+        }
+        setButtonSaving($saveBtn, true, 'Saving blog...');
+
         const formData = new FormData();
         const id = $('#blogId').val();
         const isEdit = id !== '';
@@ -2236,13 +2446,19 @@ $(document).ready(function() {
             contentType: false,
             success: function(response) {
                 console.log('Save successful:', response);
+                markAjaxSaveSuccess($saveBtn, 'Blog saved successfully.');
                 $('#blogModal').modal('hide');
                 reloadBlogsTable();
                 alert('Blog saved successfully!');
             },
             error: function(xhr) {
                 console.error('Save error:', xhr.responseJSON);
-                alert('Error saving blog: ' + (xhr.responseJSON?.message || 'Unknown error'));
+                const message = xhr.responseJSON?.message || 'Unknown error';
+                markAjaxSaveError($saveBtn, 'Error saving blog: ' + message);
+                alert('Error saving blog: ' + message);
+            },
+            complete: function() {
+                setButtonSaving($saveBtn, false);
             }
         });
     });
@@ -2415,6 +2631,12 @@ $(document).ready(function() {
 
     // Save Video
     $('#saveVideoBtn').click(function() {
+        const $saveBtn = $(this);
+        if ($saveBtn.prop('disabled')) {
+            return;
+        }
+        setButtonSaving($saveBtn, true, 'Saving video...');
+
         const id = $('#videoId').val();
         const isEdit = id !== '';
         const url = $('#videoUrl').val();
@@ -2433,13 +2655,19 @@ $(document).ready(function() {
             type: 'POST',
             data: data,
             success: function(response) {
+                markAjaxSaveSuccess($saveBtn, 'Video saved successfully.');
                 $('#videoModal').modal('hide');
                 resetVideoForm();
                 reloadVideosTable();
                 alert('Video saved successfully!');
             },
             error: function(xhr) {
-                alert('Error saving video: ' + (xhr.responseJSON?.message || 'Unknown error'));
+                const message = xhr.responseJSON?.message || 'Unknown error';
+                markAjaxSaveError($saveBtn, 'Error saving video: ' + message);
+                alert('Error saving video: ' + message);
+            },
+            complete: function() {
+                setButtonSaving($saveBtn, false);
             }
         });
     });
@@ -2485,6 +2713,12 @@ $(document).ready(function() {
 
     // Save Career
     $('#saveCareerBtn').click(function() {
+        const $saveBtn = $(this);
+        if ($saveBtn.prop('disabled')) {
+            return;
+        }
+        setButtonSaving($saveBtn, true, 'Saving career...');
+
         const id = $('#careerId').val();
         const isEdit = id !== '';
         const data = {
@@ -2506,12 +2740,18 @@ $(document).ready(function() {
             type: 'POST',
             data: data,
             success: function(response) {
+                markAjaxSaveSuccess($saveBtn, 'Career saved successfully.');
                 $('#careerModal').modal('hide');
                 reloadCareersTable();
                 alert('Career saved successfully!');
             },
             error: function(xhr) {
-                alert('Error saving career: ' + (xhr.responseJSON?.message || 'Unknown error'));
+                const message = xhr.responseJSON?.message || 'Unknown error';
+                markAjaxSaveError($saveBtn, 'Error saving career: ' + message);
+                alert('Error saving career: ' + message);
+            },
+            complete: function() {
+                setButtonSaving($saveBtn, false);
             }
         });
     });
@@ -2557,6 +2797,12 @@ $(document).ready(function() {
 
     // Save Social Impact
     $('#saveSocialBtn').click(function() {
+        const $saveBtn = $(this);
+        if ($saveBtn.prop('disabled')) {
+            return;
+        }
+        setButtonSaving($saveBtn, true, 'Saving story...');
+
         const formData = new FormData();
         const id = $('#socialId').val();
         const isEdit = id !== '';
@@ -2584,12 +2830,18 @@ $(document).ready(function() {
             processData: false,
             contentType: false,
             success: function(response) {
+                markAjaxSaveSuccess($saveBtn, 'Social impact story saved successfully.');
                 $('#socialModal').modal('hide');
                 reloadSocialTable();
                 alert('Social impact story saved successfully!');
             },
             error: function(xhr) {
-                alert('Error saving social impact story: ' + (xhr.responseJSON?.message || 'Unknown error'));
+                const message = xhr.responseJSON?.message || 'Unknown error';
+                markAjaxSaveError($saveBtn, 'Error saving social impact story: ' + message);
+                alert('Error saving social impact story: ' + message);
+            },
+            complete: function() {
+                setButtonSaving($saveBtn, false);
             }
         });
     });
@@ -2633,6 +2885,12 @@ $(document).ready(function() {
 
     // Save Customer Story
     $('#saveStoryBtn').click(function() {
+        const $saveBtn = $(this);
+        if ($saveBtn.prop('disabled')) {
+            return;
+        }
+        setButtonSaving($saveBtn, true, 'Saving customer story...');
+
         const formData = new FormData();
         const id = $('#storyId').val();
         const isEdit = id !== '';
@@ -2658,12 +2916,18 @@ $(document).ready(function() {
             processData: false,
             contentType: false,
             success: function(response) {
+                markAjaxSaveSuccess($saveBtn, 'Customer story saved successfully.');
                 $('#storyModal').modal('hide');
                 reloadStoriesTable();
                 alert('Customer story saved successfully!');
             },
             error: function(xhr) {
-                alert('Error saving customer story: ' + (xhr.responseJSON?.message || 'Unknown error'));
+                const message = xhr.responseJSON?.message || 'Unknown error';
+                markAjaxSaveError($saveBtn, 'Error saving customer story: ' + message);
+                alert('Error saving customer story: ' + message);
+            },
+            complete: function() {
+                setButtonSaving($saveBtn, false);
             }
         });
     });
@@ -2798,6 +3062,7 @@ $(document).ready(function() {
         };
 
         setCaseStudySavingState(true);
+        setModalStatus($saveBtn, 'muted', '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Saving resource...');
 
         const id = $('#caseStudyId').val();
         const resourceType = getSelectedResourceType();
@@ -2842,12 +3107,15 @@ $(document).ready(function() {
             processData: false,
             contentType: false,
             success: function(response) {
+                markAjaxSaveSuccess($saveBtn, response.message || `${resourceLabel.charAt(0).toUpperCase()}${resourceLabel.slice(1)} saved successfully!`);
                 $('#caseStudyModal').modal('hide');
                 reloadCaseStudiesTable();
                 alert(response.message || `${resourceLabel.charAt(0).toUpperCase()}${resourceLabel.slice(1)} saved successfully!`);
             },
             error: function(xhr) {
-                alert(`Error saving ${resourceLabel}: ` + (xhr.responseJSON?.message || 'Unknown error'));
+                const message = xhr.responseJSON?.message || 'Unknown error';
+                markAjaxSaveError($saveBtn, `Error saving ${resourceLabel}: ` + message);
+                alert(`Error saving ${resourceLabel}: ` + message);
             },
             complete: function() {
                 setCaseStudySavingState(false);
@@ -2969,6 +3237,12 @@ $(document).ready(function() {
     
     // Event Save
     $('#saveEventBtn').click(function() {
+        const $saveBtn = $(this);
+        if ($saveBtn.prop('disabled')) {
+            return;
+        }
+        setButtonSaving($saveBtn, true, 'Saving event...');
+
         const id = $('#eventId').val();
         const isEdit = id !== '';
         
@@ -2990,12 +3264,18 @@ $(document).ready(function() {
             processData: false,
             contentType: false,
             success: function(response) {
+                markAjaxSaveSuccess($saveBtn, 'Event saved successfully.');
                 $('#eventModal').modal('hide');
                 reloadEventsTable();
                 alert('Event saved successfully!');
             },
             error: function(xhr) {
-                alert('Error saving event: ' + (xhr.responseJSON?.message || 'Unknown error'));
+                const message = xhr.responseJSON?.message || 'Unknown error';
+                markAjaxSaveError($saveBtn, 'Error saving event: ' + message);
+                alert('Error saving event: ' + message);
+            },
+            complete: function() {
+                setButtonSaving($saveBtn, false);
             }
         });
     });
@@ -3083,9 +3363,79 @@ $(document).ready(function() {
             }
         });
     });
+
+    // ==================== NEWSLETTER HANDLERS ====================
+
+    $(document).on('click', '.unsubscribe-newsletter', function() {
+        const id = $(this).data('id');
+
+        if (!confirm('Unsubscribe this user from newsletter emails?')) {
+            return;
+        }
+
+        $.ajax({
+            url: `/admin/tables/newsletter/${id}/unsubscribe`,
+            type: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            success: function() {
+                location.reload();
+            },
+            error: function(xhr) {
+                alert('Error unsubscribing user: ' + (xhr.responseJSON?.message || 'Unknown error'));
+            }
+        });
+    });
+
+    $(document).on('click', '.resubscribe-newsletter', function() {
+        const id = $(this).data('id');
+
+        $.ajax({
+            url: `/admin/tables/newsletter/${id}/resubscribe`,
+            type: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            success: function() {
+                location.reload();
+            },
+            error: function(xhr) {
+                alert('Error resubscribing user: ' + (xhr.responseJSON?.message || 'Unknown error'));
+            }
+        });
+    });
+
+    $(document).on('click', '.delete-newsletter', function() {
+        const id = $(this).data('id');
+
+        if (!confirm('Delete this newsletter subscriber? This cannot be undone.')) {
+            return;
+        }
+
+        $.ajax({
+            url: `/admin/tables/newsletter/${id}`,
+            type: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            success: function() {
+                location.reload();
+            },
+            error: function(xhr) {
+                alert('Error deleting subscriber: ' + (xhr.responseJSON?.message || 'Unknown error'));
+            }
+        });
+    });
     
     // Team Save
     $('#saveTeamBtn').click(function() {
+        const $saveBtn = $(this);
+        if ($saveBtn.prop('disabled')) {
+            return;
+        }
+        setButtonSaving($saveBtn, true, 'Saving team member...');
+
         const id = $('#teamId').val();
         const isEdit = id !== '';
         
@@ -3114,12 +3464,18 @@ $(document).ready(function() {
             processData: false,
             contentType: false,
             success: function(response) {
+                markAjaxSaveSuccess($saveBtn, 'Team member saved successfully.');
                 $('#teamModal').modal('hide');
                 reloadTeamTable();
                 alert('Team member saved successfully!');
             },
             error: function(xhr) {
-                alert('Error saving team member: ' + (xhr.responseJSON?.message || 'Unknown error'));
+                const message = xhr.responseJSON?.message || 'Unknown error';
+                markAjaxSaveError($saveBtn, 'Error saving team member: ' + message);
+                alert('Error saving team member: ' + message);
+            },
+            complete: function() {
+                setButtonSaving($saveBtn, false);
             }
         });
     });
@@ -3450,7 +3806,8 @@ $(document).ready(function() {
             { id: '#storiesDataTable', pageLength: 10 },
             { id: '#caseStudiesDataTable', pageLength: 10 },
             { id: '#eventsDataTable', pageLength: 10 },
-            { id: '#teamDataTable', pageLength: 10 }
+            { id: '#teamDataTable', pageLength: 10 },
+            { id: '#newsletterDataTable', pageLength: 10 }
             // Skip blogsDataTable - initialized separately for Server-Side
             // Skip job application tables - they load via AJAX
         ];
@@ -3484,7 +3841,7 @@ $(document).ready(function() {
 
                     $target.DataTable({
                         pageLength: table.pageLength,
-                        lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+                        lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
                         order: [[0, 'asc']],
                         language: {
                             search: "_INPUT_",
@@ -3494,16 +3851,18 @@ $(document).ready(function() {
                             infoEmpty: "No entries available",
                             infoFiltered: "(filtered from _MAX_ total entries)",
                             zeroRecords: "No matching records found",
-                            emptyTable: "No data available in table"
+                            emptyTable: "No data available in table",
+                            paginate: {
+                                next: 'Read more',
+                                previous: 'Previous'
+                            }
                         },
                         columnDefs: [
                             { orderable: false, targets: -1 } // Disable sorting on last column
                         ],
                         responsive: true,
                         autoWidth: false,
-                        scrollY: '42vh',
-                        scrollCollapse: true,
-                                dom: "<'dt-toolbar'<'dt-search'f><'dt-length'l>>" +
+                        dom: "<'dt-toolbar'<'dt-search'f><'dt-length'l>>" +
                              "t" +
                              "<'dt-footer row'<'col-md-5 col-12'i><'col-md-7 col-12'p>>",
                         buttons: []
@@ -3520,7 +3879,7 @@ $(document).ready(function() {
         reloadBlogsTable();
     });
 
-    $('#videos-tab, #careers-tab, #social-tab, #stories-tab, #case-studies-tab, #events-tab, #team-tab').on('click', function() {
+    $('#videos-tab, #careers-tab, #social-tab, #stories-tab, #case-studies-tab, #events-tab, #team-tab, #newsletter-tab').on('click', function() {
         setTimeout(function() {
             initializeDataTables();
         }, 100);

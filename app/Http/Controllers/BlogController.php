@@ -85,11 +85,11 @@ class BlogController extends Controller
             $authorImageMap = $this->resolveAuthorImageMap();
 
             if ($main) {
-                $main->author_image = $authorImageMap[$main->author ?? ''] ?? null;
+                $main->author_image = $this->resolveAuthorImageForName((string) ($main->author ?? ''), $authorImageMap);
             }
 
             $recent = $recent->map(function ($post) use ($authorImageMap) {
-                $post->author_image = $authorImageMap[$post->author ?? ''] ?? null;
+                $post->author_image = $this->resolveAuthorImageForName((string) ($post->author ?? ''), $authorImageMap);
                 return $post;
             });
 
@@ -433,7 +433,34 @@ class BlogController extends Controller
 
         return DB::table('team')
             ->whereNotNull('team_name')
-            ->pluck('team_image', 'team_name')
-            ->toArray();
+            ->get(['team_name', 'team_image'])
+            ->reduce(function (array $map, object $member) {
+                $name = trim((string) ($member->team_name ?? ''));
+                $image = trim((string) ($member->team_image ?? ''));
+
+                if ($name === '' || $image === '') {
+                    return $map;
+                }
+
+                $filename = basename($image);
+                if (!is_file(public_path('images/team/' . $filename))) {
+                    return $map;
+                }
+
+                $map[$name] = $filename;
+                $map[Str::lower($name)] = $filename;
+
+                return $map;
+            }, []);
+    }
+
+    private function resolveAuthorImageForName(string $authorName, array $authorImageMap): ?string
+    {
+        $authorName = trim($authorName);
+        if ($authorName === '') {
+            return null;
+        }
+
+        return $authorImageMap[$authorName] ?? $authorImageMap[Str::lower($authorName)] ?? null;
     }
 }

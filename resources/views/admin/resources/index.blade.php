@@ -504,6 +504,17 @@
                                     'guide' => ['fas fa-book-open', 'resource-avatar-guide', 'Guide'],
                                 ];
                                 $icon = $iconMap[$type] ?? ['fas fa-file-lines', 'resource-avatar-default', 'File'];
+                                $resourceEditPayload = [
+                                    'id' => $resource->id,
+                                    'title' => $resource->title,
+                                    'slug' => $resource->slug,
+                                    'description' => $resource->description,
+                                    'resource_type' => $resource->resource_type,
+                                    'category_id' => $resource->category_id,
+                                    'is_published' => (bool) $resource->is_published,
+                                    'is_featured' => (bool) $resource->is_featured,
+                                    'is_noindex' => (bool) $resource->is_noindex,
+                                ];
                             @endphp
                             <tr>
                                 <td>
@@ -566,17 +577,7 @@
                                         <button type="button" class="action-link copy-link-btn" data-link="{{ $publicLink }}" title="Copy link">
                                             <i class="fas fa-link"></i>
                                         </button>
-                                        <button type="button" class="action-link edit-resource-btn" title="Edit" data-resource='@json([
-                                            'id' => $resource->id,
-                                            'title' => $resource->title,
-                                            'slug' => $resource->slug,
-                                            'description' => $resource->description,
-                                            'resource_type' => $resource->resource_type,
-                                            'category_id' => $resource->category_id,
-                                            'is_published' => (bool) $resource->is_published,
-                                            'is_featured' => (bool) $resource->is_featured,
-                                            'is_noindex' => (bool) $resource->is_noindex,
-                                        ])'>
+                                        <button type="button" class="action-link edit-resource-btn" title="Edit" data-resource='@json($resourceEditPayload)'>
                                             <i class="fas fa-pen"></i>
                                         </button>
                                         <button type="button" class="action-link text-danger delete-resource-btn" title="Delete" data-id="{{ $resource->id }}">

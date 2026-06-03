@@ -136,6 +136,15 @@
         width: 100%;
     }
 
+    .dataTables_wrapper .dataTables_scrollBody {
+        max-height: none !important;
+        overflow-y: visible !important;
+    }
+
+    .dataTables_wrapper table.dataTable {
+        margin-bottom: 0.75rem !important;
+    }
+
     /* Make the bottom info + pagination row stack nicely and center */
     .dataTables_wrapper .row:last-child {
         display: flex;

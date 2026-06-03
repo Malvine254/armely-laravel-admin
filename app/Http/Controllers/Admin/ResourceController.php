@@ -33,7 +33,8 @@ class ResourceController extends Controller
         $resources = Resource::query()
             ->with('resourceCategory')
             ->orderByDesc('created_at')
-            ->paginate(20);
+            ->paginate(10)
+            ->withQueryString();
 
         $stats = [
             'total' => (int) Resource::query()->count(),

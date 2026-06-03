@@ -6,281 +6,64 @@
     <title>Forgot Password - Armely Admin</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha384-iw3OoTErCYJJB9mCa8LNS2hbsQ7M3C0EpIsO/H5+EGAkPGc6rk+V8i04oW/K5xq0" crossorigin="anonymous">
-    
     <style>
-        :root {
-            --primary-color: #2f5597;
-            --secondary-color: #1e3a6d;
-        }
-        
+        :root { --primary-color:#2f5597; --secondary-color:#1e3a6d; --ink:#17233c; --muted:#667085; }
+        * { box-sizing: border-box; }
         body {
-            margin: 0;
-            padding: 0;
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            position: relative;
-            overflow-x: hidden;
+            min-height: 100vh; margin: 0; padding: 24px; display: flex; align-items: center; justify-content: center;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; color: var(--ink);
+            background: linear-gradient(135deg, rgba(47,85,151,.96), rgba(30,58,109,.98)); position: relative; overflow-x: hidden;
         }
-        
         body::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-image: 
-                radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.08) 0%, transparent 50%),
-                radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.06) 0%, transparent 50%);
-            pointer-events: none;
+            content: ""; position: fixed; inset: 0; pointer-events: none;
+            background-image: linear-gradient(rgba(255,255,255,.045) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.045) 1px, transparent 1px);
+            background-size: 44px 44px;
         }
-        
-        .reset-container {
-            width: 100%;
-            max-width: 520px;
-            padding: 20px;
-            position: relative;
-            z-index: 1;
+        .auth-container { width: 100%; max-width: 420px; position: relative; z-index: 1; }
+        .auth-card {
+            background: rgba(255,255,255,.98); border: 1px solid rgba(255,255,255,.75); border-radius: 16px;
+            box-shadow: 0 24px 70px rgba(8,22,48,.34), 0 2px 8px rgba(8,22,48,.08);
+            padding: 34px 34px 30px; backdrop-filter: blur(12px);
         }
-        
-        .reset-card {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            padding: 50px 45px;
-            backdrop-filter: blur(10px);
-            transition: transform 0.3s ease;
+        .auth-header { text-align: center; margin-bottom: 26px; }
+        .auth-logo {
+            width: 58px; height: 58px; margin: 0 auto 16px; border-radius: 14px; display: flex; align-items: center; justify-content: center;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); color: #fff; font-size: 25px;
+            box-shadow: 0 10px 22px rgba(47,85,151,.25);
         }
-        
-        .reset-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 25px 70px rgba(0, 0, 0, 0.4);
+        .auth-header h1 { color: var(--primary-color); font-size: 24px; font-weight: 800; margin: 0 0 6px; letter-spacing: 0; }
+        .auth-header p { color: var(--muted); font-size: 14px; margin: 0; font-weight: 500; }
+        .form-group { margin-bottom: 18px; }
+        .form-label { color: var(--primary-color); display: block; font-size: 14px; font-weight: 700; margin-bottom: 8px; }
+        .input-group { position: relative; }
+        .input-group .icon { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #98a2b3; pointer-events: none; z-index: 5; }
+        .form-control { border: 1px solid #d9e2ef; border-radius: 9px !important; background: #f8fafc; color: var(--ink); font-size: 14px; min-height: 46px; padding: 11px 14px 11px 44px; }
+        .form-control:focus { background: #fff; border-color: var(--primary-color); box-shadow: 0 0 0 .22rem rgba(47,85,151,.14); }
+        .btn-auth {
+            width: 100%; min-height: 46px; border: 0; border-radius: 9px; margin-top: 8px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); color: #fff;
+            font-size: 15px; font-weight: 800; box-shadow: 0 10px 22px rgba(47,85,151,.24);
         }
-        
-        .reset-header {
-            text-align: center;
-            margin-bottom: 35px;
-        }
-        
-        .reset-header .logo {
-            width: 75px;
-            height: 75px;
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-            border-radius: 15px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 36px;
-            margin: 0 auto 20px;
-            box-shadow: 0 8px 20px rgba(47, 85, 151, 0.3);
-        }
-        
-        .reset-header h1 {
-            font-size: 28px;
-            color: var(--primary-color);
-            margin: 0 0 8px 0;
-            font-weight: 700;
-            letter-spacing: -0.5px;
-        }
-        
-        .reset-header p {
-            color: #666;
-            margin: 0;
-            font-size: 15px;
-            font-weight: 500;
-        }
-        
-        .form-group {
-            margin-bottom: 24px;
-        }
-        
-        .form-label {
-            color: var(--primary-color);
-            font-weight: 600;
-            margin-bottom: 10px;
-            display: block;
-            font-size: 14px;
-        }
-        
-        .form-control {
-            border: 2px solid #e8eef5;
-            border-radius: 10px;
-            padding: 14px 18px;
-            font-size: 15px;
-            transition: all 0.3s ease;
-            background: #f8fafc;
-        }
-        
-        .form-control:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 0.25rem rgba(47, 85, 151, 0.15);
-            background: white;
-            outline: none;
-        }
-        
-        .form-control::placeholder {
-            color: #a0aec0;
-        }
-        
-        .input-group {
-            position: relative;
-        }
-        
-        .input-group .icon {
-            position: absolute;
-            left: 18px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #a0aec0;
-            pointer-events: none;
-            font-size: 16px;
-            transition: all 0.3s ease;
-        }
-        
-        .input-group .form-control:focus ~ .icon,
-        .input-group:focus-within .icon {
-            color: var(--primary-color);
-        }
-        
-        .input-group .form-control {
-            padding-left: 50px;
-        }
-        
-        .btn-reset {
-            width: 100%;
-            padding: 15px;
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-weight: 600;
-            font-size: 16px;
-            transition: all 0.3s ease;
-            margin-top: 15px;
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(47, 85, 151, 0.3);
-        }
-        
-        .btn-reset:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(47, 85, 151, 0.4);
-            color: white;
-            text-decoration: none;
-        }
-        
-        .btn-reset:active {
-            transform: translateY(0);
-        }
-        
-        .btn-back {
-            width: 100%;
-            padding: 15px;
-            background: #f0f4f8;
-            color: var(--primary-color);
-            border: 2px solid #e8eef5;
-            border-radius: 10px;
-            font-weight: 600;
-            font-size: 16px;
-            transition: all 0.3s ease;
-            margin-top: 12px;
-            cursor: pointer;
-            display: inline-block;
-            text-align: center;
-            text-decoration: none;
-        }
-        
-        .btn-back:hover {
-            background: #e8eef5;
-            border-color: var(--primary-color);
-            color: var(--primary-color);
-            text-decoration: none;
-            transform: translateY(-2px);
-        }
-        
-        .reset-footer {
-            text-align: center;
-            margin-top: 30px;
-            padding-top: 25px;
-            border-top: 1px solid #e8eef5;
-        }
-        
-        .reset-footer p {
-            color: #666;
-            font-size: 14px;
-            margin: 8px 0;
-        }
-        
-        .reset-footer a {
-            color: var(--primary-color);
-            text-decoration: none;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-        
-        .reset-footer a:hover {
-            color: var(--secondary-color);
-            text-decoration: underline;
-        }
-        
-        .alert {
-            border: none;
-            border-radius: 10px;
-            margin-bottom: 25px;
-            padding: 15px 20px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-        }
-        
-        .alert-danger {
-            background-color: #fee;
-            color: #c33;
-            border-left: 4px solid #c33;
-        }
-        
-        .alert-danger strong {
-            font-weight: 600;
-        }
-        
-        .alert-danger ul {
-            padding-left: 20px;
-        }
-        
-        .alert-success {
-            background-color: #d4edda;
-            color: #155724;
-            border-left: 4px solid #28a745;
-        }
-        
-        .text-muted {
-            color: #6c757d;
-            font-size: 13px;
-        }
-        
-        @media (max-width: 576px) {
-            .reset-card {
-                padding: 40px 30px;
-            }
-            
-            .reset-container {
-                max-width: 100%;
-                padding: 15px;
-            }
-        }
+        .btn-auth:hover { color:#fff; transform: translateY(-1px); box-shadow: 0 14px 26px rgba(47,85,151,.3); }
+        .auth-footer { text-align: center; margin-top: 22px; padding-top: 18px; border-top: 1px solid #e8eef5; }
+        .auth-footer p, .hint { color: var(--muted); font-size: 13px; margin: 0; line-height: 1.55; }
+        .auth-footer a { color: var(--primary-color); font-weight: 800; text-decoration: none; }
+        .auth-footer a:hover { color: var(--secondary-color); text-decoration: underline; }
+        .alert { border: 0; border-radius: 10px; margin-bottom: 20px; padding: 12px 14px; font-size: 14px; box-shadow: 0 6px 18px rgba(15,23,42,.08); }
+        .alert-danger { background: #fff1f1; color: #b42318; border-left: 4px solid #d92d20; }
+        .alert-success { background: #ecfdf3; color: #027a48; border-left: 4px solid #12b76a; }
+        @media (max-width: 576px) { body { padding: 16px; } .auth-card { padding: 28px 22px; } }
     </style>
 </head>
 <body>
-    <div class="reset-container">
-        <div class="reset-card">
-            <div class="reset-header">
-                <div class="logo"><i class="fas fa-envelope"></i></div>
+    <main class="auth-container">
+        <section class="auth-card">
+            <div class="auth-header">
+                <div class="auth-logo"><i class="fas fa-envelope"></i></div>
                 <h1>Forgot Password?</h1>
-                <p>Enter your email to receive a reset link</p>
+                <p>Enter your admin email to receive a reset link</p>
             </div>
-            
+
             @if ($errors->any())
                 <div class="alert alert-danger">
                     <strong>Error</strong>
@@ -291,54 +74,32 @@
                     </ul>
                 </div>
             @endif
-            
+
             @if (session('success'))
-                <div class="alert alert-success">
-                    <i class="fas fa-check-circle"></i> {{ session('success') }}
-                </div>
+                <div class="alert alert-success"><i class="fas fa-check-circle me-1"></i>{{ session('success') }}</div>
             @endif
-            
+
             <form method="POST" action="{{ route('admin.reset.post') }}">
                 @csrf
-                
                 <div class="form-group">
                     <label class="form-label" for="email">Email Address</label>
                     <div class="input-group">
-                        <input 
-                            type="email" 
-                            class="form-control @error('email') is-invalid @enderror" 
-                            id="email" 
-                            name="email" 
-                            placeholder="admin@yourcompany.com"
-                            value="{{ old('email') }}"
-                            required 
-                            autofocus
-                        >
+                        <input type="email" class="form-control @error('email') is-invalid @enderror" id="email" name="email" placeholder="admin@armely.com" value="{{ old('email') }}" required autofocus>
                         <span class="icon"><i class="fas fa-envelope"></i></span>
                     </div>
-                    @error('email')
-                        <small class="text-danger d-block mt-2">{{ $message }}</small>
-                    @enderror
-                    <small class="text-muted d-block mt-2">
-                        <i class="fas fa-info-circle"></i> We'll send you a secure link to reset your password
-                    </small>
+                    @error('email')<small class="text-danger d-block mt-2">{{ $message }}</small>@enderror
+                    <p class="hint mt-2"><i class="fas fa-info-circle me-1"></i>We will send a secure reset link if this admin account exists.</p>
                 </div>
-                
-                <button type="submit" class="btn btn-reset">
-                    <i class="fas fa-paper-plane"></i> Send Reset Link
-                </button>
-                
-                <a href="{{ route('admin.login') }}" class="btn btn-back">
-                    <i class="fas fa-arrow-left"></i> Back to Login
-                </a>
+
+                <button type="submit" class="btn btn-auth"><i class="fas fa-paper-plane me-2"></i>Send Reset Link</button>
             </form>
-            
-            <div class="reset-footer">
+
+            <div class="auth-footer">
                 <p>Remember your password? <a href="{{ route('admin.login') }}">Login here</a></p>
             </div>
-        </div>
-    </div>
-    
+        </section>
+    </main>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
 </body>
 </html>
