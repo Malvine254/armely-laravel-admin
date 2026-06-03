@@ -252,6 +252,49 @@
           </div>
         </div>
       </div>
+
+      <div v-if="showProfileIncompleteModal" class="fixed inset-0 z-50 flex items-center justify-center px-4">
+        <div class="absolute inset-0 bg-slate-900/55" @click="closeProfileIncompleteModal"></div>
+        <div class="relative w-full max-w-md overflow-hidden rounded-2xl border bg-white shadow-2xl" style="border-color:#cfe0f5;">
+          <div class="px-5 py-4 border-b" style="border-color:#e2e8f0;background:#f8fbff;">
+            <div class="flex items-start justify-between gap-4">
+              <div>
+                <p class="text-xs font-bold uppercase tracking-wide" style="color:#2F5597;">Profile incomplete</p>
+                <h3 class="text-xl font-bold text-slate-900 mt-1">Complete your profile</h3>
+                <p class="text-sm text-slate-600 mt-1">Finish these items before requesting a quote.</p>
+              </div>
+              <button @click="closeProfileIncompleteModal" type="button" class="text-2xl leading-none text-slate-400 hover:text-slate-700" aria-label="Dismiss profile completion modal">×</button>
+            </div>
+          </div>
+
+          <div class="p-5">
+            <ul class="space-y-3">
+              <li
+                v-for="item in missingProfileItems"
+                :key="item.key"
+                class="flex items-center gap-3 rounded-xl border px-4 py-3"
+                style="border-color:#fde68a;background:#fffbeb;"
+              >
+                <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-amber-100 text-amber-700">
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"></path>
+                  </svg>
+                </span>
+                <span class="text-sm font-semibold text-slate-900">{{ item.label }}</span>
+              </li>
+            </ul>
+          </div>
+
+          <div class="px-5 py-4 border-t flex flex-col sm:flex-row sm:justify-end gap-2" style="border-color:#e2e8f0;">
+            <button @click="closeProfileIncompleteModal" type="button" class="px-4 py-2 text-sm font-semibold rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50">
+              Dismiss
+            </button>
+            <button @click="goToAccountForProfile" type="button" class="px-4 py-2 text-sm font-semibold rounded-lg text-white" style="background-color:#2F5597;">
+              Go to Account
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -278,6 +321,7 @@ const failedImageIds = ref([])
 const isSubmittingQuote = ref(false)
 const showCartShareModal = ref(false)
 const showShippingConfirmModal = ref(false)
+const showProfileIncompleteModal = ref(false)
 const cartShareRecipientEmail = ref('')
 const cartShareNote = ref('')
 const cartShareGeneratedLink = ref('')
@@ -482,6 +526,43 @@ const getProductImageUrl = (item) => {
     || candidates[0]
     || null
 }
+
+const fallbackIncompleteFields = computed(() => {
+  const missing = []
+  const user = authStore.user || {}
+
+  if (!String(user.phone || '').trim()) {
+    missing.push('phone')
+  }
+
+  if (!hasUsableShippingAddress(user.shipping_address || {})) {
+    missing.push('shipping_address')
+  }
+
+  if (!String(user.profile_picture_url || '').trim()) {
+    missing.push('profile_picture')
+  }
+
+  return missing
+})
+
+const incompleteProfileFields = computed(() => {
+  const apiFields = authStore.user?.incomplete_fields
+  const fields = Array.isArray(apiFields) ? apiFields : []
+  return Array.from(new Set([...fields, ...fallbackIncompleteFields.value]))
+})
+
+const missingProfileItems = computed(() => {
+  const labels = {
+    phone: 'Add phone number',
+    shipping_address: 'Add shipping address',
+    profile_picture: 'Add profile picture',
+  }
+
+  return incompleteProfileFields.value
+    .filter((field) => labels[field])
+    .map((field) => ({ key: field, label: labels[field] }))
+})
 
 const hasProductImage = (item) => {
   const imageUrl = getProductImageUrl(item)
@@ -702,6 +783,15 @@ const changeShippingAddress = () => {
   router.push({ name: 'account' })
 }
 
+const closeProfileIncompleteModal = () => {
+  showProfileIncompleteModal.value = false
+}
+
+const goToAccountForProfile = () => {
+  closeProfileIncompleteModal()
+  router.push({ name: 'account' })
+}
+
 const requestQuote = async (shippingConfirmed = false) => {
   if (isSubmittingQuote.value) return
 
@@ -723,12 +813,8 @@ const requestQuote = async (shippingConfirmed = false) => {
     return
   }
 
-  const shipping = getSavedShippingAddress()
-  const hasSavedShippingAddress = hasUsableShippingAddress(shipping)
-
-  if (!hasSavedShippingAddress) {
-    toastStore.addToast('Add your shipping address in Account before requesting a quote', 'warning', 3000, { category: 'quotes' })
-    router.push({ name: 'account' })
+  if (missingProfileItems.value.length > 0) {
+    showProfileIncompleteModal.value = true
     return
   }
 
