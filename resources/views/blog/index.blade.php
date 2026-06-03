@@ -363,11 +363,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
 		content.classList.add('blog-system-content-forced');
 
-		const resetSelector = 'p,span,div,h1,h2,h3,h4,h5,h6,ul,ol,li,a,strong,em,b,i,font,blockquote,table,thead,tbody,tr,th,td';
+		const resetSelector = 'p,span,div,h1,h2,h3,h4,h5,h6,ul,ol,li,a,strong,em,b,i,font,blockquote,table,thead,tbody,tfoot,tr,th,td,colgroup,col,figure,figcaption,pre,code';
 		content.querySelectorAll(resetSelector).forEach(function(el) {
 			if (el.hasAttribute('style')) {
 				el.removeAttribute('style');
 			}
+			['align', 'bgcolor', 'border', 'cellpadding', 'cellspacing', 'color', 'face', 'height', 'size', 'valign', 'width'].forEach(function(attr) {
+				el.removeAttribute(attr);
+			});
 		});
 
 		content.querySelectorAll('font').forEach(function(el) {
@@ -384,6 +387,10 @@ document.addEventListener('DOMContentLoaded', function() {
 		});
 
 		content.querySelectorAll('table').forEach(function(table) {
+			table.classList.add('blog-content-table');
+			table.querySelectorAll('colgroup, col').forEach(function(colEl) {
+				colEl.remove();
+			});
 			if (!table.parentElement || !table.parentElement.classList.contains('blog-table-wrap')) {
 				const wrap = document.createElement('div');
 				wrap.className = 'blog-table-wrap';

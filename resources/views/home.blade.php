@@ -232,164 +232,6 @@
         display: none !important;
     }
 
-    .home-case-download-modal {
-        display: none;
-        position: fixed;
-        inset: 0;
-        z-index: 9999;
-        background: rgba(10, 21, 45, 0.62);
-        padding: 24px 12px;
-        overflow-y: auto;
-    }
-
-    .home-case-download-modal.is-open {
-        display: block;
-    }
-
-    .home-case-download-modal-dialog {
-        max-width: 880px;
-        margin: 24px auto;
-    }
-
-    .home-case-lead-card {
-        background: #fff;
-        border: 1px solid #e3ebfa;
-        border-radius: 16px;
-        box-shadow: 0 14px 34px rgba(47, 85, 151, 0.12);
-        padding: 28px 24px;
-        position: relative;
-    }
-
-    .home-case-modal-close {
-        position: absolute;
-        top: 14px;
-        right: 14px;
-        width: 34px;
-        height: 34px;
-        border: 0;
-        border-radius: 50%;
-        background: #eef3ff;
-        color: #1e3a6d;
-        font-size: 1.1rem;
-        font-weight: 700;
-        line-height: 1;
-        cursor: pointer;
-    }
-
-    .home-case-lead-title {
-        font-size: 1.7rem;
-        color: #1e3a6d;
-        font-weight: 800;
-        margin-bottom: 10px;
-    }
-
-    .home-case-lead-subtitle {
-        font-size: 1.02rem;
-        color: #55657d;
-        margin-bottom: 20px;
-    }
-
-    .home-case-modal-selected {
-        display: inline-block;
-        margin: 6px 0 18px;
-        padding: 8px 12px;
-        background: #edf3ff;
-        border: 1px solid #d8e5ff;
-        border-radius: 999px;
-        color: #25447a;
-        font-size: 0.85rem;
-        font-weight: 700;
-    }
-
-    .home-case-lead-form .field-label {
-        display: block;
-        font-size: 0.9rem;
-        font-weight: 700;
-        color: #294a84;
-        margin-bottom: 8px;
-    }
-
-    .home-case-lead-form .form-group {
-        margin-bottom: 16px;
-    }
-
-    .home-case-lead-form .lead-field,
-    .home-case-lead-form textarea.lead-field {
-        width: 100%;
-        border: 1px solid #c9d8f3;
-        background: #f7faff;
-        border-radius: 12px;
-        height: 50px;
-        padding: 0 14px;
-        color: #1e3357;
-        font-size: 0.95rem;
-        transition: all .2s ease;
-    }
-
-    .home-case-lead-form textarea.lead-field {
-        min-height: 130px;
-        height: auto;
-        padding: 12px 14px;
-        resize: vertical;
-    }
-
-    .home-case-lead-form .lead-field:focus {
-        outline: none;
-        border-color: #2f5597;
-        box-shadow: 0 0 0 4px rgba(47, 85, 151, 0.13);
-        background: #fff;
-    }
-
-    .home-case-lead-form .btn {
-        border-radius: 12px;
-        padding: 12px 22px;
-        font-weight: 700;
-        min-width: 180px;
-    }
-
-    .home-case-lead-note {
-        font-size: 0.9rem;
-        color: #6a768a;
-        margin-top: 12px;
-    }
-
-    .home-case-toast-stack {
-        position: fixed;
-        top: 18px;
-        right: 18px;
-        z-index: 10020;
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        max-width: 360px;
-    }
-
-    .home-case-toast {
-        padding: 12px 14px;
-        border-radius: 12px;
-        font-size: 0.92rem;
-        font-weight: 600;
-        box-shadow: 0 12px 30px rgba(18, 40, 77, 0.22);
-        animation: homeCaseToastIn .25s ease;
-    }
-
-    .home-case-toast-success {
-        background: #e9f9ef;
-        border: 1px solid #98ddb0;
-        color: #1f6b39;
-    }
-
-    .home-case-toast-error {
-        background: #fff2f2;
-        border: 1px solid #f0b2b2;
-        color: #942c2c;
-    }
-
-    @keyframes homeCaseToastIn {
-        from { opacity: 0; transform: translateY(-6px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-
     .portfolio .explore-btn,
     .blog .explore-btn,
     .video-section .explore-btn {
@@ -455,7 +297,7 @@
         margin-bottom: 0;
         flex-shrink: 0;
         line-height: 0;
-        padding: 10px;
+        padding: 0;
     }
 
     .blog.section .blog-image-box::before {
@@ -500,9 +342,9 @@
     }
 
     .blog.section .blog-image-box img {
-        width: calc(100% - 6px);
-        height: calc(100% - 6px);
-        object-fit: contain;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
         object-position: center;
         transition: transform 0.45s ease, filter 0.45s ease;
         transform: scale(1);
@@ -512,12 +354,10 @@
         margin: 0;
         position: relative;
         z-index: 2;
-        filter: drop-shadow(0 18px 28px rgba(47, 85, 151, 0.16));
     }
 
     .blog.section .blog-card-wrapper:hover .blog-image-box img {
         transform: scale(1.03);
-        filter: drop-shadow(0 24px 36px rgba(47, 85, 151, 0.22));
     }
 
     /* title overlay inside image */
@@ -1006,19 +846,6 @@
             -webkit-line-clamp: 2;
         }
 
-        .home-case-lead-card {
-            padding: 22px 16px;
-        }
-
-        .home-case-lead-title {
-            font-size: 1.4rem;
-        }
-
-        .home-case-toast-stack {
-            left: 12px;
-            right: 12px;
-            max-width: none;
-        }
     }
 
     @media (max-width: 480px) {
@@ -1404,9 +1231,7 @@
                         <div class="card-body">
                             <h4 title="{{ $fullCaseStudyTitle }}">{{ $cardCaseStudyTitle }}</h4>
                             <p>{{ \Illuminate\Support\Str::limit($listing->excerpt, 100) }}</p>
-                            <a href="#" class="card-btn default-background text-light home-case-study-gated-link"
-                               data-case-study-id="{{ $listing->id }}"
-                               data-resource-title="{{ $fullCaseStudyTitle }}">
+                            <a href="{{ route('case-studies.show', $listing->slug) }}" class="card-btn default-background text-light">
                                 <span>See Case Study</span>
                                     <span class="card-btn-icon" aria-hidden="true">
                                         <svg viewBox="0 0 16 16" focusable="false" aria-hidden="true">
@@ -1429,81 +1254,6 @@
     </div>
 </section>
 
-<div id="homeCaseToastStack" class="home-case-toast-stack" aria-live="polite" aria-atomic="true"></div>
-
-<div id="homeCaseLeadModal" class="home-case-download-modal" aria-hidden="true" role="dialog" aria-labelledby="homeCaseModalTitle">
-    <div class="home-case-download-modal-dialog">
-        <div class="home-case-lead-card">
-            <button type="button" class="home-case-modal-close" id="homeCaseModalCloseBtn" aria-label="Close">&times;</button>
-            <h2 class="home-case-lead-title" id="homeCaseModalTitle">See Case Study</h2>
-            <p class="home-case-lead-subtitle">Complete this form and we will email a secure link that expires in 1 hour.</p>
-            <div class="home-case-modal-selected" id="homeSelectedCaseStudyLabel">Selected: Case Study</div>
-
-            <form class="form home-case-lead-form" id="homeCaseLeadForm" method="post" action="{{ route('case-studies.lead.submit') }}">
-                @csrf
-                <input type="hidden" name="interest" value="case-studies">
-                <input type="hidden" name="case_study_id" id="homeCaseStudyId" value="">
-                <input type="hidden" name="requested_resource" id="homeCaseRequestedResource" value="">
-                <input style="display:none;" type="text" name="website" class="honeypot">
-
-                <div class="row">
-                    <div class="col-lg-6">
-                        <label class="field-label text-start">Name *</label>
-                        <div class="form-group">
-                            <input class="lead-field" type="text" name="name" placeholder="Name" required>
-                        </div>
-                    </div>
-                    <div class="col-lg-6">
-                        <label class="field-label text-start">Work email *</label>
-                        <div class="form-group">
-                            <input class="lead-field" type="email" name="email" placeholder="Work email" required>
-                        </div>
-                    </div>
-                    <div class="col-lg-6">
-                        <label class="field-label text-start">Company name</label>
-                        <div class="form-group">
-                            <input class="lead-field" type="text" name="organization" placeholder="Company name">
-                        </div>
-                    </div>
-                    <div class="col-lg-6">
-                        <label class="field-label text-start">Job title</label>
-                        <div class="form-group">
-                            <input class="lead-field" type="text" name="job_title" placeholder="Job title">
-                        </div>
-                    </div>
-                    <div class="col-lg-6">
-                        <label class="field-label text-start">Country/Region</label>
-                        <div class="form-group">
-                            <input class="lead-field" type="text" name="country" placeholder="Country/Region">
-                        </div>
-                    </div>
-                    <div class="col-lg-12">
-                        <label class="field-label text-start">Additional notes</label>
-                        <div class="form-group">
-                            <textarea class="lead-field" name="message" placeholder="Tell us what topics or industries you want to explore"></textarea>
-                        </div>
-                    </div>
-                    <div class="col-lg-12">
-                        <div class="form-group">
-                            @if(!empty($recaptchaSiteKey ?? config('services.recaptcha.site_key')))
-                                <div class="g-recaptcha" data-sitekey="{{ $recaptchaSiteKey ?? config('services.recaptcha.site_key') }}"></div>
-                            @else
-                                <div class="alert alert-warning">reCAPTCHA is not configured. Please set <strong>CAPTURE_SITE_KEY</strong>.</div>
-                            @endif
-                        </div>
-                    </div>
-                    <div class="col-md-6 col-sm-8">
-                        <div class="form-group">
-                            <button class="btn default-background" id="homeCaseSubmitBtn" type="submit">Email Me The Case Study</button>
-                        </div>
-                    </div>
-                </div>
-                <p class="home-case-lead-note">By submitting this form, you agree to be contacted by Armely about relevant resources.</p>
-            </form>
-        </div>
-    </div>
-</div>
-
 <section id="fun-facts" class="fun-facts default-background section col-md-12 mt-5 no-radius" aria-labelledby="stats-heading">
     <div class="container">
         <h2 id="stats-heading" class="sr-only">Customer Statistics</h2>
@@ -1514,141 +1264,6 @@
         </div>
     </div>
 </section>
-
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    var modal = document.getElementById('homeCaseLeadModal');
-    var caseStudyIdInput = document.getElementById('homeCaseStudyId');
-    var hiddenResource = document.getElementById('homeCaseRequestedResource');
-    var label = document.getElementById('homeSelectedCaseStudyLabel');
-    var submitBtn = document.getElementById('homeCaseSubmitBtn');
-    var closeBtn = document.getElementById('homeCaseModalCloseBtn');
-    var toastStack = document.getElementById('homeCaseToastStack');
-    var leadForm = document.getElementById('homeCaseLeadForm');
-    var originalBtnText = submitBtn ? submitBtn.textContent : 'Email Me The Case Study';
-
-    if (!modal || !leadForm || !submitBtn || !caseStudyIdInput || !hiddenResource || !label) {
-        return;
-    }
-
-    function showToast(message, type) {
-        if (!toastStack || !message) {
-            return;
-        }
-
-        var toast = document.createElement('div');
-        toast.className = 'home-case-toast ' + (type === 'error' ? 'home-case-toast-error' : 'home-case-toast-success');
-        toast.textContent = message;
-        toastStack.appendChild(toast);
-
-        window.setTimeout(function () {
-            if (toast.parentNode) {
-                toast.parentNode.removeChild(toast);
-            }
-        }, 5200);
-    }
-
-    function openModal(resourceId, resourceTitle) {
-        if (!resourceId) {
-            return;
-        }
-
-        caseStudyIdInput.value = resourceId;
-        hiddenResource.value = resourceTitle || 'Case Study';
-        label.textContent = 'Selected: ' + (resourceTitle || 'Case Study');
-        submitBtn.textContent = originalBtnText;
-
-        modal.classList.add('is-open');
-        modal.setAttribute('aria-hidden', 'false');
-        document.body.style.overflow = 'hidden';
-    }
-
-    function closeModal() {
-        modal.classList.remove('is-open');
-        modal.setAttribute('aria-hidden', 'true');
-        document.body.style.overflow = '';
-    }
-
-    function setSubmitting(isSubmitting) {
-        submitBtn.disabled = isSubmitting;
-        submitBtn.textContent = isSubmitting ? 'Submitting...' : originalBtnText;
-    }
-
-    document.querySelectorAll('.home-case-study-gated-link').forEach(function (link) {
-        link.addEventListener('click', function (event) {
-            event.preventDefault();
-            event.stopPropagation();
-            openModal(link.getAttribute('data-case-study-id') || '', link.getAttribute('data-resource-title') || 'Case Study');
-        });
-    });
-
-    if (closeBtn) {
-        closeBtn.addEventListener('click', closeModal);
-    }
-
-    leadForm.addEventListener('submit', function (event) {
-        event.preventDefault();
-        setSubmitting(true);
-
-        var formData = new FormData(leadForm);
-        fetch(leadForm.action, {
-            method: 'POST',
-            headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: formData,
-            credentials: 'same-origin'
-        })
-            .then(function (response) {
-                return response.json().catch(function () {
-                    return {};
-                }).then(function (json) {
-                    return { ok: response.ok, status: response.status, json: json };
-                });
-            })
-            .then(function (result) {
-                if (!result.ok) {
-                    if (result.status === 422 && result.json && result.json.errors) {
-                        var firstField = Object.keys(result.json.errors)[0];
-                        var firstMessage = firstField && result.json.errors[firstField] && result.json.errors[firstField][0]
-                            ? result.json.errors[firstField][0]
-                            : 'Please check the form fields and try again.';
-                        showToast(firstMessage, 'error');
-                    } else {
-                        showToast('Unable to submit right now. Please try again.', 'error');
-                    }
-                    return;
-                }
-
-                showToast((result.json && result.json.message) || 'Download link sent successfully.', 'success');
-                leadForm.reset();
-                if (window.grecaptcha && typeof window.grecaptcha.reset === 'function') {
-                    window.grecaptcha.reset();
-                }
-                closeModal();
-            })
-            .catch(function () {
-                showToast('Network issue. Please try again.', 'error');
-            })
-            .finally(function () {
-                setSubmitting(false);
-            });
-    });
-
-    modal.addEventListener('click', function (event) {
-        if (event.target === modal) {
-            closeModal();
-        }
-    });
-
-    document.addEventListener('keydown', function (event) {
-        if (event.key === 'Escape' && modal.classList.contains('is-open')) {
-            closeModal();
-        }
-    });
-});
-</script>
 
 <section class="blog section" id="blog">
     <div class="container">

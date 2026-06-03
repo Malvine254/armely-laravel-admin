@@ -21,10 +21,13 @@ use App\Http\Controllers\HtmlPageController;
 use App\Http\Controllers\DataReadinessLeadController;
 use App\Http\Controllers\ResourceController;
 use App\Http\Controllers\Admin\ResourceController as AdminResourceController;
+use App\Http\Controllers\NewsletterController;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/contact', [HomeController::class, 'contact'])->name('contact');
 Route::post('/contact', [HomeController::class, 'submitContact'])->name('contact.submit');
+Route::post('/newsletter/subscribe', [NewsletterController::class, 'subscribe'])->name('newsletter.subscribe');
+Route::get('/newsletter/unsubscribe/{token}', [NewsletterController::class, 'unsubscribe'])->name('newsletter.unsubscribe');
 
 // Thank you page - only accessible via form submission with valid session token
 Route::get('/contact/thank-you', [HomeController::class, 'contactThankYou'])
@@ -292,6 +295,11 @@ Route::prefix('admin')->middleware(['admin'])->group(function () {
     // Contacts
     Route::post('/tables/contacts', [TablesController::class, 'storeOrUpdateContact'])->name('admin.tables.contacts.store');
     Route::delete('/tables/contacts/{id}', [TablesController::class, 'deleteContact'])->name('admin.tables.contacts.delete');
+
+    // Newsletter Subscribers
+    Route::post('/tables/newsletter/{id}/unsubscribe', [TablesController::class, 'unsubscribeNewsletterSubscriber'])->name('admin.tables.newsletter.unsubscribe');
+    Route::post('/tables/newsletter/{id}/resubscribe', [TablesController::class, 'resubscribeNewsletterSubscriber'])->name('admin.tables.newsletter.resubscribe');
+    Route::delete('/tables/newsletter/{id}', [TablesController::class, 'deleteNewsletterSubscriber'])->name('admin.tables.newsletter.delete');
     
     // Admin User Management
     Route::get('/profile', [ProfileController::class, 'show'])->name('admin.profile');

@@ -87,7 +87,19 @@
                         <li><a href="https://twitter.com/armelyData" target="_blank"><i class="icofont-twitter"></i></a></li>
                         <li><a href="https://www.youtube.com/@armelyarmely" target="_blank"><i class="icofont-youtube"></i></a></li>
                         <li><a href="https://www.instagram.com/armelyconsulting/" target="_blank"><i class="icofont-instagram"></i></a></li>
-                    </ul></div>
+                    </ul>
+                    <div class="footer-newsletter">
+                        <h3>Newsletter</h3>
+                        <p>Get new Armely blogs, events, and Microsoft platform updates.</p>
+                        <form id="footerNewsletterForm" action="{{ route('newsletter.subscribe') }}" method="post">
+                            @csrf
+                            <input type="email" name="email" placeholder="Work email" aria-label="Newsletter email" required>
+                            <input type="text" name="website" class="newsletter-honeypot" tabindex="-1" autocomplete="off">
+                            <button type="submit">Subscribe</button>
+                        </form>
+                        <div id="footerNewsletterMessage" class="footer-newsletter-message" aria-live="polite"></div>
+                    </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -98,6 +110,81 @@
         </div></div></div>
     </div>
 </footer>
+
+<style>
+    .footer-newsletter { margin-top: 22px; }
+    .footer-newsletter h3 { color: #fff; font-size: 18px; font-weight: 800; margin: 0 0 8px; }
+    .footer-newsletter p { color: rgba(255,255,255,.78); font-size: 13px; line-height: 1.55; margin: 0 0 12px; }
+    .footer-newsletter form { display: flex; align-items: stretch; gap: 0; width: 100%; }
+    .footer-newsletter input[type="email"] { flex: 1 1 auto; min-width: 0; width: 100%; min-height: 44px; border: 1px solid rgba(255,255,255,.25); border-right: 0; background: rgba(255,255,255,.08); color: #fff; padding: 10px 12px; border-radius: 0; }
+    .footer-newsletter input[type="email"]::placeholder { color: rgba(255,255,255,.65); }
+    .footer-newsletter input[type="email"]:focus { border-color: rgba(255,255,255,.52); outline: 0; box-shadow: inset 0 0 0 1px rgba(255,255,255,.14); }
+    .footer-newsletter button { flex: 0 0 auto; min-height: 44px; border: 1px solid #3b66ae; background: #3b66ae; color: #fff; font-weight: 800; padding: 10px 16px; cursor: pointer; border-radius: 0; white-space: nowrap; }
+    .footer-newsletter button:hover { background: #4774bf; border-color: #4774bf; }
+    .footer-newsletter button:disabled { opacity: .7; cursor: wait; }
+    .newsletter-honeypot { display: none !important; }
+    .footer-newsletter-message { margin-top: 8px; color: rgba(255,255,255,.82); font-size: 12px; line-height: 1.45; }
+    .footer-newsletter-message.is-error { color: #ffd6d6; }
+    .footer-newsletter-message.is-success { color: #d8ffe5; }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var form = document.getElementById('footerNewsletterForm');
+    var message = document.getElementById('footerNewsletterMessage');
+    if (!form || !message) {
+        return;
+    }
+
+    form.addEventListener('submit', function (event) {
+        event.preventDefault();
+        var button = form.querySelector('button[type="submit"]');
+        var originalText = button ? button.textContent : 'Subscribe';
+        var formData = new FormData(form);
+
+        message.textContent = '';
+        message.className = 'footer-newsletter-message';
+        if (button) {
+            button.disabled = true;
+            button.textContent = 'Subscribing...';
+        }
+
+        fetch(form.action, {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: formData,
+            credentials: 'same-origin'
+        })
+            .then(function (response) {
+                return response.json().catch(function () {
+                    return {};
+                }).then(function (json) {
+                    return { ok: response.ok, json: json };
+                });
+            })
+            .then(function (result) {
+                message.className = 'footer-newsletter-message ' + (result.ok && result.json.success ? 'is-success' : 'is-error');
+                message.textContent = result.json.message || (result.ok ? 'You are subscribed.' : 'Unable to subscribe right now.');
+                if (result.ok && result.json.success) {
+                    form.reset();
+                }
+            })
+            .catch(function () {
+                message.className = 'footer-newsletter-message is-error';
+                message.textContent = 'Unable to subscribe right now.';
+            })
+            .finally(function () {
+                if (button) {
+                    button.disabled = false;
+                    button.textContent = originalText;
+                }
+            });
+    });
+});
+</script>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.4/jquery.min.js" integrity="sha384-UG8ao2jwOWB7/oDdObZc6ItJmwUkR/PfMyt9Qs5AwX7PsnYn1CRKCTWyncPTWvaS" crossorigin="anonymous"></script>
 <script src="{{ asset('js/jquery-migrate-3.0.0.js') }}?v={{ file_exists(public_path('js/jquery-migrate-3.0.0.js')) ? filemtime(public_path('js/jquery-migrate-3.0.0.js')) : '' }}"></script>

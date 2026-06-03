@@ -696,13 +696,17 @@ function editAdmin(admin) {
             $('#adminsDataTable').DataTable({
                 dom: 'lfrtip',
                 pageLength: 10,
-                lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, 'All']],
+                lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
                 columnDefs: [{ orderable: false, targets: -1 }],
                 responsive: true,
                 autoWidth: false,
                 language: {
                     search: '',
-                    searchPlaceholder: 'Search admins...'
+                    searchPlaceholder: 'Search admins...',
+                    paginate: {
+                        next: 'Read more',
+                        previous: 'Previous'
+                    }
                 }
             });
         }
