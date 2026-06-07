@@ -920,11 +920,13 @@
         padding-left: 0;
     }
 
+    .fun-facts .single-fun .metric-value,
     .fun-facts .single-fun .years-metric {
         white-space: nowrap;
         display: inline-block;
     }
 
+    .fun-facts .single-fun .metric-value .counter,
     .fun-facts .single-fun .years-metric .counter {
         display: inline !important;
     }
@@ -1258,8 +1260,8 @@
     <div class="container">
         <h2 id="stats-heading" class="sr-only">Customer Statistics</h2>
         <div class="row" style="content-visibility:auto; contain-intrinsic-size: auto 300px;">
-            <div class="col-lg-4 col-md-6 col-12"><div class="single-fun"><i class="icofont icofont-ui-user-group"></i><div class="content"><span><span class="counter">85</span>%+</span><p>Client Retention</p></div></div></div>
-            <div class="col-lg-4 col-md-6 col-12"><div class="single-fun"><i class="icofont icofont-users-social"></i><div class="content"><span><span class="counter">90</span>%+</span><p>Client Satisfaction / NPS</p></div></div></div>
+            <div class="col-lg-4 col-md-6 col-12"><div class="single-fun"><i class="icofont icofont-ui-user-group"></i><div class="content"><span class="metric-value"><span class="counter">85</span>%+</span><p>Client Retention</p></div></div></div>
+            <div class="col-lg-4 col-md-6 col-12"><div class="single-fun"><i class="icofont icofont-users-social"></i><div class="content"><span class="metric-value"><span class="counter">90</span>%+</span><p>Client Satisfaction / NPS</p></div></div></div>
             <div class="col-lg-4 col-md-6 col-12"><div class="single-fun"><i class="icofont icofont-badge"></i><div class="content"><span class="years-metric"><span class="counter">9</span>&nbsp;Years</span><p>Years of Delivery</p></div></div></div>
         </div>
     </div>
