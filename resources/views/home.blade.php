@@ -103,6 +103,22 @@
         transition: none;
     }
 
+    .portfolio .case-study-default-image {
+        width: 100%;
+        height: 100%;
+        min-height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #2f5597 0%, #1e3a6d 100%);
+        color: rgba(255, 255, 255, 0.9);
+    }
+
+    .portfolio .case-study-default-image i {
+        font-size: 3rem;
+        line-height: 1;
+    }
+
     .portfolio .card-wrapper:hover .image-container img {
         transform: none;
     }
@@ -1224,10 +1240,18 @@
                 @php($baseCaseStudyTitle = $baseCaseStudyTitle !== '' ? $baseCaseStudyTitle : (string) ($listing->category ?? 'Case Study'))
                 @php($fullCaseStudyTitle = trim($baseCaseStudyTitle . ' Solution'))
                 @php($cardCaseStudyTitle = \Illuminate\Support\Str::limit($fullCaseStudyTitle, 44, '...'))
+                @php($caseStudyImage = trim((string) ($listing->listing_image ?? '')))
+                @php($hasCaseStudyImage = $caseStudyImage !== '' && file_exists(public_path('images/case-study/' . $caseStudyImage)))
                 <div class="single-pf">
                     <div class="card-wrapper">
                         <div class="image-container">
-                            <img src="{{ $listing->image_path }}" alt="{{ $listing->category }}" class="img-fluid lazy-img" loading="lazy" decoding="async">
+                            @if($hasCaseStudyImage)
+                                <img src="{{ asset('images/case-study/' . $caseStudyImage) }}" alt="{{ $fullCaseStudyTitle }}" class="img-fluid lazy-img" loading="lazy" decoding="async">
+                            @else
+                                <div class="case-study-default-image" aria-hidden="true">
+                                    <i class="icofont-briefcase"></i>
+                                </div>
+                            @endif
                             <div class="image-overlay"></div>
                         </div>
                         <div class="card-body">

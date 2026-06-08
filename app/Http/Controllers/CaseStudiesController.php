@@ -55,7 +55,7 @@ class CaseStudiesController extends Controller
             'whitePapers' => $whitePapers,
             'recaptchaSiteKey' => config('services.recaptcha.site_key', ''),
             'selectedIndustry' => (string) ($request->query('case_industry', $request->query('industry', ''))),
-            'selectedTopic' => (string) $request->query('topic', ''),
+            'selectedTopic' => (string) $request->query('case_topic', $request->query('topic', '')),
             'selectedWhiteTopic' => (string) $request->query('white_topic', ''),
             'industryFilters' => $this->industryFilters(),
             'topicFilters' => $this->topicFilters(),
@@ -1240,7 +1240,9 @@ class CaseStudiesController extends Controller
             $industryFilters = $this->industryFilters();
             $industryParam = (string) $request->query('case_industry', $request->query('industry', ''));
             $industry = Str::slug(Str::lower($industryParam));
+            $hasActiveFilter = false;
             if ($industry !== '' && array_key_exists($industry, $industryFilters)) {
+                $hasActiveFilter = true;
                 $industryLabel = trim((string) $industryFilters[$industry]);
                 $industryTerms = array_values(array_unique(array_filter(array_map(
                     static fn ($term) => Str::lower(trim((string) $term)),
@@ -1262,8 +1264,9 @@ class CaseStudiesController extends Controller
                 });
             }
 
-            $topic = (string) $request->query('topic', '');
+            $topic = (string) $request->query('case_topic', $request->query('topic', ''));
             if ($topic !== '' && array_key_exists($topic, $this->topicFilters())) {
+                $hasActiveFilter = true;
                 $terms = match ($topic) {
                     'fabric-data' => ['Fabric', 'Power BI', 'data', 'analytics'],
                     'power-platform' => ['Power Platform', 'Power Apps', 'Power Automate', 'Power Pages'],
@@ -1279,7 +1282,9 @@ class CaseStudiesController extends Controller
                 });
             }
 
-            return $query->paginate(6, ['*'], 'case_page');
+            $perPage = $hasActiveFilter ? max((clone $query)->count(), 1) : 6;
+
+            return $query->paginate($perPage, ['*'], 'case_page')->withQueryString();
         } catch (QueryException $e) {
             if ($this->isMissingTableException($e)) {
                 Log::warning('Case studies table unavailable in database engine', [
@@ -1307,7 +1312,9 @@ class CaseStudiesController extends Controller
 
             $searchableColumns = $this->whitePaperSearchColumns();
             $topic = (string) $request->query('white_topic', '');
+            $hasActiveFilter = false;
             if ($topic !== '' && array_key_exists($topic, $this->topicFilters()) && !empty($searchableColumns)) {
+                $hasActiveFilter = true;
                 $terms = match ($topic) {
                     'fabric-data' => ['fabric', 'power bi', 'data', 'analytics', 'warehouse', 'lakehouse'],
                     'power-platform' => ['power platform', 'power apps', 'power automate', 'power pages'],
@@ -1326,7 +1333,9 @@ class CaseStudiesController extends Controller
                 });
             }
 
-            return $query->paginate(6, ['*'], 'paper_page');
+            $perPage = $hasActiveFilter ? max((clone $query)->count(), 1) : 6;
+
+            return $query->paginate($perPage, ['*'], 'paper_page')->withQueryString();
         } catch (QueryException $e) {
             if ($this->isMissingTableException($e)) {
                 Log::warning('White papers table unavailable in database engine', [
