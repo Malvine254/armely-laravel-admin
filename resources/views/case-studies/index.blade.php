@@ -584,18 +584,18 @@
 				<div class="case-filter-group" data-filter-panel="technology">
 					<div class="case-filter-label">Technology</div>
 					<div class="case-filter-list">
-						<a class="case-filter-chip {{ $selectedTopic === '' ? 'active' : '' }}" data-filter-scope="case" data-filter-group="topic" data-filter-value="" href="{{ route('case-studies.index', array_filter(['industry' => $selectedIndustry])) }}">All technologies</a>
+						<a class="case-filter-chip {{ $selectedTopic === '' ? 'active' : '' }}" data-filter-scope="case" data-filter-group="topic" data-filter-value="" href="{{ route('case-studies.index', array_filter(['industry' => $selectedIndustry, 'white_topic' => $selectedWhiteTopic])) }}">All technologies</a>
 						@foreach($topicFilters as $key => $label)
-							<a class="case-filter-chip {{ $selectedTopic === $key ? 'active' : '' }}" data-filter-scope="case" data-filter-group="topic" data-filter-value="{{ $key }}" href="{{ route('case-studies.index', array_filter(['industry' => $selectedIndustry, 'topic' => $key])) }}">{{ $label }}</a>
+							<a class="case-filter-chip {{ $selectedTopic === $key ? 'active' : '' }}" data-filter-scope="case" data-filter-group="topic" data-filter-value="{{ $key }}" href="{{ route('case-studies.index', array_filter(['industry' => $selectedIndustry, 'case_topic' => $key, 'white_topic' => $selectedWhiteTopic])) }}">{{ $label }}</a>
 						@endforeach
 					</div>
 				</div>
 				<div class="case-filter-group mb-0" data-filter-panel="industry">
 					<div class="case-filter-label">Category</div>
 					<div class="case-filter-list">
-						<a class="case-filter-chip {{ $selectedIndustry === '' ? 'active' : '' }}" data-filter-scope="case" data-filter-group="industry" data-filter-value="" href="{{ route('case-studies.index', array_filter(['topic' => $selectedTopic])) }}">All categories</a>
+						<a class="case-filter-chip {{ $selectedIndustry === '' ? 'active' : '' }}" data-filter-scope="case" data-filter-group="industry" data-filter-value="" href="{{ route('case-studies.index', array_filter(['case_topic' => $selectedTopic, 'white_topic' => $selectedWhiteTopic])) }}">All categories</a>
 						@foreach($industryFilters as $key => $label)
-							<a class="case-filter-chip {{ $selectedIndustry === $key ? 'active' : '' }}" data-filter-scope="case" data-filter-group="industry" data-filter-value="{{ $key }}" href="{{ route('case-studies.index', array_filter(['industry' => $key, 'topic' => $selectedTopic])) }}">{{ $label }}</a>
+							<a class="case-filter-chip {{ $selectedIndustry === $key ? 'active' : '' }}" data-filter-scope="case" data-filter-group="industry" data-filter-value="{{ $key }}" href="{{ route('case-studies.index', array_filter(['industry' => $key, 'case_topic' => $selectedTopic, 'white_topic' => $selectedWhiteTopic])) }}">{{ $label }}</a>
 						@endforeach
 					</div>
 				</div>
@@ -643,7 +643,7 @@
 		@endforelse
 			</div>
 
-			<div id="caseFilterEmptyState" class="filter-empty-state mt-2" role="status" aria-live="polite">
+			<div id="caseFilterEmptyState" class="filter-empty-state mt-2" role="status" aria-live="polite" @if($caseStudies->isEmpty() && $activeFilterCount > 0) style="display:block;" @endif>
 				No case studies match the selected filters. Try another Category or Technology.
 			</div>
 
@@ -788,17 +788,17 @@
 				<h2 class="resource-side-title">Microsoft platform guidance for leaders</h2>
 				<p class="resource-side-text">In-depth resources for teams planning data, AI, governance, and Copilot initiatives.</p>
 				<ul class="resource-topic-list">
-					<li class="{{ $selectedTopic === '' ? 'active' : '' }}">
-						<a class="case-filter-chip js-filter-chip {{ $selectedTopic === '' ? 'active' : '' }}" data-filter-scope="white" data-filter-group="topic" data-filter-value="" href="{{ route('case-studies.index', array_filter(['industry' => $selectedIndustry])) }}#white-papers">All topics</a>
+					<li class="{{ $selectedWhiteTopic === '' ? 'active' : '' }}">
+						<a class="case-filter-chip js-filter-chip {{ $selectedWhiteTopic === '' ? 'active' : '' }}" data-filter-scope="white" data-filter-group="topic" data-filter-value="" href="{{ route('case-studies.index', array_filter(['industry' => $selectedIndustry, 'case_topic' => $selectedTopic])) }}#white-papers">All topics</a>
 					</li>
 					@foreach($topicFilters as $key => $label)
-						<li class="{{ $selectedTopic === $key ? 'active' : '' }}">
-							<a class="case-filter-chip js-filter-chip {{ $selectedTopic === $key ? 'active' : '' }}" data-filter-scope="white" data-filter-group="topic" data-filter-value="{{ $key }}" href="{{ route('case-studies.index', array_filter(['industry' => $selectedIndustry, 'topic' => $key])) }}#white-papers">{{ $label }}</a>
+						<li class="{{ $selectedWhiteTopic === $key ? 'active' : '' }}">
+							<a class="case-filter-chip js-filter-chip {{ $selectedWhiteTopic === $key ? 'active' : '' }}" data-filter-scope="white" data-filter-group="topic" data-filter-value="{{ $key }}" href="{{ route('case-studies.index', array_filter(['industry' => $selectedIndustry, 'case_topic' => $selectedTopic, 'white_topic' => $key])) }}#white-papers">{{ $label }}</a>
 						</li>
 					@endforeach
 				</ul>
 				<div class="resource-filter-actions">
-					<a id="whiteFilterReset" class="case-filter-reset" href="{{ route('case-studies.index') }}#white-papers">Clear white paper filters</a>
+					<a id="whiteFilterReset" class="case-filter-reset" href="{{ route('case-studies.index', array_filter(['industry' => $selectedIndustry, 'case_topic' => $selectedTopic])) }}#white-papers">Clear white paper filters</a>
 				</div>
 			</aside>
 		</div>
@@ -846,7 +846,7 @@
 			@endforelse
 			</div>
 
-			<div id="whitePaperFilterEmptyState" class="filter-empty-state mt-2" role="status" aria-live="polite">
+			<div id="whitePaperFilterEmptyState" class="filter-empty-state mt-2" role="status" aria-live="polite" @if($whitePapers->isEmpty() && $selectedWhiteTopic !== '') style="display:block;" @endif>
 				No white papers match the selected filters. Try another topic or clear filters.
 			</div>
 
@@ -1063,6 +1063,9 @@
 	if (!caseFilterChips.length && !whiteFilterChips.length) {
 		return;
 	}
+
+	// Filters are resolved on the server so matches include records from every paginated page.
+	return;
 
 	var caseCards = Array.prototype.slice.call(document.querySelectorAll('.js-case-card'));
 	var whitePaperCards = Array.prototype.slice.call(document.querySelectorAll('.js-white-paper-card'));
