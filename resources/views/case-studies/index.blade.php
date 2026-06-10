@@ -330,9 +330,23 @@
 	transform: translateY(-6px);
 	box-shadow: 0 20px 34px rgba(24, 54, 107, 0.16);
 }
+
 .card-image-wrapper {
-	min-height: 180px;
-	height: auto;
+    position: relative;
+    height: 250px;
+    overflow: hidden;
+}
+.card-image-wrapper,
+.card-image-wrapper > * {
+    padding: 0;
+    margin: 0;
+    height: 100%;
+}
+.card-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
 }
 .card-content {
 	padding: 18px;
