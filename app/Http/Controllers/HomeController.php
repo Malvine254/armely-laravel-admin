@@ -345,15 +345,20 @@ class HomeController extends Controller
                 ->first();
         }, $dbErrorMessage);
 
-        if ($dbErrorMessage) {
-            return response()->view('errors.service-unavailable', [], 503);
-        }
-
         if (!$service) {
-            return redirect()->route('services')->with('error', 'Service not found');
+            $service = (object) [
+                'id' => 0,
+                'title' => Str::headline(str_replace('-', ' ', $name)),
+                'body' => 'This service overview is temporarily unavailable, but our team can still help. Use the form below and we will follow up with the right specialist.',
+                'image' => null,
+            ];
         }
 
         $relatedServices = $this->safeDb(function () use ($service) {
+            if (empty($service->id)) {
+                return collect();
+            }
+
             return DB::table('services_lists')
                 ->where('id', '!=', $service->id)
                 ->orderBy('id', 'desc')
@@ -480,12 +485,15 @@ class HomeController extends Controller
                 ->first();
         }, $dbErrorMessage);
 
-        if ($dbErrorMessage) {
-            return response()->view('errors.service-unavailable', [], 503);
-        }
-
         if (!$job) {
-            return redirect()->route('career.index')->with('error', 'Job not found');
+            $job = (object) [
+                'job_id' => $jobId,
+                'job_type' => 'Career Opportunity',
+                'job_title' => 'Career Opportunity',
+                'job_location' => 'See current openings',
+                'job_deadline' => null,
+                'job_description' => '<p>We are temporarily unable to load this job description. Please visit the Careers page for current openings or contact Armely for more information.</p>',
+            ];
         }
 
         // Check if job deadline has passed
@@ -495,29 +503,44 @@ class HomeController extends Controller
 
         return view('job-board', [
             'job' => $job,
+            'dbErrorMessage' => $dbErrorMessage,
         ]);
     }
 
     public function socialImpactDetails($secure_id)
     {
-        $initiative = DB::table('social_impact')
-            ->where('secure_id', $secure_id)
-            ->first();
+        $dbErrorMessage = null;
+
+        $initiative = $this->safeDb(function () use ($secure_id) {
+            return DB::table('social_impact')
+                ->where('secure_id', $secure_id)
+                ->first();
+        }, $dbErrorMessage);
 
         if (!$initiative) {
-            return redirect()->route('social-impact.index')->with('error', 'Initiative not found');
+            $initiative = (object) [
+                'secure_id' => $secure_id,
+                'title' => 'Social Impact Story',
+                'category' => 'community',
+                'posted_date' => now()->toDateString(),
+                'image_url' => '',
+                'body' => 'This story is temporarily unavailable while our live content connection is offline. Please check back shortly or return to the Social Impact page.',
+            ];
         }
 
         // Fetch related stories (excluding the current one, limit to 3)
-        $relatedStories = DB::table('social_impact')
-            ->where('secure_id', '!=', $secure_id)
-            ->orderBy('id', 'desc')
-            ->limit(3)
-            ->get();
+        $relatedStories = $this->safeDb(function () use ($secure_id) {
+            return DB::table('social_impact')
+                ->where('secure_id', '!=', $secure_id)
+                ->orderBy('id', 'desc')
+                ->limit(3)
+                ->get();
+        }, $dbErrorMessage);
 
         return view('social-impact-details', [
             'initiative' => $initiative,
             'relatedStories' => $relatedStories,
+            'dbErrorMessage' => $dbErrorMessage,
         ]);
     }
 
@@ -533,19 +556,28 @@ class HomeController extends Controller
 
         // If title is missing, try to resolve from DB
         if (!$jobTitle) {
-            $job = DB::table('career')->where('job_id', $jobId)->first();
+            $dbErrorMessage = null;
+            $job = $this->safeDb(function () use ($jobId) {
+                return DB::table('career')->where('job_id', $jobId)->first();
+            }, $dbErrorMessage);
+
             if (!$job) {
-                return redirect()->route('career.index')->with('error', 'Job not found');
+                $jobTitle = 'Selected Position';
+            } else {
+                $jobTitle = $job->job_title ?? $jobTitle;
             }
-            $jobTitle = $job->job_title ?? $jobTitle;
             
             // Check if job deadline has passed
-            if ($job->job_deadline && strtotime($job->job_deadline) < time()) {
+            if ($job && $job->job_deadline && strtotime($job->job_deadline) < time()) {
                 return redirect()->route('career.index')->with('error', 'This job posting has expired and is no longer accepting applications.');
             }
         } else {
             // If title provided but need to validate deadline
-            $job = DB::table('career')->where('job_id', $jobId)->first();
+            $dbErrorMessage = null;
+            $job = $this->safeDb(function () use ($jobId) {
+                return DB::table('career')->where('job_id', $jobId)->first();
+            }, $dbErrorMessage);
+
             if ($job && $job->job_deadline && strtotime($job->job_deadline) < time()) {
                 return redirect()->route('career.index')->with('error', 'This job posting has expired and is no longer accepting applications.');
             }

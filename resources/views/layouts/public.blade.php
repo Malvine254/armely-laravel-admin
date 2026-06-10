@@ -166,18 +166,24 @@
 .mobile-dropdown-menu > ul > li {
     border-bottom: 1px solid #e5ecf9;
 }
-.mobile-dropdown-menu a {
+.mobile-dropdown-menu a,
+.mobile-dropdown-menu button.sub-toggle {
     display: block;
+    width: 100%;
     padding: 13px 18px;
     background: transparent;
+    border: 0;
     color: #17315f;
     text-decoration: none;
     font-size: 15px;
-    font-weight: 600;
+    font-weight: 500;
+    font-family: inherit;
     line-height: 1.35;
+    text-align: left;
     transition: background-color 0.2s ease, color 0.2s ease;
 }
-.mobile-dropdown-menu a:hover {
+.mobile-dropdown-menu a:hover,
+.mobile-dropdown-menu button.sub-toggle:hover {
     background: #eaf1ff;
     color: #0f2f63;
 }
@@ -297,7 +303,8 @@
     .topbar {
         display: none !important;
     }
-    .mobile-dropdown-menu a {
+    .mobile-dropdown-menu a,
+    .mobile-dropdown-menu button.sub-toggle {
         font-size: 14px;
         padding: 10px 15px;
     }
@@ -397,6 +404,294 @@
     padding: 2px 5px;
 }
 
+/* ============================================
+   Responsive Mega Menu
+   ============================================ */
+.header .header-inner {
+    position: relative;
+}
+
+.header .mega-nav-item {
+    position: static !important;
+}
+
+.header .mega-trigger {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 5px;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    color: #2c2d3f;
+    font: inherit;
+    font-family: Poppins, sans-serif !important;
+    font-weight: 500 !important;
+    font-size: 15px !important;
+    letter-spacing: 0;
+    min-height: 64px;
+    padding: 0 10px !important;
+}
+
+.header .mega-trigger:hover,
+.header .mega-nav-item:hover > .mega-trigger,
+.header .mega-nav-item.mega-open > .mega-trigger {
+    background: #eef3fb;
+    color: #2f5597 !important;
+}
+
+.header .mega-trigger::before {
+    display: none !important;
+}
+
+.header .mega-trigger::after {
+    position: absolute;
+    content: "";
+    left: 50%;
+    right: auto;
+    bottom: 0;
+    height: 3px;
+    width: 0;
+    margin: 0;
+    border-radius: 4px 4px 0 0;
+    background: #2f5597;
+    box-shadow: 0 -1px 0 rgba(47, 85, 151, 0.08);
+    opacity: 0;
+    transform: translateX(-50%);
+    transition: width 0.2s ease, opacity 0.2s ease;
+}
+
+.header .mega-nav-item:hover > .mega-trigger::after,
+.header .mega-nav-item.mega-open > .mega-trigger::after {
+    width: 38px;
+    opacity: 1;
+}
+
+.header .mega-icon-open {
+    display: none;
+}
+
+.header .mega-nav-item:hover .mega-icon-closed,
+.header .mega-nav-item.mega-open .mega-icon-closed {
+    display: none;
+}
+
+.header .mega-nav-item:hover .mega-icon-open,
+.header .mega-nav-item.mega-open .mega-icon-open {
+    display: inline-block;
+}
+
+.header .mega-panel {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    width: min(1120px, calc(100vw - 40px));
+    transform: translate(-50%, 10px);
+    z-index: 1000;
+    background: #fbfbfd;
+    border: 1px solid #dbe5f4;
+    box-shadow: 0 18px 42px rgba(24, 31, 56, 0.13);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s ease;
+}
+
+.header .mega-nav-item:hover > .mega-panel,
+.header .mega-nav-item.mega-open > .mega-panel,
+.header .mega-panel:hover {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translate(-50%, 0);
+}
+
+.mega-panel-inner {
+    display: grid;
+    grid-template-columns: minmax(190px, 240px) 1fr;
+    gap: 24px;
+    padding: 22px 28px 24px;
+    min-width: 0;
+}
+
+.mega-feature-card {
+    display: block !important;
+    padding: 0 !important;
+    min-width: 0;
+    background: #ffffff;
+    border: 1px solid #dfe8f6;
+    border-radius: 8px;
+    color: inherit !important;
+    overflow: hidden;
+    box-shadow: 0 8px 22px rgba(31, 35, 68, 0.06);
+    text-decoration: none !important;
+    text-transform: none !important;
+}
+
+.mega-feature-card,
+.mega-feature-card * {
+    box-sizing: border-box;
+}
+
+.mega-feature-card::before {
+    display: none !important;
+}
+
+.mega-feature-card:hover {
+    color: inherit !important;
+    transform: translateY(-1px);
+}
+
+.mega-feature-card img {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    aspect-ratio: 16 / 10;
+    max-height: 150px;
+    object-fit: cover;
+    background: #eef3fb;
+}
+
+.mega-feature-card-content {
+    padding: 14px;
+    min-width: 0;
+}
+
+.mega-feature-card h3 {
+    margin: 0 0 6px;
+    color: #2f5597;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+}
+
+.mega-feature-card p {
+    margin: 0;
+    color: #5f6675;
+    font-size: 12.5px;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+}
+
+main img {
+    max-width: 100%;
+}
+
+main figure,
+main figcaption,
+main .single-news,
+main .modern-blog-post,
+main .service-card {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+}
+
+.mega-columns {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 24px;
+    min-width: 0;
+}
+
+.mega-column-title {
+    margin: 0 0 9px;
+    color: #2c2d3f;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    line-height: 1.25;
+    text-transform: uppercase;
+}
+
+.mega-link-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.header .mega-link-list li {
+    float: none !important;
+    margin: 0 !important;
+    position: static !important;
+}
+
+.header .mega-link-list a {
+    display: block !important;
+    padding: 5px 0 !important;
+    color: #2c2d3f !important;
+    font-size: 15px !important;
+    font-weight: 400 !important;
+    line-height: 1.35;
+    text-transform: none !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+}
+
+.header .mega-link-list a::before {
+    display: none !important;
+}
+
+.header .mega-link-list a:hover {
+    color: #2f5597 !important;
+    background: transparent !important;
+}
+
+.mega-link-description {
+    display: block;
+    margin-top: 2px;
+    color: #788091;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.4;
+    white-space: normal;
+}
+
+.mobile-mega-panel {
+    display: none;
+    background: #f8f9fe;
+    border-top: 1px solid #e5e8f4;
+    padding: 14px 18px 18px;
+}
+
+.mobile-mega-panel.open {
+    display: block;
+}
+
+.mobile-mega-section + .mobile-mega-section {
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid #e6e9f4;
+}
+
+.mobile-mega-section h4 {
+    margin: 0 0 8px;
+    color: #272b45;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+.mobile-dropdown-menu .mobile-mega-panel a {
+    padding: 8px 0;
+    color: #33416d;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.mobile-dropdown-menu .mobile-mega-panel a:hover {
+    background: transparent;
+    color: #2f5597;
+}
+
+.mobile-dropdown-menu .sub-toggle {
+    border: 0;
+    width: 100%;
+    background: transparent;
+    text-align: left;
+    font-family: inherit;
+}
+
 @keyframes menuNewBadgePulse {
     0%, 100% {
         transform: translateY(0) scale(1);
@@ -452,11 +747,15 @@
     /* Kill float on nav items, use flexbox instead */
     .header .nav li {
         float: none !important;
+        margin-right: 8px !important;
     }
 
-    /* Slightly larger nav font */
+    /* Desktop nav typography */
     .header .nav li a {
-        font-size: 16px !important;
+        font-size: 15px !important;
+        color: #2c2d3f;
+        font-family: Poppins, sans-serif !important;
+        font-weight: 500 !important;
     }
 
     /* The nav list itself: single-line flex */
@@ -475,9 +774,29 @@
         flex: 0 0 auto !important;
     }
 
+    .header .main-menu .nav.menu > li > a:not(.mega-trigger) {
+        min-height: 64px;
+        display: inline-flex !important;
+        align-items: center;
+        padding: 0 10px !important;
+    }
+
     /* Hide the empty get-quote column to reclaim space */
     .header .header-inner .inner > .row > .col-lg-2 {
         display: none !important;
+    }
+}
+
+@media (max-width: 1500px) and (min-width: 1301px) {
+    .header .mega-trigger,
+    .header .main-menu .nav.menu > li > a:not(.mega-trigger) {
+        padding-left: 7px !important;
+        padding-right: 7px !important;
+        font-size: 14.5px !important;
+    }
+
+    .header .nav li {
+        margin-right: 6px !important;
     }
 }
 
@@ -545,26 +864,179 @@
                         <div class="main-menu d-none d-lg-flex align-items-center justify-content-end w-100" style="height: 100%;">
                             <nav class="navigation w-100 d-flex align-items-center" style="height: 100%;">
                                 <ul class="nav menu">
-                                    <li class="{{ request()->is('company','career','job-board','applications','social-impact','social-impact-details') ? 'active' : '' }}"><a>Who We Are <i class="icofont-rounded-down"></i></a>
-                                        <ul class="dropdown">
-                                            <li><a href="{{ route('company.index') }}">Company Overview</a></li>
-                                            <li><a href="{{ route('career.index') }}">Career Opportunities</a></li>
-                                            <li><a href="{{ route('customer-stories.index') }}">Customer Stories</a></li>
-                                            {{-- <li><a href="{{ route('team.index') }}">Our Team</a></li> --}}
-                                            <li><a href="{{ route('social-impact.index') }}">Social Impact</a></li>
-                                        </ul>
+                                    <li class="mega-nav-item {{ request()->is('company','career','job-board','applications','social-impact','social-impact-details','customer-stories') ? 'active' : '' }}">
+                                        <button type="button" class="mega-trigger" aria-expanded="false">
+                                            Who We Are
+                                            <i class="icofont-rounded-down mega-icon-closed" aria-hidden="true"></i>
+                                            <i class="icofont-rounded-up mega-icon-open" aria-hidden="true"></i>
+                                        </button>
+                                        <div class="mega-panel" role="region" aria-label="Who We Are menu">
+                                            <div class="mega-panel-inner">
+                                                <a class="mega-feature-card" href="{{ route('company.index') }}">
+                                                    <img src="{{ asset('images/blog/1740079738_career.png') }}" alt="Armely team and career story">
+                                                    <div class="mega-feature-card-content">
+                                                        <h3>Company Overview</h3>
+                                                        <p>Learn about Armely, our customer outcomes, career opportunities, and social impact work.</p>
+                                                    </div>
+                                                </a>
+                                                <div class="mega-columns">
+                                                    <div>
+                                                        <h3 class="mega-column-title">About Armely</h3>
+                                                        <ul class="mega-link-list">
+                                                            <li><a href="{{ route('company.index') }}">Company Overview</a></li>
+                                                            <li><a href="{{ route('career.index') }}">Career Opportunities</a></li>
+                                                            <li><a href="{{ route('customer-stories.index') }}">Customer Stories</a></li>
+                                                            <li><a href="{{ route('partners.index') }}">Partners</a></li>
+                                                            <li><a href="{{ route('social-impact.index') }}">Social Impact</a></li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </li>
-                                    <li class="{{ request()->is('services','service-details*') ? 'active' : '' }}"><a href="{{ route('services') }}">What We Do</a></li>
-                                    <li class="{{ request()->is('industries') ? 'active' : '' }}"><a href="{{ route('industries.index') }}">Who We Serve</a></li>
-                                    <li class="{{ request()->is('blog','customer-stories','case-studies') ? 'active' : '' }}"><a>Knowledge Hub <i class="icofont-rounded-down"></i></a>
-                                        <ul class="dropdown">
-                                            <li><a href="{{ route('blog.index') }}">Blog Articles</a></li>
-                                            <li><a href="{{ route('case-studies.index') }}">Case Studies</a></li>
-                                            <li><a href="{{ route('case-studies.index') }}#white-papers">White Papers</a></li>
-                                        </ul>
+                                    <li class="mega-nav-item {{ request()->is('services','service-details*') ? 'active' : '' }}">
+                                        <button type="button" class="mega-trigger" aria-expanded="false">
+                                            What We Do
+                                            <i class="icofont-rounded-down mega-icon-closed" aria-hidden="true"></i>
+                                            <i class="icofont-rounded-up mega-icon-open" aria-hidden="true"></i>
+                                        </button>
+                                        <div class="mega-panel" role="region" aria-label="What We Do menu">
+                                            <div class="mega-panel-inner">
+                                                <a class="mega-feature-card" href="{{ route('services') }}">
+                                                    <img src="{{ asset('images/blog/advisory_services.png') }}" alt="Consulting team working with data dashboards">
+                                                    <div class="mega-feature-card-content">
+                                                        <h3>Modernize with Armely</h3>
+                                                        <p>Explore advisory, data, AI, cloud, and automation services built for measurable business outcomes.</p>
+                                                    </div>
+                                                </a>
+                                                <div class="mega-columns">
+                                                    <div>
+                                                        <h3 class="mega-column-title">AI & Automation</h3>
+                                                        <ul class="mega-link-list">
+                                                            <li><a href="{{ route('service-details', ['name' => 'ai-consulting']) }}">AI Consulting</a></li>
+                                                            <li><a href="{{ route('service-details', ['name' => 'ai-advisory']) }}">AI Advisory</a></li>
+                                                            <li><a href="{{ route('service-details', ['name' => 'generative-ai']) }}">Generative AI</a></li>
+                                                            <li><a href="{{ route('service-details', ['name' => 'copilot']) }}">Microsoft Copilot</a></li>
+                                                            <li><a href="{{ route('service-details', ['name' => 'virtualagents']) }}">Virtual Agents</a></li>
+                                                            <li><a href="{{ route('service-details', ['name' => 'roboticprocessing']) }}">Robotic Process Automation</a></li>
+                                                        </ul>
+                                                    </div>
+                                                    <div>
+                                                        <h3 class="mega-column-title">Data & Analytics</h3>
+                                                        <ul class="mega-link-list">
+                                                            <li><a href="{{ route('service-details', ['name' => 'data-strategy']) }}">Data Strategy</a></li>
+                                                            <li><a href="{{ route('service-details', ['name' => 'data-science']) }}">Data Science</a></li>
+                                                            <li><a href="{{ route('service-details', ['name' => 'fabric']) }}">Microsoft Fabric</a></li>
+                                                            <li><a href="{{ route('service-details', ['name' => 'fabric_capacity']) }}">Fabric Capacity</a></li>
+                                                            <li><a href="{{ route('service-details', ['name' => 'databricks']) }}">Databricks</a></li>
+                                                            <li><a href="{{ route('service-details', ['name' => 'snowflake']) }}">Snowflake</a></li>
+                                                        </ul>
+                                                    </div>
+                                                    <div>
+                                                        <h3 class="mega-column-title">Business Platforms</h3>
+                                                        <ul class="mega-link-list">
+                                                            <li><a href="{{ route('service-details', ['name' => 'powerplatform']) }}">Power Platform</a></li>
+                                                            <li><a href="{{ route('service-details', ['name' => 'powerapps']) }}">Power Apps</a></li>
+                                                            <li><a href="{{ route('service-details', ['name' => 'powerautomate']) }}">Power Automate</a></li>
+                                                            <li><a href="{{ route('service-details', ['name' => 'dynamics365']) }}">Dynamics 365</a></li>
+                                                            <li><a href="{{ route('service-details', ['name' => 'sharepointonline']) }}">SharePoint Online</a></li>
+                                                            <li><a href="{{ route('service-details', ['name' => 'appsupport']) }}">Application Support</a></li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </li>
-                                        <li class="{{ request()->is('events') ? 'active' : '' }}"><a href="{{ route('events.index') }}">Events</a></li>
-                                    <li class="{{ request()->is('all-partners') ? 'active' : '' }}"><a href="{{ route('partners.index') }}">Partners</a></li>
+                                    <li class="mega-nav-item {{ request()->is('industries') ? 'active' : '' }}">
+                                        <button type="button" class="mega-trigger" aria-expanded="false">
+                                            Who We Serve
+                                            <i class="icofont-rounded-down mega-icon-closed" aria-hidden="true"></i>
+                                            <i class="icofont-rounded-up mega-icon-open" aria-hidden="true"></i>
+                                        </button>
+                                        <div class="mega-panel" role="region" aria-label="Who We Serve menu">
+                                            <div class="mega-panel-inner">
+                                                <a class="mega-feature-card" href="{{ route('industries.index') }}">
+                                                    <img src="{{ asset('images/blog/1.png') }}" alt="Business leaders reviewing client outcomes">
+                                                    <div class="mega-feature-card-content">
+                                                        <h3>Client Outcomes</h3>
+                                                        <p>See how Armely helps teams modernize industry workflows with data, AI, and platform strategy.</p>
+                                                    </div>
+                                                </a>
+                                                <div class="mega-columns">
+                                                    <div>
+                                                        <h3 class="mega-column-title">Commercial</h3>
+                                                        <ul class="mega-link-list">
+                                                            <li><a href="{{ route('industries.index') }}#banking-capital-markets">Banking & Capital Markets</a></li>
+                                                            <li><a href="{{ route('industries.index') }}#insurance">Insurance</a></li>
+                                                            <li><a href="{{ route('industries.index') }}#retail-consumer-services">Retail, Consumer & Services</a></li>
+                                                            <li><a href="{{ route('industries.index') }}#manufacturing">Manufacturing</a></li>
+                                                            <li><a href="{{ route('industries.index') }}#communications-media">Communications & Media</a></li>
+                                                        </ul>
+                                                    </div>
+                                                    <div>
+                                                        <h3 class="mega-column-title">Public & Regulated</h3>
+                                                        <ul class="mega-link-list">
+                                                            <li><a href="{{ route('industries.index') }}#government">Government</a></li>
+                                                            <li><a href="{{ route('industries.index') }}#health">Health</a></li>
+                                                            <li><a href="{{ route('industries.index') }}#life-sciences">Life Sciences</a></li>
+                                                            <li><a href="{{ route('industries.index') }}#utilities">Utilities</a></li>
+                                                        </ul>
+                                                    </div>
+                                                    <div>
+                                                        <h3 class="mega-column-title">Infrastructure</h3>
+                                                        <ul class="mega-link-list">
+                                                            <li><a href="{{ route('industries.index') }}#energy-utilities">Energy & Utilities</a></li>
+                                                            <li><a href="{{ route('industries.index') }}#oil-gas">Oil & Gas</a></li>
+                                                            <li><a href="{{ route('industries.index') }}#transportation-logistics">Transportation & Logistics</a></li>
+                                                            <li><a href="{{ route('industries.index') }}#space">Space</a></li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </li>
+                                    <li class="mega-nav-item {{ request()->is('blog','blogs','resources','resources*','case-studies','events') ? 'active' : '' }}">
+                                        <button type="button" class="mega-trigger" aria-expanded="false">
+                                            Knowledge Hub
+                                            <i class="icofont-rounded-down mega-icon-closed" aria-hidden="true"></i>
+                                            <i class="icofont-rounded-up mega-icon-open" aria-hidden="true"></i>
+                                        </button>
+                                        <div class="mega-panel" role="region" aria-label="Knowledge Hub menu">
+                                            <div class="mega-panel-inner">
+                                                <a class="mega-feature-card" href="{{ route('resources.index') }}">
+                                                    <img src="{{ asset('images/blog/1750947309_Icons__1980_x_1020_px_.webp') }}" alt="Digital insights and strategy graphic">
+                                                    <div class="mega-feature-card-content">
+                                                        <h3>Featured Thinking</h3>
+                                                        <p>Browse practical guidance, client stories, and resources for technology decision makers.</p>
+                                                    </div>
+                                                </a>
+                                                <div class="mega-columns">
+                                                    <div>
+                                                        <h3 class="mega-column-title">Learn</h3>
+                                                        <ul class="mega-link-list">
+                                                            <li><a href="{{ route('blog.index') }}">Blog Articles<span class="mega-link-description">Analysis, trends, and implementation guidance.</span></a></li>
+                                                            <li><a href="{{ route('resources.index') }}">Resources<span class="mega-link-description">Downloadable guides and explainers.</span></a></li>
+                                                            <li><a href="{{ route('case-studies.index') }}#white-papers">White Papers<span class="mega-link-description">Deeper research and point-of-view content.</span></a></li>
+                                                        </ul>
+                                                    </div>
+                                                    <div>
+                                                        <h3 class="mega-column-title">Proof</h3>
+                                                        <ul class="mega-link-list">
+                                                            <li><a href="{{ route('case-studies.index') }}">Case Studies<span class="mega-link-description">How real projects moved from idea to value.</span></a></li>
+                                                            <li><a href="{{ route('case-studies.index') }}#white-papers">White Papers<span class="mega-link-description">Deeper research and point-of-view content.</span></a></li>
+                                                        </ul>
+                                                    </div>
+                                                    <div>
+                                                        <h3 class="mega-column-title">Engage</h3>
+                                                        <ul class="mega-link-list">
+                                                            <li><a href="{{ route('resources.index') }}">Resources<span class="mega-link-description">Downloadable guides and explainers.</span></a></li>
+                                                            <li><a href="{{ route('events.index') }}">Events<span class="mega-link-description">Webinars, sessions, and community moments.</span></a></li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </li>
                                     <li class="{{ request()->is('mela-ai') ? 'active' : '' }}"><a href="{{ route('mela-ai') }}">Mela AI</a></li>
                                     <li class="{{ request()->is('contact') ? 'active' : '' }}"><a href="{{ route('contact') }}">Let's Talk</a></li>
                                 </ul>
@@ -582,25 +1054,96 @@
 <div class="mobile-dropdown-menu" id="mobileDropdownMenu">
     <ul>
         <li>
-            <a class="sub-toggle">Who We Are <span class="mobile-caret" aria-hidden="true"></span></a>
-            <ul class="dropdown">
-                <li><a href="{{ route('company.index') }}">Company</a></li>
-                <li><a href="{{ route('career.index') }}">Career</a></li>
-                <li><a href="{{ route('social-impact.index') }}">Social Impact</a></li>
-            </ul>
+            <button type="button" class="sub-toggle">Who We Are <span class="mobile-caret" aria-hidden="true"></span></button>
+            <div class="mobile-mega-panel">
+                <div class="mobile-mega-section">
+                    <h4>About Armely</h4>
+                    <a href="{{ route('company.index') }}">Company Overview</a>
+                    <a href="{{ route('career.index') }}">Career Opportunities</a>
+                    <a href="{{ route('customer-stories.index') }}">Customer Stories</a>
+                    <a href="{{ route('partners.index') }}">Partners</a>
+                    <a href="{{ route('social-impact.index') }}">Social Impact</a>
+                </div>
+            </div>
         </li>
-        <li><a href="{{ route('services') }}">What We Do</a></li>
-        <li><a href="{{ route('industries.index') }}">Who We Serve</a></li>
         <li>
-            <a class="sub-toggle">Knowledge Hub <span class="mobile-caret" aria-hidden="true"></span></a>
-            <ul class="dropdown">
-                <li><a href="{{ route('blog.index') }}">Blog Articles</a></li>
-                <li><a href="{{ route('case-studies.index') }}">Case Studies</a></li>
-                <li><a href="{{ route('case-studies.index') }}#white-papers">White Papers</a></li>
-            </ul>
+            <button type="button" class="sub-toggle">What We Do <span class="mobile-caret" aria-hidden="true"></span></button>
+            <div class="mobile-mega-panel">
+                <div class="mobile-mega-section">
+                    <h4>AI & Automation</h4>
+                    <a href="{{ route('service-details', ['name' => 'ai-consulting']) }}">AI Consulting</a>
+                    <a href="{{ route('service-details', ['name' => 'ai-advisory']) }}">AI Advisory</a>
+                    <a href="{{ route('service-details', ['name' => 'generative-ai']) }}">Generative AI</a>
+                    <a href="{{ route('service-details', ['name' => 'copilot']) }}">Microsoft Copilot</a>
+                    <a href="{{ route('service-details', ['name' => 'virtualagents']) }}">Virtual Agents</a>
+                    <a href="{{ route('service-details', ['name' => 'roboticprocessing']) }}">Robotic Process Automation</a>
+                </div>
+                <div class="mobile-mega-section">
+                    <h4>Data & Analytics</h4>
+                    <a href="{{ route('service-details', ['name' => 'data-strategy']) }}">Data Strategy</a>
+                    <a href="{{ route('service-details', ['name' => 'data-science']) }}">Data Science</a>
+                    <a href="{{ route('service-details', ['name' => 'fabric']) }}">Microsoft Fabric</a>
+                    <a href="{{ route('service-details', ['name' => 'databricks']) }}">Databricks</a>
+                    <a href="{{ route('service-details', ['name' => 'snowflake']) }}">Snowflake</a>
+                </div>
+                <div class="mobile-mega-section">
+                    <h4>Business Platforms</h4>
+                    <a href="{{ route('service-details', ['name' => 'powerplatform']) }}">Power Platform</a>
+                    <a href="{{ route('service-details', ['name' => 'powerapps']) }}">Power Apps</a>
+                    <a href="{{ route('service-details', ['name' => 'powerautomate']) }}">Power Automate</a>
+                    <a href="{{ route('service-details', ['name' => 'dynamics365']) }}">Dynamics 365</a>
+                    <a href="{{ route('service-details', ['name' => 'sharepointonline']) }}">SharePoint Online</a>
+                </div>
+            </div>
         </li>
-        <li><a href="{{ route('events.index') }}">Events</a></li>
-        <li><a href="{{ route('partners.index') }}">Partners</a></li>
+        <li>
+            <button type="button" class="sub-toggle">Who We Serve <span class="mobile-caret" aria-hidden="true"></span></button>
+            <div class="mobile-mega-panel">
+                <div class="mobile-mega-section">
+                    <h4>Commercial</h4>
+                    <a href="{{ route('industries.index') }}#banking-capital-markets">Banking & Capital Markets</a>
+                    <a href="{{ route('industries.index') }}#insurance">Insurance</a>
+                    <a href="{{ route('industries.index') }}#retail-consumer-services">Retail, Consumer & Services</a>
+                    <a href="{{ route('industries.index') }}#manufacturing">Manufacturing</a>
+                    <a href="{{ route('industries.index') }}#communications-media">Communications & Media</a>
+                </div>
+                <div class="mobile-mega-section">
+                    <h4>Public & Regulated</h4>
+                    <a href="{{ route('industries.index') }}#government">Government</a>
+                    <a href="{{ route('industries.index') }}#health">Health</a>
+                    <a href="{{ route('industries.index') }}#life-sciences">Life Sciences</a>
+                    <a href="{{ route('industries.index') }}#utilities">Utilities</a>
+                </div>
+                <div class="mobile-mega-section">
+                    <h4>Infrastructure</h4>
+                    <a href="{{ route('industries.index') }}#energy-utilities">Energy & Utilities</a>
+                    <a href="{{ route('industries.index') }}#oil-gas">Oil & Gas</a>
+                    <a href="{{ route('industries.index') }}#transportation-logistics">Transportation & Logistics</a>
+                    <a href="{{ route('industries.index') }}#space">Space</a>
+                </div>
+            </div>
+        </li>
+        <li>
+            <button type="button" class="sub-toggle">Knowledge Hub <span class="mobile-caret" aria-hidden="true"></span></button>
+            <div class="mobile-mega-panel">
+                <div class="mobile-mega-section">
+                    <h4>Learn</h4>
+                    <a href="{{ route('blog.index') }}">Blog Articles</a>
+                    <a href="{{ route('resources.index') }}">Resources</a>
+                    <a href="{{ route('case-studies.index') }}#white-papers">White Papers</a>
+                </div>
+                <div class="mobile-mega-section">
+                    <h4>Proof</h4>
+                    <a href="{{ route('case-studies.index') }}">Case Studies</a>
+                    <a href="{{ route('case-studies.index') }}#white-papers">White Papers</a>
+                </div>
+                <div class="mobile-mega-section">
+                    <h4>Engage</h4>
+                    <a href="{{ route('resources.index') }}">Resources</a>
+                    <a href="{{ route('events.index') }}">Events</a>
+                </div>
+            </div>
+        </li>
         <li><a href="{{ route('mela-ai') }}">Mela AI</a></li>
         <li class="menu-store-link"><a href="{{ url('/store') }}" target="_blank" rel="noopener noreferrer">Armely Store <span class="menu-new-badge">New</span></a></li>
         <li><a href="{{ route('contact') }}">Let's Talk</a></li>
@@ -641,6 +1184,7 @@
         window.addEventListener('resize', function() {
             if (window.innerWidth > 1300) {
                 menu.classList.remove('open');
+                closeMobilePanels();
             } else if (menu.classList.contains('open')) {
                 positionMenu();
             }
@@ -649,29 +1193,90 @@
         document.addEventListener('click', function(e) {
             if (!menu.contains(e.target) && !btn.contains(e.target)) {
                 menu.classList.remove('open');
+                closeMobilePanels();
             }
         });
         // Sub-menu toggles
         var toggles = menu.querySelectorAll('.sub-toggle');
+        function closeMobilePanels() {
+            for (var j = 0; j < toggles.length; j++) {
+                toggles[j].classList.remove('expanded');
+                toggles[j].setAttribute('aria-expanded', 'false');
+                var siblingDd = toggles[j].nextElementSibling;
+                if (siblingDd) siblingDd.classList.remove('open');
+            }
+        }
         for (var i = 0; i < toggles.length; i++) {
+            toggles[i].setAttribute('aria-expanded', 'false');
             toggles[i].addEventListener('click', function(e) {
                 e.preventDefault();
                 var dd = this.nextElementSibling;
                 var isOpen = dd && dd.classList.contains('open');
 
-                for (var j = 0; j < toggles.length; j++) {
-                    toggles[j].classList.remove('expanded');
-                    var siblingDd = toggles[j].nextElementSibling;
-                    if (siblingDd) siblingDd.classList.remove('open');
-                }
+                closeMobilePanels();
 
                 if (dd && !isOpen) {
                     dd.classList.add('open');
                     this.classList.add('expanded');
+                    this.setAttribute('aria-expanded', 'true');
                 }
             });
         }
     }
+})();
+</script>
+
+<script>
+// Desktop mega menu click/touch controls. Hover is handled by CSS.
+(function() {
+    var nav = document.querySelector('.main-menu .nav.menu');
+    if (!nav) return;
+
+    var items = nav.querySelectorAll('.mega-nav-item');
+    function closeMegaMenus() {
+        for (var i = 0; i < items.length; i++) {
+            items[i].classList.remove('mega-open');
+            var trigger = items[i].querySelector('.mega-trigger');
+            if (trigger) trigger.setAttribute('aria-expanded', 'false');
+        }
+    }
+
+    for (var i = 0; i < items.length; i++) {
+        var trigger = items[i].querySelector('.mega-trigger');
+        if (!trigger) continue;
+
+        trigger.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var item = this.closest('.mega-nav-item');
+            var wasOpen = item.classList.contains('mega-open');
+            closeMegaMenus();
+
+            if (!wasOpen) {
+                item.classList.add('mega-open');
+                this.setAttribute('aria-expanded', 'true');
+            }
+        });
+
+        trigger.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeMegaMenus();
+                this.focus();
+            }
+        });
+    }
+
+    document.addEventListener('click', function(e) {
+        if (!nav.contains(e.target)) {
+            closeMegaMenus();
+        }
+    });
+
+    window.addEventListener('resize', function() {
+        if (window.innerWidth <= 1300) {
+            closeMegaMenus();
+        }
+    });
 })();
 </script>
 

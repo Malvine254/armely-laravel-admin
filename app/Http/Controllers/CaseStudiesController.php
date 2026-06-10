@@ -1354,17 +1354,13 @@ class CaseStudiesController extends Controller
     {
         try {
             return Schema::hasTable($table);
-        } catch (QueryException $e) {
-            if ($this->isMissingTableException($e)) {
-                Log::warning('Database table unavailable during schema check', [
-                    'table' => $table,
-                    'error' => $e->getMessage(),
-                ]);
+        } catch (\Throwable $e) {
+            Log::warning('Database table unavailable during schema check', [
+                'table' => $table,
+                'error' => $e->getMessage(),
+            ]);
 
-                return false;
-            }
-
-            throw $e;
+            return false;
         }
     }
 
@@ -1372,7 +1368,7 @@ class CaseStudiesController extends Controller
     {
         try {
             return Schema::hasTable($table) && Schema::hasColumn($table, $column);
-        } catch (QueryException $e) {
+        } catch (\Throwable $e) {
             return false;
         }
     }

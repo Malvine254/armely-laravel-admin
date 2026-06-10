@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class ServicesController extends Controller
@@ -56,16 +57,23 @@ class ServicesController extends Controller
 
     public function index()
     {
-        $services_query = DB::table('services_lists')
-            ->select('title', 'image', 'body');
+        $dbErrorMessage = null;
 
         // Note: For now we fetch all since the frontend has a JS-based filter 
         // that expects all items to be present in the DOM. 
         // If we want real server-side filtering, we'd need to adjust the JS.
-        $all_services = $services_query->get()
-            ->map(function ($service) {
-                return $this->prepareService($service);
-            });
+        try {
+            $all_services = DB::table('services_lists')
+                ->select('title', 'image', 'body')
+                ->get()
+                ->map(function ($service) {
+                    return $this->prepareService($service);
+                });
+        } catch (\Throwable $e) {
+            Log::warning('Services list query failed; using fallback services', ['error' => $e->getMessage()]);
+            $dbErrorMessage = 'Live service content is temporarily unavailable. Showing our standard service overview.';
+            $all_services = collect();
+        }
 
         if ($all_services->isEmpty()) {
             $all_services = collect($this->fallbackServices())
@@ -85,6 +93,7 @@ class ServicesController extends Controller
             'services' => $all_services,
             'titleToUrl' => $this->titleToUrl,
             'counts' => $counts,
+            'dbErrorMessage' => $dbErrorMessage,
             'recaptchaSiteKey' => config('services.recaptcha.site_key', ''),
         ]);
     }
@@ -134,10 +143,15 @@ class ServicesController extends Controller
 
         // Handle freemiums listing page
         if ($name === 'freemiums') {
-            $freemiums = DB::table('freemium')
-                ->select('title', 'body', 'image_url', 'url_get_name', 'snippet')
-                ->orderByDesc('id')
-                ->get();
+            try {
+                $freemiums = DB::table('freemium')
+                    ->select('title', 'body', 'image_url', 'url_get_name', 'snippet')
+                    ->orderByDesc('id')
+                    ->get();
+            } catch (\Throwable $e) {
+                Log::warning('Freemiums query failed; showing empty fallback', ['error' => $e->getMessage()]);
+                $freemiums = collect();
+            }
 
             return view('services.freemiums', [
                 'freemiums' => $freemiums,
@@ -146,10 +160,18 @@ class ServicesController extends Controller
         }
 
         // Resolve content from freemium table first
-        $content = DB::table('freemium')
-            ->where('title', $title)
-            ->orWhere('url_get_name', $name)
-            ->first();
+        try {
+            $content = DB::table('freemium')
+                ->where('title', $title)
+                ->orWhere('url_get_name', $name)
+                ->first();
+        } catch (\Throwable $e) {
+            Log::warning('Service detail content query failed; showing static title fallback', [
+                'service' => $name,
+                'error' => $e->getMessage(),
+            ]);
+            $content = null;
+        }
 
         return view('services.show', [
             'title' => $title ?? Str::headline(str_replace('-', ' ', $name)),

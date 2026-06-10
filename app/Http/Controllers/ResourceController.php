@@ -193,25 +193,9 @@ class ResourceController extends Controller
 
     public function index(Request $request)
     {
-        if (!Schema::hasTable('resources')) {
-            return view('resources.index', [
-                'resources' => new LengthAwarePaginator(collect(), 0, 12, 1, [
-                    'path' => $request->url(),
-                    'query' => $request->query(),
-                ]),
-                'featuredResources' => collect(),
-                'categories' => collect(),
-                'types' => collect(),
-                'selectedCategory' => '',
-                'selectedType' => '',
-                'selectedSort' => 'newest',
-                'search' => trim((string) $request->query('q', '')),
-                'stats' => [
-                    'total' => 0,
-                    'categories' => 0,
-                    'updated_label' => 'No updates yet',
-                ],
-            ]);
+        try {
+        if (!$this->resourcesTableAvailable()) {
+            return $this->emptyResourceIndexResponse($request);
         }
 
         $query = Resource::query()->published();
@@ -315,11 +299,19 @@ class ResourceController extends Controller
             'stats' => $stats,
             'categoryCounts' => $categoryCounts,
         ]);
+        } catch (\Throwable $e) {
+            Log::warning('Resources page query failed; showing empty fallback', ['error' => $e->getMessage()]);
+            return $this->emptyResourceIndexResponse(
+                $request,
+                'Resources are temporarily unavailable. Please try again shortly.'
+            );
+        }
     }
 
     public function show(Request $request, string $slug)
     {
-        if (!Schema::hasTable('resources')) {
+        try {
+        if (!$this->resourcesTableAvailable()) {
             return app(CaseStudiesController::class)->showResource($request, $slug);
         }
 
@@ -364,6 +356,14 @@ class ResourceController extends Controller
 
         // Backward compatibility for existing static and white-paper resource URLs.
         return app(CaseStudiesController::class)->showResource($request, $slug);
+        } catch (\Throwable $e) {
+            Log::warning('Resource detail query failed; falling back to static resources', [
+                'slug' => $slug,
+                'error' => $e->getMessage(),
+            ]);
+
+            return app(CaseStudiesController::class)->showResource($request, $slug);
+        }
     }
 
     public function download(Request $request, string $slug): RedirectResponse|SymfonyResponse
@@ -715,6 +715,40 @@ class ResourceController extends Controller
 
         $base = rtrim((string) config('app.url'), '/');
         return $base . '/' . ltrim($url, '/');
+    }
+
+    private function resourcesTableAvailable(): bool
+    {
+        try {
+            return Schema::hasTable('resources');
+        } catch (\Throwable $e) {
+            Log::warning('Resources table availability check failed', ['error' => $e->getMessage()]);
+            return false;
+        }
+    }
+
+    private function emptyResourceIndexResponse(Request $request, ?string $dbErrorMessage = null)
+    {
+        return view('resources.index', [
+            'resources' => new LengthAwarePaginator(collect(), 0, 12, 1, [
+                'path' => $request->url(),
+                'query' => $request->query(),
+            ]),
+            'featuredResources' => collect(),
+            'categories' => collect(),
+            'types' => collect(),
+            'selectedCategory' => '',
+            'selectedType' => '',
+            'selectedSort' => 'newest',
+            'search' => trim((string) $request->query('q', '')),
+            'stats' => [
+                'total' => 0,
+                'categories' => 0,
+                'updated_label' => 'No updates yet',
+            ],
+            'categoryCounts' => collect(),
+            'dbErrorMessage' => $dbErrorMessage,
+        ]);
     }
 
     private function encodePermanentAccessPayload(Resource $resource, array $customer): array
