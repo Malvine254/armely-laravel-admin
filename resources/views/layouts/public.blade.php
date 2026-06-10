@@ -971,102 +971,102 @@ main .service-card {
                                                     </div>
                                                 </a>
                                                <div class="mega-columns">
-    <div>
-        <h3 class="mega-column-title">Strategy & Advisory</h3>
-        <ul class="mega-link-list">
-            <li>
-                <a href="{{ route('service-details', ['name' => 'ai-consulting']) }}">
-                    AI Consulting
-                    <span class="mega-link-description">Define practical AI initiatives aligned to business goals.</span>
-                </a>
-            </li>
-            <li>
-                <a href="{{ route('service-details', ['name' => 'ai-advisory']) }}">
-                    AI Advisory
-                    <span class="mega-link-description">Create governance, adoption, and AI transformation roadmaps.</span>
-                </a>
-            </li>
-            <li>
-                <a href="{{ route('service-details', ['name' => 'data-strategy']) }}">
-                    Data Strategy
-                    <span class="mega-link-description">Build a modern data foundation for analytics and AI.</span>
-                </a>
-            </li>
-        </ul>
-    </div>
+                                                <div>
+                                                    <h3 class="mega-column-title">Strategy & Advisory</h3>
+                                                    <ul class="mega-link-list">
+                                                        <li>
+                                                            <a href="{{ route('service-details', ['name' => 'ai-consulting']) }}">
+                                                                AI Consulting
+                                                                <span class="mega-link-description">Define practical AI initiatives aligned to business goals.</span>
+                                                            </a>
+                                                        </li>
+                                                        <li>
+                                                            <a href="{{ route('service-details', ['name' => 'ai-advisory']) }}">
+                                                                AI Advisory
+                                                                <span class="mega-link-description">Create governance, adoption, and AI transformation roadmaps.</span>
+                                                            </a>
+                                                        </li>
+                                                        <li>
+                                                            <a href="{{ route('service-details', ['name' => 'data-strategy']) }}">
+                                                                Data Strategy
+                                                                <span class="mega-link-description">Build a modern data foundation for analytics and AI.</span>
+                                                            </a>
+                                                        </li>
+                                                    </ul>
+                                                </div>
 
-    <div>
-        <h3 class="mega-column-title">Data & AI Platforms</h3>
-        <ul class="mega-link-list">
-            <li>
-                <a href="{{ route('service-details', ['name' => 'fabric']) }}">
-                    Microsoft Fabric
-                    <span class="mega-link-description">Unified analytics, engineering, and business intelligence platform.</span>
-                </a>
-            </li>
-            <li>
-                <a href="{{ route('service-details', ['name' => 'databricks']) }}">
-                    Databricks
-                    <span class="mega-link-description">Advanced analytics and machine learning at scale.</span>
-                </a>
-            </li>
-            <li>
-                <a href="{{ route('service-details', ['name' => 'snowflake']) }}">
-                    Snowflake
-                    <span class="mega-link-description">Cloud-native data warehousing and data sharing solutions.</span>
-                </a>
-            </li>
-            <li>
-                <a href="{{ route('service-details', ['name' => 'generative-ai']) }}">
-                    Generative AI
-                    <span class="mega-link-description">Deploy enterprise AI experiences powered by LLMs.</span>
-                </a>
-            </li>
-            <li>
-                <a href="{{ route('service-details', ['name' => 'copilot']) }}">
-                    Microsoft Copilot
-                    <span class="mega-link-description">Increase productivity with AI-powered copilots.</span>
-                </a>
-            </li>
-        </ul>
-    </div>
+                                                <div>
+                                                    <h3 class="mega-column-title">Data & AI Platforms</h3>
+                                                    <ul class="mega-link-list">
+                                                        <li>
+                                                            <a href="{{ route('service-details', ['name' => 'fabric']) }}">
+                                                                Microsoft Fabric
+                                                                <span class="mega-link-description">Unified analytics, engineering, and business intelligence platform.</span>
+                                                            </a>
+                                                        </li>
+                                                        <li>
+                                                            <a href="{{ route('service-details', ['name' => 'databricks']) }}">
+                                                                Databricks
+                                                                <span class="mega-link-description">Advanced analytics and machine learning at scale.</span>
+                                                            </a>
+                                                        </li>
+                                                        <li>
+                                                            <a href="{{ route('service-details', ['name' => 'snowflake']) }}">
+                                                                Snowflake
+                                                                <span class="mega-link-description">Cloud-native data warehousing and data sharing solutions.</span>
+                                                            </a>
+                                                        </li>
+                                                        <li>
+                                                            <a href="{{ route('service-details', ['name' => 'generative-ai']) }}">
+                                                                Generative AI
+                                                                <span class="mega-link-description">Deploy enterprise AI experiences powered by LLMs.</span>
+                                                            </a>
+                                                        </li>
+                                                        <li>
+                                                            <a href="{{ route('service-details', ['name' => 'copilot']) }}">
+                                                                Microsoft Copilot
+                                                                <span class="mega-link-description">Increase productivity with AI-powered copilots.</span>
+                                                            </a>
+                                                        </li>
+                                                    </ul>
+                                                </div>
 
-    <div>
-        <h3 class="mega-column-title">Business Applications</h3>
-        <ul class="mega-link-list">
-            <li>
-                <a href="{{ route('service-details', ['name' => 'powerplatform']) }}">
-                    Power Platform
-                    <span class="mega-link-description">Low-code solutions for automation, apps, and analytics.</span>
-                </a>
-            </li>
-            <li>
-                <a href="{{ route('service-details', ['name' => 'powerapps']) }}">
-                    Power Apps
-                    <span class="mega-link-description">Build business applications faster with low-code development.</span>
-                </a>
-            </li>
-            <li>
-                <a href="{{ route('service-details', ['name' => 'powerautomate']) }}">
-                    Power Automate
-                    <span class="mega-link-description">Automate repetitive business processes and workflows.</span>
-                </a>
-            </li>
-            <li>
-                <a href="{{ route('service-details', ['name' => 'dynamics365']) }}">
-                    Dynamics 365
-                    <span class="mega-link-description">Connect customer, finance, and operations processes.</span>
-                </a>
-            </li>
-            <li>
-                <a href="{{ route('service-details', ['name' => 'sharepointonline']) }}">
-                    SharePoint Online
-                    <span class="mega-link-description">Modern collaboration, document management, and intranets.</span>
-                </a>
-            </li>
-        </ul>
-    </div>
-</div>
+                                                <div>
+                                                    <h3 class="mega-column-title">Business Applications</h3>
+                                                    <ul class="mega-link-list">
+                                                        <li>
+                                                            <a href="{{ route('service-details', ['name' => 'powerplatform']) }}">
+                                                                Power Platform
+                                                                <span class="mega-link-description">Low-code solutions for automation, apps, and analytics.</span>
+                                                            </a>
+                                                        </li>
+                                                        <li>
+                                                            <a href="{{ route('service-details', ['name' => 'powerapps']) }}">
+                                                                Power Apps
+                                                                <span class="mega-link-description">Build business applications faster with low-code development.</span>
+                                                            </a>
+                                                        </li>
+                                                        <li>
+                                                            <a href="{{ route('service-details', ['name' => 'powerautomate']) }}">
+                                                                Power Automate
+                                                                <span class="mega-link-description">Automate repetitive business processes and workflows.</span>
+                                                            </a>
+                                                        </li>
+                                                        <li>
+                                                            <a href="{{ route('service-details', ['name' => 'dynamics365']) }}">
+                                                                Dynamics 365
+                                                                <span class="mega-link-description">Connect customer, finance, and operations processes.</span>
+                                                            </a>
+                                                        </li>
+                                                        <li>
+                                                            <a href="{{ route('service-details', ['name' => 'sharepointonline']) }}">
+                                                                SharePoint Online
+                                                                <span class="mega-link-description">Modern collaboration, document management, and intranets.</span>
+                                                            </a>
+                                                        </li>
+                                                    </ul>
+                                                </div>
+                                            </div>
                                             </div>
                                         </div>
                                     </li>
@@ -1152,7 +1152,63 @@ main .service-card {
                                             </div>
                                         </div>
                                     </li>
-                                    <li class="{{ request()->is('mela-ai') ? 'active' : '' }}"><a href="{{ route('mela-ai') }}">Mela AI</a></li>
+                                   <li class="mega-nav-item {{ request()->is('mela-ai') ? 'active' : '' }}">
+    <button type="button" class="mega-trigger" aria-expanded="false">
+        Solutions
+        <i class="icofont-rounded-down mega-icon-closed" aria-hidden="true"></i>
+        <i class="icofont-rounded-up mega-icon-open" aria-hidden="true"></i>
+    </button>
+
+    <div class="mega-panel" role="region" aria-label="Solutions menu">
+        <div class="mega-panel-inner">
+            <a class="mega-feature-card" href="{{ route('mela-ai') }}">
+                <img src="{{ asset('images/blog/ai 2.png') }}" alt="Mela AI solution">
+                <div class="mega-feature-card-content">
+                    <h3>Mela AI</h3>
+                    <p>Explore Armely’s AI solution for smarter engagement, automation, and intelligent business support.</p>
+                </div>
+            </a>
+
+            <div class="mega-columns">
+                <div>
+                    <h3 class="mega-column-title">AI Solutions</h3>
+                    <ul class="mega-link-list">
+                        <li>
+                            <a href="{{ route('mela-ai') }}">
+                                Mela AI
+                                <span class="mega-link-description">An intelligent AI solution built to support business users and customer engagement.</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h3 class="mega-column-title">Automation</h3>
+                    <ul class="mega-link-list">
+                        <li>
+                            <a href="{{ route('service-details', ['name' => 'generative-ai']) }}">
+                                Generative AI
+                                <span class="mega-link-description">Deploy enterprise AI experiences powered by modern language models.</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h3 class="mega-column-title">Productivity</h3>
+                    <ul class="mega-link-list">
+                        <li>
+                            <a href="{{ route('service-details', ['name' => 'copilot']) }}">
+                                Microsoft Copilot
+                                <span class="mega-link-description">Improve productivity with AI-powered assistance across Microsoft 365.</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</li>
                                     <li class="{{ request()->is('contact') ? 'active' : '' }}"><a href="{{ route('contact') }}">Let's Talk</a></li>
                                 </ul>
                             </nav>
@@ -1256,7 +1312,6 @@ main .service-card {
             </div>
         </li>
         <li><a href="{{ route('mela-ai') }}">Mela AI</a></li>
-        <li class="menu-store-link"><a href="{{ url('/store') }}" target="_blank" rel="noopener noreferrer">Armely Store <span class="menu-new-badge">New</span></a></li>
         <li><a href="{{ route('contact') }}">Let's Talk</a></li>
     </ul>
 </div>
