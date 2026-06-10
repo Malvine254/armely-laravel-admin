@@ -111,7 +111,9 @@
 		text-align: center;
 		box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
 	}
-	
+	.use-case-card h5{
+		color: white !important;
+	}
 	.use-case-icon {
 		width: 60px;
 		height: 60px;
@@ -212,6 +214,7 @@
 	.feature-item h5 {
 		font-weight: 700;
 		margin-bottom: 10px;
+		color: white;
 	}
 	
 	.feature-item p {
@@ -304,7 +307,7 @@
 <section class="copilot-hero">
 	<div class="container">
 		<div class="copilot-hero-content">
-			<h1>Microsoft 365 Copilot</h1>
+			<h1 class="text-light">Microsoft 365 Copilot</h1>
 			<p>Your AI-Powered Assistant</p>
 			<p>Work smarter with AI-driven assistance integrated into your favorite Microsoft 365 apps. From drafting documents to analyzing data, Copilot enhances your productivity.</p>
 		</div>
@@ -327,7 +330,7 @@
 			</div>
 			
 			<div class="app-card">
-				<h4><i class="fas fa-presentation"></i> PowerPoint & Presentations</h4>
+				<h4><i class="fas fa-book"></i> PowerPoint & Presentations</h4>
 				<p>Create professional presentations effortlessly with AI-assisted design suggestions and content generation.</p>
 			</div>
 			
@@ -337,7 +340,7 @@
 			</div>
 			
 			<div class="app-card">
-				<h4><i class="fas fa-chat"></i> Teams & Collaboration</h4>
+				<h4><i class="fas fa-users"></i> Teams & Collaboration</h4>
 				<p>Summarize meetings, capture action items, and enhance team collaboration with AI-powered assistance.</p>
 			</div>
 			
@@ -480,7 +483,7 @@
 <section class="cta-section">
 	<div class="container">
 		<h2>Ready to Transform Your Work with Copilot?</h2>
-		<p>Let our experts help you implement Microsoft 365 Copilot to boost your team's productivity and innovation.</p>
+		<p class="text-light">Let our experts help you implement Microsoft 365 Copilot to boost your team's productivity and innovation.</p>
 		<div class="cta-buttons">
 			<a href="#consultation" class="btn-primary">Get Started with Copilot</a>
 			<a href="#contact" class="btn-secondary">Learn More</a>
@@ -488,20 +491,4 @@
 	</div>
 </section>
 
-<h3 class="">Digital Services: Your AI-Powered Assistant in Microsoft 365 	<center><hr class="default-background hr" ></center></h3>
-<h5 class="mt-2 mb-2">Work Smarter with CoPilot - AI-Powered Assistance</h5>
-<p>CoPilot is the AI-driven assistant integrated into Microsoft 365 apps, designed to help you work more efficiently. Whether you're drafting documents, creating presentations, or analyzing data, CoPilot can suggest ideas, automate tasks, and provide insights, allowing you to focus on what matters most.</p>
-<blockquote>
-	<p> 
-	<h5 class="text-light"><i class="icofont-quote-left"></i><strong>Key Features</strong></h5> 
-</p>
 
-<ol class="ml-5">
-	<li class="mt-1">Automate Manual Processes: Create bots that perform repetitive tasks quickly and accurately.  </li>
-	<li class="mt-1">Intelligent Suggestions: Receive AI-powered recommendations while you work. </li>
-	<li class="mt-1">Task Automation: Let CoPilot handle routine tasks, from email drafting to data analysis.  </li>
-	<li class="mt-1">Data-Driven Insights: Get real-time insights to make informed decisions quickly. </li>
-	
-</ol>	
-									
-</blockquote>
