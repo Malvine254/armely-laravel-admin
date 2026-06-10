@@ -336,12 +336,7 @@
     height: 250px;
     overflow: hidden;
 }
-.card-image-wrapper,
-.card-image-wrapper > * {
-    padding: 0;
-    margin: 0;
-    height: 100%;
-}
+
 .card-image {
     width: 100%;
     height: 100%;
