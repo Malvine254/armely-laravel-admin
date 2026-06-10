@@ -331,7 +331,8 @@
 	box-shadow: 0 20px 34px rgba(24, 54, 107, 0.16);
 }
 .card-image-wrapper {
-	height: 180px;
+	min-height: 180px;
+	height: auto;
 }
 .card-content {
 	padding: 18px;
