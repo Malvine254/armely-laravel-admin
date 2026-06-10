@@ -376,10 +376,14 @@ class BlogController extends Controller
 
     private function resolveBlogTable(): ?string
     {
-        foreach (['blogs', 'blog'] as $table) {
-            if (Schema::hasTable($table)) {
-                return $table;
+        try {
+            foreach (['blogs', 'blog'] as $table) {
+                if (Schema::hasTable($table)) {
+                    return $table;
+                }
             }
+        } catch (\Throwable $e) {
+            Log::warning('Blog table availability check failed', ['error' => $e->getMessage()]);
         }
 
         return null;
@@ -387,7 +391,16 @@ class BlogController extends Controller
 
     private function columnExists(string $table, string $column): bool
     {
-        return Schema::hasColumn($table, $column);
+        try {
+            return Schema::hasColumn($table, $column);
+        } catch (\Throwable $e) {
+            Log::warning('Blog column availability check failed', [
+                'table' => $table,
+                'column' => $column,
+                'error' => $e->getMessage(),
+            ]);
+            return false;
+        }
     }
 
     private function firstExistingColumn(string $table, array $columns): ?string
