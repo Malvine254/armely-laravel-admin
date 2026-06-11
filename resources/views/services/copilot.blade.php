@@ -330,7 +330,7 @@
 			</div>
 			
 			<div class="app-card">
-				<h4><i class="fas fa-book"></i> PowerPoint & Presentations</h4>
+				<h4><i class="fas fa-book1"></i> PowerPoint & Presentations</h4>
 				<p>Create professional presentations effortlessly with AI-assisted design suggestions and content generation.</p>
 			</div>
 			
