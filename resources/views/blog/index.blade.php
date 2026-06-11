@@ -245,26 +245,6 @@ if (!function_exists('armely_blog_clean_html')) {
 
 @push('scripts')
 <script>
-// Helper function to set and get cookies
-function setCookie(name, value, days = 30) {
-	const date = new Date();
-	date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
-	const expires = "expires=" + date.toUTCString();
-	document.cookie = name + "=" + value + ";" + expires + ";path=/";
-}
-
-function getCookie(name) {
-	const nameEQ = name + "=";
-	const cookies = document.cookie.split(';');
-	for (let i = 0; i < cookies.length; i++) {
-		const cookie = cookies[i].trim();
-		if (cookie.indexOf(nameEQ) === 0) {
-			return true;
-		}
-	}
-	return false;
-}
-
 document.addEventListener('DOMContentLoaded', function() {
 	const searchBar = document.getElementById('searchBar');
 	const noResults = document.getElementById('noResults');
@@ -890,10 +870,6 @@ document.addEventListener('DOMContentLoaded', function() {
 		mainContent.style.opacity = '0.5';
 		mainContent.style.pointerEvents = 'none';
 		
-		// Check if user has already viewed this blog
-		const cookieName = 'blog_viewed_' + blogId;
-		const hasViewed = getCookie(cookieName);
-		
 		fetch(`{{ url('/blog') }}/${blogId}`, {
 			headers: {
 				'X-Requested-With': 'XMLHttpRequest'
@@ -917,12 +893,7 @@ document.addEventListener('DOMContentLoaded', function() {
 					
 					window.history.pushState({blogId: blogId}, '', `{{ url('/blog') }}/${blogId}`);
 					window.scrollTo({top: 0, behavior: 'smooth'});
-					
-					// Set cookie to mark this blog as viewed (if not already viewed)
-					if (!hasViewed) {
-						setCookie(cookieName, 'true', 30);
-					}
-					
+
 					updateRecentPostsViews();
 					reinitializeBlogFeatures();
 				}, 300);

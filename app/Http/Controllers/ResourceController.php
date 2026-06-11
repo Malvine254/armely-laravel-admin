@@ -9,7 +9,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
@@ -321,11 +320,12 @@ class ResourceController extends Controller
             ->first();
 
         if ($resource) {
-            $clickCookie = 'resource_click_' . $resource->id;
-            $countUniqueClick = Schema::hasColumn('resources', 'click_count') && !$request->cookies->has($clickCookie);
+            $countUniqueClick = Schema::hasColumn('resources', 'click_count')
+                && !$this->hasTrackedSessionItem($request, 'resource_click_ids', $resource->id);
 
             if ($countUniqueClick) {
                 $resource->increment('click_count');
+                $this->trackSessionItem($request, 'resource_click_ids', $resource->id);
                 $resource->refresh();
             }
 
@@ -346,10 +346,6 @@ class ResourceController extends Controller
                 'resource' => $resource,
                 'relatedResources' => $relatedResources,
             ]);
-
-            if ($countUniqueClick) {
-                $response->cookie($clickCookie, '1', 60 * 24 * 30);
-            }
 
             return $response;
         }
@@ -402,12 +398,12 @@ class ResourceController extends Controller
                 ->withErrors(['download' => 'No downloadable file is attached to this resource.']);
         }
 
-        $downloadCookie = 'resource_download_' . $resource->id;
-        $countUniqueDownload = Schema::hasColumn('resources', 'download_count') && !$request->cookies->has($downloadCookie);
+        $countUniqueDownload = Schema::hasColumn('resources', 'download_count')
+            && !$this->hasTrackedSessionItem($request, 'resource_download_ids', $resource->id);
 
         if ($countUniqueDownload) {
             $resource->increment('download_count');
-            Cookie::queue($downloadCookie, '1', 60 * 24 * 30);
+            $this->trackSessionItem($request, 'resource_download_ids', $resource->id);
         }
 
         $downloadName = $this->resolveDownloadName($resource, $fileUrl);
@@ -795,6 +791,21 @@ class ResourceController extends Controller
         }
 
         return trim((string) ($payload['slug'] ?? '')) === (string) $resource->slug;
+    }
+
+    private function hasTrackedSessionItem(Request $request, string $key, string|int $id): bool
+    {
+        return in_array((string) $id, (array) $request->session()->get($key, []), true);
+    }
+
+    private function trackSessionItem(Request $request, string $key, string|int $id): void
+    {
+        $items = array_values(array_unique(array_merge(
+            (array) $request->session()->get($key, []),
+            [(string) $id]
+        )));
+
+        $request->session()->put($key, array_slice($items, -250));
     }
 
     private function resolveLocalFilePathFromUrl(string $url): ?string

@@ -44,14 +44,14 @@ class BlogController extends Controller
         $viewsColumn = $this->firstExistingColumn($blogTable, ['clicks', 'views']);
         $orderColumn = $this->firstExistingColumn($blogTable, ['id', 'blog_id', 'created_at']);
 
-        // Increment views only if user hasn't viewed this blog before (cookie-based tracking)
+        // Increment views only if user hasn't viewed this blog before in this session.
         if ($blogId) {
-            $cookieName = 'blog_viewed_' . $blogId;
             try {
-                if (!$request->cookie($cookieName) && $viewsColumn) {
+                if (!$this->hasTrackedSessionItem($request, 'blog_viewed_ids', $blogId) && $viewsColumn) {
                     DB::table($blogTable)
                         ->where($blogIdColumn, $blogId)
                         ->increment($viewsColumn);
+                    $this->trackSessionItem($request, 'blog_viewed_ids', $blogId);
                 }
             } catch (\Throwable $e) {
                 Log::warning('Blog click increment failed', ['error' => $e->getMessage()]);
@@ -102,18 +102,12 @@ class BlogController extends Controller
             Log::warning('Blog list query failed', ['error' => $e->getMessage()]);
         }
 
-        // Set cookie for this blog view (expires in 30 days)
         if ($blogId) {
-            $response = response()->view('blog.index', [
+            return response()->view('blog.index', [
                 'main' => $main,
                 'recent' => $recent,
                 'dbErrorMessage' => $dbErrorMessage,
             ]);
-            
-            $cookieName = 'blog_viewed_' . $blogId;
-            $response->cookie($cookieName, true, 60 * 24 * 30); // 30 days
-            
-            return $response;
         }
 
         return view('blog.index', [
@@ -123,7 +117,7 @@ class BlogController extends Controller
         ]);
     }
 
-    // API endpoint to increment blog clicks with cookie tracking
+    // API endpoint to increment blog clicks with session tracking.
     public function incrementClicks(Request $request, $blogId)
     {
         try {
@@ -139,13 +133,12 @@ class BlogController extends Controller
             $blogIdColumn = $this->columnExists($blogTable, 'blog_id') ? 'blog_id' : 'id';
             $viewsColumn = $this->firstExistingColumn($blogTable, ['clicks', 'views']);
 
-            $cookieName = 'blog_viewed_' . $blogId;
-            
             // Only increment if user hasn't viewed this blog before
-            if (!$request->cookie($cookieName) && $viewsColumn) {
+            if (!$this->hasTrackedSessionItem($request, 'blog_viewed_ids', $blogId) && $viewsColumn) {
                 DB::table($blogTable)
                     ->where($blogIdColumn, $blogId)
                     ->increment($viewsColumn);
+                $this->trackSessionItem($request, 'blog_viewed_ids', $blogId);
             }
 
             $blog = DB::table($blogTable)
@@ -157,10 +150,7 @@ class BlogController extends Controller
                 'clicks' => ($viewsColumn && $blog) ? ($blog->{$viewsColumn} ?? 0) : 0,
                 'message' => 'Views updated successfully'
             ]);
-            
-            // Set cookie to track this view
-            $response->cookie($cookieName, true, 60 * 24 * 30); // 30 days
-            
+
             return $response;
         } catch (\Throwable $e) {
             Log::warning('Blog incrementClicks failed', ['error' => $e->getMessage()]);
@@ -436,6 +426,21 @@ class BlogController extends Controller
         $query->selectRaw('NULL as author_image');
 
         return $query;
+    }
+
+    private function hasTrackedSessionItem(Request $request, string $key, string|int $id): bool
+    {
+        return in_array((string) $id, (array) $request->session()->get($key, []), true);
+    }
+
+    private function trackSessionItem(Request $request, string $key, string|int $id): void
+    {
+        $items = array_values(array_unique(array_merge(
+            (array) $request->session()->get($key, []),
+            [(string) $id]
+        )));
+
+        $request->session()->put($key, array_slice($items, -250));
     }
 
     private function resolveAuthorImageMap(): array

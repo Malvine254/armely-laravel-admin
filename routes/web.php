@@ -28,7 +28,7 @@ Route::get('/contact', [HomeController::class, 'contact'])->name('contact');
 Route::post('/contact', [HomeController::class, 'submitContact'])->name('contact.submit');
 Route::post('/newsletter/subscribe', [NewsletterController::class, 'subscribe'])->name('newsletter.subscribe');
 Route::get('/newsletter/unsubscribe/{token}', [NewsletterController::class, 'unsubscribe'])->name('newsletter.unsubscribe');
-
+Route::get('/invoice-lens', [HomeController::class, 'invoiceLens'])->name('invoice-lens');
 // Thank you page - only accessible via form submission with valid session token
 Route::get('/contact/thank-you', [HomeController::class, 'contactThankYou'])
     ->middleware(\App\Http\Middleware\ContactSubmissionMiddleware::class)

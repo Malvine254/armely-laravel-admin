@@ -200,6 +200,11 @@ class HomeController extends Controller
         ]);
     }
 
+    public function invoiceLens()
+    {
+        return view('invoice-lens');
+    }
+
     public function career()
     {
         $dbErrorMessage = null;
@@ -315,6 +320,8 @@ class HomeController extends Controller
 
     public function serviceDetails($name)
     {
+        $name = $this->normalizeServiceDetailSlug($name);
+
         // Freemiums is a valid service-details page backed by a dedicated partial.
         if (strtolower($name) === 'freemiums') {
             $dbErrorMessage = null;
@@ -373,6 +380,31 @@ class HomeController extends Controller
             'dbErrorMessage' => $dbErrorMessage,
             'recaptchaSiteKey' => config('services.recaptcha.site_key', ''),
         ]);
+    }
+
+    private function normalizeServiceDetailSlug(string $name): string
+    {
+        $slug = strtolower(trim($name));
+
+        return [
+            'fabric' => 'microsoft-fabric',
+            'data-science' => 'data-science-and-analytics',
+            'powerapps' => 'microsoft-powerapps',
+            'power-apps' => 'microsoft-powerapps',
+            'powerautomate' => 'microsoft-power-automate',
+            'power-automate' => 'microsoft-power-automate',
+            'dynamics365' => 'microsoft-dynamics-365',
+            'dynamics-365' => 'microsoft-dynamics-365',
+            'virtualagents' => 'microsoft-power-virtual-agents',
+            'virtual-agents' => 'microsoft-power-virtual-agents',
+            'roboticprocessing' => 'robotic-processing-automation',
+            'robotic-process-automation' => 'robotic-processing-automation',
+            'rpa' => 'robotic-processing-automation',
+            'powerplatform' => 'microsoft-power-pages',
+            'power-platform' => 'microsoft-power-pages',
+            'sharepointonline' => 'sharepoint-online',
+            'sharepoint' => 'sharepoint-online',
+        ][$slug] ?? $name;
     }
 
     public function submitConsultation(Request $request)
