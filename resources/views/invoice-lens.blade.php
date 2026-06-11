@@ -1,15 +1,15 @@
 @extends('layouts.public')
 
-@section('title', 'Invoice Lens | Armely')
+@section('title', 'Armely - InvoiceLens')
 @section('meta_description', 'Invoice Lens from Armely gives Enverus OpenInvoice operators real-time visibility into pending invoices before they reach AP and ERP systems.')
 @section('meta_keywords', 'Invoice Lens, OpenInvoice, Enverus OpenInvoice, AP visibility, invoice search, oil and gas finance, Armely')
 @section('canonical_url', url('/invoice-lens'))
 
 @push('head')
-<meta property="og:title" content="Invoice Lens | Armely">
+<meta property="og:title" content="Armely - InvoiceLens">
 <meta property="og:description" content="Real-time invoice visibility for Enverus OpenInvoice operators, deployed inside your environment by Armely.">
 <meta property="og:url" content="{{ url('/invoice-lens') }}">
-<meta name="twitter:title" content="Invoice Lens | Armely">
+<meta name="twitter:title" content="Armely - InvoiceLens">
 <meta name="twitter:description" content="See pending OpenInvoice spend before it reaches your ERP or AP system.">
 @endpush
 
