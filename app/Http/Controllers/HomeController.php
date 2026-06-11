@@ -404,6 +404,7 @@ class HomeController extends Controller
             'power-platform' => 'microsoft-power-pages',
             'sharepointonline' => 'sharepoint-online',
             'sharepoint' => 'sharepoint-online',
+            'custom-development' => 'custom-development'
         ][$slug] ?? $name;
     }
 
