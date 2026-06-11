@@ -1071,10 +1071,12 @@ main .service-card {
                     <h3 class="mega-column-title">Business Applications</h3>
                     <ul class="mega-link-list">
                         <li><a href="{{ route('service-details', ['name' => 'microsoft-power-pages']) }}">Power Platform<span class="mega-link-description">Low-code solutions for automation, apps, and analytics.</span></a></li>
-                        <li><a href="{{ route('service-details', ['name' => 'microsoft-powerapps']) }}">Power Apps<span class="mega-link-description">Build business applications faster with low-code development.</span></a></li>
-                        <li><a href="{{ route('service-details', ['name' => 'microsoft-power-automate']) }}">Power Automate<span class="mega-link-description">Automate repetitive business processes and workflows.</span></a></li>
-                        <!-- <li><a href="{{ route('service-details', ['name' => 'microsoft-dynamics-365']) }}">Dynamics 365<span class="mega-link-description">Connect customer, finance, and operations processes.</span></a></li> -->
+                        <!-- <li><a href="{{ route('service-details', ['name' => 'microsoft-powerapps']) }}">Power Apps<span class="mega-link-description">Build business applications faster with low-code development.</span></a></li>
+                        <li><a href="{{ route('service-details', ['name' => 'microsoft-power-automate']) }}">Power Automate<span class="mega-link-description">Automate repetitive business processes and workflows.</span></a></li> -->
+                        <li><a href="{{ route('service-details', ['name' => 'microsoft-dynamics-365']) }}">Dynamics 365<span class="mega-link-description">Connect customer, finance, and operations processes.</span></a></li>
                         <li><a href="{{ route('service-details', ['name' => 'sharepoint-online']) }}">SharePoint Online<span class="mega-link-description">Modern collaboration, document management, and intranets.</span></a></li>
+                        <li><a href="{{ route('service-details', ['name' => 'custom-development']) }}">Custom Development<span class="mega-link-description">Connect customer, finance, and operations processes.</span></a></li>
+
                     </ul>
                 </div>
 
@@ -1085,6 +1087,8 @@ main .service-card {
                         <li><a href="{{ route('invoice-lens') }}">Invoice Lens<span class="mega-link-description">Live invoice visibility for Enverus OpenInvoice operators.</span></a></li>
                     </ul>
                 </div>
+                
+                
             </div>
         </div>
     </div>
