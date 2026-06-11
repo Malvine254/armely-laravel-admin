@@ -520,7 +520,6 @@
     width: 100vw !important;
     max-width: 100vw !important;
     margin: 0 !important;
-    transform: translateY(10px);
     z-index: 1000;
     background: #fbfbfd;
     border: 1px solid #dbe5f4;
@@ -531,7 +530,7 @@
     visibility: hidden;
     pointer-events: none;
     overflow-x: hidden;
-    transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s ease;
+    transition: opacity 0.18s ease, visibility 0.18s ease;
 }
 
 .header .mega-nav-item:hover > .mega-panel,
@@ -540,7 +539,6 @@
     opacity: 1;
     visibility: visible;
     pointer-events: auto;
-    transform: translateY(0);
 }
 
 .mega-panel-inner {
@@ -726,6 +724,20 @@ main .service-card {
     background: transparent !important;
 }
 
+.header .mega-link-list a.menu-link-active,
+.header .mega-feature-card.menu-link-active {
+    color: #2f5597 !important;
+    font-weight: 700 !important;
+    text-decoration: underline !important;
+    text-decoration-thickness: 2px !important;
+    text-underline-offset: 4px !important;
+}
+
+.header .mega-link-list a.menu-link-active .mega-link-description,
+.header .mega-feature-card.menu-link-active p {
+    color: #405f9f !important;
+}
+
 
 .mega-link-description {
     display: block;
@@ -776,6 +788,21 @@ main .service-card {
 .mobile-dropdown-menu .mobile-mega-panel a:hover {
     background: transparent;
     color: #2f5597;
+}
+
+.mobile-dropdown-menu .sub-toggle.menu-link-active {
+    color: #2f5597;
+    background: #eaf1ff;
+    font-weight: 700;
+}
+
+.mobile-dropdown-menu .mobile-mega-panel a.menu-link-active,
+.mobile-dropdown-menu > ul > li > a.menu-link-active {
+    color: #2f5597;
+    font-weight: 700;
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 4px;
 }
 
 .mobile-dropdown-menu .sub-toggle {
@@ -907,8 +934,8 @@ main .service-card {
 {{-- Include Cookies Consent --}}
 @include('partials.cookies-consent')
 
-{{-- Include AI Data Readiness Assessment Pop-up --}}
-@include('partials.ai-readiness-popup')
+{{-- AI Data Readiness Assessment Pop-up temporarily disabled. --}}
+{{-- @include('partials.ai-readiness-popup') --}}
 
 <div class="announcement-banner default-background mb-4" id="announcementBanner">
     <span class="banner-item">
@@ -1002,7 +1029,7 @@ main .service-card {
                                             
                                         </div>
                                     </li>
-                              <li class="mega-nav-item {{ request()->is('services','service-details*','mela-ai') ? 'active' : '' }}">
+                              <li class="mega-nav-item {{ request()->is('services','service-details*','mela-ai','invoice-lens') ? 'active' : '' }}">
     <button type="button" class="mega-trigger" aria-expanded="false">
         What We Do
         <i class="icofont-rounded-down mega-icon-closed" aria-hidden="true"></i>
@@ -1032,8 +1059,8 @@ main .service-card {
                 <div>
                     <h3 class="mega-column-title">Data & AI Platforms</h3>
                     <ul class="mega-link-list">
-                        <li><a href="{{ route('service-details', ['name' => 'fabric']) }}">Microsoft Fabric<span class="mega-link-description">Unified analytics, engineering, and business intelligence platform.</span></a></li>
-                        <li><a href="{{ route('service-details', ['name' => 'databricks']) }}">Databricks<span class="mega-link-description">Advanced analytics and machine learning at scale.</span></a></li>
+                        <li><a href="{{ route('service-details', ['name' => 'microsoft-fabric']) }}">Microsoft Fabric<span class="mega-link-description">Unified analytics, engineering, and business intelligence platform.</span></a></li>
+                        <!-- <li><a href="{{ route('service-details', ['name' => 'databricks']) }}">Databricks<span class="mega-link-description">Advanced analytics and machine learning at scale.</span></a></li> -->
                         <li><a href="{{ route('service-details', ['name' => 'snowflake']) }}">Snowflake<span class="mega-link-description">Cloud-native data warehousing and data sharing solutions.</span></a></li>
                         <li><a href="{{ route('service-details', ['name' => 'generative-ai']) }}">Generative AI<span class="mega-link-description">Deploy enterprise AI experiences powered by LLMs.</span></a></li>
                         <li><a href="{{ route('service-details', ['name' => 'copilot']) }}">Microsoft Copilot<span class="mega-link-description">Increase productivity with AI-powered copilots.</span></a></li>
@@ -1043,18 +1070,19 @@ main .service-card {
                 <div>
                     <h3 class="mega-column-title">Business Applications</h3>
                     <ul class="mega-link-list">
-                        <li><a href="{{ route('service-details', ['name' => 'powerplatform']) }}">Power Platform<span class="mega-link-description">Low-code solutions for automation, apps, and analytics.</span></a></li>
-                        <li><a href="{{ route('service-details', ['name' => 'powerapps']) }}">Power Apps<span class="mega-link-description">Build business applications faster with low-code development.</span></a></li>
-                        <li><a href="{{ route('service-details', ['name' => 'powerautomate']) }}">Power Automate<span class="mega-link-description">Automate repetitive business processes and workflows.</span></a></li>
-                        <li><a href="{{ route('service-details', ['name' => 'dynamics365']) }}">Dynamics 365<span class="mega-link-description">Connect customer, finance, and operations processes.</span></a></li>
-                        <li><a href="{{ route('service-details', ['name' => 'sharepointonline']) }}">SharePoint Online<span class="mega-link-description">Modern collaboration, document management, and intranets.</span></a></li>
+                        <li><a href="{{ route('service-details', ['name' => 'microsoft-power-pages']) }}">Power Platform<span class="mega-link-description">Low-code solutions for automation, apps, and analytics.</span></a></li>
+                        <li><a href="{{ route('service-details', ['name' => 'microsoft-powerapps']) }}">Power Apps<span class="mega-link-description">Build business applications faster with low-code development.</span></a></li>
+                        <li><a href="{{ route('service-details', ['name' => 'microsoft-power-automate']) }}">Power Automate<span class="mega-link-description">Automate repetitive business processes and workflows.</span></a></li>
+                        <!-- <li><a href="{{ route('service-details', ['name' => 'microsoft-dynamics-365']) }}">Dynamics 365<span class="mega-link-description">Connect customer, finance, and operations processes.</span></a></li> -->
+                        <li><a href="{{ route('service-details', ['name' => 'sharepoint-online']) }}">SharePoint Online<span class="mega-link-description">Modern collaboration, document management, and intranets.</span></a></li>
                     </ul>
                 </div>
 
                 <div>
                     <h3 class="mega-column-title">Solutions</h3>
                     <ul class="mega-link-list">
-                        <li><a href="{{ route('mela-ai') }}">Mela AI<span class="mega-link-description">AI-powered solution for smarter engagement, automation, and business support.</span></a></li>
+                        <li><a href="{{ route('mela-ai') }}">Mela AI<span class="mega-link-description">AI meeting assistant that captures discussions, generates summaries, and improves meeting productivity in Microsoft Teams.</span></a></li>
+                        <li><a href="{{ route('invoice-lens') }}">Invoice Lens<span class="mega-link-description">Live invoice visibility for Enverus OpenInvoice operators.</span></a></li>
                     </ul>
                 </div>
             </div>
@@ -1242,31 +1270,32 @@ main .service-card {
                     <a href="{{ route('service-details', ['name' => 'ai-advisory']) }}">AI Advisory</a>
                     <a href="{{ route('service-details', ['name' => 'generative-ai']) }}">Generative AI</a>
                     <a href="{{ route('service-details', ['name' => 'copilot']) }}">Microsoft Copilot</a>
-                    <a href="{{ route('service-details', ['name' => 'virtualagents']) }}">Virtual Agents</a>
-                    <a href="{{ route('service-details', ['name' => 'roboticprocessing']) }}">Robotic Process Automation</a>
+                    <a href="{{ route('service-details', ['name' => 'microsoft-power-virtual-agents']) }}">Virtual Agents</a>
+                    <a href="{{ route('service-details', ['name' => 'robotic-processing-automation']) }}">Robotic Process Automation</a>
                 </div>
 
                 <div class="mobile-mega-section">
                     <h4>Data & Analytics</h4>
                     <a href="{{ route('service-details', ['name' => 'data-strategy']) }}">Data Strategy</a>
-                    <a href="{{ route('service-details', ['name' => 'data-science']) }}">Data Science</a>
-                    <a href="{{ route('service-details', ['name' => 'fabric']) }}">Microsoft Fabric</a>
+                    <a href="{{ route('service-details', ['name' => 'data-science-and-analytics']) }}">Data Science</a>
+                    <a href="{{ route('service-details', ['name' => 'microsoft-fabric']) }}">Microsoft Fabric</a>
                     <a href="{{ route('service-details', ['name' => 'databricks']) }}">Databricks</a>
                     <a href="{{ route('service-details', ['name' => 'snowflake']) }}">Snowflake</a>
                 </div>
 
                 <div class="mobile-mega-section">
                     <h4>Business Platforms</h4>
-                    <a href="{{ route('service-details', ['name' => 'powerplatform']) }}">Power Platform</a>
-                    <a href="{{ route('service-details', ['name' => 'powerapps']) }}">Power Apps</a>
-                    <a href="{{ route('service-details', ['name' => 'powerautomate']) }}">Power Automate</a>
-                    <a href="{{ route('service-details', ['name' => 'dynamics365']) }}">Dynamics 365</a>
-                    <a href="{{ route('service-details', ['name' => 'sharepointonline']) }}">SharePoint Online</a>
+                    <a href="{{ route('service-details', ['name' => 'microsoft-power-pages']) }}">Power Platform</a>
+                    <a href="{{ route('service-details', ['name' => 'microsoft-powerapps']) }}">Power Apps</a>
+                    <a href="{{ route('service-details', ['name' => 'microsoft-power-automate']) }}">Power Automate</a>
+                    <a href="{{ route('service-details', ['name' => 'microsoft-dynamics-365']) }}">Dynamics 365</a>
+                    <a href="{{ route('service-details', ['name' => 'sharepoint-online']) }}">SharePoint Online</a>
                 </div>
 
                 <div class="mobile-mega-section">
                     <h4>Solutions</h4>
                     <a href="{{ route('mela-ai') }}">Mela AI</a>
+                    <a href="{{ route('invoice-lens') }}">Invoice Lens</a>
                 </div>
             </div>
         </li>
@@ -1317,6 +1346,102 @@ main .service-card {
         <li><a href="{{ route('contact') }}">Let's Talk</a></li>
     </ul>
 </div>
+
+<script>
+// Mark active dropdown links on desktop and mobile, including same-page hash links.
+(function() {
+    function normalizePath(path) {
+        if (!path) return '/';
+        path = path.replace(/\/+$/, '');
+        return path === '' ? '/' : path;
+    }
+
+    function canonicalizeServicePath(path) {
+        var serviceAliases = {
+            'fabric': 'microsoft-fabric',
+            'data-science': 'data-science-and-analytics',
+            'powerapps': 'microsoft-powerapps',
+            'power-apps': 'microsoft-powerapps',
+            'powerautomate': 'microsoft-power-automate',
+            'power-automate': 'microsoft-power-automate',
+            'dynamics365': 'microsoft-dynamics-365',
+            'dynamics-365': 'microsoft-dynamics-365',
+            'virtualagents': 'microsoft-power-virtual-agents',
+            'virtual-agents': 'microsoft-power-virtual-agents',
+            'roboticprocessing': 'robotic-processing-automation',
+            'robotic-process-automation': 'robotic-processing-automation',
+            'rpa': 'robotic-processing-automation',
+            'powerplatform': 'microsoft-power-pages',
+            'power-platform': 'microsoft-power-pages',
+            'sharepointonline': 'sharepoint-online',
+            'sharepoint': 'sharepoint-online'
+        };
+
+        return path.replace(/^\/service-details\/([^\/]+)(.*)$/, function(match, slug, rest) {
+            return '/service-details/' + (serviceAliases[slug] || slug) + rest;
+        });
+    }
+
+    function linkMatchesCurrent(linkUrl, currentPath, currentHash) {
+        var linkPath = canonicalizeServicePath(normalizePath(linkUrl.pathname));
+        currentPath = canonicalizeServicePath(currentPath);
+        var linkHash = linkUrl.hash || '';
+
+        if (linkHash) {
+            return linkPath === currentPath && currentHash === linkHash;
+        }
+
+        if (linkPath === currentPath) return true;
+        return linkPath !== '/' && currentPath.indexOf(linkPath + '/') === 0;
+    }
+
+    function markActiveLinks() {
+        var currentPath = normalizePath(window.location.pathname);
+        var currentHash = window.location.hash || '';
+        var links = document.querySelectorAll('.main-menu a[href], .mobile-dropdown-menu a[href]');
+
+        document.querySelectorAll('.mobile-dropdown-menu .sub-toggle.menu-link-active').forEach(function(toggle) {
+            toggle.classList.remove('menu-link-active');
+        });
+
+        links.forEach(function(link) {
+            link.classList.remove('menu-link-active');
+
+            var linkUrl;
+            try {
+                linkUrl = new URL(link.getAttribute('href'), window.location.origin);
+            } catch (e) {
+                return;
+            }
+
+            if (linkUrl.origin !== window.location.origin) return;
+
+            if (linkMatchesCurrent(linkUrl, currentPath, currentHash)) {
+                link.classList.add('menu-link-active');
+
+                var megaItem = link.closest('.mega-nav-item');
+                if (megaItem) megaItem.classList.add('active');
+
+                var mobilePanel = link.closest('.mobile-mega-panel');
+                if (mobilePanel) {
+                    var toggle = mobilePanel.previousElementSibling;
+                    if (toggle && toggle.classList.contains('sub-toggle')) {
+                        toggle.classList.add('menu-link-active');
+                    }
+                }
+            }
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', markActiveLinks);
+    } else {
+        markActiveLinks();
+    }
+
+    window.addEventListener('hashchange', markActiveLinks);
+})();
+</script>
 
 <script>
 // Mobile hamburger toggle - runs immediately, no jQuery dependency
@@ -1401,18 +1526,51 @@ main .service-card {
     if (!nav || !headerInner) return;
 
     var items = nav.querySelectorAll('.mega-nav-item');
+    var closeTimer = null;
 
     function positionMegaPanel(panel) {
         var rect = headerInner.getBoundingClientRect();
-        panel.style.top = rect.bottom + 'px';
+        panel.style.top = Math.max(0, rect.bottom - 1) + 'px';
+    }
+
+    function clearMegaCloseTimer() {
+        if (closeTimer) {
+            window.clearTimeout(closeTimer);
+            closeTimer = null;
+        }
     }
 
     function closeMegaMenus() {
+        clearMegaCloseTimer();
         for (var i = 0; i < items.length; i++) {
             items[i].classList.remove('mega-open');
             var trigger = items[i].querySelector('.mega-trigger');
             if (trigger) trigger.setAttribute('aria-expanded', 'false');
         }
+    }
+
+    function openMegaMenu(item) {
+        clearMegaCloseTimer();
+
+        for (var i = 0; i < items.length; i++) {
+            if (items[i] !== item) {
+                items[i].classList.remove('mega-open');
+                var otherTrigger = items[i].querySelector('.mega-trigger');
+                if (otherTrigger) otherTrigger.setAttribute('aria-expanded', 'false');
+            }
+        }
+
+        var panel = item.querySelector('.mega-panel');
+        var trigger = item.querySelector('.mega-trigger');
+
+        if (panel) positionMegaPanel(panel);
+        item.classList.add('mega-open');
+        if (trigger) trigger.setAttribute('aria-expanded', 'true');
+    }
+
+    function scheduleMegaClose() {
+        clearMegaCloseTimer();
+        closeTimer = window.setTimeout(closeMegaMenus, 700);
     }
 
     for (var i = 0; i < items.length; i++) {
@@ -1423,9 +1581,17 @@ main .service-card {
         if (!trigger || !panel) continue;
 
         item.addEventListener('mouseenter', function() {
-            var p = this.querySelector('.mega-panel');
-            if (p) positionMegaPanel(p);
+            openMegaMenu(this);
         });
+
+        item.addEventListener('mouseleave', scheduleMegaClose);
+
+        panel.addEventListener('mouseenter', function() {
+            var currentItem = this.closest('.mega-nav-item');
+            if (currentItem) openMegaMenu(currentItem);
+        });
+
+        panel.addEventListener('mouseleave', scheduleMegaClose);
 
         trigger.addEventListener('click', function(e) {
             e.preventDefault();
@@ -1438,9 +1604,7 @@ main .service-card {
             closeMegaMenus();
 
             if (!wasOpen) {
-                if (currentPanel) positionMegaPanel(currentPanel);
-                currentItem.classList.add('mega-open');
-                this.setAttribute('aria-expanded', 'true');
+                openMegaMenu(currentItem);
             }
         });
 
@@ -1466,6 +1630,10 @@ main .service-card {
 
     document.addEventListener('click', function(e) {
         if (!nav.contains(e.target)) closeMegaMenus();
+    });
+
+    document.addEventListener('mousemove', function(e) {
+        if (nav.contains(e.target)) clearMegaCloseTimer();
     });
 })();
 </script>
@@ -1499,6 +1667,26 @@ main .service-card {
 
 <!-- Google reCAPTCHA v2 -->
 <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+
+<script>
+(function () {
+    var legacyPrefixes = ['blog_viewed_', 'resource_click_', 'resource_download_'];
+    var expires = 'expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    var hostname = window.location.hostname;
+    var domains = ['', hostname, hostname ? '.' + hostname.replace(/^www\./, '') : ''];
+
+    document.cookie.split(';').forEach(function (cookie) {
+        var name = cookie.split('=')[0].trim();
+        if (!legacyPrefixes.some(function (prefix) { return name.indexOf(prefix) === 0; })) {
+            return;
+        }
+
+        domains.forEach(function (domain) {
+            document.cookie = name + '=;' + expires + ';path=/' + (domain ? ';domain=' + domain : '');
+        });
+    });
+})();
+</script>
 
 <!-- Main Scripts -->
 <script src="{{ asset('js/main.js') }}?v={{ file_exists(public_path('js/main.js')) ? filemtime(public_path('js/main.js')) : '' }}" defer></script>

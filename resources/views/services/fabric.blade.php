@@ -1,1108 +1,478 @@
 ﻿<style>
-	.fabric-hero {
-		background: linear-gradient(135deg, #2f5597 0%, #1e3a6d 100%);
-		color: white;
-		padding: 100px 0;
-		position: relative;
-		overflow: hidden;
-	}
-	
-	.fabric-hero::before {
-		content: '';
-		position: absolute;
-		top: 0;
-		left: 0;
-		right: 0;
-		bottom: 0;
-		background: 
-			radial-gradient(circle at 20% 50%, rgba(255,255,255,0.1) 0%, transparent 50%),
-			radial-gradient(circle at 80% 80%, rgba(255,255,255,0.08) 0%, transparent 40%);
-		pointer-events: none;
-	}
-	
-	.fabric-hero-content {
-		position: relative;
-		z-index: 1;
-		text-align: center;
-	}
-	
-	.fabric-hero h1 {
-		font-size: 3.5rem;
-		font-weight: 700;
-		margin-bottom: 25px;
-		text-shadow: 0 2px 10px rgba(0,0,0,0.2);
-		animation: fadeInDown 0.8s ease;
-	}
-	
-	.fabric-hero p {
-		font-size: 1.2rem;
-		max-width: 850px;
-		margin: 0 auto 15px;
-		line-height: 1.8;
-		color: rgba(255,255,255,0.95);
-		animation: fadeInUp 0.8s ease;
-	}
+.armely-service-page *, .armely-service-page *::before, .armely-service-page *::after{ box-sizing: border-box; margin: 0; padding: 0; }.armely-service-page{
+    --navy:      #FFFFFF;
+    --navy-mid:  #F3F6FB;
+    --navy-card: #EBF0F8;
+    --blue:      #294e8b;
+    --blue-lt:   #3d6ab5;
+    --blue-dim:  rgba(41,78,139,0.08);
+    --blue-dim2: rgba(41,78,139,0.16);
+    --white:     #1A2540;
+    --off-white: #F5F7FA;
+    --text-body: #3D4F6B;
+    --text-muted:#6B7FA3;
+    --border:    rgba(41,78,139,0.1);
+  }.armely-service-page{ scroll-behavior: smooth; }.armely-service-page{
+    font-family: 'Poppins', sans-serif;
+    background: var(--navy);
+    color: var(--text-body);
+    line-height: 1.6;
+  }.armely-service-page nav{
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 18px 56px;
+    background: rgba(26,46,82,0.96);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }.armely-service-page .logo{ display: flex; align-items: center; gap: 10px; }.armely-service-page .logo-mark{
+    width: 36px; height: 36px;
+    background: var(--blue);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 1rem; color: #fff;
+  }.armely-service-page .logo-text{ font-size: 1.25rem; font-weight: 700; color: #fff; letter-spacing: -0.01em; }.armely-service-page .nav-links{ display: flex; gap: 32px; align-items: center; list-style: none; }.armely-service-page .nav-links a{
+    color: rgba(255,255,255,0.6); text-decoration: none;
+    font-size: 0.875rem; font-weight: 500; transition: color 0.2s;
+  }.armely-service-page .nav-links a:hover{ color: #fff; }.armely-service-page .nav-cta{
+    background: var(--blue); color: #fff !important;
+    padding: 10px 22px; border-radius: 6px;
+    font-size: 0.875rem; font-weight: 600 !important;
+    transition: background 0.2s !important;
+  }.armely-service-page .nav-cta:hover{ background: var(--blue-lt) !important; }.armely-service-page .hero{
+    min-height: 100vh;
+    display: flex; flex-direction: column; justify-content: center;
+    padding: 140px 56px 100px;
+    position: relative; overflow: hidden;
+    background: #1a2e52;
+  }.armely-service-page .hero-bg-glow{
+    position: absolute; top: -180px; right: -100px;
+    width: 720px; height: 720px;
+    background: radial-gradient(circle, rgba(41,78,139,0.2) 0%, transparent 68%);
+    pointer-events: none;
+  }.armely-service-page .hero h1{
+    font-size: clamp(2.6rem, 5.5vw, 4.8rem);
+    font-weight: 800; line-height: 1.08;
+    color: #FFFFFF; max-width: 780px;
+    margin-bottom: 24px; letter-spacing: -0.03em;
+  }.armely-service-page .hero h1 .hl{ color: #FFFFFF; opacity: 0.92; }.armely-service-page .hero-sub{
+    font-size: 1.05rem; font-weight: 300;
+    color: rgba(255,255,255,0.82); max-width: 540px;
+    margin-bottom: 40px; line-height: 1.8;
+  }.armely-service-page .hero-eyebrow{ display: inline-flex; align-items: center; gap: 10px; margin-bottom: 24px; }.armely-service-page .eyebrow-badge{
+    background: rgba(41,78,139,0.35);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: rgba(255,255,255,0.9);
+    font-size: 0.72rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.12em;
+    padding: 5px 14px; border-radius: 40px;
+  }.armely-service-page .eyebrow-partner{ font-size: 0.78rem; color: rgba(255,255,255,0.5); font-weight: 400; }.armely-service-page .hero-actions{ display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 72px; }.armely-service-page .btn-primary{
+    background: var(--blue); color: #fff;
+    border: none; border-radius: 7px; padding: 14px 32px;
+    font-family: 'Poppins', sans-serif; font-size: 0.95rem; font-weight: 600;
+    cursor: pointer; text-decoration: none;
+    transition: background 0.2s, transform 0.15s; display: inline-block;
+  }.armely-service-page .btn-primary:hover{ background: var(--blue-lt); transform: translateY(-2px); }.armely-service-page .btn-outline{
+    background: transparent; color: rgba(255,255,255,0.85);
+    border: 1px solid rgba(255,255,255,0.25); border-radius: 7px; padding: 14px 32px;
+    font-family: 'Poppins', sans-serif; font-size: 0.95rem; font-weight: 500;
+    cursor: pointer; text-decoration: none;
+    transition: border-color 0.2s, background 0.2s; display: inline-block;
+  }.armely-service-page .btn-outline:hover{ border-color: rgba(255,255,255,0.5); background: rgba(255,255,255,0.06); }.armely-service-page .hero-trust{
+    display: flex; gap: 40px; flex-wrap: wrap;
+    padding-top: 40px; border-top: 1px solid rgba(255,255,255,0.12);
+  }.armely-service-page .trust-item{ display: flex; align-items: center; gap: 10px; }.armely-service-page .trust-dot{ width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.5); flex-shrink: 0; }.armely-service-page .trust-text{ font-size: 0.82rem; color: rgba(255,255,255,0.6); font-weight: 400; }.armely-service-page .trust-text strong{ color: #fff; font-weight: 600; }.armely-service-page section{ padding: 96px 56px; }.armely-service-page .section-inner{ max-width: 1100px; margin: 0 auto; }.armely-service-page .section-eyebrow{
+    font-size: 0.72rem; text-transform: uppercase;
+    letter-spacing: 0.14em; color: var(--blue);
+    margin-bottom: 14px; font-weight: 600;
+  }.armely-service-page .section-title{
+    font-size: clamp(1.7rem, 3.2vw, 2.6rem);
+    font-weight: 800; color: #1A2540;
+    line-height: 1.12; letter-spacing: -0.025em;
+    margin-bottom: 18px; max-width: 620px;
+  }.armely-service-page .section-body{
+    font-size: 0.975rem; font-weight: 300;
+    max-width: 540px; line-height: 1.8;
+    color: var(--text-body); margin-bottom: 48px;
+  }.armely-service-page .intro{ background: var(--navy-mid); }.armely-service-page .intro-grid{ display: grid; grid-template-columns: 1fr 1fr; gap: 72px; align-items: center; }.armely-service-page .workload-grid{ display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 28px; }.armely-service-page .workload-pill{
+    background: var(--blue-dim);
+    border: 1px solid var(--blue-dim2);
+    border-radius: 10px; padding: 12px 16px;
+    display: flex; align-items: center; gap: 10px;
+  }.armely-service-page .workload-pill-icon{ font-size: 1.1rem; flex-shrink: 0; }.armely-service-page .workload-pill-label{ font-size: 0.8rem; font-weight: 600; color: var(--blue); line-height: 1.3; }.armely-service-page .onelake-callout{
+    margin-top: 20px;
+    background: var(--blue);
+    border-radius: 10px; padding: 16px 20px;
+    display: flex; align-items: center; gap: 14px;
+  }.armely-service-page .onelake-callout-icon{ font-size: 1.4rem; flex-shrink: 0; }.armely-service-page .onelake-callout-text{ font-size: 0.85rem; color: rgba(255,255,255,0.9); line-height: 1.55; }.armely-service-page .onelake-callout-text strong{ color: #fff; }.armely-service-page .diagram-card{
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 16px; overflow: hidden;
+    box-shadow: 0 4px 24px rgba(41,78,139,0.08);
+  }.armely-service-page .diagram-header{
+    padding: 16px 22px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+    background: var(--navy-mid);
+  }.armely-service-page .diagram-dots{ display: flex; gap: 6px; }.armely-service-page .diagram-dots span{ width: 10px; height: 10px; border-radius: 50%; background: rgba(41,78,139,0.15); }.armely-service-page .diagram-title{ font-size: 0.78rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; }.armely-service-page .diagram-body{ padding: 24px; }.armely-service-page .diag-layer{
+    border-radius: 10px; padding: 14px 18px;
+    margin-bottom: 8px; text-align: center;
+  }.armely-service-page .diag-layer-label{ font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px; }.armely-service-page .diag-layer-items{ display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }.armely-service-page .diag-chip{
+    font-size: 0.72rem; font-weight: 600; padding: 4px 10px;
+    border-radius: 20px;
+  }.armely-service-page .layer-workloads{ background: rgba(41,78,139,0.07); }.armely-service-page .layer-workloads .diag-layer-label{ color: var(--blue); }.armely-service-page .layer-workloads .diag-chip{ background: var(--blue-dim2); color: var(--blue); }.armely-service-page .layer-platform{ background: rgba(41,78,139,0.12); }.armely-service-page .layer-platform .diag-layer-label{ color: var(--blue); }.armely-service-page .layer-platform .diag-chip{ background: rgba(41,78,139,0.2); color: var(--blue); }.armely-service-page .layer-storage{ background: var(--blue); }.armely-service-page .layer-storage .diag-layer-label{ color: rgba(255,255,255,0.7); }.armely-service-page .layer-storage .diag-chip{ background: rgba(255,255,255,0.15); color: #fff; }.armely-service-page .diag-arrow{ text-align: center; color: var(--text-muted); font-size: 1rem; margin: 4px 0; }.armely-service-page .delivers{ background: var(--navy); }.armely-service-page .delivers-grid{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 48px; }.armely-service-page .deliver-card{
+    background: var(--navy-card);
+    border: 1px solid var(--border); border-radius: 14px; padding: 32px 26px;
+    transition: border-color 0.2s, transform 0.2s;
+  }.armely-service-page .deliver-card:hover{ border-color: rgba(41,78,139,0.35); transform: translateY(-3px); }.armely-service-page .deliver-icon{
+    width: 48px; height: 48px; background: var(--blue-dim);
+    border: 1px solid var(--blue-dim2); border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem; margin-bottom: 20px;
+  }.armely-service-page .deliver-title{ font-size: 1rem; font-weight: 700; color: #1A2540; margin-bottom: 10px; }.armely-service-page .deliver-desc{ font-size: 0.875rem; line-height: 1.7; color: var(--text-body); }.armely-service-page .journey{ background: var(--navy-mid); }.armely-service-page .steps-row{
+    display: grid; grid-template-columns: repeat(5, 1fr);
+    gap: 0; margin-top: 56px;
+    border: 1px solid var(--border); border-radius: 14px; overflow: hidden;
+  }.armely-service-page .step{ padding: 32px 22px; border-right: 1px solid var(--border); }.armely-service-page .step:last-child{ border-right: none; }.armely-service-page .step-num{ font-size: 2.4rem; font-weight: 800; color: rgba(41,78,139,0.18); line-height: 1; margin-bottom: 14px; }.armely-service-page .step-title{ font-size: 0.95rem; font-weight: 700; color: #1A2540; margin-bottom: 10px; }.armely-service-page .step-desc{ font-size: 0.82rem; line-height: 1.65; color: var(--text-body); }.armely-service-page .step-tag{
+    display: inline-block; margin-top: 14px;
+    background: var(--blue-dim); color: var(--blue);
+    font-size: 0.7rem; padding: 3px 10px; border-radius: 4px;
+    font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;
+  }.armely-service-page .usecases{ background: var(--navy); }.armely-service-page .uc-grid{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 48px; }.armely-service-page .uc-card{
+    background: var(--navy-card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 28px 24px; transition: border-color 0.2s;
+  }.armely-service-page .uc-card:hover{ border-color: rgba(41,78,139,0.25); }.armely-service-page .uc-icon{ font-size: 1.6rem; margin-bottom: 14px; display: block; }.armely-service-page .uc-title{ font-size: 0.95rem; font-weight: 700; color: #1A2540; margin-bottom: 8px; }.armely-service-page .uc-desc{ font-size: 0.85rem; line-height: 1.68; color: var(--text-body); }.armely-service-page .why{ background: var(--navy-mid); }.armely-service-page .why-two-col{ display: grid; grid-template-columns: 1fr 1fr; gap: 72px; align-items: start; }.armely-service-page .why-list{ list-style: none; margin-top: 36px; }.armely-service-page .why-list li{ display: flex; gap: 16px; padding: 20px 0; border-bottom: 1px solid var(--border); }.armely-service-page .why-list li:last-child{ border-bottom: none; }.armely-service-page .why-icon{
+    width: 42px; height: 42px; flex-shrink: 0;
+    background: var(--blue-dim); border: 1px solid var(--blue-dim2);
+    border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;
+  }.armely-service-page .why-item-title{ font-weight: 600; color: #1A2540; font-size: 0.9rem; margin-bottom: 4px; }.armely-service-page .why-item-desc{ font-size: 0.84rem; color: var(--text-body); line-height: 1.65; }.armely-service-page .partner-block{ background: #fff; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }.armely-service-page .partner-block-top{ padding: 28px; border-bottom: 1px solid var(--border); }.armely-service-page .partner-label{ font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.14em; color: var(--blue); font-weight: 700; margin-bottom: 10px; }.armely-service-page .partner-text{ font-size: 0.875rem; color: var(--text-body); line-height: 1.7; }.armely-service-page .partner-stats{ display: grid; grid-template-columns: 1fr 1fr; }.armely-service-page .p-stat{ padding: 24px 28px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); }.armely-service-page .p-stat:nth-child(2){ border-right: none; }.armely-service-page .p-stat:nth-child(3){ border-bottom: none; }.armely-service-page .p-stat:nth-child(4){ border-right: none; border-bottom: none; }.armely-service-page .p-stat-num{ font-size: 1.8rem; font-weight: 800; color: #1A2540; line-height: 1; margin-bottom: 4px; }.armely-service-page .p-stat-num span{ color: var(--blue); }.armely-service-page .p-stat-label{ font-size: 0.75rem; color: var(--text-muted); line-height: 1.4; }.armely-service-page .cta-section{ background: var(--navy-card); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }.armely-service-page .cta-inner{
+    max-width: 1100px; margin: 0 auto; padding: 96px 56px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 72px; align-items: center;
+  }.armely-service-page .cta-form{
+    background: #FFFFFF; border: 1px solid var(--border);
+    border-radius: 14px; padding: 36px 32px;
+    box-shadow: 0 4px 24px rgba(41,78,139,0.08);
+  }.armely-service-page .form-title{ font-size: 1.1rem; font-weight: 700; color: #1A2540; margin-bottom: 6px; }.armely-service-page .form-sub{ font-size: 0.84rem; color: var(--text-muted); margin-bottom: 24px; }.armely-service-page .form-row{ margin-bottom: 14px; }.armely-service-page .form-row label{
+    display: block; font-size: 0.75rem; font-weight: 600;
+    color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px;
+  }.armely-service-page .form-row input, .armely-service-page .form-row select{
+    width: 100%; background: #FFFFFF;
+    border: 1px solid rgba(41,78,139,0.15); border-radius: 7px; padding: 11px 14px;
+    font-family: 'Poppins', sans-serif; font-size: 0.875rem; color: #1A2540;
+    outline: none; transition: border-color 0.2s;
+  }.armely-service-page .form-row input:focus, .armely-service-page .form-row select:focus{ border-color: rgba(41,78,139,0.4); }.armely-service-page .form-row select option{ background: #fff; color: #1A2540; }.armely-service-page .form-submit{
+    width: 100%; background: var(--blue); color: #fff;
+    border: none; border-radius: 7px; padding: 14px; margin-top: 8px;
+    font-family: 'Poppins', sans-serif; font-size: 0.95rem; font-weight: 600;
+    cursor: pointer; transition: background 0.2s;
+  }.armely-service-page .form-submit:hover{ background: var(--blue-lt); }.armely-service-page .form-note{ text-align: center; margin-top: 12px; font-size: 0.75rem; color: var(--text-muted); }.armely-service-page footer{
+    background: #1a2e52; border-top: 1px solid rgba(255,255,255,0.08);
+    padding: 36px 56px;
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;
+  }.armely-service-page .footer-logo-row{ display: flex; align-items: center; gap: 10px; }.armely-service-page .footer-lm{ width: 30px; height: 30px; background: var(--blue); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.85rem; color: #fff; }.armely-service-page .footer-lt{ font-size: 1rem; font-weight: 700; color: #fff; }.armely-service-page .footer-note{ font-size: 0.78rem; color: rgba(255,255,255,0.4); }.armely-service-page .footer-badges{ display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }.armely-service-page .badge-chip{ border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; padding: 5px 12px; font-size: 0.72rem; color: rgba(255,255,255,0.5); font-weight: 500; }@media (max-width: 900px){.armely-service-page nav{ padding: 16px 24px; }.armely-service-page .nav-links{ display: none; }.armely-service-page section{ padding: 72px 24px; }.armely-service-page .hero{ padding: 110px 24px 72px; }.armely-service-page .intro-grid, .armely-service-page .why-two-col{ grid-template-columns: 1fr; gap: 40px; }.armely-service-page .delivers-grid, .armely-service-page .uc-grid{ grid-template-columns: 1fr 1fr; }.armely-service-page .steps-row{ grid-template-columns: 1fr; }.armely-service-page .step{ border-right: none; border-bottom: 1px solid var(--border); }.armely-service-page .step:last-child{ border-bottom: none; }.armely-service-page .cta-inner{ grid-template-columns: 1fr; gap: 40px; padding: 72px 24px; }.armely-service-page footer{ padding: 32px 24px; flex-direction: column; align-items: flex-start; }
+  }@media (max-width: 600px){.armely-service-page .delivers-grid, .armely-service-page .uc-grid{ grid-template-columns: 1fr; }.armely-service-page .workload-grid{ grid-template-columns: 1fr; }.armely-service-page .partner-stats{ grid-template-columns: 1fr; }.armely-service-page .hero-trust{ gap: 20px; }
+  }@media (prefers-reduced-motion: reduce){.armely-service-page *{ transition: none !important; animation: none !important; } }
 
-	.fabric-hero .lead {
-		font-size: 1.4rem;
-		font-weight: 600;
-		margin-bottom: 30px;
-	}
-	
-	@keyframes fadeInDown {
-		from {
-			opacity: 0;
-			transform: translateY(-30px);
-		}
-		to {
-			opacity: 1;
-			transform: translateY(0);
-		}
-	}
-
-	@keyframes fadeInUp {
-		from {
-			opacity: 0;
-			transform: translateY(30px);
-		}
-		to {
-			opacity: 1;
-			transform: translateY(0);
-		}
-	}
-
-	.stats-banner {
-		background: white;
-		padding: 40px 0;
-		box-shadow: 0 5px 30px rgba(0,0,0,0.1);
-		margin-top: -40px;
-		position: relative;
-		z-index: 10;
-	}
-
-	.stat-item {
-		text-align: center;
-		padding: 20px;
-	}
-
-	.stat-number {
-		font-size: 2.5rem;
-		font-weight: 700;
-		color: #2f5597;
-		margin-bottom: 5px;
-	}
-
-	.stat-label {
-		color: #666;
-		font-size: 0.95rem;
-		text-transform: uppercase;
-		letter-spacing: 1px;
-	}
-	
-	.fabric-section {
-		padding: 80px 0;
-	}
-	
-	.fabric-section h2 {
-		font-size: 2.5rem;
-		color: #2f5597;
-		font-weight: 700;
-		margin-bottom: 20px;
-		text-align: center;
-	}
-
-	.section-subtitle {
-		text-align: center;
-		color: #666;
-		font-size: 1.1rem;
-		max-width: 700px;
-		margin: 0 auto 50px;
-		line-height: 1.6;
-	}
-	
-	.fabric-section h2::after {
-		content: '';
-		display: block;
-		width: 80px;
-		height: 4px;
-		background: linear-gradient(90deg, #2f5597, #1e3a6d);
-		margin: 20px auto 0;
-		border-radius: 2px;
-	}
-	
-	.fabric-card {
-		background: white;
-		border-radius: 15px;
-		padding: 35px;
-		height: 100%;
-		box-shadow: 0 5px 25px rgba(0, 0, 0, 0.08);
-		transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-		border-top: 4px solid transparent;
-		position: relative;
-		overflow: hidden;
-	}
-
-	.fabric-card::before {
-		content: '';
-		position: absolute;
-		top: 0;
-		left: 0;
-		right: 0;
-		height: 4px;
-		background: linear-gradient(90deg, #2f5597, #1e3a6d);
-		transform: scaleX(0);
-		transition: transform 0.4s ease;
-	}
-	
-	.fabric-card:hover::before {
-		transform: scaleX(1);
-	}
-
-	.fabric-card:hover {
-		transform: translateY(-12px);
-		box-shadow: 0 15px 45px rgba(47, 85, 151, 0.25);
-	}
-	
-	.fabric-card h4 {
-		color: #2f5597;
-		font-size: 1.4rem;
-		font-weight: 700;
-		margin-bottom: 15px;
-		margin-top: 10px;
-	}
-	
-	.fabric-card p {
-		color: #666;
-		line-height: 1.8;
-		margin-bottom: 15px;
-	}
-	
-	.fabric-services-grid {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-		gap: 30px;
-		margin-top: 40px;
-	}
-	
-	.service-icon {
-		width: 60px;
-		height: 60px;
-		background: linear-gradient(135deg, #2f5597, #1e3a6d);
-		border-radius: 15px;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		color: white;
-		font-size: 1.8rem;
-		margin-bottom: 20px;
-		box-shadow: 0 5px 15px rgba(47, 85, 151, 0.3);
-	}
-	
-	.features-list {
-		list-style: none;
-		padding: 0;
-		margin: 20px 0;
-	}
-	
-	.features-list li {
-		padding: 15px 0;
-		color: #555;
-		border-bottom: 1px solid #f0f0f0;
-		display: flex;
-		align-items: flex-start;
-		gap: 12px;
-		line-height: 1.6;
-	}
-	
-	.features-list li::before {
-		content: '✓';
-		color: #2f5597;
-		font-weight: bold;
-		font-size: 1.3rem;
-		flex-shrink: 0;
-		margin-top: 2px;
-	}
-	
-	.features-list li:last-child {
-		border-bottom: none;
-	}
-
-	.feature-section {
-		margin-bottom: 80px;
-	}
-
-	.feature-content {
-		background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-		border-radius: 15px;
-		padding: 50px;
-		position: relative;
-		overflow: hidden;
-	}
-
-	.feature-image-container {
-		position: relative;
-		border-radius: 10px;
-		overflow: hidden;
-		box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-		margin-bottom: 30px;
-	}
-
-	.feature-image-container img {
-		width: 100%;
-		height: auto;
-		display: block;
-		transition: transform 0.5s ease;
-	}
-
-	.feature-image-container:hover img {
-		transform: scale(1.05);
-	}
-
-	.feature-number {
-		font-size: 5rem;
-		font-weight: 700;
-		color: rgba(47, 85, 151, 0.1);
-		position: absolute;
-		top: -20px;
-		right: 20px;
-		line-height: 1;
-	}
-	
-	.process-steps {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-		gap: 25px;
-		margin-top: 50px;
-	}
-	
-	.process-step {
-		background: white;
-		padding: 35px 25px;
-		border-radius: 15px;
-		text-align: center;
-		box-shadow: 0 5px 25px rgba(0, 0, 0, 0.08);
-		transition: all 0.3s ease;
-		position: relative;
-	}
-
-	.process-step:hover {
-		transform: translateY(-8px);
-		box-shadow: 0 10px 35px rgba(47, 85, 151, 0.2);
-	}
-	
-	.step-number {
-		width: 70px;
-		height: 70px;
-		background: linear-gradient(135deg, #2f5597, #1e3a6d);
-		color: white;
-		font-size: 2rem;
-		font-weight: 700;
-		border-radius: 50%;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		margin: 0 auto 20px;
-		box-shadow: 0 5px 15px rgba(47, 85, 151, 0.3);
-	}
-	
-	.process-step h5 {
-		color: #2f5597;
-		font-weight: 700;
-		margin-bottom: 12px;
-		font-size: 1.1rem;
-	}
-	
-	.process-step p {
-		color: #666;
-		font-size: 0.95rem;
-		line-height: 1.6;
-	}
-	
-	.fabric-benefits {
-		background: linear-gradient(135deg, #2f5597 0%, #1e3a6d 100%);
-		color: white;
-		padding: 80px 0;
-		margin-top: 80px;
-		position: relative;
-		overflow: hidden;
-	}
-
-	.fabric-benefits::before {
-		content: '';
-		position: absolute;
-		top: 0;
-		left: 0;
-		right: 0;
-		bottom: 0;
-		background: 
-			radial-gradient(circle at 30% 30%, rgba(255,255,255,0.1) 0%, transparent 50%),
-			radial-gradient(circle at 70% 70%, rgba(255,255,255,0.08) 0%, transparent 40%);
-		pointer-events: none;
-	}
-	
-	.fabric-benefits h2 {
-		color: white;
-		text-align: center;
-		margin-bottom: 60px;
-		font-size: 2.5rem;
-		position: relative;
-		z-index: 1;
-	}
-
-	.fabric-benefits h2::after {
-		background: white;
-	}
-	
-	.benefit-item {
-		text-align: center;
-		padding: 30px 20px;
-		position: relative;
-		z-index: 1;
-	}
-
-	.benefit-icon {
-		width: 80px;
-		height: 80px;
-		background: rgba(255,255,255,0.15);
-		border-radius: 50%;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		margin: 0 auto 20px;
-		font-size: 2rem;
-		backdrop-filter: blur(10px);
-		border: 2px solid rgba(255,255,255,0.2);
-	}
-	
-	.benefit-item h5 {
-		font-size: 1.3rem;
-		margin-bottom: 12px;
-		font-weight: 700;
-	}
-	
-	.benefit-item p {
-		color: rgba(255,255,255,0.9);
-		font-size: 1rem;
-		line-height: 1.7;
-	}
-
-	.workload-cards {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-		gap: 30px;
-		margin-top: 50px;
-	}
-
-	.workload-card {
-		background: white;
-		border-radius: 15px;
-		padding: 30px;
-		text-align: center;
-		box-shadow: 0 5px 25px rgba(0,0,0,0.08);
-		transition: all 0.3s ease;
-		border: 2px solid transparent;
-	}
-
-	.workload-card:hover {
-		border-color: #2f5597;
-		transform: translateY(-8px);
-		box-shadow: 0 10px 35px rgba(47, 85, 151, 0.2);
-	}
-
-	.workload-icon {
-		width: 70px;
-		height: 70px;
-		background: linear-gradient(135deg, #2f5597, #1e3a6d);
-		border-radius: 50%;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		color: white;
-		font-size: 2rem;
-		margin: 0 auto 20px;
-	}
-
-	.workload-card h4 {
-		color: #2f5597;
-		font-size: 1.3rem;
-		font-weight: 700;
-		margin-bottom: 15px;
-	}
-
-	.workload-card p {
-		color: #666;
-		line-height: 1.7;
-		font-size: 0.95rem;
-	}
-	
-	.cta-section {
-		background: linear-gradient(135deg, #2f5597 0%, #1e3a6d 100%);
-		color: white;
-		padding: 80px 0;
-		text-align: center;
-		position: relative;
-		overflow: hidden;
-	}
-
-	.cta-section::before {
-		content: '';
-		position: absolute;
-		top: 0;
-		left: 0;
-		right: 0;
-		bottom: 0;
-		background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.1) 0%, transparent 70%);
-		pointer-events: none;
-	}
-	
-	.cta-section h2 {
-		color: white;
-		font-size: 2.8rem;
-		margin-bottom: 20px;
-		position: relative;
-		z-index: 1;
-	}
-	
-	.cta-section p {
-		font-size: 1.2rem;
-		margin-bottom: 40px;
-		max-width: 700px;
-		margin-left: auto;
-		margin-right: auto;
-		position: relative;
-		z-index: 1;
-		line-height: 1.8;
-	}
-	
-	.cta-buttons {
-		display: flex;
-		gap: 20px;
-		justify-content: center;
-		flex-wrap: wrap;
-		position: relative;
-		z-index: 1;
-	}
-	
-	.btn-primary-light {
-		padding: 16px 40px;
-		background: white;
-		color: #2f5597;
-		text-decoration: none;
-		border-radius: 50px;
-		font-weight: 600;
-		transition: all 0.3s ease;
-		border: none;
-		cursor: pointer;
-		font-size: 1.05rem;
-		box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-	}
-	
-	.btn-primary-light:hover {
-		transform: scale(1.08);
-		box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-		color: #2f5597;
-	}
-	
-	.btn-secondary-light {
-		padding: 16px 40px;
-		background: transparent;
-		color: white;
-		border: 2px solid white;
-		text-decoration: none;
-		border-radius: 50px;
-		font-weight: 600;
-		transition: all 0.3s ease;
-		cursor: pointer;
-		font-size: 1.05rem;
-	}
-	
-	.btn-secondary-light:hover {
-		background: white;
-		color: #2f5597;
-		transform: scale(1.08);
-	}
-
-	.comparison-table {
-		background: white;
-		border-radius: 15px;
-		overflow: hidden;
-		box-shadow: 0 5px 25px rgba(0,0,0,0.08);
-		margin-top: 40px;
-	}
-
-	.comparison-table table {
-		width: 100%;
-		border-collapse: collapse;
-	}
-
-	.comparison-table th {
-		background: linear-gradient(135deg, #2f5597, #1e3a6d);
-		color: white;
-		padding: 20px;
-		text-align: left;
-		font-weight: 600;
-	}
-
-	.comparison-table td {
-		padding: 18px 20px;
-		border-bottom: 1px solid #f0f0f0;
-		color: #555;
-	}
-
-	.comparison-table tr:hover {
-		background: #f8f9fa;
-	}
-	
-	@media (max-width: 768px) {
-		.fabric-hero h1 {
-			font-size: 2.2rem;
-		}
-
-		.fabric-hero .lead {
-			font-size: 1.1rem;
-		}
-
-		.fabric-hero p {
-			font-size: 1rem;
-		}
-		
-		.fabric-section h2 {
-			font-size: 2rem;
-		}
-
-		.cta-section h2 {
-			font-size: 2rem;
-		}
-		
-		.fabric-services-grid {
-			grid-template-columns: 1fr;
-		}
-		
-		.process-steps {
-			grid-template-columns: 1fr;
-		}
-
-		.workload-cards {
-			grid-template-columns: 1fr;
-		}
-
-		.stat-number {
-			font-size: 2rem;
-		}
-
-		.feature-content {
-			padding: 30px 20px;
-		}
-
-		.feature-number {
-			font-size: 3rem;
-			top: -10px;
-			right: 10px;
-		}
-	}
+.armely-service-page {
+    width: 100vw;
+    margin-left: calc(50% - 50vw);
+    font-family: 'Poppins', sans-serif;
+    background: #fff;
+    color: #3D4F6B;
+    overflow-x: hidden;
+}
+.armely-service-page a:hover {
+    text-decoration: none;
+}
 </style>
-
-<!-- Fabric Hero Section -->
-<section class="fabric-hero">
-	<div class="container">
-		<div class="fabric-hero-content">
-			<h1 class="text-light">Microsoft Fabric</h1>
-			<p class="lead">End-to-End Analytics Platform for Data-Driven Excellence</p>
-			<p>Transform your data infrastructure with Microsoft Fabric—a unified analytics platform that brings together data engineering, data warehousing, real-time intelligence, and business analytics in one integrated environment.</p>
-			<p>Empower your entire organization with AI-driven insights, seamless collaboration, and enterprise-grade security.</p>
-		</div>
-	</div>
+<div class="armely-service-page armely-service-page-fabric" data-service="Microsoft Fabric">
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg-glow"></div>
+  <div class="hero-eyebrow">
+    <span class="eyebrow-badge">Microsoft Fabric</span>
+    <span class="eyebrow-partner">Delivered by a certified Microsoft partner</span>
+  </div>
+  <h1>All your data.<br>One platform.<br><span class="hl">Actual insights.</span></h1>
+  <p class="hero-sub">Armely designs, builds, and runs Microsoft Fabric environments that turn scattered business data into dashboards, reports, and decisions — without the usual chaos.</p>
+  <div class="hero-actions">
+    <a href="#consultation" class="btn-primary">Book a Free Discovery Call</a>
+    <a href="#what-we-deliver" class="btn-outline">See What We Build</a>
+  </div>
+  <div class="hero-trust">
+    <div class="trust-item">
+      <span class="trust-dot"></span>
+      <span class="trust-text"><strong>One platform</strong> for all data & analytics</span>
+    </div>
+    <div class="trust-item">
+      <span class="trust-dot"></span>
+      <span class="trust-text">Replaces <strong>Power BI, Azure Data Factory</strong> & more</span>
+    </div>
+    <div class="trust-item">
+      <span class="trust-dot"></span>
+      <span class="trust-text"><strong>AI-ready</strong> — Copilot built in</span>
+    </div>
+    <div class="trust-item">
+      <span class="trust-dot"></span>
+      <span class="trust-text"><strong>Partner pricing</strong> available</span>
+    </div>
+  </div>
 </section>
 
-<!-- Stats Banner -->
-<section class="stats-banner">
-	<div class="container">
-		<div class="row">
-			<div class="col-md-3 col-6">
-				<div class="stat-item">
-					<div class="stat-number">10+</div>
-					<div class="stat-label">Integrated Services</div>
-				</div>
-			</div>
-			<div class="col-md-3 col-6">
-				<div class="stat-item">
-					<div class="stat-number">100%</div>
-					<div class="stat-label">SaaS Platform</div>
-				</div>
-			</div>
-			<div class="col-md-3 col-6">
-				<div class="stat-item">
-					<div class="stat-number">60+</div>
-					<div class="stat-label">Data Connectors</div>
-				</div>
-			</div>
-			<div class="col-md-3 col-6">
-				<div class="stat-item">
-					<div class="stat-number">AI</div>
-					<div class="stat-label">Infused at Every Layer</div>
-				</div>
-			</div>
-		</div>
-	</div>
+<!-- WHAT IS FABRIC -->
+<section class="intro">
+  <div class="section-inner">
+    <div class="intro-grid">
+      <div>
+        <div class="section-eyebrow">What is Microsoft Fabric?</div>
+        <h2 class="section-title">One platform for every step of your data journey.</h2>
+        <p class="section-body">Microsoft Fabric is a unified SaaS analytics platform that replaces the fragmented stack of separate tools most businesses have accumulated. Data engineering, warehousing, real-time analytics, business intelligence, and AI — all in one environment, all sharing a single data foundation called OneLake.</p>
+        <div class="workload-grid">
+          <div class="workload-pill"><span class="workload-pill-icon">🏭</span><span class="workload-pill-label">Data Factory</span></div>
+          <div class="workload-pill"><span class="workload-pill-icon">⚙️</span><span class="workload-pill-label">Data Engineering</span></div>
+          <div class="workload-pill"><span class="workload-pill-icon">🏦</span><span class="workload-pill-label">Data Warehouse</span></div>
+          <div class="workload-pill"><span class="workload-pill-icon">🔬</span><span class="workload-pill-label">Data Science</span></div>
+          <div class="workload-pill"><span class="workload-pill-icon">⚡</span><span class="workload-pill-label">Real-Time Intelligence</span></div>
+          <div class="workload-pill"><span class="workload-pill-icon">📊</span><span class="workload-pill-label">Power BI</span></div>
+        </div>
+        <div class="onelake-callout">
+          <span class="onelake-callout-icon">🗄️</span>
+          <span class="onelake-callout-text"><strong>OneLake</strong> — one shared data lake underneath it all. Every workload reads from the same source. No duplication, no sync issues, no silos.</span>
+        </div>
+      </div>
+      <div>
+        <div class="diagram-card">
+          <div class="diagram-header">
+            <div class="diagram-dots"><span></span><span></span><span></span></div>
+            <span class="diagram-title">Microsoft Fabric Architecture</span>
+          </div>
+          <div class="diagram-body">
+            <div class="diag-layer layer-workloads">
+              <div class="diag-layer-label">Workloads</div>
+              <div class="diag-layer-items">
+                <span class="diag-chip">Power BI</span>
+                <span class="diag-chip">Data Factory</span>
+                <span class="diag-chip">Data Engineering</span>
+                <span class="diag-chip">Data Warehouse</span>
+                <span class="diag-chip">Real-Time Intelligence</span>
+                <span class="diag-chip">Data Science</span>
+              </div>
+            </div>
+            <div class="diag-arrow">↕</div>
+            <div class="diag-layer layer-platform">
+              <div class="diag-layer-label">Shared Platform</div>
+              <div class="diag-layer-items">
+                <span class="diag-chip">Copilot AI</span>
+                <span class="diag-chip">Purview Governance</span>
+                <span class="diag-chip">Entra ID Security</span>
+                <span class="diag-chip">Unified Capacity</span>
+              </div>
+            </div>
+            <div class="diag-arrow">↕</div>
+            <div class="diag-layer layer-storage">
+              <div class="diag-layer-label">OneLake — Single Storage Layer</div>
+              <div class="diag-layer-items">
+                <span class="diag-chip">Delta Parquet Format</span>
+                <span class="diag-chip">Zero-Copy Access</span>
+                <span class="diag-chip">Azure Data Lake Gen2</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </section>
 
-<!-- What is Microsoft Fabric -->
-<section class="fabric-section">
-	<div class="container">
-		<h2>What is Microsoft Fabric?</h2>
-		<p class="section-subtitle">Microsoft Fabric is an all-in-one analytics solution that provides a unified experience for data professionals and businesses. It combines data movement, data science, real-time analytics, and business intelligence into a single, cohesive platform.</p>
-
-		<div class="fabric-services-grid">
-			<div class="fabric-card">
-				<div class="service-icon">
-					<i class="fa fa-database"></i>
-				</div>
-				<h4>Data Engineering</h4>
-				<p>Build scalable data pipelines with Spark notebooks, data flows, and ETL/ELT processes to transform raw data into actionable insights.</p>
-			</div>
-
-			<div class="fabric-card">
-				<div class="service-icon">
-					<i class="fa fa-warehouse"></i>
-				</div>
-				<h4>Data Warehousing</h4>
-				<p>Create enterprise-grade data warehouses with T-SQL support, automatic scaling, and seamless integration with Power BI.</p>
-			</div>
-
-			<div class="fabric-card">
-				<div class="service-icon">
-					<i class="fa fa-bolt"></i>
-				</div>
-				<h4>Real-Time Intelligence</h4>
-				<p>Process streaming data in real-time with KQL databases, event streams, and instant analytics for time-sensitive decisions.</p>
-			</div>
-
-			<div class="fabric-card">
-				<div class="service-icon">
-					<i class="fa fa-brain"></i>
-				</div>
-				<h4>Data Science</h4>
-				<p>Build, train, and deploy machine learning models with integrated notebooks, MLflow, and automated ML capabilities.</p>
-			</div>
-
-			<div class="fabric-card">
-				<div class="service-icon">
-					<i class="fa fa-chart-line"></i>
-				</div>
-				<h4>Business Intelligence</h4>
-				<p>Create stunning reports and dashboards with Power BI, embedded analytics, and self-service data exploration.</p>
-			</div>
-
-			<div class="fabric-card">
-				<div class="service-icon">
-					<i class="fa fa-plug"></i>
-				</div>
-				<h4>Data Integration</h4>
-				<p>Connect to 100+ data sources with native connectors, data factory pipelines, and automated data orchestration.</p>
-			</div>
-		</div>
-	</div>
+<!-- WHAT ARMELY DELIVERS -->
+<section class="delivers" id="what-we-deliver">
+  <div class="section-inner">
+    <div class="section-eyebrow">What Armely Delivers</div>
+    <h2 class="section-title">We don't just set up Fabric. We make your data work for you.</h2>
+    <p class="section-body">As a certified Microsoft partner, Armely handles the full implementation — from architecture design and data migration to dashboards your team will actually use.</p>
+    <div class="delivers-grid">
+      <div class="deliver-card">
+        <div class="deliver-icon">🗺️</div>
+        <div class="deliver-title">Data Architecture Design</div>
+        <div class="deliver-desc">Before writing a single pipeline, we map your data sources, business questions, and reporting needs. You get an architecture built for your organisation — not a generic template.</div>
+      </div>
+      <div class="deliver-card">
+        <div class="deliver-icon">🔌</div>
+        <div class="deliver-title">Data Integration & Pipelines</div>
+        <div class="deliver-desc">We connect your existing systems — ERP, CRM, databases, cloud apps — into Fabric using Data Factory pipelines. Data flows automatically, on schedule, without manual exports.</div>
+      </div>
+      <div class="deliver-card">
+        <div class="deliver-icon">🏠</div>
+        <div class="deliver-title">Lakehouse & Warehouse Build</div>
+        <div class="deliver-desc">We design and build your OneLake foundation — Lakehouse or Warehouse depending on your workloads — so all data lives in one place, accessible to every tool in your stack.</div>
+      </div>
+      <div class="deliver-card">
+        <div class="deliver-icon">📊</div>
+        <div class="deliver-title">Power BI Dashboards & Reports</div>
+        <div class="deliver-desc">We build the dashboards your leadership and operations teams will actually open every morning. Designed for clarity, not complexity — with Direct Lake speed on large datasets.</div>
+      </div>
+      <div class="deliver-card">
+        <div class="deliver-icon">🤖</div>
+        <div class="deliver-title">AI & Copilot Integration</div>
+        <div class="deliver-desc">Microsoft Fabric has Copilot built in. We configure it so your team can query data, generate reports, and get insights in plain English — no SQL required.</div>
+      </div>
+      <div class="deliver-card">
+        <div class="deliver-icon">🛡️</div>
+        <div class="deliver-title">Governance & Ongoing Support</div>
+        <div class="deliver-desc">Data governance through Microsoft Purview, role-based access, data lineage tracking, and a dedicated Armely contact to keep your Fabric environment healthy as your business scales.</div>
+      </div>
+    </div>
+  </div>
 </section>
 
-<!-- Core Capabilities Features -->
-<section class="fabric-section" style="background: #f8f9fa; padding: 80px 0;">
-	<div class="container">
-		<h2>Four Pillars of Microsoft Fabric</h2>
-		<p class="section-subtitle">Discover how Microsoft Fabric transforms your data ecosystem with these four foundational capabilities</p>
-
-		<!-- Feature 1: Complete Data Platform -->
-		<div class="feature-section">
-			<div class="feature-content">
-				<span class="feature-number">01</span>
-				<div class="row align-items-center">
-					<div class="col-md-6">
-						<div class="feature-image-container">
-							<img src="images/services/fabric_main_header.png" alt="Complete Data Platform" class="img-fluid">
-						</div>
-					</div>
-					<div class="col-md-6">
-						<h3 style="color: #2f5597; font-size: 2rem; font-weight: 700; margin-bottom: 20px;">Complete Data Platform</h3>
-						<p style="color: #555; font-size: 1.05rem; line-height: 1.8; margin-bottom: 25px;">Give your data teams all the tools they need in a unified experience that helps reduce the cost and effort of data integration, governance, and security.</p>
-						<ul class="features-list">
-							<li><strong>Single Unified Experience</strong> - Help data engineers, data scientists, analysts, and business users achieve shared goals with SaaS built for collaboration</li>
-							<li><strong>Governance and Security</strong> - Gain end-to-end visibility, usage insights, and industry-leading governance and compliance capabilities</li>
-							<li><strong>Unified Capacity</strong> - Simplify billing and reduce costs with a single pool of capacity and storage for every workload</li>
-							<li><strong>Integrated Tools</strong> - Access all analytics capabilities from one unified portal with consistent user experience</li>
-						</ul>
-					</div>
-				</div>
-			</div>
-		</div>
-
-		<!-- Feature 2: Lake Centric Open -->
-		<div class="feature-section">
-			<div class="feature-content">
-				<span class="feature-number">02</span>
-				<div class="row align-items-center">
-					<div class="col-md-6 order-md-2">
-						<div class="feature-image-container">
-							<img src="images/services/fabric_two.png" alt="Lake Centric Open" class="img-fluid">
-						</div>
-					</div>
-					<div class="col-md-6 order-md-1">
-						<h3 style="color: #2f5597; font-size: 2rem; font-weight: 700; margin-bottom: 20px;">Lake-Centric & Open</h3>
-						<p style="color: #555; font-size: 1.05rem; line-height: 1.8; margin-bottom: 25px;">Simplify data integration from nearly any source into a single, multi-cloud data lake for your entire organization, and work from the same copy of data across analytics engines.</p>
-						<ul class="features-list">
-							<li><strong>No Data Movement</strong> - Create shortcuts between data items across clouds like Azure and AWS without duplication or ownership change</li>
-							<li><strong>One Copy Across Engines</strong> - Reduce data duplication by using a single copy of data to power all your workloads</li>
-							<li><strong>OneLake Data Hub</strong> - Bring your data together in an intuitive hub that's automatically indexed for discovery and governance</li>
-							<li><strong>Open Standards</strong> - Built on Delta Lake format with support for Apache Spark, ensuring compatibility and flexibility</li>
-						</ul>
-					</div>
-				</div>
-			</div>
-		</div>
-
-		<!-- Feature 3: Real-Time Analytics -->
-		<div class="feature-section">
-			<div class="feature-content">
-				<span class="feature-number">03</span>
-				<div class="row align-items-center">
-					<div class="col-md-6">
-						<div class="feature-image-container">
-							<img src="images/services/fabric_three.png" alt="Real-Time Analytics" class="img-fluid">
-						</div>
-					</div>
-					<div class="col-md-6">
-						<h3 style="color: #2f5597; font-size: 2rem; font-weight: 700; margin-bottom: 20px;">Real-Time Analytics</h3>
-						<p style="color: #555; font-size: 1.05rem; line-height: 1.8; margin-bottom: 25px;">Empower everyone to uncover insights with relevant data, easy-to-use tools, and stunning visuals embedded in Microsoft 365 apps they use every day.</p>
-						<ul class="features-list">
-							<li><strong>Direct Lake Mode</strong> - Save time and provide up-to-date insights with fast, real-time connection to your data in OneLake</li>
-							<li><strong>Built into Microsoft 365</strong> - Foster a data-driven culture by seamlessly flowing insights into Teams, Excel, PowerPoint, and Outlook</li>
-							<li><strong>Data-Driven Actions</strong> - Easily set up end-to-end solutions so teams can act quickly in response to time-sensitive events</li>
-							<li><strong>Event Streaming</strong> - Process millions of events per second with low-latency streaming analytics</li>
-						</ul>
-					</div>
-				</div>
-			</div>
-		</div>
-
-		<!-- Feature 4: AI-Driven Insights -->
-		<div class="feature-section">
-			<div class="feature-content">
-				<span class="feature-number">04</span>
-				<div class="row align-items-center">
-					<div class="col-md-6 order-md-2">
-						<div class="feature-image-container">
-							<img src="images/services/fabric_four.png" alt="AI-Driven Insights" class="img-fluid">
-						</div>
-					</div>
-					<div class="col-md-6 order-md-1">
-						<h3 style="color: #2f5597; font-size: 2rem; font-weight: 700; margin-bottom: 20px;">AI-Driven Insights</h3>
-						<p style="color: #555; font-size: 1.05rem; line-height: 1.8; margin-bottom: 25px;">Adopt a data platform that's infused with AI at every layer to help you get more done, faster with intelligent automation and copilot assistance.</p>
-						<ul class="features-list">
-							<li><strong>Create Impactful Reports Faster</strong> - Describe what you need and Copilot generates reports, summaries, and calculations automatically</li>
-							<li><strong>Do More with Copilot in Fabric</strong> - Get AI assistance for data transformations, query writing, and insights discovery</li>
-							<li><strong>Build Custom AI Models</strong> - Fuel tailor-made generative AI experiences in Azure AI Studio with curated data from Fabric</li>
-							<li><strong>Automated ML</strong> - Train and deploy machine learning models without extensive coding or data science expertise</li>
-						</ul>
-					</div>
-				</div>
-			</div>
-		</div>
-	</div>
+<!-- JOURNEY -->
+<section class="journey" id="journey">
+  <div class="section-inner">
+    <div class="section-eyebrow">The Armely Fabric Journey</div>
+    <h2 class="section-title">From scattered spreadsheets to a single source of truth.</h2>
+    <p class="section-body">We follow a structured implementation methodology refined across data projects for healthcare, education, and enterprise clients — so nothing gets missed and your data is right from day one.</p>
+    <div class="steps-row">
+      <div class="step">
+        <div class="step-num">01</div>
+        <div class="step-title">Discovery & Data Audit</div>
+        <div class="step-desc">We map your current data sources, tools, and reporting pain points. Free for new clients — no obligation to proceed.</div>
+        <span class="step-tag">Free</span>
+      </div>
+      <div class="step">
+        <div class="step-num">02</div>
+        <div class="step-title">Architecture & Licensing</div>
+        <div class="step-desc">We design your Fabric architecture and source the right capacity licence at partner pricing for your workload needs.</div>
+        <span class="step-tag">1–2 weeks</span>
+      </div>
+      <div class="step">
+        <div class="step-num">03</div>
+        <div class="step-title">Build & Integrate</div>
+        <div class="step-desc">Pipelines, Lakehouse, data models, and your first Power BI dashboards — built and tested against your real data.</div>
+        <span class="step-tag">Weeks 3–6</span>
+      </div>
+      <div class="step">
+        <div class="step-num">04</div>
+        <div class="step-title">Handover & Training</div>
+        <div class="step-desc">Your team learns to use, maintain, and extend the environment. We document everything so you're never dependent on us.</div>
+        <span class="step-tag">Week 7–8</span>
+      </div>
+      <div class="step">
+        <div class="step-num">05</div>
+        <div class="step-title">Managed Support</div>
+        <div class="step-desc">Ongoing optimisation, new dashboard requests, governance reviews, and a single contact who knows your environment.</div>
+        <span class="step-tag">Ongoing</span>
+      </div>
+    </div>
+  </div>
 </section>
 
-<!-- Fabric Workloads -->
-<section class="fabric-section">
-	<div class="container">
-		<h2>Integrated Workloads</h2>
-		<p class="section-subtitle">Microsoft Fabric provides specialized workloads for every data and analytics need, all working together seamlessly</p>
-
-		<div class="workload-cards">
-			<div class="workload-card">
-				<div class="workload-icon">
-					<i class="fa fa-exchange-alt"></i>
-				</div>
-				<h4>Data Factory</h4>
-				<p>Modern data integration with 100+ connectors, visual pipeline design, and automated orchestration for ETL/ELT workflows.</p>
-			</div>
-
-			<div class="workload-card">
-				<div class="workload-icon">
-					<i class="fa fa-tools"></i>
-				</div>
-				<h4>Synapse Engineering</h4>
-				<p>Apache Spark-based data engineering with notebooks, libraries, and distributed compute for large-scale transformations.</p>
-			</div>
-
-			<div class="workload-card">
-				<div class="workload-icon">
-					<i class="fa fa-server"></i>
-				</div>
-				<h4>Synapse Warehouse</h4>
-				<p>SQL-based analytics with automatic scaling, columnar storage, and seamless Power BI integration for BI workloads.</p>
-			</div>
-
-			<div class="workload-card">
-				<div class="workload-icon">
-					<i class="fa fa-flask"></i>
-				</div>
-				<h4>Data Science</h4>
-				<p>Build ML models with Python, R, and Spark ML, track experiments with MLflow, and deploy to production endpoints.</p>
-			</div>
-
-			<div class="workload-card">
-				<div class="workload-icon">
-					<i class="fa fa-stream"></i>
-				</div>
-				<h4>Real-Time Analytics</h4>
-				<p>KQL-based streaming analytics for IoT, log analytics, and time-series data with millisecond query performance.</p>
-			</div>
-
-			<div class="workload-card">
-				<div class="workload-icon">
-					<i class="fa fa-chart-bar"></i>
-				</div>
-				<h4>Power BI</h4>
-				<p>Industry-leading business intelligence with interactive reports, dashboards, and embedded analytics capabilities.</p>
-			</div>
-		</div>
-	</div>
+<!-- USE CASES -->
+<section class="usecases">
+  <div class="section-inner">
+    <div class="section-eyebrow">What Businesses Use It For</div>
+    <h2 class="section-title">Real answers to real business questions.</h2>
+    <p class="section-body">Fabric isn't just a data tool — it's the foundation for every business decision your team makes. Here's what Armely-built Fabric environments deliver in practice.</p>
+    <div class="uc-grid">
+      <div class="uc-card">
+        <span class="uc-icon">📈</span>
+        <div class="uc-title">Executive Dashboards</div>
+        <div class="uc-desc">Live KPI dashboards that pull from every system — finance, ops, sales — into a single view. Leadership sees the truth, not last week's export.</div>
+      </div>
+      <div class="uc-card">
+        <span class="uc-icon">💰</span>
+        <div class="uc-title">Financial Reporting</div>
+        <div class="uc-desc">Automate month-end reporting, budget vs actual analysis, and cost centre breakdowns. Finance teams reclaim hours previously spent wrangling spreadsheets.</div>
+      </div>
+      <div class="uc-card">
+        <span class="uc-icon">🏥</span>
+        <div class="uc-title">Operational Intelligence</div>
+        <div class="uc-desc">Track productivity, resource utilisation, and service delivery in real time. Spot problems before they become complaints — not after.</div>
+      </div>
+      <div class="uc-card">
+        <span class="uc-icon">🔗</span>
+        <div class="uc-title">System Consolidation</div>
+        <div class="uc-desc">Connect ERP, CRM, HR, and third-party data into one governed data layer. Stop manually reconciling reports from different systems that disagree.</div>
+      </div>
+      <div class="uc-card">
+        <span class="uc-icon">🧬</span>
+        <div class="uc-title">Predictive Analytics</div>
+        <div class="uc-desc">Use Fabric's Data Science workload to build models that forecast demand, flag churn risk, or surface patterns hidden in your historical data.</div>
+      </div>
+      <div class="uc-card">
+        <span class="uc-icon">💬</span>
+        <div class="uc-title">Natural Language Queries</div>
+        <div class="uc-desc">With Copilot embedded in Fabric, anyone on your team can ask questions in plain English and get answers from your live data — without touching a report.</div>
+      </div>
+    </div>
+  </div>
 </section>
 
-<!-- Key Benefits -->
-<section class="fabric-benefits">
-	<div class="container">
-		<h2>Why Choose Microsoft Fabric?</h2>
-		<div class="row">
-			<div class="col-md-4">
-				<div class="benefit-item">
-					<div class="benefit-icon">
-						<i class="fa fa-rocket"></i>
-					</div>
-					<h5>Faster Time to Insights</h5>
-					<p>Reduce development time by up to 70% with integrated tools and automated workflows. Get from raw data to actionable insights in hours, not weeks.</p>
-				</div>
-			</div>
-			<div class="col-md-4">
-				<div class="benefit-item">
-					<div class="benefit-icon">
-						<i class="fa fa-dollar-sign"></i>
-					</div>
-					<h5>Lower Total Cost of Ownership</h5>
-					<p>Eliminate data silos and reduce infrastructure costs with unified capacity pools. Pay for what you use with flexible consumption pricing.</p>
-				</div>
-			</div>
-			<div class="col-md-4">
-				<div class="benefit-item">
-					<div class="benefit-icon">
-						<i class="fa fa-shield-alt"></i>
-					</div>
-					<h5>Enterprise-Grade Security</h5>
-					<p>Built-in security, compliance, and governance with Azure Active Directory, encryption at rest and in transit, and comprehensive audit logs.</p>
-				</div>
-			</div>
-			<div class="col-md-4">
-				<div class="benefit-item">
-					<div class="benefit-icon">
-						<i class="fa fa-users"></i>
-					</div>
-					<h5>Collaborative Workspace</h5>
-					<p>Enable seamless collaboration between data engineers, scientists, analysts, and business users in a single unified environment.</p>
-				</div>
-			</div>
-			<div class="col-md-4">
-				<div class="benefit-item">
-					<div class="benefit-icon">
-						<i class="fa fa-expand-arrows-alt"></i>
-					</div>
-					<h5>Infinite Scale</h5>
-					<p>Auto-scale compute and storage to handle any workload size. Process petabytes of data without infrastructure management overhead.</p>
-				</div>
-			</div>
-			<div class="col-md-4">
-				<div class="benefit-item">
-					<div class="benefit-icon">
-						<i class="fa fa-magic"></i>
-					</div>
-					<h5>AI-Powered Innovation</h5>
-					<p>Leverage Copilot assistance and built-in AI capabilities to accelerate development and discover insights faster than ever before.</p>
-				</div>
-			</div>
-		</div>
-	</div>
+<!-- WHY ARMELY -->
+<section class="why" id="why-armely">
+  <div class="section-inner">
+    <div class="why-two-col">
+      <div>
+        <div class="section-eyebrow">Why Armely</div>
+        <h2 class="section-title">We've done this before — for organisations like yours.</h2>
+        <p class="section-body">Armely has delivered data and analytics projects for healthcare providers, universities, and enterprise clients. Microsoft Fabric brings those capabilities to every business — and we know how to make it land.</p>
+        <ul class="why-list">
+          <li>
+            <div class="why-icon">🎯</div>
+            <div>
+              <div class="why-item-title">Proven Implementation Track Record</div>
+              <div class="why-item-desc">We've implemented Microsoft data solutions for Plano ISD, Swope Health Systems, and the University of Nebraska Medical Center — complex environments with real data governance requirements.</div>
+            </div>
+          </li>
+          <li>
+            <div class="why-icon">🔒</div>
+            <div>
+              <div class="why-item-title">Security & Governance Built In</div>
+              <div class="why-item-desc">We configure Microsoft Purview, Entra ID access controls, and data lineage from day one — so your Fabric environment is audit-ready, not bolted on later.</div>
+            </div>
+          </li>
+          <li>
+            <div class="why-icon">💰</div>
+            <div>
+              <div class="why-item-title">Right-Sized Licensing</div>
+              <div class="why-item-desc">As a Microsoft-authorised CSP partner, we access Fabric capacity pricing and bundle options not available to direct buyers — and we help you start at the right scale, not the biggest.</div>
+            </div>
+          </li>
+          <li>
+            <div class="why-icon">🤝</div>
+            <div>
+              <div class="why-item-title">You Own the Environment</div>
+              <div class="why-item-desc">We document everything, train your team, and build so you can manage it yourselves. Our goal is capability transfer — not dependency.</div>
+            </div>
+          </li>
+        </ul>
+      </div>
+      <div>
+        <div class="partner-block">
+          <div class="partner-block-top">
+            <div class="partner-label">Microsoft Authorised Partner</div>
+            <p class="partner-text">Armely's Microsoft partnership gives us access to Fabric licensing, technical resources, and implementation support that independent buyers can't reach. That means better value for you and a faster, cleaner build backed by the full Microsoft ecosystem.</p>
+          </div>
+          <div class="partner-stats">
+            <div class="p-stat">
+              <div class="p-stat-num">31<span>K+</span></div>
+              <div class="p-stat-label">paying organisations on Microsoft Fabric as of 2026</div>
+            </div>
+            <div class="p-stat">
+              <div class="p-stat-num">7</div>
+              <div class="p-stat-label">unified workloads — one platform, one licence</div>
+            </div>
+            <div class="p-stat">
+              <div class="p-stat-num">300<span>+</span></div>
+              <div class="p-stat-label">data source connectors in Data Factory</div>
+            </div>
+            <div class="p-stat">
+              <div class="p-stat-num">1</div>
+              <div class="p-stat-label">copy of your data — OneLake eliminates duplication</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </section>
 
-<!-- Implementation Process -->
-<section class="fabric-section">
-	<div class="container">
-		<h2>Our Implementation Approach</h2>
-		<p class="section-subtitle">Partner with us for a proven, structured approach to Microsoft Fabric adoption that delivers measurable business value</p>
-
-		<div class="process-steps">
-			<div class="process-step">
-				<div class="step-number">1</div>
-				<h5>Discovery & Assessment</h5>
-				<p>Evaluate current data landscape, identify use cases, and define success metrics aligned with business objectives.</p>
-			</div>
-
-			<div class="process-step">
-				<div class="step-number">2</div>
-				<h5>Architecture Design</h5>
-				<p>Design scalable data architecture, define data models, and establish governance frameworks and security policies.</p>
-			</div>
-
-			<div class="process-step">
-				<div class="step-number">3</div>
-				<h5>Pilot Implementation</h5>
-				<p>Build proof of concept with high-value use case, validate approach, and demonstrate quick wins to stakeholders.</p>
-			</div>
-
-			<div class="process-step">
-				<div class="step-number">4</div>
-				<h5>Data Migration</h5>
-				<p>Migrate data sources to OneLake, implement pipelines and transformations, and ensure data quality and consistency.</p>
-			</div>
-
-			<div class="process-step">
-				<div class="step-number">5</div>
-				<h5>Analytics Development</h5>
-				<p>Build reports, dashboards, and ML models. Implement real-time analytics and create self-service capabilities.</p>
-			</div>
-
-			<div class="process-step">
-				<div class="step-number">6</div>
-				<h5>Training & Adoption</h5>
-				<p>Conduct user training, create documentation, and establish center of excellence for ongoing support and optimization.</p>
-			</div>
-		</div>
-	</div>
-</section>
-
-<!-- Use Cases -->
-<section class="fabric-section" style="background: #f8f9fa;">
-	<div class="container">
-		<h2>Industry Use Cases</h2>
-		<p class="section-subtitle">See how organizations across industries leverage Microsoft Fabric to drive digital transformation</p>
-
-		<div class="workload-cards">
-			<div class="workload-card">
-				<div class="workload-icon">
-					<i class="fa fa-shopping-cart"></i>
-				</div>
-				<h4>Retail & E-Commerce</h4>
-				<p>Real-time inventory management, customer behavior analytics, personalized recommendations, and supply chain optimization.</p>
-			</div>
-
-			<div class="workload-card">
-				<div class="workload-icon">
-					<i class="fa fa-heartbeat"></i>
-				</div>
-				<h4>Healthcare</h4>
-				<p>Patient data integration, predictive analytics for readmission risk, operational efficiency, and regulatory compliance reporting.</p>
-			</div>
-
-			<div class="workload-card">
-				<div class="workload-icon">
-					<i class="fa fa-industry"></i>
-				</div>
-				<h4>Manufacturing</h4>
-				<p>IoT sensor analytics, predictive maintenance, quality control, production optimization, and supply chain visibility.</p>
-			</div>
-
-			<div class="workload-card">
-				<div class="workload-icon">
-					<i class="fa fa-university"></i>
-				</div>
-				<h4>Financial Services</h4>
-				<p>Fraud detection, risk analytics, customer 360 view, regulatory reporting, and real-time transaction monitoring.</p>
-			</div>
-
-			<div class="workload-card">
-				<div class="workload-icon">
-					<i class="fa fa-broadcast-tower"></i>
-				</div>
-				<h4>Telecommunications</h4>
-				<p>Network performance monitoring, customer churn prediction, usage analytics, and service quality optimization.</p>
-			</div>
-
-			<div class="workload-card">
-				<div class="workload-icon">
-					<i class="fa fa-bolt"></i>
-				</div>
-				<h4>Energy & Utilities</h4>
-				<p>Smart grid analytics, consumption forecasting, asset monitoring, renewable energy optimization, and outage prediction.</p>
-			</div>
-		</div>
-	</div>
-</section>
-
-<!-- Comparison Table -->
-<section class="fabric-section">
-	<div class="container">
-		<h2>Microsoft Fabric vs Traditional Approaches</h2>
-		<p class="section-subtitle">Discover how Fabric simplifies your data analytics stack</p>
-
-		<div class="comparison-table">
-			<table>
-				<thead>
-					<tr>
-						<th>Feature</th>
-						<th>Traditional Approach</th>
-						<th>Microsoft Fabric</th>
-					</tr>
-				</thead>
-				<tbody>
-					<tr>
-						<td><strong>Data Integration</strong></td>
-						<td>Multiple ETL tools, complex configurations</td>
-						<td>Unified Data Factory with 100+ connectors</td>
-					</tr>
-					<tr>
-						<td><strong>Data Storage</strong></td>
-						<td>Separate data lakes, warehouses, and databases</td>
-						<td>OneLake - single unified storage layer</td>
-					</tr>
-					<tr>
-						<td><strong>Analytics Tools</strong></td>
-						<td>Disparate BI, data science, and engineering tools</td>
-						<td>Integrated workloads in one platform</td>
-					</tr>
-					<tr>
-						<td><strong>Governance</strong></td>
-						<td>Fragmented policies across systems</td>
-						<td>Centralized governance with Microsoft Purview</td>
-					</tr>
-					<tr>
-						<td><strong>Collaboration</strong></td>
-						<td>Data silos between teams</td>
-						<td>Unified workspace for all data professionals</td>
-					</tr>
-					<tr>
-						<td><strong>Pricing Model</strong></td>
-						<td>Complex pricing for each service</td>
-						<td>Simple capacity-based consumption pricing</td>
-					</tr>
-					<tr>
-						<td><strong>Time to Value</strong></td>
-						<td>Months of setup and integration</td>
-						<td>Days to weeks with SaaS deployment</td>
-					</tr>
-					<tr>
-						<td><strong>AI Capabilities</strong></td>
-						<td>Separate ML platforms and tools</td>
-						<td>Built-in AI, Copilot, and AutoML</td>
-					</tr>
-				</tbody>
-			</table>
-		</div>
-	</div>
-</section>
-
-<!-- Call to Action -->
-<section class="cta-section">
-	<div class="container">
-		<h2>Ready to Transform Your Data Platform?</h2>
-		<p>Join thousands of organizations worldwide leveraging Microsoft Fabric to unlock the full potential of their data. Let's build your modern analytics platform together.</p>
-		<div class="cta-buttons">
-			<a href="#consultation" class="btn-primary-light">Schedule Free Consultation</a>
-			<a href="#contact" class="btn-secondary-light">Download Solution Brief</a>
-		</div>
-	</div>
-</section>
+<!-- CTA -->
+</div>
