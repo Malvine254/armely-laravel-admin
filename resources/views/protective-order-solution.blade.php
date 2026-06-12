@@ -822,6 +822,389 @@
         width: 100%;
     }
 }
+
+/* Armely solution-page refresh */
+.protective-order-page {
+    --po-blue: #2f5597;
+    --po-blue-dark: #173b67;
+    --po-ink: #162b49;
+    --po-text: #334155;
+    --po-muted: #667085;
+    --po-line: rgba(47, 85, 151, 0.14);
+    --po-soft: #f5f8fc;
+    --po-soft-2: rgba(47, 85, 151, 0.09);
+    --po-accent: #d99421;
+    font-family: 'Poppins', sans-serif;
+}
+
+.po-container {
+    width: min(1120px, calc(100% - 48px));
+}
+
+.po-hero {
+    position: relative;
+    background:
+        linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px) 0 0 / 88px 88px,
+        linear-gradient(135deg, #102848 0%, #173b67 52%, #2f5597 100%);
+}
+
+.po-hero::after {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto auto;
+    width: 34%;
+    height: 100%;
+    background: linear-gradient(135deg, transparent 0%, rgba(255,255,255,0.06) 50%, transparent 50.2%);
+    pointer-events: none;
+}
+
+.po-hero-grid {
+    position: relative;
+    z-index: 1;
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 430px);
+    gap: clamp(44px, 7vw, 92px);
+    min-height: 78vh;
+    padding: 120px 0 84px;
+    align-items: center;
+}
+
+.po-hero-copy {
+    padding: 0;
+}
+
+.po-hero .po-eyebrow {
+    color: rgba(255,255,255,0.74);
+    margin-bottom: 20px;
+}
+
+.po-hero .po-eyebrow i {
+    color: rgba(255,255,255,0.82);
+}
+
+.po-hero h1 {
+    color: #ffffff;
+    max-width: 780px;
+    font-size: clamp(2.15rem, 4.3vw, 3.75rem);
+    margin-bottom: 22px;
+}
+
+.po-hero h1 span {
+    color: #ffffff;
+    opacity: 0.92;
+}
+
+.po-hero-lede {
+    color: rgba(255,255,255,0.88);
+    max-width: 650px;
+    font-size: 1.08rem;
+    line-height: 1.8;
+}
+
+.po-hero-text {
+    color: rgba(255,255,255,0.74);
+    max-width: 650px;
+    margin-bottom: 34px;
+}
+
+.po-btn {
+    border-radius: 7px;
+    min-height: 50px;
+    padding: 13px 24px;
+    font-size: 0.94rem;
+    font-weight: 700;
+}
+
+.po-btn-primary {
+    background: linear-gradient(135deg, #2f5597, #4477bd);
+    box-shadow: 0 10px 24px rgba(9, 22, 46, 0.24);
+}
+
+.po-btn-primary:hover {
+    background: linear-gradient(135deg, #274a83, #3c6dac);
+}
+
+.po-btn-light {
+    color: var(--po-blue);
+    background: #ffffff;
+    box-shadow: 0 10px 24px rgba(5, 18, 36, 0.2);
+}
+
+.po-btn-light:hover {
+    color: var(--po-blue-dark);
+    background: #f5f8fc;
+}
+
+.po-btn-secondary {
+    color: rgba(255,255,255,0.9);
+    border-color: rgba(255,255,255,0.32);
+}
+
+.po-btn-secondary:hover {
+    background: rgba(255,255,255,0.11);
+    border-color: rgba(255,255,255,0.54);
+}
+
+.po-hero-visual {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: auto;
+    align-self: stretch;
+    background: transparent;
+    overflow: visible;
+}
+
+.po-hero-visual::before,
+.po-hero-visual::after {
+    display: none;
+}
+
+.po-dashboard-card {
+    position: relative;
+    left: auto;
+    right: auto;
+    top: auto;
+    width: 100%;
+    margin-top: 18px;
+    border: 1px solid rgba(255,255,255,0.42);
+    border-radius: 10px;
+    box-shadow: 0 26px 70px rgba(5, 18, 36, 0.28);
+    overflow: hidden;
+}
+
+.po-dashboard-top {
+    background: #f5f8fc;
+}
+
+.po-progress-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.po-progress-step,
+.po-form-preview,
+.po-form-field,
+.po-floating-card,
+.po-image-panel,
+.po-panel-window,
+.po-feature,
+.po-card,
+.po-step,
+.po-stack-card,
+.po-report-card,
+.po-metric,
+.po-persona {
+    border-radius: 8px;
+}
+
+.po-floating-card {
+    position: relative;
+    right: auto;
+    bottom: auto;
+    width: auto;
+    margin-top: 18px;
+    box-shadow: 0 18px 42px rgba(5, 18, 36, 0.2);
+}
+
+.po-proof {
+    padding: 28px 0;
+    background: #ffffff;
+}
+
+.po-proof-grid {
+    gap: 14px;
+}
+
+.po-proof-item {
+    padding: 16px 18px;
+    border: 1px solid var(--po-line);
+    border-radius: 8px;
+    background: linear-gradient(180deg, #ffffff 0%, #f9fbfe 100%);
+}
+
+.po-section {
+    padding: 76px 0;
+}
+
+.po-section-header {
+    max-width: 860px;
+    margin: 0 auto 38px;
+    text-align: center;
+}
+
+.po-section-header .po-eyebrow,
+.po-final-cta .po-eyebrow {
+    justify-content: center;
+}
+
+.po-heading {
+    color: var(--po-ink);
+    font-size: clamp(1.55rem, 2.45vw, 2.25rem);
+    max-width: 860px;
+}
+
+.po-section-header .po-heading,
+.po-section-header .po-sub {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.po-sub {
+    color: var(--po-text);
+}
+
+.po-eyebrow {
+    width: fit-content;
+    padding: 6px 14px;
+    border: 1px solid rgba(47, 85, 151, 0.18);
+    border-radius: 999px;
+    background: var(--po-soft-2);
+    letter-spacing: 0.12em;
+}
+
+.po-hero .po-eyebrow,
+.po-section-dark .po-eyebrow {
+    background: rgba(255,255,255,0.11);
+    border-color: rgba(255,255,255,0.18);
+}
+
+.po-grid-2,
+.po-tech-grid {
+    gap: clamp(34px, 6vw, 68px);
+}
+
+.po-grid-3,
+.po-feature-grid,
+.po-persona-grid,
+.po-workflow {
+    gap: 18px;
+}
+
+.po-card,
+.po-feature,
+.po-persona,
+.po-stack-card {
+    background: linear-gradient(180deg, #ffffff 0%, #f9fbfe 100%);
+    box-shadow: 0 16px 42px rgba(18, 47, 82, 0.08);
+}
+
+.po-card,
+.po-persona {
+    padding: 28px 24px;
+}
+
+.po-card-icon,
+.po-stack-row i {
+    border-radius: 8px;
+    border: 1px solid rgba(47, 85, 151, 0.16);
+}
+
+.po-feature-visual,
+.po-feature-large .po-feature-visual {
+    min-height: 150px;
+    background:
+        linear-gradient(90deg, rgba(47,85,151,.08) 1px, transparent 1px) 0 0 / 48px 48px,
+        linear-gradient(135deg, #eef4ff, #ffffff);
+}
+
+.po-image-panel {
+    min-height: 420px;
+    box-shadow: 0 16px 42px rgba(18, 47, 82, 0.08);
+}
+
+.po-section-dark {
+    background:
+        linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px) 0 0 / 88px 88px,
+        linear-gradient(135deg, #102848 0%, #173b67 58%, #244f8f 100%);
+}
+
+.po-section-dark .po-eyebrow {
+    color: rgba(255,255,255,0.82);
+}
+
+.po-step {
+    background: rgba(255,255,255,0.12);
+    border-color: rgba(255,255,255,0.2);
+    box-shadow: 0 14px 30px rgba(4, 16, 35, 0.16);
+}
+
+.po-step-number {
+    color: rgba(255,255,255,0.68);
+}
+
+.po-section-dark .po-step h3 {
+    color: #ffffff;
+    font-size: 0.98rem;
+}
+
+.po-section-dark .po-step p {
+    color: rgba(255,255,255,0.8);
+}
+
+.po-section-dark .po-step i {
+    color: #ffffff;
+}
+
+.po-section-dark .po-btn,
+.po-final-cta .po-btn {
+    color: #ffffff;
+}
+
+.po-final-cta .po-btn-light {
+    color: #ffffff;
+    background: linear-gradient(135deg, #2f5597, #4477bd);
+}
+
+.po-final-cta .po-btn-light:hover {
+    color: #ffffff;
+    background: linear-gradient(135deg, #274a83, #3c6dac);
+}
+
+.po-report-card {
+    background:
+        linear-gradient(90deg, rgba(255,255,255,0.045) 1px, transparent 1px) 0 0 / 64px 64px,
+        linear-gradient(135deg, #173b67, #2f5597);
+    box-shadow: 0 16px 42px rgba(18, 47, 82, 0.14);
+}
+
+.po-final-cta .po-actions {
+    justify-content: center;
+    margin-top: 30px;
+}
+
+@media (max-width: 991px) {
+    .po-container {
+        width: min(100% - 40px, 1120px);
+    }
+
+    .po-hero-grid {
+        grid-template-columns: 1fr;
+        min-height: auto;
+        padding: 100px 0 70px;
+    }
+
+    .po-hero-visual {
+        align-self: auto;
+    }
+}
+
+@media (max-width: 700px) {
+    .po-container {
+        width: min(100% - 28px, 1120px);
+    }
+
+    .po-hero-grid {
+        padding: 84px 0 54px;
+    }
+
+    .po-section {
+        padding: 54px 0;
+    }
+
+    .po-proof-grid,
+    .po-progress-row {
+        grid-template-columns: 1fr;
+    }
+}
 </style>
 @endpush
 
@@ -1158,9 +1541,9 @@
             <div class="po-eyebrow"><i class="fa-solid fa-handshake" aria-hidden="true"></i> Bring this to your county</div>
             <h2 class="po-heading">Modernize protective order intake with a secure digital workflow.</h2>
             <p class="po-sub">Armely can help your county assess current intake, map the review workflow, design the public portal, configure internal dashboards, automate routing, and deliver reporting for decision makers.</p>
-            <div class="po-actions" style="justify-content: center; margin-top: 30px;">
-                <a href="{{ route('contact') }}" class="po-btn po-btn-primary" style="background: #ffffff; color: var(--po-blue);">Schedule a consultation <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
-                <a href="mailto:info@armely.com" class="po-btn po-btn-secondary" style="border-color: rgba(255,255,255,.45); color: #ffffff;">Email Armely</a>
+            <div class="po-actions">
+                <a href="{{ route('contact') }}" class="po-btn po-btn-primary po-btn-light">Schedule a consultation <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+                <a href="mailto:info@armely.com" class="po-btn po-btn-secondary">Email Armely</a>
             </div>
         </div>
     </section>

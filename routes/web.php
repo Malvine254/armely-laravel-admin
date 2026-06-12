@@ -39,7 +39,8 @@ Route::post('/data-readiness/submit', [DataReadinessLeadController::class, 'subm
 // Services listing page
 Route::get('/services', [ServicesController::class, 'index'])->name('services');
 
-Route::view('/protective-order-solution', 'protective-order-solution');
+Route::view('/solutions/protective-order-digitization', 'protective-order-solution')->name('protective-order-solution');
+Route::redirect('/protective-order-solution', '/solutions/protective-order-digitization', 301);
 
 // Accept query parameter format: /service-details?name=ai-consulting
 Route::get('/service-details', function(\Illuminate\Http\Request $request) {

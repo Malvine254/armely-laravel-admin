@@ -266,8 +266,8 @@
 
 /* Shared modern service page refresh */
 .armely-custom-development-page .hero {
-  min-height: 100vh;
-  padding: 150px 56px 96px;
+  min-height: 72vh;
+  padding: 112px 56px 74px;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -281,11 +281,11 @@
 }
 .armely-custom-development-page .hero h1 {
   max-width: 820px;
-  margin-bottom: 22px;
+  margin-bottom: 18px;
 }
 .armely-custom-development-page .hero-sub {
   max-width: 700px;
-  margin-bottom: 34px;
+  margin-bottom: 28px;
 }
 .armely-custom-development-page .hero-actions {
   margin-bottom: 0;
@@ -326,7 +326,20 @@
   max-width: 820px;
   margin-left: auto;
   margin-right: auto;
+  margin-bottom: 34px;
   text-align: center;
+}
+.armely-custom-development-page section:not(.hero) {
+  padding-top: 68px;
+  padding-bottom: 68px;
+}
+.armely-custom-development-page .testimonials {
+  padding-top: 68px;
+  padding-bottom: 68px;
+}
+.armely-custom-development-page .cta-inner {
+  padding-top: 68px;
+  padding-bottom: 68px;
 }
 .armely-custom-development-page .intro-grid,
 .armely-custom-development-page .symptoms-grid,
@@ -346,7 +359,7 @@
 .armely-custom-development-page .testi-grid,
 .armely-custom-development-page .why-two-col,
 .armely-custom-development-page .pathway-grid {
-  margin-top: 56px;
+  margin-top: 38px;
 }
 .armely-custom-development-page .deliver-icon,
 .armely-custom-development-page .uc-icon,
@@ -390,8 +403,62 @@
   background: linear-gradient(180deg, #ffffff 0%, #f9fbfe 100%);
   box-shadow: 0 16px 42px rgba(18, 47, 82, 0.08);
 }
+.armely-custom-development-page .cta-form .form-row {
+  display: block;
+  margin-bottom: 18px;
+}
+.armely-custom-development-page .cta-form .form-row label {
+  display: block;
+  color: #475467;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+}
+.armely-custom-development-page .cta-form .form-row input,
+.armely-custom-development-page .cta-form .form-row select {
+  display: block;
+  width: 100%;
+  min-height: 52px;
+  padding: 14px 16px;
+  border-color: rgba(47, 85, 151, 0.2);
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+.armely-custom-development-page .cta-form .form-row .nice-select {
+  display: block;
+  float: none;
+  width: 100%;
+  min-height: 52px;
+  line-height: 50px;
+}
+.armely-custom-development-page .cta-form .form-row .nice-select .list {
+  width: 100%;
+}
+.armely-custom-development-page .cta-form .form-row select {
+  cursor: pointer;
+}
+.armely-custom-development-page .cta-form .form-row input::placeholder {
+  color: #98a2b3;
+}
+.armely-custom-development-page .cta-form .form-message {
+  display: none;
+  margin-bottom: 18px;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+.armely-custom-development-page .cta-form .captcha-row {
+  margin-top: 4px;
+}
+.armely-custom-development-page .cta-form .captcha-row .alert {
+  margin: 0;
+  border-radius: 8px;
+  font-size: 0.86rem;
+}
 @media (max-width: 900px) {
-  .armely-custom-development-page .hero { padding: 118px 24px 76px; }
+  .armely-custom-development-page .hero { min-height: auto; padding: 86px 24px 56px; }
+  .armely-custom-development-page section:not(.hero),
+  .armely-custom-development-page .testimonials { padding-top: 52px; padding-bottom: 52px; }
+  .armely-custom-development-page .cta-inner { padding-top: 52px; padding-bottom: 52px; }
   .armely-custom-development-page section:not(.hero) > .section-inner > .section-title,
   .armely-custom-development-page .cta-inner > div > .section-title { max-width: 100%; }
 }
@@ -443,28 +510,28 @@
         <p class="section-body">Before recommending custom development, Armely evaluates whether Power Platform, SharePoint, or a configured Microsoft product can solve the problem faster and at lower cost. When the answer is no, we build. Here is how that decision looks in practice.</p>
         <div class="decision-cards">
           <div class="decision-card alt">
-            <span class="decision-icon"><i class="fa-solid fa-circle-check" aria-hidden="true"></i></span>
+            <span class="decision-icon"><i class="fa fa-sitemap" aria-hidden="true"></i></span>
             <div>
               <div class="decision-title">Build custom when your workflow is genuinely unique</div>
               <div class="decision-desc">Your process does not map to any standard product. You have tried configuring existing tools and the compromises are affecting how your business operates. A custom application built around your actual workflow is more efficient than forcing your team to work around a product's assumptions.</div>
             </div>
           </div>
           <div class="decision-card alt">
-            <span class="decision-icon"><i class="fa-solid fa-circle-check" aria-hidden="true"></i></span>
+            <span class="decision-icon"><i class="fa fa-balance-scale" aria-hidden="true"></i></span>
             <div>
               <div class="decision-title">Build custom when you need full control over the user experience</div>
               <div class="decision-desc">Customer-facing applications where brand, performance, and user experience are competitive differentiators. A portal, a marketplace, a self-service tool, or a mobile application where the interface is part of the product itself.</div>
             </div>
           </div>
           <div class="decision-card alt">
-            <span class="decision-icon"><i class="fa-solid fa-circle-check" aria-hidden="true"></i></span>
+            <span class="decision-icon"><i class="fa fa-plug" aria-hidden="true"></i></span>
             <div>
               <div class="decision-title">Build custom when you are replacing a legacy system with no viable migration target</div>
               <div class="decision-desc">An on-premises application built decades ago that the business depends on and that no commercial product replicates. A rebuild on a modern, maintainable stack with proper documentation and a CI/CD pipeline.</div>
             </div>
           </div>
           <div class="decision-card">
-            <span class="decision-icon"><i class="fa-solid fa-circle-check" aria-hidden="true"></i></span>
+            <span class="decision-icon"><i class="fa fa-cubes" aria-hidden="true"></i></span>
             <div>
               <div class="decision-title">Consider Power Platform first for internal tooling</div>
               <div class="decision-desc">Many internal workflow and data capture needs are faster and cheaper to solve with Power Apps, Power Automate, and SharePoint. Armely will tell you honestly when that is the better path, even when the conversation started as a custom development request.</div>
@@ -539,32 +606,32 @@
     <p class="section-body">Every Armely application is delivered with full source code ownership, documentation, and a handover process designed so your team or a future vendor can maintain and extend it without depending on us.</p>
     <div class="delivers-grid">
       <div class="deliver-card">
-        <div class="deliver-icon"><i class="fa-solid fa-layer-group" aria-hidden="true"></i></div>
+        <div class="deliver-icon"><i class="fa fa-window-restore" aria-hidden="true"></i></div>
         <div class="deliver-title">Web Application Development</div>
         <div class="deliver-desc">Full-stack web applications built on ASP.NET Core and React, deployed on Azure. From internal business tools and management dashboards to customer-facing platforms that require performance, security, and a polished user experience.</div>
       </div>
       <div class="deliver-card">
-        <div class="deliver-icon"><i class="fa-solid fa-layer-group" aria-hidden="true"></i></div>
+        <div class="deliver-icon"><i class="fa fa-id-card" aria-hidden="true"></i></div>
         <div class="deliver-title">Customer and Partner Portals</div>
         <div class="deliver-desc">Secure, branded portals that give customers, partners, or suppliers authenticated access to your business data and services. Built on Azure with Entra ID authentication, role-based access, and integration into your existing Dynamics 365 or SQL Server data.</div>
       </div>
       <div class="deliver-card">
-        <div class="deliver-icon"><i class="fa-solid fa-layer-group" aria-hidden="true"></i></div>
+        <div class="deliver-icon"><i class="fa fa-code-fork" aria-hidden="true"></i></div>
         <div class="deliver-title">Legacy Application Modernization</div>
         <div class="deliver-desc">We rebuild aging on-premises applications on a modern, maintainable stack, preserving the business logic and data your organization depends on while replacing the infrastructure that is becoming a liability. Delivered with full documentation and a CI/CD pipeline.</div>
       </div>
       <div class="deliver-card">
-        <div class="deliver-icon"><i class="fa-solid fa-layer-group" aria-hidden="true"></i></div>
+        <div class="deliver-icon"><i class="fa fa-magic" aria-hidden="true"></i></div>
         <div class="deliver-title">AI-Integrated Applications</div>
         <div class="deliver-desc">Web applications with Azure AI capabilities embedded directly into the user experience, including natural language search, document processing, copilot-style assistants, and generative content, governed within your Microsoft security and compliance framework.</div>
       </div>
       <div class="deliver-card">
-        <div class="deliver-icon"><i class="fa-solid fa-layer-group" aria-hidden="true"></i></div>
+        <div class="deliver-icon"><i class="fa fa-line-chart" aria-hidden="true"></i></div>
         <div class="deliver-title">Data-Driven Dashboards and Reporting Tools</div>
         <div class="deliver-desc">Custom reporting applications and operational dashboards built when Power BI does not meet the interaction requirements. Built on Azure with direct database connections, real-time data, and user interfaces designed for the specific decisions your leadership team needs to make.</div>
       </div>
       <div class="deliver-card">
-        <div class="deliver-icon"><i class="fa-solid fa-layer-group" aria-hidden="true"></i></div>
+        <div class="deliver-icon"><i class="fa fa-puzzle-piece" aria-hidden="true"></i></div>
         <div class="deliver-title">Microsoft 365 and Dynamics 365 Extensions</div>
         <div class="deliver-desc">Custom extensions that go beyond what Power Platform can deliver, including SharePoint Framework (SPFx) web parts, Dynamics 365 plugins, custom connectors, and Azure Function-based integrations that extend your existing Microsoft platform investments.</div>
       </div>
@@ -621,32 +688,32 @@
     <p class="section-body">These are the categories of custom applications Armely builds most frequently. Each starts with a business problem, not a technology preference.</p>
     <div class="uc-grid">
       <div class="uc-card">
-        <span class="uc-icon"><i class="fa-solid fa-briefcase" aria-hidden="true"></i></span>
+        <span class="uc-icon"><i class="fa fa-hospital-o" aria-hidden="true"></i></span>
         <div class="uc-title">Healthcare and Clinical Applications</div>
         <div class="uc-desc">Custom applications for patient data management, clinical workflow support, reporting tools, and staff scheduling built to HIPAA compliance standards on Azure, with integration into existing EMR systems and Microsoft 365 environments.</div>
       </div>
       <div class="uc-card">
-        <span class="uc-icon"><i class="fa-solid fa-briefcase" aria-hidden="true"></i></span>
+        <span class="uc-icon"><i class="fa fa-university" aria-hidden="true"></i></span>
         <div class="uc-title">Education Management Systems</div>
         <div class="uc-desc">Student information tools, enrollment portals, staff scheduling applications, and reporting dashboards for school districts and higher education institutions, integrated with Microsoft 365 and built on Azure for security and scalability.</div>
       </div>
       <div class="uc-card">
-        <span class="uc-icon"><i class="fa-solid fa-briefcase" aria-hidden="true"></i></span>
+        <span class="uc-icon"><i class="fa fa-truck" aria-hidden="true"></i></span>
         <div class="uc-title">Operations and Logistics Tools</div>
         <div class="uc-desc">Custom inventory management, dispatch and scheduling applications, field operations tools, and supply chain dashboards built when commercial products do not fit the specific operational model of the business.</div>
       </div>
       <div class="uc-card">
-        <span class="uc-icon"><i class="fa-solid fa-briefcase" aria-hidden="true"></i></span>
+        <span class="uc-icon"><i class="fa fa-shield" aria-hidden="true"></i></span>
         <div class="uc-title">Financial and Compliance Applications</div>
         <div class="uc-desc">Custom reporting tools, audit management applications, budget tracking systems, and compliance workflow platforms built for finance teams whose requirements exceed what standard products provide, with full audit trails and role-based access controls.</div>
       </div>
       <div class="uc-card">
-        <span class="uc-icon"><i class="fa-solid fa-briefcase" aria-hidden="true"></i></span>
+        <span class="uc-icon"><i class="fa fa-globe" aria-hidden="true"></i></span>
         <div class="uc-title">Customer-Facing Web Platforms</div>
         <div class="uc-desc">Public-facing web applications that represent your brand and serve your customers, including self-service portals, booking systems, account management tools, and product configuration applications where quality of experience directly affects revenue.</div>
       </div>
       <div class="uc-card">
-        <span class="uc-icon"><i class="fa-solid fa-briefcase" aria-hidden="true"></i></span>
+        <span class="uc-icon"><i class="fa fa-server" aria-hidden="true"></i></span>
         <div class="uc-title">Legacy System Replacement</div>
         <div class="uc-desc">On-premises applications built on aging technology stacks that the business cannot replace with a commercial product because of unique business logic, data structures, or integration requirements built up over many years of operation.</div>
       </div>
@@ -714,28 +781,28 @@
         <p class="section-body">The most common failure in custom software development is not in the initial delivery. It is in what happens six months later when a requirement changes and the original developer is unavailable, the code is undocumented, and no one knows how the application works.</p>
         <ul class="why-list">
           <li>
-            <div class="why-icon"><i class="fa-solid fa-circle-check" aria-hidden="true"></i></div>
+            <div class="why-icon"><i class="fa fa-file-text" aria-hidden="true"></i></div>
             <div>
               <div class="why-item-title">Documentation Is Not Optional</div>
               <div class="why-item-desc">Every application Armely delivers includes technical documentation, a deployment runbook, and user guides. We write documentation as part of the build, not as a rushed afterthought at handover.</div>
             </div>
           </li>
           <li>
-            <div class="why-icon"><i class="fa-solid fa-circle-check" aria-hidden="true"></i></div>
+            <div class="why-icon"><i class="fa fa-windows" aria-hidden="true"></i></div>
             <div>
               <div class="why-item-title">Built on the Microsoft Stack You Already Own</div>
               <div class="why-item-desc">We build on Azure, .NET, and the Microsoft ecosystem because your organization already has licenses, security controls, and operational familiarity with these platforms. We do not introduce new infrastructure dependencies without a clear justification.</div>
             </div>
           </li>
           <li>
-            <div class="why-icon"><i class="fa-solid fa-circle-check" aria-hidden="true"></i></div>
+            <div class="why-icon"><i class="fa fa-shield" aria-hidden="true"></i></div>
             <div>
               <div class="why-item-title">Regulated Industry Experience</div>
               <div class="why-item-desc">We have delivered custom applications for healthcare providers, school districts, and enterprise clients where security, compliance, and data governance are non-negotiable requirements, not an afterthought requested at go-live.</div>
             </div>
           </li>
           <li>
-            <div class="why-icon"><i class="fa-solid fa-circle-check" aria-hidden="true"></i></div>
+            <div class="why-icon"><i class="fa fa-handshake-o" aria-hidden="true"></i></div>
             <div>
               <div class="why-item-title">We Will Tell You When Not to Build</div>
               <div class="why-item-desc">If Power Platform, SharePoint, or a configured Microsoft product can solve your problem faster and at lower total cost, we will tell you that before starting a custom development engagement. Our long-term client relationships matter more than any single project.</div>
@@ -795,37 +862,54 @@
         </div>
       </div>
     </div>
-    <div class="cta-form">
+    <form class="cta-form" id="contact-form" method="post" action="{{ route('submit-consultation') }}">
+      @csrf
+      <div id="ServiceDetailsMessage" class="form-message alert"></div>
+      <input type="hidden" name="message" value="Custom development discovery call request from the service page.">
+      <input type="text" name="website" style="display:none;" tabindex="-1" autocomplete="off">
       <div class="form-title">Book Your Free Discovery Call</div>
       <div class="form-sub">Tell us about the application you need.</div>
+      @if(session('success'))
+        <div class="form-message alert alert-success" style="display:block;">{{ session('success') }}</div>
+      @endif
+      @if($errors->any())
+        <div class="form-message alert alert-danger" style="display:block;">{{ $errors->first() }}</div>
+      @endif
       <div class="form-row">
-        <label>Full Name</label>
-        <input type="text" placeholder="Jane Smith">
+        <label for="custom-dev-name">Full Name</label>
+        <input id="custom-dev-name" name="name" type="text" placeholder="Jane Smith" value="{{ old('name') }}" required>
       </div>
       <div class="form-row">
-        <label>Business Email</label>
-        <input type="email" placeholder="jane@yourcompany.com">
+        <label for="custom-dev-email">Business Email</label>
+        <input id="custom-dev-email" name="email" type="email" placeholder="jane@yourcompany.com" value="{{ old('email') }}" required>
       </div>
       <div class="form-row">
-        <label>Company Name</label>
-        <input type="text" placeholder="Acme Corp">
+        <label for="custom-dev-company">Company Name</label>
+        <input id="custom-dev-company" name="organization" type="text" placeholder="Acme Corp" value="{{ old('organization') }}">
       </div>
       <div class="form-row">
-        <label>What Are You Looking to Build?</label>
-        <select>
+        <label for="custom-dev-service-type">What Are You Looking to Build?</label>
+        <select id="custom-dev-service-type" name="service_type" required>
           <option value="">Select...</option>
-          <option>Customer or partner portal</option>
-          <option>Internal business tool or workflow application</option>
-          <option>Replace a legacy on-premises application</option>
-          <option>Data dashboard or reporting tool</option>
-          <option>AI-integrated web application</option>
-          <option>Microsoft 365 or Dynamics 365 extension</option>
-          <option>Not sure yet, need a recommendation</option>
+          <option value="Customer or partner portal" {{ old('service_type') === 'Customer or partner portal' ? 'selected' : '' }}>Customer or partner portal</option>
+          <option value="Internal business tool or workflow application" {{ old('service_type') === 'Internal business tool or workflow application' ? 'selected' : '' }}>Internal business tool or workflow application</option>
+          <option value="Replace a legacy on-premises application" {{ old('service_type') === 'Replace a legacy on-premises application' ? 'selected' : '' }}>Replace a legacy on-premises application</option>
+          <option value="Data dashboard or reporting tool" {{ old('service_type') === 'Data dashboard or reporting tool' ? 'selected' : '' }}>Data dashboard or reporting tool</option>
+          <option value="AI-integrated web application" {{ old('service_type') === 'AI-integrated web application' ? 'selected' : '' }}>AI-integrated web application</option>
+          <option value="Microsoft 365 or Dynamics 365 extension" {{ old('service_type') === 'Microsoft 365 or Dynamics 365 extension' ? 'selected' : '' }}>Microsoft 365 or Dynamics 365 extension</option>
+          <option value="Not sure yet, need a recommendation" {{ old('service_type') === 'Not sure yet, need a recommendation' ? 'selected' : '' }}>Not sure yet, need a recommendation</option>
         </select>
       </div>
-      <button class="form-submit">Request Free Discovery Call</button>
+      <div class="form-row captcha-row">
+        @if(!empty($recaptchaSiteKey))
+          <div class="g-recaptcha" data-sitekey="{{ $recaptchaSiteKey }}"></div>
+        @else
+          <div class="alert alert-warning">reCAPTCHA is not configured. Please set <strong>CAPTURE_SITE_KEY</strong>.</div>
+        @endif
+      </div>
+      <button class="form-submit" type="submit">Request Free Discovery Call</button>
       <div class="form-note">No spam. No sales pressure. Just a useful conversation.</div>
-    </div>
+    </form>
   </div>
 </section>
 

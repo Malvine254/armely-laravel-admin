@@ -215,7 +215,7 @@
   inset: auto 8% 8% auto;
   width: min(340px, 48vw);
   height: min(340px, 48vw);
-  border-radius: 999px;
+  border-radius: 0;
   background: rgba(255, 255, 255, 0.10);
   filter: blur(2px);
   pointer-events: none;
@@ -256,6 +256,149 @@
 .armely-sharepoint-page footer {
   display: none;
 }
+.armely-sharepoint-page .hero {
+  min-height: 82vh;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 430px);
+  align-items: center;
+  gap: clamp(44px, 7vw, 96px);
+  padding: 126px clamp(24px, 5vw, 72px) 92px;
+  background:
+    linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px) 0 0 / 88px 88px,
+    linear-gradient(135deg, #102848 0%, #173b67 52%, #2f5597 100%);
+  border-radius: 0;
+}
+.armely-sharepoint-page .hero::after {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto auto;
+  width: 34%;
+  height: 100%;
+  background: linear-gradient(135deg, transparent 0%, rgba(255,255,255,0.06) 50%, transparent 50.2%);
+  border-radius: 0;
+  filter: none;
+  pointer-events: none;
+}
+.armely-sharepoint-page .hero-bg-glow {
+  display: none;
+}
+.armely-sharepoint-page .hero-copy,
+.armely-sharepoint-page .hero-system {
+  position: relative;
+  z-index: 1;
+}
+.armely-sharepoint-page .hero-eyebrow {
+  gap: 0;
+}
+.armely-sharepoint-page .eyebrow-partner {
+  display: none;
+}
+.armely-sharepoint-page .hero h1 {
+  max-width: 780px;
+  font-size: clamp(2.55rem, 5.1vw, 4.55rem);
+}
+.armely-sharepoint-page .hero-sub {
+  max-width: 590px;
+  margin-bottom: 34px;
+}
+.armely-sharepoint-page .hero-actions {
+  margin-bottom: 42px;
+}
+.armely-sharepoint-page .hero-trust {
+  display: flex;
+  max-width: 720px;
+  gap: 18px 30px;
+  padding-top: 28px;
+}
+.armely-sharepoint-page .hero-trust .trust-item {
+  max-width: 220px;
+}
+.armely-sharepoint-page .hero-trust .trust-text {
+  color: rgba(255,255,255,0.72);
+}
+.armely-sharepoint-page .sharepoint-workspace-card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  background: rgba(255,255,255,0.97);
+  border: 1px solid rgba(255,255,255,0.42);
+  border-radius: 14px;
+  box-shadow: 0 26px 70px rgba(5, 18, 36, 0.28);
+  overflow: hidden;
+}
+.armely-sharepoint-page .workspace-card-header {
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--border);
+  background: #f5f8fc;
+}
+.armely-sharepoint-page .workspace-card-kicker {
+  color: var(--blue);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.armely-sharepoint-page .workspace-card-title {
+  color: #162b49;
+  font-size: 1.05rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+.armely-sharepoint-page .workspace-card-body {
+  padding: 20px;
+}
+.armely-sharepoint-page .workspace-flow {
+  display: grid;
+  gap: 10px;
+}
+.armely-sharepoint-page .workspace-flow-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.armely-sharepoint-page .workspace-flow-item strong {
+  color: #162b49;
+  font-size: 0.88rem;
+}
+.armely-sharepoint-page .workspace-flow-item span {
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+.armely-sharepoint-page .workspace-divider {
+  height: 1px;
+  margin: 18px 0;
+  background: var(--border);
+}
+.armely-sharepoint-page .workspace-note {
+  color: var(--text-body);
+  font-size: 0.86rem;
+  line-height: 1.65;
+}
+.armely-sharepoint-page .workspace-note strong {
+  color: var(--blue);
+}
+@media (max-width: 980px) {
+  .armely-sharepoint-page .hero {
+    grid-template-columns: 1fr;
+    min-height: auto;
+    padding: 112px 24px 72px;
+  }
+}
+@media (max-width: 700px) {
+  .armely-sharepoint-page .hero-trust {
+    flex-direction: column;
+  }
+  .armely-sharepoint-page .hero-trust .trust-item {
+    max-width: none;
+  }
+}
 </style>
 <div class="armely-sharepoint-page">
 <!-- NAV -->
@@ -264,32 +407,47 @@
 <!-- HERO -->
 <section class="hero">
   <div class="hero-bg-glow"></div>
-  <div class="hero-eyebrow">
-    <span class="eyebrow-badge">Microsoft SharePoint</span>
-    <span class="eyebrow-partner">Delivered by a certified Microsoft partner</span>
+  <div class="hero-copy">
+    <div class="hero-eyebrow">
+      <span class="eyebrow-badge">Microsoft SharePoint</span>
+      <span class="eyebrow-partner">Delivered by a certified Microsoft partner</span>
+    </div>
+    <h1>SharePoint environments your team can actually trust.</h1>
+    <p class="hero-sub">Armely designs structured SharePoint intranets, document management systems, and knowledge sites that make content easier to find, govern, and use every day.</p>
+    <div class="hero-actions">
+      <a href="#contact" class="btn-primary">Book a Free Discovery Call</a>
+      <a href="#what-we-deliver" class="btn-outline">See What We Build</a>
+    </div>
+    <div class="hero-trust">
+      <div class="trust-item">
+        <span class="trust-dot"></span>
+        <span class="trust-text"><strong>Intranet</strong> design and build</span>
+      </div>
+      <div class="trust-item">
+        <span class="trust-dot"></span>
+        <span class="trust-text"><strong>Document</strong> governance</span>
+      </div>
+      <div class="trust-item">
+        <span class="trust-dot"></span>
+        <span class="trust-text"><strong>Microsoft 365</strong> integration</span>
+      </div>
+    </div>
   </div>
-  <h1>One place for every<br>document, process,<br><span class="hl">and conversation.</span></h1>
-  <p class="hero-sub">Armely designs and builds SharePoint environments that give your organization a secure, structured digital workplace, including intranet portals, document management, and AI-powered knowledge search.</p>
-  <div class="hero-actions">
-    <a href="#contact" class="btn-primary">Book a Free Discovery Call</a>
-    <a href="#what-we-deliver" class="btn-outline">See What We Build</a>
-  </div>
-  <div class="hero-trust">
-    <div class="trust-item">
-      <span class="trust-dot"></span>
-      <span class="trust-text">Used by <strong>190 million people</strong> across 200,000 organizations</span>
-    </div>
-    <div class="trust-item">
-      <span class="trust-dot"></span>
-      <span class="trust-text">Included in <strong>Microsoft 365</strong> subscriptions</span>
-    </div>
-    <div class="trust-item">
-      <span class="trust-dot"></span>
-      <span class="trust-text"><strong>Copilot AI agents</strong> built natively into sites</span>
-    </div>
-    <div class="trust-item">
-      <span class="trust-dot"></span>
-      <span class="trust-text">Integrates with <strong>Teams, Power Platform, and Dynamics 365</strong></span>
+  <div class="hero-system" aria-hidden="true">
+    <div class="sharepoint-workspace-card">
+      <div class="workspace-card-header">
+        <div class="workspace-card-kicker">Modern Digital Workplace</div>
+        <div class="workspace-card-title">A clear home for pages, files, policies, and team knowledge.</div>
+      </div>
+      <div class="workspace-card-body">
+        <div class="workspace-flow">
+          <div class="workspace-flow-item"><strong>Intranet</strong><span>News and resources</span></div>
+          <div class="workspace-flow-item"><strong>Libraries</strong><span>Versioned documents</span></div>
+          <div class="workspace-flow-item"><strong>Governance</strong><span>Permissions and lifecycle</span></div>
+        </div>
+        <div class="workspace-divider"></div>
+        <p class="workspace-note"><strong>Built by Armely:</strong> clean information architecture, modern pages, metadata, permissions, and launch support that drives adoption.</p>
+      </div>
     </div>
   </div>
 </section>
@@ -304,22 +462,22 @@
         <p class="section-body">SharePoint is Microsoft's web-based platform for document management, intranet portals, team collaboration, and business process automation. It is included in Microsoft 365 and integrates natively with Teams, Power Platform, and Dynamics 365. The 2026 experience introduces a redesigned interface centered on discovery, publishing, and building, with Copilot AI agents available directly on every SharePoint site.</p>
         <div class="cap-grid">
           <div class="cap-card">
-            <span class="cap-card-icon">📄</span>
+            <span class="cap-card-icon"><i class="fa fa-file-text" aria-hidden="true"></i></span>
             <div class="cap-card-title">Document Management</div>
             <div class="cap-card-desc">Centralized, version-controlled storage with metadata tagging, co-authoring, and granular permissions at the site, library, and item level.</div>
           </div>
           <div class="cap-card">
-            <span class="cap-card-icon">🏠</span>
+            <span class="cap-card-icon"><i class="fa fa-home" aria-hidden="true"></i></span>
             <div class="cap-card-title">Intranet and Portals</div>
             <div class="cap-card-desc">Modern communication sites for company news, HR resources, policies, and employee tools, built to look professional without custom web development.</div>
           </div>
           <div class="cap-card">
-            <span class="cap-card-icon">🔍</span>
+            <span class="cap-card-icon"><i class="fa fa-search" aria-hidden="true"></i></span>
             <div class="cap-card-title">Enterprise Search</div>
             <div class="cap-card-desc">AI-powered search across all SharePoint content, Teams messages, and connected systems so employees find what they need without asking a colleague.</div>
           </div>
           <div class="cap-card">
-            <span class="cap-card-icon">🔒</span>
+            <span class="cap-card-icon"><i class="fa fa-lock" aria-hidden="true"></i></span>
             <div class="cap-card-title">Governance and Compliance</div>
             <div class="cap-card-desc">Sensitivity labels, retention policies, audit logs, and Microsoft Purview integration keep your content governed, compliant, and auditable.</div>
           </div>
@@ -333,35 +491,35 @@
           </div>
           <div class="site-body">
             <div class="site-type active">
-              <span class="site-type-icon">📢</span>
+              <span class="site-type-icon"><i class="fa fa-bullhorn" aria-hidden="true"></i></span>
               <div>
                 <div class="site-type-title">Communication Sites</div>
                 <div class="site-type-desc">Company intranet, department homepages, HR portals, and policy hubs. Broadcast information to the whole organization with news, events, and announcements.</div>
               </div>
             </div>
             <div class="site-type">
-              <span class="site-type-icon">👥</span>
+              <span class="site-type-icon"><i class="fa fa-users" aria-hidden="true"></i></span>
               <div>
                 <div class="site-type-title">Team Sites</div>
                 <div class="site-type-desc">Project workspaces, department collaboration hubs, and document libraries for specific teams. Connected to Microsoft Teams channels automatically.</div>
               </div>
             </div>
             <div class="site-type">
-              <span class="site-type-icon">📚</span>
+              <span class="site-type-icon"><i class="fa fa-book" aria-hidden="true"></i></span>
               <div>
                 <div class="site-type-title">Document Centers</div>
                 <div class="site-type-desc">Centralized repositories for contracts, policies, standard operating procedures, and compliance documentation, with structured metadata and approval workflows.</div>
               </div>
             </div>
             <div class="site-type">
-              <span class="site-type-icon">🏢</span>
+              <span class="site-type-icon"><i class="fa fa-building" aria-hidden="true"></i></span>
               <div>
                 <div class="site-type-title">Hub Sites</div>
                 <div class="site-type-desc">Connect related sites under a shared navigation, search scope, and visual identity, making large SharePoint environments coherent and navigable.</div>
               </div>
             </div>
             <div class="ai-callout">
-              <span style="font-size:1.2rem;">🤖</span>
+              <span class="site-type-icon"><i class="fa fa-magic" aria-hidden="true"></i></span>
               <div class="ai-callout-text"><strong>Copilot agents</strong> are now built natively into SharePoint sites. Employees can ask questions and get answers from your site content in natural language, without digging through folders or calling the help desk.</div>
             </div>
           </div>
@@ -379,32 +537,32 @@
     <p class="section-body">Most SharePoint projects fail not because of technology but because they were designed without a clear information architecture or adoption plan. Armely builds with both from the start.</p>
     <div class="delivers-grid">
       <div class="deliver-card">
-        <div class="deliver-icon">🗺️</div>
+        <div class="deliver-icon"><i class="fa fa-map" aria-hidden="true"></i></div>
         <div class="deliver-title">Information Architecture Design</div>
         <div class="deliver-desc">Before building a single site, we design your SharePoint structure, including site hierarchy, hub connections, metadata taxonomy, and navigation, so content is findable by anyone in the organization from day one.</div>
       </div>
       <div class="deliver-card">
-        <div class="deliver-icon">🏠</div>
+        <div class="deliver-icon"><i class="fa fa-home" aria-hidden="true"></i></div>
         <div class="deliver-title">Intranet Design and Build</div>
         <div class="deliver-desc">We design and build modern SharePoint intranets that employees actually use, including a branded homepage, department sites, HR and policy hubs, news feeds, and an employee directory. Professional design without custom development costs.</div>
       </div>
       <div class="deliver-card">
-        <div class="deliver-icon">📄</div>
+        <div class="deliver-icon"><i class="fa fa-file-text" aria-hidden="true"></i></div>
         <div class="deliver-title">Document Management Systems</div>
         <div class="deliver-desc">We structure your document libraries with consistent metadata, naming conventions, version control, and permission models so teams stop emailing files and start collaborating in a single, governed location.</div>
       </div>
       <div class="deliver-card">
-        <div class="deliver-icon">🔄</div>
+        <div class="deliver-icon"><i class="fa fa-refresh" aria-hidden="true"></i></div>
         <div class="deliver-title">Migration from Legacy Systems</div>
         <div class="deliver-desc">We migrate content from file servers, older SharePoint versions, Google Drive, Box, and other platforms to SharePoint Online, with metadata preservation, permission mapping, and content clean-up before migration to avoid transferring years of clutter.</div>
       </div>
       <div class="deliver-card">
-        <div class="deliver-icon">🤖</div>
+        <div class="deliver-icon"><i class="fa fa-magic" aria-hidden="true"></i></div>
         <div class="deliver-title">Copilot Agent Configuration</div>
         <div class="deliver-desc">We configure and govern SharePoint Copilot agents that answer employee questions using your actual site content, policy documents, and knowledge bases, with appropriate permission scoping and governance controls applied before deployment.</div>
       </div>
       <div class="deliver-card">
-        <div class="deliver-icon">🛡️</div>
+        <div class="deliver-icon"><i class="fa fa-shield" aria-hidden="true"></i></div>
         <div class="deliver-title">Governance and Ongoing Management</div>
         <div class="deliver-desc">SharePoint without governance becomes ungoverned quickly. We implement site lifecycle policies, external sharing controls, sensitivity labels, retention schedules, and admin tooling, with ongoing managed support to keep your environment clean.</div>
       </div>
@@ -461,32 +619,32 @@
     <p class="section-body">Every SharePoint engagement starts with a specific problem. These are the situations we encounter most often across our client base.</p>
     <div class="uc-grid">
       <div class="uc-card">
-        <span class="uc-icon">🗂️</span>
+        <span class="uc-icon"><i class="fa fa-folder-open" aria-hidden="true"></i></span>
         <div class="uc-title">Replace the File Server</div>
         <div class="uc-desc">Organizations still running shared network drives face security gaps, no version history, and files that cannot be accessed remotely. We migrate to SharePoint Online with a clean structure, proper permissions, and Teams integration so staff can work from anywhere.</div>
       </div>
       <div class="uc-card">
-        <span class="uc-icon">🏠</span>
+        <span class="uc-icon"><i class="fa fa-home" aria-hidden="true"></i></span>
         <div class="uc-title">Build a Modern Company Intranet</div>
         <div class="uc-desc">A SharePoint intranet that employees check daily rather than ignore. We design and build a branded company hub with news, announcements, department pages, quick links, an employee directory, and HR resources, configured for your organization's structure.</div>
       </div>
       <div class="uc-card">
-        <span class="uc-icon">📋</span>
+        <span class="uc-icon"><i class="fa fa-clipboard" aria-hidden="true"></i></span>
         <div class="uc-title">Centralize Policies and Procedures</div>
         <div class="uc-desc">We build governed policy libraries where documents go through a review and approval workflow before publishing, are version-controlled and date-stamped, and are searchable by all staff without emailing HR to ask where something is.</div>
       </div>
       <div class="uc-card">
-        <span class="uc-icon">🔀</span>
+        <span class="uc-icon"><i class="fa fa-code-fork" aria-hidden="true"></i></span>
         <div class="uc-title">Migrate from an Older SharePoint</div>
         <div class="uc-desc">Organizations running on older on-premises SharePoint versions face increasing maintenance cost and security risk. We plan and execute migrations to SharePoint Online, modernizing page designs and cleaning up legacy content in the process.</div>
       </div>
       <div class="uc-card">
-        <span class="uc-icon">👥</span>
+        <span class="uc-icon"><i class="fa fa-users" aria-hidden="true"></i></span>
         <div class="uc-title">Project and Team Collaboration Sites</div>
         <div class="uc-desc">Structured SharePoint team sites for every department or project, connected to Teams channels, with consistent document libraries, task lists, and site templates that can be provisioned automatically when a new project or team is created.</div>
       </div>
       <div class="uc-card">
-        <span class="uc-icon">💬</span>
+        <span class="uc-icon"><i class="fa fa-comments" aria-hidden="true"></i></span>
         <div class="uc-title">AI-Powered Knowledge Search</div>
         <div class="uc-desc">We deploy and govern SharePoint Copilot agents scoped to specific knowledge bases, such as HR policies, IT procedures, or product documentation, so employees get accurate answers from your actual content rather than searching through folders.</div>
       </div>
@@ -554,28 +712,28 @@
         <p class="section-body">SharePoint is one of the most widely deployed platforms in the Microsoft ecosystem and one of the most commonly underutilized. Armely brings the architecture knowledge and adoption discipline to ensure your investment delivers lasting value.</p>
         <ul class="why-list">
           <li>
-            <div class="why-icon">🎯</div>
+            <div class="why-icon"><i class="fa fa-bullseye" aria-hidden="true"></i></div>
             <div>
               <div class="why-item-title">Certified SharePoint Architects</div>
               <div class="why-item-desc">Our team holds Microsoft certifications in SharePoint and Microsoft 365 administration, with hands-on delivery experience across intranet builds, file server migrations, and governance implementations for organizations of varying sizes.</div>
             </div>
           </li>
           <li>
-            <div class="why-icon">🏫</div>
+            <div class="why-icon"><i class="fa fa-university" aria-hidden="true"></i></div>
             <div>
               <div class="why-item-title">Proven Delivery for Complex Organizations</div>
               <div class="why-item-desc">We have delivered SharePoint implementations for Plano ISD, Swope Health Systems, and the University of Nebraska Medical Center, organizations where large user populations, compliance requirements, and structured content management are all critical.</div>
             </div>
           </li>
           <li>
-            <div class="why-icon">🔗</div>
+            <div class="why-icon"><i class="fa fa-link" aria-hidden="true"></i></div>
             <div>
               <div class="why-item-title">Full Microsoft 365 Integration</div>
               <div class="why-item-desc">SharePoint works best as part of a connected Microsoft 365 environment. Armely designs SharePoint to integrate with Teams, Power Automate, Power Apps, and Dynamics 365 so your digital workplace functions as a unified system rather than a collection of separate tools.</div>
             </div>
           </li>
           <li>
-            <div class="why-icon">📈</div>
+            <div class="why-icon"><i class="fa fa-line-chart" aria-hidden="true"></i></div>
             <div>
               <div class="why-item-title">Adoption as Part of Delivery</div>
               <div class="why-item-desc">A SharePoint site no one uses is a failed project regardless of how well it was built. We include change management, user communications, and role-specific training in every engagement because adoption is not optional.</div>
