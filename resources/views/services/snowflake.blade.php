@@ -1,308 +1,1022 @@
-﻿@extends('layouts.public')
+﻿<style>
 
-@section('title', 'Armely - Snowflake AI Data Cloud')
-@section('meta_description', 'Snowflake architecture, implementation, data pipelines, BI, Cortex AI, and governance services from Armely.')
-@section('meta_keywords', 'Snowflake, AI Data Cloud, data warehouse, Cortex AI, data engineering, Armely')
-@section('canonical_url', url('/snowflake'))
+.armely-snowflake-page *, .armely-snowflake-page *::before, .armely-snowflake-page *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-@push('head')
-<meta property="og:title" content="Armely - Snowflake AI Data Cloud">
-<meta property="og:description" content="Snowflake architecture, implementation, data pipelines, BI, Cortex AI, and governance services from Armely.">
-<meta property="og:url" content="{{ url('/snowflake') }}">
-<meta name="twitter:title" content="Armely - Snowflake AI Data Cloud">
-<meta name="twitter:description" content="Snowflake architecture, implementation, data pipelines, BI, Cortex AI, and governance services from Armely.">
-@endpush
+.armely-snowflake-page {
+    --navy:      #FFFFFF;
+    --navy-mid:  #F3F6FB;
+    --navy-card: #EBF0F8;
+    --blue:      #294e8b;
+    --blue-lt:   #3d6ab5;
+    --blue-dim:  rgba(41,78,139,0.08);
+    --blue-dim2: rgba(41,78,139,0.16);
+    --text-body: #3D4F6B;
+    --text-muted:#6B7FA3;
+    --border:    rgba(41,78,139,0.1);
+  }
 
-@push('styles')
-<style>
+.armely-snowflake-page { scroll-behavior: smooth; }
+.armely-snowflake-page { font-family: 'Poppins', sans-serif; background: var(--navy); color: var(--text-body); line-height: 1.6; }
 
-.armely-solution-page {
-    --as-blue: #2f5597;
-    --as-blue-dark: #1e3a6d;
-    --as-ink: #18233f;
-    --as-muted: #5f6f89;
-    --as-line: #dfe8f6;
-    --as-soft: #f4f8ff;
-    --as-accent: #f4a51c;
-    color: var(--as-ink);
-    background: #ffffff;
+  /* ── NAV ── */
+.armely-snowflake-page nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 18px 56px;
+    background: rgba(26,46,82,0.96);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+.armely-snowflake-page .logo { display: flex; align-items: center; gap: 10px; }
+.armely-snowflake-page .logo-mark { width: 36px; height: 36px; background: var(--blue); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1rem; color: #fff; }
+.armely-snowflake-page .logo-text { font-size: 1.25rem; font-weight: 700; color: #fff; letter-spacing: -0.01em; }
+.armely-snowflake-page .nav-links { display: flex; gap: 32px; align-items: center; list-style: none; }
+.armely-snowflake-page .nav-links a { color: rgba(255,255,255,0.6); text-decoration: none; font-size: 0.875rem; font-weight: 500; transition: color 0.2s; }
+.armely-snowflake-page .nav-links a:hover { color: #fff; }
+.armely-snowflake-page .nav-cta { background: var(--blue); color: #fff !important; padding: 10px 22px; border-radius: 6px; font-size: 0.875rem; font-weight: 600 !important; transition: background 0.2s !important; }
+.armely-snowflake-page .nav-cta:hover { background: var(--blue-lt) !important; }
+
+  /* ── HERO ── */
+.armely-snowflake-page .hero {
+    min-height: 100vh;
+    display: flex; flex-direction: column; justify-content: center;
+    padding: 140px 56px 100px;
+    position: relative; overflow: hidden;
+    background: #1a2e52;
+  }
+.armely-snowflake-page .hero-bg-glow { position: absolute; top: -180px; right: -100px; width: 720px; height: 720px; background: radial-gradient(circle, rgba(41,78,139,0.2) 0%, transparent 68%); pointer-events: none; }
+.armely-snowflake-page .hero-eyebrow { display: inline-flex; align-items: center; gap: 10px; margin-bottom: 24px; }
+.armely-snowflake-page .eyebrow-badge { background: rgba(41,78,139,0.35); border: 1px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.9); font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.12em; padding: 5px 14px; border-radius: 40px; }
+.armely-snowflake-page .eyebrow-partner { font-size: 0.78rem; color: rgba(255,255,255,0.5); font-weight: 400; }
+.armely-snowflake-page .hero h1 { font-size: clamp(2.6rem, 5.5vw, 4.8rem); font-weight: 800; line-height: 1.08; color: #FFFFFF; max-width: 780px; margin-bottom: 24px; letter-spacing: -0.03em; }
+.armely-snowflake-page .hero h1 .hl { color: #FFFFFF; opacity: 0.92; }
+.armely-snowflake-page .hero-sub { font-size: 1.05rem; font-weight: 300; color: rgba(255,255,255,0.82); max-width: 540px; margin-bottom: 40px; line-height: 1.8; }
+.armely-snowflake-page .hero-actions { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 72px; }
+.armely-snowflake-page .btn-primary { background: var(--blue); color: #fff; border: none; border-radius: 7px; padding: 14px 32px; font-family: 'Poppins', sans-serif; font-size: 0.95rem; font-weight: 600; cursor: pointer; text-decoration: none; transition: background 0.2s, transform 0.15s; display: inline-block; }
+.armely-snowflake-page .btn-primary:hover { background: var(--blue-lt); transform: translateY(-2px); }
+.armely-snowflake-page .btn-outline { background: transparent; color: rgba(255,255,255,0.85); border: 1px solid rgba(255,255,255,0.25); border-radius: 7px; padding: 14px 32px; font-family: 'Poppins', sans-serif; font-size: 0.95rem; font-weight: 500; cursor: pointer; text-decoration: none; transition: border-color 0.2s, background 0.2s; display: inline-block; }
+.armely-snowflake-page .btn-outline:hover { border-color: rgba(255,255,255,0.5); background: rgba(255,255,255,0.06); }
+.armely-snowflake-page .hero-trust { display: flex; gap: 40px; flex-wrap: wrap; padding-top: 40px; border-top: 1px solid rgba(255,255,255,0.12); }
+.armely-snowflake-page .trust-item { display: flex; align-items: center; gap: 10px; }
+.armely-snowflake-page .trust-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.5); flex-shrink: 0; }
+.armely-snowflake-page .trust-text { font-size: 0.82rem; color: rgba(255,255,255,0.6); font-weight: 400; }
+.armely-snowflake-page .trust-text strong { color: #fff; font-weight: 600; }
+
+  /* ── SECTIONS ── */
+.armely-snowflake-page section { padding: 96px 56px; }
+.armely-snowflake-page .section-inner { max-width: 1100px; margin: 0 auto; }
+.armely-snowflake-page .section-eyebrow { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.14em; color: var(--blue); margin-bottom: 14px; font-weight: 600; }
+.armely-snowflake-page .section-title { font-size: clamp(1.7rem, 3.2vw, 2.6rem); font-weight: 800; color: #1A2540; line-height: 1.12; letter-spacing: -0.025em; margin-bottom: 18px; max-width: 620px; }
+.armely-snowflake-page .section-body { font-size: 0.975rem; font-weight: 300; max-width: 540px; line-height: 1.8; color: var(--text-body); margin-bottom: 48px; }
+
+  /* ── WHAT IS SNOWFLAKE ── */
+.armely-snowflake-page .intro { background: var(--navy-mid); }
+.armely-snowflake-page .intro-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 72px; align-items: center; }
+
+  /* Architecture stack diagram */
+.armely-snowflake-page .stack-card { background: #fff; border: 1px solid var(--border); border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(41,78,139,0.08); }
+.armely-snowflake-page .stack-header { padding: 16px 22px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; background: var(--navy-mid); }
+.armely-snowflake-page .stack-dots { display: flex; gap: 6px; }
+.armely-snowflake-page .stack-dots span { width: 10px; height: 10px; border-radius: 50%; background: rgba(41,78,139,0.15); }
+.armely-snowflake-page .stack-title { font-size: 0.78rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; }
+.armely-snowflake-page .stack-body { padding: 20px; display: flex; flex-direction: column; gap: 6px; }
+.armely-snowflake-page .stack-layer { border-radius: 9px; padding: 12px 16px; }
+.armely-snowflake-page .stack-layer-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; }
+.armely-snowflake-page .stack-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.armely-snowflake-page .stack-chip { font-size: 0.71rem; font-weight: 600; padding: 3px 9px; border-radius: 20px; }
+.armely-snowflake-page .layer-ai { background: rgba(41,78,139,0.07); }
+.armely-snowflake-page .layer-ai .stack-layer-label { color: var(--blue); }
+.armely-snowflake-page .layer-ai .stack-chip { background: var(--blue-dim2); color: var(--blue); }
+.armely-snowflake-page .layer-compute { background: rgba(41,78,139,0.05); }
+.armely-snowflake-page .layer-compute .stack-layer-label { color: var(--blue); }
+.armely-snowflake-page .layer-compute .stack-chip { background: var(--blue-dim); color: var(--blue); }
+.armely-snowflake-page .layer-services { background: rgba(41,78,139,0.03); }
+.armely-snowflake-page .layer-services .stack-layer-label { color: var(--text-muted); }
+.armely-snowflake-page .layer-services .stack-chip { background: rgba(41,78,139,0.06); color: var(--text-muted); }
+.armely-snowflake-page .layer-storage { background: var(--blue); }
+.armely-snowflake-page .layer-storage .stack-layer-label { color: rgba(255,255,255,0.7); }
+.armely-snowflake-page .layer-storage .stack-chip { background: rgba(255,255,255,0.15); color: #fff; }
+.armely-snowflake-page .stack-arrow { text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 2px 0; }
+
+  /* Capability pills */
+.armely-snowflake-page .cap-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 28px; }
+.armely-snowflake-page .cap-pill { background: var(--blue-dim); border: 1px solid var(--blue-dim2); border-radius: 10px; padding: 12px 16px; display: flex; align-items: center; gap: 10px; }
+.armely-snowflake-page .cap-icon { font-size: 1.1rem; flex-shrink: 0; }
+.armely-snowflake-page .cap-label { font-size: 0.8rem; font-weight: 600; color: var(--blue); line-height: 1.3; }
+.armely-snowflake-page .vs-callout { margin-top: 20px; background: var(--blue); border-radius: 10px; padding: 16px 20px; display: flex; align-items: center; gap: 14px; }
+.armely-snowflake-page .vs-callout-icon { font-size: 1.4rem; flex-shrink: 0; }
+.armely-snowflake-page .vs-callout-text { font-size: 0.85rem; color: rgba(255,255,255,0.9); line-height: 1.55; }
+.armely-snowflake-page .vs-callout-text strong { color: #fff; }
+
+  /* ── DELIVERS ── */
+.armely-snowflake-page .delivers { background: var(--navy); }
+.armely-snowflake-page .delivers-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 48px; }
+.armely-snowflake-page .deliver-card { background: var(--navy-card); border: 1px solid var(--border); border-radius: 14px; padding: 32px 26px; transition: border-color 0.2s, transform 0.2s; }
+.armely-snowflake-page .deliver-card:hover { border-color: rgba(41,78,139,0.35); transform: translateY(-3px); }
+.armely-snowflake-page .deliver-icon { width: 48px; height: 48px; background: var(--blue-dim); border: 1px solid var(--blue-dim2); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; margin-bottom: 20px; }
+.armely-snowflake-page .deliver-title { font-size: 1rem; font-weight: 700; color: #1A2540; margin-bottom: 10px; }
+.armely-snowflake-page .deliver-desc { font-size: 0.875rem; line-height: 1.7; color: var(--text-body); }
+
+  /* ── JOURNEY ── */
+.armely-snowflake-page .journey { background: var(--navy-mid); }
+.armely-snowflake-page .steps-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; margin-top: 56px; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+.armely-snowflake-page .step { padding: 32px 22px; border-right: 1px solid var(--border); }
+.armely-snowflake-page .step:last-child { border-right: none; }
+.armely-snowflake-page .step-num { font-size: 2.4rem; font-weight: 800; color: rgba(41,78,139,0.18); line-height: 1; margin-bottom: 14px; }
+.armely-snowflake-page .step-title { font-size: 0.95rem; font-weight: 700; color: #1A2540; margin-bottom: 10px; }
+.armely-snowflake-page .step-desc { font-size: 0.82rem; line-height: 1.65; color: var(--text-body); }
+.armely-snowflake-page .step-tag { display: inline-block; margin-top: 14px; background: var(--blue-dim); color: var(--blue); font-size: 0.7rem; padding: 3px 10px; border-radius: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+
+  /* ── USE CASES ── */
+.armely-snowflake-page .usecases { background: var(--navy); }
+.armely-snowflake-page .uc-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 48px; }
+.armely-snowflake-page .uc-card { background: var(--navy-card); border: 1px solid var(--border); border-radius: 12px; padding: 28px 24px; transition: border-color 0.2s; }
+.armely-snowflake-page .uc-card:hover { border-color: rgba(41,78,139,0.25); }
+.armely-snowflake-page .uc-icon { font-size: 1.6rem; margin-bottom: 14px; display: block; }
+.armely-snowflake-page .uc-title { font-size: 0.95rem; font-weight: 700; color: #1A2540; margin-bottom: 8px; }
+.armely-snowflake-page .uc-desc { font-size: 0.85rem; line-height: 1.68; color: var(--text-body); }
+
+  /* ── WHY ARMELY ── */
+.armely-snowflake-page .why { background: var(--navy-mid); }
+.armely-snowflake-page .why-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 72px; align-items: start; }
+.armely-snowflake-page .why-list { list-style: none; margin-top: 36px; }
+.armely-snowflake-page .why-list li { display: flex; gap: 16px; padding: 20px 0; border-bottom: 1px solid var(--border); }
+.armely-snowflake-page .why-list li:last-child { border-bottom: none; }
+.armely-snowflake-page .why-icon { width: 42px; height: 42px; flex-shrink: 0; background: var(--blue-dim); border: 1px solid var(--blue-dim2); border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
+.armely-snowflake-page .why-item-title { font-weight: 600; color: #1A2540; font-size: 0.9rem; margin-bottom: 4px; }
+.armely-snowflake-page .why-item-desc { font-size: 0.84rem; color: var(--text-body); line-height: 1.65; }
+.armely-snowflake-page .partner-block { background: #fff; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+.armely-snowflake-page .partner-block-top { padding: 28px; border-bottom: 1px solid var(--border); }
+.armely-snowflake-page .partner-label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.14em; color: var(--blue); font-weight: 700; margin-bottom: 10px; }
+.armely-snowflake-page .partner-text { font-size: 0.875rem; color: var(--text-body); line-height: 1.7; }
+.armely-snowflake-page .partner-stats { display: grid; grid-template-columns: 1fr 1fr; }
+.armely-snowflake-page .p-stat { padding: 24px 28px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.armely-snowflake-page .p-stat:nth-child(2) { border-right: none; }
+.armely-snowflake-page .p-stat:nth-child(3) { border-bottom: none; }
+.armely-snowflake-page .p-stat:nth-child(4) { border-right: none; border-bottom: none; }
+.armely-snowflake-page .p-stat-num { font-size: 1.8rem; font-weight: 800; color: #1A2540; line-height: 1; margin-bottom: 4px; }
+.armely-snowflake-page .p-stat-num span { color: var(--blue); }
+.armely-snowflake-page .p-stat-label { font-size: 0.75rem; color: var(--text-muted); line-height: 1.4; }
+
+  /* ── CTA ── */
+.armely-snowflake-page .cta-section { background: var(--navy-card); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.armely-snowflake-page .cta-inner { max-width: 1100px; margin: 0 auto; padding: 96px 56px; display: grid; grid-template-columns: 1fr 1fr; gap: 72px; align-items: center; }
+.armely-snowflake-page .cta-form { background: #FFFFFF; border: 1px solid var(--border); border-radius: 14px; padding: 36px 32px; box-shadow: 0 4px 24px rgba(41,78,139,0.08); }
+.armely-snowflake-page .form-title { font-size: 1.1rem; font-weight: 700; color: #1A2540; margin-bottom: 6px; }
+.armely-snowflake-page .form-sub { font-size: 0.84rem; color: var(--text-muted); margin-bottom: 24px; }
+.armely-snowflake-page .form-row { margin-bottom: 14px; }
+.armely-snowflake-page .form-row label { display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+.armely-snowflake-page .form-row input, .armely-snowflake-page .form-row select { width: 100%; background: #FFFFFF; border: 1px solid rgba(41,78,139,0.15); border-radius: 7px; padding: 11px 14px; font-family: 'Poppins', sans-serif; font-size: 0.875rem; color: #1A2540; outline: none; transition: border-color 0.2s; }
+.armely-snowflake-page .form-row input:focus, .armely-snowflake-page .form-row select:focus { border-color: rgba(41,78,139,0.4); }
+.armely-snowflake-page .form-row select option { background: #fff; color: #1A2540; }
+.armely-snowflake-page .form-submit { width: 100%; background: var(--blue); color: #fff; border: none; border-radius: 7px; padding: 14px; margin-top: 8px; font-family: 'Poppins', sans-serif; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+.armely-snowflake-page .form-submit:hover { background: var(--blue-lt); }
+.armely-snowflake-page .form-note { text-align: center; margin-top: 12px; font-size: 0.75rem; color: var(--text-muted); }
+
+  /* ── FOOTER ── */
+.armely-snowflake-page footer { background: #1a2e52; border-top: 1px solid rgba(255,255,255,0.08); padding: 36px 56px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
+.armely-snowflake-page .footer-logo-row { display: flex; align-items: center; gap: 10px; }
+.armely-snowflake-page .footer-lm { width: 30px; height: 30px; background: var(--blue); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.85rem; color: #fff; }
+.armely-snowflake-page .footer-lt { font-size: 1rem; font-weight: 700; color: #fff; }
+.armely-snowflake-page .footer-note { font-size: 0.78rem; color: rgba(255,255,255,0.4); }
+.armely-snowflake-page .footer-badges { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+.armely-snowflake-page .badge-chip { border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; padding: 5px 12px; font-size: 0.72rem; color: rgba(255,255,255,0.5); font-weight: 500; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 900px) {
+.armely-snowflake-page nav { padding: 16px 24px; }
+.armely-snowflake-page .nav-links { display: none; }
+.armely-snowflake-page section { padding: 72px 24px; }
+.armely-snowflake-page .hero { padding: 110px 24px 72px; }
+.armely-snowflake-page .intro-grid, .armely-snowflake-page .why-two-col { grid-template-columns: 1fr; gap: 40px; }
+.armely-snowflake-page .delivers-grid, .armely-snowflake-page .uc-grid { grid-template-columns: 1fr 1fr; }
+.armely-snowflake-page .steps-row { grid-template-columns: 1fr; }
+.armely-snowflake-page .step { border-right: none; border-bottom: 1px solid var(--border); }
+.armely-snowflake-page .step:last-child { border-bottom: none; }
+.armely-snowflake-page .cta-inner { grid-template-columns: 1fr; gap: 40px; padding: 72px 24px; }
+.armely-snowflake-page footer { padding: 32px 24px; flex-direction: column; align-items: flex-start; }
+  }
+  @media (max-width: 600px) {
+.armely-snowflake-page .delivers-grid, .armely-snowflake-page .uc-grid { grid-template-columns: 1fr; }
+.armely-snowflake-page .cap-grid { grid-template-columns: 1fr; }
+.armely-snowflake-page .partner-stats { grid-template-columns: 1fr; }
+.armely-snowflake-page .hero-trust { gap: 20px; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+/* Armely service-page polish */
+.armely-snowflake-page {
+  --navy: #ffffff;
+  --navy-mid: #f5f8fc;
+  --navy-card: #ffffff;
+  --blue: #2f5597;
+  --blue-lt: #4477bd;
+  --blue-dim: rgba(47, 85, 151, 0.09);
+  --blue-dim2: rgba(47, 85, 151, 0.18);
+  --text-body: #334155;
+  --text-muted: #667085;
+  --border: rgba(47, 85, 151, 0.14);
 }
-.armely-solution-page a { text-decoration: none; }
-.as-container { width: min(1120px, calc(100% - 32px)); margin: 0 auto; }
-.as-hero { position: relative; overflow: hidden; padding: 92px 0 70px; background: linear-gradient(135deg, #1e3a6d 0%, #2f5597 56%, #5f83c3 100%); }
-.as-hero::before { content: ""; position: absolute; inset: auto -12% -45% auto; width: 620px; height: 620px; background: radial-gradient(circle, rgba(255,255,255,0.13), transparent 68%); pointer-events: none; }
-.as-hero-grid { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(0, 1fr) 440px; gap: 52px; align-items: center; }
-.as-eyebrow { display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px; border: 1px solid rgba(255,255,255,0.22); border-radius: 999px; background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.9); font-size: .78rem; font-weight: 700; text-transform: uppercase; margin-bottom: 22px; }
-.as-hero h1 { color: #fff; font-size: clamp(2.25rem, 4vw, 3.5rem); line-height: 1.12; font-weight: 800; margin: 0 0 20px; }
-.as-hero h1 span { color: #ffd166; }
-.as-hero p { color: rgba(255,255,255,.88); font-size: 1.08rem; line-height: 1.8; margin: 0 0 28px; max-width: 610px; }
-.as-actions { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
-.as-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 12px 22px; border-radius: 8px; font-weight: 700; transition: transform .2s ease, box-shadow .2s ease, background .2s ease, color .2s ease; }
-.as-btn:hover { transform: translateY(-2px); }
-.as-btn-primary { background: #fff; color: var(--as-blue); box-shadow: 0 14px 28px rgba(17,39,83,.22); }
-.as-btn-secondary { color: #fff; border: 1px solid rgba(255,255,255,.35); }
-.as-btn-secondary:hover { color: #fff; background: rgba(255,255,255,.12); }
-.as-visual-card { background: #fff; border: 1px solid rgba(255,255,255,.35); border-radius: 8px; padding: 28px; box-shadow: 0 24px 60px rgba(10,24,55,.28); }
-.as-card-label { color: var(--as-muted); font-size: .78rem; font-weight: 800; text-transform: uppercase; margin-bottom: 18px; }
-.as-stack { display: grid; gap: 10px; }
-.as-stack-item { border-radius: 8px; background: var(--as-soft); border: 1px solid var(--as-line); padding: 14px 16px; }
-.as-stack-item strong { display: block; color: var(--as-blue-dark); font-size: .92rem; margin-bottom: 4px; }
-.as-stack-item span { display: block; color: var(--as-muted); font-size: .82rem; line-height: 1.55; }
-.as-stack-item.as-dark { background: var(--as-blue); border-color: var(--as-blue); }
-.as-stack-item.as-dark strong, .as-stack-item.as-dark span { color: #fff; }
-.as-proof { background: #172b52; color: rgba(255,255,255,.74); padding: 18px 0; font-size: .92rem; }
-.as-proof .as-container { display: flex; justify-content: center; gap: 18px; flex-wrap: wrap; text-align: center; }
-.as-proof strong { color: #fff; }
-.as-section { padding: 76px 0; }
-.as-section-soft { background: var(--as-soft); }
-.as-section-blue { background: linear-gradient(135deg, #1e3a6d, #2f5597); color: #fff; }
-.as-label { color: var(--as-blue); font-size: .78rem; font-weight: 800; text-transform: uppercase; margin-bottom: 10px; }
-.as-section-blue .as-label { color: #ffd166; }
-.as-heading { color: var(--as-ink); font-size: clamp(1.8rem, 3vw, 2.45rem); line-height: 1.22; font-weight: 800; margin: 0 0 14px; max-width: 780px; }
-.as-section-blue .as-heading, .as-section-blue h3, .as-section-blue h4 { color: #fff; }
-.as-sub { color: var(--as-muted); font-size: 1rem; line-height: 1.78; max-width: 710px; margin: 0 0 36px; }
-.as-section-blue .as-sub, .as-section-blue p { color: rgba(255,255,255,.78); }
-.as-grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; }
-.as-grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 34px; align-items: center; }
-.as-card { height: 100%; background: #fff; border: 1px solid var(--as-line); border-radius: 8px; padding: 28px; box-shadow: 0 8px 24px rgba(31,64,121,.06); }
-.as-card-icon { width: 48px; height: 48px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; background: #eaf2ff; color: var(--as-blue); font-size: 1.2rem; margin-bottom: 18px; }
-.as-card h3, .as-step h3 { color: var(--as-ink); font-size: 1.08rem; font-weight: 800; line-height: 1.4; margin: 0 0 10px; }
-.as-card p, .as-step p, .as-faq p { color: var(--as-muted); font-size: .94rem; line-height: 1.72; margin: 0; }
-.as-step { border-left: 3px solid #cddcf3; padding-left: 22px; }
-.as-step-num { color: var(--as-blue); font-size: .76rem; font-weight: 800; text-transform: uppercase; margin-bottom: 9px; }
-.as-case-list { display: grid; gap: 14px; }
-.as-case { border: 1px solid rgba(255,255,255,.15); border-radius: 8px; background: rgba(255,255,255,.08); padding: 20px; }
-.as-case-label { color: #ffd166; font-size: .75rem; font-weight: 800; text-transform: uppercase; margin-bottom: 7px; }
-.as-list { list-style: none; margin: 22px 0 0; padding: 0; display: grid; gap: 14px; }
-.as-list li { color: #33435f; font-size: .94rem; line-height: 1.65; padding-left: 24px; position: relative; }
-.as-list li::before { content: "\f00c"; font-family: "Font Awesome 6 Free"; font-weight: 900; color: var(--as-blue); position: absolute; left: 0; top: 1px; font-size: .78rem; }
-.as-faq { max-width: 820px; }
-.as-faq-item { border-bottom: 1px solid var(--as-line); padding: 22px 0; }
-.as-faq h3 { color: var(--as-ink); font-size: 1rem; font-weight: 800; margin: 0 0 8px; }
-.as-final-cta { text-align: center; }
-.as-final-cta .as-heading, .as-final-cta .as-sub { margin-left: auto; margin-right: auto; }
-@media (max-width: 991px) { .as-hero-grid, .as-grid-2 { grid-template-columns: 1fr; } .as-grid-3 { grid-template-columns: 1fr; } .as-hero { padding: 70px 0 54px; } }
-@media (max-width: 575px) { .as-container { width: min(100% - 24px, 1120px); } .as-section { padding: 56px 0; } .as-visual-card, .as-card { padding: 22px; } .as-actions { align-items: stretch; } .as-btn { width: 100%; } }
+.armely-snowflake-page .hero {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #173b67 0%, #2f5597 58%, #4f86c6 100%);
+}
+.armely-snowflake-page .hero::after {
+  content: '';
+  position: absolute;
+  inset: auto 8% 8% auto;
+  width: min(340px, 48vw);
+  height: min(340px, 48vw);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.10);
+  filter: blur(2px);
+  pointer-events: none;
+}
+.armely-snowflake-page .section-title,
+.armely-snowflake-page .deliver-title,
+.armely-snowflake-page .uc-title,
+.armely-snowflake-page .step-title,
+.armely-snowflake-page .why-item-title,
+.armely-snowflake-page .form-title {
+  color: #162b49;
+}
+.armely-snowflake-page .deliver-card,
+.armely-snowflake-page .uc-card,
+.armely-snowflake-page .testi-card,
+.armely-snowflake-page .platform-card,
+.armely-snowflake-page .partner-block,
+.armely-snowflake-page .cta-form {
+  box-shadow: 0 16px 42px rgba(18, 47, 82, 0.08);
+}
+.armely-snowflake-page .deliver-card:hover,
+.armely-snowflake-page .uc-card:hover {
+  box-shadow: 0 20px 46px rgba(18, 47, 82, 0.13);
+}
+.armely-snowflake-page .btn-primary,
+.armely-snowflake-page .form-submit {
+  background: linear-gradient(135deg, #2f5597, #4477bd);
+  box-shadow: 0 10px 24px rgba(47, 85, 151, 0.24);
+}
+.armely-snowflake-page .btn-primary:hover,
+.armely-snowflake-page .form-submit:hover {
+  background: linear-gradient(135deg, #274a83, #3c6dac);
+}
+.armely-snowflake-page .btn-outline:hover {
+  background: rgba(255,255,255,0.11);
+}
+.armely-snowflake-page nav,
+.armely-snowflake-page footer {
+  display: none;
+}
+
+/* Shared modern service page refresh */
+.armely-snowflake-page .hero {
+  min-height: 100vh;
+  padding: 150px 56px 96px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: #173b67;
+  border-radius: 0;
+}
+.armely-snowflake-page .hero::after,
+.armely-snowflake-page .hero-bg-glow,
+.armely-snowflake-page .hero-trust {
+  display: none;
+}
+.armely-snowflake-page .hero h1 {
+  max-width: 820px;
+  margin-bottom: 22px;
+}
+.armely-snowflake-page .hero-sub {
+  max-width: 700px;
+  margin-bottom: 34px;
+}
+.armely-snowflake-page .hero-actions {
+  margin-bottom: 0;
+}
+.armely-snowflake-page .hero .btn-primary,
+.armely-snowflake-page .hero .btn-outline {
+  border-radius: 0;
+}
+.armely-snowflake-page .eyebrow-badge {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  color: rgba(255,255,255,0.74);
+}
+.armely-snowflake-page .eyebrow-partner {
+  display: none;
+}
+.armely-snowflake-page section:not(.hero) > .section-inner > .section-eyebrow,
+.armely-snowflake-page .cta-inner > div > .section-eyebrow {
+  width: fit-content;
+  margin: 0 auto 14px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--blue-dim);
+  border: 1px solid var(--blue-dim2);
+  text-align: center;
+}
+.armely-snowflake-page section:not(.hero) > .section-inner > .section-title,
+.armely-snowflake-page .cta-inner > div > .section-title {
+  max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}
+.armely-snowflake-page section:not(.hero) > .section-inner > .section-body,
+.armely-snowflake-page .cta-inner > div > .section-body {
+  max-width: 820px;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}
+.armely-snowflake-page .intro-grid,
+.armely-snowflake-page .symptoms-grid,
+.armely-snowflake-page .when-grid,
+.armely-snowflake-page .why-two-col,
+.armely-snowflake-page .cta-inner {
+  align-items: stretch;
+}
+.armely-snowflake-page .intro-grid,
+.armely-snowflake-page .symptoms-grid,
+.armely-snowflake-page .when-grid,
+.armely-snowflake-page .delivers-grid,
+.armely-snowflake-page .tier-grid,
+.armely-snowflake-page .covers-grid,
+.armely-snowflake-page .steps-row,
+.armely-snowflake-page .uc-grid,
+.armely-snowflake-page .testi-grid,
+.armely-snowflake-page .why-two-col,
+.armely-snowflake-page .pathway-grid {
+  margin-top: 56px;
+}
+.armely-snowflake-page .deliver-icon,
+.armely-snowflake-page .uc-icon,
+.armely-snowflake-page .why-icon,
+.armely-snowflake-page .symptom-icon,
+.armely-snowflake-page .what-card-icon,
+.armely-snowflake-page .cov-item-icon,
+.armely-snowflake-page .cover-icon,
+.armely-snowflake-page .product-card-icon,
+.armely-snowflake-page .cap-icon,
+.armely-snowflake-page .workload-pill-icon,
+.armely-snowflake-page .decision-icon,
+.armely-snowflake-page .sign-icon,
+.armely-snowflake-page .pathway-icon,
+.armely-snowflake-page .onelake-callout-icon,
+.armely-snowflake-page .vs-callout-icon {
+  color: var(--blue);
+  font-size: 1.1rem;
+  line-height: 1;
+}
+.armely-snowflake-page .deliver-icon,
+.armely-snowflake-page .uc-icon,
+.armely-snowflake-page .why-icon {
+  width: 48px;
+  height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: var(--blue-dim);
+  border: 1px solid var(--blue-dim2);
+}
+.armely-snowflake-page .deliver-card,
+.armely-snowflake-page .uc-card,
+.armely-snowflake-page .testi-card,
+.armely-snowflake-page .tier-card,
+.armely-snowflake-page .cover-card,
+.armely-snowflake-page .pathway-card,
+.armely-snowflake-page .partner-block,
+.armely-snowflake-page .cta-form {
+  background: linear-gradient(180deg, #ffffff 0%, #f9fbfe 100%);
+  box-shadow: 0 16px 42px rgba(18, 47, 82, 0.08);
+}
+@media (max-width: 900px) {
+  .armely-snowflake-page .hero { padding: 118px 24px 76px; }
+  .armely-snowflake-page section:not(.hero) > .section-inner > .section-title,
+  .armely-snowflake-page .cta-inner > div > .section-title { max-width: 100%; }
+}
+
+/* Snowflake page modern compact refresh */
+.armely-snowflake-page {
+  --navy: #ffffff;
+  --navy-mid: #f6f8fc;
+  --navy-card: #ffffff;
+  --blue: #2f5597;
+  --blue-lt: #4477bd;
+  --blue-dark: #173b67;
+  --blue-dim: rgba(47, 85, 151, 0.09);
+  --blue-dim2: rgba(47, 85, 151, 0.18);
+  --text-body: #334155;
+  --text-muted: #667085;
+  --border: rgba(47, 85, 151, 0.14);
+}
+
+.armely-snowflake-page nav,
+.armely-snowflake-page footer {
+  display: none !important;
+}
+
+.armely-snowflake-page .hero {
+  min-height: auto !important;
+  padding: 92px 56px 72px !important;
+  background:
+    radial-gradient(circle at 82% 18%, rgba(79,134,198,0.34) 0, transparent 34%),
+    linear-gradient(135deg, #15365f 0%, #214d86 58%, #2f5597 100%) !important;
+  border-radius: 0 !important;
+  overflow: hidden;
+}
+
+.armely-snowflake-page .hero::after {
+  display: none !important;
+}
+
+.armely-snowflake-page .hero-bg-glow {
+  display: none !important;
+}
+
+.armely-snowflake-page .hero-eyebrow {
+  margin-bottom: 20px !important;
+}
+
+.armely-snowflake-page .eyebrow-badge {
+  background: rgba(255,255,255,0.10) !important;
+  border: 1px solid rgba(255,255,255,0.22) !important;
+  border-radius: 999px !important;
+  padding: 7px 14px !important;
+  color: rgba(255,255,255,0.9) !important;
+}
+
+.armely-snowflake-page .eyebrow-partner {
+  display: inline-block !important;
+  color: rgba(255,255,255,0.62) !important;
+}
+
+.armely-snowflake-page .hero h1 {
+  max-width: 820px !important;
+  font-size: clamp(2.6rem, 5vw, 4.8rem) !important;
+  line-height: 1.05 !important;
+  margin-bottom: 20px !important;
+  text-align: left !important;
+}
+
+.armely-snowflake-page .hero-sub {
+  max-width: 720px !important;
+  margin-bottom: 28px !important;
+  font-size: 1rem !important;
+  line-height: 1.65 !important;
+  text-align: left !important;
+}
+
+.armely-snowflake-page .hero-actions {
+  margin-bottom: 34px !important;
+}
+
+.armely-snowflake-page .hero .btn-primary,
+.armely-snowflake-page .hero .btn-outline {
+  border-radius: 8px !important;
+  padding: 13px 24px !important;
+}
+
+.armely-snowflake-page .hero-trust {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px !important;
+  padding-top: 22px !important;
+  border-top: 1px solid rgba(255,255,255,0.16) !important;
+}
+
+.armely-snowflake-page .hero-trust .trust-item {
+  align-items: flex-start !important;
+}
+
+.armely-snowflake-page section {
+  padding: 68px 56px !important;
+}
+
+.armely-snowflake-page .section-inner {
+  max-width: 1120px !important;
+}
+
+.armely-snowflake-page .section-eyebrow {
+  margin-bottom: 10px !important;
+}
+
+.armely-snowflake-page .section-title {
+  margin-bottom: 14px !important;
+}
+
+.armely-snowflake-page .section-body {
+  margin-bottom: 28px !important;
+  line-height: 1.68 !important;
+}
+
+.armely-snowflake-page .intro-grid,
+.armely-snowflake-page .why-two-col,
+.armely-snowflake-page .cta-inner {
+  gap: 42px !important;
+}
+
+.armely-snowflake-page .cap-grid,
+.armely-snowflake-page .delivers-grid,
+.armely-snowflake-page .uc-grid,
+.armely-snowflake-page .steps-row,
+.armely-snowflake-page .why-list,
+.armely-snowflake-page .partner-stats {
+  margin-top: 28px !important;
+}
+
+.armely-snowflake-page .delivers-grid,
+.armely-snowflake-page .uc-grid {
+  gap: 16px !important;
+}
+
+.armely-snowflake-page .deliver-card,
+.armely-snowflake-page .uc-card {
+  padding: 24px 22px !important;
+  border-radius: 16px !important;
+  background: linear-gradient(180deg, #ffffff 0%, #f9fbfe 100%) !important;
+  box-shadow: 0 14px 34px rgba(18, 47, 82, 0.08) !important;
+}
+
+.armely-snowflake-page .deliver-card:hover,
+.armely-snowflake-page .uc-card:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 18px 40px rgba(18, 47, 82, 0.12) !important;
+}
+
+.armely-snowflake-page .deliver-icon,
+.armely-snowflake-page .uc-icon,
+.armely-snowflake-page .why-icon,
+.armely-snowflake-page .cap-icon,
+.armely-snowflake-page .vs-callout-icon {
+  color: var(--blue) !important;
+  line-height: 1 !important;
+}
+
+.armely-snowflake-page .deliver-icon,
+.armely-snowflake-page .uc-icon,
+.armely-snowflake-page .why-icon {
+  width: 46px !important;
+  height: 46px !important;
+  border-radius: 12px !important;
+  background: var(--blue-dim) !important;
+  border: 1px solid var(--blue-dim2) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin-bottom: 16px !important;
+}
+
+.armely-snowflake-page .cap-pill {
+  padding: 11px 14px !important;
+  border-radius: 12px !important;
+  background: #ffffff !important;
+  box-shadow: 0 10px 24px rgba(18, 47, 82, 0.06);
+}
+
+.armely-snowflake-page .vs-callout {
+  border-radius: 14px !important;
+  padding: 16px 18px !important;
+  margin-top: 16px !important;
+  background: linear-gradient(135deg, #173b67, #2f5597) !important;
+}
+
+.armely-snowflake-page .stack-card,
+.armely-snowflake-page .partner-block,
+.armely-snowflake-page .cta-form {
+  border-radius: 18px !important;
+  box-shadow: 0 16px 42px rgba(18, 47, 82, 0.09) !important;
+}
+
+.armely-snowflake-page .stack-body {
+  padding: 18px !important;
+  gap: 4px !important;
+}
+
+.armely-snowflake-page .stack-layer {
+  padding: 12px 14px !important;
+  border-radius: 12px !important;
+}
+
+.armely-snowflake-page .steps-row {
+  border-radius: 18px !important;
+  background: #ffffff !important;
+  box-shadow: 0 14px 34px rgba(18, 47, 82, 0.08);
+}
+
+.armely-snowflake-page .step {
+  padding: 24px 18px !important;
+}
+
+.armely-snowflake-page .step-num {
+  font-size: 2rem !important;
+  margin-bottom: 10px !important;
+}
+
+.armely-snowflake-page .why-list li {
+  padding: 16px 0 !important;
+}
+
+.armely-snowflake-page .partner-block-top {
+  padding: 24px !important;
+}
+
+.armely-snowflake-page .p-stat {
+  padding: 20px 22px !important;
+}
+
+.armely-snowflake-page .cta-inner {
+  padding: 68px 56px !important;
+}
+
+.armely-snowflake-page .cta-form {
+  padding: 28px !important;
+}
+
+@media (max-width: 900px) {
+  .armely-snowflake-page .hero {
+    padding: 76px 24px 56px !important;
+  }
+  .armely-snowflake-page section {
+    padding: 54px 24px !important;
+  }
+  .armely-snowflake-page .hero-trust {
+    grid-template-columns: 1fr 1fr;
+  }
+  .armely-snowflake-page .cta-inner {
+    padding: 54px 24px !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .armely-snowflake-page .hero-trust {
+    grid-template-columns: 1fr;
+  }
+}
 
 </style>
-@endpush
+<div class="armely-snowflake-page">
+<!-- NAV -->
 
-@section('content')
-<div class="armely-solution-page">
-    <section class="as-hero">
-        <div class="as-container as-hero-grid">
-            <div>
-                <div class="as-eyebrow"><i class="fa-solid fa-layer-group" aria-hidden="true"></i> Snowflake AI Data Cloud services</div>
-                <h1>Your data, your cloud, no limits on scale.</h1>
-                <p>Armely architects, implements, and manages Snowflake environments that give your business a fast, governed, AI-ready data platform — without the infrastructure headaches.</p>
-                <div class="as-actions">
-                    <a href="{{ route('contact') }}" class="as-btn as-btn-primary">Book a discovery call <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
-                    <a href="#overview" class="as-btn as-btn-secondary">Explore the service</a>
-                </div>
-            </div>
-            <div class="as-visual-card" aria-label="Snowflake AI Data Cloud overview">
-                <div class="as-card-label">What Armely helps you connect</div>
-                <div class="as-stack">
-                    <div class="as-stack-item">
-                        <strong>Ingest</strong>
-                        <span>Apps, databases, files, streams</span>
-                    </div>
-                    <div class="as-stack-item">
-                        <strong>Transform</strong>
-                        <span>dbt, Snowpark, governed models</span>
-                    </div>
-                    <div class="as-stack-item">
-                        <strong>Analyze</strong>
-                        <span>BI dashboards and live reporting</span>
-                    </div>
-                    <div class="as-stack-item as-dark">
-                        <strong>AI-ready</strong>
-                        <span>Cortex AI and secure sharing</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
 
-    <div class="as-proof">
-        <div class="as-container">
-            <span><strong>Cloud-native data platform</strong></span>
-            <span><strong>AI-ready architecture</strong></span>
-            <span><strong>Cost-aware implementation</strong></span>
-        </div>
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg-glow"></div>
+  <div class="hero-eyebrow">
+    <span class="eyebrow-badge">Snowflake AI Data Cloud</span>
+    <span class="eyebrow-partner">Delivered by a certified Snowflake partner</span>
+  </div>
+  <h1>Your data, your cloud,<br><span class="hl">no limits on scale.</span></h1>
+  <p class="hero-sub">Armely architects, implements, and manages Snowflake environments that give your business a fast, governed, AI-ready data platform — without the infrastructure headaches.</p>
+  <div class="hero-actions">
+    <a href="#contact" class="btn-primary">Book a Free Discovery Call</a>
+    <a href="#what-we-deliver" class="btn-outline">See What We Build</a>
+  </div>
+  <div class="hero-trust">
+    <div class="trust-item">
+      <span class="trust-dot"></span>
+      <span class="trust-text"><strong>Separate compute & storage</strong> — pay only for what you use</span>
     </div>
+    <div class="trust-item">
+      <span class="trust-dot"></span>
+      <span class="trust-text"><strong>Cortex AI</strong> built directly into SQL</span>
+    </div>
+    <div class="trust-item">
+      <span class="trust-dot"></span>
+      <span class="trust-text">Runs on <strong>AWS, Azure & Google Cloud</strong></span>
+    </div>
+    <div class="trust-item">
+      <span class="trust-dot"></span>
+      <span class="trust-text"><strong>Partner pricing</strong> available</span>
+    </div>
+  </div>
+</section>
 
-    <section class="as-section as-section-soft" id="overview">
-        <div class="as-container">
-            <div class="as-label">Overview</div>
-            <h2 class="as-heading">The cloud data platform built for analytics, AI, and scale.</h2>
-            <p class="as-sub">Snowflake is the AI Data Cloud — a fully managed platform that separates compute from storage so you can scale each independently, query structured and unstructured data in the same place, and run AI workloads directly on your data using Cortex AI. No infrastructure to manage. No performance tuning. No data silos.</p>
-            <div class="as-grid-3">
-
-            </div>
+<!-- WHAT IS SNOWFLAKE -->
+<section class="intro">
+  <div class="section-inner">
+    <div class="intro-grid">
+      <div>
+        <div class="section-eyebrow">What is Snowflake?</div>
+        <h2 class="section-title">The cloud data platform built for analytics, AI, and scale.</h2>
+        <p class="section-body">Snowflake is the AI Data Cloud — a fully managed platform that separates compute from storage so you can scale each independently, query structured and unstructured data in the same place, and run AI workloads directly on your data using Cortex AI. No infrastructure to manage. No performance tuning. No data silos.</p>
+        <div class="cap-grid">
+          <div class="cap-pill"><span class="cap-icon"><i class="fa-solid fa-chart-line" aria-hidden="true"></i></span><span class="cap-label">Data Warehouse & Analytics</span></div>
+          <div class="cap-pill"><span class="cap-icon"><i class="fa-solid fa-brain" aria-hidden="true"></i></span><span class="cap-label">Cortex AI & LLM Functions</span></div>
+          <div class="cap-pill"><span class="cap-icon"><i class="fa-solid fa-flask" aria-hidden="true"></i></span><span class="cap-label">Data Science & Snowpark</span></div>
+          <div class="cap-pill"><span class="cap-icon"><i class="fa-solid fa-share-nodes" aria-hidden="true"></i></span><span class="cap-label">Data Sharing & Marketplace</span></div>
+          <div class="cap-pill"><span class="cap-icon"><i class="fa-solid fa-bolt" aria-hidden="true"></i></span><span class="cap-label">Real-Time & Streaming</span></div>
+          <div class="cap-pill"><span class="cap-icon"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i></span><span class="cap-label">Horizon Governance</span></div>
         </div>
-    </section>
-
-    <section class="as-section">
-        <div class="as-container">
-            <div class="as-label">What we deliver</div>
-            <h2 class="as-heading">End-to-end Snowflake implementation — from first query to production.</h2>
-            <p class="as-sub">Armely handles every layer of your Snowflake environment — architecture, ingestion, transformation, analytics, and AI — so your team spends time on insights, not infrastructure.</p>
-            <div class="as-grid-3">
-                <article class="as-card">
-                    <div class="as-card-icon">🗺️</div>
-                    <h3>Architecture &amp; Environment Setup</h3>
-                    <p>We design your Snowflake account structure, virtual warehouse sizing, role hierarchy, and network policies before writing a single query — so performance and cost are right from day one.</p>
-                </article>
-                <article class="as-card">
-                    <div class="as-card-icon">🔌</div>
-                    <h3>Data Ingestion &amp; Pipelines</h3>
-                    <p>We connect your source systems — databases, SaaS apps, files, and streams — into Snowflake using Snowpipe, Fivetran, dbt, or custom pipelines. Fresh data, on schedule, automatically.</p>
-                </article>
-                <article class="as-card">
-                    <div class="as-card-icon">🏗️</div>
-                    <h3>Data Modelling &amp; Transformation</h3>
-                    <p>We build clean, governed data models using dbt or Snowpark so every dashboard and report draws from a consistent, trusted source. No more conflicting numbers across teams.</p>
-                </article>
-                <article class="as-card">
-                    <div class="as-card-icon">📊</div>
-                    <h3>Analytics &amp; BI Dashboards</h3>
-                    <p>We connect your BI tool of choice — Power BI, Tableau, Sigma, Looker — to Snowflake and build the dashboards your business actually needs. Fast, accurate, and always live.</p>
-                </article>
-                <article class="as-card">
-                    <div class="as-card-icon">🤖</div>
-                    <h3>Cortex AI Implementation</h3>
-                    <p>We configure Snowflake Cortex so your analysts can run sentiment analysis, LLM completions, and natural-language queries directly in SQL — AI on your data, with no data leaving Snowflake.</p>
-                </article>
-                <article class="as-card">
-                    <div class="as-card-icon">🛡️</div>
-                    <h3>Governance &amp; Ongoing Management</h3>
-                    <p>Horizon governance, dynamic data masking, row-level access policies, and cost monitoring — configured from the start. Plus a dedicated Armely contact for ongoing optimisation and support.</p>
-                </article>
-            </div>
+        <div class="vs-callout">
+          <span class="vs-callout-icon"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i></span>
+          <span class="vs-callout-text"><strong>Already using Microsoft Fabric?</strong> Snowflake and Fabric are complementary — Fabric excels inside the Microsoft ecosystem; Snowflake shines when your data spans multiple clouds or platforms. Armely can help you decide which fits, or run both.</span>
         </div>
-    </section>
-
-    <section class="as-section as-section-soft" id="process">
-        <div class="as-container">
-            <div class="as-label">Delivery approach</div>
-            <h2 class="as-heading">From legacy data stack to cloud-native analytics — on a clear timeline.</h2>
-            <p class="as-sub">Whether you&#x27;re migrating from an on-premise warehouse, consolidating cloud tools, or starting fresh, we follow a proven methodology that gets you to production fast and right.</p>
-            <div class="as-grid-3">
-                <div class="as-step">
-                    <div class="as-step-num">Step 01</div>
-                    <h3>Discovery &amp; Assessment</h3>
-                    <p>We audit your current data stack, sources, and analytics needs. Free for new clients — results in a clear Snowflake migration or build plan.</p>
-                </div>
-                <div class="as-step">
-                    <div class="as-step-num">Step 02</div>
-                    <h3>Architecture &amp; Licensing</h3>
-                    <p>We design your Snowflake environment and source the right capacity at partner pricing — sized for today, scalable for tomorrow.</p>
-                </div>
-                <div class="as-step">
-                    <div class="as-step-num">Step 03</div>
-                    <h3>Build &amp; Migrate</h3>
-                    <p>Pipelines, data models, and initial dashboards built and validated against your real data. Migrations handled without downtime.</p>
-                </div>
-                <div class="as-step">
-                    <div class="as-step-num">Step 04</div>
-                    <h3>Handover &amp; Training</h3>
-                    <p>Full documentation, runbooks, and role-specific training so your team owns the environment and can extend it independently.</p>
-                </div>
-                <div class="as-step">
-                    <div class="as-step-num">Step 05</div>
-                    <h3>Managed Support</h3>
-                    <p>Cost optimisation, performance tuning, new workload onboarding, and a single Armely contact as your Snowflake environment grows.</p>
-                </div>
+      </div>
+      <div>
+        <div class="stack-card">
+          <div class="stack-header">
+            <div class="stack-dots"><span></span><span></span><span></span></div>
+            <span class="stack-title">Snowflake Architecture</span>
+          </div>
+          <div class="stack-body">
+            <div class="stack-layer layer-ai">
+              <div class="stack-layer-label">Cortex AI Layer</div>
+              <div class="stack-chips">
+                <span class="stack-chip">Cortex Agents</span>
+                <span class="stack-chip">Snowflake Intelligence</span>
+                <span class="stack-chip">LLM Functions in SQL</span>
+                <span class="stack-chip">Cortex Code</span>
+              </div>
             </div>
-        </div>
-    </section>
-
-    <section class="as-section" id="use-cases">
-        <div class="as-container">
-            <div class="as-label">Use cases</div>
-            <h2 class="as-heading">Snowflake in practice — across every industry.</h2>
-            <p class="as-sub">From consolidating a fragmented data stack to running AI models on live business data, here&#x27;s what Armely-built Snowflake environments deliver.</p>
-            <div class="as-grid-3">
-                <article class="as-card">
-                    <div class="as-card-icon">🏢</div>
-                    <h3>Data Warehouse Modernisation</h3>
-                    <p>Migrate off on-premise SQL Server, Oracle, or Teradata to a fully managed cloud warehouse that scales automatically and costs a fraction of what you&#x27;re paying today.</p>
-                </article>
-                <article class="as-card">
-                    <div class="as-card-icon">🔗</div>
-                    <h3>Multi-Cloud Data Consolidation</h3>
-                    <p>Pull data from AWS, Azure, and GCP into a single governed platform. Snowflake runs across all three clouds — your data follows your business, not the other way round.</p>
-                </article>
-                <article class="as-card">
-                    <div class="as-card-icon">🧠</div>
-                    <h3>AI &amp; Machine Learning</h3>
-                    <p>Use Snowpark to train ML models on your Snowflake data without moving it. Deploy Cortex AI functions to enrich records with sentiment, classification, and LLM completions — all in SQL.</p>
-                </article>
-                <article class="as-card">
-                    <div class="as-card-icon">🤝</div>
-                    <h3>Secure Data Sharing</h3>
-                    <p>Share live data with partners, suppliers, or customers without copying or moving it. Snowflake&#x27;s zero-copy sharing means collaborators see the same data you do, in real time.</p>
-                </article>
-                <article class="as-card">
-                    <div class="as-card-icon">⚡</div>
-                    <h3>Real-Time Analytics</h3>
-                    <p>Snowpipe Streaming and Dynamic Tables ingest and transform data in near real time. Operations, finance, and customer teams get dashboards that reflect what&#x27;s happening now.</p>
-                </article>
-                <article class="as-card">
-                    <div class="as-card-icon">💬</div>
-                    <h3>Natural Language Queries</h3>
-                    <p>Snowflake Intelligence lets anyone ask questions in plain English and get answers from your live Snowflake data — no SQL skills needed. The right insight, to the right person, instantly.</p>
-                </article>
+            <div class="stack-arrow">↕</div>
+            <div class="stack-layer layer-compute">
+              <div class="stack-layer-label">Compute Layer</div>
+              <div class="stack-chips">
+                <span class="stack-chip">Virtual Warehouses</span>
+                <span class="stack-chip">Snowpark</span>
+                <span class="stack-chip">Dynamic Tables</span>
+                <span class="stack-chip">Notebooks</span>
+              </div>
             </div>
+            <div class="stack-arrow">↕</div>
+            <div class="stack-layer layer-services">
+              <div class="stack-layer-label">Services Layer</div>
+              <div class="stack-chips">
+                <span class="stack-chip">Horizon Governance</span>
+                <span class="stack-chip">Data Sharing</span>
+                <span class="stack-chip">Marketplace</span>
+                <span class="stack-chip">Security & Access</span>
+              </div>
+            </div>
+            <div class="stack-arrow">↕</div>
+            <div class="stack-layer layer-storage">
+              <div class="stack-layer-label">Storage Layer — Decoupled from Compute</div>
+              <div class="stack-chips">
+                <span class="stack-chip">Columnar Micro-Partitions</span>
+                <span class="stack-chip">AWS / Azure / GCP</span>
+                <span class="stack-chip">Apache Iceberg</span>
+              </div>
+            </div>
+          </div>
         </div>
-    </section>
+      </div>
+    </div>
+  </div>
+</section>
 
-    <section class="as-section as-section-blue">
-        <div class="as-container as-grid-2">
+<!-- WHAT ARMELY DELIVERS -->
+<section class="delivers" id="what-we-deliver">
+  <div class="section-inner">
+    <div class="section-eyebrow">What Armely Delivers</div>
+    <h2 class="section-title">End-to-end Snowflake implementation — from first query to production.</h2>
+    <p class="section-body">Armely handles every layer of your Snowflake environment — architecture, ingestion, transformation, analytics, and AI — so your team spends time on insights, not infrastructure.</p>
+    <div class="delivers-grid">
+      <div class="deliver-card">
+        <div class="deliver-icon"><i class="fa-solid fa-sitemap" aria-hidden="true"></i></div>
+        <div class="deliver-title">Architecture & Environment Setup</div>
+        <div class="deliver-desc">We design your Snowflake account structure, virtual warehouse sizing, role hierarchy, and network policies before writing a single query — so performance and cost are right from day one.</div>
+      </div>
+      <div class="deliver-card">
+        <div class="deliver-icon"><i class="fa-solid fa-code-branch" aria-hidden="true"></i></div>
+        <div class="deliver-title">Data Ingestion & Pipelines</div>
+        <div class="deliver-desc">We connect your source systems — databases, SaaS apps, files, and streams — into Snowflake using Snowpipe, Fivetran, dbt, or custom pipelines. Fresh data, on schedule, automatically.</div>
+      </div>
+      <div class="deliver-card">
+        <div class="deliver-icon"><i class="fa-solid fa-diagram-project" aria-hidden="true"></i></div>
+        <div class="deliver-title">Data Modelling & Transformation</div>
+        <div class="deliver-desc">We build clean, governed data models using dbt or Snowpark so every dashboard and report draws from a consistent, trusted source. No more conflicting numbers across teams.</div>
+      </div>
+      <div class="deliver-card">
+        <div class="deliver-icon"><i class="fa-solid fa-chart-pie" aria-hidden="true"></i></div>
+        <div class="deliver-title">Analytics & BI Dashboards</div>
+        <div class="deliver-desc">We connect your BI tool of choice — Power BI, Tableau, Sigma, Looker — to Snowflake and build the dashboards your business actually needs. Fast, accurate, and always live.</div>
+      </div>
+      <div class="deliver-card">
+        <div class="deliver-icon"><i class="fa-solid fa-robot" aria-hidden="true"></i></div>
+        <div class="deliver-title">Cortex AI Implementation</div>
+        <div class="deliver-desc">We configure Snowflake Cortex so your analysts can run sentiment analysis, LLM completions, and natural-language queries directly in SQL — AI on your data, with no data leaving Snowflake.</div>
+      </div>
+      <div class="deliver-card">
+        <div class="deliver-icon"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i></div>
+        <div class="deliver-title">Governance & Ongoing Management</div>
+        <div class="deliver-desc">Horizon governance, dynamic data masking, row-level access policies, and cost monitoring — configured from the start. Plus a dedicated Armely contact for ongoing optimisation and support.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- JOURNEY -->
+<section class="journey" id="journey">
+  <div class="section-inner">
+    <div class="section-eyebrow">The Armely Snowflake Journey</div>
+    <h2 class="section-title">From legacy data stack to cloud-native analytics — on a clear timeline.</h2>
+    <p class="section-body">Whether you're migrating from an on-premise warehouse, consolidating cloud tools, or starting fresh, we follow a proven methodology that gets you to production fast and right.</p>
+    <div class="steps-row">
+      <div class="step">
+        <div class="step-num">01</div>
+        <div class="step-title">Discovery & Assessment</div>
+        <div class="step-desc">We audit your current data stack, sources, and analytics needs. Free for new clients — results in a clear Snowflake migration or build plan.</div>
+        <span class="step-tag">Free</span>
+      </div>
+      <div class="step">
+        <div class="step-num">02</div>
+        <div class="step-title">Architecture & Licensing</div>
+        <div class="step-desc">We design your Snowflake environment and source the right capacity at partner pricing — sized for today, scalable for tomorrow.</div>
+        <span class="step-tag">1–2 weeks</span>
+      </div>
+      <div class="step">
+        <div class="step-num">03</div>
+        <div class="step-title">Build & Migrate</div>
+        <div class="step-desc">Pipelines, data models, and initial dashboards built and validated against your real data. Migrations handled without downtime.</div>
+        <span class="step-tag">Weeks 3–6</span>
+      </div>
+      <div class="step">
+        <div class="step-num">04</div>
+        <div class="step-title">Handover & Training</div>
+        <div class="step-desc">Full documentation, runbooks, and role-specific training so your team owns the environment and can extend it independently.</div>
+        <span class="step-tag">Week 7–8</span>
+      </div>
+      <div class="step">
+        <div class="step-num">05</div>
+        <div class="step-title">Managed Support</div>
+        <div class="step-desc">Cost optimisation, performance tuning, new workload onboarding, and a single Armely contact as your Snowflake environment grows.</div>
+        <span class="step-tag">Ongoing</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- USE CASES -->
+<section class="usecases">
+  <div class="section-inner">
+    <div class="section-eyebrow">What Businesses Use It For</div>
+    <h2 class="section-title">Snowflake in practice — across every industry.</h2>
+    <p class="section-body">From consolidating a fragmented data stack to running AI models on live business data, here's what Armely-built Snowflake environments deliver.</p>
+    <div class="uc-grid">
+      <div class="uc-card">
+        <span class="uc-icon"><i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i></span>
+        <div class="uc-title">Data Warehouse Modernisation</div>
+        <div class="uc-desc">Migrate off on-premise SQL Server, Oracle, or Teradata to a fully managed cloud warehouse that scales automatically and costs a fraction of what you're paying today.</div>
+      </div>
+      <div class="uc-card">
+        <span class="uc-icon"><i class="fa-solid fa-cloud" aria-hidden="true"></i></span>
+        <div class="uc-title">Multi-Cloud Data Consolidation</div>
+        <div class="uc-desc">Pull data from AWS, Azure, and GCP into a single governed platform. Snowflake runs across all three clouds — your data follows your business, not the other way round.</div>
+      </div>
+      <div class="uc-card">
+        <span class="uc-icon"><i class="fa-solid fa-microchip" aria-hidden="true"></i></span>
+        <div class="uc-title">AI & Machine Learning</div>
+        <div class="uc-desc">Use Snowpark to train ML models on your Snowflake data without moving it. Deploy Cortex AI functions to enrich records with sentiment, classification, and LLM completions — all in SQL.</div>
+      </div>
+      <div class="uc-card">
+        <span class="uc-icon"><i class="fa-solid fa-lock" aria-hidden="true"></i></span>
+        <div class="uc-title">Secure Data Sharing</div>
+        <div class="uc-desc">Share live data with partners, suppliers, or customers without copying or moving it. Snowflake's zero-copy sharing means collaborators see the same data you do, in real time.</div>
+      </div>
+      <div class="uc-card">
+        <span class="uc-icon"><i class="fa-solid fa-gauge-high" aria-hidden="true"></i></span>
+        <div class="uc-title">Real-Time Analytics</div>
+        <div class="uc-desc">Snowpipe Streaming and Dynamic Tables ingest and transform data in near real time. Operations, finance, and customer teams get dashboards that reflect what's happening now.</div>
+      </div>
+      <div class="uc-card">
+        <span class="uc-icon"><i class="fa-solid fa-comments" aria-hidden="true"></i></span>
+        <div class="uc-title">Natural Language Queries</div>
+        <div class="uc-desc">Snowflake Intelligence lets anyone ask questions in plain English and get answers from your live Snowflake data — no SQL skills needed. The right insight, to the right person, instantly.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WHY ARMELY -->
+<section class="why" id="why-armely">
+  <div class="section-inner">
+    <div class="why-two-col">
+      <div>
+        <div class="section-eyebrow">Why Armely</div>
+        <h2 class="section-title">Snowflake expertise, delivered at the pace your business needs.</h2>
+        <p class="section-body">We're not a generalist IT firm that dabbles in data. Armely has built data platforms for healthcare, education, and enterprise clients — and we bring that depth to every Snowflake engagement.</p>
+        <ul class="why-list">
+          <li>
+            <div class="why-icon"><i class="fa-solid fa-circle-check" aria-hidden="true"></i></div>
             <div>
-                <div class="as-label">Why Armely</div>
-                <h2 class="as-heading">Snowflake expertise, delivered at the pace your business needs.</h2>
-                <p class="as-sub">We&#x27;re not a generalist IT firm that dabbles in data. Armely has built data platforms for healthcare, education, and enterprise clients — and we bring that depth to every Snowflake engagement.</p>
-                <a href="{{ route('contact') }}" class="as-btn as-btn-primary">Talk with Armely</a>
+              <div class="why-item-title">Certified Snowflake Implementors</div>
+              <div class="why-item-desc">Our team carries Snowflake implementation certifications and hands-on experience across data engineering, Snowpark, Cortex AI, and dbt — not just SnowPro Core.</div>
             </div>
-            <div class="as-case-list">
-                <article class="as-case">
-                    <div class="as-case-label">Partner advantage</div>
-                    <h4>Certified delivery with practical implementation discipline</h4>
-                    <p>Armely combines platform expertise, business process design, governance, and ongoing support so your solution is adopted after launch.</p>
-                </article>
-                <article class="as-case">
-                    <div class="as-case-label">What matters</div>
-                    <h4>Built around your workflows</h4>
-                    <p>We configure the platform around how your teams actually work, then document and train so ownership remains with your organization.</p>
-                </article>
+          </li>
+          <li>
+            <div class="why-icon"><i class="fa-solid fa-circle-check" aria-hidden="true"></i></div>
+            <div>
+              <div class="why-item-title">Proven in Regulated Industries</div>
+              <div class="why-item-desc">We've delivered data projects for Swope Health Systems and UNMC — environments with strict HIPAA and data governance requirements. We know how to build secure by design.</div>
             </div>
+          </li>
+          <li>
+            <div class="why-icon"><i class="fa-solid fa-circle-check" aria-hidden="true"></i></div>
+            <div>
+              <div class="why-item-title">Cost Optimisation From Day One</div>
+              <div class="why-item-desc">Snowflake bills by compute consumption. We right-size warehouses, implement auto-suspend, and monitor query efficiency so your bill reflects your usage — not our oversight.</div>
+            </div>
+          </li>
+          <li>
+            <div class="why-icon"><i class="fa-solid fa-circle-check" aria-hidden="true"></i></div>
+            <div>
+              <div class="why-item-title">You Own Everything</div>
+              <div class="why-item-desc">Full documentation, source-controlled pipelines, and team training from day one. We build to hand over — not to create a support dependency.</div>
+            </div>
+          </li>
+        </ul>
+      </div>
+      <div>
+        <div class="partner-block">
+          <div class="partner-block-top">
+            <div class="partner-label">Snowflake Authorised Partner</div>
+            <p class="partner-text">Armely's Snowflake partner status gives us access to technical resources, licensing options, and implementation support that direct customers can't reach. That means better pricing, faster onboarding, and a build backed by Snowflake's own ecosystem.</p>
+          </div>
+          <div class="partner-stats">
+            <div class="p-stat">
+              <div class="p-stat-num">10<span>K+</span></div>
+              <div class="p-stat-label">organisations running Snowflake globally</div>
+            </div>
+            <div class="p-stat">
+              <div class="p-stat-num">3</div>
+              <div class="p-stat-label">major clouds — AWS, Azure, and Google Cloud</div>
+            </div>
+            <div class="p-stat">
+              <div class="p-stat-num">50<span>%</span></div>
+              <div class="p-stat-label">of Snowflake customers now use Cortex Code for development</div>
+            </div>
+            <div class="p-stat">
+              <div class="p-stat-num">0</div>
+              <div class="p-stat-label">infrastructure to manage — fully serverless SaaS</div>
+            </div>
+          </div>
         </div>
-    </section>
+      </div>
+    </div>
+  </div>
+</section>
 
-    <section class="as-section as-section-soft" id="faq">
-        <div class="as-container">
-            <div class="as-label">Key strengths</div>
-            <h2 class="as-heading">What you get with Armely</h2>
-            <div class="as-card">
-                <ul class="as-list">
-                    <li>🎯 Certified Snowflake Implementors Our team carries Snowflake implementation certifications and hands-on experience across data engineering, Snowpark, Cortex AI, and dbt — not just SnowPro Core.</li>
-                    <li>🏥 Proven in Regulated Industries We&#x27;ve delivered data projects for Swope Health Systems and UNMC — environments with strict HIPAA and data governance requirements. We know how to build secure by design.</li>
-                    <li>💰 Cost Optimisation From Day One Snowflake bills by compute consumption. We right-size warehouses, implement auto-suspend, and monitor query efficiency so your bill reflects your usage — not our oversight.</li>
-                    <li>🤝 You Own Everything Full documentation, source-controlled pipelines, and team training from day one. We build to hand over — not to create a support dependency.</li>
-                </ul>
-            </div>
+<!-- CTA -->
+<section class="cta-section" id="contact">
+  <div class="cta-inner">
+    <div>
+      <div class="section-eyebrow">Get Started</div>
+      <h2 class="section-title">Let's talk about your data stack.</h2>
+      <p class="section-body">Book a free 30-minute discovery call. We'll review your current environment, understand what you need to answer with your data, and come back with a clear Snowflake implementation proposal — no obligation.</p>
+      <div style="margin-top: 28px; display: flex; flex-direction: column; gap: 12px;">
+        <div class="trust-item">
+          <span class="trust-dot" style="background: var(--blue);"></span>
+          <span class="trust-text" style="color: var(--text-body);">Free discovery — no commitment required</span>
         </div>
-    </section>
+        <div class="trust-item">
+          <span class="trust-dot" style="background: var(--blue);"></span>
+          <span class="trust-text" style="color: var(--text-body);">Custom proposal with partner pricing included</span>
+        </div>
+        <div class="trust-item">
+          <span class="trust-dot" style="background: var(--blue);"></span>
+          <span class="trust-text" style="color: var(--text-body);">Response within one business day</span>
+        </div>
+      </div>
+    </div>
+    <div class="cta-form">
+      <div class="form-title">Book Your Free Discovery Call</div>
+      <div class="form-sub">Tell us about your current data environment.</div>
+      <div class="form-row">
+        <label>Full Name</label>
+        <input type="text" placeholder="Jane Smith">
+      </div>
+      <div class="form-row">
+        <label>Business Email</label>
+        <input type="email" placeholder="jane@yourcompany.com">
+      </div>
+      <div class="form-row">
+        <label>Company Name</label>
+        <input type="text" placeholder="Acme Corp">
+      </div>
+      <div class="form-row">
+        <label>Current Data Stack</label>
+        <select>
+          <option value="">Select...</option>
+          <option>On-premise SQL Server / Oracle</option>
+          <option>Azure Synapse / Microsoft Fabric</option>
+          <option>AWS Redshift</option>
+          <option>Google BigQuery</option>
+          <option>Scattered across spreadsheets & tools</option>
+          <option>No formal data platform yet</option>
+          <option>Other / multiple</option>
+        </select>
+      </div>
+      <button class="form-submit">Request Free Discovery Call →</button>
+      <div class="form-note">No spam. No sales pressure. Just a useful conversation.</div>
+    </div>
+  </div>
+</section>
 
-    <section class="as-section as-section-blue as-final-cta" id="contact">
-        <div class="as-container">
-            <div class="as-label">Start the conversation</div>
-            <h2 class="as-heading">Let&#x27;s talk about your data stack.</h2>
-            <p class="as-sub">Book a free 30-minute discovery call. We&#x27;ll review your current environment, understand what you need to answer with your data, and come back with a clear Snowflake implementation proposal — no obligation.</p>
-            <a href="{{ route('contact') }}" class="as-btn as-btn-primary">Book a discovery call <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
-        </div>
-    </section>
+<!-- FOOTER -->
 </div>
-@endsection

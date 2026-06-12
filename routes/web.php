@@ -39,6 +39,8 @@ Route::post('/data-readiness/submit', [DataReadinessLeadController::class, 'subm
 // Services listing page
 Route::get('/services', [ServicesController::class, 'index'])->name('services');
 
+Route::view('/protective-order-solution', 'protective-order-solution');
+
 // Accept query parameter format: /service-details?name=ai-consulting
 Route::get('/service-details', function(\Illuminate\Http\Request $request) {
     $name = $request->query('name');
@@ -51,6 +53,27 @@ Route::get('/service-details', function(\Illuminate\Http\Request $request) {
 // Standard path parameter format: /service-details/ai-consulting
 Route::get('/service-details/{name}', [HomeController::class, 'serviceDetails'])->name('service-details');
 Route::post('/submit-consultation', [HomeController::class, 'submitConsultation'])->name('submit-consultation');
+
+// Backward-compatible service paths from standalone service pages.
+foreach ([
+    'ai-data-strategy' => 'data-strategy',
+    'api-development' => 'api-data-access',
+    'copilot' => 'copilot',
+    'custom-development' => 'custom-development',
+    'dynamics365' => 'microsoft-dynamics-365',
+    'fabric' => 'microsoft-fabric',
+    'genai' => 'generative-ai',
+    'generative-ai' => 'generative-ai',
+    'm365-governance' => 'm365-governance',
+    'managed-services' => 'managed-services',
+    'power-platform' => 'microsoft-power-pages',
+    'sharepoint' => 'sharepoint-online',
+    'snowflake' => 'snowflake',
+    'sql-server' => 'sql-&-data-warehousing',
+] as $legacyServicePath => $serviceSlug) {
+    Route::get('/' . $legacyServicePath, [HomeController::class, 'serviceDetails'])
+        ->defaults('name', $serviceSlug);
+}
 
 Route::get('/case-studies', [CaseStudiesController::class, 'index'])->name('case-studies.index');
 Route::post('/case-studies/lead', [CaseStudiesController::class, 'submitLead'])->name('case-studies.lead.submit');
