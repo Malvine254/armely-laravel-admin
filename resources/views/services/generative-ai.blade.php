@@ -820,7 +820,7 @@
     <span class="eyebrow-badge">Generative and Agentic AI</span>
     <span class="eyebrow-partner">Delivered by a certified Microsoft partner</span>
   </div>
-  <h1>AI that takes action,<br>not just <span class="hl">answers questions.</span></h1>
+  <h1>AI that takes action,<br>not just answers questions.</h1>
   <p class="hero-sub">Armely designs and deploys generative AI and autonomous agent solutions on the Microsoft platform, grounded in your business data, governed to your compliance requirements, and built to run in production, not just a demo.</p>
   <div class="hero-actions">
     <a href="#contact" class="btn-primary">Book a Free AI Assessment</a>

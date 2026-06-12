@@ -1422,8 +1422,27 @@ class HomeController extends Controller
             return;
         }
 
-        if (!AzureMailService::isDeliverableEmail((string) $adminEmail)) {
-            Log::warning('Consultation admin email skipped: undeliverable admin address', ['email' => $adminEmail]);
+        $adminEmails = collect([$adminEmail, 'ask.me@armely.com']);
+        if (Schema::hasTable('admin') && Schema::hasColumn('admin', 'email')) {
+            $adminQuery = DB::table('admin')->whereNotNull('email');
+
+            if (Schema::hasColumn('admin', 'status')) {
+                $adminQuery->whereRaw('LOWER(status) = ?', ['active']);
+            }
+
+            $adminEmails = $adminEmails->merge($adminQuery->pluck('email'));
+        }
+
+        $adminRecipients = $adminEmails
+            ->map(fn ($adminAddress) => AzureMailService::normalizeEmail((string) $adminAddress))
+            ->filter(fn ($adminAddress) => AzureMailService::isDeliverableEmail($adminAddress))
+            ->unique()
+            ->values()
+            ->map(fn ($adminAddress) => ['emailAddress' => ['address' => $adminAddress]])
+            ->all();
+
+        if ($adminRecipients === []) {
+            Log::warning('Consultation email not sent: no deliverable admin recipients.');
             return;
         }
 
@@ -1462,13 +1481,7 @@ class HomeController extends Controller
                         'contentType' => 'HTML',
                         'content' => $adminBody,
                     ],
-                    'toRecipients' => [
-                        ['emailAddress' => ['address' => $adminEmail]],
-                        ['emailAddress' => ['address' => 'ask.me@armely.com']],
-                    ],
-                    'ccRecipients' => [
-                        ['emailAddress' => ['address' => 'ask.me@armely.com']],
-                    ],
+                    'toRecipients' => $adminRecipients,
                 ],
                 'saveToSentItems' => true,
             ];

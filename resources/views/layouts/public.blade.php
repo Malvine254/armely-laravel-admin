@@ -541,6 +541,18 @@
     pointer-events: auto;
 }
 
+@media (max-width: 1300px) {
+    .header .mega-nav-item:hover > .mega-panel,
+    .header .mega-nav-item.mega-open > .mega-panel,
+    .header .mega-panel,
+    .header .mega-panel:hover {
+        display: none !important;
+        opacity: 0 !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+    }
+}
+
 .mega-panel-inner {
     display: grid;
     grid-template-columns: minmax(180px, 230px) minmax(0, 1fr);
@@ -659,6 +671,8 @@ main .service-card {
 @media (max-width: 1450px) and (min-width: 1301px) {
     .header .mega-panel {
         width: calc(100vw - 16px);
+        max-height: calc(100vh - 112px);
+        overflow-y: auto;
     }
 
     .mega-panel-inner {
@@ -678,6 +692,10 @@ main .service-card {
 
     .mega-link-description {
         font-size: 11.5px;
+    }
+
+    .mega-feature-card img {
+        max-height: 112px;
     }
 }
 
@@ -1029,7 +1047,7 @@ main .service-card {
                                             
                                         </div>
                                     </li>
-                              <li class="mega-nav-item {{ request()->is('services','service-details*','mela-ai','invoice-lens') ? 'active' : '' }}">
+                              <li class="mega-nav-item {{ request()->is('services','service-details*','mela-ai','invoice-lens','solutions/protective-order-digitization','protective-order-solution') ? 'active' : '' }}">
     <button type="button" class="mega-trigger" aria-expanded="false">
         What We Do
         <i class="icofont-rounded-down mega-icon-closed" aria-hidden="true"></i>
@@ -1085,6 +1103,7 @@ main .service-card {
                     <ul class="mega-link-list">
                         <li><a href="{{ route('mela-ai') }}">Mela AI<span class="mega-link-description">AI meeting assistant that captures discussions, generates summaries, and improves meeting productivity in Microsoft Teams.</span></a></li>
                         <li><a href="{{ route('invoice-lens') }}">Invoice Lens<span class="mega-link-description">Live invoice visibility for Enverus OpenInvoice operators.</span></a></li>
+                        <li><a href="{{ route('protective-order-solution') }}">Protective Order Solution<span class="mega-link-description">Digital intake, workflow automation, and reporting for county protective order programs.</span></a></li>
                     </ul>
                 </div>
                 
@@ -1300,6 +1319,7 @@ main .service-card {
                     <h4>Solutions</h4>
                     <a href="{{ route('mela-ai') }}">Mela AI</a>
                     <a href="{{ route('invoice-lens') }}">Invoice Lens</a>
+                    <a href="{{ route('protective-order-solution') }}">Protective Order Solution</a>
                 </div>
             </div>
         </li>
@@ -1556,6 +1576,11 @@ main .service-card {
     }
 
     function openMegaMenu(item) {
+        if (window.innerWidth <= 1300) {
+            closeMegaMenus();
+            return;
+        }
+
         clearMegaCloseTimer();
 
         for (var i = 0; i < items.length; i++) {
@@ -1576,7 +1601,7 @@ main .service-card {
 
     function scheduleMegaClose() {
         clearMegaCloseTimer();
-        closeTimer = window.setTimeout(closeMegaMenus, 700);
+        closeTimer = window.setTimeout(closeMegaMenus, 120);
     }
 
     for (var i = 0; i < items.length; i++) {

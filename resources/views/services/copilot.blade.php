@@ -695,6 +695,587 @@
   .armely-copilot-page section:not(.hero) > .section-inner > .section-title,
   .armely-copilot-page .cta-inner > div > .section-title { max-width: 100%; }
 }
+
+
+/* ===== Final Generative AI sample-style compact cleanup ===== */
+.armely-copilot-page {
+  --blue: #2f5597;
+  --blue-lt: #4779bd;
+  --navy-mid: #f6f8fc;
+  --navy-card: #ffffff;
+  --text-body: #334155;
+  --text-muted: #667085;
+  --border: rgba(47, 85, 151, 0.14);
+}
+
+.armely-copilot-page nav,
+.armely-copilot-page footer {
+  display: none !important;
+}
+
+.armely-copilot-page .hero {
+  min-height: auto !important;
+  padding: 86px 56px 70px !important;
+  background: linear-gradient(135deg, #173b67 0%, #234f86 100%) !important;
+  border-radius: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.armely-copilot-page .hero::after,
+.armely-copilot-page .hero-bg-glow,
+.armely-copilot-page .hero-bg-glow2 {
+  display: none !important;
+}
+
+.armely-copilot-page .hero-inner {
+  width: min(1120px, 100%) !important;
+  margin: 0 auto !important;
+}
+
+.armely-copilot-page .hero-copy {
+  max-width: 860px !important;
+}
+
+.armely-copilot-page .hero-eyebrow {
+  margin-bottom: 18px !important;
+}
+
+.armely-copilot-page .eyebrow-badge {
+  display: inline-flex !important;
+  background: rgba(255, 255, 255, 0.10) !important;
+  border: 1px solid rgba(255, 255, 255, 0.22) !important;
+  border-radius: 999px !important;
+  padding: 7px 14px !important;
+  color: rgba(255, 255, 255, 0.88) !important;
+}
+
+.armely-copilot-page .eyebrow-partner {
+  display: inline-flex !important;
+  color: rgba(255, 255, 255, 0.66) !important;
+}
+
+.armely-copilot-page .hero h1 {
+  max-width: 900px !important;
+  margin-bottom: 18px !important;
+  font-size: clamp(2.5rem, 5vw, 4.9rem) !important;
+  line-height: 1.05 !important;
+  letter-spacing: -0.04em !important;
+}
+
+.armely-copilot-page .hero-sub {
+  max-width: 760px !important;
+  margin-bottom: 28px !important;
+  font-size: 1rem !important;
+  line-height: 1.7 !important;
+}
+
+.armely-copilot-page .hero-actions {
+  margin-bottom: 28px !important;
+  gap: 12px !important;
+}
+
+.armely-copilot-page .hero-trust {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  max-width: 720px !important;
+  gap: 12px !important;
+  padding-top: 0 !important;
+  border-top: 0 !important;
+}
+
+.armely-copilot-page .hero .trust-item {
+  align-items: flex-start !important;
+  background: rgba(255, 255, 255, 0.10) !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  border-radius: 14px !important;
+  padding: 14px 15px !important;
+  backdrop-filter: blur(10px) !important;
+}
+
+.armely-copilot-page .hero .trust-dot {
+  width: 22px !important;
+  height: 22px !important;
+  border-radius: 999px !important;
+  background: rgba(255, 255, 255, 0.16) !important;
+  border: 1px solid rgba(255, 255, 255, 0.24) !important;
+  position: relative !important;
+  margin-top: 1px !important;
+}
+
+.armely-copilot-page .hero .trust-dot::after {
+  content: '' !important;
+  position: absolute !important;
+  left: 7px !important;
+  top: 5px !important;
+  width: 6px !important;
+  height: 10px !important;
+  border: solid #fff !important;
+  border-width: 0 2px 2px 0 !important;
+  transform: rotate(45deg) !important;
+}
+
+.armely-copilot-page .hero .trust-text {
+  color: rgba(255, 255, 255, 0.78) !important;
+  line-height: 1.5 !important;
+}
+
+.armely-copilot-page .hero .trust-text strong {
+  color: #fff !important;
+}
+
+.armely-copilot-page .hero .btn-primary,
+.armely-copilot-page .hero .btn-outline,
+.armely-copilot-page .btn-primary,
+.armely-copilot-page .btn-outline,
+.armely-copilot-page .form-submit {
+  border-radius: 8px !important;
+}
+
+.armely-copilot-page .btn-primary,
+.armely-copilot-page .form-submit {
+  background: linear-gradient(135deg, #2f5597, #4477bd) !important;
+  box-shadow: 0 10px 24px rgba(47, 85, 151, 0.24) !important;
+}
+
+.armely-copilot-page .btn-primary:hover,
+.armely-copilot-page .form-submit:hover {
+  background: linear-gradient(135deg, #274a83, #3c6dac) !important;
+}
+
+.armely-copilot-page .hero .btn-outline {
+  color: rgba(255, 255, 255, 0.88) !important;
+  border-color: rgba(255, 255, 255, 0.28) !important;
+}
+
+.armely-copilot-page .hero .btn-outline:hover {
+  background: rgba(255, 255, 255, 0.11) !important;
+}
+
+.armely-copilot-page section {
+  padding: 68px 56px !important;
+}
+
+.armely-copilot-page .section-inner {
+  max-width: 1120px !important;
+}
+
+.armely-copilot-page .section-eyebrow {
+  margin-bottom: 10px !important;
+}
+
+.armely-copilot-page .section-title {
+  margin-bottom: 14px !important;
+}
+
+.armely-copilot-page .section-body {
+  margin-bottom: 28px !important;
+  line-height: 1.65 !important;
+}
+
+.armely-copilot-page section:not(.hero) > .section-inner > .section-eyebrow,
+.armely-copilot-page .why > .section-inner > .section-eyebrow {
+  width: fit-content !important;
+  margin: 0 auto 14px !important;
+  padding: 6px 14px !important;
+  border-radius: 999px !important;
+  background: var(--blue-dim) !important;
+  border: 1px solid var(--blue-dim2) !important;
+  text-align: center !important;
+}
+
+.armely-copilot-page section:not(.hero) > .section-inner > .section-title,
+.armely-copilot-page .why > .section-inner > .section-title {
+  max-width: 880px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  text-align: center !important;
+}
+
+.armely-copilot-page section:not(.hero) > .section-inner > .section-body,
+.armely-copilot-page .why > .section-inner > .section-body {
+  max-width: 820px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  text-align: center !important;
+}
+
+.armely-copilot-page .intro-grid,
+.armely-copilot-page .delivers-grid,
+.armely-copilot-page .steps-row,
+.armely-copilot-page .uc-grid,
+.armely-copilot-page .why-two-col {
+  margin-top: 34px !important;
+  gap: 20px !important;
+}
+
+.armely-copilot-page .intro-grid,
+.armely-copilot-page .why-two-col {
+  grid-template-columns: 1fr 1fr !important;
+}
+
+.armely-copilot-page .deliver-card,
+.armely-copilot-page .uc-card,
+.armely-copilot-page .demo-card,
+.armely-copilot-page .partner-block,
+.armely-copilot-page .cta-form {
+  border-radius: 14px !important;
+  box-shadow: 0 14px 36px rgba(18, 47, 82, 0.08) !important;
+}
+
+.armely-copilot-page .deliver-card,
+.armely-copilot-page .uc-card {
+  padding: 24px 22px !important;
+}
+
+.armely-copilot-page .step {
+  padding: 24px 18px !important;
+}
+
+.armely-copilot-page .step-num {
+  font-size: 2rem !important;
+  margin-bottom: 10px !important;
+}
+
+.armely-copilot-page .why-list {
+  margin-top: 0 !important;
+}
+
+.armely-copilot-page .why-list li {
+  padding: 16px 0 !important;
+}
+
+.armely-copilot-page .partner-block-top,
+.armely-copilot-page .p-stat {
+  padding: 22px !important;
+}
+
+.armely-copilot-page .cta-inner {
+  padding: 68px 56px !important;
+  gap: 40px !important;
+}
+
+@media (max-width: 900px) {
+  .armely-copilot-page .hero {
+    padding: 88px 24px 58px !important;
+  }
+
+  .armely-copilot-page section {
+    padding: 56px 24px !important;
+  }
+
+  .armely-copilot-page .intro-grid,
+  .armely-copilot-page .why-two-col {
+    grid-template-columns: 1fr !important;
+  }
+
+  .armely-copilot-page .delivers-grid,
+  .armely-copilot-page .uc-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  .armely-copilot-page .cta-inner {
+    padding: 56px 24px !important;
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .armely-copilot-page .hero h1 {
+    font-size: clamp(2.15rem, 11vw, 3.2rem) !important;
+  }
+
+  .armely-copilot-page .hero-eyebrow {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+  }
+
+  .armely-copilot-page .hero-actions a {
+    width: 100% !important;
+    text-align: center !important;
+  }
+
+  .armely-copilot-page .hero-trust,
+  .armely-copilot-page .delivers-grid,
+  .armely-copilot-page .uc-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+
+
+/* ===== RECTIFIED COMPACT PAGE POLISH - MATCH GENERATIVE AI SAMPLE ===== */
+.armely-copilot-page {
+  --blue:#2f5597;
+  --blue-lt:#4477bd;
+  --navy-mid:#f6f8fc;
+  --navy-card:#ffffff;
+  --text-body:#334155;
+  --text-muted:#667085;
+  --border:rgba(47,85,151,.14);
+}
+
+/* remove hidden nav/footer from standalone sample structure */
+.armely-copilot-page nav,
+.armely-copilot-page footer { display:none !important; }
+
+/* HERO: tighter, no huge empty space, same feel as Generative AI page */
+.armely-copilot-page .hero{
+  min-height:auto !important;
+  padding:92px 56px 76px !important;
+  background:linear-gradient(135deg,#173b67 0%,#234f86 100%) !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+}
+.armely-copilot-page .hero-bg-glow,
+.armely-copilot-page .hero-bg-glow2{display:none !important;}
+.armely-copilot-page .hero-inner{
+  width:min(1120px,100%) !important;
+  margin:0 auto !important;
+  display:block !important;
+}
+.armely-copilot-page .hero-copy{max-width:860px !important;}
+.armely-copilot-page .hero-eyebrow{margin-bottom:16px !important;}
+.armely-copilot-page .eyebrow-badge{
+  display:inline-flex !important;
+  background:rgba(255,255,255,.10) !important;
+  border:1px solid rgba(255,255,255,.22) !important;
+  color:rgba(255,255,255,.90) !important;
+  border-radius:999px !important;
+  padding:7px 14px !important;
+}
+.armely-copilot-page .eyebrow-partner{color:rgba(255,255,255,.66) !important;}
+.armely-copilot-page .hero h1{
+  max-width:850px !important;
+  font-size:clamp(2.45rem,4.6vw,4.05rem) !important;
+  line-height:1.06 !important;
+  letter-spacing:-.04em !important;
+  margin-bottom:18px !important;
+}
+.armely-copilot-page .hero-sub{
+  max-width:760px !important;
+  font-size:1rem !important;
+  line-height:1.65 !important;
+  margin-bottom:28px !important;
+}
+.armely-copilot-page .hero-actions{margin-bottom:0 !important;gap:12px !important;}
+.armely-copilot-page .hero-trust{display:none !important;}
+.armely-copilot-page .hero .btn-primary,
+.armely-copilot-page .hero .btn-outline{
+  padding:13px 28px !important;
+  min-width:auto !important;
+}
+
+/* GLOBAL SECTION TIGHTENING */
+.armely-copilot-page section{padding:58px 56px !important;}
+.armely-copilot-page .section-inner{max-width:1120px !important;margin:0 auto !important;}
+.armely-copilot-page .section-eyebrow{margin-bottom:10px !important;}
+.armely-copilot-page .section-title{
+  margin-bottom:14px !important;
+  font-size:clamp(1.75rem,3vw,2.45rem) !important;
+  line-height:1.12 !important;
+}
+.armely-copilot-page .section-body{
+  margin-bottom:24px !important;
+  line-height:1.62 !important;
+}
+
+/* Center only the normal stacked sections, not the two-column intro/why */
+.armely-copilot-page .delivers > .section-inner > .section-eyebrow,
+.armely-copilot-page .journey > .section-inner > .section-eyebrow,
+.armely-copilot-page .usecases > .section-inner > .section-eyebrow{
+  width:fit-content !important;
+  margin:0 auto 12px !important;
+  padding:6px 14px !important;
+  border-radius:999px !important;
+  background:var(--blue-dim) !important;
+  border:1px solid var(--blue-dim2) !important;
+  text-align:center !important;
+}
+.armely-copilot-page .delivers > .section-inner > .section-title,
+.armely-copilot-page .journey > .section-inner > .section-title,
+.armely-copilot-page .usecases > .section-inner > .section-title,
+.armely-copilot-page .delivers > .section-inner > .section-body,
+.armely-copilot-page .journey > .section-inner > .section-body,
+.armely-copilot-page .usecases > .section-inner > .section-body{
+  max-width:820px !important;
+  margin-left:auto !important;
+  margin-right:auto !important;
+  text-align:center !important;
+}
+
+/* INTRO: reduce white space and make visual meaningful */
+.armely-copilot-page .intro{
+  background:#f4f7fb !important;
+  padding:54px 56px !important;
+}
+.armely-copilot-page .intro-grid{
+  display:grid !important;
+  grid-template-columns:minmax(0,.95fr) minmax(360px,1fr) !important;
+  gap:44px !important;
+  align-items:center !important;
+  margin-top:0 !important;
+}
+.armely-copilot-page .intro .section-eyebrow,
+.armely-copilot-page .why .section-eyebrow{
+  width:fit-content !important;
+  margin:0 0 12px !important;
+  padding:6px 14px !important;
+  border-radius:999px !important;
+  background:var(--blue-dim) !important;
+  border:1px solid var(--blue-dim2) !important;
+  text-align:left !important;
+}
+.armely-copilot-page .intro .section-title,
+.armely-copilot-page .intro .section-body,
+.armely-copilot-page .why .section-title,
+.armely-copilot-page .why .section-body{
+  text-align:left !important;
+  margin-left:0 !important;
+  margin-right:0 !important;
+}
+.armely-copilot-page .intro .section-title{max-width:620px !important;}
+.armely-copilot-page .intro .section-body{max-width:600px !important;}
+.armely-copilot-page .app-pills{margin-top:22px !important;gap:9px !important;}
+.armely-copilot-page .pill{padding:7px 16px !important;background:#e8eef7 !important;}
+.armely-copilot-page .demo-card{
+  background:#fff !important;
+  min-height:auto !important;
+  border-radius:18px !important;
+  box-shadow:0 18px 42px rgba(18,47,82,.10) !important;
+}
+.armely-copilot-page .demo-header{padding:14px 20px !important;background:#fff !important;}
+.armely-copilot-page .demo-body{padding:18px 20px 20px !important;}
+.armely-copilot-page .chat-bubble{
+  padding:13px 15px !important;
+  margin-bottom:10px !important;
+  border-radius:14px !important;
+  line-height:1.5 !important;
+  font-size:.86rem !important;
+}
+.armely-copilot-page .chat-bubble:last-child{margin-bottom:0 !important;}
+
+/* Cards and grids */
+.armely-copilot-page .delivers-grid,
+.armely-copilot-page .uc-grid,
+.armely-copilot-page .steps-row,
+.armely-copilot-page .why-two-col{margin-top:30px !important;gap:18px !important;}
+.armely-copilot-page .deliver-card,
+.armely-copilot-page .uc-card,
+.armely-copilot-page .partner-block,
+.armely-copilot-page .cta-form{
+  border-radius:16px !important;
+  box-shadow:0 14px 34px rgba(18,47,82,.08) !important;
+}
+.armely-copilot-page .deliver-card,
+.armely-copilot-page .uc-card{padding:22px 20px !important;}
+.armely-copilot-page .deliver-icon,
+.armely-copilot-page .uc-icon,
+.armely-copilot-page .why-icon{
+  width:44px !important;height:44px !important;
+  border-radius:12px !important;
+  margin-bottom:16px !important;
+}
+.armely-copilot-page .deliver-title,
+.armely-copilot-page .uc-title{margin-bottom:8px !important;}
+.armely-copilot-page .deliver-desc,
+.armely-copilot-page .uc-desc{line-height:1.58 !important;font-size:.84rem !important;}
+
+/* Journey compact */
+.armely-copilot-page .step{padding:22px 18px !important;}
+.armely-copilot-page .step-num{font-size:1.8rem !important;margin-bottom:8px !important;}
+.armely-copilot-page .step-desc{line-height:1.55 !important;}
+
+/* Why and CTA */
+.armely-copilot-page .why{background:#fff !important;}
+.armely-copilot-page .why-two-col{align-items:start !important;grid-template-columns:1fr 1fr !important;}
+.armely-copilot-page .why-list li{padding:14px 0 !important;}
+.armely-copilot-page .partner-block-top,
+.armely-copilot-page .p-stat{padding:20px !important;}
+.armely-copilot-page .cta-inner{padding:58px 56px !important;gap:36px !important;}
+
+@media(max-width:900px){
+  .armely-copilot-page .hero{padding:78px 24px 56px !important;}
+  .armely-copilot-page section,
+  .armely-copilot-page .intro{padding:48px 24px !important;}
+  .armely-copilot-page .intro-grid,
+  .armely-copilot-page .why-two-col{grid-template-columns:1fr !important;gap:28px !important;}
+  .armely-copilot-page .delivers-grid,
+  .armely-copilot-page .uc-grid{grid-template-columns:1fr 1fr !important;}
+  .armely-copilot-page .cta-inner{padding:48px 24px !important;grid-template-columns:1fr !important;}
+}
+@media(max-width:600px){
+  .armely-copilot-page .hero h1{font-size:clamp(2rem,10vw,3rem) !important;}
+  .armely-copilot-page .hero-actions a{width:100% !important;text-align:center !important;}
+  .armely-copilot-page .delivers-grid,
+  .armely-copilot-page .uc-grid{grid-template-columns:1fr !important;}
+}
+
+
+
+/* ===== Final user requested cleanup: remove Outlook preview, full-width intro, fixed hero buttons ===== */
+.armely-copilot-page .hero .btn-primary{
+  background:#ffffff !important;
+  color:#173b67 !important;
+  border:1px solid #ffffff !important;
+  box-shadow:0 12px 28px rgba(0,0,0,.18) !important;
+}
+.armely-copilot-page .hero .btn-primary:hover{
+  background:#eef4ff !important;
+  color:#173b67 !important;
+  transform:translateY(-2px) !important;
+}
+.armely-copilot-page .hero .btn-outline{
+  background:transparent !important;
+  color:#ffffff !important;
+  border:1px solid rgba(255,255,255,.55) !important;
+}
+.armely-copilot-page .hero .btn-outline:hover{
+  background:rgba(255,255,255,.12) !important;
+  border-color:#ffffff !important;
+}
+.armely-copilot-page .intro{
+  background:#f4f7fb !important;
+  padding:54px 56px 58px !important;
+}
+.armely-copilot-page .intro .section-inner{
+  width:min(1120px,100%) !important;
+  max-width:1120px !important;
+}
+.armely-copilot-page .intro-grid{
+  display:block !important;
+  width:100% !important;
+  margin:0 !important;
+}
+.armely-copilot-page .intro-grid > div:first-child{
+  width:100% !important;
+  max-width:100% !important;
+}
+.armely-copilot-page .intro .section-title{
+  max-width:940px !important;
+  font-size:clamp(2rem,3.4vw,3.25rem) !important;
+  line-height:1.08 !important;
+}
+.armely-copilot-page .intro .section-body{
+  max-width:820px !important;
+  font-size:1rem !important;
+  line-height:1.7 !important;
+  margin-bottom:20px !important;
+}
+.armely-copilot-page .app-pills{
+  max-width:820px !important;
+}
+.armely-copilot-page .demo-card{
+  display:none !important;
+}
+@media(max-width:900px){
+  .armely-copilot-page .intro{padding:46px 24px 50px !important;}
+}
 </style>
 <div class="armely-copilot-page">
 <!-- NAV -->
@@ -703,33 +1284,36 @@
 <!-- HERO -->
 <section class="hero">
   <div class="hero-bg-glow"></div>
-  <div class="hero-bg-glow2"></div>
-  <div class="hero-eyebrow">
-    <span class="eyebrow-badge">Microsoft 365 Copilot Business</span>
-    <span class="eyebrow-partner">Delivered by a certified Microsoft partner</span>
-  </div>
-  <h1>AI that works<br>the way <span class="hl">your business</span><br>actually works.</h1>
-  <p class="hero-sub">Armely licences, deploys, and embeds Microsoft 365 Copilot into your team's daily workflows — so adoption is real, not just access.</p>
-  <div class="hero-actions">
-    <a href="#contact" class="btn-primary">Book a Free Assessment</a>
-    <a href="#what-we-deliver" class="btn-outline">See What We Do</a>
-  </div>
-  <div class="hero-trust">
-    <div class="trust-item">
-      <span class="trust-dot"></span>
-      <span class="trust-text"><strong>Full Microsoft 365</strong> Copilot feature set</span>
-    </div>
-    <div class="trust-item">
-      <span class="trust-dot"></span>
-      <span class="trust-text">Works with <strong>any existing</strong> M365 Business plan</span>
-    </div>
-    <div class="trust-item">
-      <span class="trust-dot"></span>
-      <span class="trust-text"><strong>No seat minimums</strong> — start with one team</span>
-    </div>
-    <div class="trust-item">
-      <span class="trust-dot"></span>
-      <span class="trust-text">Exclusive <strong>partner pricing</strong> available</span>
+  <div class="hero-inner">
+    <div class="hero-copy">
+      <div class="hero-eyebrow">
+        <span class="eyebrow-badge">Microsoft 365 Copilot Business</span>
+        <span class="eyebrow-partner">Delivered by a certified Microsoft partner</span>
+      </div>
+      <h1>AI that works<br>the way your business<br>actually works.</h1>
+      <p class="hero-sub">Armely licences, deploys, and embeds Microsoft 365 Copilot into your team's daily workflows — so adoption is real, not just access.</p>
+      <div class="hero-actions">
+        <a href="#contact" class="btn-primary">Book a Free Assessment</a>
+        <a href="#what-we-deliver" class="btn-outline">See What We Do</a>
+      </div>
+      <div class="hero-trust">
+        <div class="trust-item">
+          <span class="trust-dot"></span>
+          <span class="trust-text"><strong>Full Microsoft 365</strong> Copilot feature set</span>
+        </div>
+        <div class="trust-item">
+          <span class="trust-dot"></span>
+          <span class="trust-text">Works with <strong>any existing</strong> M365 Business plan</span>
+        </div>
+        <div class="trust-item">
+          <span class="trust-dot"></span>
+          <span class="trust-text"><strong>No seat minimums</strong> — start with one team</span>
+        </div>
+        <div class="trust-item">
+          <span class="trust-dot"></span>
+          <span class="trust-text">Exclusive <strong>partner pricing</strong> available</span>
+        </div>
+      </div>
     </div>
   </div>
 </section>
@@ -749,32 +1333,6 @@
           <span class="pill">Outlook</span>
           <span class="pill">Teams</span>
           <span class="pill">M365 Chat</span>
-        </div>
-      </div>
-      <div>
-        <div class="demo-card">
-          <div class="demo-header">
-            <div class="demo-dots"><span></span><span></span><span></span></div>
-            <span class="demo-app-name">Copilot in Outlook</span>
-          </div>
-          <div class="demo-body">
-            <div class="chat-bubble user">
-              <div class="bubble-label u">You</div>
-              Summarise last week's project emails and flag anything that needs a reply today.
-            </div>
-            <div class="chat-bubble copilot">
-              <div class="bubble-label c">Copilot</div>
-              Found 14 relevant threads. Two need replies: a contract review from Sarah due Friday, and a vendor quote requiring sign-off. The rest are informational — here's a 3-line summary of each.
-            </div>
-            <div class="chat-bubble user">
-              <div class="bubble-label u">You</div>
-              Draft a reply to Sarah — professional but concise.
-            </div>
-            <div class="chat-bubble copilot">
-              <div class="bubble-label c">Copilot</div>
-              Done. Draft is in your compose window. Review and send when ready.
-            </div>
-          </div>
         </div>
       </div>
     </div>
@@ -1020,7 +1578,7 @@
           <option>151–300 people</option>
         </select>
       </div>
-      <button class="form-submit">Request Free Assessment →</button>
+      <button class="form-submit text-light">Request Free Assessment →</button>
       <div class="form-note">No spam. No sales pressure. Just a useful conversation.</div>
     </div>
   </div>

@@ -230,19 +230,198 @@
   --border: rgba(47, 85, 151, 0.14);
 }
 .armely-dynamics365-page .hero {
-  min-height: 100vh;
-  background: linear-gradient(135deg, #173b67 0%, #2f5597 58%, #4f86c6 100%);
+  min-height: calc(100vh - 1px);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 520px);
+  align-items: center;
+  gap: clamp(36px, 6vw, 88px);
+  padding: 132px clamp(24px, 5vw, 72px) 96px;
+  background:
+    linear-gradient(90deg, rgba(255,255,255,0.045) 1px, transparent 1px) 0 0 / 72px 72px,
+    linear-gradient(0deg, rgba(255,255,255,0.04) 1px, transparent 1px) 0 0 / 72px 72px,
+    linear-gradient(135deg, #102848 0%, #173b67 42%, #2f5597 100%);
+  border-radius: 0;
 }
 .armely-dynamics365-page .hero::after {
   content: '';
   position: absolute;
-  inset: auto 8% 8% auto;
-  width: min(340px, 48vw);
-  height: min(340px, 48vw);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.10);
-  filter: blur(2px);
+  inset: 0 0 auto auto;
+  width: 42%;
+  height: 100%;
+  background: linear-gradient(135deg, transparent 0%, rgba(255,255,255,0.08) 50%, transparent 50.2%);
+  opacity: 0.85;
   pointer-events: none;
+}
+.armely-dynamics365-page .hero-bg-glow {
+  inset: 0 auto 0 0;
+  width: 44%;
+  height: 100%;
+  background: linear-gradient(90deg, rgba(79, 134, 198, 0.22), transparent);
+}
+.armely-dynamics365-page .hero-copy,
+.armely-dynamics365-page .hero-system {
+  position: relative;
+  z-index: 1;
+}
+.armely-dynamics365-page .hero h1 {
+  max-width: 760px;
+}
+.armely-dynamics365-page .hero-sub {
+  max-width: 620px;
+}
+.armely-dynamics365-page .hero-actions {
+  margin-bottom: 52px;
+}
+.armely-dynamics365-page .hero-trust {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(210px, 1fr));
+  gap: 16px 24px;
+  max-width: 700px;
+  margin: 0;
+  padding-top: 32px;
+}
+.armely-dynamics365-page .hero-system {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+}
+.armely-dynamics365-page .platform-visual {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 16px 42px rgba(18, 47, 82, 0.08);
+  padding: 20px;
+}
+.armely-dynamics365-page .platform-visual::before {
+  content: 'Dynamics 365 Connected Platform';
+  display: block;
+  padding: 0 2px 16px;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.armely-dynamics365-page .platform-band {
+  border-radius: 10px;
+  padding: 18px 20px;
+}
+.armely-dynamics365-page .band-connector {
+  color: var(--blue);
+  font-weight: 800;
+}
+.armely-dynamics365-page .hero {
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 430px);
+  gap: clamp(44px, 7vw, 96px);
+  min-height: 82vh;
+  padding: 126px clamp(24px, 5vw, 72px) 92px;
+  background:
+    linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px) 0 0 / 88px 88px,
+    linear-gradient(135deg, #102848 0%, #173b67 52%, #2f5597 100%);
+}
+.armely-dynamics365-page .hero::after {
+  width: 34%;
+  background: linear-gradient(135deg, transparent 0%, rgba(255,255,255,0.06) 50%, transparent 50.2%);
+}
+.armely-dynamics365-page .hero-bg-glow {
+  display: none;
+}
+.armely-dynamics365-page .hero-eyebrow {
+  gap: 0;
+}
+.armely-dynamics365-page .eyebrow-partner {
+  display: none;
+}
+.armely-dynamics365-page .hero h1 {
+  max-width: 780px;
+  font-size: clamp(2.55rem, 5.1vw, 4.55rem);
+}
+.armely-dynamics365-page .hero-sub {
+  max-width: 585px;
+  margin-bottom: 34px;
+}
+.armely-dynamics365-page .hero-actions {
+  margin-bottom: 42px;
+}
+.armely-dynamics365-page .hero-trust {
+  display: flex;
+  max-width: 680px;
+  gap: 18px 30px;
+  padding-top: 28px;
+}
+.armely-dynamics365-page .hero-trust .trust-item {
+  max-width: 210px;
+}
+.armely-dynamics365-page .hero-trust .trust-text {
+  color: rgba(255,255,255,0.72);
+}
+.armely-dynamics365-page .solution-card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  background: rgba(255,255,255,0.97);
+  border: 1px solid rgba(255,255,255,0.42);
+  border-radius: 14px;
+  box-shadow: 0 26px 70px rgba(5, 18, 36, 0.28);
+  overflow: hidden;
+}
+.armely-dynamics365-page .solution-card-header {
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--border);
+  background: #f5f8fc;
+}
+.armely-dynamics365-page .solution-card-kicker {
+  color: var(--blue);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.armely-dynamics365-page .solution-card-title {
+  color: #162b49;
+  font-size: 1.05rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+.armely-dynamics365-page .solution-card-body {
+  padding: 20px;
+}
+.armely-dynamics365-page .solution-flow {
+  display: grid;
+  gap: 10px;
+}
+.armely-dynamics365-page .solution-flow-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.armely-dynamics365-page .solution-flow-item strong {
+  color: #162b49;
+  font-size: 0.88rem;
+}
+.armely-dynamics365-page .solution-flow-item span {
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+.armely-dynamics365-page .solution-divider {
+  height: 1px;
+  margin: 18px 0;
+  background: var(--border);
+}
+.armely-dynamics365-page .solution-note {
+  color: var(--text-body);
+  font-size: 0.86rem;
+  line-height: 1.65;
+}
+.armely-dynamics365-page .solution-note strong {
+  color: var(--blue);
 }
 .armely-dynamics365-page .section-title,
 .armely-dynamics365-page .deliver-title,
@@ -255,7 +434,6 @@
 .armely-dynamics365-page .deliver-card,
 .armely-dynamics365-page .uc-card,
 .armely-dynamics365-page .testi-card,
-.armely-dynamics365-page .platform-card,
 .armely-dynamics365-page .partner-block,
 .armely-dynamics365-page .cta-form {
   box-shadow: 0 16px 42px rgba(18, 47, 82, 0.08);
@@ -276,9 +454,49 @@
 .armely-dynamics365-page .btn-outline:hover {
   background: rgba(255,255,255,0.11);
 }
+.armely-dynamics365-page .cta-form .form-row {
+  display: block;
+}
+.armely-dynamics365-page .cta-form .form-row label {
+  display: block;
+}
+.armely-dynamics365-page .cta-form .form-row input,
+.armely-dynamics365-page .cta-form .form-row select {
+  display: block;
+  width: 100%;
+  min-height: 52px;
+}
+.armely-dynamics365-page .cta-form .form-row .nice-select {
+  display: block;
+  float: none;
+  width: 100%;
+  min-height: 52px;
+  line-height: 50px;
+}
+.armely-dynamics365-page .cta-form .form-row .nice-select .list {
+  width: 100%;
+}
 .armely-dynamics365-page nav,
 .armely-dynamics365-page footer {
   display: none;
+}
+@media (max-width: 980px) {
+  .armely-dynamics365-page .hero {
+    grid-template-columns: 1fr;
+    padding: 112px 24px 72px;
+    min-height: auto;
+  }
+  .armely-dynamics365-page .hero-system {
+    align-self: auto;
+  }
+}
+@media (max-width: 700px) {
+  .armely-dynamics365-page .hero-trust {
+    flex-direction: column;
+  }
+  .armely-dynamics365-page .hero-trust .trust-item {
+    max-width: none;
+  }
 }
 </style>
 <div class="armely-dynamics365-page">
@@ -288,32 +506,47 @@
 <!-- HERO -->
 <section class="hero">
   <div class="hero-bg-glow"></div>
-  <div class="hero-eyebrow">
-    <span class="eyebrow-badge">Microsoft Dynamics 365</span>
-    <span class="eyebrow-partner">Delivered by a certified Microsoft partner</span>
+  <div class="hero-copy">
+    <div class="hero-eyebrow">
+      <span class="eyebrow-badge">Microsoft Dynamics 365</span>
+      <span class="eyebrow-partner">Delivered by a certified Microsoft partner</span>
+    </div>
+    <h1>Dynamics 365 built around the way your business actually runs.</h1>
+    <p class="hero-sub">Armely designs and implements connected CRM and ERP systems for sales, finance, operations, and service teams that need one reliable source of truth.</p>
+    <div class="hero-actions">
+      <a href="#contact" class="btn-primary">Book a Free Discovery Call</a>
+      <a href="#modules" class="btn-outline">Explore the Modules</a>
+    </div>
+    <div class="hero-trust">
+      <div class="trust-item">
+        <span class="trust-dot"></span>
+        <span class="trust-text"><strong>CRM + ERP</strong> implementation</span>
+      </div>
+      <div class="trust-item">
+        <span class="trust-dot"></span>
+        <span class="trust-text"><strong>Microsoft 365</strong> integration</span>
+      </div>
+      <div class="trust-item">
+        <span class="trust-dot"></span>
+        <span class="trust-text"><strong>Partner pricing</strong> available</span>
+      </div>
+    </div>
   </div>
-  <h1>CRM and ERP, finally<br><span class="hl">working as one.</span></h1>
-  <p class="hero-sub">Armely implements and customizes Microsoft Dynamics 365 so your sales, finance, operations, and customer service teams share the same data, and the same source of truth.</p>
-  <div class="hero-actions">
-    <a href="#contact" class="btn-primary">Book a Free Discovery Call</a>
-    <a href="#modules" class="btn-outline">Explore the Modules</a>
-  </div>
-  <div class="hero-trust">
-    <div class="trust-item">
-      <span class="trust-dot"></span>
-      <span class="trust-text"><strong>ERP + CRM</strong> in one connected platform</span>
-    </div>
-    <div class="trust-item">
-      <span class="trust-dot"></span>
-      <span class="trust-text">Native integration with <strong>Microsoft 365 & Teams</strong></span>
-    </div>
-    <div class="trust-item">
-      <span class="trust-dot"></span>
-      <span class="trust-text"><strong>Copilot AI agents</strong> across every module</span>
-    </div>
-    <div class="trust-item">
-      <span class="trust-dot"></span>
-      <span class="trust-text"><strong>Partner pricing</strong> available</span>
+  <div class="hero-system" aria-hidden="true">
+    <div class="solution-card">
+      <div class="solution-card-header">
+        <div class="solution-card-kicker">Connected Platform</div>
+        <div class="solution-card-title">One operating system for customer, finance, and service data.</div>
+      </div>
+      <div class="solution-card-body">
+        <div class="solution-flow">
+          <div class="solution-flow-item"><strong>Sales</strong><span>Pipeline and accounts</span></div>
+          <div class="solution-flow-item"><strong>Finance</strong><span>Orders and invoicing</span></div>
+          <div class="solution-flow-item"><strong>Service</strong><span>Cases and scheduling</span></div>
+        </div>
+        <div class="solution-divider"></div>
+        <p class="solution-note"><strong>Designed by Armely:</strong> the right modules, clean data migration, practical workflows, and training your team can actually use.</p>
+      </div>
     </div>
   </div>
 </section>
@@ -328,35 +561,35 @@
         <p class="section-body">Dynamics 365 is Microsoft's cloud platform that unifies CRM and ERP into a single, modular system. You choose the apps your business needs today and add more as you grow, all sharing the same data, the same security model, and the same Copilot AI layer.</p>
         <div class="module-tabs">
           <div class="module-tab">
-            <div class="module-tab-icon">💼</div>
+            <div class="module-tab-icon"><i class="fa fa-briefcase" aria-hidden="true"></i></div>
             <div class="module-tab-content">
               <div class="module-tab-title">Business Central</div>
               <div class="module-tab-desc">All-in-one ERP for SMBs covering finance, inventory, purchasing, projects, and manufacturing in one place. Forbes' #1 cloud ERP for SMBs in 2025.</div>
             </div>
           </div>
           <div class="module-tab">
-            <div class="module-tab-icon">🎯</div>
+            <div class="module-tab-icon"><i class="fa fa-bullseye" aria-hidden="true"></i></div>
             <div class="module-tab-content">
               <div class="module-tab-title">Sales</div>
               <div class="module-tab-desc">AI-powered CRM that automates lead research, drafts emails, summarises opportunities, and surfaces deal risks before they cost you.</div>
             </div>
           </div>
           <div class="module-tab">
-            <div class="module-tab-icon">🎧</div>
+            <div class="module-tab-icon"><i class="fa fa-headphones" aria-hidden="true"></i></div>
             <div class="module-tab-content">
               <div class="module-tab-title">Customer Service</div>
               <div class="module-tab-desc">Case management, AI routing, and autonomous agents that resolve issues faster across voice, chat, and digital channels.</div>
             </div>
           </div>
           <div class="module-tab">
-            <div class="module-tab-icon">🔧</div>
+            <div class="module-tab-icon"><i class="fa fa-wrench" aria-hidden="true"></i></div>
             <div class="module-tab-content">
               <div class="module-tab-title">Field Service</div>
               <div class="module-tab-desc">AI scheduling, work order management, and proactive maintenance for teams that send technicians to customers, with 65%+ first-time fix rate improvements reported.</div>
             </div>
           </div>
           <div class="module-tab" style="grid-column: 1 / -1;">
-            <div class="module-tab-icon">📣</div>
+            <div class="module-tab-icon"><i class="fa fa-bullhorn" aria-hidden="true"></i></div>
             <div class="module-tab-content">
               <div class="module-tab-title">Customer Insights</div>
               <div class="module-tab-desc">Unified customer profiles and AI-driven marketing journeys that engage the right person at the right moment across every channel.</div>
@@ -376,7 +609,7 @@
               <span class="band-chip">Contact Center</span>
             </div>
           </div>
-          <div class="band-connector">↕</div>
+          <div class="band-connector"><i class="fa fa-arrows-v" aria-hidden="true"></i></div>
           <div class="platform-band band-erp">
             <div class="band-label">ERP Applications</div>
             <div class="band-chips">
@@ -387,7 +620,7 @@
               <span class="band-chip">Human Resources</span>
             </div>
           </div>
-          <div class="band-connector">↕</div>
+          <div class="band-connector"><i class="fa fa-arrows-v" aria-hidden="true"></i></div>
           <div class="platform-band band-foundation">
             <div class="band-label">Shared Foundation</div>
             <div class="band-chips">
@@ -413,32 +646,32 @@
     <p class="section-body">Dynamics 365 is powerful out of the box and endlessly configurable. Armely makes sure you get the right modules, the right configuration, and the right training without months of scope creep.</p>
     <div class="delivers-grid">
       <div class="deliver-card">
-        <div class="deliver-icon">🗺️</div>
+        <div class="deliver-icon"><i class="fa fa-map" aria-hidden="true"></i></div>
         <div class="deliver-title">Business Process Discovery</div>
         <div class="deliver-desc">Before touching a single setting, we map how your business actually works: your sales process, finance workflows, service operations, and reporting needs, and design a Dynamics 365 configuration that fits them.</div>
       </div>
       <div class="deliver-card">
-        <div class="deliver-icon">⚙️</div>
+        <div class="deliver-icon"><i class="fa fa-cogs" aria-hidden="true"></i></div>
         <div class="deliver-title">Configuration & Customization</div>
         <div class="deliver-desc">We configure Dynamics 365 to match your workflows, terminology, and approval processes. Where standard configuration isn't enough, we extend with Power Apps and Power Automate rather than bespoke code that breaks on upgrades.</div>
       </div>
       <div class="deliver-card">
-        <div class="deliver-icon">🔗</div>
+        <div class="deliver-icon"><i class="fa fa-link" aria-hidden="true"></i></div>
         <div class="deliver-title">System Integration</div>
         <div class="deliver-desc">We connect Dynamics 365 to your existing tools, including accounting software, e-commerce platforms, marketing systems, and data sources, so information flows automatically and your team stops re-entering the same data twice.</div>
       </div>
       <div class="deliver-card">
-        <div class="deliver-icon">📦</div>
+        <div class="deliver-icon"><i class="fa fa-cubes" aria-hidden="true"></i></div>
         <div class="deliver-title">Data Migration</div>
         <div class="deliver-desc">We migrate your customer records, financial history, open orders, and contact data from your legacy system into Dynamics 365, clean, validated, and complete. No fresh starts, no lost history.</div>
       </div>
       <div class="deliver-card">
-        <div class="deliver-icon">🤖</div>
+        <div class="deliver-icon"><i class="fa fa-magic" aria-hidden="true"></i></div>
         <div class="deliver-title">Copilot AI Configuration</div>
         <div class="deliver-desc">Dynamics 365 Copilot agents are activated and tuned for your team, including drafting sales emails, summarizing service cases, proposing journal entries, and automating scheduling. AI that works in your context, not a generic demo.</div>
       </div>
       <div class="deliver-card">
-        <div class="deliver-icon">🎓</div>
+        <div class="deliver-icon"><i class="fa fa-graduation-cap" aria-hidden="true"></i></div>
         <div class="deliver-title">Training & Ongoing Support</div>
         <div class="deliver-desc">Role-specific training for every team, plus a dedicated Armely account manager for post-go-live support, new module rollouts, and the inevitable "can we add this?" requests that come six months in.</div>
       </div>
@@ -495,32 +728,32 @@
     <p class="section-body">Every Dynamics 365 engagement is different, but these are the situations we hear most often, and where a well-implemented system delivers the clearest, fastest return.</p>
     <div class="uc-grid">
       <div class="uc-card">
-        <span class="uc-icon">📋</span>
+        <span class="uc-icon"><i class="fa fa-clipboard" aria-hidden="true"></i></span>
         <div class="uc-title">Replace Disconnected Tools</div>
         <div class="uc-desc">Retiring a mix of Sage, spreadsheets, and a legacy CRM into one platform. Sales sees customer history. Finance sees open orders. Service sees account status. Everyone works from the same data.</div>
       </div>
       <div class="uc-card">
-        <span class="uc-icon">💰</span>
+        <span class="uc-icon"><i class="fa fa-money" aria-hidden="true"></i></span>
         <div class="uc-title">Automate Finance & Reporting</div>
         <div class="uc-desc">Business Central automates AP/AR, period-end closing, bank reconciliation, and cash flow forecasting, so your finance team stops spending three days on month-end and starts spending an hour.</div>
       </div>
       <div class="uc-card">
-        <span class="uc-icon">🎯</span>
+        <span class="uc-icon"><i class="fa fa-bullseye" aria-hidden="true"></i></span>
         <div class="uc-title">Give Sales Teams an Edge</div>
         <div class="uc-desc">Dynamics 365 Sales with Copilot researches leads, drafts outreach emails, surfaces deal risks, and keeps CRM updated automatically, so your sellers sell instead of administrate.</div>
       </div>
       <div class="uc-card">
-        <span class="uc-icon">🔧</span>
+        <span class="uc-icon"><i class="fa fa-wrench" aria-hidden="true"></i></span>
         <div class="uc-title">Field Service That Predicts Problems</div>
         <div class="uc-desc">AI scheduling dispatches the right technician with the right parts. IoT-connected assets trigger work orders automatically. Customers get proactive updates before they call you.</div>
       </div>
       <div class="uc-card">
-        <span class="uc-icon">📦</span>
+        <span class="uc-icon"><i class="fa fa-cube" aria-hidden="true"></i></span>
         <div class="uc-title">Take Control of Inventory</div>
         <div class="uc-desc">Real-time inventory, purchase order automation, and demand forecasting in Business Central mean you stop running out of stock and avoid tying up cash in stock you don't need.</div>
       </div>
       <div class="uc-card">
-        <span class="uc-icon">📊</span>
+        <span class="uc-icon"><i class="fa fa-line-chart" aria-hidden="true"></i></span>
         <div class="uc-title">Leadership Dashboards That Update Themselves</div>
         <div class="uc-desc">Power BI connected to live Dynamics 365 data gives leadership real-time visibility across sales pipeline, service performance, cash position, and operations without weekly report runs.</div>
       </div>
@@ -588,28 +821,28 @@
         <p class="section-body">Most Dynamics 365 projects that struggle do so because of poor requirements gathering, generic configuration, and training that didn't match how people actually work. We've built our process to fix all three.</p>
         <ul class="why-list">
           <li>
-            <div class="why-icon">🎯</div>
+            <div class="why-icon"><i class="fa fa-bullseye" aria-hidden="true"></i></div>
             <div>
               <div class="why-item-title">Certified Dynamics 365 Implementors</div>
               <div class="why-item-desc">Our team holds Microsoft Dynamics 365 certifications across Business Central, Sales, and Customer Service, with hands-on delivery experience, not just exam passes.</div>
             </div>
           </li>
           <li>
-            <div class="why-icon">🏥</div>
+            <div class="why-icon"><i class="fa fa-hospital-o" aria-hidden="true"></i></div>
             <div>
               <div class="why-item-title">Proven Across Healthcare & Education</div>
               <div class="why-item-desc">We've delivered Microsoft solutions for Swope Health Systems, Plano ISD, and UNMC, organizations where data governance, compliance, and user adoption all matter equally.</div>
             </div>
           </li>
           <li>
-            <div class="why-icon">🔗</div>
+            <div class="why-icon"><i class="fa fa-link" aria-hidden="true"></i></div>
             <div>
               <div class="why-item-title">Full Microsoft Stack Expertise</div>
               <div class="why-item-desc">Dynamics 365 works best alongside Microsoft 365, Power BI, Power Platform, and Azure. Armely covers the whole stack so your ERP, CRM, AI, and analytics are designed to work together from day one.</div>
             </div>
           </li>
           <li>
-            <div class="why-icon">💰</div>
+            <div class="why-icon"><i class="fa fa-money" aria-hidden="true"></i></div>
             <div>
               <div class="why-item-title">Right Licenses at Partner Pricing</div>
               <div class="why-item-desc">As a Microsoft-authorized CSP partner, we access Business Central and Dynamics 365 licensing at rates not available through direct purchase, and we help you start with exactly what you need, not a bundle you'll never use.</div>
