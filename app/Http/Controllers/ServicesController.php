@@ -29,6 +29,8 @@ class ServicesController extends Controller
         'Microsoft Dynamics 365' => 'microsoft-dynamics-365',
         'Robotic Processing Automation' => 'robotic-processing-automation',
         'SharePoint Online' => 'sharepoint-online',
+        'Microsoft 365 Governance and Adoption' => 'm365-governance',
+        'Managed Services' => 'managed-services',
         'SQL Server Support' => 'sql-server-support',
         'Applications Support' => 'applications-support',
         'Freemiums' => 'freemiums',
@@ -45,10 +47,10 @@ class ServicesController extends Controller
         ],
         'digital' => [
             'powerapps', 'power automate', 'power pages', 'dynamics 365', 
-            'robotic processing', 'sharepoint'
+            'robotic processing', 'sharepoint', 'microsoft 365 governance'
         ],
         'managed' => [
-            'sql server support', 'applications support', 'sql support', 'appsupport'
+            'sql server support', 'applications support', 'sql support', 'appsupport', 'managed services'
         ],
         'advisory' => [
             'freemium', 'consulting', 'strategy'
@@ -130,6 +132,8 @@ class ServicesController extends Controller
             ['title' => 'Microsoft PowerApps', 'image' => 'fa fa-mobile-screen-button', 'body' => 'Low-code business applications built for process modernization, field operations, and workflow improvement.'],
             ['title' => 'Microsoft Power Automate', 'image' => 'fa fa-gears', 'body' => 'Workflow automation, approval flows, integrations, and productivity improvements across Microsoft 365.'],
             ['title' => 'SharePoint Online', 'image' => 'fa fa-share-nodes', 'body' => 'Collaboration portals, document management, intranet modernization, and governance.'],
+            ['title' => 'Microsoft 365 Governance and Adoption', 'image' => 'fa fa-shield-halved', 'body' => 'Governance, security, adoption, and tenant readiness for Microsoft 365 environments.'],
+            ['title' => 'Managed Services', 'image' => 'fa fa-life-ring', 'body' => 'Ongoing operational support, monitoring, optimization, and managed Microsoft platform services.'],
             ['title' => 'SQL Server Support', 'image' => 'fa fa-server', 'body' => 'Database administration, performance tuning, monitoring, and managed SQL support.'],
             ['title' => 'Applications Support', 'image' => 'fa fa-headset', 'body' => 'Managed application support, issue triage, enhancements, and operational continuity.'],
             ['title' => 'Freemiums', 'image' => 'fa fa-file-lines', 'body' => 'Guides, templates, and practical resources for leaders planning Microsoft platform initiatives.'],

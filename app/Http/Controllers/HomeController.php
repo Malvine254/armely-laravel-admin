@@ -404,7 +404,12 @@ class HomeController extends Controller
             'power-platform' => 'microsoft-power-pages',
             'sharepointonline' => 'sharepoint-online',
             'sharepoint' => 'sharepoint-online',
-            'custom-development' => 'custom-development'
+            'custom-development' => 'custom-development',
+            'm365' => 'm365-governance',
+            'm365-governance' => 'm365-governance',
+            'microsoft-365-governance' => 'm365-governance',
+            'microsoft-365-governance-and-adoption' => 'm365-governance',
+            'managed-services' => 'managed-services'
         ][$slug] ?? $name;
     }
 

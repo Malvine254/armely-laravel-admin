@@ -30,6 +30,24 @@
 
 @section('content')
 
+@php
+	$modernServiceIncludes = [
+		'generative-ai' => 'services.generative-ai',
+		'data-strategy' => 'services.data-strategy',
+		'microsoft-fabric' => 'services.fabric',
+		'snowflake' => 'services.snowflake',
+		'microsoft-dynamics-365' => 'services.dynamics365',
+		'sql-&-data-warehousing' => 'services.sql-data-warehousing',
+		'api-data-access' => 'services.apidataaccess',
+		'sharepoint-online' => 'services.sharepointonline',
+		'm365-governance' => 'services.m365-governance',
+		'managed-services' => 'services.managed-services',
+		'copilot' => 'services.copilot',
+		'microsoft-power-pages' => 'services.powerplatform',
+		'custom-development' => 'services.custom-development',
+	];
+@endphp
+
 {{-- <!-- Breadcrumbs -->
 <div class="breadcrumbs overlay">
 	<div class="container">
@@ -51,7 +69,9 @@
 </div>
 <!-- End Breadcrumbs --> --}}
 
-@if($serviceName)
+@if($serviceName && isset($modernServiceIncludes[$serviceName]))
+	@include($modernServiceIncludes[$serviceName])
+@elseif($serviceName)
 	<!-- Start Portfolio Details Area -->
 	<section class="pf-details mt-5">
 		<div class="container">
@@ -144,19 +164,6 @@
 							@include('services.roboticprocessing')
 						@endif
 
-						<!-- SharePoint Online Service -->
-						@if($serviceName === 'sharepoint-online')
-							@include('services.sharepointonline')
-						@endif
-							<!-- Copilot Service -->
-							@if($serviceName === 'copilot')
-								@include('services.copilot')
-							@endif
-
-							<!-- Power Platform Service -->
-						@if($serviceName === 'microsoft-power-pages')
-							@include('services.powerplatform')
-						@endif
 							<!-- Databricks Service -->
 							@if($serviceName === 'databricks')
 								@include('services.databricks')

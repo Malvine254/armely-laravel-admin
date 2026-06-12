@@ -1378,7 +1378,9 @@ main .service-card {
             'powerplatform': 'microsoft-power-pages',
             'power-platform': 'microsoft-power-pages',
             'sharepointonline': 'sharepoint-online',
-            'sharepoint': 'sharepoint-online'
+            'sharepoint': 'sharepoint-online',
+            'microsoft-365-governance': 'm365-governance',
+            'microsoft-365-governance-and-adoption': 'm365-governance'
         };
 
         return path.replace(/^\/service-details\/([^\/]+)(.*)$/, function(match, slug, rest) {
