@@ -436,7 +436,10 @@
 	margin-bottom: 8px !important;
 }
 .cta-section-industries {
-	background: #f5f8fc !important;
+	background: linear-gradient(180deg, #f7f9fc 0%, #eef4fb 100%) !important;
+	padding: 0 !important;
+	border-top: 1px solid #dbe6f3;
+	margin-top: 60px;
 }
 
 /* Quiet professional pass */
@@ -492,7 +495,10 @@
 	clear: both;
 }
 .industries-section-modern > .container {
-	max-width: 1180px;
+	max-width: 100%;
+	width: 100%;
+	padding-left: 24px;
+	padding-right: 24px;
 }
 .industries-layout {
 	align-items: flex-start;
@@ -503,12 +509,12 @@
 	z-index: 20;
 }
 .industry-nav-panel {
-	background: #fff;
-	border: 1px solid #dbe6f3;
-	box-shadow: 0 10px 22px rgba(24, 54, 107, .08);
-	padding: 16px;
-	position: sticky;
-	top: 90px;
+	background: transparent;
+	border: 0;
+	box-shadow: none;
+	padding: 0;
+	position: static;
+	top: auto;
 	align-self: flex-start;
 	height: auto !important;
 	min-height: 0 !important;
@@ -539,18 +545,30 @@
 	background: transparent !important;
 	border: 0 !important;
 	box-shadow: none !important;
-	display: grid;
+	display: flex;
+	flex-wrap: wrap;
 	gap: 10px;
 	padding: 0 !important;
 	margin: 0 !important;
 	height: auto !important;
 	min-height: 0 !important;
+	overflow: visible;
+	border-bottom: 1px solid #dbe6f3 !important;
+	padding-bottom: 10px !important;
+	width: 100%;
 }
 .modern-tabs-industries .nav-item {
 	margin: 0 !important;
+	flex: 1 1 calc(25% - 8px);
+	min-width: 0;
+}
+.industry-more-dropdown {
+	position: relative;
+	flex: 0 0 auto !important;
+	margin-left: auto;
 }
 .modern-tabs-industries .nav-link {
-	background: #fff !important;
+	background: #f8fbff !important;
 	border: 1px solid #dbe6f3 !important;
 	color: #1e3357 !important;
 	display: flex;
@@ -561,9 +579,12 @@
 	font-weight: 700 !important;
 	font-size: .92rem;
 	line-height: 1.28;
-	width: 100%;
+	min-width: 0;
+	width: auto;
 	white-space: normal;
 	overflow-wrap: anywhere;
+	border-radius: 14px 14px 0 0 !important;
+	border-bottom: 3px solid transparent !important;
 }
 .modern-tabs-industries .nav-link i {
 	color: #2f5597;
@@ -582,10 +603,70 @@
 .modern-tabs-industries .nav-link.active {
 	background: #2f5597 !important;
 	border-color: #2f5597 !important;
+	border-bottom-color: #2f5597 !important;
 	color: #fff !important;
 }
 .modern-tabs-industries .nav-link.active i {
 	color: #fff;
+}
+.industry-more-toggle {
+	min-width: 0 !important;
+	width: auto !important;
+	padding-right: 14px !important;
+}
+.industry-more-toggle::after {
+	margin-left: auto;
+}
+.industry-more-menu {
+	position: absolute;
+	top: calc(100% + 8px);
+	min-width: 280px;
+	max-width: min(520px, calc(100vw - 32px));
+	padding: 6px;
+	border: 1px solid #dbe6f3;
+	border-radius: 14px;
+	box-shadow: 0 10px 24px rgba(28, 54, 93, .10);
+	right: 0;
+	left: auto;
+	display: none;
+	z-index: 50;
+}
+.industry-more-menu.show {
+	display: block;
+}
+.industry-more-menu .industry-tab-link {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 9px 11px;
+	color: #1e3357;
+	border-radius: 10px;
+	text-decoration: none;
+	white-space: normal;
+}
+.industry-more-menu .industry-tab-link i {
+	color: #2f5597;
+	font-size: .98rem;
+	width: 18px;
+	flex: 0 0 18px;
+	text-align: center;
+}
+.industry-more-menu .industry-tab-link.active,
+.industry-more-menu .industry-tab-link:hover {
+	background: #eef4fb;
+	color: #2f5597;
+}
+.industry-more-menu .industry-tab-link.active i,
+.industry-more-menu .industry-tab-link:hover i {
+	color: #2f5597;
+}
+.industry-more-toggle.active {
+	background: #2f5597 !important;
+	border-color: #2f5597 !important;
+	color: #fff !important;
+}
+.industry-more-toggle.active i {
+	color: #fff !important;
 }
 .modern-tab-content {
 	box-shadow: none !important;
@@ -593,9 +674,112 @@
 	background: transparent !important;
 	border: 0 !important;
 }
+.industry-pages-tabs-inner {
+	width: 100%;
+	margin: 0 !important;
+	padding: 0 !important;
+	background: transparent !important;
+	border: 0 !important;
+	box-shadow: none !important;
+	position: relative;
+	z-index: 25;
+}
+.industry-pages-tablist {
+	margin-top: 0 !important;
+}
+.industry-pages-tabcontent {
+	position: relative;
+	z-index: 1;
+}
+.industry-nav-panel > #myTab {
+	display: none !important;
+}
+.industries-content-col > #myTabContent {
+	display: none !important;
+}
 .tab-content-wrapper {
-	padding: 28px !important;
+	padding: 0 !important;
 	min-height: 0 !important;
+	width: 100%;
+}
+.industry-pages-tabcontent {
+	width: 100%;
+}
+.industry-pages-tabcontent .tab-pane {
+	width: 100%;
+}
+.industry-pages-tabcontent .tab-pane > div {
+	width: 100%;
+}
+.industries-page-refresh .ind-cta-section {
+	display: none !important;
+}
+.who-we-serve-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+	gap: 16px;
+	margin-top: 24px;
+}
+.who-we-serve-card {
+	background: #fff;
+	border: 1px solid #dbe6f3;
+	border-radius: 14px;
+	padding: 18px;
+	box-shadow: 0 8px 24px rgba(18,47,82,.05);
+	min-height: 168px;
+	display: flex;
+	flex-direction: column;
+	text-decoration: none;
+	color: inherit;
+	transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+.who-we-serve-card:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 14px 30px rgba(18,47,82,.08);
+	border-color: #b9cceb;
+	text-decoration: none;
+	color: inherit;
+}
+.who-we-serve-card:focus {
+	outline: none;
+	text-decoration: none;
+	color: inherit;
+}
+.who-we-serve-icon {
+	width: 38px;
+	height: 38px;
+	border-radius: 12px;
+	background: rgba(47,85,151,0.1);
+	color: #2f5597;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	margin-bottom: 12px;
+	font-size: 1rem;
+}
+.who-we-serve-title {
+	font-size: 1rem;
+	font-weight: 800;
+	color: #172033;
+	line-height: 1.3;
+	margin-bottom: 6px;
+}
+.who-we-serve-desc {
+	font-size: 0.86rem;
+	line-height: 1.55;
+	color: #5f6f86;
+	flex: 1;
+}
+.who-we-serve-url {
+	margin-top: 10px;
+	font-size: 0.78rem;
+	font-weight: 700;
+	color: #2f5597;
+	word-break: break-word;
+}
+.who-we-serve-url span {
+	opacity: .72;
+	font-weight: 600;
 }
 .tab-content-wrapper > .mt-5:first-child {
 	margin-top: 0 !important;
@@ -784,24 +968,31 @@
 	flex: 1;
 }
 .cta-section-industries {
-	background: #f5f8fc !important;
-	padding: 72px 0 !important;
+	background: linear-gradient(180deg, #f7f9fc 0%, #eef4fb 100%) !important;
+	padding: 0 !important;
 	border-top: 1px solid #dbe6f3;
+	margin-top: 60px;
 }
 .industries-contact-panel {
-	background: #fff;
-	border: 1px solid #dbe6f3;
-	box-shadow: 0 22px 54px rgba(28, 54, 93, .10);
-	padding: 34px;
+	background: linear-gradient(135deg, #173b67 0%, #234f86 100%);
+	border: 0;
+	border-radius: 0;
+	box-shadow: none;
+	padding: 0;
+	width: 100%;
+}
+.industries-contact-panel > .container {
+	padding-top: 46px;
+	padding-bottom: 46px;
 }
 .industries-contact-copy {
-	padding-right: 18px;
+	padding: 0 18px 0 0;
 }
 .industries-contact-kicker {
 	display: inline-flex;
 	align-items: center;
 	gap: 8px;
-	color: #2f5597;
+	color: rgba(255, 255, 255, .88);
 	font-size: .78rem;
 	font-weight: 900;
 	letter-spacing: .08em;
@@ -809,14 +1000,14 @@
 	margin-bottom: 14px;
 }
 .cta-section-industries .cta-heading {
-	color: #172033 !important;
-	font-size: 2rem;
+	color: #fff !important;
+	font-size: 2.05rem;
 	font-weight: 900 !important;
 	line-height: 1.2;
 	margin-bottom: 16px;
 }
 .cta-section-industries .cta-description {
-	color: #5f6f86 !important;
+	color: rgba(255, 255, 255, .84) !important;
 	font-size: 1rem;
 	line-height: 1.75;
 	margin-bottom: 22px;
@@ -831,19 +1022,20 @@
 .industries-contact-points li {
 	display: flex;
 	gap: 10px;
-	color: #40516c;
+	color: rgba(255, 255, 255, .88);
 	font-weight: 700;
 	line-height: 1.45;
 }
 .industries-contact-points i {
-	color: #2f5597;
+	color: #a9c6ff;
 	margin-top: 4px;
 }
 .industries-contact-form {
-	background: #f8fbff !important;
-	border: 1px solid #dce7f6;
-	padding: 26px !important;
+	background: #fff !important;
+	border: 0;
+	padding: 30px !important;
 	margin: 0 !important;
+	min-height: 100%;
 }
 .industries-contact-form label {
 	color: #1e3357 !important;
@@ -909,31 +1101,53 @@
 		position: static;
 	}
 	.modern-tabs-industries {
-		grid-template-columns: repeat(2, minmax(0, 1fr));
+		flex-wrap: wrap;
+	}
+	.modern-tabs-industries .nav-item {
+		flex: 1 1 calc(50% - 5px);
+		min-width: 0;
+	}
+	.industry-more-dropdown {
+		flex-basis: calc(50% - 5px);
 	}
 	.government-credentials-grid {
 		grid-template-columns: 1fr;
 	}
+	.industries-contact-panel > .container {
+		padding-top: 28px;
+		padding-bottom: 28px;
+	}
 }
 @media (min-width: 992px) {
+	.modern-tabs-industries .nav-item:not(.industry-more-dropdown) {
+		flex: 1 1 0;
+		min-width: 0;
+	}
+	.industry-more-dropdown {
+		flex: 0 0 auto !important;
+	}
+	.modern-tabs-industries .nav-link {
+		width: 100%;
+		min-width: 0;
+	}
 	.industries-layout {
 		display: block;
 		margin-left: 0;
 		margin-right: 0;
 	}
 	.industries-sidebar-col {
-		float: left;
-		width: 280px;
-		max-width: 280px;
+		float: none;
+		width: 100%;
+		max-width: none;
 		padding-left: 0;
 		padding-right: 0;
-		margin-right: 40px;
-		margin-bottom: 28px !important;
+		margin-right: 0;
+		margin-bottom: 18px !important;
 	}
 	.industries-content-col {
 		display: block;
 		float: none;
-		width: auto;
+		width: 100%;
 		max-width: none;
 		padding-left: 0;
 		padding-right: 0;
@@ -968,15 +1182,15 @@
 	.industries-secondary-btn {
 		width: 100%;
 	}
-	.modern-tabs-industries {
-		grid-template-columns: minmax(0, 1fr);
-	}
 	.government-credentials-panel {
 		padding: 18px;
 	}
-	.industries-contact-panel,
 	.industries-contact-form {
 		padding: 20px !important;
+	}
+	.industries-contact-panel > .container {
+		padding-top: 20px;
+		padding-bottom: 20px;
 	}
 	.cta-section-industries .cta-heading {
 		font-size: 1.55rem;
@@ -986,6 +1200,20 @@
 @endpush
 
 @section('content')
+@php
+	$whoWeServeIcons = [
+		'healthcare' => 'fa-solid fa-hospital',
+		'energy' => 'fa-solid fa-oil-well',
+		'financial-services' => 'fa-solid fa-building-columns',
+		'higher-education' => 'fa-solid fa-graduation-cap',
+		'manufacturing' => 'fa-solid fa-industry',
+		'nonprofit-social-services' => 'fa-solid fa-hand-holding-heart',
+		'professional-services' => 'fa-solid fa-briefcase',
+		'state-local-government' => 'fa-solid fa-landmark',
+		'transportation-logistics' => 'fa-solid fa-truck-fast',
+		'agriculture-cannabis' => 'fa-solid fa-seedling',
+	];
+@endphp
 <!-- Breadcrumbs -->
 <div class="breadcrumbs overlay">
 	<div class="container">
@@ -1009,18 +1237,17 @@
 <section class="industries-section-modern">
 	<div class="container">
 		<div class="row industries-layout justify-content-center">
-			<div class="col-12 col-lg-4 col-xl-3 mb-4 mb-lg-0 industries-sidebar-col">
+			<div class="col-12 industries-sidebar-col">
 				<aside class="industry-nav-panel">
-					<div class="industry-nav-kicker">Industries</div>
-					<h2 class="industry-nav-title">Choose an industry</h2>
-					<p class="industry-nav-copy">Explore Microsoft platform solutions shaped for regulated, data-heavy teams.</p>
-					<button class="btn btn-modern-toggle default-background btn-block d-lg-none mb-3" type="button" data-toggle="collapse" data-target="#tabsMenu" aria-expanded="false" aria-controls="tabsMenu">
-						<i class="fa fa-bars"></i> Select industry
-					</button>
-					<div class="collapse d-lg-block" id="tabsMenu">
 					<ul class="nav nav-tabs modern-tabs-industries" id="myTab" role="tablist">
 						<li class="nav-item" role="presentation">
-							<a class="nav-link active" id="home-tab" data-toggle="tab" href="#home" role="tab" aria-controls="home" aria-selected="true">
+							<a class="nav-link active" id="who-tab" data-toggle="tab" href="#who-we-serve" role="tab" aria-controls="who-we-serve" aria-selected="true">
+								<i class="icofont-users"></i>
+								<strong>Who We Serve</strong>
+							</a>
+						</li>
+						<li class="nav-item" role="presentation">
+							<a class="nav-link" id="home-tab" data-toggle="tab" href="#home" role="tab" aria-controls="home" aria-selected="false">
 								<i class="icofont-doctor"></i>
 								<strong>Healthcare</strong>
 							</a>
@@ -1034,13 +1261,13 @@
 						<li class="nav-item" role="presentation">
 							<a class="nav-link" id="government-tab" data-toggle="tab" href="#government" role="tab" aria-controls="government" aria-selected="false">
 								<i class="icofont-building-alt"></i>
-								<strong>State &amp; Local Government</strong>
+								<strong>Gov</strong>
 							</a>
 						</li>
 						<li class="nav-item" role="presentation">
 							<a class="nav-link" id="transportation-tab" data-toggle="tab" href="#transportation" role="tab" aria-controls="transportation" aria-selected="false">
 								<i class="icofont-delivery-time"></i>
-								<strong>Transportation &amp; Logistics</strong>
+								<strong>Transportation</strong>
 							</a>
 						</li>
 						<li class="nav-item" role="presentation">
@@ -1050,12 +1277,42 @@
 							</a>
 						</li>
 					</ul>
-				</div>
 				</aside>
 			</div>
-			<div class="col-12 col-lg-8 col-xl-9 industries-content-col">
+			<div class="col-12 industries-content-col">
+				@include('industries.industry-tabs')
 				<div class="tab-content modern-tab-content" id="myTabContent">
-					<div class="tab-pane fade show active" id="home" role="tabpanel" aria-labelledby="home-tab">
+					<div class="tab-pane fade show active" id="who-we-serve" role="tabpanel" aria-labelledby="who-tab">
+						<div class="tab-content-wrapper">
+							<div class="mt-5">
+								<div class="row align-items-center industry-intro-section">
+									<div class="col-12 col-lg-8">
+										<div class="industry-intro-content">
+											<span class="industry-tag">WHO WE SERVE</span>
+											<h2 class="industry-title">Industries we serve</h2>
+											<div class="title-underline"></div>
+											<p class="industry-description">Short summaries of the refreshed industries set, designed to keep the page easy to scan.</p>
+										</div>
+									</div>
+								</div>
+							</div>
+							<div class="who-we-serve-grid">
+								@foreach($industryPages as $slug => $page)
+									@php
+										$industryPath = '/industries/' . $page['route_label'];
+										$industryUrl = url($industryPath);
+									@endphp
+									<a class="who-we-serve-card" href="{{ $industryUrl }}">
+										<div class="who-we-serve-icon"><i class="{{ $whoWeServeIcons[$slug] ?? 'fa-solid fa-layer-group' }}" aria-hidden="true"></i></div>
+										<div class="who-we-serve-title">{{ $page['label'] }}</div>
+										<div class="who-we-serve-desc">{{ $page['description'] }}</div>
+										<div class="who-we-serve-url"><span>URL:</span> {{ $industryPath }}</div>
+									</a>
+								@endforeach
+							</div>
+						</div>
+					</div>
+					<div class="tab-pane fade" id="home" role="tabpanel" aria-labelledby="home-tab">
 						<div class="tab-content-wrapper">
 							<div class="mt-5">
 								<div class="row align-items-center industry-intro-section">
@@ -1403,66 +1660,9 @@
 	</div>
 </section>
 
-<section class="features-section-industries">
-	<div class="container">
-		<div class="row justify-content-center text-center">
-			<div class="col-12">
-				<h3 class="features-section-title">Why Partner With Armely?</h3>
-				<p class="features-section-subtitle">Industry teams choose Armely when they need secure Microsoft platform delivery, clearer data, and practical automation that survives real operations.</p>
-			</div>
-		</div>
-		<div class="row justify-content-center align-items-center mt-5 g-4">
-			<div class="col-12 col-sm-6 col-lg-3">
-				<div class="feature-item">
-					<div class="feature-icon-wrapper-large">
-						<div class="feature-gradient-icon">
-							<i class="fa fa-plug"></i>
-						</div>
-					</div>
-					<h5 class="feature-title">Connected systems</h5>
-					<p class="feature-description">Seamlessly integrate systems and data across your organization</p>
-				</div>
-			</div>
-			<div class="col-12 col-sm-6 col-lg-3">
-				<div class="feature-item">
-					<div class="feature-icon-wrapper-large">
-						<div class="feature-gradient-icon">
-							<i class="fa fa-shield-halved"></i>
-						</div>
-					</div>
-					<h5 class="feature-title">Secure by design</h5>
-					<p class="feature-description">Enterprise-grade security with compliance and data protection</p>
-				</div>
-			</div>
-			<div class="col-12 col-sm-6 col-lg-3">
-				<div class="feature-item">
-					<div class="feature-icon-wrapper-large">
-						<div class="feature-gradient-icon">
-							<i class="fa fa-gears"></i>
-						</div>
-					</div>
-					<h5 class="feature-title">Productive teams</h5>
-					<p class="feature-description">Streamline workflows and boost team efficiency instantly</p>
-				</div>
-			</div>
-			<div class="col-12 col-sm-6 col-lg-3">
-				<div class="feature-item">
-					<div class="feature-icon-wrapper-large">
-						<div class="feature-gradient-icon">
-							<i class="fa fa-chart-line"></i>
-						</div>
-					</div>
-					<h5 class="feature-title">Decision-ready insights</h5>
-					<p class="feature-description">Data-driven intelligence to power strategic decisions</p>
-				</div>
-			</div>
-		</div>
-	</div>
-</section>
-
 <section class="cta-section-industries">
-	<div class="container">
-		<div class="industries-contact-panel">
+	<div class="industries-contact-panel">
+		<div class="container">
 			<div class="row align-items-start">
 				<div class="col-lg-5">
 					<div class="industries-contact-copy">
@@ -1536,6 +1736,32 @@
 
 @push('scripts')
 <script>
+document.addEventListener('DOMContentLoaded', function() {
+	var hashMap = {
+		'#home': '#healthcare',
+		'#energy': '#energy',
+		'#government': '#state-local-government',
+		'#transportation': '#transportation-logistics',
+		'#legal': '#professional-services'
+	};
+
+	var activateTabFromHash = function() {
+		var hash = window.location.hash;
+		if (!hash) {
+			return;
+		}
+
+		var mappedHash = hashMap[hash] || hash;
+		var trigger = document.querySelector('#industryPagesTab a[href="' + mappedHash + '"]');
+		if (trigger) {
+			trigger.click();
+		}
+	};
+
+	activateTabFromHash();
+	window.addEventListener('hashchange', activateTabFromHash);
+});
+
 document.addEventListener('DOMContentLoaded', function() {
 	var recaptchaEl = document.querySelector('#industries-contact-form .g-recaptcha');
 	if (!recaptchaEl) {
@@ -1644,11 +1870,36 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function initIndustryTabs() {
-	var tabLinks = Array.prototype.slice.call(document.querySelectorAll('#myTab .nav-link[href^="#"]'));
-	var tabPanes = Array.prototype.slice.call(document.querySelectorAll('#myTabContent .tab-pane'));
+	var tabLinks = Array.prototype.slice.call(document.querySelectorAll('#industryPagesTab a[href^="#"]:not(.industry-more-toggle)'));
+	var tabPanes = Array.prototype.slice.call(document.querySelectorAll('#industryPagesTabContent .tab-pane'));
+	var dropdownToggle = document.querySelector('#industryPagesTab .industry-more-toggle');
+	var dropdownParent = dropdownToggle ? dropdownToggle.closest('.dropdown') : null;
+	var dropdownMenu = dropdownToggle ? dropdownToggle.nextElementSibling : null;
 
 	if (!tabLinks.length || !tabPanes.length) {
 		return;
+	}
+
+	if (dropdownToggle && dropdownParent && dropdownMenu) {
+		dropdownToggle.addEventListener('click', function(event) {
+			event.preventDefault();
+			event.stopPropagation();
+
+			var shouldOpen = !dropdownParent.classList.contains('show');
+			dropdownParent.classList.toggle('show', shouldOpen);
+			dropdownMenu.classList.toggle('show', shouldOpen);
+			dropdownToggle.classList.toggle('active', shouldOpen);
+			dropdownToggle.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+		});
+
+		document.addEventListener('click', function(event) {
+			if (!dropdownParent.contains(event.target)) {
+				dropdownParent.classList.remove('show');
+				dropdownMenu.classList.remove('show');
+				dropdownToggle.classList.remove('active');
+				dropdownToggle.setAttribute('aria-expanded', 'false');
+			}
+		});
 	}
 
 	function activateIndustryTab(link) {
@@ -1664,6 +1915,18 @@ function initIndustryTabs() {
 			tabLink.classList.toggle('active', isActive);
 			tabLink.setAttribute('aria-selected', isActive ? 'true' : 'false');
 		});
+
+		if (dropdownToggle) {
+			var isDropdownItem = !!link.closest('.industry-more-dropdown');
+			dropdownToggle.classList.toggle('active', isDropdownItem);
+			dropdownToggle.setAttribute('aria-expanded', isDropdownItem ? 'true' : 'false');
+			if (dropdownMenu && dropdownMenu.classList.contains('dropdown-menu')) {
+				dropdownMenu.classList.remove('show');
+			}
+			if (dropdownParent) {
+				dropdownParent.classList.remove('show');
+			}
+		}
 
 		tabPanes.forEach(function (pane) {
 			var isActive = pane === targetPane;
@@ -1681,7 +1944,7 @@ function initIndustryTabs() {
 	});
 
 	document.addEventListener('click', function (event) {
-		var link = event.target.closest('#myTab .nav-link[href^="#"]');
+		var link = event.target.closest('#industryPagesTab a[href^="#"]:not(.industry-more-toggle)');
 		if (!link) {
 			return;
 		}

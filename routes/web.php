@@ -139,6 +139,9 @@ Route::get('/visit/ipapi', [\App\Http\Controllers\VisitController::class, 'ipapi
 Route::get('/visit/cloudflare', [\App\Http\Controllers\VisitController::class, 'cloudflare'])->name('visit.cloudflare');
 Route::get('/social-impact-details/{secure_id}', [HomeController::class, 'socialImpactDetails'])->name('social-impact-details');
 Route::get('/industries', [HomeController::class, 'industries'])->name('industries.index');
+Route::get('/industries/{industry}', [HomeController::class, 'industryShow'])
+    ->where('industry', '[A-Za-z0-9\-]+')
+    ->name('industries.show');
 Route::get('/mela-ai', [HomeController::class, 'melaAi'])->name('mela-ai');
 
 $storeBaseUrl = trim((string) env('STORE_URL', ''));

@@ -1223,25 +1223,37 @@ main .service-card {
                                                 </a>
                                                 <div class="mega-columns">
                                                     <div>
-                                                        <h3 class="mega-column-title">Core Industries</h3>
+                                                        <h3 class="mega-column-title">Regulated Industries</h3>
                                                         <ul class="mega-link-list">
-                                                            <li><a class="mega-link-with-icon" href="{{ route('industries.index') }}#home"><span class="mega-link-icon"><i class="fa-solid fa-heart-pulse" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">Healthcare</span><span class="mega-link-description">Modern data, AI, and workflow solutions for healthcare teams.</span></span></a></li>
-                                                            <li><a class="mega-link-with-icon" href="{{ route('industries.index') }}#energy"><span class="mega-link-icon"><i class="fa-solid fa-oil-well" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">Energy</span><span class="mega-link-description">Digital transformation for oil, gas, utilities, and energy operations.</span></span></a></li>
+                                                            <li><a class="mega-link-with-icon" href="{{ route('industries.show', ['industry' => 'healthcare']) }}"><span class="mega-link-icon"><i class="fa-solid fa-heart-pulse" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">Healthcare</span><span class="mega-link-description">Modern data, AI, and workflow solutions for healthcare teams.</span></span></a></li>
+                                                            <li><a class="mega-link-with-icon" href="{{ route('industries.show', ['industry' => 'financial-services']) }}"><span class="mega-link-icon"><i class="fa-solid fa-building-columns" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">Financial Services</span><span class="mega-link-description">Secure modernization for banking, insurance, and advisory firms.</span></span></a></li>
+                                                            <li><a class="mega-link-with-icon" href="{{ route('industries.show', ['industry' => 'higher-education']) }}"><span class="mega-link-icon"><i class="fa-solid fa-graduation-cap" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">Higher Education</span><span class="mega-link-description">Analytics and governance for colleges and universities.</span></span></a></li>
+                                                        </ul>
+                                                    </div>
+
+                                                    <div>
+                                                        <h3 class="mega-column-title">Operations</h3>
+                                                        <ul class="mega-link-list">
+                                                            <li><a class="mega-link-with-icon" href="{{ route('industries.show', ['industry' => 'energy']) }}"><span class="mega-link-icon"><i class="fa-solid fa-oil-well" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">Energy / Oil &amp; Gas</span><span class="mega-link-description">Digital transformation for oil, gas, utilities, and energy operations.</span></span></a></li>
+                                                            <li><a class="mega-link-with-icon" href="{{ route('industries.show', ['industry' => 'manufacturing']) }}"><span class="mega-link-icon"><i class="fa-solid fa-industry" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">Manufacturing</span><span class="mega-link-description">Operational reporting and automation for modern manufacturing teams.</span></span></a></li>
+                                                            <li><a class="mega-link-with-icon" href="{{ route('industries.show', ['industry' => 'transportation-logistics']) }}"><span class="mega-link-icon"><i class="fa-solid fa-truck-fast" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">Transportation &amp; Logistics</span><span class="mega-link-description">Improve planning, tracking, analytics, and delivery performance.</span></span></a></li>
                                                         </ul>
                                                     </div>
 
                                                     <div>
                                                         <h3 class="mega-column-title">Public Sector</h3>
                                                         <ul class="mega-link-list">
-                                                            <li><a class="mega-link-with-icon" href="{{ route('industries.index') }}#government"><span class="mega-link-icon"><i class="fa-solid fa-landmark" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">State &amp; Local Government</span><span class="mega-link-description">Secure Microsoft platform solutions for public-sector agencies.</span></span></a></li>
+                                                            <li><a class="mega-link-with-icon" href="{{ route('industries.show', ['industry' => 'state-local-government']) }}"><span class="mega-link-icon"><i class="fa-solid fa-landmark" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">State &amp; Local Government</span><span class="mega-link-description">Secure Microsoft platform solutions for public-sector agencies.</span></span></a></li>
+                                                            <li><a class="mega-link-with-icon" href="{{ route('industries.show', ['industry' => 'nonprofit-social-services']) }}"><span class="mega-link-icon"><i class="fa-solid fa-hand-holding-heart" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">Nonprofit &amp; Social Services</span><span class="mega-link-description">Mission-focused automation and analytics for service organizations.</span></span></a></li>
+                                                            <li><a class="mega-link-with-icon" href="{{ route('industries.index') }}#legal"><span class="mega-link-icon"><i class="fa-solid fa-gavel" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">Legal</span><span class="mega-link-description">Use data and automation to improve legal workflows and insight.</span></span></a></li>
                                                         </ul>
                                                     </div>
 
                                                     <div>
-                                                        <h3 class="mega-column-title">Operations & Services</h3>
+                                                        <h3 class="mega-column-title">Specialized</h3>
                                                         <ul class="mega-link-list">
-                                                            <li><a class="mega-link-with-icon" href="{{ route('industries.index') }}#transportation"><span class="mega-link-icon"><i class="fa-solid fa-truck-fast" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">Transportation &amp; Logistics</span><span class="mega-link-description">Improve planning, tracking, analytics, and delivery performance.</span></span></a></li>
-                                                            <li><a class="mega-link-with-icon" href="{{ route('industries.index') }}#legal"><span class="mega-link-icon"><i class="fa-solid fa-gavel" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">Legal</span><span class="mega-link-description">Use data and automation to improve legal workflows and insight.</span></span></a></li>
+                                                            <li><a class="mega-link-with-icon" href="{{ route('industries.show', ['industry' => 'professional-services']) }}"><span class="mega-link-icon"><i class="fa-solid fa-briefcase" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">Professional Services</span><span class="mega-link-description">Client delivery and knowledge-work automation for firms.</span></span></a></li>
+                                                            <li><a class="mega-link-with-icon" href="{{ route('industries.show', ['industry' => 'agriculture-cannabis']) }}"><span class="mega-link-icon"><i class="fa-solid fa-seedling" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">Agriculture &amp; Cannabis</span><span class="mega-link-description">Data, automation, and reporting for field operations.</span></span></a></li>
                                                         </ul>
                                                     </div>
                                                 </div>
@@ -1416,26 +1428,17 @@ main .service-card {
             <button type="button" class="sub-toggle">Who We Serve <span class="mobile-caret" aria-hidden="true"></span></button>
             <div class="mobile-mega-panel">
                 <div class="mobile-mega-section">
-                    <h4>Commercial</h4>
-                    <a href="{{ route('industries.index') }}#banking-capital-markets">Banking & Capital Markets</a>
-                    <a href="{{ route('industries.index') }}#insurance">Insurance</a>
-                    <a href="{{ route('industries.index') }}#retail-consumer-services">Retail, Consumer & Services</a>
-                    <a href="{{ route('industries.index') }}#manufacturing">Manufacturing</a>
-                    <a href="{{ route('industries.index') }}#communications-media">Communications & Media</a>
-                </div>
-                <div class="mobile-mega-section">
-                    <h4>Public & Regulated</h4>
-                    <a href="{{ route('industries.index') }}#government">Government</a>
-                    <a href="{{ route('industries.index') }}#health">Health</a>
-                    <a href="{{ route('industries.index') }}#life-sciences">Life Sciences</a>
-                    <a href="{{ route('industries.index') }}#utilities">Utilities</a>
-                </div>
-                <div class="mobile-mega-section">
-                    <h4>Infrastructure</h4>
-                    <a href="{{ route('industries.index') }}#energy-utilities">Energy & Utilities</a>
-                    <a href="{{ route('industries.index') }}#oil-gas">Oil & Gas</a>
-                    <a href="{{ route('industries.index') }}#transportation-logistics">Transportation & Logistics</a>
-                    <a href="{{ route('industries.index') }}#space">Space</a>
+                    <h4>Industries</h4>
+                    <a href="{{ route('industries.show', ['industry' => 'healthcare']) }}">Healthcare</a>
+                    <a href="{{ route('industries.show', ['industry' => 'energy']) }}">Energy / Oil & Gas</a>
+                    <a href="{{ route('industries.show', ['industry' => 'financial-services']) }}">Financial Services</a>
+                    <a href="{{ route('industries.show', ['industry' => 'higher-education']) }}">Higher Education</a>
+                    <a href="{{ route('industries.show', ['industry' => 'manufacturing']) }}">Manufacturing</a>
+                    <a href="{{ route('industries.show', ['industry' => 'nonprofit-social-services']) }}">Nonprofit & Social Services</a>
+                    <a href="{{ route('industries.show', ['industry' => 'professional-services']) }}">Professional Services</a>
+                    <a href="{{ route('industries.show', ['industry' => 'state-local-government']) }}">State & Local Government</a>
+                    <a href="{{ route('industries.show', ['industry' => 'transportation-logistics']) }}">Transportation & Logistics</a>
+                    <a href="{{ route('industries.show', ['industry' => 'agriculture-cannabis']) }}">Agriculture & Cannabis</a>
                 </div>
             </div>
         </li>

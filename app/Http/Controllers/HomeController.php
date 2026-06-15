@@ -416,6 +416,95 @@ class HomeController extends Controller
         ][$slug] ?? $name;
     }
 
+    private function normalizeIndustrySlug(string $name): string
+    {
+        $slug = Str::slug(Str::lower(trim($name)));
+
+        return [
+            'agriculture' => 'agriculture-cannabis',
+            'cannabis' => 'agriculture-cannabis',
+            'education' => 'higher-education',
+            'financial_services' => 'financial-services',
+            'local-government' => 'state-local-government',
+            'nonprofit' => 'nonprofit-social-services',
+            'legal' => 'professional-services',
+            'oil-and-gas' => 'energy',
+            'oil-gas' => 'energy',
+            'professional-services' => 'professional-services',
+            'professionals-services' => 'professional-services',
+            'social-services' => 'nonprofit-social-services',
+            'state-government' => 'state-local-government',
+            'transportation' => 'transportation-logistics',
+            'utilities' => 'energy',
+        ][$slug] ?? $slug;
+    }
+
+    private function industryPages(): array
+    {
+        return [
+            'healthcare' => [
+                'label' => 'Healthcare',
+                'route_label' => 'healthcare',
+                'view' => 'industries.healthcare_blade',
+                'description' => 'Compliance-first data, AI, and Microsoft 365 modernization for healthcare organizations.',
+            ],
+            'energy' => [
+                'label' => 'Energy / Oil & Gas',
+                'route_label' => 'energy',
+                'view' => 'industries.energy_blade',
+                'description' => 'Operational visibility, invoice automation, and field workflow efficiency for energy teams.',
+            ],
+            'financial-services' => [
+                'label' => 'Financial Services',
+                'route_label' => 'financial-services',
+                'view' => 'industries.financial_services_blade',
+                'description' => 'Regulatory-ready Microsoft, data, and AI solutions for banks, insurers, and advisors.',
+            ],
+            'higher-education' => [
+                'label' => 'Higher Education',
+                'route_label' => 'higher-education',
+                'view' => 'industries.higher_education_blade',
+                'description' => 'Governed AI, institutional analytics, and Microsoft 365 controls for colleges and universities.',
+            ],
+            'manufacturing' => [
+                'label' => 'Manufacturing',
+                'route_label' => 'manufacturing',
+                'view' => 'industries.manufacturing_blade',
+                'description' => 'Production reporting, operational data, and automation for modern manufacturing teams.',
+            ],
+            'nonprofit-social-services' => [
+                'label' => 'Nonprofit & Social Services',
+                'route_label' => 'nonprofit-social-services',
+                'view' => 'industries.nonprofit_social_services_blade',
+                'description' => 'Mission-focused analytics, workflow automation, and Microsoft platform support for service organizations.',
+            ],
+            'professional-services' => [
+                'label' => 'Professional Services',
+                'route_label' => 'professional-services',
+                'view' => 'industries.professional_services_blade',
+                'description' => 'Client delivery, project, and knowledge-work automation for consulting and service firms.',
+            ],
+            'state-local-government' => [
+                'label' => 'State & Local Government',
+                'route_label' => 'state-local-government',
+                'view' => 'industries.state_local_government_blade',
+                'description' => 'Public-sector governance, reporting, and secure digital services for government teams.',
+            ],
+            'transportation-logistics' => [
+                'label' => 'Transportation & Logistics',
+                'route_label' => 'transportation-logistics',
+                'view' => 'industries.transportation_logistics_blade',
+                'description' => 'Shipment visibility, dispatch workflows, and analytics for logistics and transportation operations.',
+            ],
+            'agriculture-cannabis' => [
+                'label' => 'Agriculture & Cannabis',
+                'route_label' => 'agriculture-cannabis',
+                'view' => 'industries.agriculture_cannabis_blade',
+                'description' => 'Data, automation, and reporting for agricultural and cannabis operations.',
+            ],
+        ];
+    }
+
     public function submitConsultation(Request $request)
     {
         $data = $request->validate([
@@ -944,7 +1033,24 @@ class HomeController extends Controller
 
     public function industries()
     {
-        return view('industries');
+        return view('industries', [
+            'industryPages' => $this->industryPages(),
+        ]);
+    }
+
+    public function industryShow(string $industry)
+    {
+        $industryPages = $this->industryPages();
+        $slug = $this->normalizeIndustrySlug($industry);
+
+        abort_unless(isset($industryPages[$slug]), 404);
+
+        return view('industries.show', [
+            'industrySlug' => $slug,
+            'industryPages' => $industryPages,
+            'industryPage' => $industryPages[$slug],
+            'industryView' => $industryPages[$slug]['view'],
+        ]);
     }
 
     public function privacyPolicy()

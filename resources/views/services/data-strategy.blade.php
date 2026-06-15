@@ -177,9 +177,39 @@
 .armely-ai-data-strategy-page .cta-form { background: #FFFFFF; border: 1px solid var(--border); border-radius: 14px; padding: 36px 32px; box-shadow: 0 4px 24px rgba(41,78,139,0.08); }
 .armely-ai-data-strategy-page .form-title { font-size: 1.1rem; font-weight: 700; color: #1A2540; margin-bottom: 6px; }
 .armely-ai-data-strategy-page .form-sub { font-size: 0.84rem; color: var(--text-muted); margin-bottom: 24px; }
-.armely-ai-data-strategy-page .form-row { margin-bottom: 14px; }
+.armely-ai-data-strategy-page .cta-form,
+.armely-ai-data-strategy-page .cta-form * {
+  box-sizing: border-box !important;
+}
+.armely-ai-data-strategy-page .cta-form .form-row {
+  margin-bottom: 14px !important;
+  display: block !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  flex: none !important;
+}
 .armely-ai-data-strategy-page .form-row label { display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
-.armely-ai-data-strategy-page .form-row input, .armely-ai-data-strategy-page .form-row select { width: 100%; background: #FFFFFF; border: 1px solid rgba(41,78,139,0.15); border-radius: 7px; padding: 11px 14px; font-family: 'Poppins', sans-serif; font-size: 0.875rem; color: #1A2540; outline: none; transition: border-color 0.2s; }
+.armely-ai-data-strategy-page .cta-form .form-row input,
+.armely-ai-data-strategy-page .cta-form .form-row select {
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 100% !important;
+  display: block !important;
+  flex: none !important;
+  align-self: stretch !important;
+  background: #FFFFFF;
+  border: 1px solid rgba(41,78,139,0.15);
+  border-radius: 7px;
+  padding: 11px 14px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.875rem;
+  color: #1A2540;
+  outline: none;
+  transition: border-color 0.2s;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
 .armely-ai-data-strategy-page .form-row input:focus, .armely-ai-data-strategy-page .form-row select:focus { border-color: rgba(41,78,139,0.4); }
 .armely-ai-data-strategy-page .form-row select option { background: #fff; color: #1A2540; }
 .armely-ai-data-strategy-page .form-submit { width: 100%; background: var(--blue); color: #fff; border: none; border-radius: 7px; padding: 14px; margin-top: 8px; font-family: 'Poppins', sans-serif; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: background 0.2s; }
@@ -871,5 +901,173 @@
 <section class="why"><div class="section-inner"><div class="section-eyebrow">Why Armely for Advisory</div><h2 class="section-title">Strategy advice is only credible when it comes from people who implement.</h2><p class="section-body">The limitation of purely advisory firms is that they recommend platforms they have never delivered. Armely's advisory is credible because every recommendation is made by engineers and architects who have built on the platforms they are recommending.</p>
 <div class="why-two-col"><div><ul class="why-list"><li><div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></div><div><div class="why-item-title">Advisors Who Also Implement</div><div class="why-item-desc">Every Armely advisory engagement is led by engineers and architects with hands-on delivery experience across Microsoft Fabric, Snowflake, Azure AI Foundry, and Dynamics 365.</div></div></li><li><div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg></div><div><div class="why-item-title">No Predetermined Outcome</div><div class="why-item-desc">We are not paid by platform vendors to recommend their products. Our advisory is only commercially valuable to us if it leads to the right implementation.</div></div></li><li><div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 13h8"/><path d="M8 17h6"/></svg></div><div><div class="why-item-title">Written Deliverables You Own</div><div class="why-item-desc">Every advisory engagement produces a written document your organization owns outright. Strategy documents, assessment reports, and roadmaps that you can present internally or share with your board without restriction.</div></div></li><li><div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg></div><div><div class="why-item-title">Regulated Industry Experience</div><div class="why-item-desc">Our advisory work in healthcare, education, and professional services means we understand the compliance and governance constraints that shape technology decisions in regulated industries.</div></div></li></ul></div>
 <div><div class="partner-block"><div class="partner-block-top"><div class="partner-label">Microsoft Authorized Partner</div><p class="partner-text">Armely's Microsoft partnership gives our advisory practice access to Microsoft technical briefings, early product roadmap information, and architectural guidance that helps us give clients accurate, current guidance on the Microsoft platform.</p></div><div class="partner-stats"><div class="p-stat"><div class="p-stat-num">4-6<span>wks</span></div><div class="p-stat-label">for a complete AI and data strategy advisory engagement</div></div><div class="p-stat"><div class="p-stat-num">100<span>%</span></div><div class="p-stat-label">of advisory deliverables owned outright by the client</div></div><div class="p-stat"><div class="p-stat-num">0<span></span></div><div class="p-stat-label">platform vendor referral fees received by Armely for any recommendation</div></div><div class="p-stat"><div class="p-stat-num">3<span></span></div><div class="p-stat-label">industries with deep advisory experience: healthcare, education, and professional services</div></div></div></div></div></div></div></section>
-<section class="cta-section" id="contact"><div class="cta-inner"><div><div class="section-eyebrow">Get Started</div><h2 class="section-title">Tell us where you are. We will help you figure out where to go.</h2><p class="section-body">Book a free 30-minute strategy call. We will listen to your situation and tell you honestly whether advisory or implementation is the right first step.</p><div style="margin-top:20px;display:flex;flex-direction:column;gap:9px;"><div class="trust-item"><span class="trust-dot"></span><span class="trust-text">Free assessment, no commitment required</span></div><div class="trust-item"><span class="trust-dot"></span><span class="trust-text">Recommendation and partner pricing included</span></div><div class="trust-item"><span class="trust-dot"></span><span class="trust-text">Response within one business day</span></div></div></div><div class="cta-form"><div class="form-title">Book Your Free Assessment</div><div class="form-sub">Tell us about your situation.</div><div class="form-row"><label>Full Name</label><input type="text" placeholder="Jane Smith"></div><div class="form-row"><label>Business Email</label><input type="email" placeholder="jane@yourcompany.com"></div><div class="form-row"><label>Company Name</label><input type="text" placeholder="Acme Corp"></div><div class="form-row"><label>Primary Need</label><select><option value="">Select...</option><option>We need an AI strategy before committing budget</option><option>We need a data strategy before any analytics investment</option><option>We need help choosing between platforms or vendors</option><option>A previous investment did not deliver and we need a review</option><option>We need an AI governance framework</option><option>Not sure yet, need a conversation first</option></select></div><button class="form-submit">Request Free Strategy Call</button><div class="form-note">No spam. No sales pressure. Just a useful conversation.</div></div></div></section>
+<section class="cta-section" id="contact">
+  <div class="cta-inner">
+    <div>
+      <div class="section-eyebrow">Get Started</div>
+      <h2 class="section-title">Tell us where you are. We will help you figure out where to go.</h2>
+      <p class="section-body">Book a free 30-minute strategy call. We will listen to your situation and tell you honestly whether advisory or implementation is the right first step.</p>
+      <div style="margin-top:20px;display:flex;flex-direction:column;gap:9px;">
+        <div class="trust-item"><span class="trust-dot"></span><span class="trust-text">Free assessment, no commitment required</span></div>
+        <div class="trust-item"><span class="trust-dot"></span><span class="trust-text">Recommendation and partner pricing included</span></div>
+        <div class="trust-item"><span class="trust-dot"></span><span class="trust-text">Response within one business day</span></div>
+      </div>
+    </div>
+    <form class="cta-form" id="data-strategy-form" method="post" action="{{ route('contact.submit') }}">
+      @csrf
+      <p class="p-3 alert" id="DataStrategySubmitMessage" style="display:none;"></p>
+      @if($errors->any())
+        <div class="alert alert-danger">
+          @foreach($errors->all() as $error)
+            <div>{{ $error }}</div>
+          @endforeach
+        </div>
+      @endif
+      <div class="form-title">Book Your Free Assessment</div>
+      <div class="form-sub">Tell us about your situation.</div>
+      <div class="form-row">
+        <label>Full Name</label>
+        <input type="text" name="name" placeholder="Jane Smith" required value="{{ old('name') }}">
+      </div>
+      <div class="form-row">
+        <label>Business Email</label>
+        <input type="email" name="email" placeholder="jane@yourcompany.com" required value="{{ old('email') }}">
+      </div>
+      <div class="form-row">
+        <label>Company Name</label>
+        <input type="text" name="organization" placeholder="Acme Corp" value="{{ old('organization') }}">
+      </div>
+      <div class="form-row">
+        <label>Primary Need</label>
+        <select name="subject" required>
+          <option value="">Select...</option>
+          <option value="We need an AI strategy before committing budget" {{ old('subject') === 'We need an AI strategy before committing budget' ? 'selected' : '' }}>We need an AI strategy before committing budget</option>
+          <option value="We need a data strategy before any analytics investment" {{ old('subject') === 'We need a data strategy before any analytics investment' ? 'selected' : '' }}>We need a data strategy before any analytics investment</option>
+          <option value="We need help choosing between platforms or vendors" {{ old('subject') === 'We need help choosing between platforms or vendors' ? 'selected' : '' }}>We need help choosing between platforms or vendors</option>
+          <option value="A previous investment did not deliver and we need a review" {{ old('subject') === 'A previous investment did not deliver and we need a review' ? 'selected' : '' }}>A previous investment did not deliver and we need a review</option>
+          <option value="We need an AI governance framework" {{ old('subject') === 'We need an AI governance framework' ? 'selected' : '' }}>We need an AI governance framework</option>
+          <option value="Not sure yet, need a conversation first" {{ old('subject') === 'Not sure yet, need a conversation first' ? 'selected' : '' }}>Not sure yet, need a conversation first</option>
+        </select>
+      </div>
+      <input type="hidden" name="message" value="{{ old('message', 'Data strategy assessment request.') }}">
+      <input style="display:none;" type="text" name="website" class="honeypot" value="{{ old('website') }}">
+      <div class="form-row">
+        <label>Confirm you are not a robot *</label>
+        @if(!empty(config('services.recaptcha.site_key')))
+          <div class="g-recaptcha" data-sitekey="{{ config('services.recaptcha.site_key') }}"></div>
+        @else
+          <div class="alert alert-warning">reCAPTCHA is not configured. Please set <strong>CAPTURE_SITE_KEY</strong>.</div>
+        @endif
+      </div>
+      <button class="form-submit" name="submit_form" type="submit">Request Free Strategy Call</button>
+      <div class="form-note">No spam. No sales pressure. Just a useful conversation.</div>
+    </form>
+  </div>
+</section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var form = document.getElementById('data-strategy-form');
+  if (!form) {
+    return;
+  }
+
+  var submitBtn = form.querySelector('button[name="submit_form"]');
+  var messageDiv = document.getElementById('DataStrategySubmitMessage');
+  var subjectSelect = form.querySelector('select[name="subject"]');
+  var messageField = form.querySelector('input[name="message"]');
+  var originalBtnText = submitBtn ? submitBtn.textContent : '';
+
+  function syncMessage() {
+    if (!messageField) {
+      return;
+    }
+
+    var need = subjectSelect && subjectSelect.value ? subjectSelect.value : 'General data strategy guidance';
+    messageField.value = 'Data strategy assessment request. Primary need: ' + need + '.';
+  }
+
+  if (subjectSelect) {
+    subjectSelect.addEventListener('change', syncMessage);
+  }
+
+  syncMessage();
+
+  form.addEventListener('submit', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (messageDiv) {
+      messageDiv.textContent = '';
+      messageDiv.className = 'p-3 alert';
+      messageDiv.style.display = 'none';
+    }
+
+    var recaptchaResponse = (form.querySelector('textarea[name="g-recaptcha-response"]') && form.querySelector('textarea[name="g-recaptcha-response"]').value ? form.querySelector('textarea[name="g-recaptcha-response"]').value : '').trim();
+    if (!recaptchaResponse) {
+      if (messageDiv) {
+        messageDiv.className = 'p-3 alert alert-danger';
+        messageDiv.textContent = 'Please verify that you are not a robot.';
+        messageDiv.style.display = 'block';
+      }
+      return;
+    }
+
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Sending...';
+    }
+
+    syncMessage();
+
+    var formData = new FormData(form);
+    formData.append('g-recaptcha-response', recaptchaResponse);
+
+    fetch('{{ route("contact.submit") }}', {
+      method: 'POST',
+      headers: {
+        'X-CSRF-TOKEN': form.querySelector('input[name="_token"]').value,
+        'Accept': 'application/json'
+      },
+      body: formData
+    })
+    .then(function(response) {
+      return response.json().then(function(json) {
+        return { ok: response.ok, status: response.status, json: json };
+      });
+    })
+    .then(function(result) {
+      if (messageDiv) {
+        messageDiv.className = 'p-3 alert';
+        if (result.ok && result.json && result.json.success) {
+          messageDiv.classList.add('alert-success');
+          messageDiv.textContent = result.json.message || 'Message sent successfully.';
+          form.reset();
+          syncMessage();
+          if (window.grecaptcha && typeof window.grecaptcha.reset === 'function') {
+            window.grecaptcha.reset();
+          }
+        } else {
+          messageDiv.classList.add('alert-danger');
+          messageDiv.textContent = (result.json && result.json.message) || 'An error occurred. Please try again.';
+        }
+        messageDiv.style.display = 'block';
+      }
+    })
+    .catch(function() {
+      if (messageDiv) {
+        messageDiv.className = 'p-3 alert alert-danger';
+        messageDiv.textContent = 'An error occurred. Please try again.';
+        messageDiv.style.display = 'block';
+      }
+    })
+    .finally(function() {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalBtnText || 'Request Free Strategy Call';
+      }
+    });
+  }, true);
+});
+</script>
 </div>
