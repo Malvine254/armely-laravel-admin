@@ -1,4 +1,5 @@
-﻿<style>
+<style>
+
 
 .armely-api-development-page *, .armely-api-development-page *::before, .armely-api-development-page *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -56,46 +57,70 @@
 .armely-api-development-page .section-title { font-size: clamp(1.7rem, 3.2vw, 2.6rem); font-weight: 800; color: #1A2540; line-height: 1.12; letter-spacing: -0.025em; margin-bottom: 18px; max-width: 640px; }
 .armely-api-development-page .section-body { font-size: 0.975rem; font-weight: 300; max-width: 560px; line-height: 1.8; color: var(--text-body); margin-bottom: 48px; }
 
-  /* WHAT WE BUILD */
-.armely-api-development-page .intro { background: var(--navy-mid); }
-.armely-api-development-page .intro-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 72px; align-items: start; }
+  /* AI SPECTRUM */
+.armely-api-development-page .spectrum { background: var(--navy-mid); }
+.armely-api-development-page .spectrum-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 72px; align-items: start; }
+.armely-api-development-page .spectrum-row { display: flex; flex-direction: column; gap: 10px; margin-top: 32px; }
+.armely-api-development-page .spectrum-level { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; display: flex; align-items: flex-start; gap: 14px; transition: border-color 0.2s; }
+.armely-api-development-page .spectrum-level:hover { border-color: rgba(41,78,139,0.3); }
+.armely-api-development-page .spectrum-level.highlight { background: var(--blue-dim); border-color: var(--blue-dim2); }
+.armely-api-development-page .spectrum-num { font-size: 0.68rem; font-weight: 800; color: var(--blue); background: var(--blue-dim2); border-radius: 4px; padding: 2px 7px; flex-shrink: 0; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.08em; }
+.armely-api-development-page .spectrum-content-title { font-size: 0.875rem; font-weight: 700; color: #1A2540; margin-bottom: 3px; }
+.armely-api-development-page .spectrum-content-desc { font-size: 0.77rem; color: var(--text-muted); line-height: 1.5; }
 
-  /* API type cards */
-.armely-api-development-page .api-types { display: flex; flex-direction: column; gap: 10px; margin-top: 28px; }
-.armely-api-development-page .api-type { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; display: flex; align-items: flex-start; gap: 14px; transition: border-color 0.2s; }
-.armely-api-development-page .api-type:hover { border-color: rgba(41,78,139,0.3); }
-.armely-api-development-page .api-type.primary { background: var(--blue-dim); border-color: var(--blue-dim2); }
-.armely-api-development-page .api-type-badge { font-size: 0.65rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: var(--blue); background: var(--blue-dim2); border-radius: 4px; padding: 2px 8px; flex-shrink: 0; margin-top: 2px; white-space: nowrap; }
-.armely-api-development-page .api-type-title { font-size: 0.875rem; font-weight: 700; color: #1A2540; margin-bottom: 3px; }
-.armely-api-development-page .api-type-desc { font-size: 0.77rem; color: var(--text-muted); line-height: 1.5; }
+  /* Platform visual */
+.armely-api-development-page .platform-card { background: #fff; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; box-shadow: 0 4px 24px rgba(41,78,139,0.07); }
+.armely-api-development-page .platform-header { padding: 16px 22px; border-bottom: 1px solid var(--border); background: var(--navy-mid); display: flex; align-items: center; gap: 10px; }
+.armely-api-development-page .platform-dots { display: flex; gap: 6px; }
+.armely-api-development-page .platform-dots span { width: 10px; height: 10px; border-radius: 50%; background: rgba(41,78,139,0.15); }
+.armely-api-development-page .platform-header-title { font-size: 0.78rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; }
+.armely-api-development-page .platform-body { padding: 20px; display: flex; flex-direction: column; gap: 8px; }
+.armely-api-development-page .plat-band { border-radius: 9px; padding: 13px 16px; }
+.armely-api-development-page .plat-band-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px; }
+.armely-api-development-page .plat-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.armely-api-development-page .plat-chip { font-size: 0.72rem; font-weight: 600; padding: 4px 10px; border-radius: 20px; }
+.armely-api-development-page .band-tools { background: var(--blue-dim); }
+.armely-api-development-page .band-tools .plat-band-label { color: var(--blue); }
+.armely-api-development-page .band-tools .plat-chip { background: var(--blue-dim2); color: var(--blue); }
+.armely-api-development-page .band-data { background: rgba(41,78,139,0.05); }
+.armely-api-development-page .band-data .plat-band-label { color: var(--blue); }
+.armely-api-development-page .band-data .plat-chip { background: rgba(41,78,139,0.1); color: var(--blue); }
+.armely-api-development-page .band-gov { background: var(--blue); }
+.armely-api-development-page .band-gov .plat-band-label { color: rgba(255,255,255,0.7); }
+.armely-api-development-page .band-gov .plat-chip { background: rgba(255,255,255,0.15); color: #fff; }
+.armely-api-development-page .band-arrow { text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 2px 0; }
 
-  /* API lifecycle visual */
-.armely-api-development-page .lifecycle-card { background: #fff; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; box-shadow: 0 4px 24px rgba(41,78,139,0.07); }
-.armely-api-development-page .lifecycle-header { padding: 16px 22px; border-bottom: 1px solid var(--border); background: var(--navy-mid); display: flex; align-items: center; gap: 10px; }
-.armely-api-development-page .lifecycle-dots { display: flex; gap: 6px; }
-.armely-api-development-page .lifecycle-dots span { width: 10px; height: 10px; border-radius: 50%; background: rgba(41,78,139,0.15); }
-.armely-api-development-page .lifecycle-title { font-size: 0.78rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; }
-.armely-api-development-page .lifecycle-body { padding: 20px; }
-.armely-api-development-page .lifecycle-step { display: flex; align-items: flex-start; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--border); }
-.armely-api-development-page .lifecycle-step:last-child { border-bottom: none; }
-.armely-api-development-page .lifecycle-step-num { width: 28px; height: 28px; border-radius: 50%; background: var(--blue); color: #fff; font-size: 0.72rem; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
-.armely-api-development-page .lifecycle-step-title { font-size: 0.82rem; font-weight: 700; color: #1A2540; margin-bottom: 2px; }
-.armely-api-development-page .lifecycle-step-desc { font-size: 0.74rem; color: var(--text-muted); line-height: 1.5; }
-.armely-api-development-page .apim-callout { background: var(--blue); border-radius: 9px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; margin-top: 12px; }
-.armely-api-development-page .apim-callout-text { font-size: 0.82rem; color: rgba(255,255,255,0.9); line-height: 1.5; }
-.armely-api-development-page .apim-callout-text strong { color: #fff; }
+  /* VIBE CODING CALLOUT */
+.armely-api-development-page .vibe-section { background: var(--navy); }
+.armely-api-development-page .vibe-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: start; }
+.armely-api-development-page .vibe-left { }
+.armely-api-development-page .vibe-card { background: var(--navy-card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+.armely-api-development-page .vibe-card-header { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
+.armely-api-development-page .vibe-card-icon { font-size: 1.4rem; }
+.armely-api-development-page .vibe-card-title { font-size: 1rem; font-weight: 700; color: #1A2540; }
+.armely-api-development-page .vibe-card-subtitle { font-size: 0.78rem; color: var(--text-muted); }
+.armely-api-development-page .vibe-card-body { padding: 24px; }
+.armely-api-development-page .vibe-risk { display: flex; align-items: flex-start; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--border); }
+.armely-api-development-page .vibe-risk:last-child { border-bottom: none; }
+.armely-api-development-page .vibe-risk-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+.armely-api-development-page .vibe-risk-title { font-size: 0.82rem; font-weight: 700; color: #1A2540; margin-bottom: 2px; }
+.armely-api-development-page .vibe-risk-desc { font-size: 0.77rem; color: var(--text-muted); line-height: 1.5; }
+.armely-api-development-page .vibe-right { }
+.armely-api-development-page .vibe-answer-card { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 28px; margin-bottom: 12px; }
+.armely-api-development-page .vibe-answer-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: var(--blue); margin-bottom: 10px; }
+.armely-api-development-page .vibe-answer-text { font-size: 0.875rem; color: var(--text-body); line-height: 1.75; }
 
   /* DELIVERS */
-.armely-api-development-page .delivers { background: var(--navy); }
+.armely-api-development-page .delivers { background: var(--navy-mid); }
 .armely-api-development-page .delivers-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 48px; }
-.armely-api-development-page .deliver-card { background: var(--navy-card); border: 1px solid var(--border); border-radius: 14px; padding: 32px 26px; transition: border-color 0.2s, transform 0.2s; }
+.armely-api-development-page .deliver-card { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 32px 26px; transition: border-color 0.2s, transform 0.2s; }
 .armely-api-development-page .deliver-card:hover { border-color: rgba(41,78,139,0.35); transform: translateY(-3px); }
 .armely-api-development-page .deliver-icon { width: 48px; height: 48px; background: var(--blue-dim); border: 1px solid var(--blue-dim2); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; margin-bottom: 20px; }
 .armely-api-development-page .deliver-title { font-size: 1rem; font-weight: 700; color: #1A2540; margin-bottom: 10px; }
 .armely-api-development-page .deliver-desc { font-size: 0.875rem; line-height: 1.7; color: var(--text-body); }
 
   /* JOURNEY */
-.armely-api-development-page .journey { background: var(--navy-mid); }
+.armely-api-development-page .journey { background: var(--navy); }
 .armely-api-development-page .steps-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; margin-top: 56px; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
 .armely-api-development-page .step { padding: 32px 22px; border-right: 1px solid var(--border); }
 .armely-api-development-page .step:last-child { border-right: none; }
@@ -105,18 +130,18 @@
 .armely-api-development-page .step-tag { display: inline-block; margin-top: 14px; background: var(--blue-dim); color: var(--blue); font-size: 0.7rem; padding: 3px 10px; border-radius: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
 
   /* USE CASES */
-.armely-api-development-page .usecases { background: var(--navy); }
+.armely-api-development-page .usecases { background: var(--navy-mid); }
 .armely-api-development-page .uc-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 48px; }
-.armely-api-development-page .uc-card { background: var(--navy-card); border: 1px solid var(--border); border-radius: 12px; padding: 28px 24px; transition: border-color 0.2s; }
+.armely-api-development-page .uc-card { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 28px 24px; transition: border-color 0.2s; }
 .armely-api-development-page .uc-card:hover { border-color: rgba(41,78,139,0.25); }
 .armely-api-development-page .uc-icon { font-size: 1.6rem; margin-bottom: 14px; display: block; }
 .armely-api-development-page .uc-title { font-size: 0.95rem; font-weight: 700; color: #1A2540; margin-bottom: 8px; }
 .armely-api-development-page .uc-desc { font-size: 0.85rem; line-height: 1.68; color: var(--text-body); }
 
   /* TESTIMONIALS */
-.armely-api-development-page .testimonials { background: var(--navy-mid); padding: 96px 56px; }
+.armely-api-development-page .testimonials { background: var(--navy); padding: 96px 56px; }
 .armely-api-development-page .testi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 48px; }
-.armely-api-development-page .testi-card { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 32px 28px; display: flex; flex-direction: column; }
+.armely-api-development-page .testi-card { background: var(--navy-card); border: 1px solid var(--border); border-radius: 14px; padding: 32px 28px; display: flex; flex-direction: column; }
 .armely-api-development-page .testi-quote { font-size: 3.5rem; line-height: 0.9; color: var(--blue); opacity: 0.15; font-family: Georgia, serif; margin-bottom: 8px; display: block; }
 .armely-api-development-page .testi-body { font-size: 0.875rem; line-height: 1.8; color: var(--text-body); flex: 1; margin-bottom: 24px; font-style: italic; }
 .armely-api-development-page .testi-footer { display: flex; align-items: center; gap: 14px; }
@@ -126,7 +151,7 @@
 .armely-api-development-page .testi-stars { color: var(--blue); font-size: 0.72rem; letter-spacing: 1px; margin-bottom: 3px; }
 
   /* WHY ARMELY */
-.armely-api-development-page .why { background: var(--navy); }
+.armely-api-development-page .why { background: var(--navy-mid); }
 .armely-api-development-page .why-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 72px; align-items: start; }
 .armely-api-development-page .why-list { list-style: none; margin-top: 36px; }
 .armely-api-development-page .why-list li { display: flex; gap: 16px; padding: 20px 0; border-bottom: 1px solid var(--border); }
@@ -177,7 +202,7 @@
 .armely-api-development-page .nav-links { display: none; }
 .armely-api-development-page section { padding: 72px 24px; }
 .armely-api-development-page .hero { padding: 110px 24px 72px; }
-.armely-api-development-page .intro-grid, .armely-api-development-page .why-two-col { grid-template-columns: 1fr; gap: 40px; }
+.armely-api-development-page .spectrum-grid, .armely-api-development-page .vibe-two-col, .armely-api-development-page .why-two-col { grid-template-columns: 1fr; gap: 40px; }
 .armely-api-development-page .delivers-grid, .armely-api-development-page .uc-grid { grid-template-columns: 1fr 1fr; }
 .armely-api-development-page .steps-row { grid-template-columns: 1fr; }
 .armely-api-development-page .step { border-right: none; border-bottom: 1px solid var(--border); }
@@ -258,10 +283,547 @@
 .armely-api-development-page footer {
   display: none;
 }
+
+
+/* Modern layout update: tighter first section and SVG icon system */
+.armely-api-development-page .hero {
+  min-height: auto;
+  padding: 128px 32px 86px;
+  isolation: isolate;
+}
+.armely-api-development-page .hero-inner {
+  width: min(1160px, 100%);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.75fr);
+  align-items: center;
+  gap: 56px;
+  position: relative;
+  z-index: 1;
+}
+.armely-api-development-page .hero-copy { max-width: 760px; }
+.armely-api-development-page .hero h1 { max-width: 760px; margin-bottom: 20px; }
+.armely-api-development-page .hero-sub { max-width: 640px; margin-bottom: 30px; font-size: 1.02rem; line-height: 1.72; }
+.armely-api-development-page .hero-actions { margin-bottom: 34px; }
+.armely-api-development-page .hero-trust {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding-top: 0;
+  border-top: 0;
+  max-width: 720px;
+}
+.armely-api-development-page .hero .trust-item {
+  align-items: flex-start;
+  background: rgba(255,255,255,0.10);
+  border: 1px solid rgba(255,255,255,0.16);
+  border-radius: 14px;
+  padding: 14px 15px;
+  backdrop-filter: blur(10px);
+}
+.armely-api-development-page .hero .trust-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.16);
+  border: 1px solid rgba(255,255,255,0.24);
+  position: relative;
+  margin-top: 1px;
+}
+.armely-api-development-page .hero .trust-dot::after {
+  content: '';
+  position: absolute;
+  left: 7px;
+  top: 5px;
+  width: 6px;
+  height: 10px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+.armely-api-development-page .hero .trust-text { color: rgba(255,255,255,0.78); line-height: 1.5; }
+.armely-api-development-page .hero-visual {
+  min-height: 420px;
+  border-radius: 28px;
+  position: relative;
+  background: linear-gradient(145deg, rgba(255,255,255,0.16), rgba(255,255,255,0.05));
+  border: 1px solid rgba(255,255,255,0.18);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.18), 0 28px 70px rgba(6, 22, 48, 0.24);
+  overflow: hidden;
+}
+.armely-api-development-page .hero-visual::before {
+  content: '';
+  position: absolute;
+  inset: 36px;
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 999px;
+}
+.armely-api-development-page .hero-visual::after {
+  content: '';
+  position: absolute;
+  width: 190px;
+  height: 190px;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(255,255,255,0.24), rgba(255,255,255,0.06));
+  border: 1px solid rgba(255,255,255,0.22);
+}
+.armely-api-development-page .hero-orbit span {
+  position: absolute;
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.14);
+  border: 1px solid rgba(255,255,255,0.22);
+}
+.armely-api-development-page .hero-orbit span:nth-child(1) { left: 56px; top: 88px; }
+.armely-api-development-page .hero-orbit span:nth-child(2) { right: 72px; top: 138px; }
+.armely-api-development-page .hero-orbit span:nth-child(3) { left: 48%; bottom: 76px; }
+.armely-api-development-page .hero-visual-card {
+  position: absolute;
+  z-index: 2;
+  width: 230px;
+  padding: 18px;
+  border-radius: 18px;
+  background: rgba(255,255,255,0.92);
+  box-shadow: 0 24px 54px rgba(9, 31, 63, 0.22);
+}
+.armely-api-development-page .hero-visual-card.top { top: 42px; right: 30px; }
+.armely-api-development-page .hero-visual-card.bottom { bottom: 46px; left: 30px; }
+.armely-api-development-page .hero-visual-label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #162b49;
+  margin-bottom: 12px;
+}
+.armely-api-development-page .hero-visual-line {
+  display: block;
+  height: 8px;
+  width: 100%;
+  border-radius: 999px;
+  background: rgba(47, 85, 151, 0.16);
+  margin-top: 8px;
+}
+.armely-api-development-page .hero-visual-line.short { width: 68%; }
+.armely-api-development-page .icon-svg {
+  width: 22px;
+  height: 22px;
+  display: block;
+  color: var(--blue);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.armely-api-development-page .vibe-card-icon,
+.armely-api-development-page .vibe-risk-icon,
+.armely-api-development-page .deliver-icon,
+.armely-api-development-page .uc-icon,
+.armely-api-development-page .why-icon {
+  color: var(--blue);
+}
+.armely-api-development-page .vibe-card-icon,
+.armely-api-development-page .vibe-risk-icon {
+  width: 42px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: var(--blue-dim);
+  border: 1px solid var(--blue-dim2);
+}
+.armely-api-development-page .vibe-risk-icon { width: 36px; height: 36px; border-radius: 10px; }
+.armely-api-development-page .deliver-icon .icon-svg,
+.armely-api-development-page .uc-icon .icon-svg,
+.armely-api-development-page .why-icon .icon-svg { width: 23px; height: 23px; }
+.armely-api-development-page .uc-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  background: var(--blue-dim);
+  border: 1px solid var(--blue-dim2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+@media (max-width: 980px) {
+  .armely-api-development-page .hero-inner { grid-template-columns: 1fr; gap: 32px; }
+  .armely-api-development-page .hero-visual { min-height: 320px; }
+}
+@media (max-width: 680px) {
+  .armely-api-development-page .hero { padding: 104px 22px 64px; }
+  .armely-api-development-page .hero-trust { grid-template-columns: 1fr; }
+  .armely-api-development-page .hero-visual { display: none; }
+  .armely-api-development-page .hero-actions a { width: 100%; text-align: center; }
+}
+
+/* Focused cleanup for the Generative AI detail page */
+.armely-api-development-page .hero {
+  min-height: 100vh;
+  padding: 150px 56px 96px;
+  display: flex;
+  align-items: center;
+  background: #173b67;
+  border-radius: 0;
+}
+.armely-api-development-page .hero::after,
+.armely-api-development-page .hero-bg-glow,
+.armely-api-development-page .hero-visual {
+  display: none;
+}
+.armely-api-development-page .hero-inner {
+  width: min(1040px, 100%);
+  display: block;
+}
+.armely-api-development-page .hero-copy {
+  max-width: 760px;
+}
+.armely-api-development-page .hero-eyebrow {
+  margin-bottom: 18px;
+}
+.armely-api-development-page .eyebrow-badge {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  color: rgba(255,255,255,0.72);
+}
+.armely-api-development-page .eyebrow-partner,
+.armely-api-development-page .hero-trust {
+  display: none;
+}
+.armely-api-development-page .hero h1 {
+  max-width: 760px;
+  margin-bottom: 22px;
+}
+.armely-api-development-page .hero-sub {
+  max-width: 680px;
+  margin-bottom: 34px;
+}
+.armely-api-development-page .hero-actions {
+  margin-bottom: 0;
+}
+.armely-api-development-page .hero .btn-primary,
+.armely-api-development-page .hero .btn-outline {
+  border-radius: 0;
+}
+.armely-api-development-page .vibe-section {
+  background: #fff;
+  padding: 84px 56px;
+}
+.armely-api-development-page .vibe-section .section-inner {
+  max-width: 920px;
+}
+.armely-api-development-page .vibe-section .section-title,
+.armely-api-development-page .vibe-section .section-body {
+  max-width: 820px;
+}
+.armely-api-development-page .vibe-section .section-body {
+  margin-bottom: 28px;
+}
+.armely-api-development-page .vibe-two-col {
+  grid-template-columns: 1fr;
+  gap: 18px;
+}
+.armely-api-development-page .vibe-card,
+.armely-api-development-page .vibe-answer-card {
+  border-radius: 0;
+  box-shadow: none;
+}
+.armely-api-development-page .vibe-card-header {
+  padding: 18px 20px;
+}
+.armely-api-development-page .vibe-card-body {
+  padding: 8px 20px 12px;
+}
+.armely-api-development-page .vibe-risk {
+  padding: 12px 0;
+}
+.armely-api-development-page .vibe-right {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+.armely-api-development-page .vibe-answer-card {
+  margin-bottom: 0;
+  padding: 20px;
+  background: #f7f9fc;
+}
+.armely-api-development-page section:not(.hero) > .section-inner > .section-eyebrow,
+.armely-api-development-page .why > .section-inner > .section-eyebrow {
+  width: fit-content;
+  margin: 0 auto 14px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--blue-dim);
+  border: 1px solid var(--blue-dim2);
+  text-align: center;
+}
+.armely-api-development-page section:not(.hero) > .section-inner > .section-title,
+.armely-api-development-page .why > .section-inner > .section-title {
+  max-width: 880px;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}
+.armely-api-development-page section:not(.hero) > .section-inner > .section-body,
+.armely-api-development-page .why > .section-inner > .section-body {
+  max-width: 820px;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}
+.armely-api-development-page .spectrum-grid,
+.armely-api-development-page .delivers-grid,
+.armely-api-development-page .steps-row,
+.armely-api-development-page .uc-grid,
+.armely-api-development-page .testi-grid,
+.armely-api-development-page .why-two-col {
+  margin-top: 56px;
+}
+.armely-api-development-page .why-two-col {
+  align-items: stretch;
+}
+.armely-api-development-page .why-list {
+  margin-top: 0;
+}
+.armely-api-development-page .why-list,
+.armely-api-development-page .partner-block {
+  height: 100%;
+}
+@media (max-width: 900px) {
+  .armely-api-development-page .hero {
+    padding: 118px 24px 76px;
+  }
+  .armely-api-development-page .vibe-section {
+    padding: 72px 24px;
+  }
+  .armely-api-development-page .vibe-right {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+
+/* Final compact modern cleanup */
+.armely-api-development-page {
+  --blue: #2f5597;
+  --blue-lt: #4779bd;
+  --navy-mid: #f6f8fc;
+  --navy-card: #ffffff;
+  --text-body: #334155;
+  --text-muted: #667085;
+  --border: rgba(47, 85, 151, 0.14);
+}
+.armely-api-development-page .hero {
+  min-height: auto !important;
+  padding: 86px 56px 70px !important;
+  background: linear-gradient(135deg, #173b67 0%, #234f86 100%) !important;
+  border-radius: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+.armely-api-development-page .hero::after,
+.armely-api-development-page .hero-bg-glow,
+.armely-api-development-page .hero-visual {
+  display: none !important;
+}
+.armely-api-development-page .hero-inner {
+  width: min(1120px, 100%) !important;
+  margin: 0 auto !important;
+  display: block !important;
+}
+.armely-api-development-page .hero-copy {
+  max-width: 860px !important;
+}
+.armely-api-development-page .hero-eyebrow {
+  margin-bottom: 18px !important;
+}
+.armely-api-development-page .eyebrow-badge {
+  display: inline-flex !important;
+  background: rgba(255,255,255,0.10) !important;
+  border: 1px solid rgba(255,255,255,0.22) !important;
+  border-radius: 999px !important;
+  padding: 7px 14px !important;
+  color: rgba(255,255,255,0.88) !important;
+}
+.armely-api-development-page .eyebrow-partner {
+  display: inline-flex !important;
+  color: rgba(255,255,255,0.66) !important;
+}
+.armely-api-development-page .hero h1 {
+  max-width: 900px !important;
+  margin-bottom: 18px !important;
+  font-size: clamp(2.5rem, 5vw, 4.9rem) !important;
+  line-height: 1.05 !important;
+  letter-spacing: -0.04em !important;
+}
+.armely-api-development-page .hero-sub {
+  max-width: 760px !important;
+  margin-bottom: 28px !important;
+  font-size: 1rem !important;
+  line-height: 1.7 !important;
+}
+.armely-api-development-page .hero-actions {
+  margin-bottom: 0 !important;
+  gap: 12px !important;
+}
+.armely-api-development-page .hero .btn-primary,
+.armely-api-development-page .hero .btn-outline,
+.armely-api-development-page .btn-primary,
+.armely-api-development-page .btn-outline,
+.armely-api-development-page .form-submit {
+  border-radius: 8px !important;
+}
+.armely-api-development-page section {
+  padding: 68px 56px !important;
+}
+.armely-api-development-page .section-inner {
+  max-width: 1120px !important;
+}
+.armely-api-development-page .section-eyebrow {
+  margin-bottom: 10px !important;
+}
+.armely-api-development-page .section-title {
+  margin-bottom: 14px !important;
+}
+.armely-api-development-page .section-body {
+  margin-bottom: 28px !important;
+  line-height: 1.65 !important;
+}
+.armely-api-development-page .spectrum-grid,
+.armely-api-development-page .vibe-two-col,
+.armely-api-development-page .delivers-grid,
+.armely-api-development-page .steps-row,
+.armely-api-development-page .uc-grid,
+.armely-api-development-page .testi-grid,
+.armely-api-development-page .why-two-col {
+  margin-top: 34px !important;
+  gap: 20px !important;
+}
+.armely-api-development-page .spectrum-grid,
+.armely-api-development-page .why-two-col {
+  grid-template-columns: 1fr 1fr !important;
+}
+.armely-api-development-page .spectrum-row {
+  margin-top: 0 !important;
+  gap: 10px !important;
+}
+.armely-api-development-page .spectrum-level,
+.armely-api-development-page .deliver-card,
+.armely-api-development-page .uc-card,
+.armely-api-development-page .testi-card,
+.armely-api-development-page .vibe-answer-card,
+.armely-api-development-page .partner-block,
+.armely-api-development-page .cta-form,
+.armely-api-development-page .vibe-card,
+.armely-api-development-page .platform-card {
+  border-radius: 14px !important;
+  box-shadow: 0 14px 36px rgba(18, 47, 82, 0.08) !important;
+}
+.armely-api-development-page .deliver-card,
+.armely-api-development-page .uc-card,
+.armely-api-development-page .testi-card {
+  padding: 24px 22px !important;
+}
+.armely-api-development-page .deliver-icon,
+.armely-api-development-page .uc-icon,
+.armely-api-development-page .why-icon,
+.armely-api-development-page .vibe-card-icon,
+.armely-api-development-page .vibe-risk-icon {
+  border-radius: 12px !important;
+  color: var(--blue) !important;
+}
+.armely-api-development-page .vibe-section {
+  padding: 68px 56px !important;
+  background: #fff !important;
+}
+.armely-api-development-page .vibe-section .section-inner {
+  max-width: 1120px !important;
+}
+.armely-api-development-page .vibe-two-col {
+  grid-template-columns: 1fr 1fr !important;
+  align-items: stretch !important;
+}
+.armely-api-development-page .vibe-card-body {
+  padding: 18px 20px !important;
+}
+.armely-api-development-page .vibe-right {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+}
+.armely-api-development-page .vibe-answer-card {
+  padding: 20px !important;
+  background: #f8fafd !important;
+}
+.armely-api-development-page .steps-row {
+  border-radius: 14px !important;
+  overflow: hidden !important;
+}
+.armely-api-development-page .step {
+  padding: 24px 18px !important;
+}
+.armely-api-development-page .step-num {
+  font-size: 2rem !important;
+  margin-bottom: 10px !important;
+}
+.armely-api-development-page .why-list {
+  margin-top: 0 !important;
+}
+.armely-api-development-page .why-list li {
+  padding: 16px 0 !important;
+}
+.armely-api-development-page .partner-block-top,
+.armely-api-development-page .p-stat {
+  padding: 22px !important;
+}
+.armely-api-development-page .cta-inner {
+  padding: 68px 56px !important;
+  gap: 40px !important;
+}
+@media (max-width: 900px) {
+  .armely-api-development-page .hero { padding: 88px 24px 58px !important; }
+  .armely-api-development-page section,
+  .armely-api-development-page .vibe-section { padding: 56px 24px !important; }
+  .armely-api-development-page .spectrum-grid,
+  .armely-api-development-page .vibe-two-col,
+  .armely-api-development-page .why-two-col { grid-template-columns: 1fr !important; }
+  .armely-api-development-page .delivers-grid,
+  .armely-api-development-page .uc-grid { grid-template-columns: 1fr 1fr !important; }
+  .armely-api-development-page .cta-inner { padding: 56px 24px !important; grid-template-columns: 1fr !important; }
+}
+@media (max-width: 600px) {
+  .armely-api-development-page .hero h1 { font-size: clamp(2.15rem, 11vw, 3.2rem) !important; }
+  .armely-api-development-page .hero-eyebrow { flex-direction: column !important; align-items: flex-start !important; gap: 8px !important; }
+  .armely-api-development-page .hero-actions a { width: 100% !important; text-align: center !important; }
+  .armely-api-development-page .delivers-grid,
+  .armely-api-development-page .uc-grid { grid-template-columns: 1fr !important; }
+}
+
+
 </style>
 <div class="armely-api-development-page">
-<!-- NAV -->
 
+<!-- NAV -->
+<nav>
+  <div class="logo">
+    <div class="logo-mark">A</div>
+    <span class="logo-text">armely</span>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#what-we-deliver">Services</a></li>
+    <li><a href="#journey">Our Process</a></li>
+    <li><a href="#why-armely">Why Armely</a></li>
+    <li><a href="#contact" class="nav-cta">Get Started</a></li>
+  </ul>
+</nav>
 
 <!-- HERO -->
 <section class="hero">
@@ -378,7 +940,7 @@
               </div>
             </div>
             <div class="apim-callout">
-              <span style="font-size:1.2rem;">🤖</span>
+              <span style="font-size:1.2rem;"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8V4H8"/><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M9 11v2"/><path d="M15 11v2"/></svg></span>
               <div class="apim-callout-text"><strong>Azure API Management</strong> now supports MCP server management and agent-to-agent communication, making it the governance layer for AI workloads as well as traditional APIs.</div>
             </div>
           </div>
@@ -396,32 +958,32 @@
     <p class="section-body">From a single integration connecting two systems to a managed API program governing dozens of endpoints, Armely covers every stage with certified engineers and a delivery process built around the OpenAPI standard.</p>
     <div class="delivers-grid">
       <div class="deliver-card">
-        <div class="deliver-icon">📐</div>
+        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0Z"/><path d="m14.5 12.5 2-2"/><path d="m11.5 9.5 2-2"/><path d="m8.5 6.5 2-2"/><path d="m17.5 15.5 2-2"/></svg></div>
         <div class="deliver-title">API Design and Architecture</div>
         <div class="deliver-desc">We design your API before writing code. OpenAPI specifications, data models, error schemas, authentication patterns, and versioning strategy are agreed and documented upfront so every consumer knows exactly what to expect before integration begins.</div>
       </div>
       <div class="deliver-card">
-        <div class="deliver-icon">⚙️</div>
+        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></div>
         <div class="deliver-title">Custom API Development</div>
         <div class="deliver-desc">We build REST, GraphQL, and gRPC APIs in .NET, Python, and Node.js, with automated test suites, CI/CD pipelines, and deployment to Azure App Service, Azure Functions, or containerized environments depending on your workload requirements.</div>
       </div>
       <div class="deliver-card">
-        <div class="deliver-icon">🔗</div>
+        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></div>
         <div class="deliver-title">System Integration</div>
         <div class="deliver-desc">We build the integration layer between your business systems, connecting ERP, CRM, databases, SaaS platforms, and third-party services through reliable, monitored API connections so data flows automatically rather than being moved manually or by batch file.</div>
       </div>
       <div class="deliver-card">
-        <div class="deliver-icon">🛡️</div>
+        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg></div>
         <div class="deliver-title">Azure API Management</div>
         <div class="deliver-desc">We deploy and configure Azure API Management as the gateway for your API estate, including authentication enforcement, rate limiting, analytics, developer portal setup, and policy configuration for security and traffic management at scale.</div>
       </div>
       <div class="deliver-card">
-        <div class="deliver-icon">🤖</div>
+        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8V4H8"/><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M9 11v2"/><path d="M15 11v2"/></svg></div>
         <div class="deliver-title">AI-Ready API Infrastructure</div>
         <div class="deliver-desc">We configure Azure API Management as an AI gateway for Azure OpenAI endpoints and AI agents, including token governance, semantic caching, MCP server registration, and agent-to-agent communication policies for organizations building agentic AI applications.</div>
       </div>
       <div class="deliver-card">
-        <div class="deliver-icon">📊</div>
+        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg></div>
         <div class="deliver-title">API Audit and Remediation</div>
         <div class="deliver-desc">For organizations with existing APIs that lack documentation, versioning, security controls, or a governance framework, we conduct a structured audit and deliver a remediation plan that brings your API estate to a production-ready standard.</div>
       </div>
@@ -478,32 +1040,32 @@
     <p class="section-body">Most API engagements start with a specific business problem, not a technology preference. These are the situations we encounter most often across our client base.</p>
     <div class="uc-grid">
       <div class="uc-card">
-        <span class="uc-icon">🔗</span>
+        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></span>
         <div class="uc-title">Connect Two Systems That Do Not Talk</div>
         <div class="uc-desc">CRM and ERP that require manual data re-entry between them. A field service platform and a billing system that require exports and imports. We build the API integration layer that eliminates the manual step and keeps data consistent in real time.</div>
       </div>
       <div class="uc-card">
-        <span class="uc-icon">🌐</span>
+        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span>
         <div class="uc-title">Expose Internal Data to External Consumers</div>
         <div class="uc-desc">A secure, documented API that allows customers, partners, or third-party applications to access your business data within defined permission boundaries, with authentication, rate limiting, and usage analytics managed through Azure API Management.</div>
       </div>
       <div class="uc-card">
-        <span class="uc-icon">🏗️</span>
+        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M17 18h1"/><path d="M12 18h1"/><path d="M7 18h1"/></svg></span>
         <div class="uc-title">Modernize a Legacy Integration</div>
         <div class="uc-desc">A SOAP service or point-to-point database integration that has no documentation, no versioning, and no monitoring. We wrap it in a modern REST API, document it properly, and place it behind a gateway so it can be maintained and evolved safely.</div>
       </div>
       <div class="uc-card">
-        <span class="uc-icon">🤖</span>
+        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8V4H8"/><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M9 11v2"/><path d="M15 11v2"/></svg></span>
         <div class="uc-title">Build the API Layer for an AI Agent</div>
         <div class="uc-desc">AI agents need governed, authenticated access to business systems. We build and register the APIs that your Copilot Studio or Azure AI Foundry agents call to retrieve data, trigger actions, and write results back to source systems.</div>
       </div>
       <div class="uc-card">
-        <span class="uc-icon">📱</span>
+        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" x2="12.01" y1="18" y2="18"/></svg></span>
         <div class="uc-title">Backend for a Mobile or Web Application</div>
         <div class="uc-desc">A secure, performant API backend for a mobile application or web portal, designed API-first so the front-end team can build against a specification and mock server while the backend is in development, rather than waiting for working code.</div>
       </div>
       <div class="uc-card">
-        <span class="uc-icon">🔍</span>
+        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></span>
         <div class="uc-title">API Estate Audit</div>
         <div class="uc-desc">Organizations that have accumulated APIs over time often have endpoints without documentation, inconsistent authentication, no versioning strategy, and no central governance. We audit the estate, identify risk, and deliver a structured remediation plan.</div>
       </div>
@@ -571,28 +1133,28 @@
         <p class="section-body">Many organizations have APIs that work but are undocumented, have no versioning strategy, and would break consumers if changed. Armely builds APIs that are production-grade from the first deployment.</p>
         <ul class="why-list">
           <li>
-            <div class="why-icon">📐</div>
+            <div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0Z"/><path d="m14.5 12.5 2-2"/><path d="m11.5 9.5 2-2"/><path d="m8.5 6.5 2-2"/><path d="m17.5 15.5 2-2"/></svg></div>
             <div>
               <div class="why-item-title">OpenAPI-First on Every Engagement</div>
               <div class="why-item-desc">We write the specification before writing code. Consumer teams receive a documented contract and a mock server immediately, rather than waiting for working code before integration work can begin. This is not optional for us.</div>
             </div>
           </li>
           <li>
-            <div class="why-icon">🛡️</div>
+            <div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg></div>
             <div>
               <div class="why-item-title">Security Designed In, Not Added On</div>
               <div class="why-item-desc">Authentication, authorization, input validation, and rate limiting are designed into the API specification before implementation begins. We do not retrofit security after a functional build is complete.</div>
             </div>
           </li>
           <li>
-            <div class="why-icon">🔗</div>
+            <div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></div>
             <div>
               <div class="why-item-title">Microsoft Ecosystem Integration</div>
               <div class="why-item-desc">Our APIs integrate natively with Azure API Management, Microsoft 365, Dynamics 365, Power Platform, and Azure AI Foundry. If your business runs on Microsoft, Armely builds APIs that fit the architecture you already have rather than introducing new platform dependencies.</div>
             </div>
           </li>
           <li>
-            <div class="why-icon">📈</div>
+            <div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 17 6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg></div>
             <div>
               <div class="why-item-title">Versioning and Governance from Day One</div>
               <div class="why-item-desc">We implement a versioning strategy, deprecation policy, and API gateway configuration in the initial deployment so your API estate can evolve over time without breaking existing consumers or accumulating ungoverned endpoints.</div>
@@ -687,4 +1249,17 @@
 </section>
 
 <!-- FOOTER -->
+<footer>
+  <div class="footer-logo-row">
+    <div class="footer-lm">A</div>
+    <span class="footer-lt">armely</span>
+  </div>
+  <div class="footer-note">&#169; 2026 Armely &middot; www.armely.com &middot; Your Trusted Source for Digital Excellence</div>
+  <div class="footer-badges">
+    <span class="badge-chip">Microsoft CSP Partner</span>
+    <span class="badge-chip">Azure Certified</span>
+    <span class="badge-chip">Microsoft Authorized Reseller</span>
+  </div>
+</footer>
+
 </div>

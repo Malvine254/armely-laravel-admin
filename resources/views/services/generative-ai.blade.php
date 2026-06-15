@@ -1,4 +1,5 @@
-﻿<style>
+<style>
+
 
 .armely-generative-ai-page *, .armely-generative-ai-page *::before, .armely-generative-ai-page *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -806,26 +807,53 @@
   .armely-generative-ai-page .uc-grid { grid-template-columns: 1fr !important; }
 }
 
+
 </style>
 <div class="armely-generative-ai-page">
-<!-- NAV -->
 
+<!-- NAV -->
+<nav>
+  <div class="logo">
+    <div class="logo-mark">A</div>
+    <span class="logo-text">armely</span>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#vibe-coding">Vibe Coding</a></li>
+    <li><a href="#what-we-deliver">Services</a></li>
+    <li><a href="#journey">Our Process</a></li>
+    <li><a href="#contact" class="nav-cta">Get Started</a></li>
+  </ul>
+</nav>
 
 <!-- HERO -->
 <section class="hero">
   <div class="hero-bg-glow"></div>
-  <div class="hero-inner">
-    <div class="hero-copy">
   <div class="hero-eyebrow">
     <span class="eyebrow-badge">Generative and Agentic AI</span>
     <span class="eyebrow-partner">Delivered by a certified Microsoft partner</span>
   </div>
-  <h1>AI that takes action,<br>not just answers questions.</h1>
+  <h1>AI that takes action,<br>not just <span class="hl">answers questions.</span></h1>
   <p class="hero-sub">Armely designs and deploys generative AI and autonomous agent solutions on the Microsoft platform, grounded in your business data, governed to your compliance requirements, and built to run in production, not just a demo.</p>
   <div class="hero-actions">
     <a href="#contact" class="btn-primary">Book a Free AI Assessment</a>
     <a href="#what-we-deliver" class="btn-outline">See What We Build</a>
   </div>
+  <div class="hero-trust">
+    <div class="trust-item">
+      <span class="trust-dot"></span>
+      <span class="trust-text">Built on <strong>Microsoft Copilot Studio and Azure AI Foundry</strong></span>
+    </div>
+    <div class="trust-item">
+      <span class="trust-dot"></span>
+      <span class="trust-text"><strong>Grounded in your data</strong>, not public web content</span>
+    </div>
+    <div class="trust-item">
+      <span class="trust-dot"></span>
+      <span class="trust-text"><strong>Governed and auditable</strong> from day one</span>
+    </div>
+    <div class="trust-item">
+      <span class="trust-dot"></span>
+      <span class="trust-text">Integrates with <strong>Microsoft 365, Dynamics 365, and Power Platform</strong></span>
     </div>
   </div>
 </section>
@@ -833,11 +861,11 @@
 <!-- AI SPECTRUM -->
 <section class="spectrum">
   <div class="section-inner">
-    <div class="section-eyebrow">Understanding the Landscape</div>
-    <h2 class="section-title">From assistants to autonomous agents. Where does your business need AI?</h2>
-    <p class="section-body">AI capability exists on a spectrum. Most organizations start at the assistive end and move toward automation as confidence and governance mature. Armely helps you identify where to start and how to progress deliberately rather than reactively.</p>
     <div class="spectrum-grid">
       <div>
+        <div class="section-eyebrow">Understanding the Landscape</div>
+        <h2 class="section-title">From assistants to autonomous agents. Where does your business need AI?</h2>
+        <p class="section-body">AI capability exists on a spectrum. Most organizations start at the assistive end and move toward automation as confidence and governance mature. Armely helps you identify where to start and how to progress deliberately rather than reactively.</p>
         <div class="spectrum-row">
           <div class="spectrum-level">
             <span class="spectrum-num">01</span>
@@ -936,7 +964,7 @@
       <div class="vibe-left">
         <div class="vibe-card">
           <div class="vibe-card-header">
-            <span class="vibe-card-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg></span>
+            <span class="vibe-card-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></span>
             <div>
               <div class="vibe-card-title">Where Vibe Coding Breaks Down in Production</div>
               <div class="vibe-card-subtitle">Common issues Armely is brought in to resolve</div>
@@ -944,28 +972,28 @@
           </div>
           <div class="vibe-card-body">
             <div class="vibe-risk">
-              <span class="vibe-risk-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 9.9-1"></path></svg></span>
+              <span class="vibe-risk-icon">🔓</span>
               <div>
                 <div class="vibe-risk-title">Security Vulnerabilities</div>
                 <div class="vibe-risk-desc">AI-generated code passes basic functional tests but fails security review. Improper input validation, over-permissive access roles, and hardcoded credentials are common patterns that reach production undetected.</div>
               </div>
             </div>
             <div class="vibe-risk">
-              <span class="vibe-risk-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="6" cy="19" r="3"></circle><circle cx="18" cy="5" r="3"></circle><path d="M9 19h2a7 7 0 0 0 7-7V8"></path></svg></span>
+              <span class="vibe-risk-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><polyline points="16 3 21 3 21 8"/><line x1="4" x2="21" y1="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" x2="21" y1="15" y2="21"/></svg></span>
               <div>
                 <div class="vibe-risk-title">Ungoverned Data Access</div>
                 <div class="vibe-risk-desc">Agents built without proper permission scoping expose content that users should not see. A customer-facing agent answering from an unscopeable knowledge base is a data governance incident waiting to happen.</div>
               </div>
             </div>
             <div class="vibe-risk">
-              <span class="vibe-risk-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19 13.5V19a2 2 0 0 1-2 2h-4.5a2.5 2.5 0 0 0-5 0H3a2 2 0 0 1-2-2v-4.5a2.5 2.5 0 0 0 0-5V5a2 2 0 0 1 2-2h5.5a2.5 2.5 0 0 1 5 0H17a2 2 0 0 1 2 2v3.5a2.5 2.5 0 0 1 0 5Z"></path></svg></span>
+              <span class="vibe-risk-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 13.5V19a2 2 0 0 1-2 2h-4.5a2.5 2.5 0 0 0-5 0H3a2 2 0 0 1-2-2v-4.5a2.5 2.5 0 0 0 0-5V5a2 2 0 0 1 2-2h5.5a2.5 2.5 0 0 1 5 0H17a2 2 0 0 1 2 2v3.5a2.5 2.5 0 0 1 0 5Z"/></svg></span>
               <div>
                 <div class="vibe-risk-title">No Maintainable Architecture</div>
                 <div class="vibe-risk-desc">Prototype code accepted without review accumulates technical debt rapidly. When the business need evolves or the underlying model changes, there is no structured codebase to update.</div>
               </div>
             </div>
             <div class="vibe-risk">
-              <span class="vibe-risk-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="8" y="2" width="8" height="4" rx="1"></rect><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><path d="M8 12h8"></path><path d="M8 16h6"></path></svg></span>
+              <span class="vibe-risk-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M8 12h8"/><path d="M8 16h6"/></svg></span>
               <div>
                 <div class="vibe-risk-title">No Audit Trail</div>
                 <div class="vibe-risk-desc">Regulated industries require documentation of what an AI system did and why. Vibe-coded agents deployed without audit logging cannot satisfy compliance requirements when they are audited.</div>
@@ -1000,32 +1028,32 @@
     <p class="section-body">Every Armely AI engagement starts with a use case that has a clear business outcome, not a technology looking for a problem. We build on the Microsoft AI stack because it integrates with the systems your organization already runs.</p>
     <div class="delivers-grid">
       <div class="deliver-card">
-        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3V6Z"></path><path d="M9 3v15"></path><path d="M15 6v15"></path></svg></div>
+        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3V6Z"/><path d="M9 3v15"/><path d="M15 6v15"/></svg></div>
         <div class="deliver-title">AI Use Case Assessment</div>
         <div class="deliver-desc">We work with your leadership and operations teams to identify, prioritize, and scope AI use cases based on business value, data availability, and implementation complexity. You receive a ranked roadmap rather than a technology wish list.</div>
       </div>
       <div class="deliver-card">
-        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path></svg></div>
+        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/></svg></div>
         <div class="deliver-title">Custom AI Agents</div>
         <div class="deliver-desc">We design and build AI agents using Copilot Studio and Azure AI Foundry that answer questions, retrieve information, trigger workflows, and complete tasks, grounded in your SharePoint, Dataverse, SQL Server, or third-party data sources.</div>
       </div>
       <div class="deliver-card">
-        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"></path><path d="M14 2v6h6"></path><path d="M8 13h8"></path><path d="M8 17h6"></path></svg></div>
+        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 13h8"/><path d="M8 17h6"/></svg></div>
         <div class="deliver-title">Document Intelligence</div>
         <div class="deliver-desc">We build generative AI solutions that read, classify, extract, and summarize documents at scale, including contracts, invoices, clinical notes, applications, and compliance filings, reducing manual review time and human error in document-heavy processes.</div>
       </div>
       <div class="deliver-card">
-        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M13 2 3 14h8l-1 8 11-14h-8l0-6Z"></path></svg></div>
+        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 3 14h9l-1 8 11-14h-9l1-6Z"/></svg></div>
         <div class="deliver-title">Agentic Process Automation</div>
         <div class="deliver-desc">We design and deploy autonomous agent workflows that handle multi-step business processes end to end, including case triage, approval routing, data enrichment, exception handling, and escalation, with human review gates where the business requires them.</div>
       </div>
       <div class="deliver-card">
-        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"></path><path d="m9 12 2 2 4-4"></path></svg></div>
+        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg></div>
         <div class="deliver-title">AI Governance and Security</div>
         <div class="deliver-desc">We implement the governance layer that every AI deployment requires: permission scoping, sensitivity label enforcement, DLP policies, audit logging, responsible AI controls, and a framework for managing new agents as your AI footprint grows.</div>
       </div>
       <div class="deliver-card">
-        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg></div>
+        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></div>
         <div class="deliver-title">AI Readiness Review</div>
         <div class="deliver-desc">For organizations that have already deployed AI solutions and are unsure whether they are production-ready, we conduct a structured review covering security, data governance, architecture quality, and compliance readiness, with a remediation plan where gaps exist.</div>
       </div>
@@ -1082,32 +1110,32 @@
     <p class="section-body">These are the scenarios where generative and agentic AI is delivering clear, verifiable business outcomes rather than experimental value. Each can be built on the Microsoft platform using your existing data and systems.</p>
     <div class="uc-grid">
       <div class="uc-card">
-        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path></svg></span>
+        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/></svg></span>
         <div class="uc-title">Internal Knowledge Assistants</div>
         <div class="uc-desc">AI agents grounded in your SharePoint, policies, and documentation that answer employee questions accurately, with citations, in natural language. HR policy queries, IT support questions, and onboarding guidance handled without routing to a person.</div>
       </div>
       <div class="uc-card">
-        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="8" y="2" width="8" height="4" rx="1"></rect><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><path d="M8 12h8"></path><path d="M8 16h6"></path></svg></span>
+        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M8 12h8"/><path d="M8 16h6"/></svg></span>
         <div class="uc-title">Automated Case and Ticket Triage</div>
         <div class="uc-desc">Agents that read incoming service requests, classify them by type and urgency, extract relevant information, match against known issues, and route to the correct team or trigger an automated resolution, without a human reading every submission first.</div>
       </div>
       <div class="uc-card">
-        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"></path><path d="M14 2v6h6"></path><path d="M8 13h8"></path><path d="M8 17h6"></path></svg></span>
+        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 13h8"/><path d="M8 17h6"/></svg></span>
         <div class="uc-title">Contract and Document Review</div>
         <div class="uc-desc">Generative AI that reads contracts, extracts key clauses, flags non-standard terms, and produces a structured summary for legal or procurement review, reducing the time spent on initial document review before a human judgment is required.</div>
       </div>
       <div class="uc-card">
-        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 3v18h18"></path><rect x="7" y="12" width="3" height="5"></rect><rect x="12" y="8" width="3" height="9"></rect><rect x="17" y="5" width="3" height="12"></rect></svg></span>
+        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg></span>
         <div class="uc-title">Business Report Generation</div>
         <div class="uc-desc">Agents connected to your data sources that generate structured reports, narrative summaries, and variance analyses on a schedule or on demand, in the format and tone your leadership uses, populated with live figures rather than copied from a spreadsheet.</div>
       </div>
       <div class="uc-card">
-        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 18v-6a9 9 0 0 1 18 0v6"></path><path d="M21 19a2 2 0 0 1-2 2h-1v-7h3v5Z"></path><path d="M3 19a2 2 0 0 0 2 2h1v-7H3v5Z"></path></svg></span>
+        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1v-7h3v5Z"/><path d="M3 19a2 2 0 0 0 2 2h1v-7H3v5Z"/></svg></span>
         <div class="uc-title">Customer-Facing AI Assistants</div>
         <div class="uc-desc">Governed customer-facing agents deployed on your website or portal that answer product questions, check order status, handle routine service requests, and escalate to a human when the situation requires judgment, available around the clock.</div>
       </div>
       <div class="uc-card">
-        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"></path><path d="M3 21v-5h5"></path><path d="M3 12A9 9 0 0 1 18.5 5.8L21 8"></path><path d="M21 3v5h-5"></path></svg></span>
+        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 21v-5h5"/><path d="M3 12A9 9 0 0 1 18.5 5.8L21 8"/><path d="M21 3v5h-5"/></svg></span>
         <div class="uc-title">Multi-Step Agentic Workflows</div>
         <div class="uc-desc">End-to-end autonomous workflows where an agent receives a trigger, gathers information from multiple systems, takes action, and notifies stakeholders, all without human intervention at each step. Employee onboarding, vendor registration, and data reconciliation are common examples.</div>
       </div>
@@ -1168,35 +1196,35 @@
 <!-- WHY ARMELY -->
 <section class="why" id="why-armely">
   <div class="section-inner">
-    <div class="section-eyebrow">Why Armely</div>
-    <h2 class="section-title">AI implementation requires more than AI enthusiasm.</h2>
-    <p class="section-body">The organizations that get the most from AI are those that treat it as a governed business capability rather than an experiment. Armely brings the architecture discipline, compliance knowledge, and Microsoft platform expertise to make that happen.</p>
     <div class="why-two-col">
       <div>
+        <div class="section-eyebrow">Why Armely</div>
+        <h2 class="section-title">AI implementation requires more than AI enthusiasm.</h2>
+        <p class="section-body">The organizations that get the most from AI are those that treat it as a governed business capability rather than an experiment. Armely brings the architecture discipline, compliance knowledge, and Microsoft platform expertise to make that happen.</p>
         <ul class="why-list">
           <li>
-            <div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg></div>
+            <div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></div>
             <div>
               <div class="why-item-title">Microsoft AI Platform Certified</div>
               <div class="why-item-desc">Our team holds certifications in Copilot Studio, Azure AI Foundry, and Microsoft 365, with production delivery experience building AI agents and generative AI applications on the Microsoft stack across healthcare, education, and enterprise environments.</div>
             </div>
           </li>
           <li>
-            <div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"></path><path d="m9 12 2 2 4-4"></path></svg></div>
+            <div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg></div>
             <div>
               <div class="why-item-title">Governance Is Not Optional for Us Either</div>
               <div class="why-item-desc">Every solution Armely deploys includes Microsoft Purview integration, permission scoping, audit logging, and a documented governance framework. We do not ship an AI solution that we would not be comfortable presenting to a compliance auditor ourselves.</div>
             </div>
           </li>
           <li>
-            <div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></div>
+            <div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></div>
             <div>
               <div class="why-item-title">Your Data Stays in Your Environment</div>
               <div class="why-item-desc">We build on the Microsoft AI stack because it processes your data inside your Microsoft 365 tenant with your existing security controls applied. Your data does not pass through third-party AI services without your explicit knowledge and consent.</div>
             </div>
           </li>
           <li>
-            <div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m3 17 6-6 4 4 8-8"></path><path d="M14 7h7v7"></path></svg></div>
+            <div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 17 6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg></div>
             <div>
               <div class="why-item-title">Measured Against Business Outcomes</div>
               <div class="why-item-desc">We define success criteria before we build, not after. Every AI engagement includes a measurement framework so you can demonstrate the value of your investment to leadership with verifiable evidence rather than anecdote.</div>
@@ -1291,4 +1319,17 @@
 </section>
 
 <!-- FOOTER -->
+<footer>
+  <div class="footer-logo-row">
+    <div class="footer-lm">A</div>
+    <span class="footer-lt">armely</span>
+  </div>
+  <div class="footer-note">&#169; 2026 Armely &middot; www.armely.com &middot; Your Trusted Source for Digital Excellence</div>
+  <div class="footer-badges">
+    <span class="badge-chip">Microsoft CSP Partner</span>
+    <span class="badge-chip">Azure AI Certified</span>
+    <span class="badge-chip">Microsoft Authorized Reseller</span>
+  </div>
+</footer>
+
 </div>
