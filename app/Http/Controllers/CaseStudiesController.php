@@ -78,6 +78,7 @@ class CaseStudiesController extends Controller
         $caseStudy->technology_label = $this->topicFilters()[$caseStudy->technology_filters[0] ?? ''] ?? 'Microsoft Platform';
         $caseStudy->results = $this->caseStudyResults($caseStudy);
         $caseStudy->services = $this->caseStudyServices($caseStudy);
+        $caseStudy->hero_copy = $this->caseStudyHeroCopy($caseStudy);
 
         return view('case-studies.show', [
             'caseStudy' => $caseStudy,
@@ -549,6 +550,28 @@ class CaseStudiesController extends Controller
         return Str::limit(
             $title . ' challenge, solution, and quantified results. Armely used ' . $technologyLabel . ' to deliver ' . Str::lower($outcome) . '.',
             160,
+            ''
+        );
+    }
+
+    private function caseStudyHeroCopy(object $caseStudy): string
+    {
+        $title = $this->caseStudyDisplayTitle($caseStudy);
+        $technologyLabel = $this->topicFilters()[$this->inferTechnologyFilters($caseStudy)[0] ?? ''] ?? 'Microsoft Platform';
+        $outcome = $this->caseStudyResults($caseStudy)[0] ?? 'measurable business outcomes';
+        $summary = $this->makePreviewText((string) ($caseStudy->body ?? ''), 130);
+
+        if ($summary !== '') {
+            return Str::limit(
+                $title . ' preview: ' . $summary . ' Armely used ' . $technologyLabel . ' to deliver ' . Str::lower($outcome) . '.',
+                170,
+                ''
+            );
+        }
+
+        return Str::limit(
+            'Preview how ' . $title . ' uses ' . $technologyLabel . ' to deliver ' . Str::lower($outcome) . ' before requesting the full PDF.',
+            170,
             ''
         );
     }
