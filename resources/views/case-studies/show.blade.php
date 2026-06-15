@@ -478,7 +478,7 @@
 					</div>
 					<div class="case-hero-card-body">
 						<div class="case-hero-card-title">{{ $caseStudy->technology_label ?? 'Microsoft Platform' }}</div>
-						<p class="case-hero-card-copy">Preview the challenge, the Armely solution approach, and the measurable results before requesting the full PDF.</p>
+						<p class="case-hero-card-copy">{{ $caseStudy->hero_copy }}</p>
 					</div>
 				</aside>
 			</div>
