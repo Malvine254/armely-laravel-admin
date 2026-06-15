@@ -1,4 +1,5 @@
-﻿<style>
+<style>
+
 
 .armely-dynamics365-page *, .armely-dynamics365-page *::before, .armely-dynamics365-page *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -18,15 +19,8 @@
 .armely-dynamics365-page { scroll-behavior: smooth; }
 .armely-dynamics365-page { font-family: 'Poppins', sans-serif; background: var(--navy); color: var(--text-body); line-height: 1.6; }
 
-  /* ── NAV ── */
-.armely-dynamics365-page nav {
-    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 18px 56px;
-    background: rgba(26,46,82,0.96);
-    backdrop-filter: blur(14px);
-    border-bottom: 1px solid rgba(255,255,255,0.08);
-  }
+  /* NAV */
+.armely-dynamics365-page nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; padding: 18px 56px; background: rgba(26,46,82,0.96); backdrop-filter: blur(14px); border-bottom: 1px solid rgba(255,255,255,0.08); }
 .armely-dynamics365-page .logo { display: flex; align-items: center; gap: 10px; }
 .armely-dynamics365-page .logo-mark { width: 36px; height: 36px; background: var(--blue); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1rem; color: #fff; }
 .armely-dynamics365-page .logo-text { font-size: 1.25rem; font-weight: 700; color: #fff; letter-spacing: -0.01em; }
@@ -36,21 +30,15 @@
 .armely-dynamics365-page .nav-cta { background: var(--blue); color: #fff !important; padding: 10px 22px; border-radius: 6px; font-size: 0.875rem; font-weight: 600 !important; transition: background 0.2s !important; }
 .armely-dynamics365-page .nav-cta:hover { background: var(--blue-lt) !important; }
 
-  /* ── HERO ── */
-.armely-dynamics365-page .hero {
-    min-height: 100vh;
-    display: flex; flex-direction: column; justify-content: center;
-    padding: 140px 56px 100px;
-    position: relative; overflow: hidden;
-    background: #1a2e52;
-  }
+  /* HERO */
+.armely-dynamics365-page .hero { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; padding: 140px 56px 100px; position: relative; overflow: hidden; background: #1a2e52; }
 .armely-dynamics365-page .hero-bg-glow { position: absolute; top: -180px; right: -100px; width: 720px; height: 720px; background: radial-gradient(circle, rgba(41,78,139,0.2) 0%, transparent 68%); pointer-events: none; }
 .armely-dynamics365-page .hero-eyebrow { display: inline-flex; align-items: center; gap: 10px; margin-bottom: 24px; }
 .armely-dynamics365-page .eyebrow-badge { background: rgba(41,78,139,0.35); border: 1px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.9); font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.12em; padding: 5px 14px; border-radius: 40px; }
 .armely-dynamics365-page .eyebrow-partner { font-size: 0.78rem; color: rgba(255,255,255,0.5); font-weight: 400; }
-.armely-dynamics365-page .hero h1 { font-size: clamp(2.6rem, 5.5vw, 4.8rem); font-weight: 800; line-height: 1.08; color: #FFFFFF; max-width: 780px; margin-bottom: 24px; letter-spacing: -0.03em; }
+.armely-dynamics365-page .hero h1 { font-size: clamp(2.6rem, 5.5vw, 4.8rem); font-weight: 800; line-height: 1.08; color: #FFFFFF; max-width: 820px; margin-bottom: 24px; letter-spacing: -0.03em; }
 .armely-dynamics365-page .hero h1 .hl { color: #FFFFFF; opacity: 0.92; }
-.armely-dynamics365-page .hero-sub { font-size: 1.05rem; font-weight: 300; color: rgba(255,255,255,0.82); max-width: 560px; margin-bottom: 40px; line-height: 1.8; }
+.armely-dynamics365-page .hero-sub { font-size: 1.05rem; font-weight: 300; color: rgba(255,255,255,0.82); max-width: 580px; margin-bottom: 40px; line-height: 1.8; }
 .armely-dynamics365-page .hero-actions { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 72px; }
 .armely-dynamics365-page .btn-primary { background: var(--blue); color: #fff; border: none; border-radius: 7px; padding: 14px 32px; font-family: 'Poppins', sans-serif; font-size: 0.95rem; font-weight: 600; cursor: pointer; text-decoration: none; transition: background 0.2s, transform 0.15s; display: inline-block; }
 .armely-dynamics365-page .btn-primary:hover { background: var(--blue-lt); transform: translateY(-2px); }
@@ -62,61 +50,77 @@
 .armely-dynamics365-page .trust-text { font-size: 0.82rem; color: rgba(255,255,255,0.6); font-weight: 400; }
 .armely-dynamics365-page .trust-text strong { color: #fff; font-weight: 600; }
 
-  /* ── SECTIONS ── */
+  /* SECTIONS */
 .armely-dynamics365-page section { padding: 96px 56px; }
 .armely-dynamics365-page .section-inner { max-width: 1100px; margin: 0 auto; }
 .armely-dynamics365-page .section-eyebrow { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.14em; color: var(--blue); margin-bottom: 14px; font-weight: 600; }
-.armely-dynamics365-page .section-title { font-size: clamp(1.7rem, 3.2vw, 2.6rem); font-weight: 800; color: #1A2540; line-height: 1.12; letter-spacing: -0.025em; margin-bottom: 18px; max-width: 620px; }
-.armely-dynamics365-page .section-body { font-size: 0.975rem; font-weight: 300; max-width: 540px; line-height: 1.8; color: var(--text-body); margin-bottom: 48px; }
+.armely-dynamics365-page .section-title { font-size: clamp(1.7rem, 3.2vw, 2.6rem); font-weight: 800; color: #1A2540; line-height: 1.12; letter-spacing: -0.025em; margin-bottom: 18px; max-width: 640px; }
+.armely-dynamics365-page .section-body { font-size: 0.975rem; font-weight: 300; max-width: 560px; line-height: 1.8; color: var(--text-body); margin-bottom: 48px; }
 
-  /* ── MODULES ── */
-.armely-dynamics365-page .modules { background: var(--navy-mid); }
-.armely-dynamics365-page .modules-intro { display: grid; grid-template-columns: 1fr 1fr; gap: 72px; align-items: start; }
+  /* AI SPECTRUM */
+.armely-dynamics365-page .spectrum { background: var(--navy-mid); }
+.armely-dynamics365-page .spectrum-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 72px; align-items: start; }
+.armely-dynamics365-page .spectrum-row { display: flex; flex-direction: column; gap: 10px; margin-top: 32px; }
+.armely-dynamics365-page .spectrum-level { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; display: flex; align-items: flex-start; gap: 14px; transition: border-color 0.2s; }
+.armely-dynamics365-page .spectrum-level:hover { border-color: rgba(41,78,139,0.3); }
+.armely-dynamics365-page .spectrum-level.highlight { background: var(--blue-dim); border-color: var(--blue-dim2); }
+.armely-dynamics365-page .spectrum-num { font-size: 0.68rem; font-weight: 800; color: var(--blue); background: var(--blue-dim2); border-radius: 4px; padding: 2px 7px; flex-shrink: 0; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.08em; }
+.armely-dynamics365-page .spectrum-content-title { font-size: 0.875rem; font-weight: 700; color: #1A2540; margin-bottom: 3px; }
+.armely-dynamics365-page .spectrum-content-desc { font-size: 0.77rem; color: var(--text-muted); line-height: 1.5; }
 
-.armely-dynamics365-page .module-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 32px; }
-.armely-dynamics365-page .module-tab {
-    background: #fff; border: 1px solid var(--border); border-radius: 10px;
-    padding: 14px 16px; cursor: pointer;
-    display: flex; align-items: flex-start; gap: 12px;
-    transition: border-color 0.2s, background 0.2s;
-  }
-.armely-dynamics365-page .module-tab:hover { border-color: rgba(41,78,139,0.3); background: var(--blue-dim); }
-.armely-dynamics365-page .module-tab-icon { font-size: 1.1rem; flex-shrink: 0; width: 34px; height: 34px; background: var(--blue-dim); border: 1px solid var(--blue-dim2); border-radius: 7px; display: flex; align-items: center; justify-content: center; }
-.armely-dynamics365-page .module-tab-content {}
-.armely-dynamics365-page .module-tab-title { font-size: 0.82rem; font-weight: 700; color: #1A2540; margin-bottom: 2px; }
-.armely-dynamics365-page .module-tab-desc { font-size: 0.73rem; color: var(--text-muted); line-height: 1.4; }
+  /* Platform visual */
+.armely-dynamics365-page .platform-card { background: #fff; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; box-shadow: 0 4px 24px rgba(41,78,139,0.07); }
+.armely-dynamics365-page .platform-header { padding: 16px 22px; border-bottom: 1px solid var(--border); background: var(--navy-mid); display: flex; align-items: center; gap: 10px; }
+.armely-dynamics365-page .platform-dots { display: flex; gap: 6px; }
+.armely-dynamics365-page .platform-dots span { width: 10px; height: 10px; border-radius: 50%; background: rgba(41,78,139,0.15); }
+.armely-dynamics365-page .platform-header-title { font-size: 0.78rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; }
+.armely-dynamics365-page .platform-body { padding: 20px; display: flex; flex-direction: column; gap: 8px; }
+.armely-dynamics365-page .plat-band { border-radius: 9px; padding: 13px 16px; }
+.armely-dynamics365-page .plat-band-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px; }
+.armely-dynamics365-page .plat-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.armely-dynamics365-page .plat-chip { font-size: 0.72rem; font-weight: 600; padding: 4px 10px; border-radius: 20px; }
+.armely-dynamics365-page .band-tools { background: var(--blue-dim); }
+.armely-dynamics365-page .band-tools .plat-band-label { color: var(--blue); }
+.armely-dynamics365-page .band-tools .plat-chip { background: var(--blue-dim2); color: var(--blue); }
+.armely-dynamics365-page .band-data { background: rgba(41,78,139,0.05); }
+.armely-dynamics365-page .band-data .plat-band-label { color: var(--blue); }
+.armely-dynamics365-page .band-data .plat-chip { background: rgba(41,78,139,0.1); color: var(--blue); }
+.armely-dynamics365-page .band-gov { background: var(--blue); }
+.armely-dynamics365-page .band-gov .plat-band-label { color: rgba(255,255,255,0.7); }
+.armely-dynamics365-page .band-gov .plat-chip { background: rgba(255,255,255,0.15); color: #fff; }
+.armely-dynamics365-page .band-arrow { text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 2px 0; }
 
-  /* CRM / ERP visual */
-.armely-dynamics365-page .platform-visual { display: flex; flex-direction: column; gap: 12px; }
-.armely-dynamics365-page .platform-band {
-    border-radius: 12px; padding: 20px 22px;
-    border: 1px solid var(--border);
-  }
-.armely-dynamics365-page .band-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 10px; }
-.armely-dynamics365-page .band-chips { display: flex; flex-wrap: wrap; gap: 7px; }
-.armely-dynamics365-page .band-chip { font-size: 0.75rem; font-weight: 600; padding: 5px 12px; border-radius: 20px; }
-.armely-dynamics365-page .band-crm { background: var(--blue-dim); }
-.armely-dynamics365-page .band-crm .band-label { color: var(--blue); }
-.armely-dynamics365-page .band-crm .band-chip { background: var(--blue-dim2); color: var(--blue); }
-.armely-dynamics365-page .band-erp { background: rgba(41,78,139,0.05); }
-.armely-dynamics365-page .band-erp .band-label { color: var(--blue); }
-.armely-dynamics365-page .band-erp .band-chip { background: rgba(41,78,139,0.1); color: var(--blue); }
-.armely-dynamics365-page .band-foundation { background: var(--blue); }
-.armely-dynamics365-page .band-foundation .band-label { color: rgba(255,255,255,0.7); }
-.armely-dynamics365-page .band-foundation .band-chip { background: rgba(255,255,255,0.15); color: #fff; }
-.armely-dynamics365-page .band-connector { text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 2px 0; }
+  /* VIBE CODING CALLOUT */
+.armely-dynamics365-page .vibe-section { background: var(--navy); }
+.armely-dynamics365-page .vibe-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: start; }
+.armely-dynamics365-page .vibe-left { }
+.armely-dynamics365-page .vibe-card { background: var(--navy-card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+.armely-dynamics365-page .vibe-card-header { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
+.armely-dynamics365-page .vibe-card-icon { font-size: 1.4rem; }
+.armely-dynamics365-page .vibe-card-title { font-size: 1rem; font-weight: 700; color: #1A2540; }
+.armely-dynamics365-page .vibe-card-subtitle { font-size: 0.78rem; color: var(--text-muted); }
+.armely-dynamics365-page .vibe-card-body { padding: 24px; }
+.armely-dynamics365-page .vibe-risk { display: flex; align-items: flex-start; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--border); }
+.armely-dynamics365-page .vibe-risk:last-child { border-bottom: none; }
+.armely-dynamics365-page .vibe-risk-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+.armely-dynamics365-page .vibe-risk-title { font-size: 0.82rem; font-weight: 700; color: #1A2540; margin-bottom: 2px; }
+.armely-dynamics365-page .vibe-risk-desc { font-size: 0.77rem; color: var(--text-muted); line-height: 1.5; }
+.armely-dynamics365-page .vibe-right { }
+.armely-dynamics365-page .vibe-answer-card { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 28px; margin-bottom: 12px; }
+.armely-dynamics365-page .vibe-answer-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: var(--blue); margin-bottom: 10px; }
+.armely-dynamics365-page .vibe-answer-text { font-size: 0.875rem; color: var(--text-body); line-height: 1.75; }
 
-  /* ── DELIVERS ── */
-.armely-dynamics365-page .delivers { background: var(--navy); }
+  /* DELIVERS */
+.armely-dynamics365-page .delivers { background: var(--navy-mid); }
 .armely-dynamics365-page .delivers-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 48px; }
-.armely-dynamics365-page .deliver-card { background: var(--navy-card); border: 1px solid var(--border); border-radius: 14px; padding: 32px 26px; transition: border-color 0.2s, transform 0.2s; }
+.armely-dynamics365-page .deliver-card { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 32px 26px; transition: border-color 0.2s, transform 0.2s; }
 .armely-dynamics365-page .deliver-card:hover { border-color: rgba(41,78,139,0.35); transform: translateY(-3px); }
 .armely-dynamics365-page .deliver-icon { width: 48px; height: 48px; background: var(--blue-dim); border: 1px solid var(--blue-dim2); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; margin-bottom: 20px; }
 .armely-dynamics365-page .deliver-title { font-size: 1rem; font-weight: 700; color: #1A2540; margin-bottom: 10px; }
 .armely-dynamics365-page .deliver-desc { font-size: 0.875rem; line-height: 1.7; color: var(--text-body); }
 
-  /* ── JOURNEY ── */
-.armely-dynamics365-page .journey { background: var(--navy-mid); }
+  /* JOURNEY */
+.armely-dynamics365-page .journey { background: var(--navy); }
 .armely-dynamics365-page .steps-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; margin-top: 56px; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
 .armely-dynamics365-page .step { padding: 32px 22px; border-right: 1px solid var(--border); }
 .armely-dynamics365-page .step:last-child { border-right: none; }
@@ -125,16 +129,28 @@
 .armely-dynamics365-page .step-desc { font-size: 0.82rem; line-height: 1.65; color: var(--text-body); }
 .armely-dynamics365-page .step-tag { display: inline-block; margin-top: 14px; background: var(--blue-dim); color: var(--blue); font-size: 0.7rem; padding: 3px 10px; border-radius: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
 
-  /* ── USE CASES ── */
-.armely-dynamics365-page .usecases { background: var(--navy); }
+  /* USE CASES */
+.armely-dynamics365-page .usecases { background: var(--navy-mid); }
 .armely-dynamics365-page .uc-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 48px; }
-.armely-dynamics365-page .uc-card { background: var(--navy-card); border: 1px solid var(--border); border-radius: 12px; padding: 28px 24px; transition: border-color 0.2s; }
+.armely-dynamics365-page .uc-card { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 28px 24px; transition: border-color 0.2s; }
 .armely-dynamics365-page .uc-card:hover { border-color: rgba(41,78,139,0.25); }
 .armely-dynamics365-page .uc-icon { font-size: 1.6rem; margin-bottom: 14px; display: block; }
 .armely-dynamics365-page .uc-title { font-size: 0.95rem; font-weight: 700; color: #1A2540; margin-bottom: 8px; }
 .armely-dynamics365-page .uc-desc { font-size: 0.85rem; line-height: 1.68; color: var(--text-body); }
 
-  /* ── WHY ARMELY ── */
+  /* TESTIMONIALS */
+.armely-dynamics365-page .testimonials { background: var(--navy); padding: 96px 56px; }
+.armely-dynamics365-page .testi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 48px; }
+.armely-dynamics365-page .testi-card { background: var(--navy-card); border: 1px solid var(--border); border-radius: 14px; padding: 32px 28px; display: flex; flex-direction: column; }
+.armely-dynamics365-page .testi-quote { font-size: 3.5rem; line-height: 0.9; color: var(--blue); opacity: 0.15; font-family: Georgia, serif; margin-bottom: 8px; display: block; }
+.armely-dynamics365-page .testi-body { font-size: 0.875rem; line-height: 1.8; color: var(--text-body); flex: 1; margin-bottom: 24px; font-style: italic; }
+.armely-dynamics365-page .testi-footer { display: flex; align-items: center; gap: 14px; }
+.armely-dynamics365-page .testi-avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--blue); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; flex-shrink: 0; letter-spacing: 0.02em; }
+.armely-dynamics365-page .testi-name { font-size: 0.875rem; font-weight: 700; color: #1A2540; }
+.armely-dynamics365-page .testi-role { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
+.armely-dynamics365-page .testi-stars { color: var(--blue); font-size: 0.72rem; letter-spacing: 1px; margin-bottom: 3px; }
+
+  /* WHY ARMELY */
 .armely-dynamics365-page .why { background: var(--navy-mid); }
 .armely-dynamics365-page .why-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 72px; align-items: start; }
 .armely-dynamics365-page .why-list { list-style: none; margin-top: 36px; }
@@ -156,7 +172,7 @@
 .armely-dynamics365-page .p-stat-num span { color: var(--blue); }
 .armely-dynamics365-page .p-stat-label { font-size: 0.75rem; color: var(--text-muted); line-height: 1.4; }
 
-  /* ── CTA ── */
+  /* CTA */
 .armely-dynamics365-page .cta-section { background: var(--navy-card); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
 .armely-dynamics365-page .cta-inner { max-width: 1100px; margin: 0 auto; padding: 96px 56px; display: grid; grid-template-columns: 1fr 1fr; gap: 72px; align-items: center; }
 .armely-dynamics365-page .cta-form { background: #FFFFFF; border: 1px solid var(--border); border-radius: 14px; padding: 36px 32px; box-shadow: 0 4px 24px rgba(41,78,139,0.08); }
@@ -171,7 +187,7 @@
 .armely-dynamics365-page .form-submit:hover { background: var(--blue-lt); }
 .armely-dynamics365-page .form-note { text-align: center; margin-top: 12px; font-size: 0.75rem; color: var(--text-muted); }
 
-  /* ── FOOTER ── */
+  /* FOOTER */
 .armely-dynamics365-page footer { background: #1a2e52; border-top: 1px solid rgba(255,255,255,0.08); padding: 36px 56px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
 .armely-dynamics365-page .footer-logo-row { display: flex; align-items: center; gap: 10px; }
 .armely-dynamics365-page .footer-lm { width: 30px; height: 30px; background: var(--blue); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.85rem; color: #fff; }
@@ -180,41 +196,28 @@
 .armely-dynamics365-page .footer-badges { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
 .armely-dynamics365-page .badge-chip { border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; padding: 5px 12px; font-size: 0.72rem; color: rgba(255,255,255,0.5); font-weight: 500; }
 
-  /* ── RESPONSIVE ── */
+  /* RESPONSIVE */
   @media (max-width: 900px) {
 .armely-dynamics365-page nav { padding: 16px 24px; }
 .armely-dynamics365-page .nav-links { display: none; }
 .armely-dynamics365-page section { padding: 72px 24px; }
 .armely-dynamics365-page .hero { padding: 110px 24px 72px; }
-.armely-dynamics365-page .modules-intro, .armely-dynamics365-page .why-two-col { grid-template-columns: 1fr; gap: 40px; }
+.armely-dynamics365-page .spectrum-grid, .armely-dynamics365-page .vibe-two-col, .armely-dynamics365-page .why-two-col { grid-template-columns: 1fr; gap: 40px; }
 .armely-dynamics365-page .delivers-grid, .armely-dynamics365-page .uc-grid { grid-template-columns: 1fr 1fr; }
 .armely-dynamics365-page .steps-row { grid-template-columns: 1fr; }
 .armely-dynamics365-page .step { border-right: none; border-bottom: 1px solid var(--border); }
 .armely-dynamics365-page .step:last-child { border-bottom: none; }
 .armely-dynamics365-page .cta-inner { grid-template-columns: 1fr; gap: 40px; padding: 72px 24px; }
+.armely-dynamics365-page .testimonials { padding: 72px 24px; }
+.armely-dynamics365-page .testi-grid { grid-template-columns: 1fr; }
 .armely-dynamics365-page footer { padding: 32px 24px; flex-direction: column; align-items: flex-start; }
   }
   @media (max-width: 600px) {
 .armely-dynamics365-page .delivers-grid, .armely-dynamics365-page .uc-grid { grid-template-columns: 1fr; }
 .armely-dynamics365-page .partner-stats { grid-template-columns: 1fr; }
 .armely-dynamics365-page .hero-trust { gap: 20px; }
-.armely-dynamics365-page .module-tabs { grid-template-columns: 1fr; }
-.armely-dynamics365-page .module-tab[style*="grid-column"] { grid-column: auto; }
   }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
-
-  /* ── TESTIMONIALS ── */
-.armely-dynamics365-page .testimonials { background: var(--navy-mid); padding: 96px 56px; }
-.armely-dynamics365-page .testi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 48px; }
-.armely-dynamics365-page .testi-card { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 32px 28px; display: flex; flex-direction: column; }
-.armely-dynamics365-page .testi-quote { font-size: 3.5rem; line-height: 0.9; color: var(--blue); opacity: 0.15; font-family: Georgia, serif; margin-bottom: 8px; display: block; }
-.armely-dynamics365-page .testi-body { font-size: 0.875rem; line-height: 1.8; color: var(--text-body); flex: 1; margin-bottom: 24px; font-style: italic; }
-.armely-dynamics365-page .testi-footer { display: flex; align-items: center; gap: 14px; }
-.armely-dynamics365-page .testi-avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--blue); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; flex-shrink: 0; letter-spacing: 0.02em; }
-.armely-dynamics365-page .testi-name { font-size: 0.875rem; font-weight: 700; color: #1A2540; }
-.armely-dynamics365-page .testi-role { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
-.armely-dynamics365-page .testi-stars { color: var(--blue); font-size: 0.72rem; letter-spacing: 1px; margin-bottom: 3px; }
-  @media (max-width: 900px) { .testimonials { padding: 72px 24px; } .testi-grid { grid-template-columns: 1fr; } }
 
 /* Armely service-page polish */
 .armely-dynamics365-page {
@@ -230,198 +233,19 @@
   --border: rgba(47, 85, 151, 0.14);
 }
 .armely-dynamics365-page .hero {
-  min-height: calc(100vh - 1px);
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(360px, 520px);
-  align-items: center;
-  gap: clamp(36px, 6vw, 88px);
-  padding: 132px clamp(24px, 5vw, 72px) 96px;
-  background:
-    linear-gradient(90deg, rgba(255,255,255,0.045) 1px, transparent 1px) 0 0 / 72px 72px,
-    linear-gradient(0deg, rgba(255,255,255,0.04) 1px, transparent 1px) 0 0 / 72px 72px,
-    linear-gradient(135deg, #102848 0%, #173b67 42%, #2f5597 100%);
-  border-radius: 0;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #173b67 0%, #2f5597 58%, #4f86c6 100%);
 }
 .armely-dynamics365-page .hero::after {
   content: '';
   position: absolute;
-  inset: 0 0 auto auto;
-  width: 42%;
-  height: 100%;
-  background: linear-gradient(135deg, transparent 0%, rgba(255,255,255,0.08) 50%, transparent 50.2%);
-  opacity: 0.85;
+  inset: auto 8% 8% auto;
+  width: min(340px, 48vw);
+  height: min(340px, 48vw);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.10);
+  filter: blur(2px);
   pointer-events: none;
-}
-.armely-dynamics365-page .hero-bg-glow {
-  inset: 0 auto 0 0;
-  width: 44%;
-  height: 100%;
-  background: linear-gradient(90deg, rgba(79, 134, 198, 0.22), transparent);
-}
-.armely-dynamics365-page .hero-copy,
-.armely-dynamics365-page .hero-system {
-  position: relative;
-  z-index: 1;
-}
-.armely-dynamics365-page .hero h1 {
-  max-width: 760px;
-}
-.armely-dynamics365-page .hero-sub {
-  max-width: 620px;
-}
-.armely-dynamics365-page .hero-actions {
-  margin-bottom: 52px;
-}
-.armely-dynamics365-page .hero-trust {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(210px, 1fr));
-  gap: 16px 24px;
-  max-width: 700px;
-  margin: 0;
-  padding-top: 32px;
-}
-.armely-dynamics365-page .hero-system {
-  align-self: stretch;
-  display: flex;
-  align-items: center;
-}
-.armely-dynamics365-page .platform-visual {
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  box-shadow: 0 16px 42px rgba(18, 47, 82, 0.08);
-  padding: 20px;
-}
-.armely-dynamics365-page .platform-visual::before {
-  content: 'Dynamics 365 Connected Platform';
-  display: block;
-  padding: 0 2px 16px;
-  color: var(--text-muted);
-  font-size: 0.78rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-.armely-dynamics365-page .platform-band {
-  border-radius: 10px;
-  padding: 18px 20px;
-}
-.armely-dynamics365-page .band-connector {
-  color: var(--blue);
-  font-weight: 800;
-}
-.armely-dynamics365-page .hero {
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 430px);
-  gap: clamp(44px, 7vw, 96px);
-  min-height: 82vh;
-  padding: 126px clamp(24px, 5vw, 72px) 92px;
-  background:
-    linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px) 0 0 / 88px 88px,
-    linear-gradient(135deg, #102848 0%, #173b67 52%, #2f5597 100%);
-}
-.armely-dynamics365-page .hero::after {
-  width: 34%;
-  background: linear-gradient(135deg, transparent 0%, rgba(255,255,255,0.06) 50%, transparent 50.2%);
-}
-.armely-dynamics365-page .hero-bg-glow {
-  display: none;
-}
-.armely-dynamics365-page .hero-eyebrow {
-  gap: 0;
-}
-.armely-dynamics365-page .eyebrow-partner {
-  display: none;
-}
-.armely-dynamics365-page .hero h1 {
-  max-width: 780px;
-  font-size: clamp(2.55rem, 5.1vw, 4.55rem);
-}
-.armely-dynamics365-page .hero-sub {
-  max-width: 585px;
-  margin-bottom: 34px;
-}
-.armely-dynamics365-page .hero-actions {
-  margin-bottom: 42px;
-}
-.armely-dynamics365-page .hero-trust {
-  display: flex;
-  max-width: 680px;
-  gap: 18px 30px;
-  padding-top: 28px;
-}
-.armely-dynamics365-page .hero-trust .trust-item {
-  max-width: 210px;
-}
-.armely-dynamics365-page .hero-trust .trust-text {
-  color: rgba(255,255,255,0.72);
-}
-.armely-dynamics365-page .solution-card {
-  position: relative;
-  z-index: 1;
-  width: 100%;
-  background: rgba(255,255,255,0.97);
-  border: 1px solid rgba(255,255,255,0.42);
-  border-radius: 14px;
-  box-shadow: 0 26px 70px rgba(5, 18, 36, 0.28);
-  overflow: hidden;
-}
-.armely-dynamics365-page .solution-card-header {
-  padding: 18px 20px;
-  border-bottom: 1px solid var(--border);
-  background: #f5f8fc;
-}
-.armely-dynamics365-page .solution-card-kicker {
-  color: var(--blue);
-  font-size: 0.68rem;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  margin-bottom: 6px;
-}
-.armely-dynamics365-page .solution-card-title {
-  color: #162b49;
-  font-size: 1.05rem;
-  font-weight: 800;
-  line-height: 1.35;
-}
-.armely-dynamics365-page .solution-card-body {
-  padding: 20px;
-}
-.armely-dynamics365-page .solution-flow {
-  display: grid;
-  gap: 10px;
-}
-.armely-dynamics365-page .solution-flow-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 14px 16px;
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-}
-.armely-dynamics365-page .solution-flow-item strong {
-  color: #162b49;
-  font-size: 0.88rem;
-}
-.armely-dynamics365-page .solution-flow-item span {
-  color: var(--text-muted);
-  font-size: 0.76rem;
-  font-weight: 600;
-}
-.armely-dynamics365-page .solution-divider {
-  height: 1px;
-  margin: 18px 0;
-  background: var(--border);
-}
-.armely-dynamics365-page .solution-note {
-  color: var(--text-body);
-  font-size: 0.86rem;
-  line-height: 1.65;
-}
-.armely-dynamics365-page .solution-note strong {
-  color: var(--blue);
 }
 .armely-dynamics365-page .section-title,
 .armely-dynamics365-page .deliver-title,
@@ -434,6 +258,7 @@
 .armely-dynamics365-page .deliver-card,
 .armely-dynamics365-page .uc-card,
 .armely-dynamics365-page .testi-card,
+.armely-dynamics365-page .platform-card,
 .armely-dynamics365-page .partner-block,
 .armely-dynamics365-page .cta-form {
   box-shadow: 0 16px 42px rgba(18, 47, 82, 0.08);
@@ -454,99 +279,581 @@
 .armely-dynamics365-page .btn-outline:hover {
   background: rgba(255,255,255,0.11);
 }
-.armely-dynamics365-page .cta-form .form-row {
-  display: block;
-}
-.armely-dynamics365-page .cta-form .form-row label {
-  display: block;
-}
-.armely-dynamics365-page .cta-form .form-row input,
-.armely-dynamics365-page .cta-form .form-row select {
-  display: block;
-  width: 100%;
-  min-height: 52px;
-}
-.armely-dynamics365-page .cta-form .form-row .nice-select {
-  display: block;
-  float: none;
-  width: 100%;
-  min-height: 52px;
-  line-height: 50px;
-}
-.armely-dynamics365-page .cta-form .form-row .nice-select .list {
-  width: 100%;
-}
 .armely-dynamics365-page nav,
 .armely-dynamics365-page footer {
   display: none;
 }
+
+
+/* Modern layout update: tighter first section and SVG icon system */
+.armely-dynamics365-page .hero {
+  min-height: auto;
+  padding: 128px 32px 86px;
+  isolation: isolate;
+}
+.armely-dynamics365-page .hero-inner {
+  width: min(1160px, 100%);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.75fr);
+  align-items: center;
+  gap: 56px;
+  position: relative;
+  z-index: 1;
+}
+.armely-dynamics365-page .hero-copy { max-width: 760px; }
+.armely-dynamics365-page .hero h1 { max-width: 760px; margin-bottom: 20px; }
+.armely-dynamics365-page .hero-sub { max-width: 640px; margin-bottom: 30px; font-size: 1.02rem; line-height: 1.72; }
+.armely-dynamics365-page .hero-actions { margin-bottom: 34px; }
+.armely-dynamics365-page .hero-trust {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding-top: 0;
+  border-top: 0;
+  max-width: 720px;
+}
+.armely-dynamics365-page .hero .trust-item {
+  align-items: flex-start;
+  background: rgba(255,255,255,0.10);
+  border: 1px solid rgba(255,255,255,0.16);
+  border-radius: 14px;
+  padding: 14px 15px;
+  backdrop-filter: blur(10px);
+}
+.armely-dynamics365-page .hero .trust-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.16);
+  border: 1px solid rgba(255,255,255,0.24);
+  position: relative;
+  margin-top: 1px;
+}
+.armely-dynamics365-page .hero .trust-dot::after {
+  content: '';
+  position: absolute;
+  left: 7px;
+  top: 5px;
+  width: 6px;
+  height: 10px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+.armely-dynamics365-page .hero .trust-text { color: rgba(255,255,255,0.78); line-height: 1.5; }
+.armely-dynamics365-page .hero-visual {
+  min-height: 420px;
+  border-radius: 28px;
+  position: relative;
+  background: linear-gradient(145deg, rgba(255,255,255,0.16), rgba(255,255,255,0.05));
+  border: 1px solid rgba(255,255,255,0.18);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.18), 0 28px 70px rgba(6, 22, 48, 0.24);
+  overflow: hidden;
+}
+.armely-dynamics365-page .hero-visual::before {
+  content: '';
+  position: absolute;
+  inset: 36px;
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 999px;
+}
+.armely-dynamics365-page .hero-visual::after {
+  content: '';
+  position: absolute;
+  width: 190px;
+  height: 190px;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(255,255,255,0.24), rgba(255,255,255,0.06));
+  border: 1px solid rgba(255,255,255,0.22);
+}
+.armely-dynamics365-page .hero-orbit span {
+  position: absolute;
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.14);
+  border: 1px solid rgba(255,255,255,0.22);
+}
+.armely-dynamics365-page .hero-orbit span:nth-child(1) { left: 56px; top: 88px; }
+.armely-dynamics365-page .hero-orbit span:nth-child(2) { right: 72px; top: 138px; }
+.armely-dynamics365-page .hero-orbit span:nth-child(3) { left: 48%; bottom: 76px; }
+.armely-dynamics365-page .hero-visual-card {
+  position: absolute;
+  z-index: 2;
+  width: 230px;
+  padding: 18px;
+  border-radius: 18px;
+  background: rgba(255,255,255,0.92);
+  box-shadow: 0 24px 54px rgba(9, 31, 63, 0.22);
+}
+.armely-dynamics365-page .hero-visual-card.top { top: 42px; right: 30px; }
+.armely-dynamics365-page .hero-visual-card.bottom { bottom: 46px; left: 30px; }
+.armely-dynamics365-page .hero-visual-label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #162b49;
+  margin-bottom: 12px;
+}
+.armely-dynamics365-page .hero-visual-line {
+  display: block;
+  height: 8px;
+  width: 100%;
+  border-radius: 999px;
+  background: rgba(47, 85, 151, 0.16);
+  margin-top: 8px;
+}
+.armely-dynamics365-page .hero-visual-line.short { width: 68%; }
+.armely-dynamics365-page .icon-svg {
+  width: 22px;
+  height: 22px;
+  display: block;
+  color: var(--blue);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.armely-dynamics365-page .vibe-card-icon,
+.armely-dynamics365-page .vibe-risk-icon,
+.armely-dynamics365-page .deliver-icon,
+.armely-dynamics365-page .uc-icon,
+.armely-dynamics365-page .why-icon {
+  color: var(--blue);
+}
+.armely-dynamics365-page .vibe-card-icon,
+.armely-dynamics365-page .vibe-risk-icon {
+  width: 42px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: var(--blue-dim);
+  border: 1px solid var(--blue-dim2);
+}
+.armely-dynamics365-page .vibe-risk-icon { width: 36px; height: 36px; border-radius: 10px; }
+.armely-dynamics365-page .deliver-icon .icon-svg,
+.armely-dynamics365-page .uc-icon .icon-svg,
+.armely-dynamics365-page .why-icon .icon-svg { width: 23px; height: 23px; }
+.armely-dynamics365-page .uc-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  background: var(--blue-dim);
+  border: 1px solid var(--blue-dim2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 @media (max-width: 980px) {
+  .armely-dynamics365-page .hero-inner { grid-template-columns: 1fr; gap: 32px; }
+  .armely-dynamics365-page .hero-visual { min-height: 320px; }
+}
+@media (max-width: 680px) {
+  .armely-dynamics365-page .hero { padding: 104px 22px 64px; }
+  .armely-dynamics365-page .hero-trust { grid-template-columns: 1fr; }
+  .armely-dynamics365-page .hero-visual { display: none; }
+  .armely-dynamics365-page .hero-actions a { width: 100%; text-align: center; }
+}
+
+/* Focused cleanup for the Generative AI detail page */
+.armely-dynamics365-page .hero {
+  min-height: 100vh;
+  padding: 150px 56px 96px;
+  display: flex;
+  align-items: center;
+  background: #173b67;
+  border-radius: 0;
+}
+.armely-dynamics365-page .hero::after,
+.armely-dynamics365-page .hero-bg-glow,
+.armely-dynamics365-page .hero-visual {
+  display: none;
+}
+.armely-dynamics365-page .hero-inner {
+  width: min(1040px, 100%);
+  display: block;
+}
+.armely-dynamics365-page .hero-copy {
+  max-width: 760px;
+}
+.armely-dynamics365-page .hero-eyebrow {
+  margin-bottom: 18px;
+}
+.armely-dynamics365-page .eyebrow-badge {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  color: rgba(255,255,255,0.72);
+}
+.armely-dynamics365-page .eyebrow-partner,
+.armely-dynamics365-page .hero-trust {
+  display: none;
+}
+.armely-dynamics365-page .hero h1 {
+  max-width: 760px;
+  margin-bottom: 22px;
+}
+.armely-dynamics365-page .hero-sub {
+  max-width: 680px;
+  margin-bottom: 34px;
+}
+.armely-dynamics365-page .hero-actions {
+  margin-bottom: 0;
+}
+.armely-dynamics365-page .hero .btn-primary,
+.armely-dynamics365-page .hero .btn-outline {
+  border-radius: 0;
+}
+.armely-dynamics365-page .vibe-section {
+  background: #fff;
+  padding: 84px 56px;
+}
+.armely-dynamics365-page .vibe-section .section-inner {
+  max-width: 920px;
+}
+.armely-dynamics365-page .vibe-section .section-title,
+.armely-dynamics365-page .vibe-section .section-body {
+  max-width: 820px;
+}
+.armely-dynamics365-page .vibe-section .section-body {
+  margin-bottom: 28px;
+}
+.armely-dynamics365-page .vibe-two-col {
+  grid-template-columns: 1fr;
+  gap: 18px;
+}
+.armely-dynamics365-page .vibe-card,
+.armely-dynamics365-page .vibe-answer-card {
+  border-radius: 0;
+  box-shadow: none;
+}
+.armely-dynamics365-page .vibe-card-header {
+  padding: 18px 20px;
+}
+.armely-dynamics365-page .vibe-card-body {
+  padding: 8px 20px 12px;
+}
+.armely-dynamics365-page .vibe-risk {
+  padding: 12px 0;
+}
+.armely-dynamics365-page .vibe-right {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+.armely-dynamics365-page .vibe-answer-card {
+  margin-bottom: 0;
+  padding: 20px;
+  background: #f7f9fc;
+}
+.armely-dynamics365-page section:not(.hero) > .section-inner > .section-eyebrow,
+.armely-dynamics365-page .why > .section-inner > .section-eyebrow {
+  width: fit-content;
+  margin: 0 auto 14px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--blue-dim);
+  border: 1px solid var(--blue-dim2);
+  text-align: center;
+}
+.armely-dynamics365-page section:not(.hero) > .section-inner > .section-title,
+.armely-dynamics365-page .why > .section-inner > .section-title {
+  max-width: 880px;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}
+.armely-dynamics365-page section:not(.hero) > .section-inner > .section-body,
+.armely-dynamics365-page .why > .section-inner > .section-body {
+  max-width: 820px;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}
+.armely-dynamics365-page .spectrum-grid,
+.armely-dynamics365-page .delivers-grid,
+.armely-dynamics365-page .steps-row,
+.armely-dynamics365-page .uc-grid,
+.armely-dynamics365-page .testi-grid,
+.armely-dynamics365-page .why-two-col {
+  margin-top: 56px;
+}
+.armely-dynamics365-page .why-two-col {
+  align-items: stretch;
+}
+.armely-dynamics365-page .why-list {
+  margin-top: 0;
+}
+.armely-dynamics365-page .why-list,
+.armely-dynamics365-page .partner-block {
+  height: 100%;
+}
+@media (max-width: 900px) {
   .armely-dynamics365-page .hero {
+    padding: 118px 24px 76px;
+  }
+  .armely-dynamics365-page .vibe-section {
+    padding: 72px 24px;
+  }
+  .armely-dynamics365-page .vibe-right {
     grid-template-columns: 1fr;
-    padding: 112px 24px 72px;
-    min-height: auto;
-  }
-  .armely-dynamics365-page .hero-system {
-    align-self: auto;
   }
 }
-@media (max-width: 700px) {
-  .armely-dynamics365-page .hero-trust {
-    flex-direction: column;
-  }
-  .armely-dynamics365-page .hero-trust .trust-item {
-    max-width: none;
-  }
+
+
+
+/* Final compact modern cleanup */
+.armely-dynamics365-page {
+  --blue: #2f5597;
+  --blue-lt: #4779bd;
+  --navy-mid: #f6f8fc;
+  --navy-card: #ffffff;
+  --text-body: #334155;
+  --text-muted: #667085;
+  --border: rgba(47, 85, 151, 0.14);
 }
+.armely-dynamics365-page .hero {
+  min-height: auto !important;
+  padding: 86px 56px 70px !important;
+  background: linear-gradient(135deg, #173b67 0%, #234f86 100%) !important;
+  border-radius: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+.armely-dynamics365-page .hero::after,
+.armely-dynamics365-page .hero-bg-glow,
+.armely-dynamics365-page .hero-visual {
+  display: none !important;
+}
+.armely-dynamics365-page .hero-inner {
+  width: min(1120px, 100%) !important;
+  margin: 0 auto !important;
+  display: block !important;
+}
+.armely-dynamics365-page .hero-copy {
+  max-width: 860px !important;
+}
+.armely-dynamics365-page .hero-eyebrow {
+  margin-bottom: 18px !important;
+}
+.armely-dynamics365-page .eyebrow-badge {
+  display: inline-flex !important;
+  background: rgba(255,255,255,0.10) !important;
+  border: 1px solid rgba(255,255,255,0.22) !important;
+  border-radius: 999px !important;
+  padding: 7px 14px !important;
+  color: rgba(255,255,255,0.88) !important;
+}
+.armely-dynamics365-page .eyebrow-partner {
+  display: inline-flex !important;
+  color: rgba(255,255,255,0.66) !important;
+}
+.armely-dynamics365-page .hero h1 {
+  max-width: 900px !important;
+  margin-bottom: 18px !important;
+  font-size: clamp(2.5rem, 5vw, 4.9rem) !important;
+  line-height: 1.05 !important;
+  letter-spacing: -0.04em !important;
+}
+.armely-dynamics365-page .hero-sub {
+  max-width: 760px !important;
+  margin-bottom: 28px !important;
+  font-size: 1rem !important;
+  line-height: 1.7 !important;
+}
+.armely-dynamics365-page .hero-actions {
+  margin-bottom: 0 !important;
+  gap: 12px !important;
+}
+.armely-dynamics365-page .hero .btn-primary,
+.armely-dynamics365-page .hero .btn-outline,
+.armely-dynamics365-page .btn-primary,
+.armely-dynamics365-page .btn-outline,
+.armely-dynamics365-page .form-submit {
+  border-radius: 8px !important;
+}
+.armely-dynamics365-page section {
+  padding: 68px 56px !important;
+}
+.armely-dynamics365-page .section-inner {
+  max-width: 1120px !important;
+}
+.armely-dynamics365-page .section-eyebrow {
+  margin-bottom: 10px !important;
+}
+.armely-dynamics365-page .section-title {
+  margin-bottom: 14px !important;
+}
+.armely-dynamics365-page .section-body {
+  margin-bottom: 28px !important;
+  line-height: 1.65 !important;
+}
+.armely-dynamics365-page .spectrum-grid,
+.armely-dynamics365-page .vibe-two-col,
+.armely-dynamics365-page .delivers-grid,
+.armely-dynamics365-page .steps-row,
+.armely-dynamics365-page .uc-grid,
+.armely-dynamics365-page .testi-grid,
+.armely-dynamics365-page .why-two-col {
+  margin-top: 34px !important;
+  gap: 20px !important;
+}
+.armely-dynamics365-page .spectrum-grid,
+.armely-dynamics365-page .why-two-col {
+  grid-template-columns: 1fr 1fr !important;
+}
+.armely-dynamics365-page .spectrum-row {
+  margin-top: 0 !important;
+  gap: 10px !important;
+}
+.armely-dynamics365-page .spectrum-level,
+.armely-dynamics365-page .deliver-card,
+.armely-dynamics365-page .uc-card,
+.armely-dynamics365-page .testi-card,
+.armely-dynamics365-page .vibe-answer-card,
+.armely-dynamics365-page .partner-block,
+.armely-dynamics365-page .cta-form,
+.armely-dynamics365-page .vibe-card,
+.armely-dynamics365-page .platform-card {
+  border-radius: 14px !important;
+  box-shadow: 0 14px 36px rgba(18, 47, 82, 0.08) !important;
+}
+.armely-dynamics365-page .deliver-card,
+.armely-dynamics365-page .uc-card,
+.armely-dynamics365-page .testi-card {
+  padding: 24px 22px !important;
+}
+.armely-dynamics365-page .deliver-icon,
+.armely-dynamics365-page .uc-icon,
+.armely-dynamics365-page .why-icon,
+.armely-dynamics365-page .vibe-card-icon,
+.armely-dynamics365-page .vibe-risk-icon {
+  border-radius: 12px !important;
+  color: var(--blue) !important;
+}
+.armely-dynamics365-page .vibe-section {
+  padding: 68px 56px !important;
+  background: #fff !important;
+}
+.armely-dynamics365-page .vibe-section .section-inner {
+  max-width: 1120px !important;
+}
+.armely-dynamics365-page .vibe-two-col {
+  grid-template-columns: 1fr 1fr !important;
+  align-items: stretch !important;
+}
+.armely-dynamics365-page .vibe-card-body {
+  padding: 18px 20px !important;
+}
+.armely-dynamics365-page .vibe-right {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+}
+.armely-dynamics365-page .vibe-answer-card {
+  padding: 20px !important;
+  background: #f8fafd !important;
+}
+.armely-dynamics365-page .steps-row {
+  border-radius: 14px !important;
+  overflow: hidden !important;
+}
+.armely-dynamics365-page .step {
+  padding: 24px 18px !important;
+}
+.armely-dynamics365-page .step-num {
+  font-size: 2rem !important;
+  margin-bottom: 10px !important;
+}
+.armely-dynamics365-page .why-list {
+  margin-top: 0 !important;
+}
+.armely-dynamics365-page .why-list li {
+  padding: 16px 0 !important;
+}
+.armely-dynamics365-page .partner-block-top,
+.armely-dynamics365-page .p-stat {
+  padding: 22px !important;
+}
+.armely-dynamics365-page .cta-inner {
+  padding: 68px 56px !important;
+  gap: 40px !important;
+}
+@media (max-width: 900px) {
+  .armely-dynamics365-page .hero { padding: 88px 24px 58px !important; }
+  .armely-dynamics365-page section,
+  .armely-dynamics365-page .vibe-section { padding: 56px 24px !important; }
+  .armely-dynamics365-page .spectrum-grid,
+  .armely-dynamics365-page .vibe-two-col,
+  .armely-dynamics365-page .why-two-col { grid-template-columns: 1fr !important; }
+  .armely-dynamics365-page .delivers-grid,
+  .armely-dynamics365-page .uc-grid { grid-template-columns: 1fr 1fr !important; }
+  .armely-dynamics365-page .cta-inner { padding: 56px 24px !important; grid-template-columns: 1fr !important; }
+}
+@media (max-width: 600px) {
+  .armely-dynamics365-page .hero h1 { font-size: clamp(2.15rem, 11vw, 3.2rem) !important; }
+  .armely-dynamics365-page .hero-eyebrow { flex-direction: column !important; align-items: flex-start !important; gap: 8px !important; }
+  .armely-dynamics365-page .hero-actions a { width: 100% !important; text-align: center !important; }
+  .armely-dynamics365-page .delivers-grid,
+  .armely-dynamics365-page .uc-grid { grid-template-columns: 1fr !important; }
+}
+
+
 </style>
 <div class="armely-dynamics365-page">
-<!-- NAV -->
 
+<!-- NAV -->
+<nav>
+  <div class="logo">
+    <div class="logo-mark">A</div>
+    <span class="logo-text">armely</span>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#modules">Modules</a></li>
+    <li><a href="#what-we-deliver">Services</a></li>
+    <li><a href="#journey">Our Process</a></li>
+    <li><a href="#contact" class="nav-cta">Get Started</a></li>
+  </ul>
+</nav>
 
 <!-- HERO -->
 <section class="hero">
   <div class="hero-bg-glow"></div>
-  <div class="hero-copy">
-    <div class="hero-eyebrow">
-      <span class="eyebrow-badge">Microsoft Dynamics 365</span>
-      <span class="eyebrow-partner">Delivered by a certified Microsoft partner</span>
-    </div>
-    <h1>Dynamics 365 built around the way your business actually runs.</h1>
-    <p class="hero-sub">Armely designs and implements connected CRM and ERP systems for sales, finance, operations, and service teams that need one reliable source of truth.</p>
-    <div class="hero-actions">
-      <a href="#contact" class="btn-primary">Book a Free Discovery Call</a>
-      <a href="#modules" class="btn-outline">Explore the Modules</a>
-    </div>
-    <div class="hero-trust">
-      <div class="trust-item">
-        <span class="trust-dot"></span>
-        <span class="trust-text"><strong>CRM + ERP</strong> implementation</span>
-      </div>
-      <div class="trust-item">
-        <span class="trust-dot"></span>
-        <span class="trust-text"><strong>Microsoft 365</strong> integration</span>
-      </div>
-      <div class="trust-item">
-        <span class="trust-dot"></span>
-        <span class="trust-text"><strong>Partner pricing</strong> available</span>
-      </div>
-    </div>
+  <div class="hero-eyebrow">
+    <span class="eyebrow-badge">Microsoft Dynamics 365</span>
+    <span class="eyebrow-partner">Delivered by a certified Microsoft partner</span>
   </div>
-  <div class="hero-system" aria-hidden="true">
-    <div class="solution-card">
-      <div class="solution-card-header">
-        <div class="solution-card-kicker">Connected Platform</div>
-        <div class="solution-card-title">One operating system for customer, finance, and service data.</div>
-      </div>
-      <div class="solution-card-body">
-        <div class="solution-flow">
-          <div class="solution-flow-item"><strong>Sales</strong><span>Pipeline and accounts</span></div>
-          <div class="solution-flow-item"><strong>Finance</strong><span>Orders and invoicing</span></div>
-          <div class="solution-flow-item"><strong>Service</strong><span>Cases and scheduling</span></div>
-        </div>
-        <div class="solution-divider"></div>
-        <p class="solution-note"><strong>Designed by Armely:</strong> the right modules, clean data migration, practical workflows, and training your team can actually use.</p>
-      </div>
+  <h1>CRM and ERP, finally<br><span class="hl">working as one.</span></h1>
+  <p class="hero-sub">Armely implements and customizes Microsoft Dynamics 365 so your sales, finance, operations, and customer service teams share the same data, and the same source of truth.</p>
+  <div class="hero-actions">
+    <a href="#contact" class="btn-primary">Book a Free Discovery Call</a>
+    <a href="#modules" class="btn-outline">Explore the Modules</a>
+  </div>
+  <div class="hero-trust">
+    <div class="trust-item">
+      <span class="trust-dot"></span>
+      <span class="trust-text"><strong>ERP + CRM</strong> in one connected platform</span>
+    </div>
+    <div class="trust-item">
+      <span class="trust-dot"></span>
+      <span class="trust-text">Native integration with <strong>Microsoft 365 & Teams</strong></span>
+    </div>
+    <div class="trust-item">
+      <span class="trust-dot"></span>
+      <span class="trust-text"><strong>Copilot AI agents</strong> across every module</span>
+    </div>
+    <div class="trust-item">
+      <span class="trust-dot"></span>
+      <span class="trust-text"><strong>Partner pricing</strong> available</span>
     </div>
   </div>
 </section>
@@ -561,35 +868,35 @@
         <p class="section-body">Dynamics 365 is Microsoft's cloud platform that unifies CRM and ERP into a single, modular system. You choose the apps your business needs today and add more as you grow, all sharing the same data, the same security model, and the same Copilot AI layer.</p>
         <div class="module-tabs">
           <div class="module-tab">
-            <div class="module-tab-icon"><i class="fa fa-briefcase" aria-hidden="true"></i></div>
+            <div class="module-tab-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg></div>
             <div class="module-tab-content">
               <div class="module-tab-title">Business Central</div>
               <div class="module-tab-desc">All-in-one ERP for SMBs covering finance, inventory, purchasing, projects, and manufacturing in one place. Forbes' #1 cloud ERP for SMBs in 2025.</div>
             </div>
           </div>
           <div class="module-tab">
-            <div class="module-tab-icon"><i class="fa fa-bullseye" aria-hidden="true"></i></div>
+            <div class="module-tab-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></div>
             <div class="module-tab-content">
               <div class="module-tab-title">Sales</div>
               <div class="module-tab-desc">AI-powered CRM that automates lead research, drafts emails, summarises opportunities, and surfaces deal risks before they cost you.</div>
             </div>
           </div>
           <div class="module-tab">
-            <div class="module-tab-icon"><i class="fa fa-headphones" aria-hidden="true"></i></div>
+            <div class="module-tab-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1v-7h3v5Z"/><path d="M3 19a2 2 0 0 0 2 2h1v-7H3v5Z"/></svg></div>
             <div class="module-tab-content">
               <div class="module-tab-title">Customer Service</div>
               <div class="module-tab-desc">Case management, AI routing, and autonomous agents that resolve issues faster across voice, chat, and digital channels.</div>
             </div>
           </div>
           <div class="module-tab">
-            <div class="module-tab-icon"><i class="fa fa-wrench" aria-hidden="true"></i></div>
+            <div class="module-tab-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></div>
             <div class="module-tab-content">
               <div class="module-tab-title">Field Service</div>
               <div class="module-tab-desc">AI scheduling, work order management, and proactive maintenance for teams that send technicians to customers, with 65%+ first-time fix rate improvements reported.</div>
             </div>
           </div>
           <div class="module-tab" style="grid-column: 1 / -1;">
-            <div class="module-tab-icon"><i class="fa fa-bullhorn" aria-hidden="true"></i></div>
+            <div class="module-tab-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg></div>
             <div class="module-tab-content">
               <div class="module-tab-title">Customer Insights</div>
               <div class="module-tab-desc">Unified customer profiles and AI-driven marketing journeys that engage the right person at the right moment across every channel.</div>
@@ -609,7 +916,7 @@
               <span class="band-chip">Contact Center</span>
             </div>
           </div>
-          <div class="band-connector"><i class="fa fa-arrows-v" aria-hidden="true"></i></div>
+          <div class="band-connector">↕</div>
           <div class="platform-band band-erp">
             <div class="band-label">ERP Applications</div>
             <div class="band-chips">
@@ -620,7 +927,7 @@
               <span class="band-chip">Human Resources</span>
             </div>
           </div>
-          <div class="band-connector"><i class="fa fa-arrows-v" aria-hidden="true"></i></div>
+          <div class="band-connector">↕</div>
           <div class="platform-band band-foundation">
             <div class="band-label">Shared Foundation</div>
             <div class="band-chips">
@@ -646,32 +953,32 @@
     <p class="section-body">Dynamics 365 is powerful out of the box and endlessly configurable. Armely makes sure you get the right modules, the right configuration, and the right training without months of scope creep.</p>
     <div class="delivers-grid">
       <div class="deliver-card">
-        <div class="deliver-icon"><i class="fa fa-map" aria-hidden="true"></i></div>
+        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3V6Z"/><path d="M9 3v15"/><path d="M15 6v15"/></svg></div>
         <div class="deliver-title">Business Process Discovery</div>
         <div class="deliver-desc">Before touching a single setting, we map how your business actually works: your sales process, finance workflows, service operations, and reporting needs, and design a Dynamics 365 configuration that fits them.</div>
       </div>
       <div class="deliver-card">
-        <div class="deliver-icon"><i class="fa fa-cogs" aria-hidden="true"></i></div>
+        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></div>
         <div class="deliver-title">Configuration & Customization</div>
         <div class="deliver-desc">We configure Dynamics 365 to match your workflows, terminology, and approval processes. Where standard configuration isn't enough, we extend with Power Apps and Power Automate rather than bespoke code that breaks on upgrades.</div>
       </div>
       <div class="deliver-card">
-        <div class="deliver-icon"><i class="fa fa-link" aria-hidden="true"></i></div>
+        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></div>
         <div class="deliver-title">System Integration</div>
         <div class="deliver-desc">We connect Dynamics 365 to your existing tools, including accounting software, e-commerce platforms, marketing systems, and data sources, so information flows automatically and your team stops re-entering the same data twice.</div>
       </div>
       <div class="deliver-card">
-        <div class="deliver-icon"><i class="fa fa-cubes" aria-hidden="true"></i></div>
+        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg></div>
         <div class="deliver-title">Data Migration</div>
         <div class="deliver-desc">We migrate your customer records, financial history, open orders, and contact data from your legacy system into Dynamics 365, clean, validated, and complete. No fresh starts, no lost history.</div>
       </div>
       <div class="deliver-card">
-        <div class="deliver-icon"><i class="fa fa-magic" aria-hidden="true"></i></div>
+        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8V4H8"/><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M9 11v2"/><path d="M15 11v2"/></svg></div>
         <div class="deliver-title">Copilot AI Configuration</div>
         <div class="deliver-desc">Dynamics 365 Copilot agents are activated and tuned for your team, including drafting sales emails, summarizing service cases, proposing journal entries, and automating scheduling. AI that works in your context, not a generic demo.</div>
       </div>
       <div class="deliver-card">
-        <div class="deliver-icon"><i class="fa fa-graduation-cap" aria-hidden="true"></i></div>
+        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg></div>
         <div class="deliver-title">Training & Ongoing Support</div>
         <div class="deliver-desc">Role-specific training for every team, plus a dedicated Armely account manager for post-go-live support, new module rollouts, and the inevitable "can we add this?" requests that come six months in.</div>
       </div>
@@ -696,23 +1003,23 @@
         <div class="step-num">02</div>
         <div class="step-title">Licensing & Design</div>
         <div class="step-desc">We source the right licenses at partner pricing and design your Dynamics 365 environment, data model, and integration architecture.</div>
-        <span class="step-tag">Weeks 1–2</span>
+        <span class="step-tag">Weeks 1-2</span>
       </div>
       <div class="step">
         <div class="step-num">03</div>
         <div class="step-title">Build & Configure</div>
         <div class="step-desc">Configuration, customization, integrations, and data migration, built iteratively with your team's input at every checkpoint.</div>
-        <span class="step-tag">Weeks 3–8</span>
+        <span class="step-tag">Weeks 3-8</span>
       </div>
       <div class="step">
         <div class="step-num">04</div>
         <div class="step-title">Test & Go Live</div>
         <div class="step-desc">User acceptance testing, parallel running where needed, and a managed go-live with Armely on hand for every issue on day one.</div>
-        <span class="step-tag">Weeks 9–10</span>
+        <span class="step-tag">Weeks 9-10</span>
       </div>
       <div class="step">
         <div class="step-num">05</div>
-        <div class="step-title">Optimise & Grow</div>
+        <div class="step-title">Optimize & Grow</div>
         <div class="step-desc">Post-go-live support, adoption tracking, release wave updates, and new modules added as your business evolves.</div>
         <span class="step-tag">Ongoing</span>
       </div>
@@ -728,32 +1035,32 @@
     <p class="section-body">Every Dynamics 365 engagement is different, but these are the situations we hear most often, and where a well-implemented system delivers the clearest, fastest return.</p>
     <div class="uc-grid">
       <div class="uc-card">
-        <span class="uc-icon"><i class="fa fa-clipboard" aria-hidden="true"></i></span>
+        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M8 12h8"/><path d="M8 16h6"/></svg></span>
         <div class="uc-title">Replace Disconnected Tools</div>
         <div class="uc-desc">Retiring a mix of Sage, spreadsheets, and a legacy CRM into one platform. Sales sees customer history. Finance sees open orders. Service sees account status. Everyone works from the same data.</div>
       </div>
       <div class="uc-card">
-        <span class="uc-icon"><i class="fa fa-money" aria-hidden="true"></i></span>
+        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
         <div class="uc-title">Automate Finance & Reporting</div>
         <div class="uc-desc">Business Central automates AP/AR, period-end closing, bank reconciliation, and cash flow forecasting, so your finance team stops spending three days on month-end and starts spending an hour.</div>
       </div>
       <div class="uc-card">
-        <span class="uc-icon"><i class="fa fa-bullseye" aria-hidden="true"></i></span>
+        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></span>
         <div class="uc-title">Give Sales Teams an Edge</div>
         <div class="uc-desc">Dynamics 365 Sales with Copilot researches leads, drafts outreach emails, surfaces deal risks, and keeps CRM updated automatically, so your sellers sell instead of administrate.</div>
       </div>
       <div class="uc-card">
-        <span class="uc-icon"><i class="fa fa-wrench" aria-hidden="true"></i></span>
+        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></span>
         <div class="uc-title">Field Service That Predicts Problems</div>
         <div class="uc-desc">AI scheduling dispatches the right technician with the right parts. IoT-connected assets trigger work orders automatically. Customers get proactive updates before they call you.</div>
       </div>
       <div class="uc-card">
-        <span class="uc-icon"><i class="fa fa-cube" aria-hidden="true"></i></span>
+        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg></span>
         <div class="uc-title">Take Control of Inventory</div>
         <div class="uc-desc">Real-time inventory, purchase order automation, and demand forecasting in Business Central mean you stop running out of stock and avoid tying up cash in stock you don't need.</div>
       </div>
       <div class="uc-card">
-        <span class="uc-icon"><i class="fa fa-line-chart" aria-hidden="true"></i></span>
+        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg></span>
         <div class="uc-title">Leadership Dashboards That Update Themselves</div>
         <div class="uc-desc">Power BI connected to live Dynamics 365 data gives leadership real-time visibility across sales pipeline, service performance, cash position, and operations without weekly report runs.</div>
       </div>
@@ -821,28 +1128,28 @@
         <p class="section-body">Most Dynamics 365 projects that struggle do so because of poor requirements gathering, generic configuration, and training that didn't match how people actually work. We've built our process to fix all three.</p>
         <ul class="why-list">
           <li>
-            <div class="why-icon"><i class="fa fa-bullseye" aria-hidden="true"></i></div>
+            <div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></div>
             <div>
               <div class="why-item-title">Certified Dynamics 365 Implementors</div>
               <div class="why-item-desc">Our team holds Microsoft Dynamics 365 certifications across Business Central, Sales, and Customer Service, with hands-on delivery experience, not just exam passes.</div>
             </div>
           </li>
           <li>
-            <div class="why-icon"><i class="fa fa-hospital-o" aria-hidden="true"></i></div>
+            <div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
             <div>
               <div class="why-item-title">Proven Across Healthcare & Education</div>
               <div class="why-item-desc">We've delivered Microsoft solutions for Swope Health Systems, Plano ISD, and UNMC, organizations where data governance, compliance, and user adoption all matter equally.</div>
             </div>
           </li>
           <li>
-            <div class="why-icon"><i class="fa fa-link" aria-hidden="true"></i></div>
+            <div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></div>
             <div>
               <div class="why-item-title">Full Microsoft Stack Expertise</div>
               <div class="why-item-desc">Dynamics 365 works best alongside Microsoft 365, Power BI, Power Platform, and Azure. Armely covers the whole stack so your ERP, CRM, AI, and analytics are designed to work together from day one.</div>
             </div>
           </li>
           <li>
-            <div class="why-icon"><i class="fa fa-money" aria-hidden="true"></i></div>
+            <div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
             <div>
               <div class="why-item-title">Right Licenses at Partner Pricing</div>
               <div class="why-item-desc">As a Microsoft-authorized CSP partner, we access Business Central and Dynamics 365 licensing at rates not available through direct purchase, and we help you start with exactly what you need, not a bundle you'll never use.</div>
@@ -937,4 +1244,17 @@
 </section>
 
 <!-- FOOTER -->
+<footer>
+  <div class="footer-logo-row">
+    <div class="footer-lm">A</div>
+    <span class="footer-lt">armely</span>
+  </div>
+  <div class="footer-note">© 2026 Armely · www.armely.com · Your Trusted Source for Digital Excellence</div>
+  <div class="footer-badges">
+    <span class="badge-chip">Microsoft CSP Partner</span>
+    <span class="badge-chip">Dynamics 365 Certified</span>
+    <span class="badge-chip">Microsoft Authorized Reseller</span>
+  </div>
+</footer>
+
 </div>

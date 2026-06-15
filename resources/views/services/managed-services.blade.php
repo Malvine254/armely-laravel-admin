@@ -1,15 +1,25 @@
-﻿<style>
+<style>
+
 
 .armely-managed-services-page *, .armely-managed-services-page *::before, .armely-managed-services-page *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
 .armely-managed-services-page {
-    --navy: #FFFFFF; --navy-mid: #F3F6FB; --navy-card: #EBF0F8;
-    --blue: #294e8b; --blue-lt: #3d6ab5;
-    --blue-dim: rgba(41,78,139,0.08); --blue-dim2: rgba(41,78,139,0.16);
-    --text-body: #3D4F6B; --text-muted: #6B7FA3; --border: rgba(41,78,139,0.1);
+    --navy:      #FFFFFF;
+    --navy-mid:  #F3F6FB;
+    --navy-card: #EBF0F8;
+    --blue:      #294e8b;
+    --blue-lt:   #3d6ab5;
+    --blue-dim:  rgba(41,78,139,0.08);
+    --blue-dim2: rgba(41,78,139,0.16);
+    --text-body: #3D4F6B;
+    --text-muted:#6B7FA3;
+    --border:    rgba(41,78,139,0.1);
   }
+
 .armely-managed-services-page { scroll-behavior: smooth; }
 .armely-managed-services-page { font-family: 'Poppins', sans-serif; background: var(--navy); color: var(--text-body); line-height: 1.6; }
 
+  /* NAV */
 .armely-managed-services-page nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; padding: 18px 56px; background: rgba(26,46,82,0.96); backdrop-filter: blur(14px); border-bottom: 1px solid rgba(255,255,255,0.08); }
 .armely-managed-services-page .logo { display: flex; align-items: center; gap: 10px; }
 .armely-managed-services-page .logo-mark { width: 36px; height: 36px; background: var(--blue); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1rem; color: #fff; }
@@ -17,9 +27,10 @@
 .armely-managed-services-page .nav-links { display: flex; gap: 32px; align-items: center; list-style: none; }
 .armely-managed-services-page .nav-links a { color: rgba(255,255,255,0.6); text-decoration: none; font-size: 0.875rem; font-weight: 500; transition: color 0.2s; }
 .armely-managed-services-page .nav-links a:hover { color: #fff; }
-.armely-managed-services-page .nav-cta { background: var(--blue); color: #fff !important; padding: 10px 22px; border-radius: 6px; font-size: 0.875rem; font-weight: 600 !important; }
+.armely-managed-services-page .nav-cta { background: var(--blue); color: #fff !important; padding: 10px 22px; border-radius: 6px; font-size: 0.875rem; font-weight: 600 !important; transition: background 0.2s !important; }
 .armely-managed-services-page .nav-cta:hover { background: var(--blue-lt) !important; }
 
+  /* HERO */
 .armely-managed-services-page .hero { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; padding: 140px 56px 100px; position: relative; overflow: hidden; background: #1a2e52; }
 .armely-managed-services-page .hero-bg-glow { position: absolute; top: -180px; right: -100px; width: 720px; height: 720px; background: radial-gradient(circle, rgba(41,78,139,0.2) 0%, transparent 68%); pointer-events: none; }
 .armely-managed-services-page .hero-eyebrow { display: inline-flex; align-items: center; gap: 10px; margin-bottom: 24px; }
@@ -39,62 +50,93 @@
 .armely-managed-services-page .trust-text { font-size: 0.82rem; color: rgba(255,255,255,0.6); font-weight: 400; }
 .armely-managed-services-page .trust-text strong { color: #fff; font-weight: 600; }
 
+  /* SECTIONS */
 .armely-managed-services-page section { padding: 96px 56px; }
 .armely-managed-services-page .section-inner { max-width: 1100px; margin: 0 auto; }
 .armely-managed-services-page .section-eyebrow { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.14em; color: var(--blue); margin-bottom: 14px; font-weight: 600; }
 .armely-managed-services-page .section-title { font-size: clamp(1.7rem, 3.2vw, 2.6rem); font-weight: 800; color: #1A2540; line-height: 1.12; letter-spacing: -0.025em; margin-bottom: 18px; max-width: 640px; }
 .armely-managed-services-page .section-body { font-size: 0.975rem; font-weight: 300; max-width: 560px; line-height: 1.8; color: var(--text-body); margin-bottom: 48px; }
 
-  /* WHAT IS MANAGED SERVICES */
-.armely-managed-services-page .intro { background: var(--navy-mid); }
-.armely-managed-services-page .intro-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 72px; align-items: start; }
+  /* AI SPECTRUM */
+.armely-managed-services-page .spectrum { background: var(--navy-mid); }
+.armely-managed-services-page .spectrum-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 72px; align-items: start; }
+.armely-managed-services-page .spectrum-row { display: flex; flex-direction: column; gap: 10px; margin-top: 32px; }
+.armely-managed-services-page .spectrum-level { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; display: flex; align-items: flex-start; gap: 14px; transition: border-color 0.2s; }
+.armely-managed-services-page .spectrum-level:hover { border-color: rgba(41,78,139,0.3); }
+.armely-managed-services-page .spectrum-level.highlight { background: var(--blue-dim); border-color: var(--blue-dim2); }
+.armely-managed-services-page .spectrum-num { font-size: 0.68rem; font-weight: 800; color: var(--blue); background: var(--blue-dim2); border-radius: 4px; padding: 2px 7px; flex-shrink: 0; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.08em; }
+.armely-managed-services-page .spectrum-content-title { font-size: 0.875rem; font-weight: 700; color: #1A2540; margin-bottom: 3px; }
+.armely-managed-services-page .spectrum-content-desc { font-size: 0.77rem; color: var(--text-muted); line-height: 1.5; }
 
-.armely-managed-services-page .what-cards { display: flex; flex-direction: column; gap: 10px; margin-top: 28px; }
-.armely-managed-services-page .what-card { background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; display: flex; align-items: flex-start; gap: 12px; }
-.armely-managed-services-page .what-card-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
-.armely-managed-services-page .what-card-title { font-size: 0.85rem; font-weight: 700; color: #1A2540; margin-bottom: 3px; }
-.armely-managed-services-page .what-card-desc { font-size: 0.77rem; color: var(--text-muted); line-height: 1.5; }
+  /* Platform visual */
+.armely-managed-services-page .platform-card { background: #fff; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; box-shadow: 0 4px 24px rgba(41,78,139,0.07); }
+.armely-managed-services-page .platform-header { padding: 16px 22px; border-bottom: 1px solid var(--border); background: var(--navy-mid); display: flex; align-items: center; gap: 10px; }
+.armely-managed-services-page .platform-dots { display: flex; gap: 6px; }
+.armely-managed-services-page .platform-dots span { width: 10px; height: 10px; border-radius: 50%; background: rgba(41,78,139,0.15); }
+.armely-managed-services-page .platform-header-title { font-size: 0.78rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; }
+.armely-managed-services-page .platform-body { padding: 20px; display: flex; flex-direction: column; gap: 8px; }
+.armely-managed-services-page .plat-band { border-radius: 9px; padding: 13px 16px; }
+.armely-managed-services-page .plat-band-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px; }
+.armely-managed-services-page .plat-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.armely-managed-services-page .plat-chip { font-size: 0.72rem; font-weight: 600; padding: 4px 10px; border-radius: 20px; }
+.armely-managed-services-page .band-tools { background: var(--blue-dim); }
+.armely-managed-services-page .band-tools .plat-band-label { color: var(--blue); }
+.armely-managed-services-page .band-tools .plat-chip { background: var(--blue-dim2); color: var(--blue); }
+.armely-managed-services-page .band-data { background: rgba(41,78,139,0.05); }
+.armely-managed-services-page .band-data .plat-band-label { color: var(--blue); }
+.armely-managed-services-page .band-data .plat-chip { background: rgba(41,78,139,0.1); color: var(--blue); }
+.armely-managed-services-page .band-gov { background: var(--blue); }
+.armely-managed-services-page .band-gov .plat-band-label { color: rgba(255,255,255,0.7); }
+.armely-managed-services-page .band-gov .plat-chip { background: rgba(255,255,255,0.15); color: #fff; }
+.armely-managed-services-page .band-arrow { text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 2px 0; }
 
-  /* Coverage visual */
-.armely-managed-services-page .coverage-card { background: #fff; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; box-shadow: 0 4px 24px rgba(41,78,139,0.07); }
-.armely-managed-services-page .cov-header { padding: 16px 22px; border-bottom: 1px solid var(--border); background: var(--navy-mid); display: flex; align-items: center; gap: 10px; }
-.armely-managed-services-page .cov-dots { display: flex; gap: 6px; }
-.armely-managed-services-page .cov-dots span { width: 10px; height: 10px; border-radius: 50%; background: rgba(41,78,139,0.15); }
-.armely-managed-services-page .cov-title { font-size: 0.78rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; }
-.armely-managed-services-page .cov-body { padding: 20px; display: flex; flex-direction: column; gap: 8px; }
-.armely-managed-services-page .cov-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-radius: 8px; background: var(--navy-mid); border: 1px solid var(--border); }
-.armely-managed-services-page .cov-item-left { display: flex; align-items: center; gap: 10px; }
-.armely-managed-services-page .cov-item-icon { font-size: 1rem; }
-.armely-managed-services-page .cov-item-name { font-size: 0.82rem; font-weight: 600; color: #1A2540; }
-.armely-managed-services-page .cov-badge { font-size: 0.67rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; padding: 2px 8px; border-radius: 4px; }
-.armely-managed-services-page .badge-on { background: rgba(41,78,139,0.15); color: var(--blue); }
-.armely-managed-services-page .badge-proactive { background: rgba(41,139,80,0.12); color: #1a6b38; }
-.armely-managed-services-page .cov-sla { background: var(--blue); border-radius: 9px; padding: 14px 16px; display: flex; align-items: center; gap: 10px; margin-top: 4px; }
-.armely-managed-services-page .cov-sla-text { font-size: 0.82rem; color: rgba(255,255,255,0.9); line-height: 1.5; }
-.armely-managed-services-page .cov-sla-text strong { color: #fff; }
+  /* VIBE CODING CALLOUT */
+.armely-managed-services-page .vibe-section { background: var(--navy); }
+.armely-managed-services-page .vibe-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: start; }
+.armely-managed-services-page .vibe-left { }
+.armely-managed-services-page .vibe-card { background: var(--navy-card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+.armely-managed-services-page .vibe-card-header { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
+.armely-managed-services-page .vibe-card-icon { font-size: 1.4rem; }
+.armely-managed-services-page .vibe-card-title { font-size: 1rem; font-weight: 700; color: #1A2540; }
+.armely-managed-services-page .vibe-card-subtitle { font-size: 0.78rem; color: var(--text-muted); }
+.armely-managed-services-page .vibe-card-body { padding: 24px; }
+.armely-managed-services-page .vibe-risk { display: flex; align-items: flex-start; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--border); }
+.armely-managed-services-page .vibe-risk:last-child { border-bottom: none; }
+.armely-managed-services-page .vibe-risk-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+.armely-managed-services-page .vibe-risk-title { font-size: 0.82rem; font-weight: 700; color: #1A2540; margin-bottom: 2px; }
+.armely-managed-services-page .vibe-risk-desc { font-size: 0.77rem; color: var(--text-muted); line-height: 1.5; }
+.armely-managed-services-page .vibe-right { }
+.armely-managed-services-page .vibe-answer-card { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 28px; margin-bottom: 12px; }
+.armely-managed-services-page .vibe-answer-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: var(--blue); margin-bottom: 10px; }
+.armely-managed-services-page .vibe-answer-text { font-size: 0.875rem; color: var(--text-body); line-height: 1.75; }
 
-  /* TIERS */
-.armely-managed-services-page .tiers { background: var(--navy); }
-.armely-managed-services-page .tier-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 48px; }
-.armely-managed-services-page .tier-card { background: var(--navy-card); border: 1px solid var(--border); border-radius: 14px; padding: 32px 28px; position: relative; transition: border-color 0.2s, transform 0.2s; }
-.armely-managed-services-page .tier-card:hover { border-color: rgba(41,78,139,0.35); transform: translateY(-3px); }
-.armely-managed-services-page .tier-card.featured { background: var(--blue-dim); border-color: var(--blue-dim2); }
-.armely-managed-services-page .tier-badge { position: absolute; top: -13px; left: 50%; transform: translateX(-50%); background: var(--blue); color: #fff; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; padding: 3px 14px; border-radius: 20px; white-space: nowrap; }
-.armely-managed-services-page .tier-name { font-size: 1.1rem; font-weight: 800; color: #1A2540; margin-bottom: 6px; }
-.armely-managed-services-page .tier-desc { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 20px; line-height: 1.5; }
-.armely-managed-services-page .tier-features { list-style: none; }
-.armely-managed-services-page .tier-features li { display: flex; align-items: flex-start; gap: 10px; font-size: 0.85rem; color: var(--text-body); margin-bottom: 10px; line-height: 1.5; }
-.armely-managed-services-page .tier-features li::before { content: '&#10003;'; color: var(--blue); font-weight: 700; flex-shrink: 0; }
-.armely-managed-services-page .tier-note { margin-top: 20px; font-size: 0.75rem; color: var(--text-muted); font-style: italic; }
+  /* DELIVERS */
+.armely-managed-services-page .delivers { background: var(--navy-mid); }
+.armely-managed-services-page .delivers-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 48px; }
+.armely-managed-services-page .deliver-card { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 32px 26px; transition: border-color 0.2s, transform 0.2s; }
+.armely-managed-services-page .deliver-card:hover { border-color: rgba(41,78,139,0.35); transform: translateY(-3px); }
+.armely-managed-services-page .deliver-icon { width: 48px; height: 48px; background: var(--blue-dim); border: 1px solid var(--blue-dim2); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; margin-bottom: 20px; }
+.armely-managed-services-page .deliver-title { font-size: 1rem; font-weight: 700; color: #1A2540; margin-bottom: 10px; }
+.armely-managed-services-page .deliver-desc { font-size: 0.875rem; line-height: 1.7; color: var(--text-body); }
 
-  /* COVERS */
-.armely-managed-services-page .covers { background: var(--navy-mid); }
-.armely-managed-services-page .covers-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 48px; }
-.armely-managed-services-page .cover-card { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 28px 24px; transition: border-color 0.2s; }
-.armely-managed-services-page .cover-card:hover { border-color: rgba(41,78,139,0.25); }
-.armely-managed-services-page .cover-icon { font-size: 1.6rem; margin-bottom: 14px; display: block; }
-.armely-managed-services-page .cover-title { font-size: 0.95rem; font-weight: 700; color: #1A2540; margin-bottom: 8px; }
-.armely-managed-services-page .cover-desc { font-size: 0.85rem; line-height: 1.68; color: var(--text-body); }
+  /* JOURNEY */
+.armely-managed-services-page .journey { background: var(--navy); }
+.armely-managed-services-page .steps-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; margin-top: 56px; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+.armely-managed-services-page .step { padding: 32px 22px; border-right: 1px solid var(--border); }
+.armely-managed-services-page .step:last-child { border-right: none; }
+.armely-managed-services-page .step-num { font-size: 2.4rem; font-weight: 800; color: rgba(41,78,139,0.18); line-height: 1; margin-bottom: 14px; }
+.armely-managed-services-page .step-title { font-size: 0.95rem; font-weight: 700; color: #1A2540; margin-bottom: 10px; }
+.armely-managed-services-page .step-desc { font-size: 0.82rem; line-height: 1.65; color: var(--text-body); }
+.armely-managed-services-page .step-tag { display: inline-block; margin-top: 14px; background: var(--blue-dim); color: var(--blue); font-size: 0.7rem; padding: 3px 10px; border-radius: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+
+  /* USE CASES */
+.armely-managed-services-page .usecases { background: var(--navy-mid); }
+.armely-managed-services-page .uc-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 48px; }
+.armely-managed-services-page .uc-card { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 28px 24px; transition: border-color 0.2s; }
+.armely-managed-services-page .uc-card:hover { border-color: rgba(41,78,139,0.25); }
+.armely-managed-services-page .uc-icon { font-size: 1.6rem; margin-bottom: 14px; display: block; }
+.armely-managed-services-page .uc-title { font-size: 0.95rem; font-weight: 700; color: #1A2540; margin-bottom: 8px; }
+.armely-managed-services-page .uc-desc { font-size: 0.85rem; line-height: 1.68; color: var(--text-body); }
 
   /* TESTIMONIALS */
 .armely-managed-services-page .testimonials { background: var(--navy); padding: 96px 56px; }
@@ -103,12 +145,12 @@
 .armely-managed-services-page .testi-quote { font-size: 3.5rem; line-height: 0.9; color: var(--blue); opacity: 0.15; font-family: Georgia, serif; margin-bottom: 8px; display: block; }
 .armely-managed-services-page .testi-body { font-size: 0.875rem; line-height: 1.8; color: var(--text-body); flex: 1; margin-bottom: 24px; font-style: italic; }
 .armely-managed-services-page .testi-footer { display: flex; align-items: center; gap: 14px; }
-.armely-managed-services-page .testi-avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--blue); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; flex-shrink: 0; }
+.armely-managed-services-page .testi-avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--blue); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; flex-shrink: 0; letter-spacing: 0.02em; }
 .armely-managed-services-page .testi-name { font-size: 0.875rem; font-weight: 700; color: #1A2540; }
 .armely-managed-services-page .testi-role { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
 .armely-managed-services-page .testi-stars { color: var(--blue); font-size: 0.72rem; letter-spacing: 1px; margin-bottom: 3px; }
 
-  /* WHY */
+  /* WHY ARMELY */
 .armely-managed-services-page .why { background: var(--navy-mid); }
 .armely-managed-services-page .why-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 72px; align-items: start; }
 .armely-managed-services-page .why-list { list-style: none; margin-top: 36px; }
@@ -145,6 +187,7 @@
 .armely-managed-services-page .form-submit:hover { background: var(--blue-lt); }
 .armely-managed-services-page .form-note { text-align: center; margin-top: 12px; font-size: 0.75rem; color: var(--text-muted); }
 
+  /* FOOTER */
 .armely-managed-services-page footer { background: #1a2e52; border-top: 1px solid rgba(255,255,255,0.08); padding: 36px 56px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
 .armely-managed-services-page .footer-logo-row { display: flex; align-items: center; gap: 10px; }
 .armely-managed-services-page .footer-lm { width: 30px; height: 30px; background: var(--blue); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.85rem; color: #fff; }
@@ -153,20 +196,24 @@
 .armely-managed-services-page .footer-badges { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
 .armely-managed-services-page .badge-chip { border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; padding: 5px 12px; font-size: 0.72rem; color: rgba(255,255,255,0.5); font-weight: 500; }
 
+  /* RESPONSIVE */
   @media (max-width: 900px) {
 .armely-managed-services-page nav { padding: 16px 24px; }
 .armely-managed-services-page .nav-links { display: none; }
 .armely-managed-services-page section { padding: 72px 24px; }
 .armely-managed-services-page .hero { padding: 110px 24px 72px; }
-.armely-managed-services-page .intro-grid, .armely-managed-services-page .why-two-col { grid-template-columns: 1fr; gap: 40px; }
-.armely-managed-services-page .tier-grid, .armely-managed-services-page .covers-grid { grid-template-columns: 1fr 1fr; }
+.armely-managed-services-page .spectrum-grid, .armely-managed-services-page .vibe-two-col, .armely-managed-services-page .why-two-col { grid-template-columns: 1fr; gap: 40px; }
+.armely-managed-services-page .delivers-grid, .armely-managed-services-page .uc-grid { grid-template-columns: 1fr 1fr; }
+.armely-managed-services-page .steps-row { grid-template-columns: 1fr; }
+.armely-managed-services-page .step { border-right: none; border-bottom: 1px solid var(--border); }
+.armely-managed-services-page .step:last-child { border-bottom: none; }
 .armely-managed-services-page .cta-inner { grid-template-columns: 1fr; gap: 40px; padding: 72px 24px; }
 .armely-managed-services-page .testimonials { padding: 72px 24px; }
 .armely-managed-services-page .testi-grid { grid-template-columns: 1fr; }
 .armely-managed-services-page footer { padding: 32px 24px; flex-direction: column; align-items: flex-start; }
   }
   @media (max-width: 600px) {
-.armely-managed-services-page .tier-grid, .armely-managed-services-page .covers-grid { grid-template-columns: 1fr; }
+.armely-managed-services-page .delivers-grid, .armely-managed-services-page .uc-grid { grid-template-columns: 1fr; }
 .armely-managed-services-page .partner-stats { grid-template-columns: 1fr; }
 .armely-managed-services-page .hero-trust { gap: 20px; }
   }
@@ -236,67 +283,226 @@
 .armely-managed-services-page footer {
   display: none;
 }
-.armely-managed-services-page .intro-grid,
-.armely-managed-services-page .why-two-col,
-.armely-managed-services-page .cta-inner {
-  align-items: stretch;
+
+
+/* Modern layout update: tighter first section and SVG icon system */
+.armely-managed-services-page .hero {
+  min-height: auto;
+  padding: 128px 32px 86px;
+  isolation: isolate;
 }
-.armely-managed-services-page .coverage-card,
-.armely-managed-services-page .partner-block,
-.armely-managed-services-page .cta-form {
-  height: 100%;
+.armely-managed-services-page .hero-inner {
+  width: min(1160px, 100%);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.75fr);
+  align-items: center;
+  gap: 56px;
+  position: relative;
+  z-index: 1;
 }
-.armely-managed-services-page .tier-grid,
-.armely-managed-services-page .covers-grid,
-.armely-managed-services-page .testi-grid {
-  align-items: stretch;
+.armely-managed-services-page .hero-copy { max-width: 760px; }
+.armely-managed-services-page .hero h1 { max-width: 760px; margin-bottom: 20px; }
+.armely-managed-services-page .hero-sub { max-width: 640px; margin-bottom: 30px; font-size: 1.02rem; line-height: 1.72; }
+.armely-managed-services-page .hero-actions { margin-bottom: 34px; }
+.armely-managed-services-page .hero-trust {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding-top: 0;
+  border-top: 0;
+  max-width: 720px;
 }
-.armely-managed-services-page .tier-card,
-.armely-managed-services-page .cover-card,
-.armely-managed-services-page .testi-card {
-  min-height: 100%;
+.armely-managed-services-page .hero .trust-item {
+  align-items: flex-start;
+  background: rgba(255,255,255,0.10);
+  border: 1px solid rgba(255,255,255,0.16);
+  border-radius: 14px;
+  padding: 14px 15px;
+  backdrop-filter: blur(10px);
 }
-.armely-managed-services-page .what-card,
-.armely-managed-services-page .tier-card,
-.armely-managed-services-page .cover-card,
-.armely-managed-services-page .testi-card,
-.armely-managed-services-page .partner-block,
-.armely-managed-services-page .cta-form {
-  background: linear-gradient(180deg, #ffffff 0%, #f9fbfe 100%);
+.armely-managed-services-page .hero .trust-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.16);
+  border: 1px solid rgba(255,255,255,0.24);
+  position: relative;
+  margin-top: 1px;
 }
-.armely-managed-services-page .tier-card.featured {
-  background: linear-gradient(180deg, rgba(47, 85, 151, 0.12) 0%, rgba(79, 134, 198, 0.08) 100%);
+.armely-managed-services-page .hero .trust-dot::after {
+  content: '';
+  position: absolute;
+  left: 7px;
+  top: 5px;
+  width: 6px;
+  height: 10px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
 }
-.armely-managed-services-page .coverage-card,
-.armely-managed-services-page .partner-block,
-.armely-managed-services-page .cta-form {
+.armely-managed-services-page .hero .trust-text { color: rgba(255,255,255,0.78); line-height: 1.5; }
+.armely-managed-services-page .hero-visual {
+  min-height: 420px;
+  border-radius: 28px;
+  position: relative;
+  background: linear-gradient(145deg, rgba(255,255,255,0.16), rgba(255,255,255,0.05));
+  border: 1px solid rgba(255,255,255,0.18);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.18), 0 28px 70px rgba(6, 22, 48, 0.24);
+  overflow: hidden;
+}
+.armely-managed-services-page .hero-visual::before {
+  content: '';
+  position: absolute;
+  inset: 36px;
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 999px;
+}
+.armely-managed-services-page .hero-visual::after {
+  content: '';
+  position: absolute;
+  width: 190px;
+  height: 190px;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(255,255,255,0.24), rgba(255,255,255,0.06));
+  border: 1px solid rgba(255,255,255,0.22);
+}
+.armely-managed-services-page .hero-orbit span {
+  position: absolute;
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.14);
+  border: 1px solid rgba(255,255,255,0.22);
+}
+.armely-managed-services-page .hero-orbit span:nth-child(1) { left: 56px; top: 88px; }
+.armely-managed-services-page .hero-orbit span:nth-child(2) { right: 72px; top: 138px; }
+.armely-managed-services-page .hero-orbit span:nth-child(3) { left: 48%; bottom: 76px; }
+.armely-managed-services-page .hero-visual-card {
+  position: absolute;
+  z-index: 2;
+  width: 230px;
+  padding: 18px;
+  border-radius: 18px;
+  background: rgba(255,255,255,0.92);
+  box-shadow: 0 24px 54px rgba(9, 31, 63, 0.22);
+}
+.armely-managed-services-page .hero-visual-card.top { top: 42px; right: 30px; }
+.armely-managed-services-page .hero-visual-card.bottom { bottom: 46px; left: 30px; }
+.armely-managed-services-page .hero-visual-label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #162b49;
+  margin-bottom: 12px;
+}
+.armely-managed-services-page .hero-visual-line {
+  display: block;
+  height: 8px;
+  width: 100%;
+  border-radius: 999px;
+  background: rgba(47, 85, 151, 0.16);
+  margin-top: 8px;
+}
+.armely-managed-services-page .hero-visual-line.short { width: 68%; }
+.armely-managed-services-page .icon-svg {
+  width: 22px;
+  height: 22px;
+  display: block;
+  color: var(--blue);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.armely-managed-services-page .vibe-card-icon,
+.armely-managed-services-page .vibe-risk-icon,
+.armely-managed-services-page .deliver-icon,
+.armely-managed-services-page .uc-icon,
+.armely-managed-services-page .why-icon {
+  color: var(--blue);
+}
+.armely-managed-services-page .vibe-card-icon,
+.armely-managed-services-page .vibe-risk-icon {
+  width: 42px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 12px;
+  background: var(--blue-dim);
+  border: 1px solid var(--blue-dim2);
 }
-.armely-managed-services-page .section-body {
-  max-width: 680px;
+.armely-managed-services-page .vibe-risk-icon { width: 36px; height: 36px; border-radius: 10px; }
+.armely-managed-services-page .deliver-icon .icon-svg,
+.armely-managed-services-page .uc-icon .icon-svg,
+.armely-managed-services-page .why-icon .icon-svg { width: 23px; height: 23px; }
+.armely-managed-services-page .uc-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  background: var(--blue-dim);
+  border: 1px solid var(--blue-dim2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+@media (max-width: 980px) {
+  .armely-managed-services-page .hero-inner { grid-template-columns: 1fr; gap: 32px; }
+  .armely-managed-services-page .hero-visual { min-height: 320px; }
+}
+@media (max-width: 680px) {
+  .armely-managed-services-page .hero { padding: 104px 22px 64px; }
+  .armely-managed-services-page .hero-trust { grid-template-columns: 1fr; }
+  .armely-managed-services-page .hero-visual { display: none; }
+  .armely-managed-services-page .hero-actions a { width: 100%; text-align: center; }
 }
 
-/* Shared modern service page refresh */
+/* Focused cleanup for the Generative AI detail page */
 .armely-managed-services-page .hero {
   min-height: 100vh;
   padding: 150px 56px 96px;
   display: flex;
-  flex-direction: column;
-  justify-content: center;
+  align-items: center;
   background: #173b67;
   border-radius: 0;
 }
 .armely-managed-services-page .hero::after,
 .armely-managed-services-page .hero-bg-glow,
+.armely-managed-services-page .hero-visual {
+  display: none;
+}
+.armely-managed-services-page .hero-inner {
+  width: min(1040px, 100%);
+  display: block;
+}
+.armely-managed-services-page .hero-copy {
+  max-width: 760px;
+}
+.armely-managed-services-page .hero-eyebrow {
+  margin-bottom: 18px;
+}
+.armely-managed-services-page .eyebrow-badge {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  color: rgba(255,255,255,0.72);
+}
+.armely-managed-services-page .eyebrow-partner,
 .armely-managed-services-page .hero-trust {
   display: none;
 }
 .armely-managed-services-page .hero h1 {
-  max-width: 820px;
+  max-width: 760px;
   margin-bottom: 22px;
 }
 .armely-managed-services-page .hero-sub {
-  max-width: 700px;
+  max-width: 680px;
   margin-bottom: 34px;
 }
 .armely-managed-services-page .hero-actions {
@@ -306,18 +512,50 @@
 .armely-managed-services-page .hero .btn-outline {
   border-radius: 0;
 }
-.armely-managed-services-page .eyebrow-badge {
-  background: transparent;
-  border: 0;
-  border-radius: 0;
-  padding: 0;
-  color: rgba(255,255,255,0.74);
+.armely-managed-services-page .vibe-section {
+  background: #fff;
+  padding: 84px 56px;
 }
-.armely-managed-services-page .eyebrow-partner {
-  display: none;
+.armely-managed-services-page .vibe-section .section-inner {
+  max-width: 920px;
+}
+.armely-managed-services-page .vibe-section .section-title,
+.armely-managed-services-page .vibe-section .section-body {
+  max-width: 820px;
+}
+.armely-managed-services-page .vibe-section .section-body {
+  margin-bottom: 28px;
+}
+.armely-managed-services-page .vibe-two-col {
+  grid-template-columns: 1fr;
+  gap: 18px;
+}
+.armely-managed-services-page .vibe-card,
+.armely-managed-services-page .vibe-answer-card {
+  border-radius: 0;
+  box-shadow: none;
+}
+.armely-managed-services-page .vibe-card-header {
+  padding: 18px 20px;
+}
+.armely-managed-services-page .vibe-card-body {
+  padding: 8px 20px 12px;
+}
+.armely-managed-services-page .vibe-risk {
+  padding: 12px 0;
+}
+.armely-managed-services-page .vibe-right {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+.armely-managed-services-page .vibe-answer-card {
+  margin-bottom: 0;
+  padding: 20px;
+  background: #f7f9fc;
 }
 .armely-managed-services-page section:not(.hero) > .section-inner > .section-eyebrow,
-.armely-managed-services-page .cta-inner > div > .section-eyebrow {
+.armely-managed-services-page .why > .section-inner > .section-eyebrow {
   width: fit-content;
   margin: 0 auto 14px;
   padding: 6px 14px;
@@ -327,88 +565,265 @@
   text-align: center;
 }
 .armely-managed-services-page section:not(.hero) > .section-inner > .section-title,
-.armely-managed-services-page .cta-inner > div > .section-title {
-  max-width: 900px;
+.armely-managed-services-page .why > .section-inner > .section-title {
+  max-width: 880px;
   margin-left: auto;
   margin-right: auto;
   text-align: center;
 }
 .armely-managed-services-page section:not(.hero) > .section-inner > .section-body,
-.armely-managed-services-page .cta-inner > div > .section-body {
+.armely-managed-services-page .why > .section-inner > .section-body {
   max-width: 820px;
   margin-left: auto;
   margin-right: auto;
   text-align: center;
 }
-.armely-managed-services-page .intro-grid,
-.armely-managed-services-page .symptoms-grid,
-.armely-managed-services-page .when-grid,
-.armely-managed-services-page .why-two-col,
-.armely-managed-services-page .cta-inner {
-  align-items: stretch;
-}
-.armely-managed-services-page .intro-grid,
-.armely-managed-services-page .symptoms-grid,
-.armely-managed-services-page .when-grid,
+.armely-managed-services-page .spectrum-grid,
 .armely-managed-services-page .delivers-grid,
-.armely-managed-services-page .tier-grid,
-.armely-managed-services-page .covers-grid,
 .armely-managed-services-page .steps-row,
 .armely-managed-services-page .uc-grid,
 .armely-managed-services-page .testi-grid,
-.armely-managed-services-page .why-two-col,
-.armely-managed-services-page .pathway-grid {
+.armely-managed-services-page .why-two-col {
   margin-top: 56px;
+}
+.armely-managed-services-page .why-two-col {
+  align-items: stretch;
+}
+.armely-managed-services-page .why-list {
+  margin-top: 0;
+}
+.armely-managed-services-page .why-list,
+.armely-managed-services-page .partner-block {
+  height: 100%;
+}
+@media (max-width: 900px) {
+  .armely-managed-services-page .hero {
+    padding: 118px 24px 76px;
+  }
+  .armely-managed-services-page .vibe-section {
+    padding: 72px 24px;
+  }
+  .armely-managed-services-page .vibe-right {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+
+/* Final compact modern cleanup */
+.armely-managed-services-page {
+  --blue: #2f5597;
+  --blue-lt: #4779bd;
+  --navy-mid: #f6f8fc;
+  --navy-card: #ffffff;
+  --text-body: #334155;
+  --text-muted: #667085;
+  --border: rgba(47, 85, 151, 0.14);
+}
+.armely-managed-services-page .hero {
+  min-height: auto !important;
+  padding: 86px 56px 70px !important;
+  background: linear-gradient(135deg, #173b67 0%, #234f86 100%) !important;
+  border-radius: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+.armely-managed-services-page .hero::after,
+.armely-managed-services-page .hero-bg-glow,
+.armely-managed-services-page .hero-visual {
+  display: none !important;
+}
+.armely-managed-services-page .hero-inner {
+  width: min(1120px, 100%) !important;
+  margin: 0 auto !important;
+  display: block !important;
+}
+.armely-managed-services-page .hero-copy {
+  max-width: 860px !important;
+}
+.armely-managed-services-page .hero-eyebrow {
+  margin-bottom: 18px !important;
+}
+.armely-managed-services-page .eyebrow-badge {
+  display: inline-flex !important;
+  background: rgba(255,255,255,0.10) !important;
+  border: 1px solid rgba(255,255,255,0.22) !important;
+  border-radius: 999px !important;
+  padding: 7px 14px !important;
+  color: rgba(255,255,255,0.88) !important;
+}
+.armely-managed-services-page .eyebrow-partner {
+  display: inline-flex !important;
+  color: rgba(255,255,255,0.66) !important;
+}
+.armely-managed-services-page .hero h1 {
+  max-width: 900px !important;
+  margin-bottom: 18px !important;
+  font-size: clamp(2.5rem, 5vw, 4.9rem) !important;
+  line-height: 1.05 !important;
+  letter-spacing: -0.04em !important;
+}
+.armely-managed-services-page .hero-sub {
+  max-width: 760px !important;
+  margin-bottom: 28px !important;
+  font-size: 1rem !important;
+  line-height: 1.7 !important;
+}
+.armely-managed-services-page .hero-actions {
+  margin-bottom: 0 !important;
+  gap: 12px !important;
+}
+.armely-managed-services-page .hero .btn-primary,
+.armely-managed-services-page .hero .btn-outline,
+.armely-managed-services-page .btn-primary,
+.armely-managed-services-page .btn-outline,
+.armely-managed-services-page .form-submit {
+  border-radius: 8px !important;
+}
+.armely-managed-services-page section {
+  padding: 68px 56px !important;
+}
+.armely-managed-services-page .section-inner {
+  max-width: 1120px !important;
+}
+.armely-managed-services-page .section-eyebrow {
+  margin-bottom: 10px !important;
+}
+.armely-managed-services-page .section-title {
+  margin-bottom: 14px !important;
+}
+.armely-managed-services-page .section-body {
+  margin-bottom: 28px !important;
+  line-height: 1.65 !important;
+}
+.armely-managed-services-page .spectrum-grid,
+.armely-managed-services-page .vibe-two-col,
+.armely-managed-services-page .delivers-grid,
+.armely-managed-services-page .steps-row,
+.armely-managed-services-page .uc-grid,
+.armely-managed-services-page .testi-grid,
+.armely-managed-services-page .why-two-col {
+  margin-top: 34px !important;
+  gap: 20px !important;
+}
+.armely-managed-services-page .spectrum-grid,
+.armely-managed-services-page .why-two-col {
+  grid-template-columns: 1fr 1fr !important;
+}
+.armely-managed-services-page .spectrum-row {
+  margin-top: 0 !important;
+  gap: 10px !important;
+}
+.armely-managed-services-page .spectrum-level,
+.armely-managed-services-page .deliver-card,
+.armely-managed-services-page .uc-card,
+.armely-managed-services-page .testi-card,
+.armely-managed-services-page .vibe-answer-card,
+.armely-managed-services-page .partner-block,
+.armely-managed-services-page .cta-form,
+.armely-managed-services-page .vibe-card,
+.armely-managed-services-page .platform-card {
+  border-radius: 14px !important;
+  box-shadow: 0 14px 36px rgba(18, 47, 82, 0.08) !important;
+}
+.armely-managed-services-page .deliver-card,
+.armely-managed-services-page .uc-card,
+.armely-managed-services-page .testi-card {
+  padding: 24px 22px !important;
 }
 .armely-managed-services-page .deliver-icon,
 .armely-managed-services-page .uc-icon,
 .armely-managed-services-page .why-icon,
-.armely-managed-services-page .symptom-icon,
-.armely-managed-services-page .what-card-icon,
-.armely-managed-services-page .cov-item-icon,
-.armely-managed-services-page .cover-icon,
-.armely-managed-services-page .product-card-icon,
-.armely-managed-services-page .cap-icon,
-.armely-managed-services-page .workload-pill-icon,
-.armely-managed-services-page .decision-icon,
-.armely-managed-services-page .sign-icon,
-.armely-managed-services-page .pathway-icon,
-.armely-managed-services-page .onelake-callout-icon,
-.armely-managed-services-page .vs-callout-icon {
-  color: var(--blue);
-  font-size: 1.1rem;
-  line-height: 1;
+.armely-managed-services-page .vibe-card-icon,
+.armely-managed-services-page .vibe-risk-icon {
+  border-radius: 12px !important;
+  color: var(--blue) !important;
 }
-.armely-managed-services-page .deliver-icon,
-.armely-managed-services-page .uc-icon,
-.armely-managed-services-page .why-icon {
-  width: 48px;
-  height: 48px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 12px;
-  background: var(--blue-dim);
-  border: 1px solid var(--blue-dim2);
+.armely-managed-services-page .vibe-section {
+  padding: 68px 56px !important;
+  background: #fff !important;
 }
-.armely-managed-services-page .deliver-card,
-.armely-managed-services-page .uc-card,
-.armely-managed-services-page .testi-card,
-.armely-managed-services-page .tier-card,
-.armely-managed-services-page .cover-card,
-.armely-managed-services-page .pathway-card,
-.armely-managed-services-page .partner-block,
-.armely-managed-services-page .cta-form {
-  background: linear-gradient(180deg, #ffffff 0%, #f9fbfe 100%);
-  box-shadow: 0 16px 42px rgba(18, 47, 82, 0.08);
+.armely-managed-services-page .vibe-section .section-inner {
+  max-width: 1120px !important;
+}
+.armely-managed-services-page .vibe-two-col {
+  grid-template-columns: 1fr 1fr !important;
+  align-items: stretch !important;
+}
+.armely-managed-services-page .vibe-card-body {
+  padding: 18px 20px !important;
+}
+.armely-managed-services-page .vibe-right {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+}
+.armely-managed-services-page .vibe-answer-card {
+  padding: 20px !important;
+  background: #f8fafd !important;
+}
+.armely-managed-services-page .steps-row {
+  border-radius: 14px !important;
+  overflow: hidden !important;
+}
+.armely-managed-services-page .step {
+  padding: 24px 18px !important;
+}
+.armely-managed-services-page .step-num {
+  font-size: 2rem !important;
+  margin-bottom: 10px !important;
+}
+.armely-managed-services-page .why-list {
+  margin-top: 0 !important;
+}
+.armely-managed-services-page .why-list li {
+  padding: 16px 0 !important;
+}
+.armely-managed-services-page .partner-block-top,
+.armely-managed-services-page .p-stat {
+  padding: 22px !important;
+}
+.armely-managed-services-page .cta-inner {
+  padding: 68px 56px !important;
+  gap: 40px !important;
 }
 @media (max-width: 900px) {
-  .armely-managed-services-page .hero { padding: 118px 24px 76px; }
-  .armely-managed-services-page section:not(.hero) > .section-inner > .section-title,
-  .armely-managed-services-page .cta-inner > div > .section-title { max-width: 100%; }
+  .armely-managed-services-page .hero { padding: 88px 24px 58px !important; }
+  .armely-managed-services-page section,
+  .armely-managed-services-page .vibe-section { padding: 56px 24px !important; }
+  .armely-managed-services-page .spectrum-grid,
+  .armely-managed-services-page .vibe-two-col,
+  .armely-managed-services-page .why-two-col { grid-template-columns: 1fr !important; }
+  .armely-managed-services-page .delivers-grid,
+  .armely-managed-services-page .uc-grid { grid-template-columns: 1fr 1fr !important; }
+  .armely-managed-services-page .cta-inner { padding: 56px 24px !important; grid-template-columns: 1fr !important; }
 }
+@media (max-width: 600px) {
+  .armely-managed-services-page .hero h1 { font-size: clamp(2.15rem, 11vw, 3.2rem) !important; }
+  .armely-managed-services-page .hero-eyebrow { flex-direction: column !important; align-items: flex-start !important; gap: 8px !important; }
+  .armely-managed-services-page .hero-actions a { width: 100% !important; text-align: center !important; }
+  .armely-managed-services-page .delivers-grid,
+  .armely-managed-services-page .uc-grid { grid-template-columns: 1fr !important; }
+}
+
+
 </style>
 <div class="armely-managed-services-page">
+
+<nav>
+  <div class="logo">
+    <div class="logo-mark">A</div>
+    <span class="logo-text">armely</span>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#tiers">Service Tiers</a></li>
+    <li><a href="#covers">What We Cover</a></li>
+    <li><a href="#why-armely">Why Armely</a></li>
+    <li><a href="#contact" class="nav-cta">Get Started</a></li>
+  </ul>
+</nav>
+
 <section class="hero">
   <div class="hero-bg-glow"></div>
   <div class="hero-eyebrow">
@@ -451,28 +866,28 @@
         <p class="section-body">Most managed service providers offer a ticket queue staffed by generalists. Armely Managed Services is structured differently. Your account team is the same team that implemented your environment, so support is provided by people who already understand how your systems were built and why.</p>
         <div class="what-cards">
           <div class="what-card">
-            <span class="what-card-icon"><i class="fa-solid fa-circle-nodes" aria-hidden="true"></i></span>
+            <span class="what-card-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></span>
             <div>
               <div class="what-card-title">Proactive Monitoring and Alerting</div>
               <div class="what-card-desc">We monitor your Microsoft 365 tenant health, Azure infrastructure, application performance, and security posture continuously and alert you before issues affect your users, not after.</div>
             </div>
           </div>
           <div class="what-card">
-            <span class="what-card-icon"><i class="fa-solid fa-circle-nodes" aria-hidden="true"></i></span>
+            <span class="what-card-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></span>
             <div>
               <div class="what-card-title">Ongoing Administration</div>
               <div class="what-card-desc">User provisioning, license management, configuration changes, patch management, and routine administrative tasks handled by Armely so your internal team is not diverted from their primary work.</div>
             </div>
           </div>
           <div class="what-card">
-            <span class="what-card-icon"><i class="fa-solid fa-circle-nodes" aria-hidden="true"></i></span>
+            <span class="what-card-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 17 6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg></span>
             <div>
               <div class="what-card-title">Optimization and Advisory</div>
               <div class="what-card-desc">Quarterly business reviews covering usage, performance, cost, and upcoming Microsoft releases. We identify optimization opportunities and recommend changes before problems develop rather than responding to complaints.</div>
             </div>
           </div>
           <div class="what-card">
-            <span class="what-card-icon"><i class="fa-solid fa-circle-nodes" aria-hidden="true"></i></span>
+            <span class="what-card-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg></span>
             <div>
               <div class="what-card-title">Ongoing Development and Enhancements</div>
               <div class="what-card-desc">New requirements, feature requests, and enhancements to existing solutions handled within the managed services agreement rather than as separate project engagements, depending on your chosen tier.</div>
@@ -489,55 +904,55 @@
           <div class="cov-body">
             <div class="cov-item">
               <div class="cov-item-left">
-                <span class="cov-item-icon"><i class="fa-solid fa-server" aria-hidden="true"></i></span>
+                <span class="cov-item-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg></span>
                 <span class="cov-item-name">Microsoft 365 and Teams</span>
               </div>
               <span class="cov-badge badge-on">Monitoring</span>
             </div>
             <div class="cov-item">
               <div class="cov-item-left">
-                <span class="cov-item-icon"><i class="fa-solid fa-server" aria-hidden="true"></i></span>
+                <span class="cov-item-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg></span>
                 <span class="cov-item-name">Azure Infrastructure</span>
               </div>
               <span class="cov-badge badge-proactive">Proactive</span>
             </div>
             <div class="cov-item">
               <div class="cov-item-left">
-                <span class="cov-item-icon"><i class="fa-solid fa-server" aria-hidden="true"></i></span>
+                <span class="cov-item-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg></span>
                 <span class="cov-item-name">Dynamics 365</span>
               </div>
               <span class="cov-badge badge-on">Monitoring</span>
             </div>
             <div class="cov-item">
               <div class="cov-item-left">
-                <span class="cov-item-icon"><i class="fa-solid fa-server" aria-hidden="true"></i></span>
+                <span class="cov-item-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg></span>
                 <span class="cov-item-name">Power Platform</span>
               </div>
               <span class="cov-badge badge-on">Monitoring</span>
             </div>
             <div class="cov-item">
               <div class="cov-item-left">
-                <span class="cov-item-icon"><i class="fa-solid fa-server" aria-hidden="true"></i></span>
+                <span class="cov-item-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 13h8"/><path d="M8 17h6"/></svg></span>
                 <span class="cov-item-name">SharePoint</span>
               </div>
               <span class="cov-badge badge-on">Monitoring</span>
             </div>
             <div class="cov-item">
               <div class="cov-item-left">
-                <span class="cov-item-icon"><i class="fa-solid fa-server" aria-hidden="true"></i></span>
+                <span class="cov-item-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/></svg></span>
                 <span class="cov-item-name">SQL Server and Databases</span>
               </div>
               <span class="cov-badge badge-proactive">Proactive</span>
             </div>
             <div class="cov-item">
               <div class="cov-item-left">
-                <span class="cov-item-icon"><i class="fa-solid fa-server" aria-hidden="true"></i></span>
+                <span class="cov-item-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span>
                 <span class="cov-item-name">Custom Applications</span>
               </div>
               <span class="cov-badge badge-proactive">Proactive</span>
             </div>
             <div class="cov-sla">
-              <span style="font-size:1.1rem;"><i class="fa-solid fa-clock" aria-hidden="true"></i></span>
+              <span style="font-size:1.1rem;">⏱️</span>
               <div class="cov-sla-text"><strong>Response SLAs</strong> defined per tier from 1-hour critical response to next business day for routine requests, documented in your service agreement.</div>
             </div>
           </div>
@@ -611,32 +1026,32 @@
     <p class="section-body">Armely Managed Services covers the platforms we implement. If Armely built it or configured it, we can manage it. If you have an existing environment we did not build, we conduct an onboarding assessment before taking responsibility for it.</p>
     <div class="covers-grid">
       <div class="cover-card">
-        <span class="cover-icon"><i class="fa-solid fa-server" aria-hidden="true"></i></span>
+        <span class="cover-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg></span>
         <div class="cover-title">Microsoft 365 Administration</div>
         <div class="cover-desc">Tenant health monitoring, user lifecycle management, license optimization, Exchange Online, Teams administration, SharePoint governance, and security and compliance policy management.</div>
       </div>
       <div class="cover-card">
-        <span class="cover-icon"><i class="fa-solid fa-server" aria-hidden="true"></i></span>
+        <span class="cover-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg></span>
         <div class="cover-title">Azure Infrastructure Management</div>
         <div class="cover-desc">Azure resource monitoring, cost optimization, backup verification, performance management, security patching, and infrastructure scaling for Azure App Service, Azure Functions, and Azure SQL environments.</div>
       </div>
       <div class="cover-card">
-        <span class="cover-icon"><i class="fa-solid fa-server" aria-hidden="true"></i></span>
+        <span class="cover-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg></span>
         <div class="cover-title">Dynamics 365 and Power Platform</div>
         <div class="cover-desc">Dynamics 365 environment management, release wave update planning, Power Platform governance, flow monitoring, connector management, and minor configuration and enhancement requests.</div>
       </div>
       <div class="cover-card">
-        <span class="cover-icon"><i class="fa-solid fa-server" aria-hidden="true"></i></span>
+        <span class="cover-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/></svg></span>
         <div class="cover-title">SQL Server and Database Management</div>
         <div class="cover-desc">SQL Server monitoring, backup management, performance tuning, index maintenance, patch management, and capacity planning for on-premises and Azure-hosted SQL Server environments.</div>
       </div>
       <div class="cover-card">
-        <span class="cover-icon"><i class="fa-solid fa-server" aria-hidden="true"></i></span>
+        <span class="cover-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span>
         <div class="cover-title">Custom Application Support</div>
         <div class="cover-desc">Monitoring, incident response, bug fixes, and minor enhancements for custom applications built by Armely on the Azure and .NET stack, with defined SLAs and a named technical contact familiar with the codebase.</div>
       </div>
       <div class="cover-card">
-        <span class="cover-icon"><i class="fa-solid fa-server" aria-hidden="true"></i></span>
+        <span class="cover-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8V4H8"/><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M9 11v2"/><path d="M15 11v2"/></svg></span>
         <div class="cover-title">AI and Agent Management</div>
         <div class="cover-desc">Monitoring and governance of deployed Copilot Studio agents and Azure AI Foundry applications, including usage analytics, permission audits, model updates, and content review to ensure agents continue performing as designed.</div>
       </div>
@@ -700,28 +1115,28 @@
         <p class="section-body">The difference between Armely Managed Services and a generic managed services provider is not just technical capability. It is the institutional knowledge that comes from being the team that built and implemented the environment you are managing.</p>
         <ul class="why-list">
           <li>
-            <div class="why-icon"><i class="fa-solid fa-circle-check" aria-hidden="true"></i></div>
+            <div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.46 2.5 2.5 0 0 1-1.98-3 2.5 2.5 0 0 1-1.32-4.24 3 3 0 0 1 .34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.1-2"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.46 2.5 2.5 0 0 0 1.98-3 2.5 2.5 0 0 0 1.32-4.24 3 3 0 0 0-.34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.1-2"/></svg></div>
             <div>
               <div class="why-item-title">Context That Cannot Be Transferred</div>
               <div class="why-item-desc">When Armely manages an environment we implemented, we know why every decision was made, what the constraints were, and what the business depends on. That context makes every support interaction faster and every recommendation more relevant.</div>
             </div>
           </li>
           <li>
-            <div class="why-icon"><i class="fa-solid fa-circle-check" aria-hidden="true"></i></div>
+            <div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 17 6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg></div>
             <div>
               <div class="why-item-title">Proactive Rather Than Reactive</div>
               <div class="why-item-desc">We monitor continuously and review quarterly. Most issues we resolve before clients are aware of them. The measure of good managed services is problems that did not happen, not tickets that were closed quickly.</div>
             </div>
           </li>
           <li>
-            <div class="why-icon"><i class="fa-solid fa-circle-check" aria-hidden="true"></i></div>
+            <div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></div>
             <div>
               <div class="why-item-title">One Team Across the Full Stack</div>
               <div class="why-item-desc">Armely covers Microsoft 365, Azure, Dynamics 365, Power Platform, SharePoint, SQL Server, and custom applications under a single managed services agreement. You have one account manager and one invoice, not a different vendor for each platform layer.</div>
             </div>
           </li>
           <li>
-            <div class="why-icon"><i class="fa-solid fa-circle-check" aria-hidden="true"></i></div>
+            <div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
             <div>
               <div class="why-item-title">Predictable Fixed Monthly Fee</div>
               <div class="why-item-desc">Your managed services fee is fixed based on your environment scope. There are no unexpected charges for routine support, monitoring, or the minor enhancements included in your tier. Budget certainty is part of the value.</div>
@@ -814,4 +1229,18 @@
     </div>
   </div>
 </section>
+
+<footer>
+  <div class="footer-logo-row">
+    <div class="footer-lm">A</div>
+    <span class="footer-lt">armely</span>
+  </div>
+  <div class="footer-note">&#169; 2026 Armely &middot; www.armely.com &middot; Your Trusted Source for Digital Excellence</div>
+  <div class="footer-badges">
+    <span class="badge-chip">Microsoft CSP Partner</span>
+    <span class="badge-chip">Microsoft Authorized Reseller</span>
+    <span class="badge-chip">Azure Certified</span>
+  </div>
+</footer>
+
 </div>

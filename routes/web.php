@@ -38,6 +38,7 @@ Route::post('/data-readiness/submit', [DataReadinessLeadController::class, 'subm
 
 // Services listing page
 Route::get('/services', [ServicesController::class, 'index'])->name('services');
+Route::get('/services/{name}', [HomeController::class, 'serviceDetails'])->name('services.show');
 
 Route::view('/solutions/protective-order-digitization', 'protective-order-solution')->name('protective-order-solution');
 Route::redirect('/protective-order-solution', '/solutions/protective-order-digitization', 301);
@@ -59,16 +60,24 @@ Route::post('/submit-consultation', [HomeController::class, 'submitConsultation'
 foreach ([
     'ai-data-strategy' => 'data-strategy',
     'api-development' => 'api-data-access',
+    'api-dev' => 'api-data-access',
     'copilot' => 'copilot',
     'custom-development' => 'custom-development',
     'dynamics365' => 'microsoft-dynamics-365',
+    'dynamics-365' => 'microsoft-dynamics-365',
     'fabric' => 'microsoft-fabric',
     'genai' => 'generative-ai',
     'generative-ai' => 'generative-ai',
     'm365-governance' => 'm365-governance',
     'managed-services' => 'managed-services',
+    'powerapps' => 'microsoft-powerapps',
+    'power-apps' => 'microsoft-powerapps',
+    'powerautomate' => 'microsoft-power-automate',
     'power-platform' => 'microsoft-power-pages',
+    'power-automate' => 'microsoft-power-automate',
+    'powerplatform' => 'microsoft-power-pages',
     'sharepoint' => 'sharepoint-online',
+    'sharepointonline' => 'sharepoint-online',
     'snowflake' => 'snowflake',
     'sql-server' => 'sql-&-data-warehousing',
 ] as $legacyServicePath => $serviceSlug) {

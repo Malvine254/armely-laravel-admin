@@ -1,15 +1,25 @@
-﻿<style>
+<style>
+
 
 .armely-m365-governance-page *, .armely-m365-governance-page *::before, .armely-m365-governance-page *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
 .armely-m365-governance-page {
-    --navy: #FFFFFF; --navy-mid: #F3F6FB; --navy-card: #EBF0F8;
-    --blue: #294e8b; --blue-lt: #3d6ab5;
-    --blue-dim: rgba(41,78,139,0.08); --blue-dim2: rgba(41,78,139,0.16);
-    --text-body: #3D4F6B; --text-muted: #6B7FA3; --border: rgba(41,78,139,0.1);
+    --navy:      #FFFFFF;
+    --navy-mid:  #F3F6FB;
+    --navy-card: #EBF0F8;
+    --blue:      #294e8b;
+    --blue-lt:   #3d6ab5;
+    --blue-dim:  rgba(41,78,139,0.08);
+    --blue-dim2: rgba(41,78,139,0.16);
+    --text-body: #3D4F6B;
+    --text-muted:#6B7FA3;
+    --border:    rgba(41,78,139,0.1);
   }
+
 .armely-m365-governance-page { scroll-behavior: smooth; }
 .armely-m365-governance-page { font-family: 'Poppins', sans-serif; background: var(--navy); color: var(--text-body); line-height: 1.6; }
 
+  /* NAV */
 .armely-m365-governance-page nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; padding: 18px 56px; background: rgba(26,46,82,0.96); backdrop-filter: blur(14px); border-bottom: 1px solid rgba(255,255,255,0.08); }
 .armely-m365-governance-page .logo { display: flex; align-items: center; gap: 10px; }
 .armely-m365-governance-page .logo-mark { width: 36px; height: 36px; background: var(--blue); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1rem; color: #fff; }
@@ -17,9 +27,10 @@
 .armely-m365-governance-page .nav-links { display: flex; gap: 32px; align-items: center; list-style: none; }
 .armely-m365-governance-page .nav-links a { color: rgba(255,255,255,0.6); text-decoration: none; font-size: 0.875rem; font-weight: 500; transition: color 0.2s; }
 .armely-m365-governance-page .nav-links a:hover { color: #fff; }
-.armely-m365-governance-page .nav-cta { background: var(--blue); color: #fff !important; padding: 10px 22px; border-radius: 6px; font-size: 0.875rem; font-weight: 600 !important; }
+.armely-m365-governance-page .nav-cta { background: var(--blue); color: #fff !important; padding: 10px 22px; border-radius: 6px; font-size: 0.875rem; font-weight: 600 !important; transition: background 0.2s !important; }
 .armely-m365-governance-page .nav-cta:hover { background: var(--blue-lt) !important; }
 
+  /* HERO */
 .armely-m365-governance-page .hero { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; padding: 140px 56px 100px; position: relative; overflow: hidden; background: #1a2e52; }
 .armely-m365-governance-page .hero-bg-glow { position: absolute; top: -180px; right: -100px; width: 720px; height: 720px; background: radial-gradient(circle, rgba(41,78,139,0.2) 0%, transparent 68%); pointer-events: none; }
 .armely-m365-governance-page .hero-eyebrow { display: inline-flex; align-items: center; gap: 10px; margin-bottom: 24px; }
@@ -39,55 +50,77 @@
 .armely-m365-governance-page .trust-text { font-size: 0.82rem; color: rgba(255,255,255,0.6); font-weight: 400; }
 .armely-m365-governance-page .trust-text strong { color: #fff; font-weight: 600; }
 
+  /* SECTIONS */
 .armely-m365-governance-page section { padding: 96px 56px; }
 .armely-m365-governance-page .section-inner { max-width: 1100px; margin: 0 auto; }
 .armely-m365-governance-page .section-eyebrow { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.14em; color: var(--blue); margin-bottom: 14px; font-weight: 600; }
 .armely-m365-governance-page .section-title { font-size: clamp(1.7rem, 3.2vw, 2.6rem); font-weight: 800; color: #1A2540; line-height: 1.12; letter-spacing: -0.025em; margin-bottom: 18px; max-width: 640px; }
 .armely-m365-governance-page .section-body { font-size: 0.975rem; font-weight: 300; max-width: 560px; line-height: 1.8; color: var(--text-body); margin-bottom: 48px; }
 
-  /* SYMPTOMS */
-.armely-m365-governance-page .symptoms { background: var(--navy-mid); }
-.armely-m365-governance-page .symptoms-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 72px; align-items: start; }
-.armely-m365-governance-page .symptom-list { display: flex; flex-direction: column; gap: 10px; margin-top: 28px; }
-.armely-m365-governance-page .symptom { background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; display: flex; align-items: flex-start; gap: 12px; }
-.armely-m365-governance-page .symptom.flagged { background: var(--blue-dim); border-color: var(--blue-dim2); }
-.armely-m365-governance-page .symptom-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
-.armely-m365-governance-page .symptom-text { font-size: 0.84rem; color: var(--text-body); line-height: 1.6; }
-.armely-m365-governance-page .symptom-text strong { color: #1A2540; }
+  /* AI SPECTRUM */
+.armely-m365-governance-page .spectrum { background: var(--navy-mid); }
+.armely-m365-governance-page .spectrum-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 72px; align-items: start; }
+.armely-m365-governance-page .spectrum-row { display: flex; flex-direction: column; gap: 10px; margin-top: 32px; }
+.armely-m365-governance-page .spectrum-level { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; display: flex; align-items: flex-start; gap: 14px; transition: border-color 0.2s; }
+.armely-m365-governance-page .spectrum-level:hover { border-color: rgba(41,78,139,0.3); }
+.armely-m365-governance-page .spectrum-level.highlight { background: var(--blue-dim); border-color: var(--blue-dim2); }
+.armely-m365-governance-page .spectrum-num { font-size: 0.68rem; font-weight: 800; color: var(--blue); background: var(--blue-dim2); border-radius: 4px; padding: 2px 7px; flex-shrink: 0; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.08em; }
+.armely-m365-governance-page .spectrum-content-title { font-size: 0.875rem; font-weight: 700; color: #1A2540; margin-bottom: 3px; }
+.armely-m365-governance-page .spectrum-content-desc { font-size: 0.77rem; color: var(--text-muted); line-height: 1.5; }
 
-  /* Governance visual */
-.armely-m365-governance-page .gov-card { background: #fff; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; box-shadow: 0 4px 24px rgba(41,78,139,0.07); }
-.armely-m365-governance-page .gov-header { padding: 16px 22px; border-bottom: 1px solid var(--border); background: var(--navy-mid); display: flex; align-items: center; gap: 10px; }
-.armely-m365-governance-page .gov-dots { display: flex; gap: 6px; }
-.armely-m365-governance-page .gov-dots span { width: 10px; height: 10px; border-radius: 50%; background: rgba(41,78,139,0.15); }
-.armely-m365-governance-page .gov-title { font-size: 0.78rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; }
-.armely-m365-governance-page .gov-body { padding: 20px; display: flex; flex-direction: column; gap: 8px; }
-.armely-m365-governance-page .gov-area { border-radius: 9px; padding: 13px 16px; }
-.armely-m365-governance-page .gov-area-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px; }
-.armely-m365-governance-page .gov-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.armely-m365-governance-page .gov-chip { font-size: 0.72rem; font-weight: 600; padding: 4px 10px; border-radius: 20px; }
-.armely-m365-governance-page .area-security { background: var(--blue-dim); }
-.armely-m365-governance-page .area-security .gov-area-label { color: var(--blue); }
-.armely-m365-governance-page .area-security .gov-chip { background: var(--blue-dim2); color: var(--blue); }
-.armely-m365-governance-page .area-adoption { background: rgba(41,78,139,0.05); }
-.armely-m365-governance-page .area-adoption .gov-area-label { color: var(--blue); }
-.armely-m365-governance-page .area-adoption .gov-chip { background: rgba(41,78,139,0.1); color: var(--blue); }
-.armely-m365-governance-page .area-compliance { background: var(--blue); }
-.armely-m365-governance-page .area-compliance .gov-area-label { color: rgba(255,255,255,0.7); }
-.armely-m365-governance-page .area-compliance .gov-chip { background: rgba(255,255,255,0.15); color: #fff; }
-.armely-m365-governance-page .gov-arrow { text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 2px 0; }
+  /* Platform visual */
+.armely-m365-governance-page .platform-card { background: #fff; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; box-shadow: 0 4px 24px rgba(41,78,139,0.07); }
+.armely-m365-governance-page .platform-header { padding: 16px 22px; border-bottom: 1px solid var(--border); background: var(--navy-mid); display: flex; align-items: center; gap: 10px; }
+.armely-m365-governance-page .platform-dots { display: flex; gap: 6px; }
+.armely-m365-governance-page .platform-dots span { width: 10px; height: 10px; border-radius: 50%; background: rgba(41,78,139,0.15); }
+.armely-m365-governance-page .platform-header-title { font-size: 0.78rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; }
+.armely-m365-governance-page .platform-body { padding: 20px; display: flex; flex-direction: column; gap: 8px; }
+.armely-m365-governance-page .plat-band { border-radius: 9px; padding: 13px 16px; }
+.armely-m365-governance-page .plat-band-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px; }
+.armely-m365-governance-page .plat-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.armely-m365-governance-page .plat-chip { font-size: 0.72rem; font-weight: 600; padding: 4px 10px; border-radius: 20px; }
+.armely-m365-governance-page .band-tools { background: var(--blue-dim); }
+.armely-m365-governance-page .band-tools .plat-band-label { color: var(--blue); }
+.armely-m365-governance-page .band-tools .plat-chip { background: var(--blue-dim2); color: var(--blue); }
+.armely-m365-governance-page .band-data { background: rgba(41,78,139,0.05); }
+.armely-m365-governance-page .band-data .plat-band-label { color: var(--blue); }
+.armely-m365-governance-page .band-data .plat-chip { background: rgba(41,78,139,0.1); color: var(--blue); }
+.armely-m365-governance-page .band-gov { background: var(--blue); }
+.armely-m365-governance-page .band-gov .plat-band-label { color: rgba(255,255,255,0.7); }
+.armely-m365-governance-page .band-gov .plat-chip { background: rgba(255,255,255,0.15); color: #fff; }
+.armely-m365-governance-page .band-arrow { text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 2px 0; }
+
+  /* VIBE CODING CALLOUT */
+.armely-m365-governance-page .vibe-section { background: var(--navy); }
+.armely-m365-governance-page .vibe-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: start; }
+.armely-m365-governance-page .vibe-left { }
+.armely-m365-governance-page .vibe-card { background: var(--navy-card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+.armely-m365-governance-page .vibe-card-header { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
+.armely-m365-governance-page .vibe-card-icon { font-size: 1.4rem; }
+.armely-m365-governance-page .vibe-card-title { font-size: 1rem; font-weight: 700; color: #1A2540; }
+.armely-m365-governance-page .vibe-card-subtitle { font-size: 0.78rem; color: var(--text-muted); }
+.armely-m365-governance-page .vibe-card-body { padding: 24px; }
+.armely-m365-governance-page .vibe-risk { display: flex; align-items: flex-start; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--border); }
+.armely-m365-governance-page .vibe-risk:last-child { border-bottom: none; }
+.armely-m365-governance-page .vibe-risk-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+.armely-m365-governance-page .vibe-risk-title { font-size: 0.82rem; font-weight: 700; color: #1A2540; margin-bottom: 2px; }
+.armely-m365-governance-page .vibe-risk-desc { font-size: 0.77rem; color: var(--text-muted); line-height: 1.5; }
+.armely-m365-governance-page .vibe-right { }
+.armely-m365-governance-page .vibe-answer-card { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 28px; margin-bottom: 12px; }
+.armely-m365-governance-page .vibe-answer-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: var(--blue); margin-bottom: 10px; }
+.armely-m365-governance-page .vibe-answer-text { font-size: 0.875rem; color: var(--text-body); line-height: 1.75; }
 
   /* DELIVERS */
-.armely-m365-governance-page .delivers { background: var(--navy); }
+.armely-m365-governance-page .delivers { background: var(--navy-mid); }
 .armely-m365-governance-page .delivers-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 48px; }
-.armely-m365-governance-page .deliver-card { background: var(--navy-card); border: 1px solid var(--border); border-radius: 14px; padding: 32px 26px; transition: border-color 0.2s, transform 0.2s; }
+.armely-m365-governance-page .deliver-card { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 32px 26px; transition: border-color 0.2s, transform 0.2s; }
 .armely-m365-governance-page .deliver-card:hover { border-color: rgba(41,78,139,0.35); transform: translateY(-3px); }
 .armely-m365-governance-page .deliver-icon { width: 48px; height: 48px; background: var(--blue-dim); border: 1px solid var(--blue-dim2); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; margin-bottom: 20px; }
 .armely-m365-governance-page .deliver-title { font-size: 1rem; font-weight: 700; color: #1A2540; margin-bottom: 10px; }
 .armely-m365-governance-page .deliver-desc { font-size: 0.875rem; line-height: 1.7; color: var(--text-body); }
 
   /* JOURNEY */
-.armely-m365-governance-page .journey { background: var(--navy-mid); }
+.armely-m365-governance-page .journey { background: var(--navy); }
 .armely-m365-governance-page .steps-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; margin-top: 56px; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
 .armely-m365-governance-page .step { padding: 32px 22px; border-right: 1px solid var(--border); }
 .armely-m365-governance-page .step:last-child { border-right: none; }
@@ -97,28 +130,28 @@
 .armely-m365-governance-page .step-tag { display: inline-block; margin-top: 14px; background: var(--blue-dim); color: var(--blue); font-size: 0.7rem; padding: 3px 10px; border-radius: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
 
   /* USE CASES */
-.armely-m365-governance-page .usecases { background: var(--navy); }
+.armely-m365-governance-page .usecases { background: var(--navy-mid); }
 .armely-m365-governance-page .uc-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 48px; }
-.armely-m365-governance-page .uc-card { background: var(--navy-card); border: 1px solid var(--border); border-radius: 12px; padding: 28px 24px; transition: border-color 0.2s; }
+.armely-m365-governance-page .uc-card { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 28px 24px; transition: border-color 0.2s; }
 .armely-m365-governance-page .uc-card:hover { border-color: rgba(41,78,139,0.25); }
 .armely-m365-governance-page .uc-icon { font-size: 1.6rem; margin-bottom: 14px; display: block; }
 .armely-m365-governance-page .uc-title { font-size: 0.95rem; font-weight: 700; color: #1A2540; margin-bottom: 8px; }
 .armely-m365-governance-page .uc-desc { font-size: 0.85rem; line-height: 1.68; color: var(--text-body); }
 
   /* TESTIMONIALS */
-.armely-m365-governance-page .testimonials { background: var(--navy-mid); padding: 96px 56px; }
+.armely-m365-governance-page .testimonials { background: var(--navy); padding: 96px 56px; }
 .armely-m365-governance-page .testi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 48px; }
-.armely-m365-governance-page .testi-card { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 32px 28px; display: flex; flex-direction: column; }
+.armely-m365-governance-page .testi-card { background: var(--navy-card); border: 1px solid var(--border); border-radius: 14px; padding: 32px 28px; display: flex; flex-direction: column; }
 .armely-m365-governance-page .testi-quote { font-size: 3.5rem; line-height: 0.9; color: var(--blue); opacity: 0.15; font-family: Georgia, serif; margin-bottom: 8px; display: block; }
 .armely-m365-governance-page .testi-body { font-size: 0.875rem; line-height: 1.8; color: var(--text-body); flex: 1; margin-bottom: 24px; font-style: italic; }
 .armely-m365-governance-page .testi-footer { display: flex; align-items: center; gap: 14px; }
-.armely-m365-governance-page .testi-avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--blue); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; flex-shrink: 0; }
+.armely-m365-governance-page .testi-avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--blue); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; flex-shrink: 0; letter-spacing: 0.02em; }
 .armely-m365-governance-page .testi-name { font-size: 0.875rem; font-weight: 700; color: #1A2540; }
 .armely-m365-governance-page .testi-role { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
 .armely-m365-governance-page .testi-stars { color: var(--blue); font-size: 0.72rem; letter-spacing: 1px; margin-bottom: 3px; }
 
-  /* WHY */
-.armely-m365-governance-page .why { background: var(--navy); }
+  /* WHY ARMELY */
+.armely-m365-governance-page .why { background: var(--navy-mid); }
 .armely-m365-governance-page .why-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 72px; align-items: start; }
 .armely-m365-governance-page .why-list { list-style: none; margin-top: 36px; }
 .armely-m365-governance-page .why-list li { display: flex; gap: 16px; padding: 20px 0; border-bottom: 1px solid var(--border); }
@@ -154,6 +187,7 @@
 .armely-m365-governance-page .form-submit:hover { background: var(--blue-lt); }
 .armely-m365-governance-page .form-note { text-align: center; margin-top: 12px; font-size: 0.75rem; color: var(--text-muted); }
 
+  /* FOOTER */
 .armely-m365-governance-page footer { background: #1a2e52; border-top: 1px solid rgba(255,255,255,0.08); padding: 36px 56px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
 .armely-m365-governance-page .footer-logo-row { display: flex; align-items: center; gap: 10px; }
 .armely-m365-governance-page .footer-lm { width: 30px; height: 30px; background: var(--blue); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.85rem; color: #fff; }
@@ -162,12 +196,13 @@
 .armely-m365-governance-page .footer-badges { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
 .armely-m365-governance-page .badge-chip { border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; padding: 5px 12px; font-size: 0.72rem; color: rgba(255,255,255,0.5); font-weight: 500; }
 
+  /* RESPONSIVE */
   @media (max-width: 900px) {
 .armely-m365-governance-page nav { padding: 16px 24px; }
 .armely-m365-governance-page .nav-links { display: none; }
 .armely-m365-governance-page section { padding: 72px 24px; }
 .armely-m365-governance-page .hero { padding: 110px 24px 72px; }
-.armely-m365-governance-page .symptoms-grid, .armely-m365-governance-page .why-two-col { grid-template-columns: 1fr; gap: 40px; }
+.armely-m365-governance-page .spectrum-grid, .armely-m365-governance-page .vibe-two-col, .armely-m365-governance-page .why-two-col { grid-template-columns: 1fr; gap: 40px; }
 .armely-m365-governance-page .delivers-grid, .armely-m365-governance-page .uc-grid { grid-template-columns: 1fr 1fr; }
 .armely-m365-governance-page .steps-row { grid-template-columns: 1fr; }
 .armely-m365-governance-page .step { border-right: none; border-bottom: 1px solid var(--border); }
@@ -248,64 +283,226 @@
 .armely-m365-governance-page footer {
   display: none;
 }
-.armely-m365-governance-page .symptoms-grid,
-.armely-m365-governance-page .why-two-col,
-.armely-m365-governance-page .cta-inner {
-  align-items: stretch;
+
+
+/* Modern layout update: tighter first section and SVG icon system */
+.armely-m365-governance-page .hero {
+  min-height: auto;
+  padding: 128px 32px 86px;
+  isolation: isolate;
 }
-.armely-m365-governance-page .gov-card,
-.armely-m365-governance-page .partner-block,
-.armely-m365-governance-page .cta-form {
-  height: 100%;
+.armely-m365-governance-page .hero-inner {
+  width: min(1160px, 100%);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.75fr);
+  align-items: center;
+  gap: 56px;
+  position: relative;
+  z-index: 1;
 }
-.armely-m365-governance-page .delivers-grid,
-.armely-m365-governance-page .uc-grid,
-.armely-m365-governance-page .testi-grid {
-  align-items: stretch;
+.armely-m365-governance-page .hero-copy { max-width: 760px; }
+.armely-m365-governance-page .hero h1 { max-width: 760px; margin-bottom: 20px; }
+.armely-m365-governance-page .hero-sub { max-width: 640px; margin-bottom: 30px; font-size: 1.02rem; line-height: 1.72; }
+.armely-m365-governance-page .hero-actions { margin-bottom: 34px; }
+.armely-m365-governance-page .hero-trust {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding-top: 0;
+  border-top: 0;
+  max-width: 720px;
 }
-.armely-m365-governance-page .deliver-card,
-.armely-m365-governance-page .uc-card,
-.armely-m365-governance-page .testi-card {
-  min-height: 100%;
+.armely-m365-governance-page .hero .trust-item {
+  align-items: flex-start;
+  background: rgba(255,255,255,0.10);
+  border: 1px solid rgba(255,255,255,0.16);
+  border-radius: 14px;
+  padding: 14px 15px;
+  backdrop-filter: blur(10px);
 }
-.armely-m365-governance-page .symptom,
-.armely-m365-governance-page .deliver-card,
-.armely-m365-governance-page .uc-card,
-.armely-m365-governance-page .testi-card,
-.armely-m365-governance-page .partner-block,
-.armely-m365-governance-page .cta-form {
-  background: linear-gradient(180deg, #ffffff 0%, #f9fbfe 100%);
+.armely-m365-governance-page .hero .trust-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.16);
+  border: 1px solid rgba(255,255,255,0.24);
+  position: relative;
+  margin-top: 1px;
 }
-.armely-m365-governance-page .gov-card,
-.armely-m365-governance-page .partner-block,
-.armely-m365-governance-page .cta-form {
+.armely-m365-governance-page .hero .trust-dot::after {
+  content: '';
+  position: absolute;
+  left: 7px;
+  top: 5px;
+  width: 6px;
+  height: 10px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+.armely-m365-governance-page .hero .trust-text { color: rgba(255,255,255,0.78); line-height: 1.5; }
+.armely-m365-governance-page .hero-visual {
+  min-height: 420px;
+  border-radius: 28px;
+  position: relative;
+  background: linear-gradient(145deg, rgba(255,255,255,0.16), rgba(255,255,255,0.05));
+  border: 1px solid rgba(255,255,255,0.18);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.18), 0 28px 70px rgba(6, 22, 48, 0.24);
+  overflow: hidden;
+}
+.armely-m365-governance-page .hero-visual::before {
+  content: '';
+  position: absolute;
+  inset: 36px;
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 999px;
+}
+.armely-m365-governance-page .hero-visual::after {
+  content: '';
+  position: absolute;
+  width: 190px;
+  height: 190px;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(255,255,255,0.24), rgba(255,255,255,0.06));
+  border: 1px solid rgba(255,255,255,0.22);
+}
+.armely-m365-governance-page .hero-orbit span {
+  position: absolute;
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.14);
+  border: 1px solid rgba(255,255,255,0.22);
+}
+.armely-m365-governance-page .hero-orbit span:nth-child(1) { left: 56px; top: 88px; }
+.armely-m365-governance-page .hero-orbit span:nth-child(2) { right: 72px; top: 138px; }
+.armely-m365-governance-page .hero-orbit span:nth-child(3) { left: 48%; bottom: 76px; }
+.armely-m365-governance-page .hero-visual-card {
+  position: absolute;
+  z-index: 2;
+  width: 230px;
+  padding: 18px;
+  border-radius: 18px;
+  background: rgba(255,255,255,0.92);
+  box-shadow: 0 24px 54px rgba(9, 31, 63, 0.22);
+}
+.armely-m365-governance-page .hero-visual-card.top { top: 42px; right: 30px; }
+.armely-m365-governance-page .hero-visual-card.bottom { bottom: 46px; left: 30px; }
+.armely-m365-governance-page .hero-visual-label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #162b49;
+  margin-bottom: 12px;
+}
+.armely-m365-governance-page .hero-visual-line {
+  display: block;
+  height: 8px;
+  width: 100%;
+  border-radius: 999px;
+  background: rgba(47, 85, 151, 0.16);
+  margin-top: 8px;
+}
+.armely-m365-governance-page .hero-visual-line.short { width: 68%; }
+.armely-m365-governance-page .icon-svg {
+  width: 22px;
+  height: 22px;
+  display: block;
+  color: var(--blue);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.armely-m365-governance-page .vibe-card-icon,
+.armely-m365-governance-page .vibe-risk-icon,
+.armely-m365-governance-page .deliver-icon,
+.armely-m365-governance-page .uc-icon,
+.armely-m365-governance-page .why-icon {
+  color: var(--blue);
+}
+.armely-m365-governance-page .vibe-card-icon,
+.armely-m365-governance-page .vibe-risk-icon {
+  width: 42px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 12px;
+  background: var(--blue-dim);
+  border: 1px solid var(--blue-dim2);
 }
-.armely-m365-governance-page .section-body {
-  max-width: 680px;
+.armely-m365-governance-page .vibe-risk-icon { width: 36px; height: 36px; border-radius: 10px; }
+.armely-m365-governance-page .deliver-icon .icon-svg,
+.armely-m365-governance-page .uc-icon .icon-svg,
+.armely-m365-governance-page .why-icon .icon-svg { width: 23px; height: 23px; }
+.armely-m365-governance-page .uc-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  background: var(--blue-dim);
+  border: 1px solid var(--blue-dim2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+@media (max-width: 980px) {
+  .armely-m365-governance-page .hero-inner { grid-template-columns: 1fr; gap: 32px; }
+  .armely-m365-governance-page .hero-visual { min-height: 320px; }
+}
+@media (max-width: 680px) {
+  .armely-m365-governance-page .hero { padding: 104px 22px 64px; }
+  .armely-m365-governance-page .hero-trust { grid-template-columns: 1fr; }
+  .armely-m365-governance-page .hero-visual { display: none; }
+  .armely-m365-governance-page .hero-actions a { width: 100%; text-align: center; }
 }
 
-/* Shared modern service page refresh */
+/* Focused cleanup for the Generative AI detail page */
 .armely-m365-governance-page .hero {
   min-height: 100vh;
   padding: 150px 56px 96px;
   display: flex;
-  flex-direction: column;
-  justify-content: center;
+  align-items: center;
   background: #173b67;
   border-radius: 0;
 }
 .armely-m365-governance-page .hero::after,
 .armely-m365-governance-page .hero-bg-glow,
+.armely-m365-governance-page .hero-visual {
+  display: none;
+}
+.armely-m365-governance-page .hero-inner {
+  width: min(1040px, 100%);
+  display: block;
+}
+.armely-m365-governance-page .hero-copy {
+  max-width: 760px;
+}
+.armely-m365-governance-page .hero-eyebrow {
+  margin-bottom: 18px;
+}
+.armely-m365-governance-page .eyebrow-badge {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  color: rgba(255,255,255,0.72);
+}
+.armely-m365-governance-page .eyebrow-partner,
 .armely-m365-governance-page .hero-trust {
   display: none;
 }
 .armely-m365-governance-page .hero h1 {
-  max-width: 820px;
+  max-width: 760px;
   margin-bottom: 22px;
 }
 .armely-m365-governance-page .hero-sub {
-  max-width: 700px;
+  max-width: 680px;
   margin-bottom: 34px;
 }
 .armely-m365-governance-page .hero-actions {
@@ -315,18 +512,50 @@
 .armely-m365-governance-page .hero .btn-outline {
   border-radius: 0;
 }
-.armely-m365-governance-page .eyebrow-badge {
-  background: transparent;
-  border: 0;
-  border-radius: 0;
-  padding: 0;
-  color: rgba(255,255,255,0.74);
+.armely-m365-governance-page .vibe-section {
+  background: #fff;
+  padding: 84px 56px;
 }
-.armely-m365-governance-page .eyebrow-partner {
-  display: none;
+.armely-m365-governance-page .vibe-section .section-inner {
+  max-width: 920px;
+}
+.armely-m365-governance-page .vibe-section .section-title,
+.armely-m365-governance-page .vibe-section .section-body {
+  max-width: 820px;
+}
+.armely-m365-governance-page .vibe-section .section-body {
+  margin-bottom: 28px;
+}
+.armely-m365-governance-page .vibe-two-col {
+  grid-template-columns: 1fr;
+  gap: 18px;
+}
+.armely-m365-governance-page .vibe-card,
+.armely-m365-governance-page .vibe-answer-card {
+  border-radius: 0;
+  box-shadow: none;
+}
+.armely-m365-governance-page .vibe-card-header {
+  padding: 18px 20px;
+}
+.armely-m365-governance-page .vibe-card-body {
+  padding: 8px 20px 12px;
+}
+.armely-m365-governance-page .vibe-risk {
+  padding: 12px 0;
+}
+.armely-m365-governance-page .vibe-right {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+.armely-m365-governance-page .vibe-answer-card {
+  margin-bottom: 0;
+  padding: 20px;
+  background: #f7f9fc;
 }
 .armely-m365-governance-page section:not(.hero) > .section-inner > .section-eyebrow,
-.armely-m365-governance-page .cta-inner > div > .section-eyebrow {
+.armely-m365-governance-page .why > .section-inner > .section-eyebrow {
   width: fit-content;
   margin: 0 auto 14px;
   padding: 6px 14px;
@@ -336,88 +565,265 @@
   text-align: center;
 }
 .armely-m365-governance-page section:not(.hero) > .section-inner > .section-title,
-.armely-m365-governance-page .cta-inner > div > .section-title {
-  max-width: 900px;
+.armely-m365-governance-page .why > .section-inner > .section-title {
+  max-width: 880px;
   margin-left: auto;
   margin-right: auto;
   text-align: center;
 }
 .armely-m365-governance-page section:not(.hero) > .section-inner > .section-body,
-.armely-m365-governance-page .cta-inner > div > .section-body {
+.armely-m365-governance-page .why > .section-inner > .section-body {
   max-width: 820px;
   margin-left: auto;
   margin-right: auto;
   text-align: center;
 }
-.armely-m365-governance-page .intro-grid,
-.armely-m365-governance-page .symptoms-grid,
-.armely-m365-governance-page .when-grid,
-.armely-m365-governance-page .why-two-col,
-.armely-m365-governance-page .cta-inner {
-  align-items: stretch;
-}
-.armely-m365-governance-page .intro-grid,
-.armely-m365-governance-page .symptoms-grid,
-.armely-m365-governance-page .when-grid,
+.armely-m365-governance-page .spectrum-grid,
 .armely-m365-governance-page .delivers-grid,
-.armely-m365-governance-page .tier-grid,
-.armely-m365-governance-page .covers-grid,
 .armely-m365-governance-page .steps-row,
 .armely-m365-governance-page .uc-grid,
 .armely-m365-governance-page .testi-grid,
-.armely-m365-governance-page .why-two-col,
-.armely-m365-governance-page .pathway-grid {
+.armely-m365-governance-page .why-two-col {
   margin-top: 56px;
+}
+.armely-m365-governance-page .why-two-col {
+  align-items: stretch;
+}
+.armely-m365-governance-page .why-list {
+  margin-top: 0;
+}
+.armely-m365-governance-page .why-list,
+.armely-m365-governance-page .partner-block {
+  height: 100%;
+}
+@media (max-width: 900px) {
+  .armely-m365-governance-page .hero {
+    padding: 118px 24px 76px;
+  }
+  .armely-m365-governance-page .vibe-section {
+    padding: 72px 24px;
+  }
+  .armely-m365-governance-page .vibe-right {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+
+/* Final compact modern cleanup */
+.armely-m365-governance-page {
+  --blue: #2f5597;
+  --blue-lt: #4779bd;
+  --navy-mid: #f6f8fc;
+  --navy-card: #ffffff;
+  --text-body: #334155;
+  --text-muted: #667085;
+  --border: rgba(47, 85, 151, 0.14);
+}
+.armely-m365-governance-page .hero {
+  min-height: auto !important;
+  padding: 86px 56px 70px !important;
+  background: linear-gradient(135deg, #173b67 0%, #234f86 100%) !important;
+  border-radius: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+.armely-m365-governance-page .hero::after,
+.armely-m365-governance-page .hero-bg-glow,
+.armely-m365-governance-page .hero-visual {
+  display: none !important;
+}
+.armely-m365-governance-page .hero-inner {
+  width: min(1120px, 100%) !important;
+  margin: 0 auto !important;
+  display: block !important;
+}
+.armely-m365-governance-page .hero-copy {
+  max-width: 860px !important;
+}
+.armely-m365-governance-page .hero-eyebrow {
+  margin-bottom: 18px !important;
+}
+.armely-m365-governance-page .eyebrow-badge {
+  display: inline-flex !important;
+  background: rgba(255,255,255,0.10) !important;
+  border: 1px solid rgba(255,255,255,0.22) !important;
+  border-radius: 999px !important;
+  padding: 7px 14px !important;
+  color: rgba(255,255,255,0.88) !important;
+}
+.armely-m365-governance-page .eyebrow-partner {
+  display: inline-flex !important;
+  color: rgba(255,255,255,0.66) !important;
+}
+.armely-m365-governance-page .hero h1 {
+  max-width: 900px !important;
+  margin-bottom: 18px !important;
+  font-size: clamp(2.5rem, 5vw, 4.9rem) !important;
+  line-height: 1.05 !important;
+  letter-spacing: -0.04em !important;
+}
+.armely-m365-governance-page .hero-sub {
+  max-width: 760px !important;
+  margin-bottom: 28px !important;
+  font-size: 1rem !important;
+  line-height: 1.7 !important;
+}
+.armely-m365-governance-page .hero-actions {
+  margin-bottom: 0 !important;
+  gap: 12px !important;
+}
+.armely-m365-governance-page .hero .btn-primary,
+.armely-m365-governance-page .hero .btn-outline,
+.armely-m365-governance-page .btn-primary,
+.armely-m365-governance-page .btn-outline,
+.armely-m365-governance-page .form-submit {
+  border-radius: 8px !important;
+}
+.armely-m365-governance-page section {
+  padding: 68px 56px !important;
+}
+.armely-m365-governance-page .section-inner {
+  max-width: 1120px !important;
+}
+.armely-m365-governance-page .section-eyebrow {
+  margin-bottom: 10px !important;
+}
+.armely-m365-governance-page .section-title {
+  margin-bottom: 14px !important;
+}
+.armely-m365-governance-page .section-body {
+  margin-bottom: 28px !important;
+  line-height: 1.65 !important;
+}
+.armely-m365-governance-page .spectrum-grid,
+.armely-m365-governance-page .vibe-two-col,
+.armely-m365-governance-page .delivers-grid,
+.armely-m365-governance-page .steps-row,
+.armely-m365-governance-page .uc-grid,
+.armely-m365-governance-page .testi-grid,
+.armely-m365-governance-page .why-two-col {
+  margin-top: 34px !important;
+  gap: 20px !important;
+}
+.armely-m365-governance-page .spectrum-grid,
+.armely-m365-governance-page .why-two-col {
+  grid-template-columns: 1fr 1fr !important;
+}
+.armely-m365-governance-page .spectrum-row {
+  margin-top: 0 !important;
+  gap: 10px !important;
+}
+.armely-m365-governance-page .spectrum-level,
+.armely-m365-governance-page .deliver-card,
+.armely-m365-governance-page .uc-card,
+.armely-m365-governance-page .testi-card,
+.armely-m365-governance-page .vibe-answer-card,
+.armely-m365-governance-page .partner-block,
+.armely-m365-governance-page .cta-form,
+.armely-m365-governance-page .vibe-card,
+.armely-m365-governance-page .platform-card {
+  border-radius: 14px !important;
+  box-shadow: 0 14px 36px rgba(18, 47, 82, 0.08) !important;
+}
+.armely-m365-governance-page .deliver-card,
+.armely-m365-governance-page .uc-card,
+.armely-m365-governance-page .testi-card {
+  padding: 24px 22px !important;
 }
 .armely-m365-governance-page .deliver-icon,
 .armely-m365-governance-page .uc-icon,
 .armely-m365-governance-page .why-icon,
-.armely-m365-governance-page .symptom-icon,
-.armely-m365-governance-page .what-card-icon,
-.armely-m365-governance-page .cov-item-icon,
-.armely-m365-governance-page .cover-icon,
-.armely-m365-governance-page .product-card-icon,
-.armely-m365-governance-page .cap-icon,
-.armely-m365-governance-page .workload-pill-icon,
-.armely-m365-governance-page .decision-icon,
-.armely-m365-governance-page .sign-icon,
-.armely-m365-governance-page .pathway-icon,
-.armely-m365-governance-page .onelake-callout-icon,
-.armely-m365-governance-page .vs-callout-icon {
-  color: var(--blue);
-  font-size: 1.1rem;
-  line-height: 1;
+.armely-m365-governance-page .vibe-card-icon,
+.armely-m365-governance-page .vibe-risk-icon {
+  border-radius: 12px !important;
+  color: var(--blue) !important;
 }
-.armely-m365-governance-page .deliver-icon,
-.armely-m365-governance-page .uc-icon,
-.armely-m365-governance-page .why-icon {
-  width: 48px;
-  height: 48px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 12px;
-  background: var(--blue-dim);
-  border: 1px solid var(--blue-dim2);
+.armely-m365-governance-page .vibe-section {
+  padding: 68px 56px !important;
+  background: #fff !important;
 }
-.armely-m365-governance-page .deliver-card,
-.armely-m365-governance-page .uc-card,
-.armely-m365-governance-page .testi-card,
-.armely-m365-governance-page .tier-card,
-.armely-m365-governance-page .cover-card,
-.armely-m365-governance-page .pathway-card,
-.armely-m365-governance-page .partner-block,
-.armely-m365-governance-page .cta-form {
-  background: linear-gradient(180deg, #ffffff 0%, #f9fbfe 100%);
-  box-shadow: 0 16px 42px rgba(18, 47, 82, 0.08);
+.armely-m365-governance-page .vibe-section .section-inner {
+  max-width: 1120px !important;
+}
+.armely-m365-governance-page .vibe-two-col {
+  grid-template-columns: 1fr 1fr !important;
+  align-items: stretch !important;
+}
+.armely-m365-governance-page .vibe-card-body {
+  padding: 18px 20px !important;
+}
+.armely-m365-governance-page .vibe-right {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+}
+.armely-m365-governance-page .vibe-answer-card {
+  padding: 20px !important;
+  background: #f8fafd !important;
+}
+.armely-m365-governance-page .steps-row {
+  border-radius: 14px !important;
+  overflow: hidden !important;
+}
+.armely-m365-governance-page .step {
+  padding: 24px 18px !important;
+}
+.armely-m365-governance-page .step-num {
+  font-size: 2rem !important;
+  margin-bottom: 10px !important;
+}
+.armely-m365-governance-page .why-list {
+  margin-top: 0 !important;
+}
+.armely-m365-governance-page .why-list li {
+  padding: 16px 0 !important;
+}
+.armely-m365-governance-page .partner-block-top,
+.armely-m365-governance-page .p-stat {
+  padding: 22px !important;
+}
+.armely-m365-governance-page .cta-inner {
+  padding: 68px 56px !important;
+  gap: 40px !important;
 }
 @media (max-width: 900px) {
-  .armely-m365-governance-page .hero { padding: 118px 24px 76px; }
-  .armely-m365-governance-page section:not(.hero) > .section-inner > .section-title,
-  .armely-m365-governance-page .cta-inner > div > .section-title { max-width: 100%; }
+  .armely-m365-governance-page .hero { padding: 88px 24px 58px !important; }
+  .armely-m365-governance-page section,
+  .armely-m365-governance-page .vibe-section { padding: 56px 24px !important; }
+  .armely-m365-governance-page .spectrum-grid,
+  .armely-m365-governance-page .vibe-two-col,
+  .armely-m365-governance-page .why-two-col { grid-template-columns: 1fr !important; }
+  .armely-m365-governance-page .delivers-grid,
+  .armely-m365-governance-page .uc-grid { grid-template-columns: 1fr 1fr !important; }
+  .armely-m365-governance-page .cta-inner { padding: 56px 24px !important; grid-template-columns: 1fr !important; }
 }
+@media (max-width: 600px) {
+  .armely-m365-governance-page .hero h1 { font-size: clamp(2.15rem, 11vw, 3.2rem) !important; }
+  .armely-m365-governance-page .hero-eyebrow { flex-direction: column !important; align-items: flex-start !important; gap: 8px !important; }
+  .armely-m365-governance-page .hero-actions a { width: 100% !important; text-align: center !important; }
+  .armely-m365-governance-page .delivers-grid,
+  .armely-m365-governance-page .uc-grid { grid-template-columns: 1fr !important; }
+}
+
+
 </style>
 <div class="armely-m365-governance-page">
+
+<nav>
+  <div class="logo">
+    <div class="logo-mark">A</div>
+    <span class="logo-text">armely</span>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#what-we-deliver">Services</a></li>
+    <li><a href="#journey">Our Process</a></li>
+    <li><a href="#why-armely">Why Armely</a></li>
+    <li><a href="#contact" class="nav-cta">Get Started</a></li>
+  </ul>
+</nav>
+
 <section class="hero">
   <div class="hero-bg-glow"></div>
   <div class="hero-eyebrow">
@@ -460,23 +866,23 @@
         <p class="section-body">These are not theoretical concerns. They are the situations Armely finds in almost every Microsoft 365 tenant that has been running without a governance review. Any one of them creates risk. Several together mean it is urgent.</p>
         <div class="symptom-list">
           <div class="symptom flagged">
-            <span class="symptom-icon"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i></span>
+            <span class="symptom-icon">🔓</span>
             <div class="symptom-text"><strong>External sharing is on and no one is sure what has been shared.</strong> Files, SharePoint sites, and Teams channels shared with external users months or years ago, with no record and no expiry.</div>
           </div>
           <div class="symptom flagged">
-            <span class="symptom-icon"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i></span>
+            <span class="symptom-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg></span>
             <div class="symptom-text"><strong>Hundreds of Teams and SharePoint sites with no owners.</strong> Abandoned workspaces, duplicate sites, and content no one can find, managed by no one.</div>
           </div>
           <div class="symptom flagged">
-            <span class="symptom-icon"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i></span>
+            <span class="symptom-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg></span>
             <div class="symptom-text"><strong>Former employees still have active accounts or access.</strong> Offboarding processes that leave licenses running, mailboxes accessible, and permissions intact long after a person has left.</div>
           </div>
           <div class="symptom">
-            <span class="symptom-icon"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i></span>
+            <span class="symptom-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg></span>
             <div class="symptom-text"><strong>Staff are not using the tools they have.</strong> Microsoft 365 licenses are paid for but people still email attachments, use personal file storage, and hold meetings without recording or transcription.</div>
           </div>
           <div class="symptom">
-            <span class="symptom-icon"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i></span>
+            <span class="symptom-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8V4H8"/><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M9 11v2"/><path d="M15 11v2"/></svg></span>
             <div class="symptom-text"><strong>You want to add Copilot AI but your tenant is not ready.</strong> Copilot surfaces data based on existing permissions. If your permissions and data classification are not clean, Copilot will expose things it should not.</div>
           </div>
         </div>
@@ -535,32 +941,32 @@
     <p class="section-body">Armely's Microsoft 365 Governance and Adoption practice covers the security controls, structural policies, compliance configuration, and user enablement that turn a chaotic tenant into one your organization can rely on and build from.</p>
     <div class="delivers-grid">
       <div class="deliver-card">
-        <div class="deliver-icon"><i class="fa-solid fa-layer-group" aria-hidden="true"></i></div>
+        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></div>
         <div class="deliver-title">Tenant Health Assessment</div>
         <div class="deliver-desc">A structured audit of your Microsoft 365 tenant covering security posture, external sharing exposure, guest access, inactive accounts, Teams and SharePoint sprawl, license utilization, and compliance configuration gaps. Delivered as a written report with a prioritized remediation list.</div>
       </div>
       <div class="deliver-card">
-        <div class="deliver-icon"><i class="fa-solid fa-layer-group" aria-hidden="true"></i></div>
+        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg></div>
         <div class="deliver-title">Security Hardening</div>
         <div class="deliver-desc">Implementation of Microsoft's recommended security baselines including Conditional Access policies, MFA enforcement, Entra ID Privileged Identity Management, external sharing controls, and Defender for Microsoft 365 configuration across your tenant.</div>
       </div>
       <div class="deliver-card">
-        <div class="deliver-icon"><i class="fa-solid fa-layer-group" aria-hidden="true"></i></div>
+        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M17 18h1"/><path d="M12 18h1"/><path d="M7 18h1"/></svg></div>
         <div class="deliver-title">Governance Framework Implementation</div>
         <div class="deliver-desc">Teams lifecycle policies, SharePoint site provisioning standards, naming conventions, owner accountability processes, guest access policies, and an admin center configuration that prevents ungoverned sprawl from accumulating again after the initial cleanup.</div>
       </div>
       <div class="deliver-card">
-        <div class="deliver-icon"><i class="fa-solid fa-layer-group" aria-hidden="true"></i></div>
+        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M8 12h8"/><path d="M8 16h6"/></svg></div>
         <div class="deliver-title">Microsoft Purview and Compliance</div>
         <div class="deliver-desc">Sensitivity label taxonomy, data loss prevention policies, retention schedules, and audit logging configured through Microsoft Purview so your content is classified, protected, and auditable in line with your compliance requirements.</div>
       </div>
       <div class="deliver-card">
-        <div class="deliver-icon"><i class="fa-solid fa-layer-group" aria-hidden="true"></i></div>
+        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 17 6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg></div>
         <div class="deliver-title">Adoption and Training</div>
         <div class="deliver-desc">Role-specific training programs that show your staff how to use Microsoft 365 effectively, including Teams, SharePoint, OneDrive, and Copilot when relevant. Adoption measurement through Microsoft Viva Insights and the Microsoft 365 admin usage reports.</div>
       </div>
       <div class="deliver-card">
-        <div class="deliver-icon"><i class="fa-solid fa-layer-group" aria-hidden="true"></i></div>
+        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8V4H8"/><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M9 11v2"/><path d="M15 11v2"/></svg></div>
         <div class="deliver-title">Copilot Readiness Preparation</div>
         <div class="deliver-desc">If your organization is planning to deploy Microsoft 365 Copilot, we prepare your tenant first. Overshared content remediation, sensitivity label coverage, permission cleanup, and data governance configuration that ensures Copilot surfaces only what it should.</div>
       </div>
@@ -617,32 +1023,32 @@
     <p class="section-body">Every Microsoft 365 tenant is different but the governance problems that accumulate over time follow recognizable patterns. These are the situations Armely addresses most frequently.</p>
     <div class="uc-grid">
       <div class="uc-card">
-        <span class="uc-icon"><i class="fa-solid fa-briefcase" aria-hidden="true"></i></span>
+        <span class="uc-icon">🔓</span>
         <div class="uc-title">Oversharing and External Access Cleanup</div>
         <div class="uc-desc">An audit and remediation of external sharing across SharePoint, OneDrive, and Teams. We identify what has been shared externally, review appropriateness, remove unnecessary access, and implement controls that prevent uncontrolled sharing going forward.</div>
       </div>
       <div class="uc-card">
-        <span class="uc-icon"><i class="fa-solid fa-briefcase" aria-hidden="true"></i></span>
+        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg></span>
         <div class="uc-title">Teams and SharePoint Sprawl</div>
         <div class="uc-desc">Organizations with hundreds of Teams and SharePoint sites that have accumulated without structure or ownership. We audit, archive, merge, or delete abandoned workspaces and implement provisioning policies and lifecycle management that prevent the same problem recurring.</div>
       </div>
       <div class="uc-card">
-        <span class="uc-icon"><i class="fa-solid fa-briefcase" aria-hidden="true"></i></span>
+        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
         <div class="uc-title">Security Baseline Implementation</div>
         <div class="uc-desc">Organizations that deployed Microsoft 365 without implementing Microsoft's recommended security controls. We implement Conditional Access, MFA, Entra ID protection, and Defender for Microsoft 365 configuration against the current Microsoft security benchmark.</div>
       </div>
       <div class="uc-card">
-        <span class="uc-icon"><i class="fa-solid fa-briefcase" aria-hidden="true"></i></span>
+        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M8 12h8"/><path d="M8 16h6"/></svg></span>
         <div class="uc-title">Compliance and Audit Preparation</div>
         <div class="uc-desc">Organizations facing a HIPAA, SOC 2, or other compliance audit that need their Microsoft 365 environment to demonstrate appropriate data governance, retention policies, audit logging, and access controls within a defined timeline.</div>
       </div>
       <div class="uc-card">
-        <span class="uc-icon"><i class="fa-solid fa-briefcase" aria-hidden="true"></i></span>
+        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 17 6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg></span>
         <div class="uc-title">Low Adoption Remediation</div>
         <div class="uc-desc">Organizations paying for Microsoft 365 licenses but finding most staff still email attachments and store files on personal drives. We assess the barriers to adoption, address the structural and training gaps, and establish measurement so progress is visible.</div>
       </div>
       <div class="uc-card">
-        <span class="uc-icon"><i class="fa-solid fa-briefcase" aria-hidden="true"></i></span>
+        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8V4H8"/><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M9 11v2"/><path d="M15 11v2"/></svg></span>
         <div class="uc-title">Copilot Readiness Assessment</div>
         <div class="uc-desc">For organizations planning to deploy Microsoft 365 Copilot, we assess whether the tenant's permissions, sensitivity labels, and data governance are ready, remediate the gaps, and confirm the environment is safe for Copilot before activation.</div>
       </div>
@@ -706,28 +1112,28 @@
         <p class="section-body">Governance work done badly just moves the problem. Armely implements controls that actually hold, trains administrators who understand why the controls are there, and measures adoption so the investment is verifiable.</p>
         <ul class="why-list">
           <li>
-            <div class="why-icon"><i class="fa-solid fa-circle-check" aria-hidden="true"></i></div>
+            <div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></div>
             <div>
               <div class="why-item-title">Free Tenant Health Check to Start</div>
               <div class="why-item-desc">Every engagement starts with a free automated and manual assessment of your tenant. You see exactly what the problems are before committing to any remediation work, and you own the report regardless of whether you proceed with Armely.</div>
             </div>
           </li>
           <li>
-            <div class="why-icon"><i class="fa-solid fa-circle-check" aria-hidden="true"></i></div>
+            <div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8V4H8"/><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M9 11v2"/><path d="M15 11v2"/></svg></div>
             <div>
               <div class="why-item-title">Copilot Readiness Built In</div>
               <div class="why-item-desc">Every governance engagement Armely delivers prepares your tenant for Microsoft 365 Copilot, whether or not you plan to deploy it immediately. Clean permissions, sensitivity labels, and data governance are prerequisites for safe AI deployment, and we build them in from day one.</div>
             </div>
           </li>
           <li>
-            <div class="why-icon"><i class="fa-solid fa-circle-check" aria-hidden="true"></i></div>
+            <div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 17 6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg></div>
             <div>
               <div class="why-item-title">Adoption Is Measured, Not Assumed</div>
               <div class="why-item-desc">We configure Microsoft 365 usage analytics and Viva Insights reporting so you can see adoption levels by team and tool over time, not just receive a training completion certificate and hope for the best.</div>
             </div>
           </li>
           <li>
-            <div class="why-icon"><i class="fa-solid fa-circle-check" aria-hidden="true"></i></div>
+            <div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
             <div>
               <div class="why-item-title">Regulated Industry Experience</div>
               <div class="why-item-desc">We have implemented Microsoft 365 governance for healthcare providers and educational institutions where HIPAA compliance, student data protection, and audit readiness are not optional. We understand what governance needs to look like in environments where getting it wrong has real consequences.</div>
@@ -820,4 +1226,18 @@
     </div>
   </div>
 </section>
+
+<footer>
+  <div class="footer-logo-row">
+    <div class="footer-lm">A</div>
+    <span class="footer-lt">armely</span>
+  </div>
+  <div class="footer-note">&#169; 2026 Armely &middot; www.armely.com &middot; Your Trusted Source for Digital Excellence</div>
+  <div class="footer-badges">
+    <span class="badge-chip">Microsoft CSP Partner</span>
+    <span class="badge-chip">Microsoft 365 Certified</span>
+    <span class="badge-chip">Microsoft Authorized Reseller</span>
+  </div>
+</footer>
+
 </div>

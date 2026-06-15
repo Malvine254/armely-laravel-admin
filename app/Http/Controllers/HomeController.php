@@ -389,10 +389,13 @@ class HomeController extends Controller
         return [
             'fabric' => 'microsoft-fabric',
             'data-science' => 'data-science-and-analytics',
+            'api-dev' => 'api-data-access',
+            'api-development' => 'api-data-access',
             'powerapps' => 'microsoft-powerapps',
             'power-apps' => 'microsoft-powerapps',
             'powerautomate' => 'microsoft-power-automate',
             'power-automate' => 'microsoft-power-automate',
+            'power-platform' => 'microsoft-power-pages',
             'dynamics365' => 'microsoft-dynamics-365',
             'dynamics-365' => 'microsoft-dynamics-365',
             'virtualagents' => 'microsoft-power-virtual-agents',
@@ -401,7 +404,6 @@ class HomeController extends Controller
             'robotic-process-automation' => 'robotic-processing-automation',
             'rpa' => 'robotic-processing-automation',
             'powerplatform' => 'microsoft-power-pages',
-            'power-platform' => 'microsoft-power-pages',
             'sharepointonline' => 'sharepoint-online',
             'sharepoint' => 'sharepoint-online',
             'custom-development' => 'custom-development',
@@ -409,6 +411,7 @@ class HomeController extends Controller
             'm365-governance' => 'm365-governance',
             'microsoft-365-governance' => 'm365-governance',
             'microsoft-365-governance-and-adoption' => 'm365-governance',
+            'sql-server' => 'sql-&-data-warehousing',
             'managed-services' => 'managed-services'
         ][$slug] ?? $name;
     }
