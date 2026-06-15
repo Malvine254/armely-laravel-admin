@@ -993,6 +993,12 @@
 		equalizeCardRows('.white-papers-section .white-paper-card');
 	}
 
+	function removeSectionTitles() {
+		document.querySelectorAll('.case-studies-section [title], .white-papers-section [title]').forEach(function (el) {
+			el.removeAttribute('title');
+		});
+	}
+
 	var refreshTimer = null;
 	function scheduleRefreshCardHeights() {
 		if (refreshTimer) {
@@ -1000,6 +1006,7 @@
 		}
 
 		refreshTimer = window.setTimeout(function () {
+			removeSectionTitles();
 			window.requestAnimationFrame(function () {
 				window.requestAnimationFrame(refreshCardHeights);
 			});
