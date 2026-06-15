@@ -345,23 +345,29 @@
 }
 .card-content {
 	padding: 18px;
+	display: flex;
+	flex-direction: column;
+	height: 100%;
 }
 .card-title {
-	font-size: 0.98rem;
-	line-height: 1.42;
+	font-size: 0.96rem;
+	line-height: 1.38;
 	font-weight: 800;
-	margin-bottom: 10px;
+	margin: 0 0 10px;
 	overflow-wrap: anywhere;
+	min-height: 4.15rem;
 }
 .card-description {
 	color: #4f6181;
 	font-size: 0.94rem;
 	line-height: 1.55;
 	min-height: 4.65em;
+	flex: 1 1 auto;
 }
 .card-footer {
 	padding-top: 12px;
 	border-top: 1px solid #e8eefb;
+	margin-top: auto;
 }
 .read-more-btn {
 	border-radius: 10px;
@@ -632,7 +638,7 @@
 						<div class="card-badge">{{ $caseStudy->category }}</div>
 					</div>
 					<div class="card-content">
-						<h5 class="card-title" title="{{ $caseStudyFullTitle }}">{{ $caseStudyFullTitle }}</h5>
+						<h5 class="card-title">{{ $caseStudyFullTitle }}</h5>
 						<p class="card-description">{{ $caseStudy->preview ?? '' }}</p>
 						<div class="card-footer">
 							<a class="read-more-btn text-light"
@@ -833,7 +839,7 @@
 							</div>
 						</div>
 						<div class="card-content">
-							<h5 class="card-title" title="{{ $whitePaperFullTitle }}">{{ $whitePaperFullTitle }}</h5>
+							<h5 class="card-title">{{ $whitePaperFullTitle }}</h5>
 							<p class="card-description">{{ $paper->preview ?? '' }}</p>
 							<div class="card-footer">
 								<a class="read-more-btn text-light"

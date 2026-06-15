@@ -780,15 +780,15 @@
 
 .card-title {
     margin: 0;
-    font-size: 1.18rem;
-    line-height: 1.35;
+    font-size: 1.02rem;
+    line-height: 1.4;
     color: #1e355f;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    min-height: 3.2rem;
+    display: block;
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    min-height: 4.2rem;
 }
 
 .card-description {
@@ -802,13 +802,10 @@
     min-height: 5rem;
 }
 
-.card-title[title] {
-    cursor: help;
-}
-
 .card-footer {
     border-top: 1px solid #e2ebfb;
     padding-top: 14px;
+    margin-top: auto;
 }
 
 .read-more-btn {
@@ -876,24 +873,14 @@ body .white-papers-section .card-image {
 body .case-studies-section .card-title,
 body .white-papers-section .card-title {
     display: block !important;
-    -webkit-line-clamp: unset !important;
-    -webkit-box-orient: initial !important;
     overflow: visible !important;
     text-overflow: clip !important;
     white-space: normal !important;
-    min-height: 0;
+    min-height: 4.2rem;
     margin-bottom: 0.75rem !important;
-    font-size: 0.98rem !important;
-    line-height: 1.45 !important;
+    font-size: 0.96rem !important;
+    line-height: 1.4 !important;
     overflow-wrap: anywhere;
-}
-
-body .case-studies-section .card-title:hover,
-body .white-papers-section .card-title:hover {
-    color: #1e3a6d;
-    text-decoration: underline;
-    text-decoration-thickness: 1px;
-    text-underline-offset: 3px;
 }
 
 body .case-studies-section .card-description,
@@ -904,11 +891,15 @@ body .white-papers-section .card-description {
     overflow: hidden !important;
     text-overflow: ellipsis !important;
     min-height: 5rem;
+    flex: 1 1 auto;
 }
 
 body .case-studies-section .card-content,
 body .white-papers-section .card-content {
     position: relative;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
 }
 
 @media (max-width: 768px) {
@@ -920,5 +911,6 @@ body .white-papers-section .card-content {
     body .case-studies-section .card-title,
     body .white-papers-section .card-title {
         font-size: 0.95rem !important;
+        min-height: 3.6rem;
     }
 }
