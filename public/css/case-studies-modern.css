@@ -802,8 +802,7 @@
     min-height: 5rem;
 }
 
-.card-title[title],
-.card-description[title] {
+.card-title[title] {
     cursor: help;
 }
 
@@ -876,13 +875,25 @@ body .white-papers-section .card-image {
 
 body .case-studies-section .card-title,
 body .white-papers-section .card-title {
-    display: -webkit-box !important;
-    -webkit-line-clamp: 2 !important;
-    -webkit-box-orient: vertical !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    min-height: 3.25rem;
-    margin-bottom: 0.6rem !important;
+    display: block !important;
+    -webkit-line-clamp: unset !important;
+    -webkit-box-orient: initial !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    white-space: normal !important;
+    min-height: 0;
+    margin-bottom: 0.75rem !important;
+    font-size: 0.98rem !important;
+    line-height: 1.45 !important;
+    overflow-wrap: anywhere;
+}
+
+body .case-studies-section .card-title:hover,
+body .white-papers-section .card-title:hover {
+    color: #1e3a6d;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
 }
 
 body .case-studies-section .card-description,
@@ -900,37 +911,14 @@ body .white-papers-section .card-content {
     position: relative;
 }
 
-body .case-studies-section .card-content::after,
-body .white-papers-section .card-content::after {
-    content: attr(data-full-details);
-    white-space: pre-line;
-    position: absolute;
-    left: 14px;
-    right: 14px;
-    top: 14px;
-    opacity: 0;
-    transform: translateY(6px);
-    pointer-events: none;
-    z-index: 4;
-    padding: 12px;
-    border-radius: 12px;
-    background: rgba(16, 30, 58, 0.95);
-    color: #f3f7ff;
-    font-size: 0.86rem;
-    line-height: 1.45;
-    box-shadow: 0 12px 30px rgba(10, 24, 50, 0.38);
-    transition: opacity 0.2s ease, transform 0.2s ease;
-}
-
-body .case-studies-section .case-study-card:hover .card-content::after,
-body .white-papers-section .white-paper-card:hover .card-content::after {
-    opacity: 1;
-    transform: translateY(0);
-}
-
 @media (max-width: 768px) {
     body .case-studies-section .card-image-wrapper,
     body .white-papers-section .card-image-wrapper {
         height: 220px !important;
+    }
+
+    body .case-studies-section .card-title,
+    body .white-papers-section .card-title {
+        font-size: 0.95rem !important;
     }
 }
