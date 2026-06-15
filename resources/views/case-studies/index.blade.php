@@ -993,9 +993,35 @@
 		equalizeCardRows('.white-papers-section .white-paper-card');
 	}
 
-	function removeSectionTitles() {
-		document.querySelectorAll('.case-studies-section [title], .white-papers-section [title]').forEach(function (el) {
+	function removeSectionTitles(root) {
+		(root || document).querySelectorAll('.case-studies-section [title], .white-papers-section [title]').forEach(function (el) {
 			el.removeAttribute('title');
+		});
+	}
+
+	var sectionTitleObserversReady = false;
+	function watchSectionTitles() {
+		if (sectionTitleObserversReady) {
+			return;
+		}
+
+		var sections = document.querySelectorAll('.case-studies-section, .white-papers-section');
+		if (!window.MutationObserver || !sections.length) {
+			return;
+		}
+
+		sectionTitleObserversReady = true;
+		sections.forEach(function (section) {
+			var observer = new MutationObserver(function () {
+				removeSectionTitles(section);
+			});
+
+			observer.observe(section, {
+				attributes: true,
+				attributeFilter: ['title'],
+				childList: true,
+				subtree: true
+			});
 		});
 	}
 
@@ -1007,6 +1033,7 @@
 
 		refreshTimer = window.setTimeout(function () {
 			removeSectionTitles();
+			watchSectionTitles();
 			window.requestAnimationFrame(function () {
 				window.requestAnimationFrame(refreshCardHeights);
 			});
