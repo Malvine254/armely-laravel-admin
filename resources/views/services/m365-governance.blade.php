@@ -1,6 +1,5 @@
 <style>
 
-
 .armely-m365-governance-page *, .armely-m365-governance-page *::before, .armely-m365-governance-page *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 .armely-m365-governance-page {
@@ -808,436 +807,69 @@
 }
 
 
+.armely-m365-governance-page .cr-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-top:28px; margin-bottom:28px; }
+.armely-m365-governance-page .cr-card { background:#fff; border:1px solid var(--border); border-radius:12px; padding:20px 22px; box-shadow:0 2px 10px rgba(18,47,82,0.04); }
+.armely-m365-governance-page .cr-label { display:flex; align-items:center; gap:9px; margin-bottom:10px; }
+.armely-m365-governance-page .cr-check { width:20px; height:20px; display:flex; align-items:center; justify-content:center; background:var(--blue-dim); border:1px solid var(--blue-dim2); border-radius:50%; flex-shrink:0; color:var(--blue); }
+.armely-m365-governance-page .cr-check .icon-svg { width:11px; height:11px; stroke-width:3; }
+.armely-m365-governance-page .cr-industry { font-size:0.875rem; font-weight:700; color:#1A2540; }
+.armely-m365-governance-page .cr-desc { font-size:0.82rem; color:var(--text-muted); line-height:1.65; margin:0; }
+.armely-m365-governance-page .cr-cta { text-align:center; }
+.armely-m365-governance-page .cr-btn { display:inline-flex; align-items:center; gap:10px; background:#1a2e52; color:#fff; border-radius:8px; padding:12px 28px; text-decoration:none; font-size:0.875rem; font-weight:600; }
+.armely-m365-governance-page .cr-btn:hover { background:var(--blue); }
+.armely-m365-governance-page .cr-btn .icon-svg { width:18px; height:18px; }
+@media (max-width:900px) { .armely-m365-governance-page .cr-grid { grid-template-columns:1fr 1fr; } }
+@media (max-width:600px) { .armely-m365-governance-page .cr-grid { grid-template-columns:1fr; } }
 </style>
 <div class="armely-m365-governance-page">
-
-<nav>
-  <div class="logo">
-    <div class="logo-mark">A</div>
-    <span class="logo-text">armely</span>
-  </div>
-  <ul class="nav-links">
-    <li><a href="#what-we-deliver">Services</a></li>
-    <li><a href="#journey">Our Process</a></li>
-    <li><a href="#why-armely">Why Armely</a></li>
-    <li><a href="#contact" class="nav-cta">Get Started</a></li>
-  </ul>
-</nav>
-
 <section class="hero">
   <div class="hero-bg-glow"></div>
-  <div class="hero-eyebrow">
-    <span class="eyebrow-badge">Microsoft 365 Governance and Adoption</span>
-    <span class="eyebrow-partner">Certified Microsoft partner</span>
-  </div>
-  <h1>You have Microsoft 365.<br>Is your organization<br><span class="hl">actually using it well?</span></h1>
-  <p class="hero-sub">Most organizations have Microsoft 365. Many are using a fraction of what they are paying for, running it without governance, and heading toward a security or compliance problem they do not yet know about. Armely fixes that.</p>
-  <div class="hero-actions">
-    <a href="#contact" class="btn-primary">Book a Free Tenant Health Check</a>
-    <a href="#what-we-deliver" class="btn-outline">See What We Do</a>
-  </div>
-  <div class="hero-trust">
-    <div class="trust-item">
-      <span class="trust-dot"></span>
-      <span class="trust-text"><strong>Free tenant health check</strong> to start</span>
-    </div>
-    <div class="trust-item">
-      <span class="trust-dot"></span>
-      <span class="trust-text">Covers <strong>Teams, SharePoint, OneDrive, Exchange, and Entra ID</strong></span>
-    </div>
-    <div class="trust-item">
-      <span class="trust-dot"></span>
-      <span class="trust-text"><strong>Security, governance, and adoption</strong> in one engagement</span>
-    </div>
-    <div class="trust-item">
-      <span class="trust-dot"></span>
-      <span class="trust-text">Prepares your tenant for <strong>Copilot AI</strong> when you are ready</span>
-    </div>
-  </div>
-</section>
-
-<!-- SYMPTOMS -->
-<section class="symptoms">
-  <div class="section-inner">
-    <div class="symptoms-grid">
-      <div>
-        <div class="section-eyebrow">Does This Sound Familiar?</div>
-        <h2 class="section-title">Signs your Microsoft 365 environment needs attention.</h2>
-        <p class="section-body">These are not theoretical concerns. They are the situations Armely finds in almost every Microsoft 365 tenant that has been running without a governance review. Any one of them creates risk. Several together mean it is urgent.</p>
-        <div class="symptom-list">
-          <div class="symptom flagged">
-            <span class="symptom-icon">🔓</span>
-            <div class="symptom-text"><strong>External sharing is on and no one is sure what has been shared.</strong> Files, SharePoint sites, and Teams channels shared with external users months or years ago, with no record and no expiry.</div>
-          </div>
-          <div class="symptom flagged">
-            <span class="symptom-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg></span>
-            <div class="symptom-text"><strong>Hundreds of Teams and SharePoint sites with no owners.</strong> Abandoned workspaces, duplicate sites, and content no one can find, managed by no one.</div>
-          </div>
-          <div class="symptom flagged">
-            <span class="symptom-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg></span>
-            <div class="symptom-text"><strong>Former employees still have active accounts or access.</strong> Offboarding processes that leave licenses running, mailboxes accessible, and permissions intact long after a person has left.</div>
-          </div>
-          <div class="symptom">
-            <span class="symptom-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg></span>
-            <div class="symptom-text"><strong>Staff are not using the tools they have.</strong> Microsoft 365 licenses are paid for but people still email attachments, use personal file storage, and hold meetings without recording or transcription.</div>
-          </div>
-          <div class="symptom">
-            <span class="symptom-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8V4H8"/><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M9 11v2"/><path d="M15 11v2"/></svg></span>
-            <div class="symptom-text"><strong>You want to add Copilot AI but your tenant is not ready.</strong> Copilot surfaces data based on existing permissions. If your permissions and data classification are not clean, Copilot will expose things it should not.</div>
-          </div>
-        </div>
-      </div>
-      <div>
-        <div class="gov-card">
-          <div class="gov-header">
-            <div class="gov-dots"><span></span><span></span><span></span></div>
-            <span class="gov-title">Governance Framework Areas</span>
-          </div>
-          <div class="gov-body">
-            <div class="gov-area area-security">
-              <div class="gov-area-label">Security and Access</div>
-              <div class="gov-chips">
-                <span class="gov-chip">Entra ID Conditional Access</span>
-                <span class="gov-chip">MFA Enforcement</span>
-                <span class="gov-chip">External Sharing Controls</span>
-                <span class="gov-chip">Privileged Identity Management</span>
-                <span class="gov-chip">Guest Access Policies</span>
-              </div>
-            </div>
-            <div class="gov-arrow">&#8597;</div>
-            <div class="gov-area area-adoption">
-              <div class="gov-area-label">Structure and Adoption</div>
-              <div class="gov-chips">
-                <span class="gov-chip">Teams Lifecycle Policies</span>
-                <span class="gov-chip">SharePoint Site Standards</span>
-                <span class="gov-chip">Naming Conventions</span>
-                <span class="gov-chip">Owner Accountability</span>
-                <span class="gov-chip">User Training</span>
-              </div>
-            </div>
-            <div class="gov-arrow">&#8597;</div>
-            <div class="gov-area area-compliance">
-              <div class="gov-area-label">Compliance and Data Protection</div>
-              <div class="gov-chips">
-                <span class="gov-chip">Microsoft Purview</span>
-                <span class="gov-chip">Sensitivity Labels</span>
-                <span class="gov-chip">Retention Policies</span>
-                <span class="gov-chip">DLP Policies</span>
-                <span class="gov-chip">Audit Logging</span>
-              </div>
-            </div>
-          </div>
-        </div>
+  <div class="hero-inner">
+    <div class="hero-copy">
+      <div class="hero-eyebrow"><span class="eyebrow-badge">Microsoft 365 Governance and Adoption</span><span class="eyebrow-partner">Delivered by a certified Microsoft partner</span></div>
+      <h1>You have Microsoft 365.<br>Is your organization<br>actually using it well?</h1>
+      <p class="hero-sub">Armely helps organizations secure, govern, and drive adoption of Microsoft 365 so they get full value from their investment and are ready for Copilot AI.</p>
+      <div class="hero-actions">
+        <a href="#contact" class="btn-primary">Book a Free Assessment</a>
+        <a href="#delivers" class="btn-outline">See What We Do</a>
       </div>
     </div>
   </div>
 </section>
 
-<!-- WHAT ARMELY DELIVERS -->
-<section class="delivers" id="what-we-deliver">
-  <div class="section-inner">
-    <div class="section-eyebrow">What Armely Delivers</div>
-    <h2 class="section-title">A governed, secure, well-adopted Microsoft 365 environment.</h2>
-    <p class="section-body">Armely's Microsoft 365 Governance and Adoption practice covers the security controls, structural policies, compliance configuration, and user enablement that turn a chaotic tenant into one your organization can rely on and build from.</p>
-    <div class="delivers-grid">
-      <div class="deliver-card">
-        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></div>
-        <div class="deliver-title">Tenant Health Assessment</div>
-        <div class="deliver-desc">A structured audit of your Microsoft 365 tenant covering security posture, external sharing exposure, guest access, inactive accounts, Teams and SharePoint sprawl, license utilization, and compliance configuration gaps. Delivered as a written report with a prioritized remediation list.</div>
-      </div>
-      <div class="deliver-card">
-        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg></div>
-        <div class="deliver-title">Security Hardening</div>
-        <div class="deliver-desc">Implementation of Microsoft's recommended security baselines including Conditional Access policies, MFA enforcement, Entra ID Privileged Identity Management, external sharing controls, and Defender for Microsoft 365 configuration across your tenant.</div>
-      </div>
-      <div class="deliver-card">
-        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M17 18h1"/><path d="M12 18h1"/><path d="M7 18h1"/></svg></div>
-        <div class="deliver-title">Governance Framework Implementation</div>
-        <div class="deliver-desc">Teams lifecycle policies, SharePoint site provisioning standards, naming conventions, owner accountability processes, guest access policies, and an admin center configuration that prevents ungoverned sprawl from accumulating again after the initial cleanup.</div>
-      </div>
-      <div class="deliver-card">
-        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M8 12h8"/><path d="M8 16h6"/></svg></div>
-        <div class="deliver-title">Microsoft Purview and Compliance</div>
-        <div class="deliver-desc">Sensitivity label taxonomy, data loss prevention policies, retention schedules, and audit logging configured through Microsoft Purview so your content is classified, protected, and auditable in line with your compliance requirements.</div>
-      </div>
-      <div class="deliver-card">
-        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 17 6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg></div>
-        <div class="deliver-title">Adoption and Training</div>
-        <div class="deliver-desc">Role-specific training programs that show your staff how to use Microsoft 365 effectively, including Teams, SharePoint, OneDrive, and Copilot when relevant. Adoption measurement through Microsoft Viva Insights and the Microsoft 365 admin usage reports.</div>
-      </div>
-      <div class="deliver-card">
-        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8V4H8"/><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M9 11v2"/><path d="M15 11v2"/></svg></div>
-        <div class="deliver-title">Copilot Readiness Preparation</div>
-        <div class="deliver-desc">If your organization is planning to deploy Microsoft 365 Copilot, we prepare your tenant first. Overshared content remediation, sensitivity label coverage, permission cleanup, and data governance configuration that ensures Copilot surfaces only what it should.</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- JOURNEY -->
-<section class="journey" id="journey">
-  <div class="section-inner">
-    <div class="section-eyebrow">How a Governance Engagement Works</div>
-    <h2 class="section-title">From tenant audit to a clean, governed Microsoft 365 environment.</h2>
-    <p class="section-body">Governance work is not glamorous but the impact is immediate and lasting. Organizations that complete a governance engagement report fewer security incidents, better compliance audit results, and higher staff adoption of the tools they are already paying for.</p>
-    <div class="steps-row">
-      <div class="step">
-        <div class="step-num">01</div>
-        <div class="step-title">Tenant Health Check</div>
-        <div class="step-desc">Free automated and manual review of your Microsoft 365 tenant covering the most critical security, governance, and adoption gaps. Written report delivered within one week.</div>
-        <span class="step-tag">Free</span>
-      </div>
-      <div class="step">
-        <div class="step-num">02</div>
-        <div class="step-title">Prioritized Remediation Plan</div>
-        <div class="step-desc">We present findings ranked by risk and impact, agree on the remediation scope, and confirm a timeline and fixed fee for the governance implementation.</div>
-        <span class="step-tag">Week 1</span>
-      </div>
-      <div class="step">
-        <div class="step-num">03</div>
-        <div class="step-title">Security and Governance Build</div>
-        <div class="step-desc">Security controls, governance policies, Purview configuration, and structural standards implemented in your tenant with minimal disruption to day-to-day operations.</div>
-        <span class="step-tag">Weeks 2-5</span>
-      </div>
-      <div class="step">
-        <div class="step-num">04</div>
-        <div class="step-title">Training and Adoption</div>
-        <div class="step-desc">Staff training on the new structures and tools, administrator training on the governance controls, and adoption measurement established for ongoing tracking.</div>
-        <span class="step-tag">Week 6</span>
-      </div>
-      <div class="step">
-        <div class="step-num">05</div>
-        <div class="step-title">Ongoing Governance</div>
-        <div class="step-desc">Quarterly governance reviews, new employee onboarding support, policy updates as Microsoft releases new capabilities, and Copilot readiness validation when relevant.</div>
-        <span class="step-tag">Ongoing</span>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- USE CASES -->
-<section class="usecases">
-  <div class="section-inner">
-    <div class="section-eyebrow">Common Situations</div>
-    <h2 class="section-title">The governance challenges we resolve most often.</h2>
-    <p class="section-body">Every Microsoft 365 tenant is different but the governance problems that accumulate over time follow recognizable patterns. These are the situations Armely addresses most frequently.</p>
-    <div class="uc-grid">
-      <div class="uc-card">
-        <span class="uc-icon">🔓</span>
-        <div class="uc-title">Oversharing and External Access Cleanup</div>
-        <div class="uc-desc">An audit and remediation of external sharing across SharePoint, OneDrive, and Teams. We identify what has been shared externally, review appropriateness, remove unnecessary access, and implement controls that prevent uncontrolled sharing going forward.</div>
-      </div>
-      <div class="uc-card">
-        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg></span>
-        <div class="uc-title">Teams and SharePoint Sprawl</div>
-        <div class="uc-desc">Organizations with hundreds of Teams and SharePoint sites that have accumulated without structure or ownership. We audit, archive, merge, or delete abandoned workspaces and implement provisioning policies and lifecycle management that prevent the same problem recurring.</div>
-      </div>
-      <div class="uc-card">
-        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
-        <div class="uc-title">Security Baseline Implementation</div>
-        <div class="uc-desc">Organizations that deployed Microsoft 365 without implementing Microsoft's recommended security controls. We implement Conditional Access, MFA, Entra ID protection, and Defender for Microsoft 365 configuration against the current Microsoft security benchmark.</div>
-      </div>
-      <div class="uc-card">
-        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M8 12h8"/><path d="M8 16h6"/></svg></span>
-        <div class="uc-title">Compliance and Audit Preparation</div>
-        <div class="uc-desc">Organizations facing a HIPAA, SOC 2, or other compliance audit that need their Microsoft 365 environment to demonstrate appropriate data governance, retention policies, audit logging, and access controls within a defined timeline.</div>
-      </div>
-      <div class="uc-card">
-        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 17 6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg></span>
-        <div class="uc-title">Low Adoption Remediation</div>
-        <div class="uc-desc">Organizations paying for Microsoft 365 licenses but finding most staff still email attachments and store files on personal drives. We assess the barriers to adoption, address the structural and training gaps, and establish measurement so progress is visible.</div>
-      </div>
-      <div class="uc-card">
-        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8V4H8"/><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M9 11v2"/><path d="M15 11v2"/></svg></span>
-        <div class="uc-title">Copilot Readiness Assessment</div>
-        <div class="uc-desc">For organizations planning to deploy Microsoft 365 Copilot, we assess whether the tenant's permissions, sensitivity labels, and data governance are ready, remediate the gaps, and confirm the environment is safe for Copilot before activation.</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- TESTIMONIALS -->
+<section class="spectrum"><div class="section-inner"><div class="section-eyebrow">Does This Sound Familiar?</div><h2 class="section-title">Signs your Microsoft 365 environment needs attention.</h2><p class="section-body">These are the situations Armely finds in almost every Microsoft 365 tenant that has been running without a governance review.</p>
+<div class="spectrum-grid"><div><div class="spectrum-row">
+<div class="spectrum-level highlight"><span class="spectrum-num">Risk</span><div><div class="spectrum-content-title">External sharing is on and no one knows what has been shared</div><div class="spectrum-content-desc">Files, SharePoint sites, and Teams channels shared with external users months or years ago, with no record and no expiry. This is the most common finding in every tenant audit Armely runs.</div></div></div>
+<div class="spectrum-level highlight"><span class="spectrum-num">Risk</span><div><div class="spectrum-content-title">Hundreds of Teams and SharePoint sites with no owners</div><div class="spectrum-content-desc">Abandoned workspaces, duplicate sites, and content no one can find, managed by no one. Each one is a security liability and a search quality problem.</div></div></div>
+<div class="spectrum-level highlight"><span class="spectrum-num">Risk</span><div><div class="spectrum-content-title">Former employees still have active accounts or access</div><div class="spectrum-content-desc">Offboarding processes that leave licenses running, mailboxes accessible, and permissions intact long after a person has left the organization.</div></div></div>
+<div class="spectrum-level"><span class="spectrum-num">AI</span><div><div class="spectrum-content-title">You want to add Copilot but the tenant is not ready</div><div class="spectrum-content-desc">Copilot surfaces data based on existing permissions. If permissions and data classification are not clean, Copilot will surface things it should not. Governance is a prerequisite.</div></div></div>
+</div></div><div><div class="platform-card"><div class="platform-header"><div class="platform-dots"><span></span><span></span><span></span></div><span class="platform-header-title">Governance Framework Areas</span></div><div class="platform-body"><div class="plat-band band-tools"><div class="plat-band-label">Security and Access</div><div class="plat-chips"><span class="plat-chip">Entra ID Conditional Access</span><span class="plat-chip">MFA Enforcement</span><span class="plat-chip">External Sharing Controls</span><span class="plat-chip">Privileged Identity Management</span><span class="plat-chip">Guest Access Policies</span><span class="plat-chip">Defender for M365</span></div></div><div class="band-arrow">&#8597;</div><div class="plat-band band-data"><div class="plat-band-label">Structure and Adoption</div><div class="plat-chips"><span class="plat-chip">Teams Lifecycle Policies</span><span class="plat-chip">SharePoint Site Standards</span><span class="plat-chip">Naming Conventions</span><span class="plat-chip">Owner Accountability</span><span class="plat-chip">User Training</span><span class="plat-chip">Adoption Measurement</span></div></div><div class="band-arrow">&#8597;</div><div class="plat-band band-gov"><div class="plat-band-label">Compliance and Data Protection</div><div class="plat-chips"><span class="plat-chip">Microsoft Purview</span><span class="plat-chip">Sensitivity Labels</span><span class="plat-chip">Retention Policies</span><span class="plat-chip">DLP Policies</span><span class="plat-chip">Audit Logging</span><span class="plat-chip">eDiscovery</span></div></div></div></div></div></div></div></section>
+<section class="delivers" id="delivers"><div class="section-inner"><div class="section-eyebrow">What Armely Delivers</div><h2 class="section-title">A governed, secure, well-adopted Microsoft 365 environment.</h2><p class="section-body">Armely's Microsoft 365 Governance and Adoption practice covers the security controls, structural policies, compliance configuration, and user enablement that turn a chaotic tenant into one your organization can rely on.</p>
+<div class="delivers-grid"><div class="deliver-card"><div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></div><div class="deliver-title">Tenant Health Assessment</div><div class="deliver-desc">A structured audit of your Microsoft 365 tenant covering security posture, external sharing exposure, guest access, inactive accounts, Teams and SharePoint sprawl, license utilization, and compliance configuration gaps.</div></div><div class="deliver-card"><div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg></div><div class="deliver-title">Security Hardening</div><div class="deliver-desc">Implementation of Microsoft's recommended security baselines including Conditional Access policies, MFA enforcement, Entra ID Privileged Identity Management, external sharing controls, and Defender for Microsoft 365.</div></div><div class="deliver-card"><div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div><div class="deliver-title">Governance Framework Implementation</div><div class="deliver-desc">Teams lifecycle policies, SharePoint site provisioning standards, naming conventions, owner accountability processes, and admin center configuration that prevents ungoverned sprawl.</div></div><div class="deliver-card"><div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M8 12h8"/><path d="M8 16h6"/></svg></div><div class="deliver-title">Microsoft Purview and Compliance</div><div class="deliver-desc">Sensitivity label taxonomy, data loss prevention policies, retention schedules, and audit logging configured through Microsoft Purview so your content is classified, protected, and auditable.</div></div><div class="deliver-card"><div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div><div class="deliver-title">Adoption and Training</div><div class="deliver-desc">Role-specific training programs for Microsoft 365, including Teams, SharePoint, OneDrive, and Copilot where relevant. Adoption measurement through Microsoft Viva Insights.</div></div><div class="deliver-card"><div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 8V4H8"/><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M9 11v2"/><path d="M15 11v2"/></svg></div><div class="deliver-title">Copilot Readiness Preparation</div><div class="deliver-desc">Overshared content remediation, sensitivity label coverage, permission cleanup, and data governance configuration that ensures Microsoft 365 Copilot surfaces only what it should.</div></div></div></div></section>
+<section class="journey"><div class="section-inner"><div class="section-eyebrow">How a Governance Engagement Works</div><h2 class="section-title">From tenant audit to a clean, governed Microsoft 365 environment.</h2><p class="section-body">Governance work is not glamorous but the impact is immediate and lasting.</p>
+<div class="steps-row"><div class="step"><div class="step-num">01</div><div class="step-title">Tenant Health Check</div><div class="step-desc">Free automated and manual review of your Microsoft 365 tenant covering the most critical security, governance, and adoption gaps. Written report delivered within one week.</div><span class="step-tag">Free</span></div><div class="step"><div class="step-num">02</div><div class="step-title">Prioritized Remediation Plan</div><div class="step-desc">We present findings ranked by risk and impact, agree on the remediation scope, and confirm a timeline and fixed fee for the governance implementation.</div><span class="step-tag">Week 1</span></div><div class="step"><div class="step-num">03</div><div class="step-title">Security and Governance Build</div><div class="step-desc">Security controls, governance policies, Purview configuration, and structural standards implemented in your tenant with minimal disruption to day-to-day operations.</div><span class="step-tag">Weeks 2-5</span></div><div class="step"><div class="step-num">04</div><div class="step-title">Training and Adoption</div><div class="step-desc">Staff training on the new structures and tools, administrator training on the governance controls, and adoption measurement established for ongoing tracking.</div><span class="step-tag">Week 6</span></div><div class="step"><div class="step-num">05</div><div class="step-title">Ongoing Governance</div><div class="step-desc">Quarterly governance reviews, new employee onboarding support, policy updates as Microsoft releases new capabilities, and Copilot readiness validation when relevant.</div><span class="step-tag">Ongoing</span></div></div></div></section>
+<section class="usecases"><div class="section-inner"><div class="section-eyebrow">Common Situations</div><h2 class="section-title">The governance challenges we resolve most often.</h2><p class="section-body">Every Microsoft 365 tenant is different but the governance problems that accumulate over time follow recognizable patterns.</p>
+<div class="uc-grid"><div class="uc-card"><span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span><div class="uc-title">Oversharing and External Access Cleanup</div><div class="uc-desc">An audit and remediation of external sharing across SharePoint, OneDrive, and Teams. We identify what has been shared externally, review appropriateness, remove unnecessary access, and implement controls.</div></div><div class="uc-card"><span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg></span><div class="uc-title">Teams and SharePoint Sprawl</div><div class="uc-desc">Organizations with hundreds of Teams and SharePoint sites that have accumulated without structure or ownership. We audit, archive, merge, or delete abandoned workspaces and implement lifecycle management.</div></div><div class="uc-card"><span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg></span><div class="uc-title">Security Baseline Implementation</div><div class="uc-desc">Organizations that deployed Microsoft 365 without implementing Microsoft's recommended security controls. We implement Conditional Access, MFA, Entra ID protection, and Defender for Microsoft 365.</div></div><div class="uc-card"><span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M8 12h8"/><path d="M8 16h6"/></svg></span><div class="uc-title">Compliance and Audit Preparation</div><div class="uc-desc">Organizations facing a HIPAA, SOC 2, or other compliance audit that need their Microsoft 365 environment to demonstrate appropriate data governance, retention policies, and access controls.</div></div><div class="uc-card"><span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m3 17 6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg></span><div class="uc-title">Low Adoption Remediation</div><div class="uc-desc">Organizations paying for Microsoft 365 licenses but finding most staff still email attachments and store files on personal drives. We assess barriers and address structural and training gaps.</div></div><div class="uc-card"><span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 8V4H8"/><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M9 11v2"/><path d="M15 11v2"/></svg></span><div class="uc-title">Copilot Readiness Assessment</div><div class="uc-desc">For organizations planning to deploy Microsoft 365 Copilot, we assess whether the tenant's permissions, sensitivity labels, and data governance are ready, and remediate the gaps.</div></div></div></div></section>
 <section class="testimonials">
   <div class="section-inner">
     <div class="section-eyebrow">Client Results</div>
-    <h2 class="section-title">What our clients say about Microsoft 365 governance work with Armely.</h2>
-    <div class="testi-grid">
-      <div class="testi-card">
-        <span class="testi-quote">&ldquo;</span>
-        <p class="testi-body">The tenant health check revealed that we had sensitive patient documents accessible to external parties through sharing links that had never been reviewed. We had no idea. Armely remediated the exposure, implemented external sharing controls, and configured sensitivity labels within six weeks. Our compliance officer signed off on the remediation without any further findings.</p>
-        <div class="testi-footer">
-          <div class="testi-avatar">IT</div>
-          <div>
-            <div class="testi-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-            <div class="testi-name">Director of IT</div>
-            <div class="testi-role">Healthcare Organization, Midwest</div>
-          </div>
-        </div>
-      </div>
-      <div class="testi-card">
-        <span class="testi-quote">&ldquo;</span>
-        <p class="testi-body">We had been paying for Microsoft 365 Business Premium for two years but had implemented almost none of the security features included in the license. Armely ran the audit, showed us exactly what we were leaving unused, and implemented the security baseline in four weeks. We now have Conditional Access, MFA, and Defender all running correctly, all included in the license we were already paying for.</p>
-        <div class="testi-footer">
-          <div class="testi-avatar">CFO</div>
-          <div>
-            <div class="testi-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-            <div class="testi-name">Chief Financial Officer</div>
-            <div class="testi-role">Professional Services Firm, Texas</div>
-          </div>
-        </div>
-      </div>
-      <div class="testi-card">
-        <span class="testi-quote">&ldquo;</span>
-        <p class="testi-body">We wanted to deploy Copilot but our IT team flagged that our tenant was not ready. Armely did the readiness assessment, cleaned up three years of oversharing and abandoned Teams, configured sensitivity labels across our content, and declared the tenant Copilot-ready in eight weeks. We deployed Copilot the following month without any data exposure concerns.</p>
-        <div class="testi-footer">
-          <div class="testi-avatar">CTO</div>
-          <div>
-            <div class="testi-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-            <div class="testi-name">Chief Technology Officer</div>
-            <div class="testi-role">Education Organization, Nebraska</div>
-          </div>
-        </div>
-      </div>
+    <h2 class="section-title">Real outcomes for real organizations.</h2>
+    <p class="section-body">Armely has delivered Microsoft platform and AI solutions for healthcare providers, school districts, energy operators, professional services firms, government agencies, and non-profit organizations. See the full story on our Customer Stories page.</p>
+    <div class="cr-grid">
+      <div class="cr-card"><div class="cr-label"><span class="cr-check"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg></span><span class="cr-industry">Healthcare</span></div><p class="cr-desc">Swope Health Services and UNMC: data platform and clinical workflow modernization on Microsoft Azure.</p></div>
+      <div class="cr-card"><div class="cr-label"><span class="cr-check"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg></span><span class="cr-industry">Education</span></div><p class="cr-desc">Plano ISD: Microsoft 365 governance, SharePoint, and Power Platform implementations across district operations.</p></div>
+      <div class="cr-card"><div class="cr-label"><span class="cr-check"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg></span><span class="cr-industry">Energy</span></div><p class="cr-desc">Oil and gas operators: OpenInvoice visibility and AP workflow automation through Invoice Lens.</p></div>
+      <div class="cr-card"><div class="cr-label"><span class="cr-check"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg></span><span class="cr-industry">Professional Services</span></div><p class="cr-desc">Consulting and legal firms: Dynamics 365, Power Automate approval workflows, and AI knowledge agents.</p></div>
+      <div class="cr-card"><div class="cr-label"><span class="cr-check"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg></span><span class="cr-industry">Government</span></div><p class="cr-desc">State and local agencies: Microsoft 365 Government deployment and compliance configuration.</p></div>
+      <div class="cr-card"><div class="cr-label"><span class="cr-check"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg></span><span class="cr-industry">Non-Profit</span></div><p class="cr-desc">Social services organizations: Microsoft 365 optimization, Power BI grant reporting, and SharePoint governance.</p></div>
+    </div>
+    <div class="cr-cta">
+      <a href="https://armely.com/customer-stories" class="cr-btn"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Read Client Stories on armely.com</span><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>
     </div>
   </div>
 </section>
-
-<!-- WHY ARMELY -->
-<section class="why" id="why-armely">
-  <div class="section-inner">
-    <div class="why-two-col">
-      <div>
-        <div class="section-eyebrow">Why Armely</div>
-        <h2 class="section-title">Microsoft 365 governance done properly, once.</h2>
-        <p class="section-body">Governance work done badly just moves the problem. Armely implements controls that actually hold, trains administrators who understand why the controls are there, and measures adoption so the investment is verifiable.</p>
-        <ul class="why-list">
-          <li>
-            <div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></div>
-            <div>
-              <div class="why-item-title">Free Tenant Health Check to Start</div>
-              <div class="why-item-desc">Every engagement starts with a free automated and manual assessment of your tenant. You see exactly what the problems are before committing to any remediation work, and you own the report regardless of whether you proceed with Armely.</div>
-            </div>
-          </li>
-          <li>
-            <div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8V4H8"/><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M9 11v2"/><path d="M15 11v2"/></svg></div>
-            <div>
-              <div class="why-item-title">Copilot Readiness Built In</div>
-              <div class="why-item-desc">Every governance engagement Armely delivers prepares your tenant for Microsoft 365 Copilot, whether or not you plan to deploy it immediately. Clean permissions, sensitivity labels, and data governance are prerequisites for safe AI deployment, and we build them in from day one.</div>
-            </div>
-          </li>
-          <li>
-            <div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 17 6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg></div>
-            <div>
-              <div class="why-item-title">Adoption Is Measured, Not Assumed</div>
-              <div class="why-item-desc">We configure Microsoft 365 usage analytics and Viva Insights reporting so you can see adoption levels by team and tool over time, not just receive a training completion certificate and hope for the best.</div>
-            </div>
-          </li>
-          <li>
-            <div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
-            <div>
-              <div class="why-item-title">Regulated Industry Experience</div>
-              <div class="why-item-desc">We have implemented Microsoft 365 governance for healthcare providers and educational institutions where HIPAA compliance, student data protection, and audit readiness are not optional. We understand what governance needs to look like in environments where getting it wrong has real consequences.</div>
-            </div>
-          </li>
-        </ul>
-      </div>
-      <div>
-        <div class="partner-block">
-          <div class="partner-block-top">
-            <div class="partner-label">Microsoft Authorized Partner</div>
-            <p class="partner-text">Armely's Microsoft partnership gives us access to the Microsoft Secure Score benchmarking tools, Microsoft 365 admin center partner features, and early access to governance capability updates before they reach general availability. That means your governance framework is built against current Microsoft best practices, not documentation that is several months behind the product.</p>
-          </div>
-          <div class="partner-stats">
-            <div class="p-stat">
-              <div class="p-stat-num">190<span>M</span></div>
-              <div class="p-stat-label">people use Microsoft 365, most in environments without formal governance</div>
-            </div>
-            <div class="p-stat">
-              <div class="p-stat-num">Free</div>
-              <div class="p-stat-label">tenant health check to identify your specific risks before any commitment</div>
-            </div>
-            <div class="p-stat">
-              <div class="p-stat-num">6-8</div>
-              <div class="p-stat-label">weeks for a complete governance implementation in a standard tenant</div>
-            </div>
-            <div class="p-stat">
-              <div class="p-stat-num">100<span>%</span></div>
-              <div class="p-stat-label">of Armely governance engagements include Copilot readiness preparation</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- CTA -->
-<section class="cta-section" id="contact">
-  <div class="cta-inner">
-    <div>
-      <div class="section-eyebrow">Get Started</div>
-      <h2 class="section-title">Start with a free tenant health check. No commitment required.</h2>
-      <p class="section-body">Book a free Microsoft 365 Tenant Health Check. We will run a structured assessment of your environment and deliver a written report identifying your most significant security, governance, and adoption gaps within one week. You own the report regardless of whether you proceed with Armely.</p>
-      <div style="margin-top: 28px; display: flex; flex-direction: column; gap: 12px;">
-        <div class="trust-item">
-          <span class="trust-dot" style="background: var(--blue);"></span>
-          <span class="trust-text" style="color: var(--text-body);">Free tenant health check, written report delivered within one week</span>
-        </div>
-        <div class="trust-item">
-          <span class="trust-dot" style="background: var(--blue);"></span>
-          <span class="trust-text" style="color: var(--text-body);">You own the report regardless of next steps</span>
-        </div>
-        <div class="trust-item">
-          <span class="trust-dot" style="background: var(--blue);"></span>
-          <span class="trust-text" style="color: var(--text-body);">Response within one business day</span>
-        </div>
-      </div>
-    </div>
-    <div class="cta-form">
-      <div class="form-title">Book Your Free Tenant Health Check</div>
-      <div class="form-sub">Tell us about your Microsoft 365 environment.</div>
-      <div class="form-row">
-        <label>Full Name</label>
-        <input type="text" placeholder="Jane Smith">
-      </div>
-      <div class="form-row">
-        <label>Business Email</label>
-        <input type="email" placeholder="jane@yourcompany.com">
-      </div>
-      <div class="form-row">
-        <label>Company Name</label>
-        <input type="text" placeholder="Acme Corp">
-      </div>
-      <div class="form-row">
-        <label>Primary Concern</label>
-        <select>
-          <option value="">Select...</option>
-          <option>Security and external sharing exposure</option>
-          <option>Teams and SharePoint sprawl and governance</option>
-          <option>Compliance and audit readiness</option>
-          <option>Low staff adoption of Microsoft 365</option>
-          <option>Copilot readiness preparation</option>
-          <option>General tenant health review</option>
-          <option>Not sure, want an assessment first</option>
-        </select>
-      </div>
-      <button class="form-submit">Request Free Tenant Health Check</button>
-      <div class="form-note">No spam. No sales pressure. Just a useful conversation.</div>
-    </div>
-  </div>
-</section>
-
-<footer>
-  <div class="footer-logo-row">
-    <div class="footer-lm">A</div>
-    <span class="footer-lt">armely</span>
-  </div>
-  <div class="footer-note">&#169; 2026 Armely &middot; www.armely.com &middot; Your Trusted Source for Digital Excellence</div>
-  <div class="footer-badges">
-    <span class="badge-chip">Microsoft CSP Partner</span>
-    <span class="badge-chip">Microsoft 365 Certified</span>
-    <span class="badge-chip">Microsoft Authorized Reseller</span>
-  </div>
-</footer>
-
+<section class="why"><div class="section-inner"><div class="section-eyebrow">Why Armely</div><h2 class="section-title">Microsoft 365 governance done properly, once.</h2><p class="section-body">Governance work done badly just moves the problem. Armely implements controls that actually hold, trains administrators who understand why the controls are there, and measures adoption.</p>
+<div class="why-two-col"><div><ul class="why-list"><li><div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></div><div><div class="why-item-title">Free Tenant Health Check to Start</div><div class="why-item-desc">Every engagement starts with a free automated and manual assessment of your tenant. You see exactly what the problems are before committing to any remediation work.</div></div></li><li><div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 8V4H8"/><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M9 11v2"/><path d="M15 11v2"/></svg></div><div><div class="why-item-title">Copilot Readiness Built In</div><div class="why-item-desc">Every governance engagement Armely delivers prepares your tenant for Microsoft 365 Copilot, whether or not you plan to deploy it immediately.</div></div></li><li><div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m3 17 6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg></div><div><div class="why-item-title">Adoption Is Measured, Not Assumed</div><div class="why-item-desc">We configure Microsoft 365 usage analytics and Viva Insights reporting so you can see adoption levels by team and tool over time.</div></div></li><li><div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg></div><div><div class="why-item-title">Regulated Industry Experience</div><div class="why-item-desc">We have implemented Microsoft 365 governance for healthcare providers and educational institutions where HIPAA compliance and audit readiness are not optional.</div></div></li></ul></div>
+<div><div class="partner-block"><div class="partner-block-top"><div class="partner-label">Microsoft Authorized Partner</div><p class="partner-text">Armely's Microsoft partnership gives us access to Microsoft Secure Score benchmarking tools, Microsoft 365 admin center partner features, and early access to governance capability updates.</p></div><div class="partner-stats"><div class="p-stat"><div class="p-stat-num">190<span>M</span></div><div class="p-stat-label">people use Microsoft 365, most in environments without formal governance</div></div><div class="p-stat"><div class="p-stat-num">Free<span></span></div><div class="p-stat-label">tenant health check to identify your specific risks before any commitment</div></div><div class="p-stat"><div class="p-stat-num">6-8<span>wks</span></div><div class="p-stat-label">for a complete governance implementation in a standard tenant</div></div><div class="p-stat"><div class="p-stat-num">100<span>%</span></div><div class="p-stat-label">of Armely governance engagements include Copilot readiness preparation</div></div></div></div></div></div></div></section>
+<section class="cta-section" id="contact"><div class="cta-inner"><div><div class="section-eyebrow">Get Started</div><h2 class="section-title">Start with a free tenant health check. No commitment required.</h2><p class="section-body">Book a free Microsoft 365 Tenant Health Check. We will run a structured assessment and deliver a written report identifying your most significant security, governance, and adoption gaps within one week.</p><div style="margin-top:20px;display:flex;flex-direction:column;gap:9px;"><div class="trust-item"><span class="trust-dot"></span><span class="trust-text">Free assessment, no commitment required</span></div><div class="trust-item"><span class="trust-dot"></span><span class="trust-text">Recommendation and partner pricing included</span></div><div class="trust-item"><span class="trust-dot"></span><span class="trust-text">Response within one business day</span></div></div></div><div class="cta-form"><div class="form-title">Book Your Free Assessment</div><div class="form-sub">Tell us about your situation.</div><div class="form-row"><label>Full Name</label><input type="text" placeholder="Jane Smith"></div><div class="form-row"><label>Business Email</label><input type="email" placeholder="jane@yourcompany.com"></div><div class="form-row"><label>Company Name</label><input type="text" placeholder="Acme Corp"></div><div class="form-row"><label>Primary Need</label><select><option value="">Select...</option><option>Security and external sharing exposure</option><option>Teams and SharePoint sprawl and governance</option><option>Compliance and audit readiness</option><option>Low staff adoption of Microsoft 365</option><option>Copilot readiness preparation</option><option>General tenant health review</option><option>Not sure, want an assessment first</option></select></div><button class="form-submit">Request Free Tenant Health Check</button><div class="form-note">No spam. No sales pressure. Just a useful conversation.</div></div></div></section>
 </div>

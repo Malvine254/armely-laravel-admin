@@ -808,361 +808,73 @@
 }
 
 
+
+.armely-copilot-page .cr-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-top:28px; margin-bottom:28px; }
+.armely-copilot-page .cr-card { background:#fff; border:1px solid var(--border); border-radius:14px; padding:22px; box-shadow:0 14px 36px rgba(18,47,82,0.08); }
+.armely-copilot-page .cr-label { display:flex; align-items:center; gap:9px; margin-bottom:10px; }
+.armely-copilot-page .cr-check { width:20px; height:20px; display:flex; align-items:center; justify-content:center; background:var(--blue-dim); border:1px solid var(--blue-dim2); border-radius:50%; flex-shrink:0; color:var(--blue); }
+.armely-copilot-page .cr-check .icon-svg { width:11px; height:11px; stroke-width:3; }
+.armely-copilot-page .cr-industry { font-size:0.875rem; font-weight:700; color:#162b49; }
+.armely-copilot-page .cr-desc { font-size:0.84rem; color:var(--text-muted); line-height:1.65; margin:0; }
+.armely-copilot-page .cr-cta { text-align:center; margin-top:8px; }
+.armely-copilot-page .cr-btn { display:inline-flex; align-items:center; gap:10px; background:#1a2e52; color:#fff; border-radius:8px; padding:13px 28px; text-decoration:none; font-size:0.875rem; font-weight:600; }
+.armely-copilot-page .cr-btn:hover { background:var(--blue); }
+.armely-copilot-page .cr-btn .icon-svg { width:18px; height:18px; }
+@media (max-width:900px) { .armely-copilot-page .cr-grid { grid-template-columns:1fr 1fr; } }
+@media (max-width:600px) { .armely-copilot-page .cr-grid { grid-template-columns:1fr; } }
 </style>
 <div class="armely-copilot-page">
-
-<!-- NAV -->
-<nav>
-  <div class="logo">
-    <div class="logo-mark">A</div>
-    <span class="logo-text">armely</span>
-  </div>
-  <ul class="nav-links">
-    <li><a href="#what-we-deliver">Services</a></li>
-    <li><a href="#journey">Our Process</a></li>
-    <li><a href="#why-armely">Why Armely</a></li>
-    <li><a href="#contact" class="nav-cta">Get Started</a></li>
-  </ul>
-</nav>
-
-<!-- HERO -->
 <section class="hero">
   <div class="hero-bg-glow"></div>
-  <div class="hero-bg-glow2"></div>
-  <div class="hero-eyebrow">
-    <span class="eyebrow-badge">Microsoft 365 Copilot Business</span>
-    <span class="eyebrow-partner">Delivered by a certified Microsoft partner</span>
-  </div>
-  <h1>AI that works<br>the way <span class="hl">your business</span><br>actually works.</h1>
-  <p class="hero-sub">Armely licenses, deploys, and embeds Microsoft 365 Copilot into your team's daily workflows, so adoption is real, not just access.</p>
-  <div class="hero-actions">
-    <a href="#contact" class="btn-primary">Book a Free Assessment</a>
-    <a href="#what-we-deliver" class="btn-outline">See What We Do</a>
-  </div>
-  <div class="hero-trust">
-    <div class="trust-item">
-      <span class="trust-dot"></span>
-      <span class="trust-text"><strong>Full Microsoft 365</strong> Copilot feature set</span>
-    </div>
-    <div class="trust-item">
-      <span class="trust-dot"></span>
-      <span class="trust-text">Works with <strong>any existing</strong> M365 Business plan</span>
-    </div>
-    <div class="trust-item">
-      <span class="trust-dot"></span>
-      <span class="trust-text"><strong>No seat minimums</strong>, start with one team</span>
-    </div>
-    <div class="trust-item">
-      <span class="trust-dot"></span>
-      <span class="trust-text">Exclusive <strong>partner pricing</strong> available</span>
+  <div class="hero-inner">
+    <div class="hero-copy">
+      <div class="hero-eyebrow">
+        <span class="eyebrow-badge">Microsoft 365 Copilot Business</span>
+        <span class="eyebrow-partner">Delivered by a certified Microsoft partner</span>
+      </div>
+      <h1>Your team's AI assistant,<br>built into the tools they already use.</h1>
+      <p class="hero-sub">Armely licenses, deploys, and embeds Microsoft 365 Copilot into your team's daily workflows so adoption is real, measurable, and lasting.</p>
+      <div class="hero-actions">
+        <a href="#contact" class="btn-primary">Book a Free Assessment</a>
+        <a href="#delivers" class="btn-outline">See What We Do</a>
+      </div>
     </div>
   </div>
 </section>
 
-<!-- WHAT IS COPILOT -->
-<section class="intro">
+<section class="spectrum"><div class="section-inner"><div class="section-eyebrow">What is Microsoft 365 Copilot?</div><h2 class="section-title">AI built into the tools your team uses every day.</h2><p class="section-body">Microsoft 365 Copilot Business is an AI assistant embedded directly in Word, Excel, PowerPoint, Outlook, and Teams. It drafts, summarizes, analyzes, and responds, freeing your people from administrative work so they focus on what matters.</p>
+<div class="spectrum-grid"><div class="spectrum-row">
+<div class="spectrum-level highlight"><span class="spectrum-num">Word</span><div><div class="spectrum-content-title">Document Drafting and Editing</div><div class="spectrum-content-desc">Generate first drafts, rewrite for tone, summarize lengthy documents, and extract key points without starting from a blank page.</div></div></div>
+<div class="spectrum-level highlight"><span class="spectrum-num">Excel</span><div><div class="spectrum-content-title">Data Analysis and Visualization</div><div class="spectrum-content-desc">Analyze spreadsheet data, identify trends, generate charts, and answer questions about your data in plain language.</div></div></div>
+<div class="spectrum-level highlight"><span class="spectrum-num">Outlook</span><div><div class="spectrum-content-title">Email Drafting and Inbox Management</div><div class="spectrum-content-desc">Summarize long threads, draft replies in your tone, flag what needs a response today, and prepare for meetings with context from your email history.</div></div></div>
+<div class="spectrum-level highlight"><span class="spectrum-num">Teams</span><div><div class="spectrum-content-title">Meeting Summaries and Action Items</div><div class="spectrum-content-desc">Transcribe and summarize every meeting, extract action items, and catch up on missed calls without reading through full transcripts.</div></div></div>
+</div><div><div class="platform-card"><div class="platform-header"><div class="platform-dots"><span></span><span></span><span></span></div><span class="platform-header-title">Microsoft 365 Copilot Stack</span></div><div class="platform-body"><div class="plat-band band-tools"><div class="plat-band-label">AI Capabilities</div><div class="plat-chips"><span class="plat-chip">Email Drafting</span><span class="plat-chip">Meeting Summaries</span><span class="plat-chip">Document Generation</span><span class="plat-chip">Data Analysis</span><span class="plat-chip">Knowledge Search</span></div></div><div class="band-arrow">&#8597;</div><div class="plat-band band-data"><div class="plat-band-label">Connected To</div><div class="plat-chips"><span class="plat-chip">SharePoint</span><span class="plat-chip">OneDrive</span><span class="plat-chip">Exchange</span><span class="plat-chip">Teams</span><span class="plat-chip">Microsoft Graph</span></div></div><div class="band-arrow">&#8597;</div><div class="plat-band band-gov"><div class="plat-band-label">Security Foundation</div><div class="plat-chips"><span class="plat-chip">Entra ID</span><span class="plat-chip">Microsoft Purview</span><span class="plat-chip">DLP Policies</span><span class="plat-chip">Tenant Boundary</span></div></div></div></div></div></div></div></section>
+<section class="delivers" id="delivers"><div class="section-inner"><div class="section-eyebrow">What Armely Delivers</div><h2 class="section-title">We license it, deploy it, and make sure your team uses it.</h2><p class="section-body">Most organizations activate Copilot and see low adoption six months later. Armely covers licensing, configuration, deployment, training, and adoption measurement so your investment delivers.</p>
+<div class="delivers-grid"><div class="deliver-card"><div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"/><path d="M7 7h.01"/></svg></div><div class="deliver-title">Best-Value Licensing</div><div class="deliver-desc">Our Microsoft partnership gives us access to SMB bundle pricing and promotional offers not available through direct purchase.</div></div><div class="deliver-card"><div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></div><div class="deliver-title">Tenant Readiness and Configuration</div><div class="deliver-desc">We review your Microsoft 365 environment for security posture, permission hygiene, and data classification before deployment.</div></div><div class="deliver-card"><div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div><div class="deliver-title">Pilot Rollout</div><div class="deliver-desc">We start with a target team, deploy Copilot into their actual workflows, and measure outcomes before expanding.</div></div><div class="deliver-card"><div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg></div><div class="deliver-title">Adoption Tracking</div><div class="deliver-desc">Usage reports, quarterly reviews, and proactive check-ins ensure your team is generating value, not just holding licenses.</div></div><div class="deliver-card"><div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 8V4H8"/><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M9 11v2"/><path d="M15 11v2"/></svg></div><div class="deliver-title">Copilot Agent Configuration</div><div class="deliver-desc">We configure and govern Copilot agents in SharePoint, Teams, and Dynamics 365 scoped to your content and permissions.</div></div><div class="deliver-card"><div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg></div><div class="deliver-title">Ongoing Support</div><div class="deliver-desc">A dedicated Armely account manager manages updates, release waves, and new capability rollouts as Microsoft evolves the platform.</div></div></div></div></section>
+<section class="journey"><div class="section-inner"><div class="section-eyebrow">The Armely Copilot Journey</div><h2 class="section-title">From signed to productive in weeks, not months.</h2><p class="section-body">We follow the Microsoft 365 Copilot QuickStart framework tested across SMB deployments.</p>
+<div class="steps-row"><div class="step"><div class="step-num">01</div><div class="step-title">Readiness Assessment</div><div class="step-desc">We review your Microsoft 365 environment, data governance, permissions, and security posture.</div><span class="step-tag">Free</span></div><div class="step"><div class="step-num">02</div><div class="step-title">Licensing and Setup</div><div class="step-desc">We configure the right bundle for your team size and handle all licensing through our partnership.</div><span class="step-tag">1-2 Days</span></div><div class="step"><div class="step-num">03</div><div class="step-title">Pilot Rollout</div><div class="step-desc">We deploy to a target group, working within real workflows so you see measurable outcomes first.</div><span class="step-tag">Weeks 1-2</span></div><div class="step"><div class="step-num">04</div><div class="step-title">Full Deployment</div><div class="step-desc">We scale across the organization with Armely managing rollout, training, and adoption tracking.</div><span class="step-tag">Weeks 3-4</span></div><div class="step"><div class="step-num">05</div><div class="step-title">Ongoing Support</div><div class="step-desc">Monthly check-ins, usage reviews, and proactive support keep your investment delivering value.</div><span class="step-tag">Ongoing</span></div></div></div></section>
+<section class="usecases"><div class="section-inner"><div class="section-eyebrow">Common Engagements</div><h2 class="section-title">Real work, done faster across every role.</h2><p class="section-body">Copilot Business delivers measurable time savings across every department.</p>
+<div class="uc-grid"><div class="uc-card"><span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg></span><div class="uc-title">Email and Communication</div><div class="uc-desc">Copilot in Outlook summarizes long threads, drafts replies in your tone, and surfaces what needs your attention.</div></div><div class="uc-card"><span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg></span><div class="uc-title">Data and Reporting</div><div class="uc-desc">Copilot in Excel analyzes spreadsheets, identifies trends, and produces summary charts from plain-language requests.</div></div><div class="uc-card"><span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><div class="uc-title">Meetings and Follow-ups</div><div class="uc-desc">Copilot in Teams transcribes, summarizes, and extracts action items from every meeting.</div></div><div class="uc-card"><span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 13h8"/><path d="M8 17h6"/></svg></span><div class="uc-title">Documents and Proposals</div><div class="uc-desc">Turn bullet points into polished proposals in Word. First drafts take minutes, not hours.</div></div><div class="uc-card"><span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg></span><div class="uc-title">Presentations</div><div class="uc-desc">Copilot in PowerPoint produces structured slide decks from a document or prompt, ready for editing.</div></div><div class="uc-card"><span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></span><div class="uc-title">Knowledge and Search</div><div class="uc-desc">Microsoft 365 Chat searches across all your files, emails, and chats to surface what you need immediately.</div></div></div></div></section>
+<section class="testimonials">
   <div class="section-inner">
-    <div class="intro-grid">
-      <div>
-        <div class="section-eyebrow">What is Microsoft 365 Copilot?</div>
-        <h2 class="section-title">AI built into the tools your team already uses every day.</h2>
-        <p class="section-body">Microsoft 365 Copilot Business is an AI assistant woven directly into Word, Excel, PowerPoint, Outlook, and Teams. It drafts, summarises, analyses, and responds, freeing your people from admin so they can focus on the work that matters.</p>
-        <div class="app-pills">
-          <span class="pill">Word</span>
-          <span class="pill">Excel</span>
-          <span class="pill">PowerPoint</span>
-          <span class="pill">Outlook</span>
-          <span class="pill">Teams</span>
-          <span class="pill">M365 Chat</span>
-        </div>
-      </div>
-      <div>
-        <div class="demo-card">
-          <div class="demo-header">
-            <div class="demo-dots"><span></span><span></span><span></span></div>
-            <span class="demo-app-name">Copilot in Outlook</span>
-          </div>
-          <div class="demo-body">
-            <div class="chat-bubble user">
-              <div class="bubble-label u">You</div>
-              Summarize last week's project emails and flag anything that needs a reply today.
-            </div>
-            <div class="chat-bubble copilot">
-              <div class="bubble-label c">Copilot</div>
-              Found 14 relevant threads. Two need replies: a contract review from Sarah due Friday, and a vendor quote requiring sign-off. The rest are informational, here's a 3-line summary of each.
-            </div>
-            <div class="chat-bubble user">
-              <div class="bubble-label u">You</div>
-              Draft a reply to Sarah, professional but concise.
-            </div>
-            <div class="chat-bubble copilot">
-              <div class="bubble-label c">Copilot</div>
-              Done. Draft is in your compose window. Review and send when ready.
-            </div>
-          </div>
-        </div>
-      </div>
+    <div class="section-eyebrow">Client Results</div>
+    <h2 class="section-title">Real outcomes for real organizations.</h2>
+    <p class="section-body">Armely has delivered Microsoft platform and AI solutions for healthcare providers, school districts, energy operators, professional services firms, government agencies, and non-profit organizations.</p>
+    <div class="cr-grid">
+      <div class="cr-card"><div class="cr-label"><span class="cr-check"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg></span><span class="cr-industry">Healthcare</span></div><p class="cr-desc">Swope Health Services and UNMC: data platform and clinical workflow modernization on Microsoft Azure.</p></div>
+      <div class="cr-card"><div class="cr-label"><span class="cr-check"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg></span><span class="cr-industry">Education</span></div><p class="cr-desc">Plano ISD: Microsoft 365 governance, SharePoint, and Power Platform implementations across district operations.</p></div>
+      <div class="cr-card"><div class="cr-label"><span class="cr-check"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg></span><span class="cr-industry">Energy</span></div><p class="cr-desc">Oil and gas operators: OpenInvoice visibility and AP workflow automation through Invoice Lens.</p></div>
+      <div class="cr-card"><div class="cr-label"><span class="cr-check"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg></span><span class="cr-industry">Professional Services</span></div><p class="cr-desc">Consulting and legal firms: Dynamics 365, Power Automate approval workflows, and AI knowledge agents.</p></div>
+      <div class="cr-card"><div class="cr-label"><span class="cr-check"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg></span><span class="cr-industry">Government</span></div><p class="cr-desc">State and local agencies: Microsoft 365 Government deployment and compliance configuration.</p></div>
+      <div class="cr-card"><div class="cr-label"><span class="cr-check"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg></span><span class="cr-industry">Non-Profit</span></div><p class="cr-desc">Social services organizations: Microsoft 365 optimization, Power BI grant reporting, and SharePoint governance.</p></div>
+    </div>
+    <div class="cr-cta">
+      <a href="https://armely.com/customer-stories" class="cr-btn"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Read Client Stories on armely.com</span><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>
     </div>
   </div>
 </section>
-
-<!-- WHAT ARMELY DELIVERS -->
-<section class="delivers" id="what-we-deliver">
-  <div class="section-inner">
-    <div class="section-eyebrow">What Armely Delivers</div>
-    <h2 class="section-title">We don't just sell licenses. We make Copilot work for your business.</h2>
-    <p class="section-body">As a certified Microsoft partner, Armely handles the full picture, from securing the best licensing deal to building the habits that make AI stick.</p>
-    <div class="delivers-grid">
-      <div class="deliver-card">
-        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></div>
-        <div class="deliver-title">Readiness Assessment</div>
-        <div class="deliver-desc">Before a single license is activated, we audit your Microsoft 365 environment, data governance, permissions, and security posture. Copilot lands on a clean, safe foundation, not into a messy tenant.</div>
-      </div>
-      <div class="deliver-card">
-        <div class="deliver-icon">🏷️</div>
-        <div class="deliver-title">Best-Value Licensing</div>
-        <div class="deliver-desc">Our Microsoft partnership gives us access to SMB bundle pricing and promotional offers that aren't available through direct purchase. We find the right plan for your team size and budget, often at a significant discount.</div>
-      </div>
-      <div class="deliver-card">
-        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></div>
-        <div class="deliver-title">Hands-On Implementation</div>
-        <div class="deliver-desc">We don't hand you a login and a help link. Our engineers configure Copilot for your specific workflows, integrate it with your existing systems, and run role-by-role deployment so every team hits the ground running.</div>
-      </div>
-      <div class="deliver-card">
-        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg></div>
-        <div class="deliver-title">Adoption Training</div>
-        <div class="deliver-desc">People use tools they understand. We run targeted training sessions for each department, showing your team exactly how Copilot accelerates their specific work, not just a generic demo.</div>
-      </div>
-      <div class="deliver-card">
-        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg></div>
-        <div class="deliver-title">Adoption Tracking</div>
-        <div class="deliver-desc">Usage reports, quarterly business reviews, and proactive check-ins mean we catch low adoption early and fix it before licenses go to waste. You always know your Copilot ROI.</div>
-      </div>
-      <div class="deliver-card">
-        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg></div>
-        <div class="deliver-title">Ongoing Managed Support</div>
-        <div class="deliver-desc">One dedicated account manager who knows your environment. Not a ticket queue. As your business grows and Microsoft updates Copilot, we keep you ahead of the curve.</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- JOURNEY -->
-<section class="journey" id="journey">
-  <div class="section-inner">
-    <div class="section-eyebrow">The Armely QuickStart Journey</div>
-    <h2 class="section-title">From first conversation to full productivity, fast.</h2>
-    <p class="section-body">We follow the Microsoft 365 Copilot QuickStart framework, refined across hundreds of SMB deployments, to get your team seeing real value in weeks not months.</p>
-    <div class="steps-row">
-      <div class="step">
-        <div class="step-num">01</div>
-        <div class="step-title">Discovery & Assessment</div>
-        <div class="step-desc">Free environment audit covering your current M365 setup, data hygiene, and security posture.</div>
-        <span class="step-tag">Free</span>
-      </div>
-      <div class="step">
-        <div class="step-num">02</div>
-        <div class="step-title">Licensing & Planning</div>
-        <div class="step-desc">We source the best bundle and pricing, then build a deployment plan tailored to your teams and workflows.</div>
-        <span class="step-tag">1-2 days</span>
-      </div>
-      <div class="step">
-        <div class="step-num">03</div>
-        <div class="step-title">Pilot Rollout</div>
-        <div class="step-desc">Start with a target team. Real workflows, real feedback, measurable results before going organization-wide.</div>
-        <span class="step-tag">Week 1-2</span>
-      </div>
-      <div class="step">
-        <div class="step-num">04</div>
-        <div class="step-title">Full Deployment</div>
-        <div class="step-desc">Scale across the organization with role-specific training and Armely managing every step of rollout.</div>
-        <span class="step-tag">Week 3-4</span>
-      </div>
-      <div class="step">
-        <div class="step-num">05</div>
-        <div class="step-title">Continuous Success</div>
-        <div class="step-desc">Monthly usage reviews, proactive support, and ongoing optimization as your team and Microsoft's AI evolve.</div>
-        <span class="step-tag">Ongoing</span>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- USE CASES -->
-<section class="usecases">
-  <div class="section-inner">
-    <div class="section-eyebrow">What Your Team Will Actually Do With It</div>
-    <h2 class="section-title">Real work, done faster across every role.</h2>
-    <p class="section-body">Copilot Business delivers measurable time savings across every department, from operations and finance to sales and leadership.</p>
-    <div class="uc-grid">
-      <div class="uc-card">
-        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg></span>
-        <div class="uc-title">Email & Communications</div>
-        <div class="uc-desc">Copilot in Outlook summarises long threads, drafts replies in your tone, and flags what genuinely needs attention. Inbox zero is no longer a myth.</div>
-      </div>
-      <div class="uc-card">
-        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg></span>
-        <div class="uc-title">Data & Reporting</div>
-        <div class="uc-desc">Ask Copilot in Excel to analyze a spreadsheet, spot anomalies, or build a summary chart, in plain English. No formula expertise required.</div>
-      </div>
-      <div class="uc-card">
-        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg></span>
-        <div class="uc-title">Meetings & Follow-ups</div>
-        <div class="uc-desc">Copilot in Teams transcribes, summarises, and extracts action items from every meeting. Stop taking notes and actually contribute.</div>
-      </div>
-      <div class="uc-card">
-        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 13h8"/><path d="M8 17h6"/></svg></span>
-        <div class="uc-title">Documents & Proposals</div>
-        <div class="uc-desc">Turn bullet points into polished proposals in Word. Summarize a 40-page report into a one-page brief. First drafts in seconds, not hours.</div>
-      </div>
-      <div class="uc-card">
-        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="13.5" cy="6.5" r=".5"/><circle cx="17.5" cy="10.5" r=".5"/><circle cx="8.5" cy="7.5" r=".5"/><circle cx="6.5" cy="12.5" r=".5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg></span>
-        <div class="uc-title">Presentations</div>
-        <div class="uc-desc">Copilot in PowerPoint builds structured slide decks from a document or prompt, branded and ready for your edits, not built from scratch under pressure.</div>
-      </div>
-      <div class="uc-card">
-        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></span>
-        <div class="uc-title">Knowledge & Search</div>
-        <div class="uc-desc">Microsoft 365 Chat searches across all your files, emails, and chats to surface what you need instantly. No more digging through folders or asking colleagues.</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- WHY ARMELY -->
-<section class="why" id="why-armely">
-  <div class="section-inner">
-    <div class="why-two-col">
-      <div>
-        <div class="section-eyebrow">Why Armely</div>
-        <h2 class="section-title">The difference between access and adoption.</h2>
-        <p class="section-body">Most businesses activate Copilot and wonder why nobody's using it six months later. We're built specifically to prevent that, combining licensing expertise, technical implementation, and hands-on change management.</p>
-        <ul class="why-list">
-          <li>
-            <div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></div>
-            <div>
-              <div class="why-item-title">Certified Copilot Implementors</div>
-              <div class="why-item-desc">Our engineers are Microsoft-certified Copilot implementors, trained in Copilot Practice Builder methodology, CloudLabs deployment, and hands-on change management across SMB environments.</div>
-            </div>
-          </li>
-          <li>
-            <div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
-            <div>
-              <div class="why-item-title">Security-First by Default</div>
-              <div class="why-item-desc">AI introduces new data exposure risks. We assess and harden your environment before go-live so Copilot runs securely inside your existing Microsoft 365 tenant, your data never leaves.</div>
-            </div>
-          </li>
-          <li>
-            <div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
-            <div>
-              <div class="why-item-title">Access to Partner-Only Pricing</div>
-              <div class="why-item-desc">As a Microsoft-authorized CSP partner, we access SMB bundle promotions and volume pricing that aren't available to direct buyers, and we pass those savings on to you.</div>
-            </div>
-          </li>
-          <li>
-            <div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 17 6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg></div>
-            <div>
-              <div class="why-item-title">Proven SMB Track Record</div>
-              <div class="why-item-desc">We've implemented Microsoft solutions for organizations including Plano ISD, Swope Health Systems, and UNMC, bringing enterprise-grade delivery to businesses of every size.</div>
-            </div>
-          </li>
-        </ul>
-      </div>
-      <div>
-        <div class="partner-block">
-          <div class="partner-block-top">
-            <div class="partner-label">Microsoft Authorized Partner</div>
-            <p class="partner-text">Armely's Microsoft partnership gives us access to licensing, technical resources, and bundle pricing that independent buyers can't reach. That means better value for you, faster deployment, and support backed by the full Microsoft ecosystem.</p>
-          </div>
-          <div class="partner-stats">
-            <div class="p-stat">
-              <div class="p-stat-num">70<span>%</span></div>
-              <div class="p-stat-label">of Fortune 500 already using Microsoft Copilot</div>
-            </div>
-            <div class="p-stat">
-              <div class="p-stat-num">300</div>
-              <div class="p-stat-label">user maximum, purpose-built for SMBs</div>
-            </div>
-            <div class="p-stat">
-              <div class="p-stat-num">6</div>
-              <div class="p-stat-label">Microsoft 365 apps with native Copilot integration</div>
-            </div>
-            <div class="p-stat">
-              <div class="p-stat-num">87<span>%</span></div>
-              <div class="p-stat-label">of organizations say AI gives a competitive edge</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- CTA / CONTACT -->
-<section class="cta-section" id="contact">
-  <div class="cta-inner">
-    <div>
-      <div class="section-eyebrow">Get Started</div>
-      <h2 class="section-title">Let's find the right Copilot plan for your business.</h2>
-      <p class="section-body">Book a free 30-minute Copilot Readiness Assessment. We'll review your Microsoft 365 environment, understand your team's workflows, and come back with a clear recommendation and a pricing quote tailored to your situation, no obligation.</p>
-      <div style="margin-top: 28px; display: flex; flex-direction: column; gap: 12px;">
-        <div class="trust-item">
-          <span class="trust-dot"></span>
-          <span class="trust-text">Free assessment, no commitment required</span>
-        </div>
-        <div class="trust-item">
-          <span class="trust-dot"></span>
-          <span class="trust-text">Custom quote with partner pricing included</span>
-        </div>
-        <div class="trust-item">
-          <span class="trust-dot"></span>
-          <span class="trust-text">Response within one business day</span>
-        </div>
-      </div>
-    </div>
-    <div class="cta-form">
-      <div class="form-title">Book Your Free Assessment</div>
-      <div class="form-sub">We'll be in touch within one business day.</div>
-      <div class="form-row">
-        <label>Full Name</label>
-        <input type="text" placeholder="Jane Smith">
-      </div>
-      <div class="form-row">
-        <label>Business Email</label>
-        <input type="email" placeholder="jane@yourcompany.com">
-      </div>
-      <div class="form-row">
-        <label>Company Name</label>
-        <input type="text" placeholder="Acme Corp">
-      </div>
-      <div class="form-row">
-        <label>Team Size</label>
-        <select>
-          <option value="">Select...</option>
-          <option>1-10 people</option>
-          <option>11-50 people</option>
-          <option>51-150 people</option>
-          <option>151-300 people</option>
-        </select>
-      </div>
-      <button class="form-submit">Request Free Assessment →</button>
-      <div class="form-note">No spam. No sales pressure. Just a useful conversation.</div>
-    </div>
-  </div>
-</section>
-
-<!-- FOOTER -->
-<footer>
-  <div class="footer-logo-row">
-    <div class="footer-lm">A</div>
-    <span class="footer-lt">armely</span>
-  </div>
-  <div class="footer-note">© 2026 Armely · www.armely.com · Your Trusted Source for Digital Excellence</div>
-  <div class="footer-badges">
-    <span class="badge-chip">Microsoft CSP Partner</span>
-    <span class="badge-chip">Microsoft Authorized Reseller</span>
-    <span class="badge-chip">Copilot Certified</span>
-  </div>
-</footer>
-
+<section class="why"><div class="section-inner"><div class="section-eyebrow">Why Armely</div><h2 class="section-title">We make adoption stick, not just access.</h2><p class="section-body">The difference between a Copilot deployment that delivers and one that sits unused is the partner you work with.</p>
+<div class="why-two-col"><div><ul class="why-list"><li><div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg></div><div><div class="why-item-title">Copilot-Certified Implementation Team</div><div class="why-item-desc">Our engineers have completed Microsoft's Copilot enablement program including Copilot Practice Builder certification.</div></div></li><li><div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg></div><div><div class="why-item-title">Security-First Deployment</div><div class="why-item-desc">We assess your environment before activation so Copilot operates within your existing Microsoft 365 security boundary.</div></div></li><li><div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m3 17 6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg></div><div><div class="why-item-title">Adoption, Not Just Access</div><div class="why-item-desc">We track usage, run quarterly reviews, and identify low-adoption areas before they become wasted license spend.</div></div></li><li><div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><div><div class="why-item-title">Partner-Only Pricing</div><div class="why-item-desc">As a Microsoft-authorized CSP partner, we access SMB bundle promotions not available through direct purchase.</div></div></li></ul></div>
+<div><div class="partner-block"><div class="partner-block-top"><div class="partner-label">Microsoft Authorized Partner</div><p class="partner-text">Armely's Microsoft partnership gives us access to licensing, technical resources, and implementation support not available through direct channels.</p></div><div class="partner-stats"><div class="p-stat"><div class="p-stat-num">70<span>%</span></div><div class="p-stat-label">of Fortune 500 organizations are running Microsoft 365 Copilot</div></div><div class="p-stat"><div class="p-stat-num">300<span></span></div><div class="p-stat-label">maximum users, purpose-built for small and mid-size businesses</div></div><div class="p-stat"><div class="p-stat-num">6<span></span></div><div class="p-stat-label">Microsoft 365 applications with native Copilot integration</div></div><div class="p-stat"><div class="p-stat-num">0<span></span></div><div class="p-stat-label">Copilot deployments Armely delivers without a readiness assessment</div></div></div></div></div></div></div></section>
+<section class="cta-section" id="contact"><div class="cta-inner"><div><div class="section-eyebrow">Get Started</div><h2 class="section-title">Tell us what you need Copilot to do.</h2><p class="section-body">Book a free 30-minute Copilot Readiness Assessment. We will review your Microsoft 365 environment and return with a clear recommendation and licensing quote.</p><div style="margin-top:28px;display:flex;flex-direction:column;gap:12px;"><div class="trust-item"><span class="trust-dot" style="background:var(--blue);"></span><span class="trust-text" style="color:var(--text-body);">Free assessment, no commitment required</span></div><div class="trust-item"><span class="trust-dot" style="background:var(--blue);"></span><span class="trust-text" style="color:var(--text-body);">Recommendation and partner pricing included</span></div><div class="trust-item"><span class="trust-dot" style="background:var(--blue);"></span><span class="trust-text" style="color:var(--text-body);">Response within one business day</span></div></div></div><div class="cta-form"><div class="form-title">Book Your Free Assessment</div><div class="form-sub">Tell us about your situation.</div><div class="form-row"><label>Full Name</label><input type="text" placeholder="Jane Smith"></div><div class="form-row"><label>Business Email</label><input type="email" placeholder="jane@yourcompany.com"></div><div class="form-row"><label>Company Name</label><input type="text" placeholder="Acme Corp"></div><div class="form-row"><label>Primary Need</label><select><option value="">Select...</option><option>Deploy Copilot for the first time</option><option>Improve adoption after a low-uptake deployment</option><option>Understand Copilot licensing options</option><option>Configure Copilot agents on SharePoint or Teams</option><option>Not sure, need a recommendation</option></select></div><button class="form-submit">Request Free Assessment</button><div class="form-note">No spam. No sales pressure. Just a useful conversation.</div></div></div></section>
 </div>

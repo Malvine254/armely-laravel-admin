@@ -38,6 +38,9 @@ Route::post('/data-readiness/submit', [DataReadinessLeadController::class, 'subm
 
 // Services listing page
 Route::get('/services', [ServicesController::class, 'index'])->name('services');
+Route::view('/service-details/assessments', 'services.assessments_blade')->name('assessments');
+Route::redirect('/assessments', '/service-details/assessments', 301);
+Route::redirect('/services/assessments', '/service-details/assessments', 301);
 Route::get('/services/{name}', [HomeController::class, 'serviceDetails'])->name('services.show');
 
 Route::view('/solutions/protective-order-digitization', 'protective-order-solution')->name('protective-order-solution');

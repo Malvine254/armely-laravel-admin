@@ -1,6 +1,5 @@
 <style>
 
-
 .armely-managed-services-page *, .armely-managed-services-page *::before, .armely-managed-services-page *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 .armely-managed-services-page {
@@ -808,439 +807,69 @@
 }
 
 
+.armely-managed-services-page .cr-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-top:28px; margin-bottom:28px; }
+.armely-managed-services-page .cr-card { background:#fff; border:1px solid var(--border); border-radius:12px; padding:20px 22px; box-shadow:0 2px 10px rgba(18,47,82,0.04); }
+.armely-managed-services-page .cr-label { display:flex; align-items:center; gap:9px; margin-bottom:10px; }
+.armely-managed-services-page .cr-check { width:20px; height:20px; display:flex; align-items:center; justify-content:center; background:var(--blue-dim); border:1px solid var(--blue-dim2); border-radius:50%; flex-shrink:0; color:var(--blue); }
+.armely-managed-services-page .cr-check .icon-svg { width:11px; height:11px; stroke-width:3; }
+.armely-managed-services-page .cr-industry { font-size:0.875rem; font-weight:700; color:#1A2540; }
+.armely-managed-services-page .cr-desc { font-size:0.82rem; color:var(--text-muted); line-height:1.65; margin:0; }
+.armely-managed-services-page .cr-cta { text-align:center; }
+.armely-managed-services-page .cr-btn { display:inline-flex; align-items:center; gap:10px; background:#1a2e52; color:#fff; border-radius:8px; padding:12px 28px; text-decoration:none; font-size:0.875rem; font-weight:600; }
+.armely-managed-services-page .cr-btn:hover { background:var(--blue); }
+.armely-managed-services-page .cr-btn .icon-svg { width:18px; height:18px; }
+@media (max-width:900px) { .armely-managed-services-page .cr-grid { grid-template-columns:1fr 1fr; } }
+@media (max-width:600px) { .armely-managed-services-page .cr-grid { grid-template-columns:1fr; } }
 </style>
 <div class="armely-managed-services-page">
-
-<nav>
-  <div class="logo">
-    <div class="logo-mark">A</div>
-    <span class="logo-text">armely</span>
-  </div>
-  <ul class="nav-links">
-    <li><a href="#tiers">Service Tiers</a></li>
-    <li><a href="#covers">What We Cover</a></li>
-    <li><a href="#why-armely">Why Armely</a></li>
-    <li><a href="#contact" class="nav-cta">Get Started</a></li>
-  </ul>
-</nav>
-
 <section class="hero">
   <div class="hero-bg-glow"></div>
-  <div class="hero-eyebrow">
-    <span class="eyebrow-badge">Managed Services</span>
-    <span class="eyebrow-partner">Certified Microsoft partner</span>
-  </div>
-  <h1>Your Microsoft environment,<br>managed by the team<br><span class="hl">that built it.</span></h1>
-  <p class="hero-sub">Armely Managed Services provides ongoing monitoring, support, optimization, and administration for the Microsoft platforms and custom solutions we implement, with a dedicated account team that knows your environment.</p>
-  <div class="hero-actions">
-    <a href="#contact" class="btn-primary">Get a Managed Services Proposal</a>
-    <a href="#tiers" class="btn-outline">View Service Tiers</a>
-  </div>
-  <div class="hero-trust">
-    <div class="trust-item">
-      <span class="trust-dot"></span>
-      <span class="trust-text"><strong>Dedicated account manager</strong> who knows your environment</span>
-    </div>
-    <div class="trust-item">
-      <span class="trust-dot"></span>
-      <span class="trust-text"><strong>Proactive monitoring</strong> not just reactive support</span>
-    </div>
-    <div class="trust-item">
-      <span class="trust-dot"></span>
-      <span class="trust-text">Covers <strong>Microsoft 365, Dynamics 365, Azure, and custom applications</strong></span>
-    </div>
-    <div class="trust-item">
-      <span class="trust-dot"></span>
-      <span class="trust-text"><strong>Fixed monthly fee</strong> with no surprise charges</span>
-    </div>
-  </div>
-</section>
-
-<!-- WHAT IS MANAGED SERVICES -->
-<section class="intro">
-  <div class="section-inner">
-    <div class="intro-grid">
-      <div>
-        <div class="section-eyebrow">What Managed Services Means at Armely</div>
-        <h2 class="section-title">Not a help desk. A dedicated technical team that knows your business.</h2>
-        <p class="section-body">Most managed service providers offer a ticket queue staffed by generalists. Armely Managed Services is structured differently. Your account team is the same team that implemented your environment, so support is provided by people who already understand how your systems were built and why.</p>
-        <div class="what-cards">
-          <div class="what-card">
-            <span class="what-card-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></span>
-            <div>
-              <div class="what-card-title">Proactive Monitoring and Alerting</div>
-              <div class="what-card-desc">We monitor your Microsoft 365 tenant health, Azure infrastructure, application performance, and security posture continuously and alert you before issues affect your users, not after.</div>
-            </div>
-          </div>
-          <div class="what-card">
-            <span class="what-card-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></span>
-            <div>
-              <div class="what-card-title">Ongoing Administration</div>
-              <div class="what-card-desc">User provisioning, license management, configuration changes, patch management, and routine administrative tasks handled by Armely so your internal team is not diverted from their primary work.</div>
-            </div>
-          </div>
-          <div class="what-card">
-            <span class="what-card-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 17 6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg></span>
-            <div>
-              <div class="what-card-title">Optimization and Advisory</div>
-              <div class="what-card-desc">Quarterly business reviews covering usage, performance, cost, and upcoming Microsoft releases. We identify optimization opportunities and recommend changes before problems develop rather than responding to complaints.</div>
-            </div>
-          </div>
-          <div class="what-card">
-            <span class="what-card-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg></span>
-            <div>
-              <div class="what-card-title">Ongoing Development and Enhancements</div>
-              <div class="what-card-desc">New requirements, feature requests, and enhancements to existing solutions handled within the managed services agreement rather than as separate project engagements, depending on your chosen tier.</div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div>
-        <div class="coverage-card">
-          <div class="cov-header">
-            <div class="cov-dots"><span></span><span></span><span></span></div>
-            <span class="cov-title">Platform Coverage</span>
-          </div>
-          <div class="cov-body">
-            <div class="cov-item">
-              <div class="cov-item-left">
-                <span class="cov-item-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg></span>
-                <span class="cov-item-name">Microsoft 365 and Teams</span>
-              </div>
-              <span class="cov-badge badge-on">Monitoring</span>
-            </div>
-            <div class="cov-item">
-              <div class="cov-item-left">
-                <span class="cov-item-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg></span>
-                <span class="cov-item-name">Azure Infrastructure</span>
-              </div>
-              <span class="cov-badge badge-proactive">Proactive</span>
-            </div>
-            <div class="cov-item">
-              <div class="cov-item-left">
-                <span class="cov-item-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg></span>
-                <span class="cov-item-name">Dynamics 365</span>
-              </div>
-              <span class="cov-badge badge-on">Monitoring</span>
-            </div>
-            <div class="cov-item">
-              <div class="cov-item-left">
-                <span class="cov-item-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg></span>
-                <span class="cov-item-name">Power Platform</span>
-              </div>
-              <span class="cov-badge badge-on">Monitoring</span>
-            </div>
-            <div class="cov-item">
-              <div class="cov-item-left">
-                <span class="cov-item-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 13h8"/><path d="M8 17h6"/></svg></span>
-                <span class="cov-item-name">SharePoint</span>
-              </div>
-              <span class="cov-badge badge-on">Monitoring</span>
-            </div>
-            <div class="cov-item">
-              <div class="cov-item-left">
-                <span class="cov-item-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/></svg></span>
-                <span class="cov-item-name">SQL Server and Databases</span>
-              </div>
-              <span class="cov-badge badge-proactive">Proactive</span>
-            </div>
-            <div class="cov-item">
-              <div class="cov-item-left">
-                <span class="cov-item-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span>
-                <span class="cov-item-name">Custom Applications</span>
-              </div>
-              <span class="cov-badge badge-proactive">Proactive</span>
-            </div>
-            <div class="cov-sla">
-              <span style="font-size:1.1rem;">⏱️</span>
-              <div class="cov-sla-text"><strong>Response SLAs</strong> defined per tier from 1-hour critical response to next business day for routine requests, documented in your service agreement.</div>
-            </div>
-          </div>
-        </div>
+  <div class="hero-inner">
+    <div class="hero-copy">
+      <div class="hero-eyebrow"><span class="eyebrow-badge">Managed Services</span><span class="eyebrow-partner">Delivered by a certified Microsoft partner</span></div>
+      <h1>Your Microsoft environment,<br>managed by the team<br>that built it.</h1>
+      <p class="hero-sub">Armely Managed Services provides ongoing monitoring, support, optimization, and administration for the Microsoft platforms and custom solutions we implement, with a dedicated account team that knows your environment.</p>
+      <div class="hero-actions">
+        <a href="#contact" class="btn-primary">Book a Free Assessment</a>
+        <a href="#delivers" class="btn-outline">See What We Do</a>
       </div>
     </div>
   </div>
 </section>
 
-<!-- SERVICE TIERS -->
-<section class="tiers" id="tiers">
-  <div class="section-inner">
-    <div class="section-eyebrow">Service Tiers</div>
-    <h2 class="section-title">Three tiers designed for different levels of support need and environment complexity.</h2>
-    <p class="section-body">Pricing is based on your environment scope and complexity. Contact Armely for a proposal tailored to your specific platforms and user count.</p>
-    <div class="tier-grid">
-      <div class="tier-card">
-        <div class="tier-name">Foundation</div>
-        <div class="tier-desc">For organizations that need reliable monitoring and responsive support without dedicated administration.</div>
-        <ul class="tier-features">
-          <li>Microsoft 365 tenant monitoring and health alerts</li>
-          <li>Security and compliance dashboard review</li>
-          <li>8x5 support with next business day response</li>
-          <li>Monthly platform health report</li>
-          <li>License management and user provisioning</li>
-          <li>Access to Armely's Microsoft licensing at partner pricing</li>
-          <li>Annual Microsoft release wave briefing</li>
-        </ul>
-        <div class="tier-note">Suitable for organizations with a stable Microsoft 365 environment and an internal IT resource handling day-to-day administration.</div>
-      </div>
-      <div class="tier-card featured">
-        <div class="tier-badge">Most Common</div>
-        <div class="tier-name">Professional</div>
-        <div class="tier-desc">For organizations that need proactive management across multiple Microsoft platforms and faster response times.</div>
-        <ul class="tier-features">
-          <li>Everything in Foundation, plus:</li>
-          <li>Azure, Dynamics 365, and Power Platform coverage</li>
-          <li>Proactive performance monitoring and alerting</li>
-          <li>4-hour response for critical issues</li>
-          <li>Quarterly business reviews with Armely account manager</li>
-          <li>Patch and update management</li>
-          <li>Minor enhancement requests included</li>
-          <li>Dedicated named account manager</li>
-        </ul>
-        <div class="tier-note">Suitable for organizations running multiple Microsoft platforms without a specialist internal team to manage them.</div>
-      </div>
-      <div class="tier-card">
-        <div class="tier-name">Enterprise</div>
-        <div class="tier-desc">For organizations with complex environments, custom applications, and requirements for continuous optimization and development.</div>
-        <ul class="tier-features">
-          <li>Everything in Professional, plus:</li>
-          <li>Custom application and database coverage</li>
-          <li>1-hour response for critical issues</li>
-          <li>Included development hours each month</li>
-          <li>Monthly business reviews</li>
-          <li>AI and data platform management</li>
-          <li>Security posture reviews and remediation</li>
-          <li>Dedicated senior technical account manager</li>
-        </ul>
-        <div class="tier-note">Suitable for organizations with custom Azure-hosted applications, SQL Server environments, or AI deployments requiring active management.</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- WHAT WE COVER -->
-<section class="covers" id="covers">
-  <div class="section-inner">
-    <div class="section-eyebrow">What We Cover</div>
-    <h2 class="section-title">Managed services across the full Microsoft platform and beyond.</h2>
-    <p class="section-body">Armely Managed Services covers the platforms we implement. If Armely built it or configured it, we can manage it. If you have an existing environment we did not build, we conduct an onboarding assessment before taking responsibility for it.</p>
-    <div class="covers-grid">
-      <div class="cover-card">
-        <span class="cover-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg></span>
-        <div class="cover-title">Microsoft 365 Administration</div>
-        <div class="cover-desc">Tenant health monitoring, user lifecycle management, license optimization, Exchange Online, Teams administration, SharePoint governance, and security and compliance policy management.</div>
-      </div>
-      <div class="cover-card">
-        <span class="cover-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg></span>
-        <div class="cover-title">Azure Infrastructure Management</div>
-        <div class="cover-desc">Azure resource monitoring, cost optimization, backup verification, performance management, security patching, and infrastructure scaling for Azure App Service, Azure Functions, and Azure SQL environments.</div>
-      </div>
-      <div class="cover-card">
-        <span class="cover-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg></span>
-        <div class="cover-title">Dynamics 365 and Power Platform</div>
-        <div class="cover-desc">Dynamics 365 environment management, release wave update planning, Power Platform governance, flow monitoring, connector management, and minor configuration and enhancement requests.</div>
-      </div>
-      <div class="cover-card">
-        <span class="cover-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/></svg></span>
-        <div class="cover-title">SQL Server and Database Management</div>
-        <div class="cover-desc">SQL Server monitoring, backup management, performance tuning, index maintenance, patch management, and capacity planning for on-premises and Azure-hosted SQL Server environments.</div>
-      </div>
-      <div class="cover-card">
-        <span class="cover-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span>
-        <div class="cover-title">Custom Application Support</div>
-        <div class="cover-desc">Monitoring, incident response, bug fixes, and minor enhancements for custom applications built by Armely on the Azure and .NET stack, with defined SLAs and a named technical contact familiar with the codebase.</div>
-      </div>
-      <div class="cover-card">
-        <span class="cover-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8V4H8"/><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M9 11v2"/><path d="M15 11v2"/></svg></span>
-        <div class="cover-title">AI and Agent Management</div>
-        <div class="cover-desc">Monitoring and governance of deployed Copilot Studio agents and Azure AI Foundry applications, including usage analytics, permission audits, model updates, and content review to ensure agents continue performing as designed.</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- TESTIMONIALS -->
+<section class="spectrum"><div class="section-inner"><div class="section-eyebrow">What Managed Services Means at Armely</div><h2 class="section-title">Not a help desk. A dedicated technical team that knows your business.</h2><p class="section-body">Most managed service providers offer a ticket queue staffed by generalists. Armely Managed Services is structured differently. Your account team is the same team that implemented your environment, so support is provided by people who already understand how your systems were built and why.</p>
+<div class="spectrum-grid"><div><div class="spectrum-row">
+<div class="spectrum-level highlight"><span class="spectrum-num">Monitor</span><div><div class="spectrum-content-title">Proactive Monitoring and Alerting</div><div class="spectrum-content-desc">We monitor your Microsoft 365 tenant health, Azure infrastructure, application performance, and security posture continuously and alert you before issues affect your users.</div></div></div>
+<div class="spectrum-level highlight"><span class="spectrum-num">Admin</span><div><div class="spectrum-content-title">Ongoing Administration</div><div class="spectrum-content-desc">User provisioning, license management, configuration changes, patch management, and routine administrative tasks handled by Armely so your internal team is not diverted from primary work.</div></div></div>
+<div class="spectrum-level highlight"><span class="spectrum-num">Optimize</span><div><div class="spectrum-content-title">Optimization and Advisory</div><div class="spectrum-content-desc">Quarterly business reviews covering usage, performance, cost, and upcoming Microsoft releases. We identify optimization opportunities proactively before problems develop.</div></div></div>
+<div class="spectrum-level"><span class="spectrum-num">Build</span><div><div class="spectrum-content-title">Ongoing Development and Enhancements</div><div class="spectrum-content-desc">New requirements, feature requests, and enhancements to existing solutions handled within the managed services agreement rather than as separate project engagements at Enterprise tier.</div></div></div>
+</div></div><div><div class="platform-card"><div class="platform-header"><div class="platform-dots"><span></span><span></span><span></span></div><span class="platform-header-title">Platform Coverage</span></div><div class="platform-body"><div class="plat-band band-tools"><div class="plat-band-label">Microsoft 365 and Azure</div><div class="plat-chips"><span class="plat-chip">Microsoft 365 and Teams</span><span class="plat-chip">Azure Infrastructure</span><span class="plat-chip">SharePoint</span><span class="plat-chip">Exchange Online</span><span class="plat-chip">Entra ID</span><span class="plat-chip">Power Platform</span></div></div><div class="band-arrow">&#8597;</div><div class="plat-band band-data"><div class="plat-band-label">Business Applications and Data</div><div class="plat-chips"><span class="plat-chip">Dynamics 365</span><span class="plat-chip">SQL Server and Databases</span><span class="plat-chip">Custom Applications</span><span class="plat-chip">AI Agents and Foundry</span><span class="plat-chip">Power BI and Fabric</span></div></div><div class="band-arrow">&#8597;</div><div class="plat-band band-gov"><div class="plat-band-label">Support and Governance</div><div class="plat-chips"><span class="plat-chip">SLA-Backed Response Times</span><span class="plat-chip">Quarterly Reviews</span><span class="plat-chip">Patch Management</span><span class="plat-chip">Security Posture</span><span class="plat-chip">Cost Monitoring</span></div></div></div></div></div></div></div></section>
+<section class="delivers" id="delivers"><div class="section-inner"><div class="section-eyebrow">Service Tiers</div><h2 class="section-title">Three tiers for different levels of support need and environment complexity.</h2><p class="section-body">Pricing is based on your environment scope and complexity. Contact Armely for a proposal tailored to your specific platforms and user count.</p>
+<div class="delivers-grid"><div class="deliver-card"><div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg></div><div class="deliver-title">Foundation</div><div class="deliver-desc">Microsoft 365 tenant monitoring and health alerts, security and compliance dashboard review, 8x5 support with next business day response, monthly platform health report, license management and user provisioning, and access to Armely partner pricing.</div></div><div class="deliver-card"><div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div><div class="deliver-title">Professional (Most Common)</div><div class="deliver-desc">Everything in Foundation plus Azure, Dynamics 365, and Power Platform coverage, proactive monitoring and alerting, 4-hour response for critical issues, quarterly business reviews, patch and update management, and minor enhancement requests included.</div></div><div class="deliver-card"><div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></div><div class="deliver-title">Enterprise</div><div class="deliver-desc">Everything in Professional plus custom application and database coverage, 1-hour response for critical issues, included development hours each month, monthly business reviews, AI and data platform management, and security posture reviews.</div></div><div class="deliver-card"><div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/></svg></div><div class="deliver-title">SQL Server and Database Management</div><div class="deliver-desc">SQL Server monitoring, backup management, performance tuning, index maintenance, patch management, and capacity planning for on-premises and Azure-hosted SQL Server environments.</div></div><div class="deliver-card"><div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 8V4H8"/><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M9 11v2"/><path d="M15 11v2"/></svg></div><div class="deliver-title">AI and Agent Management</div><div class="deliver-desc">Monitoring and governance of deployed Copilot Studio agents and Azure AI Foundry applications, including usage analytics, permission audits, model updates, and content review.</div></div><div class="deliver-card"><div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg></div><div class="deliver-title">Custom Application Support</div><div class="deliver-desc">Monitoring, incident response, bug fixes, and minor enhancements for custom applications built on the Azure and .NET stack, with defined SLAs and a named technical contact.</div></div></div></div></section>
+<section class="journey"><div class="section-inner"><div class="section-eyebrow">How Armely Managed Services Works</div><h2 class="section-title">From scoping call to a managed environment your team can rely on.</h2><p class="section-body">Onboarding to Armely Managed Services takes two to three weeks.</p>
+<div class="steps-row"><div class="step"><div class="step-num">01</div><div class="step-title">Scoping Call</div><div class="step-desc">We understand your environment, platforms, team structure, and support requirements. We identify the right tier and produce a fixed monthly proposal.</div><span class="step-tag">Free</span></div><div class="step"><div class="step-num">02</div><div class="step-title">Proposal and Agreement</div><div class="step-desc">Fixed monthly fee proposal covering all platforms and agreed SLAs. No surprises and no hourly charges for routine support within scope.</div><span class="step-tag">Week 1</span></div><div class="step"><div class="step-num">03</div><div class="step-title">Onboarding Assessment</div><div class="step-desc">For environments we did not build, we run a structured onboarding assessment to document your environment, establish baselines, and identify any urgent items.</div><span class="step-tag">Weeks 1-2</span></div><div class="step"><div class="step-num">04</div><div class="step-title">Monitoring and Administration</div><div class="step-desc">Monitoring agents deployed, admin access configured, escalation paths documented, and your named account manager introduced. Support begins from day one.</div><span class="step-tag">Week 3</span></div><div class="step"><div class="step-num">05</div><div class="step-title">Ongoing Management</div><div class="step-desc">Proactive monitoring, administration, quarterly reviews, and enhancement requests handled by your Armely account team as an extension of your IT function.</div><span class="step-tag">Ongoing</span></div></div></div></section>
+<section class="usecases"><div class="section-inner"><div class="section-eyebrow">What We Manage</div><h2 class="section-title">Managed services across the full Microsoft platform and beyond.</h2><p class="section-body">Armely Managed Services covers the platforms we implement.</p>
+<div class="uc-grid"><div class="uc-card"><span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg></span><div class="uc-title">Microsoft 365 Administration</div><div class="uc-desc">Tenant health monitoring, user lifecycle management, license optimization, Exchange Online, Teams administration, SharePoint governance, and security and compliance policy management.</div></div><div class="uc-card"><span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg></span><div class="uc-title">Azure Infrastructure Management</div><div class="uc-desc">Azure resource monitoring, cost optimization, backup verification, performance management, security patching, and infrastructure scaling.</div></div><div class="uc-card"><span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></span><div class="uc-title">Dynamics 365 and Power Platform</div><div class="uc-desc">Dynamics 365 environment management, release wave update planning, Power Platform governance, flow monitoring, connector management, and minor configuration requests.</div></div><div class="uc-card"><span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/></svg></span><div class="uc-title">SQL Server and Database Management</div><div class="uc-desc">SQL Server monitoring, backup management, performance tuning, index maintenance, patch management, and capacity planning.</div></div><div class="uc-card"><span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></span><div class="uc-title">Custom Application Support</div><div class="uc-desc">Monitoring, incident response, bug fixes, and minor enhancements for custom applications built by Armely on the Azure and .NET stack.</div></div><div class="uc-card"><span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 8V4H8"/><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M9 11v2"/><path d="M15 11v2"/></svg></span><div class="uc-title">AI and Agent Management</div><div class="uc-desc">Monitoring and governance of deployed Copilot Studio agents and Azure AI Foundry applications, including usage analytics, permission audits, and content review.</div></div></div></div></section>
 <section class="testimonials">
   <div class="section-inner">
     <div class="section-eyebrow">Client Results</div>
-    <h2 class="section-title">What our clients say about Armely Managed Services.</h2>
-    <div class="testi-grid">
-      <div class="testi-card">
-        <span class="testi-quote">&ldquo;</span>
-        <p class="testi-body">The biggest difference with Armely is that when we call, we are talking to someone who already knows our environment. We do not have to explain what we built or why it works the way it does. They built it. That context saves time on every single support interaction and means issues get resolved faster than with any previous provider.</p>
-        <div class="testi-footer">
-          <div class="testi-avatar">IT</div>
-          <div>
-            <div class="testi-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-            <div class="testi-name">Director of IT</div>
-            <div class="testi-role">Healthcare Organization, Midwest</div>
-          </div>
-        </div>
-      </div>
-      <div class="testi-card">
-        <span class="testi-quote">&ldquo;</span>
-        <p class="testi-body">We moved to Armely Managed Services after our Dynamics 365 implementation. The quarterly business reviews have been particularly valuable. They come to each one with a list of things they have noticed and recommend addressing before they become problems. That proactive approach has prevented at least two significant issues in the past year.</p>
-        <div class="testi-footer">
-          <div class="testi-avatar">COO</div>
-          <div>
-            <div class="testi-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-            <div class="testi-name">Chief Operating Officer</div>
-            <div class="testi-role">Professional Services Firm, Texas</div>
-          </div>
-        </div>
-      </div>
-      <div class="testi-card">
-        <span class="testi-quote">&ldquo;</span>
-        <p class="testi-body">We are a small IT team managing a complex Microsoft environment across multiple campuses. The Armely managed services agreement effectively extends our team with specialists in every platform we run. The fixed monthly fee means we can budget for it accurately, and the included enhancement hours mean small requests do not pile up waiting for a project budget.</p>
-        <div class="testi-footer">
-          <div class="testi-avatar">CIO</div>
-          <div>
-            <div class="testi-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-            <div class="testi-name">Chief Information Officer</div>
-            <div class="testi-role">Educational Institution, Nebraska</div>
-          </div>
-        </div>
-      </div>
+    <h2 class="section-title">Real outcomes for real organizations.</h2>
+    <p class="section-body">Armely has delivered Microsoft platform and AI solutions for healthcare providers, school districts, energy operators, professional services firms, government agencies, and non-profit organizations. See the full story on our Customer Stories page.</p>
+    <div class="cr-grid">
+      <div class="cr-card"><div class="cr-label"><span class="cr-check"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg></span><span class="cr-industry">Healthcare</span></div><p class="cr-desc">Swope Health Services and UNMC: data platform and clinical workflow modernization on Microsoft Azure.</p></div>
+      <div class="cr-card"><div class="cr-label"><span class="cr-check"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg></span><span class="cr-industry">Education</span></div><p class="cr-desc">Plano ISD: Microsoft 365 governance, SharePoint, and Power Platform implementations across district operations.</p></div>
+      <div class="cr-card"><div class="cr-label"><span class="cr-check"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg></span><span class="cr-industry">Energy</span></div><p class="cr-desc">Oil and gas operators: OpenInvoice visibility and AP workflow automation through Invoice Lens.</p></div>
+      <div class="cr-card"><div class="cr-label"><span class="cr-check"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg></span><span class="cr-industry">Professional Services</span></div><p class="cr-desc">Consulting and legal firms: Dynamics 365, Power Automate approval workflows, and AI knowledge agents.</p></div>
+      <div class="cr-card"><div class="cr-label"><span class="cr-check"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg></span><span class="cr-industry">Government</span></div><p class="cr-desc">State and local agencies: Microsoft 365 Government deployment and compliance configuration.</p></div>
+      <div class="cr-card"><div class="cr-label"><span class="cr-check"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg></span><span class="cr-industry">Non-Profit</span></div><p class="cr-desc">Social services organizations: Microsoft 365 optimization, Power BI grant reporting, and SharePoint governance.</p></div>
+    </div>
+    <div class="cr-cta">
+      <a href="https://armely.com/customer-stories" class="cr-btn"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Read Client Stories on armely.com</span><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>
     </div>
   </div>
 </section>
-
-<!-- WHY ARMELY -->
-<section class="why" id="why-armely">
-  <div class="section-inner">
-    <div class="why-two-col">
-      <div>
-        <div class="section-eyebrow">Why Armely Managed Services</div>
-        <h2 class="section-title">Managed services from the team that knows your environment.</h2>
-        <p class="section-body">The difference between Armely Managed Services and a generic managed services provider is not just technical capability. It is the institutional knowledge that comes from being the team that built and implemented the environment you are managing.</p>
-        <ul class="why-list">
-          <li>
-            <div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.46 2.5 2.5 0 0 1-1.98-3 2.5 2.5 0 0 1-1.32-4.24 3 3 0 0 1 .34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.1-2"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.46 2.5 2.5 0 0 0 1.98-3 2.5 2.5 0 0 0 1.32-4.24 3 3 0 0 0-.34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.1-2"/></svg></div>
-            <div>
-              <div class="why-item-title">Context That Cannot Be Transferred</div>
-              <div class="why-item-desc">When Armely manages an environment we implemented, we know why every decision was made, what the constraints were, and what the business depends on. That context makes every support interaction faster and every recommendation more relevant.</div>
-            </div>
-          </li>
-          <li>
-            <div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 17 6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg></div>
-            <div>
-              <div class="why-item-title">Proactive Rather Than Reactive</div>
-              <div class="why-item-desc">We monitor continuously and review quarterly. Most issues we resolve before clients are aware of them. The measure of good managed services is problems that did not happen, not tickets that were closed quickly.</div>
-            </div>
-          </li>
-          <li>
-            <div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></div>
-            <div>
-              <div class="why-item-title">One Team Across the Full Stack</div>
-              <div class="why-item-desc">Armely covers Microsoft 365, Azure, Dynamics 365, Power Platform, SharePoint, SQL Server, and custom applications under a single managed services agreement. You have one account manager and one invoice, not a different vendor for each platform layer.</div>
-            </div>
-          </li>
-          <li>
-            <div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
-            <div>
-              <div class="why-item-title">Predictable Fixed Monthly Fee</div>
-              <div class="why-item-desc">Your managed services fee is fixed based on your environment scope. There are no unexpected charges for routine support, monitoring, or the minor enhancements included in your tier. Budget certainty is part of the value.</div>
-            </div>
-          </li>
-        </ul>
-      </div>
-      <div>
-        <div class="partner-block">
-          <div class="partner-block-top">
-            <div class="partner-label">Microsoft Authorized Partner</div>
-            <p class="partner-text">Armely's Microsoft partnership gives our managed services practice access to partner support channels, early release information, and Microsoft licensing at rates not available to direct buyers. That means faster escalation paths for complex issues and licensing cost savings passed directly to managed services clients.</p>
-          </div>
-          <div class="partner-stats">
-            <div class="p-stat">
-              <div class="p-stat-num">1</div>
-              <div class="p-stat-label">dedicated account manager per client who knows your environment personally</div>
-            </div>
-            <div class="p-stat">
-              <div class="p-stat-num">7</div>
-              <div class="p-stat-label">Microsoft platforms covered under a single managed services agreement</div>
-            </div>
-            <div class="p-stat">
-              <div class="p-stat-num">QBR</div>
-              <div class="p-stat-label">quarterly business reviews included at Professional and Enterprise tiers</div>
-            </div>
-            <div class="p-stat">
-              <div class="p-stat-num">0</div>
-              <div class="p-stat-label">surprise charges for routine support, monitoring, or included enhancement hours</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- CTA -->
-<section class="cta-section" id="contact">
-  <div class="cta-inner">
-    <div>
-      <div class="section-eyebrow">Get Started</div>
-      <h2 class="section-title">Tell us what you are running. We will tell you what managing it looks like.</h2>
-      <p class="section-body">Book a free 30-minute scoping call. We will review your current Microsoft environment, understand your support needs, and come back with a managed services proposal and fixed monthly fee at no obligation.</p>
-      <div style="margin-top: 28px; display: flex; flex-direction: column; gap: 12px;">
-        <div class="trust-item">
-          <span class="trust-dot" style="background: var(--blue);"></span>
-          <span class="trust-text" style="color: var(--text-body);">Free scoping call, no commitment required</span>
-        </div>
-        <div class="trust-item">
-          <span class="trust-dot" style="background: var(--blue);"></span>
-          <span class="trust-text" style="color: var(--text-body);">Fixed monthly proposal included, no hourly surprises</span>
-        </div>
-        <div class="trust-item">
-          <span class="trust-dot" style="background: var(--blue);"></span>
-          <span class="trust-text" style="color: var(--text-body);">Response within one business day</span>
-        </div>
-      </div>
-    </div>
-    <div class="cta-form">
-      <div class="form-title">Get a Managed Services Proposal</div>
-      <div class="form-sub">Tell us about your current environment.</div>
-      <div class="form-row">
-        <label>Full Name</label>
-        <input type="text" placeholder="Jane Smith">
-      </div>
-      <div class="form-row">
-        <label>Business Email</label>
-        <input type="email" placeholder="jane@yourcompany.com">
-      </div>
-      <div class="form-row">
-        <label>Company Name</label>
-        <input type="text" placeholder="Acme Corp">
-      </div>
-      <div class="form-row">
-        <label>Platforms You Need Managed</label>
-        <select>
-          <option value="">Select primary platform...</option>
-          <option>Microsoft 365 and Teams only</option>
-          <option>Microsoft 365 plus Azure infrastructure</option>
-          <option>Microsoft 365 plus Dynamics 365</option>
-          <option>Full Microsoft stack including custom applications</option>
-          <option>SQL Server and database management</option>
-          <option>AI agents and Azure AI management</option>
-          <option>Multiple, need a full assessment</option>
-        </select>
-      </div>
-      <button class="form-submit">Request Managed Services Proposal</button>
-      <div class="form-note">No spam. No sales pressure. Just a useful conversation.</div>
-    </div>
-  </div>
-</section>
-
-<footer>
-  <div class="footer-logo-row">
-    <div class="footer-lm">A</div>
-    <span class="footer-lt">armely</span>
-  </div>
-  <div class="footer-note">&#169; 2026 Armely &middot; www.armely.com &middot; Your Trusted Source for Digital Excellence</div>
-  <div class="footer-badges">
-    <span class="badge-chip">Microsoft CSP Partner</span>
-    <span class="badge-chip">Microsoft Authorized Reseller</span>
-    <span class="badge-chip">Azure Certified</span>
-  </div>
-</footer>
-
+<section class="why"><div class="section-inner"><div class="section-eyebrow">Why Armely Managed Services</div><h2 class="section-title">Managed by the team that built it.</h2><p class="section-body">The difference between Armely Managed Services and a generic managed services provider is not just technical capability. It is the institutional knowledge that comes from being the team that built and implemented the environment.</p>
+<div class="why-two-col"><div><ul class="why-list"><li><div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg></div><div><div class="why-item-title">Context That Cannot Be Transferred</div><div class="why-item-desc">When Armely manages an environment we implemented, we know why every decision was made, what the constraints were, and what the business depends on.</div></div></li><li><div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m3 17 6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg></div><div><div class="why-item-title">Proactive Rather Than Reactive</div><div class="why-item-desc">We monitor continuously and review quarterly. Most issues we resolve before clients are aware of them.</div></div></li><li><div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></div><div><div class="why-item-title">One Team Across the Full Stack</div><div class="why-item-desc">Armely covers Microsoft 365, Azure, Dynamics 365, Power Platform, SharePoint, SQL Server, and custom applications under a single managed services agreement.</div></div></li><li><div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><div><div class="why-item-title">Predictable Fixed Monthly Fee</div><div class="why-item-desc">Your managed services fee is fixed based on your environment scope. No unexpected charges for routine support, monitoring, or the minor enhancements included in your tier.</div></div></li></ul></div>
+<div><div class="partner-block"><div class="partner-block-top"><div class="partner-label">Microsoft Authorized Partner</div><p class="partner-text">Armely's Microsoft partnership gives our managed services practice access to partner support channels, early release information, and Microsoft licensing at rates not available to direct buyers.</p></div><div class="partner-stats"><div class="p-stat"><div class="p-stat-num">1<span></span></div><div class="p-stat-label">dedicated account manager per client who knows your environment personally</div></div><div class="p-stat"><div class="p-stat-num">7<span>+</span></div><div class="p-stat-label">Microsoft platforms covered under a single managed services agreement</div></div><div class="p-stat"><div class="p-stat-num">QBR<span></span></div><div class="p-stat-label">quarterly business reviews included at Professional and Enterprise tiers</div></div><div class="p-stat"><div class="p-stat-num">0<span></span></div><div class="p-stat-label">surprise charges for routine support, monitoring, or included enhancement hours</div></div></div></div></div></div></div></section>
+<section class="cta-section" id="contact"><div class="cta-inner"><div><div class="section-eyebrow">Get Started</div><h2 class="section-title">Tell us what you are running. We will tell you what managing it looks like.</h2><p class="section-body">Book a free 30-minute scoping call. We will review your current Microsoft environment and come back with a managed services proposal and fixed monthly fee.</p><div style="margin-top:20px;display:flex;flex-direction:column;gap:9px;"><div class="trust-item"><span class="trust-dot"></span><span class="trust-text">Free assessment, no commitment required</span></div><div class="trust-item"><span class="trust-dot"></span><span class="trust-text">Recommendation and partner pricing included</span></div><div class="trust-item"><span class="trust-dot"></span><span class="trust-text">Response within one business day</span></div></div></div><div class="cta-form"><div class="form-title">Book Your Free Assessment</div><div class="form-sub">Tell us about your situation.</div><div class="form-row"><label>Full Name</label><input type="text" placeholder="Jane Smith"></div><div class="form-row"><label>Business Email</label><input type="email" placeholder="jane@yourcompany.com"></div><div class="form-row"><label>Company Name</label><input type="text" placeholder="Acme Corp"></div><div class="form-row"><label>Primary Need</label><select><option value="">Select...</option><option>Microsoft 365 and Teams only</option><option>Microsoft 365 plus Azure infrastructure</option><option>Microsoft 365 plus Dynamics 365</option><option>Full Microsoft stack including custom applications</option><option>SQL Server and database management</option><option>AI agents and Azure AI management</option><option>Multiple, need a full assessment</option></select></div><button class="form-submit">Request Managed Services Proposal</button><div class="form-note">No spam. No sales pressure. Just a useful conversation.</div></div></div></section>
 </div>

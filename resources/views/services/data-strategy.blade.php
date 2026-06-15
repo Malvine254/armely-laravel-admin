@@ -1,6 +1,5 @@
 <style>
 
-
 .armely-ai-data-strategy-page *, .armely-ai-data-strategy-page *::before, .armely-ai-data-strategy-page *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 .armely-ai-data-strategy-page {
@@ -808,414 +807,69 @@
 }
 
 
+.armely-ai-data-strategy-page .cr-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-top:28px; margin-bottom:28px; }
+.armely-ai-data-strategy-page .cr-card { background:#fff; border:1px solid var(--border); border-radius:12px; padding:20px 22px; box-shadow:0 2px 10px rgba(18,47,82,0.04); }
+.armely-ai-data-strategy-page .cr-label { display:flex; align-items:center; gap:9px; margin-bottom:10px; }
+.armely-ai-data-strategy-page .cr-check { width:20px; height:20px; display:flex; align-items:center; justify-content:center; background:var(--blue-dim); border:1px solid var(--blue-dim2); border-radius:50%; flex-shrink:0; color:var(--blue); }
+.armely-ai-data-strategy-page .cr-check .icon-svg { width:11px; height:11px; stroke-width:3; }
+.armely-ai-data-strategy-page .cr-industry { font-size:0.875rem; font-weight:700; color:#1A2540; }
+.armely-ai-data-strategy-page .cr-desc { font-size:0.82rem; color:var(--text-muted); line-height:1.65; margin:0; }
+.armely-ai-data-strategy-page .cr-cta { text-align:center; }
+.armely-ai-data-strategy-page .cr-btn { display:inline-flex; align-items:center; gap:10px; background:#1a2e52; color:#fff; border-radius:8px; padding:12px 28px; text-decoration:none; font-size:0.875rem; font-weight:600; }
+.armely-ai-data-strategy-page .cr-btn:hover { background:var(--blue); }
+.armely-ai-data-strategy-page .cr-btn .icon-svg { width:18px; height:18px; }
+@media (max-width:900px) { .armely-ai-data-strategy-page .cr-grid { grid-template-columns:1fr 1fr; } }
+@media (max-width:600px) { .armely-ai-data-strategy-page .cr-grid { grid-template-columns:1fr; } }
 </style>
 <div class="armely-ai-data-strategy-page">
-
-<nav>
-  <div class="logo">
-    <div class="logo-mark">A</div>
-    <span class="logo-text">armely</span>
-  </div>
-  <ul class="nav-links">
-    <li><a href="#what-we-deliver">Services</a></li>
-    <li><a href="#journey">Our Process</a></li>
-    <li><a href="#pathways">Implementation Paths</a></li>
-    <li><a href="#contact" class="nav-cta">Get Started</a></li>
-  </ul>
-</nav>
-
 <section class="hero">
   <div class="hero-bg-glow"></div>
-  <div class="hero-eyebrow">
-    <span class="eyebrow-badge">AI and Data Strategy Advisory</span>
-    <span class="eyebrow-partner">Certified Microsoft and Azure partner</span>
-  </div>
-  <h1>Not sure where<br>to start with AI<br><span class="hl">or your data? Start here.</span></h1>
-  <p class="hero-sub">Armely's advisory practice helps organizations cut through the noise, assess what they actually have, and build a clear, prioritized roadmap before committing to any technology investment.</p>
-  <div class="hero-actions">
-    <a href="#contact" class="btn-primary">Book a Free Strategy Call</a>
-    <a href="#what-we-deliver" class="btn-outline">See What We Deliver</a>
-  </div>
-  <div class="hero-trust">
-    <div class="trust-item">
-      <span class="trust-dot"></span>
-      <span class="trust-text"><strong>Vendor-informed</strong> but not vendor-driven recommendations</span>
-    </div>
-    <div class="trust-item">
-      <span class="trust-dot"></span>
-      <span class="trust-text"><strong>Documented roadmaps</strong> you can present to leadership</span>
-    </div>
-    <div class="trust-item">
-      <span class="trust-dot"></span>
-      <span class="trust-text"><strong>No obligation</strong> to proceed to implementation with Armely</span>
-    </div>
-    <div class="trust-item">
-      <span class="trust-dot"></span>
-      <span class="trust-text">Backed by <strong>real implementation experience</strong> across every recommendation</span>
+  <div class="hero-inner">
+    <div class="hero-copy">
+      <div class="hero-eyebrow"><span class="eyebrow-badge">AI and Data Strategy Advisory</span><span class="eyebrow-partner">Delivered by a certified Microsoft partner</span></div>
+      <h1>Not sure where to start<br>with AI or your data?<br>Start here.</h1>
+      <p class="hero-sub">Armely's advisory practice helps organizations cut through the noise, assess what they have, and build a clear roadmap before committing to any technology investment.</p>
+      <div class="hero-actions">
+        <a href="#contact" class="btn-primary">Book a Free Assessment</a>
+        <a href="#delivers" class="btn-outline">See What We Do</a>
+      </div><br><br>
     </div>
   </div>
 </section>
 
-<!-- SIGNS YOU NEED ADVISORY -->
-<section class="signs">
-  <div class="section-inner">
-    <div class="signs-grid">
-      <div>
-        <div class="section-eyebrow">Is This You?</div>
-        <h2 class="section-title">The conversations that lead organizations to Armely advisory.</h2>
-        <p class="section-body">Most organizations that engage Armely for advisory are not short of enthusiasm for AI or data. They are short of clarity on what to do first, what the realistic outcomes are, and how to make a defensible investment decision.</p>
-        <div class="sign-list">
-          <div class="sign-item active">
-            <span class="sign-icon">🤔</span>
-            <div class="sign-text"><strong>Everyone is talking about AI but no one agrees on where to start.</strong> Multiple departments have different AI requests, multiple vendors are pitching different platforms, and leadership wants a strategy before approving any spend.</div>
-          </div>
-          <div class="sign-item active">
-            <span class="sign-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg></span>
-            <div class="sign-text"><strong>Your data is everywhere and you know it is costing you.</strong> Decisions are made from spreadsheets, reports take days to produce, and no one is confident the numbers are right. You need a data foundation before any analytics or AI investment makes sense.</div>
-          </div>
-          <div class="sign-item active">
-            <span class="sign-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
-            <div class="sign-text"><strong>A previous technology investment did not deliver what was promised.</strong> You want an independent assessment before committing again, and you need someone who has actually implemented these platforms rather than just sold them.</div>
-          </div>
-          <div class="sign-item">
-            <span class="sign-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3V6Z"/><path d="M9 3v15"/><path d="M15 6v15"/></svg></span>
-            <div class="sign-text"><strong>You have a roadmap but no confidence it is the right one.</strong> A vendor or internal team has produced a plan. You want an experienced second opinion before the board approves the budget.</div>
-          </div>
-        </div>
-      </div>
-      <div>
-        <div class="advisory-visual">
-          <div class="adv-header">
-            <div class="adv-dots"><span></span><span></span><span></span></div>
-            <span class="adv-title">What an Advisory Engagement Produces</span>
-          </div>
-          <div class="adv-body">
-            <div class="adv-phase">
-              <div class="adv-phase-top">
-                <div class="adv-phase-title">Current State Assessment</div>
-                <span class="adv-phase-tag">Week 1</span>
-              </div>
-              <div class="adv-phase-desc">Structured review of your existing data sources, systems, AI tools, governance posture, and organizational readiness. Documented findings your leadership team can act on.</div>
-            </div>
-            <div class="adv-phase">
-              <div class="adv-phase-top">
-                <div class="adv-phase-title">Use Case Identification and Prioritization</div>
-                <span class="adv-phase-tag">Week 2</span>
-              </div>
-              <div class="adv-phase-desc">Workshops with key stakeholders to surface AI and data opportunities. Each use case evaluated against business value, data readiness, and implementation complexity. Output is a ranked list, not a generic catalog.</div>
-            </div>
-            <div class="adv-phase">
-              <div class="adv-phase-top">
-                <div class="adv-phase-title">Platform and Architecture Recommendation</div>
-                <span class="adv-phase-tag">Week 3</span>
-              </div>
-              <div class="adv-phase-desc">Technology selection guidance for your specific situation, including Microsoft Fabric, Snowflake, Azure AI Foundry, Copilot Studio, and where each fits or does not fit your requirements.</div>
-            </div>
-            <div class="adv-phase">
-              <div class="adv-phase-top">
-                <div class="adv-phase-title">Roadmap and Business Case</div>
-                <span class="adv-phase-tag">Week 4</span>
-              </div>
-              <div class="adv-phase-desc">A phased implementation roadmap with timeline, indicative cost ranges, resource requirements, and a business case structured for leadership review and board approval.</div>
-            </div>
-            <div class="adv-output">
-              <span style="font-size:1.2rem;"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 13h8"/><path d="M8 17h6"/></svg></span>
-              <div class="adv-output-text"><strong>Deliverable:</strong> A written strategy document and presentation deck you own and can use internally, regardless of whether Armely implements anything.</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- WHAT ARMELY DELIVERS -->
-<section class="delivers" id="what-we-deliver">
-  <div class="section-inner">
-    <div class="section-eyebrow">Advisory Services</div>
-    <h2 class="section-title">Six advisory engagements organizations engage Armely to lead.</h2>
-    <p class="section-body">Each engagement is scoped, time-bounded, and produces a written deliverable. We do not run open-ended advisory retainers that produce slide decks without outcomes.</p>
-    <div class="delivers-grid">
-      <div class="deliver-card">
-        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8V4H8"/><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M9 11v2"/><path d="M15 11v2"/></svg></div>
-        <div class="deliver-title">AI Readiness Assessment</div>
-        <div class="deliver-desc">A structured evaluation of your organization's readiness to adopt AI, covering data quality, governance posture, security controls, workforce capability, and existing Microsoft platform configuration. Delivered as a written report with a prioritized remediation list.</div>
-      </div>
-      <div class="deliver-card">
-        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/></svg></div>
-        <div class="deliver-title">Data Strategy and Architecture Review</div>
-        <div class="deliver-desc">An assessment of your current data landscape, including sources, quality, accessibility, and governance, with a recommended target architecture for analytics, reporting, and AI workloads. Platform recommendations are specific to your situation, not generic.</div>
-      </div>
-      <div class="deliver-card">
-        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3V6Z"/><path d="M9 3v15"/><path d="M15 6v15"/></svg></div>
-        <div class="deliver-title">Technology Roadmap Development</div>
-        <div class="deliver-desc">A phased, prioritized roadmap covering AI, data, and digital platform investments over a 12 to 36 month horizon, with indicative costs, resource requirements, and dependencies. Structured for presentation to leadership and boards.</div>
-      </div>
-      <div class="deliver-card">
-        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></div>
-        <div class="deliver-title">Platform Selection Advisory</div>
-        <div class="deliver-desc">Independent guidance on technology selection for a specific problem, such as choosing between Microsoft Fabric and Snowflake, or evaluating Copilot Studio against Azure AI Foundry. We present the honest trade-offs rather than defaulting to the platform that generates the largest implementation engagement.</div>
-      </div>
-      <div class="deliver-card">
-        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg></div>
-        <div class="deliver-title">AI Governance Framework Design</div>
-        <div class="deliver-desc">A governance framework for AI adoption covering acceptable use policies, data access controls, agent management standards, audit requirements, and escalation procedures. Designed to satisfy audit and compliance requirements before AI deployments scale.</div>
-      </div>
-      <div class="deliver-card">
-        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg></div>
-        <div class="deliver-title">Investment Validation Review</div>
-        <div class="deliver-desc">An independent review of a proposed or existing technology investment, assessing whether the platform, architecture, and implementation approach are appropriate for the stated business outcomes. Useful before committing a significant budget or after a delivery that has not met expectations.</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- JOURNEY -->
-<section class="journey" id="journey">
-  <div class="section-inner">
-    <div class="section-eyebrow">How an Advisory Engagement Works</div>
-    <h2 class="section-title">Structured, time-bounded, and documented. Not open-ended.</h2>
-    <p class="section-body">A typical Armely advisory engagement runs four to six weeks and produces a written deliverable your organization owns. We work with your internal stakeholders, not around them.</p>
-    <div class="steps-row">
-      <div class="step">
-        <div class="step-num">01</div>
-        <div class="step-title">Scoping Call</div>
-        <div class="step-desc">We understand your situation, agree on the specific advisory deliverable, identify the stakeholders we need to engage, and set a timeline. No charge for this conversation.</div>
-        <span class="step-tag">Free</span>
-      </div>
-      <div class="step">
-        <div class="step-num">02</div>
-        <div class="step-title">Discovery and Interviews</div>
-        <div class="step-desc">Structured interviews with leadership, IT, and operational stakeholders. Review of relevant documentation, existing systems, and any prior technology assessments or roadmaps.</div>
-        <span class="step-tag">Weeks 1-2</span>
-      </div>
-      <div class="step">
-        <div class="step-num">03</div>
-        <div class="step-title">Analysis and Drafting</div>
-        <div class="step-desc">We synthesize findings, develop recommendations, and draft the strategy document or roadmap. A working session with your team reviews the draft before finalization.</div>
-        <span class="step-tag">Weeks 3-4</span>
-      </div>
-      <div class="step">
-        <div class="step-num">04</div>
-        <div class="step-title">Presentation and Handover</div>
-        <div class="step-desc">Final document and presentation deck delivered. We present to your leadership team and answer questions. You own all deliverables outright.</div>
-        <span class="step-tag">Week 5-6</span>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- IMPLEMENTATION PATHWAYS -->
-<section class="pathways" id="pathways">
-  <div class="section-inner">
-    <div class="section-eyebrow">Where Advisory Leads</div>
-    <h2 class="section-title">The roadmap tells you what to build. Armely can build it.</h2>
-    <p class="section-body">Most Armely advisory engagements lead to implementation work, but that outcome is never assumed or pressured. If a roadmap points to a platform or capability Armely implements, we are well positioned to deliver it. If it points elsewhere, we will say so.</p>
-    <div class="pathway-grid">
-      <div class="pathway-card">
-        <span class="pathway-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/></svg></span>
-        <div class="pathway-title">Data Platform Implementation</div>
-        <div class="pathway-desc">Microsoft Fabric, Snowflake, or Azure Synapse implemented on the architecture designed during the advisory engagement, with pipelines, data models, and dashboards built by the same team that designed the strategy.</div>
-        <a href=\"//fabric\" class="pathway-link">Microsoft Fabric &#8594;</a>
-      </div>
-      <div class="pathway-card">
-        <span class="pathway-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8V4H8"/><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M9 11v2"/><path d="M15 11v2"/></svg></span>
-        <div class="pathway-title">AI Agent and Application Build</div>
-        <div class="pathway-desc">Generative AI and agentic solutions built on the Microsoft AI stack, governed by the framework developed in the advisory phase, implemented against the use cases prioritized in the roadmap.</div>
-        <a href=\"//genai\" class="pathway-link">Generative and Agentic AI &#8594;</a>
-      </div>
-      <div class="pathway-card">
-        <span class="pathway-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></span>
-        <div class="pathway-title">Platform Configuration and Integration</div>
-        <div class="pathway-desc">Dynamics 365, Power Platform, SharePoint, and Microsoft 365 implementations and integrations recommended in the roadmap delivered by certified Armely engineers on the Microsoft stack.</div>
-        <a href=\"//dynamics365\" class="pathway-link">Dynamics 365 &#8594;</a>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- TESTIMONIALS -->
+<section class="spectrum"><div class="section-inner"><div class="section-eyebrow">Is This You?</div><h2 class="section-title">The conversations that lead organizations to Armely advisory.</h2><p class="section-body">Most organizations that engage Armely for advisory are not short of enthusiasm for AI or data. They are short of clarity on what to do first, what the realistic outcomes are, and how to make a defensible investment decision.</p>
+<div class="spectrum-grid"><div><div class="spectrum-row">
+<div class="spectrum-level highlight"><span class="spectrum-num">AI</span><div><div class="spectrum-content-title">Everyone is talking about AI but no one agrees on where to start</div><div class="spectrum-content-desc">Multiple departments have different AI requests, multiple vendors are pitching different platforms, and leadership wants a strategy before approving any spend.</div></div></div>
+<div class="spectrum-level highlight"><span class="spectrum-num">Data</span><div><div class="spectrum-content-title">Your data is everywhere and you know it is costing you</div><div class="spectrum-content-desc">Decisions are made from spreadsheets, reports take days to produce, and no one is confident the numbers are right.</div></div></div>
+<div class="spectrum-level highlight"><span class="spectrum-num">Review</span><div><div class="spectrum-content-title">A previous technology investment did not deliver what was promised</div><div class="spectrum-content-desc">You want an independent assessment before committing again, and you need someone who has actually implemented these platforms rather than just sold them.</div></div></div>
+<div class="spectrum-level"><span class="spectrum-num">Roadmap</span><div><div class="spectrum-content-title">You have a roadmap but no confidence it is the right one</div><div class="spectrum-content-desc">A vendor or internal team has produced a plan. You want an experienced second opinion before the board approves the budget.</div></div></div>
+</div></div><div><div class="platform-card"><div class="platform-header"><div class="platform-dots"><span></span><span></span><span></span></div><span class="platform-header-title">What an Advisory Engagement Produces</span></div><div class="platform-body"><div class="plat-band band-tools"><div class="plat-band-label">Current State Assessment</div><div class="plat-chips"><span class="plat-chip">Data Source Inventory</span><span class="plat-chip">AI Readiness Score</span><span class="plat-chip">Governance Posture Review</span><span class="plat-chip">Security Controls Review</span><span class="plat-chip">Platform Audit</span></div></div><div class="band-arrow">&#8597;</div><div class="plat-band band-data"><div class="plat-band-label">Use Case Prioritization</div><div class="plat-chips"><span class="plat-chip">Business Value Scoring</span><span class="plat-chip">Data Readiness Assessment</span><span class="plat-chip">Complexity Ranking</span><span class="plat-chip">Ranked Roadmap</span><span class="plat-chip">Quick Win Identification</span></div></div><div class="band-arrow">&#8597;</div><div class="plat-band band-gov"><div class="plat-band-label">Deliverable</div><div class="plat-chips"><span class="plat-chip">Written Strategy Document</span><span class="plat-chip">Technology Recommendations</span><span class="plat-chip">Phased Roadmap</span><span class="plat-chip">Business Case for Leadership</span><span class="plat-chip">Presentation Deck</span></div></div></div></div></div></div></div></section>
+<section class="delivers" id="delivers"><div class="section-inner"><div class="section-eyebrow">Advisory Services</div><h2 class="section-title">Six advisory engagements Armely leads for organizations.</h2><p class="section-body">Each engagement is scoped, time-bounded, and produces a written deliverable. We do not run open-ended advisory retainers that produce slide decks without outcomes.</p>
+<div class="delivers-grid"><div class="deliver-card"><div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></div><div class="deliver-title">AI Readiness Assessment</div><div class="deliver-desc">A structured evaluation of your organization's readiness to adopt AI, covering data quality, governance posture, security controls, workforce capability, and existing Microsoft platform configuration.</div></div><div class="deliver-card"><div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/></svg></div><div class="deliver-title">Data Strategy and Architecture Review</div><div class="deliver-desc">An assessment of your current data landscape with a recommended target architecture for analytics, reporting, and AI workloads. Platform recommendations are specific to your situation.</div></div><div class="deliver-card"><div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3V6Z"/><path d="M9 3v15"/><path d="M15 6v15"/></svg></div><div class="deliver-title">Technology Roadmap Development</div><div class="deliver-desc">A phased, prioritized roadmap covering AI, data, and digital platform investments over a 12 to 36 month horizon, structured for presentation to leadership and boards.</div></div><div class="deliver-card"><div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></div><div class="deliver-title">Platform Selection Advisory</div><div class="deliver-desc">Independent guidance on technology selection for a specific problem. We present honest trade-offs rather than defaulting to the platform with the largest implementation engagement.</div></div><div class="deliver-card"><div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg></div><div class="deliver-title">AI Governance Framework Design</div><div class="deliver-desc">A governance framework for AI adoption covering acceptable use policies, data access controls, agent management standards, audit requirements, and escalation procedures.</div></div><div class="deliver-card"><div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="7" x2="17" y1="12" y2="12"/></svg></div><div class="deliver-title">Investment Validation Review</div><div class="deliver-desc">An independent review of a proposed or existing technology investment, assessing whether the platform, architecture, and implementation approach are appropriate for the stated business outcomes.</div></div></div></div></section>
+<section class="journey"><div class="section-inner"><div class="section-eyebrow">How an Advisory Engagement Works</div><h2 class="section-title">Structured, time-bounded, and documented. Not open-ended.</h2><p class="section-body">A typical Armely advisory engagement runs four to six weeks and produces a written deliverable your organization owns.</p>
+<div class="steps-row"><div class="step"><div class="step-num">01</div><div class="step-title">Scoping Call</div><div class="step-desc">We understand your situation, agree on the specific advisory deliverable, identify stakeholders, and set a timeline. No charge for this conversation.</div><span class="step-tag">Free</span></div><div class="step"><div class="step-num">02</div><div class="step-title">Discovery and Interviews</div><div class="step-desc">Structured interviews with leadership, IT, and operational stakeholders. Review of relevant documentation, existing systems, and any prior technology assessments.</div><span class="step-tag">Weeks 1-2</span></div><div class="step"><div class="step-num">03</div><div class="step-title">Analysis and Drafting</div><div class="step-desc">We synthesize findings, develop recommendations, and draft the strategy document. A working session reviews the draft before finalization.</div><span class="step-tag">Weeks 3-4</span></div><div class="step"><div class="step-num">04</div><div class="step-title">Presentation and Handover</div><div class="step-desc">Final document and presentation deck delivered. We present to your leadership team and answer questions. You own all deliverables outright.</div><span class="step-tag">Weeks 5-6</span></div><div class="step"><div class="step-num">05</div><div class="step-title">Implementation</div><div class="step-desc">Most advisory engagements lead to implementation. Armely can deliver on the roadmap recommendations across Fabric, Snowflake, Azure AI, and the Microsoft platform.</div><span class="step-tag">Ongoing</span></div></div></div></section>
+<section class="usecases"><div class="section-inner"><div class="section-eyebrow">Where Advisory Leads</div><h2 class="section-title">The roadmap tells you what to build. Armely can build it.</h2><p class="section-body">Most Armely advisory engagements lead to implementation work.</p>
+<div class="uc-grid"><div class="uc-card"><span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/></svg></span><div class="uc-title">Data Platform Implementation</div><div class="uc-desc">Microsoft Fabric, Snowflake, or Azure Synapse implemented on the architecture designed during the advisory engagement.</div></div><div class="uc-card"><span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 8V4H8"/><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M9 11v2"/><path d="M15 11v2"/></svg></span><div class="uc-title">AI Agent and Application Build</div><div class="uc-desc">Generative AI and agentic solutions built on the Microsoft AI stack, governed by the framework developed in the advisory phase.</div></div><div class="uc-card"><span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></span><div class="uc-title">Platform Configuration and Integration</div><div class="uc-desc">Dynamics 365, Power Platform, SharePoint, and Microsoft 365 implementations recommended in the roadmap delivered by certified Armely engineers.</div></div><div class="uc-card"><span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg></span><div class="uc-title">Governance Implementation</div><div class="uc-desc">The AI governance framework and data governance policies designed in the advisory engagement implemented technically across your Microsoft 365 tenant and Azure environment.</div></div><div class="uc-card"><span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg></span><div class="uc-title">Analytics and Reporting</div><div class="uc-desc">Power BI dashboards and reporting environments built against the data architecture recommended in the strategy document.</div></div><div class="uc-card"><span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg></span><div class="uc-title">Microsoft Licensing Optimization</div><div class="uc-desc">Licensing recommendations from the advisory engagement sourced at Microsoft partner pricing through Armely's authorized CSP partnership.</div></div></div></div></section>
 <section class="testimonials">
   <div class="section-inner">
     <div class="section-eyebrow">Client Results</div>
-    <h2 class="section-title">What our clients say about working with Armely on strategy.</h2>
-    <div class="testi-grid">
-      <div class="testi-card">
-        <span class="testi-quote">&ldquo;</span>
-        <p class="testi-body">We had three different vendors all telling us their platform was the right answer for our data needs. Armely came in, assessed our actual situation without a product to sell, and told us clearly which platform fit and which did not. The recommendation was not the most expensive option. That was the moment we knew we had the right advisor.</p>
-        <div class="testi-footer">
-          <div class="testi-avatar">CTO</div>
-          <div>
-            <div class="testi-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-            <div class="testi-name">Chief Technology Officer</div>
-            <div class="testi-role">Healthcare Organization, Midwest</div>
-          </div>
-        </div>
-      </div>
-      <div class="testi-card">
-        <span class="testi-quote">&ldquo;</span>
-        <p class="testi-body">Our board asked us to present an AI strategy before approving any investment. We did not have one. Armely ran a four-week advisory engagement with our leadership team, produced a written roadmap with a business case, and presented alongside us at the board meeting. The board approved the budget. Implementation started the following month.</p>
-        <div class="testi-footer">
-          <div class="testi-avatar">CEO</div>
-          <div>
-            <div class="testi-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-            <div class="testi-name">Chief Executive Officer</div>
-            <div class="testi-role">Professional Services Organization, Texas</div>
-          </div>
-        </div>
-      </div>
-      <div class="testi-card">
-        <span class="testi-quote">&ldquo;</span>
-        <p class="testi-body">We had invested in a data platform that was not delivering what we expected. Rather than defending the original decision, Armely conducted an honest review, identified where the implementation had gone wrong, and gave us a clear remediation path. Their independence was exactly what we needed after a difficult project.</p>
-        <div class="testi-footer">
-          <div class="testi-avatar">CFO</div>
-          <div>
-            <div class="testi-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-            <div class="testi-name">Chief Financial Officer</div>
-            <div class="testi-role">Education Institution, Nebraska</div>
-          </div>
-        </div>
-      </div>
+    <h2 class="section-title">Real outcomes for real organizations.</h2>
+    <p class="section-body">Armely has delivered Microsoft platform and AI solutions for healthcare providers, school districts, energy operators, professional services firms, government agencies, and non-profit organizations. See the full story on our Customer Stories page.</p>
+    <div class="cr-grid">
+      <div class="cr-card"><div class="cr-label"><span class="cr-check"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg></span><span class="cr-industry">Healthcare</span></div><p class="cr-desc">Swope Health Services and UNMC: data platform and clinical workflow modernization on Microsoft Azure.</p></div>
+      <div class="cr-card"><div class="cr-label"><span class="cr-check"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg></span><span class="cr-industry">Education</span></div><p class="cr-desc">Plano ISD: Microsoft 365 governance, SharePoint, and Power Platform implementations across district operations.</p></div>
+      <div class="cr-card"><div class="cr-label"><span class="cr-check"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg></span><span class="cr-industry">Energy</span></div><p class="cr-desc">Oil and gas operators: OpenInvoice visibility and AP workflow automation through Invoice Lens.</p></div>
+      <div class="cr-card"><div class="cr-label"><span class="cr-check"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg></span><span class="cr-industry">Professional Services</span></div><p class="cr-desc">Consulting and legal firms: Dynamics 365, Power Automate approval workflows, and AI knowledge agents.</p></div>
+      <div class="cr-card"><div class="cr-label"><span class="cr-check"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg></span><span class="cr-industry">Government</span></div><p class="cr-desc">State and local agencies: Microsoft 365 Government deployment and compliance configuration.</p></div>
+      <div class="cr-card"><div class="cr-label"><span class="cr-check"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg></span><span class="cr-industry">Non-Profit</span></div><p class="cr-desc">Social services organizations: Microsoft 365 optimization, Power BI grant reporting, and SharePoint governance.</p></div>
+    </div>
+    <div class="cr-cta">
+      <a href="https://armely.com/customer-stories" class="cr-btn"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Read Client Stories on armely.com</span><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>
     </div>
   </div>
 </section>
-
-<!-- WHY ARMELY -->
-<section class="why" id="why-armely">
-  <div class="section-inner">
-    <div class="why-two-col">
-      <div>
-        <div class="section-eyebrow">Why Armely for Advisory</div>
-        <h2 class="section-title">Strategy advice is only credible when it comes from people who implement.</h2>
-        <p class="section-body">The limitation of purely advisory firms is that they recommend platforms they have never had to deliver. Armely's advisory practice is credible because every recommendation is made by engineers and architects who have built on the platforms they are recommending.</p>
-        <ul class="why-list">
-          <li>
-            <div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 12-8.5 8.5c-.83.83-2.17.83-3 0 0 0 0 0 0 0a2.12 2.12 0 0 1 0-3L12 9"/><path d="M17.64 15 22 10.64"/><path d="m20.91 11.7-1.25-1.25c-.6-.6-.93-1.4-.93-2.25v-.86L16.01 4.6a5.56 5.56 0 0 0-3.94-1.64H9l.92.82A6.18 6.18 0 0 1 12 8.4v1.56l2 2h2.47l2.26 1.91"/></svg></div>
-            <div>
-              <div class="why-item-title">Advisors Who Also Implement</div>
-              <div class="why-item-desc">Every Armely advisory engagement is led by engineers and architects with hands-on delivery experience across Microsoft Fabric, Snowflake, Azure AI Foundry, Dynamics 365, and the broader Microsoft platform. We know what the platforms can and cannot do in practice, not just in vendor documentation.</div>
-            </div>
-          </li>
-          <li>
-            <div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg></div>
-            <div>
-              <div class="why-item-title">No Predetermined Outcome</div>
-              <div class="why-item-desc">We are not paid by platform vendors to recommend their products. Our revenue comes from implementation and managed services work, which means our advisory is only commercially valuable to us if it leads to the right implementation, not just any implementation.</div>
-            </div>
-          </li>
-          <li>
-            <div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 13h8"/><path d="M8 17h6"/></svg></div>
-            <div>
-              <div class="why-item-title">Written Deliverables You Own</div>
-              <div class="why-item-desc">Every advisory engagement produces a written document your organization owns outright. Strategy documents, assessment reports, and roadmaps that you can present internally, share with your board, or take to any other vendor without restriction.</div>
-            </div>
-          </li>
-          <li>
-            <div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
-            <div>
-              <div class="why-item-title">Experience in Regulated Environments</div>
-              <div class="why-item-desc">Our advisory work in healthcare, education, and professional services means we understand the compliance, governance, and risk management constraints that shape technology decisions in regulated industries, not just the technology itself.</div>
-            </div>
-          </li>
-        </ul>
-      </div>
-      <div>
-        <div class="partner-block">
-          <div class="partner-block-top">
-            <div class="partner-label">Microsoft Authorized Partner</div>
-            <p class="partner-text">Armely's Microsoft partnership gives our advisory practice access to Microsoft technical briefings, early product roadmap information, and architectural guidance resources that help us give clients accurate, current guidance on the Microsoft platform rather than advice based on documentation that may be months behind the current product state.</p>
-          </div>
-          <div class="partner-stats">
-            <div class="p-stat">
-              <div class="p-stat-num">4-6</div>
-              <div class="p-stat-label">weeks for a complete AI and data strategy advisory engagement</div>
-            </div>
-            <div class="p-stat">
-              <div class="p-stat-num">100<span>%</span></div>
-              <div class="p-stat-label">of advisory deliverables owned outright by the client</div>
-            </div>
-            <div class="p-stat">
-              <div class="p-stat-num">0</div>
-              <div class="p-stat-label">platform vendor referral fees received by Armely for any recommendation</div>
-            </div>
-            <div class="p-stat">
-              <div class="p-stat-num">3</div>
-              <div class="p-stat-label">industries with deep advisory experience: healthcare, education, and professional services</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- CTA -->
-<section class="cta-section" id="contact">
-  <div class="cta-inner">
-    <div>
-      <div class="section-eyebrow">Get Started</div>
-      <h2 class="section-title">Tell us where you are. We will help you figure out where to go.</h2>
-      <p class="section-body">Book a free 30-minute strategy call. We will listen to your current situation, ask the right questions, and tell you honestly whether an advisory engagement is the right next step or whether you are ready to move directly to implementation.</p>
-      <div style="margin-top: 28px; display: flex; flex-direction: column; gap: 12px;">
-        <div class="trust-item">
-          <span class="trust-dot" style="background: var(--blue);"></span>
-          <span class="trust-text" style="color: var(--text-body);">Free strategy call, no commitment required</span>
-        </div>
-        <div class="trust-item">
-          <span class="trust-dot" style="background: var(--blue);"></span>
-          <span class="trust-text" style="color: var(--text-body);">Honest assessment of whether advisory or implementation is the right first step</span>
-        </div>
-        <div class="trust-item">
-          <span class="trust-dot" style="background: var(--blue);"></span>
-          <span class="trust-text" style="color: var(--text-body);">Response within one business day</span>
-        </div>
-      </div>
-    </div>
-    <div class="cta-form">
-      <div class="form-title">Book Your Free Strategy Call</div>
-      <div class="form-sub">Tell us where you are in your AI and data journey.</div>
-      <div class="form-row">
-        <label>Full Name</label>
-        <input type="text" placeholder="Jane Smith">
-      </div>
-      <div class="form-row">
-        <label>Business Email</label>
-        <input type="email" placeholder="jane@yourcompany.com">
-      </div>
-      <div class="form-row">
-        <label>Company Name</label>
-        <input type="text" placeholder="Acme Corp">
-      </div>
-      <div class="form-row">
-        <label>What Best Describes Your Situation?</label>
-        <select>
-          <option value="">Select...</option>
-          <option>We need an AI strategy before committing budget</option>
-          <option>We need a data strategy before any analytics investment</option>
-          <option>We need help choosing between platforms or vendors</option>
-          <option>A previous investment did not deliver and we need a review</option>
-          <option>We have a roadmap and want an independent review</option>
-          <option>We need an AI governance framework</option>
-          <option>Not sure yet, need a conversation first</option>
-        </select>
-      </div>
-      <button class="form-submit">Request Free Strategy Call</button>
-      <div class="form-note">No spam. No sales pressure. Just a useful conversation.</div>
-    </div>
-  </div>
-</section>
-
-<footer>
-  <div class="footer-logo-row">
-    <div class="footer-lm">A</div>
-    <span class="footer-lt">armely</span>
-  </div>
-  <div class="footer-note">&#169; 2026 Armely &middot; www.armely.com &middot; Your Trusted Source for Digital Excellence</div>
-  <div class="footer-badges">
-    <span class="badge-chip">Microsoft CSP Partner</span>
-    <span class="badge-chip">Azure Certified</span>
-    <span class="badge-chip">Microsoft Authorized Reseller</span>
-  </div>
-</footer>
-
+<section class="why"><div class="section-inner"><div class="section-eyebrow">Why Armely for Advisory</div><h2 class="section-title">Strategy advice is only credible when it comes from people who implement.</h2><p class="section-body">The limitation of purely advisory firms is that they recommend platforms they have never delivered. Armely's advisory is credible because every recommendation is made by engineers and architects who have built on the platforms they are recommending.</p>
+<div class="why-two-col"><div><ul class="why-list"><li><div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></div><div><div class="why-item-title">Advisors Who Also Implement</div><div class="why-item-desc">Every Armely advisory engagement is led by engineers and architects with hands-on delivery experience across Microsoft Fabric, Snowflake, Azure AI Foundry, and Dynamics 365.</div></div></li><li><div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg></div><div><div class="why-item-title">No Predetermined Outcome</div><div class="why-item-desc">We are not paid by platform vendors to recommend their products. Our advisory is only commercially valuable to us if it leads to the right implementation.</div></div></li><li><div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 13h8"/><path d="M8 17h6"/></svg></div><div><div class="why-item-title">Written Deliverables You Own</div><div class="why-item-desc">Every advisory engagement produces a written document your organization owns outright. Strategy documents, assessment reports, and roadmaps that you can present internally or share with your board without restriction.</div></div></li><li><div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg></div><div><div class="why-item-title">Regulated Industry Experience</div><div class="why-item-desc">Our advisory work in healthcare, education, and professional services means we understand the compliance and governance constraints that shape technology decisions in regulated industries.</div></div></li></ul></div>
+<div><div class="partner-block"><div class="partner-block-top"><div class="partner-label">Microsoft Authorized Partner</div><p class="partner-text">Armely's Microsoft partnership gives our advisory practice access to Microsoft technical briefings, early product roadmap information, and architectural guidance that helps us give clients accurate, current guidance on the Microsoft platform.</p></div><div class="partner-stats"><div class="p-stat"><div class="p-stat-num">4-6<span>wks</span></div><div class="p-stat-label">for a complete AI and data strategy advisory engagement</div></div><div class="p-stat"><div class="p-stat-num">100<span>%</span></div><div class="p-stat-label">of advisory deliverables owned outright by the client</div></div><div class="p-stat"><div class="p-stat-num">0<span></span></div><div class="p-stat-label">platform vendor referral fees received by Armely for any recommendation</div></div><div class="p-stat"><div class="p-stat-num">3<span></span></div><div class="p-stat-label">industries with deep advisory experience: healthcare, education, and professional services</div></div></div></div></div></div></div></section>
+<section class="cta-section" id="contact"><div class="cta-inner"><div><div class="section-eyebrow">Get Started</div><h2 class="section-title">Tell us where you are. We will help you figure out where to go.</h2><p class="section-body">Book a free 30-minute strategy call. We will listen to your situation and tell you honestly whether advisory or implementation is the right first step.</p><div style="margin-top:20px;display:flex;flex-direction:column;gap:9px;"><div class="trust-item"><span class="trust-dot"></span><span class="trust-text">Free assessment, no commitment required</span></div><div class="trust-item"><span class="trust-dot"></span><span class="trust-text">Recommendation and partner pricing included</span></div><div class="trust-item"><span class="trust-dot"></span><span class="trust-text">Response within one business day</span></div></div></div><div class="cta-form"><div class="form-title">Book Your Free Assessment</div><div class="form-sub">Tell us about your situation.</div><div class="form-row"><label>Full Name</label><input type="text" placeholder="Jane Smith"></div><div class="form-row"><label>Business Email</label><input type="email" placeholder="jane@yourcompany.com"></div><div class="form-row"><label>Company Name</label><input type="text" placeholder="Acme Corp"></div><div class="form-row"><label>Primary Need</label><select><option value="">Select...</option><option>We need an AI strategy before committing budget</option><option>We need a data strategy before any analytics investment</option><option>We need help choosing between platforms or vendors</option><option>A previous investment did not deliver and we need a review</option><option>We need an AI governance framework</option><option>Not sure yet, need a conversation first</option></select></div><button class="form-submit">Request Free Strategy Call</button><div class="form-note">No spam. No sales pressure. Just a useful conversation.</div></div></div></section>
 </div>
