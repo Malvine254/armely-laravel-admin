@@ -347,10 +347,11 @@
 	padding: 18px;
 }
 .card-title {
-	font-size: 1.08rem;
-	line-height: 1.35;
-	min-height: 3.2em;
-	margin-bottom: 8px;
+	font-size: 0.98rem;
+	line-height: 1.42;
+	font-weight: 800;
+	margin-bottom: 10px;
+	overflow-wrap: anywhere;
 }
 .card-description {
 	color: #4f6181;
@@ -617,8 +618,6 @@
 			@php($caseStudyTitle = trim((string) ($caseStudy->title ?? '')))
 			@php($caseStudyDisplayTitle = $caseStudyTitle !== '' ? $caseStudyTitle : (string) ($caseStudy->category ?? 'Case Study'))
 			@php($caseStudyFullTitle = trim($caseStudyDisplayTitle . ' Solution'))
-			@php($caseStudyPlainPreview = trim(preg_replace('/\s+/', ' ', strip_tags((string) ($caseStudy->preview ?? '')))))
-			@php($caseStudyFullDetails = trim($caseStudyFullTitle . "\n" . ($caseStudyPlainPreview !== '' ? $caseStudyPlainPreview : 'No summary available.')))
 			<div class="col-12 col-md-6 col-lg-4 mb-4 js-case-card" data-industry="{{ $caseStudy->industry_filter ?? '' }}" data-topics="{{ implode(',', $caseStudy->technology_filters ?? []) }}">
 				<div class="case-study-card">
 					<div class="card-image-wrapper">
@@ -632,9 +631,9 @@
 						<div class="card-overlay"></div>
 						<div class="card-badge">{{ $caseStudy->category }}</div>
 					</div>
-					<div class="card-content" data-full-details="{{ $caseStudyFullDetails }}">
+					<div class="card-content">
 						<h5 class="card-title" title="{{ $caseStudyFullTitle }}">{{ $caseStudyFullTitle }}</h5>
-						<p class="card-description" title="{{ $caseStudyPlainPreview }}">{{ $caseStudy->preview ?? '' }}</p>
+						<p class="card-description">{{ $caseStudy->preview ?? '' }}</p>
 						<div class="card-footer">
 							<a class="read-more-btn text-light"
 							   href="{{ route('case-studies.show', $caseStudy->slug) }}"
@@ -817,7 +816,6 @@
 			@forelse($whitePapers as $paper)
 				@php($whitePaperFullTitle = trim((string) ($paper->title ?? 'White Paper')))
 				@php($whitePaperPlainPreview = trim(preg_replace('/\s+/', ' ', strip_tags((string) ($paper->preview ?? '')))))
-				@php($whitePaperFullDetails = trim($whitePaperFullTitle . "\n" . ($whitePaperPlainPreview !== '' ? $whitePaperPlainPreview : 'No summary available.')))
 				@php($whitePaperFilterText = strtolower(trim($whitePaperFullTitle . ' ' . $whitePaperPlainPreview)))
 				<div class="col-12 col-md-6 col-lg-4 mb-4 js-white-paper-card" data-filter-text="{{ $whitePaperFilterText }}">
 					<div class="white-paper-card">
@@ -834,9 +832,9 @@
 								<i class="icofont-document"></i> Resource
 							</div>
 						</div>
-						<div class="card-content" data-full-details="{{ $whitePaperFullDetails }}">
+						<div class="card-content">
 							<h5 class="card-title" title="{{ $whitePaperFullTitle }}">{{ $whitePaperFullTitle }}</h5>
-							<p class="card-description" title="{{ $whitePaperPlainPreview }}">{{ $paper->preview ?? '' }}</p>
+							<p class="card-description">{{ $paper->preview ?? '' }}</p>
 							<div class="card-footer">
 								<a class="read-more-btn text-light"
 								   href="{{ route('resources.show', $paper->slug) }}"

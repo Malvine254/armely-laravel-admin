@@ -446,14 +446,30 @@
     min-height: 64px;
     padding: 0 10px !important;
     position: relative;
+    outline: none;
+    box-shadow: none;
 }
 
-.header .mega-trigger:hover,
-.header .mega-nav-item:hover > .mega-trigger,
+.header .mega-trigger:hover {
+    background: #f3f6fc;
+    color: #2f5597 !important;
+}
+
 .header .mega-nav-item.mega-open > .mega-trigger,
 .header .mega-nav-item.active > .mega-trigger  {
     background: #f3f6fc;
     color: #2f5597 !important;
+}
+
+.header .mega-trigger:focus,
+.header .mega-trigger:active {
+    outline: none;
+    box-shadow: none;
+}
+
+.header .mega-trigger:focus-visible {
+    box-shadow: 0 0 0 3px rgba(47, 85, 151, 0.14);
+    border-radius: 6px;
 }
 
 .header .mega-trigger::before {
@@ -464,11 +480,11 @@
     content: "";
     position: absolute;
     left: 50%;
-    bottom: 0;
-    width: 38px;
-    height: 3px;
-    background: #2f5597;
-    border-radius: 4px 4px 0 0;
+    bottom: 12px;
+    width: 22px;
+    height: 2px;
+    background: linear-gradient(90deg, #2f5597 0%, #6f8fca 100%);
+    border-radius: 999px;
     transform: translateX(-50%);
     opacity: 0;
     transition: opacity .2s ease;
@@ -492,7 +508,6 @@
     transform: translateX(-50%);
 }
 
-.header .mega-nav-item:hover > .mega-trigger::after,
 .header .mega-nav-item.mega-open > .mega-trigger::after,
 .header .mega-nav-item.active > .mega-trigger::after {
     opacity: 1;
@@ -502,12 +517,10 @@
     display: none;
 }
 
-.header .mega-nav-item:hover .mega-icon-closed,
 .header .mega-nav-item.mega-open .mega-icon-closed {
     display: none;
 }
 
-.header .mega-nav-item:hover .mega-icon-open,
 .header .mega-nav-item.mega-open .mega-icon-open {
     display: inline-block;
 }
@@ -533,16 +546,13 @@
     transition: opacity 0.18s ease, visibility 0.18s ease;
 }
 
-.header .mega-nav-item:hover > .mega-panel,
-.header .mega-nav-item.mega-open > .mega-panel,
-.header .mega-panel:hover {
+.header .mega-nav-item.mega-open > .mega-panel {
     opacity: 1;
     visibility: visible;
     pointer-events: auto;
 }
 
 @media (max-width: 1300px) {
-    .header .mega-nav-item:hover > .mega-panel,
     .header .mega-nav-item.mega-open > .mega-panel,
     .header .mega-panel,
     .header .mega-panel:hover {
@@ -1552,7 +1562,7 @@ main .service-card {
     if (!nav || !headerInner) return;
 
     var items = nav.querySelectorAll('.mega-nav-item');
-    var closeTimer = null;
+    var megaCloseTimer = null;
 
     function positionMegaPanel(panel) {
         var rect = headerInner.getBoundingClientRect();
@@ -1560,10 +1570,15 @@ main .service-card {
     }
 
     function clearMegaCloseTimer() {
-        if (closeTimer) {
-            window.clearTimeout(closeTimer);
-            closeTimer = null;
+        if (megaCloseTimer) {
+            window.clearTimeout(megaCloseTimer);
+            megaCloseTimer = null;
         }
+    }
+
+    function scheduleMegaClose() {
+        clearMegaCloseTimer();
+        megaCloseTimer = window.setTimeout(closeMegaMenus, 140);
     }
 
     function closeMegaMenus() {
@@ -1599,37 +1614,16 @@ main .service-card {
         if (trigger) trigger.setAttribute('aria-expanded', 'true');
     }
 
-    function scheduleMegaClose() {
-        clearMegaCloseTimer();
-        closeTimer = window.setTimeout(closeMegaMenus, 120);
-    }
-
     for (var i = 0; i < items.length; i++) {
         var item = items[i];
         var trigger = item.querySelector('.mega-trigger');
-        var panel = item.querySelector('.mega-panel');
-
-        if (!trigger || !panel) continue;
-
-        item.addEventListener('mouseenter', function() {
-            openMegaMenu(this);
-        });
-
-        item.addEventListener('mouseleave', scheduleMegaClose);
-
-        panel.addEventListener('mouseenter', function() {
-            var currentItem = this.closest('.mega-nav-item');
-            if (currentItem) openMegaMenu(currentItem);
-        });
-
-        panel.addEventListener('mouseleave', scheduleMegaClose);
+        if (!trigger) continue;
 
         trigger.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
 
             var currentItem = this.closest('.mega-nav-item');
-            var currentPanel = currentItem.querySelector('.mega-panel');
             var wasOpen = currentItem.classList.contains('mega-open');
 
             closeMegaMenus();
@@ -1664,7 +1658,17 @@ main .service-card {
     });
 
     document.addEventListener('mousemove', function(e) {
-        if (nav.contains(e.target)) clearMegaCloseTimer();
+        if (window.innerWidth <= 1300) return;
+
+        var openItem = e.target.closest ? e.target.closest('.mega-nav-item.mega-open') : null;
+        if (openItem) {
+            clearMegaCloseTimer();
+            return;
+        }
+
+        if (document.querySelector('.mega-nav-item.mega-open')) {
+            scheduleMegaClose();
+        }
     });
 })();
 </script>
