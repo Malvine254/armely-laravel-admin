@@ -557,23 +557,37 @@ class CaseStudiesController extends Controller
     private function caseStudyHeroCopy(object $caseStudy): string
     {
         $title = $this->caseStudyDisplayTitle($caseStudy);
-        $technologyLabel = $this->topicFilters()[$this->inferTechnologyFilters($caseStudy)[0] ?? ''] ?? 'Microsoft Platform';
-        $outcome = $this->caseStudyResults($caseStudy)[0] ?? 'measurable business outcomes';
-        $summary = $this->makePreviewText((string) ($caseStudy->body ?? ''), 130);
+        $summary = $this->caseStudyLeadParagraph($caseStudy);
 
         if ($summary !== '') {
-            return Str::limit(
-                $title . ' preview: ' . $summary . ' Armely used ' . $technologyLabel . ' to deliver ' . Str::lower($outcome) . '.',
-                170,
-                ''
-            );
+            return $title . ' preview: ' . $summary;
         }
 
-        return Str::limit(
-            'Preview how ' . $title . ' uses ' . $technologyLabel . ' to deliver ' . Str::lower($outcome) . ' before requesting the full PDF.',
-            170,
-            ''
-        );
+        return 'Preview how ' . $title . ' addresses the challenge, solution approach, and measurable results before requesting the full PDF.';
+    }
+
+    private function caseStudyLeadParagraph(object $caseStudy): string
+    {
+        $body = html_entity_decode((string) ($caseStudy->body ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+        $paragraph = '';
+
+        if (preg_match('/<p\b[^>]*>(.*?)<\/p>/is', $body, $matches)) {
+            $paragraph = (string) ($matches[1] ?? '');
+        } elseif (preg_match('/(?:\r?\n){2,}/', $body)) {
+            $chunks = preg_split('/(?:\r?\n){2,}/', $body);
+            $paragraph = (string) ($chunks[0] ?? '');
+        } else {
+            $paragraph = $body;
+        }
+
+        $cleaned = Str::of(strip_tags($paragraph))
+            ->replace(["\u{2010}", "\u{2011}", "\u{2012}", "\u{2013}", "\u{2014}", "\u{2015}", "\u{00AD}", "\u{FFFD}", 'Ã¢â‚¬â€˜', 'Ã¢â‚¬â€œ', 'Ã¢â‚¬â€'], '-')
+            ->replace("\u{00A0}", ' ')
+            ->replaceMatches('/\s+/u', ' ')
+            ->trim();
+
+        return (string) $cleaned;
     }
 
     private function whitePaperMetaDescription(object $paper): string
