@@ -354,8 +354,8 @@
 	line-height: 1.38;
 	font-weight: 800;
 	margin: 0 0 10px;
+	white-space: normal;
 	overflow-wrap: anywhere;
-	min-height: 4.15rem;
 }
 .card-description {
 	color: #4f6181;
@@ -911,6 +911,115 @@
 
 <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 <script>
+(function () {
+	function groupCardsByRow(cards) {
+		var rows = [];
+
+		cards.forEach(function (card) {
+			if (!card || card.offsetParent === null) {
+				return;
+			}
+
+			var top = Math.round(card.getBoundingClientRect().top + window.scrollY);
+			var row = null;
+
+			for (var i = 0; i < rows.length; i++) {
+				if (Math.abs(rows[i].top - top) <= 8) {
+					row = rows[i];
+					break;
+				}
+			}
+
+			if (!row) {
+				row = { top: top, cards: [] };
+				rows.push(row);
+			}
+
+			row.cards.push(card);
+		});
+
+		return rows;
+	}
+
+	function equalizeCardRows(selector) {
+		var cards = Array.prototype.slice.call(document.querySelectorAll(selector));
+		if (!cards.length) {
+			return;
+		}
+
+		cards.forEach(function (card) {
+			card.style.height = '';
+
+			var title = card.querySelector('.card-title');
+			if (title) {
+				title.style.minHeight = '';
+			}
+		});
+
+		var rows = groupCardsByRow(cards);
+
+		rows.forEach(function (row) {
+			var maxCardHeight = 0;
+			var maxTitleHeight = 0;
+
+			row.cards.forEach(function (card) {
+				var title = card.querySelector('.card-title');
+				var cardHeight = card.getBoundingClientRect().height;
+				if (cardHeight > maxCardHeight) {
+					maxCardHeight = cardHeight;
+				}
+
+				if (title) {
+					var titleHeight = title.getBoundingClientRect().height;
+					if (titleHeight > maxTitleHeight) {
+						maxTitleHeight = titleHeight;
+					}
+				}
+			});
+
+			row.cards.forEach(function (card) {
+				card.style.height = maxCardHeight + 'px';
+
+				var title = card.querySelector('.card-title');
+				if (title) {
+					title.style.minHeight = maxTitleHeight + 'px';
+				}
+			});
+		});
+	}
+
+	function refreshCardHeights() {
+		equalizeCardRows('.case-studies-section .case-study-card');
+		equalizeCardRows('.white-papers-section .white-paper-card');
+	}
+
+	var refreshTimer = null;
+	function scheduleRefreshCardHeights() {
+		if (refreshTimer) {
+			window.clearTimeout(refreshTimer);
+		}
+
+		refreshTimer = window.setTimeout(function () {
+			window.requestAnimationFrame(function () {
+				window.requestAnimationFrame(refreshCardHeights);
+			});
+		}, 80);
+	}
+
+	if (document.readyState === 'loading') {
+		document.addEventListener('DOMContentLoaded', scheduleRefreshCardHeights);
+	} else {
+		scheduleRefreshCardHeights();
+	}
+
+	window.addEventListener('load', scheduleRefreshCardHeights);
+	window.addEventListener('resize', scheduleRefreshCardHeights);
+
+	if (document.fonts && document.fonts.ready) {
+		document.fonts.ready.then(scheduleRefreshCardHeights).catch(function () {});
+	}
+})();
+
 (function () {
 	var modal = document.getElementById('caseStudyLeadModal');
 	if (!modal) {

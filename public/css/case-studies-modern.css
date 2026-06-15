@@ -788,7 +788,6 @@
     text-overflow: clip;
     white-space: normal;
     overflow-wrap: anywhere;
-    min-height: 4.2rem;
 }
 
 .card-description {
@@ -876,7 +875,6 @@ body .white-papers-section .card-title {
     overflow: visible !important;
     text-overflow: clip !important;
     white-space: normal !important;
-    min-height: 4.2rem;
     margin-bottom: 0.75rem !important;
     font-size: 0.96rem !important;
     line-height: 1.4 !important;
@@ -911,6 +909,5 @@ body .white-papers-section .card-content {
     body .case-studies-section .card-title,
     body .white-papers-section .card-title {
         font-size: 0.95rem !important;
-        min-height: 3.6rem;
     }
 }
