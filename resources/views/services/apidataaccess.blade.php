@@ -1,6 +1,5 @@
 <style>
 
-
 .armely-api-development-page *, .armely-api-development-page *::before, .armely-api-development-page *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 .armely-api-development-page {
@@ -808,458 +807,69 @@
 }
 
 
+.armely-api-development-page .cr-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-top:28px; margin-bottom:28px; }
+.armely-api-development-page .cr-card { background:#fff; border:1px solid var(--border); border-radius:12px; padding:20px 22px; box-shadow:0 2px 10px rgba(18,47,82,0.04); }
+.armely-api-development-page .cr-label { display:flex; align-items:center; gap:9px; margin-bottom:10px; }
+.armely-api-development-page .cr-check { width:20px; height:20px; display:flex; align-items:center; justify-content:center; background:var(--blue-dim); border:1px solid var(--blue-dim2); border-radius:50%; flex-shrink:0; color:var(--blue); }
+.armely-api-development-page .cr-check .icon-svg { width:11px; height:11px; stroke-width:3; }
+.armely-api-development-page .cr-industry { font-size:0.875rem; font-weight:700; color:#1A2540; }
+.armely-api-development-page .cr-desc { font-size:0.82rem; color:var(--text-muted); line-height:1.65; margin:0; }
+.armely-api-development-page .cr-cta { text-align:center; }
+.armely-api-development-page .cr-btn { display:inline-flex; align-items:center; gap:10px; background:#1a2e52; color:#fff; border-radius:8px; padding:12px 28px; text-decoration:none; font-size:0.875rem; font-weight:600; }
+.armely-api-development-page .cr-btn:hover { background:var(--blue); }
+.armely-api-development-page .cr-btn .icon-svg { width:18px; height:18px; }
+@media (max-width:900px) { .armely-api-development-page .cr-grid { grid-template-columns:1fr 1fr; } }
+@media (max-width:600px) { .armely-api-development-page .cr-grid { grid-template-columns:1fr; } }
 </style>
 <div class="armely-api-development-page">
-
-<!-- NAV -->
-<nav>
-  <div class="logo">
-    <div class="logo-mark">A</div>
-    <span class="logo-text">armely</span>
-  </div>
-  <ul class="nav-links">
-    <li><a href="#what-we-deliver">Services</a></li>
-    <li><a href="#journey">Our Process</a></li>
-    <li><a href="#why-armely">Why Armely</a></li>
-    <li><a href="#contact" class="nav-cta">Get Started</a></li>
-  </ul>
-</nav>
-
-<!-- HERO -->
 <section class="hero">
   <div class="hero-bg-glow"></div>
-  <div class="hero-eyebrow">
-    <span class="eyebrow-badge">API Development and Integration</span>
-    <span class="eyebrow-partner">Certified Microsoft and Azure partner</span>
-  </div>
-  <h1>Connect your systems.<br>Expose your data.<br><span class="hl">Stop rebuilding the same thing twice.</span></h1>
-  <p class="hero-sub">Armely designs, builds, and manages APIs that connect your business systems, expose your data to internal and external consumers, and form the integration layer your AI and automation investments depend on.</p>
-  <div class="hero-actions">
-    <a href="#contact" class="btn-primary">Book a Free Discovery Call</a>
-    <a href="#what-we-deliver" class="btn-outline">See What We Build</a>
-  </div>
-  <div class="hero-trust">
-    <div class="trust-item">
-      <span class="trust-dot"></span>
-      <span class="trust-text"><strong>REST, GraphQL, gRPC, and SOAP</strong> across all environments</span>
-    </div>
-    <div class="trust-item">
-      <span class="trust-dot"></span>
-      <span class="trust-text"><strong>OpenAPI-first</strong> design on every engagement</span>
-    </div>
-    <div class="trust-item">
-      <span class="trust-dot"></span>
-      <span class="trust-text">Managed through <strong>Azure API Management</strong></span>
-    </div>
-    <div class="trust-item">
-      <span class="trust-dot"></span>
-      <span class="trust-text">AI-ready with <strong>MCP and agent-to-agent</strong> support</span>
-    </div>
-  </div>
-</section>
-
-<!-- WHAT WE BUILD -->
-<section class="intro">
-  <div class="section-inner">
-    <div class="intro-grid">
-      <div>
-        <div class="section-eyebrow">What We Build</div>
-        <h2 class="section-title">The right API design for the right job. No defaults, no overengineering.</h2>
-        <p class="section-body">REST remains the standard for 89% of enterprise APIs and is Armely's default for most business integration work. We use GraphQL where data flexibility requirements justify it, gRPC for high-performance internal service communication, and SOAP where legacy systems or regulated industry requirements demand it. Every engagement starts with understanding the consumer before choosing the architecture.</p>
-        <div class="api-types">
-          <div class="api-type primary">
-            <span class="api-type-badge">Default</span>
-            <div>
-              <div class="api-type-title">REST APIs</div>
-              <div class="api-type-desc">The standard for business integration. Stateless, cacheable, and supported by every platform and toolchain. We deliver OpenAPI specifications alongside working code so every consumer has a contract they can build against.</div>
-            </div>
-          </div>
-          <div class="api-type">
-            <span class="api-type-badge">Flexible data</span>
-            <div>
-              <div class="api-type-title">GraphQL APIs</div>
-              <div class="api-type-desc">When clients need to query complex, related data without multiple round trips. Appropriate for applications consuming data from several sources simultaneously, where over-fetching from fixed REST endpoints creates performance or bandwidth problems.</div>
-            </div>
-          </div>
-          <div class="api-type">
-            <span class="api-type-badge">Internal services</span>
-            <div>
-              <div class="api-type-title">gRPC and Microservices</div>
-              <div class="api-type-desc">For high-throughput internal service communication where latency and payload size matter. Used in microservice architectures where services need to communicate at scale without the overhead of REST.</div>
-            </div>
-          </div>
-          <div class="api-type">
-            <span class="api-type-badge">Legacy and regulated</span>
-            <div>
-              <div class="api-type-title">SOAP and Enterprise Integration</div>
-              <div class="api-type-desc">Where existing enterprise systems, financial platforms, or regulated industry requirements specify SOAP. We also build wrapper APIs that expose legacy SOAP services as modern REST endpoints for consuming applications.</div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div>
-        <div class="lifecycle-card">
-          <div class="lifecycle-header">
-            <div class="lifecycle-dots"><span></span><span></span><span></span></div>
-            <span class="lifecycle-title">API Delivery Lifecycle</span>
-          </div>
-          <div class="lifecycle-body">
-            <div class="lifecycle-step">
-              <div class="lifecycle-step-num">1</div>
-              <div>
-                <div class="lifecycle-step-title">Design and Specification</div>
-                <div class="lifecycle-step-desc">OpenAPI specification written before code. Consumer teams receive a contract and mock server to build against while the API is in development.</div>
-              </div>
-            </div>
-            <div class="lifecycle-step">
-              <div class="lifecycle-step-num">2</div>
-              <div>
-                <div class="lifecycle-step-title">Security by Default</div>
-                <div class="lifecycle-step-desc">OAuth 2.0 or API key authentication, input validation, rate limiting, and least-privilege access controls applied at the design stage, not retrofitted after launch.</div>
-              </div>
-            </div>
-            <div class="lifecycle-step">
-              <div class="lifecycle-step-num">3</div>
-              <div>
-                <div class="lifecycle-step-title">Build and Test</div>
-                <div class="lifecycle-step-desc">Implementation with automated test suites generated from the OpenAPI specification. Contract tests confirm the API behaves as documented before any consumer integrates.</div>
-              </div>
-            </div>
-            <div class="lifecycle-step">
-              <div class="lifecycle-step-num">4</div>
-              <div>
-                <div class="lifecycle-step-title">Gateway and Versioning</div>
-                <div class="lifecycle-step-desc">Deployed behind Azure API Management with rate limiting, analytics, developer portal, and a versioning strategy that lets the API evolve without breaking existing consumers.</div>
-              </div>
-            </div>
-            <div class="lifecycle-step">
-              <div class="lifecycle-step-num">5</div>
-              <div>
-                <div class="lifecycle-step-title">Documentation and Handover</div>
-                <div class="lifecycle-step-desc">Living documentation published to a developer portal. Consumer onboarding guides, authentication walkthroughs, and code samples in relevant languages.</div>
-              </div>
-            </div>
-            <div class="apim-callout">
-              <span style="font-size:1.2rem;"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8V4H8"/><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M9 11v2"/><path d="M15 11v2"/></svg></span>
-              <div class="apim-callout-text"><strong>Azure API Management</strong> now supports MCP server management and agent-to-agent communication, making it the governance layer for AI workloads as well as traditional APIs.</div>
-            </div>
-          </div>
-        </div>
+  <div class="hero-inner">
+    <div class="hero-copy">
+      <div class="hero-eyebrow"><span class="eyebrow-badge">Integration and API Development</span><span class="eyebrow-partner">Delivered by a certified Microsoft partner</span></div>
+      <h1>Connect your systems.<br>Expose your data.<br>Stop rebuilding the same thing twice.</h1>
+      <p class="hero-sub">Armely designs, builds, and manages APIs that connect your business systems, expose your data to consumers, and form the integration layer your AI and automation investments depend on.</p>
+      <div class="hero-actions">
+        <a href="#contact" class="btn-primary">Book a Free Assessment</a>
+        <a href="#delivers" class="btn-outline">See What We Do</a>
       </div>
     </div>
   </div>
 </section>
 
-<!-- WHAT ARMELY DELIVERS -->
-<section class="delivers" id="what-we-deliver">
-  <div class="section-inner">
-    <div class="section-eyebrow">What Armely Delivers</div>
-    <h2 class="section-title">API development across the full engagement lifecycle.</h2>
-    <p class="section-body">From a single integration connecting two systems to a managed API program governing dozens of endpoints, Armely covers every stage with certified engineers and a delivery process built around the OpenAPI standard.</p>
-    <div class="delivers-grid">
-      <div class="deliver-card">
-        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0Z"/><path d="m14.5 12.5 2-2"/><path d="m11.5 9.5 2-2"/><path d="m8.5 6.5 2-2"/><path d="m17.5 15.5 2-2"/></svg></div>
-        <div class="deliver-title">API Design and Architecture</div>
-        <div class="deliver-desc">We design your API before writing code. OpenAPI specifications, data models, error schemas, authentication patterns, and versioning strategy are agreed and documented upfront so every consumer knows exactly what to expect before integration begins.</div>
-      </div>
-      <div class="deliver-card">
-        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></div>
-        <div class="deliver-title">Custom API Development</div>
-        <div class="deliver-desc">We build REST, GraphQL, and gRPC APIs in .NET, Python, and Node.js, with automated test suites, CI/CD pipelines, and deployment to Azure App Service, Azure Functions, or containerized environments depending on your workload requirements.</div>
-      </div>
-      <div class="deliver-card">
-        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></div>
-        <div class="deliver-title">System Integration</div>
-        <div class="deliver-desc">We build the integration layer between your business systems, connecting ERP, CRM, databases, SaaS platforms, and third-party services through reliable, monitored API connections so data flows automatically rather than being moved manually or by batch file.</div>
-      </div>
-      <div class="deliver-card">
-        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg></div>
-        <div class="deliver-title">Azure API Management</div>
-        <div class="deliver-desc">We deploy and configure Azure API Management as the gateway for your API estate, including authentication enforcement, rate limiting, analytics, developer portal setup, and policy configuration for security and traffic management at scale.</div>
-      </div>
-      <div class="deliver-card">
-        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8V4H8"/><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M9 11v2"/><path d="M15 11v2"/></svg></div>
-        <div class="deliver-title">AI-Ready API Infrastructure</div>
-        <div class="deliver-desc">We configure Azure API Management as an AI gateway for Azure OpenAI endpoints and AI agents, including token governance, semantic caching, MCP server registration, and agent-to-agent communication policies for organizations building agentic AI applications.</div>
-      </div>
-      <div class="deliver-card">
-        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg></div>
-        <div class="deliver-title">API Audit and Remediation</div>
-        <div class="deliver-desc">For organizations with existing APIs that lack documentation, versioning, security controls, or a governance framework, we conduct a structured audit and deliver a remediation plan that brings your API estate to a production-ready standard.</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- JOURNEY -->
-<section class="journey" id="journey">
-  <div class="section-inner">
-    <div class="section-eyebrow">The Armely API Delivery Process</div>
-    <h2 class="section-title">From requirements to a production API your consumers can rely on.</h2>
-    <p class="section-body">APIs built without a specification upfront and security designed in from the start create technical debt that compounds every time a new consumer integrates. Our process is structured to prevent those problems rather than fix them later.</p>
-    <div class="steps-row">
-      <div class="step">
-        <div class="step-num">01</div>
-        <div class="step-title">Discovery</div>
-        <div class="step-desc">We document the consumer requirements, data sources, authentication needs, and performance expectations before any design decisions are made.</div>
-        <span class="step-tag">Free</span>
-      </div>
-      <div class="step">
-        <div class="step-num">02</div>
-        <div class="step-title">Specification</div>
-        <div class="step-desc">OpenAPI specification, data model, error schema, and versioning strategy produced and reviewed. Mock server made available to consumer teams immediately.</div>
-        <span class="step-tag">Week 1</span>
-      </div>
-      <div class="step">
-        <div class="step-num">03</div>
-        <div class="step-title">Build and Test</div>
-        <div class="step-desc">Implementation against the agreed specification with contract tests, unit tests, and security scanning integrated into the CI/CD pipeline from the start.</div>
-        <span class="step-tag">Weeks 2-5</span>
-      </div>
-      <div class="step">
-        <div class="step-num">04</div>
-        <div class="step-title">Gateway and Launch</div>
-        <div class="step-desc">Deployed behind Azure API Management with authentication, rate limiting, and analytics configured. Developer portal and consumer documentation published.</div>
-        <span class="step-tag">Week 6</span>
-      </div>
-      <div class="step">
-        <div class="step-num">05</div>
-        <div class="step-title">Support and Evolution</div>
-        <div class="step-desc">Ongoing monitoring, performance optimization, versioned updates that do not break existing consumers, and Armely support for new integration requirements.</div>
-        <span class="step-tag">Ongoing</span>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- USE CASES -->
-<section class="usecases">
-  <div class="section-inner">
-    <div class="section-eyebrow">Common Engagements</div>
-    <h2 class="section-title">The integration and API problems we solve most frequently.</h2>
-    <p class="section-body">Most API engagements start with a specific business problem, not a technology preference. These are the situations we encounter most often across our client base.</p>
-    <div class="uc-grid">
-      <div class="uc-card">
-        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></span>
-        <div class="uc-title">Connect Two Systems That Do Not Talk</div>
-        <div class="uc-desc">CRM and ERP that require manual data re-entry between them. A field service platform and a billing system that require exports and imports. We build the API integration layer that eliminates the manual step and keeps data consistent in real time.</div>
-      </div>
-      <div class="uc-card">
-        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span>
-        <div class="uc-title">Expose Internal Data to External Consumers</div>
-        <div class="uc-desc">A secure, documented API that allows customers, partners, or third-party applications to access your business data within defined permission boundaries, with authentication, rate limiting, and usage analytics managed through Azure API Management.</div>
-      </div>
-      <div class="uc-card">
-        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M17 18h1"/><path d="M12 18h1"/><path d="M7 18h1"/></svg></span>
-        <div class="uc-title">Modernize a Legacy Integration</div>
-        <div class="uc-desc">A SOAP service or point-to-point database integration that has no documentation, no versioning, and no monitoring. We wrap it in a modern REST API, document it properly, and place it behind a gateway so it can be maintained and evolved safely.</div>
-      </div>
-      <div class="uc-card">
-        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8V4H8"/><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M9 11v2"/><path d="M15 11v2"/></svg></span>
-        <div class="uc-title">Build the API Layer for an AI Agent</div>
-        <div class="uc-desc">AI agents need governed, authenticated access to business systems. We build and register the APIs that your Copilot Studio or Azure AI Foundry agents call to retrieve data, trigger actions, and write results back to source systems.</div>
-      </div>
-      <div class="uc-card">
-        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" x2="12.01" y1="18" y2="18"/></svg></span>
-        <div class="uc-title">Backend for a Mobile or Web Application</div>
-        <div class="uc-desc">A secure, performant API backend for a mobile application or web portal, designed API-first so the front-end team can build against a specification and mock server while the backend is in development, rather than waiting for working code.</div>
-      </div>
-      <div class="uc-card">
-        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></span>
-        <div class="uc-title">API Estate Audit</div>
-        <div class="uc-desc">Organizations that have accumulated APIs over time often have endpoints without documentation, inconsistent authentication, no versioning strategy, and no central governance. We audit the estate, identify risk, and deliver a structured remediation plan.</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- TESTIMONIALS -->
+<section class="spectrum"><div class="section-inner"><div class="section-eyebrow">API Types and When to Use Them</div><h2 class="section-title">The right API design for the right job.</h2><p class="section-body">REST is the standard for 89 percent of enterprise APIs and Armely's default for most business integration work. We use GraphQL where data flexibility requirements justify it, gRPC for high-performance internal service communication, and SOAP where legacy systems demand it.</p>
+<div class="spectrum-grid"><div><div class="spectrum-row">
+<div class="spectrum-level highlight"><span class="spectrum-num">REST</span><div><div class="spectrum-content-title">REST APIs (Default)</div><div class="spectrum-content-desc">The standard for business integration. Stateless, cacheable, and supported by every platform and toolchain. We deliver OpenAPI specifications alongside working code so every consumer has a contract to build against.</div></div></div>
+<div class="spectrum-level"><span class="spectrum-num">GraphQL</span><div><div class="spectrum-content-title">GraphQL APIs</div><div class="spectrum-content-desc">When clients need to query complex, related data without multiple round trips. Appropriate where over-fetching from fixed REST endpoints creates performance or bandwidth problems.</div></div></div>
+<div class="spectrum-level"><span class="spectrum-num">gRPC</span><div><div class="spectrum-content-title">gRPC and Microservices</div><div class="spectrum-content-desc">For high-throughput internal service communication where latency and payload size matter. Used in microservice architectures where services need to communicate at scale.</div></div></div>
+<div class="spectrum-level"><span class="spectrum-num">SOAP</span><div><div class="spectrum-content-title">SOAP and Legacy Integration</div><div class="spectrum-content-desc">Where enterprise systems or regulated industry requirements specify SOAP. We also build REST wrapper APIs that expose legacy SOAP services to modern consuming applications.</div></div></div>
+</div></div><div><div class="platform-card"><div class="platform-header"><div class="platform-dots"><span></span><span></span><span></span></div><span class="platform-header-title">API Delivery Stack</span></div><div class="platform-body"><div class="plat-band band-tools"><div class="plat-band-label">API Design and Build</div><div class="plat-chips"><span class="plat-chip">OpenAPI Specification</span><span class="plat-chip">REST / GraphQL / gRPC</span><span class="plat-chip">ASP.NET Core</span><span class="plat-chip">Python FastAPI</span><span class="plat-chip">Node.js Express</span><span class="plat-chip">Automated Testing</span></div></div><div class="band-arrow">&#8597;</div><div class="plat-band band-data"><div class="plat-band-label">Gateway and Management</div><div class="plat-chips"><span class="plat-chip">Azure API Management</span><span class="plat-chip">Rate Limiting</span><span class="plat-chip">OAuth 2.0</span><span class="plat-chip">API Keys</span><span class="plat-chip">Analytics</span><span class="plat-chip">Developer Portal</span><span class="plat-chip">MCP Server Support</span></div></div><div class="band-arrow">&#8597;</div><div class="plat-band band-gov"><div class="plat-band-label">Security and Governance</div><div class="plat-chips"><span class="plat-chip">Entra ID</span><span class="plat-chip">DLP Policies</span><span class="plat-chip">Audit Logging</span><span class="plat-chip">IP Allowlisting</span><span class="plat-chip">Subscription Management</span></div></div></div></div></div></div></div></section>
+<section class="delivers" id="delivers"><div class="section-inner"><div class="section-eyebrow">What Armely Delivers</div><h2 class="section-title">API development across the full engagement lifecycle.</h2><p class="section-body">From a single integration connecting two systems to a managed API program governing dozens of endpoints.</p>
+<div class="delivers-grid"><div class="deliver-card"><div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0Z"/><path d="m14.5 12.5 2-2"/><path d="m11.5 9.5 2-2"/><path d="m8.5 6.5 2-2"/><path d="m17.5 15.5 2-2"/></svg></div><div class="deliver-title">API Design and Architecture</div><div class="deliver-desc">We design your API before writing code. OpenAPI specifications, data models, error schemas, authentication patterns, and versioning strategy are agreed and documented upfront.</div></div><div class="deliver-card"><div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></div><div class="deliver-title">Custom API Development</div><div class="deliver-desc">We build REST, GraphQL, and gRPC APIs in .NET, Python, and Node.js, with automated test suites, CI/CD pipelines, and deployment to Azure.</div></div><div class="deliver-card"><div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></div><div class="deliver-title">System Integration</div><div class="deliver-desc">We build the integration layer between your business systems, connecting ERP, CRM, databases, SaaS platforms, and third-party services through reliable, monitored API connections.</div></div><div class="deliver-card"><div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg></div><div class="deliver-title">Azure API Management</div><div class="deliver-desc">We deploy and configure Azure API Management as the gateway for your API estate, including authentication enforcement, rate limiting, analytics, and developer portal setup.</div></div><div class="deliver-card"><div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 8V4H8"/><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M9 11v2"/><path d="M15 11v2"/></svg></div><div class="deliver-title">AI-Ready API Infrastructure</div><div class="deliver-desc">We configure Azure API Management as an AI gateway for Azure OpenAI endpoints and AI agents, including token governance, semantic caching, and MCP server registration.</div></div><div class="deliver-card"><div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></div><div class="deliver-title">API Audit and Remediation</div><div class="deliver-desc">For organizations with existing APIs that lack documentation, versioning, or security controls, we conduct a structured audit and deliver a remediation plan.</div></div></div></div></section>
+<section class="journey"><div class="section-inner"><div class="section-eyebrow">The Armely API Delivery Process</div><h2 class="section-title">From requirements to a production API your consumers can rely on.</h2><p class="section-body">APIs built without a specification upfront and security designed in from the start create technical debt that compounds every time a new consumer integrates.</p>
+<div class="steps-row"><div class="step"><div class="step-num">01</div><div class="step-title">Discovery</div><div class="step-desc">We document consumer requirements, data sources, authentication needs, and performance expectations before any design decisions are made.</div><span class="step-tag">Free</span></div><div class="step"><div class="step-num">02</div><div class="step-title">Specification</div><div class="step-desc">OpenAPI specification, data model, error schema, and versioning strategy produced and reviewed. Mock server available to consumer teams immediately.</div><span class="step-tag">Week 1</span></div><div class="step"><div class="step-num">03</div><div class="step-title">Build and Test</div><div class="step-desc">Implementation against the agreed specification with contract tests, unit tests, and security scanning integrated into the CI/CD pipeline from the start.</div><span class="step-tag">Weeks 2-5</span></div><div class="step"><div class="step-num">04</div><div class="step-title">Gateway and Launch</div><div class="step-desc">Deployed behind Azure API Management with authentication, rate limiting, and analytics configured. Developer portal and consumer documentation published.</div><span class="step-tag">Week 6</span></div><div class="step"><div class="step-num">05</div><div class="step-title">Support and Evolution</div><div class="step-desc">Ongoing monitoring, performance optimization, versioned updates that do not break existing consumers, and Armely support for new integration requirements.</div><span class="step-tag">Ongoing</span></div></div></div></section>
+<section class="usecases"><div class="section-inner"><div class="section-eyebrow">Common Engagements</div><h2 class="section-title">The integration and API problems we solve most frequently.</h2><p class="section-body">Most API engagements start with a specific business problem.</p>
+<div class="uc-grid"><div class="uc-card"><span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></span><div class="uc-title">Connect Two Systems That Do Not Talk</div><div class="uc-desc">CRM and ERP that require manual data re-entry. A field service platform and a billing system that require exports and imports. We build the API integration layer that eliminates the manual step.</div></div><div class="uc-card"><span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span><div class="uc-title">Expose Data to External Consumers</div><div class="uc-desc">A secure, documented API that allows customers, partners, or third-party applications to access your business data within defined permission boundaries.</div></div><div class="uc-card"><span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 21v-5h5"/><path d="M3 12A9 9 0 0 1 18.5 5.8L21 8"/><path d="M21 3v5h-5"/></svg></span><div class="uc-title">Modernize a Legacy Integration</div><div class="uc-desc">A SOAP service or point-to-point database integration with no documentation, no versioning, and no monitoring. We wrap it in a modern REST API and place it behind a gateway.</div></div><div class="uc-card"><span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 8V4H8"/><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M9 11v2"/><path d="M15 11v2"/></svg></span><div class="uc-title">Build the API Layer for an AI Agent</div><div class="uc-desc">AI agents need governed, authenticated access to business systems. We build and register the APIs that your Copilot Studio or Azure AI Foundry agents call.</div></div><div class="uc-card"><span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></span><div class="uc-title">Backend for a Mobile or Web Application</div><div class="uc-desc">A secure, performant API backend designed API-first so the front-end team can build against a specification and mock server while the backend is in development.</div></div><div class="uc-card"><span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></span><div class="uc-title">API Estate Audit</div><div class="uc-desc">Organizations with APIs accumulated over time often have endpoints without documentation, inconsistent authentication, and no versioning strategy.</div></div></div></div></section>
 <section class="testimonials">
   <div class="section-inner">
     <div class="section-eyebrow">Client Results</div>
-    <h2 class="section-title">What our clients say about working with Armely.</h2>
-    <div class="testi-grid">
-
-      <div class="testi-card">
-        <span class="testi-quote">&ldquo;</span>
-        <p class="testi-body">We had been manually exporting data between our ERP and CRM every evening for years. Armely built a REST API integration that keeps both systems synchronized in real time. The project was delivered in five weeks with full OpenAPI documentation, and our operations team has not touched an export file since go-live.</p>
-        <div class="testi-footer">
-          <div class="testi-avatar">CTO</div>
-          <div>
-            <div class="testi-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-            <div class="testi-name">Chief Technology Officer</div>
-            <div class="testi-role">Distribution Company, Texas</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="testi-card">
-        <span class="testi-quote">&ldquo;</span>
-        <p class="testi-body">We needed to expose patient data to a third-party analytics platform in a HIPAA-compliant way. Armely designed and built a secure REST API with OAuth 2.0 authentication, field-level data masking, and full audit logging managed through Azure API Management. The security review passed on the first submission.</p>
-        <div class="testi-footer">
-          <div class="testi-avatar">IT</div>
-          <div>
-            <div class="testi-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-            <div class="testi-name">Director of IT</div>
-            <div class="testi-role">Healthcare Organization, Midwest</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="testi-card">
-        <span class="testi-quote">&ldquo;</span>
-        <p class="testi-body">Our AI agent project stalled because we had no clean API layer for the agent to call into our business systems. Armely built three APIs in four weeks that gave the agent governed access to our CRM, document store, and scheduling system. The agent went live the following month and the API work was never a blocker again.</p>
-        <div class="testi-footer">
-          <div class="testi-avatar">VP</div>
-          <div>
-            <div class="testi-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-            <div class="testi-name">VP of Technology</div>
-            <div class="testi-role">Professional Services Firm, Southeast</div>
-          </div>
-        </div>
-      </div>
-
+    <h2 class="section-title">Real outcomes for real organizations.</h2>
+    <p class="section-body">Armely has delivered Microsoft platform and AI solutions for healthcare providers, school districts, energy operators, professional services firms, government agencies, and non-profit organizations. See the full story on our Customer Stories page.</p>
+    <div class="cr-grid">
+      <div class="cr-card"><div class="cr-label"><span class="cr-check"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg></span><span class="cr-industry">Healthcare</span></div><p class="cr-desc">Swope Health Services and UNMC: data platform and clinical workflow modernization on Microsoft Azure.</p></div>
+      <div class="cr-card"><div class="cr-label"><span class="cr-check"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg></span><span class="cr-industry">Education</span></div><p class="cr-desc">Plano ISD: Microsoft 365 governance, SharePoint, and Power Platform implementations across district operations.</p></div>
+      <div class="cr-card"><div class="cr-label"><span class="cr-check"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg></span><span class="cr-industry">Energy</span></div><p class="cr-desc">Oil and gas operators: OpenInvoice visibility and AP workflow automation through Invoice Lens.</p></div>
+      <div class="cr-card"><div class="cr-label"><span class="cr-check"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg></span><span class="cr-industry">Professional Services</span></div><p class="cr-desc">Consulting and legal firms: Dynamics 365, Power Automate approval workflows, and AI knowledge agents.</p></div>
+      <div class="cr-card"><div class="cr-label"><span class="cr-check"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg></span><span class="cr-industry">Government</span></div><p class="cr-desc">State and local agencies: Microsoft 365 Government deployment and compliance configuration.</p></div>
+      <div class="cr-card"><div class="cr-label"><span class="cr-check"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg></span><span class="cr-industry">Non-Profit</span></div><p class="cr-desc">Social services organizations: Microsoft 365 optimization, Power BI grant reporting, and SharePoint governance.</p></div>
+    </div>
+    <div class="cr-cta">
+      <a href="https://armely.com/customer-stories" class="cr-btn"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Read Client Stories on armely.com</span><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>
     </div>
   </div>
 </section>
-
-<!-- WHY ARMELY -->
-<section class="why" id="why-armely">
-  <div class="section-inner">
-    <div class="why-two-col">
-      <div>
-        <div class="section-eyebrow">Why Armely</div>
-        <h2 class="section-title">API development is only valuable if the API is reliable, documented, and maintainable.</h2>
-        <p class="section-body">Many organizations have APIs that work but are undocumented, have no versioning strategy, and would break consumers if changed. Armely builds APIs that are production-grade from the first deployment.</p>
-        <ul class="why-list">
-          <li>
-            <div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0Z"/><path d="m14.5 12.5 2-2"/><path d="m11.5 9.5 2-2"/><path d="m8.5 6.5 2-2"/><path d="m17.5 15.5 2-2"/></svg></div>
-            <div>
-              <div class="why-item-title">OpenAPI-First on Every Engagement</div>
-              <div class="why-item-desc">We write the specification before writing code. Consumer teams receive a documented contract and a mock server immediately, rather than waiting for working code before integration work can begin. This is not optional for us.</div>
-            </div>
-          </li>
-          <li>
-            <div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg></div>
-            <div>
-              <div class="why-item-title">Security Designed In, Not Added On</div>
-              <div class="why-item-desc">Authentication, authorization, input validation, and rate limiting are designed into the API specification before implementation begins. We do not retrofit security after a functional build is complete.</div>
-            </div>
-          </li>
-          <li>
-            <div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></div>
-            <div>
-              <div class="why-item-title">Microsoft Ecosystem Integration</div>
-              <div class="why-item-desc">Our APIs integrate natively with Azure API Management, Microsoft 365, Dynamics 365, Power Platform, and Azure AI Foundry. If your business runs on Microsoft, Armely builds APIs that fit the architecture you already have rather than introducing new platform dependencies.</div>
-            </div>
-          </li>
-          <li>
-            <div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 17 6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg></div>
-            <div>
-              <div class="why-item-title">Versioning and Governance from Day One</div>
-              <div class="why-item-desc">We implement a versioning strategy, deprecation policy, and API gateway configuration in the initial deployment so your API estate can evolve over time without breaking existing consumers or accumulating ungoverned endpoints.</div>
-            </div>
-          </li>
-        </ul>
-      </div>
-      <div>
-        <div class="partner-block">
-          <div class="partner-block-top">
-            <div class="partner-label">Microsoft Authorized Partner</div>
-            <p class="partner-text">Armely's Microsoft partnership gives us certified access to Azure API Management, Azure Functions, Azure App Service, and the broader Azure integration platform. We build API infrastructure on the same managed services that Microsoft's enterprise customers rely on, with the licensing and technical support that partnership provides.</p>
-          </div>
-          <div class="partner-stats">
-            <div class="p-stat">
-              <div class="p-stat-num">89<span>%</span></div>
-              <div class="p-stat-label">of enterprise organizations use REST as their primary API format (Postman, 2025)</div>
-            </div>
-            <div class="p-stat">
-              <div class="p-stat-num">&#8470;1</div>
-              <div class="p-stat-label">Azure API Management named a Gartner Magic Quadrant Leader for Integration PaaS, 2026</div>
-            </div>
-            <div class="p-stat">
-              <div class="p-stat-num">AI</div>
-              <div class="p-stat-label">Azure APIM now governs AI models, MCP servers, and agent-to-agent communication</div>
-            </div>
-            <div class="p-stat">
-              <div class="p-stat-num">0</div>
-              <div class="p-stat-label">APIs delivered by Armely without an OpenAPI specification and a versioning strategy</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- CTA -->
-<section class="cta-section" id="contact">
-  <div class="cta-inner">
-    <div>
-      <div class="section-eyebrow">Get Started</div>
-      <h2 class="section-title">Tell us the integration problem. We will design the API.</h2>
-      <p class="section-body">Book a free 30-minute discovery call. We will review your integration requirements, recommend an API architecture, and come back with a delivery proposal and Azure licensing recommendation at no obligation.</p>
-      <div style="margin-top: 28px; display: flex; flex-direction: column; gap: 12px;">
-        <div class="trust-item">
-          <span class="trust-dot" style="background: var(--blue);"></span>
-          <span class="trust-text" style="color: var(--text-body);">Free discovery, no commitment required</span>
-        </div>
-        <div class="trust-item">
-          <span class="trust-dot" style="background: var(--blue);"></span>
-          <span class="trust-text" style="color: var(--text-body);">API architecture recommendation included</span>
-        </div>
-        <div class="trust-item">
-          <span class="trust-dot" style="background: var(--blue);"></span>
-          <span class="trust-text" style="color: var(--text-body);">Response within one business day</span>
-        </div>
-      </div>
-    </div>
-    <div class="cta-form">
-      <div class="form-title">Book Your Free Discovery Call</div>
-      <div class="form-sub">Tell us about your integration or API challenge.</div>
-      <div class="form-row">
-        <label>Full Name</label>
-        <input type="text" placeholder="Jane Smith">
-      </div>
-      <div class="form-row">
-        <label>Business Email</label>
-        <input type="email" placeholder="jane@yourcompany.com">
-      </div>
-      <div class="form-row">
-        <label>Company Name</label>
-        <input type="text" placeholder="Acme Corp">
-      </div>
-      <div class="form-row">
-        <label>Primary Need</label>
-        <select>
-          <option value="">Select...</option>
-          <option>Connect two or more business systems</option>
-          <option>Build a new API for internal or external consumers</option>
-          <option>Expose our data securely to a third party</option>
-          <option>Build the API layer for an AI agent</option>
-          <option>Modernize or document an existing API</option>
-          <option>Set up Azure API Management</option>
-          <option>Not sure, need a recommendation</option>
-        </select>
-      </div>
-      <button class="form-submit">Request Free Discovery Call</button>
-      <div class="form-note">No spam. No sales pressure. Just a useful conversation.</div>
-    </div>
-  </div>
-</section>
-
-<!-- FOOTER -->
-<footer>
-  <div class="footer-logo-row">
-    <div class="footer-lm">A</div>
-    <span class="footer-lt">armely</span>
-  </div>
-  <div class="footer-note">&#169; 2026 Armely &middot; www.armely.com &middot; Your Trusted Source for Digital Excellence</div>
-  <div class="footer-badges">
-    <span class="badge-chip">Microsoft CSP Partner</span>
-    <span class="badge-chip">Azure Certified</span>
-    <span class="badge-chip">Microsoft Authorized Reseller</span>
-  </div>
-</footer>
-
+<section class="why"><div class="section-inner"><div class="section-eyebrow">Why Armely</div><h2 class="section-title">API development is only valuable if the API is reliable, documented, and maintainable.</h2><p class="section-body">Many organizations have APIs that work but are undocumented, have no versioning strategy, and would break consumers if changed.</p>
+<div class="why-two-col"><div><ul class="why-list"><li><div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0Z"/><path d="m14.5 12.5 2-2"/><path d="m11.5 9.5 2-2"/><path d="m8.5 6.5 2-2"/><path d="m17.5 15.5 2-2"/></svg></div><div><div class="why-item-title">OpenAPI-First on Every Engagement</div><div class="why-item-desc">We write the specification before writing code. Consumer teams receive a documented contract and a mock server immediately. This is not optional for us.</div></div></li><li><div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg></div><div><div class="why-item-title">Security Designed In, Not Added On</div><div class="why-item-desc">Authentication, authorization, input validation, and rate limiting are designed into the API specification before implementation.</div></div></li><li><div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></div><div><div class="why-item-title">Native Microsoft Ecosystem Integration</div><div class="why-item-desc">Our APIs integrate natively with Azure API Management, Microsoft 365, Dynamics 365, Power Platform, and Azure AI Foundry.</div></div></li><li><div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m3 17 6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg></div><div><div class="why-item-title">Versioning and Governance From Day One</div><div class="why-item-desc">We implement a versioning strategy, deprecation policy, and API gateway configuration in the initial deployment.</div></div></li></ul></div>
+<div><div class="partner-block"><div class="partner-block-top"><div class="partner-label">Microsoft Authorized Partner</div><p class="partner-text">Armely's Microsoft partnership gives us certified access to Azure API Management, Azure Functions, Azure App Service, and the broader Azure integration platform.</p></div><div class="partner-stats"><div class="p-stat"><div class="p-stat-num">89<span>%</span></div><div class="p-stat-label">of enterprise organizations use REST as their primary API format (Postman, 2025)</div></div><div class="p-stat"><div class="p-stat-num">#1<span></span></div><div class="p-stat-label">Azure API Management named a Gartner Magic Quadrant Leader, 2026</div></div><div class="p-stat"><div class="p-stat-num">AI<span></span></div><div class="p-stat-label">Azure APIM now governs AI models, MCP servers, and agent-to-agent communication</div></div><div class="p-stat"><div class="p-stat-num">0<span></span></div><div class="p-stat-label">APIs Armely delivers without an OpenAPI specification and versioning strategy</div></div></div></div></div></div></div></section>
+<section class="cta-section" id="contact"><div class="cta-inner"><div><div class="section-eyebrow">Get Started</div><h2 class="section-title">Tell us the integration problem. We will design the API.</h2><p class="section-body">Book a free 30-minute discovery call. We will review your integration requirements and come back with an API architecture recommendation.</p><div style="margin-top:20px;display:flex;flex-direction:column;gap:9px;"><div class="trust-item"><span class="trust-dot"></span><span class="trust-text">Free assessment, no commitment required</span></div><div class="trust-item"><span class="trust-dot"></span><span class="trust-text">Recommendation and partner pricing included</span></div><div class="trust-item"><span class="trust-dot"></span><span class="trust-text">Response within one business day</span></div></div></div><div class="cta-form"><div class="form-title">Book Your Free Assessment</div><div class="form-sub">Tell us about your situation.</div><div class="form-row"><label>Full Name</label><input type="text" placeholder="Jane Smith"></div><div class="form-row"><label>Business Email</label><input type="email" placeholder="jane@yourcompany.com"></div><div class="form-row"><label>Company Name</label><input type="text" placeholder="Acme Corp"></div><div class="form-row"><label>Primary Need</label><select><option value="">Select...</option><option>Connect two or more business systems</option><option>Build a new API for internal or external consumers</option><option>Expose our data securely to a third party</option><option>Build the API layer for an AI agent</option><option>Modernize or document an existing API</option><option>Set up Azure API Management</option><option>Not sure, need a recommendation</option></select></div><button class="form-submit">Request Free Discovery Call</button><div class="form-note">No spam. No sales pressure. Just a useful conversation.</div></div></div></section>
 </div>

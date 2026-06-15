@@ -1,6 +1,5 @@
 <style>
 
-
 .armely-fabric-page *, .armely-fabric-page *::before, .armely-fabric-page *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 .armely-fabric-page {
@@ -808,380 +807,69 @@
 }
 
 
+.armely-fabric-page .cr-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-top:28px; margin-bottom:28px; }
+.armely-fabric-page .cr-card { background:#fff; border:1px solid var(--border); border-radius:12px; padding:20px 22px; box-shadow:0 2px 10px rgba(18,47,82,0.04); }
+.armely-fabric-page .cr-label { display:flex; align-items:center; gap:9px; margin-bottom:10px; }
+.armely-fabric-page .cr-check { width:20px; height:20px; display:flex; align-items:center; justify-content:center; background:var(--blue-dim); border:1px solid var(--blue-dim2); border-radius:50%; flex-shrink:0; color:var(--blue); }
+.armely-fabric-page .cr-check .icon-svg { width:11px; height:11px; stroke-width:3; }
+.armely-fabric-page .cr-industry { font-size:0.875rem; font-weight:700; color:#1A2540; }
+.armely-fabric-page .cr-desc { font-size:0.82rem; color:var(--text-muted); line-height:1.65; margin:0; }
+.armely-fabric-page .cr-cta { text-align:center; }
+.armely-fabric-page .cr-btn { display:inline-flex; align-items:center; gap:10px; background:#1a2e52; color:#fff; border-radius:8px; padding:12px 28px; text-decoration:none; font-size:0.875rem; font-weight:600; }
+.armely-fabric-page .cr-btn:hover { background:var(--blue); }
+.armely-fabric-page .cr-btn .icon-svg { width:18px; height:18px; }
+@media (max-width:900px) { .armely-fabric-page .cr-grid { grid-template-columns:1fr 1fr; } }
+@media (max-width:600px) { .armely-fabric-page .cr-grid { grid-template-columns:1fr; } }
 </style>
 <div class="armely-fabric-page">
-
-<!-- NAV -->
-<nav>
-  <div class="logo">
-    <div class="logo-mark">A</div>
-    <span class="logo-text">armely</span>
-  </div>
-  <ul class="nav-links">
-    <li><a href="#what-we-deliver">Services</a></li>
-    <li><a href="#journey">Our Process</a></li>
-    <li><a href="#why-armely">Why Armely</a></li>
-    <li><a href="#contact" class="nav-cta">Get Started</a></li>
-  </ul>
-</nav>
-
-<!-- HERO -->
 <section class="hero">
   <div class="hero-bg-glow"></div>
-  <div class="hero-eyebrow">
-    <span class="eyebrow-badge">Microsoft Fabric</span>
-    <span class="eyebrow-partner">Delivered by a certified Microsoft partner</span>
-  </div>
-  <h1>All your data.<br>One platform.<br><span class="hl">Actual insights.</span></h1>
-  <p class="hero-sub">Armely designs, builds, and runs Microsoft Fabric environments that turn scattered business data into dashboards, reports, and decisions, without the usual chaos.</p>
-  <div class="hero-actions">
-    <a href="#contact" class="btn-primary">Book a Free Discovery Call</a>
-    <a href="#what-we-deliver" class="btn-outline">See What We Build</a>
-  </div>
-  <div class="hero-trust">
-    <div class="trust-item">
-      <span class="trust-dot"></span>
-      <span class="trust-text"><strong>One platform</strong> for all data & analytics</span>
-    </div>
-    <div class="trust-item">
-      <span class="trust-dot"></span>
-      <span class="trust-text">Replaces <strong>Power BI, Azure Data Factory</strong> & more</span>
-    </div>
-    <div class="trust-item">
-      <span class="trust-dot"></span>
-      <span class="trust-text"><strong>AI-ready</strong>, Copilot built in</span>
-    </div>
-    <div class="trust-item">
-      <span class="trust-dot"></span>
-      <span class="trust-text"><strong>Partner pricing</strong> available</span>
+  <div class="hero-inner">
+    <div class="hero-copy">
+      <div class="hero-eyebrow"><span class="eyebrow-badge">Microsoft Fabric</span><span class="eyebrow-partner">Delivered by a certified Microsoft partner</span></div>
+      <h1>All your data. One platform.<br>Actual insights.</h1>
+      <p class="hero-sub">Armely designs, builds, and runs Microsoft Fabric environments that turn scattered business data into dashboards, reports, and decisions.</p>
+      <div class="hero-actions">
+        <a href="#contact" class="btn-primary">Book a Free Assessment</a>
+        <a href="#delivers" class="btn-outline">See What We Do</a>
+      </div>
     </div>
   </div>
 </section>
 
-<!-- WHAT IS FABRIC -->
-<section class="intro">
+<section class="spectrum"><div class="section-inner"><div class="section-eyebrow">What is Microsoft Fabric?</div><h2 class="section-title">One platform for every step of your data journey.</h2><p class="section-body">Microsoft Fabric is a unified SaaS analytics platform that replaces fragmented data tools. Data engineering, warehousing, real-time analytics, business intelligence, and AI share a single data foundation called OneLake.</p>
+<div class="spectrum-grid"><div><div class="spectrum-row">
+<div class="spectrum-level highlight"><span class="spectrum-num">01</span><div><div class="spectrum-content-title">Data Factory</div><div class="spectrum-content-desc">Connect and ingest data from 300-plus sources with no-code pipelines that move data automatically on a schedule.</div></div></div>
+<div class="spectrum-level highlight"><span class="spectrum-num">02</span><div><div class="spectrum-content-title">Data Engineering and Warehouse</div><div class="spectrum-content-desc">Transform, model, and store structured and unstructured data in OneLake using a Lakehouse or Warehouse approach.</div></div></div>
+<div class="spectrum-level highlight"><span class="spectrum-num">03</span><div><div class="spectrum-content-title">Power BI and Real-Time Intelligence</div><div class="spectrum-content-desc">Build dashboards on live data with Direct Lake speed. Stream and analyze operational data in real time.</div></div></div>
+<div class="spectrum-level"><span class="spectrum-num">04</span><div><div class="spectrum-content-title">Data Science and Copilot</div><div class="spectrum-content-desc">Train ML models and run AI workloads directly on your data using Fabric notebooks, Spark, and built-in Copilot AI.</div></div></div>
+</div></div><div><div class="platform-card"><div class="platform-header"><div class="platform-dots"><span></span><span></span><span></span></div><span class="platform-header-title">Microsoft Fabric Architecture</span></div><div class="platform-body"><div class="plat-band band-tools"><div class="plat-band-label">Workloads</div><div class="plat-chips"><span class="plat-chip">Power BI</span><span class="plat-chip">Data Factory</span><span class="plat-chip">Data Engineering</span><span class="plat-chip">Data Warehouse</span><span class="plat-chip">Real-Time Intelligence</span><span class="plat-chip">Data Science</span></div></div><div class="band-arrow">&#8597;</div><div class="plat-band band-data"><div class="plat-band-label">Shared Platform</div><div class="plat-chips"><span class="plat-chip">Copilot AI</span><span class="plat-chip">Purview Governance</span><span class="plat-chip">Entra ID Security</span><span class="plat-chip">Unified Capacity</span></div></div><div class="band-arrow">&#8597;</div><div class="plat-band band-gov"><div class="plat-band-label">OneLake - Single Storage Layer</div><div class="plat-chips"><span class="plat-chip">Delta Parquet Format</span><span class="plat-chip">Zero-Copy Access</span><span class="plat-chip">Azure Data Lake Gen2</span></div></div></div></div></div></div></div></section>
+<section class="delivers" id="delivers"><div class="section-inner"><div class="section-eyebrow">What Armely Delivers</div><h2 class="section-title">We don't just set up Fabric. We make your data work for you.</h2><p class="section-body">Armely handles every layer of your Fabric environment, from architecture and data migration to the dashboards your team will open every morning.</p>
+<div class="delivers-grid"><div class="deliver-card"><div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3V6Z"/><path d="M9 3v15"/><path d="M15 6v15"/></svg></div><div class="deliver-title">Data Architecture Design</div><div class="deliver-desc">Before writing a single pipeline, we map your data sources, business questions, and reporting needs. You get an architecture built for your organization, not a generic template.</div></div><div class="deliver-card"><div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/><path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z"/></svg></div><div class="deliver-title">Data Integration and Pipelines</div><div class="deliver-desc">We connect your existing systems into Fabric using Data Factory pipelines. Data flows automatically, on schedule, without manual exports.</div></div><div class="deliver-card"><div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div><div class="deliver-title">Lakehouse and Warehouse Build</div><div class="deliver-desc">We design and build your OneLake foundation so all data lives in one place, accessible to every tool in your stack.</div></div><div class="deliver-card"><div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg></div><div class="deliver-title">Power BI Dashboards and Reports</div><div class="deliver-desc">We build the dashboards your leadership and operations teams will open every morning, designed for clarity with Direct Lake speed.</div></div><div class="deliver-card"><div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 8V4H8"/><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M9 11v2"/><path d="M15 11v2"/></svg></div><div class="deliver-title">AI and Copilot Integration</div><div class="deliver-desc">We configure Fabric Copilot so your team can query data, generate reports, and get answers in plain English. No SQL required.</div></div><div class="deliver-card"><div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg></div><div class="deliver-title">Governance and Ongoing Support</div><div class="deliver-desc">Data governance through Microsoft Purview, role-based access, data lineage tracking, and a dedicated Armely contact to keep your environment healthy.</div></div></div></div></section>
+<section class="journey"><div class="section-inner"><div class="section-eyebrow">The Armely Fabric Journey</div><h2 class="section-title">From scattered spreadsheets to a single source of truth.</h2><p class="section-body">We follow a structured implementation methodology refined across data projects for healthcare, education, and enterprise clients.</p>
+<div class="steps-row"><div class="step"><div class="step-num">01</div><div class="step-title">Discovery and Data Audit</div><div class="step-desc">We map your current data sources, tools, and reporting pain points. Free for new clients, no obligation to proceed.</div><span class="step-tag">Free</span></div><div class="step"><div class="step-num">02</div><div class="step-title">Architecture and Licensing</div><div class="step-desc">We design your Fabric architecture and source the right capacity license at partner pricing.</div><span class="step-tag">1-2 Weeks</span></div><div class="step"><div class="step-num">03</div><div class="step-title">Build and Integrate</div><div class="step-desc">Pipelines, Lakehouse, data models, and your first Power BI dashboards, built and tested against your real data.</div><span class="step-tag">Weeks 3-6</span></div><div class="step"><div class="step-num">04</div><div class="step-title">Handover and Training</div><div class="step-desc">Your team learns to use, maintain, and extend the environment. We document everything.</div><span class="step-tag">Weeks 7-8</span></div><div class="step"><div class="step-num">05</div><div class="step-title">Managed Support</div><div class="step-desc">Ongoing optimization, new dashboard requests, governance reviews, and a single contact who knows your environment.</div><span class="step-tag">Ongoing</span></div></div></div></section>
+<section class="usecases"><div class="section-inner"><div class="section-eyebrow">Common Engagements</div><h2 class="section-title">Real answers to real business questions.</h2><p class="section-body">Fabric is not just a data tool. It is the foundation for every business decision your team makes.</p>
+<div class="uc-grid"><div class="uc-card"><span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg></span><div class="uc-title">Executive Dashboards</div><div class="uc-desc">Live KPI dashboards that pull from every system into a single view. Leadership sees the truth, not last week's export.</div></div><div class="uc-card"><span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span><div class="uc-title">Financial Reporting</div><div class="uc-desc">Automate month-end reporting, budget versus actual analysis, and cost center breakdowns. Finance teams reclaim hours previously spent on spreadsheets.</div></div><div class="uc-card"><span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span><div class="uc-title">Operational Intelligence</div><div class="uc-desc">Track productivity, resource utilization, and service delivery in real time. Identify problems before they become complaints.</div></div><div class="uc-card"><span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></span><div class="uc-title">System Consolidation</div><div class="uc-desc">Connect ERP, CRM, HR, and third-party data into one governed data layer. Stop manually reconciling reports from systems that disagree.</div></div><div class="uc-card"><span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></span><div class="uc-title">Predictive Analytics</div><div class="uc-desc">Build models that forecast demand, flag churn risk, or surface patterns hidden in your historical data.</div></div><div class="uc-card"><span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/></svg></span><div class="uc-title">Natural Language Queries</div><div class="uc-desc">With Copilot embedded in Fabric, anyone on your team can ask questions in plain English and get answers from your live data.</div></div></div></div></section>
+<section class="testimonials">
   <div class="section-inner">
-    <div class="intro-grid">
-      <div>
-        <div class="section-eyebrow">What is Microsoft Fabric?</div>
-        <h2 class="section-title">One platform for every step of your data journey.</h2>
-        <p class="section-body">Microsoft Fabric is a unified SaaS analytics platform that replaces the fragmented stack of separate tools most businesses have accumulated. Data engineering, warehousing, real-time analytics, business intelligence, and AI, all in one environment, all sharing a single data foundation called OneLake.</p>
-        <div class="workload-grid">
-          <div class="workload-pill"><span class="workload-pill-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/></svg></span><span class="workload-pill-label">Data Factory</span></div>
-          <div class="workload-pill"><span class="workload-pill-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></span><span class="workload-pill-label">Data Engineering</span></div>
-          <div class="workload-pill"><span class="workload-pill-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 22 18 0"/><path d="M6 18v-5"/><path d="M10 18v-5"/><path d="M14 18v-5"/><path d="M18 18v-5"/><path d="M3 11l9-7 9 7"/></svg></span><span class="workload-pill-label">Data Warehouse</span></div>
-          <div class="workload-pill"><span class="workload-pill-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 18h8"/><path d="M3 22h18"/><path d="M14 22a7 7 0 1 0 0-14h-1"/><path d="M9 14h2"/><path d="M9 12a2 2 0 0 1-2-2V6h6v4a2 2 0 0 1-2 2Z"/><path d="M12 6V3a1 1 0 0 0-1-1H9a1 1 0 0 0-1 1v3"/></svg></span><span class="workload-pill-label">Data Science</span></div>
-          <div class="workload-pill"><span class="workload-pill-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 3 14h9l-1 8 11-14h-9l1-6Z"/></svg></span><span class="workload-pill-label">Real-Time Intelligence</span></div>
-          <div class="workload-pill"><span class="workload-pill-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg></span><span class="workload-pill-label">Power BI</span></div>
-        </div>
-        <div class="onelake-callout">
-          <span class="onelake-callout-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/></svg></span>
-          <span class="onelake-callout-text"><strong>OneLake</strong>, one shared data lake underneath it all. Every workload reads from the same source. No duplication, no sync issues, no silos.</span>
-        </div>
-      </div>
-      <div>
-        <div class="diagram-card">
-          <div class="diagram-header">
-            <div class="diagram-dots"><span></span><span></span><span></span></div>
-            <span class="diagram-title">Microsoft Fabric Architecture</span>
-          </div>
-          <div class="diagram-body">
-            <div class="diag-layer layer-workloads">
-              <div class="diag-layer-label">Workloads</div>
-              <div class="diag-layer-items">
-                <span class="diag-chip">Power BI</span>
-                <span class="diag-chip">Data Factory</span>
-                <span class="diag-chip">Data Engineering</span>
-                <span class="diag-chip">Data Warehouse</span>
-                <span class="diag-chip">Real-Time Intelligence</span>
-                <span class="diag-chip">Data Science</span>
-              </div>
-            </div>
-            <div class="diag-arrow">↕</div>
-            <div class="diag-layer layer-platform">
-              <div class="diag-layer-label">Shared Platform</div>
-              <div class="diag-layer-items">
-                <span class="diag-chip">Copilot AI</span>
-                <span class="diag-chip">Purview Governance</span>
-                <span class="diag-chip">Entra ID Security</span>
-                <span class="diag-chip">Unified Capacity</span>
-              </div>
-            </div>
-            <div class="diag-arrow">↕</div>
-            <div class="diag-layer layer-storage">
-              <div class="diag-layer-label">OneLake, Single Storage Layer</div>
-              <div class="diag-layer-items">
-                <span class="diag-chip">Delta Parquet Format</span>
-                <span class="diag-chip">Zero-Copy Access</span>
-                <span class="diag-chip">Azure Data Lake Gen2</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+    <div class="section-eyebrow">Client Results</div>
+    <h2 class="section-title">Real outcomes for real organizations.</h2>
+    <p class="section-body">Armely has delivered Microsoft platform and AI solutions for healthcare providers, school districts, energy operators, professional services firms, government agencies, and non-profit organizations. See the full story on our Customer Stories page.</p>
+    <div class="cr-grid">
+      <div class="cr-card"><div class="cr-label"><span class="cr-check"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg></span><span class="cr-industry">Healthcare</span></div><p class="cr-desc">Swope Health Services and UNMC: data platform and clinical workflow modernization on Microsoft Azure.</p></div>
+      <div class="cr-card"><div class="cr-label"><span class="cr-check"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg></span><span class="cr-industry">Education</span></div><p class="cr-desc">Plano ISD: Microsoft 365 governance, SharePoint, and Power Platform implementations across district operations.</p></div>
+      <div class="cr-card"><div class="cr-label"><span class="cr-check"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg></span><span class="cr-industry">Energy</span></div><p class="cr-desc">Oil and gas operators: OpenInvoice visibility and AP workflow automation through Invoice Lens.</p></div>
+      <div class="cr-card"><div class="cr-label"><span class="cr-check"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg></span><span class="cr-industry">Professional Services</span></div><p class="cr-desc">Consulting and legal firms: Dynamics 365, Power Automate approval workflows, and AI knowledge agents.</p></div>
+      <div class="cr-card"><div class="cr-label"><span class="cr-check"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg></span><span class="cr-industry">Government</span></div><p class="cr-desc">State and local agencies: Microsoft 365 Government deployment and compliance configuration.</p></div>
+      <div class="cr-card"><div class="cr-label"><span class="cr-check"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg></span><span class="cr-industry">Non-Profit</span></div><p class="cr-desc">Social services organizations: Microsoft 365 optimization, Power BI grant reporting, and SharePoint governance.</p></div>
+    </div>
+    <div class="cr-cta">
+      <a href="https://armely.com/customer-stories" class="cr-btn"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Read Client Stories on armely.com</span><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>
     </div>
   </div>
 </section>
-
-<!-- WHAT ARMELY DELIVERS -->
-<section class="delivers" id="what-we-deliver">
-  <div class="section-inner">
-    <div class="section-eyebrow">What Armely Delivers</div>
-    <h2 class="section-title">We don't just set up Fabric. We make your data work for you.</h2>
-    <p class="section-body">As a certified Microsoft partner, Armely handles the full implementation, from architecture design and data migration to dashboards your team will actually use.</p>
-    <div class="delivers-grid">
-      <div class="deliver-card">
-        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3V6Z"/><path d="M9 3v15"/><path d="M15 6v15"/></svg></div>
-        <div class="deliver-title">Data Architecture Design</div>
-        <div class="deliver-desc">Before writing a single pipeline, we map your data sources, business questions, and reporting needs. You get an architecture built for your organization, not a generic template.</div>
-      </div>
-      <div class="deliver-card">
-        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/><path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z"/></svg></div>
-        <div class="deliver-title">Data Integration & Pipelines</div>
-        <div class="deliver-desc">We connect your existing systems, ERP, CRM, databases, cloud apps, into Fabric using Data Factory pipelines. Data flows automatically, on schedule, without manual exports.</div>
-      </div>
-      <div class="deliver-card">
-        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
-        <div class="deliver-title">Lakehouse & Warehouse Build</div>
-        <div class="deliver-desc">We design and build your OneLake foundation, Lakehouse or Warehouse depending on your workloads, so all data lives in one place, accessible to every tool in your stack.</div>
-      </div>
-      <div class="deliver-card">
-        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg></div>
-        <div class="deliver-title">Power BI Dashboards & Reports</div>
-        <div class="deliver-desc">We build the dashboards your leadership and operations teams will actually open every morning. Designed for clarity, not complexity, with Direct Lake speed on large datasets.</div>
-      </div>
-      <div class="deliver-card">
-        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8V4H8"/><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M9 11v2"/><path d="M15 11v2"/></svg></div>
-        <div class="deliver-title">AI & Copilot Integration</div>
-        <div class="deliver-desc">Microsoft Fabric has Copilot built in. We configure it so your team can query data, generate reports, and get insights in plain English, no SQL required.</div>
-      </div>
-      <div class="deliver-card">
-        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg></div>
-        <div class="deliver-title">Governance & Ongoing Support</div>
-        <div class="deliver-desc">Data governance through Microsoft Purview, role-based access, data lineage tracking, and a dedicated Armely contact to keep your Fabric environment healthy as your business scales.</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- JOURNEY -->
-<section class="journey" id="journey">
-  <div class="section-inner">
-    <div class="section-eyebrow">The Armely Fabric Journey</div>
-    <h2 class="section-title">From scattered spreadsheets to a single source of truth.</h2>
-    <p class="section-body">We follow a structured implementation methodology refined across data projects for healthcare, education, and enterprise clients, so nothing gets missed and your data is right from day one.</p>
-    <div class="steps-row">
-      <div class="step">
-        <div class="step-num">01</div>
-        <div class="step-title">Discovery & Data Audit</div>
-        <div class="step-desc">We map your current data sources, tools, and reporting pain points. Free for new clients, no obligation to proceed.</div>
-        <span class="step-tag">Free</span>
-      </div>
-      <div class="step">
-        <div class="step-num">02</div>
-        <div class="step-title">Architecture & Licensing</div>
-        <div class="step-desc">We design your Fabric architecture and source the right capacity license at partner pricing for your workload needs.</div>
-        <span class="step-tag">1-2 weeks</span>
-      </div>
-      <div class="step">
-        <div class="step-num">03</div>
-        <div class="step-title">Build & Integrate</div>
-        <div class="step-desc">Pipelines, Lakehouse, data models, and your first Power BI dashboards, built and tested against your real data.</div>
-        <span class="step-tag">Weeks 3-6</span>
-      </div>
-      <div class="step">
-        <div class="step-num">04</div>
-        <div class="step-title">Handover & Training</div>
-        <div class="step-desc">Your team learns to use, maintain, and extend the environment. We document everything so you're never dependent on us.</div>
-        <span class="step-tag">Week 7-8</span>
-      </div>
-      <div class="step">
-        <div class="step-num">05</div>
-        <div class="step-title">Managed Support</div>
-        <div class="step-desc">Ongoing optimization, new dashboard requests, governance reviews, and a single contact who knows your environment.</div>
-        <span class="step-tag">Ongoing</span>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- USE CASES -->
-<section class="usecases">
-  <div class="section-inner">
-    <div class="section-eyebrow">What Businesses Use It For</div>
-    <h2 class="section-title">Real answers to real business questions.</h2>
-    <p class="section-body">Fabric isn't just a data tool, it's the foundation for every business decision your team makes. Here's what Armely-built Fabric environments deliver in practice.</p>
-    <div class="uc-grid">
-      <div class="uc-card">
-        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 17 6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg></span>
-        <div class="uc-title">Executive Dashboards</div>
-        <div class="uc-desc">Live KPI dashboards that pull from every system, finance, ops, sales, into a single view. Leadership sees the truth, not last week's export.</div>
-      </div>
-      <div class="uc-card">
-        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
-        <div class="uc-title">Financial Reporting</div>
-        <div class="uc-desc">Automate month-end reporting, budget vs actual analysis, and cost center breakdowns. Finance teams reclaim hours previously spent wrangling spreadsheets.</div>
-      </div>
-      <div class="uc-card">
-        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>
-        <div class="uc-title">Operational Intelligence</div>
-        <div class="uc-desc">Track productivity, resource utilization, and service delivery in real time. Spot problems before they become complaints, not after.</div>
-      </div>
-      <div class="uc-card">
-        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></span>
-        <div class="uc-title">System Consolidation</div>
-        <div class="uc-desc">Connect ERP, CRM, HR, and third-party data into one governed data layer. Stop manually reconciling reports from different systems that disagree.</div>
-      </div>
-      <div class="uc-card">
-        <span class="uc-icon">🧬</span>
-        <div class="uc-title">Predictive Analytics</div>
-        <div class="uc-desc">Use Fabric's Data Science workload to build models that forecast demand, flag churn risk, or surface patterns hidden in your historical data.</div>
-      </div>
-      <div class="uc-card">
-        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/></svg></span>
-        <div class="uc-title">Natural Language Queries</div>
-        <div class="uc-desc">With Copilot embedded in Fabric, anyone on your team can ask questions in plain English and get answers from your live data, without touching a report.</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- WHY ARMELY -->
-<section class="why" id="why-armely">
-  <div class="section-inner">
-    <div class="why-two-col">
-      <div>
-        <div class="section-eyebrow">Why Armely</div>
-        <h2 class="section-title">We've done this before, for organizations like yours.</h2>
-        <p class="section-body">Armely has delivered data and analytics projects for healthcare providers, universities, and enterprise clients. Microsoft Fabric brings those capabilities to every business, and we know how to make it land.</p>
-        <ul class="why-list">
-          <li>
-            <div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></div>
-            <div>
-              <div class="why-item-title">Proven Implementation Track Record</div>
-              <div class="why-item-desc">We've implemented Microsoft data solutions for Plano ISD, Swope Health Systems, and the University of Nebraska Medical Center, complex environments with real data governance requirements.</div>
-            </div>
-          </li>
-          <li>
-            <div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
-            <div>
-              <div class="why-item-title">Security & Governance Built In</div>
-              <div class="why-item-desc">We configure Microsoft Purview, Entra ID access controls, and data lineage from day one, so your Fabric environment is audit-ready, not bolted on later.</div>
-            </div>
-          </li>
-          <li>
-            <div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
-            <div>
-              <div class="why-item-title">Right-Sized Licensing</div>
-              <div class="why-item-desc">As a Microsoft-authorized CSP partner, we access Fabric capacity pricing and bundle options not available to direct buyers, and we help you start at the right scale, not the biggest.</div>
-            </div>
-          </li>
-          <li>
-            <div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="m11 17 2 2a1 1 0 1 0 3-3"/><path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4"/><path d="m21 3 1 11h-1"/><path d="M3 3 2 14l6.5 6.5a1 1 0 1 0 3-3"/><path d="M3 4h8"/></svg></div>
-            <div>
-              <div class="why-item-title">You Own the Environment</div>
-              <div class="why-item-desc">We document everything, train your team, and build so you can manage it yourselves. Our goal is capability transfer, not dependency.</div>
-            </div>
-          </li>
-        </ul>
-      </div>
-      <div>
-        <div class="partner-block">
-          <div class="partner-block-top">
-            <div class="partner-label">Microsoft Authorized Partner</div>
-            <p class="partner-text">Armely's Microsoft partnership gives us access to Fabric licensing, technical resources, and implementation support that independent buyers can't reach. That means better value for you and a faster, cleaner build backed by the full Microsoft ecosystem.</p>
-          </div>
-          <div class="partner-stats">
-            <div class="p-stat">
-              <div class="p-stat-num">31<span>K+</span></div>
-              <div class="p-stat-label">paying organizations on Microsoft Fabric as of 2026</div>
-            </div>
-            <div class="p-stat">
-              <div class="p-stat-num">7</div>
-              <div class="p-stat-label">unified workloads, one platform, one license</div>
-            </div>
-            <div class="p-stat">
-              <div class="p-stat-num">300<span>+</span></div>
-              <div class="p-stat-label">data source connectors in Data Factory</div>
-            </div>
-            <div class="p-stat">
-              <div class="p-stat-num">1</div>
-              <div class="p-stat-label">copy of your data, OneLake eliminates duplication</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- CTA -->
-<section class="cta-section" id="contact">
-  <div class="cta-inner">
-    <div>
-      <div class="section-eyebrow">Get Started</div>
-      <h2 class="section-title">Let's talk about your data.</h2>
-      <p class="section-body">Book a free 30-minute discovery call. We'll listen to your current data situation, show you what Fabric could look like for your business, and give you a clear implementation proposal, no obligation.</p>
-      <div style="margin-top: 28px; display: flex; flex-direction: column; gap: 12px;">
-        <div class="trust-item" style="--trust-dot-color: var(--blue);">
-          <span class="trust-dot" style="background: var(--blue);"></span>
-          <span class="trust-text" style="color: var(--text-body);">Free discovery call, no commitment required</span>
-        </div>
-        <div class="trust-item">
-          <span class="trust-dot" style="background: var(--blue);"></span>
-          <span class="trust-text" style="color: var(--text-body);">Custom proposal with partner pricing included</span>
-        </div>
-        <div class="trust-item">
-          <span class="trust-dot" style="background: var(--blue);"></span>
-          <span class="trust-text" style="color: var(--text-body);">Response within one business day</span>
-        </div>
-      </div>
-    </div>
-    <div class="cta-form">
-      <div class="form-title">Book Your Free Discovery Call</div>
-      <div class="form-sub">Tell us a little about your data situation.</div>
-      <div class="form-row">
-        <label>Full Name</label>
-        <input type="text" placeholder="Jane Smith">
-      </div>
-      <div class="form-row">
-        <label>Business Email</label>
-        <input type="email" placeholder="jane@yourcompany.com">
-      </div>
-      <div class="form-row">
-        <label>Company Name</label>
-        <input type="text" placeholder="Acme Corp">
-      </div>
-      <div class="form-row">
-        <label>Primary Data Challenge</label>
-        <select>
-          <option value="">Select...</option>
-          <option>Reporting takes too long / is manual</option>
-          <option>Data is scattered across too many systems</option>
-          <option>No single source of truth</option>
-          <option>Need real-time dashboards</option>
-          <option>Migrating from legacy tools (Synapse, ADF)</option>
-          <option>Want to add AI / Copilot to our data</option>
-        </select>
-      </div>
-      <button class="form-submit">Request Free Discovery Call →</button>
-      <div class="form-note">No spam. No sales pressure. Just a useful conversation.</div>
-    </div>
-  </div>
-</section>
-
-<!-- FOOTER -->
-<footer>
-  <div class="footer-logo-row">
-    <div class="footer-lm">A</div>
-    <span class="footer-lt">armely</span>
-  </div>
-  <div class="footer-note">© 2026 Armely · www.armely.com · Your Trusted Source for Digital Excellence</div>
-  <div class="footer-badges">
-    <span class="badge-chip">Microsoft CSP Partner</span>
-    <span class="badge-chip">Microsoft Authorized Reseller</span>
-    <span class="badge-chip">Fabric Certified</span>
-  </div>
-</footer>
-
+<section class="why"><div class="section-inner"><div class="section-eyebrow">Why Armely</div><h2 class="section-title">We make your data work for your business.</h2><p class="section-body">Armely has delivered data and analytics projects for healthcare providers, universities, and enterprise clients.</p>
+<div class="why-two-col"><div><ul class="why-list"><li><div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></div><div><div class="why-item-title">Certified Fabric Implementors</div><div class="why-item-desc">Our team holds Microsoft certifications covering Fabric, Power BI, and Azure data services, with production delivery experience across healthcare, education, and enterprise.</div></div></li><li><div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg></div><div><div class="why-item-title">Security and Governance Built In</div><div class="why-item-desc">We configure Microsoft Purview, Entra ID access controls, and data lineage from day one so your environment is audit-ready.</div></div></li><li><div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><div><div class="why-item-title">Right-Sized Licensing</div><div class="why-item-desc">As a Microsoft-authorized CSP partner, we access Fabric capacity pricing not available to direct buyers.</div></div></li><li><div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg></div><div><div class="why-item-title">You Own the Environment</div><div class="why-item-desc">We document everything, train your team, and build so you can manage it yourselves.</div></div></li></ul></div>
+<div><div class="partner-block"><div class="partner-block-top"><div class="partner-label">Microsoft Authorized Partner</div><p class="partner-text">Armely's Microsoft partnership gives us access to Fabric licensing, technical resources, and implementation support not available to direct customers.</p></div><div class="partner-stats"><div class="p-stat"><div class="p-stat-num">31<span>K+</span></div><div class="p-stat-label">paying organizations on Microsoft Fabric</div></div><div class="p-stat"><div class="p-stat-num">7<span></span></div><div class="p-stat-label">unified workloads, one platform, one license</div></div><div class="p-stat"><div class="p-stat-num">300<span>+</span></div><div class="p-stat-label">data source connectors in Data Factory</div></div><div class="p-stat"><div class="p-stat-num">1<span></span></div><div class="p-stat-label">copy of your data, OneLake eliminates duplication</div></div></div></div></div></div></div></section>
+<section class="cta-section" id="contact"><div class="cta-inner"><div><div class="section-eyebrow">Get Started</div><h2 class="section-title">Let's talk about your data.</h2><p class="section-body">Book a free 30-minute discovery call. We will review your current data situation and come back with a clear implementation proposal.</p><div style="margin-top:20px;display:flex;flex-direction:column;gap:9px;"><div class="trust-item"><span class="trust-dot"></span><span class="trust-text">Free assessment, no commitment required</span></div><div class="trust-item"><span class="trust-dot"></span><span class="trust-text">Recommendation and partner pricing included</span></div><div class="trust-item"><span class="trust-dot"></span><span class="trust-text">Response within one business day</span></div></div></div><div class="cta-form"><div class="form-title">Book Your Free Assessment</div><div class="form-sub">Tell us about your situation.</div><div class="form-row"><label>Full Name</label><input type="text" placeholder="Jane Smith"></div><div class="form-row"><label>Business Email</label><input type="email" placeholder="jane@yourcompany.com"></div><div class="form-row"><label>Company Name</label><input type="text" placeholder="Acme Corp"></div><div class="form-row"><label>Primary Need</label><select><option value="">Select...</option><option>Reporting takes too long or is manual</option><option>Data is scattered across too many systems</option><option>No single source of truth</option><option>Need real-time dashboards</option><option>Migrating from legacy tools</option><option>Want to add AI to our data</option><option>Not sure, need a recommendation</option></select></div><button class="form-submit">Request Free Discovery Call</button><div class="form-note">No spam. No sales pressure. Just a useful conversation.</div></div></div></section>
 </div>

@@ -1,6 +1,5 @@
 <style>
 
-
 .armely-power-platform-page *, .armely-power-platform-page *::before, .armely-power-platform-page *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 .armely-power-platform-page {
@@ -808,466 +807,69 @@
 }
 
 
+.armely-power-platform-page .cr-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-top:28px; margin-bottom:28px; }
+.armely-power-platform-page .cr-card { background:#fff; border:1px solid var(--border); border-radius:12px; padding:20px 22px; box-shadow:0 2px 10px rgba(18,47,82,0.04); }
+.armely-power-platform-page .cr-label { display:flex; align-items:center; gap:9px; margin-bottom:10px; }
+.armely-power-platform-page .cr-check { width:20px; height:20px; display:flex; align-items:center; justify-content:center; background:var(--blue-dim); border:1px solid var(--blue-dim2); border-radius:50%; flex-shrink:0; color:var(--blue); }
+.armely-power-platform-page .cr-check .icon-svg { width:11px; height:11px; stroke-width:3; }
+.armely-power-platform-page .cr-industry { font-size:0.875rem; font-weight:700; color:#1A2540; }
+.armely-power-platform-page .cr-desc { font-size:0.82rem; color:var(--text-muted); line-height:1.65; margin:0; }
+.armely-power-platform-page .cr-cta { text-align:center; }
+.armely-power-platform-page .cr-btn { display:inline-flex; align-items:center; gap:10px; background:#1a2e52; color:#fff; border-radius:8px; padding:12px 28px; text-decoration:none; font-size:0.875rem; font-weight:600; }
+.armely-power-platform-page .cr-btn:hover { background:var(--blue); }
+.armely-power-platform-page .cr-btn .icon-svg { width:18px; height:18px; }
+@media (max-width:900px) { .armely-power-platform-page .cr-grid { grid-template-columns:1fr 1fr; } }
+@media (max-width:600px) { .armely-power-platform-page .cr-grid { grid-template-columns:1fr; } }
 </style>
 <div class="armely-power-platform-page">
-
-<!-- NAV -->
-<nav>
-  <div class="logo">
-    <div class="logo-mark">A</div>
-    <span class="logo-text">armely</span>
-  </div>
-  <ul class="nav-links">
-    <li><a href="#products">Products</a></li>
-    <li><a href="#what-we-deliver">Services</a></li>
-    <li><a href="#journey">Our Process</a></li>
-    <li><a href="#contact" class="nav-cta">Get Started</a></li>
-  </ul>
-</nav>
-
-<!-- HERO -->
 <section class="hero">
   <div class="hero-bg-glow"></div>
-  <div class="hero-eyebrow">
-    <span class="eyebrow-badge">Microsoft Power Platform</span>
-    <span class="eyebrow-partner">Delivered by a certified Microsoft partner</span>
-  </div>
-  <h1>Build apps. Automate work.<br><span class="hl">Eliminate the tools gap.</span></h1>
-  <p class="hero-sub">Armely designs and delivers Microsoft Power Platform solutions that replace manual processes, connect your business systems, and put the right information in front of the right people, without months of custom development.</p>
-  <div class="hero-actions">
-    <a href="#contact" class="btn-primary">Book a Free Discovery Call</a>
-    <a href="#products" class="btn-outline">Explore the Platform</a>
-  </div>
-  <div class="hero-trust">
-    <div class="trust-item">
-      <span class="trust-dot"></span>
-      <span class="trust-text"><strong>Low-code</strong> development, enterprise-grade results</span>
-    </div>
-    <div class="trust-item">
-      <span class="trust-dot"></span>
-      <span class="trust-text">Native integration with <strong>Microsoft 365 and Dynamics 365</strong></span>
-    </div>
-    <div class="trust-item">
-      <span class="trust-dot"></span>
-      <span class="trust-text"><strong>Copilot AI</strong> built into every product</span>
-    </div>
-    <div class="trust-item">
-      <span class="trust-dot"></span>
-      <span class="trust-text"><strong>900 plus</strong> pre-built connectors</span>
-    </div>
-  </div>
-</section>
-
-<!-- WHAT IS POWER PLATFORM -->
-<section class="products" id="products">
-  <div class="section-inner">
-    <div class="products-intro">
-      <div>
-        <div class="section-eyebrow">What is Microsoft Power Platform?</div>
-        <h2 class="section-title">Five products that work individually and are far more powerful together.</h2>
-        <p class="section-body">Power Platform is Microsoft's low-code suite for building applications, automating workflows, analyzing data, and creating external-facing websites, all sharing the same data layer, security model, and Copilot AI capabilities. Most organizations start with one product and expand as they see what is possible.</p>
-        <div class="product-cards">
-          <div class="product-card">
-            <span class="product-card-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" x2="12.01" y1="18" y2="18"/></svg></span>
-            <div class="product-card-title">Power Apps</div>
-            <div class="product-card-desc">Build custom business applications without extensive development. Canvas apps for flexible UI design, model-driven apps for data-centric workflows.</div>
-          </div>
-          <div class="product-card">
-            <span class="product-card-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 3 14h9l-1 8 11-14h-9l1-6Z"/></svg></span>
-            <div class="product-card-title">Power Automate</div>
-            <div class="product-card-desc">Automate repetitive tasks and multi-system workflows using cloud flows, desktop flows for RPA, and AI-assisted process mining.</div>
-          </div>
-          <div class="product-card">
-            <span class="product-card-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg></span>
-            <div class="product-card-title">Power BI</div>
-            <div class="product-card-desc">Transform raw data into interactive dashboards and reports that give every team in your organization clear, real-time visibility.</div>
-          </div>
-          <div class="product-card">
-            <span class="product-card-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span>
-            <div class="product-card-title">Power Pages</div>
-            <div class="product-card-desc">Build secure, professional external-facing websites and portals connected to your business data, with low-code design tools and built-in governance.</div>
-          </div>
-          <div class="product-card span2">
-            <span class="product-card-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8V4H8"/><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M9 11v2"/><path d="M15 11v2"/></svg></span>
-            <div>
-              <div class="product-card-title">Copilot Studio</div>
-              <div class="product-card-desc">Build AI agents and custom copilots that answer questions, take actions, and automate workflows across your business, connected to your own data and systems.</div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div>
-        <div class="platform-card">
-          <div class="platform-header">
-            <div class="platform-dots"><span></span><span></span><span></span></div>
-            <span class="platform-header-title">Power Platform Architecture</span>
-          </div>
-          <div class="platform-body">
-            <div class="platform-layer layer-apps">
-              <div class="platform-layer-label">Products</div>
-              <div class="platform-chips">
-                <span class="platform-chip">Power Apps</span>
-                <span class="platform-chip">Power Automate</span>
-                <span class="platform-chip">Power BI</span>
-                <span class="platform-chip">Power Pages</span>
-                <span class="platform-chip">Copilot Studio</span>
-              </div>
-            </div>
-            <div class="layer-arrow">&#8597;</div>
-            <div class="platform-layer layer-data">
-              <div class="platform-layer-label">Shared Data and AI</div>
-              <div class="platform-chips">
-                <span class="platform-chip">Dataverse</span>
-                <span class="platform-chip">Copilot AI</span>
-                <span class="platform-chip">AI Builder</span>
-                <span class="platform-chip">Power Fx</span>
-              </div>
-            </div>
-            <div class="layer-arrow">&#8597;</div>
-            <div class="platform-layer layer-connectors">
-              <div class="platform-layer-label">900+ Connectors</div>
-              <div class="platform-chips">
-                <span class="platform-chip">Microsoft 365</span>
-                <span class="platform-chip">Dynamics 365</span>
-                <span class="platform-chip">SharePoint</span>
-                <span class="platform-chip">SQL Server</span>
-                <span class="platform-chip">Salesforce</span>
-                <span class="platform-chip">SAP</span>
-                <span class="platform-chip">ServiceNow</span>
-              </div>
-            </div>
-            <div class="layer-arrow">&#8597;</div>
-            <div class="platform-layer layer-foundation">
-              <div class="platform-layer-label">Governance and Security</div>
-              <div class="platform-chips">
-                <span class="platform-chip">Azure AD / Entra ID</span>
-                <span class="platform-chip">DLP Policies</span>
-                <span class="platform-chip">Managed Environments</span>
-                <span class="platform-chip">Audit Logs</span>
-              </div>
-            </div>
-          </div>
-        </div>
+  <div class="hero-inner">
+    <div class="hero-copy">
+      <div class="hero-eyebrow"><span class="eyebrow-badge">Microsoft Power Platform</span><span class="eyebrow-partner">Delivered by a certified Microsoft partner</span></div>
+      <h1>Automate the work.<br>Build the tools.<br>Show the data.</h1>
+      <p class="hero-sub">Armely designs and delivers Microsoft Power Platform solutions that replace manual processes, connect your business systems, and put data in the hands of the people who need it.</p>
+      <div class="hero-actions">
+        <a href="#contact" class="btn-primary">Book a Free Assessment</a>
+        <a href="#delivers" class="btn-outline">See What We Do</a>
       </div>
     </div>
   </div>
 </section>
 
-<!-- WHAT ARMELY DELIVERS -->
-<section class="delivers" id="what-we-deliver">
-  <div class="section-inner">
-    <div class="section-eyebrow">What Armely Delivers</div>
-    <h2 class="section-title">Solutions that solve real business problems, not technical exercises.</h2>
-    <p class="section-body">Armely builds Power Platform solutions around your workflows and business outcomes. Every engagement starts with understanding the problem before selecting the product.</p>
-    <div class="delivers-grid">
-      <div class="deliver-card">
-        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" x2="12.01" y1="18" y2="18"/></svg></div>
-        <div class="deliver-title">Custom Application Development</div>
-        <div class="deliver-desc">We build Power Apps solutions that replace paper forms, spreadsheet-based processes, and legacy internal tools. From simple data capture apps to complex model-driven applications connected to Dataverse, built and delivered in weeks.</div>
-      </div>
-      <div class="deliver-card">
-        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 3 14h9l-1 8 11-14h-9l1-6Z"/></svg></div>
-        <div class="deliver-title">Workflow and Process Automation</div>
-        <div class="deliver-desc">We automate approval workflows, document routing, data synchronization across systems, and repetitive desktop tasks using Power Automate cloud flows and RPA. We identify the highest-value processes to automate first, so you see return quickly.</div>
-      </div>
-      <div class="deliver-card">
-        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg></div>
-        <div class="deliver-title">Power BI Dashboards and Reports</div>
-        <div class="deliver-desc">We connect Power BI to your data sources, build semantic models, and design dashboards that give leadership and operations teams real-time visibility across the business. Reports that get opened every morning, not quarterly.</div>
-      </div>
-      <div class="deliver-card">
-        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></div>
-        <div class="deliver-title">External Portals with Power Pages</div>
-        <div class="deliver-desc">We build customer portals, partner sites, and application forms using Power Pages, connected to your Dataverse or Dynamics 365 data. Secure external access to business data without custom web development costs.</div>
-      </div>
-      <div class="deliver-card">
-        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8V4H8"/><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M9 11v2"/><path d="M15 11v2"/></svg></div>
-        <div class="deliver-title">AI Agents and Copilot Studio</div>
-        <div class="deliver-desc">We design and deploy AI agents using Copilot Studio that answer employee or customer questions, trigger workflows, and surface business data in natural language conversations, connected to your own systems and data sources.</div>
-      </div>
-      <div class="deliver-card">
-        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg></div>
-        <div class="deliver-title">Governance and Center of Excellence</div>
-        <div class="deliver-desc">Power Platform grows fast and ungoverned environments become liabilities. We implement the Microsoft Center of Excellence Starter Kit, DLP policies, managed environments, and admin tooling so your investment scales safely.</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- JOURNEY -->
-<section class="journey" id="journey">
-  <div class="section-inner">
-    <div class="section-eyebrow">The Armely Power Platform Journey</div>
-    <h2 class="section-title">From process pain point to working solution, on a clear timeline.</h2>
-    <p class="section-body">Power Platform's strength is speed. Our delivery approach is designed to get you to a working solution fast, validate it with real users, and expand from there rather than spending months in design before anyone sees anything.</p>
-    <div class="steps-row">
-      <div class="step">
-        <div class="step-num">01</div>
-        <div class="step-title">Discovery Workshop</div>
-        <div class="step-desc">We identify your highest-value automation and application opportunities, map your data sources, and confirm which Power Platform products apply to your situation.</div>
-        <span class="step-tag">Free</span>
-      </div>
-      <div class="step">
-        <div class="step-num">02</div>
-        <div class="step-title">Solution Design</div>
-        <div class="step-desc">We design the solution architecture, confirm licensing requirements at partner pricing, and align on scope before any build work begins.</div>
-        <span class="step-tag">1 week</span>
-      </div>
-      <div class="step">
-        <div class="step-num">03</div>
-        <div class="step-title">Build and Review</div>
-        <div class="step-desc">We build iteratively with regular checkpoints so you see working software throughout the project, not just at the end.</div>
-        <span class="step-tag">Weeks 2-5</span>
-      </div>
-      <div class="step">
-        <div class="step-num">04</div>
-        <div class="step-title">Training and Launch</div>
-        <div class="step-desc">User training, administrator documentation, and a managed go-live with Armely available to support your team through the first weeks of adoption.</div>
-        <span class="step-tag">Week 6</span>
-      </div>
-      <div class="step">
-        <div class="step-num">05</div>
-        <div class="step-title">Expand and Govern</div>
-        <div class="step-desc">Additional solutions built on the same platform foundation, with governance controls and admin tooling that keep your Power Platform environment healthy as it grows.</div>
-        <span class="step-tag">Ongoing</span>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- USE CASES -->
-<section class="usecases">
-  <div class="section-inner">
-    <div class="section-eyebrow">Common Engagements</div>
-    <h2 class="section-title">What organizations build and automate with Power Platform.</h2>
-    <p class="section-body">These are the scenarios we deliver most frequently, across industries and organization sizes. Most start with one clear problem and expand from there.</p>
-    <div class="uc-grid">
-      <div class="uc-card">
-        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M8 12h8"/><path d="M8 16h6"/></svg></span>
-        <div class="uc-title">Replace Paper and Spreadsheet Processes</div>
-        <div class="uc-desc">Inspection forms, expense submissions, time tracking, onboarding checklists, and incident reports built as Power Apps and submitted directly to a central data store, with automated routing and notifications.</div>
-        <span class="uc-tag">Power Apps + Power Automate</span>
-      </div>
-      <div class="uc-card">
-        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span>
-        <div class="uc-title">Multi-Step Approval Workflows</div>
-        <div class="uc-desc">Purchase order approvals, contract reviews, leave requests, and capital expenditure sign-offs automated end to end, with Teams notifications, audit trails, and escalation paths when approvers do not respond.</div>
-        <span class="uc-tag">Power Automate</span>
-      </div>
-      <div class="uc-card">
-        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg></span>
-        <div class="uc-title">Executive and Operational Dashboards</div>
-        <div class="uc-desc">Live Power BI reports connected to your ERP, CRM, or operational systems, giving leadership and team managers a single view of performance without waiting for weekly extracts or manual report runs.</div>
-        <span class="uc-tag">Power BI</span>
-      </div>
-      <div class="uc-card">
-        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></span>
-        <div class="uc-title">Cross-System Data Synchronization</div>
-        <div class="uc-desc">Automated flows that keep customer records, order data, and employee information consistent across Dynamics 365, SharePoint, external databases, and third-party systems without manual re-entry or batch file imports.</div>
-        <span class="uc-tag">Power Automate</span>
-      </div>
-      <div class="uc-card">
-        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span>
-        <div class="uc-title">Customer and Partner Portals</div>
-        <div class="uc-desc">Secure external portals where customers can submit requests, view their account status, upload documents, or complete applications, connected directly to your Dynamics 365 or Dataverse data.</div>
-        <span class="uc-tag">Power Pages</span>
-      </div>
-      <div class="uc-card">
-        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/></svg></span>
-        <div class="uc-title">Internal AI Assistants</div>
-        <div class="uc-desc">Custom AI agents built in Copilot Studio that answer employee questions about HR policies, IT procedures, or product information by searching your actual documentation, not generic web content.</div>
-        <span class="uc-tag">Copilot Studio</span>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- TESTIMONIALS -->
+<section class="spectrum"><div class="section-inner"><div class="section-eyebrow">What is Microsoft Power Platform?</div><h2 class="section-title">Low-code tools that let your business move without waiting on IT.</h2><p class="section-body">Power Platform is Microsoft's suite of low-code tools that lets business users and developers build applications, automate workflows, analyze data, and deploy AI agents on top of the data and systems your organization already has.</p>
+<div class="spectrum-grid"><div><div class="spectrum-row">
+<div class="spectrum-level highlight"><span class="spectrum-num">Apps</span><div><div class="spectrum-content-title">Power Apps</div><div class="spectrum-content-desc">Build custom business applications without writing code. Canvas apps for mobile and desktop, model-driven apps for complex data processes, and Power Pages for external-facing portals.</div></div></div>
+<div class="spectrum-level highlight"><span class="spectrum-num">Auto</span><div><div class="spectrum-content-title">Power Automate</div><div class="spectrum-content-desc">Automate repetitive tasks and multi-step approval workflows. Connect 900-plus applications through pre-built connectors. RPA bots handle tasks in applications with no API.</div></div></div>
+<div class="spectrum-level highlight"><span class="spectrum-num">BI</span><div><div class="spectrum-content-title">Power BI</div><div class="spectrum-content-desc">Business intelligence dashboards and reports connected to your data sources. Embedded analytics in your applications and portals.</div></div></div>
+<div class="spectrum-level highlight"><span class="spectrum-num">AI</span><div><div class="spectrum-content-title">Copilot Studio</div><div class="spectrum-content-desc">Build and deploy AI agents and copilots grounded in your SharePoint, Dataverse, and business systems. No ML expertise required.</div></div></div>
+</div></div><div><div class="platform-card"><div class="platform-header"><div class="platform-dots"><span></span><span></span><span></span></div><span class="platform-header-title">Microsoft Power Platform</span></div><div class="platform-body"><div class="plat-band band-tools"><div class="plat-band-label">Applications and Automation</div><div class="plat-chips"><span class="plat-chip">Power Apps</span><span class="plat-chip">Power Automate</span><span class="plat-chip">Copilot Studio</span><span class="plat-chip">Power Pages</span><span class="plat-chip">RPA Desktop Flows</span></div></div><div class="band-arrow">&#8597;</div><div class="plat-band band-data"><div class="plat-band-label">Data and Analytics</div><div class="plat-chips"><span class="plat-chip">Power BI</span><span class="plat-chip">Dataverse</span><span class="plat-chip">AI Builder</span><span class="plat-chip">Microsoft Fabric</span><span class="plat-chip">900+ Connectors</span></div></div><div class="band-arrow">&#8597;</div><div class="plat-band band-gov"><div class="plat-band-label">Security and Governance</div><div class="plat-chips"><span class="plat-chip">Entra ID</span><span class="plat-chip">DLP Policies</span><span class="plat-chip">Managed Environments</span><span class="plat-chip">Admin Center</span><span class="plat-chip">Microsoft Purview</span></div></div></div></div></div></div></div></section>
+<section class="delivers" id="delivers"><div class="section-inner"><div class="section-eyebrow">What Armely Delivers</div><h2 class="section-title">Power Platform solutions that replace manual processes and fragmented tools.</h2><p class="section-body">Armely designs and delivers Power Platform solutions that solve specific business problems, from a single approval workflow to a full application replacing a legacy system.</p>
+<div class="delivers-grid"><div class="deliver-card"><div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="2" y="2" width="9" height="9" rx="1"/><rect x="13" y="2" width="9" height="9" rx="1"/><rect x="2" y="13" width="9" height="9" rx="1"/><rect x="13" y="13" width="9" height="9" rx="1"/></svg></div><div class="deliver-title">Power Apps Development</div><div class="deliver-desc">Custom canvas and model-driven applications built on Dataverse for the workflows your team performs every day.</div></div><div class="deliver-card"><div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m17 2 4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></div><div class="deliver-title">Power Automate Workflows</div><div class="deliver-desc">Multi-step approval workflows, data synchronization between systems, scheduled report generation, and document processing automation.</div></div><div class="deliver-card"><div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg></div><div class="deliver-title">Power BI Dashboards</div><div class="deliver-desc">Business intelligence dashboards connected to your SQL Server, Dataverse, SharePoint, and cloud data sources.</div></div><div class="deliver-card"><div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 8V4H8"/><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M9 11v2"/><path d="M15 11v2"/></svg></div><div class="deliver-title">Copilot Studio Agents</div><div class="deliver-desc">AI knowledge agents and process assistants built on your business data, deployed in Microsoft Teams or on your website.</div></div><div class="deliver-card"><div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></div><div class="deliver-title">Power Pages Portals</div><div class="deliver-desc">External-facing portals for customers, partners, suppliers, or community members connected to your Dataverse data.</div></div><div class="deliver-card"><div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></div><div class="deliver-title">Governance and Center of Excellence</div><div class="deliver-desc">Power Platform governance framework, managed environments, DLP policies, and Center of Excellence deployment.</div></div></div></div></section>
+<section class="journey"><div class="section-inner"><div class="section-eyebrow">How Armely Works</div><h2 class="section-title">From business problem to working solution, faster than you expect.</h2><p class="section-body">Power Platform's strength is speed. Our delivery methodology captures requirements properly so that speed produces the right solution.</p>
+<div class="steps-row"><div class="step"><div class="step-num">01</div><div class="step-title">Requirements Session</div><div class="step-desc">We document the business problem, user roles, data sources, and approval requirements. For most engagements, this is one session.</div><span class="step-tag">Free</span></div><div class="step"><div class="step-num">02</div><div class="step-title">Design and Data Model</div><div class="step-desc">We design the solution architecture, Dataverse schema, connector strategy, and security model before building.</div><span class="step-tag">Week 1</span></div><div class="step"><div class="step-num">03</div><div class="step-title">Build and Review</div><div class="step-desc">We build iteratively with working demos at the end of each sprint. You review real functionality against real data, not wireframes.</div><span class="step-tag">Weeks 2-4</span></div><div class="step"><div class="step-num">04</div><div class="step-title">Test and Deploy</div><div class="step-desc">User acceptance testing with your team, deployment to production, and training for administrators and end users.</div><span class="step-tag">Week 5</span></div><div class="step"><div class="step-num">05</div><div class="step-title">Support and Enhancement</div><div class="step-desc">Post-deployment support, governance monitoring, and ongoing enhancement requests handled by the same team that built the solution.</div><span class="step-tag">Ongoing</span></div></div></div></section>
+<section class="usecases"><div class="section-inner"><div class="section-eyebrow">Common Engagements</div><h2 class="section-title">The Power Platform problems Armely solves most often.</h2><p class="section-body">These are the business processes that Power Platform improves most reliably.</p>
+<div class="uc-grid"><div class="uc-card"><span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M8 12h8"/><path d="M8 16h6"/></svg></span><div class="uc-title">Approval and Sign-Off Workflows</div><div class="uc-desc">Purchase order approvals, leave requests, contract sign-off, and any multi-step process that currently runs through email chains.</div></div><div class="uc-card"><span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 13h8"/><path d="M8 17h6"/></svg></span><div class="uc-title">Inspection and Data Capture Apps</div><div class="uc-desc">Field inspections, safety checklists, site audits, and quality control forms that currently run on paper or disconnected spreadsheets.</div></div><div class="uc-card"><span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg></span><div class="uc-title">Operational Reporting and Dashboards</div><div class="uc-desc">Power BI dashboards for operations managers, finance teams, and executives who currently wait for weekly report emails.</div></div><div class="uc-card"><span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 8V4H8"/><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M9 11v2"/><path d="M15 11v2"/></svg></span><div class="uc-title">Internal Knowledge Agents</div><div class="uc-desc">Copilot Studio agents grounded in your SharePoint policies, Dataverse records, and internal documentation.</div></div><div class="uc-card"><span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span><div class="uc-title">Customer and Partner Portals</div><div class="uc-desc">Power Pages portals for customers to submit requests, track order status, access documents, and manage their account.</div></div><div class="uc-card"><span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m17 2 4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></span><div class="uc-title">Legacy System Replacement</div><div class="uc-desc">On-premises applications built on Access, SharePoint lists, or aging custom code replaced with a modern Power Apps solution on Dataverse.</div></div></div></div></section>
 <section class="testimonials">
   <div class="section-inner">
     <div class="section-eyebrow">Client Results</div>
-    <h2 class="section-title">What our clients say about working with Armely.</h2>
-    <div class="testi-grid">
-
-      <div class="testi-card">
-        <span class="testi-quote">&ldquo;</span>
-        <p class="testi-body">Our field inspection process was entirely paper-based. Armely built a Power Apps solution in three weeks that our technicians use on tablets in the field. Submissions go directly into SharePoint, and a Power Automate flow routes completed reports to the right manager automatically. What used to take two days of data entry now happens in real time.</p>
-        <div class="testi-footer">
-          <div class="testi-avatar">OM</div>
-          <div>
-            <div class="testi-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-            <div class="testi-name">Operations Manager</div>
-            <div class="testi-role">Infrastructure Services Company, Texas</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="testi-card">
-        <span class="testi-quote">&ldquo;</span>
-        <p class="testi-body">We needed consolidated reporting across three different systems our leadership team used daily. Armely connected Power BI to all three sources, built a unified semantic model, and delivered a dashboard suite that our executive team now opens every morning. The project was scoped, built, and live in under six weeks.</p>
-        <div class="testi-footer">
-          <div class="testi-avatar">CFO</div>
-          <div>
-            <div class="testi-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-            <div class="testi-name">Chief Financial Officer</div>
-            <div class="testi-role">Healthcare Organization, Midwest</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="testi-card">
-        <span class="testi-quote">&ldquo;</span>
-        <p class="testi-body">Our purchase approval process ran entirely through email and had no audit trail. Armely built a Power Automate flow that routes requests based on amount and department, sends Teams notifications to approvers, escalates after 48 hours, and writes every decision to a SharePoint log. Our finance team now has full visibility and our auditors are satisfied.</p>
-        <div class="testi-footer">
-          <div class="testi-avatar">FC</div>
-          <div>
-            <div class="testi-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-            <div class="testi-name">Finance Controller</div>
-            <div class="testi-role">Professional Services Firm, Southeast</div>
-          </div>
-        </div>
-      </div>
-
+    <h2 class="section-title">Real outcomes for real organizations.</h2>
+    <p class="section-body">Armely has delivered Microsoft platform and AI solutions for healthcare providers, school districts, energy operators, professional services firms, government agencies, and non-profit organizations. See the full story on our Customer Stories page.</p>
+    <div class="cr-grid">
+      <div class="cr-card"><div class="cr-label"><span class="cr-check"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg></span><span class="cr-industry">Healthcare</span></div><p class="cr-desc">Swope Health Services and UNMC: data platform and clinical workflow modernization on Microsoft Azure.</p></div>
+      <div class="cr-card"><div class="cr-label"><span class="cr-check"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg></span><span class="cr-industry">Education</span></div><p class="cr-desc">Plano ISD: Microsoft 365 governance, SharePoint, and Power Platform implementations across district operations.</p></div>
+      <div class="cr-card"><div class="cr-label"><span class="cr-check"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg></span><span class="cr-industry">Energy</span></div><p class="cr-desc">Oil and gas operators: OpenInvoice visibility and AP workflow automation through Invoice Lens.</p></div>
+      <div class="cr-card"><div class="cr-label"><span class="cr-check"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg></span><span class="cr-industry">Professional Services</span></div><p class="cr-desc">Consulting and legal firms: Dynamics 365, Power Automate approval workflows, and AI knowledge agents.</p></div>
+      <div class="cr-card"><div class="cr-label"><span class="cr-check"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg></span><span class="cr-industry">Government</span></div><p class="cr-desc">State and local agencies: Microsoft 365 Government deployment and compliance configuration.</p></div>
+      <div class="cr-card"><div class="cr-label"><span class="cr-check"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg></span><span class="cr-industry">Non-Profit</span></div><p class="cr-desc">Social services organizations: Microsoft 365 optimization, Power BI grant reporting, and SharePoint governance.</p></div>
+    </div>
+    <div class="cr-cta">
+      <a href="https://armely.com/customer-stories" class="cr-btn"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Read Client Stories on armely.com</span><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>
     </div>
   </div>
 </section>
-
-<!-- WHY ARMELY -->
-<section class="why" id="why-armely">
-  <div class="section-inner">
-    <div class="why-two-col">
-      <div>
-        <div class="section-eyebrow">Why Armely</div>
-        <h2 class="section-title">Power Platform works best when the implementor understands your business, not just the technology.</h2>
-        <p class="section-body">Low-code does not mean no skill required. The difference between a Power Platform solution that gets used and one that gets abandoned is whether it was designed around how people actually work.</p>
-        <ul class="why-list">
-          <li>
-            <div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></div>
-            <div>
-              <div class="why-item-title">Certified Power Platform Developers</div>
-              <div class="why-item-desc">Our team holds Microsoft Power Platform certifications across Power Apps, Power Automate, and Power BI, with production delivery experience across healthcare, education, and professional services organizations.</div>
-            </div>
-          </li>
-          <li>
-            <div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></div>
-            <div>
-              <div class="why-item-title">Full Microsoft Ecosystem Coverage</div>
-              <div class="why-item-desc">Power Platform integrates most deeply with Microsoft 365, Dynamics 365, Azure, and SQL Server. Armely covers all of these, so your Power Platform solutions are designed to work with your existing Microsoft environment from day one.</div>
-            </div>
-          </li>
-          <li>
-            <div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg></div>
-            <div>
-              <div class="why-item-title">Governance Built In from the Start</div>
-              <div class="why-item-desc">Ungoverned Power Platform environments accumulate technical debt quickly. We implement DLP policies, naming standards, environment strategy, and admin tooling alongside every solution we deliver, not as an afterthought.</div>
-            </div>
-          </li>
-          <li>
-            <div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
-            <div>
-              <div class="why-item-title">Licensing at Partner Pricing</div>
-              <div class="why-item-desc">As a Microsoft-authorized CSP partner, we source Power Platform licensing at rates not available through direct purchase and help you select the right license tier for your use case rather than overbuying.</div>
-            </div>
-          </li>
-        </ul>
-      </div>
-      <div>
-        <div class="partner-block">
-          <div class="partner-block-top">
-            <div class="partner-label">Microsoft Authorized Partner</div>
-            <p class="partner-text">Armely's Microsoft partnership gives us access to Power Platform licensing, technical pre-sales resources, and implementation support not available to direct customers. That means better pricing, faster starts, and solutions built on Microsoft's own recommended architectures and governance frameworks.</p>
-          </div>
-          <div class="partner-stats">
-            <div class="p-stat">
-              <div class="p-stat-num">900<span>+</span></div>
-              <div class="p-stat-label">pre-built connectors to external systems and services</div>
-            </div>
-            <div class="p-stat">
-              <div class="p-stat-num">5</div>
-              <div class="p-stat-label">products in one platform sharing data, security, and AI</div>
-            </div>
-            <div class="p-stat">
-              <div class="p-stat-num">75<span>%</span></div>
-              <div class="p-stat-label">of new apps projected to be built with low-code tools by 2026 (Gartner)</div>
-            </div>
-            <div class="p-stat">
-              <div class="p-stat-num">300<span>M+</span></div>
-              <div class="p-stat-label">automated workflows processed monthly across the Power Platform</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- CTA -->
-<section class="cta-section" id="contact">
-  <div class="cta-inner">
-    <div>
-      <div class="section-eyebrow">Get Started</div>
-      <h2 class="section-title">Tell us the process you want to fix. We will show you what is possible.</h2>
-      <p class="section-body">Book a free 30-minute discovery call. We will review your current tools and workflows, identify the right Power Platform products for your situation, and come back with a solution proposal and licensing recommendation at no obligation.</p>
-      <div style="margin-top: 28px; display: flex; flex-direction: column; gap: 12px;">
-        <div class="trust-item">
-          <span class="trust-dot" style="background: var(--blue);"></span>
-          <span class="trust-text" style="color: var(--text-body);">Free discovery, no commitment required</span>
-        </div>
-        <div class="trust-item">
-          <span class="trust-dot" style="background: var(--blue);"></span>
-          <span class="trust-text" style="color: var(--text-body);">Solution recommendation and partner pricing included</span>
-        </div>
-        <div class="trust-item">
-          <span class="trust-dot" style="background: var(--blue);"></span>
-          <span class="trust-text" style="color: var(--text-body);">Response within one business day</span>
-        </div>
-      </div>
-    </div>
-    <div class="cta-form">
-      <div class="form-title">Book Your Free Discovery Call</div>
-      <div class="form-sub">Tell us what you are trying to build or automate.</div>
-      <div class="form-row">
-        <label>Full Name</label>
-        <input type="text" placeholder="Jane Smith">
-      </div>
-      <div class="form-row">
-        <label>Business Email</label>
-        <input type="email" placeholder="jane@yourcompany.com">
-      </div>
-      <div class="form-row">
-        <label>Company Name</label>
-        <input type="text" placeholder="Acme Corp">
-      </div>
-      <div class="form-row">
-        <label>Primary Interest</label>
-        <select>
-          <option value="">Select...</option>
-          <option>Build a custom business application (Power Apps)</option>
-          <option>Automate a manual or approval-based process (Power Automate)</option>
-          <option>Create dashboards and reporting (Power BI)</option>
-          <option>Build a customer or partner portal (Power Pages)</option>
-          <option>Build an AI agent or internal assistant (Copilot Studio)</option>
-          <option>Not sure, need a recommendation</option>
-        </select>
-      </div>
-      <button class="form-submit">Request Free Discovery Call</button>
-      <div class="form-note">No spam. No sales pressure. Just a useful conversation.</div>
-    </div>
-  </div>
-</section>
-
-<!-- FOOTER -->
-<footer>
-  <div class="footer-logo-row">
-    <div class="footer-lm">A</div>
-    <span class="footer-lt">armely</span>
-  </div>
-  <div class="footer-note">&#169; 2026 Armely &middot; www.armely.com &middot; Your Trusted Source for Digital Excellence</div>
-  <div class="footer-badges">
-    <span class="badge-chip">Microsoft CSP Partner</span>
-    <span class="badge-chip">Power Platform Certified</span>
-    <span class="badge-chip">Microsoft Authorized Reseller</span>
-  </div>
-</footer>
-
+<section class="why"><div class="section-inner"><div class="section-eyebrow">Why Armely</div><h2 class="section-title">Power Platform done properly, the first time.</h2><p class="section-body">Many Power Platform solutions are built fast and abandoned because they were not designed for maintainability or governance.</p>
+<div class="why-two-col"><div><ul class="why-list"><li><div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg></div><div><div class="why-item-title">Microsoft Power Platform Certified</div><div class="why-item-desc">Our team holds Microsoft certifications across Power Apps, Power Automate, Power BI, and Copilot Studio.</div></div></li><li><div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg></div><div><div class="why-item-title">Governance From Day One</div><div class="why-item-desc">We deploy DLP policies, managed environments, and security roles as part of every engagement.</div></div></li><li><div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg></div><div><div class="why-item-title">Honest on When Not to Use It</div><div class="why-item-desc">If your requirement exceeds what Power Platform can deliver reliably, we say so before starting.</div></div></li><li><div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><div><div class="why-item-title">Maximize Licenses You Already Have</div><div class="why-item-desc">Most Microsoft 365 and Dynamics 365 customers have Power Platform capabilities included in their existing licenses.</div></div></li></ul></div>
+<div><div class="partner-block"><div class="partner-block-top"><div class="partner-label">Microsoft Authorized Partner</div><p class="partner-text">Armely's Microsoft partnership gives us access to Power Platform licensing, Copilot Studio enterprise features, and technical resources for complex governance and enterprise deployments.</p></div><div class="partner-stats"><div class="p-stat"><div class="p-stat-num">900<span>+</span></div><div class="p-stat-label">pre-built connectors in Power Automate for cloud and on-premises systems</div></div><div class="p-stat"><div class="p-stat-num">6<span>x</span></div><div class="p-stat-label">faster application delivery compared to traditional custom development (Microsoft)</div></div><div class="p-stat"><div class="p-stat-num">1<span>K+</span></div><div class="p-stat-label">Power Apps built on Dataverse run in production at enterprise organizations globally</div></div><div class="p-stat"><div class="p-stat-num">0<span></span></div><div class="p-stat-label">Power Platform solutions Armely delivers without documented data models and DLP policies</div></div></div></div></div></div></div></section>
+<section class="cta-section" id="contact"><div class="cta-inner"><div><div class="section-eyebrow">Get Started</div><h2 class="section-title">Tell us what process you need to fix.</h2><p class="section-body">Book a free 30-minute discovery call. We will review the problem and tell you whether Power Platform is the right tool and how long it will take.</p><div style="margin-top:20px;display:flex;flex-direction:column;gap:9px;"><div class="trust-item"><span class="trust-dot"></span><span class="trust-text">Free assessment, no commitment required</span></div><div class="trust-item"><span class="trust-dot"></span><span class="trust-text">Recommendation and partner pricing included</span></div><div class="trust-item"><span class="trust-dot"></span><span class="trust-text">Response within one business day</span></div></div></div><div class="cta-form"><div class="form-title">Book Your Free Assessment</div><div class="form-sub">Tell us about your situation.</div><div class="form-row"><label>Full Name</label><input type="text" placeholder="Jane Smith"></div><div class="form-row"><label>Business Email</label><input type="email" placeholder="jane@yourcompany.com"></div><div class="form-row"><label>Company Name</label><input type="text" placeholder="Acme Corp"></div><div class="form-row"><label>Primary Need</label><select><option value="">Select...</option><option>Replace a paper or email-based approval process</option><option>Build a mobile data capture or inspection app</option><option>Create Power BI dashboards for our team</option><option>Build a Copilot AI agent on our data</option><option>Build a customer or partner portal</option><option>Improve governance of existing Power Platform</option><option>Not sure, need a recommendation</option></select></div><button class="form-submit">Request Free Assessment</button><div class="form-note">No spam. No sales pressure. Just a useful conversation.</div></div></div></section>
 </div>

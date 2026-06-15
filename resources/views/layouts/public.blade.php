@@ -1156,8 +1156,9 @@ main .service-card {
                                                     <div>
                                                         <h3 class="mega-column-title">Strategy & Advisory</h3>
                                                         <ul class="mega-link-list">
-                                                            <li><a class="mega-link-with-icon" href="{{ route('service-details', ['name' => 'ai-consulting']) }}"><span class="mega-link-icon"><i class="fa-solid fa-brain" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">AI Consulting &amp; Advisory</span><span class="mega-link-description">Practical AI planning, governance, and adoption support.</span></span></a></li>
-                                                            <li><a class="mega-link-with-icon" href="{{ route('service-details', ['name' => 'data-strategy']) }}"><span class="mega-link-icon"><i class="fa-solid fa-compass" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">Data Strategy</span><span class="mega-link-description">Set the roadmap for a stronger data foundation.</span></span></a></li>
+                                                            <li><a class="mega-link-with-icon" href="{{ route('service-details', ['name' => 'data-strategy']) }}"><span class="mega-link-icon"><i class="fa-solid fa-compass" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">Data &amp; AI Strategy</span><span class="mega-link-description">Set the roadmap for analytics, AI, and governance.</span></span></a></li>
+                                                            <li><a class="mega-link-with-icon" href="{{ route('service-details', ['name' => 'm365-governance']) }}"><span class="mega-link-icon"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">M365 Governance</span><span class="mega-link-description">Improve Microsoft 365 control, compliance, and adoption.</span></span></a></li>
+                                                            <li><a class="mega-link-with-icon" href="{{ route('assessments') }}"><span class="mega-link-icon"><i class="fa-solid fa-clipboard-check" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">Assessments</span><span class="mega-link-description">Free health checks and structured discovery engagements.</span></span></a></li>
                                                         </ul>
                                                     </div>
 
@@ -1380,8 +1381,9 @@ main .service-card {
             <div class="mobile-mega-panel">
                 <div class="mobile-mega-section">
                     <h4>Strategy & Advisory</h4>
-                    <a href="{{ route('service-details', ['name' => 'ai-consulting']) }}">AI Consulting &amp; Advisory</a>
-                    <a href="{{ route('service-details', ['name' => 'data-strategy']) }}">Data Strategy</a>
+                    <a href="{{ route('service-details', ['name' => 'data-strategy']) }}">Data &amp; AI Strategy</a>
+                    <a href="{{ route('service-details', ['name' => 'm365-governance']) }}">M365 Governance</a>
+                    <a href="{{ route('assessments') }}">Assessments</a>
                 </div>
 
                 <div class="mobile-mega-section">

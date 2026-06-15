@@ -1,6 +1,5 @@
 <style>
 
-
 .armely-custom-development-page *, .armely-custom-development-page *::before, .armely-custom-development-page *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 .armely-custom-development-page {
@@ -808,464 +807,69 @@
 }
 
 
+.armely-custom-development-page .cr-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-top:28px; margin-bottom:28px; }
+.armely-custom-development-page .cr-card { background:#fff; border:1px solid var(--border); border-radius:12px; padding:20px 22px; box-shadow:0 2px 10px rgba(18,47,82,0.04); }
+.armely-custom-development-page .cr-label { display:flex; align-items:center; gap:9px; margin-bottom:10px; }
+.armely-custom-development-page .cr-check { width:20px; height:20px; display:flex; align-items:center; justify-content:center; background:var(--blue-dim); border:1px solid var(--blue-dim2); border-radius:50%; flex-shrink:0; color:var(--blue); }
+.armely-custom-development-page .cr-check .icon-svg { width:11px; height:11px; stroke-width:3; }
+.armely-custom-development-page .cr-industry { font-size:0.875rem; font-weight:700; color:#1A2540; }
+.armely-custom-development-page .cr-desc { font-size:0.82rem; color:var(--text-muted); line-height:1.65; margin:0; }
+.armely-custom-development-page .cr-cta { text-align:center; }
+.armely-custom-development-page .cr-btn { display:inline-flex; align-items:center; gap:10px; background:#1a2e52; color:#fff; border-radius:8px; padding:12px 28px; text-decoration:none; font-size:0.875rem; font-weight:600; }
+.armely-custom-development-page .cr-btn:hover { background:var(--blue); }
+.armely-custom-development-page .cr-btn .icon-svg { width:18px; height:18px; }
+@media (max-width:900px) { .armely-custom-development-page .cr-grid { grid-template-columns:1fr 1fr; } }
+@media (max-width:600px) { .armely-custom-development-page .cr-grid { grid-template-columns:1fr; } }
 </style>
 <div class="armely-custom-development-page">
-
-<!-- NAV -->
-<nav>
-  <div class="logo">
-    <div class="logo-mark">A</div>
-    <span class="logo-text">armely</span>
-  </div>
-  <ul class="nav-links">
-    <li><a href="#what-we-deliver">Services</a></li>
-    <li><a href="#journey">Our Process</a></li>
-    <li><a href="#why-armely">Why Armely</a></li>
-    <li><a href="#contact" class="nav-cta">Get Started</a></li>
-  </ul>
-</nav>
-
-<!-- HERO -->
 <section class="hero">
   <div class="hero-bg-glow"></div>
-  <div class="hero-eyebrow">
-    <span class="eyebrow-badge">Custom Application and Web Development</span>
-    <span class="eyebrow-partner">Certified Microsoft and Azure partner</span>
-  </div>
-  <h1>When off-the-shelf<br>software stops fitting<br><span class="hl">your business.</span></h1>
-  <p class="hero-sub">Armely designs and builds custom web applications, internal tools, customer-facing portals, and data-driven platforms on the Microsoft stack, delivered with the same discipline and governance we apply to every engagement.</p>
-  <div class="hero-actions">
-    <a href="#contact" class="btn-primary">Book a Free Discovery Call</a>
-    <a href="#what-we-deliver" class="btn-outline">See What We Build</a>
-  </div>
-  <div class="hero-trust">
-    <div class="trust-item">
-      <span class="trust-dot"></span>
-      <span class="trust-text"><strong>.NET, React, and Azure</strong> as our primary stack</span>
-    </div>
-    <div class="trust-item">
-      <span class="trust-dot"></span>
-      <span class="trust-text"><strong>AI-integrated</strong> from the design stage</span>
-    </div>
-    <div class="trust-item">
-      <span class="trust-dot"></span>
-      <span class="trust-text">Native integration with <strong>Microsoft 365, Dynamics 365, and Power Platform</strong></span>
-    </div>
-    <div class="trust-item">
-      <span class="trust-dot"></span>
-      <span class="trust-text"><strong>You own the code</strong> from day one</span>
-    </div>
-  </div>
-</section>
-
-<!-- WHEN TO BUILD CUSTOM -->
-<section class="when">
-  <div class="section-inner">
-    <div class="when-grid">
-      <div>
-        <div class="section-eyebrow">When Custom Development Makes Sense</div>
-        <h2 class="section-title">Not every problem needs custom software. When it does, it really does.</h2>
-        <p class="section-body">Before recommending custom development, Armely evaluates whether Power Platform, SharePoint, or a configured Microsoft product can solve the problem faster and at lower cost. When the answer is no, we build. Here is how that decision looks in practice.</p>
-        <div class="decision-cards">
-          <div class="decision-card alt">
-            <span class="decision-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span>
-            <div>
-              <div class="decision-title">Build custom when your workflow is genuinely unique</div>
-              <div class="decision-desc">Your process does not map to any standard product. You have tried configuring existing tools and the compromises are affecting how your business operates. A custom application built around your actual workflow is more efficient than forcing your team to work around a product's assumptions.</div>
-            </div>
-          </div>
-          <div class="decision-card alt">
-            <span class="decision-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span>
-            <div>
-              <div class="decision-title">Build custom when you need full control over the user experience</div>
-              <div class="decision-desc">Customer-facing applications where brand, performance, and user experience are competitive differentiators. A portal, a marketplace, a self-service tool, or a mobile application where the interface is part of the product itself.</div>
-            </div>
-          </div>
-          <div class="decision-card alt">
-            <span class="decision-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span>
-            <div>
-              <div class="decision-title">Build custom when you are replacing a legacy system with no viable migration target</div>
-              <div class="decision-desc">An on-premises application built decades ago that the business depends on and that no commercial product replicates. A rebuild on a modern, maintainable stack with proper documentation and a CI/CD pipeline.</div>
-            </div>
-          </div>
-          <div class="decision-card">
-            <span class="decision-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg></span>
-            <div>
-              <div class="decision-title">Consider Power Platform first for internal tooling</div>
-              <div class="decision-desc">Many internal workflow and data capture needs are faster and cheaper to solve with Power Apps, Power Automate, and SharePoint. Armely will tell you honestly when that is the better path, even when the conversation started as a custom development request.</div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div>
-        <div class="stack-card">
-          <div class="stack-header">
-            <div class="stack-dots"><span></span><span></span><span></span></div>
-            <span class="stack-header-title">Armely Technology Stack</span>
-          </div>
-          <div class="stack-body">
-            <div class="stack-row row-front">
-              <div class="stack-row-label">Front End</div>
-              <div class="stack-chips">
-                <span class="stack-chip">React</span>
-                <span class="stack-chip">TypeScript</span>
-                <span class="stack-chip">Next.js</span>
-                <span class="stack-chip">Tailwind CSS</span>
-                <span class="stack-chip">Blazor</span>
-              </div>
-            </div>
-            <div class="row-arrow">&#8597;</div>
-            <div class="stack-row row-back">
-              <div class="stack-row-label">Back End</div>
-              <div class="stack-chips">
-                <span class="stack-chip">ASP.NET Core</span>
-                <span class="stack-chip">C#</span>
-                <span class="stack-chip">Python</span>
-                <span class="stack-chip">Node.js</span>
-                <span class="stack-chip">REST APIs</span>
-                <span class="stack-chip">GraphQL</span>
-              </div>
-            </div>
-            <div class="row-arrow">&#8597;</div>
-            <div class="stack-row row-back" style="background: rgba(41,78,139,0.08);">
-              <div class="stack-row-label">Data</div>
-              <div class="stack-chips">
-                <span class="stack-chip">Azure SQL</span>
-                <span class="stack-chip">SQL Server</span>
-                <span class="stack-chip">Cosmos DB</span>
-                <span class="stack-chip">Dataverse</span>
-                <span class="stack-chip">Azure Blob Storage</span>
-              </div>
-            </div>
-            <div class="row-arrow">&#8597;</div>
-            <div class="stack-row row-infra">
-              <div class="stack-row-label">Infrastructure and DevOps</div>
-              <div class="stack-chips">
-                <span class="stack-chip">Azure App Service</span>
-                <span class="stack-chip">Azure Functions</span>
-                <span class="stack-chip">Azure DevOps</span>
-                <span class="stack-chip">GitHub Actions</span>
-                <span class="stack-chip">Docker</span>
-                <span class="stack-chip">Azure API Management</span>
-              </div>
-            </div>
-          </div>
-        </div>
+  <div class="hero-inner">
+    <div class="hero-copy">
+      <div class="hero-eyebrow"><span class="eyebrow-badge">Custom Application and Web Development</span><span class="eyebrow-partner">Delivered by a certified Microsoft partner</span></div>
+      <h1>When off-the-shelf software<br>stops fitting your business.</h1>
+      <p class="hero-sub">Armely designs and builds custom web applications, internal tools, customer-facing portals, and data-driven platforms on the Microsoft stack, delivered with the documentation and governance your team needs to own them.</p>
+      <div class="hero-actions">
+        <a href="#contact" class="btn-primary">Book a Free Assessment</a>
+        <a href="#delivers" class="btn-outline">See What We Do</a>
       </div>
     </div>
   </div>
 </section>
 
-<!-- WHAT ARMELY DELIVERS -->
-<section class="delivers" id="what-we-deliver">
-  <div class="section-inner">
-    <div class="section-eyebrow">What Armely Delivers</div>
-    <h2 class="section-title">Custom software built to be owned, maintained, and extended by your team.</h2>
-    <p class="section-body">Every Armely application is delivered with full source code ownership, documentation, and a handover process designed so your team or a future vendor can maintain and extend it without depending on us.</p>
-    <div class="delivers-grid">
-      <div class="deliver-card">
-        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></div>
-        <div class="deliver-title">Web Application Development</div>
-        <div class="deliver-desc">Full-stack web applications built on ASP.NET Core and React, deployed on Azure. From internal business tools and management dashboards to customer-facing platforms that require performance, security, and a polished user experience.</div>
-      </div>
-      <div class="deliver-card">
-        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg></div>
-        <div class="deliver-title">Customer and Partner Portals</div>
-        <div class="deliver-desc">Secure, branded portals that give customers, partners, or suppliers authenticated access to your business data and services. Built on Azure with Entra ID authentication, role-based access, and integration into your existing Dynamics 365 or SQL Server data.</div>
-      </div>
-      <div class="deliver-card">
-        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 21v-5h5"/><path d="M3 12A9 9 0 0 1 18.5 5.8L21 8"/><path d="M21 3v5h-5"/></svg></div>
-        <div class="deliver-title">Legacy Application Modernization</div>
-        <div class="deliver-desc">We rebuild aging on-premises applications on a modern, maintainable stack, preserving the business logic and data your organization depends on while replacing the infrastructure that is becoming a liability. Delivered with full documentation and a CI/CD pipeline.</div>
-      </div>
-      <div class="deliver-card">
-        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8V4H8"/><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M9 11v2"/><path d="M15 11v2"/></svg></div>
-        <div class="deliver-title">AI-Integrated Applications</div>
-        <div class="deliver-desc">Web applications with Azure AI capabilities embedded directly into the user experience, including natural language search, document processing, copilot-style assistants, and generative content, governed within your Microsoft security and compliance framework.</div>
-      </div>
-      <div class="deliver-card">
-        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg></div>
-        <div class="deliver-title">Data-Driven Dashboards and Reporting Tools</div>
-        <div class="deliver-desc">Custom reporting applications and operational dashboards built when Power BI does not meet the interaction requirements. Built on Azure with direct database connections, real-time data, and user interfaces designed for the specific decisions your leadership team needs to make.</div>
-      </div>
-      <div class="deliver-card">
-        <div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></div>
-        <div class="deliver-title">Microsoft 365 and Dynamics 365 Extensions</div>
-        <div class="deliver-desc">Custom extensions that go beyond what Power Platform can deliver, including SharePoint Framework (SPFx) web parts, Dynamics 365 plugins, custom connectors, and Azure Function-based integrations that extend your existing Microsoft platform investments.</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- JOURNEY -->
-<section class="journey" id="journey">
-  <div class="section-inner">
-    <div class="section-eyebrow">The Armely Delivery Process</div>
-    <h2 class="section-title">From requirements to a production application your team can maintain.</h2>
-    <p class="section-body">Custom software projects fail most often because requirements are not properly defined, scope expands without governance, or the delivered code is not maintainable. Our process addresses all three before a line of code is written.</p>
-    <div class="steps-row">
-      <div class="step">
-        <div class="step-num">01</div>
-        <div class="step-title">Discovery and Scoping</div>
-        <div class="step-desc">We document requirements, user stories, data flows, and integration points. We also confirm whether a low-code approach could solve the problem before committing to custom development.</div>
-        <span class="step-tag">Free</span>
-      </div>
-      <div class="step">
-        <div class="step-num">02</div>
-        <div class="step-title">Architecture and Design</div>
-        <div class="step-desc">Technical architecture, data model, API contracts, and UX wireframes produced and reviewed before build begins. Azure infrastructure is sized and costed at this stage.</div>
-        <span class="step-tag">Weeks 1-2</span>
-      </div>
-      <div class="step">
-        <div class="step-num">03</div>
-        <div class="step-title">Iterative Build</div>
-        <div class="step-desc">Development in two-week sprints with working software demonstrated at the end of each sprint. Scope changes are evaluated and priced transparently rather than absorbed silently.</div>
-        <span class="step-tag">Weeks 3 onward</span>
-      </div>
-      <div class="step">
-        <div class="step-num">04</div>
-        <div class="step-title">Testing and Launch</div>
-        <div class="step-desc">User acceptance testing, security review, performance testing, and a managed production deployment with rollback procedures in place before go-live.</div>
-        <span class="step-tag">Final 2 weeks</span>
-      </div>
-      <div class="step">
-        <div class="step-num">05</div>
-        <div class="step-title">Handover and Support</div>
-        <div class="step-desc">Full source code, documentation, runbooks, and team training. Post-launch support, ongoing feature development, and Azure infrastructure management available on a retained basis.</div>
-        <span class="step-tag">Ongoing</span>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- USE CASES -->
-<section class="usecases">
-  <div class="section-inner">
-    <div class="section-eyebrow">What We Build Most Often</div>
-    <h2 class="section-title">The application types we deliver across industries.</h2>
-    <p class="section-body">These are the categories of custom applications Armely builds most frequently. Each starts with a business problem, not a technology preference.</p>
-    <div class="uc-grid">
-      <div class="uc-card">
-        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>
-        <div class="uc-title">Healthcare and Clinical Applications</div>
-        <div class="uc-desc">Custom applications for patient data management, clinical workflow support, reporting tools, and staff scheduling built to HIPAA compliance standards on Azure, with integration into existing EMR systems and Microsoft 365 environments.</div>
-      </div>
-      <div class="uc-card">
-        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>
-        <div class="uc-title">Education Management Systems</div>
-        <div class="uc-desc">Student information tools, enrollment portals, staff scheduling applications, and reporting dashboards for school districts and higher education institutions, integrated with Microsoft 365 and built on Azure for security and scalability.</div>
-      </div>
-      <div class="uc-card">
-        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg></span>
-        <div class="uc-title">Operations and Logistics Tools</div>
-        <div class="uc-desc">Custom inventory management, dispatch and scheduling applications, field operations tools, and supply chain dashboards built when commercial products do not fit the specific operational model of the business.</div>
-      </div>
-      <div class="uc-card">
-        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
-        <div class="uc-title">Financial and Compliance Applications</div>
-        <div class="uc-desc">Custom reporting tools, audit management applications, budget tracking systems, and compliance workflow platforms built for finance teams whose requirements exceed what standard products provide, with full audit trails and role-based access controls.</div>
-      </div>
-      <div class="uc-card">
-        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span>
-        <div class="uc-title">Customer-Facing Web Platforms</div>
-        <div class="uc-desc">Public-facing web applications that represent your brand and serve your customers, including self-service portals, booking systems, account management tools, and product configuration applications where quality of experience directly affects revenue.</div>
-      </div>
-      <div class="uc-card">
-        <span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 21v-5h5"/><path d="M3 12A9 9 0 0 1 18.5 5.8L21 8"/><path d="M21 3v5h-5"/></svg></span>
-        <div class="uc-title">Legacy System Replacement</div>
-        <div class="uc-desc">On-premises applications built on aging technology stacks that the business cannot replace with a commercial product because of unique business logic, data structures, or integration requirements built up over many years of operation.</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- TESTIMONIALS -->
+<section class="spectrum"><div class="section-inner"><div class="section-eyebrow">When Custom Development Makes Sense</div><h2 class="section-title">Not every problem needs custom software. When it does, it really does.</h2><p class="section-body">Before recommending custom development, Armely evaluates whether Power Platform, SharePoint, or a configured Microsoft product can solve the problem faster and at lower cost. When the answer is no, we build.</p>
+<div class="spectrum-grid"><div><div class="spectrum-row">
+<div class="spectrum-level highlight"><span class="spectrum-num">Build</span><div><div class="spectrum-content-title">When your workflow is genuinely unique</div><div class="spectrum-content-desc">Your process does not map to any standard product. Compromises in existing tools are affecting how your business operates. A custom application built around your actual workflow is more efficient than forcing your team to work around a product's assumptions.</div></div></div>
+<div class="spectrum-level highlight"><span class="spectrum-num">Build</span><div><div class="spectrum-content-title">When you need full control over user experience</div><div class="spectrum-content-desc">Customer-facing applications where brand, performance, and user experience are competitive differentiators. A portal, marketplace, or self-service tool where the interface is part of the product itself.</div></div></div>
+<div class="spectrum-level highlight"><span class="spectrum-num">Build</span><div><div class="spectrum-content-title">When replacing a legacy system with no viable migration target</div><div class="spectrum-content-desc">An on-premises application your business depends on that no commercial product replicates. A rebuild on a modern, maintainable stack with documentation and a CI/CD pipeline.</div></div></div>
+<div class="spectrum-level"><span class="spectrum-num">Configure</span><div><div class="spectrum-content-title">Consider Power Platform first for internal tooling</div><div class="spectrum-content-desc">Many internal workflow and data capture needs are faster and cheaper to solve with Power Apps and Power Automate. Armely will tell you honestly when that is the better path.</div></div></div>
+</div></div><div><div class="platform-card"><div class="platform-header"><div class="platform-dots"><span></span><span></span><span></span></div><span class="platform-header-title">Armely Technology Stack</span></div><div class="platform-body"><div class="plat-band band-tools"><div class="plat-band-label">Front End</div><div class="plat-chips"><span class="plat-chip">React</span><span class="plat-chip">TypeScript</span><span class="plat-chip">Next.js</span><span class="plat-chip">Tailwind CSS</span><span class="plat-chip">Blazor</span></div></div><div class="band-arrow">&#8597;</div><div class="plat-band band-data"><div class="plat-band-label">Back End and Data</div><div class="plat-chips"><span class="plat-chip">ASP.NET Core</span><span class="plat-chip">C#</span><span class="plat-chip">Python</span><span class="plat-chip">Node.js</span><span class="plat-chip">Azure SQL</span><span class="plat-chip">SQL Server</span><span class="plat-chip">Cosmos DB</span><span class="plat-chip">Dataverse</span></div></div><div class="band-arrow">&#8597;</div><div class="plat-band band-gov"><div class="plat-band-label">Infrastructure and DevOps</div><div class="plat-chips"><span class="plat-chip">Azure App Service</span><span class="plat-chip">Azure Functions</span><span class="plat-chip">Azure DevOps</span><span class="plat-chip">GitHub Actions</span><span class="plat-chip">Docker</span><span class="plat-chip">Azure API Management</span></div></div></div></div></div></div></div></section>
+<section class="delivers" id="delivers"><div class="section-inner"><div class="section-eyebrow">What Armely Delivers</div><h2 class="section-title">Custom software built to be owned, maintained, and extended by your team.</h2><p class="section-body">Every Armely application is delivered with full source code ownership, documentation, and a handover process designed so your team or a future vendor can maintain and extend it.</p>
+<div class="delivers-grid"><div class="deliver-card"><div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></div><div class="deliver-title">Web Application Development</div><div class="deliver-desc">Full-stack web applications built on ASP.NET Core and React, deployed on Azure. From internal business tools and management dashboards to customer-facing platforms.</div></div><div class="deliver-card"><div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg></div><div class="deliver-title">Customer and Partner Portals</div><div class="deliver-desc">Secure, branded portals that give customers, partners, or suppliers authenticated access to your business data and services, built on Azure with Entra ID authentication.</div></div><div class="deliver-card"><div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 21v-5h5"/><path d="M3 12A9 9 0 0 1 18.5 5.8L21 8"/><path d="M21 3v5h-5"/></svg></div><div class="deliver-title">Legacy Application Modernization</div><div class="deliver-desc">We rebuild aging on-premises applications on a modern, maintainable stack, preserving the business logic and data your organization depends on.</div></div><div class="deliver-card"><div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 8V4H8"/><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M9 11v2"/><path d="M15 11v2"/></svg></div><div class="deliver-title">AI-Integrated Applications</div><div class="deliver-desc">Web applications with Azure AI capabilities embedded directly into the user experience, including natural language search, document processing, and copilot-style assistants.</div></div><div class="deliver-card"><div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg></div><div class="deliver-title">Data Dashboards and Reporting Tools</div><div class="deliver-desc">Custom reporting applications and operational dashboards built when Power BI does not meet the interaction requirements, with direct database connections and real-time data.</div></div><div class="deliver-card"><div class="deliver-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/><path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z"/></svg></div><div class="deliver-title">Microsoft 365 and Dynamics 365 Extensions</div><div class="deliver-desc">Custom extensions beyond what Power Platform can deliver, including SharePoint Framework web parts, Dynamics 365 plugins, custom connectors, and Azure Function-based integrations.</div></div></div></div></section>
+<section class="journey"><div class="section-inner"><div class="section-eyebrow">The Armely Delivery Process</div><h2 class="section-title">From requirements to a production application your team can maintain.</h2><p class="section-body">Custom software projects fail most often because requirements are not properly defined, scope expands without governance, or the delivered code is not maintainable.</p>
+<div class="steps-row"><div class="step"><div class="step-num">01</div><div class="step-title">Discovery and Scoping</div><div class="step-desc">We document requirements, user stories, data flows, and integration points, and confirm whether a low-code approach could solve the problem instead.</div><span class="step-tag">Free</span></div><div class="step"><div class="step-num">02</div><div class="step-title">Architecture and Design</div><div class="step-desc">Technical architecture, data model, API contracts, and UX wireframes produced and reviewed. Azure infrastructure sized and costed at this stage.</div><span class="step-tag">Weeks 1-2</span></div><div class="step"><div class="step-num">03</div><div class="step-title">Iterative Build</div><div class="step-desc">Development in two-week sprints with working software demonstrated at the end of each sprint. Scope changes are evaluated and priced transparently.</div><span class="step-tag">Weeks 3 onward</span></div><div class="step"><div class="step-num">04</div><div class="step-title">Testing and Launch</div><div class="step-desc">User acceptance testing, security review, performance testing, and a managed production deployment with rollback procedures in place before go-live.</div><span class="step-tag">Final 2 weeks</span></div><div class="step"><div class="step-num">05</div><div class="step-title">Handover and Support</div><div class="step-desc">Full source code, documentation, runbooks, and team training. Post-launch support and ongoing development available on a retained basis.</div><span class="step-tag">Ongoing</span></div></div></div></section>
+<section class="usecases"><div class="section-inner"><div class="section-eyebrow">What We Build Most Often</div><h2 class="section-title">The application types Armely delivers across industries.</h2><p class="section-body">Each starts with a business problem, not a technology preference.</p>
+<div class="uc-grid"><div class="uc-card"><span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg></span><div class="uc-title">Healthcare and Clinical Applications</div><div class="uc-desc">Custom applications for patient data management, clinical workflow support, reporting tools, and staff scheduling built to HIPAA compliance standards on Azure.</div></div><div class="uc-card"><span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg></span><div class="uc-title">Education Management Systems</div><div class="uc-desc">Student information tools, enrollment portals, staff scheduling applications, and reporting dashboards for school districts and higher education institutions.</div></div><div class="uc-card"><span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg></span><div class="uc-title">Operations and Logistics Tools</div><div class="uc-desc">Custom inventory management, dispatch and scheduling applications, field operations tools, and supply chain dashboards built when commercial products do not fit.</div></div><div class="uc-card"><span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span><div class="uc-title">Financial and Compliance Applications</div><div class="uc-desc">Custom reporting tools, audit management applications, budget tracking systems, and compliance workflow platforms for finance teams.</div></div><div class="uc-card"><span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span><div class="uc-title">Customer-Facing Web Platforms</div><div class="uc-desc">Self-service portals, booking systems, account management tools, and product configuration applications where quality of experience directly affects revenue.</div></div><div class="uc-card"><span class="uc-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 21v-5h5"/><path d="M3 12A9 9 0 0 1 18.5 5.8L21 8"/><path d="M21 3v5h-5"/></svg></span><div class="uc-title">Legacy System Replacement</div><div class="uc-desc">On-premises applications that the business cannot replace with a commercial product because of unique business logic, data structures, or integration requirements.</div></div></div></div></section>
 <section class="testimonials">
   <div class="section-inner">
     <div class="section-eyebrow">Client Results</div>
-    <h2 class="section-title">What our clients say about working with Armely.</h2>
-    <div class="testi-grid">
-
-      <div class="testi-card">
-        <span class="testi-quote">&ldquo;</span>
-        <p class="testi-body">We had been running a patient tracking system on a server that was nearly a decade old with no documentation and no one who fully understood how it worked. Armely rebuilt it on Azure with a modern .NET backend and a React front end. They took the time to understand what the system actually did before writing a line of code, and the new version was delivered with full documentation and a training program our clinical staff completed in a day.</p>
-        <div class="testi-footer">
-          <div class="testi-avatar">CIO</div>
-          <div>
-            <div class="testi-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-            <div class="testi-name">Chief Information Officer</div>
-            <div class="testi-role">Healthcare Network, Midwest</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="testi-card">
-        <span class="testi-quote">&ldquo;</span>
-        <p class="testi-body">We needed a customer portal that connected to our Dynamics 365 data and allowed clients to view their account, submit service requests, and download invoices without calling us. Armely delivered a fully branded portal in eight weeks. The design was clean, the integration worked correctly from day one, and our support call volume dropped noticeably within the first month of launch.</p>
-        <div class="testi-footer">
-          <div class="testi-avatar">COO</div>
-          <div>
-            <div class="testi-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-            <div class="testi-name">Chief Operating Officer</div>
-            <div class="testi-role">Professional Services Firm, Texas</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="testi-card">
-        <span class="testi-quote">&ldquo;</span>
-        <p class="testi-body">We came to Armely with what we thought was a custom development requirement. After their discovery session, they recommended a Power Apps solution instead and delivered it in three weeks at a fraction of the estimated cost. The fact that they gave us the honest answer rather than the more expensive one was the reason we brought them back for our next project, which did require custom development.</p>
-        <div class="testi-footer">
-          <div class="testi-avatar">IT</div>
-          <div>
-            <div class="testi-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-            <div class="testi-name">Director of IT</div>
-            <div class="testi-role">Education Organization, Nebraska</div>
-          </div>
-        </div>
-      </div>
-
+    <h2 class="section-title">Real outcomes for real organizations.</h2>
+    <p class="section-body">Armely has delivered Microsoft platform and AI solutions for healthcare providers, school districts, energy operators, professional services firms, government agencies, and non-profit organizations. See the full story on our Customer Stories page.</p>
+    <div class="cr-grid">
+      <div class="cr-card"><div class="cr-label"><span class="cr-check"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg></span><span class="cr-industry">Healthcare</span></div><p class="cr-desc">Swope Health Services and UNMC: data platform and clinical workflow modernization on Microsoft Azure.</p></div>
+      <div class="cr-card"><div class="cr-label"><span class="cr-check"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg></span><span class="cr-industry">Education</span></div><p class="cr-desc">Plano ISD: Microsoft 365 governance, SharePoint, and Power Platform implementations across district operations.</p></div>
+      <div class="cr-card"><div class="cr-label"><span class="cr-check"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg></span><span class="cr-industry">Energy</span></div><p class="cr-desc">Oil and gas operators: OpenInvoice visibility and AP workflow automation through Invoice Lens.</p></div>
+      <div class="cr-card"><div class="cr-label"><span class="cr-check"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg></span><span class="cr-industry">Professional Services</span></div><p class="cr-desc">Consulting and legal firms: Dynamics 365, Power Automate approval workflows, and AI knowledge agents.</p></div>
+      <div class="cr-card"><div class="cr-label"><span class="cr-check"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg></span><span class="cr-industry">Government</span></div><p class="cr-desc">State and local agencies: Microsoft 365 Government deployment and compliance configuration.</p></div>
+      <div class="cr-card"><div class="cr-label"><span class="cr-check"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg></span><span class="cr-industry">Non-Profit</span></div><p class="cr-desc">Social services organizations: Microsoft 365 optimization, Power BI grant reporting, and SharePoint governance.</p></div>
+    </div>
+    <div class="cr-cta">
+      <a href="https://armely.com/customer-stories" class="cr-btn"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Read Client Stories on armely.com</span><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>
     </div>
   </div>
 </section>
-
-<!-- WHY ARMELY -->
-<section class="why" id="why-armely">
-  <div class="section-inner">
-    <div class="why-two-col">
-      <div>
-        <div class="section-eyebrow">Why Armely</div>
-        <h2 class="section-title">Custom development that you own, understand, and can maintain.</h2>
-        <p class="section-body">The most common failure in custom software development is not in the initial delivery. It is in what happens six months later when a requirement changes and the original developer is unavailable, the code is undocumented, and no one knows how the application works.</p>
-        <ul class="why-list">
-          <li>
-            <div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 13h8"/><path d="M8 17h6"/></svg></div>
-            <div>
-              <div class="why-item-title">Documentation Is Not Optional</div>
-              <div class="why-item-desc">Every application Armely delivers includes technical documentation, a deployment runbook, and user guides. We write documentation as part of the build, not as a rushed afterthought at handover.</div>
-            </div>
-          </li>
-          <li>
-            <div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></div>
-            <div>
-              <div class="why-item-title">Built on the Microsoft Stack You Already Own</div>
-              <div class="why-item-desc">We build on Azure, .NET, and the Microsoft ecosystem because your organization already has licenses, security controls, and operational familiarity with these platforms. We do not introduce new infrastructure dependencies without a clear justification.</div>
-            </div>
-          </li>
-          <li>
-            <div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
-            <div>
-              <div class="why-item-title">Regulated Industry Experience</div>
-              <div class="why-item-desc">We have delivered custom applications for healthcare providers, school districts, and enterprise clients where security, compliance, and data governance are non-negotiable requirements, not an afterthought requested at go-live.</div>
-            </div>
-          </li>
-          <li>
-            <div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg></div>
-            <div>
-              <div class="why-item-title">We Will Tell You When Not to Build</div>
-              <div class="why-item-desc">If Power Platform, SharePoint, or a configured Microsoft product can solve your problem faster and at lower total cost, we will tell you that before starting a custom development engagement. Our long-term client relationships matter more than any single project.</div>
-            </div>
-          </li>
-        </ul>
-      </div>
-      <div>
-        <div class="partner-block">
-          <div class="partner-block-top">
-            <div class="partner-label">Microsoft Authorized Partner</div>
-            <p class="partner-text">Armely's Microsoft partnership gives us access to Azure credits, technical pre-sales resources, and architectural guidance for complex custom development engagements. We build on the same Azure platform that Microsoft's enterprise customers rely on, with the licensing and support infrastructure that partnership provides.</p>
-          </div>
-          <div class="partner-stats">
-            <div class="p-stat">
-              <div class="p-stat-num">.NET</div>
-              <div class="p-stat-label">consistently ranked among the top-performing web frameworks in independent benchmarks</div>
-            </div>
-            <div class="p-stat">
-              <div class="p-stat-num">Azure</div>
-              <div class="p-stat-label">global cloud infrastructure across 60-plus regions for scalable, compliant deployments</div>
-            </div>
-            <div class="p-stat">
-              <div class="p-stat-num">100<span>%</span></div>
-              <div class="p-stat-label">of Armely applications delivered with full source code ownership and documentation</div>
-            </div>
-            <div class="p-stat">
-              <div class="p-stat-num">0</div>
-              <div class="p-stat-label">applications delivered without a CI/CD pipeline and automated test coverage</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- CTA -->
-<section class="cta-section" id="contact">
-  <div class="cta-inner">
-    <div>
-      <div class="section-eyebrow">Get Started</div>
-      <h2 class="section-title">Tell us what you need to build. We will tell you the best way to build it.</h2>
-      <p class="section-body">Book a free 30-minute discovery call. We will review your requirements, assess whether a custom build or a configured Microsoft product is the right answer, and come back with a clear proposal at no obligation.</p>
-      <div style="margin-top: 28px; display: flex; flex-direction: column; gap: 12px;">
-        <div class="trust-item">
-          <span class="trust-dot" style="background: var(--blue);"></span>
-          <span class="trust-text" style="color: var(--text-body);">Free discovery, no commitment required</span>
-        </div>
-        <div class="trust-item">
-          <span class="trust-dot" style="background: var(--blue);"></span>
-          <span class="trust-text" style="color: var(--text-body);">Honest recommendation on build versus configure</span>
-        </div>
-        <div class="trust-item">
-          <span class="trust-dot" style="background: var(--blue);"></span>
-          <span class="trust-text" style="color: var(--text-body);">Response within one business day</span>
-        </div>
-      </div>
-    </div>
-    <div class="cta-form">
-      <div class="form-title">Book Your Free Discovery Call</div>
-      <div class="form-sub">Tell us about the application you need.</div>
-      <div class="form-row">
-        <label>Full Name</label>
-        <input type="text" placeholder="Jane Smith">
-      </div>
-      <div class="form-row">
-        <label>Business Email</label>
-        <input type="email" placeholder="jane@yourcompany.com">
-      </div>
-      <div class="form-row">
-        <label>Company Name</label>
-        <input type="text" placeholder="Acme Corp">
-      </div>
-      <div class="form-row">
-        <label>What Are You Looking to Build?</label>
-        <select>
-          <option value="">Select...</option>
-          <option>Customer or partner portal</option>
-          <option>Internal business tool or workflow application</option>
-          <option>Replace a legacy on-premises application</option>
-          <option>Data dashboard or reporting tool</option>
-          <option>AI-integrated web application</option>
-          <option>Microsoft 365 or Dynamics 365 extension</option>
-          <option>Not sure yet, need a recommendation</option>
-        </select>
-      </div>
-      <button class="form-submit">Request Free Discovery Call</button>
-      <div class="form-note">No spam. No sales pressure. Just a useful conversation.</div>
-    </div>
-  </div>
-</section>
-
-<!-- FOOTER -->
-<footer>
-  <div class="footer-logo-row">
-    <div class="footer-lm">A</div>
-    <span class="footer-lt">armely</span>
-  </div>
-  <div class="footer-note">&#169; 2026 Armely &middot; www.armely.com &middot; Your Trusted Source for Digital Excellence</div>
-  <div class="footer-badges">
-    <span class="badge-chip">Microsoft CSP Partner</span>
-    <span class="badge-chip">Azure Certified</span>
-    <span class="badge-chip">Microsoft Authorized Reseller</span>
-  </div>
-</footer>
-
+<section class="why"><div class="section-inner"><div class="section-eyebrow">Why Armely</div><h2 class="section-title">Custom development that you own, understand, and can maintain.</h2><p class="section-body">The most common failure in custom software is not in the initial delivery. It is what happens six months later when a requirement changes and no one knows how the application works.</p>
+<div class="why-two-col"><div><ul class="why-list"><li><div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 13h8"/><path d="M8 17h6"/></svg></div><div><div class="why-item-title">Documentation Is Not Optional</div><div class="why-item-desc">Every application Armely delivers includes technical documentation, a deployment runbook, and user guides. We write documentation as part of the build.</div></div></li><li><div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></div><div><div class="why-item-title">Built on the Microsoft Stack You Already Own</div><div class="why-item-desc">We build on Azure, .NET, and the Microsoft ecosystem because your organization already has licenses, security controls, and operational familiarity.</div></div></li><li><div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg></div><div><div class="why-item-title">Regulated Industry Experience</div><div class="why-item-desc">We have delivered custom applications for healthcare providers, school districts, and enterprise clients where security, compliance, and data governance are non-negotiable.</div></div></li><li><div class="why-icon"><svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg></div><div><div class="why-item-title">We Will Tell You When Not to Build</div><div class="why-item-desc">If Power Platform or a configured Microsoft product can solve your problem faster and at lower cost, we will tell you that before starting a custom development engagement.</div></div></li></ul></div>
+<div><div class="partner-block"><div class="partner-block-top"><div class="partner-label">Microsoft Authorized Partner</div><p class="partner-text">Armely's Microsoft partnership gives us access to Azure credits, technical pre-sales resources, and architectural guidance for complex custom development engagements.</p></div><div class="partner-stats"><div class="p-stat"><div class="p-stat-num">.NET<span></span></div><div class="p-stat-label">consistently ranked among top-performing web frameworks in independent benchmarks</div></div><div class="p-stat"><div class="p-stat-num">60<span>+</span></div><div class="p-stat-label">Azure regions for scalable, compliant cloud deployments globally</div></div><div class="p-stat"><div class="p-stat-num">100<span>%</span></div><div class="p-stat-label">of Armely applications delivered with full source code ownership and documentation</div></div><div class="p-stat"><div class="p-stat-num">0<span></span></div><div class="p-stat-label">applications delivered without a CI/CD pipeline and automated test coverage</div></div></div></div></div></div></div></section>
+<section class="cta-section" id="contact"><div class="cta-inner"><div><div class="section-eyebrow">Get Started</div><h2 class="section-title">Tell us what you need to build. We will tell you the best way to build it.</h2><p class="section-body">Book a free 30-minute discovery call. We will assess whether a custom build or a configured Microsoft product is the right answer.</p><div style="margin-top:20px;display:flex;flex-direction:column;gap:9px;"><div class="trust-item"><span class="trust-dot"></span><span class="trust-text">Free assessment, no commitment required</span></div><div class="trust-item"><span class="trust-dot"></span><span class="trust-text">Recommendation and partner pricing included</span></div><div class="trust-item"><span class="trust-dot"></span><span class="trust-text">Response within one business day</span></div></div></div><div class="cta-form"><div class="form-title">Book Your Free Assessment</div><div class="form-sub">Tell us about your situation.</div><div class="form-row"><label>Full Name</label><input type="text" placeholder="Jane Smith"></div><div class="form-row"><label>Business Email</label><input type="email" placeholder="jane@yourcompany.com"></div><div class="form-row"><label>Company Name</label><input type="text" placeholder="Acme Corp"></div><div class="form-row"><label>Primary Need</label><select><option value="">Select...</option><option>Customer or partner portal</option><option>Internal business tool or workflow application</option><option>Replace a legacy on-premises application</option><option>Data dashboard or reporting tool</option><option>AI-integrated web application</option><option>Microsoft 365 or Dynamics 365 extension</option><option>Not sure yet, need a recommendation</option></select></div><button class="form-submit">Request Free Discovery Call</button><div class="form-note">No spam. No sales pressure. Just a useful conversation.</div></div></div></section>
 </div>
