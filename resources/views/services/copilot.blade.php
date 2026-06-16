@@ -1,3 +1,5 @@
+@section('title', 'Microsoft 365 Copilot Deployment | Armely')
+
 <style>
 
 
@@ -36,7 +38,7 @@
 .armely-copilot-page .hero-eyebrow { display: inline-flex; align-items: center; gap: 10px; margin-bottom: 24px; }
 .armely-copilot-page .eyebrow-badge { background: rgba(41,78,139,0.35); border: 1px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.9); font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.12em; padding: 5px 14px; border-radius: 40px; }
 .armely-copilot-page .eyebrow-partner { font-size: 0.78rem; color: rgba(255,255,255,0.5); font-weight: 400; }
-.armely-copilot-page .hero h1 { font-size: clamp(2.6rem, 5.5vw, 4.8rem); font-weight: 800; line-height: 1.08; color: #FFFFFF; max-width: 820px; margin-bottom: 24px; letter-spacing: -0.03em; }
+.armely-copilot-page .hero h1 { font-size: clamp(1.75rem, 3.2vw, 2.7rem); font-weight: 800; line-height: 1.08; color: #FFFFFF; max-width: 820px; margin-bottom: 24px; letter-spacing: -0.03em; }
 .armely-copilot-page .hero h1 .hl { color: #FFFFFF; opacity: 0.92; }
 .armely-copilot-page .hero-sub { font-size: 1.05rem; font-weight: 300; color: rgba(255,255,255,0.82); max-width: 580px; margin-bottom: 40px; line-height: 1.8; }
 .armely-copilot-page .hero-actions { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 72px; }
@@ -660,7 +662,7 @@
 .armely-copilot-page .hero h1 {
   max-width: 900px !important;
   margin-bottom: 18px !important;
-  font-size: clamp(2.5rem, 5vw, 4.9rem) !important;
+  font-size: clamp(1.75rem, 3.2vw, 2.7rem);
   line-height: 1.05 !important;
   letter-spacing: -0.04em !important;
 }
@@ -800,7 +802,7 @@
   .armely-copilot-page .cta-inner { padding: 56px 24px !important; grid-template-columns: 1fr !important; }
 }
 @media (max-width: 600px) {
-  .armely-copilot-page .hero h1 { font-size: clamp(2.15rem, 11vw, 3.2rem) !important; }
+  .armely-copilot-page .hero h1 { font-size: clamp(1.75rem, 3.2vw, 2.7rem); }
   .armely-copilot-page .hero-eyebrow { flex-direction: column !important; align-items: flex-start !important; gap: 8px !important; }
   .armely-copilot-page .hero-actions a { width: 100% !important; text-align: center !important; }
   .armely-copilot-page .delivers-grid,
