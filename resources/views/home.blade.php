@@ -1183,6 +1183,9 @@
 --}}
 
 <main id="main-content" role="main">
+{{-- 
+Old DB-backed service cards. Kept here as a reference so we can restore them later if needed.
+The newer hero partial now renders the service cards instead.
 <section class="schedule">
     <div class="container"><div class="schedule-inner"><div class="row">
         @foreach($offers as $offer)
@@ -1202,6 +1205,7 @@
         @endforeach
     </div></div></div>
 </section>
+--}}
 
 <section id="clients" class="clients-section section">
     <div class="container">
