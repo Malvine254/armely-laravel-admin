@@ -4263,7 +4263,7 @@ input:checked+.slider-two:before {
       background: linear-gradient(135deg, #4f46e5, #3b82f6);
       color: white;
       padding: 3rem 2rem;
-      border-radius: 1rem;
+      border-radius: 0rem;
       margin-bottom: 2rem;
     }
     .section {
