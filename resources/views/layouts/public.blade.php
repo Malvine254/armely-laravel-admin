@@ -1159,6 +1159,8 @@ main .service-card {
                                                             <li><a class="mega-link-with-icon" href="{{ route('service-details', ['name' => 'data-strategy']) }}"><span class="mega-link-icon"><i class="fa-solid fa-compass" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">Data &amp; AI Strategy</span><span class="mega-link-description">Set the roadmap for analytics, AI, and governance.</span></span></a></li>
                                                             <li><a class="mega-link-with-icon" href="{{ route('service-details', ['name' => 'm365-governance']) }}"><span class="mega-link-icon"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">M365 Governance</span><span class="mega-link-description">Improve Microsoft 365 control, compliance, and adoption.</span></span></a></li>
                                                             <li><a class="mega-link-with-icon" href="{{ route('assessments') }}"><span class="mega-link-icon"><i class="fa-solid fa-clipboard-check" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">Assessments</span><span class="mega-link-description">Free health checks and structured discovery engagements.</span></span></a></li>
+                                                            <li><a class="mega-link-with-icon" href="{{ route('service-details', ['name' => 'training']) }}"><span class="mega-link-icon"><i class="fa-solid fa-chalkboard-user" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">Training</span><span class="mega-link-description">Role-based enablement for teams and administrators.</span></span></a></li>
+                                                            <li><a class="mega-link-with-icon" href="{{ route('service-details', ['name' => 'managed-services']) }}"><span class="mega-link-icon"><i class="fa-solid fa-briefcase" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">Managed Services</span><span class="mega-link-description">Ongoing support, optimization, and administration.</span></span></a></li>
                                                         </ul>
                                                     </div>
 
@@ -1396,6 +1398,8 @@ main .service-card {
                     <a href="{{ route('service-details', ['name' => 'data-strategy']) }}">Data &amp; AI Strategy</a>
                     <a href="{{ route('service-details', ['name' => 'm365-governance']) }}">M365 Governance</a>
                     <a href="{{ route('assessments') }}">Assessments</a>
+                    <a href="{{ route('service-details', ['name' => 'training']) }}">Training</a>
+                    <a href="{{ route('service-details', ['name' => 'managed-services']) }}">Managed Services</a>
                 </div>
 
                 <div class="mobile-mega-section">
