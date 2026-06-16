@@ -73,6 +73,7 @@ foreach ([
     'generative-ai' => 'generative-ai',
     'm365-governance' => 'm365-governance',
     'managed-services' => 'managed-services',
+    'training' => 'training',
     'powerapps' => 'microsoft-powerapps',
     'power-apps' => 'microsoft-powerapps',
     'powerautomate' => 'microsoft-power-automate',
