@@ -602,7 +602,7 @@
 
     /* Clients/Brands Section */
     .clients-section {
-        padding: 42px 0 56px;
+        padding: 110px 0;
         position: relative;
         overflow: hidden;
         background:
@@ -641,28 +641,20 @@
         min-height: 100%;
     }
 
-    .clients-section .partner-carousel.mt-4 {
-        margin-top: 14px !important;
-    }
-
-    .clients-section .section-title.mb-5 {
-        margin-bottom: 1.5rem !important;
-    }
-
     .partner-carousel .m-4 {
         background: #ffffff;
         border: 1px solid #dbe7fb;
         border-radius: 20px;
-        padding: 18px 14px;
+        padding: 24px 18px;
         transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
         gap: 12px;
-        height: 224px;
-        min-height: 224px;
-        max-height: 224px;
+        height: 260px;
+        min-height: 260px;
+        max-height: 260px;
         flex-shrink: 0;
         box-shadow: 0 10px 24px rgba(16, 34, 66, 0.08);
         position: relative;
@@ -1155,8 +1147,6 @@
 @endpush
 
 @section('content')
-@include('partials.home-hero-1000')
-{{--
 <section class="slider">
     <div class="hero-slider">
         <div class="single-slider" style="background-image:url('{{ asset('images/sliders/slider-1.webp') }}')" role="img" aria-label="Digital Excellence Banner">
@@ -1180,7 +1170,6 @@
         </div>
     </div>
 </section>
---}}
 
 <main id="main-content" role="main">
 <section class="schedule">
@@ -1217,17 +1206,17 @@
             </div>
         </div>
         <div class="owl-carousel clients-carousel partner-carousel mt-4">
-            <div class="m-4"><a class="partner-logo" href="{{ url('/industries#healthcare') }}"><img src="{{ asset('images/brand-partners/university_of_nebrask1.png') }}" class="img-fluid lazy-img" loading="lazy" decoding="async" alt="University of Nebraska Medical Center logo" width="200" height="80"></a><div class="partner-name">Healthcare</div></div>
-            <div class="m-4"><a class="partner-logo" href="{{ url('/industries#healthcare') }}"><img src="{{ asset('images/brand-partners/swope_health.png') }}" alt="Swope Health Services logo" class="img-fluid lazy-img" loading="lazy" decoding="async" width="200" height="80"></a><div class="partner-name">Healthcare</div></div>
-            <div class="m-4"><a class="partner-logo" href="{{ url('/industries#healthcare') }}"><img src="{{ asset('images/brand-partners/esse_health.jpg') }}" alt="Esse Health logo" class="img-fluid lazy-img" loading="lazy" decoding="async" width="200" height="80"></a><div class="partner-name">Healthcare</div></div>
-            <div class="m-4"><a class="partner-logo" href="{{ url('/industries#energy') }}"><img src="{{ asset('images/brand-partners/sage_bute.webp') }}" alt="Sage Butte Energy logo" class="img-fluid lazy-img" loading="lazy" decoding="async" width="200" height="80"></a><div class="partner-name">Energy</div></div>
-            <div class="m-4"><a class="partner-logo" href="{{ url('/industries#energy') }}"><img src="{{ asset('images/brand-partners/qb_energy.jpg') }}" alt="QB Energy logo" class="img-fluid lazy-img" loading="lazy" decoding="async" width="200" height="80"></a><div class="partner-name">Energy</div></div>
-            <div class="m-4"><a class="partner-logo" href="{{ url('/industries#government') }}"><img src="{{ asset('images/brand-partners/frisco.jpeg') }}" alt="City of Frisco Texas logo" class="img-fluid lazy-img" loading="lazy" decoding="async" width="200" height="80"></a><div class="partner-name">Government</div></div>
-            <div class="m-4"><a class="partner-logo" href="{{ url('/industries#government') }}"><img src="{{ asset('images/brand-partners/dallas_county.jpg') }}" alt="Dallas County logo" class="img-fluid lazy-img" loading="lazy" decoding="async" width="200" height="80"></a><div class="partner-name">Government</div></div>
-            <div class="m-4"><a class="partner-logo" href="{{ url('/industries#legal') }}"><img src="{{ asset('images/brand-partners/lambda.png') }}" alt="Lambda Legal logo" class="img-fluid lazy-img" loading="lazy" decoding="async" width="200" height="80"></a><div class="partner-name">Legal</div></div>
-            <div class="m-4"><a class="partner-logo" href="{{ url('/industries#who-we-serve') }}"><img src="{{ asset('images/brand-partners/homeward_bound.png') }}" alt="Homeward Bound logo" class="img-fluid lazy-img" loading="lazy" decoding="async" width="200" height="80"></a><div class="partner-name">Nonprofit</div></div>
-            <div class="m-4"><a class="partner-logo" href="{{ url('/industries#manufacturing') }}"><img src="{{ asset('images/brand-partners/mhc.png') }}" alt="MHC logo" class="img-fluid lazy-img" loading="lazy" decoding="async" width="200" height="80"></a><div class="partner-name">Manufacturing</div></div>
-            <div class="m-4"><a class="partner-logo" href="{{ url('/industries#transportation-logistics') }}"><img src="{{ asset('images/brand-partners/bnsf.png') }}" alt="BNSF Railway logo" class="img-fluid lazy-img" loading="lazy" decoding="async" width="200" height="80"></a><div class="partner-name">Transportation</div></div>
+            <div class="m-4"><a class="partner-logo" href="{{ asset('images/brand-partners/university_of_nebrask1.png') }}" target="_blank" rel="noopener noreferrer"><img src="{{ asset('images/brand-partners/university_of_nebrask1.png') }}" class="img-fluid lazy-img" loading="lazy" decoding="async" alt="University of Nebraska Medical Center logo" width="200" height="80"></a><div class="partner-name">University of Nebraska Medical Center</div></div>
+            <div class="m-4"><a class="partner-logo" href="{{ asset('images/brand-partners/swope_health.png') }}" target="_blank" rel="noopener noreferrer"><img src="{{ asset('images/brand-partners/swope_health.png') }}" alt="Swope Health Services logo" class="img-fluid lazy-img" loading="lazy" decoding="async" width="200" height="80"></a><div class="partner-name">Swope Health Services</div></div>
+            <div class="m-4"><a class="partner-logo" href="{{ asset('images/brand-partners/esse_health.jpg') }}" target="_blank" rel="noopener noreferrer"><img src="{{ asset('images/brand-partners/esse_health.jpg') }}" alt="Esse Health logo" class="img-fluid lazy-img" loading="lazy" decoding="async" width="200" height="80"></a><div class="partner-name">Esse Health</div></div>
+            <div class="m-4"><a class="partner-logo" href="{{ asset('images/brand-partners/sage_bute.webp') }}" target="_blank" rel="noopener noreferrer"><img src="{{ asset('images/brand-partners/sage_bute.webp') }}" alt="Sage Butte Energy logo" class="img-fluid lazy-img" loading="lazy" decoding="async" width="200" height="80"></a><div class="partner-name">Sage Butte Energy</div></div>
+            <div class="m-4"><a class="partner-logo" href="{{ asset('images/brand-partners/qb_energy.jpg') }}" target="_blank" rel="noopener noreferrer"><img src="{{ asset('images/brand-partners/qb_energy.jpg') }}" alt="QB Energy logo" class="img-fluid lazy-img" loading="lazy" decoding="async" width="200" height="80"></a><div class="partner-name">QB Energy</div></div>
+            <div class="m-4"><a class="partner-logo" href="{{ asset('images/brand-partners/frisco.jpeg') }}" target="_blank" rel="noopener noreferrer"><img src="{{ asset('images/brand-partners/frisco.jpeg') }}" alt="City of Frisco Texas logo" class="img-fluid lazy-img" loading="lazy" decoding="async" width="200" height="80"></a><div class="partner-name">City of Frisco</div></div>
+            <div class="m-4"><a class="partner-logo" href="{{ asset('images/brand-partners/dallas_county.jpg') }}" target="_blank" rel="noopener noreferrer"><img src="{{ asset('images/brand-partners/dallas_county.jpg') }}" alt="Dallas County logo" class="img-fluid lazy-img" loading="lazy" decoding="async" width="200" height="80"></a><div class="partner-name">Dallas County</div></div>
+            <div class="m-4"><a class="partner-logo" href="{{ asset('images/brand-partners/lambda.png') }}" target="_blank" rel="noopener noreferrer"><img src="{{ asset('images/brand-partners/lambda.png') }}" alt="Lambda Legal logo" class="img-fluid lazy-img" loading="lazy" decoding="async" width="200" height="80"></a><div class="partner-name">Lambda Legal</div></div>
+            <div class="m-4"><a class="partner-logo" href="{{ asset('images/brand-partners/homeward_bound.png') }}" target="_blank" rel="noopener noreferrer"><img src="{{ asset('images/brand-partners/homeward_bound.png') }}" alt="Homeward Bound logo" class="img-fluid lazy-img" loading="lazy" decoding="async" width="200" height="80"></a><div class="partner-name">Homeward Bound</div></div>
+            <div class="m-4"><a class="partner-logo" href="{{ asset('images/brand-partners/mhc.png') }}" target="_blank" rel="noopener noreferrer"><img src="{{ asset('images/brand-partners/mhc.png') }}" alt="MHC logo" class="img-fluid lazy-img" loading="lazy" decoding="async" width="200" height="80"></a><div class="partner-name">MHC</div></div>
+            <div class="m-4"><a class="partner-logo" href="{{ asset('images/brand-partners/bnsf.png') }}" target="_blank" rel="noopener noreferrer"><img src="{{ asset('images/brand-partners/bnsf.png') }}" alt="BNSF Railway logo" class="img-fluid lazy-img" loading="lazy" decoding="async" width="200" height="80"></a><div class="partner-name">BNSF Railway</div></div>
         </div>
     </div>
 </section>
@@ -1291,7 +1280,7 @@
     </div>
 </section>
 
-{{-- <section id="fun-facts" class="fun-facts default-background section col-md-12 mt-5 no-radius" aria-labelledby="stats-heading">
+<section id="fun-facts" class="fun-facts default-background section col-md-12 mt-5 no-radius" aria-labelledby="stats-heading">
     <div class="container">
         <h2 id="stats-heading" class="sr-only">Customer Statistics</h2>
         <div class="row" style="content-visibility:auto; contain-intrinsic-size: auto 300px;">
@@ -1300,7 +1289,7 @@
             <div class="col-lg-4 col-md-6 col-12"><div class="single-fun"><i class="icofont icofont-badge"></i><div class="content"><span class="years-metric"><span class="counter">9</span>&nbsp;Years</span><p>Years of Delivery</p></div></div></div>
         </div>
     </div>
- </section> --}}
+</section>
 
 <section class="blog section" id="blog">
     <div class="container">
