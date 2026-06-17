@@ -646,6 +646,27 @@ class CaseStudiesController extends Controller
         ], $resources[$slug]);
     }
 
+    private function caseStudyHasAttachment(object $caseStudy): bool
+    {
+        return trim((string) ($caseStudy->pdf_url ?? '')) !== '';
+    }
+
+    private function whitePaperHasAttachment(object $paper): bool
+    {
+        $column = null;
+        if (Schema::hasColumn('white_paper', 'pdf')) {
+            $column = 'pdf';
+        } elseif (Schema::hasColumn('white_paper', 'pdf_url')) {
+            $column = 'pdf_url';
+        }
+
+        if ($column === null) {
+            return false;
+        }
+
+        return trim((string) ($paper->{$column} ?? '')) !== '';
+    }
+
     private function industryFilters(): array
     {
         return Cache::remember('case_studies_industry_filters', now()->addMinutes(15), function (): array {
@@ -1031,27 +1052,19 @@ class CaseStudiesController extends Controller
 
         $whitePaperId = (int) ($data['white_paper_id'] ?? 0);
         if ($whitePaperId > 0 && $this->isTableQueryable('white_paper')) {
-            $whitePaperFileColumn = null;
-            if (Schema::hasColumn('white_paper', 'pdf')) {
-                $whitePaperFileColumn = 'pdf';
-            } elseif (Schema::hasColumn('white_paper', 'pdf_url')) {
-                $whitePaperFileColumn = 'pdf_url';
-            }
-
             $query = DB::table('white_paper')
                 ->select('id', 'title')
                 ->where('id', $whitePaperId);
 
-            if ($whitePaperFileColumn !== null) {
-                $query->addSelect($whitePaperFileColumn);
+            if (Schema::hasColumn('white_paper', 'pdf')) {
+                $query->addSelect('pdf');
+            } elseif (Schema::hasColumn('white_paper', 'pdf_url')) {
+                $query->addSelect('pdf_url');
             }
 
             $record = $query->first();
-            $whitePaperFileValue = $whitePaperFileColumn !== null
-                ? trim((string) ($record->{$whitePaperFileColumn} ?? ''))
-                : '';
 
-            if ($record && $whitePaperFileValue !== '') {
+            if ($record && $this->whitePaperHasAttachment($record)) {
                 return [
                     'resource_title' => (string) ($record->title ?? ('White Paper #' . $whitePaperId)),
                     'resource_type_label' => 'White Paper',
@@ -1064,14 +1077,39 @@ class CaseStudiesController extends Controller
         $requestedResource = trim((string) ($data['requested_resource'] ?? ''));
         if ($requestedResource !== '') {
             $slug = Str::slug($requestedResource);
+            if ($slug !== '') {
+                $caseStudy = $this->findCaseStudyBySlug($slug);
+                if ($caseStudy && $this->caseStudyHasAttachment($caseStudy)) {
+                    return [
+                        'resource_title' => $this->caseStudyDisplayTitle($caseStudy),
+                        'resource_type_label' => 'Case Study',
+                        'download_url' => URL::temporarySignedRoute('case-studies.access', $expiresAt, ['caseStudy' => (int) $caseStudy->id, 'em' => sha1($email)]),
+                        'expires_at' => $expiresAt->format('M d, Y h:i A T'),
+                    ];
+                }
+
+                $whitePaper = $this->findWhitePaperBySlug($slug);
+                if ($whitePaper && $this->whitePaperHasAttachment($whitePaper)) {
+                    return [
+                        'resource_title' => (string) ($whitePaper->title ?? 'White Paper'),
+                        'resource_type_label' => 'White Paper',
+                        'download_url' => URL::temporarySignedRoute('white-papers.access', $expiresAt, ['paper' => (int) $whitePaper->id, 'em' => sha1($email)]),
+                        'expires_at' => $expiresAt->format('M d, Y h:i A T'),
+                    ];
+                }
+            }
+
             $staticResource = $this->staticResourceBySlug($slug);
-            if ($staticResource) {
-                return [
-                    'resource_title' => (string) $staticResource->title,
-                    'resource_type_label' => 'White Paper',
-                    'download_url' => route('resources.show', ['slug' => $staticResource->slug, 'download' => 1]),
-                    'expires_at' => $expiresAt->toDayDateTimeString(),
-                ];
+            if ($staticResource && $this->isTableQueryable('white_paper')) {
+                $resolvedPaper = $this->findWhitePaperBySlug((string) ($staticResource->slug ?? $slug));
+                if ($resolvedPaper && $this->whitePaperHasAttachment($resolvedPaper)) {
+                    return [
+                        'resource_title' => (string) ($resolvedPaper->title ?? $staticResource->title),
+                        'resource_type_label' => 'White Paper',
+                        'download_url' => URL::temporarySignedRoute('white-papers.access', $expiresAt, ['paper' => (int) $resolvedPaper->id, 'em' => sha1($email)]),
+                        'expires_at' => $expiresAt->format('M d, Y h:i A T'),
+                    ];
+                }
             }
         }
 

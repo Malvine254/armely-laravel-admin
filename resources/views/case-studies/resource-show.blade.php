@@ -192,6 +192,7 @@
     width: 100%;
     min-height: 48px;
     border: 0;
+    margin-top: 14px;
     padding: 12px 18px;
     font-weight: 900;
 }
