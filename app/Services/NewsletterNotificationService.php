@@ -5,6 +5,7 @@ namespace App\Services;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 
 class NewsletterNotificationService
@@ -22,21 +23,23 @@ class NewsletterNotificationService
 
     public function sendCaseStudyNotification(object $caseStudy): void
     {
+        $caseStudyId = $caseStudy->id ?? $caseStudy->case_study_id ?? null;
         $this->sendContentNotification(
             'case-study',
             trim((string) ($caseStudy->title ?? $caseStudy->display_title ?? $caseStudy->category ?? 'New Armely case study')),
             trim((string) ($caseStudy->body ?? $caseStudy->content ?? '')),
-            route('case-studies.index')
+            $caseStudyId ? URL::temporarySignedRoute('case-studies.access', now()->addDays(7), ['caseStudy' => $caseStudyId]) : route('case-studies.index')
         );
     }
 
     public function sendWhitePaperNotification(object $whitePaper): void
     {
+        $whitePaperId = $whitePaper->id ?? $whitePaper->white_paper_id ?? null;
         $this->sendContentNotification(
             'white-paper',
             trim((string) ($whitePaper->title ?? $whitePaper->display_title ?? 'New Armely white paper')),
             trim((string) ($whitePaper->body ?? $whitePaper->content ?? '')),
-            route('resources.index')
+            $whitePaperId ? URL::temporarySignedRoute('white-papers.access', now()->addDays(7), ['paper' => $whitePaperId]) : route('case-studies.index')
         );
     }
 
