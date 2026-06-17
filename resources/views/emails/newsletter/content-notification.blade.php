@@ -7,6 +7,7 @@
 </head>
 <body style="margin:0;padding:0;background:#eef2fa;font-family:'Segoe UI',Arial,sans-serif;color:#172033;">
 @php($recipientReason = trim((string) ($recipientReason ?? '')))
+@php($recipientKind = trim((string) ($recipientKind ?? 'subscriber')))
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#eef2fa;padding:30px 14px;">
     <tr>
         <td align="center">
@@ -25,7 +26,11 @@
                 </tr>
                 <tr>
                     <td style="padding:20px 30px 28px;">
+                        @if($recipientKind === 'admin')
+                        <p style="margin:0;color:#66758c;font-size:13px;line-height:1.6;">{{ $recipientReason !== '' ? $recipientReason : 'You are receiving this because you are on the Armely admin team.' }}</p>
+                        @else
                         <p style="margin:0;color:#66758c;font-size:13px;line-height:1.6;">{{ $recipientReason !== '' ? $recipientReason : 'You are receiving this because you subscribed to Armely newsletter updates for blogs, events, and related resources.' }}</p>
+                        @endif
                         @if(!empty($unsubscribeUrl))
                         <div style="margin:16px 0 0;padding:16px 18px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;">
                             <p style="margin:0 0 12px;color:#66758c;font-size:13px;line-height:1.6;">No longer want Armely updates?</p>

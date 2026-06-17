@@ -109,6 +109,7 @@ class NewsletterNotificationService
                 'title' => $title,
                 'summary' => $summary,
                 'url' => $url,
+                'recipientKind' => $recipient['kind'] ?? 'subscriber',
                 'recipientReason' => $recipient['reason'] ?? '',
                 'unsubscribeUrl' => $recipient['unsubscribeUrl'] ?? null,
             ])->render();
