@@ -97,18 +97,24 @@ php artisan schedule:work &
 # 1. Check API response time
 time curl http://localhost:8000/api/v1/products
 
-# 2. Check logs for errors
+# 2. Confirm scheduler fallback is enabled
+php artisan tinker --execute="dump(\App\Models\AppSetting::getValue('price_sync.enable_http_fallback', false));"
+
+# 3. Confirm the saved sync timezone is America/Chicago
+php artisan tinker --execute="dump(\App\Models\AppSetting::getValue('price_sync.timezone', 'America/Chicago'));"
+
+# 4. Check logs for errors
 tail -f storage/logs/laravel.log
 
-# 3. Verify queue worker
+# 5. Verify queue worker
 ps aux | grep 'queue:work'
 
-# 4. Verify scheduler
+# 6. Verify scheduler
 ps aux | grep 'schedule:work'
 # OR for cron:
 crontab -l | grep 'schedule:run'
 
-# 5. Test price sync job
+# 7. Test price sync job
 php artisan queue:work --tries=1 --timeout=300
 # Should see: "Product price sync completed"
 ```

@@ -26,6 +26,8 @@ class DatabaseSeeder extends Seeder
 
         $this->call([
             CustomerStoriesSeeder::class,
+            ResourceSampleSeeder::class,
+            ContentSampleSeeder::class,
         ]);
     }
 }

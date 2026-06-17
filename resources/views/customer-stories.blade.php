@@ -541,6 +541,9 @@
                     if (empty($initials)) $initials = 'U';
                     
                     $profilePath = $testimonial->profile ? asset('images/customer-stories/' . $testimonial->profile) : '';
+                    if ($profilePath === '' && str_contains(strtolower((string) $testimonial->name), 'plano')) {
+                        $profilePath = asset('images/partners/Plano.png');
+                    }
                     $testimonialBody = trim(preg_replace('/\s+/', ' ', strip_tags((string) ($testimonial->body_content ?? ''))));
                 @endphp
                 <div class="col-lg-4 col-md-6 col-12 mb-4">

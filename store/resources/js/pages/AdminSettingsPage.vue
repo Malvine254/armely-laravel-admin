@@ -257,6 +257,42 @@
           <p v-if="priceSyncSettings.last_triggered_date" class="text-xs text-[#2F5597]/70 mt-1">Last auto-triggered: {{ priceSyncSettings.last_triggered_date }}</p>
         </div>
 
+        <div
+          v-if="priceSyncSettings.scheduler_health && priceSyncSettings.scheduler_health.message"
+          class="rounded-lg border p-4"
+          :class="{
+            'border-emerald-300 bg-emerald-50': priceSyncSettings.scheduler_health.status === 'ok',
+            'border-amber-300 bg-amber-50': priceSyncSettings.scheduler_health.status !== 'ok',
+          }"
+        >
+          <p
+            class="text-sm font-semibold"
+            :class="{
+              'text-emerald-700': priceSyncSettings.scheduler_health.status === 'ok',
+              'text-amber-700': priceSyncSettings.scheduler_health.status !== 'ok',
+            }"
+          >
+            Deployment Check
+          </p>
+          <p
+            class="text-sm mt-1"
+            :class="{
+              'text-emerald-700': priceSyncSettings.scheduler_health.status === 'ok',
+              'text-amber-700': priceSyncSettings.scheduler_health.status !== 'ok',
+            }"
+          >
+            {{ priceSyncSettings.scheduler_health.message }}
+          </p>
+          <ul v-if="Array.isArray(priceSyncSettings.scheduler_health.issues) && priceSyncSettings.scheduler_health.issues.length" class="mt-2 space-y-1">
+            <li v-for="issue in priceSyncSettings.scheduler_health.issues" :key="issue" class="text-xs text-amber-700">
+              - {{ issue }}
+            </li>
+          </ul>
+          <p class="text-xs text-[#2F5597]/70 mt-2">
+            Fallback: {{ priceSyncSettings.fallback_enabled ? 'enabled' : 'disabled' }} | Queue: {{ priceSyncSettings.queue_connection || 'unknown' }}
+          </p>
+        </div>
+
         <!-- Live Sync Status Panel -->
         <div v-if="syncState.status !== 'idle'" class="rounded-lg border p-4 space-y-2"
           :class="{
@@ -1187,10 +1223,17 @@ const emailSettings = ref({
 
 const priceSyncSettings = ref({
   time: '18:00',
-  timezone: 'Africa/Nairobi',
+  timezone: 'America/Chicago',
   email: 'malvine.owuor@armely.com',
+  fallback_enabled: false,
+  queue_connection: '',
   next_run_local: '',
   last_triggered_date: '',
+  scheduler_health: {
+    status: 'warning',
+    message: '',
+    issues: [],
+  },
 })
 
 const systemSettings = ref({

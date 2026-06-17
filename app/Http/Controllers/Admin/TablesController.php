@@ -453,10 +453,16 @@ class TablesController extends Controller
             if ($imageData = $this->storeBlogImage($request, $blogTable)) {
                 $data = array_merge($data, $imageData);
             }
-            
-            DB::table($blogTable)->where($idColumn, $request->id)->update($data);
+
+            if (!empty($data)) {
+                DB::table($blogTable)->where($idColumn, $request->id)->update($data);
+            }
+
             $blog = DB::table($blogTable)->where($idColumn, $request->id)->first();
-            ActivityLogger::log('update', 'Blog', $request->id, 'Updated blog ' . ($request->title ?? ($blog->title ?? $blog->blog_title ?? '')));
+            if (!empty($data)) {
+                ActivityLogger::log('update', 'Blog', $request->id, 'Updated blog ' . ($request->title ?? ($blog->title ?? $blog->blog_title ?? '')));
+                app(NewsletterNotificationService::class)->sendBlogNotification($blog, $idColumn);
+            }
             return response()->json(['success' => true, 'message' => 'Blog updated successfully', 'data' => $blog]);
         } else {
             // CREATE - Require all fields
@@ -508,7 +514,7 @@ class TablesController extends Controller
             }
             
             DB::table($blogTable)->insert($data);
-            $blog = DB::table($blogTable)->orderBy('id', 'desc')->first();
+            $blog = DB::table($blogTable)->orderBy($idColumn, 'desc')->first();
             ActivityLogger::log('create', 'Blog', $blog->{$idColumn} ?? ($blog->id ?? null), 'Created blog ' . ($request->title ?? ($blog->title ?? $blog->blog_title ?? '')));
             app(NewsletterNotificationService::class)->sendBlogNotification($blog, $idColumn);
             return response()->json(['success' => true, 'message' => 'Blog created successfully', 'data' => $blog]);
@@ -913,9 +919,14 @@ class TablesController extends Controller
         $isCrossTypeMove = $request->has('id') && $request->id && $sourceResourceType === 'white_paper';
 
         if ($request->has('id') && $request->id && !$isCrossTypeMove) {
-            DB::table('industry_listings')->where('id', $request->id)->update($data);
+            if (!empty($data)) {
+                DB::table('industry_listings')->where('id', $request->id)->update($data);
+            }
             $caseStudy = DB::table('industry_listings')->where('id', $request->id)->first();
             ActivityLogger::log('update', 'CaseStudy', $request->id, 'Updated case study ' . ($caseStudy->category ?? ''));
+            if (!empty($data)) {
+                app(NewsletterNotificationService::class)->sendCaseStudyNotification($caseStudy);
+            }
             return response()->json(['success' => true, 'message' => 'Case study updated successfully', 'data' => $caseStudy]);
         }
 
@@ -931,6 +942,7 @@ class TablesController extends Controller
         }
 
         ActivityLogger::log('create', 'CaseStudy', $id, 'Created case study ' . ($caseStudy->category ?? ''));
+        app(NewsletterNotificationService::class)->sendCaseStudyNotification($caseStudy);
         return response()->json(['success' => true, 'message' => 'Case study created successfully', 'data' => $caseStudy]);
     }
 
@@ -998,9 +1010,14 @@ class TablesController extends Controller
         $isCrossTypeMove = $request->has('id') && $request->id && $sourceResourceType === 'case_study';
 
         if ($request->has('id') && $request->id && !$isCrossTypeMove) {
-            DB::table('white_paper')->where('id', $request->id)->update($data);
+            if (!empty($data)) {
+                DB::table('white_paper')->where('id', $request->id)->update($data);
+            }
             $whitePaper = DB::table('white_paper')->where('id', $request->id)->first();
             ActivityLogger::log('update', 'WhitePaper', $request->id, 'Updated white paper ' . ((string) ($whitePaper->{$titleColumn} ?? '')));
+            if (!empty($data)) {
+                app(NewsletterNotificationService::class)->sendWhitePaperNotification($whitePaper);
+            }
             return response()->json(['success' => true, 'message' => 'White paper updated successfully', 'data' => $whitePaper]);
         }
 
@@ -1028,6 +1045,7 @@ class TablesController extends Controller
         }
 
         ActivityLogger::log('create', 'WhitePaper', $id, 'Created white paper ' . ((string) ($whitePaper->{$titleColumn} ?? '')));
+        app(NewsletterNotificationService::class)->sendWhitePaperNotification($whitePaper);
         return response()->json(['success' => true, 'message' => 'White paper created successfully', 'data' => $whitePaper]);
     }
 
@@ -1362,6 +1380,9 @@ class TablesController extends Controller
             
             $event = DB::table($table)->where('id', $id)->first();
             ActivityLogger::log('update', 'Event', $id, 'Updated event ' . ($event->title ?? ''));
+            if (!empty($data)) {
+                app(NewsletterNotificationService::class)->sendEventNotification($event);
+            }
             return response()->json(['success' => true, 'message' => 'Event updated successfully', 'data' => $event]);
         } else {
             // Create new event

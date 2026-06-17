@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\AzureMailService;
+use App\Services\NewsletterNotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -149,21 +150,6 @@ class NewsletterController extends Controller
 
     private function newsletterAdminRecipients(): array
     {
-        $emails = [
-            env('ADMIN_EMAIL'),
-            'ask.me@armely.com',
-        ];
-
-        if (Schema::hasTable('admin')) {
-            $emails = array_merge($emails, DB::table('admin')->pluck('email')->all());
-        }
-
-        return collect($emails)
-            ->filter()
-            ->map(fn ($email) => AzureMailService::normalizeEmail((string) $email))
-            ->filter(fn ($email) => AzureMailService::isDeliverableEmail($email))
-            ->unique()
-            ->values()
-            ->all();
+        return app(NewsletterNotificationService::class)->adminRecipientEmails();
     }
 }
