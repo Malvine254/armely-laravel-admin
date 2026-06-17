@@ -21,6 +21,10 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\KickOffDuePriceSync::class,
         ]);
 
+        $middleware->api(append: [
+            \App\Http\Middleware\KickOffDuePriceSync::class,
+        ]);
+
         // API routes are token-based and should never redirect to a web login route.
         $middleware->redirectGuestsTo(function ($request) {
             if ($request->is('api/*') || $request->expectsJson()) {

@@ -513,8 +513,25 @@ class TablesController extends Controller
                 $data['status'] = 'published';
             }
             
-            DB::table($blogTable)->insert($data);
-            $blog = DB::table($blogTable)->orderBy($idColumn, 'desc')->first();
+            $insertedId = null;
+            if ($this->columnExists($blogTable, 'id')) {
+                $insertedId = DB::table($blogTable)->insertGetId($data);
+            } else {
+                DB::table($blogTable)->insert($data);
+            }
+
+            $blogQuery = DB::table($blogTable);
+            if ($insertedId !== null) {
+                $blogQuery->where('id', $insertedId);
+            } elseif ($idColumn === 'blog_id' && isset($data['blog_id'])) {
+                $blogQuery->where('blog_id', $data['blog_id']);
+            } elseif ($idColumn === 'id' && isset($data['id'])) {
+                $blogQuery->where('id', $data['id']);
+            } else {
+                $blogQuery->orderBy($idColumn, 'desc');
+            }
+
+            $blog = $blogQuery->first();
             ActivityLogger::log('create', 'Blog', $blog->{$idColumn} ?? ($blog->id ?? null), 'Created blog ' . ($request->title ?? ($blog->title ?? $blog->blog_title ?? '')));
             app(NewsletterNotificationService::class)->sendBlogNotification($blog, $idColumn);
             return response()->json(['success' => true, 'message' => 'Blog created successfully', 'data' => $blog]);

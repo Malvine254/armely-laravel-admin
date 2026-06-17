@@ -4187,6 +4187,9 @@ class AdminController extends Controller
             AppSetting::setValue('price_sync.scope', 'all');
             AppSetting::setValue('price_sync.skus', '');
 
+            // Re-check immediately so saving the schedule at the exact due minute can fire right away.
+            $this->priceSyncSchedulerService->kickOffDueScheduledRun();
+
             return response()->json([
                 'success' => true,
                 'message' => 'Price sync schedule updated successfully',
