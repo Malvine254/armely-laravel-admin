@@ -1176,6 +1176,12 @@ class TablesController extends Controller
             
             $affected = DB::table($blogTable)->where($idColumn, $id)->update($data);
             Log::info('Update executed', ['rows_affected' => $affected]);
+
+            $blog = DB::table($blogTable)->where($idColumn, $id)->first();
+            if ($blog) {
+                ActivityLogger::log('update', 'Blog', $id, 'Updated blog ' . ($blog->title ?? $blog->blog_title ?? ''));
+                app(NewsletterNotificationService::class)->sendBlogNotification($blog, $idColumn);
+            }
         } else {
             Log::warning('No data to update');
         }

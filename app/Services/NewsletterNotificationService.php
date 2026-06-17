@@ -59,13 +59,13 @@ class NewsletterNotificationService
         ];
 
         if (Schema::hasTable('admin')) {
-            $adminQuery = DB::table('admin')->whereNotNull('email');
-
-            if (Schema::hasColumn('admin', 'status')) {
-                $adminQuery->whereRaw('LOWER(status) = ?', ['active']);
-            }
-
-            $emails = array_merge($emails, $adminQuery->pluck('email')->all());
+            $emails = array_merge(
+                $emails,
+                DB::table('admin')
+                    ->whereNotNull('email')
+                    ->pluck('email')
+                    ->all()
+            );
         }
 
         return collect($emails)
