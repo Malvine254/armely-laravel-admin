@@ -42,7 +42,6 @@
 		'sharepoint-online' => 'services.sharepointonline',
 		'm365-governance' => 'services.m365-governance',
 		'managed-services' => 'services.managed-services',
-		'training' => 'services.training_blade',
 		'copilot' => 'services.copilot',
 		'microsoft-power-pages' => 'services.powerplatform',
 		'custom-development' => 'services.custom-development',
