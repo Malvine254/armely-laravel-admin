@@ -3619,15 +3619,21 @@ class AdminController extends Controller
             $time = '18:00';
         }
 
-        $timezone = (string) AppSetting::getValue('price_sync.timezone', 'Africa/Nairobi');
+        $timezone = (string) AppSetting::getValue('price_sync.timezone', 'America/Chicago');
         if (!in_array($timezone, timezone_identifiers_list(), true)) {
-            $timezone = 'Africa/Nairobi';
+            $timezone = 'America/Chicago';
         }
 
         $email = (string) AppSetting::getValue(
             'price_sync.email',
             config('mail.sync_status_email', env('SYNC_STATUS_EMAIL', 'malvine.owuor@armely.com'))
         );
+
+        $fallbackEnabled = filter_var(
+            AppSetting::getValue('price_sync.enable_http_fallback', false),
+            FILTER_VALIDATE_BOOL
+        );
+        $queueConnection = (string) config('queue.default', 'database');
 
         $scope = (string) AppSetting::getValue('price_sync.scope', 'all');
         if (!in_array($scope, ['all', 'specific'], true)) {
@@ -3645,14 +3651,36 @@ class AdminController extends Controller
         }
 
         $lastTriggeredDate = (string) AppSetting::getValue('price_sync.last_triggered_date', '');
+        $healthIssues = [];
+        if (!$fallbackEnabled) {
+            $healthIssues[] = 'HTTP fallback is disabled. If server cron stops, scheduled syncs will not auto-run.';
+        }
+        if ($queueConnection === 'sync') {
+            $healthIssues[] = 'Queue connection is sync. Background catalog/image jobs need a persistent worker.';
+        }
+        if ($lastTriggeredDate === '') {
+            $healthIssues[] = 'No auto-trigger has been recorded yet.';
+        }
+
+        $healthStatus = count($healthIssues) === 0 ? 'ok' : 'warning';
+        $healthMessage = count($healthIssues) === 0
+            ? 'Scheduler and fallback checks look healthy.'
+            : 'Deployment check needs attention before you rely on automated syncs.';
 
         return [
             'time'                 => $time,
             'timezone'             => $timezone,
             'email'                => $email,
+            'fallback_enabled'     => $fallbackEnabled,
+            'queue_connection'     => $queueConnection,
             'next_run_local'       => $nextRun->format('Y-m-d H:i:s T'),
             'next_run_utc'         => $nextRun->copy()->utc()->format('Y-m-d H:i:s T'),
             'last_triggered_date'  => $lastTriggeredDate,
+            'scheduler_health'     => [
+                'status'  => $healthStatus,
+                'message' => $healthMessage,
+                'issues'  => $healthIssues,
+            ],
         ];
     }
 

@@ -230,6 +230,7 @@
   --blue-lt: #4477bd;
   --blue-dim: rgba(47, 85, 151, 0.09);
   --blue-dim2: rgba(47, 85, 151, 0.18);
+  --icon-tone: #7b879b;
   --text-body: #334155;
   --text-muted: #667085;
   --border: rgba(47, 85, 151, 0.14);
@@ -414,7 +415,7 @@
   width: 22px;
   height: 22px;
   display: block;
-  color: var(--blue);
+  color: var(--icon-tone);
   fill: none;
   stroke: currentColor;
   stroke-width: 2;
@@ -426,7 +427,7 @@
 .armely-managed-services-page .deliver-icon,
 .armely-managed-services-page .uc-icon,
 .armely-managed-services-page .why-icon {
-  color: var(--blue);
+  color: var(--icon-tone);
 }
 .armely-managed-services-page .vibe-card-icon,
 .armely-managed-services-page .vibe-risk-icon {
@@ -740,7 +741,7 @@
 .armely-managed-services-page .vibe-card-icon,
 .armely-managed-services-page .vibe-risk-icon {
   border-radius: 12px !important;
-  color: var(--blue) !important;
+  color: var(--icon-tone) !important;
 }
 .armely-managed-services-page .vibe-section {
   padding: 68px 56px !important;

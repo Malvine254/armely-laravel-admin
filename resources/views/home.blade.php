@@ -253,20 +253,38 @@
     .video-section .explore-btn {
         display: inline-flex;
         align-items: center;
-        gap: 10px;
-        color: #2f5597;
-        font-size: 1.1rem;
-        font-weight: 800;
+        gap: 9px;
+        color: #55637c;
+        font-size: 0.95rem;
+        font-weight: 600;
         text-decoration: none;
-        padding: 8px 0;
-        transition: all 0.3s ease;
+        padding: 13px 26px;
+        border-radius: 999px;
+        border: 1px solid #d4dff0;
+        background: #ffffff;
+        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
+        transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
+        white-space: nowrap;
     }
 
     .portfolio .explore-btn:hover,
     .blog .explore-btn:hover,
     .video-section .explore-btn:hover {
-        gap: 15px;
-        color: #1e3a6d;
+        transform: translateY(-1px);
+        gap: 9px;
+        color: #2f5597;
+        border-color: #bfd0ea;
+        box-shadow: 0 12px 22px rgba(15, 23, 42, 0.07);
+    }
+
+    .blog .explore-btn i,
+    .video-section .explore-btn i {
+        font-size: 0.95rem;
+    }
+
+    .blog .explore-btn strong,
+    .video-section .explore-btn strong {
+        font-weight: 600;
     }
 
     /* Blog Section Enhancements */
@@ -279,11 +297,16 @@
         row-gap: 28px;
     }
 
+    .blog.section .row > [class*='col-'] {
+        display: flex;
+        justify-content: center;
+    }
+
     .blog.section .blog-card-wrapper {
         background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
-        border-radius: 22px;
+        border-radius: 18px;
         overflow: hidden;
-        box-shadow: 0 18px 44px rgba(15, 23, 42, 0.08);
+        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
         transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
         height: 100%;
         display: flex;
@@ -291,19 +314,21 @@
         margin-bottom: 0;
         border: 1px solid rgba(47, 85, 151, 0.1);
         text-align: left;
+        width: 100%;
+        max-width: 320px;
     }
 
     .blog.section .blog-card-wrapper:hover {
-        transform: translateY(-8px);
+        transform: translateY(-4px);
         border-color: rgba(47, 85, 151, 0.18);
-        box-shadow: 0 28px 60px rgba(15, 23, 42, 0.14);
+        box-shadow: 0 18px 38px rgba(15, 23, 42, 0.09);
     }
 
     .blog.section .blog-image-box {
         position: relative;
-        height: 290px;
-        min-height: 290px;
-        max-height: 290px;
+        height: 180px;
+        min-height: 180px;
+        max-height: 180px;
         aspect-ratio: auto;
         overflow: hidden;
         background: linear-gradient(135deg, #2f5597 0%, #2a4b87 52%, #244177 100%);
@@ -335,26 +360,6 @@
         inset: 0;
         background: linear-gradient(180deg, rgba(19, 38, 74, 0.14) 0%, rgba(24, 46, 88, 0.08) 48%, rgba(17, 34, 66, 0.22) 100%);
         pointer-events: none;
-    }
-
-    .blog.section .blog-image-badge {
-        position: absolute;
-        top: 16px;
-        left: 16px;
-        z-index: 3;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 8px 12px;
-        border-radius: 999px;
-        background: rgba(29, 57, 111, 0.94);
-        color: #fff;
-        font-size: 0.75rem;
-        font-weight: 800;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        backdrop-filter: blur(10px);
-        box-shadow: 0 10px 28px rgba(19, 38, 74, 0.30);
     }
 
     .blog.section .blog-image-box img {
@@ -398,7 +403,7 @@
     }
 
     .blog.section .blog-content {
-        padding: 18px 22px 20px;
+        padding: 11px 13px 13px;
         flex-grow: 1;
         display: flex;
         flex-direction: column;
@@ -410,15 +415,15 @@
     .blog.section .blog-author-info {
         display: flex;
         align-items: center;
-        gap: 10px;
-        margin-bottom: 14px;
+        gap: 8px;
+        margin-bottom: 8px;
         min-width: 0;
     }
 
     .blog.section .author-avatar {
-        width: 38px;
-        height: 38px;
-        border-radius: 12px;
+        width: 28px;
+        height: 28px;
+        border-radius: 11px;
         object-fit: cover;
         box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
         background: #f4f7fb;
@@ -428,10 +433,10 @@
     .blog.section .author-details {
         display: flex;
         align-items: center;
-        gap: 10px;
-        font-size: 0.95rem;
+        gap: 8px;
+        font-size: 0.8rem;
         color: #333;
-        font-weight: 700;
+        font-weight: 600;
         min-width: 0;
         width: 100%;
     }
@@ -446,27 +451,27 @@
 
     .blog.section .author-details span:last-child {
         color: #64748b;
-        font-size: 0.85rem;
+        font-size: 0.72rem;
         display: flex;
         align-items: center;
-        gap: 5px;
+        gap: 4px;
         flex: 0 0 auto;
         white-space: nowrap;
     }
 
     .blog.section .blog-title {
-        font-size: 1.08rem;
-        font-weight: 900;
+        font-size: 0.88rem;
+        font-weight: 600;
         color: #111827;
         text-align: left !important;
-        line-height: 1.32;
-        margin-bottom: 10px;
+        line-height: 1.22;
+        margin-bottom: 6px;
         transition: color 0.3s ease;
         display: -webkit-box;
         -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
         overflow: hidden;
-        min-height: 3.2em;
+        min-height: 2.1em;
         font-family: 'Poppins', sans-serif;
         letter-spacing: 0;
     }
@@ -480,20 +485,20 @@
     }
 
     .blog.section .blog-title a {
-        font-weight: 900;
+        font-weight: 600;
     }
 
     .blog.section .blog-snippet {
-        font-size: 0.94rem;
+        font-size: 0.79rem;
         color: #5b6472;
-        line-height: 1.55;
-        margin-bottom: 16px;
+        line-height: 1.38;
+        margin-bottom: 7px;
         flex-grow: 1;
         display: -webkit-box;
-        -webkit-line-clamp: 3;
+        -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
         overflow: hidden;
-        min-height: 4.65em;
+        min-height: 2.8em;
     }
 
     .blog.section .blog-title[title],
@@ -507,7 +512,7 @@
 
     .blog.section .blog-footer {
         margin-top: auto;
-        padding-top: 14px;
+        padding-top: 8px;
         border-top: 1px solid #edf1f6;
         display: flex;
         align-items: center;
@@ -516,8 +521,8 @@
     }
 
     .blog.section .blog-date {
-        font-size: 0.88rem;
-        font-weight: 700;
+        font-size: 0.72rem;
+        font-weight: 600;
         color: #64748b;
         letter-spacing: -0.1px;
     }
@@ -525,8 +530,8 @@
     .blog.section .blog-btn-circle {
         background: #2f5597;
         color: #fff !important;
-        width: 42px;
-        height: 42px;
+        width: 32px;
+        height: 32px;
         border-radius: 999px;
         display: flex;
         align-items: center;
@@ -539,7 +544,7 @@
 
     .blog.section .blog-btn-circle i {
         font-weight: 900;
-        font-size: 1rem;
+        font-size: 0.84rem;
         color: #fff !important;
     }
 
@@ -553,29 +558,23 @@
     @media (max-width: 768px) {
         .blog.section { padding: 60px 0; }
         .blog.section .blog-card-wrapper { margin-bottom: 0; }
-        .blog.section .blog-title { font-size: 1rem; min-height: auto; }
+        .blog.section .blog-title { font-size: 0.88rem; font-weight: 600; min-height: auto; }
         .blog.section .blog-image-box {
-            height: 250px;
-            min-height: 250px;
-            max-height: 250px;
+            height: 168px;
+            min-height: 168px;
+            max-height: 168px;
             padding: 8px;
         }
-        .blog.section .blog-image-badge {
-            top: 12px;
-            left: 12px;
-            padding: 7px 10px;
-            font-size: 0.72rem;
-        }
         .blog.section .blog-content {
-            padding: 16px 18px 18px;
+            padding: 11px 12px 13px;
         }
         .blog.section .blog-snippet {
             min-height: auto;
-            -webkit-line-clamp: 3;
+            -webkit-line-clamp: 2;
         }
         .blog.section .blog-btn-circle {
-            width: 40px;
-            height: 40px;
+            width: 32px;
+            height: 32px;
         }
         .blog.section .author-details {
             flex-wrap: wrap;
@@ -586,18 +585,22 @@
     @media (max-width: 480px) {
         .blog.section { padding: 40px 0; }
         .blog.section .blog-image-box {
-            height: 220px;
-            min-height: 220px;
-            max-height: 220px;
+            height: 150px;
+            min-height: 150px;
+            max-height: 150px;
             padding: 6px;
         }
-        .blog.section .blog-image-badge {
-            top: 10px;
-            left: 10px;
+        .blog.section .blog-title { font-size: 0.88rem; min-height: auto; }
+        .blog.section .blog-snippet { font-size: 0.8rem; -webkit-line-clamp: 2; min-height: auto; }
+        .blog.section .blog-content { padding: 10px 11px 12px; }
+    }
+
+    @media (max-width: 576px) {
+        .blog .explore-btn,
+        .video-section .explore-btn {
+            padding: 12px 20px;
+            font-size: 0.9rem;
         }
-        .blog.section .blog-title { font-size: 0.95rem; min-height: auto; }
-        .blog.section .blog-snippet { font-size: 0.88rem; -webkit-line-clamp: 2; min-height: auto; }
-        .blog.section .blog-content { padding: 14px 15px 16px; }
     }
 
     /* Clients/Brands Section */
@@ -1147,6 +1150,10 @@
 @endpush
 
 @section('content')
+<main id="main-content" role="main">
+@include('partials.home-hero-1000')
+{{-- Legacy homepage sections kept for rollback but disabled below. --}}
+@if(false)
 <section class="slider">
     <div class="hero-slider">
         <div class="single-slider" style="background-image:url('{{ asset('images/sliders/slider-1.webp') }}')" role="img" aria-label="Digital Excellence Banner">
@@ -1223,57 +1230,51 @@
 
 <section class="portfolio py-5">
     <div class="container">
+        @php
+            $caseStudyCount = collect($industryListings ?? [])->count();
+            $caseStudies = collect($industryListings ?? [])->take(6);
+        @endphp
         <div class="row">
             <div class="col-lg-12">
                 <div class="section-title text-center mb-5">
-                    <h2>Case Studies</h2>
+                    <h2>{{ $caseStudyCount }} published outcomes. Real clients. Documented results.</h2>
                     <center><hr class="default-background hr"></center>
                 </div>
             </div>
         </div>
-    </div>
-    
-    <div class="container">
-        <div class="owl-carousel portfolio-slider">
-            @foreach($industryListings as $listing)
-                @php($baseCaseStudyTitle = trim((string) ($listing->title ?? '')))
-                @php($baseCaseStudyTitle = $baseCaseStudyTitle !== '' ? $baseCaseStudyTitle : (string) ($listing->category ?? 'Case Study'))
-                @php($fullCaseStudyTitle = trim($baseCaseStudyTitle . ' Solution'))
-                @php($cardCaseStudyTitle = \Illuminate\Support\Str::limit($fullCaseStudyTitle, 44, '...'))
-                @php($caseStudyImage = trim((string) ($listing->listing_image ?? '')))
-                @php($hasCaseStudyImage = $caseStudyImage !== '' && file_exists(public_path('images/case-study/' . $caseStudyImage)))
-                <div class="single-pf">
-                    <div class="card-wrapper">
-                        <div class="image-container">
-                            @if($hasCaseStudyImage)
-                                <img src="{{ asset('images/case-study/' . $caseStudyImage) }}" alt="{{ $fullCaseStudyTitle }}" class="img-fluid lazy-img" loading="lazy" decoding="async">
-                            @else
-                                <div class="case-study-default-image" aria-hidden="true">
-                                    <i class="icofont-briefcase"></i>
-                                </div>
-                            @endif
-                            <div class="image-overlay"></div>
-                        </div>
-                        <div class="card-body">
-                            <h4 title="{{ $fullCaseStudyTitle }}">{{ $cardCaseStudyTitle }}</h4>
-                            <p>{{ \Illuminate\Support\Str::limit($listing->excerpt, 100) }}</p>
-                            <a href="{{ route('case-studies.show', $listing->slug) }}" class="card-btn default-background text-light">
-                                <span>See Case Study</span>
-                                    <span class="card-btn-icon" aria-hidden="true">
-                                        <svg viewBox="0 0 16 16" focusable="false" aria-hidden="true">
-                                            <path d="M6 3.5L10.5 8L6 12.5"></path>
-                                        </svg>
-                                    </span>
-                            </a>
-                        </div>
+
+        <div class="cases-grid">
+            @forelse($caseStudies as $listing)
+                @php
+                    $caseStudyTitle = trim((string) ($listing->title ?? ''));
+                    $caseStudyTitle = $caseStudyTitle !== '' ? $caseStudyTitle : trim((string) ($listing->category ?? 'Case Study'));
+                    $caseStudyTitle = $caseStudyTitle !== '' ? $caseStudyTitle : 'Case Study';
+                    $caseStudyTitle = \Illuminate\Support\Str::limit($caseStudyTitle, 52, '...');
+                    $caseStudyTag = trim((string) ($listing->category ?? 'Case Study'));
+                    $caseStudyTag = $caseStudyTag !== '' ? $caseStudyTag : 'Case Study';
+                    $caseStudyDesc = \Illuminate\Support\Str::limit((string) ($listing->excerpt ?? ''), 140, '...');
+                @endphp
+                <article class="case-card">
+                    <div class="case-body">
+                        <div class="case-tag">{{ $caseStudyTag }}</div>
+                        <h3 class="case-title">{{ $caseStudyTitle }}</h3>
+                        <p class="case-desc">{{ $caseStudyDesc }}</p>
+                        <a href="{{ route('case-studies.show', $listing->slug) }}" class="case-link">
+                            <span>See Case Study</span>
+                            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
+                        </a>
                     </div>
+                </article>
+            @empty
+                <div class="col-12">
+                    <p class="text-center text-muted mb-0">Case studies will appear here once they are published.</p>
                 </div>
-            @endforeach
+            @endforelse
         </div>
-        
+
         <div class="text-center mt-5">
             <a class="explore-btn" href="/case-studies">
-                <strong>Explore all Case Studies</strong>
+                <strong>View {{ $caseStudyCount }} Case Studies</strong>
                 <i class="fa fa-long-arrow-right"></i>
             </a>
         </div>
@@ -1291,8 +1292,9 @@
     </div>
 </section>
 
+@endif
 <section class="blog section" id="blog">
-    <div class="container">
+    <div class="armely-home-shell">
         <div class="row">
             <div class="col-lg-12">
                 <div class="section-title text-center mb-5">
@@ -1305,13 +1307,12 @@
         <div class="row">
             @forelse($blogs as $blog)
                 @php($blogFullTitle = trim(strip_tags((string) ($blog->title ?? 'Blog Article'))))
-                @php($blogFullSnippet = trim(preg_replace('/\s+/', ' ', strip_tags((string) ($blog->preview ?? '')))))
-                @php($blogFullDetails = trim($blogFullTitle . "\n" . ($blogFullSnippet !== '' ? $blogFullSnippet : '')))
-                @php($blogImageUrl = $blog->image_path ?: asset('images/blog/default.svg'))
+                        @php($blogFullSnippet = trim(preg_replace('/\s+/', ' ', strip_tags((string) ($blog->preview ?? '')))))
+                        @php($blogFullDetails = trim($blogFullTitle . "\n" . ($blogFullSnippet !== '' ? $blogFullSnippet : '')))
+                        @php($blogImageUrl = $blog->image_path ?: asset('images/blog/default.svg'))
                 <div class="col-lg-4 col-md-6 col-12" data-aos="fade-up">
                     <article class="blog-card-wrapper">
                         <div class="blog-image-box" style="--blog-image: url('{{ $blogImageUrl }}');">
-                            <span class="blog-image-badge">Blog Insight</span>
                             <img class="lazy-img" loading="lazy" 
                                  src="{{ $blogImageUrl }}" 
                                  alt="{{ $blogFullTitle }}"
@@ -1349,7 +1350,7 @@
         
         <div class="text-center mt-3">
             <a class="explore-btn" href="/blog">
-                <strong>View All Insights</strong>
+                <span>View All Insights</span>
                 <i class="fa fa-long-arrow-right"></i>
             </a>
         </div>
@@ -1357,7 +1358,7 @@
 </section>
 
 <section class="video-section">
-    <div class="container">
+    <div class="armely-home-shell">
         <div class="row">
             <div class="col-lg-12">
                 <div class="section-title text-center mb-5">
@@ -1394,7 +1395,7 @@
         
         <div class="text-center mt-3">
             <a class="explore-btn" href="https://www.youtube.com/@armelyarmely" target="_blank">
-                <strong>Explore more on YouTube</strong>
+                <span>Explore more on YouTube</span>
                 <i class="fa fa-long-arrow-right"></i>
             </a>
         </div>

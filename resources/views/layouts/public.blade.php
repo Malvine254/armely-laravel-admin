@@ -360,7 +360,7 @@
 }
 
 .header .armely-logo {
-    height: 92px !important;
+    height: 76px !important;
     width: auto !important;
     max-width: none !important;
     display: block;
@@ -379,7 +379,7 @@
 
 @media (max-width: 1300px) {
     .header .armely-logo {
-        height: 78px !important;
+        height: 68px !important;
     }
 
     .header .armely-registered {
@@ -395,7 +395,7 @@
     }
 
     .header .armely-logo {
-        height: 64px !important;
+        height: 60px !important;
     }
 
     .header .armely-registered {
@@ -417,6 +417,18 @@
     margin-left: 4px;
     font-size: 8px;
     padding: 2px 5px;
+}
+
+.top-contact li i {
+    color: inherit !important;
+}
+
+.top-contact li {
+    color: #8a93a7 !important;
+}
+
+.top-contact li a {
+    color: inherit !important;
 }
 
 /* ============================================
@@ -443,8 +455,8 @@
     font-weight: 500 !important;
     font-size: 15px !important;
     letter-spacing: 0;
-    min-height: 64px;
-    padding: 0 10px !important;
+    min-height: 58px;
+    padding: 0 12px !important;
     position: relative;
     outline: none;
     box-shadow: none;
@@ -948,6 +960,7 @@ main .service-card {
         display: flex !important;
         flex-wrap: nowrap !important;
         align-items: center !important;
+        gap: 24px;
     }
 
     /* Logo column: keep original size */
@@ -963,6 +976,10 @@ main .service-card {
         width: auto !important;
         max-width: none !important;
         min-width: 0 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: flex-end !important;
+        gap: 18px;
     }
 
     /* Kill the theme float on .logo so the column doesn't collapse */
@@ -977,8 +994,17 @@ main .service-card {
         margin-right: 8px !important;
     }
 
+    .header .main-menu {
+        flex: 1 1 auto !important;
+        min-width: 0 !important;
+    }
+
+    .header .navigation {
+        justify-content: flex-end !important;
+    }
+
     /* Desktop nav typography */
-    .header .nav li a {
+.header .nav li a {
         font-size: 15px !important;
         color: #2c2d3f;
         font-family: Poppins, sans-serif !important;
@@ -1002,10 +1028,37 @@ main .service-card {
     }
 
     .header .main-menu .nav.menu > li > a:not(.mega-trigger) {
-        min-height: 64px;
+        min-height: 58px;
         display: inline-flex !important;
         align-items: center;
-        padding: 0 10px !important;
+        padding: 0 14px !important;
+    }
+
+    .header .header-cta {
+        flex: 0 0 auto;
+        margin-left: auto;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 46px;
+        padding: 0 20px;
+        border-radius: 8px;
+        background: #2f5597;
+        color: #fff;
+        font-size: 13px;
+        font-weight: 600;
+        text-decoration: none;
+        white-space: nowrap;
+        transition: background-color 0.2s ease, transform 0.2s ease;
+    }
+
+    .header .header-cta:hover {
+        background: #4477bd;
+        transform: translateY(-1px);
+    }
+
+    .header .desktop-contact-link {
+        display: none !important;
     }
 
     /* Hide the empty get-quote column to reclaim space */
@@ -1017,13 +1070,13 @@ main .service-card {
 @media (max-width: 1500px) and (min-width: 1301px) {
     .header .mega-trigger,
     .header .main-menu .nav.menu > li > a:not(.mega-trigger) {
-        padding-left: 7px !important;
-        padding-right: 7px !important;
+        padding-left: 8px !important;
+        padding-right: 8px !important;
         font-size: 14.5px !important;
     }
 
     .header .nav li {
-        margin-right: 6px !important;
+        margin-right: 4px !important;
     }
 }
 
@@ -1043,7 +1096,7 @@ main .service-card {
 {{-- AI Data Readiness Assessment Pop-up temporarily disabled. --}}
 {{-- @include('partials.ai-readiness-popup') --}}
 
-<div class="announcement-banner default-background mb-4" id="announcementBanner">
+<div class="announcement-banner default-background" id="announcementBanner">
     <span class="banner-item">
         &#127881; <b>Armely Store is now live!</b>
         Browse business technology products, request quotes, and manage orders online.
@@ -1159,6 +1212,8 @@ main .service-card {
                                                             <li><a class="mega-link-with-icon" href="{{ route('service-details', ['name' => 'data-strategy']) }}"><span class="mega-link-icon"><i class="fa-solid fa-compass" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">Data &amp; AI Strategy</span><span class="mega-link-description">Set the roadmap for analytics, AI, and governance.</span></span></a></li>
                                                             <li><a class="mega-link-with-icon" href="{{ route('service-details', ['name' => 'm365-governance']) }}"><span class="mega-link-icon"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">M365 Governance</span><span class="mega-link-description">Improve Microsoft 365 control, compliance, and adoption.</span></span></a></li>
                                                             <li><a class="mega-link-with-icon" href="{{ route('assessments') }}"><span class="mega-link-icon"><i class="fa-solid fa-clipboard-check" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">Assessments</span><span class="mega-link-description">Free health checks and structured discovery engagements.</span></span></a></li>
+                                                            <li><a class="mega-link-with-icon" href="{{ route('service-details', ['name' => 'training']) }}"><span class="mega-link-icon"><i class="fa-solid fa-chalkboard-user" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">Training</span><span class="mega-link-description">Live enablement for Power BI, Power Platform, Copilot, and AI.</span></span></a></li>
+                                                            <li><a class="mega-link-with-icon" href="{{ route('service-details', ['name' => 'managed-services']) }}"><span class="mega-link-icon"><i class="fa-solid fa-gear" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">Managed Services</span><span class="mega-link-description">Ongoing support, optimization, and governance for your environment.</span></span></a></li>
                                                         </ul>
                                                     </div>
 
@@ -1357,9 +1412,10 @@ main .service-card {
         </div>
     </div>
 </li> -->
-                                    <li class="{{ request()->is('contact') ? 'active' : '' }}"><a href="{{ route('contact') }}">Let's Talk</a></li>
+                                    <li class="{{ request()->is('contact') ? 'active' : '' }} desktop-contact-link"><a href="{{ route('contact') }}">Let's Talk</a></li>
                                 </ul>
                             </nav>
+                            <a href="{{ route('contact') }}" class="header-cta">Let's Talk</a>
                         </div>
                     </div>
                     <div class="col-lg-2 col-12"><div class="get-quote"></div></div>
@@ -1396,6 +1452,8 @@ main .service-card {
                     <a href="{{ route('service-details', ['name' => 'data-strategy']) }}">Data &amp; AI Strategy</a>
                     <a href="{{ route('service-details', ['name' => 'm365-governance']) }}">M365 Governance</a>
                     <a href="{{ route('assessments') }}">Assessments</a>
+                    <a href="{{ route('service-details', ['name' => 'training']) }}">Training</a>
+                    <a href="{{ route('service-details', ['name' => 'managed-services']) }}">Managed Services</a>
                 </div>
 
                 <div class="mobile-mega-section">

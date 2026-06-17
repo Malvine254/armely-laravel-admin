@@ -118,11 +118,11 @@ class PriceSyncSchedulerService
 
     private function resolveTimezone(): string
     {
-        $timezone = (string) AppSetting::getValue('price_sync.timezone', 'Africa/Nairobi');
+        $timezone = (string) AppSetting::getValue('price_sync.timezone', 'America/Chicago');
 
         return in_array($timezone, timezone_identifiers_list(), true)
             ? $timezone
-            : 'Africa/Nairobi';
+            : 'America/Chicago';
     }
 
     private function resolveScheduledTime(): string
