@@ -108,11 +108,18 @@ class CaseStudiesController extends Controller
         $paper->preview = $this->makePreviewText((string) ($paper->body ?? $paper->preview ?? ''), 320);
         $paper->slug = $slug;
         $paper->pdf_preview_url = $this->whitePaperPreviewUrl($paper);
+        $caseStudyViewModel = $this->whitePaperCaseStudyViewModel($paper);
 
-        return view('case-studies.resource-show', [
-            'paper' => $paper,
+        return view('case-studies.show', [
+            'caseStudy' => $caseStudyViewModel,
+            'relatedCaseStudies' => collect(),
             'recaptchaSiteKey' => config('services.recaptcha.site_key', ''),
             'metaDescription' => (string) ($paper->meta_description ?? $this->whitePaperMetaDescription($paper)),
+            'isWhitePaperPage' => true,
+            'detailRequestAction' => route('case-studies.lead.submit'),
+            'detailLeadInterest' => 'white-papers',
+            'detailLeadIdField' => 'white_paper_id',
+            'detailLeadIdValue' => $paper->id ?? null,
         ]);
     }
 
@@ -1547,6 +1554,60 @@ class CaseStudiesController extends Controller
             now()->addMinutes(30),
             ['paper' => (int) $paper->id]
         );
+    }
+
+    private function whitePaperCaseStudyViewModel(object $paper): object
+    {
+        $viewModel = new \stdClass();
+        $title = trim((string) ($paper->title ?? 'White Paper'));
+        $category = trim((string) ($paper->category ?? 'White Paper'));
+        $previewSource = trim((string) ($paper->body ?? $paper->preview ?? ''));
+        $previewText = $this->makePreviewText($previewSource !== '' ? $previewSource : $title, 320);
+        $paragraphs = $this->splitWhitePaperPreviewParagraphs($previewSource !== '' ? $previewSource : $previewText);
+
+        $viewModel->id = $paper->id ?? null;
+        $viewModel->slug = $paper->slug ?? $this->resourceSlug($paper);
+        $viewModel->title = $title;
+        $viewModel->display_title = $title;
+        $viewModel->category = $category !== '' ? $category : 'White Paper';
+        $viewModel->technology_label = 'Microsoft Platform';
+        $viewModel->listing_image = '';
+        $viewModel->preview = $previewText;
+        $viewModel->body = $previewSource;
+        $viewModel->pdf_preview_text = $previewText;
+        $viewModel->pdf_preview_source = $previewText !== '' ? 'PDF text' : 'PDF unavailable';
+        $viewModel->pdf_preview_sections = $previewText !== ''
+            ? [[
+                'heading' => 'Overview',
+                'paragraphs' => $paragraphs,
+            ]]
+            : [];
+        $viewModel->pdf_preview_paragraphs = $paragraphs;
+        $viewModel->outcome_tag = 'Full PDF access';
+        $viewModel->results = [
+            'Request secure access',
+            'Review the previewed first page',
+            'Download the full white paper',
+        ];
+        $viewModel->services = ['White Paper'];
+        $viewModel->hero_copy = $previewText;
+
+        return $viewModel;
+    }
+
+    private function splitWhitePaperPreviewParagraphs(string $text): array
+    {
+        $cleaned = trim((string) preg_replace('/\s+/u', ' ', html_entity_decode(strip_tags($text), ENT_QUOTES | ENT_HTML5, 'UTF-8')));
+        if ($cleaned === '') {
+            return [];
+        }
+
+        $parts = preg_split('/(?<=[.!?])\s+/', $cleaned) ?: [];
+        $parts = array_values(array_filter(array_map(static function ($part) {
+            return trim((string) $part);
+        }, $parts)));
+
+        return array_slice($parts, 0, 5);
     }
 
     private function industryFilters(): array

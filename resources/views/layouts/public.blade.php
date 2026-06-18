@@ -1188,7 +1188,7 @@ main .service-card {
                                             
                                         </div>
                                     </li>
-                                    <li class="mega-nav-item {{ request()->is('services','service-details*','power-platform','powerplatform','power-apps','powerapps','power-automate','powerautomate','dynamics-365','dynamics365','sharepoint','sharepointonline','api-dev','api-development','sql-server') ? 'active' : '' }}">
+                                    <li class="mega-nav-item {{ request()->is('services*','service-details*','power-platform','powerplatform','power-apps','powerapps','power-automate','powerautomate','dynamics-365','dynamics365','sharepoint','sharepointonline','api-dev','api-development','sql-server') ? 'active' : '' }}">
                                         <button type="button" class="mega-trigger" aria-expanded="false">
                                             What We Do
                                             <i class="icofont-rounded-down mega-icon-closed" aria-hidden="true"></i>
@@ -1196,68 +1196,7 @@ main .service-card {
                                         </button>
 
                                         <div class="mega-panel" role="region" aria-label="What We Do menu">
-                                            <div class="mega-panel-inner">
-                                                <a class="mega-feature-card" href="{{ route('services') }}">
-                                                    <img src="{{ asset('images/blog/advisory_services.png') }}" alt="Consulting team working with data dashboards">
-                                                    <div class="mega-feature-card-content">
-                                                        <h3>Modernize with Armely</h3>
-                                                        <p>Explore advisory, data, AI, cloud, and business app services built for measurable outcomes.</p>
-                                                    </div>
-                                                </a>
-
-                                                <div class="mega-columns">
-                                                    <div>
-                                                        <h3 class="mega-column-title">Strategy & Advisory</h3>
-                                                        <ul class="mega-link-list">
-                                                            <li><a class="mega-link-with-icon" href="{{ route('service-details', ['name' => 'data-strategy']) }}"><span class="mega-link-icon"><i class="fa-solid fa-compass" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">Data &amp; AI Strategy</span><span class="mega-link-description">Set the roadmap for analytics, AI, and governance.</span></span></a></li>
-                                                            <li><a class="mega-link-with-icon" href="{{ route('service-details', ['name' => 'm365-governance']) }}"><span class="mega-link-icon"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">M365 Governance</span><span class="mega-link-description">Improve Microsoft 365 control, compliance, and adoption.</span></span></a></li>
-                                                            <li><a class="mega-link-with-icon" href="{{ route('assessments') }}"><span class="mega-link-icon"><i class="fa-solid fa-clipboard-check" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">Assessments</span><span class="mega-link-description">Free health checks and structured discovery engagements.</span></span></a></li>
-                                                            <li><a class="mega-link-with-icon" href="{{ route('service-details', ['name' => 'training']) }}"><span class="mega-link-icon"><i class="fa-solid fa-chalkboard-user" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">Training</span><span class="mega-link-description">Live enablement for Power BI, Power Platform, Copilot, and AI.</span></span></a></li>
-                                                            <li><a class="mega-link-with-icon" href="{{ route('service-details', ['name' => 'managed-services']) }}"><span class="mega-link-icon"><i class="fa-solid fa-gear" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">Managed Services</span><span class="mega-link-description">Ongoing support, optimization, and governance for your environment.</span></span></a></li>
-                                                        </ul>
-                                                    </div>
-
-                                                    <div>
-                                                        <h3 class="mega-column-title">Data &amp; AI Platforms</h3>
-                                                        <ul class="mega-link-list">
-                                                            <li><a class="mega-link-with-icon" href="{{ route('service-details', ['name' => 'microsoft-fabric']) }}"><span class="mega-link-icon"><i class="fa-solid fa-database" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">Microsoft Fabric</span><span class="mega-link-description">Unified analytics and BI in one platform.</span></span></a></li>
-                                                            <li><a class="mega-link-with-icon" href="{{ url('/sql-server') }}"><span class="mega-link-icon"><i class="fa-solid fa-server" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">SQL Server</span><span class="mega-link-description">Reliable data and warehouse foundations.</span></span></a></li>
-                                                            <li><a class="mega-link-with-icon" href="{{ route('service-details', ['name' => 'snowflake']) }}"><span class="mega-link-icon"><i class="fa-solid fa-snowflake" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">Snowflake</span><span class="mega-link-description">Cloud data warehousing and sharing.</span></span></a></li>
-                                                            <li><a class="mega-link-with-icon" href="{{ route('service-details', ['name' => 'generative-ai']) }}"><span class="mega-link-icon"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">Generative AI</span><span class="mega-link-description">Build grounded AI experiences fast.</span></span></a></li>
-                                                            <li><a class="mega-link-with-icon" href="{{ route('service-details', ['name' => 'copilot']) }}"><span class="mega-link-icon"><i class="fa-solid fa-robot" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">Microsoft Copilot</span><span class="mega-link-description">Boost productivity with AI assistance.</span></span></a></li>
-                                                        </ul>
-                                                    </div>
-
-                                                    <div>
-                                                        <h3 class="mega-column-title">Business Applications</h3>
-                                                        <ul class="mega-link-list">
-                                                            <li><a class="mega-link-with-icon" href="{{ url('/power-platform') }}"><span class="mega-link-icon"><i class="fa-solid fa-bolt" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">Power Platform</span><span class="mega-link-description">Low-code apps, automation, and analytics.</span></span></a></li>
-                                                            <li><a class="mega-link-with-icon" href="{{ url('/dynamics-365') }}"><span class="mega-link-icon"><i class="fa-solid fa-chart-line" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">Dynamics 365</span><span class="mega-link-description">Connect sales, service, finance, and ops.</span></span></a></li>
-                                                            <li><a class="mega-link-with-icon" href="{{ url('/sharepoint') }}"><span class="mega-link-icon"><i class="fa-solid fa-share-nodes" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">SharePoint</span><span class="mega-link-description">Modern collaboration and content control.</span></span></a></li>
-                                                            <li><a class="mega-link-with-icon" href="{{ url('/custom-development') }}"><span class="mega-link-icon"><i class="fa-solid fa-code" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">Custom Development</span><span class="mega-link-description">Build the app or integration you need.</span></span></a></li>
-                                                            <li><a class="mega-link-with-icon" href="{{ url('/api-dev') }}"><span class="mega-link-icon"><i class="fa-solid fa-plug" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">API Development</span><span class="mega-link-description">Expose systems cleanly for apps and AI.</span></span></a></li>
-                                                        </ul>
-                                                    </div>
-
-                                                    <div>
-                                                        <h3 class="mega-column-title mega-column-title--solutions">Solutions</h3>
-                                                        <div class="mega-solution-grid">
-                                                            <div class="mega-solution-group">
-                                                                <div class="mega-solution-group-title">Everyone</div>
-                                                                <ul class="mega-link-list">
-                                                                    <li><a class="mega-link-with-icon" href="{{ route('mela-ai') }}"><span class="mega-link-icon"><i class="fa-solid fa-microphone-lines" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">Mela AI</span><span class="mega-link-description">Capture meetings, summaries, and follow-ups.</span></span></a></li>
-                                                                </ul>
-                                                            </div>
-                                                            <div class="mega-solution-group">
-                                                                <div class="mega-solution-group-title">Oil &amp; Gas</div>
-                                                                <ul class="mega-link-list">
-                                                                    <li><a class="mega-link-with-icon" href="{{ route('invoice-lens') }}"><span class="mega-link-icon"><i class="fa-solid fa-receipt" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">InvoiceLens</span><span class="mega-link-description">Quick invoice visibility and tracking.</span></span></a></li>
-                                                                </ul>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
+                                            @include('partials.mega-menu.what-we-do')
                                         </div>
                                     </li>
 
@@ -1268,51 +1207,7 @@ main .service-card {
                                             <i class="icofont-rounded-up mega-icon-open" aria-hidden="true"></i>
                                         </button>
                                         <div class="mega-panel" role="region" aria-label="Who We Serve menu">
-                                            <div class="mega-panel-inner">
-                                                <a class="mega-feature-card" href="{{ route('industries.index') }}">
-                                                    <img src="{{ asset('images/blog/1.png') }}" alt="Business leaders reviewing client outcomes">
-                                                    <div class="mega-feature-card-content">
-                                                        <h3>Client Outcomes</h3>
-                                                        <p>See how Armely helps teams modernize industry workflows with data, AI, and platform strategy.</p>
-                                                    </div>
-                                                </a>
-                                                <div class="mega-columns">
-                                                    <div>
-                                                        <h3 class="mega-column-title">Regulated Industries</h3>
-                                                        <ul class="mega-link-list">
-                                                            <li><a class="mega-link-with-icon" href="{{ route('industries.index') }}#healthcare"><span class="mega-link-icon"><i class="fa-solid fa-heart-pulse" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">Healthcare</span><span class="mega-link-description">Modern data, AI, and workflow solutions for healthcare teams.</span></span></a></li>
-                                                            <li><a class="mega-link-with-icon" href="{{ route('industries.index') }}#financial-services"><span class="mega-link-icon"><i class="fa-solid fa-building-columns" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">Financial Services</span><span class="mega-link-description">Secure modernization for banking, insurance, and advisory firms.</span></span></a></li>
-                                                            <li><a class="mega-link-with-icon" href="{{ route('industries.index') }}#higher-education"><span class="mega-link-icon"><i class="fa-solid fa-graduation-cap" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">Higher Education</span><span class="mega-link-description">Analytics and governance for colleges and universities.</span></span></a></li>
-                                                        </ul>
-                                                    </div>
-
-                                                    <div>
-                                                        <h3 class="mega-column-title">Operations</h3>
-                                                        <ul class="mega-link-list">
-                                                            <li><a class="mega-link-with-icon" href="{{ route('industries.index') }}#energy"><span class="mega-link-icon"><i class="fa-solid fa-oil-well" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">Energy / Oil &amp; Gas</span><span class="mega-link-description">Digital transformation for oil, gas, utilities, and energy operations.</span></span></a></li>
-                                                            <li><a class="mega-link-with-icon" href="{{ route('industries.index') }}#manufacturing"><span class="mega-link-icon"><i class="fa-solid fa-industry" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">Manufacturing</span><span class="mega-link-description">Operational reporting and automation for modern manufacturing teams.</span></span></a></li>
-                                                            <li><a class="mega-link-with-icon" href="{{ route('industries.index') }}#transportation-logistics"><span class="mega-link-icon"><i class="fa-solid fa-truck-fast" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">Transportation &amp; Logistics</span><span class="mega-link-description">Improve planning, tracking, analytics, and delivery performance.</span></span></a></li>
-                                                        </ul>
-                                                    </div>
-
-                                                    <div>
-                                                        <h3 class="mega-column-title">Public Sector</h3>
-                                                        <ul class="mega-link-list">
-                                                            <li><a class="mega-link-with-icon" href="{{ route('industries.index') }}#state-local-government"><span class="mega-link-icon"><i class="fa-solid fa-landmark" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">State &amp; Local Government</span><span class="mega-link-description">Secure Microsoft platform solutions for public-sector agencies.</span></span></a></li>
-                                                            <li><a class="mega-link-with-icon" href="{{ route('industries.index') }}#nonprofit-social-services"><span class="mega-link-icon"><i class="fa-solid fa-hand-holding-heart" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">Nonprofit &amp; Social Services</span><span class="mega-link-description">Mission-focused automation and analytics for service organizations.</span></span></a></li>
-                                                            <li><a class="mega-link-with-icon" href="{{ route('industries.index') }}#legal"><span class="mega-link-icon"><i class="fa-solid fa-gavel" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">Legal</span><span class="mega-link-description">Use data and automation to improve legal workflows and insight.</span></span></a></li>
-                                                        </ul>
-                                                    </div>
-
-                                                    <div>
-                                                        <h3 class="mega-column-title">Specialized</h3>
-                                                        <ul class="mega-link-list">
-                                                            <li><a class="mega-link-with-icon" href="{{ route('industries.index') }}#professional-services"><span class="mega-link-icon"><i class="fa-solid fa-briefcase" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">Professional Services</span><span class="mega-link-description">Client delivery and knowledge-work automation for firms.</span></span></a></li>
-                                                            <li><a class="mega-link-with-icon" href="{{ route('industries.index') }}#agriculture-cannabis"><span class="mega-link-icon"><i class="fa-solid fa-seedling" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">Agriculture &amp; Cannabis</span><span class="mega-link-description">Data, automation, and reporting for field operations.</span></span></a></li>
-                                                        </ul>
-                                                    </div>
-                                                </div>
-                                            </div>
+                                            @include('partials.mega-menu.who-we-serve')
                                         </div>
                                     </li>
                                     <li class="mega-nav-item {{ request()->is('blog','blogs','resources','resources*','case-studies','events') ? 'active' : '' }}">
@@ -1322,37 +1217,7 @@ main .service-card {
                                             <i class="icofont-rounded-up mega-icon-open" aria-hidden="true"></i>
                                         </button>
                                         <div class="mega-panel" role="region" aria-label="Knowledge Hub menu">
-                                            <div class="mega-panel-inner">
-                                                <a class="mega-feature-card" href="{{ route('resources.index') }}">
-                                                    <img src="{{ asset('images/blog/1750947309_Icons__1980_x_1020_px_.webp') }}" alt="Digital insights and strategy graphic">
-                                                    <div class="mega-feature-card-content">
-                                                        <h3>Featured Thinking</h3>
-                                                        <p>Browse practical guidance, client stories, and resources for technology decision makers.</p>
-                                                    </div>
-                                                </a>
-                                                <div class="mega-columns">
-                                                    <div>
-                                                        <h3 class="mega-column-title">Learn</h3>
-                                                        <ul class="mega-link-list">
-                                                            <li><a class="mega-link-with-icon" href="{{ route('blog.index') }}"><span class="mega-link-icon"><i class="fa-solid fa-pen-nib" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">Blog Articles</span><span class="mega-link-description">Analysis, trends, and implementation guidance.</span></span></a></li>
-                                                        </ul>
-                                                    </div>
-                                                    <div>
-                                                        <h3 class="mega-column-title">Proof</h3>
-                                                        <ul class="mega-link-list">
-                                                            <li><a class="mega-link-with-icon" href="{{ route('case-studies.index') }}"><span class="mega-link-icon"><i class="fa-solid fa-chart-line" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">Case Studies</span><span class="mega-link-description">How real projects moved from idea to value.</span></span></a></li>
-                                                            <li><a class="mega-link-with-icon" href="{{ route('case-studies.index') }}#white-papers"><span class="mega-link-icon"><i class="fa-solid fa-file-lines" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">White Papers</span><span class="mega-link-description">Deeper research and point-of-view content.</span></span></a></li>
-                                                        </ul>
-                                                    </div>
-                                                    <div>
-                                                        <h3 class="mega-column-title">Engage</h3>
-                                                        <ul class="mega-link-list">
-                                                            <li><a class="mega-link-with-icon" href="{{ route('resources.index') }}"><span class="mega-link-icon"><i class="fa-solid fa-folder-open" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">Resources</span><span class="mega-link-description">Downloadable guides and explainers.</span></span></a></li>
-                                                            <li><a class="mega-link-with-icon" href="{{ route('events.index') }}"><span class="mega-link-icon"><i class="fa-solid fa-calendar-days" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">Events</span><span class="mega-link-description">Webinars, sessions, and community moments.</span></span></a></li>
-                                                        </ul>
-                                                    </div>
-                                                </div>
-                                            </div>
+                                            @include('partials.mega-menu.knowledge-hub')
                                         </div>
                                     </li>
                                    <!-- <li class="mega-nav-item {{ request()->is('mela-ai') ? 'active' : '' }}">
@@ -1389,7 +1254,7 @@ main .service-card {
                     <h3 class="mega-column-title">Automation</h3>
                     <ul class="mega-link-list">
                         <li>
-                            <a href="{{ route('service-details', ['name' => 'generative-ai']) }}">
+                            <a href="{{ route('services.show', ['name' => 'generative-ai']) }}">
                                 Generative AI
                                 <span class="mega-link-description">Deploy enterprise AI experiences powered by modern language models.</span>
                             </a>
@@ -1401,7 +1266,7 @@ main .service-card {
                     <h3 class="mega-column-title">Productivity</h3>
                     <ul class="mega-link-list">
                         <li>
-                            <a href="{{ route('service-details', ['name' => 'copilot']) }}">
+                            <a href="{{ route('services.show', ['name' => 'copilot']) }}">
                                 Microsoft Copilot
                                 <span class="mega-link-description">Improve productivity with AI-powered assistance across Microsoft 365.</span>
                             </a>
@@ -1430,92 +1295,22 @@ main .service-card {
     <ul>
         <li>
             <button type="button" class="sub-toggle">Who We Are <span class="mobile-caret" aria-hidden="true"></span></button>
-            <div class="mobile-mega-panel">
-                <div class="mobile-mega-section">
-                    <h4>About Armely</h4>
-                    <a href="{{ route('company.index') }}">Company Overview</a>
-                    <a href="{{ route('career.index') }}">Career Opportunities</a>
-                    <a href="{{ route('customer-stories.index') }}">Customer Stories</a>
-                    <a href="{{ route('partners.index') }}">Partners</a>
-                    <a href="{{ route('social-impact.index') }}">Social Impact</a>
-                </div>
-            </div>
+            @include('partials.mobile-menu.who-we-are')
         </li>
         <li>
             <button type="button" class="sub-toggle">
                 What We Do <span class="mobile-caret" aria-hidden="true"></span>
             </button>
 
-            <div class="mobile-mega-panel">
-                <div class="mobile-mega-section">
-                    <h4>Strategy & Advisory</h4>
-                    <a href="{{ route('service-details', ['name' => 'data-strategy']) }}">Data &amp; AI Strategy</a>
-                    <a href="{{ route('service-details', ['name' => 'm365-governance']) }}">M365 Governance</a>
-                    <a href="{{ route('assessments') }}">Assessments</a>
-                    <a href="{{ route('service-details', ['name' => 'training']) }}">Training</a>
-                    <a href="{{ route('service-details', ['name' => 'managed-services']) }}">Managed Services</a>
-                </div>
-
-                <div class="mobile-mega-section">
-                    <h4>Data &amp; AI</h4>
-                    <a href="{{ route('service-details', ['name' => 'microsoft-fabric']) }}">Microsoft Fabric</a>
-                    <a href="{{ url('/sql-server') }}">SQL Server</a>
-                    <a href="{{ route('service-details', ['name' => 'snowflake']) }}">Snowflake</a>
-                    <a href="{{ route('service-details', ['name' => 'generative-ai']) }}">Generative AI</a>
-                    <a href="{{ route('service-details', ['name' => 'copilot']) }}">Microsoft Copilot</a>
-                </div>
-
-                <div class="mobile-mega-section">
-                    <h4>Business Applications</h4>
-                    <a href="{{ url('/power-platform') }}">Power Platform</a>
-                    <a href="{{ url('/dynamics-365') }}">Dynamics 365</a>
-                    <a href="{{ url('/sharepoint') }}">SharePoint</a>
-                    <a href="{{ url('/custom-development') }}">Custom Development</a>
-                    <a href="{{ url('/api-dev') }}">API Development</a>
-                </div>
-                <div class="mobile-mega-section">
-                    <h4>Solutions</h4>
-                    <h4>Everyone</h4>
-                    <a href="{{ route('mela-ai') }}">Mela AI</a>
-                    <h4>Oil &amp; Gas</h4>
-                    <a href="{{ route('invoice-lens') }}">InvoiceLens</a>
-                </div>
-            </div>
+            @include('partials.mobile-menu.what-we-do')
         </li>
         <li>
             <button type="button" class="sub-toggle">Who We Serve <span class="mobile-caret" aria-hidden="true"></span></button>
-            <div class="mobile-mega-panel">
-                <div class="mobile-mega-section">
-                    <h4>Industries</h4>
-                    <a href="{{ route('industries.index') }}#healthcare">Healthcare</a>
-                    <a href="{{ route('industries.index') }}#energy">Energy / Oil & Gas</a>
-                    <a href="{{ route('industries.index') }}#financial-services">Financial Services</a>
-                    <a href="{{ route('industries.index') }}#higher-education">Higher Education</a>
-                    <a href="{{ route('industries.index') }}#manufacturing">Manufacturing</a>
-                    <a href="{{ route('industries.index') }}#nonprofit-social-services">Nonprofit & Social Services</a>
-                    <a href="{{ route('industries.index') }}#professional-services">Professional Services</a>
-                    <a href="{{ route('industries.index') }}#state-local-government">State & Local Government</a>
-                    <a href="{{ route('industries.index') }}#transportation-logistics">Transportation & Logistics</a>
-                    <a href="{{ route('industries.index') }}#agriculture-cannabis">Agriculture & Cannabis</a>
-                </div>
-            </div>
+            @include('partials.mobile-menu.who-we-serve')
         </li>
         <li>
             <button type="button" class="sub-toggle">Knowledge Hub <span class="mobile-caret" aria-hidden="true"></span></button>
-            <div class="mobile-mega-panel">
-                <div class="mobile-mega-section">
-                    <h4>Learn</h4>
-                    <a href="{{ route('blog.index') }}">Blog Articles</a>
-                    <a href="{{ route('resources.index') }}">Resources</a>
-                    <a href="{{ route('case-studies.index') }}#white-papers">White Papers</a>
-                </div>
-                <div class="mobile-mega-section">
-                    <h4>Proof</h4>
-                    <a href="{{ route('case-studies.index') }}">Case Studies</a>
-                    <a href="{{ route('case-studies.index') }}#white-papers">White Papers</a>
-                </div>
-                
-            </div>
+            @include('partials.mobile-menu.knowledge-hub')
         </li>
         <li><a href="{{ route('contact') }}">Let's Talk</a></li>
     </ul>

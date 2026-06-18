@@ -308,6 +308,60 @@
 .video-meta {
     padding: 18px 18px 20px;
 }
+
+/* Shared CTA */
+.mela-cta-section {
+    background: #f3f6fb;
+    padding: 48px 0;
+}
+.mela-cta-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 56px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 72px;
+    align-items: center;
+}
+.mela-cta-copy .section-title {
+    margin-bottom: 0;
+    text-align: left;
+}
+.mela-cta-copy .section-title h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1e3a6d;
+    margin-bottom: 12px;
+}
+.mela-cta-copy .section-title p {
+    font-size: 1.05rem;
+    color: #555;
+    max-width: 700px;
+    margin: 0;
+}
+.mela-cta-copy .section-title hr {
+    width: 60px;
+    height: 3px;
+    border: none;
+    background: #2f5597;
+    margin: 15px 0;
+    border-radius: 2px;
+}
+.mela-cta-copy .section-title hr,
+.mela-cta-copy .section-title p {
+    margin-left: 0;
+}
+.mela-cta-form-wrap {
+    width: 100%;
+}
+
+@media (max-width: 900px) {
+    .mela-cta-inner {
+        grid-template-columns: 1fr;
+        gap: 40px;
+        padding: 0 24px;
+    }
+}
 .video-meta h5 {
     font-size: 1rem;
     font-weight: 700;
@@ -792,6 +846,36 @@
                     <p>Data Layer</p>
                 </div>
             </div>
+        </div>
+    </div>
+</section>
+
+<!-- Contact Form -->
+<section class="mela-cta-section" id="contact">
+    <div class="mela-cta-inner">
+        <div class="mela-cta-copy">
+            <div class="section-title">
+                <h2>Book Mela AI for your team.</h2>
+                <hr>
+                <p>Tell us what you want Mela to do, and we will help you map the right discovery session, demo, or implementation path.</p>
+            </div>
+        </div>
+        <div class="mela-cta-form-wrap">
+            @include('partials.service-contact-form', [
+                'serviceContact' => [
+                    'surface' => 'card',
+                    'title' => 'Book Your Free Assessment',
+                    'subtitle' => 'Tell us about your situation.',
+                    'button_label' => 'Request Free Assessment',
+                    'note' => 'A member of the Armely team will follow up within one business day.',
+                    'options' => [
+                        'Need an AI agent demo',
+                        'Need a discovery call',
+                        'Need pricing and scope',
+                        'Not sure, need a recommendation',
+                    ],
+                ],
+            ])
         </div>
     </div>
 </section>
