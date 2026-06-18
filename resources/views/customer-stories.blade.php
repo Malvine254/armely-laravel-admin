@@ -42,7 +42,10 @@
     $accentColors = ['#1fa37a', '#c6561f', '#8fa0b8'];
 
     $cleanReviewText = function ($story) {
-        return trim(preg_replace('/\s+/', ' ', strip_tags((string) ($story->body_content ?? ''))));
+        $text = strip_tags((string) ($story->body_content ?? ''));
+        $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+        return trim(preg_replace('/\s+/', ' ', $text));
     };
 
     // Use the shortest review as the base length for every collapsed preview.
@@ -560,7 +563,7 @@
         padding: 10px 22px;
         border-radius: 8px;
         background: #2f5597;
-        color: #ffffff;
+        color: #ffffff !important;
         font-size: 0.88rem;
         font-weight: 900;
         text-decoration: none;
@@ -569,7 +572,7 @@
 
     .case-study-link:hover {
         background: #173b67;
-        color: #ffffff;
+        color: #ffffff !important;
         text-decoration: none;
     }
 
