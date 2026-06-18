@@ -91,7 +91,9 @@
 	align-self: flex-start;
 }
 .case-studies-section > .container {
-	max-width: 1180px;
+	max-width: 1280px;
+	padding-left: 0;
+	padding-right: 0;
 }
 .case-studies-layout {
 	align-items: flex-start;
@@ -182,19 +184,11 @@
 	transition: all 0.2s ease;
 	display: inline-flex;
 	align-items: flex-start;
-	gap: 8px;
 	white-space: normal;
 	overflow-wrap: anywhere;
 }
 .case-filter-chip::before {
-	content: '';
-	flex: 0 0 7px;
-	width: 7px;
-	height: 7px;
-	border-radius: 50%;
-	background: #87a7de;
-	box-shadow: 0 0 0 3px rgba(135, 167, 222, 0.2);
-	margin-top: 4px;
+	content: none;
 }
 .case-filter-chip.active {
 	background: linear-gradient(135deg, #2f5597 0%, #22447d 100%);
@@ -203,8 +197,7 @@
 	box-shadow: 0 8px 18px rgba(47, 85, 151, 0.3);
 }
 .case-filter-chip.active::before {
-	background: #cfe0ff;
-	box-shadow: 0 0 0 3px rgba(207, 224, 255, 0.25);
+	content: none;
 }
 .case-filter-chip:hover {
 	color: #18366b;
@@ -221,7 +214,9 @@
 	scroll-margin-top: 110px;
 }
 .white-papers-section > .container {
-	max-width: 1180px;
+	max-width: 1280px;
+	padding-left: 0;
+	padding-right: 0;
 }
 .resource-side-panel {
 	background: #ffffff;
@@ -287,7 +282,7 @@
 	color: inherit;
 }
 .resource-topic-list li a.case-filter-chip::before {
-	display: none;
+	content: none;
 }
 .resource-topic-list li.active {
 	background: linear-gradient(135deg, #2f5597 0%, #22447d 100%);
@@ -589,7 +584,7 @@
 <div class="container">
 	@php($activeFilterCount = ($selectedIndustry !== '' ? 1 : 0) + ($selectedTopic !== '' ? 1 : 0))
 	<div class="row case-studies-layout justify-content-center">
-		<div class="col-12 col-lg-4 col-xl-3 mb-4 mb-lg-0 case-filter-column">
+		<div class="col-12 col-lg-3 col-xl-3 mb-4 mb-lg-0 case-filter-column">
 			<div class="case-filter-panel">
 				<div class="case-filter-toolbar">
 					<h3 class="case-filter-title">Find Relevant Stories Faster</h3>
@@ -618,34 +613,43 @@
 				</div>
 			</div>
 		</div>
-		<div class="col-12 col-lg-8 col-xl-9">
+		<div class="col-12 col-lg-9 col-xl-9">
 			<div class="row">
 		@forelse($caseStudies as $caseStudy)
 			@php($caseStudyTitle = trim((string) ($caseStudy->title ?? '')))
 			@php($caseStudyDisplayTitle = $caseStudyTitle !== '' ? $caseStudyTitle : (string) ($caseStudy->category ?? 'Case Study'))
-			@php($caseStudyFullTitle = trim($caseStudyDisplayTitle . ' Solution'))
+			@php($caseStudyTagKey = (string) ($caseStudy->technology_filters[0] ?? ''))
+			@php($caseStudyTagLabel = match ($caseStudyTagKey) {
+				'fabric-data' => 'Microsoft Fabric',
+				'power-platform' => 'Power Platform',
+				'ai-cognitive-services' => 'AI & Cognitive',
+				'sharepoint-collaboration' => 'SharePoint',
+				default => 'Microsoft Platform',
+			})
+			@php($caseStudyOutcomeLabel = trim((string) ($caseStudy->outcome_tag ?? '')))
 			<div class="col-12 col-md-6 col-lg-4 mb-4 js-case-card" data-industry="{{ $caseStudy->industry_filter ?? '' }}" data-topics="{{ implode(',', $caseStudy->technology_filters ?? []) }}">
-				<div class="case-study-card">
-					<div class="card-image-wrapper">
-						@if($caseStudy->listing_image && file_exists(public_path('images/case-study/' . $caseStudy->listing_image)))
-							<img src="{{ asset('images/case-study/' . $caseStudy->listing_image) }}" class="card-image lazy-img" alt="{{ $caseStudyFullTitle }}">
-						@else
-							<div class="case-study-default-image" aria-hidden="true">
-								<i class="icofont-briefcase"></i>
+				<div class="case-study-card cs-card">
+					<div class="cs-card-body">
+						<div class="cs-card-tags">
+							@if($caseStudyTagLabel !== '')
+								<span class="cs-tag cs-tag-tech">{{ $caseStudyTagLabel }}</span>
+							@endif
+						</div>
+						<h5 class="cs-card-title">{{ $caseStudyDisplayTitle }}</h5>
+						<p class="cs-card-problem">{{ $caseStudy->preview ?? '' }}</p>
+						@if($caseStudyOutcomeLabel !== '')
+							<div class="cs-outcomes">
+								<span class="cs-outcome">{{ $caseStudyOutcomeLabel }}</span>
 							</div>
 						@endif
-						<div class="card-overlay"></div>
-						<div class="card-badge">{{ $caseStudy->category }}</div>
 					</div>
-					<div class="card-content">
-						<h5 class="card-title">{{ $caseStudyFullTitle }}</h5>
-						<p class="card-description">{{ $caseStudy->preview ?? '' }}</p>
-						<div class="card-footer">
-							<a class="read-more-btn text-light"
+					<div class="cs-card-footer">
+						<div class="cs-card-ctas">
+							<a class="read-more-btn cs-btn-full text-light case-study-gated-link"
 							   href="{{ route('case-studies.show', $caseStudy->slug) }}"
 							   data-case-study-id="{{ $caseStudy->id }}"
-							   data-resource-title="{{ $caseStudyFullTitle }}">
-								View Case Study <i class="fa fa-arrow-right"></i>
+							   data-resource-title="{{ $caseStudyDisplayTitle }}">
+								Full case study <i class="fa fa-arrow-right"></i>
 							</a>
 						</div>
 					</div>
@@ -797,7 +801,7 @@
 <section id="white-papers" class="white-papers-section">
 <div class="container">
 	<div class="row case-studies-layout justify-content-center">
-		<div class="col-12 col-lg-4 col-xl-3 mb-4 mb-lg-0">
+		<div class="col-12 col-lg-3 col-xl-3 mb-4 mb-lg-0">
 			<aside class="resource-side-panel">
 				<div class="resource-side-label">White Papers</div>
 				<h2 class="resource-side-title">Microsoft platform guidance for leaders</h2>
@@ -817,38 +821,30 @@
 				</div>
 			</aside>
 		</div>
-		<div class="col-12 col-lg-8 col-xl-9">
+		<div class="col-12 col-lg-9 col-xl-9">
 			<div class="row">
 			@forelse($whitePapers as $paper)
 				@php($whitePaperFullTitle = trim((string) ($paper->title ?? 'White Paper')))
 				@php($whitePaperPlainPreview = trim(preg_replace('/\s+/', ' ', strip_tags((string) ($paper->preview ?? '')))))
 				@php($whitePaperFilterText = strtolower(trim($whitePaperFullTitle . ' ' . $whitePaperPlainPreview)))
 				<div class="col-12 col-md-6 col-lg-4 mb-4 js-white-paper-card" data-filter-text="{{ $whitePaperFilterText }}">
-					<div class="white-paper-card">
-						<div class="card-image-wrapper">
-							@if($paper->images && file_exists(public_path('images/white-papers/' . $paper->images)))
-								<img src="{{ asset('images/white-papers/' . $paper->images) }}" class="card-image lazy-img" alt="{{ $whitePaperFullTitle }}">
-							@else
-								<div class="white-paper-default-image" aria-hidden="true">
-									<i class="icofont-document"></i>
-								</div>
-							@endif
-							<div class="card-overlay"></div>
-							<div class="card-badge white-paper-badge">
-								<i class="icofont-document"></i> Resource
+					<div class="white-paper-card cs-card">
+						<div class="card-content cs-card-body">
+							<div class="cs-card-tags">
+								<span class="cs-tag cs-tag-ind">White Paper</span>
 							</div>
-						</div>
-						<div class="card-content">
-							<h5 class="card-title">{{ $whitePaperFullTitle }}</h5>
-							<p class="card-description">{{ $paper->preview ?? '' }}</p>
-							<div class="card-footer">
-								<a class="read-more-btn text-light"
-								   href="{{ route('resources.show', $paper->slug) }}"
-								   data-white-paper-id="{{ $paper->id }}"
-								   data-resource-type="white-paper"
-								   data-resource-title="{{ $whitePaperFullTitle }}">
-									View Resource <i class="fa fa-arrow-right"></i>
-								</a>
+							<h5 class="card-title cs-card-title">{{ $whitePaperFullTitle }}</h5>
+							<p class="card-description cs-card-problem">{{ $paper->preview ?? '' }}</p>
+							<div class="cs-card-footer">
+								<div class="cs-card-ctas">
+									<a class="read-more-btn cs-btn-full text-light white-paper-gated-link"
+									   href="{{ route('resources.show', $paper->slug) }}"
+									   data-white-paper-id="{{ $paper->id }}"
+									   data-resource-type="white-paper"
+									   data-resource-title="{{ $whitePaperFullTitle }}">
+										View Resource <i class="fa fa-arrow-right"></i>
+									</a>
+								</div>
 							</div>
 						</div>
 					</div>
@@ -1128,12 +1124,8 @@
 	}
 
 	document.querySelectorAll('.case-study-gated-link').forEach(function (link) {
-		link.addEventListener('click', function (event) {
-			var caseStudyId = link.getAttribute('data-case-study-id') || '';
-
-			event.preventDefault();
-			openModal('case-study', caseStudyId, link.getAttribute('data-resource-title') || 'Case Study');
-		});
+		link.removeAttribute('data-case-study-id');
+		link.removeAttribute('data-resource-title');
 	});
 
 	document.querySelectorAll('.white-paper-gated-link').forEach(function (link) {

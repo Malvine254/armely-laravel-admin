@@ -24,7 +24,7 @@
 <style>
 .case-detail-page {
 	--case-ink: #172033;
-	--case-muted: #5f6f86;
+	--case-muted: #46586f;
 	--case-line: #d9e4f2;
 	--case-panel: #ffffff;
 	--case-soft: #f5f8fc;
@@ -32,37 +32,52 @@
 	--case-navy: #18345f;
 	--case-teal: #2f5597;
 	--case-gold: #22447d;
-	background: #fff;
+	background:
+		radial-gradient(1200px 560px at 12% 0%, rgba(47, 85, 151, .08), rgba(47, 85, 151, 0) 60%),
+		linear-gradient(180deg, #f7faff 0%, #ffffff 100%);
 	color: var(--case-ink);
 }
 .case-detail-hero {
 	background:
-		linear-gradient(90deg, rgba(47, 85, 151, .14) 0, rgba(47, 85, 151, 0) 36%),
-		linear-gradient(180deg, #eef4fb 0%, #fff 100%);
-	border-bottom: 1px solid var(--case-line);
-	padding: 34px 0 46px;
+		linear-gradient(135deg, #162f5d 0%, #214a89 56%, #18345f 100%);
+	padding: 36px 0 44px;
+	position: relative;
+	overflow: hidden;
+}
+.case-detail-hero::after {
+	content: '';
+	position: absolute;
+	inset: 0;
+	background:
+		radial-gradient(560px 220px at 18% 18%, rgba(255, 255, 255, .12), rgba(255, 255, 255, 0) 68%),
+		radial-gradient(420px 180px at 84% 8%, rgba(255, 255, 255, .08), rgba(255, 255, 255, 0) 70%);
+	pointer-events: none;
 }
 .case-back-link {
 	display: inline-flex;
 	align-items: center;
 	gap: 8px;
-	color: var(--case-navy);
+	color: rgba(255,255,255,.88);
 	font-weight: 800;
 	font-size: .92rem;
 	margin-bottom: 28px;
+	position: relative;
+	z-index: 1;
 }
-.case-back-link:hover { color: var(--case-blue); text-decoration: none; }
+.case-back-link:hover { color: #fff; text-decoration: none; }
 .case-hero-layout {
 	display: grid;
-	grid-template-columns: minmax(0, 1.24fr) minmax(300px, .76fr);
-	gap: 34px;
-	align-items: stretch;
+	grid-template-columns: minmax(0, 1fr);
+	gap: 0;
+	align-items: start;
+	position: relative;
+	z-index: 1;
 }
 .case-detail-eyebrow {
 	display: inline-flex;
 	align-items: center;
 	gap: 8px;
-	color: var(--case-navy);
+	color: rgba(255,255,255,.88);
 	font-weight: 800;
 	text-transform: uppercase;
 	font-size: .78rem;
@@ -70,21 +85,33 @@
 	margin-bottom: 14px;
 }
 .case-detail-title {
-	color: var(--case-ink);
-	font-size: 3.05rem;
+	color: #fff;
+	font-size: 2.9rem;
 	line-height: 1.08;
 	font-weight: 900;
 	margin: 0 0 18px;
 	max-width: 880px;
 }
 .case-detail-summary {
-	color: var(--case-muted);
+	color: rgba(255, 255, 255, .92);
 	font-size: 1.1rem;
 	line-height: 1.8;
 	max-width: 850px;
 	margin-bottom: 24px;
 }
 .case-hero-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.case-share-toast {
+	display: none;
+	margin-top: 14px;
+	padding: 10px 12px;
+	border: 1px solid #b9cbe4;
+	background: rgba(255, 255, 255, .12);
+	color: rgba(255, 255, 255, .95);
+	font-size: .92rem;
+	font-weight: 700;
+	border-radius: 12px;
+	max-width: 520px;
+}
 .case-primary-btn,
 .case-secondary-btn {
 	display: inline-flex;
@@ -97,42 +124,10 @@
 	text-decoration: none;
 	border: 1px solid transparent;
 }
-.case-primary-btn { background: var(--case-blue); color: #fff; }
+.case-primary-btn { background: var(--case-blue); color: #fff; box-shadow: 0 10px 24px rgba(7, 18, 39, .16); }
 .case-primary-btn:hover { color: #fff; background: var(--case-navy); text-decoration: none; }
-.case-secondary-btn { background: #fff; color: var(--case-navy); border-color: var(--case-line); }
-.case-secondary-btn:hover { color: var(--case-blue); border-color: #b9cbe4; text-decoration: none; }
-.case-hero-card {
-	background: #fff;
-	border: 1px solid var(--case-line);
-	box-shadow: 0 20px 50px rgba(35, 62, 105, .12);
-	display: flex;
-	flex-direction: column;
-	min-height: 100%;
-}
-.case-hero-visual {
-	height: 214px;
-	background: #e8eff8;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	overflow: hidden;
-}
-.case-hero-visual img { width: 100%; height: 100%; object-fit: cover; }
-.case-hero-fallback {
-	width: 100%;
-	height: 100%;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	background:
-		linear-gradient(135deg, rgba(47,85,151,.18), rgba(30,58,109,.16)),
-		#f3f7fc;
-	color: var(--case-blue);
-	font-size: 4rem;
-}
-.case-hero-card-body { padding: 22px; }
-.case-hero-card-title { color: var(--case-ink); font-weight: 900; font-size: 1.25rem; margin: 8px 0 10px; }
-.case-hero-card-copy { color: var(--case-muted); line-height: 1.65; margin: 0; }
+.case-secondary-btn { background: rgba(255,255,255,.08); color: #fff; border-color: rgba(255,255,255,.22); backdrop-filter: blur(8px); }
+.case-secondary-btn:hover { color: #fff; border-color: rgba(255,255,255,.45); text-decoration: none; }
 .case-result-band {
 	background: #fff;
 	padding: 0 0 38px;
@@ -158,6 +153,580 @@
 .case-result i { color: var(--case-teal); font-size: 1.25rem; }
 .case-result span { color: var(--case-ink); font-size: 1.03rem; line-height: 1.45; font-weight: 850; }
 .case-detail-band { padding: 38px 0 72px; background: #fff; }
+.case-preview-band {
+	background:
+		radial-gradient(1200px 260px at 15% -20%, rgba(47, 85, 151, .12), rgba(47, 85, 151, 0) 58%),
+		linear-gradient(180deg, #f7faff 0%, #fff 100%);
+	padding: 0 0 34px;
+}
+.case-preview-band .container {
+	max-width: 1400px;
+	padding-left: 24px;
+	padding-right: 24px;
+}
+.case-preview-shell {
+	width: 100%;
+	margin: 0 auto;
+	padding: 0;
+}
+.case-preview-grid {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+	gap: 0;
+	align-items: start;
+}
+.case-preview-card,
+.case-preview-side {
+	background: #fff;
+}
+.case-preview-card { padding: 28px; }
+.case-preview-side { padding: 22px; }
+.case-preview-kicker {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	text-transform: uppercase;
+	letter-spacing: .1em;
+	font-size: .75rem;
+	font-weight: 900;
+	color: var(--case-blue);
+	margin-bottom: 10px;
+}
+.case-preview-head {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 18px;
+	margin-bottom: 20px;
+}
+.case-preview-head h2 {
+	color: var(--case-ink);
+	font-size: 1.55rem;
+	line-height: 1.2;
+	font-weight: 900;
+	margin: 0 0 8px;
+}
+.case-preview-head p {
+	color: #46586f;
+	line-height: 1.7;
+	margin: 0;
+	max-width: 62ch;
+}
+.case-preview-pills {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	justify-content: flex-end;
+}
+.case-preview-pill {
+	display: inline-flex;
+	align-items: center;
+	min-height: 28px;
+	padding: 4px 10px;
+	border-radius: 999px;
+	background: #f7faff;
+	color: var(--case-navy);
+	font-size: .7rem;
+	font-weight: 900;
+	letter-spacing: .08em;
+	text-transform: uppercase;
+}
+.case-preview-pill.is-muted {
+	background: #fff;
+	color: #5d6f86;
+}
+.case-pdf-stage {
+	position: relative;
+	overflow: hidden;
+	background:
+		linear-gradient(180deg, rgba(255,255,255,.95), rgba(248,251,255,.95)),
+		#fff;
+	min-height: 640px;
+	padding: 24px;
+	display: flex;
+	justify-content: center;
+	align-items: flex-start;
+}
+.case-pdf-stage-inner {
+	width: min(100%, 1120px);
+	margin: 0 auto;
+	position: relative;
+}
+.case-pdf-page {
+	width: 100%;
+	border: 1px solid #dbe6f3;
+	border-radius: 18px;
+	background: linear-gradient(180deg, #ffffff 0%, #f7faff 100%);
+	box-shadow: none;
+	padding: 28px;
+}
+.case-pdf-page-top {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 18px;
+	flex-wrap: wrap;
+	margin-bottom: 22px;
+	padding-bottom: 18px;
+}
+.case-pdf-page-kicker {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	color: var(--case-blue);
+	font-weight: 900;
+	text-transform: uppercase;
+	letter-spacing: .1em;
+	font-size: .74rem;
+	margin-bottom: 10px;
+}
+.case-pdf-page-title {
+	color: var(--case-ink);
+	font-size: 1.55rem;
+	line-height: 1.18;
+	font-weight: 900;
+	margin: 0;
+	max-width: 22ch;
+}
+.case-pdf-page-body {
+	position: relative;
+	color: #32465f;
+	font-size: 1rem;
+	line-height: 1.85;
+	max-height: 520px;
+	overflow: hidden;
+	padding-right: 6px;
+}
+.case-pdf-preview-meta {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-bottom: 16px;
+}
+.case-pdf-meta-chip {
+	display: inline-flex;
+	align-items: center;
+	min-height: 28px;
+	padding: 4px 10px;
+	border-radius: 999px;
+	background: #f7faff;
+	color: var(--case-navy);
+	font-size: .72rem;
+	font-weight: 900;
+	letter-spacing: .08em;
+	text-transform: uppercase;
+}
+.case-pdf-meta-chip.is-muted {
+	background: #fff;
+	color: #5d6f86;
+}
+.case-pdf-page-copy {
+	display: grid;
+	gap: 14px;
+}
+.case-pdf-sections {
+	display: grid;
+	gap: 14px;
+}
+.case-pdf-section {
+	padding: 16px 0 2px;
+}
+.case-pdf-section:first-child {
+	padding-top: 0;
+}
+.case-pdf-section-head {
+	display: grid;
+	gap: 6px;
+	margin-bottom: 10px;
+}
+.case-pdf-section-kicker {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	color: var(--case-blue);
+	font-size: .72rem;
+	font-weight: 900;
+	text-transform: uppercase;
+	letter-spacing: .12em;
+}
+.case-pdf-section-head h4 {
+	margin: 0;
+	color: var(--case-ink);
+	font-size: 1.03rem;
+	line-height: 1.25;
+	font-weight: 900;
+	letter-spacing: .01em;
+}
+.case-pdf-section-body {
+	display: grid;
+	gap: 12px;
+}
+.case-pdf-paragraph {
+	margin: 0;
+}
+.case-pdf-paragraph.is-lead {
+	font-size: 1.04rem;
+	line-height: 1.95;
+	color: #243752;
+}
+.case-pdf-highlight-grid {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 10px;
+	margin: 18px 0 8px;
+}
+.case-pdf-highlight {
+	background: linear-gradient(180deg, #fff 0%, #f7fbff 100%);
+	border-radius: 14px;
+	padding: 14px;
+	min-height: 110px;
+}
+.case-pdf-highlight strong {
+	display: block;
+	color: var(--case-blue);
+	font-size: .82rem;
+	font-weight: 900;
+	letter-spacing: .08em;
+	text-transform: uppercase;
+	margin-bottom: 6px;
+}
+.case-pdf-highlight span {
+	color: #44566f;
+	font-size: .92rem;
+	line-height: 1.55;
+}
+.case-pdf-service-list {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin: 14px 0 0;
+	padding: 0;
+	list-style: none;
+}
+.case-pdf-service-list li {
+	display: inline-flex;
+	align-items: center;
+	min-height: 30px;
+	padding: 4px 10px;
+	border-radius: 999px;
+	background: #fff;
+	color: var(--case-navy);
+	font-size: .72rem;
+	font-weight: 800;
+}
+.case-pdf-preview-note {
+	margin-top: 16px;
+	padding: 14px 16px;
+	border-radius: 12px;
+	background: linear-gradient(135deg, rgba(47, 85, 151, .08), rgba(47, 85, 151, .03));
+	color: #46586f;
+	font-size: .92rem;
+	line-height: 1.6;
+}
+.case-pdf-page-body::after {
+	content: '';
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	height: 130px;
+	background: linear-gradient(180deg, rgba(247, 250, 255, 0), rgba(247, 250, 255, 1) 82%);
+	pointer-events: none;
+}
+.case-pdf-request {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	margin-top: 18px;
+	padding: 16px 18px;
+	border-radius: 14px;
+	background: linear-gradient(135deg, rgba(47, 85, 151, .08), rgba(47, 85, 151, .03));
+	border: 1px solid #d7e2f1;
+}
+.case-pdf-request strong {
+	display: block;
+	color: var(--case-ink);
+	font-size: .98rem;
+	font-weight: 900;
+	margin-bottom: 4px;
+}
+.case-pdf-request span {
+	color: #4d627f;
+	line-height: 1.45;
+	font-size: .92rem;
+}
+.case-pdf-request a {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 44px;
+	padding: 10px 16px;
+	border-radius: 12px;
+	background: var(--case-blue);
+	color: #fff;
+	font-weight: 900;
+	text-decoration: none;
+	white-space: nowrap;
+	box-shadow: 0 12px 24px rgba(31, 63, 118, .18);
+}
+.case-pdf-request a:hover {
+	background: var(--case-navy);
+	color: #fff;
+	text-decoration: none;
+}
+.case-pdf-loading {
+	display: grid;
+	place-items: center;
+	min-height: 640px;
+	border: 1px dashed #c8d7ea;
+	border-radius: 14px;
+	background: linear-gradient(180deg, #fbfdff 0%, #f5f9ff 100%);
+	color: var(--case-muted);
+	font-weight: 800;
+	text-align: center;
+	padding: 24px;
+}
+.case-preview-footer {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	padding-top: 18px;
+	margin-top: 18px;
+}
+.case-preview-footer p {
+	margin: 0;
+	color: #46586f;
+	font-size: .96rem;
+	line-height: 1.6;
+}
+.case-preview-footer .case-primary-btn {
+	min-width: 240px;
+	background: var(--case-blue);
+	color: #fff;
+	box-shadow: 0 12px 24px rgba(31, 63, 118, .22);
+}
+.case-preview-footer .case-primary-btn:hover {
+	background: var(--case-navy);
+	color: #fff;
+}
+.case-pdf-canvas {
+	display: none;
+	width: 100%;
+	max-width: 100%;
+	height: auto;
+	border-radius: 14px;
+	box-shadow: 0 16px 32px rgba(28, 54, 93, .12);
+	background: #fff;
+}
+.case-pdf-snapshot {
+	display: none;
+	width: 100%;
+	max-width: 100%;
+	height: auto;
+	border-radius: 14px;
+	box-shadow: 0 16px 32px rgba(28, 54, 93, .12);
+	background: #fff;
+}
+.case-pdf-mock {
+	border-radius: 14px;
+	background:
+		linear-gradient(180deg, #fff 0%, #fbfdff 100%);
+	border: 1px solid #dbe6f3;
+	box-shadow: 0 16px 32px rgba(28, 54, 93, .12);
+	padding: 20px;
+	min-height: 700px;
+}
+.case-mock-topbar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	padding-bottom: 14px;
+	border-bottom: 1px solid #e3ebf7;
+	margin-bottom: 16px;
+}
+.case-mock-brand {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	color: var(--case-blue);
+	font-weight: 900;
+	letter-spacing: .08em;
+	text-transform: uppercase;
+	font-size: .78rem;
+}
+.case-mock-chip {
+	display: inline-flex;
+	align-items: center;
+	min-height: 26px;
+	padding: 3px 10px;
+	border-radius: 999px;
+	border: 1px solid #d1def0;
+	background: #f7faff;
+	color: var(--case-navy);
+	font-size: .68rem;
+	font-weight: 900;
+	letter-spacing: .08em;
+	text-transform: uppercase;
+}
+.case-mock-hero {
+	background:
+		linear-gradient(135deg, rgba(47, 85, 151, .12), rgba(47, 85, 151, .04)),
+		#fff;
+	border: 1px solid #dbe6f3;
+	border-radius: 16px;
+	padding: 22px;
+	margin-bottom: 14px;
+}
+.case-mock-title {
+	color: var(--case-ink);
+	font-size: 2.05rem;
+	line-height: 1.08;
+	font-weight: 900;
+	margin: 0 0 12px;
+	max-width: 12ch;
+}
+.case-mock-summary {
+	color: #44566f;
+	font-size: 1rem;
+	line-height: 1.72;
+	max-width: 58ch;
+	margin: 0 0 18px;
+}
+.case-mock-metrics {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 10px;
+	margin-bottom: 14px;
+}
+.case-mock-metric {
+	border: 1px solid #d9e5f4;
+	background: linear-gradient(180deg, #fff 0%, #f7fbff 100%);
+	border-radius: 14px;
+	padding: 14px;
+	min-height: 104px;
+}
+.case-mock-metric strong {
+	display: block;
+	color: var(--case-blue);
+	font-size: 1.25rem;
+	font-weight: 900;
+	margin-bottom: 6px;
+}
+.case-mock-metric span {
+	color: #44566f;
+	font-size: .86rem;
+	line-height: 1.5;
+}
+.case-mock-section {
+	border-top: 1px solid #e3ebf7;
+	padding-top: 14px;
+	margin-top: 14px;
+}
+.case-mock-section h4 {
+	color: var(--case-ink);
+	font-size: 1rem;
+	font-weight: 900;
+	margin: 0 0 8px;
+}
+.case-mock-line {
+	height: 11px;
+	border-radius: 999px;
+	background: linear-gradient(90deg, #e6edf7 0%, #dce7f6 100%);
+	margin-bottom: 9px;
+}
+.case-mock-line.short { width: 72%; }
+.case-mock-line.mid { width: 86%; }
+.case-mock-line.long { width: 96%; }
+.case-pdf-empty {
+	min-height: 420px;
+	display: grid;
+	place-items: center;
+	padding: 28px;
+	text-align: center;
+	color: var(--case-muted);
+	font-weight: 700;
+	border-radius: 14px;
+	background: linear-gradient(180deg, #fbfdff, #f4f8fd);
+}
+.case-pdf-overlay {
+	position: absolute;
+	left: 24px;
+	right: 24px;
+	bottom: 24px;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 14px 16px;
+	border-radius: 14px;
+	background: rgba(23, 32, 51, .86);
+	color: #fff;
+	box-shadow: 0 16px 28px rgba(11, 28, 57, .28);
+}
+.case-pdf-overlay strong {
+	display: block;
+	font-size: .92rem;
+	font-weight: 900;
+	margin-bottom: 2px;
+}
+.case-pdf-overlay span {
+	color: rgba(241, 246, 255, .9);
+	font-size: .82rem;
+	line-height: 1.4;
+}
+.case-pdf-overlay a {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 40px;
+	padding: 10px 14px;
+	border-radius: 10px;
+	background: #fff;
+	color: var(--case-blue);
+	font-weight: 900;
+	text-decoration: none;
+	white-space: nowrap;
+}
+.case-pdf-overlay a:hover { color: var(--case-navy); text-decoration: none; }
+.case-preview-side h3 {
+	color: var(--case-ink);
+	font-size: 1.1rem;
+	font-weight: 900;
+	margin-bottom: 10px;
+}
+.case-preview-side p {
+	color: #46586f;
+	line-height: 1.7;
+	margin-bottom: 16px;
+}
+.case-preview-list {
+	display: grid;
+	gap: 10px;
+	margin: 0 0 18px;
+	padding: 0;
+	list-style: none;
+}
+.case-preview-list li {
+	display: flex;
+	align-items: flex-start;
+	gap: 10px;
+	color: var(--case-ink);
+	line-height: 1.5;
+}
+.case-preview-list li::before {
+	content: '\f00c';
+	font-family: 'Font Awesome 6 Free';
+	font-weight: 900;
+	color: var(--case-blue);
+	margin-top: 2px;
+}
+.case-preview-side .case-primary-btn,
+.case-preview-side .case-secondary-btn {
+	width: 100%;
+}
 .case-detail-grid {
 	display: grid;
 	grid-template-columns: minmax(0, 1.48fr) minmax(310px, .82fr);
@@ -427,16 +996,24 @@
 	.case-detail-hero { padding-top: 24px; }
 	.case-hero-layout,
 	.case-detail-grid,
-	.case-result-grid { grid-template-columns: 1fr; }
+	.case-result-grid,
+	.case-preview-grid { grid-template-columns: 1fr; }
 	.case-detail-title { font-size: 2.15rem; }
 	.case-sidebar { position: static; }
+	.case-pdf-stage { min-height: 520px; padding: 18px; }
+	.case-mock-metrics { grid-template-columns: 1fr; }
+	.case-pdf-highlight-grid { grid-template-columns: 1fr; }
+	.case-preview-footer { flex-direction: column; align-items: stretch; }
+	.case-preview-footer .case-primary-btn { width: 100%; min-width: 0; }
 }
 @media (max-width: 575px) {
 	.case-detail-title { font-size: 1.85rem; }
 	.case-content-card,
 	.case-panel,
 	.case-share-card,
-	.case-lead-card { padding: 18px; }
+	.case-lead-card,
+	.case-preview-card,
+	.case-preview-side { padding: 18px; }
 	.case-modal { padding: 10px; }
 	.case-modal-dialog { padding: 16px; margin: 10px auto; }
 	.case-share-grid { grid-template-columns: 1fr; }
@@ -448,94 +1025,136 @@
 	.case-hero-actions { flex-direction: column; }
 	.case-primary-btn,
 	.case-secondary-btn { width: 100%; }
+	.case-pdf-stage { min-height: 420px; padding: 12px; }
+	.case-pdf-overlay {
+		left: 12px;
+		right: 12px;
+		bottom: 12px;
+		flex-direction: column;
+		align-items: stretch;
+	}
+	.case-pdf-mock { padding: 14px; min-height: 520px; }
+	.case-mock-title { font-size: 1.55rem; }
+	.case-preview-shell { padding: 0 14px; }
 }
 </style>
 @endpush
 
 @section('content')
+@php($caseStudyOutcomeLabel = trim((string) ($caseStudy->outcome_tag ?? '')))
 <main class="case-detail-page">
 	<section class="case-detail-hero">
 		<div class="container">
-			<a class="case-back-link" href="{{ route('case-studies.index') }}"><i class="fa fa-arrow-left"></i> Back to case studies</a>
+			<a class="case-back-link text-light" href="{{ route('case-studies.index') }}"><i class="fa fa-arrow-left"></i> Back to case studies</a>
 			<div class="case-hero-layout">
 				<div>
 					<div class="case-detail-eyebrow">{{ $caseStudy->category ?? 'Case Study' }}</div>
 					<h1 class="case-detail-title">{{ $caseStudy->display_title }}</h1>
-					<p class="case-detail-summary">{{ $caseStudy->preview }}</p>
+					<p class="case-detail-summary text-light">{{ $caseStudy->preview }}</p>
 					<div class="case-hero-actions">
 						<button type="button" class="case-primary-btn" id="openCaseDownloadModal"><i class="fa fa-file-arrow-down"></i> Download full case study</button>
 						<button type="button" class="case-secondary-btn" id="shareNativeBtnHero"><i class="fa fa-share-alt"></i> Share</button>
 					</div>
+					<div class="case-share-toast" id="caseShareToast" aria-live="polite"></div>
 				</div>
-
-				<aside class="case-hero-card" aria-label="Case study overview">
-					<div class="case-hero-visual">
-						@if(!empty($caseStudy->listing_image) && file_exists(public_path('images/case-study/' . $caseStudy->listing_image)))
-							<img src="{{ asset('images/case-study/' . $caseStudy->listing_image) }}" alt="{{ $caseStudy->display_title }}" loading="lazy">
-						@else
-							<div class="case-hero-fallback" aria-hidden="true"><i class="fa fa-chart-line"></i></div>
-						@endif
-					</div>
-					<div class="case-hero-card-body">
-						<div class="case-hero-card-title">{{ $caseStudy->technology_label ?? 'Microsoft Platform' }}</div>
-						<p class="case-hero-card-copy">{{ $caseStudy->hero_copy }}</p>
-					</div>
-				</aside>
 			</div>
 		</div>
 	</section>
 
-	<section class="case-detail-band">
+	<section class="case-preview-band">
 		<div class="container">
-			<div class="case-detail-grid">
-				<article>
-					<div class="case-content-card">
-						<h2>What Changed</h2>
-						<div class="case-detail-body">
-							{!! $caseStudy->body !!}
+			<div class="case-preview-shell">
+				<div class="case-preview-card">
+					<div class="case-preview-kicker"><i class="fa fa-file-pdf-o"></i> Document preview</div>
+					<div class="case-preview-head">
+						<div>
+							<h2>First page preview</h2>
+							<p>
+								@if(($caseStudy->pdf_preview_source ?? '') === 'PDF text')
+									The page below is formatted from the first page of the PDF file so the section titles stay visible. Request the full case study to receive the complete PDF and any remaining pages.
+								@else
+									We could not extract readable text from the PDF file for this case study. Request the full case study to receive the complete PDF and any remaining pages.
+								@endif
+							</p>
+						</div>
+						<div class="case-preview-pills" aria-label="Preview status">
+							<span class="case-preview-pill">Page 1 shown</span>
+							<span class="case-preview-pill is-muted">{{ $caseStudy->pdf_preview_source ?? 'PDF text' }}</span>
 						</div>
 					</div>
 
-					<div class="case-panel">
-						<h3>Armely Services Involved</h3>
-						<ul>
-							@foreach($caseStudy->services as $service)
-								<li>{{ $service }}</li>
-							@endforeach
-						</ul>
-					</div>
-				</article>
-
-				<aside class="case-sidebar">
-					<div class="case-download-cta" id="download">
-						<h3>Download Full Case Study</h3>
-						<p>Request the full PDF and we will email a secure link to your work email.</p>
-						<button type="button" class="case-download-open" id="openCaseDownloadModalSidebar">Open Download Form</button>
-					</div>
-
-					<div class="case-share-card">
-						<h3>Share This Case Study</h3>
-						<div class="case-share-grid">
-							<button type="button" class="case-share-btn" id="shareNativeBtn"><i class="fa fa-share-alt"></i>Share</button>
-							<button type="button" class="case-share-btn" id="shareCopyBtn"><i class="fa fa-link"></i>Copy Link</button>
-							<a class="case-share-btn" href="https://www.linkedin.com/sharing/share-offsite/?url={{ urlencode(request()->url()) }}" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-linkedin"></i>LinkedIn</a>
-							<a class="case-share-btn" href="https://twitter.com/intent/tweet?url={{ urlencode(request()->url()) }}&text={{ urlencode($caseStudy->display_title . ' Case Study') }}" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-x-twitter"></i>X</a>
+					<div class="case-pdf-stage">
+						<div class="case-pdf-stage-inner">
+							@if(!empty($caseStudy->pdf_preview_text))
+								<div class="case-pdf-page" aria-label="Case study page one text preview">
+									<div class="case-pdf-page-top">
+										<div>
+											<div class="case-pdf-page-kicker"><i class="fa fa-file-pdf-o"></i> Document preview</div>
+											<h3 class="case-pdf-page-title">{{ $caseStudy->display_title }}</h3>
+										</div>
+										<div class="case-preview-pills" aria-label="Preview status">
+											<span class="case-preview-pill">Page 1</span>
+											<span class="case-preview-pill is-muted">{{ $caseStudy->pdf_preview_source ?? 'PDF text' }}</span>
+										</div>
+									</div>
+									<div class="case-pdf-page-body">
+										<div class="case-pdf-page-copy">
+											<div class="case-pdf-preview-meta" aria-label="Preview metadata">
+												<span class="case-pdf-meta-chip">{{ $caseStudy->category ?? 'Case Study' }}</span>
+												<span class="case-pdf-meta-chip is-muted">{{ $caseStudy->technology_label ?? 'Microsoft Platform' }}</span>
+												<span class="case-pdf-meta-chip is-muted">{{ $caseStudyOutcomeLabel !== '' ? $caseStudyOutcomeLabel : 'Measurable business outcome' }}</span>
+											</div>
+											@if(!empty($caseStudy->pdf_preview_sections))
+												<div class="case-pdf-sections" aria-label="Formatted preview sections">
+													@foreach($caseStudy->pdf_preview_sections as $sectionIndex => $section)
+														<section class="case-pdf-section">
+															@if(!empty($section['heading']))
+																<div class="case-pdf-section-head">
+																	<span class="case-pdf-section-kicker">Section {{ $sectionIndex + 1 }}</span>
+																	<h4>{{ $section['heading'] }}</h4>
+																</div>
+															@endif
+															<div class="case-pdf-section-body">
+																@foreach($section['paragraphs'] ?? [] as $paragraphIndex => $paragraph)
+																	<p class="case-pdf-paragraph {{ $sectionIndex === 0 && $paragraphIndex === 0 ? 'is-lead' : '' }}">{{ $paragraph }}</p>
+																@endforeach
+															</div>
+														</section>
+													@endforeach
+												</div>
+												<div class="case-pdf-preview-note">
+													This preview is formatted from the first page of the PDF file so the section titles stay visible and readable.
+												</div>
+											@else
+												@foreach($caseStudy->pdf_preview_paragraphs ?? [] as $index => $paragraph)
+													<p class="case-pdf-paragraph {{ $index === 0 ? 'is-lead' : '' }}">{{ $paragraph }}</p>
+												@endforeach
+											@endif
+										</div>
+									</div>
+									<div class="case-pdf-request">
+										<div>
+											<strong>Need the full case study?</strong>
+											<span>Request secure access for the complete PDF and any remaining pages.</span>
+										</div>
+										<button type="button" class="case-primary-btn" id="openCaseDownloadModalPreviewInline">Request full case study</button>
+									</div>
+								</div>
+							@else
+								<div class="case-pdf-empty" aria-label="Case study preview">
+									<div>
+										<strong>First page text is unavailable</strong>
+										<div>We could not extract readable text from the PDF file for this case study.</div>
+									</div>
+								</div>
+							@endif
 						</div>
-						<div class="case-share-toast" id="caseShareToast">Link copied to clipboard.</div>
 					</div>
-
-					@if($relatedCaseStudies->isNotEmpty())
-						<div class="case-panel">
-							<h3>Related Case Studies</h3>
-							@foreach($relatedCaseStudies as $related)
-								<a class="related-card" href="{{ route('case-studies.show', $related->slug) }}">
-									<strong>{{ trim((string) ($related->title ?? '')) ?: (($related->category ?? 'Case Study') . ' Case Study') }}</strong>
-									<div class="text-muted">{{ $related->preview }}</div>
-								</a>
-							@endforeach
-						</div>
-					@endif
-				</aside>
+					<div class="case-preview-footer">
+						<p>Need the full document? Request a secure download link and we will email it to your work address.</p>
+						<button type="button" class="case-primary-btn" id="openCaseDownloadModalPreview"><i class="fa fa-file-arrow-down"></i> Request full case study</button>
+					</div>
+				</div>
 			</div>
 		</div>
 	</section>
@@ -600,17 +1219,16 @@
 <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 <script>
 (function () {
-	var shareUrl = '{{ request()->url() }}';
-	var shareTitle = '{{ addslashes($caseStudy->display_title) }} Case Study | Armely';
-	var shareText = '{{ addslashes($metaDescription) }}';
+	var shareUrl = @json(request()->url());
+	var shareTitle = @json($caseStudy->display_title . ' Case Study | Armely');
+	var shareText = @json($metaDescription);
 
-	var nativeBtn = document.getElementById('shareNativeBtn');
 	var nativeHeroBtn = document.getElementById('shareNativeBtnHero');
-	var copyBtn = document.getElementById('shareCopyBtn');
 	var toast = document.getElementById('caseShareToast');
 	var modal = document.getElementById('caseDownloadModal');
 	var openModalBtn = document.getElementById('openCaseDownloadModal');
-	var openModalSidebarBtn = document.getElementById('openCaseDownloadModalSidebar');
+	var openModalPreviewBtn = document.getElementById('openCaseDownloadModalPreview');
+	var openModalPreviewInlineBtn = document.getElementById('openCaseDownloadModalPreviewInline');
 	var closeModalBtn = document.getElementById('closeCaseDownloadModal');
 	var firstInput = document.getElementById('lead_name');
 	var recaptchaContainer = document.getElementById('caseRecaptcha');
@@ -624,6 +1242,9 @@
 
 	function showToast(text) {
 		if (!toast) {
+			if (window.console && console.info) {
+				console.info(text);
+			}
 			return;
 		}
 		toast.textContent = text;
@@ -662,21 +1283,17 @@
 				title: shareTitle,
 				text: shareText,
 				url: shareUrl
-			}).catch(function () {
-				// User canceled or share unavailable.
+			}).then(function () {
+				showToast('Share sheet opened.');
+			}).catch(function (error) {
+				if (!error || error.name !== 'AbortError') {
+					copyLink();
+				}
 			});
 			return;
 		}
 
 		copyLink();
-	}
-
-	if (copyBtn) {
-		copyBtn.addEventListener('click', copyLink);
-	}
-
-	if (nativeBtn) {
-		nativeBtn.addEventListener('click', nativeShare);
 	}
 
 	if (nativeHeroBtn) {
@@ -713,8 +1330,12 @@
 		openModalBtn.addEventListener('click', openDownloadModal);
 	}
 
-	if (openModalSidebarBtn) {
-		openModalSidebarBtn.addEventListener('click', openDownloadModal);
+	if (openModalPreviewBtn) {
+		openModalPreviewBtn.addEventListener('click', openDownloadModal);
+	}
+
+	if (openModalPreviewInlineBtn) {
+		openModalPreviewInlineBtn.addEventListener('click', openDownloadModal);
 	}
 
 	function setSubmitting(isSubmitting) {

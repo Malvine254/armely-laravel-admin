@@ -342,10 +342,20 @@ class ResourceController extends Controller
                 ->limit(3)
                 ->get();
 
+            $isWhitePaper = $this->isPdfStyleResource($resource);
             $response = response()->view('resources.show', [
                 'resource' => $resource,
                 'relatedResources' => $relatedResources,
+                'isWhitePaper' => $isWhitePaper,
             ]);
+
+            if ($isWhitePaper) {
+                return response()->view('resources.white-paper-show', [
+                    'resource' => $resource,
+                    'relatedResources' => $relatedResources,
+                    'resourceInlineUrl' => route('resources.download', ['slug' => $resource->slug, 'mode' => 'inline']),
+                ]);
+            }
 
             return $response;
         }
@@ -360,6 +370,17 @@ class ResourceController extends Controller
 
             return app(CaseStudiesController::class)->showResource($request, $slug);
         }
+    }
+
+    private function isPdfStyleResource(Resource $resource): bool
+    {
+        $type = strtolower((string) ($resource->resource_type ?? ''));
+        if ($type === 'pdf' || str_contains($type, 'white')) {
+            return true;
+        }
+
+        $fileUrl = strtolower((string) ($resource->file_url ?? ''));
+        return str_contains($fileUrl, '.pdf');
     }
 
     public function download(Request $request, string $slug): RedirectResponse|SymfonyResponse
