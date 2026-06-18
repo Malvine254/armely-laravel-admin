@@ -48,7 +48,7 @@
 .armely-company-page .co-story-facts { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:36px; }
 .armely-company-page .co-story-fact { border:1px solid var(--border); border-radius:12px; padding:18px 20px; background:var(--navy-mid); }
 .armely-company-page .co-story-fact-num { font-size:1.15rem; font-weight:800; color:#162b49; line-height:1.2; letter-spacing:-0.01em; }
-.armely-company-page .co-story-fact-num span { color:var(--blue); }
+.armely-company-page .co-story-fact-num span { color:inherit; }
 .armely-company-page .co-story-fact-label { font-size:0.74rem; color:var(--text-muted); line-height:1.45; margin-top:5px; }
 .armely-company-page .co-story-quote { margin-top:18px; padding:20px 22px; border-left:3px solid var(--blue); background:var(--blue-dim); border-radius:0 12px 12px 0; font-size:0.92rem; font-style:italic; color:#162b49; line-height:1.7; }
 .armely-company-page .co-story-body { font-size:0.925rem; color:var(--text-body); line-height:1.85; }
@@ -95,9 +95,10 @@
 /* AFFILIATIONS */
 .armely-company-page .co-affil { padding:56px 56px; background:#fff; border-top:1px solid var(--border); }
 .armely-company-page .co-affil-inner { max-width:1120px; margin:0 auto; text-align:center; }
-.armely-company-page .co-affil-logos { display:flex; align-items:center; justify-content:center; gap:56px; flex-wrap:wrap; margin-top:36px; }
+.armely-company-page .co-affil-logos { display:grid; grid-template-columns:repeat(3, auto); justify-content:center; justify-items:center; align-items:center; gap:32px 64px; margin-top:36px; }
 .armely-company-page .co-affil-logos img { height:104px; width:auto; object-fit:contain; filter:grayscale(20%); opacity:0.85; transition:transform 0.3s ease, filter 0.3s ease, opacity 0.3s ease; }
 .armely-company-page .co-affil-logos img.co-affil-badge { height:150px; }
+.armely-company-page .co-affil-logos img.co-affil-nobox { height:150px; clip-path: inset(12%); }
 .armely-company-page .co-affil-logos img:hover { transform:scale(1.05); filter:grayscale(0%); opacity:1; }
 
 /* INNOVATION BRANDS */
@@ -134,7 +135,13 @@
   .armely-company-page .co-principles-grid, .armely-company-page .co-brands-grid { grid-template-columns:1fr; }
   .armely-company-page .co-story, .armely-company-page .co-principles, .armely-company-page .co-affil, .armely-company-page .co-brands, .armely-company-page .co-cta, .armely-company-page .co-hero, .armely-company-page .co-banners { padding-left:24px; padding-right:24px; }
   .armely-company-page .co-cta-btns { flex-direction:column; }
-  .armely-company-page .co-affil-logos { gap:28px; }
+  .armely-company-page .co-affil-logos { gap:28px 36px; }
+}
+@media (max-width:560px) {
+  .armely-company-page .co-affil-logos { grid-template-columns:repeat(2, auto); }
+  .armely-company-page .co-affil-logos img { height:84px; }
+  .armely-company-page .co-affil-logos img.co-affil-badge { height:120px; }
+  .armely-company-page .co-affil-logos img.co-affil-nobox { height:120px; }
 }
 </style>
 @endpush
@@ -294,7 +301,8 @@
         <img class="co-affil-badge" src="{{ asset('images/affiliation/smb.svg') }}" alt="SMB certification">
         <img src="{{ asset('images/affiliation/affliation1.png') }}" alt="Technology affiliation">
         <img src="{{ asset('images/affiliation/fid.png') }}" alt="Federal ID certification">
-        <img src="{{ asset('images/affiliation/partner.png') }}" alt="Microsoft Solutions Partner">
+        <img src="{{ asset('images/affiliation/partner.png') }}" alt="Microsoft Solutions Partner - Data & AI, Azure">
+        <img class="co-affil-nobox" src="{{ asset('images/affiliation/digital_logo.png') }}" alt="Microsoft Solutions Partner - Digital & App Innovation, Azure">
       </div>
     </div>
   </section>
