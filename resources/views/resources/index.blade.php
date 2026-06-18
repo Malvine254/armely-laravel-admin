@@ -788,7 +788,9 @@
                 <p class="featured-title">Featured Resources</p>
                 <div class="featured-grid">
                     @foreach($featuredResources as $featured)
-                        <a href="{{ route('resources.show', $featured->slug) }}" class="featured-card">
+                        @php($featuredType = strtolower((string) $featured->resource_type))
+                        @php($featuredRouteName = $featuredType === 'pdf' || str_contains($featuredType, 'white') ? 'whitepapers.show' : 'resources.show')
+                        <a href="{{ route($featuredRouteName, $featured->slug) }}" class="featured-card">
                             <div class="meta">{{ ucfirst($featured->resource_type) }} @if($featured->category) · {{ $featured->category }} @endif</div>
                             <p class="name">{{ $featured->title }}</p>
                         </a>
@@ -899,6 +901,8 @@
                         @foreach($resources as $resource)
                                 @php
                                     $type = strtolower((string) $resource->resource_type);
+                                    $detailRouteName = $type === 'pdf' || str_contains($type, 'white') ? 'whitepapers.show' : 'resources.show';
+                                    $downloadRouteName = $type === 'pdf' || str_contains($type, 'white') ? 'whitepapers.download' : 'resources.download';
                                     $iconMap = [
                                         'pdf' => ['fa-file-pdf-o', 'file-icon-pdf', 'PDF Document'],
                                         'video' => ['fa-play-circle', 'file-icon-video', 'Video Resource'],
@@ -984,20 +988,20 @@
                                 </div>
 
                                 <div class="file-actions">
-                                    <a class="btn default-background text-light" href="{{ route('resources.show', $resource->slug) }}">View Details</a>
+                                    <a class="btn default-background text-light" href="{{ route($detailRouteName, $resource->slug) }}">View Details</a>
                                     <div class="dropdown">
                                         <button class="btn btn-outline-primary dropdown-toggle resource-actions-toggle" type="button" aria-expanded="false" aria-label="Resource actions">
                                             <i class="fa fa-ellipsis-v" aria-hidden="true"></i>
                                         </button>
                                         <ul class="dropdown-menu dropdown-menu-end dropdown-menu-right">
-                                            <li><a class="dropdown-item preview-resource-btn" href="#" data-title="{{ $resource->title }}" data-type="{{ $resource->resource_type }}" data-url="{{ route('resources.download', ['slug' => $resource->slug, 'mode' => 'inline']) }}">Preview</a></li>
-                                            <li><a class="dropdown-item copy-link-btn" href="#" data-url="{{ route('resources.show', $resource->slug) }}">Copy Link</a></li>
-                                            <li><a class="dropdown-item" href="{{ route('resources.show', $resource->slug) }}">Open Resource</a></li>
+                                            <li><a class="dropdown-item preview-resource-btn" href="#" data-title="{{ $resource->title }}" data-type="{{ $resource->resource_type }}" data-url="{{ route($downloadRouteName, ['slug' => $resource->slug, 'mode' => 'inline']) }}">Preview</a></li>
+                                            <li><a class="dropdown-item copy-link-btn" href="#" data-url="{{ route($detailRouteName, $resource->slug) }}">Copy Link</a></li>
+                                            <li><a class="dropdown-item" href="{{ route($detailRouteName, $resource->slug) }}">Open Resource</a></li>
                                             @if($resource->file_url)
                                                 @if($requiresRequestForFullContent)
-                                                    <li><a class="dropdown-item" href="{{ route('resources.show', $resource->slug) }}#resource-request-form">Request Full Contents</a></li>
+                                                    <li><a class="dropdown-item" href="{{ route($detailRouteName, $resource->slug) }}#resource-request-form">Request Full Contents</a></li>
                                                 @else
-                                                    <li><a class="dropdown-item" href="{{ route('resources.download', $resource->slug) }}">Download</a></li>
+                                                    <li><a class="dropdown-item" href="{{ route($downloadRouteName, $resource->slug) }}">Download</a></li>
                                                 @endif
                                             @endif
                                         </ul>

@@ -28,7 +28,9 @@ Route::get('/contact', [HomeController::class, 'contact'])->name('contact');
 Route::post('/contact', [HomeController::class, 'submitContact'])->name('contact.submit');
 Route::post('/newsletter/subscribe', [NewsletterController::class, 'subscribe'])->name('newsletter.subscribe');
 Route::get('/newsletter/unsubscribe/{token}', [NewsletterController::class, 'unsubscribe'])->name('newsletter.unsubscribe');
-Route::get('/invoice-lens', [HomeController::class, 'invoiceLens'])->name('invoice-lens');
+Route::get('/services/invoicelens', [HomeController::class, 'invoiceLens'])->name('invoice-lens');
+Route::redirect('/services/invoice-lens', '/services/invoicelens', 301);
+Route::redirect('/invoice-lens', '/services/invoicelens', 301);
 // Thank you page - only accessible via form submission with valid session token
 Route::get('/contact/thank-you', [HomeController::class, 'contactThankYou'])
     ->middleware(\App\Http\Middleware\ContactSubmissionMiddleware::class)
@@ -38,9 +40,9 @@ Route::post('/data-readiness/submit', [DataReadinessLeadController::class, 'subm
 
 // Services listing page
 Route::get('/services', [ServicesController::class, 'index'])->name('services');
-Route::view('/service-details/assessments', 'services.assessments_blade')->name('assessments');
-Route::redirect('/assessments', '/service-details/assessments', 301);
-Route::redirect('/services/assessments', '/service-details/assessments', 301);
+Route::view('/services/assessments', 'services.assessments_blade')->name('assessments');
+Route::redirect('/assessments', '/services/assessments', 301);
+Route::redirect('/service-details/assessments', '/services/assessments', 301);
 Route::get('/services/{name}', [HomeController::class, 'serviceDetails'])->name('services.show');
 
 Route::view('/solutions/protective-order-digitization', 'protective-order-solution')->name('protective-order-solution');
@@ -93,6 +95,9 @@ Route::post('/case-studies/lead', [CaseStudiesController::class, 'submitLead'])-
 Route::get('/case-studies/access/{caseStudy}', [CaseStudiesController::class, 'accessCaseStudy'])->name('case-studies.access');
 Route::get('/white-papers/access/{paper}', [CaseStudiesController::class, 'accessWhitePaper'])->name('white-papers.access');
 Route::get('/resources', [ResourceController::class, 'index'])->name('resources.index');
+Route::get('/whitepapers/{slug}', [ResourceController::class, 'show'])->name('whitepapers.show');
+Route::post('/whitepapers/{slug}/request', [ResourceController::class, 'requestResource'])->name('whitepapers.request');
+Route::get('/whitepapers/{slug}/download', [ResourceController::class, 'download'])->name('whitepapers.download');
 Route::post('/resources/{slug}/request', [ResourceController::class, 'requestResource'])->name('resources.request');
 Route::get('/resources/{slug}/download', [ResourceController::class, 'download'])->name('resources.download');
 Route::get('/resources/{slug}', [ResourceController::class, 'show'])->name('resources.show');

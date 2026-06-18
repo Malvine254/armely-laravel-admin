@@ -574,7 +574,9 @@
                         <h3 class="related-title">Recommended Next Resources</h3>
                         <div class="related-grid">
                             @foreach($relatedResources as $related)
-                                <a href="{{ route('resources.show', $related->slug) }}" class="related-card">
+                                @php($relatedType = strtolower((string) $related->resource_type))
+                                @php($relatedRouteName = $relatedType === 'pdf' || str_contains($relatedType, 'white') ? 'whitepapers.show' : 'resources.show')
+                                <a href="{{ route($relatedRouteName, $related->slug) }}" class="related-card">
                                     <div class="meta">{{ ucfirst($related->resource_type) }} @if($related->category) · {{ $related->category }} @endif</div>
                                     <p class="name">{{ $related->title }}</p>
                                 </a>

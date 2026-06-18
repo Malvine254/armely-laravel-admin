@@ -494,8 +494,8 @@
                     <tbody>
                         @forelse($resources as $resource)
                             @php
-                                $publicLink = $shareBaseUrl . '/resources/' . $resource->slug;
                                 $type = strtolower((string) $resource->resource_type);
+                                $publicLink = $shareBaseUrl . (($type === 'pdf' || str_contains($type, 'white')) ? '/whitepapers/' : '/resources/') . $resource->slug;
                                 $iconMap = [
                                     'pdf' => ['fas fa-file-pdf', 'resource-avatar-pdf', 'PDF'],
                                     'video' => ['fas fa-circle-play', 'resource-avatar-video', 'Video'],
