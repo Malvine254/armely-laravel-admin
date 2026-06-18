@@ -26,7 +26,7 @@
   }
 
 .armely-company-page .section-eyebrow { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.14em; color: var(--blue); margin-bottom: 14px; font-weight: 600; }
-.armely-company-page .section-title { font-size: clamp(1.7rem, 3.2vw, 2.6rem); font-weight: 800; color: #1A2540; line-height: 1.12; letter-spacing: -0.025em; margin-bottom: 18px; max-width: 640px; }
+.armely-company-page .section-title { font-size: clamp(1.35rem, 2.4vw, 1.9rem); font-weight: 800; color: #1A2540; line-height: 1.15; letter-spacing: -0.02em; margin-bottom: 18px; max-width: 640px; }
 .armely-company-page .section-body { font-size: 0.975rem; font-weight: 300; max-width: 560px; line-height: 1.7; color: var(--text-body); margin-bottom: 28px; }
 .armely-company-page .icon-svg { width: 22px; height: 22px; display: block; color: var(--blue); fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
@@ -34,7 +34,7 @@
 .armely-company-page .co-hero { background:linear-gradient(135deg,#173b67 0%,#234f86 100%); padding:72px 56px 60px; }
 .armely-company-page .co-hero-inner { max-width:760px; margin:0 auto; }
 .armely-company-page .co-hero .section-eyebrow { display:inline-flex; background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.22); color:rgba(255,255,255,0.88); border-radius:999px; padding:6px 14px; margin-bottom:16px; }
-.armely-company-page .co-hero h1 { font-size:clamp(1.7rem,3vw,2.6rem); font-weight:800; color:#fff; letter-spacing:-0.03em; line-height:1.1; margin-bottom:14px; }
+.armely-company-page .co-hero h1 { font-size:clamp(1.4rem,2.4vw,2rem); font-weight:800; color:#fff; letter-spacing:-0.02em; line-height:1.15; margin-bottom:14px; }
 .armely-company-page .co-hero h1 em { font-style:normal; font-weight:300; color:rgba(255,255,255,0.7); }
 .armely-company-page .co-hero-sub { font-size:1rem; font-weight:300; color:rgba(255,255,255,0.65); line-height:1.75; max-width:600px; margin-bottom:32px; }
 .armely-company-page .co-hero-stats { display:flex; gap:32px; flex-wrap:wrap; padding-top:28px; border-top:1px solid rgba(255,255,255,0.15); }
@@ -45,18 +45,24 @@
 /* STORY */
 .armely-company-page .co-story { padding:64px 56px; background:#fff; }
 .armely-company-page .co-story-inner { max-width:1120px; margin:0 auto; display:grid; grid-template-columns:1fr 1fr; gap:80px; align-items:start; }
+.armely-company-page .co-story-facts { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:36px; }
+.armely-company-page .co-story-fact { border:1px solid var(--border); border-radius:12px; padding:18px 20px; background:var(--navy-mid); }
+.armely-company-page .co-story-fact-num { font-size:1.15rem; font-weight:800; color:#162b49; line-height:1.2; letter-spacing:-0.01em; }
+.armely-company-page .co-story-fact-num span { color:var(--blue); }
+.armely-company-page .co-story-fact-label { font-size:0.74rem; color:var(--text-muted); line-height:1.45; margin-top:5px; }
+.armely-company-page .co-story-quote { margin-top:18px; padding:20px 22px; border-left:3px solid var(--blue); background:var(--blue-dim); border-radius:0 12px 12px 0; font-size:0.92rem; font-style:italic; color:#162b49; line-height:1.7; }
 .armely-company-page .co-story-body { font-size:0.925rem; color:var(--text-body); line-height:1.85; }
 .armely-company-page .co-story-body p { margin-bottom:18px; }
 .armely-company-page .co-story-body p:last-child { margin-bottom:0; }
 .armely-company-page .co-story-body strong { color:#162b49; font-weight:700; }
-.armely-company-page .co-story .section-title { font-size:clamp(1.5rem,2.4vw,2rem); margin-bottom:18px; }
+.armely-company-page .co-story .section-title { font-size:clamp(1.2rem,1.9vw,1.5rem); margin-bottom:18px; }
 .armely-company-page .co-milestones { display:flex; flex-direction:column; gap:0; }
 .armely-company-page .co-milestone { display:flex; gap:20px; align-items:flex-start; padding:18px 0; border-bottom:1px solid var(--border); }
 .armely-company-page .co-milestone:last-child { border-bottom:none; }
 .armely-company-page .co-milestone-year { font-size:0.72rem; font-weight:800; color:var(--blue); letter-spacing:0.06em; min-width:44px; padding-top:2px; }
 .armely-company-page .co-milestone-text { font-size:0.82rem; color:var(--text-body); line-height:1.6; }
 .armely-company-page .co-milestone-text strong { color:#162b49; font-weight:700; display:block; margin-bottom:2px; }
-.armely-company-page .co-mini-title { font-size:1.1rem; font-weight:800; color:#162b49; margin-bottom:16px; }
+.armely-company-page .co-mini-title { font-size:1rem; font-weight:800; color:#162b49; margin-bottom:16px; }
 
 /* PRINCIPLES / VALUES */
 .armely-company-page .co-principles { padding:64px 56px; background:var(--navy-mid); }
@@ -89,8 +95,9 @@
 /* AFFILIATIONS */
 .armely-company-page .co-affil { padding:56px 56px; background:#fff; border-top:1px solid var(--border); }
 .armely-company-page .co-affil-inner { max-width:1120px; margin:0 auto; text-align:center; }
-.armely-company-page .co-affil-logos { display:flex; align-items:center; justify-content:center; gap:48px; flex-wrap:wrap; margin-top:32px; }
-.armely-company-page .co-affil-logos img { height:64px; width:auto; object-fit:contain; filter:grayscale(20%); opacity:0.85; transition:transform 0.3s ease, filter 0.3s ease, opacity 0.3s ease; }
+.armely-company-page .co-affil-logos { display:flex; align-items:center; justify-content:center; gap:56px; flex-wrap:wrap; margin-top:36px; }
+.armely-company-page .co-affil-logos img { height:104px; width:auto; object-fit:contain; filter:grayscale(20%); opacity:0.85; transition:transform 0.3s ease, filter 0.3s ease, opacity 0.3s ease; }
+.armely-company-page .co-affil-logos img.co-affil-badge { height:150px; }
 .armely-company-page .co-affil-logos img:hover { transform:scale(1.05); filter:grayscale(0%); opacity:1; }
 
 /* INNOVATION BRANDS */
@@ -115,7 +122,7 @@
 /* CTA */
 .armely-company-page .co-cta { background:linear-gradient(135deg,#173b67 0%,#234f86 100%); padding:64px 56px; text-align:center; }
 .armely-company-page .co-cta .section-eyebrow { display:inline-flex; background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.22); color:rgba(255,255,255,0.88); border-radius:999px; padding:6px 14px; margin-bottom:16px; }
-.armely-company-page .co-cta h2 { font-size:1.7rem; font-weight:800; color:#fff; letter-spacing:-0.02em; margin-bottom:10px; }
+.armely-company-page .co-cta h2 { font-size:1.35rem; font-weight:800; color:#fff; letter-spacing:-0.02em; margin-bottom:10px; }
 .armely-company-page .co-cta p { font-size:0.925rem; color:rgba(255,255,255,0.65); max-width:480px; margin:0 auto 28px; line-height:1.7; }
 .armely-company-page .co-cta-btns { display:flex; align-items:center; justify-content:center; gap:12px; }
 .armely-company-page .co-cta-btn-p { background:#fff; color:var(--blue); border-radius:8px; padding:13px 28px; font-size:0.875rem; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:7px; }
@@ -176,6 +183,28 @@
           <p>Some of Armely's longest client relationships started with a single person who trusted the work enough to bring Armely with them when they moved to a new organization. That pattern, one successful engagement leading to another because the relationship outlasted the project, has shaped how Armely grows. Not through marketing, but through work that holds up over time.</p>
           <p>Nearly a decade later, Armely works across healthcare, energy, government, education, legal services, and enterprise organizations. The service lines have expanded to include Microsoft Fabric, Copilot, Dynamics 365, and proprietary products like InvoiceLens. The approach has not changed.</p>
         </div>
+
+        <div class="co-story-quote">"The people who scope your project are the same people who build it, deploy it, and answer the phone when something breaks."</div>
+
+        <div class="co-story-facts">
+          <div class="co-story-fact">
+            <div class="co-story-fact-num">{{ date('Y') - 2016 }}<span>+ yrs</span></div>
+            <div class="co-story-fact-label">Delivering since 2016</div>
+          </div>
+          <div class="co-story-fact">
+            <div class="co-story-fact-num">Dallas, <span>TX</span></div>
+            <div class="co-story-fact-label">Headquarters</div>
+          </div>
+          <div class="co-story-fact">
+            <div class="co-story-fact-num">Microsoft <span>Partner</span></div>
+            <div class="co-story-fact-label">Solutions Partner — Data &amp; AI</div>
+          </div>
+          <div class="co-story-fact">
+            <div class="co-story-fact-num">MBE <span>Certified</span></div>
+            <div class="co-story-fact-label">Minority Business Enterprise</div>
+          </div>
+        </div>
+
         @if(!empty($dbErrorMessage))
           <div class="alert alert-warning mt-4" role="alert">
             <i class="icofont-warning-alt"></i> {{ $dbErrorMessage }}
@@ -227,65 +256,32 @@
   <section class="co-principles">
     <div class="co-principles-inner">
       <div class="section-eyebrow">How We Work</div>
-      <h2 class="section-title">What clients say about working with Armely.</h2>
-      <p class="section-body">Not a values statement. Not aspirational copy. Specific things that show up consistently in client feedback and distinguish Armely from the alternatives.</p>
+      <h2 class="section-title">Four things clients say about working with Armely.</h2>
+      <p class="section-body">Not a values statement. Not aspirational copy. Four specific things that show up consistently in client feedback and distinguish Armely from the alternatives.</p>
       <div class="co-principles-grid">
-        @forelse($coreValues as $value)
-          <div class="co-principle">
-            <div class="co-principle-num">{{ str_pad($loop->iteration, 2, '0', STR_PAD_LEFT) }}</div>
-            <div class="co-principle-title">{{ $value->title }}</div>
-            <div class="co-principle-body">{{ $value->body }}</div>
-          </div>
-        @empty
-          <div class="co-brands-empty">Core values are not yet available. Please add them in the admin Company Content page.</div>
-        @endforelse
-      </div>
-    </div>
-  </section>
-
-  {{-- AD BANNERS --}}
-  @if(($adBanners ?? collect())->isNotEmpty())
-  <section class="co-banners">
-    <div class="co-banners-inner">
-      <div id="companyAdBannerCarousel" class="carousel slide" data-bs-ride="carousel">
-        <div class="carousel-inner">
-          @foreach($adBanners as $banner)
-            <div class="carousel-item {{ $loop->first ? 'active' : '' }}">
-              <div class="company-ad-banner" style="background: {{ $banner->background_style ?: 'linear-gradient(135deg, #2f5597 0%, #1e3a6d 100%)' }};">
-                <div class="row align-items-center g-3">
-                  <div class="col-lg-8">
-                    <h3>{{ $banner->headline }}</h3>
-                    @if(!empty($banner->message))
-                      <p>{{ $banner->message }}</p>
-                    @endif
-                    @if(!empty($banner->button_label) && !empty($banner->button_url))
-                      <a href="{{ $banner->button_url }}" class="banner-cta-btn mt-3">{{ $banner->button_label }}</a>
-                    @endif
-                  </div>
-                  <div class="col-lg-4 text-lg-end text-center">
-                    @if(!empty($banner->image_url))
-                      <img src="{{ $banner->image_url }}" alt="Website banner image" class="banner-image">
-                    @endif
-                  </div>
-                </div>
-              </div>
-            </div>
-          @endforeach
+        <div class="co-principle">
+          <div class="co-principle-num">01</div>
+          <div class="co-principle-title">We stay involved after go-live</div>
+          <div class="co-principle-body">Most implementation firms hand over a finished project and move on. Armely stays. The people who built your solution are the same people who support it, optimize it, and answer the phone when something breaks. Clients notice this because it is genuinely rare.</div>
         </div>
-        @if(($adBanners ?? collect())->count() > 1)
-          <button class="carousel-control-prev" type="button" data-bs-target="#companyAdBannerCarousel" data-bs-slide="prev">
-            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-            <span class="visually-hidden">Previous</span>
-          </button>
-          <button class="carousel-control-next" type="button" data-bs-target="#companyAdBannerCarousel" data-bs-slide="next">
-            <span class="carousel-control-next-icon" aria-hidden="true"></span>
-            <span class="visually-hidden">Next</span>
-          </button>
-        @endif
+        <div class="co-principle">
+          <div class="co-principle-num">02</div>
+          <div class="co-principle-title">Small enough to be responsive. Experienced enough to deliver.</div>
+          <div class="co-principle-body">Armely is not a 5,000-person firm that assigns a junior team to mid-market clients. The consultants who scope your project are the consultants who build it. You get senior attention on every engagement, not just the kickoff call.</div>
+        </div>
+        <div class="co-principle">
+          <div class="co-principle-num">03</div>
+          <div class="co-principle-title">We publish what we build</div>
+          <div class="co-principle-body">Armely publishes full case studies for every major engagement, including named clients, problem statements, and outcomes. This is not common in this industry. It reflects a simple belief: if the work is good, it should be visible.</div>
+        </div>
+        <div class="co-principle">
+          <div class="co-principle-num">04</div>
+          <div class="co-principle-title">We measure what matters</div>
+          <div class="co-principle-body">Armely does not consider an engagement complete until the client can point to a measurable change. A report that used to take three days now takes three minutes, a process that required four people now runs automatically, a decision that was made on instinct is now made on data.</div>
+        </div>
       </div>
     </div>
   </section>
-  @endif
 
   {{-- AFFILIATIONS --}}
   <section class="co-affil">
@@ -294,8 +290,8 @@
       <h2 class="section-title">Recognized where it matters.</h2>
       <p class="section-body">Armely holds certifications that matter to the clients we serve. Microsoft Solutions Partner status requires demonstrated client outcomes, not just technical exams. MBE certification reflects who we are as an organization.</p>
       <div class="co-affil-logos">
-        <img src="{{ asset('images/affiliation/mbe.svg') }}" alt="Minority Business Enterprise certified">
-        <img src="{{ asset('images/affiliation/smb.svg') }}" alt="SMB certification">
+        <img class="co-affil-badge" src="{{ asset('images/affiliation/mbe.svg') }}" alt="Minority Business Enterprise certified">
+        <img class="co-affil-badge" src="{{ asset('images/affiliation/smb.svg') }}" alt="SMB certification">
         <img src="{{ asset('images/affiliation/affliation1.png') }}" alt="Technology affiliation">
         <img src="{{ asset('images/affiliation/fid.png') }}" alt="Federal ID certification">
         <img src="{{ asset('images/affiliation/partner.png') }}" alt="Microsoft Solutions Partner">
@@ -310,40 +306,37 @@
       <h2 class="section-title">We build products, not just client solutions.</h2>
       <p class="section-body">Armely develops its own products to demonstrate how the technology works in practice, and because some problems are common enough to deserve a purpose-built solution rather than a custom engagement each time.</p>
       <div class="co-brands-grid">
-        @forelse($portfolioItems as $item)
-          <div class="co-brand-card">
-            @if(!empty($item->logo_url))
-              <div class="co-brand-logo"><img src="{{ $item->logo_url }}" alt="{{ $item->title }} logo"></div>
-            @endif
-            @if(!empty($item->category))
-              <div class="co-brand-eyebrow">{{ $item->category }}</div>
-            @endif
-            <div class="co-brand-title">{{ $item->title }}</div>
-            @if(!empty($item->short_description))
-              <div class="co-brand-sub">{{ $item->short_description }}</div>
-            @endif
-            @if(!empty($item->long_description))
-              <div class="co-brand-body">{{ $item->long_description }}</div>
-            @endif
-            @if(!empty($item->features))
-              <ul class="co-brand-features">
-                @foreach($item->features as $feature)
-                  <li>
-                    <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"/></svg>
-                    {{ $feature }}
-                  </li>
-                @endforeach
-              </ul>
-            @endif
-            @if(!empty($item->cta_label) && !empty($item->cta_url))
-              <a href="{{ $item->cta_url }}" class="co-brand-link">{{ $item->cta_label }}
-                <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-              </a>
-            @endif
-          </div>
-        @empty
-          <div class="co-brands-empty">Innovation brands are not yet available. Please add them in the admin Company Content page.</div>
-        @endforelse
+
+        <div class="co-brand-card">
+          <div class="co-brand-eyebrow">Everyone</div>
+          <div class="co-brand-title">Mela AI</div>
+          <div class="co-brand-sub">AI meeting capture, summaries, and follow-ups</div>
+          <div class="co-brand-body">Mela is Armely's AI product for meeting intelligence, capturing conversations, generating summaries, and surfacing follow-up actions automatically. Built on Azure AI and Microsoft Copilot Studio, it demonstrates how enterprise AI can be embedded into daily workflows without disrupting how teams already work.</div>
+          <a href="/mela-ai" class="co-brand-link">Explore Mela
+            <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+          </a>
+        </div>
+
+        <div class="co-brand-card">
+          <div class="co-brand-eyebrow">Oil and Gas</div>
+          <div class="co-brand-title">InvoiceLens</div>
+          <div class="co-brand-sub">OpenInvoice visibility and AP intelligence for operators</div>
+          <div class="co-brand-body">InvoiceLens gives Enverus OpenInvoice operators real-time visibility into pending invoice spend, accrual exposure, and approval workflow status before invoices reach the ERP. Built on Microsoft Fabric inside the operator's own Azure tenant. Deployed and supported by Armely.</div>
+          <a href="/invoice-lens" class="co-brand-link">Learn about InvoiceLens
+            <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+          </a>
+        </div>
+
+        <div class="co-brand-card">
+          <div class="co-brand-eyebrow">Data Analytics and BI</div>
+          <div class="co-brand-title">Step &amp; Sip</div>
+          <div class="co-brand-sub">A data-driven retail experience built on Microsoft Fabric</div>
+          <div class="co-brand-body">Step &amp; Sip is Armely's retail analytics experience, a working demonstration of how modern data platforms connect retail operations end to end. Built on Microsoft Fabric and Power Platform, it showcases real-time inventory, sales forecasting, customer segmentation, and workflow automation in a context that any business audience can understand without a technical background.</div>
+          <a href="/store" class="co-brand-link">Visit the experience
+            <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+          </a>
+        </div>
+
       </div>
     </div>
   </section>
