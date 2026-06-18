@@ -813,6 +813,7 @@
                             <tr>
                                 <th>Type</th>
                                 <th>Industry Type</th>
+                                <th>Outcome Tag</th>
                                 <th>Title</th>
                                 <th>Image</th>
                                 <th>PDF</th>
@@ -831,6 +832,7 @@
                                     </span>
                                 </td>
                                 <td>{{ $isWhitePaper ? 'N/A' : ($caseStudy->category ?? 'N/A') }}</td>
+                                <td>{{ $isWhitePaper ? 'N/A' : ($caseStudy->outcome_tag ?? 'N/A') }}</td>
                                 <td>{{ $caseStudy->title ?? ($caseStudy->category ?? 'N/A') }}</td>
                                 <td>
                                     @if(!empty($caseStudy->listing_image))
@@ -1337,6 +1339,16 @@
                                     <i class="fas fa-pen"></i>
                                 </a>
                             </div>
+                        </div>
+                        <div class="col-md-6" id="caseStudyOutcomeTagGroup">
+                            <label for="caseStudyOutcomeTag" class="form-label" id="caseStudyOutcomeTagLabel">Outcome Tag</label>
+                            <input type="text" class="form-control" id="caseStudyOutcomeTag" name="outcome_tag" list="caseStudyOutcomeTagOptions" placeholder="e.g. Faster dispatch visibility" maxlength="255">
+                            <small class="text-muted" id="caseStudyOutcomeTagHelp">Use one tag per card. This appears as the single highlight chip on the case-study card.</small>
+                            <datalist id="caseStudyOutcomeTagOptions">
+                                <option value="Faster dispatch visibility"></option>
+                                <option value="Reduced manual status updates"></option>
+                                <option value="Improved delivery performance tracking"></option>
+                            </datalist>
                         </div>
                         <div class="col-md-6">
                             <label for="caseStudyTitle" class="form-label" id="caseStudyTitleLabel">Case Study Title *</label>
@@ -2246,6 +2258,7 @@ $(document).ready(function() {
                         tbody.append(`<tr data-id="${item.id}">
                             <td>${typeBadge}</td>
                             <td>${isWhitePaper ? 'N/A' : escapeHtml(item.category || 'N/A')}</td>
+                            <td>${isWhitePaper ? 'N/A' : escapeHtml(item.outcome_tag || 'N/A')}</td>
                             <td>${escapeHtml(item.title || item.category || 'N/A')}</td>
                             <td>${imageHtml}</td>
                             <td>${pdfHtml}</td>
@@ -2947,6 +2960,7 @@ $(document).ready(function() {
         const isEditMode = $('#caseStudyMode').val() === 'edit';
 
         $('#caseStudyCategoryGroup').toggleClass('d-none', isWhitePaper);
+        $('#caseStudyOutcomeTagGroup').toggleClass('d-none', isWhitePaper);
         $('#caseStudyExistingImageGroup').toggleClass('d-none', !isWhitePaper);
         $('#caseStudyCategory').prop('required', !isWhitePaper);
         $('#caseStudyTitleLabel').text(isWhitePaper ? 'White Paper Title *' : 'Case Study Title *');
@@ -2975,6 +2989,7 @@ $(document).ready(function() {
         $('#caseStudyForm')[0].reset();
         $('#caseStudyId').val('');
         $('#caseStudyCategory').val('');
+        $('#caseStudyOutcomeTag').val('');
         $('#resourceTypeCaseStudy').prop('checked', true);
         applyCaseStudyResourceTypeUI();
         if (caseStudyEditor) {
@@ -3033,6 +3048,7 @@ $(document).ready(function() {
         }
 
         $('#caseStudyCategory').val(item.category || '');
+        $('#caseStudyOutcomeTag').val(item.outcome_tag || item.outcome_tags || '');
         $('#caseStudyTitle').val(item.title || '');
         $('#caseStudyExistingImage').val(item.listing_image || item.images || item.image || '');
         $('#caseStudyPdfUrl').val(item.pdf_url || '');
@@ -3085,6 +3101,7 @@ $(document).ready(function() {
 
         if (!isWhitePaper) {
             formData.append('category', $('#caseStudyCategory').val());
+            formData.append('outcome_tag', $('#caseStudyOutcomeTag').val());
         }
 
         const imageFile = $('#caseStudyImage')[0].files[0];

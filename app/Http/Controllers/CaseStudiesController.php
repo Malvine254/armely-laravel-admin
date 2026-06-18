@@ -31,6 +31,7 @@ class CaseStudiesController extends Controller
             $caseStudy->slug = $this->caseStudySlug($caseStudy);
             $caseStudy->industry_filter = $this->inferIndustryFilter($caseStudy);
             $caseStudy->technology_filters = $this->inferTechnologyFilters($caseStudy);
+            $caseStudy->outcome_tag = $this->caseStudyOutcomeTag($caseStudy);
             $caseStudy->results = $this->caseStudyResults($caseStudy);
 
             return $caseStudy;
@@ -76,6 +77,15 @@ class CaseStudiesController extends Controller
         $caseStudy->industry_filter = $this->inferIndustryFilter($caseStudy);
         $caseStudy->technology_filters = $this->inferTechnologyFilters($caseStudy);
         $caseStudy->technology_label = $this->topicFilters()[$caseStudy->technology_filters[0] ?? ''] ?? 'Microsoft Platform';
+        $caseStudy->outcome_tag = $this->caseStudyOutcomeTag($caseStudy);
+        $caseStudy->pdf_preview_has_attachment = $this->caseStudyHasAttachment($caseStudy);
+        $caseStudy->pdf_preview_url = $this->caseStudyPreviewUrl($caseStudy);
+        $caseStudy->pdf_preview_text = $this->caseStudyFirstPageText($caseStudy);
+        $caseStudy->pdf_preview_source = $caseStudy->pdf_preview_text === '' ? 'PDF unavailable' : 'PDF text';
+        $caseStudy->pdf_preview_sections = $caseStudy->pdf_preview_source === 'PDF text'
+            ? $this->caseStudyPreviewSections($caseStudy->pdf_preview_text)
+            : [];
+        $caseStudy->pdf_preview_paragraphs = $this->caseStudyPreviewParagraphs($caseStudy->pdf_preview_text);
         $caseStudy->results = $this->caseStudyResults($caseStudy);
         $caseStudy->services = $this->caseStudyServices($caseStudy);
         $caseStudy->hero_copy = $this->caseStudyHeroCopy($caseStudy);
@@ -97,6 +107,7 @@ class CaseStudiesController extends Controller
 
         $paper->preview = $this->makePreviewText((string) ($paper->body ?? $paper->preview ?? ''), 320);
         $paper->slug = $slug;
+        $paper->pdf_preview_url = $this->whitePaperPreviewUrl($paper);
 
         return view('case-studies.resource-show', [
             'paper' => $paper,
@@ -255,12 +266,19 @@ class CaseStudiesController extends Controller
                 ->withErrors(['access' => 'Case studies are temporarily unavailable.']);
         }
 
-        $item = DB::table('industry_listings')
-            ->select('id', 'pdf_url')
-            ->where('id', $caseStudy)
-            ->first();
+        $inlinePreview = $request->boolean('preview');
 
-        if (!$item || empty($item->pdf_url)) {
+        $query = DB::table('industry_listings')
+            ->select('id', 'pdf_url')
+            ->where('id', $caseStudy);
+
+        if ($this->safeHasColumn('industry_listings', 'pdf')) {
+            $query->addSelect('pdf');
+        }
+
+        $item = $query->first();
+
+        if (!$item || $this->caseStudyPdfValue($item) === '') {
             Log::warning('Case study secure access failed: missing record or pdf_url', [
                 'case_study_id' => $caseStudy,
             ]);
@@ -269,9 +287,9 @@ class CaseStudiesController extends Controller
                 ->withErrors(['access' => 'This file could not be located. Please request a new secure download link.']);
         }
 
-        $pdfUrl = (string) $item->pdf_url;
+        $pdfUrl = $this->caseStudyPdfValue($item);
         if (str_starts_with($pdfUrl, 'http://') || str_starts_with($pdfUrl, 'https://')) {
-            return $this->downloadRemotePdf($pdfUrl, 'case-study-' . $caseStudy . '.pdf');
+            return $this->downloadRemotePdf($pdfUrl, 'case-study-' . $caseStudy . '.pdf', $inlinePreview);
         }
 
         $fileName = basename($pdfUrl);
@@ -286,9 +304,13 @@ class CaseStudiesController extends Controller
 
         foreach ($candidatePaths as $path) {
             if (is_file($path)) {
-                return response()->download($path, $fileName, [
-                    'Content-Type' => 'application/pdf',
-                ]);
+                return $inlinePreview
+                    ? response()->file($path, [
+                        'Content-Type' => 'application/pdf',
+                    ])
+                    : response()->download($path, $fileName, [
+                        'Content-Type' => 'application/pdf',
+                    ]);
             }
         }
 
@@ -522,6 +544,28 @@ class CaseStudiesController extends Controller
         return $results;
     }
 
+    private function caseStudyOutcomeTag(object $caseStudy): string
+    {
+        foreach (['outcome_tag', 'outcome_tags', 'results'] as $property) {
+            if (!isset($caseStudy->{$property}) || $caseStudy->{$property} === null) {
+                continue;
+            }
+
+            $value = $caseStudy->{$property};
+            $values = is_array($value)
+                ? $value
+                : preg_split('/[\r\n,]+/', (string) $value);
+
+            $values = array_values(array_filter(array_map(static fn ($item) => trim((string) $item), $values ?: [])));
+            if (!empty($values)) {
+                return $values[0];
+            }
+        }
+
+        $fallback = $this->caseStudyResults($caseStudy);
+        return trim((string) ($fallback[0] ?? ''));
+    }
+
     private function caseStudyServices(object $caseStudy): array
     {
         $services = ['Microsoft solution architecture', 'Data and process modernization'];
@@ -536,7 +580,7 @@ class CaseStudiesController extends Controller
     {
         $title = $this->caseStudyDisplayTitle($caseStudy);
         $technologyLabel = $this->topicFilters()[$this->inferTechnologyFilters($caseStudy)[0] ?? ''] ?? 'Microsoft Platform';
-        $outcome = $this->caseStudyResults($caseStudy)[0] ?? 'measurable business outcomes';
+        $outcome = $this->caseStudyOutcomeTag($caseStudy) ?: 'measurable business outcomes';
         $summary = $this->makePreviewText((string) ($caseStudy->body ?? ''), 220);
 
         if ($summary !== '') {
@@ -597,31 +641,12 @@ class CaseStudiesController extends Controller
 
     private function staticResourceBySlug(string $slug): ?object
     {
-        $resources = [
-            'microsoft-copilot-commercial-enterprise' => [
-                'title' => 'Microsoft Copilot Commercial Enterprise Guide',
-                'meta_description' => 'Armely guidance for commercial enterprises planning Microsoft Copilot adoption, governance, readiness, security, and measurable AI productivity outcomes.',
-                'body' => 'A practical guide for commercial enterprise leaders planning Microsoft Copilot adoption. Preview the readiness questions, governance decisions, security model, and rollout patterns that help organizations move from experimentation to measurable productivity.',
-            ],
-            'microsoft-copilot-public-sector' => [
-                'title' => 'Microsoft Copilot Public Sector Guide',
-                'meta_description' => 'Armely public sector guidance for Microsoft Copilot readiness, governance, compliance, and responsible AI adoption across agencies.',
-                'body' => 'A public sector planning guide for agency CIOs and technology leaders. The preview covers governance, data protection, responsible AI controls, and adoption planning for Microsoft Copilot in regulated environments.',
-            ],
-            'microsoft-copilot-commercial-cxo-guide' => [
-                'title' => 'Microsoft Copilot Commercial CXO Guide',
-                'meta_description' => 'A condensed Armely CXO guide to Microsoft Copilot strategy, business value, governance, and executive adoption planning.',
-                'body' => 'A concise executive guide for commercial leaders evaluating Microsoft Copilot. It frames business value, readiness, governance, and rollout priorities in CXO language before the full gated download.',
-            ],
-            'microsoft-copilot-government-cxo-guide' => [
-                'title' => 'Microsoft Copilot Government CXO Guide',
-                'meta_description' => 'A condensed Armely CXO guide for government Microsoft Copilot strategy, compliance, governance, and responsible adoption.',
-                'body' => 'A concise executive guide for government and public sector leaders evaluating Microsoft Copilot. It summarizes the governance, compliance, security, and adoption decisions that should be clear before deployment.',
-            ],
+        $resources = $this->whitePaperSampleCatalog() + [
             'microsoft-fabric-case-study-agricultural-operations' => [
                 'title' => 'Microsoft Fabric Case Study for Agricultural Operations',
                 'meta_description' => 'See how Microsoft Fabric can unify operational data, reporting, and analytics for agricultural operations with Armely implementation guidance.',
                 'body' => 'A Microsoft Fabric case study preview for agricultural operations leaders. It outlines the challenge of fragmented operational data, the Fabric-based data and analytics solution, and the reporting outcomes leaders can use to improve decisions.',
+                'topic' => 'fabric-data',
             ],
         ];
 
@@ -648,7 +673,851 @@ class CaseStudiesController extends Controller
 
     private function caseStudyHasAttachment(object $caseStudy): bool
     {
-        return trim((string) ($caseStudy->pdf_url ?? '')) !== '';
+        return $this->caseStudyPdfValue($caseStudy) !== '';
+    }
+
+    private function caseStudyPdfValue(object $caseStudy): string
+    {
+        foreach (['pdf_url', 'pdf'] as $column) {
+            $value = trim((string) ($caseStudy->{$column} ?? ''));
+            if ($value !== '') {
+                return $value;
+            }
+        }
+
+        return '';
+    }
+
+    private function caseStudyPreviewUrl(object $caseStudy): string
+    {
+        if (!$this->caseStudyHasAttachment($caseStudy) || empty($caseStudy->id)) {
+            return '';
+        }
+
+        return URL::temporarySignedRoute(
+            'case-studies.access',
+            now()->addMinutes(30),
+            ['caseStudy' => (int) $caseStudy->id, 'preview' => 1]
+        );
+    }
+
+    private function caseStudyFirstPageText(object $caseStudy): string
+    {
+        $source = $this->caseStudyPdfSource($caseStudy);
+        if ($source === null) {
+            return '';
+        }
+
+        $cacheKey = 'case_study_first_page_text:' . sha1((string) ($source['cache_key'] ?? ''));
+
+        return Cache::remember($cacheKey, now()->addHours(12), function () use ($source): string {
+            $pdfBytes = $this->readPdfSourceBytes($source);
+            if ($pdfBytes === '') {
+                return '';
+            }
+
+            $text = $this->extractPdfFirstPageText($pdfBytes);
+            $text = $this->normalizeExtractedPdfText((string) $text);
+            $text = $this->stripPdfPreviewNoise($text);
+            if ($this->isGenericPdfPreviewText($text)) {
+                return '';
+            }
+
+            return $text === '' ? '' : Str::limit($text, 1400, '');
+        });
+    }
+
+    private function caseStudyPreviewParagraphs(string $text): array
+    {
+        $text = trim($text);
+        if ($text === '') {
+            return [];
+        }
+
+        $sentences = preg_split('/(?<=[.!?])\s+(?=[A-Z0-9(])/', $text) ?: [];
+        $sentences = array_values(array_filter(array_map('trim', $sentences), static fn ($sentence) => $sentence !== ''));
+
+        if (empty($sentences)) {
+            return [$text];
+        }
+
+        $paragraphs = [];
+        $current = [];
+        foreach ($sentences as $sentence) {
+            $current[] = $sentence;
+            $sentenceCount = count($current);
+            $remaining = count($sentences) - count($paragraphs) * 2 - $sentenceCount;
+
+            if ($sentenceCount >= 2 || $remaining <= 1) {
+                $paragraphs[] = trim(implode(' ', $current));
+                $current = [];
+            }
+        }
+
+        if (!empty($current)) {
+            $paragraphs[] = trim(implode(' ', $current));
+        }
+
+        return array_values(array_filter($paragraphs, static fn ($paragraph) => $paragraph !== ''));
+    }
+
+    private function caseStudyPreviewSections(string $text): array
+    {
+        $text = trim(preg_replace('/\s+/u', ' ', $text) ?? $text);
+        if ($text === '') {
+            return [];
+        }
+
+        $tokens = preg_split('/\s+/', $text) ?: [];
+        if (count($tokens) < 6) {
+            return [];
+        }
+
+        $sections = [];
+        $currentHeading = null;
+        $currentBodyTokens = [];
+        $foundHeading = false;
+        $tokenCount = count($tokens);
+
+        for ($i = 0; $i < $tokenCount; ) {
+            $headingCount = $this->caseStudyPreviewHeadingTokenCount($tokens, $i);
+
+            if ($headingCount >= 2) {
+                if ($currentHeading !== null || !empty($currentBodyTokens)) {
+                    $sections[] = $this->buildCaseStudyPreviewSection($currentHeading, $currentBodyTokens);
+                    $currentBodyTokens = [];
+                }
+
+                $currentHeading = implode(' ', array_slice($tokens, $i, $headingCount));
+                $foundHeading = true;
+                $i += $headingCount;
+                continue;
+            }
+
+            $currentBodyTokens[] = $tokens[$i];
+            $i++;
+        }
+
+        if ($currentHeading !== null || !empty($currentBodyTokens)) {
+            $sections[] = $this->buildCaseStudyPreviewSection($currentHeading, $currentBodyTokens);
+        }
+
+        $sections = array_values(array_filter($sections, static function (array $section): bool {
+            return trim((string) ($section['heading'] ?? '')) !== '' || !empty($section['paragraphs']);
+        }));
+
+        return $foundHeading ? $sections : [];
+    }
+
+    private function buildCaseStudyPreviewSection(?string $heading, array $bodyTokens): array
+    {
+        $body = trim(implode(' ', $bodyTokens));
+        $paragraphs = $this->caseStudyPreviewParagraphs($body);
+
+        return [
+            'heading' => $heading !== null ? $this->caseStudyPreviewHeadingLabel($heading) : '',
+            'body' => $body,
+            'paragraphs' => $paragraphs,
+        ];
+    }
+
+    private function caseStudyPreviewHeadingTokenCount(array $tokens, int $startIndex): int
+    {
+        $count = 0;
+        $tokenCount = count($tokens);
+
+        for ($i = $startIndex; $i < $tokenCount; $i++) {
+            $token = trim((string) $tokens[$i]);
+            if (!$this->caseStudyPreviewIsHeadingToken($token)) {
+                break;
+            }
+
+            $count++;
+        }
+
+        return $count;
+    }
+
+    private function caseStudyPreviewIsHeadingToken(string $token): bool
+    {
+        if ($token === '') {
+            return false;
+        }
+
+        if (preg_match('/^[A-Z0-9][A-Z0-9&\/\-\(\)]{1,}$/', $token) !== 1) {
+            return false;
+        }
+
+        if (strlen(preg_replace('/[^A-Z]/', '', $token) ?? '') < 2) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private function caseStudyPreviewHeadingLabel(string $heading): string
+    {
+        $heading = trim(preg_replace('/\s+/u', ' ', $heading) ?? $heading);
+        if ($heading === '') {
+            return '';
+        }
+
+        return Str::title(Str::lower($heading));
+    }
+
+    private function caseStudyPdfSource(object $caseStudy): ?array
+    {
+        $pdfValue = $this->caseStudyPdfValue($caseStudy);
+        if ($pdfValue === '') {
+            return null;
+        }
+
+        if (preg_match('#^https?://#i', $pdfValue)) {
+            return [
+                'type' => 'url',
+                'value' => $pdfValue,
+                'cache_key' => $pdfValue,
+            ];
+        }
+
+        $fileName = basename($pdfValue);
+        $candidatePaths = [
+            storage_path('app/private/case_docs/' . $fileName),
+            public_path('case_docs/' . $fileName),
+            public_path('admin/case_docs/' . $fileName),
+            public_path(ltrim($pdfValue, '/')),
+        ];
+
+        foreach ($candidatePaths as $path) {
+            if (is_file($path)) {
+                return [
+                    'type' => 'path',
+                    'value' => $path,
+                    'cache_key' => $path . '|' . (string) @filemtime($path),
+                ];
+            }
+        }
+
+        return null;
+    }
+
+    private function readPdfSourceBytes(array $source): string
+    {
+        $type = (string) ($source['type'] ?? '');
+        $value = (string) ($source['value'] ?? '');
+
+        if ($type === 'path') {
+            if ($value === '' || !is_readable($value)) {
+                return '';
+            }
+
+            $bytes = @file_get_contents($value);
+            return $bytes === false ? '' : (string) $bytes;
+        }
+
+        if ($type === 'url' && $value !== '') {
+            try {
+                $response = Http::timeout(20)
+                    ->retry(1, 200)
+                    ->accept('application/pdf')
+                    ->get($value);
+
+                if (!$response->successful()) {
+                    return '';
+                }
+
+                return (string) $response->body();
+            } catch (\Throwable $e) {
+                Log::warning('Case study PDF preview fetch failed', [
+                    'url' => $value,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        return '';
+    }
+
+    private function extractPdfFirstPageText(string $pdfBytes): string
+    {
+        $objects = $this->parsePdfObjects($pdfBytes);
+        if (empty($objects)) {
+            return $this->extractPdfTextFallback($pdfBytes);
+        }
+
+        $catalogObjectNumber = null;
+        if (preg_match('/trailer\s*<<.*?\/Root\s+(\d+)\s+0\s+R.*?>>/s', $pdfBytes, $matches)) {
+            $catalogObjectNumber = (int) $matches[1];
+        } else {
+            foreach ($objects as $objectNumber => $objectBody) {
+                if (preg_match('/\/Type\s*\/Catalog\b/', $objectBody)) {
+                    $catalogObjectNumber = (int) $objectNumber;
+                    break;
+                }
+            }
+        }
+
+        if ($catalogObjectNumber === null || !isset($objects[$catalogObjectNumber])) {
+            return $this->extractPdfTextFallback($pdfBytes);
+        }
+
+        $catalogBody = $objects[$catalogObjectNumber];
+        if (!preg_match('/\/Pages\s+(\d+)\s+0\s+R/', $catalogBody, $matches)) {
+            return $this->extractPdfTextFallback($pdfBytes);
+        }
+
+        $pageObjectNumber = $this->findFirstPageObject((int) $matches[1], $objects);
+        if ($pageObjectNumber === null || !isset($objects[$pageObjectNumber])) {
+            return $this->extractPdfTextFallback($pdfBytes);
+        }
+
+        $pageBody = $objects[$pageObjectNumber];
+        $contentRefs = $this->extractPdfContentReferences($pageBody);
+        if (empty($contentRefs)) {
+            return $this->extractPdfTextFallback($pdfBytes);
+        }
+
+        $fontMap = $this->extractPdfFirstPageFontMap($pageBody, $objects);
+
+        $segments = [];
+        foreach ($contentRefs as $contentRef) {
+            if (!isset($objects[$contentRef])) {
+                continue;
+            }
+
+            $stream = $this->extractPdfStreamData($objects[$contentRef]);
+            if ($stream === '') {
+                continue;
+            }
+
+            $segments[] = $this->extractPdfTextFromContentStream($stream, $fontMap);
+        }
+
+        $text = trim(implode(' ', array_filter($segments, static fn ($segment) => trim((string) $segment) !== '')));
+        if ($text === '') {
+            return $this->extractPdfTextFallback($pdfBytes);
+        }
+
+        return $text;
+    }
+
+    private function parsePdfObjects(string $pdfBytes): array
+    {
+        $objects = [];
+
+        if (!preg_match_all('/(\d+)\s+0\s+obj\s*(.*?)\s*endobj/s', $pdfBytes, $matches, PREG_SET_ORDER)) {
+            return $objects;
+        }
+
+        foreach ($matches as $match) {
+            $objects[(int) $match[1]] = (string) $match[2];
+        }
+
+        return $objects;
+    }
+
+    private function findFirstPageObject(int $pagesObjectNumber, array $objects): ?int
+    {
+        if (!isset($objects[$pagesObjectNumber])) {
+            return null;
+        }
+
+        $body = $objects[$pagesObjectNumber];
+        if (preg_match('/\/Type\s*\/Page\b/', $body)) {
+            return $pagesObjectNumber;
+        }
+
+        if (!preg_match('/\/Kids\s*\[(.*?)\]/s', $body, $matches)) {
+            return null;
+        }
+
+        if (!preg_match_all('/(\d+)\s+0\s+R/', $matches[1], $refs)) {
+            return null;
+        }
+
+        foreach ($refs[1] as $reference) {
+            $reference = (int) $reference;
+            if (!isset($objects[$reference])) {
+                continue;
+            }
+
+            $childBody = $objects[$reference];
+            if (preg_match('/\/Type\s*\/Page\b/', $childBody)) {
+                return $reference;
+            }
+
+            if (preg_match('/\/Type\s*\/Pages\b/', $childBody)) {
+                $found = $this->findFirstPageObject($reference, $objects);
+                if ($found !== null) {
+                    return $found;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private function extractPdfContentReferences(string $pageBody): array
+    {
+        if (preg_match('/\/Contents\s+(\d+)\s+0\s+R/', $pageBody, $matches)) {
+            return [(int) $matches[1]];
+        }
+
+        if (!preg_match('/\/Contents\s*\[(.*?)\]/s', $pageBody, $matches)) {
+            return [];
+        }
+
+        if (!preg_match_all('/(\d+)\s+0\s+R/', $matches[1], $refs)) {
+            return [];
+        }
+
+        return array_map('intval', $refs[1]);
+    }
+
+    private function extractPdfFirstPageFontMap(string $pageBody, array $objects): array
+    {
+        $resourceBodies = [$pageBody];
+        if (preg_match('/\/Resources\s+(\d+)\s+0\s+R/', $pageBody, $matches) && isset($objects[(int) $matches[1]])) {
+            $resourceBodies[] = $objects[(int) $matches[1]];
+        }
+
+        foreach ($resourceBodies as $resourceBody) {
+            if (!preg_match('/\/Font\s*<<(.+?)>>/s', $resourceBody, $fontBlock)) {
+                continue;
+            }
+
+            if (!preg_match_all('/\/([A-Za-z0-9#]+)\s+(\d+)\s+0\s+R/', $fontBlock[1], $fontRefs, PREG_SET_ORDER)) {
+                continue;
+            }
+
+            foreach ($fontRefs as $fontRef) {
+                $fontObjectNumber = (int) $fontRef[2];
+                if (!isset($objects[$fontObjectNumber])) {
+                    continue;
+                }
+
+                if (!preg_match('/\/ToUnicode\s+(\d+)\s+0\s+R/', $objects[$fontObjectNumber], $matches)) {
+                    continue;
+                }
+
+                $toUnicodeRef = (int) $matches[1];
+                if (!isset($objects[$toUnicodeRef])) {
+                    continue;
+                }
+
+                $cmapStream = $this->extractPdfStreamData($objects[$toUnicodeRef]);
+                if ($cmapStream === '') {
+                    continue;
+                }
+
+                $map = $this->parsePdfToUnicodeMap($cmapStream);
+                if (!empty($map['codes'])) {
+                    return $map;
+                }
+            }
+        }
+
+        return [];
+    }
+
+    private function extractPdfStreamData(string $objectBody): string
+    {
+        if (!preg_match('/stream\r?\n(.*?)\r?\nendstream/s', $objectBody, $matches)) {
+            return '';
+        }
+
+        $streamData = (string) $matches[1];
+        $dictionary = strstr($objectBody, 'stream', true) ?: $objectBody;
+
+        if (str_contains($dictionary, '/FlateDecode')) {
+            $decoded = @gzuncompress($streamData);
+            if ($decoded !== false) {
+                return (string) $decoded;
+            }
+
+            $decoded = @gzinflate($streamData);
+            if ($decoded !== false) {
+                return (string) $decoded;
+            }
+
+            if (strlen($streamData) > 6) {
+                $decoded = @gzinflate(substr($streamData, 2, -4));
+                if ($decoded !== false) {
+                    return (string) $decoded;
+                }
+            }
+        }
+
+        return $streamData;
+    }
+
+    private function extractPdfTextFromContentStream(string $streamData, array $fontMap = []): string
+    {
+        $segments = [];
+
+        if (preg_match_all('/\((?:\\\\.|[^\\\\)])*\)\s*Tj/s', $streamData, $matches)) {
+            foreach ($matches[0] as $token) {
+                $segments[] = !empty($fontMap)
+                    ? $this->decodePdfBytesWithMap($this->pdfStringTokenToBytes($token), $fontMap)
+                    : $this->decodePdfStringToken($token);
+            }
+        }
+
+        if (preg_match_all('/\((?:\\\\.|[^\\\\)])*\)\s*\'/s', $streamData, $matches)) {
+            foreach ($matches[0] as $token) {
+                $segments[] = !empty($fontMap)
+                    ? $this->decodePdfBytesWithMap($this->pdfStringTokenToBytes($token), $fontMap)
+                    : $this->decodePdfStringToken($token);
+            }
+        }
+
+        if (preg_match_all('/\((?:\\\\.|[^\\\\)])*\)\s*"/s', $streamData, $matches)) {
+            foreach ($matches[0] as $token) {
+                $segments[] = !empty($fontMap)
+                    ? $this->decodePdfBytesWithMap($this->pdfStringTokenToBytes($token), $fontMap)
+                    : $this->decodePdfStringToken($token);
+            }
+        }
+
+        if (preg_match_all('/\[(.*?)\]\s*TJ/s', $streamData, $arrays)) {
+            foreach ($arrays[1] as $arrayBody) {
+                if (!preg_match_all('/\((?:\\\\.|[^\\\\)])*\)|<[^>]+>/s', $arrayBody, $parts)) {
+                    continue;
+                }
+
+                $combined = '';
+                foreach ($parts[0] as $part) {
+                    $combined .= !empty($fontMap)
+                        ? $this->decodePdfBytesWithMap($this->pdfStringTokenToBytes($part), $fontMap)
+                        : $this->decodePdfStringToken($part);
+                }
+
+                if (trim($combined) !== '') {
+                    $segments[] = $combined;
+                }
+            }
+        }
+
+        return $this->normalizeExtractedPdfText(implode(' ', array_filter($segments, static fn ($segment) => trim((string) $segment) !== '')));
+    }
+
+    private function parsePdfToUnicodeMap(string $cmapStream): array
+    {
+        $map = [
+            'codes' => [],
+            'unit_bytes' => 1,
+        ];
+
+        if (preg_match('/begincodespacerange\s*(.*?)\s*endcodespacerange/s', $cmapStream, $matches)) {
+            if (preg_match('/<([0-9A-Fa-f]+)>\s+<([0-9A-Fa-f]+)>/', $matches[1], $rangeMatch)) {
+                $map['unit_bytes'] = max(strlen($rangeMatch[1]), strlen($rangeMatch[2])) / 2;
+            }
+        }
+
+        if (preg_match_all('/beginbfchar\s*(.*?)\s*endbfchar/s', $cmapStream, $charBlocks)) {
+            foreach ($charBlocks[1] as $block) {
+                if (!preg_match_all('/<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>/', $block, $pairs, PREG_SET_ORDER)) {
+                    continue;
+                }
+
+                foreach ($pairs as $pair) {
+                    $code = hexdec($pair[1]);
+                    $map['codes'][$code] = $this->unicodeHexToUtf8($pair[2]);
+                }
+            }
+        }
+
+        if (preg_match_all('/beginbfrange\s*(.*?)\s*endbfrange/s', $cmapStream, $rangeBlocks)) {
+            foreach ($rangeBlocks[1] as $block) {
+                if (!preg_match_all('/<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>/', $block, $ranges, PREG_SET_ORDER)) {
+                    continue;
+                }
+
+                foreach ($ranges as $range) {
+                    $start = hexdec($range[1]);
+                    $end = hexdec($range[2]);
+                    $base = hexdec($range[3]);
+                    for ($code = $start; $code <= $end; $code++) {
+                        $map['codes'][$code] = $this->unicodeHexToUtf8(dechex($base + ($code - $start)));
+                    }
+                }
+            }
+        }
+
+        return $map;
+    }
+
+    private function unicodeHexToUtf8(string $hex): string
+    {
+        $hex = preg_replace('/\s+/', '', $hex) ?? '';
+        if ($hex === '') {
+            return '';
+        }
+
+        if (strlen($hex) % 2 === 1) {
+            $hex = '0' . $hex;
+        }
+
+        $bytes = @hex2bin($hex);
+        if ($bytes === false) {
+            return '';
+        }
+
+        $utf8 = @iconv('UTF-16BE', 'UTF-8', $bytes);
+        return $utf8 === false ? $bytes : (string) $utf8;
+    }
+
+    private function pdfStringTokenToBytes(string $token): string
+    {
+        $token = trim($token);
+        if ($token === '') {
+            return '';
+        }
+
+        if ($token[0] === '(' && str_ends_with($token, ')')) {
+            $body = substr($token, 1, -1);
+            $decoded = '';
+            $length = strlen($body);
+
+            for ($i = 0; $i < $length; $i++) {
+                $char = $body[$i];
+                if ($char !== '\\') {
+                    $decoded .= $char;
+                    continue;
+                }
+
+                $i++;
+                if ($i >= $length) {
+                    break;
+                }
+
+                $next = $body[$i];
+                if ($next === 'n') {
+                    $decoded .= "\n";
+                } elseif ($next === 'r') {
+                    $decoded .= "\r";
+                } elseif ($next === 't') {
+                    $decoded .= "\t";
+                } elseif ($next === 'b') {
+                    $decoded .= "\b";
+                } elseif ($next === 'f') {
+                    $decoded .= "\f";
+                } elseif ($next === '(' || $next === ')' || $next === '\\') {
+                    $decoded .= $next;
+                } elseif (preg_match('/[0-7]/', $next)) {
+                    $octal = $next;
+                    for ($j = 0; $j < 2 && ($i + 1) < $length && preg_match('/[0-7]/', $body[$i + 1]); $j++) {
+                        $i++;
+                        $octal .= $body[$i];
+                    }
+
+                    $decoded .= chr(octdec($octal));
+                } elseif ($next === "\r" || $next === "\n") {
+                    if ($next === "\r" && ($i + 1) < $length && $body[$i + 1] === "\n") {
+                        $i++;
+                    }
+                } else {
+                    $decoded .= $next;
+                }
+            }
+
+            return $decoded;
+        }
+
+        if ($token[0] === '<' && str_ends_with($token, '>')) {
+            $hex = preg_replace('/\s+/', '', substr($token, 1, -1));
+            if ($hex === '') {
+                return '';
+            }
+
+            if (strlen($hex) % 2 === 1) {
+                $hex .= '0';
+            }
+
+            $bytes = @hex2bin($hex);
+            return $bytes === false ? '' : (string) $bytes;
+        }
+
+        return $token;
+    }
+
+    private function decodePdfBytesWithMap(string $bytes, array $fontMap): string
+    {
+        $codes = $fontMap['codes'] ?? [];
+        $unitBytes = max(1, (int) ($fontMap['unit_bytes'] ?? 1));
+        if ($bytes === '') {
+            return '';
+        }
+
+        $length = strlen($bytes);
+        if ($unitBytes > 1 && ($length % $unitBytes) === 0 && !empty($codes)) {
+            $decoded = '';
+            for ($i = 0; $i < $length; $i += $unitBytes) {
+                $code = 0;
+                for ($j = 0; $j < $unitBytes; $j++) {
+                    $code = ($code << 8) | ord($bytes[$i + $j]);
+                }
+
+                $decoded .= $codes[$code] ?? '';
+            }
+
+            if ($decoded !== '') {
+                return $decoded;
+            }
+        }
+
+        return $this->decodePdfStringToken($this->bytesToPdfLiteralToken($bytes));
+    }
+
+    private function bytesToPdfLiteralToken(string $bytes): string
+    {
+        return '(' . strtr($bytes, [
+            '\\' => '\\\\',
+            '(' => '\\(',
+            ')' => '\\)',
+        ]) . ')';
+    }
+
+    private function decodePdfStringToken(string $token): string
+    {
+        $token = trim($token);
+        if ($token === '') {
+            return '';
+        }
+
+        if ($token[0] === '(' && str_ends_with($token, ')')) {
+            $body = substr($token, 1, -1);
+            $decoded = '';
+            $length = strlen($body);
+
+            for ($i = 0; $i < $length; $i++) {
+                $char = $body[$i];
+                if ($char !== '\\') {
+                    $decoded .= $char;
+                    continue;
+                }
+
+                $i++;
+                if ($i >= $length) {
+                    break;
+                }
+
+                $next = $body[$i];
+                if ($next === 'n') {
+                    $decoded .= "\n";
+                } elseif ($next === 'r') {
+                    $decoded .= "\r";
+                } elseif ($next === 't') {
+                    $decoded .= "\t";
+                } elseif ($next === 'b') {
+                    $decoded .= "\b";
+                } elseif ($next === 'f') {
+                    $decoded .= "\f";
+                } elseif ($next === '(' || $next === ')' || $next === '\\') {
+                    $decoded .= $next;
+                } elseif (preg_match('/[0-7]/', $next)) {
+                    $octal = $next;
+                    for ($j = 0; $j < 2 && ($i + 1) < $length && preg_match('/[0-7]/', $body[$i + 1]); $j++) {
+                        $i++;
+                        $octal .= $body[$i];
+                    }
+
+                    $decoded .= chr(octdec($octal));
+                } elseif ($next === "\r" || $next === "\n") {
+                    if ($next === "\r" && ($i + 1) < $length && $body[$i + 1] === "\n") {
+                        $i++;
+                    }
+                } else {
+                    $decoded .= $next;
+                }
+            }
+
+            return $decoded;
+        }
+
+        if ($token[0] === '<' && str_ends_with($token, '>')) {
+            $hex = preg_replace('/\s+/', '', substr($token, 1, -1));
+            if ($hex === '') {
+                return '';
+            }
+
+            if (strlen($hex) % 2 === 1) {
+                $hex .= '0';
+            }
+
+            $decoded = '';
+            for ($i = 0; $i < strlen($hex); $i += 2) {
+                $pair = substr($hex, $i, 2);
+                $byte = hexdec($pair);
+                $decoded .= chr($byte);
+            }
+
+            return $decoded;
+        }
+
+        return $token;
+    }
+
+    private function extractPdfTextFallback(string $pdfBytes): string
+    {
+        if (!preg_match_all('/\((?:\\\\.|[^\\\\)])*\)/s', $pdfBytes, $matches)) {
+            return '';
+        }
+
+        $segments = [];
+        foreach (array_slice($matches[0], 0, 12) as $token) {
+            $segments[] = $this->decodePdfStringToken($token);
+        }
+
+        return $this->normalizeExtractedPdfText(implode(' ', array_filter($segments, static fn ($segment) => trim((string) $segment) !== '')));
+    }
+
+    private function normalizeExtractedPdfText(string $text): string
+    {
+        $text = str_replace("\0", '', $text);
+        $text = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F]+/', ' ', $text) ?? $text;
+        $text = preg_replace('/\s+([,.;:!?])/', '$1', $text) ?? $text;
+        $text = preg_replace('/([(\[])\s+/', '$1', $text) ?? $text;
+        $text = preg_replace('/\s+([)\]])/', '$1', $text) ?? $text;
+        $text = preg_replace_callback('/\b(?:[A-Za-z]{1,3}\s+){2,}[A-Za-z]{1,3}\b/', function (array $matches): string {
+            return preg_replace('/\s+/', '', $matches[0]) ?? $matches[0];
+        }, $text) ?? $text;
+        $text = preg_replace('/\s+/u', ' ', $text) ?? $text;
+
+        return trim($text);
+    }
+
+    private function stripPdfPreviewNoise(string $text): string
+    {
+        $text = preg_replace('/^(?:www\.[^\s]+\.com\s*)+/i', '', $text) ?? $text;
+        $text = preg_replace('/^Page\s+\d+\s+of\s+\d+\s*/i', '', $text) ?? $text;
+        $text = preg_replace('/^\s*SPECIFICATIONS\s+SCOPE\s*/i', 'SPECIFICATIONS SCOPE ', $text) ?? $text;
+        $text = preg_replace('/\s+/', ' ', $text) ?? $text;
+
+        return trim($text);
+    }
+
+    private function isGenericPdfPreviewText(string $text): bool
+    {
+        $haystack = strtolower($text);
+        $markers = [
+            'specifications scope',
+            'pre-proposal conference',
+            'request for proposal',
+            'meeting id:',
+            'passcode:',
+            'dial in by phone',
+            'harris county',
+            'the responsibility of each vendor',
+        ];
+
+        foreach ($markers as $marker) {
+            if (str_contains($haystack, $marker)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function whitePaperHasAttachment(object $paper): bool
@@ -665,6 +1534,19 @@ class CaseStudiesController extends Controller
         }
 
         return trim((string) ($paper->{$column} ?? '')) !== '';
+    }
+
+    private function whitePaperPreviewUrl(object $paper): string
+    {
+        if (!$this->whitePaperHasAttachment($paper) || empty($paper->id)) {
+            return '';
+        }
+
+        return URL::temporarySignedRoute(
+            'white-papers.access',
+            now()->addMinutes(30),
+            ['paper' => (int) $paper->id]
+        );
     }
 
     private function industryFilters(): array
@@ -804,6 +1686,12 @@ class CaseStudiesController extends Controller
     private function caseStudySelectColumns(): array
     {
         $columns = ['id', 'category', 'listing_image', 'body', 'pdf_url'];
+        if ($this->safeHasColumn('industry_listings', 'pdf')) {
+            $columns[] = 'pdf';
+        }
+        if ($this->safeHasColumn('industry_listings', 'outcome_tag')) {
+            $columns[] = 'outcome_tag';
+        }
         if ($this->safeHasColumn('industry_listings', 'title')) {
             $columns[] = 'title';
         }
@@ -814,13 +1702,131 @@ class CaseStudiesController extends Controller
     private function whitePaperSelectColumns(): array
     {
         $columns = ['id'];
-        foreach (['title', 'body', 'images', 'pdf', 'slug', 'meta_description'] as $column) {
+        foreach (['title', 'body', 'images', 'pdf', 'slug', 'meta_description', 'topic', 'category', 'industry'] as $column) {
             if ($this->safeHasColumn('white_paper', $column)) {
                 $columns[] = $column;
             }
         }
 
         return $columns;
+    }
+
+    private function whitePaperTopicTerms(string $topic): array
+    {
+        return match ($topic) {
+            'fabric-data' => ['fabric', 'power bi', 'data', 'analytics', 'warehouse', 'lakehouse'],
+            'power-platform' => ['power platform', 'power apps', 'power automate', 'power pages'],
+            'ai-cognitive-services' => ['ai', 'copilot', 'cognitive', 'agent'],
+            'sharepoint-collaboration' => ['sharepoint', 'teams', 'collaboration', 'intranet'],
+            default => [Str::lower((string) ($this->topicFilters()[$topic] ?? $topic))],
+        };
+    }
+
+    private function whitePaperSampleCatalog(): array
+    {
+        return [
+            'microsoft-copilot-commercial-enterprise' => [
+                'title' => 'Microsoft Copilot Commercial Enterprise Guide',
+                'meta_description' => 'Armely guidance for commercial enterprises planning Microsoft Copilot adoption, governance, readiness, security, and measurable AI productivity outcomes.',
+                'body' => 'A practical guide for commercial enterprise leaders planning Microsoft Copilot adoption. Preview the readiness questions, governance decisions, security model, and rollout patterns that help organizations move from experimentation to measurable productivity.',
+                'topic' => 'ai-cognitive-services',
+            ],
+            'microsoft-copilot-public-sector' => [
+                'title' => 'Microsoft Copilot Public Sector Guide',
+                'meta_description' => 'Armely public sector guidance for Microsoft Copilot readiness, governance, compliance, and responsible AI adoption across agencies.',
+                'body' => 'A public sector planning guide for agency CIOs and technology leaders. The preview covers governance, data protection, responsible AI controls, and adoption planning for Microsoft Copilot in regulated environments.',
+                'topic' => 'ai-cognitive-services',
+            ],
+            'microsoft-copilot-commercial-cxo-guide' => [
+                'title' => 'Microsoft Copilot Commercial CXO Guide',
+                'meta_description' => 'A condensed Armely CXO guide to Microsoft Copilot strategy, business value, governance, and executive adoption planning.',
+                'body' => 'A concise executive guide for commercial leaders evaluating Microsoft Copilot. It frames business value, readiness, governance, and rollout priorities in CXO language before the full gated download.',
+                'topic' => 'ai-cognitive-services',
+            ],
+            'microsoft-copilot-government-cxo-guide' => [
+                'title' => 'Microsoft Copilot Government CXO Guide',
+                'meta_description' => 'A condensed Armely CXO guide for government Microsoft Copilot strategy, compliance, governance, and responsible adoption.',
+                'body' => 'A concise executive guide for government and public sector leaders evaluating Microsoft Copilot. It summarizes the governance, compliance, security, and adoption decisions that should be clear before deployment.',
+                'topic' => 'ai-cognitive-services',
+            ],
+            'power-platform-governance-playbook' => [
+                'title' => 'Power Platform Governance Playbook',
+                'meta_description' => 'A practical guide to Power Platform governance, environment strategy, and maker enablement for enterprise teams.',
+                'body' => 'A practical governance playbook for teams standardizing Power Apps, Power Automate, and Power Pages. The preview focuses on environment strategy, makers, approvals, and how to scale responsibly without blocking delivery.',
+                'topic' => 'power-platform',
+            ],
+            'fabric-analytics-readiness-guide' => [
+                'title' => 'Microsoft Fabric Analytics Readiness Guide',
+                'meta_description' => 'See how organizations can prepare for Microsoft Fabric adoption with a practical readiness and governance approach.',
+                'body' => 'A readiness guide for data leaders evaluating Microsoft Fabric. It outlines where Fabric fits, what to plan before implementation, and how to connect data, governance, and reporting without creating another silo.',
+                'topic' => 'fabric-data',
+            ],
+        ];
+    }
+
+    private function whitePaperSampleCollection(): \Illuminate\Support\Collection
+    {
+        return collect($this->whitePaperSampleCatalog())->map(function (array $paper, string $slug) {
+            return (object) array_merge([
+                'id' => null,
+                'images' => null,
+                'pdf' => null,
+                'slug' => $slug,
+                'category' => 'White Paper',
+                'industry' => '',
+                'topic' => '',
+            ], $paper, [
+                'slug' => $slug,
+                'preview' => $this->makePreviewText((string) ($paper['body'] ?? ''), 120),
+            ]);
+        })->values();
+    }
+
+    private function whitePaperSamplePaginator(Request $request): LengthAwarePaginator
+    {
+        $topic = (string) $request->query('white_topic', '');
+        $hasActiveFilter = false;
+        $items = $this->whitePaperSampleCollection();
+
+        if ($topic !== '' && array_key_exists($topic, $this->topicFilters())) {
+            $hasActiveFilter = true;
+            $terms = $this->whitePaperTopicTerms($topic);
+            $items = $items->filter(function (object $paper) use ($terms) {
+                $haystack = Str::lower(trim(implode(' ', array_filter([
+                    (string) ($paper->title ?? ''),
+                    (string) ($paper->body ?? ''),
+                    (string) ($paper->meta_description ?? ''),
+                    (string) ($paper->slug ?? ''),
+                    (string) ($paper->topic ?? ''),
+                    (string) ($paper->category ?? ''),
+                    (string) ($paper->industry ?? ''),
+                ]))));
+
+                foreach ($terms as $term) {
+                    if ($term !== '' && str_contains($haystack, Str::lower((string) $term))) {
+                        return true;
+                    }
+                }
+
+                return false;
+            })->values();
+        }
+
+        $perPage = $hasActiveFilter ? max($items->count(), 1) : 6;
+        $currentPage = max((int) $request->query('paper_page', 1), 1);
+        $pagedItems = $items->slice(($currentPage - 1) * $perPage, $perPage)->values();
+
+        return new LengthAwarePaginator(
+            $pagedItems,
+            $items->count(),
+            $perPage,
+            $currentPage,
+            [
+                'path' => $request->url(),
+                'query' => $request->query(),
+                'pageName' => 'paper_page',
+            ]
+        );
     }
 
     private function makePreviewText(string $value, int $limit): string
@@ -1025,8 +2031,13 @@ class CaseStudiesController extends Controller
         $expiresAt = now()->addHour();
         $caseStudyId = (int) ($data['case_study_id'] ?? 0);
         if ($caseStudyId > 0 && $this->isTableQueryable('industry_listings')) {
+            $selectColumns = ['id', 'category', 'pdf_url'];
+            if ($this->safeHasColumn('industry_listings', 'pdf')) {
+                $selectColumns[] = 'pdf';
+            }
+
             $query = DB::table('industry_listings')
-                ->select('id', 'category', 'pdf_url')
+                ->select($selectColumns)
                 ->where('id', $caseStudyId);
 
             if (Schema::hasColumn('industry_listings', 'title')) {
@@ -1035,7 +2046,7 @@ class CaseStudiesController extends Controller
 
             $record = $query->first();
 
-            if ($record && trim((string) ($record->pdf_url ?? '')) !== '') {
+            if ($record && $this->caseStudyPdfValue($record) !== '') {
                 $resourceTitle = trim((string) ($record->title ?? ''));
                 if ($resourceTitle === '') {
                     $resourceTitle = (string) ($record->category ?? ('Case Study #' . $caseStudyId));
@@ -1116,7 +2127,7 @@ class CaseStudiesController extends Controller
         return null;
     }
 
-    private function downloadRemotePdf(string $url, string $fallbackName)
+    private function downloadRemotePdf(string $url, string $fallbackName, bool $inlinePreview = false)
     {
         try {
             $response = Http::timeout(20)->get($url);
@@ -1137,7 +2148,7 @@ class CaseStudiesController extends Controller
 
             return response($response->body(), 200, [
                 'Content-Type' => 'application/pdf',
-                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+                'Content-Disposition' => ($inlinePreview ? 'inline' : 'attachment') . '; filename="' . $filename . '"',
                 'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
             ]);
         } catch (\Throwable $e) {
@@ -1377,7 +2388,7 @@ class CaseStudiesController extends Controller
     private function paginateWhitePapers(Request $request): LengthAwarePaginator
     {
         if (!$this->isTableQueryable('white_paper')) {
-            return $this->emptyPaginator($request, 6, 'paper_page');
+            return $this->whitePaperSamplePaginator($request);
         }
 
         try {
@@ -1385,18 +2396,16 @@ class CaseStudiesController extends Controller
                 ->select($this->whitePaperSelectColumns())
                 ->orderByDesc('id');
 
+            if ((clone $query)->count() === 0) {
+                return $this->whitePaperSamplePaginator($request);
+            }
+
             $searchableColumns = $this->whitePaperSearchColumns();
             $topic = (string) $request->query('white_topic', '');
             $hasActiveFilter = false;
             if ($topic !== '' && array_key_exists($topic, $this->topicFilters()) && !empty($searchableColumns)) {
                 $hasActiveFilter = true;
-                $terms = match ($topic) {
-                    'fabric-data' => ['fabric', 'power bi', 'data', 'analytics', 'warehouse', 'lakehouse'],
-                    'power-platform' => ['power platform', 'power apps', 'power automate', 'power pages'],
-                    'ai-cognitive-services' => ['ai', 'copilot', 'cognitive', 'agent'],
-                    'sharepoint-collaboration' => ['sharepoint', 'teams', 'collaboration', 'intranet'],
-                    default => [Str::lower((string) ($this->topicFilters()[$topic] ?? $topic))],
-                };
+                $terms = $this->whitePaperTopicTerms($topic);
 
                 $query->where(function ($inner) use ($searchableColumns, $terms) {
                     foreach ($terms as $term) {
@@ -1418,7 +2427,7 @@ class CaseStudiesController extends Controller
                     'error' => $e->getMessage(),
                 ]);
 
-                return $this->emptyPaginator($request, 6, 'paper_page');
+                return $this->whitePaperSamplePaginator($request);
             }
 
             throw $e;

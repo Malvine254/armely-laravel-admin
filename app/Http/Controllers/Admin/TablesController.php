@@ -252,6 +252,10 @@ class TablesController extends Controller
                 $caseStudyQuery->addSelect('title');
             }
 
+            if ($this->columnExists('industry_listings', 'outcome_tag')) {
+                $caseStudyQuery->addSelect('outcome_tag');
+            }
+
             if ($this->columnExists('industry_listings', 'created_at')) {
                 $caseStudyQuery->addSelect('created_at');
             }
@@ -874,6 +878,7 @@ class TablesController extends Controller
             'id' => ['nullable', 'integer'],
             'category' => ['required', 'string', 'max:255'],
             'title' => ['nullable', 'string', 'max:255'],
+            'outcome_tag' => ['nullable', 'string', 'max:255'],
             'body' => ['nullable', 'string'],
             'listing_image' => ['nullable', 'image', 'max:5120'],
             'pdf' => ['nullable', 'mimes:pdf', 'max:20480'],
@@ -904,6 +909,17 @@ class TablesController extends Controller
             'category' => $normalizedCategory,
             'body' => $validated['body'] ?? '',
         ];
+
+        if ($this->columnExists('industry_listings', 'outcome_tag')) {
+            $outcomeTag = trim((string) ($validated['outcome_tag'] ?? ''));
+            if ($outcomeTag !== '') {
+                $parts = preg_split('/[\r\n,]+/', $outcomeTag) ?: [];
+                $parts = array_values(array_filter(array_map('trim', $parts)));
+                $data['outcome_tag'] = $parts[0] ?? '';
+            } else {
+                $data['outcome_tag'] = null;
+            }
+        }
 
         if ($this->columnExists('industry_listings', 'title')) {
             $title = trim((string) ($validated['title'] ?? ''));

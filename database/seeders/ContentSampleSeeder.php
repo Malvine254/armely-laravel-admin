@@ -684,6 +684,7 @@ class ContentSampleSeeder extends Seeder
                 'where' => ['category' => 'Healthcare'],
                 'data' => [
                     'category' => 'Healthcare',
+                    'outcome_tag' => 'Faster reporting cycles',
                     'listing_image' => 'health1.png',
                     'body' => '<p>Modern reporting and clinical workflows for healthcare organizations that need faster access to reliable data.</p>',
                     'pdf_url' => '1779808252_specifications.pdf',
@@ -695,6 +696,7 @@ class ContentSampleSeeder extends Seeder
                 'where' => ['category' => 'Energy'],
                 'data' => [
                     'category' => 'Energy',
+                    'outcome_tag' => 'Operational data consolidated',
                     'listing_image' => 'sage.png',
                     'body' => '<p>Operational modernization for energy teams balancing reporting, integrations, and governance.</p>',
                     'pdf_url' => '1779808320_specifications.pdf',
@@ -706,6 +708,7 @@ class ContentSampleSeeder extends Seeder
                 'where' => ['category' => 'Government'],
                 'data' => [
                     'category' => 'Government',
+                    'outcome_tag' => 'Improved constituent service workflows',
                     'listing_image' => 'government.png',
                     'body' => '<p>Secure public-sector analytics and process improvements that support transparency and service delivery.</p>',
                     'pdf_url' => null,
@@ -717,6 +720,7 @@ class ContentSampleSeeder extends Seeder
                 'where' => ['category' => 'Legal'],
                 'data' => [
                     'category' => 'Legal',
+                    'outcome_tag' => 'Reduced manual intake effort',
                     'listing_image' => 'legal.png',
                     'body' => '<p>Case management and reporting improvements for legal teams that need dependable data and access controls.</p>',
                     'pdf_url' => null,
@@ -728,6 +732,7 @@ class ContentSampleSeeder extends Seeder
                 'where' => ['category' => 'Transportation'],
                 'data' => [
                     'category' => 'Transportation',
+                    'outcome_tag' => 'Faster dispatch visibility',
                     'listing_image' => 'transportation.png',
                     'body' => '<p>Connected reporting for logistics, fleet, and transportation operations with a focus on speed and visibility.</p>',
                     'pdf_url' => null,
