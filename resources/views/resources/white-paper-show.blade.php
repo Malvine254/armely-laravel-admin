@@ -375,7 +375,7 @@
 	$resourceTitle = trim((string) ($resource->title ?? 'White Paper'));
 	$resourceDescription = trim((string) ($resource->description ?? ''));
 	$resourceCategory = trim((string) ($resource->category ?? 'White Papers'));
-	$resourceInlineUrl = $resourceInlineUrl ?? route('resources.download', ['slug' => $resource->slug, 'mode' => 'inline']);
+	$resourceInlineUrl = $resourceInlineUrl ?? \Illuminate\Support\Facades\URL::temporarySignedRoute('white-papers.access', now()->addMinutes(30), ['paper' => (int) $resource->id, 'preview' => 1]);
 	$isPdfPreview = str_contains(strtolower((string) ($resource->file_url ?? '')), '.pdf') || strtolower((string) ($resource->resource_type ?? '')) === 'pdf';
 @endphp
 
@@ -464,7 +464,7 @@
 						<p class="white-paper-request-copy">Fill in your details and Armely will send the secure download link to your email.</p>
 						<div id="resourceRequestAjaxAlert" class="alert d-none" role="alert"></div>
 
-						<form id="resourceRequestForm" method="POST" action="{{ route('resources.request', $resource->slug) }}" class="white-paper-request-form">
+						<form id="resourceRequestForm" method="POST" action="{{ route('whitepapers.request', $resource->slug) }}" class="white-paper-request-form">
 							@csrf
 							<div class="form-group">
 								<label for="resourceRequestName">Name</label>

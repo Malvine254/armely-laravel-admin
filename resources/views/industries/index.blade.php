@@ -7,17 +7,58 @@
 @push('styles')
 <style>
 .industries-index-page {
-  background: linear-gradient(180deg, #f7f9fc 0%, #eef4fb 100%);
+  background: linear-gradient(180deg, #07111f 0%, #0f2747 52%, #eef4fb 52%, #eef4fb 100%);
   color: #172033;
 }
 .industries-index-hero {
-  padding: 76px 56px 42px;
-  background: linear-gradient(135deg, #173b67 0%, #234f86 100%);
+  min-height: 100svh;
+  padding: 96px 56px 28px;
+  background:
+    radial-gradient(900px 420px at 14% 18%, rgba(70, 125, 214, 0.34), rgba(70, 125, 214, 0) 58%),
+    radial-gradient(640px 360px at 88% 12%, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0) 62%),
+    linear-gradient(135deg, #142f55 0%, #1d4a7d 54%, #234f86 100%);
+  display: flex;
+  align-items: stretch;
+  position: relative;
+  overflow: hidden;
   color: #fff;
+}
+.industries-index-hero::before,
+.industries-index-hero::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+.industries-index-hero::before {
+  width: 420px;
+  height: 420px;
+  top: -160px;
+  right: -120px;
+  background: rgba(255, 255, 255, 0.06);
+}
+.industries-index-hero::after {
+  width: 280px;
+  height: 280px;
+  left: 12%;
+  bottom: -130px;
+  background: rgba(255, 255, 255, 0.05);
 }
 .industries-index-inner {
   max-width: 1180px;
   margin: 0 auto;
+}
+.industries-index-hero-inner {
+  min-height: calc(100svh - 124px);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  z-index: 1;
+}
+.industries-index-hero-copy {
+  max-width: 860px;
+  padding-top: 36px;
 }
 .industries-index-kicker {
   display: inline-flex;
@@ -48,6 +89,61 @@
   color: rgba(255,255,255,0.82);
   font-size: 1rem;
   line-height: 1.8;
+}
+.industries-index-tabs-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.68);
+}
+.industries-index-tabs {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 14px;
+  margin-top: 26px;
+  border-radius: 22px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.16);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 18px 44px rgba(8, 20, 40, 0.18);
+  scrollbar-width: none;
+}
+.industries-index-tabs::-webkit-scrollbar { display: none; }
+.industries-index-tab {
+  flex: 0 0 auto;
+  min-width: 180px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  text-decoration: none;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: #fff;
+  transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+}
+.industries-index-tab:hover {
+  transform: translateY(-2px);
+  background: rgba(255,255,255,0.14);
+  border-color: rgba(255,255,255,0.24);
+  text-decoration: none;
+}
+.industries-index-tab strong {
+  display: block;
+  font-size: 0.92rem;
+  font-weight: 800;
+  line-height: 1.2;
+  margin-bottom: 4px;
+}
+.industries-index-tab span {
+  display: block;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: rgba(255,255,255,0.62);
 }
 .industries-index-grid-wrap {
   padding: 38px 56px 84px;
@@ -142,8 +238,13 @@
     padding-right: 24px;
   }
   .industries-index-hero {
-    padding-top: 56px;
+    min-height: auto;
+    padding-top: 72px;
+    padding-bottom: 22px;
   }
+  .industries-index-hero-inner { min-height: auto; gap: 28px; }
+  .industries-index-hero-copy { padding-top: 0; }
+  .industries-index-tab { min-width: 160px; }
 }
 </style>
 @endpush
@@ -151,10 +252,24 @@
 @section('content')
 <div class="industries-index-page">
   <section class="industries-index-hero">
-    <div class="industries-index-inner">
-      <div class="industries-index-kicker">Industries</div>
-      <h1>Choose the industry track that matches your environment.</h1>
-      <p>Each industry page below maps to a verified route in the resources/views/industries/ folder and opens the full industry-specific content for that sector.</p>
+    <div class="industries-index-inner industries-index-hero-inner">
+      <div class="industries-index-hero-copy">
+        <div class="industries-index-kicker">Industries</div>
+        <h1>Choose the industry track that matches your environment.</h1>
+        <p>Each industry page below maps to a verified route in the resources/views/industries/ folder and opens the full industry-specific content for that sector.</p>
+      </div>
+
+      <div>
+        <div class="industries-index-tabs-label">Industry navigation</div>
+        <div class="industries-index-tabs" aria-label="Industry navigation">
+          @foreach($industryPages as $slug => $page)
+            <a class="industries-index-tab" href="{{ route('industries.show', ['industry' => $page['route_label']]) }}">
+              <strong>{{ $page['label'] }}</strong>
+              <span>{{ $page['route_label'] }}</span>
+            </a>
+          @endforeach
+        </div>
+      </div>
     </div>
   </section>
 
