@@ -279,8 +279,17 @@ class HomeController extends Controller
                 ->get();
         }, $dbErrorMessage);
 
+        $caseStudyCount = $this->safeDb(function () {
+            if (!Schema::hasTable('industry_listings')) {
+                return 0;
+            }
+
+            return (int) DB::table('industry_listings')->count();
+        }, $dbErrorMessage) ?: 0;
+
         return view('customer-stories', [
             'testimonials' => $testimonials,
+            'caseStudyCount' => $caseStudyCount,
             'dbErrorMessage' => $dbErrorMessage,
         ]);
     }
