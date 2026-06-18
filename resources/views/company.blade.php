@@ -1,756 +1,365 @@
 @extends('layouts.public')
 
-@section('title', 'Company')
-@section('meta_description', 'Learn about Armely, our mission, leadership, and how we help organizations modernize with Microsoft data, AI, and cloud services.')
+@section('title', 'About Armely | Microsoft Data and AI Partner Since 2016')
+@section('meta_description', 'Armely is a Microsoft Solutions Partner founded in Dallas in 2016. We implement Microsoft Fabric, Power BI, Copilot, Power Platform, and Dynamics 365 for healthcare, energy, government, and enterprise organizations.')
 
 @push('styles')
-<link rel="stylesheet" href="{{ asset('css/company-modern.css') }}">
 <style>
-  /* Theme Variables */
-  :root {
-    --default-color: #2f5597;
-    --default-background: #2f5597;
-  }
-  
-  /* Clean modern design */
-  body {
-    background: #f8f9fa;
-  }
-  
-  .company-section {
-    padding: 60px 0;
-    background: #fff;
-  }
-  
-  .company-section.default-background {
-    background: transparent;
-  }
-  
-  .section-title {
-    text-align: center;
-    margin-bottom: 40px;
-  }
-  
-  .section-title h2 {
-    font-size: 2.5rem;
-    font-weight: 700;
-    color: #2c3e50;
-    margin-bottom: 15px;
-  }
-  
-  .section-title hr {
-    width: 80px;
-    height: 3px;
-    margin: 0 auto;
-    border: none;
-  }
-  
-  .story-content {
-    background: #fff;
-    padding: 50px;
-    border-radius: 16px;
-    box-shadow: 0 5px 25px rgba(0,0,0,0.1);
-    margin-bottom: 30px;
-    position: relative;
-    overflow: hidden;
-  }
-  
-  .story-content::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 5px;
-    height: 100%;
-    background: linear-gradient(to bottom, var(--default-color), var(--default-background));
-  }
-  
-  .story-content p {
-    font-size: 1.1rem;
-    line-height: 1.9;
-    color: #555;
-    margin-bottom: 25px;
-    text-align: justify;
-    position: relative;
-  }
-  
-  .story-content p:first-of-type::first-letter {
-    font-size: 3.5rem;
-    font-weight: 700;
-    line-height: 1;
-    float: left;
-    margin: 5px 12px 0 0;
-    color: var(--default-color);
-  }
-  
-  .story-header {
-    display: flex;
-    align-items: center;
-    margin-bottom: 30px;
-    padding-bottom: 20px;
-    border-bottom: 2px solid #f0f0f0;
-  }
-  
-  .story-icon {
-    width: 70px;
-    height: 70px;
-    background: linear-gradient(135deg, var(--default-color), var(--default-background));
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-right: 20px;
-    box-shadow: 0 4px 15px rgba(47, 85, 151, 0.3);
-  }
-  
-  .story-icon i {
-    font-size: 2rem;
-    color: #fff;
-  }
-  
-  .story-title-text {
-    flex: 1;
-  }
-  
-  .story-title-text h3 {
-    font-size: 1.8rem;
-    font-weight: 700;
-    color: #2c3e50;
-    margin: 0 0 5px 0;
-  }
-  
-  .story-title-text .subtitle {
-    font-size: 1rem;
-    color: #777;
-    margin: 0;
-  }
-  
-  .modern-card {
-    background: #fff;
-    padding: 40px;
-    border-radius: 16px;
-    box-shadow: 0 5px 25px rgba(0,0,0,0.1);
-    transition: all 0.3s ease;
-    height: 100%;
-    border: 2px solid #f0f0f0;
-    position: relative;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-  }
-  
-  .modern-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: linear-gradient(90deg, var(--default-color), var(--default-background));
-  }
-  
-  .modern-card:hover {
-    transform: translateY(-8px);
-    box-shadow: 0 12px 35px rgba(0,0,0,0.15);
-    border-color: var(--default-color);
-  }
-  
-  .entity-logo-wrapper {
-    width: 80px;
-    height: 80px;
-    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-    border-radius: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 10px;
-    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
-  }
-  
-  .entity-logo-wrapper img {
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: contain;
-  }
-  
-  .modern-card h5 {
-    font-size: 1.4rem;
-    font-weight: 600;
-    color: #2c3e50;
-    margin-bottom: 15px;
-  }
-  
-  .modern-card p {
-    font-size: 1.05rem;
-    line-height: 1.7;
-    color: #666;
-    margin-bottom: 15px;
+
+.armely-company-page *, .armely-company-page *::before, .armely-company-page *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+.armely-company-page {
+    --navy:      #FFFFFF;
+    --navy-mid:  #f6f8fc;
+    --navy-card: #ffffff;
+    --blue:      #2f5597;
+    --blue-lt:   #4779bd;
+    --blue-dim:  rgba(47, 85, 151, 0.09);
+    --blue-dim2: rgba(47, 85, 151, 0.18);
+    --text-body: #334155;
+    --text-muted: #667085;
+    --border:    rgba(47, 85, 151, 0.14);
+    font-family: 'Poppins', sans-serif;
+    background: var(--navy);
+    color: var(--text-body);
+    line-height: 1.6;
   }
 
-  .modern-card .list-unstyled {
-    margin-bottom: 18px;
-  }
-  
-  .modern-card h6 {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #2c3e50;
-    margin-top: 20px;
-    margin-bottom: 12px;
-  }
-  
-  .modern-card ul {
-    list-style: none;
-    padding-left: 0;
-  }
-  
-  .modern-card ul li {
-    font-size: 1rem;
-    color: #555;
-    margin-bottom: 10px;
-    padding-left: 5px;
-  }
-  
-  .modern-card ul li i {
-    margin-right: 10px;
-    font-size: 1.1rem;
-  }
-  
-  .modern-card img {
-    border-radius: 8px;
-  }
-  
-  .affiliation-section {
-    background: #f8f9fa;
-    padding: 60px 0;
-  }
-  
-  .affiliation-section img {
-    transition: transform 0.3s ease;
-    filter: grayscale(20%);
-  }
-  
-  .affiliation-section img:hover {
-    transform: scale(1.05);
-    filter: grayscale(0%);
-  }
+.armely-company-page .section-eyebrow { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.14em; color: var(--blue); margin-bottom: 14px; font-weight: 600; }
+.armely-company-page .section-title { font-size: clamp(1.7rem, 3.2vw, 2.6rem); font-weight: 800; color: #1A2540; line-height: 1.12; letter-spacing: -0.025em; margin-bottom: 18px; max-width: 640px; }
+.armely-company-page .section-body { font-size: 0.975rem; font-weight: 300; max-width: 560px; line-height: 1.7; color: var(--text-body); margin-bottom: 28px; }
+.armely-company-page .icon-svg { width: 22px; height: 22px; display: block; color: var(--blue); fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
-  .company-section.default-background {
-    background: linear-gradient(145deg, #2f5597 0%, #1f3f80 100%);
-  }
-  
-  .values-section {
-    background: #fff;
-    padding: 70px 0 80px;
-  }
-  
-  .values-section .single-service {
-    background: #fff;
-    padding: 42px 34px 38px;
-    border-radius: 10px;
-    box-shadow: 0 16px 38px rgba(23, 39, 67, 0.08);
-    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
-    height: 100%;
-    border: 1px solid #e8edf5;
-    position: relative;
-    overflow: hidden;
-    text-align: center;
-  }
-  
-  .values-section .single-service::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: var(--default-background);
-    opacity: 0;
-    transition: opacity 0.25s ease;
-  }
+/* HERO */
+.armely-company-page .co-hero { background:linear-gradient(135deg,#173b67 0%,#234f86 100%); padding:72px 56px 60px; }
+.armely-company-page .co-hero-inner { max-width:760px; margin:0 auto; }
+.armely-company-page .co-hero .section-eyebrow { display:inline-flex; background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.22); color:rgba(255,255,255,0.88); border-radius:999px; padding:6px 14px; margin-bottom:16px; }
+.armely-company-page .co-hero h1 { font-size:clamp(1.7rem,3vw,2.6rem); font-weight:800; color:#fff; letter-spacing:-0.03em; line-height:1.1; margin-bottom:14px; }
+.armely-company-page .co-hero h1 em { font-style:normal; font-weight:300; color:rgba(255,255,255,0.7); }
+.armely-company-page .co-hero-sub { font-size:1rem; font-weight:300; color:rgba(255,255,255,0.65); line-height:1.75; max-width:600px; margin-bottom:32px; }
+.armely-company-page .co-hero-stats { display:flex; gap:32px; flex-wrap:wrap; padding-top:28px; border-top:1px solid rgba(255,255,255,0.15); }
+.armely-company-page .co-hero-stat-num { font-size:1.6rem; font-weight:800; color:#fff; line-height:1; letter-spacing:-0.02em; margin-bottom:3px; }
+.armely-company-page .co-hero-stat-num span { color:#8fb3e0; }
+.armely-company-page .co-hero-stat-label { font-size:0.72rem; color:rgba(255,255,255,0.5); }
 
-  .values-section .single-service:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 22px 45px rgba(23, 39, 67, 0.13);
-    border-color: rgba(47, 85, 151, 0.28);
-  }
+/* STORY */
+.armely-company-page .co-story { padding:64px 56px; background:#fff; }
+.armely-company-page .co-story-inner { max-width:1120px; margin:0 auto; display:grid; grid-template-columns:1fr 1fr; gap:80px; align-items:start; }
+.armely-company-page .co-story-body { font-size:0.925rem; color:var(--text-body); line-height:1.85; }
+.armely-company-page .co-story-body p { margin-bottom:18px; }
+.armely-company-page .co-story-body p:last-child { margin-bottom:0; }
+.armely-company-page .co-story-body strong { color:#162b49; font-weight:700; }
+.armely-company-page .co-story .section-title { font-size:clamp(1.5rem,2.4vw,2rem); margin-bottom:18px; }
+.armely-company-page .co-milestones { display:flex; flex-direction:column; gap:0; }
+.armely-company-page .co-milestone { display:flex; gap:20px; align-items:flex-start; padding:18px 0; border-bottom:1px solid var(--border); }
+.armely-company-page .co-milestone:last-child { border-bottom:none; }
+.armely-company-page .co-milestone-year { font-size:0.72rem; font-weight:800; color:var(--blue); letter-spacing:0.06em; min-width:44px; padding-top:2px; }
+.armely-company-page .co-milestone-text { font-size:0.82rem; color:var(--text-body); line-height:1.6; }
+.armely-company-page .co-milestone-text strong { color:#162b49; font-weight:700; display:block; margin-bottom:2px; }
+.armely-company-page .co-mini-title { font-size:1.1rem; font-weight:800; color:#162b49; margin-bottom:16px; }
 
-  .values-section .single-service:hover::before {
-    opacity: 1;
-  }
-  
-  .value-icon-wrap {
-    width: 76px;
-    height: 76px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    background: var(--default-background);
-    color: #fff;
-    box-shadow: 0 12px 24px rgba(47, 85, 151, 0.24);
-    margin-bottom: 26px;
-    position: relative;
-    z-index: 1;
-    transition: transform 0.25s ease, box-shadow 0.25s ease;
-  }
-  
-  .values-section .single-service:hover .value-icon-wrap {
-    transform: translateY(-3px);
-    box-shadow: 0 16px 30px rgba(47, 85, 151, 0.32);
-  }
+/* PRINCIPLES / VALUES */
+.armely-company-page .co-principles { padding:64px 56px; background:var(--navy-mid); }
+.armely-company-page .co-principles-inner { max-width:1120px; margin:0 auto; }
+.armely-company-page .co-principles .section-eyebrow,
+.armely-company-page .co-affil .section-eyebrow,
+.armely-company-page .co-brands .section-eyebrow { width:fit-content; margin:0 auto 14px; padding:6px 14px; border-radius:999px; background:var(--blue-dim); border:1px solid var(--blue-dim2); text-align:center; }
+.armely-company-page .co-principles .section-title,
+.armely-company-page .co-affil .section-title,
+.armely-company-page .co-brands .section-title { max-width:880px; margin-left:auto; margin-right:auto; text-align:center; }
+.armely-company-page .co-principles .section-body,
+.armely-company-page .co-affil .section-body,
+.armely-company-page .co-brands .section-body { max-width:820px; margin-left:auto; margin-right:auto; text-align:center; }
+.armely-company-page .co-principles-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:16px; margin-top:32px; }
+.armely-company-page .co-principle { background:#fff; border:1px solid var(--border); border-radius:14px; padding:28px; box-shadow:0 14px 36px rgba(18,47,82,0.06); }
+.armely-company-page .co-principle-num { font-size:0.62rem; font-weight:800; letter-spacing:0.14em; text-transform:uppercase; color:var(--blue); margin-bottom:10px; }
+.armely-company-page .co-principle-title { font-size:1rem; font-weight:800; color:#162b49; margin-bottom:8px; }
+.armely-company-page .co-principle-body { font-size:0.82rem; color:var(--text-muted); line-height:1.7; }
 
-  .values-section .single-service i {
-    font-size: 2rem;
-    line-height: 1 !important;
-    color: inherit;
-  }
-  
-  .values-section .single-service h4 {
-    font-size: 1.35rem;
-    font-weight: 700;
-    margin: 0 0 16px 0;
-    color: #2c3e50;
-    position: relative;
-    z-index: 1;
-  }
-  
-  .values-section .single-service h4 a {
-    color: #2c3e50;
-    text-decoration: none;
-    transition: color 0.3s ease;
-  }
-  
-  .values-section .single-service:hover h4 a {
-    color: var(--default-color);
-  }
-  
-  .values-section .single-service p {
-    font-size: 1.02rem;
-    line-height: 1.75;
-    color: #68717d;
-    margin: 0;
-    position: relative;
-    z-index: 1;
-  }
-  
-  .values-section .col-lg-4 {
-    margin-bottom: 30px;
-  }
+/* AD BANNER */
+.armely-company-page .co-banners { padding:34px 56px 0; background:#fff; }
+.armely-company-page .co-banners-inner { max-width:1120px; margin:0 auto; }
+.armely-company-page .company-ad-banner { border-radius:16px; padding:28px; color:#fff; box-shadow:0 10px 30px rgba(23,39,67,0.18); overflow:hidden; position:relative; }
+.armely-company-page .company-ad-banner::before { content:''; position:absolute; inset:0; background:linear-gradient(120deg,rgba(255,255,255,0.12),rgba(255,255,255,0)); pointer-events:none; }
+.armely-company-page .company-ad-banner h3 { font-size:1.45rem; font-weight:700; margin-bottom:0.75rem; color:#fff; }
+.armely-company-page .company-ad-banner p { font-size:1.02rem; line-height:1.7; margin-bottom:0; color:rgba(255,255,255,0.95); }
+.armely-company-page .banner-image { max-width:180px; width:100%; border-radius:12px; border:1px solid rgba(255,255,255,0.3); }
+.armely-company-page .banner-cta-btn { display:inline-flex; align-items:center; justify-content:center; min-height:42px; padding:10px 18px; border-radius:10px; background:#fff; color:#1f3f80 !important; font-weight:700; text-decoration:none; box-shadow:0 8px 24px rgba(0,0,0,0.15); }
 
-  .ad-banner-section {
-    padding: 30px 0 10px;
-    background: #f8f9fa;
-  }
+/* AFFILIATIONS */
+.armely-company-page .co-affil { padding:56px 56px; background:#fff; border-top:1px solid var(--border); }
+.armely-company-page .co-affil-inner { max-width:1120px; margin:0 auto; text-align:center; }
+.armely-company-page .co-affil-logos { display:flex; align-items:center; justify-content:center; gap:48px; flex-wrap:wrap; margin-top:32px; }
+.armely-company-page .co-affil-logos img { height:64px; width:auto; object-fit:contain; filter:grayscale(20%); opacity:0.85; transition:transform 0.3s ease, filter 0.3s ease, opacity 0.3s ease; }
+.armely-company-page .co-affil-logos img:hover { transform:scale(1.05); filter:grayscale(0%); opacity:1; }
 
-  .company-ad-banner {
-    border-radius: 16px;
-    padding: 28px;
-    color: #fff;
-    box-shadow: 0 10px 30px rgba(23, 39, 67, 0.18);
-    overflow: hidden;
-    position: relative;
-  }
+/* INNOVATION BRANDS */
+.armely-company-page .co-brands { padding:64px 56px; background:var(--navy-mid); }
+.armely-company-page .co-brands-inner { max-width:1120px; margin:0 auto; }
+.armely-company-page .co-brands-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:20px; margin-top:32px; }
+.armely-company-page .co-brand-card { background:#fff; border:1px solid var(--border); border-radius:14px; padding:28px; box-shadow:0 14px 36px rgba(18,47,82,0.08); display:flex; flex-direction:column; }
+.armely-company-page .co-brand-logo { width:54px; height:54px; border-radius:12px; background:var(--navy-mid); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; padding:8px; margin-bottom:16px; }
+.armely-company-page .co-brand-logo img { max-width:100%; max-height:100%; object-fit:contain; }
+.armely-company-page .co-brand-eyebrow { font-size:0.65rem; font-weight:700; text-transform:uppercase; letter-spacing:0.12em; color:var(--blue); margin-bottom:6px; }
+.armely-company-page .co-brand-title { font-size:1.05rem; font-weight:800; color:#162b49; margin-bottom:6px; }
+.armely-company-page .co-brand-sub { font-size:0.78rem; font-weight:600; color:var(--text-muted); margin-bottom:10px; }
+.armely-company-page .co-brand-body { font-size:0.82rem; color:var(--text-muted); line-height:1.7; margin-bottom:14px; }
+.armely-company-page .co-brand-features { list-style:none; padding:0; margin:0 0 16px; }
+.armely-company-page .co-brand-features li { display:flex; gap:9px; align-items:flex-start; font-size:0.8rem; color:var(--text-body); line-height:1.5; margin-bottom:8px; }
+.armely-company-page .co-brand-features .icon-svg { width:14px; height:14px; stroke-width:3; margin-top:3px; flex-shrink:0; }
+.armely-company-page .co-brand-link { font-size:0.78rem; font-weight:600; color:var(--blue); display:inline-flex; align-items:center; gap:5px; text-decoration:none; margin-top:auto; }
+.armely-company-page .co-brand-link .icon-svg { width:14px; height:14px; }
+.armely-company-page .co-brand-link:hover { color:#173b67; }
+.armely-company-page .co-brands-empty { grid-column:1/-1; border:1px dashed var(--blue-dim2); border-radius:14px; padding:24px; text-align:center; color:var(--text-muted); background:#fff; }
 
-  .company-ad-banner::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(120deg, rgba(255,255,255,0.12), rgba(255,255,255,0));
-    pointer-events: none;
-  }
+/* CTA */
+.armely-company-page .co-cta { background:linear-gradient(135deg,#173b67 0%,#234f86 100%); padding:64px 56px; text-align:center; }
+.armely-company-page .co-cta .section-eyebrow { display:inline-flex; background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.22); color:rgba(255,255,255,0.88); border-radius:999px; padding:6px 14px; margin-bottom:16px; }
+.armely-company-page .co-cta h2 { font-size:1.7rem; font-weight:800; color:#fff; letter-spacing:-0.02em; margin-bottom:10px; }
+.armely-company-page .co-cta p { font-size:0.925rem; color:rgba(255,255,255,0.65); max-width:480px; margin:0 auto 28px; line-height:1.7; }
+.armely-company-page .co-cta-btns { display:flex; align-items:center; justify-content:center; gap:12px; }
+.armely-company-page .co-cta-btn-p { background:#fff; color:var(--blue); border-radius:8px; padding:13px 28px; font-size:0.875rem; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:7px; }
+.armely-company-page .co-cta-btn-p .icon-svg { width:13px; height:13px; }
+.armely-company-page .co-cta-btn-o { background:rgba(255,255,255,0.1); color:rgba(255,255,255,0.85); border:1px solid rgba(255,255,255,0.22); border-radius:8px; padding:13px 28px; font-size:0.875rem; font-weight:500; text-decoration:none; }
 
-  .company-ad-banner h3 {
-    font-size: 1.45rem;
-    font-weight: 700;
-    margin-bottom: 0.75rem;
-    color: #fff;
-  }
-
-  .company-ad-banner p {
-    font-size: 1.02rem;
-    line-height: 1.7;
-    margin-bottom: 0;
-    color: rgba(255, 255, 255, 0.95);
-  }
-
-  .banner-image {
-    max-width: 180px;
-    width: 100%;
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-  }
-
-  .portfolio-empty {
-    border: 1px dashed rgba(47, 85, 151, 0.35);
-    border-radius: 14px;
-    padding: 24px;
-    color: #5f6c80;
-    background: #fff;
-  }
-
-  .portfolio-cta-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    margin-top: auto;
-    width: fit-content;
-    min-height: 42px;
-    padding: 10px 18px;
-    border-radius: 10px;
-    border: 1px solid #1f3f80;
-    background: linear-gradient(135deg, #2f5597 0%, #1f3f80 100%);
-    color: #ffffff !important;
-    font-weight: 600;
-    text-decoration: none;
-    transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
-  }
-
-  .portfolio-cta-btn:hover {
-    transform: translateY(-2px);
-    color: #ffffff !important;
-    box-shadow: 0 8px 20px rgba(31, 63, 128, 0.28);
-    filter: brightness(1.02);
-  }
-
-  .banner-cta-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 42px;
-    padding: 10px 18px;
-    border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.6);
-    background: #ffffff;
-    color: #1f3f80 !important;
-    font-weight: 700;
-    text-decoration: none;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-  }
-
-  .banner-cta-btn:hover {
-    transform: translateY(-2px);
-    color: #163268 !important;
-    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.2);
-  }
-  
-  @media (max-width: 768px) {
-    .section-title h2 {
-      font-size: 2rem;
-    }
-    
-    .story-content {
-      padding: 25px;
-    }
-    
-    .modern-card {
-      padding: 25px;
-      margin-bottom: 20px;
-    }
-
-    .values-section .single-service {
-      padding: 34px 24px;
-    }
-
-    .company-ad-banner {
-      padding: 22px;
-    }
-  }
+@media (max-width:960px) {
+  .armely-company-page .co-story-inner { grid-template-columns:1fr; gap:48px; }
+  .armely-company-page .co-principles-grid, .armely-company-page .co-brands-grid { grid-template-columns:1fr; }
+  .armely-company-page .co-story, .armely-company-page .co-principles, .armely-company-page .co-affil, .armely-company-page .co-brands, .armely-company-page .co-cta, .armely-company-page .co-hero, .armely-company-page .co-banners { padding-left:24px; padding-right:24px; }
+  .armely-company-page .co-cta-btns { flex-direction:column; }
+  .armely-company-page .co-affil-logos { gap:28px; }
+}
 </style>
 @endpush
 
 @section('content')
-<!-- Breadcrumbs -->
-<div class="breadcrumbs overlay">
-	<div class="container">
-		<div class="bread-inner">
-			<div class="row">
-				<div class="col-12">
-					<h2>Company</h2>
-					<ul class="bread-list">
-						<li><a href="{{ route('home') }}">Home</a></li>
-						<li><i class="icofont-simple-right"></i></li>
-						<li class="active">Company</li>
-					</ul>
-				</div>
-			</div>
-		</div>
-	</div>
+<div class="armely-company-page">
+
+  {{-- HERO --}}
+  <section class="co-hero">
+    <div class="co-hero-inner">
+      <div class="section-eyebrow">About Armely</div>
+      <h1>We implement Microsoft technology. <em>We stand behind what we build.</em></h1>
+      <p class="co-hero-sub">Armely is a certified Microsoft Solutions Partner founded in Dallas in 2016. We work with healthcare, energy, government, and enterprise organizations to implement data platforms, AI solutions, and business applications that deliver measurable outcomes, not just working software.</p>
+      <div class="co-hero-stats">
+        <div>
+          <div class="co-hero-stat-num">{{ date('Y') - 2016 }} yrs</div>
+          <div class="co-hero-stat-label">Delivery experience</div>
+        </div>
+        <div>
+          <div class="co-hero-stat-num">85%+</div>
+          <div class="co-hero-stat-label">Client retention rate</div>
+        </div>
+        <div>
+          <div class="co-hero-stat-num">90%+</div>
+          <div class="co-hero-stat-label">Client satisfaction</div>
+        </div>
+        @if(($caseStudyCount ?? 0) > 0)
+        <div>
+          <div class="co-hero-stat-num">{{ $caseStudyCount }}+</div>
+          <div class="co-hero-stat-label">Published case studies</div>
+        </div>
+        @endif
+      </div>
+    </div>
+  </section>
+
+  {{-- STORY --}}
+  <section class="co-story">
+    <div class="co-story-inner">
+      <div>
+        <div class="section-eyebrow">Our Story</div>
+        <h2 class="section-title">Built by someone who saw how implementation should work.</h2>
+        <div class="co-story-body">
+          <p>Armely was founded in Dallas in 2016 by someone who spent years inside Microsoft's partner ecosystem before deciding to build something different. The observation was straightforward: mid-market organizations (hospitals, school districts, energy operators, nonprofits) were not getting the same caliber of Microsoft implementation that large enterprises received. They were getting junior teams, templated solutions, and handoffs to support queues.</p>
+          <p>Armely was built to close that gap. A small, senior team. Deep Microsoft expertise. Full-stack delivery from strategy through deployment. And a commitment to staying involved after go-live rather than moving on to the next contract.</p>
+          <p>Some of Armely's longest client relationships started with a single person who trusted the work enough to bring Armely with them when they moved to a new organization. That pattern, one successful engagement leading to another because the relationship outlasted the project, has shaped how Armely grows. Not through marketing, but through work that holds up over time.</p>
+          <p>Nearly a decade later, Armely works across healthcare, energy, government, education, legal services, and enterprise organizations. The service lines have expanded to include Microsoft Fabric, Copilot, Dynamics 365, and proprietary products like InvoiceLens. The approach has not changed.</p>
+        </div>
+        @if(!empty($dbErrorMessage))
+          <div class="alert alert-warning mt-4" role="alert">
+            <i class="icofont-warning-alt"></i> {{ $dbErrorMessage }}
+          </div>
+        @endif
+      </div>
+      <div>
+        <div class="section-eyebrow">Timeline</div>
+        <div class="co-mini-title">Key milestones</div>
+        <div class="co-milestones">
+          <div class="co-milestone">
+            <span class="co-milestone-year">2016</span>
+            <div class="co-milestone-text"><strong>Founded in Dallas</strong>Armely was started by a Microsoft partner ecosystem veteran who saw that mid-market organizations were not getting the implementation quality they deserved. Armely set out to build a firm that delivered it.</div>
+          </div>
+          <div class="co-milestone">
+            <span class="co-milestone-year">2017</span>
+            <div class="co-milestone-text"><strong>First long-term client relationships</strong>Early healthcare and public sector engagements established Armely's delivery model: understand the real problem, build the right solution, stay accountable for the outcome.</div>
+          </div>
+          <div class="co-milestone">
+            <span class="co-milestone-year">2019</span>
+            <div class="co-milestone-text"><strong>Government and education practice</strong>Armely began working with school districts and city governments across Texas. Microsoft 365 governance and Power Platform became core service lines.</div>
+          </div>
+          <div class="co-milestone">
+            <span class="co-milestone-year">2021</span>
+            <div class="co-milestone-text"><strong>Microsoft Solutions Partner</strong>Armely achieved Microsoft Solutions Partner status in Data and AI and Modern Work, a recognition that requires demonstrated client outcomes, not just certifications.</div>
+          </div>
+          <div class="co-milestone">
+            <span class="co-milestone-year">2023</span>
+            <div class="co-milestone-text"><strong>Energy sector and InvoiceLens</strong>Work with oil and gas operators established Armely's energy practice. InvoiceLens, a proprietary product for Enverus OpenInvoice operators, emerged from client work in this sector.</div>
+          </div>
+          <div class="co-milestone">
+            <span class="co-milestone-year">2024</span>
+            <div class="co-milestone-text"><strong>Training and Managed Services formalized</strong>Power BI, Power Platform, Generative AI, and Copilot training launched as a dedicated service line. Managed Services expanded to cover ongoing governance and optimization engagements.</div>
+          </div>
+          <div class="co-milestone">
+            <span class="co-milestone-year">2025</span>
+            <div class="co-milestone-text"><strong>Generative and Agentic AI practice</strong>Armely launched a formal Generative AI and Agentic AI service line. It covers building production-grade AI agents grounded in client data using Azure AI Foundry and Microsoft Copilot Studio.</div>
+          </div>
+          <div class="co-milestone">
+            <span class="co-milestone-year">2026</span>
+            <div class="co-milestone-text"><strong>Armely Store and Mela AI live</strong>The Armely Store launched as a direct channel for business technology products. Mela AI, Armely's meeting intelligence product, went live for general availability.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {{-- PRINCIPLES / VALUES --}}
+  <section class="co-principles">
+    <div class="co-principles-inner">
+      <div class="section-eyebrow">How We Work</div>
+      <h2 class="section-title">What clients say about working with Armely.</h2>
+      <p class="section-body">Not a values statement. Not aspirational copy. Specific things that show up consistently in client feedback and distinguish Armely from the alternatives.</p>
+      <div class="co-principles-grid">
+        @forelse($coreValues as $value)
+          <div class="co-principle">
+            <div class="co-principle-num">{{ str_pad($loop->iteration, 2, '0', STR_PAD_LEFT) }}</div>
+            <div class="co-principle-title">{{ $value->title }}</div>
+            <div class="co-principle-body">{{ $value->body }}</div>
+          </div>
+        @empty
+          <div class="co-brands-empty">Core values are not yet available. Please add them in the admin Company Content page.</div>
+        @endforelse
+      </div>
+    </div>
+  </section>
+
+  {{-- AD BANNERS --}}
+  @if(($adBanners ?? collect())->isNotEmpty())
+  <section class="co-banners">
+    <div class="co-banners-inner">
+      <div id="companyAdBannerCarousel" class="carousel slide" data-bs-ride="carousel">
+        <div class="carousel-inner">
+          @foreach($adBanners as $banner)
+            <div class="carousel-item {{ $loop->first ? 'active' : '' }}">
+              <div class="company-ad-banner" style="background: {{ $banner->background_style ?: 'linear-gradient(135deg, #2f5597 0%, #1e3a6d 100%)' }};">
+                <div class="row align-items-center g-3">
+                  <div class="col-lg-8">
+                    <h3>{{ $banner->headline }}</h3>
+                    @if(!empty($banner->message))
+                      <p>{{ $banner->message }}</p>
+                    @endif
+                    @if(!empty($banner->button_label) && !empty($banner->button_url))
+                      <a href="{{ $banner->button_url }}" class="banner-cta-btn mt-3">{{ $banner->button_label }}</a>
+                    @endif
+                  </div>
+                  <div class="col-lg-4 text-lg-end text-center">
+                    @if(!empty($banner->image_url))
+                      <img src="{{ $banner->image_url }}" alt="Website banner image" class="banner-image">
+                    @endif
+                  </div>
+                </div>
+              </div>
+            </div>
+          @endforeach
+        </div>
+        @if(($adBanners ?? collect())->count() > 1)
+          <button class="carousel-control-prev" type="button" data-bs-target="#companyAdBannerCarousel" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Previous</span>
+          </button>
+          <button class="carousel-control-next" type="button" data-bs-target="#companyAdBannerCarousel" data-bs-slide="next">
+            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Next</span>
+          </button>
+        @endif
+      </div>
+    </div>
+  </section>
+  @endif
+
+  {{-- AFFILIATIONS --}}
+  <section class="co-affil">
+    <div class="co-affil-inner">
+      <div class="section-eyebrow">Certifications and Affiliations</div>
+      <h2 class="section-title">Recognized where it matters.</h2>
+      <p class="section-body">Armely holds certifications that matter to the clients we serve. Microsoft Solutions Partner status requires demonstrated client outcomes, not just technical exams. MBE certification reflects who we are as an organization.</p>
+      <div class="co-affil-logos">
+        <img src="{{ asset('images/affiliation/mbe.svg') }}" alt="Minority Business Enterprise certified">
+        <img src="{{ asset('images/affiliation/smb.svg') }}" alt="SMB certification">
+        <img src="{{ asset('images/affiliation/affliation1.png') }}" alt="Technology affiliation">
+        <img src="{{ asset('images/affiliation/fid.png') }}" alt="Federal ID certification">
+        <img src="{{ asset('images/affiliation/partner.png') }}" alt="Microsoft Solutions Partner">
+      </div>
+    </div>
+  </section>
+
+  {{-- INNOVATION BRANDS --}}
+  <section class="co-brands">
+    <div class="co-brands-inner">
+      <div class="section-eyebrow">Innovation Brands</div>
+      <h2 class="section-title">We build products, not just client solutions.</h2>
+      <p class="section-body">Armely develops its own products to demonstrate how the technology works in practice, and because some problems are common enough to deserve a purpose-built solution rather than a custom engagement each time.</p>
+      <div class="co-brands-grid">
+        @forelse($portfolioItems as $item)
+          <div class="co-brand-card">
+            @if(!empty($item->logo_url))
+              <div class="co-brand-logo"><img src="{{ $item->logo_url }}" alt="{{ $item->title }} logo"></div>
+            @endif
+            @if(!empty($item->category))
+              <div class="co-brand-eyebrow">{{ $item->category }}</div>
+            @endif
+            <div class="co-brand-title">{{ $item->title }}</div>
+            @if(!empty($item->short_description))
+              <div class="co-brand-sub">{{ $item->short_description }}</div>
+            @endif
+            @if(!empty($item->long_description))
+              <div class="co-brand-body">{{ $item->long_description }}</div>
+            @endif
+            @if(!empty($item->features))
+              <ul class="co-brand-features">
+                @foreach($item->features as $feature)
+                  <li>
+                    <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"/></svg>
+                    {{ $feature }}
+                  </li>
+                @endforeach
+              </ul>
+            @endif
+            @if(!empty($item->cta_label) && !empty($item->cta_url))
+              <a href="{{ $item->cta_url }}" class="co-brand-link">{{ $item->cta_label }}
+                <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+              </a>
+            @endif
+          </div>
+        @empty
+          <div class="co-brands-empty">Innovation brands are not yet available. Please add them in the admin Company Content page.</div>
+        @endforelse
+      </div>
+    </div>
+  </section>
+
+  {{-- CTA --}}
+  <section class="co-cta">
+    <div class="section-eyebrow">Work With Armely</div>
+    <h2>Talk to the people who will actually build your solution.</h2>
+    <p>At Armely, the consultants who scope your project are the same consultants who build it. No handoffs to a delivery team you have never met. Start with a conversation.</p>
+    <div class="co-cta-btns">
+      <a href="{{ route('contact') }}" class="co-cta-btn-p">Let's Talk
+        <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+      </a>
+      <a href="{{ route('case-studies.index') }}" class="co-cta-btn-o">See Our Work</a>
+    </div>
+  </section>
+
 </div>
-<!-- End Breadcrumbs -->
-
-<section class="company-section">
-  <div class="container">
-    <div class="row">
-      <div class="col-lg-12">
-        <div class="section-title">
-          <h2>Our Story</h2>
-          <hr class="default-background">
-        </div>
-        <div class="story-content">
-          <div class="story-header">
-            <div class="story-icon">
-              <i class="fa fa-book"></i>
-            </div>
-            <div class="story-title-text">
-              <h3>From Humble Beginnings to Industry Leaders</h3>
-              <p class="subtitle">A Journey of Innovation & Excellence Since 2017</p>
-            </div>
-          </div>
-          <p>What started as a small operation serving a single client has blossomed into a thriving enterprise delivering a wide range of cutting-edge solutions. Our company began humbly in January 2017, providing specialized data management services to local businesses. However, it wasn't long before word of our expertise and personalized approach spread, leading to rapid growth.</p>
-          <p>Today, we proudly serve over 50 clients across multiple industries, offering innovative capabilities in data analytics, artificial intelligence, digital collaboration tools, and large-scale digital transformation projects. This remarkable expansion has been fueled by strategic partnerships with leading technology providers, allowing us to integrate best-in-class solutions and stay at the forefront of the ever-evolving business landscape.</p>
-          <p>Our goal is to become an extension of your team, striving to be a trusted strategic partner that helps you navigate complex challenges and unlock new opportunities. Through our collaborative approach and commitment to delivering measurable results, we've become a trusted advisor to organizations seeking to harness the power of data, automation, and digital enablement. Our story is one of humble beginnings, tireless innovation, and a relentless pursuit of client success.</p>
-@if(!empty($dbErrorMessage))
-    <div class="row mb-3">
-        <div class="col-12">
-            <div class="alert alert-warning text-center" role="alert">
-                <i class="icofont-warning-alt"></i> {{ $dbErrorMessage }}
-            </div>
-        </div>
-    </div>
-@endif
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-@if(($adBanners ?? collect())->isNotEmpty())
-<section class="ad-banner-section">
-  <div class="container">
-    <div id="companyAdBannerCarousel" class="carousel slide" data-bs-ride="carousel">
-      <div class="carousel-inner">
-        @foreach($adBanners as $banner)
-          <div class="carousel-item {{ $loop->first ? 'active' : '' }}">
-            <div class="company-ad-banner" style="background: {{ $banner->background_style ?: 'linear-gradient(135deg, #2f5597 0%, #1e3a6d 100%)' }};">
-              <div class="row align-items-center g-3">
-                <div class="col-lg-8">
-                  <h3>{{ $banner->headline }}</h3>
-                  @if(!empty($banner->message))
-                    <p>{{ $banner->message }}</p>
-                  @endif
-                  @if(!empty($banner->button_label) && !empty($banner->button_url))
-                    <a href="{{ $banner->button_url }}" class="banner-cta-btn mt-3">{{ $banner->button_label }}</a>
-                  @endif
-                </div>
-                <div class="col-lg-4 text-lg-end text-center">
-                  @if(!empty($banner->image_url))
-                    <img src="{{ $banner->image_url }}" alt="Website banner image" class="banner-image">
-                  @endif
-                </div>
-              </div>
-            </div>
-          </div>
-        @endforeach
-      </div>
-      @if(($adBanners ?? collect())->count() > 1)
-        <button class="carousel-control-prev" type="button" data-bs-target="#companyAdBannerCarousel" data-bs-slide="prev">
-          <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-          <span class="visually-hidden">Previous</span>
-        </button>
-        <button class="carousel-control-next" type="button" data-bs-target="#companyAdBannerCarousel" data-bs-slide="next">
-          <span class="carousel-control-next-icon" aria-hidden="true"></span>
-          <span class="visually-hidden">Next</span>
-        </button>
-      @endif
-    </div>
-  </div>
-</section>
-@endif
-
-<!-- Start portfolio -->
-<section class="affiliation-section">
-  <div class="container">
-    <div class="row">
-      <div class="col-lg-12">
-        <div class="section-title">
-          <h2>Our Affiliations</h2>
-          <hr class="default-background">
-        </div>
-      </div>
-    </div>
-    <div class="row justify-content-center align-items-center">
-      <div class="col-md-2 col-6 mb-4 text-center">
-        <img width="180" height="180" class="img-fluid" src="{{ asset('images/affiliation/mbe.svg') }}">
-      </div>
-      <div class="col-md-2 col-6 mb-4 text-center">
-        <img width="180" height="180" class="img-fluid" src="{{ asset('images/affiliation/smb.svg') }}">
-      </div>
-      <div class="col-md-2 col-6 mb-4 text-center">
-        <img width="160" height="160" class="img-fluid" src="{{ asset('images/affiliation/affliation1.png') }}">
-      </div>
-      <div class="col-md-2 col-6 mb-4 text-center">
-        <img width="160" height="160" class="img-fluid" src="{{ asset('images/affiliation/fid.png') }}">
-      </div>
-      <div class="col-md-3 col-12 mb-4 text-center">
-        <img width="200" class="img-fluid" src="{{ asset('images/affiliation/partner.png') }}">
-      </div>
-    </div>
-  </div>
-</section>
-<!--/ End portfolio -->
-
-<section class="company-section default-background">
-  <div class="container">
-    <div class="row">
-      <div class="col-lg-12">
-        <div class="section-title">
-          <h2 class="text-light">Our Innovation Brands</h2>
-          <hr class="default-background">
-          <p style="font-size: 1.1rem;  margin-top: 15px; max-width: 800px; margin-left: auto; margin-right: auto;" class="text-light">Explore the brands and solution experiences we use to showcase cutting-edge technology in action</p>
-        </div>
-        <div class="row g-4">
-          @forelse($portfolioItems as $item)
-            <div class="col-md-6">
-              <div class="modern-card h-100">
-                <div class="d-flex align-items-start mb-4">
-                  <div class="entity-logo-wrapper me-3">
-                    @if(!empty($item->logo_url))
-                      <img src="{{ $item->logo_url }}" alt="{{ $item->title }} logo" />
-                    @else
-                      <i class="fa fa-briefcase" style="font-size: 1.75rem; color: #2f5597;"></i>
-                    @endif
-                  </div>
-                  <div>
-                    <h5 class="mb-2">{{ $item->title }}</h5>
-                    @if(!empty($item->category))
-                      <span class="badge" style="background: linear-gradient(135deg, #2f5597 0%, #1e3a6d 100%); color: #fff; padding: 5px 12px; border-radius: 20px; font-size: 0.8rem;">{{ $item->category }}</span>
-                    @endif
-                  </div>
-                </div>
-
-                @if(!empty($item->short_description))
-                  <p>{{ $item->short_description }}</p>
-                @endif
-
-                @if(!empty($item->long_description))
-                  <p>{{ $item->long_description }}</p>
-                @endif
-
-                @if(!empty($item->features))
-                  <h6 class="mt-4 mb-3" style="color: #2c3e50; font-weight: 600; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px;">Use Cases Demonstrated:</h6>
-                  <ul class="list-unstyled">
-                    @foreach($item->features as $feature)
-                      <li style="margin-bottom: 12px;"><i class="fa fa-check-circle" style="margin-right: 10px; color: #2f5597;"></i> {{ $feature }}</li>
-                    @endforeach
-                  </ul>
-                @endif
-
-                @if(!empty($item->cta_label) && !empty($item->cta_url))
-                  <a href="{{ $item->cta_url }}" class="portfolio-cta-btn">{{ $item->cta_label }}</a>
-                @endif
-              </div>
-            </div>
-          @empty
-            <div class="col-12">
-              <div class="portfolio-empty text-center">
-                Portfolio items are not yet available. Please add them in the admin Company Content page.
-              </div>
-            </div>
-          @endforelse
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- Start service -->
-<section class="values-section">
-  <div class="container">
-    <div class="row">
-      <div class="col-lg-12">
-        <div class="section-title">
-          <h2>Our Values</h2>
-          <hr class="default-background">
-        </div>
-      </div>
-    </div>
-    <div class="row justify-content-center">
-      @forelse($coreValues as $value)
-        @php
-          $titleKey = strtolower((string) ($value->title ?? ''));
-          $titleIcons = [
-              'integrity' => 'fa fa-shield',
-              'innovation' => 'fa fa-lightbulb-o',
-              'collaboration' => 'fa fa-users',
-              'accountability' => 'fa fa-check-circle',
-              'empowerment' => 'fa fa-rocket',
-              'customer centricity' => 'fa fa-heart',
-              'customer-centricity' => 'fa fa-heart',
-              'customer focus' => 'fa fa-heart',
-              'customer success' => 'fa fa-handshake-o',
-              'excellence' => 'fa fa-star',
-              'ownership' => 'fa fa-flag',
-              'trust' => 'fa fa-shield',
-              'teamwork' => 'fa fa-users',
-              'service' => 'fa fa-heart',
-          ];
-          $approvedIcons = [
-              'fa fa-shield',
-              'fa fa-lightbulb-o',
-              'fa fa-users',
-              'fa fa-handshake-o',
-              'fa fa-check-circle',
-              'fa fa-star',
-              'fa fa-rocket',
-              'fa fa-heart',
-              'fa fa-flag',
-              'fa fa-bullseye',
-              'fa fa-line-chart',
-              'fa fa-trophy',
-              'icofont-shield-alt',
-              'icofont-light-bulb',
-              'icofont-users-alt-5',
-              'icofont-handshake-deal',
-              'icofont-rocket-alt-2',
-              'icofont-star',
-          ];
-          $fallbackIcons = ['fa fa-shield', 'fa fa-lightbulb-o', 'fa fa-users', 'fa fa-check-circle', 'fa fa-rocket', 'fa fa-heart'];
-          $rawIcon = trim((string) ($value->icon ?? ''));
-          $iconClass = $fallbackIcons[$loop->index % count($fallbackIcons)];
-          $hasTitleFallback = false;
-
-          foreach ($titleIcons as $needle => $className) {
-              if (str_contains($titleKey, $needle)) {
-                  $iconClass = $className;
-                  $hasTitleFallback = true;
-                  break;
-              }
-          }
-
-          if (!$hasTitleFallback && $rawIcon !== '') {
-              $normalizedRawIcon = $rawIcon;
-
-              if (!str_contains($normalizedRawIcon, ' ')) {
-                  if (str_starts_with($normalizedRawIcon, 'fa-')) {
-                      $normalizedRawIcon = 'fa ' . $normalizedRawIcon;
-                  } elseif (!str_starts_with($normalizedRawIcon, 'icofont-')) {
-                      $normalizedRawIcon = 'icofont-' . ltrim($normalizedRawIcon, '-');
-                  }
-              }
-
-              if (in_array($normalizedRawIcon, $approvedIcons, true)) {
-                  $iconClass = $normalizedRawIcon;
-              }
-          }
-        @endphp
-        <div class="col-md-6 col-lg-4">
-          <div class="single-service">
-            <span class="value-icon-wrap" aria-hidden="true">
-              <i class="{{ $iconClass }}"></i>
-            </span>
-            <h4><a href="#">{{ $value->title }}</a></h4>
-            <p>{{ $value->body }}</p>
-          </div>
-        </div>
-      @empty
-        <div class="col-12">
-          <p class="text-center text-muted">No core values available at this time.</p>
-        </div>
-      @endforelse
-    </div>
-  </div>
-</section>
-<!--/ End service -->
 @endsection
