@@ -353,12 +353,21 @@ class CaseStudiesController extends Controller
                 ->withErrors(['access' => 'White papers are temporarily unavailable.']);
         }
 
+        $selectColumns = ['id'];
+        if (Schema::hasColumn('white_paper', 'pdf')) {
+            $selectColumns[] = 'pdf';
+        }
+        if (Schema::hasColumn('white_paper', 'pdf_url')) {
+            $selectColumns[] = 'pdf_url';
+        }
+
         $item = DB::table('white_paper')
-            ->select('id', 'pdf')
+            ->select($selectColumns)
             ->where('id', $paper)
             ->first();
 
-        if (!$item || empty($item->pdf)) {
+        $pdfValue = $item ? $this->whitePaperPdfValue($item) : '';
+        if (!$item || $pdfValue === '') {
             Log::warning('White paper secure access failed: missing record or pdf', [
                 'white_paper_id' => $paper,
             ]);
@@ -367,7 +376,6 @@ class CaseStudiesController extends Controller
                 ->withErrors(['access' => 'This file could not be located. Please request a new secure download link.']);
         }
 
-        $pdfValue = (string) $item->pdf;
         $inlinePreview = $request->boolean('preview');
         if (str_starts_with($pdfValue, 'http://') || str_starts_with($pdfValue, 'https://')) {
             return $this->downloadRemotePdf($pdfValue, 'white-paper-' . $paper . '.pdf', $inlinePreview);
@@ -1534,18 +1542,23 @@ class CaseStudiesController extends Controller
 
     private function whitePaperHasAttachment(object $paper): bool
     {
-        $column = null;
-        if (Schema::hasColumn('white_paper', 'pdf')) {
-            $column = 'pdf';
-        } elseif (Schema::hasColumn('white_paper', 'pdf_url')) {
-            $column = 'pdf_url';
+        return $this->whitePaperPdfValue($paper) !== '';
+    }
+
+    private function whitePaperPdfValue(object $paper): string
+    {
+        foreach (['pdf', 'pdf_url'] as $column) {
+            if (!Schema::hasColumn('white_paper', $column)) {
+                continue;
+            }
+
+            $value = trim((string) ($paper->{$column} ?? ''));
+            if ($value !== '') {
+                return $value;
+            }
         }
 
-        if ($column === null) {
-            return false;
-        }
-
-        return trim((string) ($paper->{$column} ?? '')) !== '';
+        return '';
     }
 
     private function whitePaperPreviewUrl(object $paper): string
