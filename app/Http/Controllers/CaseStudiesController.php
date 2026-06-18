@@ -263,7 +263,7 @@ class CaseStudiesController extends Controller
             return redirect()->to($normalized);
         }
 
-        if (!$request->hasValidSignature()) {
+        if (!$request->hasValidSignature() && !$request->hasValidRelativeSignature()) {
             return redirect()->route('case-studies.index')
                 ->withErrors(['access' => 'This download link is invalid or has expired. Please request a new one.']);
         }
@@ -343,7 +343,7 @@ class CaseStudiesController extends Controller
             return redirect()->to($normalized);
         }
 
-        if (!$request->hasValidSignature()) {
+        if (!$request->hasValidSignature() && !$request->hasValidRelativeSignature()) {
             return redirect()->route('case-studies.index')
                 ->withErrors(['access' => 'This download link is invalid or has expired. Please request a new one.']);
         }
@@ -717,7 +717,8 @@ class CaseStudiesController extends Controller
         return URL::temporarySignedRoute(
             'case-studies.access',
             now()->addMinutes(30),
-            ['caseStudy' => (int) $caseStudy->id, 'preview' => 1]
+            ['caseStudy' => (int) $caseStudy->id, 'preview' => 1],
+            false
         );
     }
 
@@ -1570,7 +1571,8 @@ class CaseStudiesController extends Controller
         return URL::temporarySignedRoute(
             'white-papers.access',
             now()->addMinutes(30),
-            ['paper' => (int) $paper->id, 'preview' => 1]
+            ['paper' => (int) $paper->id, 'preview' => 1],
+            false
         );
     }
 
@@ -2134,7 +2136,7 @@ class CaseStudiesController extends Controller
                 return [
                     'resource_title' => $resourceTitle,
                     'resource_type_label' => 'Case Study',
-                    'download_url' => URL::temporarySignedRoute('case-studies.access', $expiresAt, ['caseStudy' => $caseStudyId, 'em' => sha1($email)]),
+                    'download_url' => url(URL::temporarySignedRoute('case-studies.access', $expiresAt, ['caseStudy' => $caseStudyId, 'em' => sha1($email)], false)),
                     'expires_at' => $expiresAt->format('M d, Y h:i A T'),
                 ];
             }
@@ -2158,7 +2160,7 @@ class CaseStudiesController extends Controller
                 return [
                     'resource_title' => (string) ($record->title ?? ('White Paper #' . $whitePaperId)),
                     'resource_type_label' => 'White Paper',
-                    'download_url' => URL::temporarySignedRoute('white-papers.access', $expiresAt, ['paper' => $whitePaperId, 'em' => sha1($email)]),
+                    'download_url' => url(URL::temporarySignedRoute('white-papers.access', $expiresAt, ['paper' => $whitePaperId, 'em' => sha1($email)], false)),
                     'expires_at' => $expiresAt->format('M d, Y h:i A T'),
                 ];
             }
@@ -2173,7 +2175,7 @@ class CaseStudiesController extends Controller
                     return [
                         'resource_title' => $this->caseStudyDisplayTitle($caseStudy),
                         'resource_type_label' => 'Case Study',
-                        'download_url' => URL::temporarySignedRoute('case-studies.access', $expiresAt, ['caseStudy' => (int) $caseStudy->id, 'em' => sha1($email)]),
+                        'download_url' => url(URL::temporarySignedRoute('case-studies.access', $expiresAt, ['caseStudy' => (int) $caseStudy->id, 'em' => sha1($email)], false)),
                         'expires_at' => $expiresAt->format('M d, Y h:i A T'),
                     ];
                 }
@@ -2183,7 +2185,7 @@ class CaseStudiesController extends Controller
                     return [
                         'resource_title' => (string) ($whitePaper->title ?? 'White Paper'),
                         'resource_type_label' => 'White Paper',
-                        'download_url' => URL::temporarySignedRoute('white-papers.access', $expiresAt, ['paper' => (int) $whitePaper->id, 'em' => sha1($email)]),
+                        'download_url' => url(URL::temporarySignedRoute('white-papers.access', $expiresAt, ['paper' => (int) $whitePaper->id, 'em' => sha1($email)], false)),
                         'expires_at' => $expiresAt->format('M d, Y h:i A T'),
                     ];
                 }
@@ -2196,7 +2198,7 @@ class CaseStudiesController extends Controller
                     return [
                         'resource_title' => (string) ($resolvedPaper->title ?? $staticResource->title),
                         'resource_type_label' => 'White Paper',
-                        'download_url' => URL::temporarySignedRoute('white-papers.access', $expiresAt, ['paper' => (int) $resolvedPaper->id, 'em' => sha1($email)]),
+                        'download_url' => url(URL::temporarySignedRoute('white-papers.access', $expiresAt, ['paper' => (int) $resolvedPaper->id, 'em' => sha1($email)], false)),
                         'expires_at' => $expiresAt->format('M d, Y h:i A T'),
                     ];
                 }

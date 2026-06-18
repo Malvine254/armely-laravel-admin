@@ -417,7 +417,7 @@ class ResourceController extends Controller
             ->firstOrFail();
 
         $hasLegacySignedAccess = $request->has('expires') || ($request->has('signature') && !$request->has('access_sig'));
-        if ($hasLegacySignedAccess && !$request->hasValidSignature()) {
+        if ($hasLegacySignedAccess && !$request->hasValidSignature() && !$request->hasValidRelativeSignature()) {
             abort(403, 'This download link is invalid or has expired. Please request a new one.');
         }
 
@@ -721,15 +721,9 @@ class ResourceController extends Controller
 
         if ($pdfStyle && !empty($resource->id)) {
             $expiresAt = now()->addHour();
-            $routeParams = ['paper' => (int) $resource->id];
-            $email = AzureMailService::normalizeEmail((string) ($customer['email'] ?? ''));
-            if ($email !== '') {
-                $routeParams['em'] = sha1($email);
-            }
-
             return [
                 'resource_url' => $resourceUrl,
-                'download_url' => URL::temporarySignedRoute('white-papers.access', $expiresAt, $routeParams),
+                'download_url' => url(URL::temporarySignedRoute('resources.download', $expiresAt, ['slug' => $resource->slug], false)),
             ];
         }
 
