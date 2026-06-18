@@ -28,7 +28,7 @@ class NewsletterNotificationService
             'case-study',
             trim((string) ($caseStudy->title ?? $caseStudy->display_title ?? $caseStudy->category ?? 'New Armely case study')),
             trim((string) ($caseStudy->body ?? $caseStudy->content ?? '')),
-            $caseStudyId ? URL::temporarySignedRoute('case-studies.access', now()->addDays(7), ['caseStudy' => $caseStudyId]) : route('case-studies.index')
+            $caseStudyId ? url(URL::temporarySignedRoute('case-studies.access', now()->addDays(7), ['caseStudy' => $caseStudyId], false)) : route('case-studies.index')
         );
     }
 
@@ -39,7 +39,7 @@ class NewsletterNotificationService
             'white-paper',
             trim((string) ($whitePaper->title ?? $whitePaper->display_title ?? 'New Armely white paper')),
             trim((string) ($whitePaper->body ?? $whitePaper->content ?? '')),
-            $whitePaperId ? URL::temporarySignedRoute('white-papers.access', now()->addDays(7), ['paper' => $whitePaperId]) : route('case-studies.index')
+            $whitePaperId ? url(URL::temporarySignedRoute('white-papers.access', now()->addDays(7), ['paper' => $whitePaperId], false)) : route('case-studies.index')
         );
     }
 
