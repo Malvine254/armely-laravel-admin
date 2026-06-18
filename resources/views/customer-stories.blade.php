@@ -803,14 +803,15 @@
                     <div class="metric-label">Client satisfaction / NPS</div>
                 </div>
                 <div class="metric-card">
-                    <div class="metric-number">10 yrs</div>
+                    <div class="metric-number">{{ date('Y') - 2016 }} yrs</div>
                     <div class="metric-label">Delivery experience</div>
                 </div>
             </div>
 
             <div class="case-study-cta">
                 <p class="case-study-copy"><strong>Looking for documented project outcomes?</strong> See full case studies with problem statements, technologies used, and measured results.</p>
-                <a class="case-study-link" href="{{ route('case-studies.index') }}">View 18 Case Studies</a>
+                @php $csCount = $caseStudyCount ?? 0; @endphp
+                <a class="case-study-link" href="{{ route('case-studies.index') }}">View {{ $csCount > 0 ? $csCount . ' ' : '' }}{{ Str::plural('Case Study', $csCount) }}</a>
             </div>
         </div>
     </section>
