@@ -131,6 +131,9 @@ Route::get('/company', [HomeController::class, 'company'])->name('company.index'
 Route::get('/career', [HomeController::class, 'career'])->name('career.index');
 // Route::get('/team', [HomeController::class, 'team'])->name('team.index'); // Hidden per request
 Route::get('/customer-stories', [HomeController::class, 'customerStories'])->name('customer-stories.index');
+Route::get('/customer-stories/{story}', [HomeController::class, 'customerStoryShow'])
+    ->whereNumber('story')
+    ->name('customer-stories.show');
 Route::get('/social-impact', [HomeController::class, 'socialImpact'])->name('social-impact.index');
 Route::get('/privacy-policy', [HomeController::class, 'privacyPolicy'])->name('privacy-policy');
 // IP / Country test endpoints
