@@ -368,8 +368,9 @@ class CaseStudiesController extends Controller
         }
 
         $pdfValue = (string) $item->pdf;
+        $inlinePreview = $request->boolean('preview');
         if (str_starts_with($pdfValue, 'http://') || str_starts_with($pdfValue, 'https://')) {
-            return $this->downloadRemotePdf($pdfValue, 'white-paper-' . $paper . '.pdf');
+            return $this->downloadRemotePdf($pdfValue, 'white-paper-' . $paper . '.pdf', $inlinePreview);
         }
 
         $fileName = basename($pdfValue);
@@ -384,9 +385,13 @@ class CaseStudiesController extends Controller
 
         foreach ($candidatePaths as $path) {
             if (is_file($path)) {
-                return response()->download($path, $fileName, [
-                    'Content-Type' => 'application/pdf',
-                ]);
+                return $inlinePreview
+                    ? response()->file($path, [
+                        'Content-Type' => 'application/pdf',
+                    ])
+                    : response()->download($path, $fileName, [
+                        'Content-Type' => 'application/pdf',
+                    ]);
             }
         }
 
@@ -1552,7 +1557,7 @@ class CaseStudiesController extends Controller
         return URL::temporarySignedRoute(
             'white-papers.access',
             now()->addMinutes(30),
-            ['paper' => (int) $paper->id]
+            ['paper' => (int) $paper->id, 'preview' => 1]
         );
     }
 

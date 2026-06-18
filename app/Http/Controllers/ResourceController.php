@@ -716,8 +716,24 @@ class ResourceController extends Controller
 
     private function permanentResourceAccessLinks(Resource $resource, array $customer): array
     {
-        $assetUrl = $this->resolvePublicAssetUrl($resource);
         $resourceUrl = $this->publicResourceUrl($resource);
+        $pdfStyle = $this->isPdfStyleResource($resource);
+
+        if ($pdfStyle && !empty($resource->id)) {
+            $expiresAt = now()->addHour();
+            $routeParams = ['paper' => (int) $resource->id];
+            $email = AzureMailService::normalizeEmail((string) ($customer['email'] ?? ''));
+            if ($email !== '') {
+                $routeParams['em'] = sha1($email);
+            }
+
+            return [
+                'resource_url' => $resourceUrl,
+                'download_url' => URL::temporarySignedRoute('white-papers.access', $expiresAt, $routeParams),
+            ];
+        }
+
+        $assetUrl = $this->resolvePublicAssetUrl($resource);
 
         return [
             'resource_url' => $resourceUrl,
