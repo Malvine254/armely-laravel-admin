@@ -343,30 +343,52 @@ class ResourceController extends Controller
                 ->get();
 
             $isWhitePaper = $this->isPdfStyleResource($resource);
-            $response = response()->view('resources.show', [
+            if ($isWhitePaper) {
+                if (!$request->routeIs('whitepapers.show')) {
+                    return redirect()->route('whitepapers.show', ['slug' => $resource->slug]);
+                }
+
+                $caseStudyViewModel = $this->buildWhitePaperCaseStudyViewModel($resource);
+
+                return response()->view('case-studies.show', [
+                    'caseStudy' => $caseStudyViewModel,
+                    'relatedCaseStudies' => collect(),
+                    'recaptchaSiteKey' => config('services.recaptcha.site_key', ''),
+                    'metaDescription' => $resource->description ?: $caseStudyViewModel->preview,
+                    'isWhitePaperPage' => true,
+                    'detailRequestAction' => route('whitepapers.request', ['slug' => $resource->slug]),
+                    'detailLeadInterest' => 'white-papers',
+                    'detailLeadIdField' => null,
+                    'detailLeadIdValue' => null,
+                ]);
+            }
+
+            if ($request->routeIs('whitepapers.show')) {
+                return redirect()->route('resources.show', ['slug' => $resource->slug]);
+            }
+
+            return response()->view('resources.show', [
                 'resource' => $resource,
                 'relatedResources' => $relatedResources,
                 'isWhitePaper' => $isWhitePaper,
             ]);
-
-            if ($isWhitePaper) {
-                return response()->view('resources.white-paper-show', [
-                    'resource' => $resource,
-                    'relatedResources' => $relatedResources,
-                    'resourceInlineUrl' => route('resources.download', ['slug' => $resource->slug, 'mode' => 'inline']),
-                ]);
-            }
-
-            return $response;
         }
 
         // Backward compatibility for existing static and white-paper resource URLs.
+        if ($request->routeIs('resources.show')) {
+            return redirect()->route('whitepapers.show', ['slug' => $slug]);
+        }
+
         return app(CaseStudiesController::class)->showResource($request, $slug);
         } catch (\Throwable $e) {
             Log::warning('Resource detail query failed; falling back to static resources', [
                 'slug' => $slug,
                 'error' => $e->getMessage(),
             ]);
+
+            if ($request->routeIs('resources.show')) {
+                return redirect()->route('whitepapers.show', ['slug' => $slug]);
+            }
 
             return app(CaseStudiesController::class)->showResource($request, $slug);
         }
@@ -407,7 +429,7 @@ class ResourceController extends Controller
         $isSignedAccess = $hasLegacySignedAccess || $hasPermanentAccess;
         if (strtolower((string) ($resource->resource_type ?? '')) === 'pdf' && !$isSignedAccess) {
             return redirect()
-                ->route('resources.show', $resource->slug)
+                ->route($this->publicResourceRouteName($resource), $resource->slug)
                 ->with('resource_request_status', 'Please request full contents to access this PDF.')
                 ->withFragment('resource-request-form');
         }
@@ -415,7 +437,7 @@ class ResourceController extends Controller
         $fileUrl = trim((string) ($resource->file_url ?? ''));
         if ($fileUrl === '') {
             return redirect()
-                ->route('resources.show', $resource->slug)
+                ->route($this->publicResourceRouteName($resource), $resource->slug)
                 ->withErrors(['download' => 'No downloadable file is attached to this resource.']);
         }
 
@@ -539,7 +561,7 @@ class ResourceController extends Controller
         }
 
         return redirect()
-            ->route('resources.show', $resource->slug)
+            ->route($this->publicResourceRouteName($resource), $resource->slug)
             ->with('resource_request_status', $message)
             ->withFragment('resource-request-form');
     }
@@ -615,7 +637,7 @@ class ResourceController extends Controller
 
     private function resourceApiPayload(Resource $resource, ?array $customer = null): array
     {
-        $publicResourceUrl = route('resources.show', $resource->slug);
+        $publicResourceUrl = $this->publicResourceUrl($resource);
         $assetUrl = $this->resolvePublicAssetUrl($resource);
         $publicDownloadUrl = $assetUrl
             ?: $publicResourceUrl;
@@ -695,12 +717,77 @@ class ResourceController extends Controller
     private function permanentResourceAccessLinks(Resource $resource, array $customer): array
     {
         $assetUrl = $this->resolvePublicAssetUrl($resource);
-        $resourceUrl = route('resources.show', ['slug' => $resource->slug]);
+        $resourceUrl = $this->publicResourceUrl($resource);
 
         return [
             'resource_url' => $resourceUrl,
             'download_url' => $assetUrl ?: $resourceUrl,
         ];
+    }
+
+    private function publicResourceRouteName(Resource $resource): string
+    {
+        return $this->isPdfStyleResource($resource) ? 'whitepapers.show' : 'resources.show';
+    }
+
+    private function publicResourceUrl(Resource $resource): string
+    {
+        return route($this->publicResourceRouteName($resource), ['slug' => $resource->slug]);
+    }
+
+    private function buildWhitePaperCaseStudyViewModel(Resource $resource): object
+    {
+        $viewModel = new \stdClass();
+        $title = trim((string) ($resource->title ?? 'White Paper'));
+        $category = trim((string) ($resource->category ?? 'White Paper'));
+        $technologyLabel = $category !== '' ? $category : 'Microsoft Platform';
+        $previewSource = trim((string) ($resource->description ?? ''));
+        $previewText = $this->makePreviewText($previewSource !== '' ? $previewSource : $title, 320);
+        $paragraphs = $this->splitPreviewParagraphs($previewSource !== '' ? $previewSource : $previewText);
+
+        $viewModel->id = $resource->id;
+        $viewModel->slug = $resource->slug;
+        $viewModel->title = $title;
+        $viewModel->display_title = $title;
+        $viewModel->category = $category !== '' ? $category : 'White Paper';
+        $viewModel->technology_label = $technologyLabel;
+        $viewModel->listing_image = '';
+        $viewModel->preview = $previewText;
+        $viewModel->body = $previewSource;
+        $viewModel->pdf_preview_text = $previewText;
+        $viewModel->pdf_preview_source = $previewText !== '' ? 'PDF text' : 'PDF unavailable';
+        $viewModel->pdf_preview_sections = $previewText !== ''
+            ? [[
+                'heading' => 'Overview',
+                'paragraphs' => $paragraphs,
+            ]]
+            : [];
+        $viewModel->pdf_preview_paragraphs = $paragraphs;
+        $viewModel->outcome_tag = 'Full PDF access';
+        $viewModel->results = [
+            'Request secure access',
+            'Review the previewed first page',
+            'Download the full white paper',
+        ];
+        $viewModel->services = [$technologyLabel];
+        $viewModel->hero_copy = $previewText;
+
+        return $viewModel;
+    }
+
+    private function splitPreviewParagraphs(string $text): array
+    {
+        $cleaned = trim((string) preg_replace('/\s+/u', ' ', html_entity_decode(strip_tags($text), ENT_QUOTES | ENT_HTML5, 'UTF-8')));
+        if ($cleaned === '') {
+            return [];
+        }
+
+        $parts = preg_split('/(?<=[.!?])\s+/', $cleaned) ?: [];
+        $parts = array_values(array_filter(array_map(static function ($part) {
+            return trim((string) $part);
+        }, $parts)));
+
+        return array_slice($parts, 0, 5);
     }
 
     private function resolvePublicAssetUrl(Resource $resource): ?string
