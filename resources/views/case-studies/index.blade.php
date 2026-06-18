@@ -838,7 +838,7 @@
 							<div class="cs-card-footer">
 								<div class="cs-card-ctas">
 									<a class="read-more-btn cs-btn-full text-light white-paper-gated-link"
-									   href="{{ route('resources.show', $paper->slug) }}"
+									   href="{{ route('whitepapers.show', $paper->slug) }}"
 									   data-white-paper-id="{{ $paper->id }}"
 									   data-resource-type="white-paper"
 									   data-resource-title="{{ $whitePaperFullTitle }}">
@@ -1126,15 +1126,6 @@
 	document.querySelectorAll('.case-study-gated-link').forEach(function (link) {
 		link.removeAttribute('data-case-study-id');
 		link.removeAttribute('data-resource-title');
-	});
-
-	document.querySelectorAll('.white-paper-gated-link').forEach(function (link) {
-		link.addEventListener('click', function (event) {
-			var whitePaperId = link.getAttribute('data-white-paper-id') || '';
-
-			event.preventDefault();
-			openModal('white-paper', whitePaperId, link.getAttribute('data-resource-title') || 'White Paper');
-		});
 	});
 
 	if (closeBtn) {

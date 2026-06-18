@@ -1,18 +1,31 @@
 @extends('layouts.public')
 
-@section('title', $caseStudy->display_title . ' Case Study | ' . ($caseStudy->technology_label ?? 'Microsoft Platform') . ' | Armely')
+@php($isWhitePaperPage = !empty($isWhitePaperPage))
+@php($detailKindLabel = $isWhitePaperPage ? 'White Paper' : 'Case Study')
+@php($detailPluralLabel = $isWhitePaperPage ? 'White Papers' : 'Case Studies')
+@php($detailPrimaryActionLabel = $isWhitePaperPage ? 'Download full white paper' : 'Download full case study')
+@php($detailPreviewActionLabel = $isWhitePaperPage ? 'Request full white paper' : 'Request full case study')
+@php($detailModalTitle = $isWhitePaperPage ? 'Download Full White Paper' : 'Download Full Case Study')
+@php($detailModalSubmitLabel = $isWhitePaperPage ? 'Email White Paper Link' : 'Email Download Link')
+@php($detailModalCopy = 'Complete the form and we will email your secure download link. No phone number required.')
+@php($detailRequestAction = $detailRequestAction ?? ($isWhitePaperPage ? route('whitepapers.request', $caseStudy->slug) : route('case-studies.lead.submit')))
+@php($detailLeadInterest = $detailLeadInterest ?? ($isWhitePaperPage ? 'white-papers' : 'case-studies'))
+@php($detailLeadIdField = $detailLeadIdField ?? 'case_study_id')
+@php($detailLeadIdValue = $detailLeadIdValue ?? $caseStudy->id)
+
+@section('title', $caseStudy->display_title . ' ' . $detailKindLabel . ' | ' . ($caseStudy->technology_label ?? 'Microsoft Platform') . ' | Armely')
 @section('meta_description', $metaDescription)
 
 @push('head')
 <meta property="og:type" content="article">
-<meta property="og:title" content="{{ $caseStudy->display_title }} Case Study | {{ $caseStudy->technology_label ?? 'Microsoft Platform' }} | Armely">
+<meta property="og:title" content="{{ $caseStudy->display_title }} {{ $detailKindLabel }} | {{ $caseStudy->technology_label ?? 'Microsoft Platform' }} | Armely">
 <meta property="og:description" content="{{ $metaDescription }}">
 <meta property="og:url" content="{{ request()->url() }}">
 @if(!empty($caseStudy->listing_image) && file_exists(public_path('images/case-study/' . $caseStudy->listing_image)))
 <meta property="og:image" content="{{ asset('images/case-study/' . $caseStudy->listing_image) }}">
 @endif
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="{{ $caseStudy->display_title }} Case Study | {{ $caseStudy->technology_label ?? 'Microsoft Platform' }} | Armely">
+<meta name="twitter:title" content="{{ $caseStudy->display_title }} {{ $detailKindLabel }} | {{ $caseStudy->technology_label ?? 'Microsoft Platform' }} | Armely">
 <meta name="twitter:description" content="{{ $metaDescription }}">
 @if(!empty($caseStudy->listing_image) && file_exists(public_path('images/case-study/' . $caseStudy->listing_image)))
 <meta name="twitter:image" content="{{ asset('images/case-study/' . $caseStudy->listing_image) }}">
@@ -181,60 +194,6 @@
 }
 .case-preview-card { padding: 28px; }
 .case-preview-side { padding: 22px; }
-.case-preview-kicker {
-	display: inline-flex;
-	align-items: center;
-	gap: 8px;
-	text-transform: uppercase;
-	letter-spacing: .1em;
-	font-size: .75rem;
-	font-weight: 900;
-	color: var(--case-blue);
-	margin-bottom: 10px;
-}
-.case-preview-head {
-	display: flex;
-	align-items: flex-start;
-	justify-content: space-between;
-	gap: 18px;
-	margin-bottom: 20px;
-}
-.case-preview-head h2 {
-	color: var(--case-ink);
-	font-size: 1.55rem;
-	line-height: 1.2;
-	font-weight: 900;
-	margin: 0 0 8px;
-}
-.case-preview-head p {
-	color: #46586f;
-	line-height: 1.7;
-	margin: 0;
-	max-width: 62ch;
-}
-.case-preview-pills {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 8px;
-	justify-content: flex-end;
-}
-.case-preview-pill {
-	display: inline-flex;
-	align-items: center;
-	min-height: 28px;
-	padding: 4px 10px;
-	border-radius: 999px;
-	background: #f7faff;
-	color: var(--case-navy);
-	font-size: .7rem;
-	font-weight: 900;
-	letter-spacing: .08em;
-	text-transform: uppercase;
-}
-.case-preview-pill.is-muted {
-	background: #fff;
-	color: #5d6f86;
-}
 .case-pdf-stage {
 	position: relative;
 	overflow: hidden;
@@ -259,26 +218,6 @@
 	background: linear-gradient(180deg, #ffffff 0%, #f7faff 100%);
 	box-shadow: none;
 	padding: 28px;
-}
-.case-pdf-page-top {
-	display: flex;
-	align-items: flex-start;
-	justify-content: space-between;
-	gap: 18px;
-	flex-wrap: wrap;
-	margin-bottom: 22px;
-	padding-bottom: 18px;
-}
-.case-pdf-page-kicker {
-	display: inline-flex;
-	align-items: center;
-	gap: 8px;
-	color: var(--case-blue);
-	font-weight: 900;
-	text-transform: uppercase;
-	letter-spacing: .1em;
-	font-size: .74rem;
-	margin-bottom: 10px;
 }
 .case-pdf-page-title {
 	color: var(--case-ink);
@@ -1045,14 +984,14 @@
 <main class="case-detail-page">
 	<section class="case-detail-hero">
 		<div class="container">
-			<a class="case-back-link text-light" href="{{ route('case-studies.index') }}"><i class="fa fa-arrow-left"></i> Back to case studies</a>
+			<a class="case-back-link text-light" href="{{ $isWhitePaperPage ? route('case-studies.index') . '#white-papers' : route('case-studies.index') }}"><i class="fa fa-arrow-left"></i> Back to {{ $detailPluralLabel }}</a>
 			<div class="case-hero-layout">
 				<div>
-					<div class="case-detail-eyebrow">{{ $caseStudy->category ?? 'Case Study' }}</div>
+					<div class="case-detail-eyebrow">{{ $caseStudy->category ?? $detailKindLabel }}</div>
 					<h1 class="case-detail-title">{{ $caseStudy->display_title }}</h1>
 					<p class="case-detail-summary text-light">{{ $caseStudy->preview }}</p>
 					<div class="case-hero-actions">
-						<button type="button" class="case-primary-btn" id="openCaseDownloadModal"><i class="fa fa-file-arrow-down"></i> Download full case study</button>
+						<button type="button" class="case-primary-btn" id="openCaseDownloadModal"><i class="fa fa-file-arrow-down"></i> {{ $detailPrimaryActionLabel }}</button>
 						<button type="button" class="case-secondary-btn" id="shareNativeBtnHero"><i class="fa fa-share-alt"></i> Share</button>
 					</div>
 					<div class="case-share-toast" id="caseShareToast" aria-live="polite"></div>
@@ -1062,45 +1001,18 @@
 	</section>
 
 	<section class="case-preview-band">
-		<div class="container">
+	<div class="container">
 			<div class="case-preview-shell">
 				<div class="case-preview-card">
-					<div class="case-preview-kicker"><i class="fa fa-file-pdf-o"></i> Document preview</div>
-					<div class="case-preview-head">
-						<div>
-							<h2>First page preview</h2>
-							<p>
-								@if(($caseStudy->pdf_preview_source ?? '') === 'PDF text')
-									The page below is formatted from the first page of the PDF file so the section titles stay visible. Request the full case study to receive the complete PDF and any remaining pages.
-								@else
-									We could not extract readable text from the PDF file for this case study. Request the full case study to receive the complete PDF and any remaining pages.
-								@endif
-							</p>
-						</div>
-						<div class="case-preview-pills" aria-label="Preview status">
-							<span class="case-preview-pill">Page 1 shown</span>
-							<span class="case-preview-pill is-muted">{{ $caseStudy->pdf_preview_source ?? 'PDF text' }}</span>
-						</div>
-					</div>
-
 					<div class="case-pdf-stage">
 						<div class="case-pdf-stage-inner">
 							@if(!empty($caseStudy->pdf_preview_text))
-								<div class="case-pdf-page" aria-label="Case study page one text preview">
-									<div class="case-pdf-page-top">
-										<div>
-											<div class="case-pdf-page-kicker"><i class="fa fa-file-pdf-o"></i> Document preview</div>
-											<h3 class="case-pdf-page-title">{{ $caseStudy->display_title }}</h3>
-										</div>
-										<div class="case-preview-pills" aria-label="Preview status">
-											<span class="case-preview-pill">Page 1</span>
-											<span class="case-preview-pill is-muted">{{ $caseStudy->pdf_preview_source ?? 'PDF text' }}</span>
-										</div>
-									</div>
+								<div class="case-pdf-page" aria-label="{{ $detailKindLabel }} page one text preview">
+									<h3 class="case-pdf-page-title">{{ $caseStudy->display_title }}</h3>
 									<div class="case-pdf-page-body">
 										<div class="case-pdf-page-copy">
 											<div class="case-pdf-preview-meta" aria-label="Preview metadata">
-												<span class="case-pdf-meta-chip">{{ $caseStudy->category ?? 'Case Study' }}</span>
+												<span class="case-pdf-meta-chip">{{ $caseStudy->category ?? $detailKindLabel }}</span>
 												<span class="case-pdf-meta-chip is-muted">{{ $caseStudy->technology_label ?? 'Microsoft Platform' }}</span>
 												<span class="case-pdf-meta-chip is-muted">{{ $caseStudyOutcomeLabel !== '' ? $caseStudyOutcomeLabel : 'Measurable business outcome' }}</span>
 											</div>
@@ -1134,17 +1046,17 @@
 									</div>
 									<div class="case-pdf-request">
 										<div>
-											<strong>Need the full case study?</strong>
+											<strong>Need the full {{ strtolower($detailKindLabel) }}?</strong>
 											<span>Request secure access for the complete PDF and any remaining pages.</span>
 										</div>
-										<button type="button" class="case-primary-btn" id="openCaseDownloadModalPreviewInline">Request full case study</button>
+										<button type="button" class="case-primary-btn" id="openCaseDownloadModalPreviewInline">{{ $detailPreviewActionLabel }}</button>
 									</div>
 								</div>
 							@else
-								<div class="case-pdf-empty" aria-label="Case study preview">
+								<div class="case-pdf-empty" aria-label="{{ $detailKindLabel }} preview">
 									<div>
 										<strong>First page text is unavailable</strong>
-										<div>We could not extract readable text from the PDF file for this case study.</div>
+										<div>We could not extract readable text from the PDF file for this {{ strtolower($detailKindLabel) }}.</div>
 									</div>
 								</div>
 							@endif
@@ -1152,7 +1064,7 @@
 					</div>
 					<div class="case-preview-footer">
 						<p>Need the full document? Request a secure download link and we will email it to your work address.</p>
-						<button type="button" class="case-primary-btn" id="openCaseDownloadModalPreview"><i class="fa fa-file-arrow-down"></i> Request full case study</button>
+						<button type="button" class="case-primary-btn" id="openCaseDownloadModalPreview"><i class="fa fa-file-arrow-down"></i> {{ $detailPreviewActionLabel }}</button>
 					</div>
 				</div>
 			</div>
@@ -1163,13 +1075,15 @@
 <div class="case-modal" id="caseDownloadModal" aria-hidden="true" role="dialog" aria-labelledby="caseDownloadModalTitle">
 	<div class="case-modal-dialog">
 		<button type="button" class="case-modal-close" id="closeCaseDownloadModal" aria-label="Close">&times;</button>
-		<h2 class="case-modal-title" id="caseDownloadModalTitle">Download Full Case Study</h2>
-		<p class="case-modal-copy">Complete the form and we will email your secure download link. No phone number required.</p>
+		<h2 class="case-modal-title" id="caseDownloadModalTitle">{{ $detailModalTitle }}</h2>
+		<p class="case-modal-copy">{{ $detailModalCopy }}</p>
 
-		<form class="form lead-form" id="caseLeadForm" method="post" action="{{ route('case-studies.lead.submit') }}">
+		<form class="form lead-form" id="caseLeadForm" method="post" action="{{ $detailRequestAction }}">
 			@csrf
-			<input type="hidden" name="interest" value="case-studies">
-			<input type="hidden" name="case_study_id" value="{{ $caseStudy->id }}">
+			<input type="hidden" name="interest" value="{{ $detailLeadInterest }}">
+			@if(!empty($detailLeadIdField) && !empty($detailLeadIdValue))
+				<input type="hidden" name="{{ $detailLeadIdField }}" value="{{ $detailLeadIdValue }}">
+			@endif
 			<input type="hidden" name="requested_resource" value="{{ $caseStudy->display_title }}">
 			<input style="display:none;" type="text" name="website" class="honeypot">
 
@@ -1206,9 +1120,9 @@
 			<button class="btn default-background text-light" id="caseLeadSubmitBtn" type="submit">
 				<span class="btn-content">
 					<span class="btn-loader" aria-hidden="true"></span>
-					<span id="caseLeadSubmitText">Email Download Link</span>
-				</span>
-			</button>
+				<span id="caseLeadSubmitText">{{ $detailModalSubmitLabel }}</span>
+			</span>
+		</button>
 			<div class="case-form-status" id="caseFormStatus" aria-live="polite"></div>
 			<div class="case-direct-download" id="caseDirectDownload" aria-live="polite"></div>
 			<p class="case-form-note">We will send a secure download link to your work email. The link expires in 1 hour.</p>
@@ -1220,7 +1134,7 @@
 <script>
 (function () {
 	var shareUrl = @json(request()->url());
-	var shareTitle = @json($caseStudy->display_title . ' Case Study | Armely');
+			var shareTitle = @json($caseStudy->display_title . ' ' . $detailKindLabel . ' | Armely');
 	var shareText = @json($metaDescription);
 
 	var nativeHeroBtn = document.getElementById('shareNativeBtnHero');
