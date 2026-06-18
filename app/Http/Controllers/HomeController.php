@@ -265,13 +265,41 @@ class HomeController extends Controller
         $dbErrorMessage = null;
         $testimonials = $this->safeDb(function () {
             return DB::table('customer_stories')
-                ->select('id', 'name', 'position', 'body_content', 'profile')
+                ->select('id', 'name', 'position', 'body_content', 'profile', 'created_at')
                 ->orderBy('id', 'desc')
                 ->get();
         }, $dbErrorMessage);
 
         return view('customer-stories', [
             'testimonials' => $testimonials,
+            'dbErrorMessage' => $dbErrorMessage,
+        ]);
+    }
+
+    public function customerStoryShow(int $story)
+    {
+        $dbErrorMessage = null;
+        $testimonial = $this->safeDb(function () use ($story) {
+            return DB::table('customer_stories')
+                ->select('id', 'name', 'position', 'body_content', 'profile', 'created_at')
+                ->where('id', $story)
+                ->first();
+        }, $dbErrorMessage);
+
+        abort_unless($testimonial, 404);
+
+        $relatedStories = $this->safeDb(function () use ($story) {
+            return DB::table('customer_stories')
+                ->select('id', 'name', 'position', 'body_content', 'profile', 'created_at')
+                ->where('id', '!=', $story)
+                ->orderBy('id', 'desc')
+                ->limit(3)
+                ->get();
+        }, $dbErrorMessage);
+
+        return view('customer-story', [
+            'testimonial' => $testimonial,
+            'relatedStories' => $relatedStories,
             'dbErrorMessage' => $dbErrorMessage,
         ]);
     }
