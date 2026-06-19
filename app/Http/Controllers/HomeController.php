@@ -274,7 +274,7 @@ class HomeController extends Controller
         $dbErrorMessage = null;
         $testimonials = $this->safeDb(function () {
             return DB::table('customer_stories')
-                ->select('id', 'name', 'position', 'body_content', 'profile', 'created_at')
+                ->select('id', 'name', 'position', 'company', 'pdf_url', 'body_content', 'profile', 'created_at')
                 ->orderBy('id', 'desc')
                 ->get();
         }, $dbErrorMessage);
@@ -299,7 +299,7 @@ class HomeController extends Controller
         $dbErrorMessage = null;
         $testimonial = $this->safeDb(function () use ($story) {
             return DB::table('customer_stories')
-                ->select('id', 'name', 'position', 'body_content', 'profile', 'created_at')
+                ->select('id', 'name', 'position', 'company', 'pdf_url', 'body_content', 'profile', 'created_at')
                 ->where('id', $story)
                 ->first();
         }, $dbErrorMessage);
@@ -308,7 +308,7 @@ class HomeController extends Controller
 
         $relatedStories = $this->safeDb(function () use ($story) {
             return DB::table('customer_stories')
-                ->select('id', 'name', 'position', 'body_content', 'profile', 'created_at')
+                ->select('id', 'name', 'position', 'company', 'pdf_url', 'body_content', 'profile', 'created_at')
                 ->where('id', '!=', $story)
                 ->orderBy('id', 'desc')
                 ->limit(3)

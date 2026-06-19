@@ -5,6 +5,10 @@
 
     $name = trim((string) ($testimonial->name ?? 'Customer Story'));
     $role = trim((string) ($testimonial->position ?? 'Armely customer'));
+    $companyName = trim((string) ($testimonial->company ?? ''));
+    if ($companyName !== '') {
+        $role = $role !== '' ? $role . ', ' . $companyName : $companyName;
+    }
     $body = trim((string) ($testimonial->body_content ?? ''));
     $plainBody = trim(preg_replace('/\s+/', ' ', strip_tags($body)));
     $metaDescription = $plainBody !== ''
@@ -359,7 +363,7 @@
                         @foreach($relatedStories as $related)
                             <article class="related-card">
                                 <div class="related-name">{{ $related->name ?? 'Customer Story' }}</div>
-                                <div class="related-role">{{ $related->position ?? 'Armely customer' }}</div>
+                                <div class="related-role">{{ trim(($related->position ?? '') . (!empty($related->company) ? ', ' . $related->company : '')) ?: 'Armely customer' }}</div>
                                 <a class="related-link" href="{{ route('customer-stories.show', $related->id) }}">Read review</a>
                             </article>
                         @endforeach

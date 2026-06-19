@@ -764,7 +764,8 @@
                             <thead>
                                 <tr>
                                     <th>Name</th>
-                                    <th>Position</th>
+                                    <th>Job Title</th>
+                                    <th>Company</th>
                                     <th width="200">Actions</th>
                                 </tr>
                             </thead>
@@ -773,6 +774,7 @@
                                 <tr data-id="{{ $story->id }}">
                                     <td>{{ $story->name ?? 'N/A' }}</td>
                                     <td>{{ $story->position ?? 'N/A' }}</td>
+                                    <td>{{ $story->company ?? '—' }}</td>
                                     <td>
                                         <button class="btn btn-sm btn-info view-story" data-story='@json($story)' title="View">
                                             <i class="fas fa-eye"></i>
@@ -1447,7 +1449,7 @@
             <div class="modal-body">
                 <h4 id="viewStoryName"></h4>
                 <p class="text-muted">
-                    <small><span id="viewStoryPosition"></span></small>
+                    <small><span id="viewStoryPosition"></span><span id="viewStoryCompany"></span></small>
                 </p>
                 <hr>
                 <div id="viewStoryContent"></div>
@@ -1592,18 +1594,27 @@
                 <form id="storyForm">
                     <input type="hidden" id="storyId" name="id">
                     <div class="row">
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4 mb-3">
                             <label class="form-label">Name *</label>
                             <input type="text" class="form-control" id="storyName" name="name" required>
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Position *</label>
-                            <input type="text" class="form-control" id="storyPosition" name="position" required>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Job Title *</label>
+                            <input type="text" class="form-control" id="storyPosition" name="position" required placeholder="e.g. IT Manager">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Company</label>
+                            <input type="text" class="form-control" id="storyCompany" name="company" placeholder="e.g. KCG, Inc.">
                         </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Story Content *</label>
                         <textarea class="form-control" id="storyBody" name="body_content" rows="10"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Full Review PDF</label>
+                        <input type="text" class="form-control" id="storyPdfUrl" name="pdf_url" placeholder="e.g. 1779808320_specifications.pdf or https://...">
+                        <small class="text-muted">Case study document for the "Get full review" link. Enter a file in public/case_docs or a full URL. Leave blank for none.</small>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Profile Image</label>
@@ -2186,6 +2197,7 @@ $(document).ready(function() {
                         const row = `<tr data-id="${story.id}">
                             <td>${story.name || ''}</td>
                             <td>${story.position || ''}</td>
+                            <td>${story.company || '—'}</td>
                             <td>${btns}</td>
                         </tr>`;
                         tbody.append(row);
@@ -2575,6 +2587,7 @@ $(document).ready(function() {
         const story = $(this).data('story');
         $('#viewStoryName').text(story.name || '');
         $('#viewStoryPosition').text(story.position || '');
+        $('#viewStoryCompany').text(story.company ? ' — ' + story.company : '');
         $('#viewStoryContent').html(story.body_content || story.content || '');
         $('#viewStoryModal').modal('show');
     });
@@ -2881,6 +2894,8 @@ $(document).ready(function() {
         $('#storyId').val(story.id);
         $('#storyName').val(story.name || '');
         $('#storyPosition').val(story.position || '');
+        $('#storyCompany').val(story.company || '');
+        $('#storyPdfUrl').val(story.pdf_url || '');
         
         // Initialize CKEditor if not already
         if (!storyEditor) {
@@ -2917,6 +2932,8 @@ $(document).ready(function() {
         }
         formData.append('name', $('#storyName').val());
         formData.append('position', $('#storyPosition').val());
+        formData.append('company', $('#storyCompany').val());
+        formData.append('pdf_url', $('#storyPdfUrl').val());
         formData.append('body_content', storyEditor ? storyEditor.getData() : '');
         
         const imageFile = $('#storyImage')[0].files[0];
