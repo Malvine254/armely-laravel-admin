@@ -4,7 +4,8 @@
       "Bash(grep -E \"\\\\.\\(php|js\\)$\")",
       "Bash(xargs ls *)",
       "Bash(pip install *)",
-      "Bash(python -c ' *)"
+      "Bash(python -c ' *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://127.0.0.1:8001/career)"
     ]
   }
 }
