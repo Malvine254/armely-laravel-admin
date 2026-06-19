@@ -12,7 +12,10 @@
 	$detailLeadIdField = $detailLeadIdField ?? 'case_study_id';
 	$detailLeadIdValue = $detailLeadIdValue ?? ($caseStudy->id ?? null);
 	$metaDescription = $metaDescription ?? '';
-	$caseOnePagerPreviewUrl = !empty($caseStudy->preview_source_url) && $caseStudy->preview_source_url !== ($caseStudy->pdf_preview_url ?? '') ? $caseStudy->preview_source_url : '';
+	$caseOnePagerPreviewUrl = trim((string) ($caseStudy->preview_source_url ?? ''));
+	if ($caseOnePagerPreviewUrl === '') {
+		$caseOnePagerPreviewUrl = trim((string) ($caseStudy->pdf_preview_url ?? ''));
+	}
 @endphp
 
 @extends('layouts.public')
