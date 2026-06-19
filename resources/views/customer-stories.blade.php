@@ -768,7 +768,7 @@
                                 <span aria-hidden="true">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
                             </div>
                             <p class="review-copy">
-                                <span class="review-copy-text" data-short="{{ $preview }}" data-full="{{ $fullText }}">{{ $preview }}</span>@if($pdfLink !== '')&nbsp;<a class="review-pdf-link" href="{{ $pdfLink }}" target="_blank" rel="noopener">Get full review&nbsp;<span aria-hidden="true">&rarr;</span></a>@endif
+                                <span class="review-copy-text" data-short="{{ $preview }}" data-full="{{ $fullText }}">{{ $preview }}</span>@if($pdfLink !== '')<span class="review-pdf-wrap" data-review-pdf @if($isTruncated)style="display:none;"@endif> <a class="review-pdf-link" href="{{ $pdfLink }}" target="_blank" rel="noopener">Get full review&nbsp;<span aria-hidden="true">&rarr;</span></a></span>@endif
                                 @if($isTruncated)
                                     <button type="button" class="review-toggle" data-review-toggle aria-expanded="false">Read full review <span aria-hidden="true">&rarr;</span></button>
                                 @endif
@@ -926,6 +926,7 @@
         btn.addEventListener('click', function () {
             var copy = btn.closest('.review-copy');
             var text = copy ? copy.querySelector('.review-copy-text') : null;
+            var pdf = copy ? copy.querySelector('[data-review-pdf]') : null;
             if (!text) {
                 return;
             }
@@ -936,10 +937,16 @@
                 text.textContent = text.dataset.short;
                 btn.setAttribute('aria-expanded', 'false');
                 btn.innerHTML = 'Read full review <span aria-hidden="true">&rarr;</span>';
+                if (pdf) {
+                    pdf.style.display = 'none';
+                }
             } else {
                 text.textContent = text.dataset.full;
                 btn.setAttribute('aria-expanded', 'true');
                 btn.innerHTML = 'Show less <span aria-hidden="true">&uarr;</span>';
+                if (pdf) {
+                    pdf.style.display = '';
+                }
             }
         });
     });
