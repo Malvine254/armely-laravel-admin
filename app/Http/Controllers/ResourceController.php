@@ -342,6 +342,13 @@ class ResourceController extends Controller
                 ->limit(3)
                 ->get();
 
+            $resourceAssetUrl = $this->resolvePublicAssetUrl($resource);
+            $resourceInlineUrl = $resourceAssetUrl ?: url(URL::temporarySignedRoute(
+                'resources.download',
+                now()->addHour(),
+                ['slug' => $resource->slug, 'mode' => 'inline'],
+                false
+            ));
             $isWhitePaper = $this->isPdfStyleResource($resource);
             if ($isWhitePaper) {
                 if (!$request->routeIs('whitepapers.show') && !$request->routeIs('white-papers.view')) {
@@ -352,6 +359,8 @@ class ResourceController extends Controller
                     'resource' => $resource,
                     'relatedResources' => $relatedResources,
                     'metaDescription' => $resource->description ?: 'Armely white papers and leadership guidance for Microsoft platform planning.',
+                    'resourceAssetUrl' => $resourceAssetUrl,
+                    'resourceInlineUrl' => $resourceInlineUrl,
                 ]);
             }
 
@@ -394,7 +403,17 @@ class ResourceController extends Controller
         }
 
         $fileUrl = strtolower((string) ($resource->file_url ?? ''));
-        return str_contains($fileUrl, '.pdf');
+        if (str_contains($fileUrl, '.pdf')) {
+            return true;
+        }
+
+        $filePath = strtolower((string) ($resource->file_path ?? ''));
+        if (str_contains($filePath, '.pdf')) {
+            return true;
+        }
+
+        $assetUrl = strtolower((string) (trim((string) $this->resolvePublicAssetUrl($resource)) ?? ''));
+        return $assetUrl !== '' && str_contains($assetUrl, '.pdf');
     }
 
     public function download(Request $request, string $slug): RedirectResponse|SymfonyResponse

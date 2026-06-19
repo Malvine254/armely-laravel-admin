@@ -403,6 +403,8 @@
 	$resourceTitle = trim((string) ($resource->title ?? 'White Paper'));
 	$resourceDescription = trim((string) ($resource->description ?? ''));
 	$resourceCategory = trim((string) ($resource->category ?? 'White Papers'));
+	$resourceAssetUrl = trim((string) ($resourceAssetUrl ?? ''));
+	$resourceInlineUrl = trim((string) ($resourceInlineUrl ?? ''));
 	$resourcePreviewSource = trim((string) ($resource->preview ?? ''));
 	if ($resourcePreviewSource === '') {
 		$resourcePreviewSource = $resourceDescription;
@@ -413,8 +415,10 @@
 	$resourcePreviewText = $resourcePreviewSource !== ''
 		? \Illuminate\Support\Str::limit(preg_replace('/\s+/', ' ', strip_tags($resourcePreviewSource)), 520)
 		: '';
-	$resourceInlineUrl = $resourceInlineUrl ?? \Illuminate\Support\Facades\URL::temporarySignedRoute('white-papers.access', now()->addMinutes(30), ['paper' => (int) $resource->id, 'preview' => 1]);
-	$isPdfPreview = str_contains(strtolower((string) ($resource->file_url ?? '')), '.pdf') || strtolower((string) ($resource->resource_type ?? '')) === 'pdf';
+	if ($resourceInlineUrl === '' && $resourceAssetUrl !== '') {
+		$resourceInlineUrl = $resourceAssetUrl;
+	}
+	$isPdfPreview = str_contains(strtolower((string) ($resourceAssetUrl ?: $resource->file_url ?: '')), '.pdf') || strtolower((string) ($resource->resource_type ?? '')) === 'pdf';
 @endphp
 
 <main class="white-paper-page">
@@ -469,18 +473,8 @@
 									</div>
 								</div>
 								<div class="white-paper-pdf-body">
-									@if($resource->file_url)
-										@if($isPdfPreview)
-											<iframe src="{{ $resourceInlineUrl }}#view=FitH" title="{{ $resourceTitle }}" style="width:100%; min-height:520px; border:0; display:block;"></iframe>
-										@else
-											<div class="white-paper-text-preview">
-												<div class="white-paper-preview-kicker"><i class="fa fa-file-text-o"></i> White paper preview</div>
-												<div class="white-paper-text-preview-title">{{ $resourceTitle }}</div>
-												<div class="white-paper-text-preview-body">
-													{!! nl2br(e($resourcePreviewText !== '' ? $resourcePreviewText : ($resourceDescription ?: 'This white paper is available by request.'))) !!}
-												</div>
-											</div>
-										@endif
+									@if($resourceInlineUrl !== '' && $isPdfPreview)
+										<iframe src="{{ $resourceInlineUrl }}#view=FitH" title="{{ $resourceTitle }}" style="width:100%; min-height:520px; border:0; display:block;"></iframe>
 									@else
 										<div class="white-paper-text-preview">
 											<div class="white-paper-preview-kicker"><i class="fa fa-file-text-o"></i> White paper preview</div>
@@ -492,7 +486,7 @@
 									@endif
 								</div>
 								<div class="white-paper-pdf-preview-note">
-									@if($resource->file_url && $isPdfPreview)
+									@if($resourceInlineUrl !== '' && $isPdfPreview)
 										This preview comes from the file itself. Request the full white paper for secure access to the complete download.
 									@else
 										This preview is generated from the white paper content. Request the full white paper for secure access to the complete download.
