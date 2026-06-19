@@ -12,6 +12,11 @@
 	$detailLeadIdField = $detailLeadIdField ?? 'case_study_id';
 	$detailLeadIdValue = $detailLeadIdValue ?? ($caseStudy->id ?? null);
 	$metaDescription = $metaDescription ?? '';
+	$casePreviewSectionTitle = $isWhitePaperPage ? 'White Paper Preview' : 'One-Page Summary';
+	$casePreviewSectionDescription = $isWhitePaperPage
+		? 'Preview the white paper document before requesting the full file.'
+		: 'Preview the one-page summary for a quick overview of the project, outcomes, and solution.';
+	$casePreviewOpenLabel = $isWhitePaperPage ? 'Open White Paper' : 'Open One-Pager';
 	$caseOnePagerPreviewUrl = trim((string) ($caseStudy->preview_source_url ?? ''));
 	if ($caseOnePagerPreviewUrl === '') {
 		$caseOnePagerPreviewUrl = trim((string) ($caseStudy->pdf_preview_url ?? ''));
@@ -1301,42 +1306,42 @@ textarea.lead-field {
 		</div>
 	</section>
 
-	@if(!($isWhitePaperPage ?? false))
-		@if(!empty($caseOnePagerPreviewUrl))
-			<section class="case-preview-band">
-				<div class="container">
-					<div class="case-preview-shell case-full-case-study">
-						<div class="case-full-case-study-card" aria-label="One-Page Summary preview">
-							<div class="case-full-case-study-viewer">
-								<iframe
-									class="case-pdf-iframe"
-									src="{{ $caseOnePagerPreviewUrl }}#page=1&zoom=115&toolbar=0&navpanes=0&scrollbar=0"
-									title="One-Page Summary preview of {{ $caseStudy->display_title }}"
-									loading="lazy"
-									referrerpolicy="no-referrer"
-								></iframe>
+	@if(!empty($caseOnePagerPreviewUrl))
+		<section class="case-preview-band">
+			<div class="container">
+				<div class="case-preview-shell case-full-case-study">
+					<div class="case-full-case-study-card" aria-label="{{ $casePreviewSectionTitle }} preview">
+						<div class="case-full-case-study-viewer">
+							<iframe
+								class="case-pdf-iframe"
+								src="{{ $caseOnePagerPreviewUrl }}#page=1&zoom=115&toolbar=0&navpanes=0&scrollbar=0"
+								title="{{ $casePreviewSectionTitle }} of {{ $caseStudy->display_title }}"
+								loading="lazy"
+								referrerpolicy="no-referrer"
+							></iframe>
+						</div>
+						<div class="case-full-case-study-mobile">
+							<div>
+								<strong>{{ $casePreviewSectionTitle }}</strong>
+								<p>{{ $casePreviewSectionDescription }} Open it in a new tab on mobile.</p>
 							</div>
-							<div class="case-full-case-study-mobile">
-								<div>
-									<strong>One-Page Summary</strong>
-									<p>Preview the summary below or open it in a new tab on mobile.</p>
-								</div>
-								<div class="case-full-case-study-mobile-actions">
-									<a class="case-summary-download-link" href="{{ $caseOnePagerPreviewUrl }}" target="_blank" rel="noopener">
-										<i class="fa fa-up-right-from-square"></i> Open One-Pager
-									</a>
-									<button type="button" class="case-primary-btn" data-open-case-modal>
-										<i class="fa fa-file-arrow-down"></i> Request Full Case Study
-									</button>
-								</div>
+							<div class="case-full-case-study-mobile-actions">
+								<a class="case-summary-download-link" href="{{ $caseOnePagerPreviewUrl }}" target="_blank" rel="noopener">
+									<i class="fa fa-up-right-from-square"></i> {{ $casePreviewOpenLabel }}
+								</a>
+								<button type="button" class="case-primary-btn" data-open-case-modal>
+									<i class="fa fa-file-arrow-down"></i> {{ $detailPrimaryActionLabel }}
+								</button>
 							</div>
 						</div>
-						
 					</div>
+					
 				</div>
-			</section>
-		@endif
+			</div>
+		</section>
+	@endif
 
+	@if(!($isWhitePaperPage ?? false))
 		<section class="case-request-band">
 			<div class="container">
 				<div class="case-request-card">
