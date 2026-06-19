@@ -4,7 +4,7 @@
 @section('meta_description', 'Explore careers at Armely and discover open roles in data, AI, Microsoft platform delivery, and consulting services.')
 
 @push('styles')
-<link rel="stylesheet" href="{{ asset('css/career-modern.css') }}">
+<link rel="stylesheet" href="{{ asset('css/career-modern.css') }}?v={{ filemtime(public_path('css/career-modern.css')) }}">
 @endpush
 
 @section('content')
@@ -75,7 +75,7 @@
 							$currentDate->setTime(0, 0);
 							$status = ($deadlineDate && $deadlineDate < $currentDate) ? 'Closed' : 'Open';
 						@endphp
-						<div class="col-12 col-md-6 col-lg-4 mb-4 career-item" data-type="{{ $jobTypeClass }}">
+						<div class="career-item" data-type="{{ $jobTypeClass }}">
 							<div class="card career-card">
 								<div class="card-body">
 									<div class="career-header-wrapper">
@@ -103,7 +103,7 @@
 							</div>
 						</div>
 					@empty
-						<div class="col-12">
+						<div class="careers-empty">
 							<div class="alert alert-info text-center">
 								<i class="icofont-info-circle"></i> No open positions at this time. Check back soon!
 							</div>
