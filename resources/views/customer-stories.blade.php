@@ -263,8 +263,7 @@
     }
 
     .review-pdf-link {
-        display: inline-block;
-        margin: 8px 0 0;
+        display: inline;
         color: var(--brand);
         font-weight: 900;
         font-style: normal;
@@ -769,12 +768,9 @@
                                 <span aria-hidden="true">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
                             </div>
                             <p class="review-copy">
-                                <span class="review-copy-text" data-short="{{ $preview }}" data-full="{{ $fullText }}">{{ $preview }}</span>
+                                <span class="review-copy-text" data-short="{{ $preview }}" data-full="{{ $fullText }}">{{ $preview }}</span>@if($pdfLink !== '')&nbsp;<a class="review-pdf-link" href="{{ $pdfLink }}" target="_blank" rel="noopener">Get full review&nbsp;<span aria-hidden="true">&rarr;</span></a>@endif
                                 @if($isTruncated)
                                     <button type="button" class="review-toggle" data-review-toggle aria-expanded="false">Read full review <span aria-hidden="true">&rarr;</span></button>
-                                @endif
-                                @if($pdfLink !== '')
-                                    <a class="review-pdf-link" href="{{ $pdfLink }}" target="_blank" rel="noopener">Get full review <span aria-hidden="true">&rarr;</span></a>
                                 @endif
                             </p>
 
