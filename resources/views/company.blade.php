@@ -16,6 +16,8 @@
     --blue-lt:   #4779bd;
     --blue-dim:  rgba(47, 85, 151, 0.09);
     --blue-dim2: rgba(47, 85, 151, 0.18);
+    --accent:      #2f5597;
+    --accent-soft: rgba(47, 85, 151, 0.10);
     --text-body: #334155;
     --text-muted: #667085;
     --border:    rgba(47, 85, 151, 0.14);
@@ -26,46 +28,57 @@
   }
 
 .armely-company-page .section-eyebrow { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.14em; color: var(--blue); margin-bottom: 14px; font-weight: 600; }
-.armely-company-page .section-title { font-size: clamp(1.35rem, 2.4vw, 1.9rem); font-weight: 800; color: #1A2540; line-height: 1.15; letter-spacing: -0.02em; margin-bottom: 18px; max-width: 640px; }
+.armely-company-page .section-title { font-size: clamp(1.35rem, 2.4vw, 1.9rem); font-weight: 800; color: #1A2540; line-height: 1.15; letter-spacing: -0.02em; margin-bottom: 18px; max-width: 640px; padding: 0; text-align: left; }
 .armely-company-page .section-body { font-size: 0.975rem; font-weight: 300; max-width: 560px; line-height: 1.7; color: var(--text-body); margin-bottom: 28px; }
 .armely-company-page .icon-svg { width: 22px; height: 22px; display: block; color: var(--blue); fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
 /* HERO */
-.armely-company-page .co-hero { background:linear-gradient(135deg,#173b67 0%,#234f86 100%); padding:72px 56px 60px; }
-.armely-company-page .co-hero-inner { max-width:760px; margin:0 auto; }
+.armely-company-page .co-hero { background:linear-gradient(135deg,#173b67 0%,#234f86 100%); padding:48px 56px 42px; }
+.armely-company-page .co-hero-inner { max-width:1120px; margin:0 auto; text-align:left; }
 .armely-company-page .co-hero .section-eyebrow { display:inline-flex; background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.22); color:rgba(255,255,255,0.88); border-radius:999px; padding:6px 14px; margin-bottom:16px; }
 .armely-company-page .co-hero h1 { font-size:clamp(1.4rem,2.4vw,2rem); font-weight:800; color:#fff; letter-spacing:-0.02em; line-height:1.15; margin-bottom:14px; }
 .armely-company-page .co-hero h1 em { font-style:normal; font-weight:300; color:rgba(255,255,255,0.7); }
-.armely-company-page .co-hero-sub { font-size:1rem; font-weight:300; color:rgba(255,255,255,0.65); line-height:1.75; max-width:600px; margin-bottom:32px; }
+.armely-company-page .co-hero-sub { font-size:1rem; font-weight:300; color:rgba(255,255,255,0.65); line-height:1.75; max-width:none; margin-bottom:32px; }
 .armely-company-page .co-hero-stats { display:flex; gap:32px; flex-wrap:wrap; padding-top:28px; border-top:1px solid rgba(255,255,255,0.15); }
 .armely-company-page .co-hero-stat-num { font-size:1.6rem; font-weight:800; color:#fff; line-height:1; letter-spacing:-0.02em; margin-bottom:3px; }
 .armely-company-page .co-hero-stat-num span { color:#8fb3e0; }
 .armely-company-page .co-hero-stat-label { font-size:0.72rem; color:rgba(255,255,255,0.5); }
 
 /* STORY */
-.armely-company-page .co-story { padding:64px 56px; background:#fff; }
-.armely-company-page .co-story-inner { max-width:1120px; margin:0 auto; display:grid; grid-template-columns:1fr 1fr; gap:80px; align-items:start; }
-.armely-company-page .co-story-facts { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:36px; }
+.armely-company-page .co-story { padding:44px 56px; background:#fff; }
+.armely-company-page .co-story-inner { max-width:1120px; margin:0 auto; display:grid; grid-template-columns:1fr 1fr; gap:56px; align-items:start; }
+.armely-company-page .co-story-facts { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:26px; }
 .armely-company-page .co-story-fact { border:1px solid var(--border); border-radius:12px; padding:18px 20px; background:var(--navy-mid); }
 .armely-company-page .co-story-fact-num { font-size:1.15rem; font-weight:800; color:#162b49; line-height:1.2; letter-spacing:-0.01em; }
-.armely-company-page .co-story-fact-num span { color:inherit; }
+.armely-company-page .co-story-fact-num span { color:var(--accent); }
 .armely-company-page .co-story-fact-label { font-size:0.74rem; color:var(--text-muted); line-height:1.45; margin-top:5px; }
-.armely-company-page .co-story-quote { margin-top:18px; padding:20px 22px; border-left:3px solid var(--blue); background:var(--blue-dim); border-radius:0 12px 12px 0; font-size:0.92rem; font-style:italic; color:#162b49; line-height:1.7; }
-.armely-company-page .co-story-body { font-size:0.925rem; color:var(--text-body); line-height:1.85; }
+.armely-company-page .co-story-fact { transition:transform 0.2s ease, box-shadow 0.2s ease; }
+.armely-company-page .co-story-fact:hover { transform:translateY(-2px); box-shadow:0 12px 28px rgba(18,47,82,0.08); }
+.armely-company-page .co-story-quote { position:relative; margin-top:28px; padding:28px 28px 28px 32px; border-left:4px solid var(--accent); background:var(--accent-soft); border-radius:0 14px 14px 0; font-size:1.05rem; font-style:italic; font-weight:500; color:#162b49; line-height:1.6; }
+.armely-company-page .co-story-quote::before { content:"\201C"; position:absolute; top:14px; right:20px; font-family:Georgia, serif; font-size:3.2rem; line-height:1; color:var(--accent); opacity:0.22; pointer-events:none; }
+.armely-company-page .co-story-body { font-size:0.975rem; color:var(--text-body); line-height:1.85; }
 .armely-company-page .co-story-body p { margin-bottom:18px; }
 .armely-company-page .co-story-body p:last-child { margin-bottom:0; }
-.armely-company-page .co-story-body strong { color:#162b49; font-weight:700; }
+.armely-company-page .co-story-body strong { color:var(--blue); font-weight:700; }
+/* Lead paragraph opens the story with more presence + a navy drop cap */
+.armely-company-page .co-story-body p:first-of-type { font-size:1.075rem; color:#1e2d4a; line-height:1.7; }
+.armely-company-page .co-story-body p:first-of-type::first-letter { float:left; font-family:'Poppins', sans-serif; font-weight:800; font-size:3.2rem; line-height:0.82; color:var(--blue); margin:6px 12px 0 0; }
+/* Closing line of the story gets a quiet emphasis */
+.armely-company-page .co-story-body p:last-of-type { padding-top:18px; border-top:1px solid var(--border); color:#1e2d4a; }
 .armely-company-page .co-story .section-title { font-size:clamp(1.2rem,1.9vw,1.5rem); margin-bottom:18px; }
-.armely-company-page .co-milestones { display:flex; flex-direction:column; gap:0; }
-.armely-company-page .co-milestone { display:flex; gap:20px; align-items:flex-start; padding:18px 0; border-bottom:1px solid var(--border); }
-.armely-company-page .co-milestone:last-child { border-bottom:none; }
-.armely-company-page .co-milestone-year { font-size:0.72rem; font-weight:800; color:var(--blue); letter-spacing:0.06em; min-width:44px; padding-top:2px; }
-.armely-company-page .co-milestone-text { font-size:0.82rem; color:var(--text-body); line-height:1.6; }
-.armely-company-page .co-milestone-text strong { color:#162b49; font-weight:700; display:block; margin-bottom:2px; }
+.armely-company-page .co-milestones { position:relative; display:flex; flex-direction:column; padding-left:4px; }
+.armely-company-page .co-milestones::before { content:""; position:absolute; left:11px; top:8px; bottom:10px; width:2px; background:linear-gradient(180deg, var(--accent) 0%, var(--blue-dim2) 60%, transparent 100%); }
+.armely-company-page .co-milestone { position:relative; display:block; padding:0 0 28px 40px; }
+.armely-company-page .co-milestone:last-child { padding-bottom:0; }
+.armely-company-page .co-milestone::before { content:""; position:absolute; left:4px; top:3px; width:16px; height:16px; border-radius:50%; background:#fff; border:3px solid var(--accent); box-shadow:0 0 0 4px var(--accent-soft); transition:transform 0.2s ease; }
+.armely-company-page .co-milestone:hover::before { transform:scale(1.18); }
+.armely-company-page .co-milestone-year { display:inline-block; background:linear-gradient(135deg, var(--blue) 0%, var(--blue-lt) 100%); color:#fff; padding:3px 11px; border-radius:999px; font-size:0.66rem; font-weight:800; letter-spacing:0.08em; margin-bottom:8px; }
+.armely-company-page .co-milestone-text { font-size:0.9rem; color:var(--text-body); line-height:1.65; }
+.armely-company-page .co-milestone-text strong { color:#162b49; font-weight:700; display:block; margin-bottom:3px; font-size:0.95rem; }
 .armely-company-page .co-mini-title { font-size:1rem; font-weight:800; color:#162b49; margin-bottom:16px; }
 
 /* PRINCIPLES / VALUES */
-.armely-company-page .co-principles { padding:64px 56px; background:var(--navy-mid); }
+.armely-company-page .co-principles { padding:44px 56px; background:var(--navy-mid); }
 .armely-company-page .co-principles-inner { max-width:1120px; margin:0 auto; }
 .armely-company-page .co-principles .section-eyebrow,
 .armely-company-page .co-affil .section-eyebrow,
@@ -76,14 +89,15 @@
 .armely-company-page .co-principles .section-body,
 .armely-company-page .co-affil .section-body,
 .armely-company-page .co-brands .section-body { max-width:820px; margin-left:auto; margin-right:auto; text-align:center; }
-.armely-company-page .co-principles-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:16px; margin-top:32px; }
-.armely-company-page .co-principle { background:#fff; border:1px solid var(--border); border-radius:14px; padding:28px; box-shadow:0 14px 36px rgba(18,47,82,0.06); }
-.armely-company-page .co-principle-num { font-size:0.62rem; font-weight:800; letter-spacing:0.14em; text-transform:uppercase; color:var(--blue); margin-bottom:10px; }
-.armely-company-page .co-principle-title { font-size:1rem; font-weight:800; color:#162b49; margin-bottom:8px; }
+.armely-company-page .co-principles-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:16px; margin-top:24px; }
+.armely-company-page .co-principle { position:relative; overflow:hidden; background:#fff; border:1px solid var(--border); border-radius:14px; padding:30px 28px 28px; box-shadow:0 14px 36px rgba(18,47,82,0.06); transition:transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease; }
+.armely-company-page .co-principle:hover { transform:translateY(-4px); box-shadow:0 24px 48px rgba(18,47,82,0.12); border-color:var(--accent-soft); }
+.armely-company-page .co-principle-num { position:absolute; top:10px; right:22px; font-size:3rem; font-weight:800; line-height:1; letter-spacing:-0.02em; color:var(--accent); opacity:0.16; margin:0; }
+.armely-company-page .co-principle-title { font-size:1rem; font-weight:800; color:#162b49; margin-bottom:8px; padding-right:48px; }
 .armely-company-page .co-principle-body { font-size:0.82rem; color:var(--text-muted); line-height:1.7; }
 
 /* AD BANNER */
-.armely-company-page .co-banners { padding:34px 56px 0; background:#fff; }
+.armely-company-page .co-banners { padding:24px 56px 0; background:#fff; }
 .armely-company-page .co-banners-inner { max-width:1120px; margin:0 auto; }
 .armely-company-page .company-ad-banner { border-radius:16px; padding:28px; color:#fff; box-shadow:0 10px 30px rgba(23,39,67,0.18); overflow:hidden; position:relative; }
 .armely-company-page .company-ad-banner::before { content:''; position:absolute; inset:0; background:linear-gradient(120deg,rgba(255,255,255,0.12),rgba(255,255,255,0)); pointer-events:none; }
@@ -93,18 +107,19 @@
 .armely-company-page .banner-cta-btn { display:inline-flex; align-items:center; justify-content:center; min-height:42px; padding:10px 18px; border-radius:10px; background:#fff; color:#1f3f80 !important; font-weight:700; text-decoration:none; box-shadow:0 8px 24px rgba(0,0,0,0.15); }
 
 /* AFFILIATIONS */
-.armely-company-page .co-affil { padding:56px 56px; background:#fff; border-top:1px solid var(--border); }
+.armely-company-page .co-affil { padding:40px 56px; background:#fff; border-top:1px solid var(--border); }
 .armely-company-page .co-affil-inner { max-width:1120px; margin:0 auto; text-align:center; }
-.armely-company-page .co-affil-logos { display:grid; grid-template-columns:repeat(3, auto); justify-content:center; justify-items:center; align-items:center; gap:32px 64px; margin-top:36px; }
+.armely-company-page .co-affil-logos { display:flex; flex-direction:column; align-items:center; gap:24px; margin-top:26px; }
+.armely-company-page .co-affil-row { display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:32px 64px; }
 .armely-company-page .co-affil-logos img { height:104px; width:auto; object-fit:contain; filter:grayscale(20%); opacity:0.85; transition:transform 0.3s ease, filter 0.3s ease, opacity 0.3s ease; }
 .armely-company-page .co-affil-logos img.co-affil-badge { height:150px; }
 .armely-company-page .co-affil-logos img.co-affil-nobox { height:150px; clip-path: inset(12%); }
 .armely-company-page .co-affil-logos img:hover { transform:scale(1.05); filter:grayscale(0%); opacity:1; }
 
 /* INNOVATION BRANDS */
-.armely-company-page .co-brands { padding:64px 56px; background:var(--navy-mid); }
+.armely-company-page .co-brands { padding:44px 56px; background:var(--navy-mid); }
 .armely-company-page .co-brands-inner { max-width:1120px; margin:0 auto; }
-.armely-company-page .co-brands-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:20px; margin-top:32px; }
+.armely-company-page .co-brands-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:20px; margin-top:24px; }
 .armely-company-page .co-brand-card { background:#fff; border:1px solid var(--border); border-radius:14px; padding:28px; box-shadow:0 14px 36px rgba(18,47,82,0.08); display:flex; flex-direction:column; }
 .armely-company-page .co-brand-logo { width:54px; height:54px; border-radius:12px; background:var(--navy-mid); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; padding:8px; margin-bottom:16px; }
 .armely-company-page .co-brand-logo img { max-width:100%; max-height:100%; object-fit:contain; }
@@ -121,7 +136,7 @@
 .armely-company-page .co-brands-empty { grid-column:1/-1; border:1px dashed var(--blue-dim2); border-radius:14px; padding:24px; text-align:center; color:var(--text-muted); background:#fff; }
 
 /* CTA */
-.armely-company-page .co-cta { background:linear-gradient(135deg,#173b67 0%,#234f86 100%); padding:64px 56px; text-align:center; }
+.armely-company-page .co-cta { background:linear-gradient(135deg,#173b67 0%,#234f86 100%); padding:44px 56px; text-align:center; }
 .armely-company-page .co-cta .section-eyebrow { display:inline-flex; background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.22); color:rgba(255,255,255,0.88); border-radius:999px; padding:6px 14px; margin-bottom:16px; }
 .armely-company-page .co-cta h2 { font-size:1.35rem; font-weight:800; color:#fff; letter-spacing:-0.02em; margin-bottom:10px; }
 .armely-company-page .co-cta p { font-size:0.925rem; color:rgba(255,255,255,0.65); max-width:480px; margin:0 auto 28px; line-height:1.7; }
@@ -185,10 +200,10 @@
         <div class="section-eyebrow">Our Story</div>
         <h2 class="section-title">Built by someone who saw how implementation should work.</h2>
         <div class="co-story-body">
-          <p>Armely was founded in Dallas in 2016 by someone who spent years inside Microsoft's partner ecosystem before deciding to build something different. The observation was straightforward: mid-market organizations (hospitals, school districts, energy operators, nonprofits) were not getting the same caliber of Microsoft implementation that large enterprises received. They were getting junior teams, templated solutions, and handoffs to support queues.</p>
-          <p>Armely was built to close that gap. A small, senior team. Deep Microsoft expertise. Full-stack delivery from strategy through deployment. And a commitment to staying involved after go-live rather than moving on to the next contract.</p>
-          <p>Some of Armely's longest client relationships started with a single person who trusted the work enough to bring Armely with them when they moved to a new organization. That pattern, one successful engagement leading to another because the relationship outlasted the project, has shaped how Armely grows. Not through marketing, but through work that holds up over time.</p>
-          <p>Nearly a decade later, Armely works across healthcare, energy, government, education, legal services, and enterprise organizations. The service lines have expanded to include Microsoft Fabric, Copilot, Dynamics 365, and proprietary products like InvoiceLens. The approach has not changed.</p>
+          <p>Armely was founded in Dallas in 2016 by someone who spent years inside Microsoft's partner ecosystem before deciding to build something different. The observation was straightforward: <strong>mid-market organizations</strong> (hospitals, school districts, energy operators, nonprofits) were not getting the same caliber of Microsoft implementation that large enterprises received. They were getting junior teams, templated solutions, and handoffs to support queues.</p>
+          <p>Armely was built to close that gap. <strong>A small, senior team. Deep Microsoft expertise. Full-stack delivery from strategy through deployment.</strong> And a commitment to staying involved after go-live rather than moving on to the next contract.</p>
+          <p>Some of Armely's longest client relationships started with a single person who trusted the work enough to bring Armely with them when they moved to a new organization. That pattern, one successful engagement leading to another because <strong>the relationship outlasted the project</strong>, has shaped how Armely grows. Not through marketing, but through work that holds up over time.</p>
+          <p>Nearly a decade later, Armely works across healthcare, energy, government, education, legal services, and enterprise organizations. The service lines have expanded to include Microsoft Fabric, Copilot, Dynamics 365, and proprietary products like InvoiceLens. <strong>The approach has not changed.</strong></p>
         </div>
 
         <div class="co-story-quote">"The people who scope your project are the same people who build it, deploy it, and answer the phone when something breaks."</div>
@@ -297,12 +312,17 @@
       <h2 class="section-title">Recognized where it matters.</h2>
       <p class="section-body">Armely holds certifications that matter to the clients we serve. Microsoft Solutions Partner status requires demonstrated client outcomes, not just technical exams. MBE certification reflects who we are as an organization.</p>
       <div class="co-affil-logos">
-        <img class="co-affil-badge" src="{{ asset('images/affiliation/mbe.svg') }}" alt="Minority Business Enterprise certified">
-        <img class="co-affil-badge" src="{{ asset('images/affiliation/smb.svg') }}" alt="SMB certification">
-        <img src="{{ asset('images/affiliation/affliation1.png') }}" alt="Technology affiliation">
-        <img src="{{ asset('images/affiliation/fid.png') }}" alt="Federal ID certification">
-        <img src="{{ asset('images/affiliation/partner.png') }}" alt="Microsoft Solutions Partner - Data & AI, Azure">
-        <img class="co-affil-nobox" src="{{ asset('images/affiliation/digital_logo.png') }}" alt="Microsoft Solutions Partner - Digital & App Innovation, Azure">
+        <div class="co-affil-row">
+          <img class="co-affil-badge" src="{{ asset('images/affiliation/mbe.svg') }}" alt="Minority Business Enterprise certified">
+          <img class="co-affil-badge" src="{{ asset('images/affiliation/smb.svg') }}" alt="SMB certification">
+          <img src="{{ asset('images/affiliation/affliation1.png') }}" alt="Technology affiliation">
+          <img src="{{ asset('images/affiliation/fid.png') }}" alt="Federal ID certification">
+        </div>
+        <div class="co-affil-row">
+          <img src="{{ asset('images/affiliation/partner.png') }}" alt="Microsoft Solutions Partner - Data & AI, Azure">
+          <img class="co-affil-nobox" src="{{ asset('images/affiliation/digital_logo.png') }}" alt="Microsoft Solutions Partner - Digital & App Innovation, Azure">
+          <img src="{{ asset('images/affiliation/xiad_badge.png') }}" alt="XIAD certification badge">
+        </div>
       </div>
     </div>
   </section>
@@ -340,16 +360,13 @@
           <div class="co-brand-title">Step &amp; Sip</div>
           <div class="co-brand-sub">A data-driven retail experience built on Microsoft Fabric</div>
           <div class="co-brand-body">Step &amp; Sip is Armely's retail analytics experience, a working demonstration of how modern data platforms connect retail operations end to end. Built on Microsoft Fabric and Power Platform, it showcases real-time inventory, sales forecasting, customer segmentation, and workflow automation in a context that any business audience can understand without a technical background.</div>
-          <a href="/store" class="co-brand-link">Visit the experience
-            <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-          </a>
         </div>
 
       </div>
     </div>
   </section>
 
-  {{-- CTA --}}
+  {{-- CTA (hidden)
   <section class="co-cta">
     <div class="section-eyebrow">Work With Armely</div>
     <h2>Talk to the people who will actually build your solution.</h2>
@@ -361,6 +378,7 @@
       <a href="{{ route('case-studies.index') }}" class="co-cta-btn-o">See Our Work</a>
     </div>
   </section>
+  --}}
 
 </div>
 @endsection
