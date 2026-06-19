@@ -71,7 +71,8 @@ class CaseStudiesController extends Controller
             abort(404);
         }
 
-        $caseStudy->preview = $this->makePreviewText((string) ($caseStudy->body ?? ''), 320);
+        $caseStudy->preview = $this->caseStudyLeadParagraph($caseStudy)
+            ?: $this->makePreviewText((string) ($caseStudy->body ?? ''), 260);
         $caseStudy->slug = $this->caseStudySlug($caseStudy);
         $caseStudy->display_title = $this->caseStudyDisplayTitle($caseStudy);
         $caseStudy->industry_filter = $this->inferIndustryFilter($caseStudy);
@@ -80,12 +81,7 @@ class CaseStudiesController extends Controller
         $caseStudy->outcome_tag = $this->caseStudyOutcomeTag($caseStudy);
         $caseStudy->pdf_preview_has_attachment = $this->caseStudyHasAttachment($caseStudy);
         $caseStudy->pdf_preview_url = $this->caseStudyPreviewUrl($caseStudy);
-        $caseStudy->pdf_preview_text = $this->caseStudyFirstPageText($caseStudy);
-        $caseStudy->pdf_preview_source = $caseStudy->pdf_preview_text === '' ? 'PDF unavailable' : 'PDF text';
-        $caseStudy->pdf_preview_sections = $caseStudy->pdf_preview_source === 'PDF text'
-            ? $this->caseStudyPreviewSections($caseStudy->pdf_preview_text)
-            : [];
-        $caseStudy->pdf_preview_paragraphs = $this->caseStudyPreviewParagraphs($caseStudy->pdf_preview_text);
+        $caseStudy->preview_source_url = $this->caseStudyOnePagerPreviewUrl($caseStudy) ?: $caseStudy->pdf_preview_url;
         $caseStudy->results = $this->caseStudyResults($caseStudy);
         $caseStudy->services = $this->caseStudyServices($caseStudy);
         $caseStudy->hero_copy = $this->caseStudyHeroCopy($caseStudy);
@@ -720,6 +716,25 @@ class CaseStudiesController extends Controller
             ['caseStudy' => (int) $caseStudy->id, 'preview' => 1],
             false
         );
+    }
+
+    private function caseStudyOnePagerPreviewUrl(object $caseStudy): string
+    {
+        $preview = trim((string) ($caseStudy->listing_image ?? ''));
+        if ($preview === '') {
+            return '';
+        }
+
+        if (str_starts_with($preview, 'http://') || str_starts_with($preview, 'https://')) {
+            return $preview;
+        }
+
+        $fileName = basename((string) parse_url($preview, PHP_URL_PATH) ?: $preview);
+        if ($fileName === '') {
+            return '';
+        }
+
+        return asset('case-study-previews/' . rawurlencode($fileName));
     }
 
     private function caseStudyFirstPageText(object $caseStudy): string
@@ -1594,6 +1609,8 @@ class CaseStudiesController extends Controller
         $viewModel->listing_image = '';
         $viewModel->preview = $previewText;
         $viewModel->body = $previewSource;
+        $viewModel->preview_source_url = $this->whitePaperPreviewUrl($paper);
+        $viewModel->pdf_preview_url = '';
         $viewModel->pdf_preview_text = $previewText;
         $viewModel->pdf_preview_source = $previewText !== '' ? 'PDF text' : 'PDF unavailable';
         $viewModel->pdf_preview_sections = $previewText !== ''

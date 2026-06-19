@@ -7,6 +7,7 @@ use App\Models\CaseStudyCategory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
@@ -892,7 +893,7 @@ class TablesController extends Controller
             'title' => ['nullable', 'string', 'max:255'],
             'outcome_tag' => ['nullable', 'string', 'max:255'],
             'body' => ['nullable', 'string'],
-            'listing_image' => ['nullable', 'image', 'max:5120'],
+            'listing_image' => ['nullable', 'mimes:pdf', 'max:20480'],
             'pdf' => ['nullable', 'mimes:pdf', 'max:20480'],
             'pdf_url' => ['nullable', 'string', 'max:2048'],
         ]);
@@ -946,9 +947,11 @@ class TablesController extends Controller
         }
 
         if ($request->hasFile('listing_image')) {
-            $image = $request->file('listing_image');
-            $filename = time() . '_' . Str::slug(pathinfo($image->getClientOriginalName(), PATHINFO_FILENAME)) . '.' . $image->getClientOriginalExtension();
-            $image->move(public_path('images/case-study'), $filename);
+            $previewPdf = $request->file('listing_image');
+            $filename = time() . '_' . Str::slug(pathinfo($previewPdf->getClientOriginalName(), PATHINFO_FILENAME)) . '.pdf';
+            $previewDirectory = public_path('case-study-previews');
+            File::ensureDirectoryExists($previewDirectory);
+            $previewPdf->move($previewDirectory, $filename);
             $data['listing_image'] = $filename;
         }
 

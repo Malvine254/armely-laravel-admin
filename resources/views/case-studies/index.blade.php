@@ -91,9 +91,9 @@
 	align-self: flex-start;
 }
 .case-studies-section > .container {
-	max-width: 1280px;
-	padding-left: 0;
-	padding-right: 0;
+	max-width: 1440px;
+	padding-left: 16px;
+	padding-right: 16px;
 }
 .case-studies-layout {
 	align-items: flex-start;
@@ -214,9 +214,9 @@
 	scroll-margin-top: 110px;
 }
 .white-papers-section > .container {
-	max-width: 1280px;
-	padding-left: 0;
-	padding-right: 0;
+	max-width: 1440px;
+	padding-left: 16px;
+	padding-right: 16px;
 }
 .resource-side-panel {
 	background: #ffffff;
@@ -626,11 +626,15 @@
 				'sharepoint-collaboration' => 'SharePoint',
 				default => 'Microsoft Platform',
 			})
+			@php($caseStudyCategoryLabel = trim((string) ($caseStudy->category ?? '')))
 			@php($caseStudyOutcomeLabel = trim((string) ($caseStudy->outcome_tag ?? '')))
 			<div class="col-12 col-md-6 col-lg-4 mb-4 js-case-card" data-industry="{{ $caseStudy->industry_filter ?? '' }}" data-topics="{{ implode(',', $caseStudy->technology_filters ?? []) }}">
 				<div class="case-study-card cs-card">
 					<div class="cs-card-body">
 						<div class="cs-card-tags">
+							@if($caseStudyCategoryLabel !== '')
+								<span class="cs-tag cs-tag-ind">{{ $caseStudyCategoryLabel }}</span>
+							@endif
 							@if($caseStudyTagLabel !== '')
 								<span class="cs-tag cs-tag-tech">{{ $caseStudyTagLabel }}</span>
 							@endif
@@ -837,11 +841,11 @@
 							<p class="card-description cs-card-problem">{{ $paper->preview ?? '' }}</p>
 							<div class="cs-card-footer">
 								<div class="cs-card-ctas">
-									<a class="read-more-btn cs-btn-full text-light white-paper-gated-link"
-									   href="{{ route('whitepapers.show', $paper->slug) }}"
-									   data-white-paper-id="{{ $paper->id }}"
-									   data-resource-type="white-paper"
-									   data-resource-title="{{ $whitePaperFullTitle }}">
+								<a class="read-more-btn cs-btn-full text-light white-paper-gated-link"
+								   href="{{ route('white-papers.view', $paper->slug) }}"
+								   data-white-paper-id="{{ $paper->id }}"
+								   data-resource-type="white-paper"
+								   data-resource-title="{{ $whitePaperFullTitle }}">
 										View Resource <i class="fa fa-arrow-right"></i>
 									</a>
 								</div>
