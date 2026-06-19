@@ -65,6 +65,33 @@
         ->countBy()
         ->all();
 
+    // Sortable timestamp for each story (oldest first; undated reviews sink to the end).
+    $reviewTimestamp = function ($story) {
+        try {
+            return !empty($story->created_at) ? Carbon::parse($story->created_at)->timestamp : PHP_INT_MAX;
+        } catch (Throwable $e) {
+            return PHP_INT_MAX;
+        }
+    };
+
+    // Show oldest review first, and collapse each named company to just its oldest
+    // review. The hidden ones are still surfaced via the "+N more" badge.
+    $seenCompanies = [];
+    $visibleStories = $stories
+        ->sortBy($reviewTimestamp)
+        ->filter(function ($story) use (&$seenCompanies, $resolveCompany) {
+            $key = mb_strtolower(trim($resolveCompany($story)));
+            if ($key === '' || $key === 'armely customer') {
+                return true;
+            }
+            if (in_array($key, $seenCompanies, true)) {
+                return false;
+            }
+            $seenCompanies[] = $key;
+            return true;
+        })
+        ->values();
+
     // Use the shortest review as the base length for every collapsed preview.
     $reviewLengths = $stories
         ->map(fn ($story) => Str::length($cleanReviewText($story)))
@@ -712,9 +739,9 @@
         <div class="client-reviews-inner">
             <div class="client-reviews-eyebrow">Client Reviews</div>
 
-            @if($stories->isNotEmpty())
+            @if($visibleStories->isNotEmpty())
                 <div class="client-reviews-grid">
-                    @foreach($stories as $story)
+                    @foreach($visibleStories as $story)
                         @php
                             $companyValue = trim((string) ($story->company ?? ''));
                             if ($companyValue !== '') {
@@ -734,7 +761,7 @@
                             $pdfRaw = trim((string) ($story->pdf_url ?? ''));
                             $pdfLink = $pdfRaw === ''
                                 ? ''
-                                : (Str::startsWith($pdfRaw, ['http://', 'https://', '/']) ? $pdfRaw : url('case_docs/' . $pdfRaw));
+                                : (Str::startsWith($pdfRaw, ['http://', 'https://', '/']) ? $pdfRaw : url('customer_stories/' . $pdfRaw));
                         @endphp
 
                         <article class="review-card" style="--accent: {{ $accent }};">

@@ -1613,8 +1613,8 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Full Review PDF</label>
-                        <input type="text" class="form-control" id="storyPdfUrl" name="pdf_url" placeholder="e.g. 1779808320_specifications.pdf or https://...">
-                        <small class="text-muted">Case study document for the "Get full review" link. Enter a file in public/case_docs or a full URL. Leave blank for none.</small>
+                        <input type="text" class="form-control" id="storyPdfUrl" name="pdf_url" placeholder="e.g. swope_testimonial.pdf or https://...">
+                        <small class="text-muted">Document for the "Get full review" link. Enter a file in public/customer_stories or a full URL. Leave blank for none.</small>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Profile Image</label>
