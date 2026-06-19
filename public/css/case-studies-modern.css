@@ -721,9 +721,9 @@
 
 .case-studies-section > .container,
 .white-papers-section > .container {
-    max-width: 1280px;
-    padding-left: 0;
-    padding-right: 0;
+    max-width: 1440px;
+    padding-left: 16px;
+    padding-right: 16px;
 }
 
 .case-study-card,

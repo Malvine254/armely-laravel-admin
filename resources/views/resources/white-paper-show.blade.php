@@ -228,6 +228,33 @@
 	overflow: hidden;
 	padding-right: 6px;
 }
+.white-paper-text-preview {
+	display: grid;
+	gap: 14px;
+	padding: 10px 2px 4px;
+}
+.white-paper-text-preview-title {
+	color: var(--case-ink);
+	font-size: 1.42rem;
+	line-height: 1.22;
+	font-weight: 900;
+	margin-bottom: 2px;
+	max-width: 24ch;
+}
+.white-paper-text-preview-body {
+	color: #32465f;
+	font-size: 1rem;
+	line-height: 1.85;
+	max-height: 420px;
+	overflow: hidden;
+	padding: 18px 18px 20px;
+	border: 1px solid #dce7f2;
+	border-radius: 16px;
+	background:
+		linear-gradient(180deg, rgba(247, 250, 255, .96), rgba(255,255,255,.98)),
+		#fff;
+	box-shadow: inset 0 1px 0 rgba(255,255,255,.9);
+}
 .white-paper-pdf-preview-note {
 	margin-top: 16px;
 	padding: 14px 16px;
@@ -366,6 +393,7 @@
 	.white-paper-title { font-size: 2rem; }
 	.white-paper-pdf-stage { min-height: 420px; padding: 12px; }
 	.white-paper-pdf-page { padding: 18px; }
+	.white-paper-text-preview-body { padding: 14px 14px 16px; }
 }
 </style>
 @endpush
@@ -375,6 +403,16 @@
 	$resourceTitle = trim((string) ($resource->title ?? 'White Paper'));
 	$resourceDescription = trim((string) ($resource->description ?? ''));
 	$resourceCategory = trim((string) ($resource->category ?? 'White Papers'));
+	$resourcePreviewSource = trim((string) ($resource->preview ?? ''));
+	if ($resourcePreviewSource === '') {
+		$resourcePreviewSource = $resourceDescription;
+	}
+	if ($resourcePreviewSource === '') {
+		$resourcePreviewSource = trim((string) ($resource->body ?? ''));
+	}
+	$resourcePreviewText = $resourcePreviewSource !== ''
+		? \Illuminate\Support\Str::limit(preg_replace('/\s+/', ' ', strip_tags($resourcePreviewSource)), 520)
+		: '';
 	$resourceInlineUrl = $resourceInlineUrl ?? \Illuminate\Support\Facades\URL::temporarySignedRoute('white-papers.access', now()->addMinutes(30), ['paper' => (int) $resource->id, 'preview' => 1]);
 	$isPdfPreview = str_contains(strtolower((string) ($resource->file_url ?? '')), '.pdf') || strtolower((string) ($resource->resource_type ?? '')) === 'pdf';
 @endphp
@@ -435,24 +473,30 @@
 										@if($isPdfPreview)
 											<iframe src="{{ $resourceInlineUrl }}#view=FitH" title="{{ $resourceTitle }}" style="width:100%; min-height:520px; border:0; display:block;"></iframe>
 										@else
-											<div class="white-paper-pdf-empty">
-												<div>
-													<strong>Preview unavailable</strong>
-													<div>This resource is available for secure download request.</div>
+											<div class="white-paper-text-preview">
+												<div class="white-paper-preview-kicker"><i class="fa fa-file-text-o"></i> White paper preview</div>
+												<div class="white-paper-text-preview-title">{{ $resourceTitle }}</div>
+												<div class="white-paper-text-preview-body">
+													{!! nl2br(e($resourcePreviewText !== '' ? $resourcePreviewText : ($resourceDescription ?: 'This white paper is available by request.'))) !!}
 												</div>
 											</div>
 										@endif
 									@else
-										<div class="white-paper-pdf-empty">
-											<div>
-												<strong>Preview unavailable</strong>
-												<div>No file is attached to this white paper yet.</div>
+										<div class="white-paper-text-preview">
+											<div class="white-paper-preview-kicker"><i class="fa fa-file-text-o"></i> White paper preview</div>
+											<div class="white-paper-text-preview-title">{{ $resourceTitle }}</div>
+											<div class="white-paper-text-preview-body">
+												{!! nl2br(e($resourcePreviewText !== '' ? $resourcePreviewText : ($resourceDescription ?: 'This white paper is available by request.'))) !!}
 											</div>
 										</div>
 									@endif
 								</div>
 								<div class="white-paper-pdf-preview-note">
-									This preview comes from the file itself. Request the full white paper for secure access to the complete download.
+									@if($resource->file_url && $isPdfPreview)
+										This preview comes from the file itself. Request the full white paper for secure access to the complete download.
+									@else
+										This preview is generated from the white paper content. Request the full white paper for secure access to the complete download.
+									@endif
 								</div>
 							</div>
 						</div>

@@ -709,15 +709,35 @@
 
 /* Quiet professional refresh */
 .partners-page-refresh {
-    background: #f8fafc;
+    background:
+        radial-gradient(1200px 520px at 12% 0%, rgba(47, 85, 151, 0.10), rgba(47, 85, 151, 0) 60%),
+        linear-gradient(180deg, #f7faff 0%, #ffffff 100%);
 }
 .modern-carousel-wrapper {
     display: none;
 }
 .partners-intro-section {
-    background: #fff;
-    border-bottom: 1px solid #dbe6f3;
-    padding: 42px 0;
+    background:
+        linear-gradient(135deg, #162f5d 0%, #214a89 56%, #18345f 100%);
+    border-bottom: 0;
+    padding: 72px 0 78px;
+    position: relative;
+    overflow: hidden;
+}
+.partners-intro-section::before,
+.partners-intro-section::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+.partners-intro-section::before {
+    background:
+        radial-gradient(560px 220px at 16% 18%, rgba(255, 255, 255, .12), rgba(255, 255, 255, 0) 68%),
+        radial-gradient(420px 180px at 84% 8%, rgba(255, 255, 255, .08), rgba(255, 255, 255, 0) 70%);
+}
+.partners-intro-section::after {
+    background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,0));
 }
 .partners-intro-section .container,
 .partner-section .container,
@@ -725,42 +745,56 @@
 .partnership-tiers .container,
 .success-stories .container,
 .partner-cta .container {
-    max-width: 1180px;
+    max-width: 1280px;
+}
+.partners-intro-section .container {
+    position: relative;
+    z-index: 1;
 }
 .partners-kicker {
-    color: #2f5597;
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.12);
+    color: rgba(255,255,255,.92);
     font-size: .76rem;
-    font-weight: 800;
-    letter-spacing: .08em;
+    font-weight: 900;
+    letter-spacing: .12em;
     text-transform: uppercase;
     margin-bottom: 10px;
 }
 .partners-intro-title {
-    color: #172033;
-    font-size: 2.1rem;
-    font-weight: 800;
-    line-height: 1.22;
-    margin-bottom: 12px;
+    color: #fff;
+    font-size: clamp(1.95rem, 3vw, 3.2rem);
+    font-weight: 900;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+    margin-bottom: 16px;
+    max-width: 16ch;
 }
 .partners-intro-copy {
-    color: #5f6f86;
-    font-size: 1rem;
-    line-height: 1.72;
+    color: rgba(255,255,255,.92);
+    font-size: 1.05rem;
+    line-height: 1.8;
     max-width: 780px;
     margin-bottom: 0;
 }
 .partners-intro-panel {
-    background: #f7faff;
-    border: 1px solid #dce7fb;
-    border-radius: 14px;
-    padding: 22px;
+    background: rgba(255,255,255,.10);
+    border: 1px solid rgba(255,255,255,.18);
+    border-radius: 20px;
+    padding: 24px;
     height: 100%;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 24px 60px rgba(7, 18, 39, .18);
 }
 .partners-intro-panel-title {
-    color: #172033;
-    font-size: 1.05rem;
-    font-weight: 800;
-    margin-bottom: 10px;
+    color: #fff;
+    font-size: 1.08rem;
+    font-weight: 900;
+    margin-bottom: 12px;
 }
 .partners-intro-list {
     list-style: none;
@@ -770,12 +804,49 @@
     gap: 10px;
 }
 .partners-intro-list li {
-    color: #294a84;
-    font-size: .92rem;
+    color: rgba(255,255,255,.92);
+    font-size: .95rem;
     font-weight: 700;
     line-height: 1.4;
     display: flex;
     gap: 10px;
+}
+.partners-intro-list i {
+    color: #ffd166;
+    margin-top: 2px;
+}
+@media (min-width: 992px) {
+    .partners-intro-section .row {
+        align-items: center;
+        min-height: 320px;
+    }
+    .partners-intro-section .col-lg-8 {
+        padding-right: 28px;
+    }
+}
+@media (max-width: 991px) {
+    .partners-intro-section {
+        padding: 58px 0 62px;
+    }
+    .partners-intro-title {
+        max-width: none;
+        font-size: clamp(1.9rem, 5vw, 2.7rem);
+    }
+    .partners-intro-panel {
+        margin-top: 10px;
+    }
+}
+@media (max-width: 767px) {
+    .partners-intro-section {
+        padding: 48px 0 52px;
+    }
+    .partners-intro-title {
+        font-size: 2rem;
+    }
+    .partners-intro-panel {
+        padding: 20px;
+        border-radius: 18px;
+    }
 }
 .partners-intro-list i {
     color: #2f5597;
@@ -964,7 +1035,7 @@
 
 @section('content')
 <!-- Breadcrumbs -->
-<div class="breadcrumbs overlay">
+<!-- <div class="breadcrumbs overlay">
     <div class="container">
         <div class="bread-inner">
             <div class="row">
@@ -979,7 +1050,7 @@
             </div>
         </div>
     </div>
-</div>
+</div> -->
 <!-- End Breadcrumbs -->
 
 <main class="partners-page-refresh">
@@ -988,8 +1059,8 @@
         <div class="row align-items-center">
             <div class="col-lg-8">
                 <div class="partners-kicker">Partner Ecosystem</div>
-                <h1 class="partners-intro-title">Technology partnerships that strengthen Microsoft-led transformation.</h1>
-                <p class="partners-intro-copy">Armely works across cloud, data, security, and infrastructure ecosystems to help clients integrate the right platforms, reduce delivery risk, and move faster with trusted technology partners.</p>
+                <h1 class="text-light">Technology partnerships that strengthen Microsoft-led transformation.</h1>
+                <p class="partners-intro-copy text-light">Armely works across cloud, data, security, and infrastructure ecosystems to help clients integrate the right platforms, reduce delivery risk, and move faster with trusted technology partners.</p>
             </div>
             <div class="col-lg-4 mt-4 mt-lg-0">
                 <div class="partners-intro-panel">

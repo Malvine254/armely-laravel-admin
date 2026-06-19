@@ -812,16 +812,16 @@
                 <div class="table-responsive">
                     <table class="table table-hover" id="caseStudiesDataTable">
                         <thead>
-                            <tr>
-                                <th>Type</th>
-                                <th>Industry Type</th>
-                                <th>Outcome Tag</th>
-                                <th>Title</th>
-                                <th>Image</th>
-                                <th>PDF</th>
-                                <th>Summary</th>
-                                <th width="200">Actions</th>
-                            </tr>
+                                <tr>
+                                    <th>Type</th>
+                                    <th>Industry Type</th>
+                                    <th>Outcome Tag</th>
+                                    <th>Title</th>
+                                    <th>One Pager</th>
+                                    <th>PDF</th>
+                                    <th>Summary</th>
+                                    <th width="200">Actions</th>
+                                </tr>
                         </thead>
                         <tbody id="caseStudiesTable">
                             @forelse(($caseStudies ?? collect()) as $caseStudy)
@@ -838,8 +838,11 @@
                                 <td>{{ $caseStudy->title ?? ($caseStudy->category ?? 'N/A') }}</td>
                                 <td>
                                     @if(!empty($caseStudy->listing_image))
-                                        @php($imageBase = $isWhitePaper ? asset('images/white-papers') : asset('images/case-study'))
-                                        <img src="{{ $imageBase . '/' . $caseStudy->listing_image }}" alt="{{ $caseStudy->title ?? $caseStudy->category ?? 'Resource' }}" style="width: 48px; height: 36px; object-fit: cover; border-radius: 6px;">
+                                        @php($previewBase = $isWhitePaper ? asset('images/white-papers') : asset('case-study-previews'))
+                                        @php($previewUrl = str_starts_with($caseStudy->listing_image, 'http') ? $caseStudy->listing_image : $previewBase . '/' . $caseStudy->listing_image)
+                                        <a href="{{ $previewUrl }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary" title="Open one-pager PDF">
+                                            <i class="fas fa-file-pdf"></i>
+                                        </a>
                                     @else
                                         <span class="text-muted">N/A</span>
                                     @endif
@@ -869,7 +872,7 @@
                                 </td>
                             </tr>
                             @empty
-                            <tr><td colspan="7" class="text-center text-muted">No resources yet. Add one!</td></tr>
+                            <tr><td colspan="8" class="text-center text-muted">No resources yet. Add one!</td></tr>
                             @endforelse
                         </tbody>
                     </table>
@@ -1276,24 +1279,55 @@
 
 <!-- Case Study View Modal -->
 <div class="modal fade" id="viewCaseStudyModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">View Case Study</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <h4 id="viewCaseStudyCategory"></h4>
-                <p class="text-muted mb-3">
-                    <a id="viewCaseStudyPdf" href="#" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary d-none">
-                        <i class="fas fa-file-pdf me-1"></i> Preview PDF
-                    </a>
-                </p>
-                <div id="viewCaseStudyImageWrap" class="mb-3 d-none">
-                    <img id="viewCaseStudyImage" src="" alt="" class="img-fluid rounded border" style="max-height: 220px; object-fit: cover;">
+                <div class="row g-3">
+                    <div class="col-lg-5">
+                        <div class="border rounded-4 p-4 bg-light h-100">
+                            <div class="d-flex flex-wrap gap-2 mb-3" id="viewCaseStudyChips"></div>
+                            <h4 id="viewCaseStudyCategory" class="mb-3"></h4>
+                            <p id="viewCaseStudySummary" class="text-muted mb-3"></p>
+                            <div class="d-flex flex-wrap gap-2 mb-3">
+                                <a id="viewCaseStudyPdf" href="#" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary d-none">
+                                    <i class="fas fa-file-pdf me-1"></i> Open One-Pager PDF
+                                </a>
+                                <span class="badge bg-light text-secondary border" id="viewCaseStudyTypeBadge">Case Study</span>
+                            </div>
+                            <div class="border rounded-4 bg-white p-3">
+                                <strong class="d-block mb-2">What this preview is showing</strong>
+                                <div class="text-muted small" id="viewCaseStudyPreviewNote">
+                                    The iframe on the right shows the one-pager PDF attached to the listing image field, while the case-study body below captures the editor summary.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-7">
+                        <div class="border rounded-4 bg-white p-3 h-100">
+                            <div class="d-flex align-items-start justify-content-between gap-3 mb-3">
+                                <div>
+                                    <div class="text-uppercase small fw-bold text-primary mb-1">Iframe preview</div>
+                                    <h5 class="mb-1" id="viewCaseStudyFrameTitle">Preview frame</h5>
+                                    <p class="text-muted mb-0 small">This mirrors the public-page preview format so editors can check what visitors will see.</p>
+                                </div>
+                                <span class="badge bg-light text-dark">First page</span>
+                            </div>
+                            <div class="border rounded-4 overflow-hidden bg-light" style="min-height: 520px;">
+                                <iframe id="viewCaseStudyFrame" title="Case study preview" class="w-100" style="min-height: 520px; border: 0; display: block;" loading="lazy"></iframe>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <div class="border rounded-4 p-4">
+                            <h5 class="mb-3">Editor body</h5>
+                            <div id="viewCaseStudyBody"></div>
+                        </div>
+                    </div>
                 </div>
-                <hr>
-                <div id="viewCaseStudyBody"></div>
             </div>
         </div>
     </div>
@@ -1313,6 +1347,7 @@
                     <input type="hidden" id="caseStudyId" name="id">
                     <input type="hidden" id="caseStudyMode" value="create">
                     <input type="hidden" id="caseStudySourceType" value="case_study">
+                    <input type="hidden" id="caseStudyExistingPreview" value="">
 
                     <div class="row g-3">
                         <div class="col-12">
@@ -1367,9 +1402,9 @@
                             <small class="text-muted" id="caseStudyPdfHelp">Upload a new PDF below to replace this value.</small>
                         </div>
                         <div class="col-md-6">
-                            <label for="caseStudyImage" class="form-label" id="caseStudyImageLabel">Listing Image</label>
-                            <input type="file" class="form-control" id="caseStudyImage" name="listing_image" accept="image/*">
-                            <small class="text-muted" id="caseStudyImageHelp">Saved to public/images/case-study.</small>
+                            <label for="caseStudyImage" class="form-label" id="caseStudyImageLabel">One-Pager PDF</label>
+                            <input type="file" class="form-control" id="caseStudyImage" name="listing_image" accept="application/pdf,.pdf">
+                            <small class="text-muted" id="caseStudyImageHelp">Saved to public/case-study-previews.</small>
                         </div>
                         <div class="col-md-6">
                             <label for="caseStudyPdf" class="form-label">PDF</label>
@@ -1379,6 +1414,36 @@
                         <div class="col-12">
                             <label for="caseStudyBody" class="form-label">Summary / Body</label>
                             <textarea class="form-control" id="caseStudyBody" name="body" rows="12"></textarea>
+                        </div>
+                        <div class="col-12">
+                            <div class="border rounded-4 p-4 bg-light">
+                                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                                    <div>
+                                        <div class="text-uppercase small fw-bold text-primary mb-1">Live preview</div>
+                                        <h5 class="mb-0">Public-facing case-study snapshot</h5>
+                                    </div>
+                                    <span class="badge bg-dark" id="caseStudyPreviewStatus">Draft preview</span>
+                                </div>
+                                <div class="row g-3 align-items-stretch">
+                                    <div class="col-lg-5">
+                                        <div class="h-100 border rounded-4 bg-white p-3">
+                                            <div class="d-flex flex-wrap gap-2 mb-3" id="caseStudyPreviewChips"></div>
+                                            <h6 class="mb-2" id="caseStudyPreviewTitle">Case study title</h6>
+                                            <p class="text-muted small mb-3" id="caseStudyPreviewBody">Your summary will appear here after you add title and body content.</p>
+                                            <ul class="small mb-0 ps-3 text-secondary" id="caseStudyPreviewResults">
+                                                <li>Preview the opening page in an iframe</li>
+                                                <li>Keep the full PDF gated behind the request form</li>
+                                                <li>Show a polished one-pager on the public page</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-7">
+                                        <div class="border rounded-4 overflow-hidden bg-white h-100" style="min-height: 340px;">
+                                            <iframe id="caseStudyPreviewFrame" title="Draft case study preview" loading="lazy" class="w-100" style="min-height: 340px; border: 0; display: block;"></iframe>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </form>
@@ -2231,12 +2296,162 @@ $(document).ready(function() {
         return `${basePath}/${encodeURIComponent(value)}`;
     }
 
-    function caseStudyImageUrl(imageValue, item = {}) {
-        const value = String(imageValue || '').trim();
+    function caseStudyPreviewPdfUrl(previewValue, item = {}) {
+        const value = String(previewValue || '').trim();
         if (!value) return '';
         if (/^https?:\/\//i.test(value)) return value;
-        const basePath = item.resource_type === 'white_paper' ? `{{ asset('images/white-papers') }}` : `{{ asset('images/case-study') }}`;
+        const basePath = item.resource_type === 'white_paper' ? `{{ asset('images/white-papers') }}` : `{{ asset('case-study-previews') }}`;
         return `${basePath}/${encodeURIComponent(value)}`;
+    }
+
+    function caseStudyTypeLabel(resourceType) {
+        return resourceType === 'white_paper' ? 'White Paper' : 'Case Study';
+    }
+
+    function caseStudyTechnologyLabel(item = {}) {
+        const rawLabel = String(item.technology_label || item.technology || item.technology_tag || '').trim();
+        if (rawLabel) {
+            return rawLabel;
+        }
+
+        const key = Array.isArray(item.technology_filters)
+            ? String(item.technology_filters[0] || '').trim()
+            : String(item.technology_filters || '').trim();
+
+        const labelMap = {
+            'fabric-data': 'Microsoft Fabric',
+            'power-platform': 'Power Platform',
+            'ai-cognitive-services': 'AI & Cognitive',
+            'sharepoint-collaboration': 'SharePoint',
+        };
+
+        return labelMap[key] || 'Microsoft Platform';
+    }
+
+    function caseStudyPreviewFrameUrl(item = {}) {
+        const url = item.listing_image_file_url || caseStudyPreviewPdfUrl(item.listing_image, item);
+        return url ? `${url}#page=1&zoom=page-width` : '';
+    }
+
+    function caseStudySummaryText(item = {}) {
+        const text = stripTags(item.body || '').replace(/\s+/g, ' ').trim();
+        if (text) {
+            return text.length > 260 ? `${text.slice(0, 257)}...` : text;
+        }
+
+        const title = String(item.title || item.category || caseStudyTypeLabel(item.resource_type));
+        return `${title} preview.`;
+    }
+
+    function caseStudyPreviewChipsHtml(item = {}) {
+        const chips = [];
+        const typeLabel = caseStudyTypeLabel(item.resource_type);
+        chips.push(`<span class="badge bg-primary">${escapeHtml(typeLabel)}</span>`);
+
+        if (item.category && typeLabel === 'Case Study') {
+            chips.push(`<span class="badge bg-light text-dark border">${escapeHtml(item.category)}</span>`);
+        }
+
+        const technologyLabel = caseStudyTechnologyLabel(item);
+        if (technologyLabel && typeLabel === 'Case Study') {
+            chips.push(`<span class="badge bg-light text-dark border">${escapeHtml(technologyLabel)}</span>`);
+        }
+
+        if (item.outcome_tag) {
+            chips.push(`<span class="badge bg-light text-dark border">${escapeHtml(item.outcome_tag)}</span>`);
+        }
+
+        if (item.resource_type) {
+            chips.push(`<span class="badge bg-secondary">${escapeHtml(item.resource_type.replace(/_/g, ' '))}</span>`);
+        }
+
+        return chips.join('');
+    }
+
+    function updateCaseStudyViewer(item = {}) {
+        const typeLabel = caseStudyTypeLabel(item.resource_type);
+        const title = String(item.title || item.category || typeLabel);
+        const summary = caseStudySummaryText(item);
+        const frameUrl = caseStudyPreviewFrameUrl(item);
+
+        $('#viewCaseStudyModal .modal-title').text(typeLabel === 'White Paper' ? 'View White Paper' : 'View Case Study');
+        $('#viewCaseStudyChips').html(caseStudyPreviewChipsHtml(item));
+        $('#viewCaseStudyCategory').text(title);
+        $('#viewCaseStudySummary').text(summary);
+        $('#viewCaseStudyTypeBadge').text(typeLabel);
+        $('#viewCaseStudyFrameTitle').text(title);
+        $('#viewCaseStudyPreviewNote').text(typeLabel === 'White Paper'
+            ? 'The iframe shows the gated white-paper preview so the team can validate the publishing flow.'
+            : 'The iframe mirrors the public preview shown to visitors before they request the full case-study PDF.');
+        $('#viewCaseStudyBody').html(item.body || '<p class="text-muted mb-0">No editor body available.</p>');
+
+        if (frameUrl) {
+            $('#viewCaseStudyFrame').attr('src', frameUrl);
+            $('#viewCaseStudyPdf').attr('href', frameUrl).removeClass('d-none');
+        } else {
+            $('#viewCaseStudyFrame').attr('src', 'about:blank');
+            $('#viewCaseStudyPdf').addClass('d-none');
+        }
+    }
+
+    function getCaseStudyDraftPreviewItem() {
+        const resourceType = getSelectedResourceType();
+        return {
+            resource_type: resourceType,
+            title: $('#caseStudyTitle').val(),
+            category: $('#caseStudyCategory').val(),
+            outcome_tag: $('#caseStudyOutcomeTag').val(),
+            pdf_url: $('#caseStudyPdfUrl').val(),
+            body: caseStudyEditor ? caseStudyEditor.getData() : $('#caseStudyBody').val(),
+            listing_image: $('#caseStudyExistingPreview').val(),
+            listing_image_file_url: getSelectedCaseStudyPreviewFileUrl(),
+        };
+    }
+
+    function getSelectedCaseStudyPreviewFileUrl() {
+        const file = $('#caseStudyImage')[0]?.files?.[0];
+        if (file) {
+            if (window.caseStudyPreviewObjectUrl) {
+                URL.revokeObjectURL(window.caseStudyPreviewObjectUrl);
+            }
+            window.caseStudyPreviewObjectUrl = URL.createObjectURL(file);
+            return window.caseStudyPreviewObjectUrl;
+        }
+
+        const isWhitePaper = getSelectedResourceType() === 'white_paper';
+        const existingValue = isWhitePaper
+            ? $('#caseStudyExistingImage').val()
+            : $('#caseStudyExistingPreview').val();
+        const existing = String(existingValue || '').trim();
+        if (!existing) {
+            return '';
+        }
+
+        return caseStudyPreviewPdfUrl(existing, { resource_type: isWhitePaper ? 'white_paper' : 'case_study' });
+    }
+
+    function updateCaseStudyDraftPreview() {
+        const item = getCaseStudyDraftPreviewItem();
+        const typeLabel = caseStudyTypeLabel(item.resource_type);
+        const title = String(item.title || item.category || typeLabel);
+        const summary = caseStudySummaryText(item);
+        const frameUrl = caseStudyPreviewFrameUrl(item);
+        const isDraftReady = Boolean(String(item.title || '').trim() && String(item.pdf_url || '').trim());
+
+        $('#caseStudyPreviewStatus').text(isDraftReady ? 'Ready to publish' : 'Draft preview');
+        $('#caseStudyPreviewChips').html(caseStudyPreviewChipsHtml(item));
+        $('#caseStudyPreviewTitle').text(title);
+        $('#caseStudyPreviewBody').text(summary);
+        $('#caseStudyPreviewFrame').attr('src', frameUrl || 'about:blank');
+
+        const results = [
+            item.resource_type === 'white_paper' ? 'Preview a white-paper style one-pager' : 'Preview the public case-study one-pager',
+            frameUrl ? 'Review the opening page in an iframe' : 'Add a PDF to enable iframe preview',
+            'Keep the full document gated behind the request form',
+        ];
+        $('#caseStudyPreviewResults').html(results.map(function (text) {
+            return `<li>${escapeHtml(text)}</li>`;
+        }).join(''));
     }
 
     function reloadCaseStudiesTable() {
@@ -2253,8 +2468,9 @@ $(document).ready(function() {
                         const typeBadge = isWhitePaper
                             ? '<span class="badge bg-secondary">White Paper</span>'
                             : '<span class="badge bg-primary">Case Study</span>';
-                        const imageHtml = item.listing_image
-                            ? `<img src="${caseStudyImageUrl(item.listing_image, item)}" alt="${escapeHtml(item.title || item.category || 'Resource')}" style="width:48px;height:36px;object-fit:cover;border-radius:6px;">`
+                        const previewUrl = caseStudyPreviewPdfUrl(item.listing_image, item);
+                        const imageHtml = previewUrl
+                            ? `<a href="${previewUrl}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary" title="Open one-pager PDF"><i class="fas fa-file-pdf"></i></a>`
                             : '<span class="text-muted">N/A</span>';
                         const pdfUrl = caseStudyPdfUrl(item.pdf_url, item);
                         const pdfHtml = pdfUrl
@@ -2279,7 +2495,7 @@ $(document).ready(function() {
                         </tr>`);
                     });
                 } else {
-                    tbody.html('<tr><td colspan="7" class="text-center text-muted">No resources yet. Add one!</td></tr>');
+                    tbody.html('<tr><td colspan="8" class="text-center text-muted">No resources yet. Add one!</td></tr>');
                 }
             },
             error: function(xhr) {
@@ -2981,8 +3197,9 @@ $(document).ready(function() {
         $('#caseStudyExistingImageGroup').toggleClass('d-none', !isWhitePaper);
         $('#caseStudyCategory').prop('required', !isWhitePaper);
         $('#caseStudyTitleLabel').text(isWhitePaper ? 'White Paper Title *' : 'Case Study Title *');
-        $('#caseStudyImageLabel').text(isWhitePaper ? 'White Paper Image' : 'Listing Image');
-        $('#caseStudyImageHelp').text(isWhitePaper ? 'Saved to public/images/white-papers.' : 'Saved to public/images/case-study.');
+        $('#caseStudyImageLabel').text(isWhitePaper ? 'White Paper Image' : 'One-Pager PDF');
+        $('#caseStudyImage').attr('accept', isWhitePaper ? 'image/*' : 'application/pdf,.pdf');
+        $('#caseStudyImageHelp').text(isWhitePaper ? 'Saved to public/images/white-papers.' : 'Saved to public/case-study-previews.');
         $('#caseStudyExistingImageLabel').text(isWhitePaper ? 'Existing White Paper Image Filename or URL' : 'Existing White Paper Image Filename or URL');
         $('#caseStudyExistingImageHelp').text(isWhitePaper ? 'Upload a new image below to replace this value.' : '');
         $('#caseStudyPdfPathHelp').text(isWhitePaper ? 'Saved to public/white_paper_docs.' : 'Saved to public/case_docs.');
@@ -2997,6 +3214,10 @@ $(document).ready(function() {
                 ? '<i class="fas fa-save me-2"></i>Update White Paper'
                 : '<i class="fas fa-save me-2"></i>Update Case Study');
         }
+
+        if (typeof updateCaseStudyDraftPreview === 'function') {
+            updateCaseStudyDraftPreview();
+        }
     }
 
     window.resetCaseStudyForm = function() {
@@ -3007,44 +3228,33 @@ $(document).ready(function() {
         $('#caseStudyId').val('');
         $('#caseStudyCategory').val('');
         $('#caseStudyOutcomeTag').val('');
+        $('#caseStudyExistingPreview').val('');
+        if (window.caseStudyPreviewObjectUrl) {
+            URL.revokeObjectURL(window.caseStudyPreviewObjectUrl);
+            window.caseStudyPreviewObjectUrl = '';
+        }
         $('#resourceTypeCaseStudy').prop('checked', true);
         applyCaseStudyResourceTypeUI();
         if (caseStudyEditor) {
             caseStudyEditor.setData('');
         }
+        updateCaseStudyDraftPreview();
     };
 
     $('input[name="resource_type"]').on('change', applyCaseStudyResourceTypeUI);
+    $(document).on('input change', '#caseStudyTitle, #caseStudyCategory, #caseStudyOutcomeTag, #caseStudyPdfUrl, #caseStudyExistingPreview, #caseStudyImage', updateCaseStudyDraftPreview);
 
     $('[data-bs-target="#caseStudyModal"]').click(function() {
         if (!caseStudyEditor) {
             caseStudyEditor = CKEDITOR.replace('caseStudyBody');
+            caseStudyEditor.on('change', updateCaseStudyDraftPreview);
         }
+        updateCaseStudyDraftPreview();
     });
 
     $(document).on('click', '.view-case-study', function() {
         const item = $(this).data('case-study');
-        const isWhitePaper = item.resource_type === 'white_paper';
-        const typeLabel = isWhitePaper ? 'White Paper' : 'Case Study';
-        const headerText = item.title || item.category || typeLabel;
-        $('#viewCaseStudyCategory').text(`${typeLabel}: ${headerText}`);
-        $('#viewCaseStudyBody').html(item.body || '');
-
-        const imageUrl = caseStudyImageUrl(item.listing_image, item);
-        if (imageUrl) {
-            $('#viewCaseStudyImage').attr('src', imageUrl).attr('alt', item.title || item.category || typeLabel);
-            $('#viewCaseStudyImageWrap').removeClass('d-none');
-        } else {
-            $('#viewCaseStudyImageWrap').addClass('d-none');
-        }
-
-        const pdfUrl = caseStudyPdfUrl(item.pdf_url, item);
-        if (pdfUrl) {
-            $('#viewCaseStudyPdf').attr('href', pdfUrl).removeClass('d-none');
-        } else {
-            $('#viewCaseStudyPdf').addClass('d-none');
-        }
-
+        updateCaseStudyViewer(item);
         $('#viewCaseStudyModal').modal('show');
     });
 
@@ -3067,6 +3277,7 @@ $(document).ready(function() {
         $('#caseStudyCategory').val(item.category || '');
         $('#caseStudyOutcomeTag').val(item.outcome_tag || item.outcome_tags || '');
         $('#caseStudyTitle').val(item.title || '');
+        $('#caseStudyExistingPreview').val(item.listing_image || item.images || item.image || '');
         $('#caseStudyExistingImage').val(item.listing_image || item.images || item.image || '');
         $('#caseStudyPdfUrl').val(item.pdf_url || '');
         if (isWhitePaper) {
@@ -3078,8 +3289,10 @@ $(document).ready(function() {
 
         if (!caseStudyEditor) {
             caseStudyEditor = CKEDITOR.replace('caseStudyBody');
+            caseStudyEditor.on('change', updateCaseStudyDraftPreview);
         }
         caseStudyEditor.setData(item.body || '');
+        setTimeout(updateCaseStudyDraftPreview, 0);
 
         $('#caseStudyModal').modal('show');
     });
