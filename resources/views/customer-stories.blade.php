@@ -48,6 +48,50 @@
         return trim(preg_replace('/\s+/', ' ', $text));
     };
 
+    // Resolve the display company for a story (new column first, then legacy split).
+    $resolveCompany = function ($story) use ($splitRoleCompany) {
+        $companyValue = trim((string) ($story->company ?? ''));
+        if ($companyValue !== '') {
+            return $companyValue;
+        }
+        [, $company] = $splitRoleCompany($story->position ?? '');
+        return $company;
+    };
+
+    // Count reviews per company so cards can show a "+N more from {company}" badge.
+    $companyCounts = $stories
+        ->map(fn ($story) => mb_strtolower(trim($resolveCompany($story))))
+        ->filter(fn ($key) => $key !== '' && $key !== 'armely customer')
+        ->countBy()
+        ->all();
+
+    // Sortable timestamp for each story (oldest first; undated reviews sink to the end).
+    $reviewTimestamp = function ($story) {
+        try {
+            return !empty($story->created_at) ? Carbon::parse($story->created_at)->timestamp : PHP_INT_MAX;
+        } catch (Throwable $e) {
+            return PHP_INT_MAX;
+        }
+    };
+
+    // Show oldest review first, and collapse each named company to just its oldest
+    // review. The hidden ones are still surfaced via the "+N more" badge.
+    $seenCompanies = [];
+    $visibleStories = $stories
+        ->sortBy($reviewTimestamp)
+        ->filter(function ($story) use (&$seenCompanies, $resolveCompany) {
+            $key = mb_strtolower(trim($resolveCompany($story)));
+            if ($key === '' || $key === 'armely customer') {
+                return true;
+            }
+            if (in_array($key, $seenCompanies, true)) {
+                return false;
+            }
+            $seenCompanies[] = $key;
+            return true;
+        })
+        ->values();
+
     // Use the shortest review as the base length for every collapsed preview.
     $reviewLengths = $stories
         ->map(fn ($story) => Str::length($cleanReviewText($story)))
@@ -218,6 +262,20 @@
         color: #163a75;
     }
 
+    .review-pdf-link {
+        display: inline;
+        color: var(--brand);
+        font-weight: 900;
+        font-style: normal;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+        white-space: nowrap;
+    }
+
+    .review-pdf-link:hover {
+        color: #163a75;
+    }
+
     .review-spacer {
         flex: 0 0 auto;
         min-height: 2px;
@@ -264,6 +322,27 @@
         color: var(--quiet);
         font-size: 0.74rem;
         line-height: 1.45;
+    }
+
+    .review-more-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        margin-top: 12px;
+        padding: 7px 14px;
+        border: 1px solid rgba(31, 79, 154, 0.2);
+        border-radius: 999px;
+        background: rgba(31, 79, 154, 0.07);
+        color: var(--brand);
+        font-size: 0.74rem;
+        font-weight: 700;
+        line-height: 1.2;
+    }
+
+    .review-more-icon {
+        flex: none;
+        width: 16px;
+        height: 16px;
     }
 
     .empty-state {
@@ -659,17 +738,29 @@
         <div class="client-reviews-inner">
             <div class="client-reviews-eyebrow">Client Reviews</div>
 
-            @if($stories->isNotEmpty())
+            @if($visibleStories->isNotEmpty())
                 <div class="client-reviews-grid">
-                    @foreach($stories as $story)
+                    @foreach($visibleStories as $story)
                         @php
-                            [$role, $company] = $splitRoleCompany($story->position ?? '');
+                            $companyValue = trim((string) ($story->company ?? ''));
+                            if ($companyValue !== '') {
+                                $role = trim((string) ($story->position ?? '')) ?: 'Client';
+                                $company = $companyValue;
+                            } else {
+                                [$role, $company] = $splitRoleCompany($story->position ?? '');
+                            }
                             $name = trim((string) ($story->name ?? 'Armely client'));
                             $fullText = $cleanReviewText($story);
                             $hasText = $fullText !== '';
                             $isTruncated = $hasText && Str::length($fullText) > $baseReviewLength;
                             $preview = $hasText ? Str::limit($fullText, $baseReviewLength, '...') : 'This client review is being prepared.';
                             $accent = $accentColors[$loop->index % count($accentColors)];
+                            $companyKey = mb_strtolower(trim($company));
+                            $moreCount = max(0, ($companyCounts[$companyKey] ?? 0) - 1);
+                            $pdfRaw = trim((string) ($story->pdf_url ?? ''));
+                            $pdfLink = $pdfRaw === ''
+                                ? ''
+                                : (Str::startsWith($pdfRaw, ['http://', 'https://', '/']) ? $pdfRaw : url('customer_stories/' . $pdfRaw));
                         @endphp
 
                         <article class="review-card" style="--accent: {{ $accent }};">
@@ -677,8 +768,10 @@
                                 <span aria-hidden="true">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
                             </div>
                             <p class="review-copy">
-                                <span class="review-copy-text" data-short="{{ $preview }}" data-full="{{ $fullText }}">{{ $preview }}</span>@if($isTruncated)
-                                <button type="button" class="review-toggle" data-review-toggle aria-expanded="false">Read full review <span aria-hidden="true">&rarr;</span></button>@endif
+                                <span class="review-copy-text" data-short="{{ $preview }}" data-full="{{ $fullText }}">{{ $preview }}</span>@if($pdfLink !== '')<span class="review-pdf-wrap" data-review-pdf @if($isTruncated)style="display:none;"@endif> <a class="review-pdf-link" href="{{ $pdfLink }}" target="_blank" rel="noopener">Get full review&nbsp;<span aria-hidden="true">&rarr;</span></a></span>@endif
+                                @if($isTruncated)
+                                    <button type="button" class="review-toggle" data-review-toggle aria-expanded="false">Read full review <span aria-hidden="true">&rarr;</span></button>
+                                @endif
                             </p>
 
                             <div class="review-spacer"></div>
@@ -690,6 +783,15 @@
                                 <strong class="review-company">{{ $company }}</strong>
                                 <p class="review-date">{{ $reviewedAt($story) }}</p>
                             </div>
+
+                            @if($moreCount > 0)
+                                <span class="review-more-badge">
+                                    <svg class="review-more-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                        <path d="M16 11a3 3 0 1 0-3-3 3 3 0 0 0 3 3Zm-8 0a3 3 0 1 0-3-3 3 3 0 0 0 3 3Zm0 2c-2.33 0-7 1.17-7 3.5V19h9v-2.5c0-.78.43-1.46 1.1-2.02A12.6 12.6 0 0 0 8 13Zm8 0c-.29 0-.62.02-.97.05A4.1 4.1 0 0 1 17 16.5V19h7v-2.5c0-2.33-4.67-3.5-7-3.5Z" fill="currentColor"/>
+                                    </svg>
+                                    +{{ $moreCount }} more {{ Str::plural('review', $moreCount) }} from {{ $company }}
+                                </span>
+                            @endif
                         </article>
                     @endforeach
                 </div>
@@ -824,6 +926,7 @@
         btn.addEventListener('click', function () {
             var copy = btn.closest('.review-copy');
             var text = copy ? copy.querySelector('.review-copy-text') : null;
+            var pdf = copy ? copy.querySelector('[data-review-pdf]') : null;
             if (!text) {
                 return;
             }
@@ -834,10 +937,16 @@
                 text.textContent = text.dataset.short;
                 btn.setAttribute('aria-expanded', 'false');
                 btn.innerHTML = 'Read full review <span aria-hidden="true">&rarr;</span>';
+                if (pdf) {
+                    pdf.style.display = 'none';
+                }
             } else {
                 text.textContent = text.dataset.full;
                 btn.setAttribute('aria-expanded', 'true');
                 btn.innerHTML = 'Show less <span aria-hidden="true">&uarr;</span>';
+                if (pdf) {
+                    pdf.style.display = '';
+                }
             }
         });
     });
