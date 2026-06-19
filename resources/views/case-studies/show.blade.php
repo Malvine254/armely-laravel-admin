@@ -1,17 +1,21 @@
-@extends('layouts.public')
+@php
+	$isWhitePaperPage = (bool) ($isWhitePaperPage ?? false);
+	$detailKindLabel = $isWhitePaperPage ? 'White Paper' : 'Case Study';
+	$detailPluralLabel = $isWhitePaperPage ? 'White Papers' : 'Case Studies';
+	$detailPrimaryActionLabel = $isWhitePaperPage ? 'Download full white paper' : 'Request Full Case Study';
+	$detailPreviewActionLabel = $isWhitePaperPage ? 'Request full white paper' : 'Request Full Case Study';
+	$detailModalTitle = $isWhitePaperPage ? 'Download Full White Paper' : 'Request Full Case Study';
+	$detailModalSubmitLabel = $isWhitePaperPage ? 'Email White Paper Link' : 'Request Full Case Study';
+	$detailModalCopy = $isWhitePaperPage ? 'Complete the form and we will email your secure download link. No phone number required.' : 'Complete the form and we will follow up with access to the full case study. No phone number required.';
+	$detailRequestAction = $detailRequestAction ?? ($isWhitePaperPage ? route('whitepapers.request', $caseStudy->slug) : route('case-studies.lead.submit'));
+	$detailLeadInterest = $detailLeadInterest ?? ($isWhitePaperPage ? 'white-papers' : 'case-studies');
+	$detailLeadIdField = $detailLeadIdField ?? 'case_study_id';
+	$detailLeadIdValue = $detailLeadIdValue ?? ($caseStudy->id ?? null);
+	$metaDescription = $metaDescription ?? '';
+	$caseOnePagerPreviewUrl = !empty($caseStudy->preview_source_url) && $caseStudy->preview_source_url !== ($caseStudy->pdf_preview_url ?? '') ? $caseStudy->preview_source_url : '';
+@endphp
 
-@php($isWhitePaperPage = !empty($isWhitePaperPage))
-@php($detailKindLabel = $isWhitePaperPage ? 'White Paper' : 'Case Study')
-@php($detailPluralLabel = $isWhitePaperPage ? 'White Papers' : 'Case Studies')
-@php($detailPrimaryActionLabel = $isWhitePaperPage ? 'Download full white paper' : 'Download full case study')
-@php($detailPreviewActionLabel = $isWhitePaperPage ? 'Request full white paper' : 'Request full case study')
-@php($detailModalTitle = $isWhitePaperPage ? 'Download Full White Paper' : 'Download Full Case Study')
-@php($detailModalSubmitLabel = $isWhitePaperPage ? 'Email White Paper Link' : 'Email Download Link')
-@php($detailModalCopy = 'Complete the form and we will email your secure download link. No phone number required.')
-@php($detailRequestAction = $detailRequestAction ?? ($isWhitePaperPage ? route('whitepapers.request', $caseStudy->slug) : route('case-studies.lead.submit')))
-@php($detailLeadInterest = $detailLeadInterest ?? ($isWhitePaperPage ? 'white-papers' : 'case-studies'))
-@php($detailLeadIdField = $detailLeadIdField ?? 'case_study_id')
-@php($detailLeadIdValue = $detailLeadIdValue ?? $caseStudy->id)
+@extends('layouts.public')
 
 @section('title', $caseStudy->display_title . ' ' . $detailKindLabel . ' | ' . ($caseStudy->technology_label ?? 'Microsoft Platform') . ' | Armely')
 @section('meta_description', $metaDescription)
@@ -148,6 +152,100 @@
 	position: relative;
 	z-index: 2;
 }
+.case-impact-band {
+	padding: 0 0 22px;
+	margin-top: -18px;
+	position: relative;
+	z-index: 2;
+}
+.case-impact-grid {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 14px;
+}
+.case-impact-card {
+	border: 1px solid var(--case-line);
+	background: #fff;
+	border-radius: 16px;
+	box-shadow: 0 14px 32px rgba(28, 54, 93, .08);
+	padding: 16px;
+	min-height: 118px;
+	display: grid;
+	gap: 8px;
+	align-content: start;
+}
+.case-impact-card i {
+	color: var(--case-blue);
+	font-size: 1.05rem;
+}
+.case-impact-card strong {
+	color: var(--case-ink);
+	font-size: .96rem;
+	font-weight: 900;
+	line-height: 1.35;
+}
+.case-impact-card span {
+	color: #50647e;
+	font-size: .88rem;
+	line-height: 1.5;
+}
+.case-story-band {
+	padding: 18px 0 12px;
+}
+.case-story-shell {
+	max-width: 1040px;
+	margin: 0 auto;
+	display: grid;
+	gap: 16px;
+}
+.case-story-card {
+	border: 1px solid var(--case-line);
+	background: #fff;
+	box-shadow: 0 14px 34px rgba(28, 54, 93, .07);
+	border-radius: 20px;
+	padding: 28px;
+}
+.case-story-card h2 {
+	color: var(--case-ink);
+	font-size: 1.55rem;
+	line-height: 1.15;
+	font-weight: 900;
+	margin: 0 0 8px;
+}
+.case-story-card p {
+	color: #46586f;
+	line-height: 1.75;
+	margin: 0;
+}
+.case-story-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 14px;
+}
+.case-story-block {
+	border: 1px solid #e4edf8;
+	background: #fbfdff;
+	border-radius: 16px;
+	padding: 18px;
+}
+.case-story-block--wide {
+	grid-column: 1 / -1;
+}
+.case-story-block h3 {
+	color: var(--case-ink);
+	font-size: 1.02rem;
+	font-weight: 900;
+	margin: 0 0 8px;
+}
+.case-story-block ul {
+	margin: 0;
+	padding-left: 18px;
+	color: #46586f;
+	line-height: 1.7;
+}
+.case-story-block li {
+	margin-bottom: 8px;
+}
 .case-result-grid {
 	display: grid;
 	grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -168,19 +266,199 @@
 .case-detail-band { padding: 38px 0 72px; background: #fff; }
 .case-preview-band {
 	background:
-		radial-gradient(1200px 260px at 15% -20%, rgba(47, 85, 151, .12), rgba(47, 85, 151, 0) 58%),
-		linear-gradient(180deg, #f7faff 0%, #fff 100%);
-	padding: 0 0 34px;
+		linear-gradient(180deg, rgba(247, 250, 255, .98), #fff 24%);
+	padding: 28px 0 64px;
 }
 .case-preview-band .container {
-	max-width: 1400px;
+	max-width: 100%;
 	padding-left: 24px;
 	padding-right: 24px;
 }
 .case-preview-shell {
 	width: 100%;
+	max-width: none;
 	margin: 0 auto;
 	padding: 0;
+}
+.case-full-case-study {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: 22px;
+	align-items: start;
+}
+.case-full-case-study-content {
+	display: grid;
+	gap: 14px;
+	align-content: start;
+	min-width: 0;
+}
+.case-full-case-study-card {
+	min-width: 0;
+}
+.case-full-case-study-header {
+	display: grid;
+	gap: 10px;
+	max-width: none;
+}
+.case-full-case-study-kicker {
+	color: var(--case-blue);
+	font-size: .8rem;
+	font-weight: 900;
+	text-transform: uppercase;
+	letter-spacing: .12em;
+}
+.case-full-case-study-title {
+	color: var(--case-ink);
+	font-size: clamp(1.65rem, 2.8vw, 2.25rem);
+	line-height: 1.1;
+	font-weight: 900;
+	margin: 0;
+}
+.case-full-case-study-description {
+	color: #46586f;
+	font-size: 1rem;
+	line-height: 1.7;
+	margin: 0;
+	max-width: 32ch;
+}
+.case-full-case-study-actions {
+	display: grid;
+	gap: 10px;
+	align-items: start;
+}
+.case-full-case-study-actions .case-primary-btn {
+	width: 100%;
+}
+.case-full-case-study-card {
+	background: #fff;
+	border: 1px solid var(--case-line);
+	border-radius: 22px;
+	box-shadow: 0 18px 42px rgba(28, 54, 93, .10);
+	overflow: hidden;
+	width: 100%;
+	min-height: 520px;
+}
+.case-full-case-study-viewer {
+	width: 100%;
+	height: clamp(560px, 58vw, 700px);
+	background: #fff;
+}
+.case-full-case-study-viewer iframe {
+	display: block;
+	width: 100%;
+	height: 100%;
+	border: 0;
+	background: #fff;
+}
+@media (min-width: 992px) {
+	.case-pdf-iframe {
+		transform: scale(1.05);
+		transform-origin: top center;
+	}
+}
+.case-full-case-study-mobile {
+	display: none;
+	padding: 24px;
+	gap: 16px;
+	background: #fff;
+}
+.case-full-case-study-mobile strong {
+	display: block;
+	color: var(--case-ink);
+	font-size: 1.05rem;
+	font-weight: 900;
+	margin-bottom: 6px;
+}
+.case-full-case-study-mobile p {
+	margin: 0;
+	color: #46586f;
+	line-height: 1.65;
+}
+.case-full-case-study-mobile-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+}
+.case-full-case-study-fallback {
+	display: grid;
+	gap: 16px;
+	padding: 28px;
+	min-height: 360px;
+	align-content: center;
+	background:
+		linear-gradient(180deg, rgba(47, 85, 151, .04), rgba(255, 255, 255, 0)),
+		#fff;
+}
+.case-full-case-study-fallback-visual {
+	display: inline-grid;
+	place-items: center;
+	width: 68px;
+	height: 68px;
+	border-radius: 18px;
+	background: rgba(47, 85, 151, .10);
+	color: var(--case-blue);
+	font-size: 1.7rem;
+}
+.case-full-case-study-fallback h3 {
+	color: var(--case-ink);
+	font-size: 1.2rem;
+	font-weight: 900;
+	margin: 0;
+}
+.case-full-case-study-fallback p {
+	margin: 0;
+	color: #46586f;
+	line-height: 1.7;
+	max-width: 60ch;
+}
+.case-full-case-study-fallback-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+	align-items: center;
+}
+.case-summary-download-link {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	color: var(--case-blue);
+	font-weight: 800;
+	text-decoration: none;
+	font-size: .95rem;
+}
+.case-summary-download-link:hover {
+	color: var(--case-navy);
+	text-decoration: underline;
+}
+.case-request-band {
+	padding: 18px 0 66px;
+}
+.case-request-card {
+	max-width: 1040px;
+	margin: 0 auto;
+	border: 1px solid var(--case-line);
+	background: linear-gradient(135deg, rgba(47, 85, 151, .05), #fff 62%);
+	box-shadow: 0 16px 36px rgba(28, 54, 93, .08);
+	border-radius: 22px;
+	padding: 24px 28px;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 18px;
+}
+.case-request-card h2 {
+	color: var(--case-ink);
+	font-size: 1.45rem;
+	font-weight: 900;
+	margin: 0 0 8px;
+}
+.case-request-card p {
+	margin: 0;
+	color: #46586f;
+	line-height: 1.65;
+}
+.case-request-card .case-primary-btn {
+	min-width: 240px;
 }
 .case-preview-grid {
 	display: grid;
@@ -192,76 +470,72 @@
 .case-preview-side {
 	background: #fff;
 }
-.case-preview-card { padding: 28px; }
+.case-preview-card {
+	padding: 0;
+	border-radius: 0;
+	box-shadow: none;
+}
 .case-preview-side { padding: 22px; }
 .case-pdf-stage {
 	position: relative;
 	overflow: hidden;
-	background:
-		linear-gradient(180deg, rgba(255,255,255,.95), rgba(248,251,255,.95)),
-		#fff;
-	min-height: 640px;
-	padding: 24px;
-	display: flex;
-	justify-content: center;
-	align-items: flex-start;
+	background: #fff;
+	min-height: 0;
+	padding: 0;
+	display: block;
 }
 .case-pdf-stage-inner {
-	width: min(100%, 1120px);
+	width: 100%;
 	margin: 0 auto;
 	position: relative;
 }
 .case-pdf-page {
 	width: 100%;
-	border: 1px solid #dbe6f3;
-	border-radius: 18px;
-	background: linear-gradient(180deg, #ffffff 0%, #f7faff 100%);
+	border: 0;
+	border-radius: 0;
+	background: transparent;
 	box-shadow: none;
-	padding: 28px;
+	padding: 0;
 }
 .case-pdf-page-title {
-	color: var(--case-ink);
-	font-size: 1.55rem;
-	line-height: 1.18;
-	font-weight: 900;
-	margin: 0;
-	max-width: 22ch;
+	display: none;
 }
 .case-pdf-page-body {
 	position: relative;
 	color: #32465f;
 	font-size: 1rem;
 	line-height: 1.85;
-	max-height: 520px;
-	overflow: hidden;
-	padding-right: 6px;
+	max-height: none;
+	overflow: visible;
+	padding-right: 0;
 }
 .case-pdf-preview-meta {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 8px;
-	margin-bottom: 16px;
+	display: none;
 }
 .case-pdf-meta-chip {
-	display: inline-flex;
-	align-items: center;
-	min-height: 28px;
-	padding: 4px 10px;
-	border-radius: 999px;
-	background: #f7faff;
-	color: var(--case-navy);
-	font-size: .72rem;
-	font-weight: 900;
-	letter-spacing: .08em;
-	text-transform: uppercase;
+	display: none;
 }
 .case-pdf-meta-chip.is-muted {
-	background: #fff;
-	color: #5d6f86;
+	display: none;
 }
 .case-pdf-page-copy {
 	display: grid;
-	gap: 14px;
+	gap: 0;
+}
+.case-pdf-iframe-shell {
+	width: 100%;
+	border: 0;
+	border-radius: 0;
+	overflow: hidden;
+	background: transparent;
+	box-shadow: none;
+}
+.case-pdf-iframe {
+	display: block;
+	width: 100%;
+	min-height: 1120px;
+	border: 0;
+	background: transparent;
 }
 .case-pdf-sections {
 	display: grid;
@@ -371,13 +645,14 @@
 	height: 130px;
 	background: linear-gradient(180deg, rgba(247, 250, 255, 0), rgba(247, 250, 255, 1) 82%);
 	pointer-events: none;
+	display: none;
 }
 .case-pdf-request {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
 	gap: 16px;
-	margin-top: 18px;
+	margin-top: 14px;
 	padding: 16px 18px;
 	border-radius: 14px;
 	background: linear-gradient(135deg, rgba(47, 85, 151, .08), rgba(47, 85, 151, .03));
@@ -431,8 +706,8 @@
 	align-items: center;
 	justify-content: space-between;
 	gap: 16px;
-	padding-top: 18px;
-	margin-top: 18px;
+	padding-top: 12px;
+	margin-top: 12px;
 }
 .case-preview-footer p {
 	margin: 0;
@@ -828,6 +1103,12 @@
 	color:var(--case-ink);
 	transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
 }
+textarea.lead-field {
+	padding-top: 12px;
+	padding-bottom: 12px;
+	min-height: 120px;
+	resize: vertical;
+}
 .lead-field:focus {
 	outline: none;
 	border-color: var(--case-blue);
@@ -939,11 +1220,18 @@
 	.case-preview-grid { grid-template-columns: 1fr; }
 	.case-detail-title { font-size: 2.15rem; }
 	.case-sidebar { position: static; }
-	.case-pdf-stage { min-height: 520px; padding: 18px; }
+	.case-impact-grid,
+	.case-story-grid { grid-template-columns: 1fr 1fr; }
 	.case-mock-metrics { grid-template-columns: 1fr; }
 	.case-pdf-highlight-grid { grid-template-columns: 1fr; }
-	.case-preview-footer { flex-direction: column; align-items: stretch; }
-	.case-preview-footer .case-primary-btn { width: 100%; min-width: 0; }
+	.case-full-case-study { grid-template-columns: 1fr; }
+	.case-full-case-study-content,
+	.case-full-case-study-card { grid-column: auto; }
+	.case-full-case-study-actions { display: none; }
+	.case-full-case-study-viewer { display: none; }
+	.case-full-case-study-mobile { display: grid; }
+	.case-request-card { flex-direction: column; align-items: stretch; }
+	.case-request-card .case-primary-btn { width: 100%; min-width: 0; }
 }
 @media (max-width: 575px) {
 	.case-detail-title { font-size: 1.85rem; }
@@ -952,7 +1240,10 @@
 	.case-share-card,
 	.case-lead-card,
 	.case-preview-card,
-	.case-preview-side { padding: 18px; }
+	.case-preview-side,
+	.case-story-card { padding: 18px; }
+	.case-impact-grid,
+	.case-story-grid { grid-template-columns: 1fr; }
 	.case-modal { padding: 10px; }
 	.case-modal-dialog { padding: 16px; margin: 10px auto; }
 	.case-share-grid { grid-template-columns: 1fr; }
@@ -964,7 +1255,6 @@
 	.case-hero-actions { flex-direction: column; }
 	.case-primary-btn,
 	.case-secondary-btn { width: 100%; }
-	.case-pdf-stage { min-height: 420px; padding: 12px; }
 	.case-pdf-overlay {
 		left: 12px;
 		right: 12px;
@@ -974,7 +1264,15 @@
 	}
 	.case-pdf-mock { padding: 14px; min-height: 520px; }
 	.case-mock-title { font-size: 1.55rem; }
-	.case-preview-shell { padding: 0 14px; }
+	.case-preview-band .container { padding-left: 16px; padding-right: 16px; }
+	.case-full-case-study-card { border-radius: 18px; }
+	.case-full-case-study-mobile { padding: 18px; }
+	.case-full-case-study-fallback { padding: 20px; min-height: 0; }
+	.case-full-case-study-mobile-actions .case-primary-btn,
+	.case-full-case-study-mobile-actions .case-secondary-btn,
+	.case-full-case-study-actions .case-primary-btn,
+	.case-full-case-study-actions .case-secondary-btn { width: 100%; min-width: 0; }
+	.case-request-band { padding-bottom: 50px; }
 }
 </style>
 @endpush
@@ -984,7 +1282,7 @@
 <main class="case-detail-page">
 	<section class="case-detail-hero">
 		<div class="container">
-			<a class="case-back-link text-light" href="{{ $isWhitePaperPage ? route('case-studies.index') . '#white-papers' : route('case-studies.index') }}"><i class="fa fa-arrow-left"></i> Back to {{ $detailPluralLabel }}</a>
+			<a class="case-back-link text-light" href="{{ ($isWhitePaperPage ?? false) ? route('case-studies.index') . '#white-papers' : route('case-studies.index') }}"><i class="fa fa-arrow-left"></i> Back to {{ $detailPluralLabel }}</a>
 			<div class="case-hero-layout">
 				<div>
 					<div class="case-detail-eyebrow">{{ $caseStudy->category ?? $detailKindLabel }}</div>
@@ -1000,76 +1298,57 @@
 		</div>
 	</section>
 
-	<section class="case-preview-band">
-	<div class="container">
-			<div class="case-preview-shell">
-				<div class="case-preview-card">
-					<div class="case-pdf-stage">
-						<div class="case-pdf-stage-inner">
-							@if(!empty($caseStudy->pdf_preview_text))
-								<div class="case-pdf-page" aria-label="{{ $detailKindLabel }} page one text preview">
-									<h3 class="case-pdf-page-title">{{ $caseStudy->display_title }}</h3>
-									<div class="case-pdf-page-body">
-										<div class="case-pdf-page-copy">
-											<div class="case-pdf-preview-meta" aria-label="Preview metadata">
-												<span class="case-pdf-meta-chip">{{ $caseStudy->category ?? $detailKindLabel }}</span>
-												<span class="case-pdf-meta-chip is-muted">{{ $caseStudy->technology_label ?? 'Microsoft Platform' }}</span>
-												<span class="case-pdf-meta-chip is-muted">{{ $caseStudyOutcomeLabel !== '' ? $caseStudyOutcomeLabel : 'Measurable business outcome' }}</span>
-											</div>
-											@if(!empty($caseStudy->pdf_preview_sections))
-												<div class="case-pdf-sections" aria-label="Formatted preview sections">
-													@foreach($caseStudy->pdf_preview_sections as $sectionIndex => $section)
-														<section class="case-pdf-section">
-															@if(!empty($section['heading']))
-																<div class="case-pdf-section-head">
-																	<span class="case-pdf-section-kicker">Section {{ $sectionIndex + 1 }}</span>
-																	<h4>{{ $section['heading'] }}</h4>
-																</div>
-															@endif
-															<div class="case-pdf-section-body">
-																@foreach($section['paragraphs'] ?? [] as $paragraphIndex => $paragraph)
-																	<p class="case-pdf-paragraph {{ $sectionIndex === 0 && $paragraphIndex === 0 ? 'is-lead' : '' }}">{{ $paragraph }}</p>
-																@endforeach
-															</div>
-														</section>
-													@endforeach
-												</div>
-												<div class="case-pdf-preview-note">
-													This preview is formatted from the first page of the PDF file so the section titles stay visible and readable.
-												</div>
-											@else
-												@foreach($caseStudy->pdf_preview_paragraphs ?? [] as $index => $paragraph)
-													<p class="case-pdf-paragraph {{ $index === 0 ? 'is-lead' : '' }}">{{ $paragraph }}</p>
-												@endforeach
-											@endif
-										</div>
-									</div>
-									<div class="case-pdf-request">
-										<div>
-											<strong>Need the full {{ strtolower($detailKindLabel) }}?</strong>
-											<span>Request secure access for the complete PDF and any remaining pages.</span>
-										</div>
-										<button type="button" class="case-primary-btn" id="openCaseDownloadModalPreviewInline">{{ $detailPreviewActionLabel }}</button>
-									</div>
+	@if(!($isWhitePaperPage ?? false))
+		@if(!empty($caseOnePagerPreviewUrl))
+			<section class="case-preview-band">
+				<div class="container">
+					<div class="case-preview-shell case-full-case-study">
+						<div class="case-full-case-study-card" aria-label="One-Page Summary preview">
+							<div class="case-full-case-study-viewer">
+								<iframe
+									class="case-pdf-iframe"
+									src="{{ $caseOnePagerPreviewUrl }}#page=1&zoom=115&toolbar=0&navpanes=0&scrollbar=0"
+									title="One-Page Summary preview of {{ $caseStudy->display_title }}"
+									loading="lazy"
+									referrerpolicy="no-referrer"
+								></iframe>
+							</div>
+							<div class="case-full-case-study-mobile">
+								<div>
+									<strong>One-Page Summary</strong>
+									<p>Preview the summary below or open it in a new tab on mobile.</p>
 								</div>
-							@else
-								<div class="case-pdf-empty" aria-label="{{ $detailKindLabel }} preview">
-									<div>
-										<strong>First page text is unavailable</strong>
-										<div>We could not extract readable text from the PDF file for this {{ strtolower($detailKindLabel) }}.</div>
-									</div>
+								<div class="case-full-case-study-mobile-actions">
+									<a class="case-summary-download-link" href="{{ $caseOnePagerPreviewUrl }}" target="_blank" rel="noopener">
+										<i class="fa fa-up-right-from-square"></i> Open One-Pager
+									</a>
+									<button type="button" class="case-primary-btn" data-open-case-modal>
+										<i class="fa fa-file-arrow-down"></i> Request Full Case Study
+									</button>
 								</div>
-							@endif
+							</div>
 						</div>
-					</div>
-					<div class="case-preview-footer">
-						<p>Need the full document? Request a secure download link and we will email it to your work address.</p>
-						<button type="button" class="case-primary-btn" id="openCaseDownloadModalPreview"><i class="fa fa-file-arrow-down"></i> {{ $detailPreviewActionLabel }}</button>
+						
 					</div>
 				</div>
+			</section>
+		@endif
+
+		<section class="case-request-band">
+			<div class="container">
+				<div class="case-request-card">
+					<div>
+						<h2>Want the full case study?</h2>
+						<p>Request access and our team will share the full case study with you.</p>
+						<p class="case-full-case-study-note">The full case study is available by request.</p>
+					</div>
+					<button type="button" class="case-primary-btn" data-open-case-modal>
+						<i class="fa fa-file-arrow-down"></i> Request Full Case Study
+					</button>
+				</div>
 			</div>
-		</div>
-	</section>
+		</section>
+	@endif
 </main>
 
 <div class="case-modal" id="caseDownloadModal" aria-hidden="true" role="dialog" aria-labelledby="caseDownloadModalTitle">
@@ -1111,6 +1390,10 @@
 					<option>Practitioner or analyst</option>
 					</select>
 				</div>
+				<div class="form-group lead-col-full">
+					<label class="field-label" for="lead_message">Message or reason for request <span class="field-meta">Optional</span></label>
+					<textarea class="lead-field" id="lead_message" name="message" placeholder="Tell us why you need the full case study and how your team plans to use it."></textarea>
+				</div>
 			</div>
 			@if(!empty($recaptchaSiteKey))
 				<div class="form-group captcha-wrap">
@@ -1125,7 +1408,7 @@
 		</button>
 			<div class="case-form-status" id="caseFormStatus" aria-live="polite"></div>
 			<div class="case-direct-download" id="caseDirectDownload" aria-live="polite"></div>
-			<p class="case-form-note">We will send a secure download link to your work email. The link expires in 1 hour.</p>
+			<p class="case-form-note">We will send a secure access link to your work email. The link expires in 1 hour.</p>
 		</form>
 	</div>
 </div>
@@ -1141,8 +1424,6 @@
 	var toast = document.getElementById('caseShareToast');
 	var modal = document.getElementById('caseDownloadModal');
 	var openModalBtn = document.getElementById('openCaseDownloadModal');
-	var openModalPreviewBtn = document.getElementById('openCaseDownloadModalPreview');
-	var openModalPreviewInlineBtn = document.getElementById('openCaseDownloadModalPreviewInline');
 	var closeModalBtn = document.getElementById('closeCaseDownloadModal');
 	var firstInput = document.getElementById('lead_name');
 	var recaptchaContainer = document.getElementById('caseRecaptcha');
@@ -1244,12 +1525,11 @@
 		openModalBtn.addEventListener('click', openDownloadModal);
 	}
 
-	if (openModalPreviewBtn) {
-		openModalPreviewBtn.addEventListener('click', openDownloadModal);
-	}
-
-	if (openModalPreviewInlineBtn) {
-		openModalPreviewInlineBtn.addEventListener('click', openDownloadModal);
+	var openModalButtons = document.querySelectorAll('[data-open-case-modal]');
+	if (openModalButtons && openModalButtons.length) {
+		openModalButtons.forEach(function (button) {
+			button.addEventListener('click', openDownloadModal);
+		});
 	}
 
 	function setSubmitting(isSubmitting) {
@@ -1260,7 +1540,7 @@
 		submitBtn.disabled = isSubmitting;
 		submitBtn.classList.toggle('is-loading', isSubmitting);
 		if (submitText) {
-			submitText.textContent = isSubmitting ? 'Sending secure link...' : 'Email Download Link';
+			submitText.textContent = isSubmitting ? 'Sending request...' : @json($detailModalSubmitLabel);
 		}
 	}
 
@@ -1293,7 +1573,7 @@
 
 		var expiresText = expiresAt ? (' Link expires at ' + expiresAt + '.') : '';
 		directDownload.classList.add('is-visible');
-		directDownload.innerHTML = 'Download now: <a href="' + url + '" target="_blank" rel="noopener noreferrer">Open secure file</a>.' + expiresText;
+		directDownload.innerHTML = 'Access now: <a href="' + url + '" target="_blank" rel="noopener noreferrer">Open secure link</a>.' + expiresText;
 	}
 
 	if (leadForm) {
@@ -1321,7 +1601,7 @@
 				if (result.ok) {
 					var emailSent = !(result.payload && result.payload.email_sent === false);
 					var successType = emailSent ? 'success' : 'error';
-					setFormStatus(result.payload.message || 'Thanks! Your secure download link has been sent.', successType);
+					setFormStatus(result.payload.message || 'Thanks! Your request has been received. We will email your access link shortly.', successType);
 					if (emailSent) {
 						setDirectDownload('', '');
 					} else {

@@ -344,22 +344,14 @@ class ResourceController extends Controller
 
             $isWhitePaper = $this->isPdfStyleResource($resource);
             if ($isWhitePaper) {
-                if (!$request->routeIs('whitepapers.show')) {
-                    return redirect()->route('whitepapers.show', ['slug' => $resource->slug]);
+                if (!$request->routeIs('whitepapers.show') && !$request->routeIs('white-papers.view')) {
+                    return redirect()->route('white-papers.view', ['slug' => $resource->slug]);
                 }
 
-                $caseStudyViewModel = $this->buildWhitePaperCaseStudyViewModel($resource);
-
-                return response()->view('case-studies.show', [
-                    'caseStudy' => $caseStudyViewModel,
-                    'relatedCaseStudies' => collect(),
-                    'recaptchaSiteKey' => config('services.recaptcha.site_key', ''),
-                    'metaDescription' => $resource->description ?: $caseStudyViewModel->preview,
-                    'isWhitePaperPage' => true,
-                    'detailRequestAction' => route('whitepapers.request', ['slug' => $resource->slug]),
-                    'detailLeadInterest' => 'white-papers',
-                    'detailLeadIdField' => null,
-                    'detailLeadIdValue' => null,
+                return response()->view('resources.white-paper-show', [
+                    'resource' => $resource,
+                    'relatedResources' => $relatedResources,
+                    'metaDescription' => $resource->description ?: 'Armely white papers and leadership guidance for Microsoft platform planning.',
                 ]);
             }
 
@@ -376,7 +368,7 @@ class ResourceController extends Controller
 
         // Backward compatibility for existing static and white-paper resource URLs.
         if ($request->routeIs('resources.show')) {
-            return redirect()->route('whitepapers.show', ['slug' => $slug]);
+            return redirect()->route('white-papers.view', ['slug' => $slug]);
         }
 
         return app(CaseStudiesController::class)->showResource($request, $slug);
@@ -387,7 +379,7 @@ class ResourceController extends Controller
             ]);
 
             if ($request->routeIs('resources.show')) {
-                return redirect()->route('whitepapers.show', ['slug' => $slug]);
+                return redirect()->route('white-papers.view', ['slug' => $slug]);
             }
 
             return app(CaseStudiesController::class)->showResource($request, $slug);
