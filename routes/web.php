@@ -94,7 +94,10 @@ Route::get('/case-studies', [CaseStudiesController::class, 'index'])->name('case
 Route::post('/case-studies/lead', [CaseStudiesController::class, 'submitLead'])->name('case-studies.lead.submit');
 Route::get('/case-studies/access/{caseStudy}', [CaseStudiesController::class, 'accessCaseStudy'])->name('case-studies.access');
 Route::get('/white-papers/access/{paper}', [CaseStudiesController::class, 'accessWhitePaper'])->name('white-papers.access');
+Route::get('/white-papers/view/{slug}', [ResourceController::class, 'show'])->name('white-papers.view');
 Route::get('/resources', [ResourceController::class, 'index'])->name('resources.index');
+Route::redirect('/Resources', '/resources', 301);
+Route::redirect('/Resources/', '/resources', 301);
 Route::get('/whitepapers/{slug}', [ResourceController::class, 'show'])->name('whitepapers.show');
 Route::post('/whitepapers/{slug}/request', [ResourceController::class, 'requestResource'])->name('whitepapers.request');
 Route::get('/whitepapers/{slug}/download', [ResourceController::class, 'download'])->name('whitepapers.download');
