@@ -792,16 +792,22 @@ class TablesController extends Controller
             if ($request->filled('position')) {
                 $data['position'] = $request->position;
             }
+            if ($request->has('company') && $this->columnExists($table, 'company')) {
+                $data['company'] = $request->input('company');
+            }
+            if ($request->has('pdf_url') && $this->columnExists($table, 'pdf_url')) {
+                $data['pdf_url'] = $request->input('pdf_url');
+            }
             if ($request->filled('body_content')) {
                 $col = $this->columnExists($table, 'body_content') ? 'body_content' : 'content';
                 $data[$col] = $request->body_content;
             }
-            
+
             if ($request->hasFile('profile')) {
                 $image = $request->file('profile');
                 $filename = time() . '_' . $image->getClientOriginalName();
                 $image->move(public_path('images/customers'), $filename);
-                
+
                 if ($this->columnExists($table, 'profile')) {
                     $data['profile'] = 'images/customers/' . $filename;
                 } elseif ($this->columnExists($table, 'profile_image')) {
@@ -810,7 +816,7 @@ class TablesController extends Controller
                     $data['image'] = 'images/customers/' . $filename;
                 }
             }
-            
+
             if (!empty($data)) {
                 DB::table($table)->where('id', $request->id)->update($data);
             }
@@ -828,16 +834,22 @@ class TablesController extends Controller
             if ($request->filled('position')) {
                 $data['position'] = $request->position;
             }
+            if ($request->has('company') && $this->columnExists($table, 'company')) {
+                $data['company'] = $request->input('company');
+            }
+            if ($request->has('pdf_url') && $this->columnExists($table, 'pdf_url')) {
+                $data['pdf_url'] = $request->input('pdf_url');
+            }
             if ($request->filled('body_content')) {
                 $col = $this->columnExists($table, 'body_content') ? 'body_content' : 'content';
                 $data[$col] = $request->body_content;
             }
-            
+
             if ($request->hasFile('profile')) {
                 $image = $request->file('profile');
                 $filename = time() . '_' . $image->getClientOriginalName();
                 $image->move(public_path('images/customers'), $filename);
-                
+
                 if ($this->columnExists($table, 'profile')) {
                     $data['profile'] = 'images/customers/' . $filename;
                 } elseif ($this->columnExists($table, 'profile_image')) {
@@ -846,7 +858,7 @@ class TablesController extends Controller
                     $data['image'] = 'images/customers/' . $filename;
                 }
             }
-            
+
             $id = DB::table($table)->insertGetId($data);
             $story = DB::table($table)->where('id', $id)->first();
             ActivityLogger::log('create', 'CustomerStory', $id, 'Created customer story ' . ($story->name ?? ''));
@@ -1354,6 +1366,12 @@ class TablesController extends Controller
         if ($request->filled('position')) {
             $col = $this->columnExists($table, 'position') ? 'position' : 'job_title';
             $data[$col] = $request->position;
+        }
+        if ($request->has('company') && $this->columnExists($table, 'company')) {
+            $data['company'] = $request->input('company');
+        }
+        if ($request->has('pdf_url') && $this->columnExists($table, 'pdf_url')) {
+            $data['pdf_url'] = $request->input('pdf_url');
         }
         if ($request->filled('body_content')) {
             $col = $this->columnExists($table, 'body_content') ? 'body_content' : 'content';
