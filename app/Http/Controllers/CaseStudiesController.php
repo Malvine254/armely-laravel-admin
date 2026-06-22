@@ -81,7 +81,27 @@ class CaseStudiesController extends Controller
         $caseStudy->outcome_tag = $this->caseStudyOutcomeTag($caseStudy);
         $caseStudy->pdf_preview_has_attachment = $this->caseStudyHasAttachment($caseStudy);
         $caseStudy->pdf_preview_url = $this->caseStudyPreviewUrl($caseStudy);
-        $caseStudy->preview_source_url = $this->caseStudyOnePagerPreviewUrl($caseStudy) ?: $caseStudy->pdf_preview_url;
+        // Free preview must only ever expose the one-pager asset, never the gated full PDF.
+        $caseStudy->preview_source_url = $this->caseStudyOnePagerPreviewUrl($caseStudy);
+        // Resolve the raw one-pager source: authored content first, then the existing
+        // case-study body as a temporary fallback for older records.
+        $rawOnePager = trim((string) ($caseStudy->one_pager_content ?? ''));
+        if ($rawOnePager === '') {
+            $rawOnePager = trim((string) ($caseStudy->body ?? ''));
+        }
+
+        // The structured one-pager format renders the full document design; anything
+        // else renders as sanitized HTML/prose. No PDF text extraction is involved.
+        $caseStudy->one_pager_document = $this->buildOnePagerDocument($rawOnePager);
+        $caseStudy->one_pager_content = empty($caseStudy->one_pager_document)
+            ? $this->sanitizeOnePagerContentForDisplay($rawOnePager)
+            : '';
+
+        $caseStudy->pdf_preview_text = !empty($caseStudy->one_pager_document)
+            ? (string) ($caseStudy->one_pager_document['intro'] ?? $caseStudy->one_pager_document['headline'] ?? '')
+            : $this->makePreviewText($caseStudy->one_pager_content, 8000);
+        $caseStudy->pdf_preview_sections = [];
+        $caseStudy->pdf_preview_paragraphs = [];
         $caseStudy->results = $this->caseStudyResults($caseStudy);
         $caseStudy->services = $this->caseStudyServices($caseStudy);
         $caseStudy->hero_copy = $this->caseStudyHeroCopy($caseStudy);
@@ -734,826 +754,165 @@ class CaseStudiesController extends Controller
             return '';
         }
 
-        return asset('case-study-previews/' . rawurlencode($fileName));
-    }
-
-    private function caseStudyFirstPageText(object $caseStudy): string
-    {
-        $source = $this->caseStudyPdfSource($caseStudy);
-        if ($source === null) {
-            return '';
-        }
-
-        $cacheKey = 'case_study_first_page_text:' . sha1((string) ($source['cache_key'] ?? ''));
-
-        return Cache::remember($cacheKey, now()->addHours(12), function () use ($source): string {
-            $pdfBytes = $this->readPdfSourceBytes($source);
-            if ($pdfBytes === '') {
-                return '';
-            }
-
-            $text = $this->extractPdfFirstPageText($pdfBytes);
-            $text = $this->normalizeExtractedPdfText((string) $text);
-            $text = $this->stripPdfPreviewNoise($text);
-            if ($this->isGenericPdfPreviewText($text)) {
-                return '';
-            }
-
-            return $text === '' ? '' : Str::limit($text, 1400, '');
-        });
-    }
-
-    private function caseStudyPreviewParagraphs(string $text): array
-    {
-        $text = trim($text);
-        if ($text === '') {
-            return [];
-        }
-
-        $sentences = preg_split('/(?<=[.!?])\s+(?=[A-Z0-9(])/', $text) ?: [];
-        $sentences = array_values(array_filter(array_map('trim', $sentences), static fn ($sentence) => $sentence !== ''));
-
-        if (empty($sentences)) {
-            return [$text];
-        }
-
-        $paragraphs = [];
-        $current = [];
-        foreach ($sentences as $sentence) {
-            $current[] = $sentence;
-            $sentenceCount = count($current);
-            $remaining = count($sentences) - count($paragraphs) * 2 - $sentenceCount;
-
-            if ($sentenceCount >= 2 || $remaining <= 1) {
-                $paragraphs[] = trim(implode(' ', $current));
-                $current = [];
-            }
-        }
-
-        if (!empty($current)) {
-            $paragraphs[] = trim(implode(' ', $current));
-        }
-
-        return array_values(array_filter($paragraphs, static fn ($paragraph) => $paragraph !== ''));
-    }
-
-    private function caseStudyPreviewSections(string $text): array
-    {
-        $text = trim(preg_replace('/\s+/u', ' ', $text) ?? $text);
-        if ($text === '') {
-            return [];
-        }
-
-        $tokens = preg_split('/\s+/', $text) ?: [];
-        if (count($tokens) < 6) {
-            return [];
-        }
-
-        $sections = [];
-        $currentHeading = null;
-        $currentBodyTokens = [];
-        $foundHeading = false;
-        $tokenCount = count($tokens);
-
-        for ($i = 0; $i < $tokenCount; ) {
-            $headingCount = $this->caseStudyPreviewHeadingTokenCount($tokens, $i);
-
-            if ($headingCount >= 2) {
-                if ($currentHeading !== null || !empty($currentBodyTokens)) {
-                    $sections[] = $this->buildCaseStudyPreviewSection($currentHeading, $currentBodyTokens);
-                    $currentBodyTokens = [];
-                }
-
-                $currentHeading = implode(' ', array_slice($tokens, $i, $headingCount));
-                $foundHeading = true;
-                $i += $headingCount;
-                continue;
-            }
-
-            $currentBodyTokens[] = $tokens[$i];
-            $i++;
-        }
-
-        if ($currentHeading !== null || !empty($currentBodyTokens)) {
-            $sections[] = $this->buildCaseStudyPreviewSection($currentHeading, $currentBodyTokens);
-        }
-
-        $sections = array_values(array_filter($sections, static function (array $section): bool {
-            return trim((string) ($section['heading'] ?? '')) !== '' || !empty($section['paragraphs']);
-        }));
-
-        return $foundHeading ? $sections : [];
-    }
-
-    private function buildCaseStudyPreviewSection(?string $heading, array $bodyTokens): array
-    {
-        $body = trim(implode(' ', $bodyTokens));
-        $paragraphs = $this->caseStudyPreviewParagraphs($body);
-
-        return [
-            'heading' => $heading !== null ? $this->caseStudyPreviewHeadingLabel($heading) : '',
-            'body' => $body,
-            'paragraphs' => $paragraphs,
-        ];
-    }
-
-    private function caseStudyPreviewHeadingTokenCount(array $tokens, int $startIndex): int
-    {
-        $count = 0;
-        $tokenCount = count($tokens);
-
-        for ($i = $startIndex; $i < $tokenCount; $i++) {
-            $token = trim((string) $tokens[$i]);
-            if (!$this->caseStudyPreviewIsHeadingToken($token)) {
-                break;
-            }
-
-            $count++;
-        }
-
-        return $count;
-    }
-
-    private function caseStudyPreviewIsHeadingToken(string $token): bool
-    {
-        if ($token === '') {
-            return false;
-        }
-
-        if (preg_match('/^[A-Z0-9][A-Z0-9&\/\-\(\)]{1,}$/', $token) !== 1) {
-            return false;
-        }
-
-        if (strlen(preg_replace('/[^A-Z]/', '', $token) ?? '') < 2) {
-            return false;
-        }
-
-        return true;
-    }
-
-    private function caseStudyPreviewHeadingLabel(string $heading): string
-    {
-        $heading = trim(preg_replace('/\s+/u', ' ', $heading) ?? $heading);
-        if ($heading === '') {
-            return '';
-        }
-
-        return Str::title(Str::lower($heading));
-    }
-
-    private function caseStudyPdfSource(object $caseStudy): ?array
-    {
-        $pdfValue = $this->caseStudyPdfValue($caseStudy);
-        if ($pdfValue === '') {
-            return null;
-        }
-
-        if (preg_match('#^https?://#i', $pdfValue)) {
-            return [
-                'type' => 'url',
-                'value' => $pdfValue,
-                'cache_key' => $pdfValue,
-            ];
-        }
-
-        $fileName = basename($pdfValue);
-        $candidatePaths = [
-            storage_path('app/private/case_docs/' . $fileName),
-            public_path('case_docs/' . $fileName),
-            public_path('admin/case_docs/' . $fileName),
-            public_path(ltrim($pdfValue, '/')),
-        ];
-
-        foreach ($candidatePaths as $path) {
-            if (is_file($path)) {
-                return [
-                    'type' => 'path',
-                    'value' => $path,
-                    'cache_key' => $path . '|' . (string) @filemtime($path),
-                ];
-            }
-        }
-
-        return null;
-    }
-
-    private function readPdfSourceBytes(array $source): string
-    {
-        $type = (string) ($source['type'] ?? '');
-        $value = (string) ($source['value'] ?? '');
-
-        if ($type === 'path') {
-            if ($value === '' || !is_readable($value)) {
-                return '';
-            }
-
-            $bytes = @file_get_contents($value);
-            return $bytes === false ? '' : (string) $bytes;
-        }
-
-        if ($type === 'url' && $value !== '') {
-            try {
-                $response = Http::timeout(20)
-                    ->retry(1, 200)
-                    ->accept('application/pdf')
-                    ->get($value);
-
-                if (!$response->successful()) {
-                    return '';
-                }
-
-                return (string) $response->body();
-            } catch (\Throwable $e) {
-                Log::warning('Case study PDF preview fetch failed', [
-                    'url' => $value,
-                    'error' => $e->getMessage(),
-                ]);
+        // Prefer a dedicated one-pager asset, then fall back to the listing image.
+        // Only return a URL when the file actually exists so the preview never 404s.
+        foreach (['case-study-previews', 'images/case-study'] as $directory) {
+            if (is_file(public_path($directory . '/' . $fileName))) {
+                return asset($directory . '/' . rawurlencode($fileName));
             }
         }
 
         return '';
     }
 
-    private function extractPdfFirstPageText(string $pdfBytes): string
+    private function sanitizeOnePagerContentForDisplay(string $content): string
     {
-        $objects = $this->parsePdfObjects($pdfBytes);
-        if (empty($objects)) {
-            return $this->extractPdfTextFallback($pdfBytes);
-        }
+        $allowedTags = '<h1><h2><h3><h4><p><br><hr><ul><ol><li><strong><b><em><i><blockquote><table><thead><tbody><tr><th><td>';
+        $content = strip_tags($content, $allowedTags);
+        $content = preg_replace_callback('/<([a-z][a-z0-9]*)(?:\s[^>]*)?>/i', static function (array $match): string {
+            return '<' . strtolower($match[1]) . '>';
+        }, $content) ?? '';
 
-        $catalogObjectNumber = null;
-        if (preg_match('/trailer\s*<<.*?\/Root\s+(\d+)\s+0\s+R.*?>>/s', $pdfBytes, $matches)) {
-            $catalogObjectNumber = (int) $matches[1];
-        } else {
-            foreach ($objects as $objectNumber => $objectBody) {
-                if (preg_match('/\/Type\s*\/Catalog\b/', $objectBody)) {
-                    $catalogObjectNumber = (int) $objectNumber;
-                    break;
-                }
-            }
-        }
-
-        if ($catalogObjectNumber === null || !isset($objects[$catalogObjectNumber])) {
-            return $this->extractPdfTextFallback($pdfBytes);
-        }
-
-        $catalogBody = $objects[$catalogObjectNumber];
-        if (!preg_match('/\/Pages\s+(\d+)\s+0\s+R/', $catalogBody, $matches)) {
-            return $this->extractPdfTextFallback($pdfBytes);
-        }
-
-        $pageObjectNumber = $this->findFirstPageObject((int) $matches[1], $objects);
-        if ($pageObjectNumber === null || !isset($objects[$pageObjectNumber])) {
-            return $this->extractPdfTextFallback($pdfBytes);
-        }
-
-        $pageBody = $objects[$pageObjectNumber];
-        $contentRefs = $this->extractPdfContentReferences($pageBody);
-        if (empty($contentRefs)) {
-            return $this->extractPdfTextFallback($pdfBytes);
-        }
-
-        $fontMap = $this->extractPdfFirstPageFontMap($pageBody, $objects);
-
-        $segments = [];
-        foreach ($contentRefs as $contentRef) {
-            if (!isset($objects[$contentRef])) {
-                continue;
-            }
-
-            $stream = $this->extractPdfStreamData($objects[$contentRef]);
-            if ($stream === '') {
-                continue;
-            }
-
-            $segments[] = $this->extractPdfTextFromContentStream($stream, $fontMap);
-        }
-
-        $text = trim(implode(' ', array_filter($segments, static fn ($segment) => trim((string) $segment) !== '')));
-        if ($text === '') {
-            return $this->extractPdfTextFallback($pdfBytes);
-        }
-
-        return $text;
+        return trim($content);
     }
 
-    private function parsePdfObjects(string $pdfBytes): array
+    /**
+     * Parse the lightweight structured one-pager format into the document design model.
+     *
+     * Supported labels (case-insensitive, at the start of a line):
+     *   EYEBROW:    short kicker shown next to the ARMELY brand (optional)
+     *   HEADLINE:   the large document title (required)
+     *   INTRO:      lead paragraph under the headline (optional)
+     *   CHALLENGE:  heading, followed by "- " bullet lines (left column)
+     *   SOLUTION:   heading, followed by paragraph lines (right column)
+     *   TABLE:      optional heading, followed by "before | after" rows
+     *   CTA:        heading, followed by the call-to-action body lines
+     *
+     * Returns [] when the content is not in this format, so callers can fall
+     * back to sanitized HTML/prose. No PDF text extraction is involved.
+     */
+    private function buildOnePagerDocument(string $content): array
     {
-        $objects = [];
-
-        if (!preg_match_all('/(\d+)\s+0\s+obj\s*(.*?)\s*endobj/s', $pdfBytes, $matches, PREG_SET_ORDER)) {
-            return $objects;
-        }
-
-        foreach ($matches as $match) {
-            $objects[(int) $match[1]] = (string) $match[2];
-        }
-
-        return $objects;
-    }
-
-    private function findFirstPageObject(int $pagesObjectNumber, array $objects): ?int
-    {
-        if (!isset($objects[$pagesObjectNumber])) {
-            return null;
-        }
-
-        $body = $objects[$pagesObjectNumber];
-        if (preg_match('/\/Type\s*\/Page\b/', $body)) {
-            return $pagesObjectNumber;
-        }
-
-        if (!preg_match('/\/Kids\s*\[(.*?)\]/s', $body, $matches)) {
-            return null;
-        }
-
-        if (!preg_match_all('/(\d+)\s+0\s+R/', $matches[1], $refs)) {
-            return null;
-        }
-
-        foreach ($refs[1] as $reference) {
-            $reference = (int) $reference;
-            if (!isset($objects[$reference])) {
-                continue;
-            }
-
-            $childBody = $objects[$reference];
-            if (preg_match('/\/Type\s*\/Page\b/', $childBody)) {
-                return $reference;
-            }
-
-            if (preg_match('/\/Type\s*\/Pages\b/', $childBody)) {
-                $found = $this->findFirstPageObject($reference, $objects);
-                if ($found !== null) {
-                    return $found;
-                }
-            }
-        }
-
-        return null;
-    }
-
-    private function extractPdfContentReferences(string $pageBody): array
-    {
-        if (preg_match('/\/Contents\s+(\d+)\s+0\s+R/', $pageBody, $matches)) {
-            return [(int) $matches[1]];
-        }
-
-        if (!preg_match('/\/Contents\s*\[(.*?)\]/s', $pageBody, $matches)) {
+        $content = trim($content);
+        if ($content === '') {
             return [];
         }
 
-        if (!preg_match_all('/(\d+)\s+0\s+R/', $matches[1], $refs)) {
+        // Normalize lightweight HTML (e.g. content saved from a rich editor) into
+        // line-based text so the same labels parse whether pasted as text or HTML.
+        if (str_contains($content, '<')) {
+            $content = preg_replace_callback('/<table\b.*?<\/table>/is', static function (array $m): string {
+                $rows = [];
+                if (preg_match_all('/<tr\b[^>]*>(.*?)<\/tr>/is', $m[0], $trs)) {
+                    foreach ($trs[1] as $tr) {
+                        if (preg_match_all('/<t[dh]\b[^>]*>(.*?)<\/t[dh]>/is', $tr, $cells)) {
+                            $clean = array_map(static fn ($c) => trim(html_entity_decode(strip_tags((string) $c), ENT_QUOTES | ENT_HTML5, 'UTF-8')), $cells[1]);
+                            $rows[] = implode(' | ', array_slice($clean, 0, 2));
+                        }
+                    }
+                }
+
+                return "\nTABLE:\n" . implode("\n", $rows) . "\n";
+            }, $content) ?? $content;
+            $content = preg_replace('/<\s*li[^>]*>/i', "\n- ", $content) ?? $content;
+            $content = preg_replace('/<\s*(\/p|\/div)\s*>/i', "\n\n", $content) ?? $content;
+            $content = preg_replace('/<\s*(br\s*\/?|\/li|\/h[1-6]|\/tr)\s*>/i', "\n", $content) ?? $content;
+            $content = html_entity_decode(strip_tags($content), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $content = trim($content);
+        }
+
+        if (!preg_match('/^\s*(HEADLINE|CHALLENGE|SOLUTION)\s*:/im', $content)) {
             return [];
         }
 
-        return array_map('intval', $refs[1]);
-    }
+        $labels = ['eyebrow', 'headline', 'intro', 'challenge', 'solution', 'table', 'before/after', 'at a glance', 'cta'];
+        $sections = [];
+        $current = null;
 
-    private function extractPdfFirstPageFontMap(string $pageBody, array $objects): array
-    {
-        $resourceBodies = [$pageBody];
-        if (preg_match('/\/Resources\s+(\d+)\s+0\s+R/', $pageBody, $matches) && isset($objects[(int) $matches[1]])) {
-            $resourceBodies[] = $objects[(int) $matches[1]];
-        }
-
-        foreach ($resourceBodies as $resourceBody) {
-            if (!preg_match('/\/Font\s*<<(.+?)>>/s', $resourceBody, $fontBlock)) {
+        foreach (preg_split('/\r\n|\r|\n/', $content) ?: [] as $line) {
+            if (preg_match('/^\s*([A-Za-z\/ ]{2,20})\s*:\s*(.*)$/', $line, $m)
+                && in_array($key = strtolower(trim($m[1])), $labels, true)) {
+                $current = in_array($key, ['before/after', 'at a glance'], true) ? 'table' : $key;
+                $sections[$current][] = trim($m[2]);
                 continue;
             }
 
-            if (!preg_match_all('/\/([A-Za-z0-9#]+)\s+(\d+)\s+0\s+R/', $fontBlock[1], $fontRefs, PREG_SET_ORDER)) {
+            if ($current !== null) {
+                $sections[$current][] = $line;
+            }
+        }
+
+        $firstLine = static fn (string $k): string => trim((string) ($sections[$k][0] ?? ''));
+        $rest = static fn (string $k): array => array_slice($sections[$k] ?? [], 1);
+
+        $headline = $firstLine('headline');
+        if ($headline === '') {
+            return [];
+        }
+
+        // Challenge bullets.
+        $challenges = [];
+        foreach ($rest('challenge') as $line) {
+            $line = trim(preg_replace('/^[-•*]\s*/u', '', trim($line)) ?? '');
+            if ($line !== '') {
+                $challenges[] = $line;
+            }
+        }
+
+        // Solution paragraphs (blank line separates paragraphs).
+        $solution = [];
+        $buffer = '';
+        foreach ($rest('solution') as $line) {
+            if (trim($line) === '') {
+                if ($buffer !== '') {
+                    $solution[] = $buffer;
+                    $buffer = '';
+                }
                 continue;
             }
+            $buffer = $buffer === '' ? trim($line) : $buffer . ' ' . trim($line);
+        }
+        if ($buffer !== '') {
+            $solution[] = $buffer;
+        }
 
-            foreach ($fontRefs as $fontRef) {
-                $fontObjectNumber = (int) $fontRef[2];
-                if (!isset($objects[$fontObjectNumber])) {
-                    continue;
-                }
-
-                if (!preg_match('/\/ToUnicode\s+(\d+)\s+0\s+R/', $objects[$fontObjectNumber], $matches)) {
-                    continue;
-                }
-
-                $toUnicodeRef = (int) $matches[1];
-                if (!isset($objects[$toUnicodeRef])) {
-                    continue;
-                }
-
-                $cmapStream = $this->extractPdfStreamData($objects[$toUnicodeRef]);
-                if ($cmapStream === '') {
-                    continue;
-                }
-
-                $map = $this->parsePdfToUnicodeMap($cmapStream);
-                if (!empty($map['codes'])) {
-                    return $map;
-                }
+        // Before/after comparison rows.
+        $beforeHeading = 'Before';
+        $afterHeading = 'After';
+        $comparisons = [];
+        foreach ($rest('table') as $line) {
+            if (!str_contains($line, '|')) {
+                continue;
             }
-        }
-
-        return [];
-    }
-
-    private function extractPdfStreamData(string $objectBody): string
-    {
-        if (!preg_match('/stream\r?\n(.*?)\r?\nendstream/s', $objectBody, $matches)) {
-            return '';
-        }
-
-        $streamData = (string) $matches[1];
-        $dictionary = strstr($objectBody, 'stream', true) ?: $objectBody;
-
-        if (str_contains($dictionary, '/FlateDecode')) {
-            $decoded = @gzuncompress($streamData);
-            if ($decoded !== false) {
-                return (string) $decoded;
+            [$before, $after] = array_pad(array_map('trim', explode('|', $line, 2)), 2, '');
+            if ($before === '' && $after === '') {
+                continue;
             }
-
-            $decoded = @gzinflate($streamData);
-            if ($decoded !== false) {
-                return (string) $decoded;
+            if (strtolower($before) === 'before' && strtolower($after) === 'after') {
+                $beforeHeading = $before;
+                $afterHeading = $after;
+                continue;
             }
-
-            if (strlen($streamData) > 6) {
-                $decoded = @gzinflate(substr($streamData, 2, -4));
-                if ($decoded !== false) {
-                    return (string) $decoded;
-                }
-            }
+            $comparisons[] = ['before' => $before, 'after' => $after];
         }
 
-        return $streamData;
-    }
+        $ctaBody = trim(implode(' ', array_map('trim', array_filter($rest('cta'), static fn ($l) => trim((string) $l) !== ''))));
 
-    private function extractPdfTextFromContentStream(string $streamData, array $fontMap = []): string
-    {
-        $segments = [];
-
-        if (preg_match_all('/\((?:\\\\.|[^\\\\)])*\)\s*Tj/s', $streamData, $matches)) {
-            foreach ($matches[0] as $token) {
-                $segments[] = !empty($fontMap)
-                    ? $this->decodePdfBytesWithMap($this->pdfStringTokenToBytes($token), $fontMap)
-                    : $this->decodePdfStringToken($token);
-            }
-        }
-
-        if (preg_match_all('/\((?:\\\\.|[^\\\\)])*\)\s*\'/s', $streamData, $matches)) {
-            foreach ($matches[0] as $token) {
-                $segments[] = !empty($fontMap)
-                    ? $this->decodePdfBytesWithMap($this->pdfStringTokenToBytes($token), $fontMap)
-                    : $this->decodePdfStringToken($token);
-            }
-        }
-
-        if (preg_match_all('/\((?:\\\\.|[^\\\\)])*\)\s*"/s', $streamData, $matches)) {
-            foreach ($matches[0] as $token) {
-                $segments[] = !empty($fontMap)
-                    ? $this->decodePdfBytesWithMap($this->pdfStringTokenToBytes($token), $fontMap)
-                    : $this->decodePdfStringToken($token);
-            }
-        }
-
-        if (preg_match_all('/\[(.*?)\]\s*TJ/s', $streamData, $arrays)) {
-            foreach ($arrays[1] as $arrayBody) {
-                if (!preg_match_all('/\((?:\\\\.|[^\\\\)])*\)|<[^>]+>/s', $arrayBody, $parts)) {
-                    continue;
-                }
-
-                $combined = '';
-                foreach ($parts[0] as $part) {
-                    $combined .= !empty($fontMap)
-                        ? $this->decodePdfBytesWithMap($this->pdfStringTokenToBytes($part), $fontMap)
-                        : $this->decodePdfStringToken($part);
-                }
-
-                if (trim($combined) !== '') {
-                    $segments[] = $combined;
-                }
-            }
-        }
-
-        return $this->normalizeExtractedPdfText(implode(' ', array_filter($segments, static fn ($segment) => trim((string) $segment) !== '')));
-    }
-
-    private function parsePdfToUnicodeMap(string $cmapStream): array
-    {
-        $map = [
-            'codes' => [],
-            'unit_bytes' => 1,
-        ];
-
-        if (preg_match('/begincodespacerange\s*(.*?)\s*endcodespacerange/s', $cmapStream, $matches)) {
-            if (preg_match('/<([0-9A-Fa-f]+)>\s+<([0-9A-Fa-f]+)>/', $matches[1], $rangeMatch)) {
-                $map['unit_bytes'] = max(strlen($rangeMatch[1]), strlen($rangeMatch[2])) / 2;
-            }
-        }
-
-        if (preg_match_all('/beginbfchar\s*(.*?)\s*endbfchar/s', $cmapStream, $charBlocks)) {
-            foreach ($charBlocks[1] as $block) {
-                if (!preg_match_all('/<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>/', $block, $pairs, PREG_SET_ORDER)) {
-                    continue;
-                }
-
-                foreach ($pairs as $pair) {
-                    $code = hexdec($pair[1]);
-                    $map['codes'][$code] = $this->unicodeHexToUtf8($pair[2]);
-                }
-            }
-        }
-
-        if (preg_match_all('/beginbfrange\s*(.*?)\s*endbfrange/s', $cmapStream, $rangeBlocks)) {
-            foreach ($rangeBlocks[1] as $block) {
-                if (!preg_match_all('/<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>/', $block, $ranges, PREG_SET_ORDER)) {
-                    continue;
-                }
-
-                foreach ($ranges as $range) {
-                    $start = hexdec($range[1]);
-                    $end = hexdec($range[2]);
-                    $base = hexdec($range[3]);
-                    for ($code = $start; $code <= $end; $code++) {
-                        $map['codes'][$code] = $this->unicodeHexToUtf8(dechex($base + ($code - $start)));
-                    }
-                }
-            }
-        }
-
-        return $map;
-    }
-
-    private function unicodeHexToUtf8(string $hex): string
-    {
-        $hex = preg_replace('/\s+/', '', $hex) ?? '';
-        if ($hex === '') {
-            return '';
-        }
-
-        if (strlen($hex) % 2 === 1) {
-            $hex = '0' . $hex;
-        }
-
-        $bytes = @hex2bin($hex);
-        if ($bytes === false) {
-            return '';
-        }
-
-        $utf8 = @iconv('UTF-16BE', 'UTF-8', $bytes);
-        return $utf8 === false ? $bytes : (string) $utf8;
-    }
-
-    private function pdfStringTokenToBytes(string $token): string
-    {
-        $token = trim($token);
-        if ($token === '') {
-            return '';
-        }
-
-        if ($token[0] === '(' && str_ends_with($token, ')')) {
-            $body = substr($token, 1, -1);
-            $decoded = '';
-            $length = strlen($body);
-
-            for ($i = 0; $i < $length; $i++) {
-                $char = $body[$i];
-                if ($char !== '\\') {
-                    $decoded .= $char;
-                    continue;
-                }
-
-                $i++;
-                if ($i >= $length) {
-                    break;
-                }
-
-                $next = $body[$i];
-                if ($next === 'n') {
-                    $decoded .= "\n";
-                } elseif ($next === 'r') {
-                    $decoded .= "\r";
-                } elseif ($next === 't') {
-                    $decoded .= "\t";
-                } elseif ($next === 'b') {
-                    $decoded .= "\b";
-                } elseif ($next === 'f') {
-                    $decoded .= "\f";
-                } elseif ($next === '(' || $next === ')' || $next === '\\') {
-                    $decoded .= $next;
-                } elseif (preg_match('/[0-7]/', $next)) {
-                    $octal = $next;
-                    for ($j = 0; $j < 2 && ($i + 1) < $length && preg_match('/[0-7]/', $body[$i + 1]); $j++) {
-                        $i++;
-                        $octal .= $body[$i];
-                    }
-
-                    $decoded .= chr(octdec($octal));
-                } elseif ($next === "\r" || $next === "\n") {
-                    if ($next === "\r" && ($i + 1) < $length && $body[$i + 1] === "\n") {
-                        $i++;
-                    }
-                } else {
-                    $decoded .= $next;
-                }
-            }
-
-            return $decoded;
-        }
-
-        if ($token[0] === '<' && str_ends_with($token, '>')) {
-            $hex = preg_replace('/\s+/', '', substr($token, 1, -1));
-            if ($hex === '') {
-                return '';
-            }
-
-            if (strlen($hex) % 2 === 1) {
-                $hex .= '0';
-            }
-
-            $bytes = @hex2bin($hex);
-            return $bytes === false ? '' : (string) $bytes;
-        }
-
-        return $token;
-    }
-
-    private function decodePdfBytesWithMap(string $bytes, array $fontMap): string
-    {
-        $codes = $fontMap['codes'] ?? [];
-        $unitBytes = max(1, (int) ($fontMap['unit_bytes'] ?? 1));
-        if ($bytes === '') {
-            return '';
-        }
-
-        $length = strlen($bytes);
-        if ($unitBytes > 1 && ($length % $unitBytes) === 0 && !empty($codes)) {
-            $decoded = '';
-            for ($i = 0; $i < $length; $i += $unitBytes) {
-                $code = 0;
-                for ($j = 0; $j < $unitBytes; $j++) {
-                    $code = ($code << 8) | ord($bytes[$i + $j]);
-                }
-
-                $decoded .= $codes[$code] ?? '';
-            }
-
-            if ($decoded !== '') {
-                return $decoded;
-            }
-        }
-
-        return $this->decodePdfStringToken($this->bytesToPdfLiteralToken($bytes));
-    }
-
-    private function bytesToPdfLiteralToken(string $bytes): string
-    {
-        return '(' . strtr($bytes, [
-            '\\' => '\\\\',
-            '(' => '\\(',
-            ')' => '\\)',
-        ]) . ')';
-    }
-
-    private function decodePdfStringToken(string $token): string
-    {
-        $token = trim($token);
-        if ($token === '') {
-            return '';
-        }
-
-        if ($token[0] === '(' && str_ends_with($token, ')')) {
-            $body = substr($token, 1, -1);
-            $decoded = '';
-            $length = strlen($body);
-
-            for ($i = 0; $i < $length; $i++) {
-                $char = $body[$i];
-                if ($char !== '\\') {
-                    $decoded .= $char;
-                    continue;
-                }
-
-                $i++;
-                if ($i >= $length) {
-                    break;
-                }
-
-                $next = $body[$i];
-                if ($next === 'n') {
-                    $decoded .= "\n";
-                } elseif ($next === 'r') {
-                    $decoded .= "\r";
-                } elseif ($next === 't') {
-                    $decoded .= "\t";
-                } elseif ($next === 'b') {
-                    $decoded .= "\b";
-                } elseif ($next === 'f') {
-                    $decoded .= "\f";
-                } elseif ($next === '(' || $next === ')' || $next === '\\') {
-                    $decoded .= $next;
-                } elseif (preg_match('/[0-7]/', $next)) {
-                    $octal = $next;
-                    for ($j = 0; $j < 2 && ($i + 1) < $length && preg_match('/[0-7]/', $body[$i + 1]); $j++) {
-                        $i++;
-                        $octal .= $body[$i];
-                    }
-
-                    $decoded .= chr(octdec($octal));
-                } elseif ($next === "\r" || $next === "\n") {
-                    if ($next === "\r" && ($i + 1) < $length && $body[$i + 1] === "\n") {
-                        $i++;
-                    }
-                } else {
-                    $decoded .= $next;
-                }
-            }
-
-            return $decoded;
-        }
-
-        if ($token[0] === '<' && str_ends_with($token, '>')) {
-            $hex = preg_replace('/\s+/', '', substr($token, 1, -1));
-            if ($hex === '') {
-                return '';
-            }
-
-            if (strlen($hex) % 2 === 1) {
-                $hex .= '0';
-            }
-
-            $decoded = '';
-            for ($i = 0; $i < strlen($hex); $i += 2) {
-                $pair = substr($hex, $i, 2);
-                $byte = hexdec($pair);
-                $decoded .= chr($byte);
-            }
-
-            return $decoded;
-        }
-
-        return $token;
-    }
-
-    private function extractPdfTextFallback(string $pdfBytes): string
-    {
-        if (!preg_match_all('/\((?:\\\\.|[^\\\\)])*\)/s', $pdfBytes, $matches)) {
-            return '';
-        }
-
-        $segments = [];
-        foreach (array_slice($matches[0], 0, 12) as $token) {
-            $segments[] = $this->decodePdfStringToken($token);
-        }
-
-        return $this->normalizeExtractedPdfText(implode(' ', array_filter($segments, static fn ($segment) => trim((string) $segment) !== '')));
-    }
-
-    private function normalizeExtractedPdfText(string $text): string
-    {
-        $text = str_replace("\0", '', $text);
-        $text = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F]+/', ' ', $text) ?? $text;
-        $text = preg_replace('/\s+([,.;:!?])/', '$1', $text) ?? $text;
-        $text = preg_replace('/([(\[])\s+/', '$1', $text) ?? $text;
-        $text = preg_replace('/\s+([)\]])/', '$1', $text) ?? $text;
-        $text = preg_replace_callback('/\b(?:[A-Za-z]{1,3}\s+){2,}[A-Za-z]{1,3}\b/', function (array $matches): string {
-            return preg_replace('/\s+/', '', $matches[0]) ?? $matches[0];
-        }, $text) ?? $text;
-        $text = preg_replace('/\s+/u', ' ', $text) ?? $text;
-
-        return trim($text);
-    }
-
-    private function stripPdfPreviewNoise(string $text): string
-    {
-        $text = preg_replace('/^(?:www\.[^\s]+\.com\s*)+/i', '', $text) ?? $text;
-        $text = preg_replace('/^Page\s+\d+\s+of\s+\d+\s*/i', '', $text) ?? $text;
-        $text = preg_replace('/^\s*SPECIFICATIONS\s+SCOPE\s*/i', 'SPECIFICATIONS SCOPE ', $text) ?? $text;
-        $text = preg_replace('/\s+/', ' ', $text) ?? $text;
-
-        return trim($text);
-    }
-
-    private function isGenericPdfPreviewText(string $text): bool
-    {
-        $haystack = strtolower($text);
-        $markers = [
-            'specifications scope',
-            'pre-proposal conference',
-            'request for proposal',
-            'meeting id:',
-            'passcode:',
-            'dial in by phone',
-            'harris county',
-            'the responsibility of each vendor',
-        ];
-
-        foreach ($markers as $marker) {
-            if (str_contains($haystack, $marker)) {
-                return true;
-            }
-        }
-
-        return false;
+        return array_filter([
+            'eyebrow' => $firstLine('eyebrow'),
+            'headline' => $headline,
+            'intro' => trim(implode(' ', array_map('trim', array_filter([$firstLine('intro'), ...$rest('intro')], static fn ($l) => trim((string) $l) !== '')))),
+            'challenge_heading' => $firstLine('challenge') ?: 'The challenge',
+            'challenges' => $challenges,
+            'solution_heading' => $firstLine('solution') ?: 'What Armely built',
+            'solution' => $solution,
+            'before_heading' => $beforeHeading,
+            'after_heading' => $afterHeading,
+            'table_heading' => $firstLine('table') ?: 'At a glance',
+            'comparisons' => $comparisons,
+            'cta_heading' => $firstLine('cta'),
+            'cta_body' => $ctaBody,
+        ], static fn ($value): bool => $value !== '' && $value !== []);
     }
 
     private function whitePaperHasAttachment(object $paper): bool
@@ -1792,6 +1151,9 @@ class CaseStudiesController extends Controller
         }
         if ($this->safeHasColumn('industry_listings', 'title')) {
             $columns[] = 'title';
+        }
+        if ($this->safeHasColumn('industry_listings', 'one_pager_content')) {
+            $columns[] = 'one_pager_content';
         }
 
         return $columns;
