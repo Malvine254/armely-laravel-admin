@@ -947,6 +947,56 @@
 .armely-invoice-lens-page .il-status-tag.live { background:rgba(29,158,117,0.1); color:#1D9E75; }
 .armely-invoice-lens-page .il-status-tag.road { background:rgba(186,117,23,0.1); color:#854F0B; }
 
+/* Hero CTA refresh */
+.armely-invoice-lens-page .il-hero .hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+.armely-invoice-lens-page .il-hero .il-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+}
+.armely-invoice-lens-page .il-hero .il-cta .icon-svg {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+.armely-invoice-lens-page .il-hero .il-cta-primary {
+  background: linear-gradient(135deg, #f08a3d 0%, #c45e1a 100%);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 12px 24px rgba(196, 94, 26, 0.28);
+}
+.armely-invoice-lens-page .il-hero .il-cta-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 30px rgba(196, 94, 26, 0.34);
+}
+.armely-invoice-lens-page .il-hero .il-cta-secondary {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(10px);
+}
+.armely-invoice-lens-page .il-hero .il-cta-secondary:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
 @media (max-width:960px) {
   .armely-invoice-lens-page .il-hero-inner { grid-template-columns:1fr; }
   .armely-invoice-lens-page .il-workflow-card { max-width:400px; }
@@ -964,6 +1014,7 @@
 @media (max-width:600px) {
   .armely-invoice-lens-page .il-feat-grid { grid-template-columns:1fr; }
   .armely-invoice-lens-page .il-steps { grid-template-columns:1fr; }
+  .armely-invoice-lens-page .il-hero .il-cta { width: 100%; }
 }
 
 
@@ -999,8 +1050,8 @@
       </div>
       <p class="il-hero-sub">InvoiceLens gives Enverus OpenInvoice operators a single Power BI dashboard showing every pending invoice by vendor, AFE, and cost center. No email hunting. No manual tracking spreadsheet. No logging into OpenInvoice to find what is waiting.</p>
       <div class="hero-actions">
-        <a href="#contact" class="btn-primary">Request a Demo <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>
-        <a href="#how-it-works" class="btn-outline">See How It Works</a>
+        <a href="#contact" class="il-cta il-cta-primary">Request a Demo <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>
+        <a href="#how-it-works" class="il-cta il-cta-secondary">See How It Works</a>
       </div>
     </div>
 
