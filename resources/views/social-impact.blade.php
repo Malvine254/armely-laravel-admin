@@ -700,24 +700,7 @@
 @endpush
 
 @section('content')
-<!-- Breadcrumbs -->
-<div class="breadcrumbs overlay">
-    <div class="container">
-        <div class="bread-inner">
-            <div class="row">
-                <div class="col-12">
-                    <h2>Social Impact</h2>
-                    <ul class="bread-list">
-                        <li><a href="/">Home</a></li>
-                        <li><i class="icofont-simple-right"></i></li>
-                        <li class="active">Social Impact</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-<!-- End Breadcrumbs -->
+
 
 <!-- Hero Section -->
 <section class="social-impact-hero">
@@ -736,20 +719,7 @@
                     Our dedication to environmental, social, and governance (ESG) principles reflects our responsibility to drive positive change while fostering innovation, sustainability, and inclusivity.
                 </p>
                 
-                <div class="impact-stats">
-                    <div class="stat-item">
-                        <span class="stat-number">50+</span>
-                        <span class="stat-label">Communities Impacted</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-number">100K+</span>
-                        <span class="stat-label">Lives Touched</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-number">25+</span>
-                        <span class="stat-label">ESG Initiatives</span>
-                    </div>
-                </div>
+               
             </div>
             
             <div class="col-lg-5 col-md-12">
