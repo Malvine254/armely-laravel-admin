@@ -1411,6 +1411,24 @@
                             <input type="file" class="form-control" id="caseStudyPdf" name="pdf" accept="application/pdf,.pdf">
                             <small class="text-muted" id="caseStudyPdfPathHelp">Saved to public/case_docs.</small>
                         </div>
+                        <div class="col-12" id="caseStudyOnePagerContentGroup">
+                            <label for="caseStudyOnePagerContent" class="form-label">One-Pager Web Content</label>
+                            <textarea class="form-control" id="caseStudyOnePagerContent" name="one_pager_content" rows="14"></textarea>
+                            <small class="text-muted d-block">Paste the public one-pager content using these labels to render the full document design (headline, two-column challenge/solution, before/after table, CTA). The uploaded one-pager PDF stays available as the original source.</small>
+                            <small class="text-muted d-block mt-1" style="white-space:pre-line;font-family:monospace;">EYEBROW: Agriculture / Cannabis
+HEADLINE: Three systems, three exports, and still no answer.
+INTRO: One lead paragraph under the headline.
+CHALLENGE: Does this describe your reporting?
+- First pain point
+- Second pain point
+SOLUTION: What Armely built
+A paragraph. Leave a blank line to start a new paragraph.
+TABLE: At a glance
+Before | After
+Manual pulls | Automated dashboards
+CTA: Book a free assessment
+One or two sentences inviting a conversation.</small>
+                        </div>
                         <div class="col-12">
                             <label for="caseStudyBody" class="form-label">Summary / Body</label>
                             <textarea class="form-control" id="caseStudyBody" name="body" rows="12"></textarea>
@@ -3182,6 +3200,7 @@ $(document).ready(function() {
 
     // === CASE STUDY HANDLERS ===
     let caseStudyEditor;
+    let caseStudyOnePagerEditor;
 
     function getSelectedResourceType() {
         return $('input[name="resource_type"]:checked').val() || 'case_study';
@@ -3194,6 +3213,7 @@ $(document).ready(function() {
 
         $('#caseStudyCategoryGroup').toggleClass('d-none', isWhitePaper);
         $('#caseStudyOutcomeTagGroup').toggleClass('d-none', isWhitePaper);
+        $('#caseStudyOnePagerContentGroup').toggleClass('d-none', isWhitePaper);
         $('#caseStudyExistingImageGroup').toggleClass('d-none', !isWhitePaper);
         $('#caseStudyCategory').prop('required', !isWhitePaper);
         $('#caseStudyTitleLabel').text(isWhitePaper ? 'White Paper Title *' : 'Case Study Title *');
@@ -3238,6 +3258,9 @@ $(document).ready(function() {
         if (caseStudyEditor) {
             caseStudyEditor.setData('');
         }
+        if (caseStudyOnePagerEditor) {
+            caseStudyOnePagerEditor.setData('');
+        }
         updateCaseStudyDraftPreview();
     };
 
@@ -3248,6 +3271,10 @@ $(document).ready(function() {
         if (!caseStudyEditor) {
             caseStudyEditor = CKEDITOR.replace('caseStudyBody');
             caseStudyEditor.on('change', updateCaseStudyDraftPreview);
+        }
+        if (!caseStudyOnePagerEditor) {
+            caseStudyOnePagerEditor = CKEDITOR.replace('caseStudyOnePagerContent');
+            caseStudyOnePagerEditor.on('change', updateCaseStudyDraftPreview);
         }
         updateCaseStudyDraftPreview();
     });
@@ -3291,7 +3318,12 @@ $(document).ready(function() {
             caseStudyEditor = CKEDITOR.replace('caseStudyBody');
             caseStudyEditor.on('change', updateCaseStudyDraftPreview);
         }
+        if (!caseStudyOnePagerEditor) {
+            caseStudyOnePagerEditor = CKEDITOR.replace('caseStudyOnePagerContent');
+            caseStudyOnePagerEditor.on('change', updateCaseStudyDraftPreview);
+        }
         caseStudyEditor.setData(item.body || '');
+        caseStudyOnePagerEditor.setData(item.one_pager_content || '');
         setTimeout(updateCaseStudyDraftPreview, 0);
 
         $('#caseStudyModal').modal('show');
@@ -3332,6 +3364,7 @@ $(document).ready(function() {
         if (!isWhitePaper) {
             formData.append('category', $('#caseStudyCategory').val());
             formData.append('outcome_tag', $('#caseStudyOutcomeTag').val());
+            formData.append('one_pager_content', caseStudyOnePagerEditor ? caseStudyOnePagerEditor.getData() : $('#caseStudyOnePagerContent').val());
         }
 
         const imageFile = $('#caseStudyImage')[0].files[0];

@@ -257,6 +257,10 @@ class TablesController extends Controller
                 $caseStudyQuery->addSelect('outcome_tag');
             }
 
+            if ($this->columnExists('industry_listings', 'one_pager_content')) {
+                $caseStudyQuery->addSelect('one_pager_content');
+            }
+
             if ($this->columnExists('industry_listings', 'created_at')) {
                 $caseStudyQuery->addSelect('created_at');
             }
@@ -893,6 +897,7 @@ class TablesController extends Controller
             'title' => ['nullable', 'string', 'max:255'],
             'outcome_tag' => ['nullable', 'string', 'max:255'],
             'body' => ['nullable', 'string'],
+            'one_pager_content' => ['nullable', 'string'],
             'listing_image' => ['nullable', 'mimes:pdf', 'max:20480'],
             'pdf' => ['nullable', 'mimes:pdf', 'max:20480'],
             'pdf_url' => ['nullable', 'string', 'max:2048'],
@@ -922,6 +927,10 @@ class TablesController extends Controller
             'category' => $normalizedCategory,
             'body' => $validated['body'] ?? '',
         ];
+
+        if ($this->columnExists('industry_listings', 'one_pager_content')) {
+            $data['one_pager_content'] = $this->sanitizeOnePagerContent((string) ($validated['one_pager_content'] ?? ''));
+        }
 
         if ($this->columnExists('industry_listings', 'outcome_tag')) {
             $outcomeTag = trim((string) ($validated['outcome_tag'] ?? ''));
@@ -1712,5 +1721,18 @@ class TablesController extends Controller
         DB::table('newsletter_subscribers')->where('id', $id)->delete();
         ActivityLogger::log('delete', 'NewsletterSubscriber', $id, 'Deleted newsletter subscriber #' . $id);
         return response()->json(['success' => true, 'message' => 'Subscriber deleted successfully']);
+    }
+
+    private function sanitizeOnePagerContent(string $content): string
+    {
+        $allowedTags = '<h1><h2><h3><h4><p><br><hr><ul><ol><li><strong><b><em><i><blockquote><table><thead><tbody><tr><th><td>';
+        $content = strip_tags($content, $allowedTags);
+
+        // Preserve semantic structure while dropping pasted styles, scripts, and event attributes.
+        $content = preg_replace_callback('/<([a-z][a-z0-9]*)(?:\s[^>]*)?>/i', static function (array $match): string {
+            return '<' . strtolower($match[1]) . '>';
+        }, $content) ?? '';
+
+        return trim($content);
     }
 }
