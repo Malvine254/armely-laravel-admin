@@ -18,9 +18,17 @@
 		: 'Preview the one-page summary for a quick overview of the project, outcomes, and solution.';
 	$casePreviewOpenLabel = $isWhitePaperPage ? 'Open White Paper' : 'Open One-Pager';
 	$caseOnePagerPreviewUrl = trim((string) ($caseStudy->preview_source_url ?? ''));
-	if ($caseOnePagerPreviewUrl === '') {
-		$caseOnePagerPreviewUrl = trim((string) ($caseStudy->pdf_preview_url ?? ''));
-	}
+	$caseOnePagerText = trim((string) ($caseStudy->pdf_preview_text ?? ''));
+	$caseOnePagerSections = (array) ($caseStudy->pdf_preview_sections ?? []);
+	$caseOnePagerParagraphs = (array) ($caseStudy->pdf_preview_paragraphs ?? []);
+	$caseOnePagerDocument = (array) ($caseStudy->one_pager_document ?? []);
+	$caseOnePagerContent = trim((string) ($caseStudy->one_pager_content ?? ''));
+	$caseOnePagerContentHasH1 = preg_match('/<h1\b/i', $caseOnePagerContent) === 1;
+	$caseOnePagerIsPdf = $caseOnePagerPreviewUrl !== ''
+		&& \Illuminate\Support\Str::contains(strtolower((string) parse_url($caseOnePagerPreviewUrl, PHP_URL_PATH)), '.pdf');
+	$caseHasPublicPreview = $isWhitePaperPage
+		? $caseOnePagerPreviewUrl !== ''
+		: ($caseOnePagerContent !== '' || $caseOnePagerText !== '' || $caseOnePagerPreviewUrl !== '');
 @endphp
 
 @extends('layouts.public')
@@ -57,10 +65,15 @@
 	--case-navy: #18345f;
 	--case-teal: #2f5597;
 	--case-gold: #22447d;
+	--case-document-width: 920px;
 	background:
 		radial-gradient(1200px 560px at 12% 0%, rgba(47, 85, 151, .08), rgba(47, 85, 151, 0) 60%),
 		linear-gradient(180deg, #f7faff 0%, #ffffff 100%);
 	color: var(--case-ink);
+}
+.case-detail-hero .container {
+	width: 100%;
+	max-width: var(--case-document-width);
 }
 .case-detail-hero {
 	background:
@@ -273,9 +286,68 @@
 .case-result span { color: var(--case-ink); font-size: 1.03rem; line-height: 1.45; font-weight: 850; }
 .case-detail-band { padding: 38px 0 72px; background: #fff; }
 .case-preview-band {
-	background:
-		linear-gradient(180deg, rgba(247, 250, 255, .98), #fff 24%);
-	padding: 28px 0 64px;
+	background: #edf1f5;
+	padding: 42px 0 72px;
+}
+.case-preview-band.is-document { padding: 0 0 38px; }
+.case-document-toolbar-band {
+	background: #edf1f5;
+	padding: 24px 24px 0;
+}
+.case-document-toolbar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 18px;
+	width: 100%;
+	max-width: var(--case-document-width);
+	margin: 0 auto;
+	padding: 15px 18px;
+	border-bottom: 0;
+	background: var(--case-blue);
+	position: relative;
+	z-index: 2;
+	box-shadow: 0 10px 28px rgba(20, 34, 52, .14);
+}
+.case-document-toolbar-main {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 12px 20px;
+}
+.case-document-back,
+.case-document-category,
+.case-document-share {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	font-size: .86rem;
+	font-weight: 850;
+}
+.case-document-back,
+.case-document-back:visited,
+.case-document-back i { color: #fff !important; }
+.case-document-back:hover { color: #fff !important; text-decoration: none; opacity: .84; }
+.case-document-category {
+	color: rgba(255, 255, 255, .82);
+	font-size: .74rem;
+	letter-spacing: .07em;
+	text-transform: uppercase;
+}
+.case-document-share {
+	flex: 0 0 auto;
+	padding: 9px 14px;
+	border: 1px solid rgba(255, 255, 255, .42);
+	background: rgba(255, 255, 255, .10);
+	color: #fff;
+	cursor: pointer;
+}
+.case-document-share:hover { border-color: #fff; color: #fff; background: rgba(255, 255, 255, .18); }
+.case-document-toolbar-band .case-share-toast {
+	max-width: var(--case-document-width);
+	margin: 10px auto 0;
+	color: var(--case-navy);
+	background: #fff;
 }
 .case-preview-band .container {
 	max-width: 100%;
@@ -284,7 +356,7 @@
 }
 .case-preview-shell {
 	width: 100%;
-	max-width: none;
+	max-width: var(--case-document-width);
 	margin: 0 auto;
 	padding: 0;
 }
@@ -357,6 +429,322 @@
 	height: 100%;
 	border: 0;
 	background: #fff;
+}
+.case-onepager-image {
+	display: block;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	object-position: top center;
+	background: #fff;
+}
+.case-onepager-text {
+	position: relative;
+	width: min(100%, 920px);
+	min-height: 0;
+	margin: 0 auto;
+	padding: clamp(34px, 4.5vw, 54px);
+	color: #26364b;
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: .96rem;
+	line-height: 1.7;
+	background: #fff;
+	border: 1px solid #d7dce2;
+	box-shadow:
+		0 2px 3px rgba(20, 34, 52, .08),
+		0 24px 65px rgba(20, 34, 52, .18);
+}
+.case-onepager-text::after {
+	content: '1';
+	position: absolute;
+	right: clamp(34px, 4.5vw, 54px);
+	bottom: 18px;
+	color: #8b96a5;
+	font-size: .72rem;
+}
+.case-onepager-card.is-document {
+	min-height: 0;
+	border: 0;
+	border-radius: 0;
+	background: transparent;
+	box-shadow: none;
+	overflow: visible;
+}
+.case-onepager-card.is-document::before { display: none; }
+.case-doc-brandbar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 18px;
+	margin: 0 0 25px;
+	padding: 0 0 11px;
+	border-bottom: 2px solid var(--case-blue);
+	color: var(--case-blue);
+}
+.case-doc-brand {
+	font-size: 1.45rem;
+	font-weight: 950;
+	letter-spacing: .12em;
+}
+.case-doc-brandbar span:last-child {
+	font-size: .76rem;
+	font-weight: 900;
+	letter-spacing: .12em;
+	text-transform: uppercase;
+	color: #59687a;
+}
+.case-doc-headline {
+	max-width: 730px;
+	margin: 0;
+	color: var(--case-ink);
+	font-family: Georgia, 'Times New Roman', serif;
+	font-size: clamp(1.7rem, 3vw, 2.4rem);
+	line-height: 1.16;
+	font-weight: 950;
+}
+.case-onepager-authored-content > :first-child { margin-top: 0; }
+.case-onepager-authored-content h1 {
+	max-width: 760px;
+	margin: 0 0 16px;
+	color: var(--case-ink);
+	font-family: Georgia, 'Times New Roman', serif;
+	font-size: clamp(1.7rem, 3vw, 2.4rem);
+	line-height: 1.16;
+	font-weight: 900;
+}
+.case-onepager-authored-content h2,
+.case-onepager-authored-content h3,
+.case-onepager-authored-content h4 {
+	margin: 24px 0 10px;
+	color: var(--case-blue);
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: .86rem;
+	line-height: 1.35;
+	font-weight: 900;
+	letter-spacing: .08em;
+	text-transform: uppercase;
+}
+.case-onepager-authored-content p {
+	margin: 0 0 12px;
+	line-height: 1.6;
+}
+.case-onepager-authored-content ul,
+.case-onepager-authored-content ol {
+	margin: 10px 0 18px;
+	padding-left: 1.3rem;
+}
+.case-onepager-authored-content li { margin-bottom: 7px; line-height: 1.48; }
+.case-onepager-authored-content blockquote {
+	margin: 22px 0;
+	padding: 14px 18px;
+	border-left: 3px solid var(--case-blue);
+	background: #f5f7fa;
+	font-family: Georgia, 'Times New Roman', serif;
+}
+.case-onepager-authored-content table {
+	width: 100%;
+	margin: 20px 0;
+	border-collapse: collapse;
+	font-size: .92rem;
+}
+.case-onepager-authored-content th,
+.case-onepager-authored-content td {
+	padding: 11px 14px;
+	border: 1px solid var(--case-line);
+	text-align: left;
+	vertical-align: top;
+}
+.case-onepager-authored-content th { background: #293d5c; color: #fff; text-transform: uppercase; letter-spacing: .06em; }
+.case-onepager-authored-content th:first-child { background: #a94145; }
+.case-onepager-authored-content th:last-child { background: #2f7d57; }
+.case-onepager-authored-content tr:nth-child(even) td { background: #f8fafc; }
+.case-doc-intro {
+	max-width: 760px;
+	margin: 13px 0 0;
+	color: var(--case-muted);
+	font-family: Georgia, 'Times New Roman', serif;
+	font-size: 1.03rem;
+	line-height: 1.58;
+}
+.case-doc-two-column {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+	gap: 0;
+	margin-top: 25px;
+	padding: 20px 0;
+	border-top: 1px solid #b9c2ce;
+	border-bottom: 1px solid #b9c2ce;
+}
+.case-doc-panel {
+	padding: 0 22px 0 0;
+	border: 0;
+	border-radius: 0;
+	background: transparent;
+}
+.case-doc-panel.is-solution {
+	padding: 0 0 0 22px;
+	border-left: 1px solid #c9d0d9;
+	background: transparent;
+}
+.case-doc-panel h4,
+.case-doc-comparison h4 {
+	margin: 0 0 11px;
+	color: var(--case-blue);
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: .82rem;
+	line-height: 1.35;
+	font-weight: 900;
+	letter-spacing: .08em;
+	text-transform: uppercase;
+}
+.case-doc-list {
+	display: grid;
+	gap: 8px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+.case-doc-list li {
+	display: grid;
+	grid-template-columns: 22px 1fr;
+	gap: 9px;
+	line-height: 1.42;
+}
+.case-doc-list i { color: var(--case-blue); margin-top: 5px; font-size: .78rem; }
+.case-doc-panel p { margin: 0; line-height: 1.55; }
+.case-doc-panel p + p { margin-top: 9px; }
+.case-doc-comparison { margin-top: 25px; }
+.case-doc-table-wrap {
+	overflow-x: auto;
+	border: 1px solid var(--case-line);
+	border-radius: 0;
+}
+.case-doc-table {
+	width: 100%;
+	border-collapse: collapse;
+	background: #fff;
+}
+.case-doc-table th {
+	width: 50%;
+	padding: 11px 14px;
+	color: #fff;
+	background: #a94145;
+	font-size: .78rem;
+	letter-spacing: .1em;
+	text-transform: uppercase;
+	text-align: left;
+}
+.case-doc-table th:last-child { background: #2f7d57; }
+.case-doc-table td {
+	padding: 11px 14px;
+	vertical-align: top;
+	line-height: 1.4;
+	border-top: 1px solid var(--case-line);
+}
+.case-doc-table td + td { border-left: 1px solid var(--case-line); }
+.case-doc-table tr:nth-child(even) td { background: #f8fafc; }
+.case-doc-cta {
+	display: grid;
+	grid-template-columns: 1fr auto;
+	align-items: center;
+	gap: 24px;
+	margin-top: 25px;
+	padding: 18px 21px;
+	border-radius: 0;
+	background: var(--case-navy);
+	color: #fff;
+}
+.case-doc-cta h4 { margin: 0 0 6px; color: #fff; font-size: 1.2rem; font-weight: 900; }
+.case-doc-cta p { margin: 0; color: rgba(255,255,255,.82); line-height: 1.55; }
+.case-doc-cta a {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	min-height: 46px;
+	padding: 11px 20px;
+	border-radius: 10px;
+	background: #fff;
+	color: var(--case-navy);
+	font-weight: 900;
+	white-space: nowrap;
+}
+.case-onepager-text-header {
+	padding-bottom: 24px;
+	margin-bottom: 12px;
+	border-bottom: 1px solid var(--case-line);
+}
+.case-onepager-text-header span {
+	display: block;
+	color: #1b7a4f;
+	font-size: .76rem;
+	font-weight: 900;
+	letter-spacing: .12em;
+	text-transform: uppercase;
+	margin-bottom: 10px;
+}
+.case-onepager-text-header h1,
+.case-onepager-text-header h3 {
+	margin: 0;
+	color: var(--case-ink);
+	font-size: clamp(1.45rem, 2.6vw, 2rem);
+	line-height: 1.2;
+	font-weight: 900;
+}
+.case-onepager-fallback-copy {
+	max-width: 760px;
+	margin: 18px 0 0;
+	color: var(--case-muted);
+	font-family: Georgia, 'Times New Roman', serif;
+	font-size: 1.03rem;
+	line-height: 1.65;
+}
+.case-onepager-fallback-note {
+	display: flex;
+	align-items: flex-start;
+	gap: 10px;
+	margin-top: 26px;
+	padding: 14px 16px;
+	border-left: 3px solid var(--case-blue);
+	background: #f5f7fa;
+	color: #536277;
+	font-size: .86rem;
+	line-height: 1.55;
+}
+.case-onepager-text .case-pdf-section h4 {
+	font-size: 1.15rem;
+}
+.case-onepager-text .case-pdf-paragraph + .case-pdf-paragraph {
+	margin-top: 12px;
+}
+.case-onepager-text .case-pdf-paragraph.is-bullet {
+	padding-left: 1.15rem;
+	text-indent: -1.15rem;
+}
+.case-onepager-source-link {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	margin-top: 22px;
+	padding-top: 10px;
+	border-top: 1px solid #d9dee5;
+	color: #667486;
+	font-size: .78rem;
+	font-weight: 700;
+}
+@media (max-width: 767px) {
+	.case-document-toolbar-band { padding: 18px 16px 0; }
+	.case-document-toolbar { align-items: flex-start; }
+	.case-document-toolbar-main { display: grid; gap: 8px; }
+	.case-onepager-text { min-height: 0; padding: 34px 24px 56px; }
+	.case-onepager-text::after { right: 24px; bottom: 18px; }
+	.case-doc-brandbar { margin-bottom: 28px; }
+	.case-doc-two-column { grid-template-columns: 1fr; gap: 26px; }
+	.case-doc-panel { padding: 0; }
+	.case-doc-panel.is-solution { padding: 26px 0 0; border-left: 0; border-top: 1px solid #c9d0d9; }
+	.case-doc-cta { grid-template-columns: 1fr; }
+	.case-doc-cta a { width: 100%; }
+	.case-doc-table { min-width: 620px; }
 }
 @media (min-width: 992px) {
 	.case-pdf-iframe {
@@ -439,16 +827,16 @@
 	text-decoration: underline;
 }
 .case-request-band {
-	padding: 18px 0 66px;
+	padding: 10px 0 52px;
 }
 .case-request-card {
-	max-width: 1040px;
+	max-width: var(--case-document-width);
 	margin: 0 auto;
 	border: 1px solid var(--case-line);
 	background: linear-gradient(135deg, rgba(47, 85, 151, .05), #fff 62%);
 	box-shadow: 0 16px 36px rgba(28, 54, 93, .08);
 	border-radius: 22px;
-	padding: 24px 28px;
+	padding: 24px clamp(28px, 4.5vw, 54px);
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
@@ -1220,6 +1608,181 @@ textarea.lead-field {
 }
 .related-card strong { display: block; margin-bottom: 6px; }
 .related-card:hover { color:var(--case-blue); border-color:#b9cbe4; text-decoration:none; }
+/* --- Free / locked framing --- */
+.case-section-head {
+	display: grid;
+	gap: 10px;
+	justify-items: center;
+	text-align: center;
+	max-width: 720px;
+	margin: 0 auto 24px;
+}
+.case-section-head h2 {
+	color: var(--case-ink);
+	font-size: clamp(1.5rem, 2.4vw, 2rem);
+	font-weight: 900;
+	line-height: 1.14;
+	margin: 0;
+}
+.case-section-head p {
+	color: var(--case-muted);
+	font-size: 1rem;
+	line-height: 1.7;
+	margin: 0;
+}
+.case-eyebrow-badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 6px 14px;
+	border-radius: 999px;
+	font-size: .74rem;
+	font-weight: 900;
+	letter-spacing: .1em;
+	text-transform: uppercase;
+}
+.case-eyebrow-badge.is-free {
+	background: rgba(27, 122, 79, .12);
+	color: #1b7a4f;
+	border: 1px solid rgba(27, 122, 79, .26);
+}
+.case-eyebrow-badge.is-locked {
+	background: rgba(47, 85, 151, .12);
+	color: var(--case-blue);
+	border: 1px solid rgba(47, 85, 151, .26);
+}
+.case-onepager-card { position: relative; }
+.case-onepager-card::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 4px;
+	background: linear-gradient(90deg, #1b7a4f, #2bb673);
+	z-index: 3;
+}
+.case-locked-band { padding: 8px 0 72px; }
+.case-locked-shell {
+	max-width: var(--case-document-width);
+	margin: 0 auto;
+}
+.case-locked-card {
+	position: relative;
+	border: 1px solid var(--case-line);
+	border-radius: 22px;
+	overflow: hidden;
+	background: #fff;
+	box-shadow: 0 22px 50px rgba(28, 54, 93, .12);
+	min-height: 480px;
+}
+.case-locked-card::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 4px;
+	background: linear-gradient(90deg, var(--case-blue), var(--case-navy));
+	z-index: 4;
+}
+.case-locked-doc {
+	filter: blur(7px);
+	opacity: .5;
+	transform: scale(1.02);
+	pointer-events: none;
+	user-select: none;
+	padding: 30px;
+}
+.case-locked-overlay {
+	position: absolute;
+	inset: 0;
+	display: grid;
+	place-items: center;
+	padding: 28px 24px;
+	z-index: 2;
+	background:
+		radial-gradient(640px 340px at 50% 36%, rgba(255, 255, 255, .35), rgba(255, 255, 255, .85) 70%),
+		linear-gradient(180deg, rgba(255, 255, 255, .55), rgba(247, 250, 255, .94));
+}
+.case-locked-inner {
+	width: 100%;
+	max-width: 520px;
+	display: grid;
+	gap: 16px;
+	justify-items: center;
+	text-align: center;
+}
+.case-lock-badge {
+	display: inline-grid;
+	place-items: center;
+	width: 64px;
+	height: 64px;
+	border-radius: 20px;
+	background: linear-gradient(135deg, var(--case-blue), var(--case-navy));
+	color: #fff;
+	font-size: 1.5rem;
+	box-shadow: 0 16px 34px rgba(31, 63, 118, .30);
+}
+.case-locked-inner h3 {
+	color: var(--case-ink);
+	font-size: clamp(1.3rem, 2.2vw, 1.7rem);
+	font-weight: 900;
+	margin: 0;
+}
+.case-locked-inner > p {
+	color: var(--case-muted);
+	line-height: 1.7;
+	margin: 0;
+	max-width: 46ch;
+}
+.case-locked-points {
+	display: grid;
+	gap: 9px;
+	margin: 2px 0;
+	padding: 0;
+	list-style: none;
+	text-align: left;
+}
+.case-locked-points li {
+	display: flex;
+	align-items: flex-start;
+	gap: 10px;
+	color: var(--case-ink);
+	font-weight: 700;
+	font-size: .95rem;
+	line-height: 1.45;
+}
+.case-locked-points li i {
+	color: var(--case-blue);
+	margin-top: 3px;
+}
+.case-locked-cta {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 9px;
+	min-height: 52px;
+	padding: 13px 28px;
+	border: 0;
+	border-radius: 12px;
+	background: var(--case-blue);
+	color: #fff;
+	font-weight: 900;
+	font-size: 1rem;
+	cursor: pointer;
+	box-shadow: 0 16px 30px rgba(31, 63, 118, .26);
+	transition: background .2s ease, transform .15s ease;
+}
+.case-locked-cta:hover {
+	background: var(--case-navy);
+	transform: translateY(-1px);
+}
+.case-locked-note {
+	color: var(--case-muted);
+	font-size: .85rem;
+	margin: 0;
+}
 @media (max-width: 991px) {
 	.case-detail-hero { padding-top: 24px; }
 	.case-hero-layout,
@@ -1281,6 +1844,10 @@ textarea.lead-field {
 	.case-full-case-study-actions .case-primary-btn,
 	.case-full-case-study-actions .case-secondary-btn { width: 100%; min-width: 0; }
 	.case-request-band { padding-bottom: 50px; }
+	.case-locked-band { padding-bottom: 52px; }
+	.case-locked-doc { padding: 18px; }
+	.case-locked-overlay { padding: 20px 14px; }
+	.case-locked-cta { width: 100%; }
 }
 </style>
 @endpush
@@ -1288,16 +1855,17 @@ textarea.lead-field {
 @section('content')
 @php($caseStudyOutcomeLabel = trim((string) ($caseStudy->outcome_tag ?? '')))
 <main class="case-detail-page">
+	@if($isWhitePaperPage)
 	<section class="case-detail-hero">
 		<div class="container">
 			<a class="case-back-link text-light" href="{{ ($isWhitePaperPage ?? false) ? route('case-studies.index') . '#white-papers' : route('case-studies.index') }}"><i class="fa fa-arrow-left"></i> Back to {{ $detailPluralLabel }}</a>
 			<div class="case-hero-layout">
 				<div>
-					<div class="case-detail-eyebrow">{{ $caseStudy->category ?? $detailKindLabel }}</div>
+					<div class="case-detail-eyebrow"><i class="fa fa-layer-group"></i> {{ $caseStudy->category ?? $detailKindLabel }}</div>
 					<h1 class="case-detail-title">{{ $caseStudy->display_title }}</h1>
 					<p class="case-detail-summary text-light">{{ $caseStudy->preview }}</p>
 					<div class="case-hero-actions">
-						<button type="button" class="case-primary-btn" id="openCaseDownloadModal"><i class="fa fa-file-arrow-down"></i> {{ $detailPrimaryActionLabel }}</button>
+						<button type="button" class="case-primary-btn" data-open-case-modal><i class="fa fa-file-arrow-down"></i> {{ $detailPrimaryActionLabel }}</button>
 						<button type="button" class="case-secondary-btn" id="shareNativeBtnHero"><i class="fa fa-share-alt"></i> Share</button>
 					</div>
 					<div class="case-share-toast" id="caseShareToast" aria-live="polite"></div>
@@ -1305,21 +1873,119 @@ textarea.lead-field {
 			</div>
 		</div>
 	</section>
+	@else
+		<section class="case-document-toolbar-band" aria-label="Case study navigation">
+			<div class="case-document-toolbar">
+				<div class="case-document-toolbar-main">
+					<a class="case-document-back" href="{{ route('case-studies.index') }}"><i class="fa fa-arrow-left"></i> Back to Case Studies</a>
+					<span class="case-document-category"><i class="fa fa-layer-group"></i> {{ $caseStudy->category ?? $detailKindLabel }}</span>
+				</div>
+				<button type="button" class="case-document-share" id="shareNativeBtnHero"><i class="fa fa-share-alt"></i> Share</button>
+			</div>
+			<div class="case-share-toast" id="caseShareToast" aria-live="polite"></div>
+		</section>
+	@endif
 
-	@if(!empty($caseOnePagerPreviewUrl))
-		<section class="case-preview-band">
+	@if($caseHasPublicPreview)
+		<section class="case-preview-band{{ !$isWhitePaperPage ? ' is-document' : '' }}" id="caseOnePager">
 			<div class="container">
+				@if($isWhitePaperPage)
+					<div class="case-section-head">
+						<span class="case-eyebrow-badge is-free"><i class="fa fa-unlock"></i> Free preview &mdash; no email needed</span>
+						<h2>{{ $casePreviewSectionTitle }}</h2>
+						<p>{{ $casePreviewSectionDescription }}</p>
+					</div>
+				@endif
 				<div class="case-preview-shell case-full-case-study">
-					<div class="case-full-case-study-card" aria-label="{{ $casePreviewSectionTitle }} preview">
-						<div class="case-full-case-study-viewer">
-							<iframe
-								class="case-pdf-iframe"
-								src="{{ $caseOnePagerPreviewUrl }}#page=1&zoom=115&toolbar=0&navpanes=0&scrollbar=0"
-								title="{{ $casePreviewSectionTitle }} of {{ $caseStudy->display_title }}"
-								loading="lazy"
-								referrerpolicy="no-referrer"
-							></iframe>
-						</div>
+					<div class="case-full-case-study-card case-onepager-card{{ !$isWhitePaperPage ? ' is-document' : '' }}" aria-label="{{ $casePreviewSectionTitle }} preview">
+						@if(!$isWhitePaperPage)
+							<article class="case-onepager-text">
+								<div class="case-doc-brandbar">
+									<strong class="case-doc-brand">ARMELY</strong>
+									<span>{{ $caseOnePagerDocument['eyebrow'] ?? 'Case Study' }}</span>
+								</div>
+								@if(!empty($caseOnePagerDocument))
+									<header>
+										<h1 class="case-doc-headline">{{ $caseOnePagerDocument['headline'] ?? $caseStudy->display_title }}</h1>
+										@if(!empty($caseOnePagerDocument['intro']))
+											<p class="case-doc-intro">{{ $caseOnePagerDocument['intro'] }}</p>
+										@endif
+									</header>
+									@if(!empty($caseOnePagerDocument['challenges']) || !empty($caseOnePagerDocument['solution']))
+										<div class="case-doc-two-column">
+											<section class="case-doc-panel">
+												<h4>{{ $caseOnePagerDocument['challenge_heading'] ?? 'The challenge' }}</h4>
+												<ul class="case-doc-list">
+													@foreach((array) ($caseOnePagerDocument['challenges'] ?? []) as $challenge)
+														<li><i class="fa fa-circle-check"></i><span>{{ $challenge }}</span></li>
+													@endforeach
+												</ul>
+											</section>
+											<section class="case-doc-panel is-solution">
+												<h4>{{ $caseOnePagerDocument['solution_heading'] ?? 'What Armely built' }}</h4>
+												@foreach((array) ($caseOnePagerDocument['solution'] ?? []) as $paragraph)
+													<p>{{ $paragraph }}</p>
+												@endforeach
+											</section>
+										</div>
+									@endif
+									@if(!empty($caseOnePagerDocument['comparisons']))
+										<section class="case-doc-comparison">
+											<h4>{{ $caseOnePagerDocument['table_heading'] ?? 'At a glance' }}</h4>
+											<div class="case-doc-table-wrap">
+												<table class="case-doc-table">
+													<thead><tr><th>{{ $caseOnePagerDocument['before_heading'] ?? 'Before' }}</th><th>{{ $caseOnePagerDocument['after_heading'] ?? 'After' }}</th></tr></thead>
+													<tbody>
+														@foreach($caseOnePagerDocument['comparisons'] as $comparison)
+															<tr><td>{{ $comparison['before'] }}</td><td>{{ $comparison['after'] }}</td></tr>
+														@endforeach
+													</tbody>
+												</table>
+											</div>
+										</section>
+									@endif
+									@if(!empty($caseOnePagerDocument['cta_heading']))
+										<aside class="case-doc-cta">
+											<div><h4>{{ $caseOnePagerDocument['cta_heading'] }}</h4><p>{{ $caseOnePagerDocument['cta_body'] ?? '' }}</p></div>
+											<a href="{{ route('contact') }}">Let's talk <i class="fa fa-arrow-right"></i></a>
+										</aside>
+									@endif
+								@elseif($caseOnePagerContent !== '')
+									@if(!$caseOnePagerContentHasH1)
+										<h1 class="case-doc-headline">{{ $caseStudy->display_title }}</h1>
+									@endif
+									<div class="case-onepager-authored-content">{!! $caseOnePagerContent !!}</div>
+								@else
+									<h1 class="case-doc-headline">{{ $caseStudy->display_title }}</h1>
+									<p class="case-doc-intro">{{ $caseStudy->preview }}</p>
+								@endif
+								@if($caseOnePagerPreviewUrl !== '')
+									<a class="case-onepager-source-link" href="{{ $caseOnePagerPreviewUrl }}" target="_blank" rel="noopener">
+										<i class="fa fa-up-right-from-square"></i> Open source one-pager PDF
+									</a>
+								@endif
+							</article>
+						@else
+							<div class="case-full-case-study-viewer">
+							@if($caseOnePagerIsPdf)
+								<iframe
+									class="case-pdf-iframe"
+									src="{{ $caseOnePagerPreviewUrl }}#page=1&zoom=115&toolbar=0&navpanes=0&scrollbar=0"
+									title="{{ $casePreviewSectionTitle }} of {{ $caseStudy->display_title }}"
+									loading="lazy"
+									referrerpolicy="no-referrer"
+								></iframe>
+							@else
+								<img
+									class="case-onepager-image"
+									src="{{ $caseOnePagerPreviewUrl }}"
+									alt="{{ $casePreviewSectionTitle }} of {{ $caseStudy->display_title }}"
+									loading="lazy"
+								>
+							@endif
+							</div>
+						@endif
+						@if($isWhitePaperPage)
 						<div class="case-full-case-study-mobile">
 							<div>
 								<strong>{{ $casePreviewSectionTitle }}</strong>
@@ -1334,6 +2000,7 @@ textarea.lead-field {
 								</button>
 							</div>
 						</div>
+						@endif
 					</div>
 					
 				</div>
@@ -1341,7 +2008,7 @@ textarea.lead-field {
 		</section>
 	@endif
 
-	@if(!($isWhitePaperPage ?? false))
+	@if(!$isWhitePaperPage)
 		<section class="case-request-band">
 			<div class="container">
 				<div class="case-request-card">
@@ -1356,6 +2023,60 @@ textarea.lead-field {
 				</div>
 			</div>
 		</section>
+	@else
+	<section class="case-locked-band">
+		<div class="container">
+			<div class="case-section-head">
+				<span class="case-eyebrow-badge is-locked"><i class="fa fa-lock"></i> Full {{ $detailKindLabel }}</span>
+				<h2>Unlock the complete {{ strtolower($detailKindLabel) }}</h2>
+				<p>The one-pager above is yours free. Request the full {{ strtolower($detailKindLabel) }} for the complete challenge, solution approach, and quantified results.</p>
+			</div>
+			<div class="case-locked-shell">
+				<div class="case-locked-card">
+					<div class="case-locked-doc" aria-hidden="true">
+						<div class="case-mock-hero">
+							<div class="case-mock-title">{{ $caseStudy->display_title }}</div>
+							<div class="case-mock-summary">{{ $caseStudy->preview }}</div>
+						</div>
+						<div class="case-mock-metrics">
+							<div class="case-mock-metric"><strong>&bull;&bull;&bull;</strong><span>Reporting speed</span></div>
+							<div class="case-mock-metric"><strong>&bull;&bull;&bull;</strong><span>Manual effort</span></div>
+							<div class="case-mock-metric"><strong>&bull;&bull;&bull;</strong><span>Time to insight</span></div>
+						</div>
+						<div class="case-mock-section">
+							<h4>The challenge</h4>
+							<div class="case-mock-line long"></div>
+							<div class="case-mock-line mid"></div>
+							<div class="case-mock-line short"></div>
+						</div>
+						<div class="case-mock-section">
+							<h4>The solution</h4>
+							<div class="case-mock-line long"></div>
+							<div class="case-mock-line mid"></div>
+							<div class="case-mock-line long"></div>
+							<div class="case-mock-line short"></div>
+						</div>
+					</div>
+					<div class="case-locked-overlay">
+						<div class="case-locked-inner">
+							<span class="case-lock-badge"><i class="fa fa-lock"></i></span>
+							<h3>Get the full {{ strtolower($detailKindLabel) }}</h3>
+							<p>{{ $detailModalCopy }}</p>
+							<ul class="case-locked-points">
+								<li><i class="fa fa-check"></i> Full challenge, approach, and architecture</li>
+								<li><i class="fa fa-check"></i> Quantified business outcomes and results</li>
+								<li><i class="fa fa-check"></i> Secure PDF link emailed instantly</li>
+							</ul>
+							<button type="button" class="case-locked-cta" data-open-case-modal>
+								<i class="fa fa-unlock-keyhole"></i> {{ $detailPrimaryActionLabel }}
+							</button>
+							<p class="case-locked-note">No phone number required. The link expires in 1 hour.</p>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</section>
 	@endif
 </main>
 

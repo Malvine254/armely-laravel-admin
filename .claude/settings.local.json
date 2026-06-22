@@ -5,7 +5,31 @@
       "Bash(xargs ls *)",
       "Bash(pip install *)",
       "Bash(python -c ' *)",
-      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://127.0.0.1:8001/career)"
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://127.0.0.1:8001/career)",
+      "Bash(tasklist)",
+      "Bash(netstat -ano)",
+      "Bash(php artisan *)",
+      "Read(//c/Users/USER/AppData/Local/Temp/claude/d--armely-laravel-admin/a5eb15ca-0f7b-4dc8-9b41-d2d30dd9ef77/tasks/**)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://127.0.0.1:8001)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://127.0.0.1:8001)",
+      "Bash(php -v)",
+      "PowerShell(try { $r = Invoke-WebRequest -Uri \"http://127.0.0.1:8001\" -UseBasicParsing -TimeoutSec 10; \"HTTP $\\($r.StatusCode\\)\" } catch { \"ERR: $\\($_.Exception.Message\\)\" })",
+      "PowerShell(try { $r = Invoke-WebRequest -Uri \"http://127.0.0.1:8001/case-studies/energy-case-study\" -UseBasicParsing -TimeoutSec 15; \"HTTP $\\($r.StatusCode\\), length $\\($r.Content.Length\\)\" } catch { \"ERR: $\\($_.Exception.Message\\)\" })",
+      "PowerShell(try { $r = Invoke-WebRequest -Uri \"http://127.0.0.1:8001/case-studies/energy-case-study\" -UseBasicParsing -TimeoutSec 20; \"HTTP $\\($r.StatusCode\\)\"; if \\($r.Content -match 'case-locked-card'\\) { 'locked teaser: PRESENT' } else { 'locked teaser: MISSING' }; if \\($r.Content -match 'View free one-pager'\\) { 'free CTA: PRESENT' } else { 'free CTA: MISSING' } } catch { \"ERR: $\\($_.Exception.Message\\)\" })",
+      "Bash(php -r ' *)",
+      "PowerShell(try { $r = Invoke-WebRequest -Uri \"http://127.0.0.1:8001/case-studies/energy-case-study\" -UseBasicParsing -TimeoutSec 20; \"HTTP $\\($r.StatusCode\\)\"; if \\($r.Content -match 'case-onepager-image'\\) { 'onepager image: PRESENT' } else { 'onepager image: not used \\(no preview file\\)' }; if \\($r.Content -match 'case-locked-card'\\) { 'locked teaser: PRESENT' } } catch { \"ERR: $\\($_.Exception.Message\\)\" })",
+      "Bash(python -)",
+      "PowerShell(try { $r = Invoke-WebRequest -Uri \"http://127.0.0.1:8001/case-studies\" -UseBasicParsing -TimeoutSec 20; \"index HTTP $\\($r.StatusCode\\)\" } catch { \"index ERR $\\($_.Exception.Message\\)\" })",
+      "Bash(rm -f /tmp/CaseStudiesController.bak.php; echo \"cleanup done\")",
+      "Bash(grep -oE \"\\\\.case-\\(doc-[a-z-]+|onepager-authored-content\\)[^,{ ]*\" resources/views/case-studies/show.blade.php)",
+      "Bash(php scripts/seed_onepager_demo.php)",
+      "Bash(php -l app/Http/Controllers/CaseStudiesController.php)",
+      "Bash(command -v pdftotext)",
+      "Bash(pdftotext -layout \"public/case-study-previews/1782151066_1779815449-armely-wp-publicsector-condensed.pdf\" -)",
+      "Bash(php scripts/seed_onepager_convert.php)"
+    ],
+    "additionalDirectories": [
+      "\\tmp"
     ]
   }
 }
