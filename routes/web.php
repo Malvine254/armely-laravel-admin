@@ -22,8 +22,10 @@ use App\Http\Controllers\DataReadinessLeadController;
 use App\Http\Controllers\ResourceController;
 use App\Http\Controllers\Admin\ResourceController as AdminResourceController;
 use App\Http\Controllers\NewsletterController;
+use App\Http\Controllers\SitemapController;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
+Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('sitemap.xml');
 Route::get('/contact', [HomeController::class, 'contact'])->name('contact');
 Route::post('/contact', [HomeController::class, 'submitContact'])->name('contact.submit');
 Route::post('/newsletter/subscribe', [NewsletterController::class, 'subscribe'])->name('newsletter.subscribe');
@@ -113,7 +115,10 @@ Route::get('/white_paper_docs/{file}', [CaseStudiesController::class, 'legacyWhi
 Route::get('/case-studies/{slug}', [CaseStudiesController::class, 'showCaseStudy'])->name('case-studies.show');
 
 Route::get('/blog/{blogId?}', [BlogController::class, 'index'])->name('blog.index');
-Route::get('/blogs/{blogId?}', [BlogController::class, 'index'])->name('blogs.index');
+// Keep the legacy plural URL as a permanent redirect so search signals stay on /blog.
+Route::get('/blogs/{blogId?}', function (?string $blogId = null) {
+    return redirect()->route('blog.index', $blogId ? ['blogId' => $blogId] : [], 301);
+})->where('blogId', '.*');
 Route::post('/blog/{blogId}/increment-clicks', [BlogController::class, 'incrementClicks'])->name('blog.increment-clicks');
 Route::post('/blog/{blogId}/request-download', [BlogController::class, 'requestDownload'])->name('blog.request-download');
 Route::get('/blog/{blogId}/download-pdf', [BlogController::class, 'downloadPdf'])->name('blog.download-pdf');

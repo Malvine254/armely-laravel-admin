@@ -55,6 +55,19 @@ return [
     'url' => env('APP_URL', 'http://localhost'),
 
     /*
+    |-----------------------------------------------------------------------
+    | Canonical Host
+    |-----------------------------------------------------------------------
+    |
+    | When set, public requests to other hosts such as www will be 301
+    | redirected to this host and generated URLs will use it as the root.
+    | Leave empty in local/dev environments.
+    |
+    */
+
+    'canonical_host' => env('CANONICAL_HOST', ''),
+
+    /*
     |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------

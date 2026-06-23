@@ -1,0 +1,326 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Resource;
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
+
+class SitemapController extends Controller
+{
+    public function index(): Response
+    {
+        $urls = [];
+
+        $staticRoutes = [
+            ['home', 'daily', '1.0', null],
+            ['services', 'weekly', '0.9', null],
+            ['case-studies.index', 'weekly', '0.9', null],
+            ['resources.index', 'weekly', '0.9', null],
+            ['blog.index', 'daily', '0.9', null],
+            ['events.index', 'weekly', '0.7', null],
+            ['company.index', 'monthly', '0.6', null],
+            ['career.index', 'monthly', '0.4', null],
+            ['customer-stories.index', 'monthly', '0.7', null],
+            ['social-impact.index', 'monthly', '0.7', null],
+            ['industries.index', 'monthly', '0.6', null],
+            ['mela-ai', 'monthly', '0.6', null],
+            ['contact', 'monthly', '0.5', null],
+            ['privacy-policy', 'yearly', '0.2', null],
+            ['partners.index', 'monthly', '0.6', null],
+            ['invoice-lens', 'monthly', '0.7', null],
+            ['protective-order-solution', 'monthly', '0.5', null],
+        ];
+
+        foreach ($staticRoutes as [$routeName, $changefreq, $priority, $lastmod]) {
+            try {
+                $urls[] = $this->entry(route($routeName), $lastmod, $changefreq, $priority);
+            } catch (\Throwable) {
+                // Skip any route that is not available in this environment.
+            }
+        }
+
+        foreach ($this->serviceSlugs() as $slug) {
+            try {
+                $urls[] = $this->entry(route('services.show', ['name' => $slug]), null, 'monthly', '0.8');
+            } catch (\Throwable) {
+                // Skip if the service route cannot be built.
+            }
+        }
+
+        foreach ($this->blogEntries() as $blog) {
+            $urls[] = $this->entry(
+                route('blog.index', ['blogId' => $blog->blog_id]),
+                $this->dateValue($blog->updated_at ?? $blog->date ?? $blog->created_at ?? null),
+                'daily',
+                '0.8'
+            );
+        }
+
+        foreach ($this->resourceEntries() as $resource) {
+            $routeName = $this->isPdfStyleResource($resource) ? 'white-papers.view' : 'resources.show';
+
+            try {
+                $urls[] = $this->entry(
+                    route($routeName, ['slug' => $resource->slug]),
+                    $this->dateValue($resource->updated_at ?? $resource->created_at ?? null),
+                    'weekly',
+                    '0.7'
+                );
+            } catch (\Throwable) {
+                // Skip if a route is unavailable.
+            }
+        }
+
+        foreach ($this->caseStudyEntries() as $caseStudy) {
+            $slug = $this->caseStudySlug($caseStudy);
+
+            try {
+                $urls[] = $this->entry(
+                    route('case-studies.show', ['slug' => $slug]),
+                    $this->dateValue($caseStudy->updated_at ?? $caseStudy->created_at ?? null),
+                    'weekly',
+                    '0.8'
+                );
+            } catch (\Throwable) {
+                // Skip if a route is unavailable.
+            }
+        }
+
+        foreach ($this->socialImpactEntries() as $story) {
+            try {
+                $urls[] = $this->entry(
+                    route('social-impact-details', ['secure_id' => $story->secure_id]),
+                    $this->dateValue($story->updated_at ?? $story->created_at ?? null),
+                    'weekly',
+                    '0.6'
+                );
+            } catch (\Throwable) {
+                // Skip if a route is unavailable.
+            }
+        }
+
+        $xml = $this->renderXml($urls);
+
+        return response($xml, 200, [
+            'Content-Type' => 'application/xml; charset=UTF-8',
+        ]);
+    }
+
+    private function renderXml(array $urls): string
+    {
+        $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
+        $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
+
+        foreach ($urls as $url) {
+            $xml .= "  <url>\n";
+            $xml .= '    <loc>' . e($url['loc']) . "</loc>\n";
+
+            if (!empty($url['lastmod'])) {
+                $xml .= '    <lastmod>' . e($url['lastmod']) . "</lastmod>\n";
+            }
+
+            if (!empty($url['changefreq'])) {
+                $xml .= '    <changefreq>' . e($url['changefreq']) . "</changefreq>\n";
+            }
+
+            if (!empty($url['priority'])) {
+                $xml .= '    <priority>' . e($url['priority']) . "</priority>\n";
+            }
+
+            $xml .= "  </url>\n";
+        }
+
+        $xml .= "</urlset>\n";
+
+        return $xml;
+    }
+
+    private function entry(string $loc, ?string $lastmod = null, ?string $changefreq = null, ?string $priority = null): array
+    {
+        return [
+            'loc' => $loc,
+            'lastmod' => $lastmod,
+            'changefreq' => $changefreq,
+            'priority' => $priority,
+        ];
+    }
+
+    private function dateValue(mixed $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        if ($value instanceof \DateTimeInterface) {
+            return $value->format('Y-m-d');
+        }
+
+        $value = trim((string) $value);
+        if ($value === '') {
+            return null;
+        }
+
+        try {
+            return now()->parse($value)->format('Y-m-d');
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    private function serviceSlugs(): array
+    {
+        return [
+            'ai-consulting',
+            'data-strategy',
+            'training',
+            'freemiums',
+            'm365-governance',
+            'managed-services',
+            'microsoft-fabric',
+            'snowflake',
+            'generative-ai',
+            'copilot',
+            'power-platform',
+            'dynamics-365',
+            'sharepoint',
+            'custom-development',
+            'api-dev',
+            'sql-server',
+        ];
+    }
+
+    private function blogEntries()
+    {
+        if (!Schema::hasTable('blogs')) {
+            return collect();
+        }
+
+        $blogIdColumn = Schema::hasColumn('blogs', 'blog_id') ? 'blog_id' : 'id';
+        $dateColumn = $this->firstExistingColumn('blogs', ['updated_at', 'date', 'blog_date', 'created_at']);
+
+        return DB::table('blogs')
+            ->select(array_filter(array_unique(array_filter([
+                $blogIdColumn . ' as blog_id',
+                $dateColumn ? $dateColumn . ' as updated_at' : null,
+            ]))))
+            ->orderByDesc($dateColumn ?: $blogIdColumn)
+            ->get();
+    }
+
+    private function resourceEntries()
+    {
+        if (!Schema::hasTable('resources')) {
+            return collect();
+        }
+
+        return Resource::query()
+            ->published()
+            ->where(function ($query) {
+                $query->whereNull('is_noindex')->orWhere('is_noindex', false);
+            })
+            ->orderByDesc('updated_at')
+            ->get([
+                'slug',
+                'title',
+                'resource_type',
+                'file_url',
+                'file_path',
+                'updated_at',
+                'created_at',
+            ]);
+    }
+
+    private function caseStudyEntries()
+    {
+        if (!Schema::hasTable('industry_listings')) {
+            return collect();
+        }
+
+        $columns = $this->caseStudySelectColumns();
+
+        return DB::table('industry_listings')
+            ->select($columns)
+            ->orderByDesc('id')
+            ->get();
+    }
+
+    private function socialImpactEntries()
+    {
+        if (!Schema::hasTable('social_impact')) {
+            return collect();
+        }
+
+        $columns = array_values(array_filter([
+            Schema::hasColumn('social_impact', 'secure_id') ? 'secure_id' : null,
+            Schema::hasColumn('social_impact', 'updated_at') ? 'updated_at' : null,
+            Schema::hasColumn('social_impact', 'created_at') ? 'created_at' : null,
+        ]));
+
+        if ($columns === []) {
+            return collect();
+        }
+
+        return DB::table('social_impact')
+            ->select($columns)
+            ->orderByDesc('id')
+            ->get();
+    }
+
+    private function isPdfStyleResource(object $resource): bool
+    {
+        $type = strtolower((string) ($resource->resource_type ?? ''));
+        if ($type === 'pdf' || str_contains($type, 'white')) {
+            return true;
+        }
+
+        $fileUrl = strtolower((string) ($resource->file_url ?? ''));
+        if ($fileUrl !== '' && str_contains($fileUrl, '.pdf')) {
+            return true;
+        }
+
+        $filePath = strtolower((string) ($resource->file_path ?? ''));
+        return $filePath !== '' && str_contains($filePath, '.pdf');
+    }
+
+    private function caseStudySlug(object $caseStudy): string
+    {
+        $title = trim((string) ($caseStudy->title ?? ''));
+        if ($title !== '') {
+            return Str::slug($title);
+        }
+
+        $category = trim((string) ($caseStudy->category ?? 'Case Study'));
+        if ($category !== '') {
+            return Str::slug($category . ' case study');
+        }
+
+        return 'case-study-' . (string) ($caseStudy->id ?? 'resource');
+    }
+
+    private function caseStudySelectColumns(): array
+    {
+        $columns = ['id'];
+
+        foreach (['title', 'category', 'updated_at', 'created_at'] as $column) {
+            if (Schema::hasColumn('industry_listings', $column)) {
+                $columns[] = $column;
+            }
+        }
+
+        return $columns;
+    }
+
+    private function firstExistingColumn(string $table, array $columns): ?string
+    {
+        foreach ($columns as $column) {
+            if (Schema::hasColumn($table, $column)) {
+                return $column;
+            }
+        }
+
+        return null;
+    }
+}
