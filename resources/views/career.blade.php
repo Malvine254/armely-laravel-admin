@@ -16,7 +16,12 @@
 				<div class="col-lg-7">
 					<div class="section-title modern-section-title career-hero-copy">
 						<div class="career-badge-tag career-badge-tag--hero">
-							<i class="icofont-briefcase"></i> Join Our Team
+							<svg class="icon-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+								<path d="M10 6V5a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2v1" />
+								<path d="M4 8h16v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8Z" />
+								<path d="M4 12h16" />
+							</svg>
+							Join Our Team
 						</div>
 						<h2 class="career-main-title text-light">Find Your Future Here!</h2>
 						<p class="lead">We're hiring across disciplines. Competitive pay, great benefits, and a collaborative environment. Full-time roles include paid holidays, vacations, performance bonuses, and project-driven incentives.</p>
@@ -43,27 +48,49 @@
 			<div class="col-lg-10">
 				@if(!empty($dbErrorMessage))
 					<div class="alert alert-warning text-center mb-4" role="alert">
-						<i class="icofont-warning-alt"></i> {{ $dbErrorMessage }}
+						<svg class="icon-svg alert-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+							<path d="M12 9v4" />
+							<path d="M12 17h.01" />
+							<path d="M10.3 4.3 2.4 18a2 2 0 0 0 1.7 3h16a2 2 0 0 0 1.7-3l-7.9-13.7a2 2 0 0 0-3.6 0Z" />
+						</svg>
+						{{ $dbErrorMessage }}
 					</div>
 				@endif
 				<div class="careers-header-wrap">
 					<h3 class="openings-title">
-						<i class="icofont-folder-open"></i> Current Openings
+						<svg class="icon-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+							<path d="M4 7h16v11H4z" />
+							<path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+							<path d="M4 12h16" />
+						</svg>
+						Current Openings
 					</h3>
 					<div class="filter-controls">
 						<button class="filter-btn active" data-filter="all">
-							<i class="icofont-ui-office"></i> All Positions
+							<svg class="icon-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+								<path d="M4 6h16M7 12h10M10 18h4" />
+							</svg>
+							All Positions
 						</button>
 						<button class="filter-btn" data-filter="full-time">
-							<i class="icofont-clock-time"></i> Full Time
+							<svg class="icon-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+								<path d="M4 7h16v12H4z" />
+								<path d="M9 4h6v3H9z" />
+							</svg>
+							Full Time
 						</button>
 						<button class="filter-btn" data-filter="part-time">
-							<i class="icofont-clock-time"></i> Part Time
+							<svg class="icon-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+								<circle cx="12" cy="12" r="9" />
+								<path d="M12 7v5l3 2" />
+							</svg>
+							Part Time
 						</button>
 					</div>
 				</div>
 			</div>
 		</div>
+
 		<div class="row justify-content-center">
 			<div class="col-lg-10">
 				<div class="row careers-grid">
@@ -78,26 +105,60 @@
 						<div class="career-item" data-type="{{ $jobTypeClass }}">
 							<div class="card career-card">
 								<div class="card-body">
-									<div class="career-header-wrapper">
-										<span class="career-badge">{{ $job->job_type }}</span>
+									<div class="career-card-top">
+										<div class="career-card-icon" aria-hidden="true">
+											<svg class="icon-svg" viewBox="0 0 24 24" fill="none">
+												<path d="M10 6V5a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2v1" />
+												<path d="M4 8h16v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8Z" />
+												<path d="M4 12h16" />
+												<path d="M9 12v2a3 3 0 0 0 6 0v-2" />
+											</svg>
+										</div>
+										<div class="career-card-top-copy">
+											<span class="career-badge">{{ $job->job_type }}</span>
+											<span class="career-status {{ $status === 'Closed' ? 'is-closed' : 'is-open' }}">
+												<span class="career-status-dot"></span>
+												{{ $status }}
+											</span>
+										</div>
 									</div>
+
 									<h5 class="role-title">{{ $job->title }}</h5>
-									<div class="role-meta"><i class="fa fa-map-marker default-color"></i> {{ $job->location }}</div>
-									<div class="role-meta">
-										<i class="fa fa-clock-o default-color"></i>
-										{{ $job->job_deadline ? date('M d, Y', strtotime($job->job_deadline)) : 'No deadline' }} •
-										@if($status === 'Closed')
-											<span class="text-danger"><i class="fa fa-info-circle text-danger"></i> {{ $status }}</span>
-										@else
-											<span class="text-primary"><i class="fa fa-circle text-primary"></i> {{ $status }}</span>
-										@endif
+
+									<div class="career-meta-list">
+										<div class="career-meta-row">
+											<span class="career-meta-icon" aria-hidden="true">
+												<svg class="icon-svg" viewBox="0 0 24 24" fill="none">
+													<path d="M12 21s7-6.1 7-12a7 7 0 1 0-14 0c0 5.9 7 12 7 12Z" />
+													<circle cx="12" cy="9" r="2.5" />
+												</svg>
+											</span>
+											<span>{{ $job->location }}</span>
+										</div>
+
+										<div class="career-meta-row">
+											<span class="career-meta-icon" aria-hidden="true">
+												<svg class="icon-svg" viewBox="0 0 24 24" fill="none">
+													<rect x="3" y="4.5" width="18" height="16" rx="4" />
+													<path d="M8 3v4M16 3v4M3 9.5h18" />
+												</svg>
+											</span>
+											<span>{{ $job->job_deadline ? date('M d, Y', strtotime($job->job_deadline)) : 'No deadline' }}</span>
+										</div>
 									</div>
 								</div>
+
 								<div class="card-footer">
 									@if($status === 'Closed')
-										<button class="btn btn-danger w-100" disabled>Closed</button>
+										<button class="btn career-closed-btn w-100" disabled>Closed</button>
 									@else
-										<a href="{{ route('job-board.index') }}?job-details={{ urlencode($job->job_id) }}" class="btn default-button apply-btn w-100">View Details <i class="icofont-arrow-right"></i></a>
+										<a href="{{ route('job-board.index') }}?job-details={{ urlencode($job->job_id) }}" class="btn default-button apply-btn w-100">
+											<span>View Details</span>
+											<svg class="icon-svg btn-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+												<path d="M5 12h14" />
+												<path d="m13 6 6 6-6 6" />
+											</svg>
+										</a>
 									@endif
 								</div>
 							</div>
@@ -105,7 +166,12 @@
 					@empty
 						<div class="careers-empty">
 							<div class="alert alert-info text-center">
-								<i class="icofont-info-circle"></i> No open positions at this time. Check back soon!
+								<svg class="icon-svg alert-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+									<circle cx="12" cy="12" r="9" />
+									<path d="M12 8.5h.01" />
+									<path d="M12 11v5" />
+								</svg>
+								No open positions at this time. Check back soon!
 							</div>
 						</div>
 					@endforelse
@@ -119,31 +185,23 @@
 
 @push('scripts')
 <script>
-// Career filter functionality
 document.addEventListener('DOMContentLoaded', function() {
     const filterBtns = document.querySelectorAll('.filter-btn');
     const careerItems = document.querySelectorAll('.career-item');
-    
+
     filterBtns.forEach(btn => {
         btn.addEventListener('click', function() {
-            // Remove active class from all buttons
             filterBtns.forEach(b => b.classList.remove('active'));
-            
-            // Add active class to clicked button
             this.classList.add('active');
-            
+
             const filterValue = this.getAttribute('data-filter');
-            
+
             careerItems.forEach(item => {
                 if (filterValue === 'all') {
                     item.style.display = 'block';
                 } else {
                     const itemType = item.getAttribute('data-type');
-                    if (itemType === filterValue) {
-                        item.style.display = 'block';
-                    } else {
-                        item.style.display = 'none';
-                    }
+                    item.style.display = itemType === filterValue ? 'block' : 'none';
                 }
             });
         });

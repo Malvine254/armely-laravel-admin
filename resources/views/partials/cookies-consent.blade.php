@@ -5,7 +5,7 @@
         <div class="col-md-8">
             <div class="ml-4">
                 <h4>We Value Your Privacy</h4>
-                <p>We use cookies to enhance your browsing experience, serve personalized content, and analyze our traffic. By clicking "Accept All", you consent to our use of cookies. <a class="default-color" href="{{ route('home') }}">See our privacy policy</a>. You can manage your preferences by clicking "customize".</p>
+                <p>We use cookies to enhance your browsing experience, serve personalized content, and analyze our traffic. By clicking "Accept All", you consent to our use of cookies. <a class="default-color" href="{{ route('privacy-policy') }}">See our privacy policy</a>. You can manage your preferences by clicking "customize".</p>
             </div>
         </div>
         <div class="col-md-4">

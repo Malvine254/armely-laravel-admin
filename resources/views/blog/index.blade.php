@@ -50,24 +50,17 @@ if (!function_exists('armely_blog_clean_html')) {
 @section('meta_description', $seoDescription)
 @section('meta_keywords', $seoKeywords)
 @section('canonical_url', $canonicalUrl)
+@section('og_type', 'article')
+@section('og_title', $seoTitle)
+@section('og_description', $seoDescription)
+@section('twitter_title', $seoTitle)
+@section('twitter_description', $seoDescription)
+@section('meta_image', $shareImage)
+@section('robots', 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1')
 
 @push('head')
-	<meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
-	<meta property="og:site_name" content="Armely">
-	<meta property="og:locale" content="en_US">
-	<meta property="og:title" content="{{ $seoTitle }}">
-	<meta property="og:description" content="{{ $seoDescription }}">
-	<meta property="og:url" content="{{ $canonicalUrl }}">
-	<meta property="og:image" content="{{ $shareImage }}">
-	<meta property="og:image:secure_url" content="{{ $shareImage }}">
-	<meta property="og:image:width" content="1200">
-	<meta property="og:image:height" content="630">
-	<meta name="twitter:card" content="summary_large_image">
-	<meta name="twitter:title" content="{{ $seoTitle }}">
-	<meta name="twitter:description" content="{{ $seoDescription }}">
-	<meta name="twitter:image" content="{{ $shareImage }}">
-
 	@if($hasMain && !empty($main->blog_id))
+		<meta property="og:image:alt" content="{{ $mainTitle !== '' ? $mainTitle : 'Armely blog article image' }}">
 		<meta property="article:published_time" content="{{ \Carbon\Carbon::parse($main->date)->toIso8601String() }}">
 		<meta property="article:author" content="{{ $main->author ?? 'Armely Team' }}">
 		<meta property="article:section" content="Insights">
@@ -120,11 +113,11 @@ if (!function_exists('armely_blog_clean_html')) {
 								<div class="blog-meta">
 									<div class="blog-meta-item">
 										@if(isset($main->author_image) && $main->author_image)
-											<img src="{{ asset('images/team/' . $main->author_image) }}" alt="Author" style="width: 30px; height: 30px; border-radius: 50%; object-fit: cover;">
+											<img class="default-color"  src="{{ asset('images/team/' . $main->author_image) }}" alt="Author" style="width: 30px; height: 30px; border-radius: 50%; object-fit: cover;">
 										@else
-											<img src="{{ asset('images/blog/profile.svg') }}" alt="Author">
+											<img class="default-color" src="{{ asset('images/blog/profile.svg') }}" alt="Author">
 										@endif
-										<span class="blog-author">{{ $main->author ?? 'Armely Team' }}</span>
+										<span class="blog-author default-color">{{ $main->author ?? 'Armely Team' }}</span>
 									</div>
 									<div class="blog-meta-item">
 										<i class="fa fa-calendar"></i>
@@ -316,7 +309,7 @@ document.addEventListener('DOMContentLoaded', function() {
 						
 						// Update sidebar recent posts to show current views
 						updateRecentPostsViews();
-						
+
 						// Reinitialize event listeners for new content
 						reinitializeBlogFeatures();
 					}, 300);

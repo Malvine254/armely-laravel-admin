@@ -96,7 +96,6 @@ Route::get('/case-studies/access/{caseStudy}', [CaseStudiesController::class, 'a
 Route::get('/white-papers/access/{paper}', [CaseStudiesController::class, 'accessWhitePaper'])->name('white-papers.access');
 Route::get('/white-papers/view/{slug}', [ResourceController::class, 'show'])->name('white-papers.view');
 Route::get('/resources', [ResourceController::class, 'index'])->name('resources.index');
-Route::redirect('/resources/', '/resources', 301);
 Route::redirect('/Resources', '/resources', 301);
 Route::redirect('/Resources/', '/resources', 301);
 Route::get('/whitepapers/{slug}', [ResourceController::class, 'show'])->name('whitepapers.show');

@@ -52,26 +52,121 @@ class HomeController extends Controller
         return view('partners');
     }
 
-        public function events()
-        {
-            $events = collect();
-            $dbErrorMessage = null;
+    public function events()
+    {
+        $events = collect();
+        $dbErrorMessage = null;
 
-            try {
-                $events = DB::table('events')
-                    ->select('start_date', 'title', 'body', 'url', 'recorded_url')
-                    ->orderBy('id', 'desc')
-                    ->get();
-            } catch (\Throwable $e) {
-                Log::warning('Events query failed; showing friendly fallback', ['error' => $e->getMessage()]);
-                $dbErrorMessage = 'We are temporarily unable to load events. Please try again in a few moments.';
+        try {
+            if (!Schema::hasTable('events')) {
+                return view('events', [
+                    'events' => $events,
+                    'dbErrorMessage' => $dbErrorMessage,
+                ]);
             }
 
-            return view('events', [
-                'events' => $events,
-                'dbErrorMessage' => $dbErrorMessage,
-            ]);
+            $events = DB::table('events')
+                ->select('id', 'start_date', 'title', 'body', 'url', 'recorded_url')
+                ->orderByDesc('id')
+                ->get()
+                ->map(function ($event) {
+                    $eventDate = $this->parseEventDate((string) ($event->start_date ?? ''));
+
+                    if (!$eventDate) {
+                        return null;
+                    }
+
+                    $eventTimestamp = $eventDate->timestamp;
+                    $currentTimestamp = now()->timestamp;
+
+                    $day = (int) $eventDate->format('j');
+                    $suffix = match (true) {
+                        in_array($day % 100, [11, 12, 13], true) => 'th',
+                        $day % 10 === 1 => 'st',
+                        $day % 10 === 2 => 'nd',
+                        $day % 10 === 3 => 'rd',
+                        default => 'th',
+                    };
+
+                    $buttonText = 'View Recording';
+                    $buttonHref = $event->recorded_url ?: '#';
+                    $buttonClass = 'btn-recording';
+                    $buttonIcon = '<i class="icofont-play-alt-2"></i>';
+                    $buttonStyle = 'background: orange !important;';
+                    $buttonDisabled = false;
+
+                    if ($eventTimestamp > $currentTimestamp) {
+                        $buttonText = 'Register';
+                        $buttonHref = $event->url ?: '#';
+                        $buttonClass = 'btn-register';
+                        $buttonIcon = '<i class="icofont-ui-calendar"></i>';
+                        $buttonStyle = '';
+                    } elseif (empty($event->recorded_url)) {
+                        $buttonText = 'No Recording Link';
+                        $buttonHref = '#';
+                        $buttonClass = 'btn-no-recording';
+                        $buttonIcon = '<i class="icofont-close-circled"></i>';
+                        $buttonStyle = 'background: red !important;';
+                        $buttonDisabled = true;
+                    }
+
+                    return (object) [
+                        'id' => $event->id,
+                        'start_date' => $event->start_date,
+                        'title' => $event->title,
+                        'body' => $event->body,
+                        'url' => $event->url,
+                        'recorded_url' => $event->recorded_url,
+                        'event_timestamp' => $eventTimestamp,
+                        'formatted_date' => $eventDate->format('M ') . $day . $suffix . ' ' . $eventDate->format('Y'),
+                        'truncated_title' => Str::limit((string) ($event->title ?? ''), 60),
+                        'truncated_body' => Str::limit(strip_tags((string) ($event->body ?? '')), 180),
+                        'button_text' => $buttonText,
+                        'button_href' => $buttonHref,
+                        'button_class' => $buttonClass,
+                        'button_icon' => $buttonIcon,
+                        'button_style' => $buttonStyle,
+                        'button_disabled' => $buttonDisabled,
+                    ];
+                })
+                ->filter()
+                ->values();
+        } catch (\Throwable $e) {
+            Log::warning('Events query failed; showing friendly fallback', ['error' => $e->getMessage()]);
+            $dbErrorMessage = 'We are temporarily unable to load events. Please try again in a few moments.';
         }
+
+        return view('events', [
+            'events' => $events,
+            'dbErrorMessage' => $dbErrorMessage,
+        ]);
+    }
+
+    private function parseEventDate(string $value): ?Carbon
+    {
+        $value = trim($value);
+
+        if ($value === '') {
+            return null;
+        }
+
+        foreach (['d/m/Y', 'Y-m-d', 'Y-m-d H:i:s', \DateTimeInterface::RFC3339, \DateTimeInterface::ATOM] as $format) {
+            try {
+                $date = Carbon::createFromFormat($format, $value);
+                if ($date !== false) {
+                    return $date;
+                }
+            } catch (\Throwable $e) {
+                // Try the next supported format.
+            }
+        }
+
+        try {
+            return Carbon::parse($value);
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
 
     public function company()
     {
@@ -724,7 +819,6 @@ class HomeController extends Controller
     {
         $jobId = $request->query('job-details') ?? $request->query('id');
         $jobTitle = $request->query('title');
-        $application = $request->query('application');
 
         if (!$jobId) {
             return redirect()->route('career.index');
@@ -759,13 +853,11 @@ class HomeController extends Controller
             }
         }
 
-        // Do not hard-require application=true; just default to show form when job id exists
-        return view('applications', [
-            'jobId' => $jobId,
-            'jobTitle' => $jobTitle,
-            'applicationFlag' => $application,
-            'recaptchaSiteKey' => config('services.recaptcha.site_key', ''),
-        ]);
+        return redirect()->to(route('job-board.index', [
+            'job-details' => $jobId,
+            'application' => 'true',
+            'title' => $jobTitle,
+        ]) . '#apply');
     }
 
     public function submitApplication(Request $request)
@@ -969,7 +1061,11 @@ class HomeController extends Controller
             return response()->json(['success' => true, 'message' => 'Application submitted successfully!']);
         }
 
-        return redirect()->route('career.index')->with('success', 'Application submitted successfully!');
+        return redirect()->to(route('job-board.index', [
+            'job-details' => $data['job_id'],
+            'application' => 'true',
+            'title' => $data['position'],
+        ]) . '#apply')->with('success', 'Application submitted successfully!');
     }
 
     public function submitContact(Request $request)

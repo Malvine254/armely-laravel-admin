@@ -9,6 +9,7 @@
 
 
 @push('styles')
+<link rel="stylesheet" href="{{ asset('css/job-board-modern.css') }}?v={{ filemtime(public_path('css/job-board-modern.css')) }}">
 <style>
     .portfolio .section-title h2,
     .blog .section-title h2,
@@ -1323,6 +1324,96 @@
     </div>
 </section>
 
+<section id="consultation-form" class="job-application-section">
+    <div class="container">
+        <div class="job-application-header">
+            <div class="job-section-label">Book a consultation</div>
+            <h2>Send Us a Message</h2>
+            <p>Fill out the form below and our team will get back to you shortly.</p>
+        </div>
+
+        <div class="job-application-grid">
+            <div class="job-application-card">
+                @if(session('success'))
+                    <div class="alert alert-success job-alert">{{ session('success') }}</div>
+                @endif
+                @if($errors->any())
+                    <div class="alert alert-danger job-alert">
+                        @foreach($errors->all() as $error)
+                            <div>{{ $error }}</div>
+                        @endforeach
+                    </div>
+                @endif
+
+                <form class="job-application-form" id="home-consultation-form" method="post" action="{{ route('submit-consultation') }}">
+                    @csrf
+                    <div class="job-application-fields">
+                        <div class="job-field">
+                            <label for="home_name">Full Name *</label>
+                            <input id="home_name" required name="name" type="text" class="job-input" placeholder="Your name" value="{{ old('name') }}">
+                        </div>
+                        <div class="job-field">
+                            <label for="home_email">Email Address *</label>
+                            <input id="home_email" required name="email" type="email" class="job-input" placeholder="you@company.com" value="{{ old('email') }}">
+                        </div>
+                        <div class="job-field">
+                            <label for="home_organization">Organization Name</label>
+                            <input id="home_organization" name="organization" type="text" class="job-input" placeholder="Organization Name" value="{{ old('organization') }}">
+                        </div>
+                        <div class="job-field job-field-wide">
+                            <label for="home_service_type">Subject *</label>
+                            <select required name="service_type" id="home_service_type" class="job-input job-select">
+                                <option value="" disabled {{ old('service_type') ? '' : 'selected' }}>How can we help?</option>
+                                <option value="Data Services" {{ old('service_type') === 'Data Services' ? 'selected' : '' }}>Data Services</option>
+                                <option value="Web Development" {{ old('service_type') === 'Web Development' ? 'selected' : '' }}>Web Development</option>
+                                <option value="Business Intelligence" {{ old('service_type') === 'Business Intelligence' ? 'selected' : '' }}>Business Intelligence</option>
+                                <option value="Managed Services" {{ old('service_type') === 'Managed Services' ? 'selected' : '' }}>Managed Services</option>
+                                <option value="Advisory Services" {{ old('service_type') === 'Advisory Services' ? 'selected' : '' }}>Advisory Services</option>
+                            </select>
+                        </div>
+                        <div class="job-field job-field-wide">
+                            <label for="home_message">Message *</label>
+                            <textarea id="home_message" required name="message" class="job-input" rows="5" placeholder="Tell us about your goals, timeline, or challenges.">{{ old('message') }}</textarea>
+                        </div>
+                        <input type="text" name="website" class="honeypot" tabindex="-1" autocomplete="off" style="display:none;">
+                        <div class="job-field job-field-wide">
+                            <label>Confirm you are not a robot *</label>
+                            @if(!empty($recaptchaSiteKey))
+                                <div class="g-recaptcha" data-sitekey="{{ $recaptchaSiteKey }}"></div>
+                            @else
+                                <div class="alert alert-warning">reCAPTCHA is not configured.</div>
+                            @endif
+                        </div>
+                        <div class="job-field job-field-wide job-submit-wrap">
+                            <button type="submit" class="btn job-submit-btn">
+                                <span>Send Message</span>
+                                <svg class="icon-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                    <path d="M5 12h14" />
+                                    <path d="m13 6 6 6-6 6" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <div class="job-application-sidecard">
+                <div class="job-section-label">What happens next</div>
+                <h3>We'll route it to the right specialist</h3>
+                <ul class="job-side-points">
+                    <li>Tell us which service you need help with.</li>
+                    <li>We'll review the message and follow up with next steps.</li>
+                    <li>No spam. No pressure. Just a useful conversation.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
 </main>
 @endsection
+
+@push('scripts')
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+@endpush
 
