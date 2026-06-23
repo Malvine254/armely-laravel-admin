@@ -29,10 +29,14 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         // Keep generated URLs and assets on the same host as the incoming request.
-        // This avoids CSS/JS loading issues when both apex and www are in use.
+        // If a canonical host is configured, generated URLs and assets follow it;
+        // otherwise they stay on the incoming request host to avoid asset drift.
         if (!$this->app->runningInConsole()) {
-            $requestRoot = request()->getSchemeAndHttpHost();
             $requestHost = strtolower((string) request()->getHost());
+            $canonicalHost = strtolower(trim((string) config('app.canonical_host', '')));
+            $requestRoot = $canonicalHost !== '' && !in_array($requestHost, ['localhost', '127.0.0.1', '::1'], true)
+                ? request()->getScheme() . '://' . $canonicalHost
+                : request()->getSchemeAndHttpHost();
             $assetUrl = (string) config('app.asset_url', '');
             $assetHost = strtolower((string) (parse_url($assetUrl, PHP_URL_HOST) ?? ''));
             $assetPath = (string) (parse_url($assetUrl, PHP_URL_PATH) ?? '');
