@@ -86,7 +86,7 @@ if (!function_exists('armely_blog_clean_html')) {
 				</div>
 			</div>
 		@endif
-		<div class="row">
+		<div class="row blog-scroll-row">
 			<div class="col-lg-8 col-12">
 				<div id="blog-main-content">
 					@if($main)
@@ -189,8 +189,8 @@ if (!function_exists('armely_blog_clean_html')) {
 				</div>
 			</div>
 			
-			<div class="col-lg-4 col-12">
-				<div class="blog-sidebar">
+			<div class="col-lg-4 col-12 blog-sidebar-column" id="blog-sidebar-column">
+				<div class="blog-sidebar" id="blog-sidebar">
 					<!-- Search Widget -->
 					<div class="sidebar-widget">
 						<h3 class="sidebar-widget-title">Search Articles</h3>
@@ -242,7 +242,6 @@ document.addEventListener('DOMContentLoaded', function() {
 	const searchBar = document.getElementById('searchBar');
 	const noResults = document.getElementById('noResults');
 	const blogCards = document.querySelectorAll('.sidebar-blog-card');
-	
 	// Search functionality
 	if (searchBar) {
 		searchBar.addEventListener('keyup', function() {
@@ -264,6 +263,7 @@ document.addEventListener('DOMContentLoaded', function() {
 			} else {
 				noResults.style.display = 'none';
 			}
+
 		});
 	}
 	
