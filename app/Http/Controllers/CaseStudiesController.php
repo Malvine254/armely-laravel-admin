@@ -13,20 +13,14 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
 class CaseStudiesController extends Controller
 {
     public function index(Request $request)
     {
-        // Paginate case studies (6 per page)
-        $caseStudies = $this->paginateCaseStudies($request);
-
-        if ($redirect = $this->redirectIfOutOfRangePage($request, $caseStudies, 'case_page')) {
-            return $redirect;
-        }
-
-        $caseStudies->getCollection()->transform(function ($caseStudy) {
+        $caseStudies = $this->allCaseStudies($request)->map(function ($caseStudy) {
             $caseStudy->preview = $this->makePreviewText((string) ($caseStudy->body ?? ''), 120);
             $caseStudy->slug = $this->caseStudySlug($caseStudy);
             $caseStudy->industry_filter = $this->inferIndustryFilter($caseStudy);
@@ -35,21 +29,14 @@ class CaseStudiesController extends Controller
             $caseStudy->results = $this->caseStudyResults($caseStudy);
 
             return $caseStudy;
-        });
+        })->values();
 
-        // Paginate white papers (6 per page)
-        $whitePapers = $this->paginateWhitePapers($request);
-
-        if ($redirect = $this->redirectIfOutOfRangePage($request, $whitePapers, 'paper_page')) {
-            return $redirect;
-        }
-
-        $whitePapers->getCollection()->transform(function ($paper) {
+        $whitePapers = $this->allWhitePapers($request)->map(function ($paper) {
             $paper->preview = $this->makePreviewText((string) ($paper->body ?? ''), 120);
             $paper->slug = $this->resourceSlug($paper);
 
             return $paper;
-        });
+        })->values();
 
         return view('case-studies.index', [
             'caseStudies' => $caseStudies,
@@ -1289,6 +1276,37 @@ class CaseStudiesController extends Controller
         );
     }
 
+    private function whitePaperSampleCollectionForRequest(Request $request): Collection
+    {
+        $topic = (string) $request->query('white_topic', '');
+        $items = $this->whitePaperSampleCollection();
+
+        if ($topic !== '' && array_key_exists($topic, $this->topicFilters())) {
+            $terms = $this->whitePaperTopicTerms($topic);
+            $items = $items->filter(function (object $paper) use ($terms) {
+                $haystack = Str::lower(trim(implode(' ', array_filter([
+                    (string) ($paper->title ?? ''),
+                    (string) ($paper->body ?? ''),
+                    (string) ($paper->meta_description ?? ''),
+                    (string) ($paper->slug ?? ''),
+                    (string) ($paper->topic ?? ''),
+                    (string) ($paper->category ?? ''),
+                    (string) ($paper->industry ?? ''),
+                ]))));
+
+                foreach ($terms as $term) {
+                    if ($term !== '' && str_contains($haystack, Str::lower((string) $term))) {
+                        return true;
+                    }
+                }
+
+                return false;
+            })->values();
+        }
+
+        return $items;
+    }
+
     private function makePreviewText(string $value, int $limit): string
     {
         $decoded = html_entity_decode($value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
@@ -1772,10 +1790,10 @@ class CaseStudiesController extends Controller
         return 'white_paper_access:' . sha1(strtolower(trim($email)));
     }
 
-    private function paginateCaseStudies(Request $request): LengthAwarePaginator
+    private function allCaseStudies(Request $request): Collection
     {
         if (!$this->isTableQueryable('industry_listings')) {
-            return $this->emptyPaginator($request, 6, 'case_page');
+            return collect();
         }
 
         try {
@@ -1828,9 +1846,7 @@ class CaseStudiesController extends Controller
                 });
             }
 
-            $perPage = $hasActiveFilter ? max((clone $query)->count(), 1) : 6;
-
-            return $query->paginate($perPage, ['*'], 'case_page')->withQueryString();
+            return $query->get();
         } catch (QueryException $e) {
             if ($this->isMissingTableException($e)) {
                 Log::warning('Case studies table unavailable in database engine', [
@@ -1838,17 +1854,17 @@ class CaseStudiesController extends Controller
                     'error' => $e->getMessage(),
                 ]);
 
-                return $this->emptyPaginator($request, 6, 'case_page');
+                return collect();
             }
 
             throw $e;
         }
     }
 
-    private function paginateWhitePapers(Request $request): LengthAwarePaginator
+    private function allWhitePapers(Request $request): Collection
     {
         if (!$this->isTableQueryable('white_paper')) {
-            return $this->whitePaperSamplePaginator($request);
+            return $this->whitePaperSampleCollection();
         }
 
         try {
@@ -1857,7 +1873,7 @@ class CaseStudiesController extends Controller
                 ->orderByDesc('id');
 
             if ((clone $query)->count() === 0) {
-                return $this->whitePaperSamplePaginator($request);
+                return $this->whitePaperSampleCollectionForRequest($request);
             }
 
             $searchableColumns = $this->whitePaperSearchColumns();
@@ -1877,9 +1893,7 @@ class CaseStudiesController extends Controller
                 });
             }
 
-            $perPage = $hasActiveFilter ? max((clone $query)->count(), 1) : 6;
-
-            return $query->paginate($perPage, ['*'], 'paper_page')->withQueryString();
+            return $query->get();
         } catch (QueryException $e) {
             if ($this->isMissingTableException($e)) {
                 Log::warning('White papers table unavailable in database engine', [
@@ -1887,7 +1901,7 @@ class CaseStudiesController extends Controller
                     'error' => $e->getMessage(),
                 ]);
 
-                return $this->whitePaperSamplePaginator($request);
+                return $this->whitePaperSampleCollectionForRequest($request);
             }
 
             throw $e;
@@ -1952,37 +1966,4 @@ class CaseStudiesController extends Controller
             || str_contains($message, 'error 1932');
     }
 
-    private function emptyPaginator(Request $request, int $perPage, string $pageName): LengthAwarePaginator
-    {
-        $currentPage = max((int) $request->query($pageName, 1), 1);
-
-        return new LengthAwarePaginator(
-            collect(),
-            0,
-            $perPage,
-            $currentPage,
-            [
-                'path' => $request->url(),
-                'query' => $request->query(),
-                'pageName' => $pageName,
-            ]
-        );
-    }
-
-    private function redirectIfOutOfRangePage(Request $request, LengthAwarePaginator $paginator, string $pageName)
-    {
-        $requestedPage = (int) $request->query($pageName, 1);
-        if ($requestedPage <= 1 || $requestedPage <= $paginator->lastPage()) {
-            return null;
-        }
-
-        $query = $request->query();
-        unset($query[$pageName]);
-
-        if (empty($query)) {
-            return redirect()->route('case-studies.index');
-        }
-
-        return redirect()->route('case-studies.index', $query);
-    }
 }

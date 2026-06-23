@@ -1,6 +1,10 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
+    # Prevent Apache from auto-redirecting directory-style URLs like /resources/
+    # before Laravel can serve the canonical landing page at /resources.
+    DirectorySlash Off
+
     # 1. Redirect www host to apex canonical host (fires before anything else).
     RewriteCond %{HTTP_HOST} ^www\.armely\.com$ [NC]
     RewriteRule ^ https://armely.com%{REQUEST_URI} [L,R=301,NE]
