@@ -670,46 +670,6 @@
 				No case studies match the selected filters. Try another Category or Technology.
 			</div>
 
-	@if ($caseStudies->hasPages())
-		<!-- Pagination for Case Studies -->
-		<div class="row mt-5">
-			<div class="col-12">
-				<nav class="pagination-nav" role="navigation" aria-label="Pagination Navigation">
-					<div class="pagination-container">
-						@if ($caseStudies->onFirstPage())
-							<span class="pagination-btn pagination-btn-disabled" aria-disabled="true">
-								<i class="fa fa-chevron-left"></i>
-							</span>
-						@else
-							<a href="{{ $caseStudies->previousPageUrl() }}" class="pagination-btn pagination-btn-prev" aria-label="Previous page">
-								<i class="fa fa-chevron-left"></i>
-							</a>
-						@endif
-
-						<div class="pagination-numbers">
-							@foreach ($caseStudies->getUrlRange(1, $caseStudies->lastPage()) as $page => $url)
-								@if ($page == $caseStudies->currentPage())
-									<span class="pagination-number pagination-number-active" aria-current="page">{{ $page }}</span>
-								@else
-									<a href="{{ $url }}" class="pagination-number" aria-label="Go to page {{ $page }}">{{ $page }}</a>
-								@endif
-							@endforeach
-						</div>
-
-						@if ($caseStudies->hasMorePages())
-							<a href="{{ $caseStudies->nextPageUrl() }}" class="pagination-btn pagination-btn-next" aria-label="Next page">
-								<i class="fa fa-chevron-right"></i>
-							</a>
-						@else
-							<span class="pagination-btn pagination-btn-disabled" aria-disabled="true">
-								<i class="fa fa-chevron-right"></i>
-							</span>
-						@endif
-					</div>
-				</nav>
-			</div>
-		</div>
-	@endif
 		</div>
 	</div>
 </div>
@@ -864,46 +824,6 @@
 				No white papers match the selected filters. Try another topic or clear filters.
 			</div>
 
-	@if ($whitePapers->hasPages())
-		<!-- Pagination for White Papers -->
-		<div class="row mt-5">
-			<div class="col-12">
-				<nav class="pagination-nav" role="navigation" aria-label="Pagination Navigation">
-					<div class="pagination-container">
-						@if ($whitePapers->onFirstPage())
-							<span class="pagination-btn pagination-btn-disabled" aria-disabled="true">
-								<i class="fa fa-chevron-left"></i>
-							</span>
-						@else
-							<a href="{{ $whitePapers->previousPageUrl() }}" class="pagination-btn pagination-btn-prev" aria-label="Previous page">
-								<i class="fa fa-chevron-left"></i>
-							</a>
-						@endif
-
-						<div class="pagination-numbers">
-							@foreach ($whitePapers->getUrlRange(1, $whitePapers->lastPage()) as $page => $url)
-								@if ($page == $whitePapers->currentPage())
-									<span class="pagination-number pagination-number-active" aria-current="page">{{ $page }}</span>
-								@else
-									<a href="{{ $url }}" class="pagination-number" aria-label="Go to page {{ $page }}">{{ $page }}</a>
-								@endif
-							@endforeach
-						</div>
-
-						@if ($whitePapers->hasMorePages())
-							<a href="{{ $whitePapers->nextPageUrl() }}" class="pagination-btn pagination-btn-next" aria-label="Next page">
-								<i class="fa fa-chevron-right"></i>
-							</a>
-						@else
-							<span class="pagination-btn pagination-btn-disabled" aria-disabled="true">
-								<i class="fa fa-chevron-right"></i>
-							</span>
-						@endif
-					</div>
-				</nav>
-			</div>
-		</div>
-	@endif
 		</div>
 	</div>
 </div>
@@ -1216,8 +1136,6 @@
 	var caseFilterCount = document.getElementById('caseFilterCount');
 	var resetLink = document.getElementById('caseFilterReset');
 	var whiteResetLink = document.getElementById('whiteFilterReset');
-	var casePagination = document.querySelector('.case-studies-section .pagination-nav');
-	var whitePagination = document.querySelector('.white-papers-section .pagination-nav');
 	var caseEmptyState = document.getElementById('caseFilterEmptyState');
 	var whiteEmptyState = document.getElementById('whitePaperFilterEmptyState');
 
@@ -1317,9 +1235,6 @@
 			caseEmptyState.style.display = visibleCaseCards === 0 ? 'block' : 'none';
 		}
 
-		if (casePagination) {
-			casePagination.style.display = (selectedCase.industry || selectedCase.topic || visibleCaseCards === 0) ? 'none' : '';
-		}
 	}
 
 	function applyWhiteFilters() {
@@ -1343,9 +1258,6 @@
 			whiteEmptyState.style.display = visibleWhiteCards === 0 ? 'block' : 'none';
 		}
 
-		if (whitePagination) {
-			whitePagination.style.display = (selectedWhite.topic || visibleWhiteCards === 0) ? 'none' : '';
-		}
 	}
 
 	function updateUrl() {

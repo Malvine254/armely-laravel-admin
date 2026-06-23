@@ -22,7 +22,8 @@ if (!function_exists('armely_blog_clean_html')) {
 
 @php
     $hasMain = !empty($main);
-    $hasRequestedBlog = ($blogId ?? null) !== null && (string) $blogId !== '';
+    $requestedBlogId = request()->route('blogId') ?? request()->query('blogId');
+    $hasRequestedBlog = $requestedBlogId !== null && (string) $requestedBlogId !== '';
     $mainTitle = $hasMain ? trim((string) ($main->title ?? '')) : '';
     $mainBodyText = $hasMain ? trim(preg_replace('/\s+/', ' ', strip_tags((string) ($main->body ?? '')))) : '';
 
