@@ -3,6 +3,10 @@
         Options -MultiViews -Indexes
     </IfModule>
 
+    # Keep the /resources landing page on the bare URL instead of Apache
+    # forcing /resources/ because the directory exists for stored files.
+    DirectorySlash Off
+
     RewriteEngine On
 
     # Redirect www host to apex host.

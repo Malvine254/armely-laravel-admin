@@ -22,26 +22,27 @@ if (!function_exists('armely_blog_clean_html')) {
 
 @php
     $hasMain = !empty($main);
+    $hasRequestedBlog = ($blogId ?? null) !== null && (string) $blogId !== '';
     $mainTitle = $hasMain ? trim((string) ($main->title ?? '')) : '';
     $mainBodyText = $hasMain ? trim(preg_replace('/\s+/', ' ', strip_tags((string) ($main->body ?? '')))) : '';
 
-    $seoTitle = $hasMain && $mainTitle !== ''
+    $seoTitle = $hasRequestedBlog && $mainTitle !== ''
         ? $mainTitle . ' | Armely Blog'
         : 'Blogs | Armely Insights on Data, AI, and Microsoft Technologies';
 
-    $seoDescription = $hasMain && $mainBodyText !== ''
+    $seoDescription = $hasRequestedBlog && $mainBodyText !== ''
         ? Str::limit($mainBodyText, 158)
         : 'Read Armely blog insights on Microsoft Fabric, Power BI, Copilot, Power Platform, and enterprise transformation strategy.';
 
-    $seoKeywords = $hasMain && $mainTitle !== ''
+    $seoKeywords = $hasRequestedBlog && $mainTitle !== ''
         ? 'Armely blog, ' . Str::lower($mainTitle) . ', Microsoft Fabric, Power BI, Copilot, enterprise AI'
         : 'Armely blog, Microsoft Fabric, Power BI, Copilot, Power Platform, enterprise AI, data modernization';
 
-    $canonicalUrl = ($hasMain && !empty($main->blog_id))
+    $canonicalUrl = ($hasRequestedBlog && !empty($main->blog_id))
         ? route('blog.index', ['blogId' => $main->blog_id])
         : route('blog.index');
 
-    $shareImage = ($hasMain && !empty($main->image_path))
+    $shareImage = ($hasRequestedBlog && !empty($main->image_path))
         ? asset($main->image_path)
         : asset('images/logo/logo1.png');
 @endphp
@@ -50,16 +51,16 @@ if (!function_exists('armely_blog_clean_html')) {
 @section('meta_description', $seoDescription)
 @section('meta_keywords', $seoKeywords)
 @section('canonical_url', $canonicalUrl)
-@section('og_type', 'article')
 @section('og_title', $seoTitle)
 @section('og_description', $seoDescription)
 @section('twitter_title', $seoTitle)
 @section('twitter_description', $seoDescription)
 @section('meta_image', $shareImage)
 @section('robots', 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1')
+@section('og_type', $hasRequestedBlog ? 'article' : 'website')
 
 @push('head')
-	@if($hasMain && !empty($main->blog_id))
+	@if($hasRequestedBlog && !empty($main->blog_id))
 		<meta property="og:image:alt" content="{{ $mainTitle !== '' ? $mainTitle : 'Armely blog article image' }}">
 		<meta property="article:published_time" content="{{ \Carbon\Carbon::parse($main->date)->toIso8601String() }}">
 		<meta property="article:author" content="{{ $main->author ?? 'Armely Team' }}">
