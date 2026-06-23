@@ -2,6 +2,7 @@
 
 @section('title', 'Resources | Armely')
 @section('meta_description', 'Practical guides, checklists, and insights from Armely.')
+@section('canonical_url', route('resources.index'))
 
 @push('styles')
 <style>
