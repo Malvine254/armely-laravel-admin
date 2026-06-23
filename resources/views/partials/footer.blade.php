@@ -1,47 +1,5 @@
 @php($year = now()->year)
 
-<div id="snackbar" class="snackbar container shadow bg-light">
-    <button class="btn-close" aria-label="Close">&times;</button>
-    <div class="text-start row">
-        <div class="col-md-8">
-            <div class="ml-4">
-                <h4>We Value Your Privacy</h4>
-                <p>We use cookies to enhance your browsing experience, serve personalized content, and analyze our traffic. By clicking "Accept All", you consent to our use of cookies, <a class="default-color" href="/privacy-policy">see our privacy policy</a>. You can manage your preferences by clicking "customize".</p>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="modal-buttons mt-3">
-                <button id="acceptAll" class="btn btn-light">Accept All</button>
-                <button data-toggle="modal" data-target="#cookieModal" class="btn btn-outline-secondary bg-dark">Customize</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="modal fade" id="cookieModal">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title">Cookie Preferences</h4>
-                <button type="button" class="close" data-dismiss="modal">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="cookie-option"><label class="h5">Essential Cookies</label><label class="switch"><input type="checkbox" checked disabled><span class="slider-two round"></span></label></div>
-                <p class="text-muted">These cookies are necessary for the website to function and cannot be switched off.</p>
-                <div class="cookie-option"><label class="h5">Performance Cookies</label><label class="switch"><input type="checkbox"><span class="slider-two round"></span></label></div>
-                <p class="text-muted">These cookies collect information about how you use the website to help improve its performance.</p>
-                <div class="cookie-option"><label class="h5">Functionality Cookies</label><label class="switch"><input type="checkbox"><span class="slider-two round"></span></label></div>
-                <p class="text-muted">These cookies remember your preferences and provide enhanced, personalized features.</p>
-                <div class="cookie-option"><label class="h5">Targeting/Advertising Cookies</label><label class="switch"><input type="checkbox"><span class="slider-two round"></span></label></div>
-                <p class="text-muted">These cookies are used to deliver ads more relevant to you and your interests.</p>
-                <div class="cookie-option"><label class="h5">Analytics Cookies</label><label class="switch"><input type="checkbox"><span class="slider-two round"></span></label></div>
-                <p class="text-muted">These cookies help website owners understand how visitors interact with the site.</p>
-            </div>
-            <div class="modal-footer"><button type="button" class="btn btn-primary" data-dismiss="modal" id="saveAllPreferences">Save Preferences</button></div>
-        </div>
-    </div>
-</div>
-
 <footer id="footer" class="footer">
     <div class="footer-top">
         <div class="container">

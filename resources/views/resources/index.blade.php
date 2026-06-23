@@ -788,8 +788,10 @@
                 <p class="featured-title">Featured Resources</p>
                 <div class="featured-grid">
                     @foreach($featuredResources as $featured)
-                        @php($featuredType = strtolower((string) $featured->resource_type))
-                        @php($featuredRouteName = $featuredType === 'pdf' || str_contains($featuredType, 'white') ? 'whitepapers.show' : 'resources.show')
+                        @php
+                            $featuredType = strtolower((string) $featured->resource_type);
+                            $featuredRouteName = $featuredType === 'pdf' || str_contains($featuredType, 'white') ? 'whitepapers.show' : 'resources.show';
+                        @endphp
                         <a href="{{ route($featuredRouteName, $featured->slug) }}" class="featured-card">
                             <div class="meta">{{ ucfirst($featured->resource_type) }} @if($featured->category) · {{ $featured->category }} @endif</div>
                             <p class="name">{{ $featured->title }}</p>

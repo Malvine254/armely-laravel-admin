@@ -135,10 +135,14 @@
 
 /* Hero Section */
 .social-impact-hero {
-    padding: 80px 0;
-    background: linear-gradient(135deg, rgba(0,0,0,0.02) 0%, rgba(0,0,0,0) 100%);
+    padding: 96px 0 72px;
+    background:
+        radial-gradient(circle at 15% 20%, rgba(255, 255, 255, 0.12), transparent 28%),
+        radial-gradient(circle at 84% 18%, rgba(255, 255, 255, 0.08), transparent 24%),
+        linear-gradient(135deg, #173b73 0%, #224a87 52%, #2f5597 100%);
     position: relative;
     overflow: hidden;
+    color: #fff;
 }
 
 .social-impact-hero::before {
@@ -146,25 +150,31 @@
     position: absolute;
     top: 0;
     right: 0;
-    width: 50%;
+    width: 100%;
     height: 100%;
-    background: var(--default-background);
-    opacity: 0.05;
-    clip-path: polygon(30% 0, 100% 0, 100% 100%, 0% 100%);
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320"><path fill="%23ffffff" fill-opacity="0.05" d="M0,96L48,112C96,128,192,160,288,160C384,160,480,128,576,122.7C672,117,768,139,864,154.7C960,171,1056,181,1152,165.3C1248,149,1344,107,1392,85.3L1440,64L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>') no-repeat bottom;
+    background-size: cover;
+    opacity: 0.35;
 }
 
 .impact-badge {
     display: inline-flex;
     align-items: center;
     gap: 10px;
-    background: var(--default-background);
+    background: rgba(255, 255, 255, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    backdrop-filter: blur(10px);
     color: #fff;
-    padding: 8px 20px;
-    border-radius: 30px;
-    font-size: 14px;
-    font-weight: 600;
-    margin-bottom: 20px;
+    padding: 7px 18px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
     animation: fadeInUp 0.6s ease;
+    position: relative;
+    z-index: 1;
 }
 
 .impact-badge i {
@@ -172,64 +182,151 @@
 }
 
 .hero-title {
-    font-size: 3rem;
+    font-size: clamp(2.2rem, 4vw, 3rem);
     font-weight: 800;
-    color: #222;
-    margin-bottom: 20px;
-    line-height: 1.2;
+    color: #fff;
+    margin-bottom: 14px;
+    line-height: 1.05;
+    letter-spacing: -0.04em;
     animation: fadeInUp 0.8s ease;
+    position: relative;
+    z-index: 1;
 }
 
 .hero-subtitle {
-    font-size: 1.2rem;
-    color: #666;
-    line-height: 1.8;
-    margin-bottom: 15px;
+    font-size: 1rem;
+    color: rgba(255, 255, 255, 0.9);
+    line-height: 1.75;
+    margin-bottom: 14px;
     animation: fadeInUp 1s ease;
+    position: relative;
+    z-index: 1;
 }
 
-.hero-image-wrapper {
+.impact-hero-btn {
+    width: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 8px;
+    padding: 13px 18px;
+    border-radius: 14px;
+    background: #fff;
+    color: #173b73;
+    font-weight: 800;
+    text-decoration: none;
+    box-shadow: 0 14px 32px rgba(9, 22, 51, 0.18);
     position: relative;
+    z-index: 1;
+}
+
+.impact-hero-btn:hover {
+    color: #173b73;
+    transform: translateY(-2px);
+}
+
+.impact-hero-btn i {
+    font-size: 1rem;
+}
+
+.impact-hero-panel {
+    position: relative;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 28px;
+    padding: 28px;
+    color: #fff;
+    box-shadow: 0 24px 60px rgba(7, 23, 57, 0.24);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     animation: fadeInRight 1s ease;
 }
 
-.hero-impact-image {
-    border-radius: 30px;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.15);
-    transform: rotate(2deg);
-    transition: all 0.5s ease;
-}
-
-.hero-impact-image:hover {
-    transform: rotate(0deg) scale(1.05);
-    box-shadow: 0 30px 80px rgba(0,0,0,0.2);
-}
-
-.impact-stats {
-    display: flex;
-    gap: 30px;
-    margin-top: 40px;
-    flex-wrap: wrap;
-}
-
-.stat-item {
-    flex: 1;
-    min-width: 150px;
-}
-
-.stat-number {
-    font-size: 2.5rem;
+.impact-hero-panel-label {
+    display: inline-flex;
+    align-items: center;
+    padding: 7px 12px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: #fff;
+    font-size: 0.72rem;
     font-weight: 800;
-    color: var(--default-color);
-    display: block;
-    margin-bottom: 5px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
 }
 
-.stat-label {
-    font-size: 14px;
-    color: #666;
-    text-transform: uppercase;
-    letter-spacing: 1px;
+.impact-hero-panel h3 {
+    margin: 14px 0 10px;
+    font-size: 1.35rem;
+    line-height: 1.25;
+    color: #fff;
+    font-weight: 800;
+}
+
+.impact-hero-panel p {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.9);
+    line-height: 1.7;
+    font-size: 0.98rem;
+}
+
+.impact-hero-stats {
+    margin-top: 18px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.impact-hero-stat {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 18px;
+    padding: 14px;
+}
+
+.impact-hero-stat strong {
+    display: block;
+    font-size: 1.25rem;
+    line-height: 1;
+    color: #fff;
+    font-weight: 800;
+}
+
+.impact-hero-stat span {
+    display: block;
+    margin-top: 5px;
+    color: rgba(255, 255, 255, 0.82);
+    font-size: 0.82rem;
+    line-height: 1.4;
+}
+
+.impact-hero-points {
+    list-style: none;
+    margin: 16px 0 0;
+    padding: 0;
+    display: grid;
+    gap: 9px;
+}
+
+.impact-hero-points li {
+    position: relative;
+    padding-left: 22px;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.94rem;
+    line-height: 1.55;
+}
+
+.impact-hero-points li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.62em;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #fff;
+    opacity: 0.92;
 }
 
 /* Gallery Section */
@@ -675,11 +772,23 @@
 
 @media (max-width: 768px) {
     .hero-title {
-        font-size: 2rem;
+        font-size: 1.95rem;
     }
 
     .section-title-modern {
         font-size: 1.8rem;
+    }
+
+    .social-impact-hero {
+        padding: 72px 0 56px;
+    }
+
+    .impact-hero-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .impact-hero-panel {
+        padding: 22px;
     }
 
     .folder-header {
@@ -705,26 +814,45 @@
 <!-- Hero Section -->
 <section class="social-impact-hero">
     <div class="container">
-        <div class="row align-items-center">
+        <div class="row align-items-center g-4">
             <div class="col-lg-7 col-md-12">
                 <div class="impact-badge">
                     <i class="icofont-heart-alt"></i>
                     <span>Making a Difference</span>
                 </div>
                 <h1 class="hero-title">Driving Positive Change Through Innovation</h1>
-                <p class="hero-subtitle">
+                <p class="hero-subtitle text-light">
                     Armely is committed to making a lasting and meaningful impact on the environment, the communities where we work and live, and the ethical standards that guide our business.
                 </p>
-                <p class="hero-subtitle">
+                <p class="hero-subtitle text-light">
                     Our dedication to environmental, social, and governance (ESG) principles reflects our responsibility to drive positive change while fostering innovation, sustainability, and inclusivity.
                 </p>
-                
-               
+                <a href="#impact-gallery" class="btn impact-hero-btn">
+                    <span class="default-color">View Impact Gallery</span>
+                    <i class="icofont-arrow-down"></i>
+                </a>
             </div>
-            
+
             <div class="col-lg-5 col-md-12">
-                <div class="hero-image-wrapper text-center mt-4 mt-lg-0">
-                    <img src="{{ asset('images/gallery/gallery-10.jpeg') }}" class="img-fluid hero-impact-image" alt="Social Impact">
+                <div class="impact-hero-panel">
+                    <div class="impact-hero-panel-label">At a glance</div>
+                    <h3>Community, sustainability, and ethics</h3>
+                    <p>Explore how Armely supports better outcomes through community programs, responsible delivery, and practical ESG work.</p>
+                    <div class="impact-hero-stats">
+                        <div class="impact-hero-stat">
+                            <strong>{{ count($gallery) }}</strong>
+                            <span>Gallery folders</span>
+                        </div>
+                        <div class="impact-hero-stat">
+                            <strong>Live</strong>
+                            <span>Updated stories and visuals</span>
+                        </div>
+                    </div>
+                    <ul class="impact-hero-points">
+                        <li>Community-focused initiatives</li>
+                        <li>Environment and governance themes</li>
+                        <li>Jump directly to the photo album</li>
+                    </ul>
                 </div>
             </div>
         </div>
@@ -732,17 +860,10 @@
 </section>
 
 <!-- Gallery Section -->
-<section class="gallery-section">
+<section class="gallery-section" id="impact-gallery">
     <div class="container">
         <div class="section-header-modern">
-            <div class="section-tag"><i class="icofont-camera"></i> Our Journey</div>
-            <h2 class="section-title-modern">Impact Photo Album</h2>
-            <div class="section-divider"></div>
-            <p style="color: #666; max-width: 700px; margin: 0 auto; font-size: 1.1rem;">
-                Capturing moments of transformation, hope, and positive change across communities.
-            </p>
-        </div>
-
+            
         <div class="photo-album-grid">
             @forelse($gallery as $item)
                 <div class="gallery-folder">

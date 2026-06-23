@@ -144,92 +144,6 @@ $('#searchBar').on('input', function() {
 
 
 })
-
-//start of cookies 
-// Automatically show the snackbar after a delay 
-setTimeout(function() {
-    $('#snackbar').addClass('show');
-}, 1000);
-
-// Close button functionality
-$('.btn-close').click(function() {
-    $('#snackbar').removeClass('show');
-});
-
-
-
-    // Function to check if the cookie ID is present and hide the snackbar
-    function checkCookieAndHideSnackbar() {
-        var userID = getCookie('userID');
-        if (userID) {
-         $('#snackbar').css("display", "none");
-        }
-    }
-
-    // Call the function initially to hide the snackbar if the cookie ID is already present
-    
-
-    // Function to periodically check for the presence of the cookie ID and hide the snackbar
-    setInterval(()=>{
-        checkCookieAndHideSnackbar();
-    }, 1000); // Check every 3 seconds (adjust as needed)
-    
-    // Rest of your code
-    $('#acceptAll').on('click', function() {
-        setCookie('userConsent', 'accepted', 365);
-        trackUser();
-        
-    });
-
-    $('#saveAllPreferences').on('click', function() {
-        setCookie('userConsent', 'accepted', 365);
-        trackUser();
-    });
-
-    function setCookie(name, value, days) {
-        var expires = "";
-        if (days) {
-            var date = new Date();
-            date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
-            expires = "; expires=" + date.toUTCString();
-        }
-        document.cookie = name + "=" + (value || "") + expires + "; path=/";
-    }
-
-    function getCookie(name) {
-        var nameEQ = name + "=";
-        var ca = document.cookie.split(';');
-        for(var i=0; i < ca.length; i++) {
-            var c = ca[i];
-            while (c.charAt(0) == ' ') c = c.substring(1, c.length);
-            if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
-        }
-        return null;
-    }
-
-    function generateUUID() {
-        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-            var r = Math.random() * 16 | 0,
-                v = c === 'x' ? r : (r & 0x3 | 0x8);
-            return v.toString(16);
-        });
-    }
-
-    function trackUser() {
-        var userID = getCookie('userID');
-        if (!userID) {
-            userID = generateUUID();
-            setCookie('userID', userID, 365);
-        }
-
-        $.get("php/cookies.php", { userID: userID }, function(data) {
-            console.log("User tracked:", data);
-        }).fail(function(xhr, status, error) {
-            console.error("Error tracking user:", error);
-        });
-    }
-
-
 // Submit contact form
 $('#contact-form').submit(function(event) {
   event.preventDefault(); // Prevent default form submission
@@ -952,4 +866,3 @@ $('#campaign-form').submit(function(event) {
             $bubble.css("display", "flex");
         }
     });
-

@@ -22,36 +22,56 @@
 @endpush
 
 @section('content')
-<!-- Breadcrumbs -->
-<div class="breadcrumbs overlay">
+
+<section class="modern-hero-events">
     <div class="container">
-        <div class="bread-inner">
-            <div class="row">
-                <div class="col-12">
-                    <h2>Events</h2>
-                    <ul class="bread-list">
-                        <li><a href="{{ route('home') }}">Home</a></li>
-                        <li><i class="icofont-simple-right"></i></li>
-                        <li class="active">Events</li>
+        <div class="row align-items-center g-4">
+            <div class="col-lg-7">
+                <div class="events-badge">Armely Events</div>
+                <h1 class="hero-title-events">Discover what's next in data, AI, and digital transformation</h1>
+                <p class="hero-subtitle-events  text-light">Join live sessions, webinars, and workshops designed to help teams learn faster and make better decisions.</p>
+                <ul class="bread-list">
+                    <li>Live sessions</li>
+                    <li>Webinars</li>
+                    <li>Workshops</li>
+                </ul>
+            </div>
+            <div class="col-lg-5">
+                <div class="events-hero-panel">
+                   
+                    <h3>Quick access to every event card</h3>
+                    <p>See upcoming sessions, recordings, and event details in one place. Use the button below to jump straight to the cards.</p>
+                    <div class="events-hero-stats">
+                        <div class="events-hero-stat">
+                            <strong>{{ count($events) }}</strong>
+                            <span>Live event cards</span>
+                        </div>
+                        <div class="events-hero-stat">
+                            <strong>Fresh</strong>
+                            <span>Updated when new events are posted</span>
+                        </div>
+                    </div>
+                    <ul class="events-hero-points">
+                        <li>Live sessions, webinars, and workshops</li>
+                        <li>Recording links for past events</li>
+                        <li>Easy jump to the card grid below</li>
                     </ul>
+                    <a href="#events-grid" class="btn events-hero-btn">
+                        <span class="default-color">View Event Cards</span>
+                        <svg class="icon-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M5 12h14" />
+                            <path d="m13 6 6 6-6 6" />
+                        </svg>
+                    </a>
                 </div>
             </div>
         </div>
     </div>
-</div>
- 
+</section>
+
 <!-- Start service -->
-<section class="services events-section-modern">
+<section id="events-grid" class="services events-section-modern">
     <div class="container">
-        <div class="row">
-            <div class="col-lg-12">
-                <div class="section-title modern-section-title">
-                    <h2 class="section-heading-modern">Discover Our Events</h2>
-                    <div class="title-divider"></div>
-                    <p class="section-description-modern">Stay updated with our latest events, webinars, and workshops designed to empower your business</p>
-                </div>
-            </div>
-        </div>
         @if(!empty($dbErrorMessage))
             <div class="row mb-3">
                 <div class="col-12">
@@ -63,70 +83,13 @@
         @endif
         <div class="row g-4">
             @forelse($events as $event)
-                @php
-                    // Parse the start date (d/m/Y format)
-                    $eventDate = \DateTime::createFromFormat('d/m/Y', trim($event->start_date));
-                    if ($eventDate === false) {
-                        continue; // Skip invalid dates
-                    }
-                    
-                    $eventTimestamp = $eventDate->getTimestamp();
-                    $currentTimestamp = time();
-                    
-                    // Format date with suffix
-                    $day = $eventDate->format('j');
-                    $month = $eventDate->format('M');
-                    $year = $eventDate->format('Y');
-                    
-                    if (!in_array(($day % 100), [11, 12, 13])) {
-                        switch ($day % 10) {
-                            case 1: $suffix = 'st'; break;
-                            case 2: $suffix = 'nd'; break;
-                            case 3: $suffix = 'rd'; break;
-                            default: $suffix = 'th'; break;
-                        }
-                    } else {
-                        $suffix = 'th';
-                    }
-                    
-                    $formattedDate = $month . ' ' . $day . $suffix . ' ' . $year;
-                    
-                    // Prepare truncated fields
-                    $truncatedTitle = \Illuminate\Support\Str::limit($event->title ?? '', 60);
-                    $truncatedBody  = \Illuminate\Support\Str::limit(strip_tags($event->body ?? ''), 180);
-                    
-                    // Determine button state
-                    if ($eventTimestamp > $currentTimestamp) {
-                        $buttonText = "Register";
-                        $buttonHref = $event->url;
-                        $buttonClass = "btn-register";
-                        $buttonIcon = '<i class="icofont-ui-calendar"></i>';
-                        $buttonStyle = '';
-                        $buttonDisabled = false;
-                    } elseif (empty($event->recorded_url)) {
-                        $buttonText = "No Recording Link";
-                        $buttonHref = '#';
-                        $buttonClass = "btn-no-recording";
-                        $buttonIcon = '<i class="icofont-close-circled"></i>';
-                        $buttonStyle = 'background: red !important;';
-                        $buttonDisabled = true;
-                    } else {
-                        $buttonText = "View Recording";
-                        $buttonHref = $event->recorded_url;
-                        $buttonClass = "btn-recording";
-                        $buttonIcon = '<i class="icofont-play-alt-2"></i>';
-                        $buttonStyle = 'background: orange !important;';
-                        $buttonDisabled = false;
-                    }
-                @endphp
-                
                 <!-- Start Single Service -->
                 <div class="col-lg-4 col-md-6 col-12 mb-4">
                     <div class="modern-event-card">
                         <div class="event-card-header default-background">
                             <div class="countdown-wrapper">
                                 <div class="countdown-label">Event Countdown</div>
-                                <div class="countdown-timer" id="countdown-{{ $eventTimestamp }}">
+                                <div class="countdown-timer" id="countdown-{{ $event->event_timestamp }}">
                                     <span class="time-block"><span class="time-value">00</span><span class="time-label">Days</span></span>
                                     <span class="time-separator">:</span>
                                     <span class="time-block"><span class="time-value">00</span><span class="time-label">Hrs</span></span>
@@ -141,26 +104,26 @@
                         <div class="event-card-body">
                             <div class="event-date-badge">
                                 <i class="icofont-calendar"></i>
-                                <span>{{ $formattedDate }}</span>
+                                <span>{{ $event->formatted_date }}</span>
                             </div>
                             
-                            <h5 class="event-title">{{ $truncatedTitle }}</h5>
-                            <p class="event-description">{{ $truncatedBody }}</p>
+                            <h5 class="event-title">{{ $event->truncated_title }}</h5>
+                            <p class="event-description">{{ $event->truncated_body }}</p>
                         </div>
                         
                         <div class="event-card-footer">
-                            @if($buttonDisabled)
-                                <span style="{{ $buttonStyle }}" class="btn-event-action {{ $buttonClass }}">
-                                    <span class="btn-icon">{!! $buttonIcon !!}</span>
-                                    <span class="btn-text">{{ $buttonText }}</span>
+                            @if($event->button_disabled)
+                                <span style="{{ $event->button_style }}" class="btn-event-action {{ $event->button_class }}">
+                                    <span class="btn-icon">{!! $event->button_icon !!}</span>
+                                    <span class="btn-text">{{ $event->button_text }}</span>
                                 </span>
                             @else
-                                <a href="{{ $buttonHref }}" 
-                                   @if($buttonClass === 'btn-recording') target="_blank" @endif
-                                   style="{{ $buttonStyle }}" 
-                                   class="btn-event-action {{ $buttonClass }}">
-                                    <span class="btn-icon">{!! $buttonIcon !!}</span>
-                                    <span class="btn-text">{{ $buttonText }}</span>
+                                <a href="{{ $event->button_href }}" 
+                                   @if($event->button_class === 'btn-recording') target="_blank" @endif
+                                   style="{{ $event->button_style }}" 
+                                   class="btn-event-action {{ $event->button_class }}">
+                                    <span class="btn-icon">{!! $event->button_icon !!}</span>
+                                    <span class="btn-text">{{ $event->button_text }}</span>
                                 </a>
                             @endif
                         </div>
@@ -222,3 +185,4 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 </script>
 @endpush
+
