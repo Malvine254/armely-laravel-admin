@@ -79,16 +79,18 @@
         </script>
     
     <!-- Google Analytics (GA4) and Google Ads -->
-    @php($ga4Id = env('GA4_ID', ''))
-    @php($adsId = env('GOOGLE_ADS_ID', ''))
-    @if($ga4Id)
-        <script async src="https://www.googletagmanager.com/gtag/js?id={{ $ga4Id }}"></script>
+    @php($ga4Id = config('services.google_analytics.ga4_id', ''))
+    @php($adsId = config('services.google_ads.id', ''))
+    @if($ga4Id || $adsId)
+        <script async src="https://www.googletagmanager.com/gtag/js?id={{ $ga4Id ?: $adsId }}"></script>
         <script>
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
             gtag('js', new Date());
+            @if($ga4Id)
             // GA4 config
             gtag('config', '{{ $ga4Id }}');
+            @endif
             @if($adsId)
             // Google Ads config (needed so conversion events are accepted)
             gtag('config', '{{ $adsId }}', {
