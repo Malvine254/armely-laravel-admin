@@ -437,6 +437,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (!form) return;
 
+    const googleAdsId = @json(config('services.google_ads.id', ''));
+    const googleAdsContactLabel = @json(config('services.google_ads.contact_form_conversion_label', 'contact_form_submit'));
+
     form.addEventListener('submit', function(e) {
         e.preventDefault();
         e.stopPropagation(); // Prevent other handlers from firing
@@ -496,18 +499,21 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
                     
                     // Google Ads Conversion Tracking
-                    gtag('event', 'conversion', {
-                        'send_to': '{{ env("GOOGLE_ADS_ID") }}/contact_form_submit',
-                        'event_callback': function() {
-                            console.log('Contact form conversion tracked');
-                            // Redirect after tracking is confirmed
-                            if (data.redirect_url) {
-                                setTimeout(function() {
-                                    window.location.href = data.redirect_url;
-                                }, 500);
-                            }
-                        }
-                    });
+                    if (googleAdsId) {
+                        gtag('event', 'conversion', {
+                            'send_to': googleAdsId + '/' + googleAdsContactLabel,
+                            'event_callback': function() {
+                                console.log('Contact form conversion tracked');
+                                // Redirect after tracking is confirmed
+                                if (data.redirect_url) {
+                                    setTimeout(function() {
+                                        window.location.href = data.redirect_url;
+                                    }, 500);
+                                }
+                            },
+                            'event_timeout': 2000
+                        });
+                    }
                 }
                 
                 // Reset form and reCAPTCHA

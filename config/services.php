@@ -41,6 +41,16 @@ return [
         'bypass' => env('RECAPTCHA_BYPASS', false),
     ],
 
+    'google_analytics' => [
+        'ga4_id' => env('GA4_ID', ''),
+    ],
+
+    'google_ads' => [
+        'id' => env('GOOGLE_ADS_ID', ''),
+        // Keep this configurable so it can match the actual Google Ads conversion label.
+        'contact_form_conversion_label' => env('GOOGLE_ADS_CONTACT_FORM_CONVERSION_LABEL', 'contact_form_submit'),
+    ],
+
     'azure_mail' => [
         'tenant_id'     => env('AZURE_TENANT_ID', ''),
         'client_id'     => env('AZURE_CLIENT_ID', ''),
