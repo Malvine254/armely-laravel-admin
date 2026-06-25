@@ -462,10 +462,11 @@ class HomeController extends Controller
 
     public function serviceDetails($name)
     {
+        $requestedName = strtolower(trim((string) $name));
         $name = $this->normalizeServiceDetailSlug($name);
         $canonicalName = ServiceUrl::canonicalSlug($name);
 
-        if ($canonicalName !== '' && $canonicalName !== $name) {
+        if ($canonicalName !== '' && $requestedName !== '' && $canonicalName !== $requestedName) {
             return redirect()->route('services.show', ['name' => $canonicalName], 301);
         }
 
