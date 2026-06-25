@@ -26,6 +26,11 @@ use App\Http\Controllers\SitemapController;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('sitemap.xml');
+// Backward-compatible sitemap URLs from older SEO plugins/configurations.
+Route::redirect('/sitemap_index.xml', '/sitemap.xml', 301);
+Route::redirect('/sitemap-index.xml', '/sitemap.xml', 301);
+Route::redirect('/page-sitemap.xml', '/sitemap.xml', 301);
+Route::redirect('/post-sitemap.xml', '/sitemap.xml', 301);
 Route::get('/contact', [HomeController::class, 'contact'])->name('contact');
 Route::post('/contact', [HomeController::class, 'submitContact'])->name('contact.submit');
 Route::post('/newsletter/subscribe', [NewsletterController::class, 'subscribe'])->name('newsletter.subscribe');
