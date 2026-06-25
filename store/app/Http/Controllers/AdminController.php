@@ -2485,7 +2485,7 @@ class AdminController extends Controller
                     'total_amount'      => $order->total_amount,
                     'shipping_amount'   => $order->shipping_amount,
                     'customer_name'     => $order->user?->name ?? 'N/A',
-                    'company_name'      => $order->company?->name ?? 'N/A',
+                    'company_name'      => $order->user?->company?->name ?? 'N/A',
                     'items'             => $enrichedItems,
                     'items_count'       => count($rawItems),
                     'tracking_number'   => $trackingNumber,
@@ -3998,7 +3998,13 @@ class AdminController extends Controller
                 \Artisan::call('products:sync-manual-images', ['--quiet-output' => true]);
                 $output = \Artisan::output();
                 // Flush product listing caches so newly-linked images are visible immediately.
-                \Artisan::call('cache:clear');
+                try {
+                    \Artisan::call('cache:clear');
+                } catch (\Throwable $cacheError) {
+                    Log::warning('Product cache clear skipped after manual image sync', [
+                        'message' => $cacheError->getMessage(),
+                    ]);
+                }
                 return response()->json([
                     'success' => true,
                     'message' => 'Manual image sync complete. Product caches cleared — images are now visible.',
