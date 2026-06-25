@@ -23,6 +23,7 @@ use App\Http\Controllers\ResourceController;
 use App\Http\Controllers\Admin\ResourceController as AdminResourceController;
 use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\SitemapController;
+use App\Support\ServiceUrl;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
 // Legacy homepage paths used by old static builds.
@@ -62,7 +63,6 @@ Route::post('/data-readiness/submit', [DataReadinessLeadController::class, 'subm
 Route::get('/services', [ServicesController::class, 'index'])->name('services');
 Route::view('/services/assessments', 'services.assessments_blade')->name('assessments');
 Route::redirect('/assessments', '/services/assessments', 301);
-Route::redirect('/service-details/assessments', '/services/assessments', 301);
 Route::get('/services/{name}', [HomeController::class, 'serviceDetails'])->name('services.show');
 
 Route::view('/solutions/protective-order-digitization', 'protective-order-solution')->name('protective-order-solution');
@@ -70,18 +70,18 @@ Route::redirect('/protective-order-solution', '/solutions/protective-order-digit
 
 // Accept query parameter format: /service-details?name=ai-consulting
 Route::get('/service-details', function(\Illuminate\Http\Request $request) {
-    $name = $request->query('name');
-    if ($name) {
-        return redirect('/service-details/' . $name);
-    }
-    return redirect('/service-details/ai-consulting');
+    $name = trim((string) $request->query('name', ''));
+    $canonical = ServiceUrl::canonicalSlug($name) ?: 'ai-consulting';
+
+    return redirect()->route('services.show', ['name' => $canonical], 301);
 });
 
-Route::redirect('/service-details/sharepointonline', '/service-details/sharepoint', 301);
-Route::redirect('/service-details/powerapps', '/service-details/powerplatform', 301);
-
 // Standard path parameter format: /service-details/ai-consulting
-Route::get('/service-details/{name}', [HomeController::class, 'serviceDetails'])->name('service-details');
+Route::get('/service-details/{name}', function (string $name) {
+    $canonical = ServiceUrl::canonicalSlug($name) ?: 'ai-consulting';
+
+    return redirect()->route('services.show', ['name' => $canonical], 301);
+})->where('name', '[^/]+');
 Route::post('/submit-consultation', [HomeController::class, 'submitConsultation'])->name('submit-consultation');
 
 // Backward-compatible service paths from standalone service pages.
@@ -107,10 +107,11 @@ foreach ([
     'sharepoint' => 'sharepoint-online',
     'sharepointonline' => 'sharepoint-online',
     'snowflake' => 'snowflake',
-    'sql-server' => 'sql-&-data-warehousing',
+    'sql-server' => 'sql-data-warehousing',
 ] as $legacyServicePath => $serviceSlug) {
-    Route::get('/' . $legacyServicePath, [HomeController::class, 'serviceDetails'])
-        ->defaults('name', $serviceSlug);
+    Route::get('/' . $legacyServicePath, function () use ($serviceSlug) {
+        return redirect()->route('services.show', ['name' => ServiceUrl::canonicalSlug($serviceSlug) ?: $serviceSlug], 301);
+    });
 }
 
 Route::get('/case-studies', [CaseStudiesController::class, 'index'])->name('case-studies.index');

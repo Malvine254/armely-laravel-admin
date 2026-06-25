@@ -35,12 +35,13 @@
 
 @section('title', $caseStudy->display_title . ' ' . $detailKindLabel . ' | ' . ($caseStudy->technology_label ?? 'Microsoft Platform') . ' | Armely')
 @section('meta_description', $metaDescription)
+@section('canonical_url', $isWhitePaperPage ? route('white-papers.view', ['slug' => $caseStudy->slug]) : route('case-studies.show', ['slug' => $caseStudy->slug]))
 
 @push('head')
 <meta property="og:type" content="article">
 <meta property="og:title" content="{{ $caseStudy->display_title }} {{ $detailKindLabel }} | {{ $caseStudy->technology_label ?? 'Microsoft Platform' }} | Armely">
 <meta property="og:description" content="{{ $metaDescription }}">
-<meta property="og:url" content="{{ request()->url() }}">
+<meta property="og:url" content="@yield('canonical_url')">
 @if(!empty($caseStudy->listing_image) && file_exists(public_path('images/case-study/' . $caseStudy->listing_image)))
 <meta property="og:image" content="{{ asset('images/case-study/' . $caseStudy->listing_image) }}">
 @endif

@@ -62,8 +62,13 @@ if (!function_exists('armely_blog_clean_html')) {
 
 @push('head')
 	@if($hasRequestedBlog && !empty($main))
+		@php
+			$articlePublishedAt = $main->updated_at ?? $main->date ?? $main->blog_date ?? $main->created_at ?? null;
+		@endphp
 		<meta property="og:image:alt" content="{{ $mainTitle !== '' ? $mainTitle : 'Armely blog article image' }}">
-		<meta property="article:published_time" content="{{ \Carbon\Carbon::parse($main->date)->toIso8601String() }}">
+		@if(!empty($articlePublishedAt))
+			<meta property="article:published_time" content="{{ \Carbon\Carbon::parse($articlePublishedAt)->toIso8601String() }}">
+		@endif
 		<meta property="article:author" content="{{ $main->author ?? 'Armely Team' }}">
 		<meta property="article:section" content="Insights">
 	@endif

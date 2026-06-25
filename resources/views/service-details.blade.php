@@ -9,6 +9,7 @@
 
 @section('title', $servicePageTitles[$serviceName ?? ''] ?? (($service->title ?? 'Service') . ' | Armely'))
 @section('meta_description', 'View detailed Armely service capabilities, delivery approach, and engagement options for Microsoft-focused transformation initiatives.')
+@section('canonical_url', \App\Support\ServiceUrl::url($serviceName ?? ($service->title ?? '')))
 
 @push('styles')
 <style>
@@ -171,7 +172,7 @@
 		'microsoft-fabric' => 'services.fabric',
 		'snowflake' => 'services.snowflake',
 		'microsoft-dynamics-365' => 'services.dynamics365',
-		'sql-&-data-warehousing' => 'services.sql-data-warehousing',
+		'sql-data-warehousing' => 'services.sql-data-warehousing',
 		'api-data-access' => 'services.apidataaccess',
 		'sharepoint-online' => 'services.sharepointonline',
 		'm365-governance' => 'services.m365-governance',
@@ -280,7 +281,7 @@
 						@endif
 
 						<!-- SQL Data Warehousing Service -->
-						@if($serviceName === 'sql-&-data-warehousing')
+						@if($serviceName === 'sql-data-warehousing')
 							@include('services.sql-data-warehousing')
 						@endif
 

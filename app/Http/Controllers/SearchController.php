@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Support\BlogUrl;
+use App\Support\ServiceUrl;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -74,7 +75,7 @@ class SearchController extends Controller
                 'columns'      => ['title', 'body'],
                 'label_column' => 'title',
                 'extra_select' => [],
-                'url_builder'  => fn ($row) => url('/service-details/' . Str::slug($row->title ?? '')),
+                'url_builder'  => fn ($row) => ServiceUrl::url($row, 'title'),
             ],
             [
                 'type'         => 'Case Study',
