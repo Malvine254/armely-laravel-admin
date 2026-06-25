@@ -111,10 +111,10 @@
 .armely-company-page .co-affil-inner { max-width:1120px; margin:0 auto; text-align:center; }
 .armely-company-page .co-affil-logos { display:flex; flex-direction:column; align-items:center; gap:24px; margin-top:26px; }
 .armely-company-page .co-affil-row { display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:32px 64px; }
-.armely-company-page .co-affil-logos img { height:104px; width:auto; object-fit:contain; filter:grayscale(20%); opacity:0.85; transition:transform 0.3s ease, filter 0.3s ease, opacity 0.3s ease; }
+.armely-company-page .co-affil-logos img { position:relative; z-index:1; height:104px; width:auto; object-fit:contain; filter:grayscale(20%); opacity:0.85; transition:transform 0.3s ease, filter 0.3s ease, opacity 0.3s ease; }
 .armely-company-page .co-affil-logos img.co-affil-badge { height:150px; }
 .armely-company-page .co-affil-logos img.co-affil-nobox { height:150px; clip-path: inset(12%); }
-.armely-company-page .co-affil-logos img:hover { transform:scale(1.05); filter:grayscale(0%); opacity:1; }
+.armely-company-page .co-affil-logos img:hover { transform:scale(1.35); z-index:3; filter:grayscale(0%) drop-shadow(0 10px 22px rgba(15,23,42,0.18)); opacity:1; }
 
 /* INNOVATION BRANDS */
 .armely-company-page .co-brands { padding:44px 56px; background:var(--navy-mid); }
