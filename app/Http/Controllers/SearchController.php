@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\BlogUrl;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -32,8 +33,8 @@ class SearchController extends Controller
                 'table'        => 'blogs',
                 'columns'      => ['title', 'body', 'author'],
                 'label_column' => 'title',
-                'extra_select' => ['blog_id'],
-                'url_builder'  => fn ($row) => url('/blog/' . ($row->blog_id ?? '')),
+                'extra_select' => ['blog_id', 'title'],
+                'url_builder'  => fn ($row) => BlogUrl::url($row, 'blog_id', 'title'),
             ],
             [
                 'type'         => 'Event',
@@ -265,7 +266,7 @@ class SearchController extends Controller
                 $results[] = [
                     'type'      => 'Page',
                     'page_name' => $page['name'],
-                    'page_url'  => $page['url'] . '?highlight=' . urlencode($query),
+                    'page_url'  => $page['url'],
                     'snippet'   => $snippet,
                     'relevance' => $relevance,
                 ];
@@ -371,7 +372,7 @@ class SearchController extends Controller
             $results[] = [
                 'type'      => $source['type'],
                 'page_name' => $source['type'] . ': ' . $label,
-                'page_url'  => $url . '?highlight=' . urlencode($query),
+                'page_url'  => $url,
                 'snippet'   => $snippet,
                 'relevance' => $relevance,
             ];

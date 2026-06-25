@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Resource;
+use App\Support\BlogUrl;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -52,7 +53,7 @@ class SitemapController extends Controller
 
         foreach ($this->blogEntries() as $blog) {
             $urls[] = $this->entry(
-                route('blog.index', ['blogId' => $blog->blog_id]),
+                BlogUrl::url($blog, 'blog_id', 'title'),
                 $this->dateValue($blog->updated_at ?? $blog->date ?? $blog->created_at ?? null),
                 'daily',
                 '0.8'
@@ -101,6 +102,18 @@ class SitemapController extends Controller
                 // Skip if a route is unavailable.
             }
         }
+
+        $uniqueUrls = [];
+        foreach ($urls as $url) {
+            $loc = $url['loc'] ?? null;
+            if ($loc === null || $loc === '' || isset($uniqueUrls[$loc])) {
+                continue;
+            }
+
+            $uniqueUrls[$loc] = $url;
+        }
+
+        $urls = array_values($uniqueUrls);
 
         $xml = $this->renderXml($urls);
 
@@ -194,20 +207,34 @@ class SitemapController extends Controller
 
     private function blogEntries()
     {
-        if (!Schema::hasTable('blogs')) {
+        $blogTable = $this->resolveBlogTable();
+        if ($blogTable === null) {
             return collect();
         }
 
-        $blogIdColumn = Schema::hasColumn('blogs', 'blog_id') ? 'blog_id' : 'id';
-        $dateColumn = $this->firstExistingColumn('blogs', ['updated_at', 'date', 'blog_date', 'created_at']);
+        $blogIdColumn = Schema::hasColumn($blogTable, 'blog_id') ? 'blog_id' : 'id';
+        $titleColumn = $this->firstExistingColumn($blogTable, ['title', 'blog_title']);
+        $dateColumn = $this->firstExistingColumn($blogTable, ['updated_at', 'date', 'blog_date', 'created_at']);
 
-        return DB::table('blogs')
+        return DB::table($blogTable)
             ->select(array_filter(array_unique(array_filter([
                 $blogIdColumn . ' as blog_id',
+                $titleColumn ? $titleColumn . ' as title' : null,
                 $dateColumn ? $dateColumn . ' as updated_at' : null,
             ]))))
             ->orderByDesc($dateColumn ?: $blogIdColumn)
             ->get();
+    }
+
+    private function resolveBlogTable(): ?string
+    {
+        foreach (['blogs', 'blog'] as $table) {
+            if (Schema::hasTable($table)) {
+                return $table;
+            }
+        }
+
+        return null;
     }
 
     private function resourceEntries()

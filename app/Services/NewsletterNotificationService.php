@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
+use App\Support\BlogUrl;
 
 class NewsletterNotificationService
 {
@@ -17,7 +18,7 @@ class NewsletterNotificationService
             'blog',
             trim((string) ($blog->title ?? $blog->blog_title ?? 'New Armely blog article')),
             trim((string) ($blog->body ?? $blog->content ?? '')),
-            $blogId ? route('blog.index', ['blogId' => $blogId]) : route('blog.index')
+            $blogId ? BlogUrl::url($blog, $idColumn, 'title') : route('blog.index')
         );
     }
 

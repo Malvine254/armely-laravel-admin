@@ -35,7 +35,7 @@ class AppServiceProvider extends ServiceProvider
             $requestHost = strtolower((string) request()->getHost());
             $canonicalHost = strtolower(trim((string) config('app.canonical_host', '')));
             $requestRoot = $canonicalHost !== '' && !in_array($requestHost, ['localhost', '127.0.0.1', '::1'], true)
-                ? request()->getScheme() . '://' . $canonicalHost
+                ? 'https://' . $canonicalHost
                 : request()->getSchemeAndHttpHost();
             $assetUrl = (string) config('app.asset_url', '');
             $assetHost = strtolower((string) (parse_url($assetUrl, PHP_URL_HOST) ?? ''));

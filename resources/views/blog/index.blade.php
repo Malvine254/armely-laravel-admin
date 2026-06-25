@@ -22,7 +22,7 @@ if (!function_exists('armely_blog_clean_html')) {
 
 @php
     $hasMain = !empty($main);
-    $requestedBlogId = request()->route('blogId') ?? request()->query('blogId');
+    $requestedBlogId = request()->route('blog') ?? request()->query('blogId');
     $hasRequestedBlog = $requestedBlogId !== null && (string) $requestedBlogId !== '';
     $mainTitle = $hasMain ? trim((string) ($main->title ?? '')) : '';
     $mainBodyText = $hasMain ? trim(preg_replace('/\s+/', ' ', strip_tags((string) ($main->body ?? '')))) : '';
@@ -39,8 +39,8 @@ if (!function_exists('armely_blog_clean_html')) {
         ? 'Armely blog, ' . Str::lower($mainTitle) . ', Microsoft Fabric, Power BI, Copilot, enterprise AI'
         : 'Armely blog, Microsoft Fabric, Power BI, Copilot, Power Platform, enterprise AI, data modernization';
 
-    $canonicalUrl = ($hasRequestedBlog && !empty($main->blog_id))
-        ? route('blog.index', ['blogId' => $main->blog_id])
+    $canonicalUrl = ($hasRequestedBlog && $hasMain)
+        ? \App\Support\BlogUrl::url($main)
         : route('blog.index');
 
     $shareImage = ($hasRequestedBlog && !empty($main->image_path))
@@ -61,7 +61,7 @@ if (!function_exists('armely_blog_clean_html')) {
 @section('og_type', $hasRequestedBlog ? 'article' : 'website')
 
 @push('head')
-	@if($hasRequestedBlog && !empty($main->blog_id))
+	@if($hasRequestedBlog && !empty($main))
 		<meta property="og:image:alt" content="{{ $mainTitle !== '' ? $mainTitle : 'Armely blog article image' }}">
 		<meta property="article:published_time" content="{{ \Carbon\Carbon::parse($main->date)->toIso8601String() }}">
 		<meta property="article:author" content="{{ $main->author ?? 'Armely Team' }}">
@@ -208,7 +208,7 @@ if (!function_exists('armely_blog_clean_html')) {
 						<p style="display: none;" class="no-results-alert" id="noResults">No results found!</p>
 						<div class="recent-posts-list">
 							@forelse($recent as $blog)
-								<a href="{{ route('blog.index', ['blogId' => $blog->blog_id]) }}" class="sidebar-blog-card data-item">
+								<a href="{{ \App\Support\BlogUrl::url($blog) }}" class="sidebar-blog-card data-item">
 									<div class="sidebar-blog-image {{ !$blog->image_path ? 'no-image' : '' }}" style="{{ $blog->image_path ? '--blog-feature-image: url(' . e(asset($blog->image_path)) . ');' : '' }}">
 										@if($blog->image_path)
 											<img src="{{ asset($blog->image_path) }}" alt="{{ $blog->title }}">
@@ -274,7 +274,7 @@ document.addEventListener('DOMContentLoaded', function() {
 		card.addEventListener('click', function(e) {
 			e.preventDefault();
 			
-			const blogId = this.getAttribute('href').split('/').pop();
+			const blogUrl = this.href;
 			const mainContent = document.getElementById('blog-main-content');
 			
 			// Add loading state
@@ -282,7 +282,7 @@ document.addEventListener('DOMContentLoaded', function() {
 			mainContent.style.pointerEvents = 'none';
 			
 			// Fetch new blog content
-			fetch(`{{ url('/blog') }}/${blogId}`, {
+			fetch(blogUrl, {
 				headers: {
 					'X-Requested-With': 'XMLHttpRequest'
 				}
@@ -304,7 +304,7 @@ document.addEventListener('DOMContentLoaded', function() {
 						mainContent.style.pointerEvents = 'auto';
 						
 						// Update URL without reload
-						window.history.pushState({blogId: blogId}, '', `{{ url('/blog') }}/${blogId}`);
+						window.history.pushState({blogUrl: blogUrl}, '', blogUrl);
 						
 						// Scroll to top smoothly
 						window.scrollTo({top: 0, behavior: 'smooth'});
@@ -327,9 +327,7 @@ document.addEventListener('DOMContentLoaded', function() {
 	
 	// Handle browser back/forward buttons
 	window.addEventListener('popstate', function(e) {
-		if (e.state && e.state.blogId) {
-			location.reload();
-		}
+		location.reload();
 	});
 
 	function applyForcedBlogBodyStyles() {
@@ -794,11 +792,10 @@ document.addEventListener('DOMContentLoaded', function() {
 	// Function to update recent posts views
 	function updateRecentPostsViews() {
 		// Get the current blog ID from URL
-		const currentUrl = window.location.pathname;
-		const blogId = currentUrl.split('/').pop();
+		const currentUrl = window.location.href;
 		
 		// Fetch fresh data to get updated views count
-		fetch(`{{ url('/blog') }}/${blogId}`, {
+		fetch(currentUrl, {
 			headers: {
 				'X-Requested-With': 'XMLHttpRequest'
 			}
@@ -833,8 +830,7 @@ document.addEventListener('DOMContentLoaded', function() {
 			// Add click listener
 			newCard.addEventListener('click', function(e) {
 				e.preventDefault();
-				const blogId = this.getAttribute('href').split('/').pop();
-				loadBlogContent(blogId);
+				loadBlogContent(this.href);
 			});
 		});
 	}
@@ -854,18 +850,23 @@ document.addEventListener('DOMContentLoaded', function() {
 					document.head.appendChild(newMeta.cloneNode(true));
 				}
 			});
+			const canonicalLink = doc.head.querySelector('link[rel="canonical"]');
+			if (canonicalLink) {
+				document.head.querySelectorAll('link[rel="canonical"]').forEach(n => n.parentNode.removeChild(n));
+				document.head.appendChild(canonicalLink.cloneNode(true));
+			}
 		} catch (e) {
 			console.warn('Failed to update meta tags:', e);
 		}
 	}
 	
 	// Extract blog loading logic into separate function
-	function loadBlogContent(blogId) {
+	function loadBlogContent(blogUrl) {
 		const mainContent = document.getElementById('blog-main-content');
 		mainContent.style.opacity = '0.5';
 		mainContent.style.pointerEvents = 'none';
 		
-		fetch(`{{ url('/blog') }}/${blogId}`, {
+		fetch(blogUrl, {
 			headers: {
 				'X-Requested-With': 'XMLHttpRequest'
 			}
@@ -886,7 +887,7 @@ document.addEventListener('DOMContentLoaded', function() {
 					mainContent.style.opacity = '1';
 					mainContent.style.pointerEvents = 'auto';
 					
-					window.history.pushState({blogId: blogId}, '', `{{ url('/blog') }}/${blogId}`);
+					window.history.pushState({blogUrl: blogUrl}, '', blogUrl);
 					window.scrollTo({top: 0, behavior: 'smooth'});
 
 					updateRecentPostsViews();

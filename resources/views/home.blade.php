@@ -1251,12 +1251,12 @@
                                 </div>
                             </div>
                             <h4 class="blog-title">
-                                <a href="{{ route('blog.index', ['blogId' => $blog->blog_id]) }}" title="{{ $blogFullTitle }}">{{ $blogFullTitle }}</a>
+                                <a href="{{ \App\Support\BlogUrl::url($blog) }}" title="{{ $blogFullTitle }}">{{ $blogFullTitle }}</a>
                             </h4>
                             <p class="blog-snippet" title="{{ $blogFullSnippet }}">{{ $blog->preview ?? '' }}</p>
                             <div class="blog-footer">
                                 <span class="blog-date">{{ \Carbon\Carbon::parse($blog->date)->format('M d, Y') }}</span>
-                                <a href="{{ route('blog.index', ['blogId' => $blog->blog_id]) }}" class="blog-btn-circle">
+                                <a href="{{ \App\Support\BlogUrl::url($blog) }}" class="blog-btn-circle">
                                     <i class="fa fa-arrow-right"></i>
                                 </a>
                             </div>
