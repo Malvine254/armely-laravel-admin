@@ -693,4 +693,62 @@ class AzureOpenAiChatService
             ->map(fn ($t) => strtoupper((string) ($t['role'] ?? 'user')) . ': ' . substr((string) ($t['content'] ?? ''), 0, 200))
             ->implode("\n");
     }
+
+    private function extractProductSearchKeywords(string $question): array
+    {
+        $normalized = strtolower($question);
+        $parts = preg_split('/[^a-z0-9-]+/i', $normalized) ?: [];
+        $stopWords = [
+            'need', 'purchase', 'buy', 'best', 'give', 'me', 'my', 'your', 'our', 'its', 'their',
+            'sample', 'list', 'for', 'the', 'is', 'it', 'if', 'in', 'on', 'at', 'of', 'be', 'no', 'so',
+            'and', 'or', 'with', 'show', 'please', 'can', 'you', 'want', 'from', 'that', 'this',
+            'have', 'all', 'more', 'details', 'about', 'find', 'search', 'suggestion', 'suggestions',
+            'suggest', 'suggested', 'recommended', 'recommend', 'available', 'current', 'from',
+            'product', 'products', 'item', 'items', 'one', 'two', 'three', 'hi', 'hello', 'hey', 'to', 'today',
+            'last', 'latest', 'recent', 'newest', 'first', 'earliest', 'oldest', 'previous', 'former',
+            'order', 'quote', 'quotes', 'cart', 'make', 'proceed', 'request', 'them', 'those', 'are', 'please',
+            'add', 'added', 'placing', 'place', 'good', 'looking', 'look', 'get', 'some', 'any',
+            'what', 'which', 'would', 'could', 'should', 'like', 'price', 'under', 'below', 'above',
+            'something', 'anything', 'around', 'great', 'nice', 'new', 'do', 'does', 'got',
+            'invoice', 'invoices', 'payment', 'payments', 'billing', 'receipt', 'balance', 'due',
+            'track', 'tracking', 'shipping', 'delivery',
+        ];
+
+        $keywords = collect($parts)
+            ->map(static fn ($p) => trim((string) $p))
+            ->filter(static fn ($p) => strlen($p) >= 2)
+            ->filter(static fn ($p) => !in_array($p, $stopWords, true))
+            ->unique()
+            ->values()
+            ->all();
+
+        $brandExpansions = [
+            'hp' => ['hp', 'hewlett-packard', 'hewlett packard'],
+            'dell' => ['dell'],
+            'lenovo' => ['lenovo'],
+            'cisco' => ['cisco', 'meraki'],
+        ];
+
+        foreach ($brandExpansions as $brand => $variants) {
+            if (str_contains($normalized, $brand)) {
+                foreach ($variants as $variant) {
+                    if (!in_array($variant, $keywords, true)) {
+                        $keywords[] = $variant;
+                    }
+                }
+            }
+        }
+
+        if (str_contains($normalized, 'laptop') && !in_array('notebook', $keywords, true)) {
+            $keywords[] = 'notebook';
+        }
+        if (str_contains($normalized, 'notebook') && !in_array('laptop', $keywords, true)) {
+            $keywords[] = 'laptop';
+        }
+        if (str_contains($normalized, 'monitor') && !in_array('display', $keywords, true)) {
+            $keywords[] = 'display';
+        }
+
+        return array_values(array_unique($keywords));
+    }
 }
