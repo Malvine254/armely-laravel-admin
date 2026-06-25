@@ -24,10 +24,10 @@ class SitemapController extends Controller
 
         $staticRoutes = [
             ['home', 'daily', '1.0', null],
-            ['services', 'weekly', '0.9', $this->collectionDate($serviceEntries)],
-            ['case-studies.index', 'weekly', '0.9', $this->collectionDate($caseStudyEntries)],
-            ['resources.index', 'weekly', '0.9', $this->collectionDate($resourceEntries)],
-            ['blog.index', 'daily', '0.9', $this->collectionDate($blogEntries)],
+            ['services', 'weekly', '0.9', $this->latestDateFromCollection($serviceEntries, ['updated_at', 'created_at'])],
+            ['case-studies.index', 'weekly', '0.9', $this->latestDateFromCollection($caseStudyEntries, ['updated_at', 'created_at'])],
+            ['resources.index', 'weekly', '0.9', $this->latestDateFromCollection($resourceEntries, ['updated_at', 'created_at'])],
+            ['blog.index', 'daily', '0.9', $this->latestDateFromCollection($blogEntries, ['published_at', 'updated_at', 'date', 'blog_date', 'created_at'])],
             ['events.index', 'weekly', '0.7', null],
             ['company.index', 'monthly', '0.6', null],
             ['career.index', 'monthly', '0.4', null],
@@ -66,7 +66,7 @@ class SitemapController extends Controller
         foreach ($blogEntries as $blog) {
             $urls[] = $this->entry(
                 BlogUrl::url($blog, 'blog_id', 'title'),
-                $this->dateValue($blog->updated_at ?? $blog->date ?? $blog->created_at ?? null),
+                $this->latestDateFromCollection(collect([$blog]), ['published_at', 'updated_at', 'date', 'blog_date', 'created_at']),
                 'monthly',
                 '0.8'
             );
@@ -163,15 +163,28 @@ class SitemapController extends Controller
         return $xml;
     }
 
-    private function collectionDate(?Collection $items): ?string
+    private function latestDateFromCollection(?Collection $items, array $columns = ['updated_at', 'date', 'blog_date', 'published_at', 'created_at']): ?string
     {
         if ($items === null || $items->isEmpty()) {
             return null;
         }
 
-        $item = $items->first();
+        $latest = null;
 
-        return $this->dateValue($item->updated_at ?? $item->date ?? $item->created_at ?? null);
+        foreach ($items as $item) {
+            foreach ($columns as $column) {
+                $value = $this->dateValue($item->{$column} ?? null);
+                if ($value === null) {
+                    continue;
+                }
+
+                if ($latest === null || $value > $latest) {
+                    $latest = $value;
+                }
+            }
+        }
+
+        return $latest;
     }
 
     private function entry(string $loc, ?string $lastmod = null, ?string $changefreq = null, ?string $priority = null): array
@@ -239,17 +252,30 @@ class SitemapController extends Controller
 
         $blogIdColumn = Schema::hasColumn($blogTable, 'blog_id') ? 'blog_id' : 'id';
         $titleColumn = $this->firstExistingColumn($blogTable, ['title', 'blog_title']);
-        $dateColumn = $this->firstExistingColumn($blogTable, ['updated_at', 'date', 'blog_date', 'created_at']);
+        $dateColumns = array_values(array_filter([
+            Schema::hasColumn($blogTable, 'published_at') ? 'published_at' : null,
+            Schema::hasColumn($blogTable, 'updated_at') ? 'updated_at' : null,
+            Schema::hasColumn($blogTable, 'date') ? 'date' : null,
+            Schema::hasColumn($blogTable, 'blog_date') ? 'blog_date' : null,
+            Schema::hasColumn($blogTable, 'created_at') ? 'created_at' : null,
+            Schema::hasColumn($blogTable, 'status') ? 'status' : null,
+        ]));
 
         $query = DB::table($blogTable)
             ->select(array_filter(array_unique(array_filter([
                 $blogIdColumn . ' as blog_id',
                 $titleColumn ? $titleColumn . ' as title' : null,
-                $dateColumn ? $dateColumn . ' as updated_at' : null,
+                ...$dateColumns,
             ]))));
 
-        if ($dateColumn !== null) {
-            $query->orderByDesc($dateColumn);
+        if (Schema::hasColumn($blogTable, 'status')) {
+            $query->whereRaw('LOWER(status) = ?', ['published']);
+        }
+
+        $orderColumn = $this->firstExistingColumn($blogTable, ['published_at', 'updated_at', 'date', 'blog_date', 'created_at']) ?? $blogIdColumn;
+
+        if ($orderColumn !== null) {
+            $query->orderByDesc($orderColumn);
         } else {
             $query->orderByDesc($blogIdColumn);
         }
