@@ -39,8 +39,13 @@ class AzureOpenAiChatService
             return ['reply' => null, 'actions' => [], 'product_suggestions' => [], 'source' => 'unconfigured', 'intent' => 'unknown'];
         }
 
-        // Intent classification uses local keywords — instant, no API call, never times out.
-        $intent = $this->classifyIntentLocally($question, $chatHistory);
+        $forcedIntent = $this->normalizeIntent((string) ($context['smart_intent'] ?? ''));
+        if ($forcedIntent !== null) {
+            $intent = $forcedIntent;
+        } else {
+            // Intent classification uses local keywords — instant, no API call, never times out.
+            $intent = $this->classifyIntentLocally($question, $chatHistory);
+        }
 
         // When general_support is the default, only upgrade to product_search if the
         // current question actually looks like a product search and the assistant has
@@ -79,6 +84,13 @@ class AzureOpenAiChatService
         return $result['reply'] ?? null;
     }
 
+    private function normalizeIntent(string $intent): ?string
+    {
+        return in_array($intent, ['product_search', 'order_status', 'quote_management', 'invoice_payment', 'general_support'], true)
+            ? $intent
+            : null;
+    }
+
     // ─── Intent classifier (local — zero latency) ──────────────────────────────
 
     private function classifyIntentLocally(string $question, array $chatHistory): string
@@ -113,6 +125,12 @@ class AzureOpenAiChatService
         // Quote signals — broad: "my quotes", "quote history", "get a quote", "reorder", etc.
         if ($hasQuoteSignal || preg_match('/\b(quote (status|history|number)|get a quote|request (a )?quote|reorder|pending quote|open quote|same order again)\b/', $q)) {
             return 'quote_management';
+        }
+
+        if (!empty($this->extractProductSearchKeywords($question))
+            && !preg_match('/\b(quote|quotes|order|orders|invoice|invoices|payment|payments|billing|receipt|balance|due|track|tracking|shipping|delivery)\b/', $q)
+        ) {
+            return 'product_search';
         }
 
         // Explicit product / catalog signals.

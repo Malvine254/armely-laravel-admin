@@ -689,6 +689,10 @@ class MessageController extends Controller
 
         // Multi-agent orchestration: classify intent, route to specialist agent.
         $chatHistory  = $context['recent_chat_turns'] ?? [];
+        $smartIntent  = $this->resolveSmartIntent($question, $context, $chatHistory);
+        if ($smartIntent !== null) {
+            $context['smart_intent'] = $smartIntent;
+        }
         $agentResult  = $this->assistantService->orchestrate($question, $context, $chatHistory);
 
         // When AI is unconfigured, fall back to local heuristic responses.
@@ -1332,6 +1336,111 @@ class MessageController extends Controller
         return $deduped;
     }
 
+    private function resolveSmartIntent(string $question, array $context, array $chatHistory): ?string
+    {
+        $q = strtolower(trim($question));
+        if ($q === '') {
+            return null;
+        }
+
+        $recentChatTurns = (array) ($context['recent_chat_turns'] ?? $chatHistory);
+        $followUpTopic = $this->inferFollowUpTopic($q, $recentChatTurns);
+        if ($followUpTopic !== null) {
+            return match ($followUpTopic) {
+                'quote' => 'quote_management',
+                'order' => 'order_status',
+                'invoice' => 'invoice_payment',
+                default => null,
+            };
+        }
+
+        if ($this->isQuoteIntentQuery($q)) {
+            return 'quote_management';
+        }
+
+        if ($this->isOrderIntentQuery($q)) {
+            return 'order_status';
+        }
+
+        if ($this->isInvoiceIntentQuery($q)) {
+            return 'invoice_payment';
+        }
+
+        if ($this->isProductLookupIntent($question, $recentChatTurns)) {
+            return 'product_search';
+        }
+
+        if (preg_match('/\b(what can you do|what do you do|help|capabilities|options)\b/', $q)) {
+            return 'general_support';
+        }
+
+        return null;
+    }
+
+    private function isQuoteIntentQuery(string $questionLower): bool
+    {
+        return Str::contains($questionLower, [
+            'quote', 'quotes', 'requote', 'same quote', 'my quotes', 'quote history', 'quote status',
+            'last quote', 'latest quote', 'most recent quote', 'first quote', 'last 3 quotes',
+        ]);
+    }
+
+    private function isOrderIntentQuery(string $questionLower): bool
+    {
+        return Str::contains($questionLower, [
+            'order', 'orders', 'tracking', 'track', 'shipping', 'delivery', 'shipment', 'latest order',
+            'most recent order', 'last order',
+        ]);
+    }
+
+    private function isInvoiceIntentQuery(string $questionLower): bool
+    {
+        return Str::contains($questionLower, [
+            'invoice', 'invoices', 'payment', 'payments', 'billing', 'receipt', 'balance', 'due',
+            'download pdf', 'invoice pdf', 'what do i owe',
+        ]);
+    }
+
+    private function isProductLookupIntent(string $question, array $recentChatTurns = []): bool
+    {
+        $q = strtolower(trim($question));
+        if ($q === '') {
+            return false;
+        }
+
+        $accountSignals = [
+            'quote', 'quotes', 'order', 'orders', 'invoice', 'invoices', 'payment', 'payments',
+            'billing', 'receipt', 'balance', 'due', 'tracking', 'shipping', 'delivery',
+        ];
+        if (Str::contains($q, $accountSignals)) {
+            return false;
+        }
+
+        $keywords = $this->extractProductSearchKeywords($question);
+        if (!empty($keywords)) {
+            return true;
+        }
+
+        if (Str::contains($q, [
+            'search for', 'find', 'browse', 'look for', 'lookup', 'check for', 'check the',
+            'available', 'availability', 'in stock', 'product table', 'products table',
+            'product catalog', 'products catalog', 'catalog', 'catalogue',
+        ])) {
+            return true;
+        }
+
+        $recentSuggestedProducts = collect($recentChatTurns)
+            ->filter(static fn (array $turn) => strtolower((string) ($turn['role'] ?? '')) === 'assistant')
+            ->flatMap(static fn (array $turn) => (array) ($turn['product_suggestions'] ?? []))
+            ->contains(static fn ($item) => is_array($item) && !empty($item['product_id']));
+
+        if ($recentSuggestedProducts && Str::contains($q, ['it', 'that', 'those', 'them', 'similar', 'more', 'another', 'check'])) {
+            return true;
+        }
+
+        return false;
+    }
+
     private function buildFallbackReply(string $question, array $context): string
     {
         $customerName = trim((string) ($context['customer']['name'] ?? ''));
@@ -1965,6 +2074,7 @@ class MessageController extends Controller
             'have', 'all', 'more', 'details', 'about', 'find', 'search', 'suggestion', 'suggestions',
             'suggest', 'suggested', 'recommended', 'recommend', 'available', 'current', 'from',
             'product', 'products', 'item', 'items', 'one', 'two', 'three', 'hi', 'hello', 'hey', 'to', 'today',
+            'last', 'latest', 'recent', 'newest', 'first', 'earliest', 'oldest', 'previous', 'former',
             'order', 'quote', 'quotes', 'cart', 'make', 'proceed', 'request', 'them', 'those', 'are', 'please',
             'add', 'added', 'placing', 'place', 'good', 'looking', 'look', 'get', 'some', 'any',
             'what', 'which', 'would', 'could', 'should', 'like', 'price', 'under', 'below', 'above',
