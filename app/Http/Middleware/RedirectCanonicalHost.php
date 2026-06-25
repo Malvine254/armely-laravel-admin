@@ -16,7 +16,7 @@ class RedirectCanonicalHost
         }
 
         $currentHost = strtolower(trim((string) $request->getHost()));
-        if ($currentHost === '' || $currentHost === $canonicalHost) {
+        if ($currentHost === '') {
             return $next($request);
         }
 
@@ -24,8 +24,11 @@ class RedirectCanonicalHost
             return $next($request);
         }
 
-        $scheme = $request->getScheme();
-        $targetUrl = $scheme . '://' . $canonicalHost . $request->getRequestUri();
+        if ($currentHost === $canonicalHost && $request->isSecure()) {
+            return $next($request);
+        }
+
+        $targetUrl = 'https://' . $canonicalHost . $request->getRequestUri();
 
         return redirect()->away($targetUrl, 301);
     }

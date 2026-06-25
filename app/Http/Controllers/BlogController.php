@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\AzureMailService;
+use App\Support\BlogUrl;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -15,24 +16,93 @@ use Illuminate\Support\Str;
 
 class BlogController extends Controller
 {
-    public function index(Request $request, $blogId = null)
+    public function index(Request $request)
     {
-        // Support both URL formats: /blog/672561550 and /blog?blogId=672561550
-        if (!$blogId) {
-            $blogId = $request->query('blogId');
+        $blogId = trim((string) $request->query('blogId', ''));
+
+        if ($blogId !== '') {
+            return $this->show($request, $blogId);
         }
 
+        [$main, $recent, $dbErrorMessage] = $this->prepareBlogListingData();
+
+        return view('blog.index', [
+            'main' => $main,
+            'recent' => $recent,
+            'dbErrorMessage' => $dbErrorMessage,
+        ]);
+    }
+
+    public function show(Request $request, string $blog)
+    {
+        $blogIdentifier = trim($blog);
+        if ($blogIdentifier === '') {
+            return redirect()->route('blog.index', [], 301);
+        }
+
+        [$main, $recent, $dbErrorMessage, $canonicalUrl] = $this->prepareBlogDetailData($request, $blogIdentifier);
+
+        if ($canonicalUrl !== null && $request->query('blogId') !== null) {
+            return redirect()->to($canonicalUrl, 301);
+        }
+
+        if ($canonicalUrl !== null) {
+            $requestedPath = rtrim($request->getPathInfo(), '/');
+            $canonicalPath = rtrim(parse_url($canonicalUrl, PHP_URL_PATH) ?: '/blog', '/');
+
+            if ($requestedPath !== $canonicalPath) {
+                return redirect()->to($canonicalUrl, 301);
+            }
+        }
+
+        if ($main !== null) {
+            $blogTable = $this->resolveBlogTable();
+            if ($blogTable) {
+                $blogIdColumn = $this->columnExists($blogTable, 'blog_id') ? 'blog_id' : 'id';
+                $viewsColumn = $this->firstExistingColumn($blogTable, ['clicks', 'views']);
+                $trackedBlogId = (string) ($main->blog_id ?? $main->id ?? $blogIdentifier);
+
+                if ($viewsColumn && !$this->hasTrackedSessionItem($request, 'blog_viewed_ids', $trackedBlogId)) {
+                    try {
+                        DB::table($blogTable)
+                            ->where($blogIdColumn, $trackedBlogId)
+                            ->increment($viewsColumn);
+                        $this->trackSessionItem($request, 'blog_viewed_ids', $trackedBlogId);
+                    } catch (\Throwable $e) {
+                        Log::warning('Blog click increment failed', ['error' => $e->getMessage()]);
+                    }
+                }
+            }
+        }
+
+        if ($main === null) {
+            if ($dbErrorMessage !== null) {
+                return view('blog.index', [
+                    'main' => null,
+                    'recent' => $recent,
+                    'dbErrorMessage' => $dbErrorMessage,
+                ]);
+            }
+
+            abort(404);
+        }
+
+        return view('blog.index', [
+            'main' => $main,
+            'recent' => $recent,
+            'dbErrorMessage' => $dbErrorMessage,
+        ]);
+    }
+
+    private function prepareBlogListingData(): array
+    {
         $dbErrorMessage = null;
         $recent = collect();
         $main = null;
         $blogTable = $this->resolveBlogTable();
 
         if (!$blogTable) {
-            return view('blog.index', [
-                'main' => null,
-                'recent' => collect(),
-                'dbErrorMessage' => null,
-            ]);
+            return [null, collect(), null];
         }
 
         $blogIdColumn = $this->columnExists($blogTable, 'blog_id') ? 'blog_id' : 'id';
@@ -43,20 +113,6 @@ class BlogController extends Controller
         $imageColumn = $this->firstExistingColumn($blogTable, ['image_path', 'image', 'image_url']);
         $viewsColumn = $this->firstExistingColumn($blogTable, ['clicks', 'views']);
         $orderColumn = $this->firstExistingColumn($blogTable, ['id', 'blog_id', 'created_at']);
-
-        // Increment views only if user hasn't viewed this blog before in this session.
-        if ($blogId) {
-            try {
-                if (!$this->hasTrackedSessionItem($request, 'blog_viewed_ids', $blogId) && $viewsColumn) {
-                    DB::table($blogTable)
-                        ->where($blogIdColumn, $blogId)
-                        ->increment($viewsColumn);
-                    $this->trackSessionItem($request, 'blog_viewed_ids', $blogId);
-                }
-            } catch (\Throwable $e) {
-                Log::warning('Blog click increment failed', ['error' => $e->getMessage()]);
-            }
-        }
 
         try {
             $baseQuery = $this->buildBlogQuery(
@@ -70,31 +126,17 @@ class BlogController extends Controller
                 $viewsColumn
             );
 
-            // If a specific blog ID was requested, fetch it directly (fast lookup).
-            if ($blogId) {
-                $main = (clone $baseQuery)
-                    ->where($blogTable . '.' . $blogIdColumn, $blogId)
-                    ->first();
-            }
-
-            // Load all posts for the sidebar so /blog can list every available article.
             $recent = (clone $baseQuery)
                 ->orderByDesc($blogTable . '.' . $orderColumn)
                 ->get();
 
             $authorImageMap = $this->resolveAuthorImageMap();
-
-            if ($main) {
-                $main->author_image = $this->resolveAuthorImageForName((string) ($main->author ?? ''), $authorImageMap);
-            }
-
             $recent = $recent->map(function ($post) use ($authorImageMap) {
                 $post->author_image = $this->resolveAuthorImageForName((string) ($post->author ?? ''), $authorImageMap);
                 return $post;
             });
 
-            // If specific blog wasn't found above (maybe null), fall back to sidebar list's first item
-            if (empty($main) && $recent->count() > 0) {
+            if ($recent->count() > 0) {
                 $main = $recent->first();
             }
         } catch (\Throwable $e) {
@@ -102,19 +144,105 @@ class BlogController extends Controller
             Log::warning('Blog list query failed', ['error' => $e->getMessage()]);
         }
 
-        if ($blogId) {
-            return response()->view('blog.index', [
-                'main' => $main,
-                'recent' => $recent,
-                'dbErrorMessage' => $dbErrorMessage,
-            ]);
+        return [$main, $recent, $dbErrorMessage];
+    }
+
+    private function prepareBlogDetailData(Request $request, string $blogIdentifier): array
+    {
+        $dbErrorMessage = null;
+        $recent = collect();
+        $main = null;
+        $canonicalUrl = null;
+        $blogTable = $this->resolveBlogTable();
+
+        if (!$blogTable) {
+            return [null, collect(), null, null];
         }
 
-        return view('blog.index', [
-            'main' => $main,
-            'recent' => $recent,
-            'dbErrorMessage' => $dbErrorMessage,
-        ]);
+        $blogIdColumn = $this->columnExists($blogTable, 'blog_id') ? 'blog_id' : 'id';
+        $titleColumn = $this->firstExistingColumn($blogTable, ['title', 'blog_title']);
+        $authorColumn = $this->firstExistingColumn($blogTable, ['author', 'blog_author']);
+        $dateColumn = $this->firstExistingColumn($blogTable, ['date', 'blog_date', 'created_at']);
+        $bodyColumn = $this->firstExistingColumn($blogTable, ['body', 'description', 'content']);
+        $imageColumn = $this->firstExistingColumn($blogTable, ['image_path', 'image', 'image_url']);
+        $viewsColumn = $this->firstExistingColumn($blogTable, ['clicks', 'views']);
+        $orderColumn = $this->firstExistingColumn($blogTable, ['id', 'blog_id', 'created_at']) ?? $blogIdColumn;
+
+        try {
+            $baseQuery = $this->buildBlogQuery(
+                $blogTable,
+                $blogIdColumn,
+                $titleColumn,
+                $authorColumn,
+                $dateColumn,
+                $bodyColumn,
+                $imageColumn,
+                $viewsColumn
+            );
+
+            $recent = (clone $baseQuery)
+                ->orderByDesc($blogTable . '.' . $orderColumn)
+                ->get();
+
+            $authorImageMap = $this->resolveAuthorImageMap();
+            $recent = $recent->map(function ($post) use ($authorImageMap) {
+                $post->author_image = $this->resolveAuthorImageForName((string) ($post->author ?? ''), $authorImageMap);
+                return $post;
+            });
+
+            $main = $this->resolveBlogFromRecent($recent, $blogIdentifier);
+            if ($main !== null) {
+                $canonicalUrl = BlogUrl::url($main);
+            }
+        } catch (\Throwable $e) {
+            $dbErrorMessage = 'We are temporarily unable to load blogs. Please try again in a few moments.';
+            Log::warning('Blog detail query failed', ['error' => $e->getMessage()]);
+        }
+
+        return [$main, $recent, $dbErrorMessage, $canonicalUrl];
+    }
+
+    private function resolveBlogFromRecent(Collection $recent, string $blogIdentifier): ?object
+    {
+        $blogIdentifier = trim($blogIdentifier);
+        if ($blogIdentifier === '') {
+            return null;
+        }
+
+        $numericId = $this->extractBlogId($blogIdentifier);
+        if ($numericId !== null) {
+            $match = $recent->first(function ($post) use ($numericId) {
+                return (string) ($post->blog_id ?? $post->id ?? '') === $numericId;
+            });
+
+            if ($match) {
+                return $match;
+            }
+        }
+
+        $slug = Str::slug($blogIdentifier);
+        if ($slug === '') {
+            return null;
+        }
+
+        return $recent->first(function ($post) use ($slug) {
+            return Str::slug((string) ($post->title ?? $post->blog_title ?? '')) === $slug;
+        });
+    }
+
+    private function extractBlogId(string $blogIdentifier): ?string
+    {
+        $blogIdentifier = trim($blogIdentifier);
+
+        if (ctype_digit($blogIdentifier)) {
+            return $blogIdentifier;
+        }
+
+        if (preg_match('/-(\d+)$/', $blogIdentifier, $matches) === 1) {
+            return $matches[1];
+        }
+
+        return null;
     }
 
     // API endpoint to increment blog clicks with session tracking.

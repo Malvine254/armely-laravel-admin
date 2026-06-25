@@ -166,7 +166,7 @@
                 <span class="meta-pill">{{ \Carbon\Carbon::parse($blog->date)->format('F j, Y') }}</span>
             @endif
         </div>
-        <div class="meta-right">armely.com/blog/{{ $blog->blog_id }}</div>
+        <div class="meta-right">armely.com{{ \App\Support\BlogUrl::path($blog) }}</div>
     </div>
 </div>
 

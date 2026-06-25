@@ -114,11 +114,16 @@ Route::get('/white_paper_docs/{file}', [CaseStudiesController::class, 'legacyWhi
     ->name('white-papers.legacy-doc');
 Route::get('/case-studies/{slug}', [CaseStudiesController::class, 'showCaseStudy'])->name('case-studies.show');
 
-Route::get('/blog/{blogId?}', [BlogController::class, 'index'])->name('blog.index');
+Route::get('/blog', [BlogController::class, 'index'])->name('blog.index');
+Route::get('/blog/{blog}', [BlogController::class, 'show'])
+    ->where('blog', '[^/]+')
+    ->name('blog.show');
 // Keep the legacy plural URL as a permanent redirect so search signals stay on /blog.
-Route::get('/blogs/{blogId?}', function (?string $blogId = null) {
-    return redirect()->route('blog.index', $blogId ? ['blogId' => $blogId] : [], 301);
-})->where('blogId', '.*');
+Route::get('/blogs/{blog?}', function (?string $blog = null) {
+    return $blog
+        ? redirect()->route('blog.show', ['blog' => $blog], 301)
+        : redirect()->route('blog.index', [], 301);
+})->where('blog', '.*');
 Route::post('/blog/{blogId}/increment-clicks', [BlogController::class, 'incrementClicks'])->name('blog.increment-clicks');
 Route::post('/blog/{blogId}/request-download', [BlogController::class, 'requestDownload'])->name('blog.request-download');
 Route::get('/blog/{blogId}/download-pdf', [BlogController::class, 'downloadPdf'])->name('blog.download-pdf');
