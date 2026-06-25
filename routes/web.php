@@ -25,7 +25,25 @@ use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\SitemapController;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
+// Legacy homepage paths used by old static builds.
+Route::redirect('/index', '/', 301);
+Route::redirect('/home', '/', 301);
+Route::redirect('/home/', '/', 301);
+Route::redirect('/index.php', '/', 301);
+Route::redirect('/index.html', '/', 301);
+
+// Legacy marketing paths consolidated to canonical pages.
+Route::redirect('/products', '/services', 301);
+Route::redirect('/case-study', '/case-studies', 301);
+Route::redirect('/case_study', '/case-studies', 301);
+Route::redirect('/case study', '/case-studies', 301);
+
 Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('sitemap.xml');
+// Backward-compatible sitemap URLs from older SEO plugins/configurations.
+Route::redirect('/sitemap_index.xml', '/sitemap.xml', 301);
+Route::redirect('/sitemap-index.xml', '/sitemap.xml', 301);
+Route::redirect('/page-sitemap.xml', '/sitemap.xml', 301);
+Route::redirect('/post-sitemap.xml', '/sitemap.xml', 301);
 Route::get('/contact', [HomeController::class, 'contact'])->name('contact');
 Route::post('/contact', [HomeController::class, 'submitContact'])->name('contact.submit');
 Route::post('/newsletter/subscribe', [NewsletterController::class, 'subscribe'])->name('newsletter.subscribe');
@@ -58,6 +76,9 @@ Route::get('/service-details', function(\Illuminate\Http\Request $request) {
     }
     return redirect('/service-details/ai-consulting');
 });
+
+Route::redirect('/service-details/sharepointonline', '/service-details/sharepoint', 301);
+Route::redirect('/service-details/powerapps', '/service-details/powerplatform', 301);
 
 // Standard path parameter format: /service-details/ai-consulting
 Route::get('/service-details/{name}', [HomeController::class, 'serviceDetails'])->name('service-details');
@@ -118,6 +139,13 @@ Route::get('/blog', [BlogController::class, 'index'])->name('blog.index');
 Route::get('/blog/{blog}', [BlogController::class, 'show'])
     ->where('blog', '[^/]+')
     ->name('blog.show');
+Route::get('/blog.php', function (\Illuminate\Http\Request $request) {
+    $blogId = trim((string) $request->query('blogId', ''));
+
+    return $blogId !== ''
+        ? redirect()->route('blog.show', ['blog' => $blogId], 301)
+        : redirect()->route('blog.index', [], 301);
+});
 // Keep the legacy plural URL as a permanent redirect so search signals stay on /blog.
 Route::get('/blogs/{blog?}', function (?string $blog = null) {
     return $blog
