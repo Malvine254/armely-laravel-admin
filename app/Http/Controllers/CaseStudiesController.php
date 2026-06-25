@@ -977,6 +977,26 @@ class CaseStudiesController extends Controller
         $previewText = $this->makePreviewText($previewSource !== '' ? $previewSource : $title, 320);
         $paragraphs = $this->splitWhitePaperPreviewParagraphs($previewSource !== '' ? $previewSource : $previewText);
 
+        // Build the same structured one-pager document used by case studies so
+        // white papers render in the identical authored-document preview format.
+        // Authored one-pager content wins; otherwise the body acts as the source.
+        $rawOnePager = trim((string) ($paper->one_pager_content ?? ''));
+        if ($rawOnePager === '') {
+            $rawOnePager = $previewSource;
+        }
+
+        $onePagerDocument = $this->buildOnePagerDocument($rawOnePager);
+        $onePagerContent = '';
+        if (empty($onePagerDocument)) {
+            $onePagerContent = $this->sanitizeOnePagerContentForDisplay($rawOnePager);
+            // Wrap plain prose (no block tags) into paragraphs so it matches the
+            // document styling instead of rendering as one unspaced run of text.
+            if ($onePagerContent !== '' && !str_contains($onePagerContent, '<')) {
+                $blocks = array_values(array_filter(array_map('trim', preg_split('/\r?\n{2,}/', $onePagerContent) ?: [])));
+                $onePagerContent = implode('', array_map(static fn ($block) => '<p>' . e($block) . '</p>', $blocks));
+            }
+        }
+
         $viewModel->id = $paper->id ?? null;
         $viewModel->slug = $paper->slug ?? $this->resourceSlug($paper);
         $viewModel->title = $title;
@@ -987,8 +1007,12 @@ class CaseStudiesController extends Controller
         $viewModel->preview = $previewText;
         $viewModel->body = $previewSource;
         $viewModel->preview_source_url = $this->whitePaperPreviewUrl($paper);
+        $viewModel->one_pager_document = $onePagerDocument;
+        $viewModel->one_pager_content = $onePagerContent;
         $viewModel->pdf_preview_url = '';
-        $viewModel->pdf_preview_text = $previewText;
+        $viewModel->pdf_preview_text = !empty($onePagerDocument)
+            ? (string) ($onePagerDocument['intro'] ?? $onePagerDocument['headline'] ?? $previewText)
+            : $previewText;
         $viewModel->pdf_preview_source = $previewText !== '' ? 'PDF text' : 'PDF unavailable';
         $viewModel->pdf_preview_sections = $previewText !== ''
             ? [[
