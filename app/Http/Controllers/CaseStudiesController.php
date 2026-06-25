@@ -25,6 +25,7 @@ class CaseStudiesController extends Controller
             $caseStudy->slug = $this->caseStudySlug($caseStudy);
             $caseStudy->industry_filter = $this->inferIndustryFilter($caseStudy);
             $caseStudy->technology_filters = $this->inferTechnologyFilters($caseStudy);
+            $caseStudy->technology_label = $this->topicFilters()[$caseStudy->technology_filters[0] ?? ''] ?? 'Microsoft Platform';
             $caseStudy->outcome_tag = $this->caseStudyOutcomeTag($caseStudy);
             $caseStudy->results = $this->caseStudyResults($caseStudy);
 
@@ -528,11 +529,18 @@ class CaseStudiesController extends Controller
 
         foreach ($this->topicFilters() as $key => $label) {
             $terms = match ($key) {
-                'fabric-data' => ['fabric', 'power bi', 'data', 'analytics', 'warehouse', 'lakehouse'],
-                'power-platform' => ['power platform', 'power apps', 'power automate', 'power pages'],
-                'ai-cognitive-services' => ['ai', 'copilot', 'cognitive', 'agent', 'automation'],
+                'fabric-data' => ['fabric', 'lakehouse', 'onelake', 'warehouse'],
+                'power-bi' => ['power bi', 'powerbi'],
+                'power-platform' => ['power platform', 'power apps', 'power automate', 'power pages', 'center of excellence'],
+                'ai-cognitive-services' => ['cognitive', 'copilot', 'intelligent document', 'document search', 'azure openai'],
                 'sharepoint-collaboration' => ['sharepoint', 'teams', 'collaboration', 'intranet'],
-                default => [$label],
+                'azure-data-platform' => ['azure'],
+                'snowflake' => ['snowflake'],
+                'microsoft-access' => ['microsoft access', 'ms access', 'access database'],
+                'data-platform-migration' => ['sybase', 'legacy database', 'migration'],
+                'blackbaud-raisers-edge-nxt' => ["raiser's edge", 'raisers edge', 'blackbaud'],
+                'openinvoice' => ['openinvoice'],
+                default => [Str::lower($label)],
             };
 
             foreach ($terms as $term) {
@@ -543,7 +551,30 @@ class CaseStudiesController extends Controller
             }
         }
 
+        // An admin-set technology is authoritative: it becomes the primary tag
+        // (technology_filters[0]) while the inferred topics still drive filtering.
+        $stored = $this->storedTechnologyKey($caseStudy);
+        if ($stored !== null) {
+            array_unshift($matches, $stored);
+            $matches = array_values(array_unique($matches));
+        }
+
         return $matches ?: ['fabric-data'];
+    }
+
+    /**
+     * The technology key explicitly chosen by an admin, validated against the
+     * known topic filters. Returns null when unset or not a recognized key so
+     * callers fall back to keyword inference.
+     */
+    private function storedTechnologyKey(object $caseStudy): ?string
+    {
+        $value = Str::lower(trim((string) ($caseStudy->technology ?? '')));
+        if ($value === '') {
+            return null;
+        }
+
+        return array_key_exists($value, $this->topicFilters()) ? $value : null;
     }
 
     private function caseStudyResults(object $caseStudy): array
@@ -1086,12 +1117,51 @@ class CaseStudiesController extends Controller
 
     private function topicFilters(): array
     {
-        return [
-            'fabric-data' => 'Microsoft Fabric and Data',
-            'power-platform' => 'Power Platform',
-            'ai-cognitive-services' => 'AI and Cognitive Services',
-            'sharepoint-collaboration' => 'SharePoint and Collaboration',
-        ];
+        return Cache::remember('case_studies_topic_filters', now()->addMinutes(15), function (): array {
+            if (Schema::hasTable('case_study_technologies')) {
+                try {
+                    $managed = DB::table('case_study_technologies')
+                        ->select('slug', 'name')
+                        ->where('is_active', true)
+                        ->orderBy('sort_order')
+                        ->orderBy('name')
+                        ->get();
+
+                    if ($managed->isNotEmpty()) {
+                        $filters = [];
+                        foreach ($managed as $technology) {
+                            $key = trim((string) ($technology->slug ?? ''));
+                            $label = trim((string) ($technology->name ?? ''));
+                            if ($key === '' || $label === '') {
+                                continue;
+                            }
+
+                            $filters[$key] = $label;
+                        }
+
+                        if (!empty($filters)) {
+                            return $filters;
+                        }
+                    }
+                } catch (QueryException $e) {
+                    Log::warning('Failed to load managed case-study technologies', [
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+
+            return $this->defaultTopicFilters();
+        });
+    }
+
+    private function defaultTopicFilters(): array
+    {
+        $filters = [];
+        foreach (\App\Models\CaseStudyTechnology::defaults() as $name => $slug) {
+            $filters[$slug] = $name;
+        }
+
+        return $filters;
     }
 
     private function portfolioStats(): array
@@ -1132,6 +1202,9 @@ class CaseStudiesController extends Controller
         $columns = ['id', 'category', 'listing_image', 'body', 'pdf_url'];
         if ($this->safeHasColumn('industry_listings', 'pdf')) {
             $columns[] = 'pdf';
+        }
+        if ($this->safeHasColumn('industry_listings', 'technology')) {
+            $columns[] = 'technology';
         }
         if ($this->safeHasColumn('industry_listings', 'outcome_tag')) {
             $columns[] = 'outcome_tag';

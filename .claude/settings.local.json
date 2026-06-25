@@ -26,7 +26,12 @@
       "Bash(php -l app/Http/Controllers/CaseStudiesController.php)",
       "Bash(command -v pdftotext)",
       "Bash(pdftotext -layout \"public/case-study-previews/1782151066_1779815449-armely-wp-publicsector-condensed.pdf\" -)",
-      "Bash(php scripts/seed_onepager_convert.php)"
+      "Bash(php scripts/seed_onepager_convert.php)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://127.0.0.1:8000)",
+      "Bash(php -l app/Http/Controllers/Admin/TablesController.php)",
+      "Bash(php -l app/Http/Controllers/Admin/CaseStudyTechnologyController.php)",
+      "Bash(php -l app/Models/CaseStudyTechnology.php)",
+      "Bash(curl -s -o /dev/null -w \"case-studies page: %{http_code}\\\\n\" http://127.0.0.1:8000/case-studies)"
     ],
     "additionalDirectories": [
       "\\tmp"

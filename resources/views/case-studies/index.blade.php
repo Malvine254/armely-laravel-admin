@@ -618,14 +618,7 @@
 		@forelse($caseStudies as $caseStudy)
 			@php($caseStudyTitle = trim((string) ($caseStudy->title ?? '')))
 			@php($caseStudyDisplayTitle = $caseStudyTitle !== '' ? $caseStudyTitle : (string) ($caseStudy->category ?? 'Case Study'))
-			@php($caseStudyTagKey = (string) ($caseStudy->technology_filters[0] ?? ''))
-			@php($caseStudyTagLabel = match ($caseStudyTagKey) {
-				'fabric-data' => 'Microsoft Fabric',
-				'power-platform' => 'Power Platform',
-				'ai-cognitive-services' => 'AI & Cognitive',
-				'sharepoint-collaboration' => 'SharePoint',
-				default => 'Microsoft Platform',
-			})
+			@php($caseStudyTagLabel = trim((string) ($caseStudy->technology_label ?? 'Microsoft Platform')))
 			@php($caseStudyCategoryLabel = trim((string) ($caseStudy->category ?? '')))
 			@php($caseStudyOutcomeLabel = trim((string) ($caseStudy->outcome_tag ?? '')))
 			<div class="col-12 col-md-6 col-lg-4 mb-4 js-case-card" data-industry="{{ $caseStudy->industry_filter ?? '' }}" data-topics="{{ implode(',', $caseStudy->technology_filters ?? []) }}">
