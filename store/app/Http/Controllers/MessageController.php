@@ -1343,6 +1343,10 @@ class MessageController extends Controller
             return null;
         }
 
+        if ($this->isGeneralConversationQuery($q)) {
+            return 'general_support';
+        }
+
         $recentChatTurns = (array) ($context['recent_chat_turns'] ?? $chatHistory);
         $followUpTopic = $this->inferFollowUpTopic($q, $recentChatTurns);
         if ($followUpTopic !== null) {
@@ -1375,6 +1379,17 @@ class MessageController extends Controller
         }
 
         return null;
+    }
+
+    private function isGeneralConversationQuery(string $questionLower): bool
+    {
+        return in_array($questionLower, [
+            'hi', 'hello', 'hey', 'yo', 'howdy', 'sup',
+            'good morning', 'good afternoon', 'good evening',
+            'what can you do', 'what do you do', 'what do you help with',
+            'help', 'help me', 'help please', 'capabilities', 'options',
+            'thanks', 'thank you', 'thx', 'appreciate it',
+        ], true) || Str::startsWith($questionLower, ['hi ', 'hello ', 'hey ', 'help ']);
     }
 
     private function isQuoteIntentQuery(string $questionLower): bool

@@ -100,6 +100,10 @@ class AzureOpenAiChatService
             return 'general_support';
         }
 
+        if ($this->isGeneralConversationQuery($q)) {
+            return 'general_support';
+        }
+
         $historyIntent = $this->inferIntentFromRecentHistory($q, $chatHistory);
         if ($historyIntent !== null) {
             return $historyIntent;
@@ -692,6 +696,17 @@ class AzureOpenAiChatService
             ->filter(fn ($t) => !empty($t['content']))
             ->map(fn ($t) => strtoupper((string) ($t['role'] ?? 'user')) . ': ' . substr((string) ($t['content'] ?? ''), 0, 200))
             ->implode("\n");
+    }
+
+    private function isGeneralConversationQuery(string $questionLower): bool
+    {
+        return in_array($questionLower, [
+            'hi', 'hello', 'hey', 'yo', 'howdy', 'sup',
+            'good morning', 'good afternoon', 'good evening',
+            'what can you do', 'what do you do', 'what do you help with',
+            'help', 'help me', 'help please', 'capabilities', 'options',
+            'thanks', 'thank you', 'thx', 'appreciate it',
+        ], true) || str_starts_with($questionLower, 'help ');
     }
 
     private function extractProductSearchKeywords(string $question): array
