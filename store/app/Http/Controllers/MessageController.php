@@ -1336,25 +1336,70 @@ class MessageController extends Controller
     {
         $customerName = trim((string) ($context['customer']['name'] ?? ''));
         $firstName = $customerName !== '' ? explode(' ', $customerName)[0] : '';
-        $greet = $firstName !== '' ? "{$firstName}, " : '';
+        $nameSuffix = $firstName !== '' ? ", {$firstName}" : '';
 
         $focusedInvoice = $context['focused_invoice'] ?? null;
+        $orders = (array) ($context['recent_orders'] ?? []);
+        $quotes = (array) ($context['completed_paid_quotes'] ?? []);
+        $invoices = (array) ($context['recent_invoices'] ?? []);
         $openCount = (int) ($context['summary']['open_invoice_count'] ?? 0);
         $openTotal = $this->formatAssistantMoney((float) ($context['summary']['open_invoice_total'] ?? 0));
         $completedPaidQuoteCount = (int) ($context['summary']['completed_paid_quote_count'] ?? 0);
         $isProductIntent = (bool) ($context['product_intent'] ?? false);
+        $questionLower = strtolower(trim($question));
+        $recentChatTurns = (array) ($context['recent_chat_turns'] ?? []);
+        $followUpTopic = $this->inferFollowUpTopic($questionLower, $recentChatTurns);
+        $wantsRankedItem = (bool) preg_match('/\b(most recent|latest|newest|last|first|earliest|oldest)\b/', $questionLower);
+        $preferEarliest = (bool) preg_match('/\b(first|earliest|oldest)\b/', $questionLower);
+
+        if ($wantsRankedItem && $followUpTopic === 'quote') {
+            $quote = $this->pickRankedContextItem($quotes, $preferEarliest);
+            if ($quote !== null && !empty($quote['quote_id'])) {
+                $quoteAmount = !empty($quote['total_amount']) ? ' for ' . $this->formatAssistantMoney((float) $quote['total_amount']) : '';
+                $quoteDate = !empty($quote['created_at']) ? ' from ' . substr((string) $quote['created_at'], 0, 10) : '';
+                $quoteOrder = !empty($quote['order_number']) ? " linked to order {$quote['order_number']}" : '';
+                $quoteStatus = !empty($quote['status']) ? ' Status: ' . ucfirst((string) $quote['status']) . '.' : '';
+                $position = $preferEarliest ? 'first' : 'most recent';
+
+                return "Your {$position} quote is **{$quote['quote_id']}**{$quoteAmount}{$quoteDate}{$quoteOrder}{$quoteStatus}";
+            }
+        }
+
+        if ($wantsRankedItem && $followUpTopic === 'order') {
+            $order = $this->pickRankedContextItem($orders, $preferEarliest);
+            if ($order !== null && !empty($order['order_number'])) {
+                $orderAmount = !empty($order['total_amount']) ? ' for ' . $this->formatAssistantMoney((float) $order['total_amount']) : '';
+                $orderDate = !empty($order['created_at']) ? ' from ' . substr((string) $order['created_at'], 0, 10) : '';
+                $orderStatus = !empty($order['status']) ? ' Status: ' . ucfirst((string) $order['status']) . '.' : '';
+                $position = $preferEarliest ? 'first' : 'most recent';
+
+                return "Your {$position} order is **{$order['order_number']}**{$orderAmount}{$orderDate}{$orderStatus}";
+            }
+        }
+
+        if ($wantsRankedItem && $followUpTopic === 'invoice') {
+            $invoice = $this->pickRankedContextItem($invoices, $preferEarliest);
+            if ($invoice !== null && !empty($invoice['invoice_number'])) {
+                $invoiceAmount = !empty($invoice['total_amount']) ? ' for ' . $this->formatAssistantMoney((float) $invoice['total_amount']) : '';
+                $invoiceDate = !empty($invoice['due_at']) ? ' due ' . substr((string) $invoice['due_at'], 0, 10) : '';
+                $remainingAmount = $this->formatAssistantMoney((float) ($invoice['remaining_amount'] ?? 0));
+                $position = $preferEarliest ? 'first' : 'most recent';
+
+                return "Your {$position} invoice is **{$invoice['invoice_number']}**{$invoiceAmount}{$invoiceDate}. The remaining balance is {$remainingAmount}.";
+            }
+        }
 
         if ($focusedInvoice && !empty($focusedInvoice['invoice_number'])) {
             $remaining = $this->formatAssistantMoney((float) ($focusedInvoice['remaining_amount'] ?? 0));
             $status = strtolower((string) ($focusedInvoice['status'] ?? 'open'));
-            return "{$greet}I found invoice {$focusedInvoice['invoice_number']} (status: {$status}). The remaining balance is {$remaining}. You can view it, download the PDF, or make a payment using the actions below — let me know if you need anything else!";
+            return "I found invoice {$focusedInvoice['invoice_number']} (status: {$status}). The remaining balance is {$remaining}. You can view it, download the PDF, or make a payment using the actions below.";
         }
 
-        if (Str::contains(strtolower($question), ['invoice', 'payment', 'pay'])) {
+        if (Str::contains($questionLower, ['invoice', 'payment', 'pay'])) {
             if ($openCount === 0) {
-                return "{$greet}great news — you have no outstanding invoices right now! If you need to review past invoices or set up a new order, I'm here to help.";
+                return "You do not have any outstanding invoices right now. If you would like, I can still help you review past invoices or set up a new order.";
             }
-            return "{$greet}you currently have {$openCount} open invoice(s) totaling {$openTotal}. I can help you view details, download PDFs, or make payments — just let me know which invoice you'd like to start with!";
+            return "You currently have {$openCount} open invoice(s) totaling {$openTotal}. I can help you view details, download PDFs, or make payments. Tell me which invoice you would like to start with.";
         }
 
         $productSuggestions = (array) ($context['product_suggestions'] ?? []);
@@ -1363,39 +1408,89 @@ class MessageController extends Controller
             $top = $productSuggestions[0];
             $price = $this->formatAssistantMoney((float) ($top['price'] ?? 0));
             $name = (string) ($top['name'] ?? 'a top product');
-            return "{$greet}I found {$count} product(s) that match your search! The top suggestion is **{$name}** at {$price}. Check out the product cards below — each one explains why it's a good fit. Want me to help you request a quote?";
+            return "I found {$count} product(s) that match your search. The top suggestion is **{$name}** at {$price}. Check the product cards below for details, and I can help you request a quote if you would like.";
         }
 
         if ($isProductIntent) {
-            return "{$greet}I searched the catalog but didn't find a strong match for that specific phrase. Try narrowing it down — a brand name (like \"Dell\" or \"Cisco\"), a model number, or a category (like \"laptop\" or \"switch\") works best. I'm ready when you are!";
+            return "I searched the catalog but did not find a strong match for that phrase. Try a brand name like \"Dell\" or \"Cisco\", a model number, or a category like \"laptop\" or \"switch\".";
         }
 
-        if (Str::contains(strtolower($question), ['quote', 'same quote', 'reorder', 'requote'])) {
+        if (Str::contains($questionLower, ['quote', 'same quote', 'reorder', 'requote'])) {
             if ($completedPaidQuoteCount > 0) {
-                return "{$greet}you have {$completedPaidQuoteCount} approved and paid quote(s) ready to reorder. Head to Quotes to duplicate one, or I can help you build a new quote from scratch!";
+                return "You have {$completedPaidQuoteCount} approved and paid quote(s) ready to reorder. I can help you duplicate one or build a new quote from scratch.";
             }
-            return "{$greet}I don't see any completed quotes yet, but I can help you browse products and build a new quote. What are you looking for?";
+            return "I do not see any completed quotes yet, but I can help you browse products and build a new quote. What are you looking for?";
         }
 
-        if (Str::contains(strtolower($question), ['order', 'track', 'shipping', 'delivery'])) {
-            return "{$greet}I can pull up your recent orders and tracking info. If you have a specific order number, share it and I'll look it up right away!";
+        if (Str::contains($questionLower, ['order', 'track', 'shipping', 'delivery'])) {
+            return "I can pull up your recent orders and tracking info. If you have a specific order number, share it and I will look it up.";
         }
 
-        // Greeting handling
-        $questionLower = strtolower(trim($question));
         $greetings = ['hi', 'hello', 'hey', 'yo', 'good morning', 'good afternoon', 'good evening', 'howdy', 'sup', 'whats up'];
         if (in_array($questionLower, $greetings, true) || Str::startsWith($questionLower, ['hi ', 'hello ', 'hey '])) {
-            $timeGreet = date('H') < 12 ? 'Good morning' : (date('H') < 17 ? 'Good afternoon' : 'Good evening');
             $nameGreet = $firstName !== '' ? ", {$firstName}" : '';
-            return "{$timeGreet}{$nameGreet}! 👋 I'm Mela AI, your Armely assistant. I can help with invoices, payments, orders, quotes, and finding the right IT products. What can I do for you today?";
+            return "Hey{$nameGreet}. I'm Mela AI, your Armely assistant. I can help with invoices, payments, orders, quotes, and product recommendations.";
         }
 
-        // Thank you handling
         if (Str::contains($questionLower, ['thank', 'thanks', 'thx', 'appreciate'])) {
-            return "You're welcome{$greet}! Happy to help anytime. Is there anything else I can assist you with?";
+            return "You're welcome{$nameSuffix}. If you need anything else, just send it over.";
         }
 
-        return "{$greet}I'm here to help with invoices, payments, quotes, order tracking, and product recommendations. Just ask — for example, try \"Show my unpaid invoices\" or \"Recommend a Dell laptop under \$1500\" and I'll jump right in!";
+        return "I can help with invoices, payments, quotes, order tracking, and product recommendations. Ask me about a specific invoice, quote, order, or product and I'll jump in.";
+    }
+
+    private function inferFollowUpTopic(string $question, array $recentChatTurns = []): ?string
+    {
+        $topic = $this->detectAccountTopicFromText($question);
+        if ($topic !== null) {
+            return $topic;
+        }
+
+        foreach (array_reverse($recentChatTurns) as $turn) {
+            $text = strtolower(trim((string) ($turn['content'] ?? '')));
+            if ($text === '') {
+                continue;
+            }
+
+            $topic = $this->detectAccountTopicFromText($text);
+            if ($topic !== null) {
+                return $topic;
+            }
+        }
+
+        return null;
+    }
+
+    private function detectAccountTopicFromText(string $text): ?string
+    {
+        $text = strtolower(trim($text));
+        if ($text === '') {
+            return null;
+        }
+
+        if (Str::contains($text, ['invoice', 'invoices', 'payment', 'payments', 'pay', 'billing', 'balance'])) {
+            return 'invoice';
+        }
+
+        if (Str::contains($text, ['quote', 'quotes', 'requote', 'reorder', 'same quote'])) {
+            return 'quote';
+        }
+
+        if (Str::contains($text, ['order', 'orders', 'shipping', 'tracking', 'delivery', 'track'])) {
+            return 'order';
+        }
+
+        return null;
+    }
+
+    private function pickRankedContextItem(array $items, bool $preferEarliest = false): ?array
+    {
+        $items = array_values(array_filter($items, static fn ($item) => is_array($item)));
+        if (empty($items)) {
+            return null;
+        }
+
+        return $preferEarliest ? $items[array_key_last($items)] : $items[0];
     }
 
     private function handleLocalProductDiscoveryReply(string $question, array $context): ?array

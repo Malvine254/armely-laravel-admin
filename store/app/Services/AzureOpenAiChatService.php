@@ -42,10 +42,13 @@ class AzureOpenAiChatService
         // Intent classification uses local keywords — instant, no API call, never times out.
         $intent = $this->classifyIntentLocally($question, $chatHistory);
 
-        // When the local classifier lands on general_support but the product search already
-        // found matching catalog results, upgrade to product_search. This catches implicit
-        // queries like "I need something fast for video editing" or "recommend me a good printer".
-        if ($intent === 'general_support' && !empty($context['product_suggestions'])) {
+        // When general_support is the default, only upgrade to product_search if the
+        // current question actually looks like a product search and the assistant has
+        // meaningful product discovery signals from context.
+        if ($intent === 'general_support'
+            && ($context['product_intent'] ?? false)
+            && !empty($context['product_suggestions'])
+        ) {
             $intent = 'product_search';
         }
 
@@ -85,6 +88,11 @@ class AzureOpenAiChatService
             return 'general_support';
         }
 
+        $historyIntent = $this->inferIntentFromRecentHistory($q, $chatHistory);
+        if ($historyIntent !== null) {
+            return $historyIntent;
+        }
+
         // Multi-domain: mentions orders AND quotes together → general_support (shows combined account summary)
         $hasOrderSignal = (bool) preg_match('/\borders?\b/', $q);
         $hasQuoteSignal = (bool) preg_match('/\bquotes?\b/', $q);
@@ -107,8 +115,11 @@ class AzureOpenAiChatService
             return 'quote_management';
         }
 
-        // Explicit product / catalog signals
-        if (preg_match('/\b(laptop|notebook|desktop|printer|server|monitor|switch|router|firewall|wifi|wireless|tablet|projector|ups|storage|ssd|keyboard|mouse|webcam|headset|workstation|chromebook|thin client|mini pc|all.in.one|docking|dock|scanner|sku|catalog|buy|purchase|spec|model|find me|search for|looking for|compare)\b/', $q)) {
+        // Explicit product / catalog signals.
+        // Only classify as product_search when the query is clearly asking for product discovery,
+        // otherwise allow general support to handle conceptual or account-oriented questions.
+        if (preg_match('/\b(laptop|notebook|desktop|printer|server|monitor|switch|router|firewall|wifi|wireless|tablet|projector|ups|storage|ssd|keyboard|mouse|webcam|headset|workstation|chromebook|thin client|mini pc|all.in.one|docking|dock|scanner|sku|catalog|buy|purchase|spec|model|find me|search for|looking for|compare)\b/', $q)
+            && $this->isExplicitProductSearchQuery($q)) {
             return 'product_search';
         }
 
@@ -119,6 +130,51 @@ class AzureOpenAiChatService
 
         // Multi-domain / ambiguous → general support
         return 'general_support';
+    }
+
+    private function inferIntentFromRecentHistory(string $question, array $chatHistory): ?string
+    {
+        if (strlen($question) > 80) {
+            return null;
+        }
+
+        if (!preg_match('/\b(this|that|these|those|recent|latest|most|same|it|them|details|more)\b/', $question)) {
+            return null;
+        }
+
+        $lastUserMessage = null;
+        foreach (array_reverse($chatHistory) as $turn) {
+            if (($turn['role'] ?? '') === 'user' && trim((string) ($turn['content'] ?? '')) !== '') {
+                $lastUserMessage = strtolower(trim((string) $turn['content']));
+                break;
+            }
+        }
+
+        if ($lastUserMessage === null) {
+            return null;
+        }
+
+        if (preg_match('/\bquotes?\b/', $lastUserMessage)) {
+            return 'quote_management';
+        }
+
+        if (preg_match('/\b(order|orders|shipment|track|tracking|delivery|shipped|dispatch)\b/', $lastUserMessage)) {
+            return 'order_status';
+        }
+
+        if (preg_match('/\b(invoice|invoices|payment|payments|billing|balance|due|receipt|pay)\b/', $lastUserMessage)) {
+            return 'invoice_payment';
+        }
+
+        return null;
+    }
+
+    private function isExplicitProductSearchQuery(string $query): bool
+    {
+        $query = strtolower(trim($query));
+
+        // Product search queries must include clear product discovery signals.
+        return (bool) preg_match('/\b(search for|find (?:me )?|looking for|recommend|suggest|best|buy|purchase|catalog|catalogue|sku|model|spec|part number|quote|price|under|below|budget)\b/', $query);
     }
 
     // ─── Specialist agents ─────────────────────────────────────────────────────
@@ -144,11 +200,11 @@ class AzureOpenAiChatService
             "Address the customer as {$firstName}.",
             '',
             '## Instructions',
-            '- You MUST list every product from the JSON catalog results provided below.',
-            '- For each product write one line: product name, vendor, price, and one sentence on why it fits.',
-            '- Do NOT withhold or skip products. Show ALL of them.',
-            '- If catalog results are empty, say so clearly and ask for a brand or category.',
-            '- Suggest requesting a quote at the end.',
+            '- Answer in a friendly, conversational tone. Focus on helping the customer solve their product need.',
+            '- If catalog results are available, describe the best matches naturally and explain why each fits.',
+            '- Include product name, vendor, and price when available, but avoid sounding like a rigid list.',
+            '- If you cannot find matching catalog results, say so clearly and ask for a brand, category, or use case.',
+            '- Offer a next step, such as browsing similar products or requesting a quote.',
             '- Never invent product names, prices, or SKUs not in the JSON.',
         ]);
 
@@ -169,9 +225,9 @@ class AzureOpenAiChatService
                 $top   = $productSuggestions[0];
                 $price = isset($top['price']) && $top['price'] > 0 ? ' at $' . number_format((float) $top['price'], 2) : '';
                 $count = count($productSuggestions);
-                $reply = "Hi {$firstName}! I found {$count} product(s) matching your search. Top pick: **{$top['name']}**{$price}.\n\nCheck the product cards below for details, or use the actions to browse the full catalog.";
+            $reply = "I found {$count} product(s) matching your search. Top pick: **{$top['name']}**{$price}.\n\nCheck the product cards below for details, or use the actions to browse the full catalog.";
             } else {
-                $reply = "Hi {$firstName}! I searched the catalog but didn't find a match for that query. Try a brand name (Dell, HP, Cisco, Lenovo), a category (laptop, switch, server, UPS), or a part number.";
+                $reply = "I searched the catalog but didn't find a match for that query. Try a brand name (Dell, HP, Cisco, Lenovo), a category (laptop, switch, server, UPS), or a part number.";
             }
         }
 
@@ -202,7 +258,7 @@ class AzureOpenAiChatService
         $firstName = $this->firstName($context);
 
         if (empty($orders)) {
-            $reply = "Hi {$firstName}! I don't see any orders on your account yet. Once you submit a quote it will appear here as an order.";
+            $reply = "I don't see any orders on your account yet. Once you submit a quote it will appear here as an order.";
         } else {
             $lines = [];
             foreach ($orders as $order) {
@@ -215,7 +271,7 @@ class AzureOpenAiChatService
                 $lines[] = "• **{$order['order_number']}** — " . ucfirst((string) ($order['status'] ?? '')) . "{$amount}{$pay}{$date}{$track}";
             }
             $count = count($orders);
-            $reply = "Hi {$firstName}! You have **{$count}** order(s) on record:\n\n" . implode("\n", $lines)
+            $reply = "You have **{$count}** order(s) on record:\n\n" . implode("\n", $lines)
                 . "\n\nClick **View my orders** below for full tracking details and invoice downloads.";
         }
 
@@ -234,7 +290,7 @@ class AzureOpenAiChatService
         $firstName = $this->firstName($context);
 
         if (empty($quotes)) {
-            $reply = "Hi {$firstName}! No quotes found on your account yet. Browse the product catalog, add items to your cart, and submit a quote request to get started.";
+            $reply = "I don't see any quotes on your account yet. Browse the product catalog, add items to your cart, and submit a quote request to get started.";
         } else {
             $lines = [];
             foreach ($quotes as $q) {
@@ -248,7 +304,7 @@ class AzureOpenAiChatService
                 $lines[]   = "• **{$q['quote_id']}**{$amount} · {$status}{$ordRef}{$ordStatus}{$date}";
             }
             $count = count($quotes);
-            $reply = "Hi {$firstName}! You have **{$count}** quote(s) on record:\n\n" . implode("\n", $lines)
+            $reply = "You have **{$count}** quote(s) on record:\n\n" . implode("\n", $lines)
                 . "\n\nClick **View my quotes** below to manage, duplicate for reorder, or check approval status.";
         }
 
@@ -280,7 +336,7 @@ class AzureOpenAiChatService
             $paid   = number_format((float) ($inv['paid_amount'] ?? 0), 2);
             $status = ucfirst((string) ($inv['status'] ?? ''));
             $due    = !empty($inv['due_at']) ? " · Due: {$inv['due_at']}" : '';
-            $reply  = "Hi {$firstName}! Here are the details for **{$inv['invoice_number']}**:\n\n"
+            $reply  = "Here are the details for **{$inv['invoice_number']}**:\n\n"
                     . "• Total: **\${$total}**\n"
                     . "• Paid: **\${$paid}**\n"
                     . "• Balance: **\${$rem}**\n"
@@ -294,7 +350,7 @@ class AzureOpenAiChatService
             }
             $reply .= "\nUse the action links below to view, download a PDF, or pay.";
         } elseif (empty($invoices)) {
-            $reply = "Hi {$firstName}! No invoices found on your account yet.";
+            $reply = "I don't see any invoices on your account yet.";
         } else {
             $open = [];
             $paid = [];
@@ -310,7 +366,7 @@ class AzureOpenAiChatService
                     $paid[] = "• **{$inv['invoice_number']}** — \${$total} · Paid{$orderRef}";
                 }
             }
-            $reply = "Hi {$firstName}! ";
+            $reply = '';
             if (!empty($open)) {
                 $reply .= "**Outstanding (" . count($open) . "):**\n" . implode("\n", $open);
             }
@@ -362,21 +418,23 @@ class AzureOpenAiChatService
             'You are Mela AI, the customer account assistant for Armely — a B2B IT procurement platform.',
             '',
             '## Personality',
-            '- Warm, professional, and helpful. Always address the customer by their first name.',
-            '- Be concise and action-oriented. Use bullet points for clarity.',
-            '- End every response with a helpful nudge or next step.',
+            '- Be warm, professional, and conversational. Speak naturally as if you are helping a customer in chat.',
+            '- Focus on practical solutions and next steps, not rigid canned responses.',
+            '- Use short natural sentences and occasional bullets only when they genuinely help clarity.',
+            '- Avoid repeating the same greeting in every answer. Only greet the customer when they are actually greeting you.',
+            '- Avoid pet names like "buddy" or "friend" unless the customer uses that style first.',
             '',
             '## Capabilities',
             '- You have FULL access to the customer\'s account data — orders, quotes, and invoices — provided below.',
-            '- Answer account questions DIRECTLY from the provided data. Never redirect the customer to "check their page".',
-            '- Handle greetings, thank-yous, account questions, platform navigation, and general IT procurement questions.',
-            '- For issues you cannot resolve (technical errors, complex disputes), suggest escalation to human support.',
+            '- Answer account questions directly from the provided data. Do not redirect the customer to "check their page".',
+            '- Help with greetings, thank-yous, account questions, platform navigation, and general IT procurement questions.',
+            '- If you cannot resolve a technical or complex issue, suggest escalation to human support in a helpful way.',
             '',
             '## Rules',
-            '- ALWAYS answer from the account data below. Never say "please check your orders page" — tell them what you see.',
-            '- If a specific reference (order number, invoice number) is not in the data, say it wasn\'t found in the last records.',
+            '- Always answer from the account data below and keep the tone conversational.',
+            '- If a specific reference (order number, invoice number) is not in the data, explain that clearly and offer a next step.',
             '- Never invent order, invoice, or quote details not present in the data.',
-            '- Keep replies concise but complete — quality over brevity.',
+            '- Keep replies helpful and solution-based, not stiff or overly formatted.',
         ]);
 
         $greeting    = $customerName !== '' ? "Customer name: {$customerName}\n" : '';
@@ -394,20 +452,16 @@ class AzureOpenAiChatService
         // Context-aware local fallback — always shows real account data, never a generic nothing.
         if ($reply === null) {
             $q     = strtolower(trim($question));
-            $greet = $firstName !== 'there' ? "Hi {$firstName}! " : 'Hi! ';
-
             // Greetings
             $greetWords = ['hi', 'hello', 'hey', 'good morning', 'good afternoon', 'good evening', 'howdy', 'sup'];
             if (in_array($q, $greetWords, true) || preg_match('/^(hi|hello|hey|good (morning|afternoon|evening))\b/', $q)) {
-                $time  = (int) date('H');
-                $tod   = $time < 12 ? 'Good morning' : ($time < 17 ? 'Good afternoon' : 'Good evening');
                 $name  = $firstName !== 'there' ? ", {$firstName}" : '';
-                $reply = "{$tod}{$name}! I'm Mela AI, your Armely assistant. I can help you find IT products, manage invoices and payments, track orders, and more. What can I help you with today?";
+                $reply = "Hey{$name}. I'm Mela AI, your Armely assistant. I can help with products, quotes, orders, invoices, or anything else on your account.";
             }
             // Thank you
             elseif (preg_match('/\b(thank|thanks|thx|cheers|appreciate|great|awesome|perfect)\b/', $q)) {
                 $namePart = $firstName !== 'there' ? ", {$firstName}" : '';
-                $reply = "You're welcome{$namePart}! Happy to help anytime. Is there anything else I can assist you with?";
+                $reply = "You're welcome{$namePart}. If anything else comes up, just send it my way.";
             }
             // Any mention of orders, quotes, or invoices → show account summary
             elseif (preg_match('/\b(quotes?|orders?|invoices?|payments?|account|summary|status|history)\b/', $q)) {
@@ -422,7 +476,9 @@ class AzureOpenAiChatService
                 if ($openCount > 0) {
                     $parts[] = "You have {$openCount} open invoice(s) outstanding.";
                 }
-                $reply = $greet . (count($parts) ? implode(' ', $parts) . ' Use the action links below for full details.' : "I can help with orders, quotes, and invoices. What would you like to check?");
+                $reply = count($parts)
+                    ? implode(' ', $parts) . ' Use the action links below for full details.'
+                    : "I can help with orders, quotes, and invoices. Tell me what you would like to check.";
             } else {
                 // Generic catch-all — but still personalised with account context
                 $ctxParts = [];
@@ -436,7 +492,7 @@ class AzureOpenAiChatService
                     $ctxParts[] = "{$openCount} open invoice(s)";
                 }
                 $ctxLine = count($ctxParts) ? ' Your account has ' . implode(', ', $ctxParts) . '.' : '';
-                $reply = $greet . "I'm here to help with invoices, payments, quotes, order tracking, and product recommendations.{$ctxLine} What can I do for you today?";
+                $reply = "I can help with invoices, payments, quotes, order tracking, and product recommendations.{$ctxLine} Tell me what you want to check.";
             }
         }
 
