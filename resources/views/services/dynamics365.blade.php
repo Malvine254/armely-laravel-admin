@@ -1,5 +1,3 @@
-@section('title', 'Microsoft Dynamics 365 Implementation | Armely')
-
 <style>
 
 

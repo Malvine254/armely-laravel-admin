@@ -1,5 +1,3 @@
-@section('title', 'SharePoint Online Governance and Intranet | Armely')
-
 <style>
 
 

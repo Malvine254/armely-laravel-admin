@@ -1,5 +1,3 @@
-@section('title', 'Microsoft 365 Governance and Adoption | Armely')
-
 <style>
 
 

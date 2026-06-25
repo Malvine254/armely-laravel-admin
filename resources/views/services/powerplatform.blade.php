@@ -1,5 +1,3 @@
-@section('title', 'Microsoft Power Platform Development | Armely')
-
 <style>
 
 

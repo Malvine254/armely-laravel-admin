@@ -1,5 +1,3 @@
-@section('title', 'AI and Data Strategy Advisory | Armely')
-
 <style>
 
 

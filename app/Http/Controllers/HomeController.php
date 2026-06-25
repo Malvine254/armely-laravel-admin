@@ -507,6 +507,10 @@ class HomeController extends Controller
                 });
         }, $dbErrorMessage);
 
+        if (!is_object($service) || $service instanceof \Illuminate\Support\Collection || !isset($service->id)) {
+            $service = null;
+        }
+
         if (!$service) {
             $service = (object) [
                 'id' => 0,

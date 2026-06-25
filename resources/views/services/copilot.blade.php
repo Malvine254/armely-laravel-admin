@@ -1,5 +1,3 @@
-@section('title', 'Microsoft 365 Copilot Deployment | Armely')
-
 <style>
 
 

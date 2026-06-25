@@ -1,5 +1,3 @@
-@section('title', 'SQL Server Migration and Management | Armely')
-
 <style>
 
 

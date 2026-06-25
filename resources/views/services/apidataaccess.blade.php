@@ -1,5 +1,3 @@
-@section('title', 'API Development and Integration Services | Armely')
-
 <style>
 
 

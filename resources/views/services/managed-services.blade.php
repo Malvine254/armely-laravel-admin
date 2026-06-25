@@ -1,5 +1,3 @@
-@section('title', 'Microsoft Managed Services | Armely')
-
 <style>
 
 
