@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\CaseStudyCategory;
+use App\Models\CaseStudyTechnology;
+use Illuminate\Validation\Rule;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -106,8 +108,9 @@ class TablesController extends Controller
             : collect();
 
         $caseStudyCategories = $this->caseStudyCategoryOptions();
+        $caseStudyTechnologies = $this->caseStudyTechnologyOptions();
 
-        return view('admin.tables', compact('blogs', 'videos', 'careers', 'socialImpact', 'customerStories', 'caseStudies', 'events', 'team', 'contacts', 'newsletterSubscribers', 'adminAuthors', 'caseStudyCategories'));
+        return view('admin.tables', compact('blogs', 'videos', 'careers', 'socialImpact', 'customerStories', 'caseStudies', 'events', 'team', 'contacts', 'newsletterSubscribers', 'adminAuthors', 'caseStudyCategories', 'caseStudyTechnologies'));
     }
     
     // ========== LIST ENDPOINTS FOR AJAX TABLE RELOAD ==========
@@ -257,6 +260,10 @@ class TablesController extends Controller
                 $caseStudyQuery->addSelect('outcome_tag');
             }
 
+            if ($this->columnExists('industry_listings', 'technology')) {
+                $caseStudyQuery->addSelect('technology');
+            }
+
             if ($this->columnExists('industry_listings', 'one_pager_content')) {
                 $caseStudyQuery->addSelect('one_pager_content');
             }
@@ -323,6 +330,39 @@ class TablesController extends Controller
             'Transportation & Logistics',
             'Agriculture/Cannabis',
         ];
+    }
+
+    /**
+     * Active technologies as [slug => name] for the case-study form dropdown,
+     * the public filters, and validation. Falls back to model defaults.
+     */
+    private function caseStudyTechnologyOptions(): \Illuminate\Support\Collection
+    {
+        if ($this->tableExists('case_study_technologies')) {
+            try {
+                CaseStudyTechnology::syncDefaults();
+
+                $technologies = DB::table('case_study_technologies')
+                    ->select('slug', 'name')
+                    ->where('is_active', true)
+                    ->orderBy('sort_order')
+                    ->orderBy('name')
+                    ->pluck('name', 'slug');
+
+                if ($technologies->isNotEmpty()) {
+                    return $technologies;
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Unable to load case study technologies', ['error' => $e->getMessage()]);
+            }
+        }
+
+        $defaults = collect();
+        foreach (CaseStudyTechnology::defaults() as $name => $slug) {
+            $defaults->put($slug, $name);
+        }
+
+        return $defaults;
     }
 
     private function caseStudyCategoryOptions(): \Illuminate\Support\Collection
@@ -895,6 +935,7 @@ class TablesController extends Controller
             'id' => ['nullable', 'integer'],
             'category' => ['required', 'string', 'max:255'],
             'title' => ['nullable', 'string', 'max:255'],
+            'technology' => ['nullable', 'string', Rule::in($this->caseStudyTechnologyOptions()->keys()->all())],
             'outcome_tag' => ['nullable', 'string', 'max:255'],
             'body' => ['nullable', 'string'],
             'one_pager_content' => ['nullable', 'string'],
@@ -930,6 +971,11 @@ class TablesController extends Controller
 
         if ($this->columnExists('industry_listings', 'one_pager_content')) {
             $data['one_pager_content'] = $this->sanitizeOnePagerContent((string) ($validated['one_pager_content'] ?? ''));
+        }
+
+        if ($this->columnExists('industry_listings', 'technology')) {
+            $technology = trim((string) ($validated['technology'] ?? ''));
+            $data['technology'] = $technology !== '' ? $technology : null;
         }
 
         if ($this->columnExists('industry_listings', 'outcome_tag')) {

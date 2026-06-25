@@ -807,6 +807,9 @@
                     <a class="btn btn-outline-primary" href="{{ route('admin.case-study-categories.index') }}">
                         <i class="fas fa-tags"></i> Manage Categories
                     </a>
+                    <a class="btn btn-outline-primary" href="{{ route('admin.case-study-technologies.index') }}">
+                        <i class="fas fa-microchip"></i> Manage Technologies
+                    </a>
                 </div>
 
                 <div class="table-responsive">
@@ -1376,6 +1379,21 @@
                                     <i class="fas fa-pen"></i>
                                 </a>
                             </div>
+                        </div>
+                        <div class="col-md-6" id="caseStudyTechnologyGroup">
+                            <label for="caseStudyTechnology" class="form-label">Technology</label>
+                            <div class="d-flex align-items-center gap-2">
+                                <select class="form-select" id="caseStudyTechnology" name="technology">
+                                    <option value="">Auto-detect from content</option>
+                                    @foreach(($caseStudyTechnologies ?? collect()) as $technologySlug => $technologyName)
+                                        <option value="{{ $technologySlug }}">{{ $technologyName }}</option>
+                                    @endforeach
+                                </select>
+                                <a href="{{ route('admin.case-study-technologies.index') }}" class="btn btn-outline-secondary btn-sm" title="Manage technologies">
+                                    <i class="fas fa-pen"></i>
+                                </a>
+                            </div>
+                            <small class="text-muted">Shown as the technology chip on the case-study card. Leave on auto-detect to infer it from the content.</small>
                         </div>
                         <div class="col-md-6" id="caseStudyOutcomeTagGroup">
                             <label for="caseStudyOutcomeTag" class="form-label" id="caseStudyOutcomeTagLabel">Outcome Tag</label>
@@ -2336,12 +2354,7 @@ $(document).ready(function() {
             ? String(item.technology_filters[0] || '').trim()
             : String(item.technology_filters || '').trim();
 
-        const labelMap = {
-            'fabric-data': 'Microsoft Fabric',
-            'power-platform': 'Power Platform',
-            'ai-cognitive-services': 'AI & Cognitive',
-            'sharepoint-collaboration': 'SharePoint',
-        };
+        const labelMap = @json(($caseStudyTechnologies ?? collect())->toArray());
 
         return labelMap[key] || 'Microsoft Platform';
     }
@@ -2418,6 +2431,8 @@ $(document).ready(function() {
             resource_type: resourceType,
             title: $('#caseStudyTitle').val(),
             category: $('#caseStudyCategory').val(),
+            technology: $('#caseStudyTechnology').val(),
+            technology_label: $('#caseStudyTechnology').val() ? $('#caseStudyTechnology option:selected').text().trim() : '',
             outcome_tag: $('#caseStudyOutcomeTag').val(),
             pdf_url: $('#caseStudyPdfUrl').val(),
             body: caseStudyEditor ? caseStudyEditor.getData() : $('#caseStudyBody').val(),
@@ -3247,6 +3262,7 @@ $(document).ready(function() {
         $('#caseStudyForm')[0].reset();
         $('#caseStudyId').val('');
         $('#caseStudyCategory').val('');
+        $('#caseStudyTechnology').val('');
         $('#caseStudyOutcomeTag').val('');
         $('#caseStudyExistingPreview').val('');
         if (window.caseStudyPreviewObjectUrl) {
@@ -3265,7 +3281,7 @@ $(document).ready(function() {
     };
 
     $('input[name="resource_type"]').on('change', applyCaseStudyResourceTypeUI);
-    $(document).on('input change', '#caseStudyTitle, #caseStudyCategory, #caseStudyOutcomeTag, #caseStudyPdfUrl, #caseStudyExistingPreview, #caseStudyImage', updateCaseStudyDraftPreview);
+    $(document).on('input change', '#caseStudyTitle, #caseStudyCategory, #caseStudyTechnology, #caseStudyOutcomeTag, #caseStudyPdfUrl, #caseStudyExistingPreview, #caseStudyImage', updateCaseStudyDraftPreview);
 
     $('[data-bs-target="#caseStudyModal"]').click(function() {
         if (!caseStudyEditor) {
@@ -3302,6 +3318,7 @@ $(document).ready(function() {
         }
 
         $('#caseStudyCategory').val(item.category || '');
+        $('#caseStudyTechnology').val(item.technology || '');
         $('#caseStudyOutcomeTag').val(item.outcome_tag || item.outcome_tags || '');
         $('#caseStudyTitle').val(item.title || '');
         $('#caseStudyExistingPreview').val(item.listing_image || item.images || item.image || '');
@@ -3363,6 +3380,7 @@ $(document).ready(function() {
 
         if (!isWhitePaper) {
             formData.append('category', $('#caseStudyCategory').val());
+            formData.append('technology', $('#caseStudyTechnology').val());
             formData.append('outcome_tag', $('#caseStudyOutcomeTag').val());
             formData.append('one_pager_content', caseStudyOnePagerEditor ? caseStudyOnePagerEditor.getData() : $('#caseStudyOnePagerContent').val());
         }

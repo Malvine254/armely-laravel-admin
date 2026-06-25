@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\CareerController;
 use App\Http\Controllers\Admin\AnalyticsController;
 use App\Http\Controllers\Admin\CompanyContentController;
 use App\Http\Controllers\Admin\CaseStudyCategoryController;
+use App\Http\Controllers\Admin\CaseStudyTechnologyController;
 use App\Http\Controllers\Admin\ResourceCategoryController;
 use App\Http\Controllers\ServicesController;
 use App\Http\Controllers\BlogController;
@@ -325,6 +326,9 @@ Route::prefix('admin')->middleware(['admin'])->group(function () {
     Route::get('/case-study-categories', [CaseStudyCategoryController::class, 'index'])->name('admin.case-study-categories.index');
     Route::post('/case-study-categories', [CaseStudyCategoryController::class, 'store'])->name('admin.case-study-categories.store');
     Route::delete('/case-study-categories/{caseStudyCategory}', [CaseStudyCategoryController::class, 'destroy'])->name('admin.case-study-categories.destroy');
+    Route::get('/case-study-technologies', [CaseStudyTechnologyController::class, 'index'])->name('admin.case-study-technologies.index');
+    Route::post('/case-study-technologies', [CaseStudyTechnologyController::class, 'store'])->name('admin.case-study-technologies.store');
+    Route::delete('/case-study-technologies/{caseStudyTechnology}', [CaseStudyTechnologyController::class, 'destroy'])->name('admin.case-study-technologies.destroy');
     
     // Tables Management (CRUD for content)
     Route::get('/tables', [TablesController::class, 'index'])->name('admin.tables');
