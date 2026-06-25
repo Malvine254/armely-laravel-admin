@@ -708,16 +708,8 @@ class AzureOpenAiChatService
     private function extractProductSearchKeywords(string $question): array
     {
         return ChatIntentSignals::extractProductSearchKeywords($question);
+    }
 
-        $normalized = strtolower($question);
-        $parts = preg_split('/[^a-z0-9-]+/i', $normalized) ?: [];
-        $stopWords = [
-            'need', 'purchase', 'buy', 'best', 'give', 'me', 'my', 'your', 'our', 'its', 'their',
-            'sample', 'list', 'for', 'the', 'is', 'it', 'if', 'in', 'on', 'at', 'of', 'be', 'no', 'so',
-            'and', 'or', 'with', 'show', 'please', 'can', 'you', 'want', 'from', 'that', 'this',
-            'have', 'all', 'more', 'details', 'about', 'find', 'search', 'suggestion', 'suggestions',
-            'suggest', 'suggested', 'recommended', 'recommend', 'available', 'current', 'from',
-            'product', 'products', 'item', 'items', 'one', 'two', 'three', 'hi', 'hello', 'hey', 'to', 'today',
             'last', 'latest', 'recent', 'newest', 'first', 'earliest', 'oldest', 'previous', 'former',
             'order', 'quote', 'quotes', 'cart', 'make', 'proceed', 'request', 'them', 'those', 'are', 'please',
             'add', 'added', 'placing', 'place', 'good', 'looking', 'look', 'get', 'some', 'any',
