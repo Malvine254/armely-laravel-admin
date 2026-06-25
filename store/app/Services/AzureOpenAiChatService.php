@@ -138,7 +138,7 @@ class AzureOpenAiChatService
             return null;
         }
 
-        if (!preg_match('/\b(this|that|these|those|recent|latest|most|same|it|them|details|more)\b/', $question)) {
+        if (!preg_match('/\b(this|that|these|those|recent|latest|most|last|first|earliest|oldest|previous|same|it|them|details|more)\b/', $question)) {
             return null;
         }
 
@@ -288,12 +288,29 @@ class AzureOpenAiChatService
     {
         $quotes    = (array) ($context['completed_paid_quotes'] ?? []);
         $firstName = $this->firstName($context);
+        $questionLower = strtolower(trim($question));
+        $requestedCount = null;
+        $matches = [];
+
+        if (preg_match('/\b(?:last|latest|most recent|newest)\s*(\d+)\b/', $questionLower, $matches) || preg_match('/\b(\d+)\s*(?:last|latest|most recent|newest)\b/', $questionLower, $matches)) {
+            $requestedCount = max(1, min(10, (int) ($matches[1] ?? 0)));
+        }
+        $preferEarliest = (bool) preg_match('/\b(first|earliest|oldest)\b/', $questionLower);
 
         if (empty($quotes)) {
             $reply = "I don't see any quotes on your account yet. Browse the product catalog, add items to your cart, and submit a quote request to get started.";
         } else {
+            $selectedQuotes = $quotes;
+            if ($requestedCount !== null) {
+                $selectedQuotes = $preferEarliest
+                    ? array_slice(array_reverse($quotes), 0, $requestedCount)
+                    : array_slice($quotes, 0, $requestedCount);
+            } elseif ($preferEarliest) {
+                $selectedQuotes = array_reverse($quotes);
+            }
+
             $lines = [];
-            foreach ($quotes as $q) {
+            foreach ($selectedQuotes as $q) {
                 $amount    = (float) ($q['total_amount'] ?? 0) > 0
                     ? ' — $' . number_format((float) $q['total_amount'], 2)
                     : '';
@@ -304,7 +321,11 @@ class AzureOpenAiChatService
                 $lines[]   = "• **{$q['quote_id']}**{$amount} · {$status}{$ordRef}{$ordStatus}{$date}";
             }
             $count = count($quotes);
-            $reply = "You have **{$count}** quote(s) on record:\n\n" . implode("\n", $lines)
+            $shownCount = count($lines);
+            $reply = $requestedCount !== null
+                ? "Here are your **{$shownCount}** most recent quote(s) out of {$count}:"
+                : "You have **{$count}** quote(s) on record:";
+            $reply .= "\n\n" . implode("\n", $lines)
                 . "\n\nClick **View my quotes** below to manage, duplicate for reorder, or check approval status.";
         }
 
