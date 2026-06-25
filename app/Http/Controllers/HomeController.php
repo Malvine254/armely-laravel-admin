@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\AzureMailService;
+use App\Support\ServiceUrl;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -462,6 +463,11 @@ class HomeController extends Controller
     public function serviceDetails($name)
     {
         $name = $this->normalizeServiceDetailSlug($name);
+        $canonicalName = ServiceUrl::canonicalSlug($name);
+
+        if ($canonicalName !== '' && $canonicalName !== $name) {
+            return redirect()->route('services.show', ['name' => $canonicalName], 301);
+        }
 
         // Freemiums is a valid service-details page backed by a dedicated partial.
         if (strtolower($name) === 'freemiums') {
@@ -488,9 +494,16 @@ class HomeController extends Controller
 
         $service = $this->safeDb(function () use ($name) {
             return DB::table('services_lists')
-                ->whereRaw("LOWER(REPLACE(title, ' ', '-')) = ?", [strtolower($name)])
-                ->orWhere('title', $name)
-                ->first();
+                ->select('id', 'title', 'body', 'image', 'updated_at', 'created_at')
+                ->orderByDesc('id')
+                ->get()
+                ->first(function ($row) use ($name) {
+                    $title = trim((string) ($row->title ?? ''));
+
+                    return ServiceUrl::canonicalSlug($title) === $name
+                        || strtolower($title) === strtolower($name)
+                        || ServiceUrl::canonicalSlug((string) ($row->url_name ?? '')) === $name;
+                });
         }, $dbErrorMessage);
 
         if (!$service) {
@@ -525,36 +538,7 @@ class HomeController extends Controller
 
     private function normalizeServiceDetailSlug(string $name): string
     {
-        $slug = strtolower(trim($name));
-
-        return [
-            'fabric' => 'microsoft-fabric',
-            'data-science' => 'data-science-and-analytics',
-            'api-dev' => 'api-data-access',
-            'api-development' => 'api-data-access',
-            'powerapps' => 'microsoft-powerapps',
-            'power-apps' => 'microsoft-powerapps',
-            'powerautomate' => 'microsoft-power-automate',
-            'power-automate' => 'microsoft-power-automate',
-            'power-platform' => 'microsoft-power-pages',
-            'dynamics365' => 'microsoft-dynamics-365',
-            'dynamics-365' => 'microsoft-dynamics-365',
-            'virtualagents' => 'microsoft-power-virtual-agents',
-            'virtual-agents' => 'microsoft-power-virtual-agents',
-            'roboticprocessing' => 'robotic-processing-automation',
-            'robotic-process-automation' => 'robotic-processing-automation',
-            'rpa' => 'robotic-processing-automation',
-            'powerplatform' => 'microsoft-power-pages',
-            'sharepointonline' => 'sharepoint-online',
-            'sharepoint' => 'sharepoint-online',
-            'custom-development' => 'custom-development',
-            'm365' => 'm365-governance',
-            'm365-governance' => 'm365-governance',
-            'microsoft-365-governance' => 'm365-governance',
-            'microsoft-365-governance-and-adoption' => 'm365-governance',
-            'sql-server' => 'sql-&-data-warehousing',
-            'managed-services' => 'managed-services'
-        ][$slug] ?? $name;
+        return ServiceUrl::canonicalSlug($name) ?: $name;
     }
 
     private function normalizeIndustrySlug(string $name): string

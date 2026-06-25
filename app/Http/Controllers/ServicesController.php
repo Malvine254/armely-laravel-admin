@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\ServiceUrl;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -20,7 +21,7 @@ class ServicesController extends Controller
         'Data Strategy' => 'data-strategy',
         'Databricks' => 'databricks',
         'Snowflake' => 'snowflake',
-        'SQL & Data Warehousing' => 'sql-&-data-warehousing',
+        'SQL & Data Warehousing' => 'sql-data-warehousing',
         'API Data Access' => 'api-data-access',
         'Microsoft PowerApps' => 'microsoft-powerapps',
         'Microsoft Power Automate' => 'microsoft-power-automate',
@@ -102,7 +103,7 @@ class ServicesController extends Controller
 
     private function prepareService(object $service): object
     {
-        $service->url_name = $this->titleToUrl[$service->title] ?? Str::slug($service->title);
+        $service->url_name = ServiceUrl::canonicalSlug($service->title) ?: Str::slug($service->title);
 
         $titleLower = strtolower((string) $service->title);
         $bodyLower = strtolower(strip_tags((string) ($service->body ?? '')));

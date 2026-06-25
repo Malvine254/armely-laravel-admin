@@ -4,23 +4,30 @@ namespace App\Http\Controllers;
 
 use App\Models\Resource;
 use App\Support\BlogUrl;
+use App\Support\ServiceUrl;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Illuminate\Support\Collection;
 
 class SitemapController extends Controller
 {
     public function index(): Response
     {
         $urls = [];
+        $serviceEntries = $this->serviceEntries();
+        $blogEntries = $this->blogEntries();
+        $resourceEntries = $this->resourceEntries();
+        $caseStudyEntries = $this->caseStudyEntries();
+        $socialImpactEntries = $this->socialImpactEntries();
 
         $staticRoutes = [
             ['home', 'daily', '1.0', null],
-            ['services', 'weekly', '0.9', null],
-            ['case-studies.index', 'weekly', '0.9', null],
-            ['resources.index', 'weekly', '0.9', null],
-            ['blog.index', 'daily', '0.9', null],
+            ['services', 'weekly', '0.9', $this->collectionDate($serviceEntries)],
+            ['case-studies.index', 'weekly', '0.9', $this->collectionDate($caseStudyEntries)],
+            ['resources.index', 'weekly', '0.9', $this->collectionDate($resourceEntries)],
+            ['blog.index', 'daily', '0.9', $this->collectionDate($blogEntries)],
             ['events.index', 'weekly', '0.7', null],
             ['company.index', 'monthly', '0.6', null],
             ['career.index', 'monthly', '0.4', null],
@@ -43,24 +50,29 @@ class SitemapController extends Controller
             }
         }
 
-        foreach ($this->serviceSlugs() as $slug) {
+        foreach ($serviceEntries as $service) {
             try {
-                $urls[] = $this->entry(route('services.show', ['name' => $slug]), null, 'monthly', '0.8');
+                $urls[] = $this->entry(
+                    ServiceUrl::url($service, 'title'),
+                    $this->dateValue($service->updated_at ?? $service->created_at ?? null),
+                    'monthly',
+                    '0.8'
+                );
             } catch (\Throwable) {
                 // Skip if the service route cannot be built.
             }
         }
 
-        foreach ($this->blogEntries() as $blog) {
+        foreach ($blogEntries as $blog) {
             $urls[] = $this->entry(
                 BlogUrl::url($blog, 'blog_id', 'title'),
                 $this->dateValue($blog->updated_at ?? $blog->date ?? $blog->created_at ?? null),
-                'daily',
+                'monthly',
                 '0.8'
             );
         }
 
-        foreach ($this->resourceEntries() as $resource) {
+        foreach ($resourceEntries as $resource) {
             $routeName = $this->isPdfStyleResource($resource) ? 'white-papers.view' : 'resources.show';
 
             try {
@@ -75,7 +87,7 @@ class SitemapController extends Controller
             }
         }
 
-        foreach ($this->caseStudyEntries() as $caseStudy) {
+        foreach ($caseStudyEntries as $caseStudy) {
             $slug = $this->caseStudySlug($caseStudy);
 
             try {
@@ -90,7 +102,7 @@ class SitemapController extends Controller
             }
         }
 
-        foreach ($this->socialImpactEntries() as $story) {
+        foreach ($socialImpactEntries as $story) {
             try {
                 $urls[] = $this->entry(
                     route('social-impact-details', ['secure_id' => $story->secure_id]),
@@ -151,6 +163,17 @@ class SitemapController extends Controller
         return $xml;
     }
 
+    private function collectionDate(?Collection $items): ?string
+    {
+        if ($items === null || $items->isEmpty()) {
+            return null;
+        }
+
+        $item = $items->first();
+
+        return $this->dateValue($item->updated_at ?? $item->date ?? $item->created_at ?? null);
+    }
+
     private function entry(string $loc, ?string $lastmod = null, ?string $changefreq = null, ?string $priority = null): array
     {
         return [
@@ -183,26 +206,28 @@ class SitemapController extends Controller
         }
     }
 
-    private function serviceSlugs(): array
+    private function serviceEntries()
     {
-        return [
-            'ai-consulting',
-            'data-strategy',
-            'training',
-            'freemiums',
-            'm365-governance',
-            'managed-services',
-            'microsoft-fabric',
-            'snowflake',
-            'generative-ai',
-            'copilot',
-            'power-platform',
-            'dynamics-365',
-            'sharepoint',
-            'custom-development',
-            'api-dev',
-            'sql-server',
-        ];
+        if (!Schema::hasTable('services_lists')) {
+            return collect();
+        }
+
+        $columns = array_values(array_filter([
+            'title',
+            Schema::hasColumn('services_lists', 'updated_at') ? 'updated_at' : null,
+            Schema::hasColumn('services_lists', 'created_at') ? 'created_at' : null,
+        ]));
+
+        $dateColumn = $this->firstExistingColumn('services_lists', ['updated_at', 'created_at']);
+        $query = DB::table('services_lists')->select($columns);
+
+        if ($dateColumn !== null) {
+            $query->orderByDesc($dateColumn);
+        } else {
+            $query->orderByDesc('id');
+        }
+
+        return $query->get();
     }
 
     private function blogEntries()
@@ -216,14 +241,20 @@ class SitemapController extends Controller
         $titleColumn = $this->firstExistingColumn($blogTable, ['title', 'blog_title']);
         $dateColumn = $this->firstExistingColumn($blogTable, ['updated_at', 'date', 'blog_date', 'created_at']);
 
-        return DB::table($blogTable)
+        $query = DB::table($blogTable)
             ->select(array_filter(array_unique(array_filter([
                 $blogIdColumn . ' as blog_id',
                 $titleColumn ? $titleColumn . ' as title' : null,
                 $dateColumn ? $dateColumn . ' as updated_at' : null,
-            ]))))
-            ->orderByDesc($dateColumn ?: $blogIdColumn)
-            ->get();
+            ]))));
+
+        if ($dateColumn !== null) {
+            $query->orderByDesc($dateColumn);
+        } else {
+            $query->orderByDesc($blogIdColumn);
+        }
+
+        return $query->get();
     }
 
     private function resolveBlogTable(): ?string
@@ -268,10 +299,16 @@ class SitemapController extends Controller
 
         $columns = $this->caseStudySelectColumns();
 
-        return DB::table('industry_listings')
-            ->select($columns)
-            ->orderByDesc('id')
-            ->get();
+        $dateColumn = $this->firstExistingColumn('industry_listings', ['updated_at', 'created_at']);
+        $query = DB::table('industry_listings')->select($columns);
+
+        if ($dateColumn !== null) {
+            $query->orderByDesc($dateColumn);
+        } else {
+            $query->orderByDesc('id');
+        }
+
+        return $query->get();
     }
 
     private function socialImpactEntries()

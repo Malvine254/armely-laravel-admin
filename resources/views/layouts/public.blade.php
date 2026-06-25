@@ -1331,6 +1331,8 @@ main .service-card {
         var serviceAliases = {
             'fabric': 'microsoft-fabric',
             'data-science': 'data-science-and-analytics',
+            'sql-server': 'sql-data-warehousing',
+            'sql-&-data-warehousing': 'sql-data-warehousing',
             'powerapps': 'microsoft-powerapps',
             'power-apps': 'microsoft-powerapps',
             'powerautomate': 'microsoft-power-automate',
@@ -1364,15 +1366,15 @@ main .service-card {
             'custom-development': 'custom-development',
             'api-dev': 'api-data-access',
             'api-development': 'api-data-access',
-            'sql-server': 'sql-&-data-warehousing'
+            'sql-server': 'sql-data-warehousing'
         };
 
         path = path.replace(/^\/service-details\/([^\/]+)(.*)$/, function(match, slug, rest) {
-            return '/service-details/' + (serviceAliases[slug] || slug) + rest;
+            return '/services/' + (serviceAliases[slug] || slug) + rest;
         });
 
         return path.replace(/^\/(power-platform|powerplatform|power-apps|powerapps|power-automate|powerautomate|dynamics-365|dynamics365|sharepoint|sharepointonline|custom-development|api-dev|api-development|sql-server)(.*)$/, function(match, slug, rest) {
-            return '/service-details/' + (directAliases[slug] || slug) + rest;
+            return '/services/' + (directAliases[slug] || slug) + rest;
         });
     }
 
