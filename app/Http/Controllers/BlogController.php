@@ -93,8 +93,8 @@ class BlogController extends Controller
                 return $post;
             });
 
-            // If specific blog wasn't found above (maybe null), fall back to sidebar list's first item
-            if (empty($main) && $recent->count() > 0) {
+            // On the listing page (/blog), show the latest post by default.
+            if (!$blogId && empty($main) && $recent->count() > 0) {
                 $main = $recent->first();
             }
         } catch (\Throwable $e) {
@@ -103,6 +103,10 @@ class BlogController extends Controller
         }
 
         if ($blogId) {
+            if (empty($main) && $dbErrorMessage === null) {
+                abort(404);
+            }
+
             return response()->view('blog.index', [
                 'main' => $main,
                 'recent' => $recent,
