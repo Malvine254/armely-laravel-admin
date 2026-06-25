@@ -25,6 +25,19 @@ use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\SitemapController;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
+// Legacy homepage paths used by old static builds.
+Route::redirect('/index', '/', 301);
+Route::redirect('/home', '/', 301);
+Route::redirect('/home/', '/', 301);
+Route::redirect('/index.php', '/', 301);
+Route::redirect('/index.html', '/', 301);
+
+// Legacy marketing paths consolidated to canonical pages.
+Route::redirect('/products', '/services', 301);
+Route::redirect('/case-study', '/case-studies', 301);
+Route::redirect('/case_study', '/case-studies', 301);
+Route::redirect('/case study', '/case-studies', 301);
+
 Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('sitemap.xml');
 // Backward-compatible sitemap URLs from older SEO plugins/configurations.
 Route::redirect('/sitemap_index.xml', '/sitemap.xml', 301);
@@ -63,6 +76,9 @@ Route::get('/service-details', function(\Illuminate\Http\Request $request) {
     }
     return redirect('/service-details/ai-consulting');
 });
+
+Route::redirect('/service-details/sharepointonline', '/service-details/sharepoint', 301);
+Route::redirect('/service-details/powerapps', '/service-details/powerplatform', 301);
 
 // Standard path parameter format: /service-details/ai-consulting
 Route::get('/service-details/{name}', [HomeController::class, 'serviceDetails'])->name('service-details');
@@ -120,6 +136,11 @@ Route::get('/white_paper_docs/{file}', [CaseStudiesController::class, 'legacyWhi
 Route::get('/case-studies/{slug}', [CaseStudiesController::class, 'showCaseStudy'])->name('case-studies.show');
 
 Route::get('/blog/{blogId?}', [BlogController::class, 'index'])->name('blog.index');
+Route::get('/blog.php', function (\Illuminate\Http\Request $request) {
+    $blogId = trim((string) $request->query('blogId', ''));
+
+    return redirect()->route('blog.index', $blogId !== '' ? ['blogId' => $blogId] : [], 301);
+});
 // Keep the legacy plural URL as a permanent redirect so search signals stay on /blog.
 Route::get('/blogs/{blogId?}', function (?string $blogId = null) {
     return redirect()->route('blog.index', $blogId ? ['blogId' => $blogId] : [], 301);
