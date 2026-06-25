@@ -63,6 +63,7 @@ Route::post('/data-readiness/submit', [DataReadinessLeadController::class, 'subm
 Route::get('/services', [ServicesController::class, 'index'])->name('services');
 Route::view('/services/assessments', 'services.assessments_blade')->name('assessments');
 Route::redirect('/assessments', '/services/assessments', 301);
+Route::redirect('/services/sql-server', '/services/sql-data-warehousing', 301);
 Route::get('/services/{name}', [HomeController::class, 'serviceDetails'])->name('services.show');
 
 Route::view('/solutions/protective-order-digitization', 'protective-order-solution')->name('protective-order-solution');

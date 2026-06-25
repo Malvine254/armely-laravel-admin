@@ -11,7 +11,7 @@
     <div class="mobile-mega-section">
         <h4>Data &amp; AI</h4>
         <a href="{{ route('services.show', ['name' => 'microsoft-fabric']) }}">Microsoft Fabric</a>
-        <a href="{{ route('services.show', ['name' => 'sql-server']) }}">SQL Server</a>
+        <a href="{{ route('services.show', ['name' => 'sql-data-warehousing']) }}">SQL Data Warehousing</a>
         <a href="{{ route('services.show', ['name' => 'snowflake']) }}">Snowflake</a>
         <a href="{{ route('services.show', ['name' => 'generative-ai']) }}">Generative AI</a>
         <a href="{{ route('services.show', ['name' => 'copilot']) }}">Microsoft Copilot</a>

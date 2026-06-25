@@ -1190,7 +1190,7 @@ main .service-card {
                                             
                                         </div>
                                     </li>
-                                    <li class="mega-nav-item {{ request()->is('services*','service-details*','power-platform','powerplatform','power-apps','powerapps','power-automate','powerautomate','dynamics-365','dynamics365','sharepoint','sharepointonline','api-dev','api-development','sql-server') ? 'active' : '' }}">
+                                    <li class="mega-nav-item {{ request()->is('services*','service-details*','power-platform','powerplatform','power-apps','powerapps','power-automate','powerautomate','dynamics-365','dynamics365','sharepoint','sharepointonline','api-dev','api-development','sql-server','sql-data-warehousing') ? 'active' : '' }}">
                                         <button type="button" class="mega-trigger" aria-expanded="false">
                                             What We Do
                                             <i class="icofont-rounded-down mega-icon-closed" aria-hidden="true"></i>

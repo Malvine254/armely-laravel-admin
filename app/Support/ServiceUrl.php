@@ -46,6 +46,7 @@ class ServiceUrl
         'data-strategy' => 'data-strategy',
         'databricks' => 'databricks',
         'snowflake' => 'snowflake',
+        'sql-server' => 'sql-data-warehousing',
         'sql-data-warehousing' => 'sql-data-warehousing',
         'sql-&-data-warehousing' => 'sql-data-warehousing',
         'api-data-access' => 'api-data-access',
