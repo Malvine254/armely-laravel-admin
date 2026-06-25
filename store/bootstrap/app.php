@@ -1,9 +1,11 @@
 <?php
 
+use App\Models\AppSetting;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Support\Carbon;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -54,9 +56,32 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Evaluate schedule every minute and dispatch only on exact configured
         // HH:MM in the configured timezone.
+        $priceSyncTime = '18:00';
+        $priceSyncTimezone = 'America/Chicago';
+
+        try {
+            $configuredTime = (string) AppSetting::getValue('price_sync.time', '18:00');
+            if (preg_match('/^\d{2}:\d{2}$/', $configuredTime)) {
+                $priceSyncTime = $configuredTime;
+            }
+
+            $configuredTimezone = (string) AppSetting::getValue('price_sync.timezone', 'America/Chicago');
+            if (in_array($configuredTimezone, timezone_identifiers_list(), true)) {
+                $priceSyncTimezone = $configuredTimezone;
+            }
+        } catch (\Throwable) {
+            // Use defaults when app settings are not available.
+        }
+
+        $schedule->command('price-sync:dispatch-scheduled')
+            ->dailyAt($priceSyncTime)
+            ->timezone($priceSyncTimezone)
+            ->name('dispatch-scheduled-price-sync')
+            ->withoutOverlapping();
+
         $schedule->command('price-sync:dispatch-scheduled')
             ->everyMinute()
-            ->name('dispatch-scheduled-price-sync')
+            ->name('dispatch-scheduled-price-sync-fallback')
             ->withoutOverlapping();
 
         $schedule->job(new \App\Jobs\SyncPriceAvailabilityCatalogJob(true), 'products-sync', 'database')

@@ -51,13 +51,13 @@ class PriceSyncSchedulerService
             [$hour, $minute] = array_map('intval', explode(':', $time));
             $now = Carbon::now($timezone);
             $scheduledAt = $now->copy()->setTime($hour, $minute, 0);
-            $todayKey = $now->format('Y-m-d');
+            $slotKey = $scheduledAt->format('Y-m-d H:i');
 
             if ($now->lessThan($scheduledAt)) {
                 return;
             }
 
-            if ((string) AppSetting::getValue('price_sync.last_triggered_date', '') === $todayKey) {
+            if ((string) AppSetting::getValue('price_sync.last_triggered_slot', '') === $slotKey) {
                 return;
             }
 
@@ -66,7 +66,8 @@ class PriceSyncSchedulerService
             }
 
             $this->startBackgroundRun('all', '', 'scheduled fallback');
-            AppSetting::setValue('price_sync.last_triggered_date', $todayKey);
+            AppSetting::setValue('price_sync.last_triggered_slot', $slotKey);
+            AppSetting::setValue('price_sync.last_triggered_date', $now->format('Y-m-d'));
         } catch (\Throwable $e) {
             Log::warning('Price sync schedule fallback check failed', [
                 'error' => $e->getMessage(),
@@ -83,13 +84,17 @@ class PriceSyncSchedulerService
         try {
             $timezone = $this->resolveTimezone();
             $time = $this->resolveScheduledTime();
-            $now = Carbon::now($timezone);
+            [$hour, $minute] = array_map('intval', explode(':', $time));
 
-            if ($now->format('H:i') !== $time) {
+            $now = Carbon::now($timezone);
+            $scheduledAt = $now->copy()->setTime($hour, $minute, 0);
+            $windowEnd = $scheduledAt->copy()->addMinutes(5);
+
+            if ($now->lessThan($scheduledAt) || $now->greaterThan($windowEnd)) {
                 return false;
             }
 
-            $slotKey = $now->format('Y-m-d H:i');
+            $slotKey = $scheduledAt->format('Y-m-d H:i');
             if ((string) AppSetting::getValue('price_sync.last_triggered_slot', '') === $slotKey) {
                 return false;
             }
@@ -104,7 +109,7 @@ class PriceSyncSchedulerService
 
             $this->startBackgroundRun('all', '', 'scheduled exact');
             AppSetting::setValue('price_sync.last_triggered_slot', $slotKey);
-            AppSetting::setValue('price_sync.last_triggered_date', $now->format('Y-m-d'));
+            AppSetting::setValue('price_sync.last_triggered_date', $scheduledAt->format('Y-m-d'));
 
             return true;
         } catch (\Throwable $e) {

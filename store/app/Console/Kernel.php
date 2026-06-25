@@ -2,18 +2,38 @@
 
 namespace App\Console;
 
+use App\Models\AppSetting;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
+use Illuminate\Support\Carbon;
 
 class Kernel extends ConsoleKernel
 {
     private function settingValue(string $key, mixed $default = null): mixed
     {
         try {
-            return \App\Models\AppSetting::getValue($key, $default);
+            return AppSetting::getValue($key, $default);
         } catch (\Throwable) {
             return $default;
         }
+    }
+
+    private function scheduledPriceSyncTime(): string
+    {
+        $time = (string) $this->settingValue('price_sync.time', '18:00');
+
+        return preg_match('/^\d{2}:\d{2}$/', $time)
+            ? $time
+            : '18:00';
+    }
+
+    private function scheduledPriceSyncTimezone(): string
+    {
+        $timezone = (string) $this->settingValue('price_sync.timezone', 'America/Chicago');
+
+        return in_array($timezone, timezone_identifiers_list(), true)
+            ? $timezone
+            : 'America/Chicago';
     }
 
     /**
@@ -27,11 +47,20 @@ class Kernel extends ConsoleKernel
             ->name('check-expiring-quotes')
             ->withoutOverlapping();
 
-        // Check every minute and dispatch only at exact configured HH:MM in configured timezone.
-        // This keeps schedule timing accurate even when timezone/time are changed in settings.
+        $scheduleTime = $this->scheduledPriceSyncTime();
+        $scheduleTimezone = $this->scheduledPriceSyncTimezone();
+
+        $schedule->command('price-sync:dispatch-scheduled')
+            ->dailyAt($scheduleTime)
+            ->timezone($scheduleTimezone)
+            ->name('dispatch-scheduled-price-sync')
+            ->withoutOverlapping();
+
+        // Keep a secondary every-minute evaluation available for compatibility with
+        // alternate schedule runners and to recover quickly if the exact cron missed.
         $schedule->command('price-sync:dispatch-scheduled')
             ->everyMinute()
-            ->name('dispatch-scheduled-price-sync')
+            ->name('dispatch-scheduled-price-sync-fallback')
             ->withoutOverlapping();
 
         // Midnight: compare live_* shadow columns against main columns and apply any changes

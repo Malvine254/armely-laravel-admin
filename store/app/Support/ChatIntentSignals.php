@@ -170,7 +170,6 @@ class ChatIntentSignals
             '/\bsimilar\b/u',
             '/\bmore\b/u',
             '/\banother\b/u',
-            '/\bcheck\b/u',
         ]);
     }
 
@@ -192,6 +191,7 @@ class ChatIntentSignals
             'something', 'anything', 'around', 'great', 'nice', 'new', 'do', 'does', 'got',
             'invoice', 'invoices', 'payment', 'payments', 'billing', 'receipt', 'balance', 'due',
             'track', 'tracking', 'shipping', 'delivery',
+            'check',
         ];
 
         $keywords = collect($parts)
