@@ -178,7 +178,7 @@
             <!-- Persistent welcome banner — always shown at the top of every chat -->
             <div class="flex justify-start">
               <div class="max-w-[90%] sm:max-w-[78%] rounded-2xl rounded-bl-md px-4 py-3 shadow-sm bg-white border border-gray-200 text-gray-900">
-                <p class="text-sm whitespace-pre-wrap leading-relaxed">Hi <strong>{{ chatWelcomeName }}</strong>! 👋 I'm Mela AI, your Armely assistant. I can help you find IT products, manage invoices and payments, track orders, and more. What can I help you with today?</p>
+                <p class="text-sm whitespace-pre-wrap leading-relaxed">I'm Mela AI, your Armely assistant. Ask me about products, quotes, orders, invoices, or anything else you're working on.</p>
                 <div class="mt-3 flex flex-wrap gap-2">
                   <button @click="openActionLink('/products')" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-[#2F5597]/30 text-[#2F5597] bg-[#2F5597]/10 hover:bg-[#2F5597]/20">Browse products</button>
                   <button @click="openActionLink('/quotes')" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-[#2F5597]/30 text-[#2F5597] bg-[#2F5597]/10 hover:bg-[#2F5597]/20">Open quotes</button>
