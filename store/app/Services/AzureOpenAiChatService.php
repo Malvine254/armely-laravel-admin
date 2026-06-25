@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\ChatIntentSignals;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -100,7 +101,11 @@ class AzureOpenAiChatService
             return 'general_support';
         }
 
-        if ($this->isGeneralConversationQuery($q)) {
+        if (ChatIntentSignals::isProductLookupIntent($question, $chatHistory)) {
+            return 'product_search';
+        }
+
+        if (ChatIntentSignals::isGeneralConversationQuery($q)) {
             return 'general_support';
         }
 
@@ -117,31 +122,25 @@ class AzureOpenAiChatService
         }
 
         // Order signals — broad: "my orders", "previous orders", "order history", "order #123", etc.
-        if ($hasOrderSignal || preg_match('/\b(order (status|history|track|number|detail)|track(ing)?|shipment|delivery|shipped|dispatch|where is my|has my order|when will|order #)\b/', $q)) {
+        if ($hasOrderSignal || ChatIntentSignals::isOrderIntentQuery($q) || preg_match('/\b(order (status|history|track|number|detail)|track(ing)?|shipment|delivery|shipped|dispatch|where is my|has my order|when will|order #)\b/', $q)) {
             return 'order_status';
         }
 
         // Invoice / payment signals
-        if (preg_match('/\b(invoices?|payments?|pay|balance due|billing|receipt|download pdf|invoice pdf|outstanding|amount due|what do i owe)\b/', $q)) {
+        if (ChatIntentSignals::isInvoiceIntentQuery($q) || preg_match('/\b(invoices?|payments?|pay|balance due|billing|receipt|download pdf|invoice pdf|outstanding|amount due|what do i owe)\b/', $q)) {
             return 'invoice_payment';
         }
 
         // Quote signals — broad: "my quotes", "quote history", "get a quote", "reorder", etc.
-        if ($hasQuoteSignal || preg_match('/\b(quote (status|history|number)|get a quote|request (a )?quote|reorder|pending quote|open quote|same order again)\b/', $q)) {
+        if ($hasQuoteSignal || ChatIntentSignals::isQuoteIntentQuery($q) || preg_match('/\b(quote (status|history|number)|get a quote|request (a )?quote|reorder|pending quote|open quote|same order again)\b/', $q)) {
             return 'quote_management';
-        }
-
-        if (!empty($this->extractProductSearchKeywords($question))
-            && !preg_match('/\b(quote|quotes|order|orders|invoice|invoices|payment|payments|billing|receipt|balance|due|track|tracking|shipping|delivery)\b/', $q)
-        ) {
-            return 'product_search';
         }
 
         // Explicit product / catalog signals.
         // Only classify as product_search when the query is clearly asking for product discovery,
         // otherwise allow general support to handle conceptual or account-oriented questions.
         if (preg_match('/\b(laptop|notebook|desktop|printer|server|monitor|switch|router|firewall|wifi|wireless|tablet|projector|ups|storage|ssd|keyboard|mouse|webcam|headset|workstation|chromebook|thin client|mini pc|all.in.one|docking|dock|scanner|sku|catalog|buy|purchase|spec|model|find me|search for|looking for|compare)\b/', $q)
-            && $this->isExplicitProductSearchQuery($q)) {
+            ) {
             return 'product_search';
         }
 
@@ -193,6 +192,8 @@ class AzureOpenAiChatService
 
     private function isExplicitProductSearchQuery(string $query): bool
     {
+        return ChatIntentSignals::isProductLookupIntent($query);
+
         $query = strtolower(trim($query));
 
         // Product search queries must include clear product discovery signals.
@@ -496,18 +497,19 @@ class AzureOpenAiChatService
         if ($reply === null) {
             $q     = strtolower(trim($question));
             // Greetings
-            $greetWords = ['hi', 'hello', 'hey', 'good morning', 'good afternoon', 'good evening', 'howdy', 'sup'];
-            if (in_array($q, $greetWords, true) || preg_match('/^(hi|hello|hey|good (morning|afternoon|evening))\b/', $q)) {
+            if (ChatIntentSignals::isGreetingQuery($q)) {
                 $name  = $firstName !== 'there' ? ", {$firstName}" : '';
                 $reply = "Hey{$name}. I'm Mela AI, your Armely assistant. I can help with products, quotes, orders, invoices, or anything else on your account.";
             }
             // Thank you
-            elseif (preg_match('/\b(thank|thanks|thx|cheers|appreciate|great|awesome|perfect)\b/', $q)) {
+            elseif (ChatIntentSignals::isThanksQuery($q)) {
                 $namePart = $firstName !== 'there' ? ", {$firstName}" : '';
                 $reply = "You're welcome{$namePart}. If anything else comes up, just send it my way.";
             }
             // Any mention of orders, quotes, or invoices → show account summary
-            elseif (preg_match('/\b(quotes?|orders?|invoices?|payments?|account|summary|status|history)\b/', $q)) {
+            elseif (ChatIntentSignals::isCapabilityQuestion($q)) {
+                $reply = "I can help with products, quotes, orders, invoices, payments, and tracking. If you want, tell me what you are trying to do and I will take it from there.";
+            } elseif (preg_match('/\b(quotes?|orders?|invoices?|payments?|account|summary|status|history)\b/', $q)) {
                 $parts = [];
                 if (!empty($orders)) {
                     $latest = $orders[0];
@@ -700,17 +702,13 @@ class AzureOpenAiChatService
 
     private function isGeneralConversationQuery(string $questionLower): bool
     {
-        return in_array($questionLower, [
-            'hi', 'hello', 'hey', 'yo', 'howdy', 'sup',
-            'good morning', 'good afternoon', 'good evening',
-            'what can you do', 'what do you do', 'what do you help with',
-            'help', 'help me', 'help please', 'capabilities', 'options',
-            'thanks', 'thank you', 'thx', 'appreciate it',
-        ], true) || str_starts_with($questionLower, 'help ');
+        return ChatIntentSignals::isGeneralConversationQuery($questionLower);
     }
 
     private function extractProductSearchKeywords(string $question): array
     {
+        return ChatIntentSignals::extractProductSearchKeywords($question);
+
         $normalized = strtolower($question);
         $parts = preg_split('/[^a-z0-9-]+/i', $normalized) ?: [];
         $stopWords = [
