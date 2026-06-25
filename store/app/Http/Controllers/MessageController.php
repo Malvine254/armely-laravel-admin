@@ -16,6 +16,7 @@ use App\Models\AppSetting;
 use App\Services\AzureOpenAiChatService;
 use App\Services\NotificationService;
 use App\Services\TDSynnexService;
+use App\Support\ChatIntentSignals;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -1343,11 +1344,15 @@ class MessageController extends Controller
             return null;
         }
 
-        if ($this->isGeneralConversationQuery($q)) {
+        $recentChatTurns = (array) ($context['recent_chat_turns'] ?? $chatHistory);
+        if (ChatIntentSignals::isProductLookupIntent($question, $recentChatTurns)) {
+            return 'product_search';
+        }
+
+        if (ChatIntentSignals::isGeneralConversationQuery($q)) {
             return 'general_support';
         }
 
-        $recentChatTurns = (array) ($context['recent_chat_turns'] ?? $chatHistory);
         $followUpTopic = $this->inferFollowUpTopic($q, $recentChatTurns);
         if ($followUpTopic !== null) {
             return match ($followUpTopic) {
@@ -1370,90 +1375,32 @@ class MessageController extends Controller
             return 'invoice_payment';
         }
 
-        if ($this->isProductLookupIntent($question, $recentChatTurns)) {
-            return 'product_search';
-        }
-
-        if (preg_match('/\b(what can you do|what do you do|help|capabilities|options)\b/', $q)) {
-            return 'general_support';
-        }
-
         return null;
     }
 
     private function isGeneralConversationQuery(string $questionLower): bool
     {
-        return in_array($questionLower, [
-            'hi', 'hello', 'hey', 'yo', 'howdy', 'sup',
-            'good morning', 'good afternoon', 'good evening',
-            'what can you do', 'what do you do', 'what do you help with',
-            'help', 'help me', 'help please', 'capabilities', 'options',
-            'thanks', 'thank you', 'thx', 'appreciate it',
-        ], true) || Str::startsWith($questionLower, ['hi ', 'hello ', 'hey ', 'help ']);
+        return ChatIntentSignals::isGeneralConversationQuery($questionLower);
     }
 
     private function isQuoteIntentQuery(string $questionLower): bool
     {
-        return Str::contains($questionLower, [
-            'quote', 'quotes', 'requote', 'same quote', 'my quotes', 'quote history', 'quote status',
-            'last quote', 'latest quote', 'most recent quote', 'first quote', 'last 3 quotes',
-        ]);
+        return ChatIntentSignals::isQuoteIntentQuery($questionLower);
     }
 
     private function isOrderIntentQuery(string $questionLower): bool
     {
-        return Str::contains($questionLower, [
-            'order', 'orders', 'tracking', 'track', 'shipping', 'delivery', 'shipment', 'latest order',
-            'most recent order', 'last order',
-        ]);
+        return ChatIntentSignals::isOrderIntentQuery($questionLower);
     }
 
     private function isInvoiceIntentQuery(string $questionLower): bool
     {
-        return Str::contains($questionLower, [
-            'invoice', 'invoices', 'payment', 'payments', 'billing', 'receipt', 'balance', 'due',
-            'download pdf', 'invoice pdf', 'what do i owe',
-        ]);
+        return ChatIntentSignals::isInvoiceIntentQuery($questionLower);
     }
 
     private function isProductLookupIntent(string $question, array $recentChatTurns = []): bool
     {
-        $q = strtolower(trim($question));
-        if ($q === '') {
-            return false;
-        }
-
-        $accountSignals = [
-            'quote', 'quotes', 'order', 'orders', 'invoice', 'invoices', 'payment', 'payments',
-            'billing', 'receipt', 'balance', 'due', 'tracking', 'shipping', 'delivery',
-        ];
-        if (Str::contains($q, $accountSignals)) {
-            return false;
-        }
-
-        $keywords = $this->extractProductSearchKeywords($question);
-        if (!empty($keywords)) {
-            return true;
-        }
-
-        if (Str::contains($q, [
-            'search for', 'find', 'browse', 'look for', 'lookup', 'check for', 'check the',
-            'available', 'availability', 'in stock', 'product table', 'products table',
-            'product catalog', 'products catalog', 'catalog', 'catalogue',
-        ])) {
-            return true;
-        }
-
-        $recentSuggestedProducts = collect($recentChatTurns)
-            ->filter(static fn (array $turn) => strtolower((string) ($turn['role'] ?? '')) === 'assistant')
-            ->flatMap(static fn (array $turn) => (array) ($turn['product_suggestions'] ?? []))
-            ->contains(static fn ($item) => is_array($item) && !empty($item['product_id']));
-
-        if ($recentSuggestedProducts && Str::contains($q, ['it', 'that', 'those', 'them', 'similar', 'more', 'another', 'check'])) {
-            return true;
-        }
-
-        return false;
+        return ChatIntentSignals::isProductLookupIntent($question, $recentChatTurns);
     }
 
     private function buildFallbackReply(string $question, array $context): string
@@ -2080,65 +2027,7 @@ class MessageController extends Controller
 
     private function extractProductSearchKeywords(string $question): array
     {
-        $normalized = strtolower($question);
-        $parts = preg_split('/[^a-z0-9-]+/i', $normalized) ?: [];
-        $stopWords = [
-            'need', 'purchase', 'buy', 'best', 'give', 'me', 'my', 'your', 'our', 'its', 'their',
-            'sample', 'list', 'for', 'the', 'is', 'it', 'if', 'in', 'on', 'at', 'of', 'be', 'no', 'so',
-            'and', 'or', 'with', 'show', 'please', 'can', 'you', 'want', 'from', 'that', 'this',
-            'have', 'all', 'more', 'details', 'about', 'find', 'search', 'suggestion', 'suggestions',
-            'suggest', 'suggested', 'recommended', 'recommend', 'available', 'current', 'from',
-            'product', 'products', 'item', 'items', 'one', 'two', 'three', 'hi', 'hello', 'hey', 'to', 'today',
-            'last', 'latest', 'recent', 'newest', 'first', 'earliest', 'oldest', 'previous', 'former',
-            'order', 'quote', 'quotes', 'cart', 'make', 'proceed', 'request', 'them', 'those', 'are', 'please',
-            'add', 'added', 'placing', 'place', 'good', 'looking', 'look', 'get', 'some', 'any',
-            'what', 'which', 'would', 'could', 'should', 'like', 'price', 'under', 'below', 'above',
-            'something', 'anything', 'around', 'great', 'nice', 'new', 'need', 'do', 'does', 'got',
-        ];
-
-        $keywords = collect($parts)
-            ->map(static fn ($p) => trim((string) $p))
-            ->filter(static fn ($p) => strlen($p) >= 2)
-            ->filter(static fn ($p) => !in_array($p, $stopWords, true))
-            ->unique()
-            ->values()
-            ->all();
-
-        // Expand known brand variants
-        $brandExpansions = [
-            'hp' => ['hp', 'hewlett-packard', 'hewlett packard'],
-            'dell' => ['dell'],
-            'lenovo' => ['lenovo'],
-        ];
-
-        foreach ($brandExpansions as $brand => $variants) {
-            if (str_contains($normalized, $brand)) {
-                foreach ($variants as $variant) {
-                    if (!in_array($variant, $keywords, true)) {
-                        $keywords[] = $variant;
-                    }
-                }
-            }
-        }
-
-        // Expand device type synonyms
-        if (str_contains($normalized, 'laptop')) {
-            if (!in_array('notebook', $keywords, true)) {
-                $keywords[] = 'notebook';
-            }
-        }
-        if (str_contains($normalized, 'notebook')) {
-            if (!in_array('laptop', $keywords, true)) {
-                $keywords[] = 'laptop';
-            }
-        }
-        if (str_contains($normalized, 'monitor')) {
-            if (!in_array('display', $keywords, true)) {
-                $keywords[] = 'display';
-            }
-        }
-
-        return array_values(array_unique($keywords));
+        return ChatIntentSignals::extractProductSearchKeywords($question);
     }
 
     private function buildAssistantSearchQueries(string $question, array $keywords): array
