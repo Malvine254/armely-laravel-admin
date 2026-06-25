@@ -1,5 +1,3 @@
-@section('title', 'Snowflake Data Cloud Implementation | Armely')
-
 <style>
 
 

@@ -1,5 +1,3 @@
-@section('title', 'Generative AI and Agentic AI Solutions | Armely')
-
 <style>
 
 

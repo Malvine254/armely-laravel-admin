@@ -4,6 +4,7 @@
 	$servicePageTitles = [
 		'training' => 'Microsoft and AI Training for Teams | Armely',
 		'managed-services' => 'Microsoft Managed Services | Armely',
+		'sql-data-warehousing' => 'SQL Server Migration and Management | Armely',
 	];
 @endphp
 

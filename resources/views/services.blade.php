@@ -878,7 +878,7 @@
 						@endphp
 						<div class="col-lg-4 col-md-6 col-12 mb-4 service-card-wrapper" data-category="{{ $service->category }}">
 							<div class="single-table card-shadow default-background h-100">
-								<a class="text-light" href="{{ route('services.show', ['name' => $service->url_name]) }}" style="text-decoration: none;">
+								<a class="text-light" href="{{ \App\Support\ServiceUrl::path($service) }}" style="text-decoration: none;">
 									<div class="table-head">
 										<div class="icon text-light">
 											<i class="service-icon text-light {{ $iconClass }}" data-fallback-icon="{{ $fallbackIconClass }}"></i>

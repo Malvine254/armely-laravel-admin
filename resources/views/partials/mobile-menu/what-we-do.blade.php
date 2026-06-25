@@ -19,11 +19,11 @@
 
     <div class="mobile-mega-section">
         <h4>Business Applications</h4>
-        <a href="{{ route('services.show', ['name' => 'power-platform']) }}">Power Platform</a>
-        <a href="{{ route('services.show', ['name' => 'dynamics-365']) }}">Dynamics 365</a>
-        <a href="{{ route('services.show', ['name' => 'sharepoint']) }}">SharePoint</a>
+        <a href="{{ route('services.show', ['name' => 'microsoft-power-pages']) }}">Power Platform</a>
+        <a href="{{ route('services.show', ['name' => 'microsoft-dynamics-365']) }}">Dynamics 365</a>
+        <a href="{{ route('services.show', ['name' => 'sharepoint-online']) }}">SharePoint</a>
         <a href="{{ route('services.show', ['name' => 'custom-development']) }}">Custom Development</a>
-        <a href="{{ route('services.show', ['name' => 'api-dev']) }}">API Development</a>
+        <a href="{{ route('services.show', ['name' => 'api-data-access']) }}">API Development</a>
     </div>
 
     <div class="mobile-mega-section">
