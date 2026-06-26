@@ -26,8 +26,14 @@
 	$caseOnePagerContentHasH1 = preg_match('/<h1\b/i', $caseOnePagerContent) === 1;
 	$caseOnePagerIsPdf = $caseOnePagerPreviewUrl !== ''
 		&& \Illuminate\Support\Str::contains(strtolower((string) parse_url($caseOnePagerPreviewUrl, PHP_URL_PATH)), '.pdf');
+	$caseHasAuthoredDoc = !empty($caseOnePagerDocument) || $caseOnePagerContent !== '';
+	// White papers now share the case-study authored one-pager document format.
+	// They only fall back to the gated PDF viewer when no authored content exists.
+	$caseRenderDocument = !$isWhitePaperPage || $caseHasAuthoredDoc || $caseOnePagerPreviewUrl === '';
+	$caseRenderPdfViewer = $isWhitePaperPage && !$caseRenderDocument && $caseOnePagerPreviewUrl !== '';
+	$caseDocumentMode = $caseRenderDocument;
 	$caseHasPublicPreview = $isWhitePaperPage
-		? $caseOnePagerPreviewUrl !== ''
+		? ($caseHasAuthoredDoc || $caseOnePagerPreviewUrl !== '' || $caseOnePagerText !== '')
 		: ($caseOnePagerContent !== '' || $caseOnePagerText !== '' || $caseOnePagerPreviewUrl !== '');
 @endphp
 
@@ -1888,7 +1894,7 @@ textarea.lead-field {
 	@endif
 
 	@if($caseHasPublicPreview)
-		<section class="case-preview-band{{ !$isWhitePaperPage ? ' is-document' : '' }}" id="caseOnePager">
+		<section class="case-preview-band{{ $caseDocumentMode ? ' is-document' : '' }}" id="caseOnePager">
 			<div class="container">
 				@if($isWhitePaperPage)
 					<div class="case-section-head">
@@ -1898,12 +1904,12 @@ textarea.lead-field {
 					</div>
 				@endif
 				<div class="case-preview-shell case-full-case-study">
-					<div class="case-full-case-study-card case-onepager-card{{ !$isWhitePaperPage ? ' is-document' : '' }}" aria-label="{{ $casePreviewSectionTitle }} preview">
-						@if(!$isWhitePaperPage)
+					<div class="case-full-case-study-card case-onepager-card{{ $caseDocumentMode ? ' is-document' : '' }}" aria-label="{{ $casePreviewSectionTitle }} preview">
+						@if($caseRenderDocument)
 							<article class="case-onepager-text">
 								<div class="case-doc-brandbar">
 									<strong class="case-doc-brand">ARMELY</strong>
-									<span>{{ $caseOnePagerDocument['eyebrow'] ?? 'Case Study' }}</span>
+									<span>{{ $caseOnePagerDocument['eyebrow'] ?? $detailKindLabel }}</span>
 								</div>
 								@if(!empty($caseOnePagerDocument))
 									<header>
@@ -1960,13 +1966,13 @@ textarea.lead-field {
 									<h1 class="case-doc-headline">{{ $caseStudy->display_title }}</h1>
 									<p class="case-doc-intro">{{ $caseStudy->preview }}</p>
 								@endif
-								@if($caseOnePagerPreviewUrl !== '')
+								@if(!$isWhitePaperPage && $caseOnePagerPreviewUrl !== '')
 									<a class="case-onepager-source-link" href="{{ $caseOnePagerPreviewUrl }}" target="_blank" rel="noopener">
 										<i class="fa fa-up-right-from-square"></i> Open source one-pager PDF
 									</a>
 								@endif
 							</article>
-						@else
+						@elseif($caseRenderPdfViewer)
 							<div class="case-full-case-study-viewer">
 							@if($caseOnePagerIsPdf)
 								<iframe
@@ -1986,7 +1992,7 @@ textarea.lead-field {
 							@endif
 							</div>
 						@endif
-						@if($isWhitePaperPage)
+						@if($caseRenderPdfViewer)
 						<div class="case-full-case-study-mobile">
 							<div>
 								<strong>{{ $casePreviewSectionTitle }}</strong>

@@ -395,6 +395,95 @@
 	.white-paper-pdf-page { padding: 18px; }
 	.white-paper-text-preview-body { padding: 14px 14px 16px; }
 }
+
+/* One-pager document frame — mirrors the case-study preview format. */
+.white-paper-doc-stage {
+	background: #edf1f5;
+	padding: clamp(16px, 2.4vw, 28px);
+	border-radius: 18px;
+}
+.white-paper-onepager {
+	position: relative;
+	width: 100%;
+	margin: 0 auto;
+	padding: clamp(30px, 4.2vw, 52px);
+	color: #26364b;
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: .96rem;
+	line-height: 1.7;
+	background: #fff;
+	border: 1px solid #d7dce2;
+	box-shadow:
+		0 2px 3px rgba(20, 34, 52, .08),
+		0 24px 65px rgba(20, 34, 52, .18);
+}
+.white-paper-doc-brandbar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 18px;
+	margin: 0 0 25px;
+	padding: 0 0 11px;
+	border-bottom: 2px solid var(--case-blue);
+	color: var(--case-blue);
+}
+.white-paper-doc-brand {
+	font-size: 1.45rem;
+	font-weight: 950;
+	letter-spacing: .12em;
+}
+.white-paper-doc-brandbar span:last-child {
+	font-size: .76rem;
+	font-weight: 900;
+	letter-spacing: .12em;
+	text-transform: uppercase;
+	color: #59687a;
+}
+.white-paper-doc-headline {
+	max-width: 730px;
+	margin: 0;
+	color: var(--case-ink);
+	font-family: Georgia, 'Times New Roman', serif;
+	font-size: clamp(1.7rem, 3vw, 2.4rem);
+	line-height: 1.16;
+	font-weight: 950;
+}
+.white-paper-doc-intro {
+	max-width: 760px;
+	margin: 13px 0 0;
+	color: var(--case-muted);
+	font-family: Georgia, 'Times New Roman', serif;
+	font-size: 1.03rem;
+	line-height: 1.58;
+}
+.white-paper-doc-embed {
+	margin-top: 25px;
+	padding-top: 20px;
+	border-top: 1px solid #b9c2ce;
+}
+.white-paper-doc-kicker {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	color: var(--case-blue);
+	font-size: .82rem;
+	font-weight: 900;
+	letter-spacing: .08em;
+	text-transform: uppercase;
+	margin-bottom: 12px;
+}
+.white-paper-doc-embed iframe {
+	width: 100%;
+	min-height: 560px;
+	border: 0;
+	display: block;
+	background: #fff;
+}
+@media (max-width: 767px) {
+	.white-paper-doc-stage { padding: 12px; }
+	.white-paper-onepager { padding: 26px 20px 34px; }
+	.white-paper-doc-embed iframe { min-height: 420px; }
+}
 </style>
 @endpush
 
@@ -449,50 +538,36 @@
 			<div class="white-paper-shell">
 				<div class="white-paper-layout">
 					<div class="white-paper-preview-card">
-						<div class="white-paper-preview-head">
-							<div>
-								<h2>First page preview</h2>
-								<p>Preview the first page directly from the file, then request secure access to receive the full white paper and remaining pages.</p>
-							</div>
-							<div class="white-paper-preview-pills" aria-label="Preview status">
-								<span class="white-paper-preview-pill">Page 1 shown</span>
-								<span class="white-paper-preview-pill is-muted">File preview</span>
-							</div>
-						</div>
-
-						<div class="white-paper-pdf-stage">
-							<div class="white-paper-pdf-page">
-								<div class="white-paper-pdf-top">
-									<div>
-										<div class="white-paper-preview-kicker"><i class="fa fa-file-pdf-o"></i> Document preview</div>
-										<h3 class="white-paper-pdf-title">{{ $resourceTitle }}</h3>
-									</div>
-									<div class="white-paper-preview-pills" aria-label="Preview status">
-										<span class="white-paper-preview-pill">Page 1</span>
-										<span class="white-paper-preview-pill is-muted">PDF</span>
-									</div>
+						<div class="white-paper-doc-stage">
+							<article class="white-paper-onepager" aria-label="White paper preview">
+								<div class="white-paper-doc-brandbar">
+									<strong class="white-paper-doc-brand">ARMELY</strong>
+									<span>White Paper</span>
 								</div>
-								<div class="white-paper-pdf-body">
+								<header>
+									<h1 class="white-paper-doc-headline">{{ $resourceTitle }}</h1>
+									@if($resourceDescription !== '')
+										<p class="white-paper-doc-intro">{{ $resourceDescription }}</p>
+									@endif
+								</header>
+								<div class="white-paper-doc-embed">
+									<div class="white-paper-doc-kicker"><i class="fa fa-file-pdf-o"></i> First page preview</div>
 									@if($resourceInlineUrl !== '' && $isPdfPreview)
-										<iframe src="{{ $resourceInlineUrl }}#view=FitH" title="{{ $resourceTitle }}" style="width:100%; min-height:520px; border:0; display:block;"></iframe>
+										<iframe src="{{ $resourceInlineUrl }}#view=FitH" title="{{ $resourceTitle }}" loading="lazy"></iframe>
 									@else
-										<div class="white-paper-text-preview">
-											<div class="white-paper-preview-kicker"><i class="fa fa-file-text-o"></i> White paper preview</div>
-											<div class="white-paper-text-preview-title">{{ $resourceTitle }}</div>
-											<div class="white-paper-text-preview-body">
-												{!! nl2br(e($resourcePreviewText !== '' ? $resourcePreviewText : ($resourceDescription ?: 'This white paper is available by request.'))) !!}
-											</div>
+										<div class="white-paper-text-preview-body">
+											{!! nl2br(e($resourcePreviewText !== '' ? $resourcePreviewText : ($resourceDescription ?: 'This white paper is available by request.'))) !!}
 										</div>
 									@endif
+									<div class="white-paper-pdf-preview-note">
+										@if($resourceInlineUrl !== '' && $isPdfPreview)
+											This preview comes from the file itself. Request the full white paper for secure access to the complete download.
+										@else
+											This preview is generated from the white paper content. Request the full white paper for secure access to the complete download.
+										@endif
+									</div>
 								</div>
-								<div class="white-paper-pdf-preview-note">
-									@if($resourceInlineUrl !== '' && $isPdfPreview)
-										This preview comes from the file itself. Request the full white paper for secure access to the complete download.
-									@else
-										This preview is generated from the white paper content. Request the full white paper for secure access to the complete download.
-									@endif
-								</div>
-							</div>
+							</article>
 						</div>
 					</div>
 
