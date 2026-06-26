@@ -16,6 +16,7 @@ class CompanyContentController extends Controller
     {
         $portfolios = collect();
         $banners = collect();
+        $announcements = collect();
 
         if (Schema::hasTable('company_portfolios')) {
             $portfolios = DB::table('company_portfolios')
@@ -31,7 +32,14 @@ class CompanyContentController extends Controller
                 ->get();
         }
 
-        return view('admin.company-content', compact('portfolios', 'banners'));
+        if (Schema::hasTable('announcements')) {
+            $announcements = DB::table('announcements')
+                ->orderByDesc('published_at')
+                ->orderByDesc('id')
+                ->get();
+        }
+
+        return view('admin.company-content', compact('portfolios', 'banners', 'announcements'));
     }
 
     public function storePortfolio(Request $request): RedirectResponse
@@ -240,6 +248,117 @@ class CompanyContentController extends Controller
         ActivityLogger::log('delete', 'website_ad_banner', $id, 'Deleted website ad banner');
 
         return back()->with('success', 'Advert banner deleted successfully.');
+    }
+
+    public function storeAnnouncement(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'type' => 'required|in:announcement,offer',
+            'summary' => 'nullable|string',
+            'body_html' => 'required|string',
+            'cta_label' => 'nullable|string|max:120',
+            'cta_url' => 'nullable|string|max:255',
+            'display_order' => 'nullable|integer|min:0|max:9999',
+            'published_at' => 'nullable|date',
+            'is_active' => 'nullable|boolean',
+        ]);
+
+        $payload = [
+            'title' => $validated['title'],
+            'type' => $validated['type'],
+            'summary' => $validated['summary'] ?? null,
+            'body_html' => $validated['body_html'],
+            'cta_label' => $validated['cta_label'] ?? null,
+            'cta_url' => $validated['cta_url'] ?? null,
+            'display_order' => (int) ($validated['display_order'] ?? 0),
+            'published_at' => $validated['published_at'] ?? now(),
+            'is_active' => $request->boolean('is_active', true),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ];
+
+        if (Schema::hasTable('announcements')) {
+            $id = DB::table('announcements')->insertGetId($payload);
+            ActivityLogger::log('create', 'announcement', $id, 'Created company announcement');
+        }
+
+        return back()->with('success', 'Announcement created successfully.');
+    }
+
+    public function updateAnnouncement(Request $request, int $id): RedirectResponse
+    {
+        $record = DB::table('announcements')->where('id', $id)->first();
+        if (!$record) {
+            return back()->with('error', 'Announcement not found.');
+        }
+
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'type' => 'required|in:announcement,offer',
+            'summary' => 'nullable|string',
+            'body_html' => 'required|string',
+            'cta_label' => 'nullable|string|max:120',
+            'cta_url' => 'nullable|string|max:255',
+            'display_order' => 'nullable|integer|min:0|max:9999',
+            'published_at' => 'nullable|date',
+            'is_active' => 'nullable|boolean',
+        ]);
+
+        $payload = [
+            'title' => $validated['title'],
+            'type' => $validated['type'],
+            'summary' => $validated['summary'] ?? null,
+            'body_html' => $validated['body_html'],
+            'cta_label' => $validated['cta_label'] ?? null,
+            'cta_url' => $validated['cta_url'] ?? null,
+            'display_order' => (int) ($validated['display_order'] ?? 0),
+            'published_at' => $validated['published_at'] ?? $record->published_at ?? now(),
+            'is_active' => $request->boolean('is_active'),
+            'updated_at' => now(),
+        ];
+
+        DB::table('announcements')->where('id', $id)->update($payload);
+        ActivityLogger::log('update', 'announcement', $id, 'Updated company announcement');
+
+        return back()->with('success', 'Announcement updated successfully.');
+    }
+
+    public function deleteAnnouncement(int $id): RedirectResponse
+    {
+        $record = DB::table('announcements')->where('id', $id)->first();
+        if (!$record) {
+            return back()->with('error', 'Announcement not found.');
+        }
+
+        DB::table('announcements')->where('id', $id)->delete();
+        ActivityLogger::log('delete', 'announcement', $id, 'Deleted company announcement');
+
+        return back()->with('success', 'Announcement deleted successfully.');
+    }
+
+    public function toggleAnnouncementStatus(int $id): RedirectResponse
+    {
+        $record = DB::table('announcements')->where('id', $id)->first();
+        if (!$record) {
+            return back()->with('error', 'Announcement not found.');
+        }
+
+        $newStatus = ! (bool) $record->is_active;
+
+        DB::table('announcements')->where('id', $id)->update([
+            'is_active' => $newStatus,
+            'updated_at' => now(),
+        ]);
+
+        ActivityLogger::log(
+            'update',
+            'announcement',
+            $id,
+            $newStatus ? 'Activated company announcement' : 'Deactivated company announcement'
+        );
+
+        return back()->with('success', $newStatus ? 'Announcement activated successfully.' : 'Announcement deactivated successfully.');
     }
 
     private function normalizeFeatures(?string $rawFeatures): ?string
