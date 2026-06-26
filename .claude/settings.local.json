@@ -31,7 +31,10 @@
       "Bash(php -l app/Http/Controllers/Admin/TablesController.php)",
       "Bash(php -l app/Http/Controllers/Admin/CaseStudyTechnologyController.php)",
       "Bash(php -l app/Models/CaseStudyTechnology.php)",
-      "Bash(curl -s -o /dev/null -w \"case-studies page: %{http_code}\\\\n\" http://127.0.0.1:8000/case-studies)"
+      "Bash(curl -s -o /dev/null -w \"case-studies page: %{http_code}\\\\n\" http://127.0.0.1:8000/case-studies)",
+      "Bash(curl -s -o /dev/null -w \"company page: %{http_code}\\\\n\" http://127.0.0.1:8000/company)",
+      "Bash(curl -s -o /tmp/wp.html -w \"white-paper page: %{http_code}\\\\n\" \"http://127.0.0.1:8000/white-papers/view/modern-data-platform-brief\")",
+      "Read(//tmp/**)"
     ],
     "additionalDirectories": [
       "\\tmp"
