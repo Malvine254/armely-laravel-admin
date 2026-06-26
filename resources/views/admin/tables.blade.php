@@ -558,6 +558,11 @@
                 </a>
             </li>
             <li class="nav-item">
+                <a class="nav-link" id="announcements-tab" data-bs-toggle="tab" href="#announcements" role="tab">
+                    <i class="fas fa-bullhorn"></i> Announcements
+                </a>
+            </li>
+            <li class="nav-item">
                 <a class="nav-link" id="newsletter-tab" data-bs-toggle="tab" href="#newsletter" role="tab">
                     <i class="fas fa-envelope-open-text"></i> Newsletter
                 </a>
@@ -989,6 +994,293 @@
             </div>
         </div>
 
+        <!-- Announcements Tab -->
+        <div class="tab-pane fade" id="announcements" role="tabpanel">
+            <div class="card-body">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
+                    <div>
+                        <h5 class="mb-1">Site Announcement Banner</h5>
+                        <p class="text-muted mb-0">Controls the top strip shown across the public site.</p>
+                    </div>
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <span class="badge bg-primary">{{ ($siteBanners ?? collect())->count() }} total</span>
+                        <button class="btn btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#bannerModal">
+                            <i class="fas fa-plus me-1"></i> Add Banner
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card content-management-card mb-4">
+                    <div class="card-header py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                        <h5 class="mb-0 section-title">Global Banner Records</h5>
+                        <small class="text-muted">Shown in the public header when active.</small>
+                    </div>
+                    <div class="card-body p-0">
+                        @if(($siteBanners ?? collect())->count() > 0)
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Headline</th>
+                                            <th>Status</th>
+                                            <th>Schedule</th>
+                                            <th width="220">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($siteBanners as $banner)
+                                            <tr>
+                                                <td>
+                                                    <strong>{{ $banner->headline }}</strong>
+                                                    @if(!empty($banner->message))
+                                                        <div class="content-preview text-muted mt-1">{{ \Illuminate\Support\Str::limit($banner->message, 140) }}</div>
+                                                    @endif
+                                                </td>
+                                                <td>
+                                                    @if($banner->is_active)
+                                                        <span class="badge bg-success">Active</span>
+                                                    @else
+                                                        <span class="badge bg-secondary">Inactive</span>
+                                                    @endif
+                                                    <div class="mt-2">
+                                                        <small class="text-muted">Display order {{ $banner->display_order ?? 0 }}</small>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <small>
+                                                        {{ $banner->starts_at ? 'Starts ' . \Carbon\Carbon::parse($banner->starts_at)->format('M j, Y g:i A') : 'No start date' }}
+                                                        <br>
+                                                        {{ $banner->ends_at ? 'Ends ' . \Carbon\Carbon::parse($banner->ends_at)->format('M j, Y g:i A') : 'No end date' }}
+                                                    </small>
+                                                </td>
+                                                <td>
+                                                    <div class="row-actions">
+                                                        <button class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#banner-edit-{{ $banner->id }}">
+                                                            <i class="fas fa-edit me-1"></i>Edit
+                                                        </button>
+                                                        <form method="POST" action="{{ route('admin.company-content.banners.delete', $banner->id) }}" onsubmit="return confirm('Delete this banner?');">
+                                                            @csrf
+                                                            @method('DELETE')
+                                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                                <i class="fas fa-trash me-1"></i>Delete
+                                                            </button>
+                                                        </form>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            <tr class="collapse" id="banner-edit-{{ $banner->id }}">
+                                                <td colspan="4">
+                                                    <form method="POST" action="{{ route('admin.company-content.banners.update', $banner->id) }}" class="p-3 bg-light border-top">
+                                                        @csrf
+                                                        @method('PUT')
+                                                        <input type="hidden" name="page" value="global">
+                                                        <div class="row g-3">
+                                                            <div class="col-md-6">
+                                                                <label class="form-label">Headline *</label>
+                                                                <input type="text" name="headline" class="form-control" value="{{ old('headline', $banner->headline) }}" required>
+                                                            </div>
+                                                            <div class="col-md-6">
+                                                                <label class="form-label">Button Label</label>
+                                                                <input type="text" name="button_label" class="form-control" value="{{ old('button_label', $banner->button_label) }}" placeholder="Shop Now">
+                                                            </div>
+                                                            <div class="col-md-12">
+                                                                <label class="form-label">Message</label>
+                                                                <textarea name="message" class="form-control" rows="2">{{ old('message', $banner->message) }}</textarea>
+                                                            </div>
+                                                            <div class="col-md-6">
+                                                                <label class="form-label">Button URL</label>
+                                                                <input type="text" name="button_url" class="form-control" value="{{ old('button_url', $banner->button_url) }}" placeholder="/store">
+                                                            </div>
+                                                            <div class="col-md-6">
+                                                                <label class="form-label">Background Style</label>
+                                                                <input type="text" name="background_style" class="form-control" value="{{ old('background_style', $banner->background_style) }}" placeholder="linear-gradient(135deg, #2f5597 0%, #1e3a6d 100%)">
+                                                            </div>
+                                                            <div class="col-md-3">
+                                                                <label class="form-label">Display Order</label>
+                                                                <input type="number" name="display_order" class="form-control" min="0" value="{{ old('display_order', $banner->display_order) }}">
+                                                            </div>
+                                                            <div class="col-md-3">
+                                                                <label class="form-label">Start Date</label>
+                                                                <input type="datetime-local" name="starts_at" class="form-control" value="{{ $banner->starts_at ? \Carbon\Carbon::parse($banner->starts_at)->format('Y-m-d\\TH:i') : '' }}">
+                                                            </div>
+                                                            <div class="col-md-3">
+                                                                <label class="form-label">End Date</label>
+                                                                <input type="datetime-local" name="ends_at" class="form-control" value="{{ $banner->ends_at ? \Carbon\Carbon::parse($banner->ends_at)->format('Y-m-d\\TH:i') : '' }}">
+                                                            </div>
+                                                            <div class="col-md-3 d-flex align-items-end">
+                                                                <div class="form-check form-switch">
+                                                                    <input class="form-check-input" type="checkbox" role="switch" id="banner-active-{{ $banner->id }}" name="is_active" value="1" {{ old('is_active', $banner->is_active) ? 'checked' : '' }}>
+                                                                    <label class="form-check-label" for="banner-active-{{ $banner->id }}">Active</label>
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-12 d-flex justify-content-end">
+                                                                <button type="submit" class="btn btn-primary">Update Banner</button>
+                                                            </div>
+                                                        </div>
+                                                    </form>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @else
+                            <p class="text-muted p-3 mb-0">No global banner records yet. Add one to control the public header strip.</p>
+                        @endif
+                    </div>
+                </div>
+
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
+                    <div>
+                        <h5 class="mb-1">Announcements & Offers</h5>
+                        <p class="text-muted mb-0">Create rich HTML announcements and switch them on or off from the list.</p>
+                    </div>
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <span class="badge bg-primary">{{ ($announcements ?? collect())->count() }} total</span>
+                        <button class="btn btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#announcementModal">
+                            <i class="fas fa-plus me-1"></i> Add New Announcement
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card content-management-card">
+                    <div class="card-header py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                        <h5 class="mb-0 section-title">All Announcements</h5>
+                        <div class="input-group" style="max-width: 320px;">
+                            <span class="input-group-text"><i class="fas fa-search"></i></span>
+                            <input type="search" class="form-control" id="announcementSearch" placeholder="Search announcements...">
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        @if(($announcements ?? collect())->count() > 0)
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0" id="announcementsDataTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Title</th>
+                                            <th>Type</th>
+                                            <th>Published</th>
+                                            <th>Status</th>
+                                            <th width="240">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($announcements as $announcement)
+                                            <tr>
+                                                <td>
+                                                    <strong>{{ $announcement->title }}</strong>
+                                                    @if(!empty($announcement->summary))
+                                                        <div class="content-preview text-muted mt-1">{{ \Illuminate\Support\Str::limit($announcement->summary, 140) }}</div>
+                                                    @endif
+                                                </td>
+                                                <td>
+                                                    <span class="badge {{ $announcement->type === 'offer' ? 'bg-success' : 'bg-info text-dark' }} text-uppercase">
+                                                        {{ $announcement->type }}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <small>
+                                                        {{ $announcement->published_at ? \Carbon\Carbon::parse($announcement->published_at)->format('M j, Y g:i A') : 'Not published' }}
+                                                    </small>
+                                                </td>
+                                                <td>
+                                                    <div class="d-flex flex-column gap-2">
+                                                        @if($announcement->is_active)
+                                                            <span class="badge bg-success">Active</span>
+                                                        @else
+                                                            <span class="badge bg-secondary">Inactive</span>
+                                                        @endif
+                                                        <form method="POST" action="{{ route('admin.tables.announcements.toggle', $announcement->id) }}">
+                                                            @csrf
+                                                            <button type="submit" class="btn btn-sm {{ $announcement->is_active ? 'btn-outline-secondary' : 'btn-outline-success' }}">
+                                                                <i class="fas {{ $announcement->is_active ? 'fa-toggle-off' : 'fa-toggle-on' }} me-1"></i>
+                                                                {{ $announcement->is_active ? 'Turn Off' : 'Turn On' }}
+                                                            </button>
+                                                        </form>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div class="row-actions">
+                                                        <button class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#announcement-edit-{{ $announcement->id }}">
+                                                            <i class="fas fa-edit me-1"></i>Edit
+                                                        </button>
+                                                        <form method="POST" action="{{ route('admin.tables.announcements.delete', $announcement->id) }}" onsubmit="return confirm('Delete this announcement?');">
+                                                            @csrf
+                                                            @method('DELETE')
+                                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                                <i class="fas fa-trash me-1"></i>Delete
+                                                            </button>
+                                                        </form>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            <tr class="collapse" id="announcement-edit-{{ $announcement->id }}">
+                                                <td colspan="5">
+                                                    <form method="POST" action="{{ route('admin.tables.announcements.update', $announcement->id) }}" class="p-3 bg-light border-top">
+                                                        @csrf
+                                                        @method('PUT')
+                                                        <div class="row g-3">
+                                                            <div class="col-md-5">
+                                                                <label class="form-label">Title *</label>
+                                                                <input type="text" name="title" class="form-control" value="{{ old('title', $announcement->title) }}" required>
+                                                            </div>
+                                                            <div class="col-md-3">
+                                                                <label class="form-label">Type *</label>
+                                                                <select name="type" class="form-select" required>
+                                                                    <option value="announcement" {{ old('type', $announcement->type) === 'announcement' ? 'selected' : '' }}>Announcement</option>
+                                                                    <option value="offer" {{ old('type', $announcement->type) === 'offer' ? 'selected' : '' }}>Offer</option>
+                                                                </select>
+                                                            </div>
+                                                            <div class="col-md-2">
+                                                                <label class="form-label">Display Order</label>
+                                                                <input type="number" name="display_order" class="form-control" min="0" value="{{ old('display_order', $announcement->display_order) }}">
+                                                            </div>
+                                                            <div class="col-md-2 d-flex align-items-end">
+                                                                <div class="form-check form-switch">
+                                                                    <input class="form-check-input" type="checkbox" role="switch" id="announcement-active-{{ $announcement->id }}" name="is_active" value="1" {{ old('is_active', $announcement->is_active) ? 'checked' : '' }}>
+                                                                    <label class="form-check-label" for="announcement-active-{{ $announcement->id }}">Active</label>
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-md-12">
+                                                                <label class="form-label">Summary</label>
+                                                                <textarea name="summary" class="form-control" rows="2">{{ old('summary', $announcement->summary) }}</textarea>
+                                                            </div>
+                                                            <div class="col-md-12">
+                                                                <label class="form-label">Full HTML Content *</label>
+                                                                <textarea name="body_html" class="form-control" rows="12" required>{{ old('body_html', $announcement->body_html) }}</textarea>
+                                                                <small class="text-muted d-block mt-1">Paste the complete announcement body here using HTML. Headings, lists, links, images, and tables are supported.</small>
+                                                            </div>
+                                                            <div class="col-md-4">
+                                                                <label class="form-label">CTA Label</label>
+                                                                <input type="text" name="cta_label" class="form-control" value="{{ old('cta_label', $announcement->cta_label) }}">
+                                                            </div>
+                                                            <div class="col-md-4">
+                                                                <label class="form-label">CTA URL</label>
+                                                                <input type="text" name="cta_url" class="form-control" value="{{ old('cta_url', $announcement->cta_url) }}">
+                                                            </div>
+                                                            <div class="col-md-4">
+                                                                <label class="form-label">Publish Date/Time</label>
+                                                                <input type="datetime-local" name="published_at" class="form-control" value="{{ $announcement->published_at ? \Carbon\Carbon::parse($announcement->published_at)->format('Y-m-d\\TH:i') : '' }}">
+                                                            </div>
+                                                            <div class="col-12 d-flex justify-content-end">
+                                                                <button type="submit" class="btn btn-primary">Update Announcement</button>
+                                                            </div>
+                                                        </div>
+                                                    </form>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @else
+                            <p class="text-muted p-3 mb-0">No announcements yet. Add the first announcement or offer above.</p>
+                        @endif
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Newsletter Tab -->
         <div class="tab-pane fade" id="newsletter" role="tabpanel">
             <div class="card-body">
@@ -1274,6 +1566,147 @@
                 </button>
                 <button type="button" class="btn btn-primary" id="saveBlogBtn">
                     <i class="fas fa-save me-2"></i>Save Blog
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Site Banner Modal -->
+<div class="modal fade" id="bannerModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title mb-1">Add Site Announcement Banner</h5>
+                    <small class="text-muted">This banner appears in the public header when active.</small>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form method="POST" action="{{ route('admin.company-content.banners.store') }}" id="bannerForm">
+                    @csrf
+                    <input type="hidden" name="page" value="global">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Headline *</label>
+                            <input type="text" name="headline" class="form-control" required placeholder="Armely Store is now live">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Button Label</label>
+                            <input type="text" name="button_label" class="form-control" placeholder="Shop Now">
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">Message</label>
+                            <textarea name="message" class="form-control" rows="2" placeholder="Browse business technology products, request quotes, and manage orders online."></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Button URL</label>
+                            <input type="text" name="button_url" class="form-control" placeholder="/store">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Background Style</label>
+                            <input type="text" name="background_style" class="form-control" placeholder="linear-gradient(135deg, #2f5597 0%, #1e3a6d 100%)">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Display Order</label>
+                            <input type="number" name="display_order" class="form-control" min="0" value="1">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Start Date</label>
+                            <input type="datetime-local" name="starts_at" class="form-control">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">End Date</label>
+                            <input type="datetime-local" name="ends_at" class="form-control">
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" role="switch" id="banner-active" name="is_active" value="1" checked>
+                                <label class="form-check-label" for="banner-active">Active</label>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Cancel
+                </button>
+                <button type="submit" form="bannerForm" class="btn btn-primary">
+                    <i class="fas fa-save me-2"></i>Save Banner
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Announcement Add Modal -->
+<div class="modal fade" id="announcementModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title mb-1">Add New Announcement</h5>
+                    <small class="text-muted">Create a full HTML announcement or offer and publish it to the site.</small>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form method="POST" action="{{ route('admin.tables.announcements.store') }}" id="announcementForm">
+                    @csrf
+                    <div class="row g-3">
+                        <div class="col-md-5">
+                            <label class="form-label">Title *</label>
+                            <input type="text" name="title" class="form-control" required placeholder="Announcement title">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Type *</label>
+                            <select name="type" class="form-select" required>
+                                <option value="announcement">Announcement</option>
+                                <option value="offer">Offer</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Display Order</label>
+                            <input type="number" name="display_order" class="form-control" min="0" value="0">
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" role="switch" id="announcement-active" name="is_active" value="1" checked>
+                                <label class="form-check-label" for="announcement-active">Active</label>
+                            </div>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">Summary</label>
+                            <textarea name="summary" class="form-control" rows="2" placeholder="Short summary shown in previews"></textarea>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">Full HTML Content *</label>
+                            <textarea name="body_html" class="form-control" rows="12" required placeholder="<h3>Special offer</h3><p>Use <strong>HTML</strong> here for formatted details.</p>"></textarea>
+                            <small class="text-muted d-block mt-1">Paste the complete announcement body here using HTML. Headings, lists, links, images, and tables are supported.</small>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">CTA Label</label>
+                            <input type="text" name="cta_label" class="form-control" placeholder="Learn More">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">CTA URL</label>
+                            <input type="text" name="cta_url" class="form-control" placeholder="/contact">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Publish Date/Time</label>
+                            <input type="datetime-local" name="published_at" class="form-control">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Cancel
+                </button>
+                <button type="submit" form="announcementForm" class="btn btn-primary">
+                    <i class="fas fa-save me-2"></i>Save Announcement
                 </button>
             </div>
         </div>
@@ -2640,6 +3073,15 @@ $(document).ready(function() {
         } else {
             blogEditor.setData('');
         }
+    });
+
+    // Announcement Add - Open Modal
+    $('[data-bs-target="#announcementModal"]').click(function() {
+        const form = document.getElementById('announcementForm');
+        if (form) {
+            form.reset();
+        }
+        $('#announcement-active').prop('checked', true);
     });
 
     // Blog Edit
@@ -4107,6 +4549,7 @@ $(document).ready(function() {
             { id: '#caseStudiesDataTable', pageLength: 10 },
             { id: '#eventsDataTable', pageLength: 10 },
             { id: '#teamDataTable', pageLength: 10 },
+            { id: '#announcementsDataTable', pageLength: 10 },
             { id: '#newsletterDataTable', pageLength: 10 }
             // Skip blogsDataTable - initialized separately for Server-Side
             // Skip job application tables - they load via AJAX
@@ -4179,10 +4622,16 @@ $(document).ready(function() {
         reloadBlogsTable();
     });
 
-    $('#videos-tab, #careers-tab, #social-tab, #stories-tab, #case-studies-tab, #events-tab, #team-tab, #newsletter-tab').on('click', function() {
+    $('#videos-tab, #careers-tab, #social-tab, #stories-tab, #case-studies-tab, #events-tab, #team-tab, #announcements-tab, #newsletter-tab').on('click', function() {
         setTimeout(function() {
             initializeDataTables();
         }, 100);
+    });
+
+    $(document).on('input', '#announcementSearch', function() {
+        if ($.fn.DataTable.isDataTable('#announcementsDataTable')) {
+            $('#announcementsDataTable').DataTable().search(this.value).draw();
+        }
     });
 });
 </script>

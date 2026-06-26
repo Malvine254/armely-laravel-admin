@@ -43,6 +43,30 @@ class HomeController extends Controller
         ]);
     }
 
+    public function announcements()
+    {
+        $announcement = null;
+        $dbErrorMessage = null;
+
+        try {
+            if (Schema::hasTable('announcements')) {
+                $announcement = DB::table('announcements')
+                    ->where('is_active', true)
+                    ->orderByDesc('published_at')
+                    ->orderByDesc('id')
+                    ->first();
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Announcements query failed; showing friendly fallback', ['error' => $e->getMessage()]);
+            $dbErrorMessage = 'We are temporarily unable to load announcements. Please try again in a few moments.';
+        }
+
+        return view('announcements', [
+            'announcement' => $announcement,
+            'dbErrorMessage' => $dbErrorMessage,
+        ]);
+    }
+
     public function contactThankYou()
     {
         return view('contact-thank-you');

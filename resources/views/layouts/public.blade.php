@@ -1098,14 +1098,45 @@ main .service-card {
 {{-- AI Data Readiness Assessment Pop-up temporarily disabled. --}}
 {{-- @include('partials.ai-readiness-popup') --}}
 
-<div class="announcement-banner default-background" id="announcementBanner">
+@if(!empty($siteAnnouncementBanner))
+<div
+    class="announcement-banner default-background"
+    id="announcementBanner"
+    data-banner-key="{{ $siteAnnouncementBanner->banner_key }}"
+    @if(!empty($siteAnnouncementBanner->background_style))
+        style="background: {{ $siteAnnouncementBanner->background_style }};"
+    @endif
+>
+    @php($bannerButtonIsExternal = \Illuminate\Support\Str::startsWith((string) ($siteAnnouncementBanner->button_url ?? ''), ['http://', 'https://']))
     <span class="banner-item">
-        &#127881; <b>Armely Store is now live!</b>
-        Browse business technology products, request quotes, and manage orders online.
-        <a target="_blank" rel="noopener noreferrer" href="{{ url('/store') }}">Shop Now</a>
+        @if(!empty($siteAnnouncementBanner->headline))
+            &#127881; <b>{{ $siteAnnouncementBanner->headline }}</b>
+        @endif
+        @if(!empty($siteAnnouncementBanner->message))
+            {{ $siteAnnouncementBanner->message }}
+        @endif
+        @if(!empty($siteAnnouncementBanner->button_label) && !empty($siteAnnouncementBanner->button_url))
+            <a target="{{ $bannerButtonIsExternal ? '_blank' : '_self' }}" @if($bannerButtonIsExternal) rel="noopener noreferrer" @endif href="{{ $siteAnnouncementBanner->button_url }}">{{ $siteAnnouncementBanner->button_label }}</a>
+        @endif
     </span>
-    <span class="close-btn" onclick="closeBanner()">&times;</span>
+    <button type="button" class="close-btn" aria-label="Close announcement banner"
+        onclick="(function(btn){var banner=btn.closest('.announcement-banner'); if(!banner) return; var key=banner.getAttribute('data-banner-key') || 'armely_banner_closed'; banner.style.display='none'; try { localStorage.setItem(key, 'true'); } catch(e) {} })(this)">
+        &times;
+    </button>
 </div>
+<script>
+(function () {
+    var banner = document.getElementById('announcementBanner');
+    if (!banner) return;
+    var key = banner.getAttribute('data-banner-key') || 'armely_banner_closed';
+    try {
+        if (localStorage.getItem(key)) {
+            banner.style.display = 'none';
+        }
+    } catch (e) {}
+})();
+</script>
+@endif
 
 <header class="header">
     <div class="topbar">
