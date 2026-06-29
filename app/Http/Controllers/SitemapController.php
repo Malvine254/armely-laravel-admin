@@ -507,7 +507,6 @@ class SitemapController extends Controller
             Schema::hasColumn($blogTable, 'date') ? 'date' : null,
             Schema::hasColumn($blogTable, 'blog_date') ? 'blog_date' : null,
             Schema::hasColumn($blogTable, 'created_at') ? 'created_at' : null,
-            Schema::hasColumn($blogTable, 'status') ? 'status' : null,
         ]));
 
         $query = DB::table($blogTable)
@@ -516,10 +515,6 @@ class SitemapController extends Controller
                 $titleColumn ? $titleColumn . ' as title' : null,
                 ...$dateColumns,
             ]))));
-
-        if (Schema::hasColumn($blogTable, 'status')) {
-            $query->whereRaw('LOWER(status) = ?', ['published']);
-        }
 
         $orderColumn = $this->firstExistingColumn($blogTable, ['published_at', 'updated_at', 'date', 'blog_date', 'created_at']) ?? $blogIdColumn;
 
