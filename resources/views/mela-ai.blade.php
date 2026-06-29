@@ -1,20 +1,20 @@
 @extends('layouts.public')
 
-@section('title', 'Mela AI')
-@section('meta_description', 'Discover Mela AI from Armely and how AI-driven solutions can improve productivity, decision-making, and customer outcomes.')
+@section('title', $melaPageTitle ?? 'Mela AI')
+@section('meta_description', $melaPageDescription ?? 'Discover Mela AI from Armely and how AI-driven solutions can improve productivity, decision-making, and customer outcomes.')
 @section('meta_keywords', 'Mela AI, Armely AI, Microsoft AI, business automation, AI productivity, AI solutions')
 @section('canonical_url', url('/mela-ai'))
 
 @push('head')
 <meta name="robots" content="index,follow">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Mela AI | Armely">
-<meta property="og:description" content="Discover Mela AI from Armely and how AI-driven solutions can improve productivity, decision-making, and customer outcomes.">
+<meta property="og:title" content="{{ ($melaPageTitle ?? 'Mela AI') }} | Armely">
+<meta property="og:description" content="{{ $melaPageDescription ?? 'Discover Mela AI from Armely and how AI-driven solutions can improve productivity, decision-making, and customer outcomes.' }}">
 <meta property="og:url" content="{{ url('/mela-ai') }}">
 <meta property="og:site_name" content="Armely">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Mela AI | Armely">
-<meta name="twitter:description" content="Discover Mela AI from Armely and how AI-driven solutions can improve productivity, decision-making, and customer outcomes.">
+<meta name="twitter:title" content="{{ ($melaPageTitle ?? 'Mela AI') }} | Armely">
+<meta name="twitter:description" content="{{ $melaPageDescription ?? 'Discover Mela AI from Armely and how AI-driven solutions can improve productivity, decision-making, and customer outcomes.' }}">
 @endpush
 
 @push('styles')
@@ -572,8 +572,8 @@
         <div class="row align-items-center">
             <div class="col-lg-7 col-md-7">
                 <div class="mela-hero-content">
-                    <h1>Meet <span class="highlight">Mela AI</span> &mdash; Your Intelligent AI Agent</h1>
-                    <p>Mela is Armely's AI-powered virtual agent, built to help you explore our services, get instant answers, and experience the power of conversational AI &mdash; available 24/7.</p>
+                    <h1>Meet <span class="highlight">{{ $melaPageTitle ?? 'Mela AI' }}</span> &mdash; Your Intelligent AI Agent</h1>
+                    <p>{{ $melaPageDescription ?? "Mela is Armely's AI-powered virtual agent, built to help you explore our services, get instant answers, and experience the power of conversational AI — available 24/7." }}</p>
                     <a href="#try-mela" class="btn" style="background: #fff; color: #2f5597; padding: 12px 30px; border-radius: 8px; font-weight: 600; margin-top: 20px; display: inline-block; text-decoration: none; transition: all 0.3s;">
                         <i class="fa fa-comments" style="margin-right: 8px;"></i>Chat with Mela
                     </a>
@@ -765,9 +765,13 @@
                     <div class="col-lg-4 col-md-6">
                         <div class="video-showcase-card">
                             <div class="video-embed">
+                                @php
+                                    $videoTitle = trim((string) ($video->video_title ?? ''));
+                                    $videoLabel = $videoTitle !== '' ? $videoTitle : 'Agentic Demo ' . ($index + 1);
+                                @endphp
                                 <iframe
                                     src="https://www.youtube.com/embed/{{ $video->video_id }}"
-                                    title="Mela AI Demo {{ $index + 1 }}"
+                                    title="{{ $videoLabel }}"
                                     loading="lazy"
                                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                                     referrerpolicy="strict-origin-when-cross-origin"
@@ -776,7 +780,7 @@
                             </div>
                             <div class="video-meta">
                                 <span class="video-chip">Short Demo</span>
-                                <h5>Agentic Demo {{ $index + 1 }}</h5>
+                                <h5>{{ $videoLabel }}</h5>
                                 <p>See how Mela handles contextual prompts, executes guided actions, and supports real-world business interactions.</p>
                             </div>
                         </div>

@@ -322,9 +322,37 @@ class HomeController extends Controller
     public function melaAi()
     {
         $dbErrorMessage = null;
+        $melaPortfolio = $this->safeDb(function () {
+            if (!Schema::hasTable('company_portfolios')) {
+                return null;
+            }
+
+            return DB::table('company_portfolios')
+                ->where('is_active', 1)
+                ->where(function ($query) {
+                    $query->where('cta_url', '/mela-ai')
+                        ->orWhere('title', 'like', '%Mela%');
+                })
+                ->orderBy('display_order')
+                ->orderBy('id')
+                ->first();
+        }, $dbErrorMessage);
+
         $demoVideos = $this->recentVideos($dbErrorMessage);
+        $melaPageTitle = trim((string) (is_object($melaPortfolio) ? ($melaPortfolio->title ?? '') : ''));
+        if ($melaPageTitle === '') {
+            $melaPageTitle = 'Mela AI';
+        }
+
+        $melaPageDescription = trim((string) (is_object($melaPortfolio) ? ($melaPortfolio->short_description ?? '') : ''));
+        if ($melaPageDescription === '') {
+            $melaPageDescription = 'Discover Mela AI from Armely and how AI-driven solutions can improve productivity, decision-making, and customer outcomes.';
+        }
 
         return view('mela-ai', [
+            'melaPortfolio' => $melaPortfolio,
+            'melaPageTitle' => $melaPageTitle,
+            'melaPageDescription' => $melaPageDescription,
             'demoVideos' => $demoVideos,
             'dbErrorMessage' => $dbErrorMessage,
         ]);
