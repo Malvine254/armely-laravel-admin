@@ -114,11 +114,11 @@ class NewsletterNotificationService
             if ($unsubscribeUrl !== '') {
                 $internetMessageHeaders = [
                     [
-                        'name' => 'List-Unsubscribe',
+                        'name' => 'X-List-Unsubscribe',
                         'value' => '<' . $unsubscribeUrl . '>',
                     ],
                     [
-                        'name' => 'List-Unsubscribe-Post',
+                        'name' => 'X-List-Unsubscribe-Post',
                         'value' => 'List-Unsubscribe=One-Click',
                     ],
                 ];
@@ -153,10 +153,14 @@ class NewsletterNotificationService
             }
 
             $subscribers = $subscriberQuery->orderBy('id')->get();
+            $suppressed = array_flip($this->suppressedNotificationEmails());
 
             foreach ($subscribers as $subscriber) {
                 $email = AzureMailService::normalizeEmail((string) ($subscriber->email ?? ''));
                 if (!AzureMailService::isDeliverableEmail($email)) {
+                    continue;
+                }
+                if (isset($suppressed[$email])) {
                     continue;
                 }
 
@@ -170,18 +174,38 @@ class NewsletterNotificationService
             }
         }
 
-        foreach ($this->adminRecipientEmails() as $email) {
+        foreach ($this->activeAdminRecipients() as $email) {
             if (!array_key_exists($email, $recipients)) {
                 $recipients[$email] = [
                     'kind' => 'admin',
                     'email' => $email,
                     'reason' => 'You are receiving this because you are on the Armely admin team.',
-                    'unsubscribeUrl' => null,
+                    'unsubscribeUrl' => URL::signedRoute('newsletter.admin.unsubscribe', ['email' => $email]),
                 ];
             }
         }
 
         return collect(array_values($recipients));
+    }
+
+    private function suppressedNotificationEmails(): array
+    {
+        if (!Schema::hasTable('newsletter_notification_unsubscribes')) {
+            return [];
+        }
+
+        $query = DB::table('newsletter_notification_unsubscribes')
+            ->select('email');
+
+        if (Schema::hasColumn('newsletter_notification_unsubscribes', 'unsubscribed_at')) {
+            $query->whereNotNull('unsubscribed_at');
+        }
+
+        return $query->pluck('email')
+            ->map(fn ($email) => AzureMailService::normalizeEmail((string) $email))
+            ->filter()
+            ->values()
+            ->all();
     }
 
     private function adminEmailsFromEnv(): array
@@ -216,6 +240,16 @@ class NewsletterNotificationService
         }
 
         return $query->pluck('email')->all();
+    }
+
+    private function activeAdminRecipients(): array
+    {
+        $suppressed = array_flip($this->suppressedNotificationEmails());
+
+        return collect($this->adminRecipientEmails())
+            ->reject(fn ($email) => isset($suppressed[$email]))
+            ->values()
+            ->all();
     }
 
     private function contentSubject(string $type, string $title): string

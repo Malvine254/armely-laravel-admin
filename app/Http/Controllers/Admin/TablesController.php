@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use App\Services\AzureMailService;
 use App\Services\ActivityLogger;
 use App\Services\NewsletterNotificationService;
 
@@ -1887,11 +1888,28 @@ class TablesController extends Controller
             return response()->json(['success' => false, 'message' => 'Newsletter subscribers table is not available.'], 422);
         }
 
+        $subscriber = DB::table('newsletter_subscribers')->where('id', $id)->first();
+
         DB::table('newsletter_subscribers')->where('id', $id)->update([
             'status' => 'unsubscribed',
             'unsubscribed_at' => now(),
             'updated_at' => now(),
         ]);
+
+        if ($subscriber && $this->tableExists('newsletter_notification_unsubscribes')) {
+            $email = AzureMailService::normalizeEmail((string) ($subscriber->email ?? ''));
+            if ($email !== '') {
+                DB::table('newsletter_notification_unsubscribes')->updateOrInsert(
+                    ['email' => $email],
+                    [
+                        'source' => 'admin',
+                        'unsubscribed_at' => now(),
+                        'updated_at' => now(),
+                        'created_at' => now(),
+                    ]
+                );
+            }
+        }
 
         ActivityLogger::log('update', 'NewsletterSubscriber', $id, 'Unsubscribed newsletter subscriber #' . $id);
         return response()->json(['success' => true, 'message' => 'Subscriber unsubscribed successfully']);
@@ -1903,12 +1921,21 @@ class TablesController extends Controller
             return response()->json(['success' => false, 'message' => 'Newsletter subscribers table is not available.'], 422);
         }
 
+        $subscriber = DB::table('newsletter_subscribers')->where('id', $id)->first();
+
         DB::table('newsletter_subscribers')->where('id', $id)->update([
             'status' => 'active',
             'unsubscribed_at' => null,
             'subscribed_at' => now(),
             'updated_at' => now(),
         ]);
+
+        if ($subscriber && $this->tableExists('newsletter_notification_unsubscribes')) {
+            $email = AzureMailService::normalizeEmail((string) ($subscriber->email ?? ''));
+            if ($email !== '') {
+                DB::table('newsletter_notification_unsubscribes')->where('email', $email)->delete();
+            }
+        }
 
         ActivityLogger::log('update', 'NewsletterSubscriber', $id, 'Reactivated newsletter subscriber #' . $id);
         return response()->json(['success' => true, 'message' => 'Subscriber reactivated successfully']);
