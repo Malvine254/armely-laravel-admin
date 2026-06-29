@@ -532,10 +532,33 @@ class SitemapController extends Controller
     {
         $tables = [];
 
+        foreach (config('blog.tables', ['blogs', 'blog']) as $table) {
+            if (!is_string($table)) {
+                continue;
+            }
+
+            $table = trim($table);
+            if ($table === '' || in_array($table, $tables, true)) {
+                continue;
+            }
+
+            if (Schema::hasTable($table)) {
+                $tables[] = $table;
+            }
+        }
+
+        if (!empty($tables)) {
+            return array_values(array_unique($tables));
+        }
+
         foreach (['blogs', 'blog'] as $table) {
             if (Schema::hasTable($table)) {
                 $tables[] = $table;
             }
+        }
+
+        if (!empty($tables)) {
+            return array_values(array_unique($tables));
         }
 
         try {
