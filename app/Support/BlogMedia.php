@@ -14,7 +14,7 @@ class BlogMedia
             return asset(self::DEFAULT_BLOG_IMAGE);
         }
 
-        if (self::isExternal($resolved)) {
+        if (self::isExternal($resolved) || str_starts_with($resolved, 'data:')) {
             return $resolved;
         }
 
