@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Services\AzureMailService;
 use App\Services\NewsletterNotificationService;
+use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -57,6 +58,10 @@ class NewsletterController extends Controller
             DB::table('newsletter_subscribers')->insert($payload);
         }
 
+        if (Schema::hasTable('newsletter_notification_unsubscribes')) {
+            DB::table('newsletter_notification_unsubscribes')->where('email', $email)->delete();
+        }
+
         $this->sendSignupEmails($email, $payload['name'], $token, !$existing);
 
         return $this->subscriptionResponse($request, true, 'You are subscribed. We will send new Armely blogs and events as they are published.');
@@ -64,17 +69,100 @@ class NewsletterController extends Controller
 
     public function unsubscribe(string $token): RedirectResponse
     {
+        $email = null;
+        $unsubscribed = false;
+
         if (Schema::hasTable('newsletter_subscribers')) {
-            DB::table('newsletter_subscribers')
+            $subscriber = DB::table('newsletter_subscribers')
                 ->where('unsubscribe_token', $token)
+                ->first();
+
+            if ($subscriber) {
+                $email = (string) ($subscriber->email ?? '');
+                DB::table('newsletter_subscribers')
+                    ->where('email', $email)
+                    ->update([
+                        'status' => 'unsubscribed',
+                        'unsubscribed_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                $unsubscribed = true;
+
+                if (Schema::hasTable('newsletter_notification_unsubscribes')) {
+                    DB::table('newsletter_notification_unsubscribes')->updateOrInsert(
+                        ['email' => $email],
+                        [
+                            'source' => 'newsletter',
+                            'unsubscribed_at' => now(),
+                            'updated_at' => now(),
+                            'created_at' => now(),
+                        ]
+                    );
+                }
+            }
+        }
+
+        return redirect()->route('newsletter.unsubscribe.confirmation', [
+            'source' => 'newsletter',
+            'success' => $unsubscribed ? '1' : '0',
+            'email' => $email,
+        ]);
+    }
+
+    public function unsubscribeAdmin(Request $request): RedirectResponse
+    {
+        $email = AzureMailService::normalizeEmail((string) $request->query('email', ''));
+        $unsubscribed = false;
+
+        if ($email === '' || !AzureMailService::isDeliverableEmail($email)) {
+            return redirect()->route('newsletter.unsubscribe.confirmation', [
+                'source' => 'admin',
+                'success' => '0',
+            ]);
+        }
+
+        if (Schema::hasTable('newsletter_notification_unsubscribes')) {
+            DB::table('newsletter_notification_unsubscribes')->updateOrInsert(
+                ['email' => $email],
+                [
+                    'source' => 'admin',
+                    'unsubscribed_at' => now(),
+                    'updated_at' => now(),
+                    'created_at' => now(),
+                ]
+            );
+            $unsubscribed = true;
+        }
+
+        if (Schema::hasTable('newsletter_subscribers')) {
+            $updatedRows = DB::table('newsletter_subscribers')
+                ->where('email', $email)
                 ->update([
                     'status' => 'unsubscribed',
                     'unsubscribed_at' => now(),
                     'updated_at' => now(),
                 ]);
+            $unsubscribed = $updatedRows > 0 || $unsubscribed;
         }
 
-        return redirect('/')->with('status', 'You have been unsubscribed from Armely newsletter emails.');
+        return redirect()->route('newsletter.unsubscribe.confirmation', [
+            'source' => 'admin',
+            'success' => $unsubscribed ? '1' : '0',
+            'email' => $email,
+        ]);
+    }
+
+    public function unsubscribeConfirmation(Request $request): View
+    {
+        $source = (string) $request->query('source', 'newsletter');
+        $email = AzureMailService::normalizeEmail((string) $request->query('email', ''));
+        $success = (string) $request->query('success', '1') === '1';
+
+        return view('newsletter.unsubscribe-confirmation', [
+            'source' => in_array($source, ['admin', 'newsletter'], true) ? $source : 'newsletter',
+            'email' => $email,
+            'success' => $success,
+        ]);
     }
 
     private function subscriptionResponse(Request $request, bool $success, string $message)
@@ -99,11 +187,11 @@ class NewsletterController extends Controller
         $unsubscribeUrl = route('newsletter.unsubscribe', ['token' => $token]);
         $unsubscribeHeaders = [
             [
-                'name' => 'List-Unsubscribe',
+                'name' => 'X-List-Unsubscribe',
                 'value' => '<' . $unsubscribeUrl . '>',
             ],
             [
-                'name' => 'List-Unsubscribe-Post',
+                'name' => 'X-List-Unsubscribe-Post',
                 'value' => 'List-Unsubscribe=One-Click',
             ],
         ];

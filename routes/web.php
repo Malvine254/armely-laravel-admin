@@ -56,6 +56,11 @@ Route::get('/announcements', [HomeController::class, 'announcements'])->name('an
 Route::post('/contact', [HomeController::class, 'submitContact'])->name('contact.submit');
 Route::post('/newsletter/subscribe', [NewsletterController::class, 'subscribe'])->name('newsletter.subscribe');
 Route::get('/newsletter/unsubscribe/{token}', [NewsletterController::class, 'unsubscribe'])->name('newsletter.unsubscribe');
+Route::get('/newsletter/admin-unsubscribe', [NewsletterController::class, 'unsubscribeAdmin'])
+    ->middleware('signed')
+    ->name('newsletter.admin.unsubscribe');
+Route::get('/newsletter/unsubscribed', [NewsletterController::class, 'unsubscribeConfirmation'])
+    ->name('newsletter.unsubscribe.confirmation');
 Route::get('/services/invoicelens', [HomeController::class, 'invoiceLens'])->name('invoice-lens');
 Route::redirect('/services/invoice-lens', '/services/invoicelens', 301);
 Route::redirect('/invoice-lens', '/services/invoicelens', 301);

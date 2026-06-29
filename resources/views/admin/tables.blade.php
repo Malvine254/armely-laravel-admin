@@ -211,6 +211,12 @@
     .content-management-tabs {
         align-items: center;
         gap: 0.2rem;
+        flex-wrap: nowrap;
+        width: 100%;
+    }
+
+    .content-management-tabs > .nav-item {
+        flex: 0 0 auto;
     }
 
     .content-management-tabs .nav-link {
@@ -2355,16 +2361,67 @@ $(document).ready(function() {
         const $contentTabsMoreMenu = $('#contentTabsMoreMenu');
         const contentTabItems = $contentTabs.children('.nav-item').not($contentTabsMoreItem).toArray();
 
+        function measureContentTabsMoreWidth() {
+            if (!$contentTabsMoreItem.length) {
+                return 0;
+            }
+
+            const moreClone = $contentTabsMoreItem.clone()
+                .removeClass('d-none')
+                .css({
+                    position: 'absolute',
+                    visibility: 'hidden',
+                    display: 'flex',
+                    left: '-9999px',
+                    top: '-9999px'
+                })
+                .appendTo(document.body);
+
+            const width = moreClone[0].getBoundingClientRect().width;
+            moreClone.remove();
+
+            return width;
+        }
+
         function getContentTabsVisibleLimit() {
-            const width = window.innerWidth || document.documentElement.clientWidth;
+            const tabsNode = $contentTabs[0];
 
-            if (width >= 1200) return 8;
-            if (width >= 992) return 6;
-            if (width >= 768) return 5;
-            if (width >= 576) return 4;
-            if (width >= 420) return 3;
+            if (!tabsNode || !contentTabItems.length) {
+                return contentTabItems.length;
+            }
 
-            return 2;
+            const availableWidth = tabsNode.getBoundingClientRect().width;
+
+            if (!availableWidth) {
+                return contentTabItems.length;
+            }
+
+            // Measure all tabs in their natural state, then fit as many as can stay on one line.
+            const tabWidths = contentTabItems.map(function(item) {
+                const $item = $(item);
+                $item.removeClass('d-none');
+                return item.getBoundingClientRect().width;
+            });
+
+            const tabStyles = window.getComputedStyle(tabsNode);
+            const tabGap = parseFloat(tabStyles.columnGap || tabStyles.gap || '0') || 0;
+            const moreWidth = measureContentTabsMoreWidth();
+
+            let usedWidth = 0;
+            let visibleCount = 0;
+
+            tabWidths.forEach(function(tabWidth, index) {
+                const hasMoreTabs = index < tabWidths.length - 1;
+                const gapBeforeTab = index > 0 ? tabGap : 0;
+                const requiredWidth = usedWidth + gapBeforeTab + tabWidth + (hasMoreTabs ? tabGap + moreWidth : 0);
+
+                if (requiredWidth <= availableWidth) {
+                    usedWidth += gapBeforeTab + tabWidth;
+                    visibleCount = index + 1;
+                }
+            });
+
+            return Math.max(1, visibleCount);
         }
 
         function updateContentTabsMoreActive() {
@@ -2381,6 +2438,10 @@ $(document).ready(function() {
         }
 
         function rebuildContentTabsMore() {
+            contentTabItems.forEach(function(item) {
+                $(item).removeClass('d-none');
+            });
+
             const visibleLimit = Math.min(getContentTabsVisibleLimit(), contentTabItems.length);
             $contentTabsMoreMenu.empty();
 
