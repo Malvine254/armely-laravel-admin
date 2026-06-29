@@ -57,20 +57,11 @@ class NewsletterNotificationService
 
     public function adminRecipientEmails(): array
     {
-        $emails = [
-            env('ADMIN_EMAIL'),
-            'ask.me@armely.com',
-        ];
-
-        if (Schema::hasTable('admin')) {
-            $emails = array_merge(
-                $emails,
-                DB::table('admin')
-                    ->whereNotNull('email')
-                    ->pluck('email')
-                    ->all()
-            );
-        }
+        $emails = array_merge(
+            $this->adminEmailsFromEnv(),
+            ['ask.me@armely.com'],
+            $this->activeAdminTableEmails()
+        );
 
         return collect($emails)
             ->filter()
@@ -139,6 +130,13 @@ class NewsletterNotificationService
                         ->where('id', $recipient['subscriber_id'])
                         ->update(['last_notified_at' => now(), 'updated_at' => now()]);
                 }
+            } else {
+                Log::warning('Newsletter content notification was not sent.', [
+                    'type' => $type,
+                    'title' => $title,
+                    'recipient_email' => $email,
+                    'recipient_kind' => $recipient['kind'] ?? 'subscriber',
+                ]);
             }
         }
     }
@@ -148,10 +146,13 @@ class NewsletterNotificationService
         $recipients = [];
 
         if (Schema::hasTable('newsletter_subscribers')) {
-            $subscribers = DB::table('newsletter_subscribers')
-                ->whereRaw('LOWER(status) = ?', ['active'])
-                ->orderBy('id')
-                ->get();
+            $subscriberQuery = DB::table('newsletter_subscribers');
+
+            if (Schema::hasColumn('newsletter_subscribers', 'status')) {
+                $subscriberQuery->whereRaw('LOWER(status) = ?', ['active']);
+            }
+
+            $subscribers = $subscriberQuery->orderBy('id')->get();
 
             foreach ($subscribers as $subscriber) {
                 $email = AzureMailService::normalizeEmail((string) ($subscriber->email ?? ''));
@@ -181,6 +182,40 @@ class NewsletterNotificationService
         }
 
         return collect(array_values($recipients));
+    }
+
+    private function adminEmailsFromEnv(): array
+    {
+        $emails = [];
+
+        $single = trim((string) env('ADMIN_EMAIL', ''));
+        if ($single !== '') {
+            $emails[] = $single;
+        }
+
+        $multi = trim((string) env('ADMIN_EMAILS', ''));
+        if ($multi !== '') {
+            $emails = array_merge($emails, preg_split('/[,\s]+/', $multi) ?: []);
+        }
+
+        return array_values(array_filter(array_map('trim', $emails)));
+    }
+
+    private function activeAdminTableEmails(): array
+    {
+        if (!Schema::hasTable('admin')) {
+            return [];
+        }
+
+        $query = DB::table('admin')
+            ->whereNotNull('email')
+            ->where('email', '!=', '');
+
+        if (Schema::hasColumn('admin', 'status')) {
+            $query->whereRaw('LOWER(status) = ?', ['active']);
+        }
+
+        return $query->pluck('email')->all();
     }
 
     private function contentSubject(string $type, string $title): string
