@@ -118,7 +118,22 @@ class NewsletterNotificationService
                 'unsubscribeUrl' => $recipient['unsubscribeUrl'] ?? null,
             ])->render();
 
-            if ($mailer->sendEmail($fromEmail, $email, $subject, $html)) {
+            $internetMessageHeaders = [];
+            $unsubscribeUrl = trim((string) ($recipient['unsubscribeUrl'] ?? ''));
+            if ($unsubscribeUrl !== '') {
+                $internetMessageHeaders = [
+                    [
+                        'name' => 'List-Unsubscribe',
+                        'value' => '<' . $unsubscribeUrl . '>',
+                    ],
+                    [
+                        'name' => 'List-Unsubscribe-Post',
+                        'value' => 'List-Unsubscribe=One-Click',
+                    ],
+                ];
+            }
+
+            if ($mailer->sendEmail($fromEmail, $email, $subject, $html, true, true, $internetMessageHeaders)) {
                 if (($recipient['kind'] ?? '') === 'subscriber' && isset($recipient['subscriber_id'])) {
                     DB::table('newsletter_subscribers')
                         ->where('id', $recipient['subscriber_id'])

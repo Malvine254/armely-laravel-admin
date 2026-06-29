@@ -41,11 +41,16 @@ Route::redirect('/case_study', '/case-studies', 301);
 Route::redirect('/case study', '/case-studies', 301);
 
 Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('sitemap.xml');
+Route::get('/sitemap-index.xml', [SitemapController::class, 'sitemapIndex'])->name('sitemap.index');
+Route::get('/blog-sitemap.xml', [SitemapController::class, 'blog'])->name('blog.sitemap.xml');
+Route::get('/services-sitemap.xml', [SitemapController::class, 'services'])->name('services.sitemap.xml');
+Route::get('/industries-sitemap.xml', [SitemapController::class, 'industries'])->name('industries.sitemap.xml');
+Route::get('/partners-sitemap.xml', [SitemapController::class, 'partners'])->name('partners.sitemap.xml');
+Route::get('/customer-stories-sitemap.xml', [SitemapController::class, 'customerStories'])->name('customer-stories.sitemap.xml');
 // Backward-compatible sitemap URLs from older SEO plugins/configurations.
-Route::redirect('/sitemap_index.xml', '/sitemap.xml', 301);
-Route::redirect('/sitemap-index.xml', '/sitemap.xml', 301);
-Route::redirect('/page-sitemap.xml', '/sitemap.xml', 301);
-Route::redirect('/post-sitemap.xml', '/sitemap.xml', 301);
+Route::redirect('/sitemap_index.xml', '/sitemap-index.xml', 301);
+Route::redirect('/page-sitemap.xml', '/sitemap-index.xml', 301);
+Route::redirect('/post-sitemap.xml', '/blog-sitemap.xml', 301);
 Route::get('/contact', [HomeController::class, 'contact'])->name('contact');
 Route::get('/announcements', [HomeController::class, 'announcements'])->name('announcements');
 Route::post('/contact', [HomeController::class, 'submitContact'])->name('contact.submit');

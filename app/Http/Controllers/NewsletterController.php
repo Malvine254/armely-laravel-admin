@@ -97,6 +97,16 @@ class NewsletterController extends Controller
 
         $mail = app(AzureMailService::class);
         $unsubscribeUrl = route('newsletter.unsubscribe', ['token' => $token]);
+        $unsubscribeHeaders = [
+            [
+                'name' => 'List-Unsubscribe',
+                'value' => '<' . $unsubscribeUrl . '>',
+            ],
+            [
+                'name' => 'List-Unsubscribe-Post',
+                'value' => 'List-Unsubscribe=One-Click',
+            ],
+        ];
 
         try {
             $welcomeBody = view('emails.newsletter.welcome', [
@@ -109,7 +119,10 @@ class NewsletterController extends Controller
                 $fromEmail,
                 $email,
                 'You are subscribed to Armely updates',
-                $welcomeBody
+                $welcomeBody,
+                true,
+                true,
+                $unsubscribeHeaders
             );
 
             if (!$sentToSubscriber) {

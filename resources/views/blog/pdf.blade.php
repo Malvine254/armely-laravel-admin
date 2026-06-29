@@ -174,11 +174,10 @@
 @if($blog->image_path)
 @php
     $imgPath = $blog->image_path;
-    if (str_starts_with($imgPath, 'http://') || str_starts_with($imgPath, 'https://')) {
-        $featuredSrc = $imgPath;
+    $featuredSrc = \App\Support\BlogMedia::filesystemPath($imgPath);
+    if (str_starts_with($featuredSrc, 'http://') || str_starts_with($featuredSrc, 'https://')) {
         $featuredExists = true;
     } else {
-        $featuredSrc = public_path(ltrim($imgPath, '/'));
         $featuredExists = file_exists($featuredSrc);
     }
 @endphp

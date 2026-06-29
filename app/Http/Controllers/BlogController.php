@@ -455,17 +455,7 @@ class BlogController extends Controller
                 }
                 $src = html_entity_decode($srcMatch[2], ENT_QUOTES);
 
-                if (str_starts_with($src, 'data:')) {
-                    // Data URI — pass through, no GD needed for base64 PNGs
-                    $absSrc = $src;
-                } elseif (str_starts_with($src, 'http://') || str_starts_with($src, 'https://')) {
-                    // Remote URL — keep as-is (isRemoteEnabled handles it)
-                    $absSrc = $src;
-                } elseif (str_starts_with($src, '/')) {
-                    $absSrc = public_path(ltrim($src, '/'));
-                } else {
-                    $absSrc = public_path($src);
-                }
+                $absSrc = \App\Support\BlogMedia::filesystemPath($src);
 
                 // Only include img if the file actually exists (skip broken local paths)
                 if (!str_starts_with($absSrc, 'http') && !str_starts_with($absSrc, 'data:') && !file_exists($absSrc)) {
@@ -484,12 +474,6 @@ class BlogController extends Controller
         );
 
         return $html;
-    }
-
-    private function estimateReadingTime(string $html): int
-    {
-        $words = str_word_count(strip_tags($html));
-        return (int) max(1, ceil($words / 200));
     }
 
     private function resolveBlogTable(): ?string
