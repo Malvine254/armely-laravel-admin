@@ -738,6 +738,8 @@ class TablesController extends Controller
     public function storeOrUpdateVideo(Request $request)
     {
         $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string|max:1000',
             'url' => 'required|string',
         ]);
         
@@ -745,6 +747,22 @@ class TablesController extends Controller
         $idColumn = $this->columnExists($videoTable, 'video_id') ? 'video_id' : 'id';
         
         $data = [];
+
+        if ($this->columnExists($videoTable, 'title')) {
+            $data['title'] = $validated['title'];
+        } elseif ($this->columnExists($videoTable, 'video_title')) {
+            $data['video_title'] = $validated['title'];
+        } elseif ($this->columnExists($videoTable, 'video_name')) {
+            $data['video_name'] = $validated['title'];
+        }
+
+        if (array_key_exists('description', $validated)) {
+            if ($this->columnExists($videoTable, 'description')) {
+                $data['description'] = $validated['description'];
+            } elseif ($this->columnExists($videoTable, 'video_description')) {
+                $data['video_description'] = $validated['description'];
+            }
+        }
         
         // Add url/iframe column with fallback
         if ($this->columnExists($videoTable, 'url')) {

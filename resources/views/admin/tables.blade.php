@@ -624,13 +624,21 @@
                         <table class="table table-hover" id="videosDataTable">
                             <thead>
                                 <tr>
-                                    <th width="60%">Video URL</th>
-                                    <th width="200">Actions</th>
+                                    <th width="18%">Title</th>
+                                    <th width="28%">Description</th>
+                                    <th width="34%">Video URL</th>
+                                    <th width="20%">Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="videosTable">
                                 @foreach($videos as $video)
                                 <tr data-id="{{ $video->id ?? $video->video_id }}">
+                                    <td>
+                                        {{ \Illuminate\Support\Str::limit($video->title ?? $video->video_title ?? $video->video_name ?? 'Untitled Video', 60) }}
+                                    </td>
+                                    <td>
+                                        {{ \Illuminate\Support\Str::limit($video->description ?? $video->video_description ?? '', 110) ?: 'No description' }}
+                                    </td>
                                     <td>
                                         @php
                                             $videoContent = $video->url ?? $video->video_url ?? $video->iframe ?? '';
@@ -2004,6 +2012,15 @@ One or two sentences inviting a conversation.</small>
                 <form id="videoForm">
                     <input type="hidden" id="videoId" name="id">
                     <div class="mb-3">
+                        <label class="form-label">Video Title *</label>
+                        <input type="text" class="form-control" id="videoTitle" name="title" required placeholder="Enter a clear title for this video">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Video Description</label>
+                        <textarea class="form-control" id="videoDescription" name="description" rows="3" placeholder="Add a short description or summary"></textarea>
+                        <small class="text-muted">This helps visitors and search engines understand what the video covers.</small>
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label">Video URL or Embed Code *</label>
                         <textarea class="form-control" id="videoUrl" name="url" rows="4" required placeholder="Paste YouTube URL or iframe embed code"></textarea>
                         <small class="text-muted">Paste the video URL or complete iframe code from YouTube/Vimeo</small>
@@ -2596,6 +2613,8 @@ $(document).ready(function() {
 
                 if (response.data && Array.isArray(response.data)) {
                     response.data.forEach(function(video) {
+                        const videoTitle = escapeHtml(video.title || video.video_title || video.video_name || 'Untitled Video');
+                        const videoDescription = escapeHtml(video.description || video.video_description || 'No description');
                         let videoPreview = video.url || '';
                         if (videoPreview.includes('<iframe')) {
                             videoPreview = `<div style="max-width: 400px;">${videoPreview}</div>`;
@@ -2612,6 +2631,8 @@ $(document).ready(function() {
                                 </button>
                             </div>`;
                         const row = `<tr data-id="${video.id}">
+                            <td>${videoTitle}</td>
+                            <td>${videoDescription}</td>
                             <td>${videoPreview}</td>
                             <td>${btns}</td>
                         </tr>`;
@@ -3337,6 +3358,9 @@ $(document).ready(function() {
         $('#videoModalTitle').text('Add New Video');
         $('#videoForm')[0].reset();
         $('#videoId').val('');
+        $('#videoTitle').val('');
+        $('#videoDescription').val('');
+        $('#videoUrl').val('');
     };
 
     // Edit Video
@@ -3344,6 +3368,8 @@ $(document).ready(function() {
         const video = $(this).data('video');
         $('#videoModalTitle').text('Edit Video');
         $('#videoId').val(video.id || video.video_id);
+        $('#videoTitle').val(video.title || video.video_title || video.video_name || '');
+        $('#videoDescription').val(video.description || video.video_description || '');
         $('#videoUrl').val(video.url || video.video_url || video.iframe || video.embed || '');
         $('#videoModal').modal('show');
     });
@@ -3358,9 +3384,13 @@ $(document).ready(function() {
 
         const id = $('#videoId').val();
         const isEdit = id !== '';
+        const title = $('#videoTitle').val();
+        const description = $('#videoDescription').val();
         const url = $('#videoUrl').val();
         const data = {
             _token: '{{ csrf_token() }}',
+            title: title,
+            description: description,
             url: url
         };
         
