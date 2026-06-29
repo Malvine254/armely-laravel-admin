@@ -494,48 +494,91 @@ class SitemapController extends Controller
 
     private function blogEntries()
     {
-        $blogTable = $this->resolveBlogTable();
-        if ($blogTable === null) {
-            return collect();
+        $urls = collect();
+
+        foreach ($this->blogTables() as $blogTable) {
+            $blogIdColumn = Schema::hasColumn($blogTable, 'blog_id') ? 'blog_id' : 'id';
+            $titleColumn = $this->firstExistingColumn($blogTable, ['title', 'blog_title']);
+            $dateColumns = array_values(array_filter([
+                Schema::hasColumn($blogTable, 'published_at') ? 'published_at' : null,
+                Schema::hasColumn($blogTable, 'updated_at') ? 'updated_at' : null,
+                Schema::hasColumn($blogTable, 'date') ? 'date' : null,
+                Schema::hasColumn($blogTable, 'blog_date') ? 'blog_date' : null,
+                Schema::hasColumn($blogTable, 'created_at') ? 'created_at' : null,
+            ]));
+
+            $query = DB::table($blogTable)
+                ->select(array_filter(array_unique(array_filter([
+                    $blogIdColumn . ' as blog_id',
+                    $titleColumn ? $titleColumn . ' as title' : null,
+                    ...$dateColumns,
+                ]))));
+
+            $orderColumn = $this->firstExistingColumn($blogTable, ['published_at', 'updated_at', 'date', 'blog_date', 'created_at']) ?? $blogIdColumn;
+
+            if ($orderColumn !== null) {
+                $query->orderByDesc($orderColumn);
+            } else {
+                $query->orderByDesc($blogIdColumn);
+            }
+
+            $urls = $urls->merge($query->get());
         }
 
-        $blogIdColumn = Schema::hasColumn($blogTable, 'blog_id') ? 'blog_id' : 'id';
-        $titleColumn = $this->firstExistingColumn($blogTable, ['title', 'blog_title']);
-        $dateColumns = array_values(array_filter([
-            Schema::hasColumn($blogTable, 'published_at') ? 'published_at' : null,
-            Schema::hasColumn($blogTable, 'updated_at') ? 'updated_at' : null,
-            Schema::hasColumn($blogTable, 'date') ? 'date' : null,
-            Schema::hasColumn($blogTable, 'blog_date') ? 'blog_date' : null,
-            Schema::hasColumn($blogTable, 'created_at') ? 'created_at' : null,
-        ]));
+        return $urls->values();
+    }
 
-        $query = DB::table($blogTable)
-            ->select(array_filter(array_unique(array_filter([
-                $blogIdColumn . ' as blog_id',
-                $titleColumn ? $titleColumn . ' as title' : null,
-                ...$dateColumns,
-            ]))));
+    private function blogTables(): array
+    {
+        $tables = [];
 
-        $orderColumn = $this->firstExistingColumn($blogTable, ['published_at', 'updated_at', 'date', 'blog_date', 'created_at']) ?? $blogIdColumn;
-
-        if ($orderColumn !== null) {
-            $query->orderByDesc($orderColumn);
-        } else {
-            $query->orderByDesc($blogIdColumn);
+        foreach (['blogs', 'blog'] as $table) {
+            if (Schema::hasTable($table)) {
+                $tables[] = $table;
+            }
         }
 
-        return $query->get();
+        try {
+            foreach (Schema::getTableListing(null, false) as $table) {
+                if (!is_string($table) || $table === '' || in_array($table, $tables, true)) {
+                    continue;
+                }
+
+                if (!$this->looksLikeBlogTable($table)) {
+                    continue;
+                }
+
+                $tables[] = $table;
+            }
+        } catch (\Throwable) {
+            // If table listing is unavailable, fall back to the known blog tables above.
+        }
+
+        return array_values(array_unique($tables));
+    }
+
+    private function looksLikeBlogTable(string $table): bool
+    {
+        if (!Schema::hasTable($table)) {
+            return false;
+        }
+
+        $hasIdentifier = Schema::hasColumn($table, 'blog_id') || Schema::hasColumn($table, 'id');
+        if (!$hasIdentifier) {
+            return false;
+        }
+
+        $hasTitle = $this->firstExistingColumn($table, ['title', 'blog_title']) !== null;
+        if (!$hasTitle) {
+            return false;
+        }
+
+        return $this->firstExistingColumn($table, ['body', 'description', 'content']) !== null;
     }
 
     private function resolveBlogTable(): ?string
     {
-        foreach (['blogs', 'blog'] as $table) {
-            if (Schema::hasTable($table)) {
-                return $table;
-            }
-        }
-
-        return null;
+        return $this->blogTables()[0] ?? null;
     }
 
     private function resourceEntries()
