@@ -1,3 +1,9 @@
 User-agent: *
 Disallow:
+Sitemap: https://armely.com/sitemap-index.xml
 Sitemap: https://armely.com/sitemap.xml
+Sitemap: https://armely.com/blog-sitemap.xml
+Sitemap: https://armely.com/services-sitemap.xml
+Sitemap: https://armely.com/industries-sitemap.xml
+Sitemap: https://armely.com/partners-sitemap.xml
+Sitemap: https://armely.com/customer-stories-sitemap.xml

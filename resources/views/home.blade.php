@@ -1231,7 +1231,7 @@
                 @php($blogFullTitle = trim(strip_tags((string) ($blog->title ?? 'Blog Article'))))
                         @php($blogFullSnippet = trim(preg_replace('/\s+/', ' ', strip_tags((string) ($blog->preview ?? '')))))
                         @php($blogFullDetails = trim($blogFullTitle . "\n" . ($blogFullSnippet !== '' ? $blogFullSnippet : '')))
-                        @php($blogImageUrl = $blog->image_path ?: asset('images/blog/default.svg'))
+                        @php($blogImageUrl = \App\Support\BlogMedia::publicUrl($blog->image_path ?? null) ?: asset('images/blog/default.svg'))
                 <div class="col-lg-4 col-md-6 col-12" data-aos="fade-up">
                     <article class="blog-card-wrapper">
                         <div class="blog-image-box" style="--blog-image: url('{{ $blogImageUrl }}');">
@@ -1332,4 +1332,3 @@
 @push('scripts')
 <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 @endpush
-

@@ -21,6 +21,14 @@ Laravel is a web application framework with expressive, elegant syntax. We belie
 
 Laravel is accessible, powerful, and provides tools required for large, robust applications.
 
+## Local Test Scripts
+
+Ad hoc PHP diagnostics and one-off verification scripts should live in `test_php_files/` so the project root stays clean.
+
+- Use `test_php_files/` for temporary checks, schema inspections, and manual test helpers.
+- Use subfolders like `test_php_files/scripts/` and `test_php_files/store/` when you want to group scripts by area.
+- Keep application code out of this folder so these helpers stay easy to find and remove later.
+
 ## Learning Laravel
 
 Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.

@@ -8,6 +8,7 @@ if (!function_exists('armely_blog_clean_html')) {
 			return '';
 		}
 
+		$html = \App\Support\BlogMedia::normalizeHtml($html);
 		$clean = preg_replace('/<(script|style|link|meta)\b[^>]*>.*?<\/\1>/is', '', $html) ?? $html;
 		$clean = preg_replace('/<(script|style|link|meta)\b[^>]*\/?>/is', '', $clean) ?? $clean;
 		$clean = preg_replace('/\sstyle\s*=\s*(".*?"|\'.*?\'|[^\s>]+)/is', '', $clean) ?? $clean;
@@ -26,6 +27,7 @@ if (!function_exists('armely_blog_clean_html')) {
     $hasRequestedBlog = $requestedBlogId !== null && (string) $requestedBlogId !== '';
     $mainTitle = $hasMain ? trim((string) ($main->title ?? '')) : '';
     $mainBodyText = $hasMain ? trim(preg_replace('/\s+/', ' ', strip_tags((string) ($main->body ?? '')))) : '';
+    $mainImageUrl = $hasMain ? \App\Support\BlogMedia::publicUrl($main->image_path ?? null) : '';
 
     $seoTitle = $hasRequestedBlog && $mainTitle !== ''
         ? $mainTitle . ' | Armely Blog'
@@ -99,9 +101,9 @@ if (!function_exists('armely_blog_clean_html')) {
 					@if($main)
 						<div class="modern-blog-card">
 							<!-- Blog Image -->
-							<div class="blog-image-wrapper {{ !$main->image_path ? 'no-image' : '' }}" style="{{ $main->image_path ? '--blog-feature-image: url(' . e(asset($main->image_path)) . ');' : '' }}">
-								@if($main->image_path)
-									<img src="{{ asset($main->image_path) }}" alt="{{ $main->title }}">
+							<div class="blog-image-wrapper {{ !$mainImageUrl ? 'no-image' : '' }}" style="{{ $mainImageUrl ? '--blog-feature-image: url(' . e($mainImageUrl) . ');' : '' }}">
+								@if($mainImageUrl)
+									<img src="{{ $mainImageUrl }}" alt="{{ $main->title }}">
 								@else
 									<div class="default-blog-gradient">
 										<div class="gradient-icon">
@@ -214,9 +216,10 @@ if (!function_exists('armely_blog_clean_html')) {
 						<div class="recent-posts-list">
 							@forelse($recent as $blog)
 								<a href="{{ \App\Support\BlogUrl::url($blog) }}" class="sidebar-blog-card data-item">
-									<div class="sidebar-blog-image {{ !$blog->image_path ? 'no-image' : '' }}" style="{{ $blog->image_path ? '--blog-feature-image: url(' . e(asset($blog->image_path)) . ');' : '' }}">
-										@if($blog->image_path)
-											<img src="{{ asset($blog->image_path) }}" alt="{{ $blog->title }}">
+									@php($blogImageUrl = \App\Support\BlogMedia::publicUrl($blog->image_path ?? null))
+									<div class="sidebar-blog-image {{ !$blogImageUrl ? 'no-image' : '' }}" style="{{ $blogImageUrl ? '--blog-feature-image: url(' . e($blogImageUrl) . ');' : '' }}">
+										@if($blogImageUrl)
+											<img src="{{ $blogImageUrl }}" alt="{{ $blog->title }}">
 										@else
 											<div class="default-blog-gradient">
 												<i class="fa fa-newspaper"></i>
@@ -443,6 +446,39 @@ document.addEventListener('DOMContentLoaded', function() {
 		const synth = window.speechSynthesis;
 		let speaking = false;
 		let stopRequested = false;
+		const wordSegmenter = (window.Intl && typeof Intl.Segmenter === 'function')
+			? new Intl.Segmenter(navigator.language || 'en', { granularity: 'word' })
+			: null;
+
+		function getReadAloudTargets() {
+			return [
+				document.querySelector('.blog-title'),
+				document.querySelector('.blog-text-content'),
+			].filter(Boolean);
+		}
+
+		function getWordSegments(text) {
+			if (!text) return [];
+
+			if (wordSegmenter) {
+				const segments = [];
+				for (const part of wordSegmenter.segment(text)) {
+					if (part.isWordLike && part.segment) {
+						segments.push({ word: part.segment, start: part.index });
+					}
+				}
+				return segments;
+			}
+
+			const segments = [];
+			const wordRegex = /[\p{L}\p{N}]+(?:[\u0027\u2019\u2010-\u2015][\p{L}\p{N}]+)*/gu;
+			let match;
+			wordRegex.lastIndex = 0;
+			while ((match = wordRegex.exec(text)) !== null) {
+				segments.push({ word: match[0], start: match.index });
+			}
+			return segments;
+		}
 
 		// Wrap words in the content area with spans so we can highlight per-word reliably
 		function wrapWords(container) {
@@ -455,9 +491,6 @@ document.addEventListener('DOMContentLoaded', function() {
 			let node;
 			let index = 0;
 			const wordSpans = [];
-
-			// Match Unicode words (letters/numbers) and include internal apostrophes or hyphens
-			const wordRegex = /[\p{L}\p{N}]+(?:[\u0027\u2019\u2010-\u2015][\p{L}\p{N}]+)*/gu;
 
 			while (node = walker.nextNode()) {
 				// Normalize text node: replace non-breaking spaces and remove zero-width chars
@@ -484,12 +517,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
 				const frag = document.createDocumentFragment();
 				let lastIndex = 0;
-				let match;
-
-				wordRegex.lastIndex = 0;
-				while ((match = wordRegex.exec(text)) !== null) {
-					const word = match[0];
-					const start = match.index;
+				const segments = getWordSegments(text);
+				for (const segment of segments) {
+					const word = segment.word;
+					const start = segment.start;
 					// append text before the match
 					if (start > lastIndex) {
 						frag.appendChild(document.createTextNode(text.slice(lastIndex, start)));
@@ -501,7 +532,7 @@ document.addEventListener('DOMContentLoaded', function() {
 					span.textContent = word;
 					frag.appendChild(span);
 					wordSpans.push(span);
-					lastIndex = wordRegex.lastIndex;
+					lastIndex = start + word.length;
 				}
 
 				// append remaining text
@@ -521,18 +552,80 @@ document.addEventListener('DOMContentLoaded', function() {
 			container.querySelectorAll('span._s_word._speaking').forEach(s => s.classList.remove('_speaking'));
 		}
 
+		function clearAllHighlights() {
+			getReadAloudTargets().forEach(clearHighlights);
+		}
+
+		function updateSpeechToggleState(isSpeaking) {
+			const speechToggle = document.getElementById('toggleSpeech');
+			if (speechToggle) {
+				speechToggle.classList.toggle('is-speaking', isSpeaking);
+				speechToggle.setAttribute('aria-pressed', isSpeaking ? 'true' : 'false');
+			}
+		}
+
 		function stopSpeaking() {
 			stopRequested = true;
 			speaking = false;
 			if (synth && synth.speaking) synth.cancel();
-			const content = document.querySelector('.blog-text-content');
-			if (content) clearHighlights(content);
-			const activeToggle = document.getElementById('toggleSpeech');
-			if (activeToggle) {
-				activeToggle.classList.remove('is-speaking');
-				activeToggle.setAttribute('aria-pressed', 'false');
-			}
+			clearAllHighlights();
+			updateSpeechToggleState(false);
 			if (volumeIcon) volumeIcon.className = 'fa fa-volume-high';
+		}
+
+		function scrollSpanToCenter(span) {
+			if (!span || !span.isConnected) return;
+
+			const contentContainer = span.closest('.blog-text-content');
+			const header = document.querySelector('.header');
+			const headerOffset = header ? header.offsetHeight : 0;
+
+			if (contentContainer && contentContainer.scrollHeight > contentContainer.clientHeight) {
+				const spanRect = span.getBoundingClientRect();
+				const containerRect = contentContainer.getBoundingClientRect();
+				const desiredTop = contentContainer.scrollTop
+					+ (spanRect.top - containerRect.top)
+					- (containerRect.height / 2)
+					+ (spanRect.height / 2);
+				const maxTop = Math.max(0, contentContainer.scrollHeight - contentContainer.clientHeight);
+				const nextTop = Math.min(Math.max(0, desiredTop), maxTop);
+
+				try {
+					if (typeof contentContainer.scrollTo === 'function') {
+						contentContainer.scrollTo({ top: nextTop, behavior: 'smooth' });
+					} else {
+						contentContainer.scrollTop = nextTop;
+					}
+				} catch (e) {
+					contentContainer.scrollTop = nextTop;
+				}
+
+				setTimeout(() => {
+					try {
+						if (typeof span.scrollIntoView === 'function' && Math.abs((contentContainer.scrollTop || 0) - nextTop) > 2) {
+							span.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+						}
+					} catch (e) { /* ignore */ }
+				}, 50);
+
+				return;
+			}
+
+			const spanRect = span.getBoundingClientRect();
+			const viewportHeight = Math.max(0, (window.innerHeight || document.documentElement.clientHeight) - headerOffset);
+			const desiredTop = window.pageYOffset
+				+ spanRect.top
+				- headerOffset
+				- (viewportHeight / 2)
+				+ (spanRect.height / 2);
+			const maxScroll = Math.max(0, document.documentElement.scrollHeight - (window.innerHeight || document.documentElement.clientHeight));
+			const nextTop = Math.min(Math.max(0, desiredTop), maxScroll);
+
+			try {
+				window.scrollTo({ top: nextTop, behavior: 'smooth' });
+			} catch (e) {
+				window.scrollTo(0, nextTop);
+			}
 		}
 
 		// Speak words sequentially (per-word utterances) — fallback will work across browsers
@@ -540,11 +633,7 @@ document.addEventListener('DOMContentLoaded', function() {
 			if (!wordSpans || !wordSpans.length) return;
 			stopRequested = false;
 			speaking = true;
-			const activeToggle = document.getElementById('toggleSpeech');
-			if (activeToggle) {
-				activeToggle.classList.add('is-speaking');
-				activeToggle.setAttribute('aria-pressed', 'true');
-			}
+			updateSpeechToggleState(true);
 			if (volumeIcon) volumeIcon.className = 'fa fa-pause';
 			for (let i = startIndex; i < wordSpans.length; i++) {
 				if (stopRequested) break;
@@ -553,71 +642,10 @@ document.addEventListener('DOMContentLoaded', function() {
 				if (!text) continue;
 
 				// highlight current word
-				const contentContainer = span.closest('.blog-text-content');
-				clearHighlights(contentContainer || document);
+				clearAllHighlights();
 				span.classList.add('_speaking');
 
-				// Auto-scroll highlighted word into view within its scroll container or window
-				_logBlogDiagnostics('before-scroll', contentContainer, span);
-				try {
-					if (contentContainer && contentContainer.scrollHeight > contentContainer.clientHeight) {
-						const spanRect = span.getBoundingClientRect();
-						const containerRect = contentContainer.getBoundingClientRect();
-						console.debug('BLOG-DIAG scrollRects', { spanRect, containerRect, scrollTop: contentContainer.scrollTop });
-						const padding = 18;
-						const topDelta = spanRect.top - containerRect.top;
-						const bottomDelta = spanRect.bottom - containerRect.bottom;
-
-						// compute desired newTop (relative to contentContainer.scrollTop)
-						let newTop = contentContainer.scrollTop;
-						if (bottomDelta > -padding) {
-							const delta = spanRect.bottom - containerRect.bottom + padding;
-							newTop = Math.max(0, contentContainer.scrollTop + delta);
-						} else if (topDelta < padding) {
-							const delta = topDelta - padding;
-							newTop = Math.max(0, contentContainer.scrollTop + delta);
-						}
-
-						// apply scroll and verify it changed — fallback to scrollIntoView if not
-						const prevTop = contentContainer.scrollTop;
-						try {
-							// prefer smooth scroll when available
-							if (typeof contentContainer.scrollTo === 'function') {
-								contentContainer.scrollTo({ top: newTop, behavior: 'smooth' });
-							} else {
-								contentContainer.scrollTop = newTop;
-							}
-						} catch (e) {
-							contentContainer.scrollTop = newTop;
-						}
-
-						// If the scroll didn't change (some browsers disallow element scroll), fallback to scrollIntoView
-						setTimeout(() => {
-							try {
-								_logBlogDiagnostics('post-scroll-check', contentContainer, span);
-								if (Math.abs((contentContainer.scrollTop || 0) - prevTop) < 1) {
-									// minimal fallback: scroll the specific span into view inside its scrollable ancestor
-									if (typeof span.scrollIntoView === 'function') {
-										span.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-									}
-								}
-							} catch (e) { /* ignore */ }
-						}, 50);
-					} else {
-						// If the article container isn't scrollable, only then scroll the window
-						_logBlogDiagnostics('window-scroll-fallback', contentContainer, span);
-						const header = document.querySelector('.header');
-						const headerOffset = header ? header.offsetHeight : 80;
-						const spanRect = span.getBoundingClientRect();
-						const absoluteTop = window.pageYOffset + spanRect.top - headerOffset - 20;
-						// only scroll window when the span is outside viewport
-						if (spanRect.top < 0 || spanRect.bottom > (window.innerHeight || document.documentElement.clientHeight)) {
-							window.scrollTo({ top: absoluteTop, behavior: 'smooth' });
-						}
-					}
-				} catch (e) {
-					// ignore scrolling errors
-				}
+				scrollSpanToCenter(span);
 				// create utterance for the single word
 				const utter = new SpeechSynthesisUtterance(text);
 				utter.lang = navigator.language || 'en-US';
@@ -634,14 +662,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
 			stopRequested = false;
 			speaking = false;
-			const activeToggle = document.getElementById('toggleSpeech');
-			if (activeToggle) {
-				activeToggle.classList.remove('is-speaking');
-				activeToggle.setAttribute('aria-pressed', 'false');
-			}
+			updateSpeechToggleState(false);
 			if (volumeIcon) volumeIcon.className = 'fa fa-volume-high';
-			const content = document.querySelector('.blog-text-content');
-			if (content) clearHighlights(content);
+			clearAllHighlights();
 		}
 
 		if (toggleSpeech) {
@@ -649,60 +672,43 @@ document.addEventListener('DOMContentLoaded', function() {
 			toggleSpeech.parentNode.replaceChild(newToggle, toggleSpeech);
 
 			newToggle.addEventListener('click', async function() {
+				const titleEl = document.querySelector('.blog-title');
 				const contentEl = document.querySelector('.blog-text-content');
-				if (!contentEl) return;
+				const readTargets = getReadAloudTargets();
+				if (!readTargets.length) return;
 
 				// If already speaking, stop
 				if (speaking) { stopSpeaking(); return; }
 
 				// Ensure reading starts from the very top (first paragraph visible)
-				// Reset scroll position of the article container only
+				// Reset scroll position before narration starts
 				try {
-					contentEl.scrollTop = 0;
+					if (contentEl) {
+						contentEl.scrollTop = 0;
+					}
+					window.scrollTo({ top: 0, behavior: 'auto' });
 				} catch (e) {}
 
-				// Wrap words and get spans
-				const wordSpans = wrapWords(contentEl);
+				// Wrap words and get spans from the title and article body.
+				const wordSpans = [];
+				if (titleEl) {
+					wordSpans.push(...wrapWords(titleEl));
+				}
+				if (contentEl) {
+					wordSpans.push(...wrapWords(contentEl));
+				}
 				if (!wordSpans.length) return;
 
 				// Allow DOM to settle after wrapping before speaking
 				await new Promise(r => requestAnimationFrame(() => r()));
 
-				// Ensure first paragraph/first word is visible before speaking
+				// Center the first highlighted word before speaking.
 				if (wordSpans[0]) {
-					const first = wordSpans[0];
-					// minimal scroll to ensure it's visible with small padding
-					const padding = 12;
-					try {
-						if (first.offsetTop < contentEl.scrollTop + padding) {
-							contentEl.scrollTop = Math.max(0, first.offsetTop - padding);
-						}
-					} catch (e) {
-						// ignore
-					}
+					scrollSpanToCenter(wordSpans[0]);
 				}
 
-				// Find first visible word span to start from (skip initial punctuation/hidden spans)
-				const firstVisibleIndex = (function() {
-					for (let i = 0; i < wordSpans.length; i++) {
-						const s = wordSpans[i];
-						try {
-							const rects = s.getClientRects();
-							if (rects && rects.length > 0) {
-								// ensure it's inside the article container's visible area
-								const sr = rects[0];
-								const containerRect = contentEl.getBoundingClientRect();
-								if (sr.bottom > containerRect.top + 4 && sr.top < containerRect.bottom - 4) {
-									return i;
-								}
-							}
-						} catch (e) {}
-					}
-					return 0;
-				})();
-
-				// Speak per-word starting at the first visible span
-				await speakPerWord(wordSpans, firstVisibleIndex);
+				// Speak per-word starting from the title so the narration stays in sync.
+				await speakPerWord(wordSpans, 0);
 			});
 		}
 

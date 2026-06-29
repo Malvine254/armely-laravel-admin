@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\AzureMailService;
+use App\Support\ReadingTime;
 use App\Support\ServiceUrl;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
@@ -1286,7 +1287,7 @@ class HomeController extends Controller
                 ->get()
                 ->map(function ($blog) use ($authorImageMap) {
                     $blog->author_image = $this->resolveAuthorImageForName((string) ($blog->author ?? ''), $authorImageMap);
-                    $blog->reading_time = $this->estimateReadingTime($blog->body ?? '');
+                    $blog->reading_time = ReadingTime::estimate($blog->body ?? '');
                     $blog->preview = $this->makePreviewText((string) ($blog->body ?? ''), 150);
                     return $blog;
                 });
@@ -1471,12 +1472,6 @@ class HomeController extends Controller
                 'cta_url' => '/store',
             ],
         ]);
-    }
-
-    private function estimateReadingTime(string $html): int
-    {
-        $words = str_word_count(strip_tags($html));
-        return (int) max(1, ceil($words / 200));
     }
 
     private function extractYouTubeId(string $html): string

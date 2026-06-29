@@ -39,6 +39,8 @@
 
 @section('title', $name . ' Customer Story | Armely')
 @section('meta_description', $metaDescription)
+@section('canonical_url', route('customer-stories.show', ['story' => $testimonial->id]))
+@section('robots', 'index,follow')
 
 @push('styles')
 <style>
