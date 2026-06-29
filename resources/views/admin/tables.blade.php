@@ -1174,7 +1174,7 @@
                                     </thead>
                                     <tbody>
                                         @foreach($announcements as $announcement)
-                                            <tr>
+                                            <tr class="announcement-data-row">
                                                 <td>
                                                     <strong>{{ $announcement->title }}</strong>
                                                     @if(!empty($announcement->summary))
@@ -1222,7 +1222,7 @@
                                                     </div>
                                                 </td>
                                             </tr>
-                                            <tr class="collapse" id="announcement-edit-{{ $announcement->id }}">
+                                            <tr class="collapse announcement-edit-row" id="announcement-edit-{{ $announcement->id }}">
                                                 <td colspan="5">
                                                     <form method="POST" action="{{ route('admin.tables.announcements.update', $announcement->id) }}" class="p-3 bg-light border-top">
                                                         @csrf
@@ -4579,7 +4579,6 @@ $(document).ready(function() {
             { id: '#caseStudiesDataTable', pageLength: 10 },
             { id: '#eventsDataTable', pageLength: 10 },
             { id: '#teamDataTable', pageLength: 10 },
-            { id: '#announcementsDataTable', pageLength: 10 },
             { id: '#newsletterDataTable', pageLength: 10 }
             // Skip blogsDataTable - initialized separately for Server-Side
             // Skip job application tables - they load via AJAX
@@ -4647,6 +4646,34 @@ $(document).ready(function() {
         });
     }
 
+    function filterAnnouncementsTable(searchValue) {
+        const $table = $('#announcementsDataTable');
+        if ($table.length === 0) return;
+
+        const query = (searchValue || '').trim().toLowerCase();
+        const $rows = $table.find('tbody > tr.announcement-data-row');
+
+        $rows.each(function() {
+            const $row = $(this);
+            const $detailRow = $row.next('tr.announcement-edit-row');
+            const rowText = $row.text().replace(/\s+/g, ' ').trim().toLowerCase();
+            const matches = query === '' || rowText.indexOf(query) !== -1;
+
+            $row.toggle(matches);
+
+            if (!matches) {
+                $detailRow.hide().removeClass('show');
+                return;
+            }
+
+            if ($detailRow.hasClass('show')) {
+                $detailRow.css('display', 'table-row');
+            } else {
+                $detailRow.hide();
+            }
+        });
+    }
+
     // Initialize DataTables when switching to static content tabs
     $('#blogs-tab').on('click', function() {
         reloadBlogsTable();
@@ -4655,13 +4682,12 @@ $(document).ready(function() {
     $('#videos-tab, #careers-tab, #social-tab, #stories-tab, #case-studies-tab, #events-tab, #team-tab, #announcements-tab, #newsletter-tab').on('click', function() {
         setTimeout(function() {
             initializeDataTables();
+            filterAnnouncementsTable($('#announcementSearch').val());
         }, 100);
     });
 
     $(document).on('input', '#announcementSearch', function() {
-        if ($.fn.DataTable.isDataTable('#announcementsDataTable')) {
-            $('#announcementsDataTable').DataTable().search(this.value).draw();
-        }
+        filterAnnouncementsTable(this.value);
     });
 });
 </script>
