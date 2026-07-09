@@ -196,6 +196,7 @@ Route::get('/customer-stories/{story}', [HomeController::class, 'customerStorySh
     ->name('customer-stories.show');
 Route::get('/social-impact', [HomeController::class, 'socialImpact'])->name('social-impact.index');
 Route::get('/privacy-policy', [HomeController::class, 'privacyPolicy'])->name('privacy-policy');
+Route::get('/support', [HomeController::class, 'support'])->name('support');
 // IP / Country test endpoints
 Route::get('/visit/geoip', [\App\Http\Controllers\VisitController::class, 'geoip'])->name('visit.geoip');
 Route::get('/visit/ipapi', [\App\Http\Controllers\VisitController::class, 'ipapi'])->name('visit.ipapi');
