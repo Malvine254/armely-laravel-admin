@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use App\Services\AzureMailService;
 use App\Services\ActivityLogger;
 use App\Services\NewsletterNotificationService;
 
@@ -96,6 +97,22 @@ class TablesController extends Controller
 
         $contacts = $this->tableExists('contacts') ? DB::table('contacts')->orderBy('id', 'desc')->limit(50)->get() : collect();
         $newsletterSubscribers = $this->tableExists('newsletter_subscribers') ? DB::table('newsletter_subscribers')->orderByDesc('id')->limit(250)->get() : collect();
+        $siteBanners = $this->tableExists('website_ad_banners')
+            ? DB::table('website_ad_banners')
+                ->where('page', 'global')
+                ->orderBy('display_order')
+                ->orderByDesc('id')
+                ->limit(50)
+                ->get()
+            : collect();
+        $announcements = $this->tableExists('announcements')
+            ? DB::table('announcements')
+                ->orderBy('display_order')
+                ->orderByDesc('published_at')
+                ->orderByDesc('id')
+                ->limit(100)
+                ->get()
+            : collect();
 
         $adminAuthors = $this->tableExists('admin')
             ? DB::table('admin')
@@ -110,7 +127,7 @@ class TablesController extends Controller
         $caseStudyCategories = $this->caseStudyCategoryOptions();
         $caseStudyTechnologies = $this->caseStudyTechnologyOptions();
 
-        return view('admin.tables', compact('blogs', 'videos', 'careers', 'socialImpact', 'customerStories', 'caseStudies', 'events', 'team', 'contacts', 'newsletterSubscribers', 'adminAuthors', 'caseStudyCategories', 'caseStudyTechnologies'));
+        return view('admin.tables', compact('blogs', 'videos', 'careers', 'socialImpact', 'customerStories', 'caseStudies', 'events', 'team', 'contacts', 'newsletterSubscribers', 'siteBanners', 'announcements', 'adminAuthors', 'caseStudyCategories', 'caseStudyTechnologies'));
     }
     
     // ========== LIST ENDPOINTS FOR AJAX TABLE RELOAD ==========
@@ -451,6 +468,128 @@ class TablesController extends Controller
         return response()->json($contacts);
     }
 
+    public function storeAnnouncement(Request $request)
+    {
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'type' => 'required|in:announcement,offer',
+            'summary' => 'nullable|string',
+            'body_html' => 'required|string',
+            'cta_label' => 'nullable|string|max:120',
+            'cta_url' => 'nullable|string|max:255',
+            'display_order' => 'nullable|integer|min:0|max:9999',
+            'published_at' => 'nullable|date',
+            'is_active' => 'nullable|boolean',
+        ]);
+
+        if (!$this->tableExists('announcements')) {
+            return back()->with('error', 'Announcements table is missing. Please run migrations first.');
+        }
+
+        $id = DB::table('announcements')->insertGetId([
+            'title' => $validated['title'],
+            'type' => $validated['type'],
+            'summary' => $validated['summary'] ?? null,
+            'body_html' => $validated['body_html'],
+            'cta_label' => $validated['cta_label'] ?? null,
+            'cta_url' => $validated['cta_url'] ?? null,
+            'display_order' => (int) ($validated['display_order'] ?? 0),
+            'published_at' => $validated['published_at'] ?? now(),
+            'is_active' => $request->boolean('is_active', true),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        ActivityLogger::log('create', 'announcement', $id, 'Created announcement from admin tables');
+
+        return back()->with('success', 'Announcement created successfully.');
+    }
+
+    public function updateAnnouncement(Request $request, int $id)
+    {
+        if (!$this->tableExists('announcements')) {
+            return back()->with('error', 'Announcements table is missing. Please run migrations first.');
+        }
+
+        $record = DB::table('announcements')->where('id', $id)->first();
+        if (!$record) {
+            return back()->with('error', 'Announcement not found.');
+        }
+
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'type' => 'required|in:announcement,offer',
+            'summary' => 'nullable|string',
+            'body_html' => 'required|string',
+            'cta_label' => 'nullable|string|max:120',
+            'cta_url' => 'nullable|string|max:255',
+            'display_order' => 'nullable|integer|min:0|max:9999',
+            'published_at' => 'nullable|date',
+            'is_active' => 'nullable|boolean',
+        ]);
+
+        DB::table('announcements')->where('id', $id)->update([
+            'title' => $validated['title'],
+            'type' => $validated['type'],
+            'summary' => $validated['summary'] ?? null,
+            'body_html' => $validated['body_html'],
+            'cta_label' => $validated['cta_label'] ?? null,
+            'cta_url' => $validated['cta_url'] ?? null,
+            'display_order' => (int) ($validated['display_order'] ?? 0),
+            'published_at' => $validated['published_at'] ?? $record->published_at ?? now(),
+            'is_active' => $request->boolean('is_active'),
+            'updated_at' => now(),
+        ]);
+
+        ActivityLogger::log('update', 'announcement', $id, 'Updated announcement from admin tables');
+
+        return back()->with('success', 'Announcement updated successfully.');
+    }
+
+    public function toggleAnnouncementStatus(int $id)
+    {
+        if (!$this->tableExists('announcements')) {
+            return back()->with('error', 'Announcements table is missing. Please run migrations first.');
+        }
+
+        $record = DB::table('announcements')->where('id', $id)->first();
+        if (!$record) {
+            return back()->with('error', 'Announcement not found.');
+        }
+
+        $newStatus = ! (bool) $record->is_active;
+        DB::table('announcements')->where('id', $id)->update([
+            'is_active' => $newStatus,
+            'updated_at' => now(),
+        ]);
+
+        ActivityLogger::log(
+            'update',
+            'announcement',
+            $id,
+            $newStatus ? 'Activated announcement from admin tables' : 'Deactivated announcement from admin tables'
+        );
+
+        return back()->with('success', $newStatus ? 'Announcement activated successfully.' : 'Announcement deactivated successfully.');
+    }
+
+    public function deleteAnnouncement(int $id)
+    {
+        if (!$this->tableExists('announcements')) {
+            return back()->with('error', 'Announcements table is missing. Please run migrations first.');
+        }
+
+        $record = DB::table('announcements')->where('id', $id)->first();
+        if (!$record) {
+            return back()->with('error', 'Announcement not found.');
+        }
+
+        DB::table('announcements')->where('id', $id)->delete();
+        ActivityLogger::log('delete', 'announcement', $id, 'Deleted announcement from admin tables');
+
+        return back()->with('success', 'Announcement deleted successfully.');
+    }
+
     // Public ping endpoint for quick health / connectivity checks (no heavy DB work)
     public function ping()
     {
@@ -600,6 +739,8 @@ class TablesController extends Controller
     public function storeOrUpdateVideo(Request $request)
     {
         $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string|max:1000',
             'url' => 'required|string',
         ]);
         
@@ -607,6 +748,22 @@ class TablesController extends Controller
         $idColumn = $this->columnExists($videoTable, 'video_id') ? 'video_id' : 'id';
         
         $data = [];
+
+        if ($this->columnExists($videoTable, 'title')) {
+            $data['title'] = $validated['title'];
+        } elseif ($this->columnExists($videoTable, 'video_title')) {
+            $data['video_title'] = $validated['title'];
+        } elseif ($this->columnExists($videoTable, 'video_name')) {
+            $data['video_name'] = $validated['title'];
+        }
+
+        if (array_key_exists('description', $validated)) {
+            if ($this->columnExists($videoTable, 'description')) {
+                $data['description'] = $validated['description'];
+            } elseif ($this->columnExists($videoTable, 'video_description')) {
+                $data['video_description'] = $validated['description'];
+            }
+        }
         
         // Add url/iframe column with fallback
         if ($this->columnExists($videoTable, 'url')) {
@@ -1731,11 +1888,28 @@ class TablesController extends Controller
             return response()->json(['success' => false, 'message' => 'Newsletter subscribers table is not available.'], 422);
         }
 
+        $subscriber = DB::table('newsletter_subscribers')->where('id', $id)->first();
+
         DB::table('newsletter_subscribers')->where('id', $id)->update([
             'status' => 'unsubscribed',
             'unsubscribed_at' => now(),
             'updated_at' => now(),
         ]);
+
+        if ($subscriber && $this->tableExists('newsletter_notification_unsubscribes')) {
+            $email = AzureMailService::normalizeEmail((string) ($subscriber->email ?? ''));
+            if ($email !== '') {
+                DB::table('newsletter_notification_unsubscribes')->updateOrInsert(
+                    ['email' => $email],
+                    [
+                        'source' => 'admin',
+                        'unsubscribed_at' => now(),
+                        'updated_at' => now(),
+                        'created_at' => now(),
+                    ]
+                );
+            }
+        }
 
         ActivityLogger::log('update', 'NewsletterSubscriber', $id, 'Unsubscribed newsletter subscriber #' . $id);
         return response()->json(['success' => true, 'message' => 'Subscriber unsubscribed successfully']);
@@ -1747,12 +1921,21 @@ class TablesController extends Controller
             return response()->json(['success' => false, 'message' => 'Newsletter subscribers table is not available.'], 422);
         }
 
+        $subscriber = DB::table('newsletter_subscribers')->where('id', $id)->first();
+
         DB::table('newsletter_subscribers')->where('id', $id)->update([
             'status' => 'active',
             'unsubscribed_at' => null,
             'subscribed_at' => now(),
             'updated_at' => now(),
         ]);
+
+        if ($subscriber && $this->tableExists('newsletter_notification_unsubscribes')) {
+            $email = AzureMailService::normalizeEmail((string) ($subscriber->email ?? ''));
+            if ($email !== '') {
+                DB::table('newsletter_notification_unsubscribes')->where('email', $email)->delete();
+            }
+        }
 
         ActivityLogger::log('update', 'NewsletterSubscriber', $id, 'Reactivated newsletter subscriber #' . $id);
         return response()->json(['success' => true, 'message' => 'Subscriber reactivated successfully']);

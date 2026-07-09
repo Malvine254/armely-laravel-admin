@@ -134,6 +134,13 @@
             </transition>
           </div>
 
+          <router-link
+            to="/announcements"
+            class="flex items-center px-3 py-2 rounded-lg text-sm font-semibold text-slate-100 hover:text-cyan-300 hover:bg-white/10 transition"
+          >
+            Announcements
+          </router-link>
+
         </div>
 
         <!-- Right Section Icons -->
@@ -266,6 +273,9 @@
               </div>
             </div>
           </div>
+          <router-link to="/announcements" @click="closeMobileMenu" class="block w-full text-left px-4 py-3 text-sm text-slate-100 transition hover:bg-white/10 border-b border-white/10">
+            Announcements
+          </router-link>
           <template v-if="authStore.isAuthenticated">
             <div class="px-4 py-3 border-b border-white/10">
               <div class="font-semibold text-white">Hi, {{ userFirstName }} 👋</div>

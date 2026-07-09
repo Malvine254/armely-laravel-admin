@@ -45,6 +45,9 @@
             <router-link to="/products" class="px-8 py-4 text-base font-semibold text-white bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg hover:shadow-xl hover:shadow-blue-500/30 transition transform hover:scale-105 active:scale-95">
               Explore Products
             </router-link>
+            <router-link to="/announcements" class="px-8 py-4 text-base font-semibold text-blue-600 bg-white border-2 border-blue-600 rounded-lg hover:bg-blue-50 transition">
+              Latest Announcements
+            </router-link>
             <router-link to="/register" class="px-8 py-4 text-base font-semibold text-blue-600 bg-white border-2 border-blue-600 rounded-lg hover:bg-blue-50 transition">
               Get Started Free
             </router-link>

@@ -57,20 +57,11 @@ class NewsletterNotificationService
 
     public function adminRecipientEmails(): array
     {
-        $emails = [
-            env('ADMIN_EMAIL'),
-            'ask.me@armely.com',
-        ];
-
-        if (Schema::hasTable('admin')) {
-            $emails = array_merge(
-                $emails,
-                DB::table('admin')
-                    ->whereNotNull('email')
-                    ->pluck('email')
-                    ->all()
-            );
-        }
+        $emails = array_merge(
+            $this->adminEmailsFromEnv(),
+            ['ask.me@armely.com'],
+            $this->activeAdminTableEmails()
+        );
 
         return collect($emails)
             ->filter()
@@ -118,12 +109,34 @@ class NewsletterNotificationService
                 'unsubscribeUrl' => $recipient['unsubscribeUrl'] ?? null,
             ])->render();
 
-            if ($mailer->sendEmail($fromEmail, $email, $subject, $html)) {
+            $internetMessageHeaders = [];
+            $unsubscribeUrl = trim((string) ($recipient['unsubscribeUrl'] ?? ''));
+            if ($unsubscribeUrl !== '') {
+                $internetMessageHeaders = [
+                    [
+                        'name' => 'X-List-Unsubscribe',
+                        'value' => '<' . $unsubscribeUrl . '>',
+                    ],
+                    [
+                        'name' => 'X-List-Unsubscribe-Post',
+                        'value' => 'List-Unsubscribe=One-Click',
+                    ],
+                ];
+            }
+
+            if ($mailer->sendEmail($fromEmail, $email, $subject, $html, true, true, $internetMessageHeaders)) {
                 if (($recipient['kind'] ?? '') === 'subscriber' && isset($recipient['subscriber_id'])) {
                     DB::table('newsletter_subscribers')
                         ->where('id', $recipient['subscriber_id'])
                         ->update(['last_notified_at' => now(), 'updated_at' => now()]);
                 }
+            } else {
+                Log::warning('Newsletter content notification was not sent.', [
+                    'type' => $type,
+                    'title' => $title,
+                    'recipient_email' => $email,
+                    'recipient_kind' => $recipient['kind'] ?? 'subscriber',
+                ]);
             }
         }
     }
@@ -133,14 +146,21 @@ class NewsletterNotificationService
         $recipients = [];
 
         if (Schema::hasTable('newsletter_subscribers')) {
-            $subscribers = DB::table('newsletter_subscribers')
-                ->whereRaw('LOWER(status) = ?', ['active'])
-                ->orderBy('id')
-                ->get();
+            $subscriberQuery = DB::table('newsletter_subscribers');
+
+            if (Schema::hasColumn('newsletter_subscribers', 'status')) {
+                $subscriberQuery->whereRaw('LOWER(status) = ?', ['active']);
+            }
+
+            $subscribers = $subscriberQuery->orderBy('id')->get();
+            $suppressed = array_flip($this->suppressedNotificationEmails());
 
             foreach ($subscribers as $subscriber) {
                 $email = AzureMailService::normalizeEmail((string) ($subscriber->email ?? ''));
                 if (!AzureMailService::isDeliverableEmail($email)) {
+                    continue;
+                }
+                if (isset($suppressed[$email])) {
                     continue;
                 }
 
@@ -154,18 +174,82 @@ class NewsletterNotificationService
             }
         }
 
-        foreach ($this->adminRecipientEmails() as $email) {
+        foreach ($this->activeAdminRecipients() as $email) {
             if (!array_key_exists($email, $recipients)) {
                 $recipients[$email] = [
                     'kind' => 'admin',
                     'email' => $email,
                     'reason' => 'You are receiving this because you are on the Armely admin team.',
-                    'unsubscribeUrl' => null,
+                    'unsubscribeUrl' => URL::signedRoute('newsletter.admin.unsubscribe', ['email' => $email]),
                 ];
             }
         }
 
         return collect(array_values($recipients));
+    }
+
+    private function suppressedNotificationEmails(): array
+    {
+        if (!Schema::hasTable('newsletter_notification_unsubscribes')) {
+            return [];
+        }
+
+        $query = DB::table('newsletter_notification_unsubscribes')
+            ->select('email');
+
+        if (Schema::hasColumn('newsletter_notification_unsubscribes', 'unsubscribed_at')) {
+            $query->whereNotNull('unsubscribed_at');
+        }
+
+        return $query->pluck('email')
+            ->map(fn ($email) => AzureMailService::normalizeEmail((string) $email))
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    private function adminEmailsFromEnv(): array
+    {
+        $emails = [];
+
+        $single = trim((string) env('ADMIN_EMAIL', ''));
+        if ($single !== '') {
+            $emails[] = $single;
+        }
+
+        $multi = trim((string) env('ADMIN_EMAILS', ''));
+        if ($multi !== '') {
+            $emails = array_merge($emails, preg_split('/[,\s]+/', $multi) ?: []);
+        }
+
+        return array_values(array_filter(array_map('trim', $emails)));
+    }
+
+    private function activeAdminTableEmails(): array
+    {
+        if (!Schema::hasTable('admin')) {
+            return [];
+        }
+
+        $query = DB::table('admin')
+            ->whereNotNull('email')
+            ->where('email', '!=', '');
+
+        if (Schema::hasColumn('admin', 'status')) {
+            $query->whereRaw('LOWER(status) = ?', ['active']);
+        }
+
+        return $query->pluck('email')->all();
+    }
+
+    private function activeAdminRecipients(): array
+    {
+        $suppressed = array_flip($this->suppressedNotificationEmails());
+
+        return collect($this->adminRecipientEmails())
+            ->reject(fn ($email) => isset($suppressed[$email]))
+            ->values()
+            ->all();
     }
 
     private function contentSubject(string $type, string $title): string

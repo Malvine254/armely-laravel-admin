@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\AzureMailService;
+use App\Support\ReadingTime;
 use App\Support\ServiceUrl;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
@@ -40,6 +41,30 @@ class HomeController extends Controller
     {
         return view('contact', [
             'recaptchaSiteKey' => config('services.recaptcha.site_key', ''),
+        ]);
+    }
+
+    public function announcements()
+    {
+        $announcement = null;
+        $dbErrorMessage = null;
+
+        try {
+            if (Schema::hasTable('announcements')) {
+                $announcement = DB::table('announcements')
+                    ->where('is_active', true)
+                    ->orderByDesc('published_at')
+                    ->orderByDesc('id')
+                    ->first();
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Announcements query failed; showing friendly fallback', ['error' => $e->getMessage()]);
+            $dbErrorMessage = 'We are temporarily unable to load announcements. Please try again in a few moments.';
+        }
+
+        return view('announcements', [
+            'announcement' => $announcement,
+            'dbErrorMessage' => $dbErrorMessage,
         ]);
     }
 
@@ -297,9 +322,37 @@ class HomeController extends Controller
     public function melaAi()
     {
         $dbErrorMessage = null;
+        $melaPortfolio = $this->safeDb(function () {
+            if (!Schema::hasTable('company_portfolios')) {
+                return null;
+            }
+
+            return DB::table('company_portfolios')
+                ->where('is_active', 1)
+                ->where(function ($query) {
+                    $query->where('cta_url', '/mela-ai')
+                        ->orWhere('title', 'like', '%Mela%');
+                })
+                ->orderBy('display_order')
+                ->orderBy('id')
+                ->first();
+        }, $dbErrorMessage);
+
         $demoVideos = $this->recentVideos($dbErrorMessage);
+        $melaPageTitle = trim((string) (is_object($melaPortfolio) ? ($melaPortfolio->title ?? '') : ''));
+        if ($melaPageTitle === '') {
+            $melaPageTitle = 'Mela AI';
+        }
+
+        $melaPageDescription = trim((string) (is_object($melaPortfolio) ? ($melaPortfolio->short_description ?? '') : ''));
+        if ($melaPageDescription === '') {
+            $melaPageDescription = 'Discover Mela AI from Armely and how AI-driven solutions can improve productivity, decision-making, and customer outcomes.';
+        }
 
         return view('mela-ai', [
+            'melaPortfolio' => $melaPortfolio,
+            'melaPageTitle' => $melaPageTitle,
+            'melaPageDescription' => $melaPageDescription,
             'demoVideos' => $demoVideos,
             'dbErrorMessage' => $dbErrorMessage,
         ]);
@@ -1262,7 +1315,7 @@ class HomeController extends Controller
                 ->get()
                 ->map(function ($blog) use ($authorImageMap) {
                     $blog->author_image = $this->resolveAuthorImageForName((string) ($blog->author ?? ''), $authorImageMap);
-                    $blog->reading_time = $this->estimateReadingTime($blog->body ?? '');
+                    $blog->reading_time = ReadingTime::estimate($blog->body ?? '');
                     $blog->preview = $this->makePreviewText((string) ($blog->body ?? ''), 150);
                     return $blog;
                 });
@@ -1447,12 +1500,6 @@ class HomeController extends Controller
                 'cta_url' => '/store',
             ],
         ]);
-    }
-
-    private function estimateReadingTime(string $html): int
-    {
-        $words = str_word_count(strip_tags($html));
-        return (int) max(1, ceil($words / 200));
     }
 
     private function extractYouTubeId(string $html): string

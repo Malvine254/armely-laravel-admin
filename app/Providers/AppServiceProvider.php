@@ -10,7 +10,10 @@ use App\Listeners\LogSuccessfulLogin;
 use App\Listeners\LogSuccessfulLogout;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\URL;
 
 class AppServiceProvider extends ServiceProvider
@@ -64,6 +67,47 @@ class AppServiceProvider extends ServiceProvider
         // Register login/logout listeners
         Event::listen(Login::class, LogSuccessfulLogin::class);
         Event::listen(Logout::class, LogSuccessfulLogout::class);
+
+        View::composer('layouts.public', function ($view) {
+            $siteAnnouncementBanner = null;
+
+            try {
+                if (Schema::hasTable('website_ad_banners')) {
+                    $banner = DB::table('website_ad_banners')
+                        ->where('is_active', true)
+                        ->where('page', 'global')
+                        ->where(function ($query) {
+                            $query->whereNull('starts_at')->orWhere('starts_at', '<=', now());
+                        })
+                        ->where(function ($query) {
+                            $query->whereNull('ends_at')->orWhere('ends_at', '>=', now());
+                        })
+                        ->orderBy('display_order')
+                        ->orderByDesc('id')
+                        ->first();
+
+                    if ($banner) {
+                        $updatedAt = !empty($banner->updated_at) ? strtotime((string) $banner->updated_at) : time();
+
+                        $siteAnnouncementBanner = (object) [
+                            'id' => $banner->id,
+                            'headline' => $banner->headline,
+                            'message' => $banner->message,
+                            'button_label' => $banner->button_label,
+                            'button_url' => $banner->button_url,
+                            'background_style' => $banner->background_style,
+                            'image_url' => !empty($banner->image_path) ? asset('storage/' . ltrim((string) $banner->image_path, '/')) : null,
+                            'banner_key' => 'announcement-banner-' . $banner->id . '-' . $updatedAt,
+                        ];
+                    }
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Failed to load site announcement banner', ['error' => $e->getMessage()]);
+            }
+
+            $view->with('siteAnnouncementBanner', $siteAnnouncementBanner);
+        });
+
         // Auto-clear compiled Blade views when view sources change.
         // This avoids having to run `php artisan view:clear` after pushing updated views
         // (useful for hosts like GoDaddy where manual cache clearing is inconvenient).

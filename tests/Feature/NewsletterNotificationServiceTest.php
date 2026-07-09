@@ -30,9 +30,9 @@ class NewsletterNotificationServiceTest extends TestCase
             {
             }
 
-            public function sendEmail(string $fromEmail, string $toEmail, string $subject, string $htmlBody, bool $saveToSent = true, bool $validateRecipient = true): bool
+            public function sendEmail(string $fromEmail, string $toEmail, string $subject, string $htmlBody, bool $saveToSent = true, bool $validateRecipient = true, array $internetMessageHeaders = []): bool
             {
-                $this->sent[] = compact('fromEmail', 'toEmail', 'subject', 'htmlBody', 'saveToSent', 'validateRecipient');
+                $this->sent[] = compact('fromEmail', 'toEmail', 'subject', 'htmlBody', 'saveToSent', 'validateRecipient', 'internetMessageHeaders');
 
                 return true;
             }

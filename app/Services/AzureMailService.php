@@ -53,7 +53,7 @@ class AzureMailService
      * Send an HTML email via Microsoft Graph using application permissions.
      * Requires Mail.Send application permission and a licensed mailbox for FROM address.
      */
-    public function sendEmail(string $fromEmail, string $toEmail, string $subject, string $htmlBody, bool $saveToSent = true, bool $validateRecipient = true): bool
+    public function sendEmail(string $fromEmail, string $toEmail, string $subject, string $htmlBody, bool $saveToSent = true, bool $validateRecipient = true, array $internetMessageHeaders = []): bool
     {
         try {
             $resolvedFromEmail = self::normalizeEmail($fromEmail !== '' ? $fromEmail : self::outboundFromEmail());
@@ -108,6 +108,10 @@ class AzureMailService
                 ],
                 'saveToSentItems' => $saveToSent,
             ];
+
+            if ($internetMessageHeaders !== []) {
+                $payload['message']['internetMessageHeaders'] = $internetMessageHeaders;
+            }
 
             $replyTo = self::graphReplyToRecipients();
             if ($replyTo !== []) {
