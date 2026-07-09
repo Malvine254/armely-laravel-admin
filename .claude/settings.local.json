@@ -34,7 +34,11 @@
       "Bash(curl -s -o /dev/null -w \"case-studies page: %{http_code}\\\\n\" http://127.0.0.1:8000/case-studies)",
       "Bash(curl -s -o /dev/null -w \"company page: %{http_code}\\\\n\" http://127.0.0.1:8000/company)",
       "Bash(curl -s -o /tmp/wp.html -w \"white-paper page: %{http_code}\\\\n\" \"http://127.0.0.1:8000/white-papers/view/modern-data-platform-brief\")",
-      "Read(//tmp/**)"
+      "Read(//tmp/**)",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" http://127.0.0.1:8000)",
+      "Bash(curl -s http://127.0.0.1:8000 -w \"\\\\n[HTTP %{http_code}, %{size_download} bytes]\\\\n\")",
+      "Bash(curl -s http://127.0.0.1:8000/privacy-policy -w \"\\\\n[HTTP %{http_code}]\\\\n\" -o /tmp/pp.html)",
+      "Bash(curl -s http://127.0.0.1:8000/privacy-policy -o /dev/null -w \"HTTP %{http_code}\\\\n\")"
     ],
     "additionalDirectories": [
       "\\tmp"

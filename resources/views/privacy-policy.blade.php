@@ -79,6 +79,7 @@
 				<ol class="toc-list">
 					<li><a href="#overview">Overview</a></li>
 					<li><a href="#information-collection">Information Collection and Use</a></li>
+					<li><a href="#solutions">Our Solutions</a></li>
 					<li><a href="#log-data">Log Data</a></li>
 					<li><a href="#cookies">Cookies</a></li>
 					<li><a href="#service-providers">Service Providers</a></li>
@@ -103,6 +104,17 @@
 				<div id="information-collection" class="anchor-offset">
 					<h3>Information Collection and Use</h3>
 					<p>For a better experience, we may require you to provide certain personally identifiable information, including but not limited to your name, phone number, and postal address. The information we collect is used to contact or identify you.</p>
+				</div>
+
+				<div id="solutions" class="anchor-offset">
+					<h3>Our Solutions</h3>
+					<p>Alongside our website, Armely builds and operates a suite of AI-powered products. Each solution is designed with privacy in mind, and the information described below is processed solely to deliver the functionality you or your organization request. Access is governed by role-based permissions, and we do not use your business data to train third-party models without your explicit consent.</p>
+
+					<p><strong>Mela AI.</strong> Mela AI is Armely's AI-powered virtual agent and conversational assistant. When you interact with Mela, we process the messages, questions, and context you provide in order to generate responses, help you explore our services, and improve the quality of the assistant. Conversation data is used to operate and enhance the Service, and we handle it in accordance with this Privacy Policy. You should avoid sharing sensitive personal information in chat that is not necessary for your request.</p>
+
+					<p><strong>InvoiceLens.</strong> InvoiceLens gives Enverus OpenInvoice operators real-time visibility into pending invoices before they reach AP and ERP systems. InvoiceLens is deployed inside your own Microsoft Azure tenant and built on a governed Microsoft Fabric lakehouse — your invoice and financial data never leaves your environment, and Armely does not hold or host that data on your behalf. You retain full ownership and control of the information InvoiceLens surfaces, and access remains subject to your organization's own security and governance policies.</p>
+
+					<p><strong>Mela Meeting Assistant.</strong> The Mela Meeting Assistant (Mela Meetings) provides AI-powered transcription, summaries, and action-item extraction across platforms such as Microsoft Teams, Zoom, and Google Meet. To deliver these features, it processes meeting audio, transcripts, speaker attribution, and the summaries and action items derived from them, and it may sync that output to connected business tools such as Jira, Asana, or Salesforce at your direction. Meeting content is stored in a searchable archive protected by enterprise-grade, role-based access controls. Because meetings may involve multiple participants, you are responsible for obtaining any consent required under applicable law before recording or transcribing a conversation.</p>
 				</div>
 
 				<div id="log-data" class="anchor-offset">
