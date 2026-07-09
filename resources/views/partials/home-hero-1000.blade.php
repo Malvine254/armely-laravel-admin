@@ -57,53 +57,53 @@
             'name' => 'Swope Health Services',
             'outcome' => 'Power BI dashboards across clinical and admin operations',
             'logo' => asset('images/brand-partners/swope_health.png'),
-            'href' => route('customer-stories.index'),
+            'href' => route('case-studies.index', ['industry' => 'healthcare']),
         ],
         [
             'name' => 'UNMC',
             'outcome' => 'Data platform and clinical workflow modernization on Azure',
             'logo' => asset('images/brand-partners/university_of_nebrask1.png'),
-            'href' => route('customer-stories.index'),
+            'href' => route('case-studies.index', ['industry' => 'healthcare']),
         ],
         [
             'name' => 'Sage Butte Energy',
             'outcome' => 'Aries database modernization and OpenInvoice AP integration',
             'logo' => asset('images/brand-partners/sage_bute.webp'),
             'logo_scale' => 1.38,
-            'href' => route('customer-stories.index'),
+            'href' => route('case-studies.index', ['industry' => 'energy-oil-gas']),
         ],
         [
             'name' => 'Plano ISD',
             'outcome' => 'Microsoft 365, SharePoint, and Power Platform district rollout',
             'logo' => asset('images/partners/Plano.png'),
             'logo_scale' => 1.28,
-            'href' => route('customer-stories.index'),
+            'href' => route('case-studies.index', ['industry' => 'government-public-sector']),
         ],
         [
             'name' => 'City of Frisco',
             'outcome' => 'Microsoft 365 governance and adoption program',
             'logo' => asset('images/brand-partners/frisco.jpeg'),
             'logo_scale' => 1.4,
-            'href' => route('customer-stories.index'),
+            'href' => route('case-studies.index', ['industry' => 'government-public-sector']),
         ],
         [
             'name' => 'BNSF Railway',
             'outcome' => 'Automated vehicle data management platform',
             'logo' => asset('images/brand-partners/bnsf.png'),
-            'href' => route('customer-stories.index'),
+            'href' => route('case-studies.index', ['industry' => 'transportation-logistics']),
         ],
         [
             'name' => 'Lambda Legal',
             'outcome' => "Legal operations modernization and Raiser's Edge integration",
             'logo' => asset('images/brand-partners/lambda.png'),
-            'href' => route('customer-stories.index'),
+            'href' => route('case-studies.index', ['industry' => 'legal-social-services']),
         ],
         [
             'name' => 'Dallas County',
             'outcome' => 'Government data and compliance modernization',
             'logo' => asset('images/brand-partners/dallas_county.jpg'),
             'logo_scale' => 1.95,
-            'href' => route('customer-stories.index'),
+            'href' => route('case-studies.index', ['industry' => 'government-public-sector']),
         ],
     ];
 
@@ -485,7 +485,7 @@
         color: #13223f;
         font-size: clamp(1.45rem, 2vw, 2.2rem);
         line-height: 1.1;
-        font-weight: 800;
+        font-weight: 700;
         letter-spacing: -0.04em;
     }
 
@@ -756,30 +756,50 @@
         display: flex;
         flex-direction: column;
         min-height: 100%;
-        padding: 24px;
-        border-radius: 18px;
-        background: linear-gradient(180deg, #ffffff 0%, #fbfcff 100%);
-        border: 1px solid rgba(47, 85, 151, 0.10);
-        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+        padding: 26px;
+        border-radius: 22px;
+        background:
+            radial-gradient(circle at top left, rgba(47, 85, 151, 0.08), transparent 38%),
+            linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+        border: 1px solid rgba(47, 85, 151, 0.12);
+        box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08);
         overflow: hidden;
+        position: relative;
+        transition: transform 0.28s ease, box-shadow 0.28s ease, border-color 0.28s ease;
+    }
+
+    .case-card::before {
+        content: "";
+        position: absolute;
+        inset: 0 auto auto 0;
+        width: 100%;
+        height: 4px;
+        background: linear-gradient(90deg, #2f5597 0%, #6da3ff 55%, rgba(109, 163, 255, 0.2) 100%);
+        opacity: 0.9;
+    }
+
+    .case-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 18px 42px rgba(15, 23, 42, 0.12);
+        border-color: rgba(47, 85, 151, 0.22);
     }
 
     .case-body {
         display: flex;
         flex-direction: column;
         flex: 1;
-        padding: 0;
+        padding-top: 8px;
     }
 
     .case-tag {
         display: inline-flex;
         width: fit-content;
-        padding: 7px 11px;
+        padding: 7px 12px;
         border-radius: 999px;
-        background: rgba(47, 85, 151, 0.08);
-        color: #2f5597;
-        font-size: 0.74rem;
-        font-weight: 800;
+        background: rgba(47, 85, 151, 0.07);
+        color: #355c9b;
+        font-size: 0.72rem;
+        font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.1em;
         margin-bottom: 12px;
@@ -787,11 +807,11 @@
 
     .case-title {
         margin: 0;
-        color: #13223f;
-        font-size: 1.16rem;
-        line-height: 1.25;
+        color: #12203d;
+        font-size: 1.12rem;
+        line-height: 1.35;
         font-weight: 500;
-        letter-spacing: -0.03em;
+        letter-spacing: -0.02em;
         min-height: 0;
         display: -webkit-box;
         -webkit-line-clamp: 2;
@@ -801,7 +821,7 @@
 
     .case-desc {
         margin: 10px 0 0;
-        color: #5b6472;
+        color: #5f6b7f;
         font-size: 0.95rem;
         line-height: 1.6;
         min-height: 4.8em;
@@ -818,7 +838,7 @@
         align-items: center;
         gap: 8px;
         color: #2f5597;
-        font-weight: 800;
+        font-weight: 700;
         font-size: 0.92rem;
         text-decoration: none;
     }
@@ -928,6 +948,19 @@
         .case-card,
         .client-card {
             min-height: auto;
+        }
+
+        .case-card {
+            padding: 22px;
+            border-radius: 20px;
+        }
+
+        .armely-home-section-head h2 {
+            font-size: clamp(1.3rem, 5.2vw, 1.8rem);
+        }
+
+        .case-title {
+            font-size: 1.02rem;
         }
     }
 

@@ -2,6 +2,8 @@
 
 @section('title', 'Client Reviews | What Clients Say About Armely')
 @section('meta_description', 'Read client reviews from Armely customers, including full reviews, roles, organizations, and engagement outcomes.')
+@section('canonical_url', route('customer-stories.index'))
+@section('robots', 'index,follow')
 
 @php
     use Carbon\Carbon;

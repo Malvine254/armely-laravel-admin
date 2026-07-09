@@ -322,7 +322,7 @@
     }
     .mobile-dropdown-menu a,
     .mobile-dropdown-menu button.sub-toggle {
-        font-size: 14px;
+        font-size: 15px;
         padding: 10px 15px;
     }
 }
@@ -1033,7 +1033,8 @@ main .service-card {
         min-height: 58px;
         display: inline-flex !important;
         align-items: center;
-        padding: 0 14px !important;
+        padding: 0 22px !important;
+        font-size: 16px !important;
     }
 
     .header .header-cta {
@@ -1044,10 +1045,11 @@ main .service-card {
         justify-content: center;
         min-height: 46px;
         padding: 0 20px;
+        margin-right: 14px;
         border-radius: 8px;
         background: #2f5597;
         color: #fff;
-        font-size: 13px;
+        font-size: 14px;
         font-weight: 600;
         text-decoration: none;
         white-space: nowrap;
@@ -1072,13 +1074,13 @@ main .service-card {
 @media (max-width: 1500px) and (min-width: 1301px) {
     .header .mega-trigger,
     .header .main-menu .nav.menu > li > a:not(.mega-trigger) {
-        padding-left: 8px !important;
-        padding-right: 8px !important;
-        font-size: 14.5px !important;
+        padding-left: 16px !important;
+        padding-right: 16px !important;
+        font-size: 15.5px !important;
     }
 
     .header .nav li {
-        margin-right: 4px !important;
+        margin-right: 14px !important;
     }
 }
 
@@ -1098,14 +1100,45 @@ main .service-card {
 {{-- AI Data Readiness Assessment Pop-up temporarily disabled. --}}
 {{-- @include('partials.ai-readiness-popup') --}}
 
-<div class="announcement-banner default-background" id="announcementBanner">
+@if(!empty($siteAnnouncementBanner))
+<div
+    class="announcement-banner default-background"
+    id="announcementBanner"
+    data-banner-key="{{ $siteAnnouncementBanner->banner_key }}"
+    @if(!empty($siteAnnouncementBanner->background_style))
+        style="background: {{ $siteAnnouncementBanner->background_style }};"
+    @endif
+>
+    @php($bannerButtonIsExternal = \Illuminate\Support\Str::startsWith((string) ($siteAnnouncementBanner->button_url ?? ''), ['http://', 'https://']))
     <span class="banner-item">
-        &#127881; <b>Armely Store is now live!</b>
-        Browse business technology products, request quotes, and manage orders online.
-        <a target="_blank" rel="noopener noreferrer" href="{{ url('/store') }}">Shop Now</a>
+        @if(!empty($siteAnnouncementBanner->headline))
+            &#127881; <b>{{ $siteAnnouncementBanner->headline }}</b>
+        @endif
+        @if(!empty($siteAnnouncementBanner->message))
+            {{ $siteAnnouncementBanner->message }}
+        @endif
+        @if(!empty($siteAnnouncementBanner->button_label) && !empty($siteAnnouncementBanner->button_url))
+            <a target="{{ $bannerButtonIsExternal ? '_blank' : '_self' }}" @if($bannerButtonIsExternal) rel="noopener noreferrer" @endif href="{{ $siteAnnouncementBanner->button_url }}">{{ $siteAnnouncementBanner->button_label }}</a>
+        @endif
     </span>
-    <span class="close-btn" onclick="closeBanner()">&times;</span>
+    <button type="button" class="close-btn" aria-label="Close announcement banner"
+        onclick="(function(btn){var banner=btn.closest('.announcement-banner'); if(!banner) return; var key=banner.getAttribute('data-banner-key') || 'armely_banner_closed'; banner.style.display='none'; try { localStorage.setItem(key, 'true'); } catch(e) {} })(this)">
+        &times;
+    </button>
 </div>
+<script>
+(function () {
+    var banner = document.getElementById('announcementBanner');
+    if (!banner) return;
+    var key = banner.getAttribute('data-banner-key') || 'armely_banner_closed';
+    try {
+        if (localStorage.getItem(key)) {
+            banner.style.display = 'none';
+        }
+    } catch (e) {}
+})();
+</script>
+@endif
 
 <header class="header">
     <div class="topbar">

@@ -15,16 +15,62 @@ class SitemapController extends Controller
 {
     public function index(): Response
     {
+        return $this->renderSitemap($this->buildSiteEntries());
+    }
+
+    public function blog(): Response
+    {
+        return $this->renderSitemap($this->buildBlogEntries());
+    }
+
+    public function services(): Response
+    {
+        return $this->renderSitemap($this->buildServiceEntries());
+    }
+
+    public function industries(): Response
+    {
+        return $this->renderSitemap($this->buildIndustryEntries());
+    }
+
+    public function partners(): Response
+    {
+        return $this->renderSitemap($this->buildPartnerEntries());
+    }
+
+    public function customerStories(): Response
+    {
+        return $this->renderSitemap($this->buildCustomerStoryEntries());
+    }
+
+    public function sitemapIndex(): Response
+    {
+        return $this->renderSitemapIndex([
+            route('sitemap.xml'),
+            route('blog.sitemap.xml'),
+            route('services.sitemap.xml'),
+            route('industries.sitemap.xml'),
+            route('partners.sitemap.xml'),
+            route('customer-stories.sitemap.xml'),
+        ]);
+    }
+
+    private function buildSiteEntries(): array
+    {
         $urls = [];
-        $serviceEntries = $this->serviceEntries();
+        $serviceRecords = $this->serviceEntries();
+        $serviceEntries = $this->buildServiceEntries();
         $blogEntries = $this->blogEntries();
         $resourceEntries = $this->resourceEntries();
         $caseStudyEntries = $this->caseStudyEntries();
         $socialImpactEntries = $this->socialImpactEntries();
+        $industryEntries = $this->buildIndustryEntries();
+        $partnerEntries = $this->buildPartnerEntries();
+        $customerStoryEntries = $this->buildCustomerStoryEntries();
 
         $staticRoutes = [
             ['home', 'daily', '1.0', null],
-            ['services', 'weekly', '0.9', $this->latestDateFromCollection($serviceEntries, ['updated_at', 'created_at'])],
+            ['services', 'weekly', '0.9', $this->latestDateFromCollection($serviceRecords, ['updated_at', 'created_at'])],
             ['case-studies.index', 'weekly', '0.9', $this->latestDateFromCollection($caseStudyEntries, ['updated_at', 'created_at'])],
             ['resources.index', 'weekly', '0.9', $this->latestDateFromCollection($resourceEntries, ['updated_at', 'created_at'])],
             ['blog.index', 'daily', '0.9', $this->latestDateFromCollection($blogEntries, ['published_at', 'updated_at', 'date', 'blog_date', 'created_at'])],
@@ -51,25 +97,28 @@ class SitemapController extends Controller
         }
 
         foreach ($serviceEntries as $service) {
-            try {
-                $urls[] = $this->entry(
-                    ServiceUrl::url($service, 'title'),
-                    $this->dateValue($service->updated_at ?? $service->created_at ?? null),
-                    'monthly',
-                    '0.8'
-                );
-            } catch (\Throwable) {
-                // Skip if the service route cannot be built.
-            }
+            $urls[] = $service;
         }
 
         foreach ($blogEntries as $blog) {
             $urls[] = $this->entry(
                 BlogUrl::url($blog, 'blog_id', 'title'),
                 $this->latestDateFromCollection(collect([$blog]), ['published_at', 'updated_at', 'date', 'blog_date', 'created_at']),
-                'monthly',
-                '0.8'
+                'daily',
+                '0.9'
             );
+        }
+
+        foreach ($industryEntries as $industry) {
+            $urls[] = $industry;
+        }
+
+        foreach ($partnerEntries as $partner) {
+            $urls[] = $partner;
+        }
+
+        foreach ($customerStoryEntries as $story) {
+            $urls[] = $story;
         }
 
         foreach ($resourceEntries as $resource) {
@@ -115,6 +164,123 @@ class SitemapController extends Controller
             }
         }
 
+        return $urls;
+    }
+
+    private function buildBlogEntries(): array
+    {
+        $urls = [];
+        $blogEntries = $this->blogEntries();
+
+        foreach ($blogEntries as $blog) {
+            $urls[] = $this->entry(
+                BlogUrl::url($blog, 'blog_id', 'title'),
+                $this->latestDateFromCollection(collect([$blog]), ['published_at', 'updated_at', 'date', 'blog_date', 'created_at']),
+                'daily',
+                '0.9'
+            );
+        }
+
+        return $urls;
+    }
+
+    private function buildServiceEntries(): array
+    {
+        $urls = [];
+        $serviceEntries = $this->serviceEntries();
+
+        foreach ($serviceEntries as $service) {
+            try {
+                $urls[] = $this->entry(
+                    ServiceUrl::url($service, 'title'),
+                    $this->dateValue($service->updated_at ?? $service->created_at ?? null),
+                    'weekly',
+                    '0.8'
+                );
+            } catch (\Throwable) {
+                // Skip if the service route cannot be built.
+            }
+        }
+
+        foreach ($this->serviceCatalog() as $serviceTitle) {
+            try {
+                $urls[] = $this->entry(
+                    ServiceUrl::url($serviceTitle),
+                    null,
+                    'weekly',
+                    '0.8'
+                );
+            } catch (\Throwable) {
+                // Skip if a canonical slug cannot be generated.
+            }
+        }
+
+        return $urls;
+    }
+
+    private function buildIndustryEntries(): array
+    {
+        $urls = [];
+
+        foreach ($this->industryCatalog() as $slug) {
+            try {
+                $urls[] = $this->entry(
+                    route('industries.show', ['industry' => $slug]),
+                    null,
+                    'monthly',
+                    '0.7'
+                );
+            } catch (\Throwable) {
+                // Skip if a route is unavailable.
+            }
+        }
+
+        return $urls;
+    }
+
+    private function buildPartnerEntries(): array
+    {
+        $urls = [];
+
+        foreach ($this->partnerCatalog() as $slug) {
+            try {
+                $urls[] = $this->entry(
+                    route('partners.show', ['slug' => $slug]),
+                    null,
+                    'monthly',
+                    '0.7'
+                );
+            } catch (\Throwable) {
+                // Skip if a route is unavailable.
+            }
+        }
+
+        return $urls;
+    }
+
+    private function buildCustomerStoryEntries(): array
+    {
+        $urls = [];
+        $stories = $this->customerStoryEntries();
+
+        foreach ($stories as $story) {
+            try {
+                $urls[] = $this->entry(
+                    route('customer-stories.show', ['story' => $story->id]),
+                    $this->dateValue($story->updated_at ?? $story->created_at ?? null),
+                    'monthly',
+                    '0.6'
+                );
+            } catch (\Throwable) {
+                // Skip if a route is unavailable.
+            }
+        }
+
+        return $urls;
+    }
+
+    private function renderSitemap(array $urls): Response
+    {
         $uniqueUrls = [];
         foreach ($urls as $url) {
             $loc = $url['loc'] ?? null;
@@ -125,9 +291,31 @@ class SitemapController extends Controller
             $uniqueUrls[$loc] = $url;
         }
 
-        $urls = array_values($uniqueUrls);
+        $xml = $this->renderXml(array_values($uniqueUrls));
 
-        $xml = $this->renderXml($urls);
+        return response($xml, 200, [
+            'Content-Type' => 'application/xml; charset=UTF-8',
+        ]);
+    }
+
+    private function renderSitemapIndex(array $sitemaps): Response
+    {
+        $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
+        $xml .= '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
+
+        $unique = [];
+        foreach ($sitemaps as $sitemap) {
+            if (!is_string($sitemap) || $sitemap === '' || isset($unique[$sitemap])) {
+                continue;
+            }
+
+            $unique[$sitemap] = true;
+            $xml .= "  <sitemap>\n";
+            $xml .= '    <loc>' . e($sitemap) . "</loc>\n";
+            $xml .= "  </sitemap>\n";
+        }
+
+        $xml .= "</sitemapindex>\n";
 
         return response($xml, 200, [
             'Content-Type' => 'application/xml; charset=UTF-8',
@@ -161,6 +349,67 @@ class SitemapController extends Controller
         $xml .= "</urlset>\n";
 
         return $xml;
+    }
+
+    private function serviceCatalog(): array
+    {
+        return [
+            'AI Consulting',
+            'AI Advisory',
+            'Generative AI',
+            'AI PoC Starter',
+            'Estimate your Fabric Capacity',
+            'Microsoft Fabric',
+            'Data Science and Analytics',
+            'Data Strategy',
+            'Databricks',
+            'Snowflake',
+            'SQL & Data Warehousing',
+            'API Data Access',
+            'Microsoft PowerApps',
+            'Microsoft Power Automate',
+            'Microsoft Power Virtual Agents',
+            'Microsoft Power Pages',
+            'Microsoft Dynamics 365',
+            'Robotic Processing Automation',
+            'SharePoint Online',
+            'Microsoft 365 Governance and Adoption',
+            'Managed Services',
+            'SQL Server Support',
+            'Applications Support',
+            'Freemiums',
+        ];
+    }
+
+    private function industryCatalog(): array
+    {
+        return [
+            'healthcare',
+            'energy',
+            'financial-services',
+            'higher-education',
+            'manufacturing',
+            'nonprofit-social-services',
+            'professional-services',
+            'state-local-government',
+            'transportation-logistics',
+            'agriculture-cannabis',
+        ];
+    }
+
+    private function partnerCatalog(): array
+    {
+        return [
+            'aws',
+            'snowflake',
+            'microsoft',
+            'redhat',
+            'cisco',
+            'guardz',
+            'td-synnex',
+            'td',
+            'veeam',
+        ];
     }
 
     private function latestDateFromCollection(?Collection $items, array $columns = ['updated_at', 'date', 'blog_date', 'published_at', 'created_at']): ?string
@@ -245,53 +494,114 @@ class SitemapController extends Controller
 
     private function blogEntries()
     {
-        $blogTable = $this->resolveBlogTable();
-        if ($blogTable === null) {
-            return collect();
+        $urls = collect();
+
+        foreach ($this->blogTables() as $blogTable) {
+            $blogIdColumn = Schema::hasColumn($blogTable, 'blog_id') ? 'blog_id' : 'id';
+            $titleColumn = $this->firstExistingColumn($blogTable, ['title', 'blog_title']);
+            $dateColumns = array_values(array_filter([
+                Schema::hasColumn($blogTable, 'published_at') ? 'published_at' : null,
+                Schema::hasColumn($blogTable, 'updated_at') ? 'updated_at' : null,
+                Schema::hasColumn($blogTable, 'date') ? 'date' : null,
+                Schema::hasColumn($blogTable, 'blog_date') ? 'blog_date' : null,
+                Schema::hasColumn($blogTable, 'created_at') ? 'created_at' : null,
+            ]));
+
+            $query = DB::table($blogTable)
+                ->select(array_filter(array_unique(array_filter([
+                    $blogIdColumn . ' as blog_id',
+                    $titleColumn ? $titleColumn . ' as title' : null,
+                    ...$dateColumns,
+                ]))));
+
+            $orderColumn = $this->firstExistingColumn($blogTable, ['published_at', 'updated_at', 'date', 'blog_date', 'created_at']) ?? $blogIdColumn;
+
+            if ($orderColumn !== null) {
+                $query->orderByDesc($orderColumn);
+            } else {
+                $query->orderByDesc($blogIdColumn);
+            }
+
+            $urls = $urls->merge($query->get());
         }
 
-        $blogIdColumn = Schema::hasColumn($blogTable, 'blog_id') ? 'blog_id' : 'id';
-        $titleColumn = $this->firstExistingColumn($blogTable, ['title', 'blog_title']);
-        $dateColumns = array_values(array_filter([
-            Schema::hasColumn($blogTable, 'published_at') ? 'published_at' : null,
-            Schema::hasColumn($blogTable, 'updated_at') ? 'updated_at' : null,
-            Schema::hasColumn($blogTable, 'date') ? 'date' : null,
-            Schema::hasColumn($blogTable, 'blog_date') ? 'blog_date' : null,
-            Schema::hasColumn($blogTable, 'created_at') ? 'created_at' : null,
-            Schema::hasColumn($blogTable, 'status') ? 'status' : null,
-        ]));
+        return $urls->values();
+    }
 
-        $query = DB::table($blogTable)
-            ->select(array_filter(array_unique(array_filter([
-                $blogIdColumn . ' as blog_id',
-                $titleColumn ? $titleColumn . ' as title' : null,
-                ...$dateColumns,
-            ]))));
+    private function blogTables(): array
+    {
+        $tables = [];
 
-        if (Schema::hasColumn($blogTable, 'status')) {
-            $query->whereRaw('LOWER(status) = ?', ['published']);
+        foreach (config('blog.tables', ['blogs', 'blog']) as $table) {
+            if (!is_string($table)) {
+                continue;
+            }
+
+            $table = trim($table);
+            if ($table === '' || in_array($table, $tables, true)) {
+                continue;
+            }
+
+            if (Schema::hasTable($table)) {
+                $tables[] = $table;
+            }
         }
 
-        $orderColumn = $this->firstExistingColumn($blogTable, ['published_at', 'updated_at', 'date', 'blog_date', 'created_at']) ?? $blogIdColumn;
-
-        if ($orderColumn !== null) {
-            $query->orderByDesc($orderColumn);
-        } else {
-            $query->orderByDesc($blogIdColumn);
+        if (!empty($tables)) {
+            return array_values(array_unique($tables));
         }
 
-        return $query->get();
+        foreach (['blogs', 'blog'] as $table) {
+            if (Schema::hasTable($table)) {
+                $tables[] = $table;
+            }
+        }
+
+        if (!empty($tables)) {
+            return array_values(array_unique($tables));
+        }
+
+        try {
+            foreach (Schema::getTableListing(null, false) as $table) {
+                if (!is_string($table) || $table === '' || in_array($table, $tables, true)) {
+                    continue;
+                }
+
+                if (!$this->looksLikeBlogTable($table)) {
+                    continue;
+                }
+
+                $tables[] = $table;
+            }
+        } catch (\Throwable) {
+            // If table listing is unavailable, fall back to the known blog tables above.
+        }
+
+        return array_values(array_unique($tables));
+    }
+
+    private function looksLikeBlogTable(string $table): bool
+    {
+        if (!Schema::hasTable($table)) {
+            return false;
+        }
+
+        $hasIdentifier = Schema::hasColumn($table, 'blog_id') || Schema::hasColumn($table, 'id');
+        if (!$hasIdentifier) {
+            return false;
+        }
+
+        $hasTitle = $this->firstExistingColumn($table, ['title', 'blog_title']) !== null;
+        if (!$hasTitle) {
+            return false;
+        }
+
+        return $this->firstExistingColumn($table, ['body', 'description', 'content']) !== null;
     }
 
     private function resolveBlogTable(): ?string
     {
-        foreach (['blogs', 'blog'] as $table) {
-            if (Schema::hasTable($table)) {
-                return $table;
-            }
-        }
-
-        return null;
+        return $this->blogTables()[0] ?? null;
     }
 
     private function resourceEntries()
@@ -315,6 +625,24 @@ class SitemapController extends Controller
                 'updated_at',
                 'created_at',
             ]);
+    }
+
+    private function customerStoryEntries()
+    {
+        if (!Schema::hasTable('customer_stories')) {
+            return collect();
+        }
+
+        return DB::table('customer_stories')
+            ->select([
+                'id',
+                ...array_values(array_filter([
+                    Schema::hasColumn('customer_stories', 'updated_at') ? 'updated_at' : null,
+                    Schema::hasColumn('customer_stories', 'created_at') ? 'created_at' : null,
+                ])),
+            ])
+            ->orderByDesc('id')
+            ->get();
     }
 
     private function caseStudyEntries()

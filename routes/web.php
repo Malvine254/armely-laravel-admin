@@ -41,15 +41,26 @@ Route::redirect('/case_study', '/case-studies', 301);
 Route::redirect('/case study', '/case-studies', 301);
 
 Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('sitemap.xml');
+Route::get('/sitemap-index.xml', [SitemapController::class, 'sitemapIndex'])->name('sitemap.index');
+Route::get('/blog-sitemap.xml', [SitemapController::class, 'blog'])->name('blog.sitemap.xml');
+Route::get('/services-sitemap.xml', [SitemapController::class, 'services'])->name('services.sitemap.xml');
+Route::get('/industries-sitemap.xml', [SitemapController::class, 'industries'])->name('industries.sitemap.xml');
+Route::get('/partners-sitemap.xml', [SitemapController::class, 'partners'])->name('partners.sitemap.xml');
+Route::get('/customer-stories-sitemap.xml', [SitemapController::class, 'customerStories'])->name('customer-stories.sitemap.xml');
 // Backward-compatible sitemap URLs from older SEO plugins/configurations.
-Route::redirect('/sitemap_index.xml', '/sitemap.xml', 301);
-Route::redirect('/sitemap-index.xml', '/sitemap.xml', 301);
-Route::redirect('/page-sitemap.xml', '/sitemap.xml', 301);
-Route::redirect('/post-sitemap.xml', '/sitemap.xml', 301);
+Route::redirect('/sitemap_index.xml', '/sitemap-index.xml', 301);
+Route::redirect('/page-sitemap.xml', '/sitemap-index.xml', 301);
+Route::redirect('/post-sitemap.xml', '/blog-sitemap.xml', 301);
 Route::get('/contact', [HomeController::class, 'contact'])->name('contact');
+Route::get('/announcements', [HomeController::class, 'announcements'])->name('announcements');
 Route::post('/contact', [HomeController::class, 'submitContact'])->name('contact.submit');
 Route::post('/newsletter/subscribe', [NewsletterController::class, 'subscribe'])->name('newsletter.subscribe');
 Route::get('/newsletter/unsubscribe/{token}', [NewsletterController::class, 'unsubscribe'])->name('newsletter.unsubscribe');
+Route::get('/newsletter/admin-unsubscribe', [NewsletterController::class, 'unsubscribeAdmin'])
+    ->middleware('signed')
+    ->name('newsletter.admin.unsubscribe');
+Route::get('/newsletter/unsubscribed', [NewsletterController::class, 'unsubscribeConfirmation'])
+    ->name('newsletter.unsubscribe.confirmation');
 Route::get('/services/invoicelens', [HomeController::class, 'invoiceLens'])->name('invoice-lens');
 Route::redirect('/services/invoice-lens', '/services/invoicelens', 301);
 Route::redirect('/invoice-lens', '/services/invoicelens', 301);
@@ -375,6 +386,12 @@ Route::prefix('admin')->middleware(['admin'])->group(function () {
     Route::put('/tables/customer-stories/{id}', [TablesController::class, 'updateCustomerStory'])->name('admin.tables.customer-stories.update');
     Route::delete('/tables/customer-stories/{id}', [TablesController::class, 'deleteCustomerStory'])->name('admin.tables.customer-stories.delete');
 
+    // Announcements
+    Route::post('/tables/announcements', [TablesController::class, 'storeAnnouncement'])->name('admin.tables.announcements.store');
+    Route::put('/tables/announcements/{id}', [TablesController::class, 'updateAnnouncement'])->name('admin.tables.announcements.update');
+    Route::post('/tables/announcements/{id}/toggle', [TablesController::class, 'toggleAnnouncementStatus'])->name('admin.tables.announcements.toggle');
+    Route::delete('/tables/announcements/{id}', [TablesController::class, 'deleteAnnouncement'])->name('admin.tables.announcements.delete');
+
     // Case Studies
     Route::post('/tables/case-studies', [TablesController::class, 'storeOrUpdateCaseStudy'])->name('admin.tables.case-studies.store');
     Route::put('/tables/case-studies/{id}', [TablesController::class, 'storeOrUpdateCaseStudy'])->name('admin.tables.case-studies.update');
@@ -431,6 +448,10 @@ Route::prefix('admin')->middleware(['admin'])->group(function () {
     Route::post('/company-content/banners', [CompanyContentController::class, 'storeBanner'])->name('admin.company-content.banners.store');
     Route::put('/company-content/banners/{id}', [CompanyContentController::class, 'updateBanner'])->name('admin.company-content.banners.update');
     Route::delete('/company-content/banners/{id}', [CompanyContentController::class, 'deleteBanner'])->name('admin.company-content.banners.delete');
+    Route::post('/company-content/announcements', [CompanyContentController::class, 'storeAnnouncement'])->name('admin.company-content.announcements.store');
+    Route::put('/company-content/announcements/{id}', [CompanyContentController::class, 'updateAnnouncement'])->name('admin.company-content.announcements.update');
+    Route::post('/company-content/announcements/{id}/toggle', [CompanyContentController::class, 'toggleAnnouncementStatus'])->name('admin.company-content.announcements.toggle');
+    Route::delete('/company-content/announcements/{id}', [CompanyContentController::class, 'deleteAnnouncement'])->name('admin.company-content.announcements.delete');
     
     // File Upload Handlers
     Route::post('/upload/image', [TablesController::class, 'uploadImage'])->name('admin.upload.image');
