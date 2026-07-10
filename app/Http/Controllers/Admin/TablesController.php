@@ -224,8 +224,22 @@ class TablesController extends Controller
             $start = $request->input('start', 0);
             $length = $request->input('length', 10);
             
-            // Select all columns explicitly to ensure body/content is included
-            $blogs = $query->select('*')
+            // Keep the DataTables response small. Blog bodies can contain legacy
+            // base64 images and are loaded only when View/Edit is opened.
+            $listColumns = array_values(array_filter([
+                $this->columnExists($blogTable, 'id') ? 'id' : null,
+                $this->columnExists($blogTable, 'blog_id') ? 'blog_id' : null,
+                $this->columnExists($blogTable, 'title') ? 'title' : null,
+                $this->columnExists($blogTable, 'blog_title') ? 'blog_title' : null,
+                $this->columnExists($blogTable, 'author') ? 'author' : null,
+                $this->columnExists($blogTable, 'date') ? 'date' : null,
+                $this->columnExists($blogTable, 'blog_date') ? 'blog_date' : null,
+                $this->columnExists($blogTable, 'image_path') ? 'image_path' : null,
+                $this->columnExists($blogTable, 'image') ? 'image' : null,
+                $this->columnExists($blogTable, 'status') ? 'status' : null,
+            ]));
+
+            $blogs = $query->select($listColumns)
                 ->orderBy($orderBy, $orderDir)
                 ->offset($start)
                 ->limit($length)
