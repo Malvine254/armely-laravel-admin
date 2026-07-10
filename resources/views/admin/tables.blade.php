@@ -1537,7 +1537,11 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form id="blogForm" method="POST" action="{{ route('admin.tables.blogs.store') }}" enctype="multipart/form-data">
+                <form id="blogForm"
+                      method="POST"
+                      action="{{ route('admin.tables.blogs.store') }}"
+                      data-update-url="{{ route('admin.tables.blogs.update.post', ['id' => '__BLOG_ID__']) }}"
+                      enctype="multipart/form-data">
                     @csrf
                     <input type="hidden" id="blogId" name="id">
                     
@@ -3224,7 +3228,6 @@ $(document).ready(function() {
         
         formData.append('_token', '{{ csrf_token() }}');
         if (isEdit) {
-            formData.append('_method', 'PUT');
             formData.append('id', id);
         }
         formData.append('title', title);
@@ -3237,10 +3240,17 @@ $(document).ready(function() {
             formData.append('image', imageFile);
         }
 
+        const $form = $('#blogForm');
+        const requestUrl = isEdit
+            ? $form.data('update-url').replace('__BLOG_ID__', encodeURIComponent(id))
+            : $form.attr('action');
+
         $.ajax({
-            url: isEdit ? `/admin/tables/blogs/${id}` : '/admin/tables/blogs',
-            method: 'POST',
+            url: requestUrl,
             type: 'POST',
+            headers: {
+                'Accept': 'application/json'
+            },
             data: formData,
             processData: false,
             contentType: false,
