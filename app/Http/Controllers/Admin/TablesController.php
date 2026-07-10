@@ -70,6 +70,53 @@ class TablesController extends Controller
         return [$imageColumn => 'images/blog/' . $filename];
     }
 
+    /**
+     * Move images pasted into CKEditor as data URIs out of the database.
+     * The saved HTML contains a normal public URL instead of a large base64 value.
+     */
+    private function persistEmbeddedBlogImages(string $html): string
+    {
+        if ($html === '' || stripos($html, 'data:image/') === false) {
+            return $html;
+        }
+
+        $uploadDirectory = public_path('ckeditor_uploads');
+        File::ensureDirectoryExists($uploadDirectory);
+
+        return preg_replace_callback(
+            '/(<img\b[^>]*\bsrc\s*=\s*)(["\'])data:(image\/(?:jpeg|jpg|png|webp|gif));base64,([^"\']+)\2/i',
+            function (array $matches) use ($uploadDirectory): string {
+                $encoded = preg_replace('/\s+/', '', html_entity_decode($matches[4], ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+                $binary = base64_decode($encoded ?? '', true);
+
+                if ($binary === false) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'body' => 'One of the pasted blog images is not valid. Please remove it and paste it again.',
+                    ]);
+                }
+
+                if (strlen($binary) > 5 * 1024 * 1024) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'body' => 'Each pasted blog image must be 5MB or smaller.',
+                    ]);
+                }
+
+                $mime = strtolower($matches[3]);
+                $extension = match ($mime) {
+                    'image/jpeg', 'image/jpg' => 'jpg',
+                    'image/png' => 'png',
+                    'image/webp' => 'webp',
+                    'image/gif' => 'gif',
+                };
+                $filename = now()->format('YmdHis') . '_' . Str::uuid() . '.' . $extension;
+                File::put($uploadDirectory . DIRECTORY_SEPARATOR . $filename, $binary);
+
+                return $matches[1] . $matches[2] . asset('ckeditor_uploads/' . $filename) . $matches[2];
+            },
+            $html
+        ) ?? $html;
+    }
+
     public function index()
     {
         $blogTable = $this->tableExists('blog') ? 'blog' : ($this->tableExists('blogs') ? 'blogs' : null);
@@ -635,7 +682,7 @@ class TablesController extends Controller
             
             if ($request->filled('body')) {
                 $bodyColumn = $this->columnExists($blogTable, 'body') ? 'body' : 'content';
-                $data[$bodyColumn] = $request->body;
+                $data[$bodyColumn] = $this->persistEmbeddedBlogImages($request->body);
             }
             
             if ($imageData = $this->storeBlogImage($request, $blogTable)) {
@@ -672,7 +719,7 @@ class TablesController extends Controller
             
             if ($request->has('body')) {
                 $bodyColumn = $this->columnExists($blogTable, 'body') ? 'body' : 'content';
-                $data[$bodyColumn] = $request->body;
+                $data[$bodyColumn] = $this->persistEmbeddedBlogImages((string) $request->body);
             }
             
             if ($imageData = $this->storeBlogImage($request, $blogTable)) {
@@ -1435,7 +1482,7 @@ class TablesController extends Controller
         
         if ($request->filled('body')) {
             $bodyColumn = $this->columnExists($blogTable, 'body') ? 'body' : 'content';
-            $data[$bodyColumn] = $request->body;
+            $data[$bodyColumn] = $this->persistEmbeddedBlogImages($request->body);
         }
         
         if ($imageData = $this->storeBlogImage($request, $blogTable)) {
