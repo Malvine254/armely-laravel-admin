@@ -2646,8 +2646,11 @@ $(document).ready(function() {
                 }
             ],
             pageLength: 10,
+            searchDelay: 400,
             lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
-            order: [[2, 'desc']],
+            // The server defaults to newest blog_id/id first. Header clicks can
+            // still apply an explicit title, author, or date ordering.
+            order: [],
             language: {
                 search: "_INPUT_",
                 searchPlaceholder: "Search blogs...",

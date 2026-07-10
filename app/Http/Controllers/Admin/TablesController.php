@@ -189,17 +189,22 @@ class TablesController extends Controller
             $totalData = $query->count();
             
             // Searching
-            $searchValue = $request->input('search.value');
-            if (!empty($searchValue)) {
-                $query->where(function($q) use ($searchValue, $blogTable) {
-                    $q->where($this->columnExists($blogTable, 'title') ? 'title' : 'id', 'like', "%{$searchValue}%")
-                      ->orWhere($this->columnExists($blogTable, 'author') ? 'author' : 'id', 'like', "%{$searchValue}%");
-                    
-                    if ($this->columnExists($blogTable, 'blog_title')) {
-                        $q->orWhere('blog_title', 'like', "%{$searchValue}%");
-                    }
-                    if ($this->columnExists($blogTable, 'description')) {
-                        $q->orWhere('description', 'like', "%{$searchValue}%");
+            $searchValue = trim((string) $request->input('search.value', ''));
+            if ($searchValue !== '') {
+                // Never scan body/content/description here. Legacy blog content
+                // can contain megabytes of base64 image data.
+                $searchColumns = array_values(array_filter([
+                    $this->columnExists($blogTable, 'title') ? 'title' : null,
+                    $this->columnExists($blogTable, 'blog_title') ? 'blog_title' : null,
+                    $this->columnExists($blogTable, 'author') ? 'author' : null,
+                    $this->columnExists($blogTable, 'date') ? 'date' : null,
+                    $this->columnExists($blogTable, 'blog_date') ? 'blog_date' : null,
+                ]));
+
+                $query->where(function ($q) use ($searchValue, $searchColumns) {
+                    foreach ($searchColumns as $index => $column) {
+                        $method = $index === 0 ? 'where' : 'orWhere';
+                        $q->{$method}($column, 'like', '%' . $searchValue . '%');
                     }
                 });
             }
@@ -207,8 +212,9 @@ class TablesController extends Controller
             $totalFiltered = $query->count();
             
             // Ordering
-            $orderColIndex = $request->input('order.0.column', 0);
-            $orderDir = $request->input('order.0.dir', 'desc');
+            $requestedOrderColumn = $request->input('order.0.column');
+            $orderColIndex = $requestedOrderColumn !== null ? (int) $requestedOrderColumn : null;
+            $orderDir = strtolower((string) $request->input('order.0.dir', 'desc')) === 'asc' ? 'asc' : 'desc';
             
             // Map column indices to actual DB columns
             $columns = [
@@ -218,7 +224,8 @@ class TablesController extends Controller
                 3 => $this->columnExists($blogTable, 'blog_id') ? 'blog_id' : 'id',
             ];
             
-            $orderBy = $columns[$orderColIndex] ?? $columns[0];
+            $recentColumn = $this->columnExists($blogTable, 'blog_id') ? 'blog_id' : 'id';
+            $orderBy = $orderColIndex !== null ? ($columns[$orderColIndex] ?? $recentColumn) : $recentColumn;
             
             // Paging
             $start = $request->input('start', 0);
@@ -241,6 +248,7 @@ class TablesController extends Controller
 
             $blogs = $query->select($listColumns)
                 ->orderBy($orderBy, $orderDir)
+                ->when($orderBy !== $recentColumn, fn ($orderedQuery) => $orderedQuery->orderByDesc($recentColumn))
                 ->offset($start)
                 ->limit($length)
                 ->get();
