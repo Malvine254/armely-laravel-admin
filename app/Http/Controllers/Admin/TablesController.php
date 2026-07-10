@@ -720,8 +720,32 @@ class TablesController extends Controller
             }
 
             $blog = $blogQuery->first();
-            ActivityLogger::log('create', 'Blog', $blog->{$idColumn} ?? ($blog->id ?? null), 'Created blog ' . ($request->title ?? ($blog->title ?? $blog->blog_title ?? '')));
-            app(NewsletterNotificationService::class)->sendBlogNotification($blog, $idColumn);
+            if (!$blog) {
+                $blogIdValue = $insertedId ?? ($data[$idColumn] ?? null);
+                $blog = (object) array_merge($data, [
+                    'id' => $blogIdValue,
+                    'blog_id' => $blogIdValue,
+                    'title' => $data['title'] ?? $data['blog_title'] ?? ($request->title ?? ''),
+                    'blog_title' => $data['blog_title'] ?? $data['title'] ?? ($request->title ?? ''),
+                    'author' => $data['author'] ?? ($request->author ?? ''),
+                    'date' => $data['date'] ?? ($request->date ?? ''),
+                    'blog_date' => $data['blog_date'] ?? $data['date'] ?? ($request->date ?? ''),
+                    'body' => $data['body'] ?? ($request->body ?? ''),
+                    'content' => $data['content'] ?? $data['body'] ?? ($request->body ?? ''),
+                    'image_path' => $data['image_path'] ?? $data['image'] ?? $data['image_url'] ?? null,
+                ]);
+            }
+            if ($blog) {
+                ActivityLogger::log('create', 'Blog', $blog->{$idColumn} ?? ($blog->id ?? null), 'Created blog ' . ($request->title ?? ($blog->title ?? $blog->blog_title ?? '')));
+                app(NewsletterNotificationService::class)->sendBlogNotification($blog, $idColumn);
+            } else {
+                ActivityLogger::log('create', 'Blog', $insertedId ?? ($data[$idColumn] ?? null), 'Created blog ' . ($request->title ?? ''));
+                Log::warning('Blog create saved, but the inserted blog row could not be reloaded for notification.', [
+                    'table' => $blogTable,
+                    'id_column' => $idColumn,
+                    'inserted_id' => $insertedId,
+                ]);
+            }
             return response()->json(['success' => true, 'message' => 'Blog created successfully', 'data' => $blog]);
         }
     }
