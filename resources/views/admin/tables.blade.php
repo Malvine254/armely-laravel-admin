@@ -2607,8 +2607,9 @@ $(document).ready(function() {
             processing: true,
             serverSide: true,
             ajax: {
-                url: '/admin/tables/blogs/list',
+                url: '{{ route('admin.tables.blogs.list', [], false) }}',
                 type: 'GET',
+                headers: { 'Accept': 'application/json' },
                 dataSrc: function(json) {
                     // Cache each blog row so we don't need data-blog attributes
                     if (json.data) {
@@ -3124,17 +3125,40 @@ $(document).ready(function() {
     
     // ==================== END TABLE RELOAD FUNCTIONS ====================
     
-    function getBlogDataFromButton($button) {
+    async function getBlogDataFromButton($button) {
         var blogId = $button.attr('data-blog-id');
-        if (blogId && blogDataCache[blogId]) {
+        if (blogId && blogDataCache[blogId] && (blogDataCache[blogId].body !== undefined || blogDataCache[blogId].content !== undefined)) {
             return blogDataCache[blogId];
         }
-        return {};
+
+        if (!blogId) {
+            throw new Error('The blog ID is missing.');
+        }
+
+        const showUrl = '{{ route('admin.tables.blogs.show', ['id' => '__BLOG_ID__'], false) }}'
+            .replace('__BLOG_ID__', encodeURIComponent(blogId));
+        const response = await fetch(showUrl, {
+            headers: { 'Accept': 'application/json' }
+        });
+        const blog = await response.json().catch(() => ({}));
+
+        if (!response.ok || !blog || !Object.keys(blog).length) {
+            throw new Error(blog.message || 'Could not load the blog.');
+        }
+
+        blogDataCache[blogId] = blog;
+        return blog;
     }
 
     // Blog View
-    $(document).on('click', '.view-blog', function() {
-        const blog = getBlogDataFromButton($(this));
+    $(document).on('click', '.view-blog', async function() {
+        let blog;
+        try {
+            blog = await getBlogDataFromButton($(this));
+        } catch (error) {
+            alert(error?.message || 'Could not load the blog.');
+            return;
+        }
         $('#viewBlogTitle').text(blog.title || blog.blog_title || '');
         $('#viewBlogAuthor').text(blog.author || 'Admin');
         $('#viewBlogDate').text(blog.date || blog.blog_date || '');
@@ -3171,10 +3195,12 @@ $(document).ready(function() {
     });
 
     // Blog Edit
-    $(document).on('click', '.edit-blog', function() {
-        const blog = getBlogDataFromButton($(this));
-        if (!blog || !Object.keys(blog).length) {
-            alert('Could not load blog data. Please refresh the page and try again.');
+    $(document).on('click', '.edit-blog', async function() {
+        let blog;
+        try {
+            blog = await getBlogDataFromButton($(this));
+        } catch (error) {
+            alert(error?.message || 'Could not load blog data. Please refresh the page and try again.');
             return;
         }
         
