@@ -1242,6 +1242,11 @@ class HomeController extends Controller
         return view('privacy-policy');
     }
 
+    public function support()
+    {
+        return view('support');
+    }
+
     private function offers(?string &$dbErrorMessage = null)
     {
         return $this->safeDb(function () {
