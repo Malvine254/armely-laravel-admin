@@ -1539,8 +1539,8 @@
             <div class="modal-body">
                 <form id="blogForm"
                       method="POST"
-                      action="{{ route('admin.tables.blogs.store') }}"
-                      data-update-url="{{ route('admin.tables.blogs.update.post', ['id' => '__BLOG_ID__']) }}"
+                      action="{{ route('admin.tables.blogs.store', [], false) }}"
+                      data-update-url="{{ route('admin.tables.blogs.update.post', ['id' => '__BLOG_ID__'], false) }}"
                       enctype="multipart/form-data">
                     @csrf
                     <input type="hidden" id="blogId" name="id">
@@ -3208,8 +3208,60 @@ $(document).ready(function() {
         $('#saveBlogBtn').trigger('click');
     });
 
+    // Word/CKEditor can paste images as very large base64 data URIs. Upload each
+    // image separately before saving so the final blog request stays small.
+    async function uploadEmbeddedBlogImages(html) {
+        if (!html || !html.includes('data:image/')) {
+            return html;
+        }
+
+        const documentFragment = new DOMParser().parseFromString(html, 'text/html');
+        const embeddedImages = Array.from(documentFragment.querySelectorAll('img[src^="data:image/"]'));
+        const uploadUrl = '{{ route('admin.upload.image', [], false) }}';
+
+        for (let index = 0; index < embeddedImages.length; index++) {
+            const image = embeddedImages[index];
+            const response = await fetch(image.src);
+            const blob = await response.blob();
+
+            if (blob.size > 5 * 1024 * 1024) {
+                throw new Error(`Pasted image ${index + 1} is larger than 5MB.`);
+            }
+
+            const extensionByMime = {
+                'image/jpeg': 'jpg',
+                'image/png': 'png',
+                'image/webp': 'webp',
+                'image/gif': 'gif'
+            };
+            const extension = extensionByMime[blob.type];
+            if (!extension) {
+                throw new Error(`Pasted image ${index + 1} uses an unsupported format.`);
+            }
+
+            const uploadData = new FormData();
+            uploadData.append('_token', '{{ csrf_token() }}');
+            uploadData.append('upload', blob, `pasted-blog-image-${index + 1}.${extension}`);
+
+            const uploadResponse = await fetch(uploadUrl, {
+                method: 'POST',
+                headers: { 'Accept': 'application/json' },
+                body: uploadData
+            });
+            const result = await uploadResponse.json().catch(() => ({}));
+
+            if (!uploadResponse.ok || !result.uploaded || !result.url) {
+                throw new Error(result.message || `Could not upload pasted image ${index + 1}.`);
+            }
+
+            image.src = result.url;
+        }
+
+        return documentFragment.body.innerHTML;
+    }
+
     // Save Blog (Add/Edit)
-    $('#saveBlogBtn').on('click', function(e) {
+    $('#saveBlogBtn').on('click', async function(e) {
         e.preventDefault();
         const $saveBtn = $(this);
         if ($saveBtn.prop('disabled')) {
@@ -3224,7 +3276,20 @@ $(document).ready(function() {
         const title = $('#blogTitle').val();
         const author = $('#blogAuthor').val();
         const date = $('#blogDate').val();
-        const body = blogEditor ? blogEditor.getData() : '';
+        let body = blogEditor ? blogEditor.getData() : '';
+
+        try {
+            body = await uploadEmbeddedBlogImages(body);
+            if (blogEditor) {
+                blogEditor.setData(body);
+            }
+        } catch (error) {
+            const message = error?.message || 'Could not upload pasted blog images.';
+            markAjaxSaveError($saveBtn, message);
+            alert('Error saving blog: ' + message);
+            setButtonSaving($saveBtn, false);
+            return;
+        }
         
         formData.append('_token', '{{ csrf_token() }}');
         if (isEdit) {
