@@ -31,7 +31,7 @@
               <div class="h-9 w-44 bg-gray-200 rounded animate-pulse"></div>
             </div>
             <div class="mb-8 grid grid-cols-1 gap-4 xl:grid-cols-2">
-              <div v-for="i in 10" :key="'skel-' + i" class="flex min-h-[248px] flex-col overflow-hidden rounded-xl border border-gray-200 bg-white animate-pulse sm:flex-row">
+              <div v-for="i in 12" :key="'skel-' + i" class="flex min-h-[248px] flex-col overflow-hidden rounded-xl border border-gray-200 bg-white animate-pulse sm:flex-row">
                 <div class="h-52 bg-gray-100 sm:h-auto sm:min-h-[248px] sm:w-[39%] sm:border-r"></div>
                 <div class="flex-1 space-y-3 p-4">
                   <div class="flex justify-between items-start">
@@ -425,7 +425,7 @@ const resetImgErrorMap = () => {
   Object.keys(imgErrorMap).forEach((key) => { delete imgErrorMap[key] })
   Object.keys(imgFallbackMap).forEach((key) => { delete imgFallbackMap[key] })
 }
-const ITEMS_PER_PAGE = 20
+const ITEMS_PER_PAGE = 12
 const API_PAGE_SIZE = 100
 const SEARCH_TRACK_DEBOUNCE_MS = 15000
 const PROFILE_TERM_LIMIT = 25
