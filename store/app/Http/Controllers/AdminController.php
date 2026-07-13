@@ -4071,6 +4071,64 @@ class AdminController extends Controller
         }
     }
 
+    public function stopAllBackgroundJobs(Request $request): JsonResponse
+    {
+        try {
+            $user = $request->user();
+
+            if (!$this->isAdminUser($user)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized',
+                ], 403);
+            }
+
+            $removedJobs = Schema::hasTable('jobs')
+                ? DB::table('jobs')->delete()
+                : 0;
+
+            // Laravel's supported worker stop signal. Workers finish their current
+            // instruction safely, then exit before reserving another job.
+            Artisan::call('queue:restart');
+
+            $message = "Emergency stop requested by {$user->name}. Removed {$removedJobs} queued/reserved jobs; workers were instructed to restart.";
+            app(CatalogOperationStateService::class)->cancel($message);
+
+            $priceState = AppSetting::getValue('price_sync.run_state', []);
+            if (is_array($priceState) && in_array(($priceState['status'] ?? ''), ['queued', 'running'], true)) {
+                $priceState['status'] = 'cancelled';
+                $priceState['message'] = $message;
+                $priceState['finished_at'] = now()->toDateTimeString();
+                $priceState['updated_at'] = now()->toDateTimeString();
+                AppSetting::setValue('price_sync.run_state', $priceState);
+            }
+
+            Cache::forget('catalog_ops_counts');
+
+            Log::warning('Admin emergency queue stop requested', [
+                'admin_id' => $user->id,
+                'admin_email' => $user->email,
+                'removed_jobs' => $removedJobs,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'data' => [
+                    'removed_jobs' => $removedJobs,
+                    'status' => $this->buildCatalogOperationsStatus(),
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Failed to stop background jobs', ['message' => $e->getMessage()]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to stop background jobs: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
     /**
      * Update email settings (placeholder)
      */

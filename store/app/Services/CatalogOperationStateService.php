@@ -86,6 +86,18 @@ class CatalogOperationStateService
         AppSetting::setValue(self::KEY, $state);
     }
 
+    public function cancel(string $message): void
+    {
+        $state = $this->get();
+        $state['status'] = 'cancelled';
+        $state['message'] = $message;
+        $state['updated_at'] = now()->toDateTimeString();
+        $state['finished_at'] = now()->toDateTimeString();
+        $state['output'] = $this->appendOutput((string) ($state['output'] ?? ''), $message);
+
+        AppSetting::setValue(self::KEY, $state);
+    }
+
     public function normalizeOutput(string $raw): string
     {
         $clean = preg_replace('/\x1b(?:[@-Z\\-_]|\[[0-?]*[ -\/]*[@-~])/', '', $raw);
