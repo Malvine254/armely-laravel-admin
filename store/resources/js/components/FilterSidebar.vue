@@ -96,7 +96,7 @@
             placeholder="Search Categories" 
             class="w-full px-3 py-2 border border-gray-300 rounded text-sm outline-none transition" @focus="$event.target.style.borderColor='#2F5597'" @blur="$event.target.style.borderColor='rgb(209, 213, 219)'"
           />
-          <div class="space-y-2 max-h-[20rem] overflow-y-auto">
+          <div class="space-y-2">
             <label v-for="category in filteredCategories" :key="category.name" class="flex items-center gap-3 cursor-pointer">
               <input 
                 :checked="filters.categories.includes(category.name)" 
@@ -135,7 +135,7 @@
             placeholder="Search Vendor" 
             class="w-full px-3 py-2 border border-gray-300 rounded text-sm outline-none transition" @focus="$event.target.style.borderColor='#2F5597'" @blur="$event.target.style.borderColor='rgb(209, 213, 219)'"
           />
-          <div class="space-y-2 max-h-56 overflow-y-auto">
+          <div class="space-y-2">
             <label v-for="vendor in filteredVendors" :key="vendor.name" class="flex items-center gap-3 cursor-pointer">
               <input 
                 :checked="filters.vendors.includes(vendor.name)" 
@@ -286,6 +286,7 @@ const props = defineProps({
 const emit = defineEmits(['filter-change'])
 const DEFAULT_MIN_PRICE = Number(import.meta.env.VITE_MIN_PRICE ?? 100)
 const DEFAULT_MAX_PRICE = 0
+const POPULAR_VENDOR_LIMIT = 12
 
 const filters = ref({
   priceMin: DEFAULT_MIN_PRICE,
@@ -349,8 +350,29 @@ const normalizedCategories = computed(() => {
 })
 
 const filteredVendors = computed(() => {
-  if (!vendorSearch.value) return normalizedVendors.value
-  return normalizedVendors.value.filter(v => v.name.toLowerCase().includes(vendorSearch.value.toLowerCase()))
+  const query = vendorSearch.value.trim().toLowerCase()
+  const candidates = normalizedVendors.value
+    .filter((vendor) => !query || vendor.name.toLowerCase().includes(query))
+    .sort((left, right) => {
+      const countDifference = Number(right.count || 0) - Number(left.count || 0)
+      return countDifference || left.name.localeCompare(right.name)
+    })
+
+  const visible = candidates.slice(0, POPULAR_VENDOR_LIMIT)
+  const visibleNames = new Set(visible.map((vendor) => vendor.name.toLowerCase()))
+
+  // Keep an active vendor available even when it is outside the popularity cap.
+  candidates.forEach((vendor) => {
+    if (
+      filters.value.vendors.includes(vendor.name)
+      && !visibleNames.has(vendor.name.toLowerCase())
+    ) {
+      visible.push(vendor)
+      visibleNames.add(vendor.name.toLowerCase())
+    }
+  })
+
+  return visible
 })
 
 const filteredCategories = computed(() => {

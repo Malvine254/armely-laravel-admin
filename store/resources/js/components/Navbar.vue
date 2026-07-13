@@ -70,7 +70,7 @@
             </button>
 
             <transition enter-active-class="transition ease-out duration-150" enter-from-class="opacity-0 translate-y-1" enter-to-class="opacity-100 translate-y-0" leave-active-class="transition ease-in duration-100" leave-from-class="opacity-100 translate-y-0" leave-to-class="opacity-0 translate-y-1">
-              <div v-if="categoryDropdownOpen === cat.value" class="store-menu-scroll absolute left-0 top-full z-[150] mt-1 w-80 max-h-[70vh] rounded-xl shadow-2xl overflow-y-auto overflow-x-hidden border border-white/20 whitespace-normal" style="background: #122d58;">
+              <div v-if="categoryDropdownOpen === cat.value" class="absolute left-0 top-full z-[150] mt-1 w-80 overflow-x-hidden rounded-xl border border-white/20 shadow-2xl whitespace-normal" style="background: #122d58;">
                 <div class="px-4 py-2.5 border-b border-white/20">
                   <p class="text-xs font-semibold text-white uppercase tracking-widest">{{ cat.name }} Vendors</p>
                 </div>
@@ -117,7 +117,7 @@
                   <p class="text-xs font-semibold text-white uppercase tracking-widest">More Categories</p>
                 </div>
                 <div class="grid grid-cols-[14rem_minmax(0,1fr)]">
-                  <div class="store-menu-scroll max-h-[70vh] overflow-y-auto overflow-x-hidden border-r border-white/15 py-1.5">
+                  <div class="overflow-x-hidden border-r border-white/15 py-1.5">
                     <button
                       v-for="cat in overflowCategories"
                       :key="cat.value"
@@ -135,7 +135,7 @@
                     </button>
                   </div>
 
-                  <div class="store-menu-scroll max-h-[70vh] overflow-y-auto overflow-x-hidden py-1.5">
+                  <div class="overflow-x-hidden py-1.5">
                     <template v-if="activeMoreCategory">
                       <button
                         type="button"
