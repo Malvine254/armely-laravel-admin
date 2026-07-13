@@ -3,6 +3,8 @@ import { API_BASE_URL, buildStoreUrl } from './runtimeConfig'
 
 const api = axios.create({
   baseURL: API_BASE_URL,
+  // Never leave the UI waiting indefinitely for a blocked PHP/DB worker.
+  timeout: 20000,
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json'
