@@ -8,9 +8,9 @@
       <CatalogHero :products="products" @browse="scrollToCatalog" />
 
       <!-- Content Layout: Sidebar + Products Grid -->
-      <div id="catalog-results" class="flex items-stretch gap-8 lg:h-[calc(100vh-10rem)] lg:gap-6 lg:overflow-hidden xl:h-[calc(100vh-14rem)]" @wheel="handleCatalogWheel">
+      <div id="catalog-results" class="flex items-stretch gap-8 lg:gap-6">
         <!-- Filters Sidebar -->
-        <aside class="hidden flex-shrink-0 lg:flex lg:h-full lg:w-80 lg:self-start lg:flex-col">
+        <aside class="relative hidden flex-shrink-0 lg:block lg:min-h-0 lg:w-80 lg:self-stretch">
           <FilterSidebar 
             :vendors="availableVendors" 
             :categories="availableCategories"
@@ -18,12 +18,12 @@
             :lifecycle-options="lifecycleOptions"
             :media-options="reviewRatingOptions"
             @filter-change="handleFilterChange"
-            class="min-h-0 flex-1 overflow-y-auto overscroll-contain"
+            class="lg:absolute lg:inset-0 lg:h-auto lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain"
           />
         </aside>
 
         <!-- Products Section -->
-        <div class="min-w-0 flex-1 lg:h-full lg:overflow-hidden">
+        <div class="min-w-0 flex-1">
           <!-- Loading State - skeleton cards matching the real product grid -->
           <div v-if="loading && !pageLoading">
             <div class="mb-6 flex justify-between items-center">
@@ -83,7 +83,7 @@
           </div>
 
           <!-- Results Summary -->
-          <div v-else-if="!loading || pageLoading" class="lg:flex lg:h-full lg:min-h-0 lg:flex-col lg:overflow-hidden">
+          <div v-else-if="!loading || pageLoading">
             <!-- Page loading overlay -->
             <div v-if="pageLoading" class="fixed top-0 left-0 right-0 z-50">
               <div class="h-1 bg-gray-200 w-full">
@@ -128,7 +128,7 @@
             </div>
 
             <!-- Horizontal product cards -->
-            <div v-else ref="productGridRef" class="mb-8 grid grid-cols-1 gap-4 xl:grid-cols-2 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain lg:pr-2">
+            <div v-else class="mb-8 grid grid-cols-1 gap-4 xl:grid-cols-2">
               <div v-for="product in paginatedProducts" :key="product.productId" class="group flex min-h-[248px] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_2px_10px_rgba(15,42,82,0.05)] transition hover:border-blue-200 hover:shadow-[0_8px_24px_rgba(15,42,82,0.10)] sm:flex-row">
                 <!-- Product Image -->
                 <div class="relative flex h-52 flex-shrink-0 items-center justify-center overflow-hidden border-b border-slate-100 bg-white transition sm:h-auto sm:min-h-[248px] sm:w-[39%] sm:border-b-0 sm:border-r">
@@ -272,7 +272,7 @@
 
             <!-- Pagination -->
             <div v-if="totalPages > 1" class="mt-8 flex flex-col items-center justify-between gap-3 border-t border-slate-200 pt-4 sm:flex-row">
-              <p class="text-xs text-slate-500">Showing {{ visibleProductsRangeLabel }}</p>
+              <p class="whitespace-nowrap text-sm font-medium text-slate-600">{{ visibleProductsRangeLabel }}</p>
               <div class="flex items-center gap-2">
               <!-- Previous Button -->
               <button
@@ -381,29 +381,12 @@ import CatalogHero from '../../components/CatalogHero.vue'
 
 const router = useRouter()
 const route = useRoute()
-const productGridRef = ref(null)
 const scrollToCatalog = () => {
   const catalog = document.getElementById('catalog-results')
   if (!catalog) return
   const navigationOffset = window.innerWidth >= 1280 ? 208 : window.innerWidth >= 1024 ? 144 : 88
   const top = window.scrollY + catalog.getBoundingClientRect().top - navigationOffset - 8
   window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' })
-}
-const handleCatalogWheel = event => {
-  if (typeof window === 'undefined' || window.innerWidth < 1024 || !productGridRef.value) return
-
-  const catalog = event.currentTarget
-  const navigationOffset = window.innerWidth >= 1280 ? 208 : 144
-  if (catalog.getBoundingClientRect().top > navigationOffset + 8) return
-
-  const grid = productGridRef.value
-  const maxScrollTop = Math.max(0, grid.scrollHeight - grid.clientHeight)
-  const movingDown = event.deltaY > 0
-  const canScroll = movingDown ? grid.scrollTop < maxScrollTop : grid.scrollTop > 0
-  if (!canScroll) return
-
-  event.preventDefault()
-  grid.scrollTop += event.deltaY
 }
 const toastStore = useToastStore()
 const cartStore = useCartStore()
@@ -443,13 +426,13 @@ const resetImgErrorMap = () => {
   Object.keys(imgErrorMap).forEach((key) => { delete imgErrorMap[key] })
   Object.keys(imgFallbackMap).forEach((key) => { delete imgFallbackMap[key] })
 }
-const ITEMS_PER_PAGE = 10
+const ITEMS_PER_PAGE = 20
 const API_PAGE_SIZE = 100
 const SEARCH_TRACK_DEBOUNCE_MS = 15000
 const PROFILE_TERM_LIMIT = 25
 const LOCAL_SEARCH_HISTORY_KEY = 'armely_products_search_history'
 const LOCAL_SEARCH_HISTORY_LIMIT = 12
-const TOP_VENDOR_DISPLAY_LIMIT = 40
+const TOP_VENDOR_DISPLAY_LIMIT = 12
 const DEFAULT_VENDOR_SCOPE_LIMIT = 12
 const DEFAULT_BROWSE_MIN_PRICE = 100
 const DEFAULT_BROWSE_MAX_PRICE = 0
@@ -993,12 +976,12 @@ const selectTopDisplayVendors = (vendors = [], selected = []) => {
     chosenKeys.add(key)
   }
 
-  // Show all vendors with counts > 0
-  source.forEach((vendor) => {
-    if (Number(vendor.count || 0) > 0) {
+  // Show only the most popular vendors with available products.
+  source.filter((vendor) => Number(vendor.count || 0) > 0)
+    .slice(0, TOP_VENDOR_DISPLAY_LIMIT)
+    .forEach((vendor) => {
       tryPush(vendor)
-    }
-  })
+    })
 
   // Always keep any already-selected vendor visible even if count is 0.
   source.forEach((vendor) => {
