@@ -774,7 +774,7 @@ class ProductController extends Controller
         $cacheKey = sprintf(
             'pa_browse_page:%s',
             md5(json_encode([
-                'v' => 14,
+                'v' => 15,
                 'page' => (int) $pageNo,
                 'page_size' => (int) $pageSize,
                 'hide_zero' => $hideZero,
@@ -1632,6 +1632,26 @@ class ProductController extends Controller
 
         $normalized = [];
         $seen = [];
+
+        // Prefer a product-ID file from public/images/products whenever one exists.
+        // Saved remote URLs can expire or reject proxy requests, while the local file
+        // is immediately available and should always be the storefront primary image.
+        if ($productForFallback !== null) {
+            $productId = (int) $productForFallback->tdsynnex_product_id;
+            if ($productId > 0) {
+                foreach (['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif'] as $ext) {
+                    $relativePath = 'images/products/' . $productId . '.' . $ext;
+                    if (!file_exists(public_path($relativePath))) {
+                        continue;
+                    }
+
+                    $localUrl = $this->resolveImageUrl('/' . $relativePath);
+                    $seen[$localUrl] = true;
+                    $normalized[] = ['imageUrl' => $localUrl];
+                    break;
+                }
+            }
+        }
 
         foreach ($images as $image) {
             $url = '';
