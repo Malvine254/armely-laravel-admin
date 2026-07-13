@@ -203,7 +203,7 @@ const resolvePostLoginRoute = () => {
   }
 
   if (redirectTarget) return redirectTarget
-  return { name: 'products' }
+  return authStore.isAdmin ? { name: 'admin-dashboard-page' } : { name: 'products' }
 }
 
 const handleLogin = async () => {
