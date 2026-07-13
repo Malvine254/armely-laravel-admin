@@ -405,10 +405,9 @@ const getImgFallbackUrl = (product) => {
     const alt = buildStoreUrl(primary)
     return alt !== primary ? alt : ''
   }
-  // Primary is /store/images/products/... → fallback is /images/products/...
-  if (primary.includes('/store/images/products/')) {
-    return primary.replace(/^.*\/store\/images\/products\//, '/images/products/')
-  }
+  // Production assets live under /store/images/products. Do not retry the
+  // known-invalid root /images path when a production transfer fails.
+  if (primary.includes('/store/images/products/')) return ''
   return ''
 }
 
@@ -2116,11 +2115,9 @@ const getPrimaryImageUrl = (product) => {
     if (!rawUrl) return
     if (rawUrl.startsWith('/images/')) {
       const storeUrl = buildStoreUrl(rawUrl)
-      // Raw /images/... is the direct public path (works when artisan serve root = public/).
-      // /store/images/... is the fallback for subpath deployments.
-      // The error handler will try the other if the first 404s.
-      candidates.push(rawUrl)
-      if (storeUrl !== rawUrl) candidates.push(storeUrl)
+      // Production is mounted under /store; local development resolves this
+      // same helper back to /images when the app is mounted at the root.
+      candidates.push(storeUrl)
       return
     }
 
