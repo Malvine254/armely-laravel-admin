@@ -73,6 +73,7 @@ Route::prefix('v1')->group(function () {
     Route::get('/pricing/settings', [QuoteOrderInvoiceController::class, 'getPricingSettings']);
 
     // Reviews endpoints (public read, auth write)
+    Route::get('/products/reviews/stats', [ReviewController::class, 'stats']);
     Route::get('/products/{productId}/reviews', [ReviewController::class, 'index']);
     Route::get('/shares/public/cart/{token}', [QuoteOrderInvoiceController::class, 'getPublicSharedCart']);
     Route::middleware(['auth:sanctum', 'active.user'])->group(function () {

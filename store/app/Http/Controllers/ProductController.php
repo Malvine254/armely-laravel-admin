@@ -539,7 +539,9 @@ class ProductController extends Controller
             ])->header('Cache-Control', $this->productCacheControlHeader($authenticatedUser, 'public, max-age=300'));
         }
 
-        $allowLiveCatalogFallback = filter_var($request->query('allow_live_catalog_fallback', false), FILTER_VALIDATE_BOOLEAN);
+        // Storefront requests are DB-only. External TD SYNNEX calls are restricted
+        // to explicit admin/scheduled synchronization processes.
+        $allowLiveCatalogFallback = false;
         if (!$allowLiveCatalogFallback) {
             Log::warning('PriceAvailability live catalog fallback skipped to avoid request timeout', [
                 'search' => $search,

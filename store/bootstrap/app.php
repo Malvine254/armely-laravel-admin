@@ -49,11 +49,6 @@ return Application::configure(basePath: dirname(__DIR__))
             ->name('check-expiring-quotes')
             ->withoutOverlapping();
 
-        $schedule->job(\App\Jobs\SyncProductPricesJob::class)
-            ->dailyAt('00:00')
-            ->name('sync-product-prices')
-            ->withoutOverlapping();
-
         // Evaluate schedule every minute and dispatch only on exact configured
         // HH:MM in the configured timezone.
         $priceSyncTime = '18:00';
@@ -82,16 +77,6 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('price-sync:dispatch-scheduled')
             ->everyMinute()
             ->name('dispatch-scheduled-price-sync-fallback')
-            ->withoutOverlapping();
-
-        $schedule->job(new \App\Jobs\SyncPriceAvailabilityCatalogJob(true), 'products-sync', 'database')
-            ->hourly()
-            ->name('sync-priceavailability-catalog')
-            ->withoutOverlapping();
-
-        $schedule->job(new \App\Jobs\EnrichPriceAvailabilityImagesJob(25, 0), 'products-sync', 'database')
-            ->everyTwoHours()
-            ->name('enrich-priceavailability-images')
             ->withoutOverlapping();
 
         $schedule->call(function () {

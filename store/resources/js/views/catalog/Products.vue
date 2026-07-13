@@ -1297,36 +1297,34 @@ const loadReviewStatsForProducts = async (items = []) => {
 
   if (idsToFetch.length === 0) return
 
-  await Promise.all(idsToFetch.map(async (id) => {
-    pendingReviewStats.add(id)
-    try {
-      const response = await api.get(`/products/${encodeURIComponent(id)}/reviews`, {
-        params: {
-          per_page: 1,
-        }
-      })
+  idsToFetch.forEach((id) => pendingReviewStats.add(id))
 
-      const stats = response.data?.stats || {}
-      reviewStatsByProduct.value = {
-        ...reviewStatsByProduct.value,
-        [id]: {
-          total: Number(stats.total || 0),
-          average: Number(stats.average || 0),
-        }
+  try {
+    const response = await api.get('/products/reviews/stats', {
+      params: { ids: idsToFetch.join(',') },
+    })
+    const statsByProduct = response.data?.data || {}
+    const updates = {}
+
+    idsToFetch.forEach((id) => {
+      const stats = statsByProduct[id] || {}
+      updates[id] = {
+        total: Number(stats.total || 0),
+        average: Number(stats.average || 0),
       }
-    } catch (statsError) {
-      reviewStatsByProduct.value = {
-        ...reviewStatsByProduct.value,
-        [id]: {
-          total: 0,
-          average: 0,
-        }
-      }
-      console.warn('Failed to load review stats for product:', id, statsError)
-    } finally {
-      pendingReviewStats.delete(id)
-    }
-  }))
+    })
+
+    reviewStatsByProduct.value = { ...reviewStatsByProduct.value, ...updates }
+  } catch (statsError) {
+    const updates = {}
+    idsToFetch.forEach((id) => {
+      updates[id] = { total: 0, average: 0 }
+    })
+    reviewStatsByProduct.value = { ...reviewStatsByProduct.value, ...updates }
+    console.warn('Bulk review stats request failed; continuing without ratings.', statsError)
+  } finally {
+    idsToFetch.forEach((id) => pendingReviewStats.delete(id))
+  }
 }
 
 const fetchAllProductPages = async (params) => {

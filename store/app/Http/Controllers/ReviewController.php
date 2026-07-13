@@ -14,6 +14,40 @@ use Illuminate\Support\Str;
 class ReviewController extends Controller
 {
     /**
+     * Return review totals for a catalog page in one database query.
+     */
+    public function stats(Request $request): JsonResponse
+    {
+        $ids = collect(explode(',', (string) $request->query('ids', '')))
+            ->map(fn ($id) => trim((string) $id))
+            ->filter()
+            ->unique()
+            ->take(100)
+            ->values();
+
+        if ($ids->isEmpty() || !Schema::hasTable('product_reviews')) {
+            return response()->json(['data' => []]);
+        }
+
+        $rows = ProductReview::query()
+            ->whereIn('product_id', $ids->all())
+            ->selectRaw('product_id, COUNT(*) as total, AVG(rating) as average')
+            ->groupBy('product_id')
+            ->get();
+
+        $stats = [];
+        foreach ($rows as $row) {
+            $stats[(string) $row->product_id] = [
+                'total' => (int) $row->total,
+                'average' => round((float) $row->average, 1),
+            ];
+        }
+
+        return response()->json(['data' => $stats])
+            ->header('Cache-Control', 'public, max-age=300');
+    }
+
+    /**
      * List reviews for a product.
      */
     public function index(string $productId, Request $request): JsonResponse
