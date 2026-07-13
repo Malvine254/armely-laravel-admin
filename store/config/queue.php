@@ -40,7 +40,9 @@ return [
             'connection' => env('DB_QUEUE_CONNECTION'),
             'table' => env('DB_QUEUE_TABLE', 'jobs'),
             'queue' => env('DB_QUEUE', 'default'),
-            'retry_after' => (int) env('DB_QUEUE_RETRY_AFTER', 90),
+            // Catalog/image jobs may run for up to an hour. Keep the reservation
+            // longer than their timeout so another worker cannot run them twice.
+            'retry_after' => (int) env('DB_QUEUE_RETRY_AFTER', 3700),
             'after_commit' => false,
         ],
 
