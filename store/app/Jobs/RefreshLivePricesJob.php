@@ -47,7 +47,10 @@ class RefreshLivePricesJob implements ShouldQueue
             ]);
 
             $start   = microtime(true);
-            $result  = $service->refreshLivePricesInDatabase($specificSkus);
+            $result  = $service->refreshLivePricesInDatabase($specificSkus, function (): bool {
+                $state = \App\Models\AppSetting::getValue('price_sync.run_state', []);
+                return !is_array($state) || ($state['status'] ?? '') !== 'cancelled';
+            });
             $elapsed = round(microtime(true) - $start, 1);
 
             Log::info('RefreshLivePricesJob complete', $result);

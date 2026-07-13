@@ -59,7 +59,12 @@ class RefreshLivePricesCommand extends Command
         try {
             $start = microtime(true);
 
-            $onBatch = function (int $batchNum, int $totalBatches, int $checked) use ($scopeLabel, $startedAt): void {
+            $onBatch = function (int $batchNum, int $totalBatches, int $checked) use ($scopeLabel, $startedAt): bool {
+                $currentState = AppSetting::getValue(self::STATE_KEY, []);
+                if (is_array($currentState) && ($currentState['status'] ?? '') === 'cancelled') {
+                    return false;
+                }
+
                 $elapsed = round(microtime(true) - LARAVEL_START, 1);
                 $pct     = $totalBatches > 0 ? round(($batchNum / $totalBatches) * 100) : 0;
                 $this->writeState(
@@ -73,10 +78,19 @@ class RefreshLivePricesCommand extends Command
                         "Elapsed: {$elapsed}s",
                     ])
                 );
+
+                return true;
             };
 
             $result  = $service->refreshLivePricesInDatabase($specificSkus, $onBatch);
             $elapsed = round(microtime(true) - $start, 1);
+
+            if ((bool) ($result['cancelled'] ?? false)) {
+                $message = "Cancelled after {$result['checked']} product(s) at the next safe batch boundary.";
+                $this->warn($message);
+                $this->writeState('cancelled', $message, $message);
+                return self::SUCCESS;
+            }
 
             $batchErrors  = $result['batch_errors'] ?? [];
             $errorCount   = count($batchErrors);
@@ -139,7 +153,7 @@ class RefreshLivePricesCommand extends Command
                 'output'      => $output,
                 'started_at'  => is_array($existing) ? ($existing['started_at'] ?? now()->toDateTimeString()) : now()->toDateTimeString(),
                 'updated_at'  => now()->toDateTimeString(),
-                'finished_at' => in_array($status, ['completed', 'failed']) ? now()->toDateTimeString() : null,
+                'finished_at' => in_array($status, ['completed', 'failed', 'cancelled']) ? now()->toDateTimeString() : null,
             ]);
         } catch (\Throwable) {}
     }

@@ -390,7 +390,8 @@ class TDSynnexService
      */
     /**
      * @param array|null   $onlySkus  null = sync all DB products; array = specific SKUs only
-     * @param callable|null $onBatch  fn(int $batchNum, int $totalBatches, int $checked) for progress
+     * @param callable|null $onBatch  fn(int $batchNum, int $totalBatches, int $checked): bool|void.
+     *                                Return false to stop cleanly after the current batch.
      */
     public function refreshLivePricesInDatabase(?array $onlySkus = null, ?callable $onBatch = null): array
     {
@@ -415,6 +416,7 @@ class TDSynnexService
         $batchNum     = 0;
 
         $batchErrors = [];
+        $cancelled = false;
 
         foreach ($batches as $skuBatch) {
             $batchNum++;
@@ -462,7 +464,16 @@ class TDSynnexService
             }
 
             if ($onBatch !== null) {
-                $onBatch($batchNum, $totalBatches, $checked);
+                $continue = $onBatch($batchNum, $totalBatches, $checked);
+                if ($continue === false) {
+                    $cancelled = true;
+                    Log::warning('Live price refresh cancelled between batches', [
+                        'batch' => $batchNum,
+                        'total_batches' => $totalBatches,
+                        'checked' => $checked,
+                    ]);
+                    break;
+                }
             }
         }
 
@@ -473,7 +484,12 @@ class TDSynnexService
             'at'           => $now->toDateTimeString(),
         ]);
 
-        return ['checked' => $checked, 'requested' => count($skus), 'batch_errors' => $batchErrors];
+        return [
+            'checked' => $checked,
+            'requested' => count($skus),
+            'batch_errors' => $batchErrors,
+            'cancelled' => $cancelled,
+        ];
     }
 
     private function processLivePriceBatch(array $skuBatch, string $region, bool $useTest, $now): int

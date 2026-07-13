@@ -671,10 +671,24 @@
           </div>
           <button
             @click="refreshCatalogOperations"
-            :disabled="catalogActionLoading"
+            :disabled="catalogStopLoading"
             class="px-4 py-2 rounded-lg border border-[#2F5597]/30 text-[#2F5597] hover:bg-[#2F5597]/10 transition disabled:opacity-50"
           >
             <i class="fas fa-rotate mr-2"></i>Refresh Status
+          </button>
+        </div>
+
+        <div class="rounded-lg border border-rose-200 bg-rose-50 p-4 md:flex md:items-center md:justify-between md:gap-4">
+          <div>
+            <p class="text-sm font-semibold text-rose-800">Emergency queue controls</p>
+            <p class="mt-1 text-xs text-rose-700">Removes every pending/reserved background job and asks all Laravel queue workers to stop safely.</p>
+          </div>
+          <button
+            @click="stopAllBackgroundJobs"
+            :disabled="catalogStopLoading"
+            class="mt-3 w-full whitespace-nowrap rounded-lg bg-rose-600 px-4 py-2 font-semibold text-white transition hover:bg-rose-700 disabled:opacity-50 md:mt-0 md:w-auto"
+          >
+            <i class="fas fa-stop-circle mr-2"></i>{{ catalogStopLoading ? 'Stopping...' : 'Stop All Jobs' }}
           </button>
         </div>
 
@@ -1177,6 +1191,7 @@ const isRunningSync = ref(false)
 const syncState = ref({ status: 'idle', message: '', output: '', started_at: null, updated_at: null, finished_at: null })
 let syncPollTimer = null
 const catalogActionLoading = ref(false)
+const catalogStopLoading = ref(false)
 const showQuickBooksSecret = ref(false)
 const showAddAdminModal = ref(false)
 const currentUserId = ref(null)
@@ -1467,6 +1482,33 @@ const runCatalogOperation = async (action) => {
     stopCatalogStatusPolling()
     catalogActionLoading.value = false
     showToast(message, 'error')
+  }
+}
+
+const stopAllBackgroundJobs = async () => {
+  const confirmed = window.confirm(
+    'Stop ALL background jobs? This removes pending and reserved jobs, including invoice/order jobs, and restarts queue workers after their current instruction.'
+  )
+  if (!confirmed) return
+
+  catalogStopLoading.value = true
+  try {
+    const response = await api.post('/admin/settings/catalog/stop-all')
+    if (response.data.success) {
+      stopCatalogStatusPolling()
+      catalogActionLoading.value = false
+      catalogCommandOutput.value = response.data.message || 'Emergency stop requested.'
+      if (response.data.data?.status) {
+        catalogOperations.value = { ...catalogOperations.value, ...response.data.data.status }
+      }
+      showToast(response.data.message || 'All background jobs were stopped.', 'success')
+    }
+  } catch (error) {
+    const message = error.response?.data?.message || 'Failed to stop background jobs'
+    catalogCommandOutput.value = message
+    showToast(message, 'error')
+  } finally {
+    catalogStopLoading.value = false
   }
 }
 
