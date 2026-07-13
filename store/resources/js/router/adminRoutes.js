@@ -8,7 +8,6 @@ import AdminCustomersPage from '@/pages/AdminCustomersPage.vue'
 import AdminUsersPage from '@/pages/AdminUsersPage.vue'
 import AdminReportsPage from '@/pages/AdminReportsPage.vue'
 import AdminInvoicesPage from '@/pages/AdminInvoicesPage.vue'
-import AdminAnnouncementsPage from '@/pages/AdminAnnouncementsPage.vue'
 
 // Admin Routes - Protected by authentication middleware
 export const adminRoutes = [
@@ -87,16 +86,6 @@ export const adminRoutes = [
         meta: {
           title: 'Invoice Management',
           breadcrumb: ['Admin', 'Invoices']
-        }
-      },
-      {
-        path: 'tables',
-        name: 'AdminTables',
-        component: AdminAnnouncementsPage,
-        alias: ['announcements'],
-        meta: {
-          title: 'Tables',
-          breadcrumb: ['Admin', 'Tables']
         }
       }
     ]

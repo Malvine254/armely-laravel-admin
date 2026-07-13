@@ -69,6 +69,7 @@
                 <span v-if="product.discontinueProduct" class="px-2.5 py-0.5 bg-red-50 text-red-600 text-xs font-semibold rounded-full border border-red-200">End of Life</span>
                 <span v-else class="px-2.5 py-0.5 text-xs font-semibold rounded-full border" style="background-color: #eef5fc; color: #2F5597; border-color: #bad5f0;">Active</span>
                 <span v-if="getProductVendor(product) !== 'N/A'" class="px-2.5 py-0.5 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">{{ getProductVendor(product) }}</span>
+                <span v-if="product.isOnSale" class="px-2.5 py-0.5 bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-full border border-emerald-200">Offer</span>
               </div>
 
               <!-- Product Name -->
@@ -95,6 +96,11 @@
                 <div class="flex items-baseline gap-2 mb-1">
                   <span class="text-3xl font-extrabold" style="color: #2F5597;">{{ formatAdjustedCurrency(product.productPrice[0].rsPrice) }}</span>
                   <span class="text-sm text-gray-500">/ unit</span>
+                </div>
+                <div v-if="product.isOnSale" class="flex items-center gap-2 text-sm">
+                  <span class="text-gray-500">Regular price</span>
+                  <span class="text-gray-400 line-through">{{ formatAdjustedCurrency(product.regularPrice) }}</span>
+                  <span v-if="product.offer?.discountPercent" class="font-semibold text-emerald-700">Save {{ product.offer.discountPercent }}%</span>
                 </div>
                 <div v-if="product.productPrice.length > 1" class="mt-3 pt-3 border-t border-blue-100">
                   <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Volume Pricing</p>

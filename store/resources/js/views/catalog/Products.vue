@@ -4,84 +4,13 @@
     <Navbar />
 
     <!-- Main Content -->
-    <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-5 py-5 sm:py-8">
-      <!-- Page Title -->
-      <div class="mb-5 sm:mb-8">
-        <h1 class="text-3xl font-bold leading-tight text-gray-900 sm:text-4xl">B2B Procurements</h1>
-        <p class="mt-2 text-base text-gray-600 sm:text-lg">Browse our complete catalog of enterprise solutions</p>
-      </div>
-
-      <!-- Search Bar -->
-      <div class="sticky top-20 z-40 -mx-3 mb-6 px-3 sm:-mx-4 sm:mb-8 sm:px-4 lg:-mx-5 lg:px-5">
-        <div class="rounded-xl border border-slate-200/80 bg-white/95 p-2.5 shadow-md shadow-slate-200/60 backdrop-blur-sm sm:p-3">
-          <div class="flex items-stretch gap-2">
-            <div class="min-w-0 flex-1">
-              <div class="relative">
-                <svg class="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                </svg>
-                <input
-                  v-model="searchQuery"
-                  @input="handleSearchInput"
-                  @focus="handleSearchFocus"
-                  @blur="handleSearchBlur"
-                  @keydown.down.prevent="highlightNextSuggestion"
-                  @keydown.up.prevent="highlightPreviousSuggestion"
-                  @keydown.esc="dismissSearchSuggestions"
-                  @keydown.enter.prevent="handleSearchEnter"
-                  type="text"
-                  placeholder="Search products..."
-                  class="h-12 w-full rounded-lg border border-slate-300 bg-white pl-11 pr-10 text-base text-slate-900 shadow-sm transition placeholder:text-slate-400 focus:border-transparent focus:outline-none focus:ring-2"
-                  style="--tw-ring-color: #2F5597;"
-                >
-                <button
-                  v-if="searchQuery"
-                  @click="clearSearch"
-                  type="button"
-                  class="absolute right-2 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
-                  aria-label="Clear search"
-                >
-                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18 18 6M6 6l12 12"></path>
-                  </svg>
-                </button>
-
-                <div
-                  v-if="showSearchSuggestions && searchSuggestionItems.length > 0"
-                  class="absolute z-20 mt-1 w-full overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg"
-                >
-                  <button
-                    v-for="(item, index) in searchSuggestionItems"
-                    :key="`${item.term}-${item.source}-${index}`"
-                    type="button"
-                    class="w-full text-left px-3 py-2.5 border-b border-gray-100 last:border-b-0 transition flex items-center justify-between"
-                    :class="index === activeSuggestionIndex ? 'bg-blue-50' : 'hover:bg-gray-50'"
-                    @mousedown.prevent="applySearchSuggestion(item.term)"
-                  >
-                    <span class="text-sm text-gray-800 truncate pr-3">{{ item.term }}</span>
-                    <span class="text-[10px] uppercase tracking-wide text-gray-500">{{ item.source }}</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-            <button
-              @click="performSearch"
-              class="inline-flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg text-white shadow-sm shadow-[#2F5597]/20 transition hover:bg-[#24467f] focus:outline-none focus:ring-2 focus:ring-[#2F5597]/30"
-              style="background-color: #2F5597;"
-              aria-label="Search products"
-            >
-              <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-              </svg>
-            </button>
-          </div>
-        </div>
-      </div>
+    <div class="mx-auto max-w-[1600px] px-3 py-4 sm:px-4 sm:py-5 lg:px-5">
+      <CatalogHero :products="products" @browse="scrollToCatalog" />
 
       <!-- Content Layout: Sidebar + Products Grid -->
-      <div class="flex items-stretch gap-8 lg:gap-6">
+      <div id="catalog-results" class="flex items-stretch gap-8 lg:h-[calc(100vh-10rem)] lg:gap-6 lg:overflow-hidden xl:h-[calc(100vh-14rem)]" @wheel="handleCatalogWheel">
         <!-- Filters Sidebar -->
-        <div class="hidden lg:flex lg:flex-col lg:w-80 flex-shrink-0">
+        <aside class="hidden flex-shrink-0 lg:flex lg:h-full lg:w-80 lg:self-start lg:flex-col">
           <FilterSidebar 
             :vendors="availableVendors" 
             :categories="availableCategories"
@@ -89,22 +18,22 @@
             :lifecycle-options="lifecycleOptions"
             :media-options="reviewRatingOptions"
             @filter-change="handleFilterChange"
-            class="flex-1"
+            class="min-h-0 flex-1 overflow-y-auto overscroll-contain"
           />
-        </div>
+        </aside>
 
         <!-- Products Section -->
-        <div class="flex-1 min-w-0">
+        <div class="min-w-0 flex-1 lg:h-full lg:overflow-hidden">
           <!-- Loading State - skeleton cards matching the real product grid -->
           <div v-if="loading && !pageLoading">
             <div class="mb-6 flex justify-between items-center">
               <div class="h-5 w-44 bg-gray-200 rounded animate-pulse"></div>
               <div class="h-9 w-44 bg-gray-200 rounded animate-pulse"></div>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-              <div v-for="i in 9" :key="'skel-' + i" class="bg-white rounded-xl border border-gray-200 overflow-hidden animate-pulse">
-                <div class="h-48 bg-gray-100 border-b border-gray-100"></div>
-                <div class="p-4 space-y-3">
+            <div class="mb-8 grid grid-cols-1 gap-4 xl:grid-cols-2">
+              <div v-for="i in 10" :key="'skel-' + i" class="flex min-h-[248px] flex-col overflow-hidden rounded-xl border border-gray-200 bg-white animate-pulse sm:flex-row">
+                <div class="h-52 bg-gray-100 sm:h-auto sm:min-h-[248px] sm:w-[39%] sm:border-r"></div>
+                <div class="flex-1 space-y-3 p-4">
                   <div class="flex justify-between items-start">
                     <div class="h-4 bg-gray-200 rounded w-3/4"></div>
                     <div class="h-5 w-10 bg-gray-100 rounded ml-2 flex-shrink-0"></div>
@@ -154,15 +83,21 @@
           </div>
 
           <!-- Results Summary -->
-          <div v-else-if="!loading || pageLoading" class="">
+          <div v-else-if="!loading || pageLoading" class="lg:flex lg:h-full lg:min-h-0 lg:flex-col lg:overflow-hidden">
             <!-- Page loading overlay -->
             <div v-if="pageLoading" class="fixed top-0 left-0 right-0 z-50">
               <div class="h-1 bg-gray-200 w-full">
                 <div class="h-1 rounded-r animate-pulse" style="background-color: #2F5597; width: 100%;"></div>
               </div>
             </div>
-            <div class="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-              <p class="text-gray-600 font-medium">Showing <span class="font-bold" style="color: #2F5597;">{{ visibleProductsRangeLabel }}</span></p>
+            <div class="z-30 -mx-1 mb-5 flex flex-none flex-col items-start justify-between gap-3 border-b border-slate-200/80 bg-gray-50/95 px-1 py-3 backdrop-blur-sm sm:flex-row sm:items-start">
+              <div>
+                <div class="flex items-baseline gap-3">
+                  <h2 class="text-xl font-extrabold text-[#102a52]">Products</h2>
+                  <span class="text-sm font-bold text-[#2F5597]">{{ totalProducts.toLocaleString() }} results</span>
+                </div>
+                <p class="mt-1 text-xs text-slate-500">High quality technology and business supplies.</p>
+              </div>
               <div class="flex items-center gap-3">
                 <label class="text-sm text-gray-600 font-medium whitespace-nowrap">Sort by:</label>
                 <select
@@ -192,17 +127,17 @@
               </button>
             </div>
 
-            <!-- Products Grid (3 columns on desktop, 2 on tablet, 1 on mobile) -->
-            <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-              <div v-for="product in paginatedProducts" :key="product.productId" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden group hover:shadow-lg transition" style="border: 1px solid rgb(229, 231, 235);" @mouseenter="$event.currentTarget.style.borderColor='#cce4f5'" @mouseleave="$event.currentTarget.style.borderColor='rgb(229, 231, 235)'">
+            <!-- Horizontal product cards -->
+            <div v-else ref="productGridRef" class="mb-8 grid grid-cols-1 gap-4 xl:grid-cols-2 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain lg:pr-2">
+              <div v-for="product in paginatedProducts" :key="product.productId" class="group flex min-h-[248px] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_2px_10px_rgba(15,42,82,0.05)] transition hover:border-blue-200 hover:shadow-[0_8px_24px_rgba(15,42,82,0.10)] sm:flex-row">
                 <!-- Product Image -->
-                <div class="bg-white h-48 flex items-center justify-center transition relative overflow-hidden border-b border-gray-100">
+                <div class="relative flex h-52 flex-shrink-0 items-center justify-center overflow-hidden border-b border-slate-100 bg-white transition sm:h-auto sm:min-h-[248px] sm:w-[39%] sm:border-b-0 sm:border-r">
                   <!-- Actual Product Image if available -->
                   <img
                     v-if="getPrimaryImageUrl(product) && !imgErrorMap[product.productId]"
                     :src="imgFallbackMap[product.productId] || getPrimaryImageUrl(product)"
                     :alt="product.productName"
-                    class="w-full h-full object-contain p-2"
+                    class="h-full w-full object-contain p-3"
                     :loading="paginatedProducts.indexOf(product) < 6 ? 'eager' : 'lazy'"
                     :fetchpriority="paginatedProducts.indexOf(product) < 3 ? 'high' : 'auto'"
                     decoding="async"
@@ -242,32 +177,32 @@
                 </div>
 
                 <!-- Product Info -->
-                <div class="p-4">
-                  <div class="flex items-start justify-between mb-2">
+                <div class="flex min-w-0 flex-1 flex-col p-4">
+                  <div class="mb-2 flex items-start justify-between gap-3">
                     <h3
-                      class="text-sm font-semibold text-gray-900 line-clamp-2 min-h-[2.5rem]"
+                      class="line-clamp-2 min-h-[2.5rem] min-w-0 flex-1 text-sm font-bold leading-5 text-[#102a52]"
                       :title="buildProductHoverDetails(product)"
                     >{{ product.productName }}</h3>
-                    <span v-if="product.discontinueProduct" class="ml-2 px-2 py-1 bg-red-100 text-red-700 text-xs font-semibold rounded">EOL</span>
-                    <span v-else class="ml-2 px-2 py-1 text-xs font-semibold rounded" style="background-color: #cce4f4; color: #2F5597;">Active</span>
+                    <span v-if="product.discontinueProduct" class="flex-shrink-0 rounded bg-red-100 px-2 py-1 text-[10px] font-semibold text-red-700">EOL</span>
+                    <span v-else class="flex-shrink-0 rounded bg-blue-100 px-2 py-1 text-[10px] font-semibold text-[#2F5597]">Active</span>
                   </div>
-                  <div class="flex items-center justify-between gap-3 text-xs text-gray-600 mb-3">
+                  <div class="mb-2 flex items-center justify-between gap-3 text-[11px] text-slate-500">
                     <p class="truncate" :title="`SKU: ${getProductSku(product)}`">SKU: {{ getProductSku(product) }}</p>
                     <p class="truncate text-right" :title="`Vendor: ${getProductVendor(product)}`">Vendor: {{ getProductVendor(product) }}</p>
                   </div>
                   <!-- Reviews -->
-                  <div class="flex items-center gap-1 mb-3">
+                  <div class="mb-2 flex items-center gap-1">
                     <svg
                       v-for="star in 5"
                       :key="`rating-${product.productId}-${star}`"
-                      class="w-4 h-4"
+                      class="h-3.5 w-3.5"
                       :class="star <= Math.round(getReviewStatsForProduct(product.productId).average) ? 'text-yellow-400' : 'text-gray-300'"
                       fill="currentColor"
                       viewBox="0 0 20 20"
                     >
                       <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                     </svg>
-                    <span class="text-xs text-gray-500 ml-1">
+                    <span class="ml-1 text-[11px] text-gray-500">
                       {{ getReviewStatsForProduct(product.productId).total > 0
                         ? `${getReviewStatsForProduct(product.productId).average.toFixed(1)} (${getReviewStatsForProduct(product.productId).total})`
                         : 'No reviews' }}
@@ -275,25 +210,31 @@
                   </div>
                   
                   <!-- Pricing -->
-                  <div v-if="product.productPrice && product.productPrice.length > 0" class="mb-4">
-                    <p v-if="pricingReady" class="text-2xl font-bold" style="color: #2F5597;">{{ formatCatalogPrice(product.productPrice[0].rsPrice) }}</p>
+                  <div v-if="product.productPrice && product.productPrice.length > 0" class="mb-2">
+                    <div v-if="pricingReady" class="flex flex-wrap items-baseline justify-between gap-2">
+                      <div class="flex items-baseline gap-2">
+                      <p class="text-xl font-extrabold" style="color: #2F5597;">{{ formatCatalogPrice(product.productPrice[0].rsPrice) }}</p>
+                      <span v-if="product.isOnSale" class="text-sm text-gray-400 line-through">{{ formatCatalogPrice(product.regularPrice) }}</span>
+                      <span v-if="product.isOnSale" class="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">Offer</span>
+                      </div>
+                      <p class="text-[11px] text-slate-500">Min Qty: {{ product.productPrice[0].minQty }}</p>
+                    </div>
                     <div v-else class="h-8 w-28 rounded bg-gray-200 animate-pulse"></div>
-                    <p class="text-xs text-gray-600">Min Qty: {{ product.productPrice[0].minQty }}</p>
                   </div>
 
                   <!-- Features -->
-                  <div class="mb-4 flex flex-wrap gap-1">
+                  <div class="hidden">
                     <span class="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">{{ getProductMetaPrimary(product) }}</span>
                     <span class="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">{{ getProductMetaSecondary(product) }}</span>
                   </div>
-                  <div class="mb-4 flex items-center justify-between gap-3 text-xs">
-                    <span class="font-semibold" :class="getStockTone(product)">{{ getStockLabel(product) }}</span>
+                  <div class="mb-3 flex items-center justify-between gap-3 text-[11px]">
+                    <span class="rounded bg-emerald-50 px-2 py-1 font-semibold" :class="getStockTone(product)">{{ getStockLabel(product) }}</span>
                     <span class="text-gray-500">{{ getWarehouseSummary(product) }}</span>
                   </div>
 
                   <!-- Actions -->
-                  <div class="flex gap-2 w-full">
-                    <button @click="viewProductDetails(product)" class="flex-1 px-3 py-2 text-white text-sm font-semibold rounded-lg transition inline-flex items-center justify-center gap-1" style="background-color: #2F5597;" @mouseenter="$event.target.style.backgroundColor='#1f4788'" @mouseleave="$event.target.style.backgroundColor='#2F5597'">
+                  <div class="mt-auto flex w-full gap-2">
+                    <button @click="viewProductDetails(product)" class="inline-flex flex-1 items-center justify-center gap-1 rounded-lg px-3 py-2 text-sm font-semibold text-white transition" style="background-color: #2F5597;" @mouseenter="$event.target.style.backgroundColor='#1f4788'" @mouseleave="$event.target.style.backgroundColor='#2F5597'">
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5s8.268 2.943 9.542 7c-1.274 4.057-5.065 7-9.542 7S3.732 16.057 2.458 12z" />
@@ -330,7 +271,9 @@
             </div>
 
             <!-- Pagination -->
-            <div v-if="totalPages > 1" class="flex flex-col sm:flex-row items-center justify-center gap-2 mt-8 p-6 bg-white rounded-xl border border-gray-200">
+            <div v-if="totalPages > 1" class="mt-8 flex flex-col items-center justify-between gap-3 border-t border-slate-200 pt-4 sm:flex-row">
+              <p class="text-xs text-slate-500">Showing {{ visibleProductsRangeLabel }}</p>
+              <div class="flex items-center gap-2">
               <!-- Previous Button -->
               <button
                 @click="previousPage"
@@ -361,6 +304,7 @@
               >
                 Next →
               </button>
+              </div>
             </div>
           </div>
         </div>
@@ -420,7 +364,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, reactive } from 'vue'
+import { ref, computed, watch, onMounted, reactive, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useToastStore } from '../../stores/toastStore'
 import { useCartStore } from '../../stores/cartStore'
@@ -430,11 +374,37 @@ import { usePricingSettings } from '../../composables/usePricingSettings'
 import { trackSearchTerm, hasTrackingConsent, getSearchProfileTerms, getSearchSuggestions } from '../../services/searchInsights'
 import api from '../../services/api'
 import { buildStoreUrl } from '../../services/runtimeConfig'
+import { buildProductsLocation, parseProductsRouteFilters } from '../../services/productRoute'
 import Navbar from '../../components/Navbar.vue'
 import FilterSidebar from '../../components/FilterSidebar.vue'
+import CatalogHero from '../../components/CatalogHero.vue'
 
 const router = useRouter()
 const route = useRoute()
+const productGridRef = ref(null)
+const scrollToCatalog = () => {
+  const catalog = document.getElementById('catalog-results')
+  if (!catalog) return
+  const navigationOffset = window.innerWidth >= 1280 ? 208 : window.innerWidth >= 1024 ? 144 : 88
+  const top = window.scrollY + catalog.getBoundingClientRect().top - navigationOffset - 8
+  window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' })
+}
+const handleCatalogWheel = event => {
+  if (typeof window === 'undefined' || window.innerWidth < 1024 || !productGridRef.value) return
+
+  const catalog = event.currentTarget
+  const navigationOffset = window.innerWidth >= 1280 ? 208 : 144
+  if (catalog.getBoundingClientRect().top > navigationOffset + 8) return
+
+  const grid = productGridRef.value
+  const maxScrollTop = Math.max(0, grid.scrollHeight - grid.clientHeight)
+  const movingDown = event.deltaY > 0
+  const canScroll = movingDown ? grid.scrollTop < maxScrollTop : grid.scrollTop > 0
+  if (!canScroll) return
+
+  event.preventDefault()
+  grid.scrollTop += event.deltaY
+}
 const toastStore = useToastStore()
 const cartStore = useCartStore()
 const favoritesStore = useFavoritesStore()
@@ -473,7 +443,7 @@ const resetImgErrorMap = () => {
   Object.keys(imgErrorMap).forEach((key) => { delete imgErrorMap[key] })
   Object.keys(imgFallbackMap).forEach((key) => { delete imgFallbackMap[key] })
 }
-const ITEMS_PER_PAGE = 9
+const ITEMS_PER_PAGE = 10
 const API_PAGE_SIZE = 100
 const SEARCH_TRACK_DEBOUNCE_MS = 15000
 const PROFILE_TERM_LIMIT = 25
@@ -483,12 +453,12 @@ const TOP_VENDOR_DISPLAY_LIMIT = 40
 const DEFAULT_VENDOR_SCOPE_LIMIT = 12
 const DEFAULT_BROWSE_MIN_PRICE = 100
 const DEFAULT_BROWSE_MAX_PRICE = 0
-const CURATED_CACHE_VERSION = 7
+const CURATED_CACHE_VERSION = 8
 const ENABLE_SERVER_PREFETCH = true
 const ENABLE_VENDOR_COUNTS_API = true
 const PRODUCTS_RESULTS_SOFT_TTL_MS = 5 * 60 * 1000
 const PRODUCTS_RESULTS_HARD_TTL_MS = 24 * 60 * 60 * 1000
-const PRODUCTS_RESULTS_CACHE_PREFIX = 'products_results_cache_v10'
+const PRODUCTS_RESULTS_CACHE_PREFIX = 'products_results_cache_v11'
 const SIDEBAR_FACETS_CACHE_TTL_MS = 10 * 60 * 1000
 const SIDEBAR_VENDORS_STORAGE_KEY = 'products_sidebar_vendors_v1'
 const SIDEBAR_CATEGORIES_STORAGE_KEY = 'products_sidebar_categories_v1'
@@ -1526,7 +1496,10 @@ const performSearch = async (resetPage = true) => {
     loading.value = false
     pageLoading.value = false
 
-    if (!persistedCache.stale) {
+    // Search URLs must always revalidate after reload. Cached search payloads are
+    // useful for instant paint, but treating them as final made navbar searches
+    // appear to do nothing when an older empty/stale result was stored locally.
+    if (!persistedCache.stale && !normalizedQuery) {
       return
     }
   }
@@ -2370,20 +2343,20 @@ watch(
 )
 
 watch(
-  () => [
-    route.query.q,
-    route.query.vendor,
-    route.query.vendors,
-    route.query.category,
-    route.query.minPrice,
-    route.query.maxPrice,
-    route.query.partNumber,
-    route.query.productType,
-    route.query.lifecycle,
-    route.query.media,
-    route.query.page,
-  ],
-  ([newQuery, newVendor, newVendors, newCategory, minPrice, maxPrice, partNumber, productType, lifecycle, media, page]) => {
+  () => route.fullPath,
+  () => {
+    const routeFilters = parseProductsRouteFilters(route)
+    const newQuery = routeFilters.q
+    const newVendor = routeFilters.vendor
+    const newVendors = routeFilters.vendors
+    const newCategory = routeFilters.category
+    const minPrice = routeFilters.minPrice
+    const maxPrice = routeFilters.maxPrice
+    const partNumber = routeFilters.partNumber
+    const productType = routeFilters.productType
+    const lifecycle = routeFilters.lifecycle
+    const media = routeFilters.media
+    const page = routeFilters.page
     searchQuery.value = newQuery ? String(newQuery) : ''
 
     const hasVendorQuery = newVendor !== undefined || newVendors !== undefined
@@ -2446,6 +2419,9 @@ watch(
     }
 
     performSearch(false)
+    if (newQuery) {
+      nextTick(() => scrollToCatalog())
+    }
   },
   { immediate: true }
 )
@@ -2465,18 +2441,15 @@ watch(
   ],
   () => {
     const nextQuery = buildProductsRouteQuery()
-    const currentQuery = { ...route.query }
-    delete currentQuery.returnTo
+    const nextLocation = buildProductsLocation(nextQuery)
+    const targetPath = router.resolve(nextLocation).fullPath
 
-    if (JSON.stringify(currentQuery) === JSON.stringify(nextQuery)) {
+    if (route.fullPath === targetPath) {
       return
     }
 
     ownRouterReplace = true
-    router.replace({
-      name: 'products',
-      query: nextQuery,
-    })
+    router.replace(nextLocation)
   }
 )
 

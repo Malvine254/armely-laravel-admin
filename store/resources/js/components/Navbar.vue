@@ -1,47 +1,76 @@
 <template>
-  <nav class="sticky top-0 z-50 border-b border-white/10" style="background: #122d58; box-shadow: 0 16px 45px rgba(2, 6, 23, 0.35);">
-    <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-5">
-      <div class="flex items-center justify-between h-20">
+  <nav class="sticky top-0 z-[100] isolate overflow-x-clip bg-white shadow-[0_4px_18px_rgba(15,42,82,0.10)]">
+    <!-- Utility bar -->
+    <div class="hidden bg-gradient-to-r from-[#073b89] via-[#0b4aa0] to-[#073b89] text-white lg:block">
+      <div class="mx-auto flex h-10 max-w-[1600px] items-center justify-between px-5 text-xs font-medium">
+        <div class="flex items-center gap-2 text-blue-50">
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 3 4.5 6v5.4c0 4.7 3.2 8.1 7.5 9.6 4.3-1.5 7.5-4.9 7.5-9.6V6L12 3Zm-3 9 2 2 4-5"/></svg>
+          <span>Trusted by businesses worldwide</span>
+        </div>
+        <div class="flex items-center divide-x divide-white/20">
+          <button type="button" class="px-4 transition hover:text-cyan-200" @click="goToMessages">Help Center</button>
+          <button type="button" class="px-4 transition hover:text-cyan-200" @click="goToOrders">Track Order</button>
+          <button type="button" class="px-4 transition hover:text-cyan-200" @click="goToProducts">Quick Order</button>
+          <button type="button" class="px-4 transition hover:text-cyan-200" @click="goToCart">Request a Quote</button>
+          <button type="button" class="pl-4 transition hover:text-cyan-200" @click="goToMessages">Contact Us</button>
+        </div>
+      </div>
+    </div>
+    <div class="w-full px-3 sm:px-4 lg:px-5">
+      <div class="flex min-h-20 w-full flex-wrap items-center justify-between gap-x-2 py-3 lg:min-h-24 lg:justify-center lg:gap-x-4 2xl:gap-x-7">
         <!-- Logo Section -->
-        <button type="button" class="flex items-center gap-2 sm:gap-3 flex-shrink-0 cursor-pointer transition hover:opacity-95" @click="goToProducts">
-          <div class="w-11 h-11 rounded-xl overflow-hidden flex items-center justify-center shadow-lg border border-white/30 bg-white">
-            <img
-              v-if="showLogoImage"
-              :src="logoSrc"
-              alt="Armely Store"
-              class="w-full h-full object-contain p-1"
-              @error="handleLogoError"
-            >
-            <span v-else class="text-white font-bold text-base">A</span>
+        <button type="button" class="mr-auto flex flex-shrink-0 cursor-pointer items-center gap-2 transition hover:opacity-95 sm:gap-3 lg:mr-0" @click="goToProducts">
+          <div class="flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl border border-blue-100 bg-white px-1 shadow-sm" aria-hidden="true">
+            <span class="armely-brand-font text-[13px] leading-none text-[#0b3b82]">armely</span>
           </div>
           <div class="text-left">
-            <div class="font-bold text-base sm:text-lg text-white">Armely Store</div>
-            <div class="hidden sm:block text-xs text-slate-200">B2B Procurements</div>
+            <div class="text-base font-extrabold text-[#102f61] sm:text-xl">Armely Store</div>
+            <div class="hidden text-xs font-medium text-slate-500 sm:block">B2B Procurements</div>
           </div>
         </button>
 
-        <!-- Nav Links: Categories - Hidden below md -->
-        <div class="hidden md:flex items-center justify-center gap-0.5 flex-1 mx-4 min-w-0 whitespace-nowrap">
+        <!-- Global catalog search -->
+        <form class="order-2 hidden min-w-[18rem] max-w-[680px] basis-[34rem] flex-1 lg:flex" role="search" @submit.prevent="submitNavSearch">
+          <div class="flex h-12 min-w-0 flex-1 overflow-hidden rounded-lg border border-slate-300 bg-white transition focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100">
+            <input
+              v-model="navSearchQuery"
+              type="search"
+              class="min-w-0 flex-1 border-0 bg-transparent px-4 text-sm text-slate-800 outline-none placeholder:text-slate-400"
+              placeholder="Search products, categories, or part numbers..."
+              aria-label="Search store catalog"
+            >
+            <button type="submit" class="flex w-14 items-center justify-center bg-[#0b3b82] text-white transition hover:bg-blue-700" aria-label="Search">
+              <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m21 21-4.35-4.35m1.35-5.65a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z"/></svg>
+            </button>
+          </div>
+        </form>
+
+        <!-- Dynamic category row -->
+        <div ref="categoryMenuRef" class="order-4 -mx-3 mt-3 hidden min-h-14 w-[calc(100%+1.5rem)] flex-none items-stretch justify-center bg-gradient-to-r from-[#073b89] via-[#0b4aa0] to-[#073b89] sm:-mx-4 sm:w-[calc(100%+2rem)] lg:-mx-5 lg:w-[calc(100%+2.5rem)] xl:flex">
+          <button type="button" class="flex min-w-[12rem] items-center justify-center gap-2.5 border-r border-white/10 bg-[#083777] px-4 text-sm font-bold text-white transition hover:bg-[#062f68]" @click="toggleMoreCategories">
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+            Shop by Category
+          </button>
           <div
             v-for="cat in primaryCategories"
             :key="cat.value"
-            class="relative"
+            class="relative flex min-w-0 flex-1 items-center"
             @mouseenter="categoryDropdownOpen = cat.value"
             @mouseleave="categoryDropdownOpen = null"
           >
             <button
               type="button"
-              class="flex items-center gap-1 flex-shrink-0 px-2.5 py-2 rounded-lg text-sm font-semibold text-slate-100 hover:text-cyan-300 hover:bg-white/10 transition"
+              class="flex h-full w-full min-w-0 items-center justify-center gap-1 px-1.5 py-2 text-sm font-semibold text-white transition hover:bg-white/10 hover:text-cyan-200 2xl:px-2"
               @click="browseProducts(cat.value)"
             >
-              <span>{{ cat.name }}</span>
-              <svg class="w-3.5 h-3.5 transition-transform" :class="categoryDropdownOpen === cat.value ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <span class="min-w-0 truncate">{{ cat.name }}</span>
+              <svg class="h-3.5 w-3.5 flex-shrink-0 transition-transform" :class="categoryDropdownOpen === cat.value ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
               </svg>
             </button>
 
             <transition enter-active-class="transition ease-out duration-150" enter-from-class="opacity-0 translate-y-1" enter-to-class="opacity-100 translate-y-0" leave-active-class="transition ease-in duration-100" leave-from-class="opacity-100 translate-y-0" leave-to-class="opacity-0 translate-y-1">
-              <div v-if="categoryDropdownOpen === cat.value" class="store-menu-scroll absolute left-0 mt-1 w-80 max-h-[70vh] rounded-xl shadow-2xl overflow-y-auto overflow-x-hidden z-50 border border-white/20 whitespace-normal" style="background: #122d58;">
+              <div v-if="categoryDropdownOpen === cat.value" class="store-menu-scroll absolute left-0 top-full z-[150] mt-1 w-80 max-h-[70vh] rounded-xl shadow-2xl overflow-y-auto overflow-x-hidden border border-white/20 whitespace-normal" style="background: #122d58;">
                 <div class="px-4 py-2.5 border-b border-white/20">
                   <p class="text-xs font-semibold text-white uppercase tracking-widest">{{ cat.name }} Vendors</p>
                 </div>
@@ -71,10 +100,10 @@
           </div>
 
           <!-- More Categories Dropdown -->
-          <div v-if="overflowCategories.length > 0" class="relative" @mouseenter="moreCategoriesOpen = true" @mouseleave="moreCategoriesOpen = false">
+          <div v-if="overflowCategories.length > 0" class="relative flex min-w-0 flex-1 items-center" @mouseenter="moreCategoriesOpen = true" @mouseleave="moreCategoriesOpen = false">
             <button
               type="button"
-              class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold text-slate-100 hover:text-cyan-300 hover:bg-white/10 transition"
+              class="flex h-full w-full items-center justify-center gap-1 px-1.5 py-2 text-sm font-semibold text-slate-100 transition hover:bg-white/10 hover:text-cyan-300 2xl:px-2"
               @click="toggleMoreCategories"
             >
               More Categories
@@ -83,7 +112,7 @@
               </svg>
             </button>
             <transition enter-active-class="transition ease-out duration-150" enter-from-class="opacity-0 translate-y-1" enter-to-class="opacity-100 translate-y-0" leave-active-class="transition ease-in duration-100" leave-from-class="opacity-100 translate-y-0" leave-to-class="opacity-0 translate-y-1">
-              <div v-if="moreCategoriesOpen" class="absolute right-0 mt-1 w-[42rem] max-w-[calc(100vw-2rem)] rounded-xl shadow-2xl overflow-hidden z-50 border border-white/20 whitespace-normal" style="background: #122d58;">
+              <div v-if="moreCategoriesOpen" class="absolute right-0 top-full z-[150] mt-1 w-[42rem] max-w-[calc(100vw-2rem)] rounded-xl shadow-2xl overflow-hidden border border-white/20 whitespace-normal" style="background: #122d58;">
                 <div class="px-4 py-2.5 border-b border-white/20">
                   <p class="text-xs font-semibold text-white uppercase tracking-widest">More Categories</p>
                 </div>
@@ -134,38 +163,30 @@
             </transition>
           </div>
 
-          <router-link
-            to="/announcements"
-            class="flex items-center px-3 py-2 rounded-lg text-sm font-semibold text-slate-100 hover:text-cyan-300 hover:bg-white/10 transition"
-          >
-            Announcements
-          </router-link>
-
         </div>
 
         <!-- Right Section Icons -->
-        <div class="flex items-center gap-1 sm:gap-2 md:gap-4">
+        <div class="order-3 ml-auto flex flex-shrink-0 items-center gap-1 text-[#102f61] sm:gap-2 lg:ml-0 xl:gap-3">
+          <button v-if="authStore.isAuthenticated" type="button" class="hidden" aria-label="Orders" @click="goToOrders">
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M7 4h10v3H7V4ZM5 7h14v14H5V7Zm4 4h6m-6 4h6"/></svg>
+            <span class="pointer-events-none absolute right-0 top-12 hidden whitespace-nowrap rounded bg-white px-2 py-1 text-xs font-medium text-slate-900 shadow-lg group-hover:block">Orders</span>
+          </button>
           <!-- Cart Icon - Always visible (guest + authenticated) -->
-          <button type="button" class="relative p-1.5 sm:p-2 rounded-lg transition group cursor-pointer text-slate-100 hover:text-cyan-300" @click="goToCart">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <button type="button" class="group relative order-2 flex cursor-pointer items-center gap-2 border-l border-slate-200 py-1 pl-4 pr-2 text-[#102f61] transition hover:text-blue-700" @click="goToCart">
+            <svg class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 9m10-9l2 9m-9 0h14m-5-9v9"></path>
             </svg>
-            <span v-if="cartStore.cartCount > 0" class="absolute top-1 right-1 w-4 h-4 bg-rose-500 text-white text-xs rounded-full flex items-center justify-center font-semibold">{{ cartStore.cartCount }}</span>
-            <span class="hidden group-hover:block absolute top-12 right-0 bg-slate-100 px-2 py-1 rounded text-xs text-slate-900 whitespace-nowrap">Cart</span>
+            <span v-if="cartStore.cartCount > 0" class="absolute left-9 top-0 flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-600 px-1 text-[11px] font-bold text-white">{{ cartStore.cartCount }}</span>
+            <span class="hidden text-left sm:block">
+              <span class="block text-sm font-bold">Cart</span>
+              <span class="block text-xs font-semibold text-slate-500">{{ formattedCartTotal }}</span>
+            </span>
           </button>
 
           <!-- Authenticated User Features -->
           <template v-if="authStore.isAuthenticated">
-            <!-- Messages Icon -->
-            <button v-if="authStore.hasFeatureAccess('messages')" @click="goToMessages" class="hidden xl:flex relative p-2 rounded-lg transition group text-slate-100 hover:text-cyan-300">
-              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M5 16h4l3 3v-3h7a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-              </svg>
-              <span class="hidden group-hover:block absolute top-12 right-0 bg-slate-100 px-2 py-1 rounded text-xs whitespace-nowrap text-slate-900">Messages</span>
-            </button>
-
             <!-- Favorites Icon - Only for authenticated users -->
-            <button type="button" v-if="authStore.isAuthenticated" class="hidden xl:flex relative p-2 rounded-lg transition group cursor-pointer text-slate-100 hover:text-cyan-300" @click="goToFavorites">
+            <button type="button" v-if="authStore.isAuthenticated" class="hidden" @click="goToFavorites">
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
               </svg>
@@ -174,15 +195,25 @@
             </button>
 
             <!-- Authenticated Account Menu -->
-            <div class="hidden xl:block relative group">
-              <button class="p-2 rounded-lg transition flex items-center gap-2 text-slate-100 hover:text-cyan-300">
+            <div ref="accountMenuRef" class="relative order-1 hidden xl:block">
+              <button
+                type="button"
+                class="flex items-center gap-2 rounded-xl border border-transparent px-2.5 py-2 text-[#102f61] transition hover:border-blue-100 hover:bg-blue-50"
+                :class="accountMenuOpen ? 'border-blue-200 bg-blue-50' : ''"
+                :aria-expanded="accountMenuOpen ? 'true' : 'false'"
+                aria-haspopup="menu"
+                @click.stop="accountMenuOpen = !accountMenuOpen"
+              >
                 <!-- Profile Picture or Initials -->
-                <img v-if="userProfilePictureUrl" :src="userProfilePictureUrl" :alt="authStore.user?.name" class="w-8 h-8 rounded-full object-cover border border-slate-300">
-                <div v-else class="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-xs bg-gradient-to-br from-cyan-400 to-blue-500">{{ userInitials }}</div>
+                <img v-if="userProfilePictureUrl" :src="userProfilePictureUrl" :alt="authStore.user?.name" class="h-10 w-10 rounded-full border border-blue-100 object-cover">
+                <div v-else class="flex h-10 w-10 items-center justify-center rounded-full border border-blue-100 bg-blue-50 text-xs font-bold text-[#0b3b82]">{{ userInitials }}</div>
                 <span class="text-sm font-medium">Hi, {{ userFirstName }} 👋</span>
+                <svg class="h-4 w-4 flex-shrink-0 transition-transform" :class="accountMenuOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 9-7 7-7-7"/>
+                </svg>
               </button>
               <!-- Authenticated Dropdown Menu -->
-              <div class="hidden group-hover:block absolute right-0 mt-0 w-56 rounded-lg shadow-xl py-2 z-10 border border-white/20" style="background: #122d58;">
+              <div v-if="accountMenuOpen" class="absolute right-0 top-full z-[200] mt-2 w-64 overflow-hidden rounded-xl border border-blue-300/30 bg-gradient-to-b from-[#0b4aa0] to-[#073b89] py-2 shadow-[0_18px_45px_rgba(7,59,137,0.30)] ring-1 ring-black/5" role="menu" @click="accountMenuOpen = false">
                 <div class="px-4 py-2 border-b border-white/20">
                   <div class="flex items-center gap-3 mb-2">
                     <img v-if="userProfilePictureUrl" :src="userProfilePictureUrl" :alt="authStore.user?.name" class="w-10 h-10 rounded-full object-cover border border-slate-400">
@@ -195,8 +226,10 @@
                   <div v-if="authStore.user?.company_name" class="text-xs text-slate-300">{{ authStore.user?.company_name }}</div>
                 </div>
                 <router-link to="/account" class="block w-full px-4 py-2 text-left hover:bg-white/10 transition text-slate-100">My Account</router-link>
-                <router-link to="/quotes" v-if="authStore.isAuthenticated" class="block w-full px-4 py-2 text-left hover:bg-white/10 transition text-slate-100">My Quotes</router-link>
                 <router-link to="/orders" v-if="authStore.isAuthenticated" class="block w-full px-4 py-2 text-left hover:bg-white/10 transition text-slate-100">My Orders</router-link>
+                <router-link to="/messages" v-if="authStore.hasFeatureAccess('messages')" class="block w-full px-4 py-2 text-left hover:bg-white/10 transition text-slate-100">Messages</router-link>
+                <router-link to="/favorites" class="flex w-full items-center justify-between px-4 py-2 text-left hover:bg-white/10 transition text-slate-100"><span>Favorites</span><span v-if="favoritesStore.favoriteCount > 0" class="rounded-full bg-rose-500 px-2 py-0.5 text-xs font-semibold text-white">{{ favoritesStore.favoriteCount }}</span></router-link>
+                <router-link to="/quotes" v-if="authStore.isAuthenticated" class="block w-full px-4 py-2 text-left hover:bg-white/10 transition text-slate-100">My Quotes</router-link>
                 <router-link to="/invoices" v-if="authStore.hasFeatureAccess('invoices')" class="block w-full px-4 py-2 text-left hover:bg-white/10 transition text-slate-100">Invoices</router-link>
                 <div class="border-t border-white/20 my-2"></div>
                 <button @click="handleLogout" class="w-full px-4 py-2 text-left hover:bg-rose-500/20 transition text-rose-400"><strong>Sign Out</strong></button>
@@ -206,17 +239,17 @@
 
           <!-- Unauthenticated User - Login/Sign Up Buttons -->
           <template v-else>
-            <router-link to="/login" class="hidden xl:inline-block px-4 py-2 rounded-lg font-semibold transition text-sm text-slate-100 border border-slate-300 hover:bg-white/10">
+            <router-link to="/login" class="hidden rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-[#102f61] transition hover:bg-blue-50 xl:inline-block">
               Log In
             </router-link>
-            <router-link to="/register" class="hidden xl:inline-block px-4 py-2 rounded-lg font-semibold transition text-sm text-white bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500">
+            <router-link to="/register" class="hidden rounded-lg bg-[#0b3b82] px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 xl:inline-block">
               Sign Up
             </router-link>
           </template>
 
       <!-- Mobile Menu Button -->
           <button
-            class="md:hidden p-2 rounded-lg transition text-slate-100 hover:text-cyan-300"
+            class="order-3 rounded-lg p-2 text-[#102f61] transition hover:bg-blue-50 hover:text-blue-700 xl:hidden"
             @click="toggleMobileMenu"
             :aria-expanded="mobileMenuOpen ? 'true' : 'false'"
             aria-label="Toggle mobile menu"
@@ -232,8 +265,16 @@
       </div>
 
       <!-- Mobile Dropdown Menu -->
-      <div v-if="mobileMenuOpen" class="md:hidden pb-4">
+      <div v-if="mobileMenuOpen" class="xl:hidden pb-4">
         <div class="rounded-lg border border-white/20 overflow-hidden" style="background: #122d58;">
+          <form class="border-b border-white/10 p-3 lg:hidden" role="search" @submit.prevent="submitNavSearch">
+            <div class="flex h-11 overflow-hidden rounded-lg bg-white">
+              <input v-model="navSearchQuery" type="search" class="min-w-0 flex-1 px-3 text-sm text-slate-800 outline-none" placeholder="Search products or part numbers..." aria-label="Search store catalog">
+              <button type="submit" class="flex w-11 items-center justify-center bg-blue-600 text-white" aria-label="Search">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m21 21-4.35-4.35m1.35-5.65a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z"/></svg>
+              </button>
+            </div>
+          </form>
           <!-- Products Section -->
           <div class="border-b border-white/10">
             <button type="button" @click="mobileProductsOpen = !mobileProductsOpen" class="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold text-slate-100 hover:bg-white/10 transition">
@@ -273,9 +314,6 @@
               </div>
             </div>
           </div>
-          <router-link to="/announcements" @click="closeMobileMenu" class="block w-full text-left px-4 py-3 text-sm text-slate-100 transition hover:bg-white/10 border-b border-white/10">
-            Announcements
-          </router-link>
           <template v-if="authStore.isAuthenticated">
             <div class="px-4 py-3 border-b border-white/10">
               <div class="font-semibold text-white">Hi, {{ userFirstName }} 👋</div>
@@ -299,16 +337,18 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useCartStore } from '../stores/cartStore'
 import { useFavoritesStore } from '../stores/favoritesStore'
 import { useAuthStore } from '../stores/authStore'
 import { useToastStore } from '../stores/toastStore'
-import { buildStoreUrl, normalizeLocalAssetUrl } from '../services/runtimeConfig'
+import { normalizeLocalAssetUrl } from '../services/runtimeConfig'
+import { buildProductsLocation, parseProductsRouteFilters } from '../services/productRoute'
 import api from '../services/api'
 
 const router = useRouter()
+const route = useRoute()
 const cartStore = useCartStore()
 const favoritesStore = useFavoritesStore()
 const authStore = useAuthStore()
@@ -319,14 +359,76 @@ const moreCategoriesOpen = ref(false)
 const activeMoreCategoryValue = ref(null)
 const mobileProductsOpen = ref(false)
 const mobileOpenCategory = ref(null)
+const navSearchQuery = ref(parseProductsRouteFilters(route).q ? String(parseProductsRouteFilters(route).q) : '')
+const accountMenuOpen = ref(false)
+const accountMenuRef = ref(null)
+const categoryMenuRef = ref(null)
+const primaryCategoryLimit = ref(6)
+let categoryMenuResizeObserver = null
+
+const handleDocumentClick = event => {
+  if (accountMenuOpen.value && !accountMenuRef.value?.contains(event.target)) {
+    accountMenuOpen.value = false
+  }
+}
+
+const submitNavSearch = () => {
+  const query = navSearchQuery.value.trim()
+  router.push(buildProductsLocation(query ? { q: query } : {}))
+  closeAll()
+}
+
+watch(
+  () => route.fullPath,
+  () => {
+    const value = parseProductsRouteFilters(route).q
+    navSearchQuery.value = value ? String(value) : ''
+  }
+)
 
 const productCategories = ref([])
 const MENU_CATEGORIES_STORAGE_KEY = 'store_menu_categories_v4'
 const MENU_CATEGORIES_SOFT_TTL_MS = 15 * 60 * 1000
 const MENU_CATEGORIES_HARD_TTL_MS = 7 * 24 * 60 * 60 * 1000
 
-const primaryCategories = computed(() => productCategories.value.slice(0, 3))
-const overflowCategories = computed(() => productCategories.value.slice(3))
+const measureCategoryWidth = name => {
+  if (typeof document === 'undefined') return 150
+  const canvas = measureCategoryWidth.canvas || (measureCategoryWidth.canvas = document.createElement('canvas'))
+  const context = canvas.getContext('2d')
+  if (!context) return 150
+  context.font = '600 14px "Instrument Sans", ui-sans-serif, system-ui, sans-serif'
+  return Math.min(240, Math.max(116, Math.ceil(context.measureText(String(name || '')).width) + 46))
+}
+
+const recalculatePrimaryCategories = () => {
+  const menuWidth = categoryMenuRef.value?.clientWidth || 0
+  const categories = productCategories.value
+  if (menuWidth <= 0 || categories.length === 0) return
+
+  const shopByCategoryWidth = 192
+  const moreCategoriesWidth = 154
+  const widths = categories.map(category => measureCategoryWidth(category.name))
+  const allCategoriesWidth = widths.reduce((total, width) => total + width, 0)
+
+  if (shopByCategoryWidth + allCategoriesWidth <= menuWidth) {
+    primaryCategoryLimit.value = categories.length
+    return
+  }
+
+  const usableWidth = Math.max(0, menuWidth - shopByCategoryWidth - moreCategoriesWidth)
+  let usedWidth = 0
+  let count = 0
+  for (const width of widths) {
+    if (usedWidth + width > usableWidth) break
+    usedWidth += width
+    count += 1
+  }
+
+  primaryCategoryLimit.value = Math.max(1, count)
+}
+
+const primaryCategories = computed(() => productCategories.value.slice(0, primaryCategoryLimit.value))
+const overflowCategories = computed(() => productCategories.value.slice(primaryCategoryLimit.value))
 const activeMoreCategory = computed(() => {
   if (overflowCategories.value.length === 0) return null
   return overflowCategories.value.find(cat => cat.value === activeMoreCategoryValue.value) || overflowCategories.value[0]
@@ -420,6 +522,9 @@ const fetchMenuCategories = async () => {
 }
 
 onMounted(() => {
+  document.addEventListener('click', handleDocumentClick)
+  categoryMenuResizeObserver = new ResizeObserver(recalculatePrimaryCategories)
+  if (categoryMenuRef.value) categoryMenuResizeObserver.observe(categoryMenuRef.value)
   const cached = loadMenuCategoriesFromStorage()
   if (cached.data.length > 0) {
     productCategories.value = cached.data
@@ -430,40 +535,12 @@ onMounted(() => {
   }
 })
 
-const logoCandidates = (() => {
-  const relativePath = 'images/logo/armely-store-logo.png'
-  const candidates = [
-    buildStoreUrl(relativePath),
-    '/store/images/logo/armely-store-logo.png',
-    '/store/public/images/logo/armely-store-logo.png',
-    '/images/logo/armely-store-logo.png',
-  ]
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleDocumentClick)
+  categoryMenuResizeObserver?.disconnect()
+})
 
-  if (typeof window !== 'undefined') {
-    const origin = window.location.origin
-    candidates.push(
-      `${origin}/store/images/logo/armely-store-logo.png`,
-      `${origin}/store/public/images/logo/armely-store-logo.png`,
-      `${origin}/images/logo/armely-store-logo.png`
-    )
-  }
-
-  return [...new Set(candidates)]
-})()
-
-const logoCandidateIndex = ref(0)
-const logoSrc = ref(logoCandidates[0])
-const showLogoImage = ref(Boolean(logoSrc.value))
-
-const handleLogoError = () => {
-  logoCandidateIndex.value += 1
-  if (logoCandidateIndex.value < logoCandidates.length) {
-    logoSrc.value = logoCandidates[logoCandidateIndex.value]
-    return
-  }
-
-  showLogoImage.value = false
-}
+watch(productCategories, () => nextTick(recalculatePrimaryCategories), { deep: true })
 
 const closeMobileMenu = () => {
   mobileMenuOpen.value = false
@@ -496,6 +573,11 @@ const userInitials = computed(() => {
   const parts = authStore.user.name.split(' ').filter(Boolean)
   return parts.slice(0, 2).map(p => p[0].toUpperCase()).join('')
 })
+
+const formattedCartTotal = computed(() => `$${Number(cartStore.cartTotal || 0).toLocaleString(undefined, {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+})}`)
 
 const userProfilePictureUrl = computed(() => {
   return normalizeLocalAssetUrl(authStore.user?.profile_picture_url) || null
@@ -533,16 +615,17 @@ const goToProducts = () => {
 
 const browseProducts = (category = null) => {
   const query = category ? { category } : {}
-  router.push({ name: 'products', query })
+  router.push(buildProductsLocation(query))
   closeAll()
 }
 
 const browseCategoryVendor = (category, vendor) => {
-  router.push({ name: 'products', query: { category, vendor } })
+  router.push(buildProductsLocation({ category, vendor }))
   closeAll()
 }
 
 const closeAll = () => {
+  accountMenuOpen.value = false
   mobileMenuOpen.value = false
   categoryDropdownOpen.value = null
   moreCategoriesOpen.value = false

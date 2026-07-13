@@ -62,6 +62,12 @@ class CustomerPricingService
 
         $adjustedPrice = $this->applyDiscountPercent($basePrice, $discountPercent);
         $product['productPrice'][0]['rsPrice'] = $adjustedPrice;
+        if (!empty($product['isOnSale'])) {
+            $product['salePrice'] = $adjustedPrice;
+            if (is_array($product['offer'] ?? null)) {
+                $product['offer']['salePrice'] = $adjustedPrice;
+            }
+        }
         $product['specialPricing'] = [
             'discountPercent' => $discountPercent,
             'basePrice' => round($basePrice, 2),

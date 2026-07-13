@@ -27,13 +27,10 @@ class ProductController extends Controller
         $this->customerPricingService = $customerPricingService;
     }
 
-    /**
-     * MSRP-first price expression for cached DB rows.
-     * Falls back to base_price when retail_price is missing/zero.
-     */
+    /** Customer price: active offer first, then regular retail, then supplier fallback. */
     private function preferredDbPriceSql(): string
     {
-        return 'COALESCE(NULLIF(retail_price, 0), NULLIF(base_price, 0), 0)';
+        return "COALESCE(NULLIF(CASE WHEN is_on_sale = 1 AND offer_source IN ('manual','verified_tdsynnex_special','tdsynnex_price_drop') THEN sale_price ELSE 0 END, 0), NULLIF(retail_price, 0), 0)";
     }
 
     private function storefrontMinPrice($requested = null): float
@@ -75,21 +72,14 @@ class ProductController extends Controller
         ))));
     }
 
-    /**
-     * Preferred API price from a product payload (MSRP first, reseller fallback).
-     */
+    /** Preferred customer-facing price already resolved by the payload mapper. */
     private function preferredApiProductPrice(array $product): float
     {
-        $msrp = (float) ($product['productPrice'][0]['msrp'] ?? 0);
-        if ($msrp > 0) {
-            return $msrp;
-        }
-
         return (float) ($product['productPrice'][0]['rsPrice'] ?? 0);
     }
 
     /**
-     * Normalize outbound payload so rsPrice always reflects MSRP-first logic.
+     * Normalize outbound payload without replacing an active offer with MSRP.
      */
     private function normalizeApiProductPrice(array $product): array
     {
@@ -112,6 +102,88 @@ class ProductController extends Controller
     private function authenticatedApiUser(Request $request): ?User
     {
         return $request->user('sanctum');
+    }
+
+    /**
+     * Return deliberate storefront hero products rather than products from the
+     * current results page. Actual ordered units lead the ranking; when sales
+     * history is sparse, established business brands, offers and stock decide.
+     */
+    public function featured(Request $request): JsonResponse
+    {
+        $categories = [
+            ['label' => 'Laptops', 'segment' => '01'],
+            ['label' => 'Monitors', 'segment' => '03'],
+            ['label' => 'Networking', 'segment' => '04'],
+            ['label' => 'Desktops', 'segment' => '02'],
+            ['label' => 'Printers', 'segment' => '06'],
+            ['label' => 'Servers & Storage', 'segment' => '05'],
+        ];
+
+        $products = Cache::remember('storefront_featured_offers_v3', now()->addMinutes(15), function () use ($categories) {
+            return collect($categories)->map(function (array $category) {
+                $product = Product::query()
+                    ->select('products.*')
+                    ->where('category_segment', $category['segment'])
+                    ->where('is_available', true)
+                    ->where('is_discontinued', false)
+                    ->where('is_on_sale', true)
+                    ->whereNotNull('sale_price')
+                    ->where('sale_price', '>', 0)
+                    ->whereRaw('sale_price < COALESCE(NULLIF(retail_price, 0), base_price)')
+                    ->where('quantity', '>', 0)
+                    ->whereRaw($this->preferredDbPriceSql() . ' > 0')
+                    ->whereRaw($this->hasUsableProductImageSql())
+                    ->addSelect([
+                        'company_purchases' => \App\Models\OrderLineItem::query()
+                            ->selectRaw('COUNT(DISTINCT COALESCE(users.company_id, -users.id))')
+                            ->join('orders', 'orders.id', '=', 'order_line_items.order_id')
+                            ->join('users', 'users.id', '=', 'orders.user_id')
+                            ->whereColumn('order_line_items.product_id', 'products.id')
+                            ->where(function ($query) {
+                                $query->whereNull('orders.status')
+                                    ->orWhereNotIn('orders.status', ['cancelled', 'refunded']);
+                            }),
+                    ])
+                    ->withSum('orderLineItems as units_sold', 'quantity')
+                    ->orderByDesc('company_purchases')
+                    ->orderByRaw('(COALESCE(NULLIF(retail_price, 0), base_price) - sale_price) / COALESCE(NULLIF(retail_price, 0), base_price) DESC')
+                    ->orderByDesc('units_sold')
+                    ->orderByRaw("CASE WHEN
+                        UPPER(COALESCE(manufacturer, '')) LIKE '%DELL%'
+                        OR UPPER(COALESCE(manufacturer, '')) LIKE '%HP%'
+                        OR UPPER(COALESCE(manufacturer, '')) LIKE '%HEWLETT%'
+                        OR UPPER(COALESCE(manufacturer, '')) LIKE '%LENOVO%'
+                        OR UPPER(COALESCE(manufacturer, '')) LIKE '%APPLE%'
+                        OR UPPER(COALESCE(manufacturer, '')) LIKE '%CISCO%'
+                        OR UPPER(COALESCE(manufacturer, '')) LIKE '%MICROSOFT%'
+                        OR UPPER(COALESCE(manufacturer, '')) LIKE '%APC%'
+                        OR UPPER(COALESCE(manufacturer, '')) LIKE '%EPSON%'
+                        OR UPPER(COALESCE(manufacturer, '')) LIKE '%CANON%'
+                        OR UPPER(COALESCE(manufacturer, '')) LIKE '%BROTHER%'
+                        OR UPPER(COALESCE(manufacturer, '')) LIKE '%FORTINET%'
+                        OR UPPER(COALESCE(manufacturer, '')) LIKE '%ARUBA%'
+                        OR UPPER(COALESCE(manufacturer, '')) LIKE '%SYNOLOGY%'
+                        OR UPPER(COALESCE(manufacturer, '')) LIKE '%QNAP%'
+                        THEN 0 ELSE 1 END")
+                    ->orderByDesc('quantity')
+                    ->first();
+
+                if (!$product) {
+                    return null;
+                }
+
+                return array_merge($this->mapPriceAvailabilityDatabaseProduct($product), [
+                    'heroCategory' => $category['label'],
+                    'companyPurchases' => (int) ($product->company_purchases ?? 0),
+                    'unitsSold' => (int) ($product->units_sold ?? 0),
+                ]);
+            })->filter()->values()->all();
+        });
+
+        $products = $this->applySpecialPricingToProductList($products, $this->authenticatedApiUser($request));
+
+        return response()->json(['data' => $products]);
     }
 
     private function applySpecialPricingToProductList(array $products, ?User $user): array
@@ -702,7 +774,7 @@ class ProductController extends Controller
         $cacheKey = sprintf(
             'pa_browse_page:%s',
             md5(json_encode([
-                'v' => 9,
+                'v' => 14,
                 'page' => (int) $pageNo,
                 'page_size' => (int) $pageSize,
                 'hide_zero' => $hideZero,
@@ -804,7 +876,8 @@ class ProductController extends Controller
             && ($normalizedProductType === 'hardware' || $normalizedProductType === '')
             && empty($search)
             && empty($selectedVendors)
-            && empty($billingModels);
+            && empty($billingModels)
+            && empty($category);
 
         if (!empty($selectedVendors)) {
             // Vendor scope is handled below in the selectedVendors block.
@@ -973,9 +1046,33 @@ class ProductController extends Controller
             $query->orderByRaw($searchOrderExpr, $searchOrderBindings);
         }
 
-        $query
-            ->orderByDesc('is_available')
-            ->orderBy('id');
+        $query->orderByDesc('is_available');
+
+        if ($isDefaultBrowse) {
+            // Lead the storefront with complete, commonly purchased business equipment.
+            // Accessories remain available, but batteries/cables no longer dominate page one.
+            $query
+                ->orderByRaw("CASE
+                    WHEN LOWER(COALESCE(product_name, '')) REGEXP '(^|[[:space:]-])(laptop|notebook|desktop|workstation|monitor|printer|server|switch|router|firewall|access point)([[:space:]-]|$)'
+                        AND LOWER(COALESCE(product_name, '')) NOT REGEXP '(battery|replacement|adapter|cable|cord|charger|charging cart|cooling|backpack|carry case|briefcase|sleeve|bag|lock|stand|mount|bracket|dock|docking|keyboard|mouse|memory|drive|converter|serial port|parallel port|usb port|hub|enclosure|tray|kit|kvm console|privacy screen|laptop ps|monitor shelf|desktop set|warranty|support|paper|cartridge|toner|ink|screen protector|power supply)' THEN 0
+                    WHEN category_segment IN ('01', '02', '03', '04', '05', '06') THEN 1
+                    ELSE 2
+                END")
+                // Deterministic spread prevents one large segment (for example laptops)
+                // from occupying every position before another major segment appears.
+                ->orderByRaw("MOD(CRC32(CONCAT(COALESCE(category_segment, ''), '-', id)), 997)")
+                ->orderByRaw("CASE category_segment
+                    WHEN '01' THEN 0
+                    WHEN '02' THEN 1
+                    WHEN '03' THEN 2
+                    WHEN '06' THEN 3
+                    WHEN '04' THEN 4
+                    WHEN '05' THEN 5
+                    ELSE 6
+                END");
+        }
+
+        $query->orderBy('id');
 
         // Clone the fully-filtered query BEFORE pagination so we can COUNT later.
         $countQuery = $query->clone();
@@ -1055,7 +1152,12 @@ class ProductController extends Controller
     {
         $spec = is_array($product->specifications) ? $product->specifications : [];
         $sku = (string) ($spec['sku'] ?? $product->tdsynnex_sku_no ?? $product->tdsynnex_product_id);
-        $price = (float) ($product->retail_price ?? $product->base_price ?? 0);
+        $regularPrice = (float) ($product->retail_price ?? $product->base_price ?? 0);
+        $isOnSale = (bool) $product->is_on_sale
+            && in_array((string) ($product->offer_source ?? ''), ['manual', 'verified_tdsynnex_special', 'tdsynnex_price_drop'], true)
+            && (float) $product->sale_price > 0
+            && (float) $product->sale_price < $regularPrice;
+        $price = $isOnSale ? (float) $product->sale_price : $regularPrice;
         $images = $this->normalizeSavedProductImages($product->images, $product);
         $primaryImage = (string) ($images[0]['imageUrl'] ?? '');
         $quantity = max(
@@ -1096,10 +1198,21 @@ class ProductController extends Controller
             'productPrice' => [
                 [
                     'rsPrice' => $price,
-                    'msrp' => (float) ($product->retail_price ?? $price),
+                    'msrp' => $regularPrice,
                     'minQty' => 1,
                 ],
             ],
+            'isOnSale' => $isOnSale,
+            'regularPrice' => $regularPrice,
+            'salePrice' => $isOnSale ? $price : null,
+            'offer' => $isOnSale ? [
+                'label' => 'Offer',
+                'source' => (string) ($product->offer_source ?? ''),
+                'regularPrice' => $regularPrice,
+                'salePrice' => $price,
+                'discountPercent' => round((($regularPrice - $price) / $regularPrice) * 100, 1),
+                'startedAt' => optional($product->sale_started_at)->toIso8601String(),
+            ] : null,
             'productImages' => $images,
             'images' => $images,
             'image_url' => $primaryImage,
@@ -1446,6 +1559,10 @@ class ProductController extends Controller
                     'product_name as productName',
                     'base_price',
                     'retail_price',
+                    'sale_price',
+                    'is_on_sale',
+                    'offer_source',
+                    'sale_started_at',
                     'billing_model as billingModel',
                     'billing_frequency as billingFrequency',
                     'is_discontinued as discontinueProduct',
@@ -1456,6 +1573,12 @@ class ProductController extends Controller
 
             return $products->map(function ($product) {
                 $images = $this->normalizeSavedProductImages($product->images ?? [], $product);
+                $regularPrice = (float) ($product->retail_price ?? $product->base_price ?? 0);
+                $isOnSale = (bool) $product->is_on_sale
+                    && in_array((string) ($product->offer_source ?? ''), ['manual', 'verified_tdsynnex_special', 'tdsynnex_price_drop'], true)
+                    && (float) $product->sale_price > 0
+                    && (float) $product->sale_price < $regularPrice;
+                $price = $isOnSale ? (float) $product->sale_price : $regularPrice;
 
                 return [
                     'productId' => $product->tdsynnex_product_id,
@@ -1467,11 +1590,21 @@ class ProductController extends Controller
                     'discontinueProduct' => $product->is_discontinued,
                     'productPrice' => [
                         [
-                            'rsPrice' => $product->retail_price ?? $product->base_price,
-                            'msrp' => $product->retail_price ?? $product->base_price,
+                            'rsPrice' => $price,
+                            'msrp' => $regularPrice,
                             'minQty' => 1
                         ]
                     ],
+                    'isOnSale' => $isOnSale,
+                    'regularPrice' => $regularPrice,
+                    'salePrice' => $isOnSale ? $price : null,
+                    'offer' => $isOnSale ? [
+                        'label' => 'Offer',
+                        'source' => (string) ($product->offer_source ?? ''),
+                        'regularPrice' => $regularPrice,
+                        'salePrice' => $price,
+                        'discountPercent' => round((($regularPrice - $price) / $regularPrice) * 100, 1),
+                    ] : null,
                     'specifications' => $product->specifications ?? [],
                     'images' => $images,
                     'productImages' => $images,
