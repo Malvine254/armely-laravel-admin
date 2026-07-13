@@ -1238,10 +1238,10 @@ const submitDeleteAccount = async () => {
   }
 }
 
-const handleSignOut = () => {
-  authStore.logout()
+const handleSignOut = async () => {
+  await authStore.logout()
   toastStore.addToast('Signed out successfully', 'info')
-  router.push({ name: 'login' })
+  await router.replace({ name: 'login' })
 }
 
 onMounted(() => {
