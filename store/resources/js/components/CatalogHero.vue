@@ -114,10 +114,7 @@ const appendImageCandidates = (candidates, value) => {
   if (!rawUrl) return
 
   if (rawUrl.startsWith('/images/')) {
-    // Match Products.vue: direct public path first, store subpath second.
-    candidates.push(rawUrl)
-    const storeUrl = buildStoreUrl(rawUrl)
-    if (storeUrl !== rawUrl) candidates.push(storeUrl)
+    candidates.push(buildStoreUrl(rawUrl))
     return
   }
 
