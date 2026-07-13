@@ -497,7 +497,9 @@ class TDSynnexService
 
             $skuData[$sku] = [
                 'live_price'           => (float) ($normalized['productPrice'][0]['rsPrice'] ?? 0),
-                'live_retail_price'    => (float) ($normalized['productPrice'][0]['msrp'] ?? $normalized['productPrice'][0]['rsPrice'] ?? 0),
+                'live_retail_price'    => !empty($normalized['hasApiRetailPrice'])
+                    ? (float) ($normalized['productPrice'][0]['msrp'] ?? 0)
+                    : null,
                 'live_quantity'        => (int) ($normalized['totalQuantity'] ?? $normalized['availableQuantity'] ?? 0),
                 'live_is_available'    => !((bool) ($normalized['discontinueProduct'] ?? false)),
                 'live_is_discontinued' => (bool) ($normalized['discontinueProduct'] ?? false),
@@ -524,16 +526,74 @@ class TDSynnexService
             }
 
             $live = $skuData[$sku];
+            $current = \DB::table('products')->where('id', $productId)->first([
+                'base_price', 'supplier_regular_price', 'retail_price', 'sale_price',
+                'is_on_sale', 'offer_source', 'sale_started_at',
+            ]);
+            $regularPrice = (float) ($current->retail_price ?? 0);
+            $supplierPrice = (float) $live['live_price'];
+            $previousSupplierPrice = (float) ($current->base_price ?? 0);
+            $manualOffer = (string) ($current->offer_source ?? '') === 'manual'
+                && (bool) $current->is_on_sale;
+            $verifiedSpecial = (string) ($current->offer_source ?? '') === 'verified_tdsynnex_special'
+                && (bool) $current->is_on_sale
+                && abs((float) ($current->sale_price ?? 0) - $supplierPrice) < 0.01;
+            $newSupplierDrop = $supplierPrice > 0
+                && $previousSupplierPrice > 0
+                && $supplierPrice < ($previousSupplierPrice - 0.01);
+            $continuingSupplierDrop = (string) ($current->offer_source ?? '') === 'tdsynnex_price_drop'
+                && (bool) $current->is_on_sale
+                && abs((float) ($current->sale_price ?? 0) - $supplierPrice) < 0.01;
+            $isOnSale = $manualOffer || $verifiedSpecial || $newSupplierDrop || $continuingSupplierDrop;
+            $salePrice = ($manualOffer || $verifiedSpecial)
+                ? (float) $current->sale_price
+                : ($isOnSale ? $supplierPrice : null);
+            $offerSource = ($manualOffer || $verifiedSpecial)
+                ? (string) $current->offer_source
+                : ($isOnSale ? 'tdsynnex_price_drop' : null);
+            $supplierRegularPrice = $newSupplierDrop
+                ? $previousSupplierPrice
+                : ($isOnSale ? (float) ($current->supplier_regular_price ?? $previousSupplierPrice) : null);
+
+            $offerUpdates = [
+                'sale_price' => $salePrice,
+                'is_on_sale' => $isOnSale,
+                'offer_source' => $offerSource,
+                'supplier_regular_price' => $supplierRegularPrice,
+                'sale_started_at' => $isOnSale
+                    ? ($current->is_on_sale ? $current->sale_started_at : $now)
+                    : null,
+                'sale_ended_at' => (!$isOnSale && $current->is_on_sale) ? $now : null,
+            ];
+
+            $mainUpdates = [
+                'base_price'      => $live['live_price'],
+                'quantity'        => $live['live_quantity'],
+                'is_available'    => $live['live_is_available'],
+                'is_discontinued' => $live['live_is_discontinued'],
+                'last_synced_at'  => $now,
+            ];
+            if ($live['live_retail_price'] !== null) {
+                $mainUpdates['retail_price'] = $live['live_retail_price'];
+            }
+
             \DB::table('products')
                 ->where('id', $productId)
-                ->update(array_merge($live, [
-                    'base_price'      => $live['live_price'],
-                    'retail_price'    => $live['live_retail_price'],
-                    'quantity'        => $live['live_quantity'],
-                    'is_available'    => $live['live_is_available'],
-                    'is_discontinued' => $live['live_is_discontinued'],
-                    'last_synced_at'  => $now,
-                ]));
+                ->update(array_merge($live, $offerUpdates, $mainUpdates));
+
+            $hasHistory = \DB::table('product_price_histories')->where('product_id', $productId)->exists();
+            if ($supplierPrice > 0 && (!$hasHistory || abs($supplierPrice - (float) ($current->base_price ?? 0)) >= 0.01)) {
+                \DB::table('product_price_histories')->insert([
+                    'product_id' => $productId,
+                    'supplier_price' => $supplierPrice,
+                    'regular_price' => $regularPrice ?: null,
+                    'sale_price' => $salePrice,
+                    'source' => 'tdsynnex_priceavailability',
+                    'checked_at' => $now,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]);
+            }
             $checked++;
         }
 
@@ -1347,6 +1407,7 @@ class TDSynnexService
             'retailPrice',
             'suggestedRetailPrice',
         ]);
+        $hasApiRetailPrice = $msrpPrice > 0;
 
         if ($resellerPrice <= 0) {
             $resellerPrice = (float) ($meta['base_price'] ?? 0);
@@ -1396,6 +1457,7 @@ class TDSynnexService
                     'minQty' => 1,
                 ],
             ],
+            'hasApiRetailPrice' => $hasApiRetailPrice,
             // Keep catalog assembly fast; images are enriched lazily per-page.
             'productImages' => [],
             'images' => [],

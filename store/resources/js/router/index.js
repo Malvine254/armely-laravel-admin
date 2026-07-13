@@ -33,8 +33,6 @@ import Account from '../views/auth/Account.vue';
 import Messages from '../views/messages/Messages.vue';
 import Privacy from '../views/Privacy.vue';
 import CookieSettings from '../views/CookieSettings.vue';
-import Announcements from '../views/Announcements.vue';
-import AdminAnnouncementsPage from '../pages/AdminAnnouncementsPage.vue';
 
 const routes = [
   {
@@ -141,13 +139,6 @@ const routes = [
     meta: { requiresAuth: true, requiresAdmin: true },
   },
   {
-    path: '/admin/tables',
-    name: 'admin-tables',
-    component: AdminAnnouncementsPage,
-    alias: ['/admin/announcements'],
-    meta: { requiresAuth: true, requiresAdmin: true },
-  },
-  {
     path: '/admin/invoices',
     name: 'admin-invoices',
     component: AdminInvoicesPage,
@@ -166,9 +157,9 @@ const routes = [
     meta: { requiresAuth: false },
   },
   {
-    path: '/announcements',
-    name: 'announcements',
-    component: Announcements,
+    path: '/products/filter/:filterPath(.*)*',
+    name: 'products-filter',
+    component: Products,
     meta: { requiresAuth: false },
   },
   {
@@ -312,7 +303,7 @@ router.beforeEach((to, from, next) => {
 
   // Activation pending users should stay on public/account pages until email is verified.
   if (authStore.isActivationPending) {
-    const allowedNames = ['home', 'products', 'product-detail', 'account', 'activate-account', 'login', 'privacy', 'cookie-settings', 'announcements'];
+    const allowedNames = ['home', 'products', 'product-detail', 'account', 'activate-account', 'login', 'privacy', 'cookie-settings'];
     if (to.name && !allowedNames.includes(to.name)) {
       const toastStore = useToastStore();
       toastStore.addToast('Please activate your account from the email link before accessing this page.', 'warning');
@@ -323,7 +314,7 @@ router.beforeEach((to, from, next) => {
 
   // Restricted users can sign in but are limited to read-only friendly pages.
   if (authStore.isRestricted) {
-    const allowedNames = ['home', 'products', 'product-detail', 'account', 'login', 'privacy', 'cookie-settings', 'announcements'];
+    const allowedNames = ['home', 'products', 'product-detail', 'account', 'login', 'privacy', 'cookie-settings'];
     if (to.name && !allowedNames.includes(to.name)) {
       const toastStore = useToastStore();
       toastStore.addToast('Your account is restricted. Please contact your administrator.', 'warning');

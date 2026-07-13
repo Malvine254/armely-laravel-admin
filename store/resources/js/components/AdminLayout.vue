@@ -224,20 +224,6 @@
           <span>Settings</span>
         </router-link>
 
-        <router-link
-          :to="{ name: 'admin-tables' }"
-          :class="[
-            'flex items-center px-6 py-3 border-l-4 transition',
-            isActive('tables')
-              ? 'bg-[#2F5597]/10 border-[#2F5597] text-[#2F5597] font-semibold'
-              : 'border-transparent hover:bg-gray-50 hover:border-[#2F5597]/50 text-gray-700'
-          ]"
-        >
-          <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11.5V6a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2h5.5M15 19l2 2 4-4m-8-8h6m-6 4h4" />
-          </svg>
-          <span>Tables</span>
-        </router-link>
       </nav>
 
       <!-- User Profile -->
@@ -652,9 +638,6 @@ const isActive = (section) => {
   if (section === 'orders') {
     // Don't match /admin/orders/tracking
     return path.includes('/admin/orders') && !path.includes('/admin/orders/tracking')
-  }
-  if (section === 'tables') {
-    return path.includes('/admin/tables') || path.includes('/admin/announcements')
   }
   return path.includes(`/admin/${section}`)
 }

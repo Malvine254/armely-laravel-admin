@@ -846,8 +846,19 @@ class QuoteOrderInvoiceController extends Controller
                         $retailUnitPrice = (float) ($product->live_retail_price ?? 0);
                     }
 
+                    $activeOfferPrice = (bool) $product->is_on_sale
+                        && in_array((string) ($product->offer_source ?? ''), [
+                            'manual',
+                            'verified_tdsynnex_special',
+                            'tdsynnex_price_drop',
+                        ], true)
+                        && (float) ($product->sale_price ?? 0) > 0
+                        && (float) $product->sale_price < $retailUnitPrice
+                            ? (float) $product->sale_price
+                            : 0.0;
+
                     if ($retailUnitPrice > 0) {
-                        $baseUnitPrice = $retailUnitPrice;
+                        $baseUnitPrice = $activeOfferPrice > 0 ? $activeOfferPrice : $retailUnitPrice;
                     }
                 }
 

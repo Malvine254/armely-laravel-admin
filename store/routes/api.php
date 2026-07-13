@@ -7,7 +7,6 @@ use App\Http\Controllers\QuoteOrderInvoiceController;
 use App\Http\Controllers\ActivityController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\AdminController;
-use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\StripeController;
 use App\Services\TDSynnexService;
 use App\Http\Controllers\AuthController;
@@ -62,6 +61,7 @@ Route::prefix('v1')->group(function () {
 
     // Products endpoints
     Route::get('/products', [ProductController::class, 'index']);
+    Route::get('/products/featured', [ProductController::class, 'featured']);
     Route::get('/products/{productId}', [ProductController::class, 'show']);
     Route::get('/products/{productId}/related', [ProductController::class, 'related']);
     Route::get('/products/sku/{skuNo}', [ProductController::class, 'getBySku']);
@@ -70,7 +70,6 @@ Route::prefix('v1')->group(function () {
     Route::get('/vendors', [ProductController::class, 'vendors']);
     Route::get('/categories', [ProductController::class, 'categories']);
     Route::get('/menu-categories', [ProductController::class, 'menuCategories']);
-    Route::get('/announcements/latest', [AnnouncementController::class, 'latest']);
     Route::get('/pricing/settings', [QuoteOrderInvoiceController::class, 'getPricingSettings']);
 
     // Reviews endpoints (public read, auth write)
@@ -200,11 +199,6 @@ Route::prefix('v1')->group(function () {
         Route::get('/admin/settings/price-sync/state', [AdminController::class, 'getPriceSyncRunState']);
         Route::post('/admin/settings/system', [AdminController::class, 'updateSystemSettings']);
 
-        // Announcements and offers
-        Route::get('/admin/announcements', [AnnouncementController::class, 'index']);
-        Route::post('/admin/announcements', [AnnouncementController::class, 'store']);
-        Route::put('/admin/announcements/{announcement}', [AnnouncementController::class, 'update']);
-        Route::delete('/admin/announcements/{announcement}', [AnnouncementController::class, 'destroy']);
 
         // Activity Logs
         Route::get('/admin/logs/admins', [AdminController::class, 'getAdminActivityLogs']);
