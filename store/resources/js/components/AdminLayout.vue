@@ -453,11 +453,13 @@
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import api from '@/services/api'
+import { useAuthStore } from '@/stores/authStore'
 
 const NOTIF_SEEN_STORAGE_KEY = 'armely_admin_seen_notifications_v1'
 
 const router = useRouter()
 const route = useRoute()
+const authStore = useAuthStore()
 
 const sidebarOpen = ref(false)
 const showNotifDropdown = ref(false)
@@ -729,17 +731,8 @@ const fetchEscalatedCount = async () => {
 }
 
 const logout = async () => {
-  try {
-    await api.post('/auth/logout')
-    localStorage.removeItem('auth_token')
-    localStorage.removeItem('armely_user')
-    localStorage.removeItem('auth_session_expiry')
-    localStorage.removeItem('auth_restricted')
-    router.push('/login')
-  } catch (error) {
-    console.error('Logout failed:', error)
-    router.push('/login')
-  }
+  await authStore.logout()
+  await router.replace({ name: 'admin-login' })
 }
 
 onMounted(() => {

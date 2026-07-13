@@ -636,7 +636,7 @@ const closeAll = () => {
 const handleLogout = async () => {
   await authStore.logout()
   toastStore.addToast('Logged out successfully', 'success')
-  router.push({ name: 'login' })
+  await router.replace({ name: 'login' })
   closeAll()
 }
 
