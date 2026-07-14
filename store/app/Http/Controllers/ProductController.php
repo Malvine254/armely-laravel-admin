@@ -1758,6 +1758,7 @@ class ProductController extends Controller
                     'base_price',
                     'retail_price',
                     'supplier_regular_price',
+                    'quantity',
                     'sale_price',
                     'is_on_sale',
                     'offer_source',
@@ -1789,6 +1790,9 @@ class ProductController extends Controller
                     'billingModel' => $product->billing_model,
                     'billingFrequency' => $product->billing_frequency,
                     'discontinueProduct' => $product->is_discontinued,
+                    'totalQuantity' => (int) ($product->quantity ?? 0),
+                    'availableQuantity' => (int) ($product->quantity ?? 0),
+                    'qty' => (string) ((int) ($product->quantity ?? 0)),
                     'productPrice' => [
                         [
                             'rsPrice' => $price,
