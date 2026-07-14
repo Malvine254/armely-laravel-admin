@@ -387,7 +387,7 @@ watch(
 )
 
 const productCategories = ref([])
-const MENU_CATEGORIES_STORAGE_KEY = 'store_menu_categories_v4'
+const MENU_CATEGORIES_STORAGE_KEY = 'store_menu_categories_v5_capped_3000'
 const MENU_CATEGORIES_SOFT_TTL_MS = 15 * 60 * 1000
 const MENU_CATEGORIES_HARD_TTL_MS = 7 * 24 * 60 * 60 * 1000
 
@@ -443,6 +443,7 @@ const normalizeMenuCategories = (rows) => {
       slug: cat?.slug,
       value: cat?.value ?? cat?.slug ?? cat?.name,
       segment_code: cat?.segment_code,
+      count: Number(cat?.count || 0),
       children: Array.isArray(cat?.children)
         ? cat.children
             .map(child => ({
@@ -454,10 +455,10 @@ const normalizeMenuCategories = (rows) => {
               count: Number(child?.count || 0),
               type: child?.type || 'vendor',
             }))
-            .filter(child => typeof child.name === 'string' && child.name.trim() !== '')
+            .filter(child => typeof child.name === 'string' && child.name.trim() !== '' && child.count > 0)
         : [],
     }))
-    .filter(cat => typeof cat.name === 'string' && cat.name.trim() !== '')
+    .filter(cat => typeof cat.name === 'string' && cat.name.trim() !== '' && cat.count > 0)
 }
 
 const loadMenuCategoriesFromStorage = () => {
