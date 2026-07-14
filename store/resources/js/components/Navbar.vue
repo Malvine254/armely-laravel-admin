@@ -1,7 +1,7 @@
 <template>
   <nav class="sticky top-0 z-[100] isolate overflow-x-clip bg-white shadow-[0_4px_18px_rgba(15,42,82,0.10)]">
     <!-- Utility bar -->
-    <div class="hidden bg-gradient-to-r from-[#073b89] via-[#0b4aa0] to-[#073b89] text-white lg:block">
+    <div v-if="showUtilityBar" class="hidden bg-gradient-to-r from-[#073b89] via-[#0b4aa0] to-[#073b89] text-white lg:block">
       <div class="mx-auto flex h-10 max-w-[1600px] items-center justify-between px-5 text-xs font-medium">
         <div class="flex items-center gap-2 text-blue-50">
           <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 3 4.5 6v5.4c0 4.7 3.2 8.1 7.5 9.6 4.3-1.5 7.5-4.9 7.5-9.6V6L12 3Zm-3 9 2 2 4-5"/></svg>
@@ -19,7 +19,7 @@
     <div class="w-full px-3 sm:px-4 lg:px-5">
       <div class="flex min-h-20 w-full flex-wrap items-center justify-between gap-x-2 py-3 lg:min-h-24 lg:justify-center lg:gap-x-4 2xl:gap-x-7">
         <!-- Logo Section -->
-        <button type="button" class="mr-auto flex flex-shrink-0 cursor-pointer items-center gap-2 transition hover:opacity-95 sm:gap-3 lg:mr-0" @click="goToProducts">
+        <button type="button" class="mr-auto flex flex-shrink-0 cursor-pointer items-center gap-2 transition hover:opacity-95 sm:gap-3 lg:mr-0" aria-label="Go to Armely Store home" @click="goToHome">
           <div class="flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl border border-blue-100 bg-white px-1 shadow-sm" aria-hidden="true">
             <span class="armely-brand-font text-[13px] leading-none text-[#0b3b82]">armely</span>
           </div>
@@ -46,11 +46,8 @@
         </form>
 
         <!-- Dynamic category row -->
-        <div ref="categoryMenuRef" class="order-4 -mx-3 mt-3 hidden min-h-14 w-[calc(100%+1.5rem)] flex-none items-stretch justify-center bg-gradient-to-r from-[#073b89] via-[#0b4aa0] to-[#073b89] sm:-mx-4 sm:w-[calc(100%+2rem)] lg:-mx-5 lg:w-[calc(100%+2.5rem)] xl:flex">
-          <button type="button" class="flex min-w-[12rem] items-center justify-center gap-2.5 border-r border-white/10 bg-[#083777] px-4 text-sm font-bold text-white transition hover:bg-[#062f68]" @click="toggleMoreCategories">
-            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
-            Shop by Category
-          </button>
+        <div class="order-4 -mx-3 mt-3 hidden min-h-14 w-[calc(100%+1.5rem)] flex-none items-stretch justify-center bg-gradient-to-r from-[#073b89] via-[#0b4aa0] to-[#073b89] sm:-mx-4 sm:w-[calc(100%+2rem)] lg:-mx-5 lg:w-[calc(100%+2.5rem)] xl:flex">
+          <div ref="categoryMenuRef" class="mx-3 flex w-[calc(100%-1.5rem)] items-stretch justify-center sm:mx-5 sm:w-[calc(100%-2.5rem)] lg:mx-8 lg:w-[calc(100%-4rem)] 2xl:mx-10 2xl:w-[calc(100%-5rem)]">
           <div
             v-for="cat in primaryCategories"
             :key="cat.value"
@@ -163,6 +160,7 @@
             </transition>
           </div>
 
+          </div>
         </div>
 
         <!-- Right Section Icons -->
@@ -349,6 +347,8 @@ import api from '../services/api'
 
 const router = useRouter()
 const route = useRoute()
+// Kept behind a flag so the utility links can be restored without rebuilding the markup.
+const showUtilityBar = false
 const cartStore = useCartStore()
 const favoritesStore = useFavoritesStore()
 const authStore = useAuthStore()
@@ -405,17 +405,16 @@ const recalculatePrimaryCategories = () => {
   const categories = productCategories.value
   if (menuWidth <= 0 || categories.length === 0) return
 
-  const shopByCategoryWidth = 192
   const moreCategoriesWidth = 154
   const widths = categories.map(category => measureCategoryWidth(category.name))
   const allCategoriesWidth = widths.reduce((total, width) => total + width, 0)
 
-  if (shopByCategoryWidth + allCategoriesWidth <= menuWidth) {
+  if (allCategoriesWidth <= menuWidth) {
     primaryCategoryLimit.value = categories.length
     return
   }
 
-  const usableWidth = Math.max(0, menuWidth - shopByCategoryWidth - moreCategoriesWidth)
+  const usableWidth = Math.max(0, menuWidth - moreCategoriesWidth)
   let usedWidth = 0
   let count = 0
   for (const width of widths) {
@@ -611,6 +610,12 @@ const goToOrders = () => {
 const goToProducts = () => {
   router.push({ name: 'products' })
   closeAll()
+}
+
+const goToHome = () => {
+  closeAll()
+  // The brand logo always returns to the canonical storefront root.
+  window.location.assign('/store')
 }
 
 const browseProducts = (category = null) => {

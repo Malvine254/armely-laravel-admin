@@ -11,6 +11,7 @@ use App\Http\Controllers\StripeController;
 use App\Services\TDSynnexService;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ReviewController;
+use App\Http\Controllers\SearchProfileController;
 
 /*
 |--------------------------------------------------------------------------
@@ -62,6 +63,7 @@ Route::prefix('v1')->group(function () {
     // Products endpoints
     Route::get('/products', [ProductController::class, 'index']);
     Route::get('/products/featured', [ProductController::class, 'featured']);
+    Route::get('/products/popular-categories', [ProductController::class, 'popularCategories']);
     Route::get('/products/{productId}', [ProductController::class, 'show']);
     Route::get('/products/{productId}/related', [ProductController::class, 'related']);
     Route::get('/products/sku/{skuNo}', [ProductController::class, 'getBySku']);
@@ -71,6 +73,8 @@ Route::prefix('v1')->group(function () {
     Route::get('/categories', [ProductController::class, 'categories']);
     Route::get('/menu-categories', [ProductController::class, 'menuCategories']);
     Route::get('/pricing/settings', [QuoteOrderInvoiceController::class, 'getPricingSettings']);
+    Route::get('/search-profile', [SearchProfileController::class, 'show']);
+    Route::post('/search-profile/terms', [SearchProfileController::class, 'track'])->middleware('throttle:60,1');
 
     // Reviews endpoints (public read, auth write)
     Route::get('/products/reviews/stats', [ReviewController::class, 'stats']);

@@ -462,19 +462,16 @@
           <span class="text-sm text-gray-500">Showing {{ paginatedRelated.length }} of {{ relatedProducts.length }}</span>
         </div>
         
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
           <div v-for="relatedProduct in paginatedRelated" :key="relatedProduct.productId"
-               class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden group hover:shadow-lg transition"
-               style="border: 1px solid rgb(229, 231, 235);"
-               @mouseenter="$event.currentTarget.style.borderColor='#cce4f5'"
-               @mouseleave="$event.currentTarget.style.borderColor='rgb(229, 231, 235)'">
+               class="group flex min-h-[248px] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_2px_10px_rgba(15,42,82,0.05)] transition hover:border-blue-200 hover:shadow-[0_8px_24px_rgba(15,42,82,0.10)] sm:flex-row">
             <!-- Product Image -->
-            <div class="bg-gradient-to-br from-gray-200 to-gray-300 h-40 flex items-center justify-center relative overflow-hidden" style="background: linear-gradient(135deg, rgb(229, 231, 235), rgb(209, 213, 219));">
+            <div class="relative flex h-52 flex-shrink-0 items-center justify-center overflow-hidden border-b border-slate-100 bg-white sm:h-auto sm:min-h-[248px] sm:w-[39%] sm:border-b-0 sm:border-r">
               <img
                 v-if="getPrimaryImageUrl(relatedProduct)"
                 :src="getPrimaryImageUrl(relatedProduct)"
                 :alt="relatedProduct.productName"
-                class="w-full h-full object-cover"
+                class="h-full w-full object-contain p-3"
                 loading="lazy"
                 decoding="async"
                 sizes="(min-width: 1024px) 240px, (min-width: 640px) 50vw, 100vw"
@@ -503,9 +500,9 @@
             </div>
 
             <!-- Product Info -->
-            <div class="p-4">
+            <div class="flex min-w-0 flex-1 flex-col p-4">
               <div class="flex items-start justify-between mb-2">
-                <h3 class="text-sm font-semibold text-gray-900 line-clamp-2" :title="buildProductHoverDetails(relatedProduct)">{{ relatedProduct.productName }}</h3>
+                <h3 class="line-clamp-2 min-h-[2.5rem] min-w-0 flex-1 text-sm font-bold leading-5 text-[#102a52]" :title="buildProductHoverDetails(relatedProduct)">{{ relatedProduct.productName }}</h3>
                 <span v-if="relatedProduct.discontinueProduct" class="ml-2 px-2 py-1 bg-red-100 text-red-700 text-xs font-semibold rounded flex-shrink-0">EOL</span>
                 <span v-else class="ml-2 px-2 py-1 text-xs font-semibold rounded flex-shrink-0" style="background-color: #cce4f4; color: #2F5597;">Active</span>
               </div>
@@ -542,7 +539,7 @@
               </div>
 
               <!-- Features -->
-              <div class="mb-4 flex flex-wrap gap-1">
+              <div class="hidden">
                 <span class="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">{{ getProductMetaPrimary(relatedProduct) }}</span>
                 <span class="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">{{ getProductMetaSecondary(relatedProduct) }}</span>
               </div>
@@ -552,7 +549,7 @@
               </div>
 
               <!-- Actions -->
-              <div class="flex gap-2 w-full">
+              <div class="mt-auto flex w-full gap-2">
                 <button @click="navigateToProduct(relatedProduct.productId)" class="flex-1 px-3 py-2 text-white text-sm font-semibold rounded-lg transition inline-flex items-center justify-center gap-1" style="background-color: #2F5597;" @mouseenter="$event.target.style.backgroundColor='#1f4788'" @mouseleave="$event.target.style.backgroundColor='#2F5597'">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -683,6 +680,7 @@ import Navbar from '../../components/Navbar.vue'
 import { API_BASE_URL, buildStoreUrl } from '../../services/runtimeConfig'
 import { usePricingSettings } from '../../composables/usePricingSettings'
 import api from '../../services/api'
+import { rememberViewedProduct } from '../../services/recentlyViewed'
 
 const router = useRouter()
 const route = useRoute()
@@ -724,7 +722,7 @@ const RELATED_PER_PAGE = 8
 const PRODUCT_DETAIL_CACHE_TTL_MS = 15 * 60 * 1000
 const PRODUCT_DETAIL_FETCH_TIMEOUT_MS = 30000
 const PRODUCT_DETAIL_STORAGE_PREFIX = 'product_detail_v1:'
-const PRODUCT_RELATED_STORAGE_PREFIX = 'product_related_v1:'
+const PRODUCT_RELATED_STORAGE_PREFIX = 'product_related_v2:'
 const relatedPage = ref(1)
 
 const fetchWithTimeout = async (url, options = {}, timeoutMs = PRODUCT_DETAIL_FETCH_TIMEOUT_MS) => {
@@ -789,40 +787,6 @@ const getRelatedFilterQuery = () => {
   params.set('hide_zero_price', 'true')
   params.set('catalog_clean', 'true')
 
-  const returnTo = sanitizeReturnTo(route.query.returnTo || '/products')
-
-  try {
-    const parsed = new URL(returnTo, window.location.origin)
-    const source = parsed.searchParams
-    const mappings = [
-      ['q', 'q'],
-      ['search', 'search'],
-      ['minPrice', 'min_price'],
-      ['min_price', 'min_price'],
-      ['maxPrice', 'max_price'],
-      ['max_price', 'max_price'],
-      ['productType', 'product_type'],
-      ['product_type', 'product_type'],
-      ['category', 'category'],
-    ]
-
-    mappings.forEach(([from, to]) => {
-      const value = source.get(from)
-      if (value !== null && value !== '') {
-        params.set(to, value)
-      }
-    })
-
-    mappings.forEach(([from, to]) => {
-      const value = route.query[from]
-      if (!params.has(to) && value !== undefined && value !== null && value !== '') {
-        params.set(to, Array.isArray(value) ? value[0] : value)
-      }
-    })
-  } catch {
-    // Ignore invalid returnTo values; sanitizeReturnTo already keeps navigation safe.
-  }
-
   return params
 }
 
@@ -832,7 +796,7 @@ const getRelatedCacheKey = (productId) => {
 }
 
 const loadRelatedProducts = async (productId, cacheKey, cachedRelated) => {
-  if (cachedRelated) {
+  if (Array.isArray(cachedRelated) && cachedRelated.length > 0) {
     relatedProducts.value = cachedRelated
     return
   }
@@ -852,7 +816,9 @@ const loadRelatedProducts = async (productId, cacheKey, cachedRelated) => {
     const loadedRelated = data.records || data || []
     relatedProducts.value = loadedRelated
     relatedProductsCache.set(cacheKey, loadedRelated)
-    saveCachedPayload(PRODUCT_RELATED_STORAGE_PREFIX, cacheKey, loadedRelated)
+    if (loadedRelated.length > 0) {
+      saveCachedPayload(PRODUCT_RELATED_STORAGE_PREFIX, cacheKey, loadedRelated)
+    }
   } catch (relatedError) {
     console.warn('Related products fetch failed:', relatedError)
     relatedProducts.value = []
@@ -948,6 +914,7 @@ const loadProductDetail = async (productId) => {
   }
 
   if (product.value) {
+    rememberViewedProduct(product.value.productId || productId)
     void loadRelatedProducts(productId, relatedCacheKey, cachedRelated)
     void fetchReviews(productId)
   }

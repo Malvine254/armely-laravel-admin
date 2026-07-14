@@ -22,6 +22,7 @@ import AdminChatPage from '../pages/AdminChatPage.vue';
 import AdminOrderTrackingPage from '../pages/AdminOrderTrackingPage.vue';
 import AdminChangePasswordPage from '../pages/AdminChangePasswordPage.vue';
 import Products from '../views/catalog/Products.vue';
+import StoreLanding from '../views/StoreLanding.vue';
 import ProductDetail from '../views/catalog/ProductDetail.vue';
 import Cart from '../views/quotes/Cart.vue';
 import Quotes from '../views/quotes/Quotes.vue';
@@ -38,7 +39,7 @@ const routes = [
   {
     path: '/',
     name: 'home',
-    component: Products,
+    component: StoreLanding,
     meta: { requiresAuth: false },
   },
   {

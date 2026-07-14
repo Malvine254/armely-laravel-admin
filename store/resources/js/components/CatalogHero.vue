@@ -54,7 +54,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import api from '../services/api'
-import { buildStoreUrl, normalizeLocalAssetUrl } from '../services/runtimeConfig'
+import { buildStoreUrl, normalizeLocalAssetUrl, resolveProductImageUrl } from '../services/runtimeConfig'
 
 defineEmits(['browse'])
 
@@ -113,12 +113,7 @@ const appendImageCandidates = (candidates, value) => {
   const rawUrl = String(value || '').trim()
   if (!rawUrl) return
 
-  if (rawUrl.startsWith('/images/')) {
-    candidates.push(buildStoreUrl(rawUrl))
-    return
-  }
-
-  candidates.push(normalizeLocalAssetUrl(rawUrl))
+  candidates.push(resolveProductImageUrl(rawUrl))
 }
 
 const getProductImageCandidates = (product) => {

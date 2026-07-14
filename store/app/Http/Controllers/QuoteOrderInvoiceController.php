@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\OfferPricing;
+
 use App\Models\Quote;
 use App\Models\Order;
 use App\Models\Invoice;
@@ -853,7 +855,7 @@ class QuoteOrderInvoiceController extends Controller
                             'tdsynnex_price_drop',
                         ], true)
                         && (float) ($product->sale_price ?? 0) > 0
-                        && (float) $product->sale_price < $retailUnitPrice
+                        && (float) $product->sale_price < OfferPricing::regularPrice($product)
                             ? (float) $product->sale_price
                             : 0.0;
 

@@ -654,6 +654,35 @@ class MessageController extends Controller
         }
 
         $context = $this->buildAssistantContext($user, $question, $session->id);
+        $queryAuditHandled = $this->handleCatalogQueryAudit($question, $context);
+
+        if ($queryAuditHandled !== null) {
+            ChatMessage::create([
+                'chat_session_id' => $session->id,
+                'user_id' => $user->id,
+                'role' => 'assistant',
+                'content' => $queryAuditHandled['reply'],
+                'actions' => $queryAuditHandled['actions'],
+                'metadata' => [
+                    'source' => 'catalog_query_audit',
+                    'catalog_search_query' => $context['catalog_search_query'] ?? null,
+                    'product_suggestions' => [],
+                ],
+            ]);
+
+            $session->forceFill(['last_message_at' => now()])->save();
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'reply' => $queryAuditHandled['reply'],
+                    'actions' => $queryAuditHandled['actions'],
+                    'product_suggestions' => [],
+                    'source' => 'catalog_query_audit',
+                    'chat_session' => ['id' => $session->id, 'title' => $session->title],
+                ],
+            ]);
+        }
         $directHandled = $this->handleDirectAssistantAction($user, $question, $context);
 
         if ($directHandled !== null) {
@@ -694,20 +723,22 @@ class MessageController extends Controller
         if ($smartIntent !== null) {
             $context['smart_intent'] = $smartIntent;
         }
-        $agentResult  = $this->assistantService->orchestrate($question, $context, $chatHistory);
+        // Product conversations are resolved once, from the database-backed context. Sending
+        // them through a second classifier/product agent caused the current turn and history to
+        // diverge. Azure remains responsible for account/support conversations only.
+        $localProductHandled = $this->handleLocalProductDiscoveryReply($question, $context);
+        if ($localProductHandled !== null) {
+            $agentResult = [
+                'reply'               => $localProductHandled['reply'],
+                'actions'             => $localProductHandled['actions'],
+                'product_suggestions' => (array) ($localProductHandled['product_suggestions'] ?? []),
+                'source'              => $localProductHandled['source'],
+                'intent'              => 'product_search',
+            ];
+        } else {
+            $agentResult = $this->assistantService->orchestrate($question, $context, $chatHistory);
 
-        // When AI is unconfigured, fall back to local heuristic responses.
-        if ($agentResult['source'] === 'unconfigured') {
-            $localProductHandled = $this->handleLocalProductDiscoveryReply($question, $context);
-            if ($localProductHandled !== null) {
-                $agentResult = [
-                    'reply'               => $localProductHandled['reply'],
-                    'actions'             => $localProductHandled['actions'],
-                    'product_suggestions' => (array) ($localProductHandled['product_suggestions'] ?? []),
-                    'source'              => $localProductHandled['source'],
-                    'intent'              => 'product_search',
-                ];
-            } else {
+            if ($agentResult['source'] === 'unconfigured') {
                 $agentResult = [
                     'reply'               => $this->buildFallbackReply($question, $context),
                     'actions'             => $this->buildAssistantActions($question, $context),
@@ -779,7 +810,7 @@ class MessageController extends Controller
                     $fallbackReply = "Mela AI is temporarily unavailable, but I still managed to find {$count} matching product(s) from your catalog! Check them out below, or reach out to our team for more help.";
                     $fallbackActions[] = [
                         'label' => 'Open product search',
-                        'link' => '/products?search=' . urlencode($question),
+                        'link' => '/products?q=' . urlencode(ChatIntentSignals::extractCatalogSearchPhrase($question)),
                     ];
                 }
             } catch (\Throwable $fallbackError) {
@@ -1190,12 +1221,56 @@ class MessageController extends Controller
                 ->all();
         }
 
-        $historyPreferences    = $this->extractPreferenceKeywordsFromHistory($recentChatTurns);
-        $shouldSuggestProducts = $this->isProductDiscoveryIntent($question, $recentChatTurns);
-        $searchContext         = $this->buildProductSearchContext($question, $recentChatTurns);
-        // Always run the product search so the orchestrator's product agent has real catalog data.
-        // searchProductsForAssistant() short-circuits to [] when no meaningful keywords are extracted.
-        $productSuggestions = $this->searchProductsForAssistant($question, $historyPreferences, 6, $searchContext);
+        // The resolved query already contains any intentional refinement. Feeding all earlier
+        // nouns back into ranking made new topics inherit stale brands and device types.
+        $historyPreferences    = [];
+        $isAccountQuestion = ChatIntentSignals::isQuoteIntentQuery($question)
+            || ChatIntentSignals::isInvoiceIntentQuery($question)
+            || ChatIntentSignals::isOrderIntentQuery($question);
+        $productSearchPlan = $isAccountQuestion
+            ? null
+            : $this->assistantService->planProductSearch($question, $recentChatTurns);
+        $catalogSearchQuery = $isAccountQuestion
+            ? ''
+            : trim((string) ($productSearchPlan['query'] ?? ''));
+        if (!$isAccountQuestion && $catalogSearchQuery === '') {
+            $catalogSearchQuery = $this->resolveConversationalCatalogSearchQuery($question, $recentChatTurns);
+        }
+        $catalogSearchQueries  = ChatIntentSignals::extractCatalogSearchPhrases($catalogSearchQuery);
+        $excludedProductTerms = ChatIntentSignals::extractExcludedProductTerms($question);
+        $shouldSuggestProducts = ChatIntentSignals::isCatalogQueryAudit($question)
+            || $this->isProductDiscoveryIntent($catalogSearchQuery, $recentChatTurns);
+        // A conversational follow-up can intentionally contain no new catalog terms. Still run
+        // it through product search so buildProductSearchContext() can reuse the prior cards.
+        $productSearchInputs = $catalogSearchQueries;
+        if (empty($productSearchInputs) && $this->isProductDiscoveryIntent($question, $recentChatTurns)) {
+            $productSearchInputs = [$question];
+            $shouldSuggestProducts = true;
+        }
+
+        $productSuggestions = collect($productSearchInputs)
+            ->flatMap(function (string $searchQuery) use ($historyPreferences, $catalogSearchQueries, $recentChatTurns, $productSearchPlan, $excludedProductTerms) {
+                // Each independent clause gets its own constraints; otherwise "monitors and
+                // printers" would incorrectly require one product to be both categories.
+                // Chat history is required for follow-ups such as "which one do you recommend?"
+                // so the search can reuse the exact products shown in the preceding answer.
+                $searchContext = $this->buildProductSearchContext($searchQuery, $recentChatTurns);
+                $plannedProductType = trim((string) ($productSearchPlan['product_type'] ?? ''));
+                if ($plannedProductType !== '') {
+                    $searchContext['device_type'] = strtolower($plannedProductType);
+                    $searchContext['required_category'] = strtolower($plannedProductType);
+                }
+                $searchContext['excluded_terms'] = $excludedProductTerms;
+                $perQueryLimit = count($catalogSearchQueries) > 1
+                    ? max(2, (int) ceil(6 / count($catalogSearchQueries)))
+                    : 6;
+
+                return $this->searchProductsForAssistant($searchQuery, $historyPreferences, $perQueryLimit, $searchContext);
+            })
+            ->unique(static fn (array $item) => (string) ($item['product_id'] ?? ''))
+            ->take(6)
+            ->values()
+            ->all();
 
         return [
             'customer' => [
@@ -1224,6 +1299,9 @@ class MessageController extends Controller
             'completed_paid_quotes' => $completedPaidQuotes,
             'product_suggestions' => $productSuggestions,
             'product_intent' => $shouldSuggestProducts,
+            'catalog_search_query' => $catalogSearchQuery,
+            'catalog_search_queries' => $catalogSearchQueries,
+            'product_search_plan' => $productSearchPlan,
             'history_preferences' => $historyPreferences,
             'recent_chat_turns' => $recentChatTurns,
             'focused_invoice' => $focusedInvoice ? (function () use ($focusedInvoice) {
@@ -1261,7 +1339,7 @@ class MessageController extends Controller
         if ($isProductIntent) {
             $actions[] = [
                 'label' => 'Open product search',
-                'link' => '/products?search=' . urlencode(trim($question)),
+                'link' => '/products?q=' . urlencode(trim((string) ($context['catalog_search_query'] ?? $question))),
             ];
             $actions[] = [
                 'label' => 'Browse products',
@@ -1345,6 +1423,15 @@ class MessageController extends Controller
         }
 
         $recentChatTurns = (array) ($context['recent_chat_turns'] ?? $chatHistory);
+        $accountIntentCount = collect([
+            $this->isQuoteIntentQuery($q),
+            $this->isOrderIntentQuery($q),
+            $this->isInvoiceIntentQuery($q),
+        ])->filter()->count();
+        if ($accountIntentCount > 1) {
+            return 'general_support';
+        }
+
         if (ChatIntentSignals::isProductLookupIntent($question, $recentChatTurns)) {
             return 'product_search';
         }
@@ -1584,6 +1671,29 @@ class MessageController extends Controller
             $topPrice = isset($top['price']) ? $this->formatAssistantMoney((float) $top['price']) : null;
             $topVendor = trim((string) ($top['vendor'] ?? ''));
 
+            $isRecommendationFollowUp = Str::contains(strtolower($question), [
+                'which one', 'which is best', 'recommend one', 'do you recommend',
+                'your recommendation', 'pick one', 'pick the best', 'choose for me',
+            ]);
+
+            if ($isRecommendationFollowUp) {
+                $reply = "{$greet}my recommendation is **{$topName}**";
+                if ($topPrice && $topPrice !== '$0.00') {
+                    $reply .= " at {$topPrice}";
+                }
+                if ($topVendor !== '') {
+                    $reply .= " from {$topVendor}";
+                }
+                $reply .= '. It is the strongest match from the products I just showed you.';
+
+                return [
+                    'reply' => $reply,
+                    'actions' => $actions,
+                    'product_suggestions' => $productSuggestions,
+                    'source' => 'local_product_recommendation_follow_up',
+                ];
+            }
+
             $reply = "{$greet}";
             if ($count === 1) {
                 $reply .= "I found a great match for you!";
@@ -1615,12 +1725,100 @@ class MessageController extends Controller
             ];
         }
 
+        $understoodQuery = trim((string) ($context['catalog_search_query'] ?? $question));
+
         return [
-            'reply' => "{$greet}I searched the catalog but didn't find a direct match for that phrase. Here are a few tips that help:\n\n• Use a **brand name** like \"Dell\", \"HP\", or \"Cisco\"\n• Try a **category** like \"laptop\", \"monitor\", or \"switch\"\n• Include a **model or SKU** if you have one\n\nGive it another try and I'll find the best options for you!",
+            'reply' => "{$greet}I understood your search as **{$understoodQuery}**, but I couldn't find a currently available, priced match. You can broaden the description, add a brand, or give me a model/SKU and I'll search again.",
             'actions' => $actions,
             'product_suggestions' => [],
             'source' => 'local_product_search_no_match',
         ];
+    }
+
+    private function handleCatalogQueryAudit(string $question, array $context): ?array
+    {
+        if (!ChatIntentSignals::isCatalogQueryAudit($question)) {
+            return null;
+        }
+
+        $query = trim((string) ($context['catalog_search_query'] ?? ''));
+        if ($query === '') {
+            return [
+                'reply' => 'I do not have a previous catalog search query in this conversation yet.',
+                'actions' => [['label' => 'Browse catalog', 'link' => '/products']],
+            ];
+        }
+
+        return [
+            'reply' => 'I searched the product database using: **' . $query . '**.',
+            'actions' => [['label' => 'Open this search', 'link' => '/products?q=' . urlencode($query)]],
+        ];
+    }
+
+    private function resolveCatalogSearchQuery(string $question, array $recentChatTurns): string
+    {
+        if (!ChatIntentSignals::isCatalogQueryAudit($question)) {
+            return ChatIntentSignals::extractCatalogSearchPhrase($question);
+        }
+
+        foreach (array_reverse($recentChatTurns) as $turn) {
+            if (strtolower((string) ($turn['role'] ?? '')) !== 'user') {
+                continue;
+            }
+
+            $content = trim((string) ($turn['content'] ?? ''));
+            if ($content === '' || ChatIntentSignals::isCatalogQueryAudit($content)) {
+                continue;
+            }
+
+            if (ChatIntentSignals::isProductLookupIntent($content)) {
+                return ChatIntentSignals::extractCatalogSearchPhrase($content);
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * Keep context for a terse refinement ("Sony?") without leaking an old product type into
+     * an explicit new request ("now do phones"). No category or brand dictionary is required.
+     */
+    private function resolveConversationalCatalogSearchQuery(string $question, array $recentChatTurns): string
+    {
+        $current = $this->resolveCatalogSearchQuery($question, $recentChatTurns);
+        $currentKeywords = ChatIntentSignals::extractProductSearchKeywords($current);
+        $normalizedQuestion = ChatIntentSignals::normalizeQuestion($question);
+        $isExplicitNewSearch = (bool) preg_match(
+            '/\b(?:i need|i want|find|search|looking for|now do|switch to)\b/u',
+            $normalizedQuestion
+        );
+
+        if ($current === '' || $isExplicitNewSearch || count($currentKeywords) !== 1) {
+            return $current;
+        }
+
+        $skippedCurrentTurn = false;
+        foreach (array_reverse($recentChatTurns) as $turn) {
+            if (strtolower((string) ($turn['role'] ?? '')) !== 'user') {
+                continue;
+            }
+
+            $content = trim((string) ($turn['content'] ?? ''));
+            if (!$skippedCurrentTurn && ChatIntentSignals::normalizeQuestion($content) === $normalizedQuestion) {
+                $skippedCurrentTurn = true;
+                continue;
+            }
+
+            $previous = ChatIntentSignals::extractCatalogSearchPhrase($content);
+            $previousKeywords = ChatIntentSignals::extractProductSearchKeywords($previous);
+            if ($previous === '' || empty($previousKeywords)) {
+                continue;
+            }
+
+            return trim($current . ' ' . implode(' ', $previousKeywords));
+        }
+
+        return $current;
     }
 
     private function extractInvoiceNumber(string $text): ?string
@@ -1675,13 +1873,14 @@ class MessageController extends Controller
         $maxBudget = isset($searchContext['max_budget']) ? (float) $searchContext['max_budget'] : null;
         $requiredBrand = strtolower((string) ($searchContext['required_brand'] ?? ''));
         $requiredCategory = strtolower((string) ($searchContext['required_category'] ?? ''));
+        $excludedTerms = array_values(array_filter(array_map('strtolower', (array) ($searchContext['excluded_terms'] ?? []))));
         $transactionalFollowUp = (bool) ($searchContext['transactional_follow_up'] ?? false);
         $recentSuggestedProducts = (array) ($searchContext['recent_suggested_products'] ?? []);
 
         // Check transactional follow-up using raw question keywords (before deviceType from history is
         // appended) so that "which one do you suggest?" or "add them to cart" correctly re-uses the
         // products already shown rather than running a fresh search with the inherited device type.
-        if ($transactionalFollowUp && empty($rawKeywords) && !empty($recentSuggestedProducts)) {
+        if ($transactionalFollowUp && !empty($recentSuggestedProducts)) {
             return collect($recentSuggestedProducts)
                 ->map(function (array $candidate) {
                     return [
@@ -1700,7 +1899,7 @@ class MessageController extends Controller
                             ],
                             [
                                 'label' => 'Find similar',
-                                'link' => '/products?search=' . urlencode((string) ($candidate['name'] ?? '')),
+                                'link' => '/products?q=' . urlencode((string) ($candidate['name'] ?? '')),
                             ],
                             [
                                 'label' => 'Request quote',
@@ -1710,12 +1909,15 @@ class MessageController extends Controller
                     ];
                 })
                 ->filter(static fn (array $item) => !empty($item['product_id']) && !empty($item['name']))
+                ->reject(fn (array $item) => $this->isAccessoryLikeProduct($item))
                 ->unique(static fn (array $item) => (string) $item['product_id'])
                 ->take($limit)
                 ->values()
                 ->all();
         }
 
+        // Only the current resolved catalog query controls retrieval. Conversation preferences
+        // may influence ranking, but must never broaden the database WHERE clause.
         $keywords = $rawKeywords;
 
         if ($deviceType !== '' && !in_array($deviceType, $keywords, true)) {
@@ -1723,20 +1925,31 @@ class MessageController extends Controller
         }
 
         $preferenceKeywords = array_values(array_filter(array_map('strtolower', $historyPreferences)));
-        if (!empty($preferenceKeywords)) {
-            $keywords = array_values(array_unique(array_merge($keywords, $preferenceKeywords)));
-        }
 
         if (empty($keywords)) {
             return [];
         }
 
         $searchQueries = $this->buildAssistantSearchQueries($question, $keywords);
+        $catalogPhrase = strtolower(ChatIntentSignals::extractCatalogSearchPhrase($question));
 
         $products = Product::query()
             ->where(function ($availability) {
                 $availability->where('is_available', true)
                     ->orWhereNull('is_available');
+            })
+            ->where(function ($stock) {
+                $stock->where('quantity', '>', 0)
+                    ->orWhereNull('quantity');
+            })
+            ->where(function ($active) {
+                $active->where('is_discontinued', false)
+                    ->orWhereNull('is_discontinued');
+            })
+            ->where(function ($priced) {
+                $priced->where('sale_price', '>', 0)
+                    ->orWhere('retail_price', '>', 0)
+                    ->orWhere('base_price', '>', 0);
             })
             ->where(function ($base) use ($keywords) {
                 foreach ($keywords as $keyword) {
@@ -1750,6 +1963,12 @@ class MessageController extends Controller
                         ->orWhere('category_segment', 'like', $like);
                 }
             })
+            ->when($catalogPhrase !== '', function ($query) use ($catalogPhrase) {
+                $query->orderByRaw(
+                    'CASE WHEN LOWER(product_name) = ? THEN 0 WHEN LOWER(product_name) LIKE ? THEN 1 ELSE 2 END',
+                    [$catalogPhrase, '%' . $catalogPhrase . '%']
+                );
+            })
             ->limit(120)
             ->get([
                 'tdsynnex_product_id',
@@ -1759,6 +1978,9 @@ class MessageController extends Controller
                 'description',
                 'base_price',
                 'retail_price',
+                'sale_price',
+                'is_on_sale',
+                'offer_source',
                 'images',
                 'is_discontinued',
                 'manufacturer',
@@ -1766,20 +1988,30 @@ class MessageController extends Controller
             ]);
 
         $candidates = $products->map(function (Product $product) {
+            $activeOffer = (bool) $product->is_on_sale
+                && in_array((string) $product->offer_source, ['manual', 'verified_tdsynnex_special', 'tdsynnex_price_drop'], true)
+                && (float) $product->sale_price > 0;
+            $price = $activeOffer
+                ? (float) $product->sale_price
+                : ((float) $product->retail_price > 0 ? (float) $product->retail_price : (float) $product->base_price);
+
             return [
                 'source' => 'db',
                 'product_id' => (string) ($product->tdsynnex_product_id ?: $product->tdsynnex_sku_no),
                 'name' => (string) ($product->product_name ?? ''),
                 'sku' => (string) ($product->tdsynnex_sku_no ?? ''),
-                'vendor' => (string) ($product->vendor_id ?? ''),
-                'price' => (float) ($product->base_price ?? $product->retail_price ?? 0),
+                'vendor' => (string) ($product->manufacturer ?: $product->vendor_id ?: 'TD SYNNEX'),
+                'price' => $price,
                 'description' => (string) ($product->description ?? ''),
+                'category' => (string) ($product->category_segment ?? ''),
                 'image_url' => $this->extractProductImageUrl($product->images),
                 'is_discontinued' => (bool) $product->is_discontinued,
             ];
         })->values();
 
-        $allowRemoteCatalogLookup = (bool) config('services.tdsynnex.assistant_remote_lookup', false);
+        // Assistant results are intentionally database-only. This prevents remote or demo data
+        // from being represented as products currently present in the storefront catalog.
+        $allowRemoteCatalogLookup = false;
 
         if ($allowRemoteCatalogLookup && $candidates->count() < max(3, $limit)) {
             try {
@@ -1828,6 +2060,7 @@ class MessageController extends Controller
             ->map(function (array $candidate) use ($keywords, $preferenceKeywords, $searchContext, $deviceType, $maxBudget, $requiredBrand, $requiredCategory) {
                 $name = strtolower((string) ($candidate['name'] ?? ''));
                 $description = strtolower((string) ($candidate['description'] ?? ''));
+                $category = strtolower((string) ($candidate['category'] ?? ''));
                 $vendor = strtolower((string) ($candidate['vendor'] ?? ''));
                 $sku = strtolower((string) ($candidate['sku'] ?? ''));
                 $isAccessory = $this->isAccessoryLikeProduct($candidate);
@@ -1841,22 +2074,27 @@ class MessageController extends Controller
                         continue;
                     }
 
-                    if (str_contains($name, $keyword)) {
+                    if ($this->containsCatalogTerm($name, $keyword)) {
                         $score += 5;
                         $matched[] = $keyword;
                     }
 
-                    if (str_contains($vendor, $keyword)) {
+                    if ($this->containsCatalogTerm($vendor, $keyword)) {
                         $score += 4;
                         $matched[] = $keyword;
                     }
 
-                    if (str_contains($description, $keyword)) {
+                    if ($this->containsCatalogTerm($description, $keyword)) {
                         $score += 2;
                         $matched[] = $keyword;
                     }
 
-                    if (str_contains($sku, $keyword)) {
+                    if ($this->containsCatalogTerm($category, $keyword)) {
+                        $score += 4;
+                        $matched[] = $keyword;
+                    }
+
+                    if ($this->containsCatalogTerm($sku, $keyword)) {
                         $score += 2;
                         $matched[] = $keyword;
                     }
@@ -1949,6 +2187,7 @@ class MessageController extends Controller
 
                 return [
                     'score' => $score,
+                    'matched_keyword_count' => count($matched),
                     'product_id' => (string) ($candidate['product_id'] ?? ''),
                     'name' => (string) ($candidate['name'] ?? ''),
                     'sku' => (string) ($candidate['sku'] ?? ''),
@@ -1966,7 +2205,7 @@ class MessageController extends Controller
                         ],
                         [
                             'label' => 'Find similar',
-                            'link' => '/products?search=' . urlencode((string) ($candidate['name'] ?? '')),
+                            'link' => '/products?q=' . urlencode((string) ($candidate['name'] ?? '')),
                         ],
                         [
                             'label' => 'Request quote',
@@ -1975,13 +2214,27 @@ class MessageController extends Controller
                     ],
                 ];
             })
-            ->filter(static fn (array $item) => !empty($item['product_id']) && !empty($item['name']) && ($item['score'] ?? 0) > 0)
+            ->filter(function (array $item) use ($keywords) {
+                if (empty($item['product_id']) || empty($item['name']) || (float) ($item['price'] ?? 0) <= 0) {
+                    return false;
+                }
+
+                // Descriptive/use-case words improve ranking; they are not all mandatory. The
+                // requested device/category and brand are enforced separately below.
+                $requiredMatches = 1;
+
+                return (int) ($item['matched_keyword_count'] ?? 0) >= $requiredMatches;
+            })
             ->filter(function (array $item) use ($deviceType, $maxBudget) {
                 if ($deviceType !== '' && !($item['device_match'] ?? false)) {
                     return false;
                 }
 
                 if ($deviceType !== '' && ($item['is_accessory'] ?? false)) {
+                    return false;
+                }
+
+                if ($deviceType !== '' && $this->isConflictingDeviceProduct($item, $deviceType)) {
                     return false;
                 }
 
@@ -2013,11 +2266,26 @@ class MessageController extends Controller
 
                 return true;
             })
+            ->reject(function (array $item) use ($excludedTerms) {
+                if (empty($excludedTerms)) {
+                    return false;
+                }
+
+                $haystack = strtolower(
+                    (string) ($item['name'] ?? '') . ' ' .
+                    (string) ($item['description'] ?? '')
+                );
+
+                return collect($excludedTerms)->contains(
+                    fn (string $term) => $this->containsCatalogTerm($haystack, $term)
+                );
+            })
             ->sortByDesc('score')
             ->values()
             ->take($limit)
             ->map(function (array $item) {
                 unset($item['score']);
+                unset($item['matched_keyword_count']);
                 unset($item['is_accessory']);
                 unset($item['device_match']);
                 return $item;
@@ -2210,12 +2478,17 @@ class MessageController extends Controller
 
     private function buildProductSearchContext(string $question, array $recentChatTurns = []): array
     {
-        $texts = collect($recentChatTurns)
-            ->filter(static fn (array $turn) => strtolower((string) ($turn['role'] ?? '')) === 'user')
-            ->pluck('content')
-            ->map(static fn ($text) => (string) $text)
-            ->all();
-
+        // A fresh search is governed only by the current resolved query. History is consulted
+        // only when the turn has no search nouns of its own (recommend/pick/add follow-ups).
+        $hasCurrentSearchTerms = !empty(ChatIntentSignals::extractProductSearchKeywords($question));
+        $texts = [];
+        if (!$hasCurrentSearchTerms) {
+            $texts = collect($recentChatTurns)
+                ->filter(static fn (array $turn) => strtolower((string) ($turn['role'] ?? '')) === 'user')
+                ->pluck('content')
+                ->map(static fn ($text) => (string) $text)
+                ->all();
+        }
         $texts[] = $question;
         $joined = strtolower(implode(' ', array_filter($texts)));
 
@@ -2236,6 +2509,16 @@ class MessageController extends Controller
             $deviceType = 'router';
         } elseif (str_contains($joined, 'access point') || str_contains($joined, 'wireless ap')) {
             $deviceType = 'access point';
+        } elseif (str_contains($joined, 'camera') || str_contains($joined, 'webcam')) {
+            $deviceType = 'camera';
+        } elseif (str_contains($joined, 'tablet') || str_contains($joined, 'ipad')) {
+            $deviceType = 'tablet';
+        } elseif (str_contains($joined, 'phone') || str_contains($joined, 'handset')) {
+            $deviceType = 'phone';
+        } elseif (str_contains($joined, 'scanner') || str_contains($joined, 'barcode reader')) {
+            $deviceType = 'scanner';
+        } elseif (str_contains($joined, 'projector')) {
+            $deviceType = 'projector';
         }
 
         $maxBudget = null;
@@ -2288,9 +2571,12 @@ class MessageController extends Controller
         ];
         $transactionalFollowUp = Str::contains($questionLower, $transactionalSignals);
 
-        $recentSuggestedProducts = collect($recentChatTurns)
+        $lastSuggestionTurn = collect($recentChatTurns)
             ->filter(static fn (array $turn) => strtolower((string) ($turn['role'] ?? '')) === 'assistant')
-            ->flatMap(static fn (array $turn) => (array) ($turn['product_suggestions'] ?? []))
+            ->reverse()
+            ->first(static fn (array $turn) => !empty($turn['product_suggestions']));
+
+        $recentSuggestedProducts = collect((array) ($lastSuggestionTurn['product_suggestions'] ?? []))
             ->map(function ($item) {
                 if (!is_array($item)) {
                     return null;
@@ -2332,6 +2618,7 @@ class MessageController extends Controller
         $haystack = strtolower(trim(
             (string) ($candidate['name'] ?? '') . ' ' .
             (string) ($candidate['description'] ?? '') . ' ' .
+            (string) ($candidate['category'] ?? '') . ' ' .
             (string) ($candidate['sku'] ?? '')
         ));
 
@@ -2349,11 +2636,16 @@ class MessageController extends Controller
             'router' => ['router', 'gateway'],
             'access point' => ['access point', 'wireless ap', 'wifi ap'],
             'firewall' => ['firewall', 'security appliance'],
+            'camera' => ['camera', 'webcam', 'video bar', 'videobar'],
+            'tablet' => ['tablet', 'ipad'],
+            'phone' => ['phone', 'handset', 'telephone'],
+            'scanner' => ['scanner', 'barcode reader', 'barcode scanner'],
+            'projector' => ['projector'],
         ];
 
         $needles = $aliases[$category] ?? [$category];
         foreach ($needles as $needle) {
-            if (str_contains($haystack, strtolower($needle))) {
+            if ($this->containsCatalogTerm($haystack, strtolower($needle))) {
                 return true;
             }
         }
@@ -2366,6 +2658,7 @@ class MessageController extends Controller
         $haystack = strtolower(trim(
             (string) ($candidate['name'] ?? '') . ' ' .
             (string) ($candidate['description'] ?? '') . ' ' .
+            (string) ($candidate['category'] ?? '') . ' ' .
             (string) ($candidate['sku'] ?? '')
         ));
 
@@ -2379,10 +2672,33 @@ class MessageController extends Controller
             'hub', 'backpack', 'folio', 'power bank', 'battery', 'warranty', 'service plan', 'kit',
             'mount', 'mounting', 'bracket', 'arm', 'riser', 'shelf', 'tray', 'cart', 'trolley',
             'pdu', 'power distribution', 'power strip', 'surge protector',
+            'monitor clip', 'privacy screen', 'screen filter', 'display filter', 'privacy filter',
+            'security lock', 'laptop lock', 'notebook lock', 'wedge lock', 'cable lock',
+            'low profile lock', 'holder', 'stylus', 'earbud', 'card reader', 'memory card reader',
+            'connect a usb', 'usb type-a device', 'pass-through port',
         ];
 
         foreach ($accessoryTerms as $term) {
             if (str_contains($haystack, $term)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function isConflictingDeviceProduct(array $candidate, string $deviceType): bool
+    {
+        $name = strtolower((string) ($candidate['name'] ?? ''));
+        $conflicts = [
+            'camera' => ['laptop', 'notebook', 'desktop pc', 'monitor with camera'],
+            'phone' => ['headphone', 'earphone', 'microphone', 'phone-jack', 'phone jack', 'stylus'],
+            'tablet' => ['tablet holder', 'tablet stand', 'tablet case', 'tablet dock', 'tablet keyboard'],
+            'monitor' => ['monitor stylus', 'monitor mount', 'monitor arm', 'privacy monitor'],
+        ];
+
+        foreach ($conflicts[$deviceType] ?? [] as $conflict) {
+            if (str_contains($name, $conflict)) {
                 return true;
             }
         }
@@ -2398,7 +2714,8 @@ class MessageController extends Controller
 
         $haystack = strtolower(trim(
             (string) ($candidate['name'] ?? '') . ' ' .
-            (string) ($candidate['description'] ?? '')
+            (string) ($candidate['description'] ?? '') . ' ' .
+            (string) ($candidate['category'] ?? '')
         ));
 
         if ($haystack === '') {
@@ -2414,16 +2731,31 @@ class MessageController extends Controller
             'switch' => ['switch', 'ethernet switch', 'managed switch'],
             'router' => ['router', 'gateway'],
             'access point' => ['access point', 'wireless ap', 'wifi ap'],
+            'camera' => ['camera', 'webcam', 'video bar', 'videobar'],
+            'tablet' => ['tablet', 'ipad'],
+            'phone' => ['phone', 'handset', 'telephone'],
+            'scanner' => ['scanner', 'barcode reader', 'barcode scanner'],
+            'projector' => ['projector'],
         ];
 
         $needles = $deviceAliases[$deviceType] ?? [$deviceType];
         foreach ($needles as $needle) {
-            if (str_contains($haystack, $needle)) {
+            if ($this->containsCatalogTerm($haystack, $needle)) {
                 return true;
             }
         }
 
         return false;
+    }
+
+    private function containsCatalogTerm(string $haystack, string $term): bool
+    {
+        $term = trim(strtolower($term));
+        if ($term === '') {
+            return false;
+        }
+
+        return preg_match('/(?<![a-z0-9])' . preg_quote($term, '/') . '(?![a-z0-9])/i', strtolower($haystack)) === 1;
     }
 
     private function extractProductImageUrl(mixed $images): ?string

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Services\TDSynnexService;
 use App\Services\CustomerPricingService;
 use App\Support\CatalogTaxonomy;
+use App\Support\OfferPricing;
 use App\Exceptions\TDSynnexApiException;
 use App\Models\Product;
 use App\Models\User;
@@ -31,6 +32,22 @@ class ProductController extends Controller
     private function preferredDbPriceSql(): string
     {
         return "COALESCE(NULLIF(CASE WHEN is_on_sale = 1 AND offer_source IN ('manual','verified_tdsynnex_special','tdsynnex_price_drop') THEN sale_price ELSE 0 END, 0), NULLIF(retail_price, 0), 0)";
+    }
+
+    private function offerRegularDbPriceSql(): string
+    {
+        return 'COALESCE(NULLIF(CASE WHEN supplier_regular_price > sale_price THEN supplier_regular_price ELSE 0 END, 0), NULLIF(retail_price, 0), base_price)';
+    }
+
+    /** Regular price used to measure an offer; MSRP remains a separate reference price. */
+    private function offerRegularPrice(Product $product): float
+    {
+        return OfferPricing::regularPrice($product);
+    }
+
+    private function manufacturerMsrp(Product $product): float
+    {
+        return OfferPricing::msrp($product);
     }
 
     private function storefrontMinPrice($requested = null): float
@@ -120,7 +137,7 @@ class ProductController extends Controller
             ['label' => 'Servers & Storage', 'segment' => '05'],
         ];
 
-        $products = Cache::remember('storefront_featured_offers_v3', now()->addMinutes(15), function () use ($categories) {
+        $products = Cache::remember('storefront_featured_offers_v4', now()->addMinutes(15), function () use ($categories) {
             return collect($categories)->map(function (array $category) {
                 $product = Product::query()
                     ->select('products.*')
@@ -130,7 +147,7 @@ class ProductController extends Controller
                     ->where('is_on_sale', true)
                     ->whereNotNull('sale_price')
                     ->where('sale_price', '>', 0)
-                    ->whereRaw('sale_price < COALESCE(NULLIF(retail_price, 0), base_price)')
+                    ->whereRaw('sale_price < ' . $this->offerRegularDbPriceSql())
                     ->where('quantity', '>', 0)
                     ->whereRaw($this->preferredDbPriceSql() . ' > 0')
                     ->whereRaw($this->hasUsableProductImageSql())
@@ -147,7 +164,7 @@ class ProductController extends Controller
                     ])
                     ->withSum('orderLineItems as units_sold', 'quantity')
                     ->orderByDesc('company_purchases')
-                    ->orderByRaw('(COALESCE(NULLIF(retail_price, 0), base_price) - sale_price) / COALESCE(NULLIF(retail_price, 0), base_price) DESC')
+                    ->orderByRaw('(' . $this->offerRegularDbPriceSql() . ' - sale_price) / ' . $this->offerRegularDbPriceSql() . ' DESC')
                     ->orderByDesc('units_sold')
                     ->orderByRaw("CASE WHEN
                         UPPER(COALESCE(manufacturer, '')) LIKE '%DELL%'
@@ -184,6 +201,123 @@ class ProductController extends Controller
         $products = $this->applySpecialPricingToProductList($products, $this->authenticatedApiUser($request));
 
         return response()->json(['data' => $products]);
+    }
+
+    /** Popular catalog categories with a representative in-stock product image. */
+    public function popularCategories(): JsonResponse
+    {
+        $categories = Cache::remember('storefront_popular_categories_v6', now()->addHour(), function () {
+            $popular = [
+                [
+                    'name' => 'Laptops & Notebooks', 'label' => 'Laptops', 'slug' => 'laptops-notebooks', 'segments' => ['01'],
+                    'include' => ['laptop', 'notebook', 'chromebook', 'macbook'],
+                    'exclude' => ['case', 'sleeve', 'bag', 'dock', 'adapter', 'battery', 'screen protector'],
+                ],
+                [
+                    'name' => 'Printers & Scanners', 'label' => 'Printers', 'slug' => 'printers-scanners', 'segments' => ['06'],
+                    'include' => ['printer', 'multifunction', 'laserjet', 'inkjet', 'imageformula', 'document scanner'],
+                    'exclude' => ['cartridge', 'toner', 'ink bottle', 'maintenance kit', 'paper tray', 'printhead'],
+                ],
+                [
+                    'name' => 'Monitors & Displays', 'label' => 'Monitors', 'slug' => 'monitors-displays', 'segments' => ['03'],
+                    'include' => ['monitor', 'display'],
+                    'exclude' => ['cable', 'adapter', 'mount', 'stand', 'arm', 'filter', 'privacy', 'shelf'],
+                ],
+                [
+                    'name' => 'Networking', 'label' => 'Networking', 'slug' => 'networking', 'segments' => ['04'],
+                    'include' => ['network switch', 'managed switch', 'router', 'firewall', 'access point', 'wireless ap'],
+                    'exclude' => ['cable', 'adapter', 'license', 'subscription', 'mount', 'module', 'antenna'],
+                ],
+                [
+                    'name' => 'Desktops & Workstations', 'label' => 'Desktops', 'slug' => 'desktops-workstations', 'segments' => ['02'],
+                    'include' => ['desktop', 'workstation', 'optiplex', 'thinkcentre', 'elitedesk', 'prodesk', 'all-in-one'],
+                    'exclude' => ['cable', 'adapter', 'mount', 'stand', 'memory', 'hard drive', 'keyboard', 'mouse', 'combo', 'webcam', 'headset'],
+                ],
+                ['name' => 'Software', 'label' => 'Software', 'slug' => 'software', 'product_type' => 'software'],
+            ];
+
+            return collect($popular)
+                ->map(function (array $category): ?array {
+                    $query = Product::query()
+                        ->select('products.*')
+                        ->where('is_available', true)
+                        ->where('is_discontinued', false)
+                        ->where('quantity', '>', 0)
+                        ->whereRaw($this->preferredDbPriceSql() . ' > 0')
+                        ->whereRaw($this->hasUsableProductImageSql());
+
+                    if (($category['product_type'] ?? '') === 'software') {
+                        $query->where('is_hardware', false);
+                    } else {
+                        $this->applyPopularCategoryImageFilter(
+                            $query,
+                            (array) ($category['include'] ?? []),
+                            (array) ($category['exclude'] ?? [])
+                        );
+                    }
+
+                    $product = $query
+                        ->withSum('orderLineItems as units_sold', 'quantity')
+                        ->orderByRaw("CASE WHEN
+                            UPPER(COALESCE(manufacturer, '')) LIKE '%DELL%'
+                            OR UPPER(COALESCE(manufacturer, '')) LIKE '%HP%'
+                            OR UPPER(COALESCE(manufacturer, '')) LIKE '%HEWLETT%'
+                            OR UPPER(COALESCE(manufacturer, '')) LIKE '%LENOVO%'
+                            OR UPPER(COALESCE(manufacturer, '')) LIKE '%LEXMARK%'
+                            OR UPPER(COALESCE(manufacturer, '')) LIKE '%CANON%'
+                            OR UPPER(COALESCE(manufacturer, '')) LIKE '%BROTHER%'
+                            OR UPPER(COALESCE(manufacturer, '')) LIKE '%EPSON%'
+                            OR UPPER(COALESCE(manufacturer, '')) LIKE '%CISCO%'
+                            OR UPPER(COALESCE(manufacturer, '')) LIKE '%ARUBA%'
+                            THEN 0 ELSE 1 END")
+                        ->orderByDesc('units_sold')
+                        ->orderByDesc('quantity')
+                        ->orderBy('id')
+                        ->first();
+
+                    if (!$product) {
+                        return null;
+                    }
+
+                    $images = $this->normalizeSavedProductImages($product->images, $product);
+                    $imageUrl = (string) ($images[0]['imageUrl'] ?? '');
+                    if ($imageUrl === '') {
+                        return null;
+                    }
+
+                    return [
+                        'name' => $category['name'],
+                        'label' => $category['label'],
+                        'slug' => $category['slug'],
+                        'category' => array_key_exists('product_type', $category) ? null : $category['name'],
+                        'productType' => $category['product_type'] ?? null,
+                        'segment' => (string) ($category['segments'][0] ?? ''),
+                        'imageUrl' => $imageUrl,
+                        'productId' => (string) ($product->tdsynnex_sku_no ?? $product->tdsynnex_product_id ?? $product->id),
+                    ];
+                })
+                ->filter()
+                ->values()
+                ->all();
+        });
+
+        return response()->json(['data' => $categories]);
+    }
+
+    private function applyPopularCategoryImageFilter(
+        \Illuminate\Database\Eloquent\Builder $query,
+        array $include,
+        array $exclude
+    ): void {
+        $query->where(function ($match) use ($include) {
+            foreach ($include as $keyword) {
+                $match->orWhereRaw("LOWER(COALESCE(product_name, '')) LIKE ?", ['%' . strtolower($keyword) . '%']);
+            }
+        });
+
+        foreach ($exclude as $keyword) {
+            $query->whereRaw("LOWER(COALESCE(product_name, '')) NOT LIKE ?", ['%' . strtolower($keyword) . '%']);
+        }
     }
 
     private function applySpecialPricingToProductList(array $products, ?User $user): array
@@ -776,7 +910,7 @@ class ProductController extends Controller
         $cacheKey = sprintf(
             'pa_browse_page:%s',
             md5(json_encode([
-                'v' => 15,
+                'v' => 23,
                 'page' => (int) $pageNo,
                 'page_size' => (int) $pageSize,
                 'hide_zero' => $hideZero,
@@ -904,12 +1038,25 @@ class ProductController extends Controller
         if (!empty($search)) {
             $searchTerm  = trim((string) $search);
             $rawTerms    = array_values(array_filter(preg_split('/\s+/', $searchTerm)));
-            $lowerTerms  = array_map('strtolower', $rawTerms);
+            $lowerTerms  = array_values(array_filter(array_map(
+                static fn ($term) => strtolower(trim((string) $term, " \t\n\r\0\x0B,.;:!?()[]{}\"'")),
+                $rawTerms
+            )));
+            $stopTerms = ['a', 'an', 'and', 'at', 'by', 'for', 'from', 'in', 'of', 'on', 'the', 'to', 'up', 'with'];
+            $meaningfulTerms = array_values(array_unique(array_filter(
+                $lowerTerms,
+                static fn ($term) => strlen($term) > 1 && !in_array($term, $stopTerms, true)
+            )));
+            if (empty($meaningfulTerms)) {
+                $meaningfulTerms = $lowerTerms;
+            }
             // Terms ≥ 4 chars can use MySQL FULLTEXT; shorter ones need LIKE.
             $longTerms   = array_values(array_filter($lowerTerms, fn ($t) => strlen($t) >= 4));
             $shortTerms  = array_values(array_filter($lowerTerms, fn ($t) => strlen($t) < 4));
             $hasSpecialTokenChars = (bool) array_filter($rawTerms, fn ($t) => preg_match('/[^a-z0-9]/i', (string) $t));
-            $useFt       = $this->hasProductsFullTextIndex() && !empty($longTerms) && !$hasSpecialTokenChars;
+            // Token-by-token LIKE matching is deliberate: the previous FULLTEXT/manufacturer
+            // OR branch let one manufacturer token bypass the rest of a multi-word search.
+            $useFt       = false;
 
             if ($useFt) {
                 // Build a boolean-mode query where EVERY long term is required (+).
@@ -960,26 +1107,72 @@ class ProductController extends Controller
                 ];
             } else {
                 // LIKE fallback — every term must appear in at least one column.
-                foreach ($lowerTerms as $t) {
-                    $like = '%' . $t . '%';
-                    $query->where(function ($q) use ($like) {
-                        $q->whereRaw("LOWER(COALESCE(product_name, '')) LIKE ?", [$like])
-                          ->orWhereRaw("LOWER(COALESCE(description, '')) LIKE ?", [$like])
-                          ->orWhereRaw("LOWER(COALESCE(mfg_part_no, '')) LIKE ?", [$like])
-                          ->orWhereRaw("LOWER(COALESCE(manufacturer, '')) LIKE ?", [$like]);
+                $addTermMatch = static function ($target, string $t, string $boolean = 'and'): void {
+                    $variants = match ($t) {
+                        'laptop', 'laptops' => ['laptop', 'notebook', 'chromebook'],
+                        'desktop', 'desktops' => ['desktop', 'workstation', 'optiplex', 'thinkcentre', 'elitedesk', 'prodesk'],
+                        'printer', 'printers' => ['printer', 'multifunction', 'laserjet', 'inkjet'],
+                        default => [$t],
+                    };
+
+                    $method = $boolean === 'or' ? 'orWhere' : 'where';
+                    $target->{$method}(function ($q) use ($variants) {
+                        foreach ($variants as $variant) {
+                            $like = '%' . $variant . '%';
+                            $q->orWhereRaw("LOWER(COALESCE(product_name, '')) LIKE ?", [$like])
+                              ->orWhereRaw("LOWER(COALESCE(description, '')) LIKE ?", [$like])
+                              ->orWhereRaw("LOWER(COALESCE(mfg_part_no, '')) LIKE ?", [$like])
+                              ->orWhereRaw("LOWER(COALESCE(manufacturer, '')) LIKE ?", [$like])
+                              ->orWhereRaw("LOWER(COALESCE(tdsynnex_product_id, '')) LIKE ?", [$like])
+                              ->orWhereRaw("CAST(COALESCE(tdsynnex_sku_no, 0) AS CHAR) LIKE ?", [$like]);
+                        }
+                    });
+                };
+
+                $addTermMatch($query, $meaningfulTerms[0]);
+                if (count($meaningfulTerms) > 1) {
+                    $query->where(function ($remainingQuery) use ($meaningfulTerms, $addTermMatch) {
+                        foreach (array_slice($meaningfulTerms, 1) as $term) {
+                            $addTermMatch($remainingQuery, $term, 'or');
+                        }
                     });
                 }
 
                 $lowerFull = strtolower($searchTerm);
+                $categoryBoostSegment = match ($lowerFull) {
+                    'laptop', 'laptops' => '01',
+                    'desktop', 'desktops' => '02',
+                    'monitor', 'monitors', 'display', 'displays' => '03',
+                    'network', 'networking' => '04',
+                    'printer', 'printers', 'scanner', 'scanners' => '06',
+                    default => '__none__',
+                };
+                $tokenScoreParts = [];
+                $tokenScoreBindings = [];
+                foreach ($meaningfulTerms as $term) {
+                    $tokenScoreParts[] = "CASE WHEN LOWER(CONCAT_WS(' ', COALESCE(product_name,''), COALESCE(description,''), COALESCE(mfg_part_no,''), COALESCE(manufacturer,''))) LIKE ? THEN 35 ELSE 0 END";
+                    $tokenScoreBindings[] = '%' . $term . '%';
+                }
+                $tokenScoreExpr = $tokenScoreParts ? ' + ' . implode(' + ', $tokenScoreParts) : '';
                 $searchOrderExpr = "(
+                    CASE WHEN COALESCE(category_segment, '') = ? THEN 500 ELSE 0 END +
+                    CASE WHEN CAST(COALESCE(tdsynnex_sku_no, 0) AS CHAR) = ? THEN 700 ELSE 0 END +
+                    CASE WHEN LOWER(COALESCE(tdsynnex_product_id,'')) = ? THEN 680 ELSE 0 END +
+                    CASE WHEN LOWER(COALESCE(mfg_part_no,'')) = ? THEN 650 ELSE 0 END +
                     CASE WHEN LOWER(COALESCE(product_name,'')) LIKE ? THEN 300 ELSE 0 END +
                     CASE WHEN LOWER(COALESCE(product_name,'')) LIKE ? THEN 150 ELSE 0 END +
-                    CASE WHEN LOWER(COALESCE(manufacturer,''))  LIKE ? THEN  40 ELSE 0 END
+                    CASE WHEN LOWER(COALESCE(manufacturer,''))  LIKE ? THEN  80 ELSE 0 END{$tokenScoreExpr} -
+                    CASE WHEN LOWER(COALESCE(product_name,'')) REGEXP '(cable|cord|adapter|mount|stand|riser|dock|case|sleeve|bag|backpack|cartridge|toner|keyboard|mouse|warranty|license|privacy|laptop ps|screen protector|replacement|battery|cooling pad|charger|charging cart|power supply|serial port|parallel port|usb port|kvm|lock)' THEN 400 ELSE 0 END
                 ) DESC";
                 $searchOrderBindings = [
+                    $categoryBoostSegment,
+                    $lowerFull,
+                    $lowerFull,
+                    $lowerFull,
                     $lowerFull . '%',
                     '%' . $lowerFull . '%',
                     '%' . $lowerFull . '%',
+                    ...$tokenScoreBindings,
                 ];
             }
         }
@@ -1154,12 +1347,14 @@ class ProductController extends Controller
     {
         $spec = is_array($product->specifications) ? $product->specifications : [];
         $sku = (string) ($spec['sku'] ?? $product->tdsynnex_sku_no ?? $product->tdsynnex_product_id);
-        $regularPrice = (float) ($product->retail_price ?? $product->base_price ?? 0);
+        $msrp = $this->manufacturerMsrp($product);
+        $offerRegularPrice = $this->offerRegularPrice($product);
         $isOnSale = (bool) $product->is_on_sale
             && in_array((string) ($product->offer_source ?? ''), ['manual', 'verified_tdsynnex_special', 'tdsynnex_price_drop'], true)
             && (float) $product->sale_price > 0
-            && (float) $product->sale_price < $regularPrice;
-        $price = $isOnSale ? (float) $product->sale_price : $regularPrice;
+            && $offerRegularPrice > (float) $product->sale_price;
+        $regularPrice = $isOnSale ? $offerRegularPrice : $msrp;
+        $price = $isOnSale ? (float) $product->sale_price : $msrp;
         $images = $this->normalizeSavedProductImages($product->images, $product);
         $primaryImage = (string) ($images[0]['imageUrl'] ?? '');
         $quantity = max(
@@ -1200,12 +1395,13 @@ class ProductController extends Controller
             'productPrice' => [
                 [
                     'rsPrice' => $price,
-                    'msrp' => $regularPrice,
+                    'msrp' => $msrp,
                     'minQty' => 1,
                 ],
             ],
             'isOnSale' => $isOnSale,
             'regularPrice' => $regularPrice,
+            'msrp' => $msrp,
             'salePrice' => $isOnSale ? $price : null,
             'offer' => $isOnSale ? [
                 'label' => 'Offer',
@@ -1561,6 +1757,7 @@ class ProductController extends Controller
                     'product_name as productName',
                     'base_price',
                     'retail_price',
+                    'supplier_regular_price',
                     'sale_price',
                     'is_on_sale',
                     'offer_source',
@@ -1575,12 +1772,14 @@ class ProductController extends Controller
 
             return $products->map(function ($product) {
                 $images = $this->normalizeSavedProductImages($product->images ?? [], $product);
-                $regularPrice = (float) ($product->retail_price ?? $product->base_price ?? 0);
+                $msrp = $this->manufacturerMsrp($product);
+                $offerRegularPrice = $this->offerRegularPrice($product);
                 $isOnSale = (bool) $product->is_on_sale
                     && in_array((string) ($product->offer_source ?? ''), ['manual', 'verified_tdsynnex_special', 'tdsynnex_price_drop'], true)
                     && (float) $product->sale_price > 0
-                    && (float) $product->sale_price < $regularPrice;
-                $price = $isOnSale ? (float) $product->sale_price : $regularPrice;
+                    && $offerRegularPrice > (float) $product->sale_price;
+                $regularPrice = $isOnSale ? $offerRegularPrice : $msrp;
+                $price = $isOnSale ? (float) $product->sale_price : $msrp;
 
                 return [
                     'productId' => $product->tdsynnex_product_id,
@@ -1593,12 +1792,13 @@ class ProductController extends Controller
                     'productPrice' => [
                         [
                             'rsPrice' => $price,
-                            'msrp' => $regularPrice,
+                            'msrp' => $msrp,
                             'minQty' => 1
                         ]
                     ],
                     'isOnSale' => $isOnSale,
                     'regularPrice' => $regularPrice,
+                    'msrp' => $msrp,
                     'salePrice' => $isOnSale ? $price : null,
                     'offer' => $isOnSale ? [
                         'label' => 'Offer',
@@ -2032,6 +2232,10 @@ class ProductController extends Controller
 
         $query = Product::query()->where('vendor_id', 'TD SYNNEX');
         $this->applyCuratedDefaultBrowseFilters($query);
+        $cappedProductIds = $this->storefrontCappedProductIds();
+        if (!empty($cappedProductIds)) {
+            $query->whereIn('id', $cappedProductIds);
+        }
 
         if (($filters['hide_zero'] ?? true) === true) {
             $query->whereRaw($this->preferredDbPriceSql() . ' > 0');
@@ -2116,6 +2320,39 @@ class ProductController extends Controller
         return $this->filterAllowedCatalogProducts($related);
     }
 
+    /** IDs from the same capped pool exposed by the default storefront catalog. */
+    private function storefrontCappedProductIds(): array
+    {
+        return Cache::remember('storefront_capped_product_ids_v1', 1800, function (): array {
+            $query = Product::query()
+                ->select('id')
+                ->where('vendor_id', 'TD SYNNEX')
+                ->where('is_available', true)
+                ->where(function ($q) {
+                    $q->where('is_discontinued', false)->orWhereNull('is_discontinued');
+                })
+                ->whereRaw($this->stockQuantitySql() . ' > 0')
+                ->whereRaw($this->preferredDbPriceSql() . ' >= ?', [$this->storefrontMinPrice(null) ?? self::STOREFRONT_MIN_PRICE])
+                ->whereRaw($this->hasUsableProductImageSql());
+
+            $this->applyCuratedDefaultBrowseFilters($query);
+            $this->applyPriorityItProductFilterToQuery($query);
+
+            return $query
+                ->orderByRaw("CASE
+                    WHEN LOWER(COALESCE(product_name, '')) REGEXP '(^|[[:space:]-])(laptop|notebook|desktop|workstation|monitor|printer|server|switch|router|firewall|access point)([[:space:]-]|$)'
+                        AND LOWER(COALESCE(product_name, '')) NOT REGEXP '(battery|replacement|adapter|cable|cord|charger|charging cart|cooling|backpack|carry case|briefcase|sleeve|bag|lock|stand|mount|bracket|dock|docking|keyboard|mouse|memory|drive|converter|serial port|parallel port|usb port|hub|enclosure|tray|kit|kvm console|privacy screen|laptop ps|monitor shelf|desktop set|warranty|support|paper|cartridge|toner|ink|screen protector|power supply)' THEN 0
+                    WHEN category_segment IN ('01', '02', '03', '04', '05', '06') THEN 1
+                    ELSE 2 END")
+                ->orderByRaw("MOD(CRC32(CONCAT(COALESCE(category_segment, ''), '-', id)), 997)")
+                ->orderBy('id')
+                ->limit(self::STOREFRONT_MAX_DEFAULT_PRODUCTS)
+                ->pluck('id')
+                ->map(static fn ($id) => (int) $id)
+                ->all();
+        });
+    }
+
     /**
      * Get list of vendors
      */
@@ -2139,7 +2376,7 @@ class ProductController extends Controller
                     $vendorCacheKey = sprintf(
                         'pa_vendor_counts:%s',
                         md5(json_encode([
-                            'v' => 2,
+                            'v' => 3,
                             'curated_it_mix' => $curatedItMix,
                             'min_price' => $minPrice,
                             'max_price' => $maxPrice,
@@ -2346,7 +2583,7 @@ class ProductController extends Controller
             $cacheKey = sprintf(
                 'pa_category_counts:%s',
                 md5(json_encode([
-                    'v' => 2,
+                    'v' => 3,
                     'hide_zero' => $hideZero,
                     'min_price' => $minPrice,
                     'max_price' => $maxPrice,
@@ -2529,11 +2766,22 @@ class ProductController extends Controller
         }
 
         $rawTerms   = array_values(array_filter(preg_split('/\s+/', $searchTerm)));
-        $lowerTerms = array_map('strtolower', $rawTerms);
+        $lowerTerms = array_values(array_filter(array_map(
+            static fn ($term) => strtolower(trim((string) $term, " \t\n\r\0\x0B,.;:!?()[]{}\"'")),
+            $rawTerms
+        )));
+        $stopTerms = ['a', 'an', 'and', 'at', 'by', 'for', 'from', 'in', 'of', 'on', 'the', 'to', 'up', 'with'];
+        $meaningfulTerms = array_values(array_unique(array_filter(
+            $lowerTerms,
+            static fn ($term) => strlen($term) > 1 && !in_array($term, $stopTerms, true)
+        )));
+        if (empty($meaningfulTerms)) {
+            $meaningfulTerms = $lowerTerms;
+        }
         $longTerms  = array_values(array_filter($lowerTerms, fn ($t) => strlen($t) >= 4));
         $shortTerms = array_values(array_filter($lowerTerms, fn ($t) => strlen($t) < 4));
         $hasSpecialTokenChars = (bool) array_filter($rawTerms, fn ($t) => preg_match('/[^a-z0-9]/i', (string) $t));
-        $useFt      = $this->hasProductsFullTextIndex() && !empty($longTerms) && !$hasSpecialTokenChars;
+        $useFt      = false;
 
         if ($useFt) {
             $boolParts = [];
@@ -2567,13 +2815,33 @@ class ProductController extends Controller
         }
 
         // LIKE fallback — every term must appear in at least one column.
-        foreach ($lowerTerms as $t) {
-            $like = '%' . $t . '%';
-            $query->where(function ($q) use ($like) {
-                $q->whereRaw("LOWER(COALESCE(product_name, '')) LIKE ?", [$like])
-                  ->orWhereRaw("LOWER(COALESCE(description, '')) LIKE ?", [$like])
-                  ->orWhereRaw("LOWER(COALESCE(mfg_part_no, '')) LIKE ?", [$like])
-                  ->orWhereRaw("LOWER(COALESCE(manufacturer, '')) LIKE ?", [$like]);
+        $addTermMatch = static function ($target, string $term, string $boolean = 'and'): void {
+            $variants = match ($term) {
+                'laptop', 'laptops' => ['laptop', 'notebook', 'chromebook'],
+                'desktop', 'desktops' => ['desktop', 'workstation', 'optiplex', 'thinkcentre', 'elitedesk', 'prodesk'],
+                'printer', 'printers' => ['printer', 'multifunction', 'laserjet', 'inkjet'],
+                default => [$term],
+            };
+            $method = $boolean === 'or' ? 'orWhere' : 'where';
+            $target->{$method}(function ($q) use ($variants) {
+                foreach ($variants as $variant) {
+                    $like = '%' . $variant . '%';
+                    $q->orWhereRaw("LOWER(COALESCE(product_name, '')) LIKE ?", [$like])
+                      ->orWhereRaw("LOWER(COALESCE(description, '')) LIKE ?", [$like])
+                      ->orWhereRaw("LOWER(COALESCE(mfg_part_no, '')) LIKE ?", [$like])
+                      ->orWhereRaw("LOWER(COALESCE(manufacturer, '')) LIKE ?", [$like])
+                      ->orWhereRaw("LOWER(COALESCE(tdsynnex_product_id, '')) LIKE ?", [$like])
+                      ->orWhereRaw("CAST(COALESCE(tdsynnex_sku_no, 0) AS CHAR) LIKE ?", [$like]);
+                }
+            });
+        };
+
+        $addTermMatch($query, $meaningfulTerms[0]);
+        if (count($meaningfulTerms) > 1) {
+            $query->where(function ($remainingQuery) use ($meaningfulTerms, $addTermMatch) {
+                foreach (array_slice($meaningfulTerms, 1) as $term) {
+                    $addTermMatch($remainingQuery, $term, 'or');
+                }
             });
         }
     }

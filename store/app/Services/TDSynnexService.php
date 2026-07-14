@@ -546,7 +546,7 @@ class TDSynnexService
                 'base_price', 'supplier_regular_price', 'retail_price', 'sale_price',
                 'is_on_sale', 'offer_source', 'sale_started_at',
             ]);
-            $regularPrice = (float) ($current->retail_price ?? 0);
+            $msrpPrice = (float) ($current->retail_price ?? 0);
             $supplierPrice = (float) $live['live_price'];
             $previousSupplierPrice = (float) ($current->base_price ?? 0);
             $manualOffer = (string) ($current->offer_source ?? '') === 'manual'
@@ -602,7 +602,7 @@ class TDSynnexService
                 \DB::table('product_price_histories')->insert([
                     'product_id' => $productId,
                     'supplier_price' => $supplierPrice,
-                    'regular_price' => $regularPrice ?: null,
+                    'regular_price' => $supplierRegularPrice ?: ($msrpPrice ?: null),
                     'sale_price' => $salePrice,
                     'source' => 'tdsynnex_priceavailability',
                     'checked_at' => $now,

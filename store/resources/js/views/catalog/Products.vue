@@ -3,22 +3,32 @@
     <!-- Navbar -->
     <Navbar />
 
+    <PopularCategories v-if="route.name === 'home'" />
+
     <!-- Main Content -->
     <div class="mx-auto max-w-[1600px] px-3 py-4 sm:px-4 sm:py-5 lg:px-5">
-      <CatalogHero :products="products" @browse="scrollToCatalog" />
+      <CatalogHero v-if="route.name === 'home'" :products="products" @browse="scrollToCatalog" />
 
       <!-- Content Layout: Sidebar + Products Grid -->
       <div id="catalog-results" class="flex items-stretch gap-8 lg:gap-6">
         <!-- Filters Sidebar -->
-        <aside class="relative hidden flex-shrink-0 lg:block lg:min-h-0 lg:w-80 lg:self-stretch">
+        <aside
+          class="relative hidden flex-shrink-0 lg:block lg:w-80"
+          :class="totalPages > 1
+            ? 'lg:mb-[91px] lg:min-h-[1648px] lg:self-stretch'
+            : 'lg:min-h-[1648px] lg:self-stretch'"
+        >
           <FilterSidebar 
             :vendors="availableVendors" 
             :categories="availableCategories"
+            :vendors-loading="vendorsLoading"
+            :categories-loading="categoriesLoading"
             :active-filters="currentFilters"
             :lifecycle-options="lifecycleOptions"
             :media-options="reviewRatingOptions"
+            :compact="false"
             @filter-change="handleFilterChange"
-            class="lg:absolute lg:inset-0 lg:h-auto lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain"
+            class="lg:absolute lg:inset-0 lg:h-full lg:min-h-0"
           />
         </aside>
 
@@ -26,9 +36,15 @@
         <div class="min-w-0 flex-1">
           <!-- Loading State - skeleton cards matching the real product grid -->
           <div v-if="loading && !pageLoading">
-            <div class="mb-6 flex justify-between items-center">
-              <div class="h-5 w-44 bg-gray-200 rounded animate-pulse"></div>
-              <div class="h-9 w-44 bg-gray-200 rounded animate-pulse"></div>
+            <div class="mb-6 flex items-center justify-between rounded-xl border border-blue-100 bg-white px-5 py-4 shadow-sm">
+              <div class="flex items-center gap-3">
+                <span class="h-6 w-6 animate-spin rounded-full border-[3px] border-blue-100 border-t-[#2F5597]" aria-hidden="true"></span>
+                <div>
+                  <p class="text-sm font-extrabold text-[#102a52]">{{ searchQuery ? 'Searching products…' : 'Loading products…' }}</p>
+                  <p v-if="searchQuery" class="mt-0.5 max-w-[70vw] truncate text-xs text-slate-500">Finding the best matches for “{{ searchQuery }}”</p>
+                </div>
+              </div>
+              <span class="hidden text-xs font-semibold text-[#2F5597] sm:block">Please wait</span>
             </div>
             <div class="mb-8 grid grid-cols-1 gap-4 xl:grid-cols-2">
               <div v-for="i in 12" :key="'skel-' + i" class="flex min-h-[248px] flex-col overflow-hidden rounded-xl border border-gray-200 bg-white animate-pulse sm:flex-row">
@@ -371,13 +387,14 @@ import { useCartStore } from '../../stores/cartStore'
 import { useFavoritesStore } from '../../stores/favoritesStore'
 import { useAuthStore } from '../../stores/authStore'
 import { usePricingSettings } from '../../composables/usePricingSettings'
-import { trackSearchTerm, hasTrackingConsent, getSearchProfileTerms, getSearchSuggestions } from '../../services/searchInsights'
+import { trackSearchTerm, hasTrackingConsent, getSearchProfileTerms, getSearchSuggestions, loadSearchProfile } from '../../services/searchInsights'
 import api from '../../services/api'
-import { buildStoreUrl } from '../../services/runtimeConfig'
+import { buildStoreUrl, resolveProductImageUrl } from '../../services/runtimeConfig'
 import { buildProductsLocation, parseProductsRouteFilters } from '../../services/productRoute'
 import Navbar from '../../components/Navbar.vue'
 import FilterSidebar from '../../components/FilterSidebar.vue'
 import CatalogHero from '../../components/CatalogHero.vue'
+import PopularCategories from '../../components/PopularCategories.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -431,7 +448,7 @@ const SEARCH_TRACK_DEBOUNCE_MS = 15000
 const PROFILE_TERM_LIMIT = 25
 const LOCAL_SEARCH_HISTORY_KEY = 'armely_products_search_history'
 const LOCAL_SEARCH_HISTORY_LIMIT = 12
-const TOP_VENDOR_DISPLAY_LIMIT = 12
+const TOP_VENDOR_DISPLAY_LIMIT = 40
 const DEFAULT_VENDOR_SCOPE_LIMIT = 12
 const DEFAULT_BROWSE_MIN_PRICE = 100
 const DEFAULT_BROWSE_MAX_PRICE = 0
@@ -444,6 +461,18 @@ const PRODUCTS_RESULTS_CACHE_PREFIX = 'products_results_cache_v12'
 const SIDEBAR_FACETS_CACHE_TTL_MS = 10 * 60 * 1000
 const SIDEBAR_VENDORS_STORAGE_KEY = 'products_sidebar_vendors_v1'
 const SIDEBAR_CATEGORIES_STORAGE_KEY = 'products_sidebar_categories_v1'
+
+// Product responses are too large for localStorage. Clear legacy entries and
+// keep response caching in the bounded in-memory request cache instead.
+if (typeof window !== 'undefined') {
+  try {
+    Object.keys(window.localStorage)
+      .filter((key) => key.startsWith(`${PRODUCTS_RESULTS_CACHE_PREFIX}:`))
+      .forEach((key) => window.localStorage.removeItem(key))
+  } catch {
+    // Storage can be unavailable or already over quota.
+  }
+}
 const CURATED_VENDOR_ALLOWLIST = [
   'CISCO', 'DELL', 'HP', 'LENOVO', 'MICROSOFT', 'SAMSUNG', 'EPSON', 'CANON',
   'PANASONIC', 'ACER', 'ASUS', 'XEROX', 'GETAC', 'GOOGLE', 'RICOH', 'SONY',
@@ -532,6 +561,10 @@ const shareSubmitting = ref(false)
 const availableVendors = ref([])
 const allVendors = ref([])
 const availableCategories = ref([])
+const vendorsLoading = ref(true)
+const categoriesLoading = ref(true)
+let activeVendorFacetRequestId = 0
+let activeCategoryFacetRequestId = 0
 
 const loadSidebarFacetCache = (key) => {
   if (typeof window === 'undefined') return []
@@ -616,18 +649,7 @@ const loadProductResultsCache = (cacheKey) => {
 }
 
 const saveProductResultsCache = (cacheKey, payload) => {
-  if (typeof window === 'undefined') return
-
-  try {
-    const storageKey = getProductsResultsStorageKey(cacheKey)
-    window.localStorage.setItem(storageKey, JSON.stringify({
-      cacheKey,
-      timestamp: Date.now(),
-      ...payload,
-    }))
-  } catch {
-    // Ignore localStorage write errors
-  }
+  return undefined
 }
 
 const normalizeVendorsForSidebar = (items = []) => {
@@ -675,7 +697,9 @@ const buildProductsRouteQuery = () => {
   if (searchQuery.value) query.q = searchQuery.value
   if (currentFilters.value.vendors.length > 0) query.vendors = currentFilters.value.vendors.join(',')
   if (currentFilters.value.categories.length > 0) query.category = currentFilters.value.categories[0]
-  if (currentFilters.value.priceMin > 0) query.minPrice = String(currentFilters.value.priceMin)
+  if (currentFilters.value.priceMin > 0 && currentFilters.value.priceMin !== 100) {
+    query.minPrice = String(currentFilters.value.priceMin)
+  }
   if (currentFilters.value.priceMax > 0) query.maxPrice = String(currentFilters.value.priceMax)
   if (currentFilters.value.partNumber) query.partNumber = currentFilters.value.partNumber
   if (currentFilters.value.productType) query.productType = currentFilters.value.productType
@@ -795,7 +819,15 @@ const persistLocalSearchHistory = (term) => {
   )
 
   localSearchHistory.value = [normalized, ...withoutTerm].slice(0, LOCAL_SEARCH_HISTORY_LIMIT)
-  localStorage.setItem(LOCAL_SEARCH_HISTORY_KEY, JSON.stringify(localSearchHistory.value))
+  try {
+    localStorage.setItem(LOCAL_SEARCH_HISTORY_KEY, JSON.stringify(localSearchHistory.value))
+  } catch {
+    try {
+      localStorage.removeItem(LOCAL_SEARCH_HISTORY_KEY)
+    } catch {
+      // Storage may be disabled; search must continue without persistence.
+    }
+  }
 }
 
 const buildSearchSuggestionItems = (input = '') => {
@@ -1278,6 +1310,7 @@ const pageNumbers = computed(() => {
 // Add request deduplication and caching
 const requestCache = new Map()
 const pendingRequests = new Map()
+let activeSearchRequestId = 0
 const pendingReviewStats = new Set()
 
 const getReviewStatsForProduct = (productId) => getProductReviewStats(productId)
@@ -1428,11 +1461,14 @@ const isDefaultCuratedBrowse = (filters = currentFilters.value) => {
 
 
 const performSearch = async (resetPage = true) => {
+  const requestId = ++activeSearchRequestId
   error.value = ''
   dismissSearchSuggestions()
   if (resetPage) {
     currentPage.value = 1
     loading.value = true
+    // Keep sidebar counts synchronized with the exact search/filter request.
+    void Promise.all([fetchVendors(), fetchCategories()])
   } else {
     if (products.value.length === 0) {
       loading.value = true
@@ -1445,6 +1481,10 @@ const performSearch = async (resetPage = true) => {
   serverPaged.value = useServerPaged
 
   const normalizedQuery = normalizeSearchText(searchQuery.value)
+  if (resetPage && normalizedQuery) {
+    products.value = []
+    serverTotal.value = 0
+  }
   if (normalizedQuery) {
     persistLocalSearchHistory(searchQuery.value)
     const now = Date.now()
@@ -1488,6 +1528,7 @@ const performSearch = async (resetPage = true) => {
   if (pendingRequests.has(cacheKey)) {
     try {
       const result = await pendingRequests.get(cacheKey)
+      if (requestId !== activeSearchRequestId) return
       products.value = result.data
       serverTotal.value = Number(result.total || result.data?.length || 0)
       serverPaged.value = Boolean(result.serverPaged)
@@ -1540,9 +1581,7 @@ const performSearch = async (resetPage = true) => {
       if (currentFilters.value.categories.length > 0) {
         const selectedCategoryName = currentFilters.value.categories[0]
         const categoryEntry = availableCategories.value.find(c => c.name === selectedCategoryName)
-        if (categoryEntry?.value) {
-          params.category = categoryEntry.value
-        }
+        params.category = categoryEntry?.value || selectedCategoryName
       }
 
       if (currentFilters.value.priceMin > 0) {
@@ -1583,6 +1622,10 @@ const performSearch = async (resetPage = true) => {
       } else {
         loadedProducts = await fetchAllProductPages(params)
         loadedTotal = loadedProducts.length
+      }
+
+      if (requestId !== activeSearchRequestId) {
+        return { data: [], total: 0, serverPaged: useServerPaged, stale: true }
       }
 
       resetImgErrorMap()
@@ -1638,8 +1681,10 @@ const performSearch = async (resetPage = true) => {
   try {
     await requestPromise
   } finally {
-    loading.value = false
-    pageLoading.value = false
+    if (requestId === activeSearchRequestId) {
+      loading.value = false
+      pageLoading.value = false
+    }
     pendingRequests.delete(cacheKey)
   }
 }
@@ -1654,6 +1699,8 @@ const clearSearch = async () => {
 }
 
 const fetchVendors = async () => {
+  const requestId = ++activeVendorFacetRequestId
+  vendorsLoading.value = true
   // Build vendor list from API response — show ALL vendors with their counts
   const buildFromApi = (apiVendors = []) => {
     const aggregated = new Map()
@@ -1680,6 +1727,7 @@ const fetchVendors = async () => {
   }
 
   if (!ENABLE_VENDOR_COUNTS_API) {
+    vendorsLoading.value = false
     return
   }
 
@@ -1725,15 +1773,21 @@ const fetchVendors = async () => {
     const apiVendors = Array.isArray(rawVendorData) ? rawVendorData : (rawVendorData.records || [])
     const mappedVendors = normalizeVendorsForSidebar(buildFromApi(apiVendors))
 
-    allVendors.value = mappedVendors
-    availableVendors.value = mappedVendors
-    saveSidebarFacetCache(SIDEBAR_VENDORS_STORAGE_KEY, mappedVendors)
+    if (requestId === activeVendorFacetRequestId) {
+      allVendors.value = mappedVendors
+      availableVendors.value = mappedVendors
+      saveSidebarFacetCache(SIDEBAR_VENDORS_STORAGE_KEY, mappedVendors)
+    }
   } catch (err) {
     console.error('Error fetching vendors:', err)
+  } finally {
+    if (requestId === activeVendorFacetRequestId) vendorsLoading.value = false
   }
 }
 
 const fetchCategories = async () => {
+  const requestId = ++activeCategoryFacetRequestId
+  categoriesLoading.value = true
   try {
     const isDefaultBrowse =
       !searchQuery.value
@@ -1773,13 +1827,17 @@ const fetchCategories = async () => {
     const response = await api.get('/categories', { params })
     const rawData = response.data?.data || []
 
-    if (Array.isArray(rawData) && rawData.length > 0) {
+    if (Array.isArray(rawData) && requestId === activeCategoryFacetRequestId) {
       const normalized = normalizeCategoriesForSidebar(rawData)
       availableCategories.value = normalized
+      if (normalized.length > 0) {
       saveSidebarFacetCache(SIDEBAR_CATEGORIES_STORAGE_KEY, normalized)
+      }
     }
   } catch (err) {
     console.error('Error fetching categories:', err)
+  } finally {
+    if (requestId === activeCategoryFacetRequestId) categoriesLoading.value = false
   }
 }
 
@@ -1908,7 +1966,7 @@ const prefetchPage = (page) => {
   if (currentFilters.value.categories.length > 0) {
     const selectedCategoryName = currentFilters.value.categories[0]
     const categoryEntry = availableCategories.value.find(c => c.name === selectedCategoryName)
-    if (categoryEntry?.value) params.category = categoryEntry.value
+    params.category = categoryEntry?.value || selectedCategoryName
   }
   if (isDefaultBrowse && Number(currentFilters.value.priceMin || 0) <= 0) {
     params.min_price = DEFAULT_BROWSE_MIN_PRICE
@@ -2111,15 +2169,7 @@ const getPrimaryImageUrl = (product) => {
   const appendUrl = (value) => {
     const rawUrl = String(value || '').trim()
     if (!rawUrl) return
-    if (rawUrl.startsWith('/images/')) {
-      const storeUrl = buildStoreUrl(rawUrl)
-      // Production is mounted under /store; local development resolves this
-      // same helper back to /images when the app is mounted at the root.
-      candidates.push(storeUrl)
-      return
-    }
-
-    candidates.push(rawUrl)
+    candidates.push(resolveProductImageUrl(rawUrl))
   }
 
   const appendImages = (images) => {
@@ -2325,6 +2375,7 @@ watch(
   () => {
     const routeFilters = parseProductsRouteFilters(route)
     const newQuery = routeFilters.q
+    const queryChanged = String(newQuery || '').trim() !== String(searchQuery.value || '').trim()
     const newVendor = routeFilters.vendor
     const newVendors = routeFilters.vendors
     const newCategory = routeFilters.category
@@ -2345,9 +2396,20 @@ watch(
     const hasProductTypeQuery = productType !== undefined
     const hasLifecycleQuery = lifecycle !== undefined
     const hasMediaQuery = media !== undefined
+    const isStandaloneSearch = Boolean(newQuery)
+      && !hasVendorQuery
+      && !hasCategoryQuery
+      && !hasMinPriceQuery
+      && !hasMaxPriceQuery
+      && !hasPartNumberQuery
+      && !hasProductTypeQuery
+      && !hasLifecycleQuery
+      && !hasMediaQuery
 
     let nextVendors = currentFilters.value.vendors
-    if (hasVendorQuery) {
+    if (isStandaloneSearch) {
+      nextVendors = []
+    } else if (hasVendorQuery) {
       const vendorsRaw = newVendors ?? newVendor
       if (Array.isArray(vendorsRaw)) {
         nextVendors = vendorsRaw.map((value) => String(value)).filter(Boolean)
@@ -2359,19 +2421,25 @@ watch(
     }
 
     let nextCategories = currentFilters.value.categories
-    if (hasCategoryQuery) {
+    if (isStandaloneSearch) {
+      nextCategories = []
+    } else if (hasCategoryQuery) {
       nextCategories = newCategory ? [String(newCategory)] : []
     }
 
     let nextLifecycleStatuses = currentFilters.value.lifecycleStatuses
-    if (hasLifecycleQuery) {
+    if (isStandaloneSearch) {
+      nextLifecycleStatuses = []
+    } else if (hasLifecycleQuery) {
       nextLifecycleStatuses = lifecycle
         ? String(lifecycle).split(',').map((value) => value.trim()).filter(Boolean)
         : []
     }
 
     let nextMediaStatuses = currentFilters.value.mediaStatuses
-    if (hasMediaQuery) {
+    if (isStandaloneSearch) {
+      nextMediaStatuses = []
+    } else if (hasMediaQuery) {
       nextMediaStatuses = media
         ? String(media).split(',').map((value) => value.trim()).filter(Boolean)
         : []
@@ -2379,10 +2447,10 @@ watch(
 
     currentFilters.value = {
       ...currentFilters.value,
-      priceMin: hasMinPriceQuery ? Number(minPrice || 0) : 100,
-      priceMax: hasMaxPriceQuery ? Number(maxPrice || 0) : DEFAULT_BROWSE_MAX_PRICE,
-      partNumber: hasPartNumberQuery ? String(partNumber || '').trim() : '',
-      productType: hasProductTypeQuery ? String(productType || '').trim() : '',
+      priceMin: isStandaloneSearch ? 0 : (hasMinPriceQuery ? Number(minPrice || 0) : 100),
+      priceMax: isStandaloneSearch ? 0 : (hasMaxPriceQuery ? Number(maxPrice || 0) : DEFAULT_BROWSE_MAX_PRICE),
+      partNumber: isStandaloneSearch ? '' : (hasPartNumberQuery ? String(partNumber || '').trim() : ''),
+      productType: isStandaloneSearch ? '' : (hasProductTypeQuery ? String(productType || '').trim() : ''),
       vendors: nextVendors,
       categories: nextCategories,
       lifecycleStatuses: nextLifecycleStatuses,
@@ -2396,7 +2464,7 @@ watch(
       return
     }
 
-    performSearch(false)
+    performSearch(queryChanged)
     if (newQuery) {
       nextTick(() => scrollToCatalog())
     }
@@ -2453,8 +2521,9 @@ onMounted(async () => {
 
   loadLocalSearchHistory()
 
-  // Fire pricing, vendors, and categories in parallel — none depends on the others
+  // Product searches refresh facets so the sidebar always matches the cards.
   await Promise.all([
+    loadSearchProfile(),
     loadPricingSettings(true).then(() => { pricingReady.value = true }),
     fetchVendors(),
     fetchCategories(),

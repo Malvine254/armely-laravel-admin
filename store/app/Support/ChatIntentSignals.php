@@ -2,6 +2,8 @@
 
 namespace App\Support;
 
+use Illuminate\Support\Str;
+
 class ChatIntentSignals
 {
     public static function normalizeQuestion(string $question): string
@@ -173,6 +175,110 @@ class ChatIntentSignals
         ]);
     }
 
+    public static function isCatalogQueryAudit(string $question): bool
+    {
+        $q = self::normalizeQuestion($question);
+
+        return $q !== '' && self::matchesAnyPattern($q, [
+            '/\bwhich (?:search )?query did you use\b/u',
+            '/\bwhat (?:search )?query did you use\b/u',
+            '/\bwhat did you search(?: for)?\b/u',
+            '/\bshow me the (?:search )?query\b/u',
+            '/\brepeat the (?:search )?query\b/u',
+        ]);
+    }
+
+    public static function extractCatalogSearchPhrase(string $question): string
+    {
+        $phrase = trim($question);
+        $phrase = preg_replace(
+            '/^\s*(?:please\s+)?(?:(?:can|could|would)\s+you\s+)?(?:i\s+(?:need|want|am\s+looking\s+for)|we\s+(?:need|want)|now\s+(?:do|search)(?:\s+for)?|search(?:\s+the\s+catalog)?(?:\s+for)?(?:\s+me)?|find(?:\s+me)?|look\s+for|lookup|check\s+for|show\s+me|compare)\s+/iu',
+            '',
+            $phrase
+        ) ?? $phrase;
+        $phrase = preg_replace(
+            '/\s*(?:,|\-|\.|\?)?\s*(?:which\s+one\s+do\s+you\s+recommend|what\s+do\s+you\s+recommend|can\s+you\s+recommend(?:\s+one)?|which\s+(?:one\s+)?is\s+best|show\s+me\s+the\s+best(?:\s+one)?)\s*[?.!]*$/iu',
+            '',
+            $phrase
+        ) ?? $phrase;
+        $phrase = preg_replace('/\s*[,;—-]?\s*(?:but\s+)?(?:exclude|excluding|without|do\s+not\s+show|don[’\']t\s+show)\b.*$/iu', '', $phrase) ?? $phrase;
+        // Inventory wording describes the request, not the product being searched.
+        $phrase = preg_replace('/^\s*(?:the|our)\s+/iu', '', $phrase) ?? $phrase;
+        $phrase = preg_replace('/\s+(?:that\s+)?(?:we|you)\s+(?:have|carry|stock|sell)(?:\s+(?:available|in\s+stock))?\s*$/iu', '', $phrase) ?? $phrase;
+        $phrase = preg_replace('/\s+(?:(?:options?\s+)?instead(?:\s+please)?|ones?|options?)\s*$/iu', '', $phrase) ?? $phrase;
+        $phrase = trim($phrase, " \t\n\r\0\x0B?!.\"");
+
+        $categoryTerms = [
+            'monitors' => 'monitor',
+            'printers' => 'printer',
+            'laptops' => 'laptop',
+            'notebooks' => 'notebook',
+            'desktops' => 'desktop',
+            'servers' => 'server',
+            'switches' => 'switch',
+            'routers' => 'router',
+            'scanners' => 'scanner',
+            'projectors' => 'projector',
+            'tablets' => 'tablet',
+            'workstations' => 'workstation',
+        ];
+        $lowerPhrase = mb_strtolower($phrase);
+        if (isset($categoryTerms[$lowerPhrase])) {
+            $phrase = $categoryTerms[$lowerPhrase];
+        }
+
+        return preg_replace('/\s+/u', ' ', $phrase) ?? $phrase;
+    }
+
+    public static function extractCatalogSearchPhrases(string $question): array
+    {
+        $phrase = self::extractCatalogSearchPhrase($question);
+        if ($phrase === '') {
+            return [];
+        }
+
+        $parts = preg_split('/\s*(?:,|;|\band\b|\bor\b)\s*/iu', $phrase) ?: [];
+        $parts = array_values(array_filter(array_map('trim', $parts)));
+        if (count($parts) < 2) {
+            return [$phrase];
+        }
+
+        $categoryPattern = '/\b(monitor|display|printer|scanner|laptop|notebook|desktop|workstation|server|switch|router|firewall|projector|tablet|ups|storage)s?\b/iu';
+        $categoryParts = array_values(array_filter(
+            $parts,
+            static fn (string $part) => preg_match($categoryPattern, $part) === 1
+        ));
+
+        // A shared product type can apply to several brand clauses: "Samsung and LG monitors"
+        // becomes two independent searches rather than an impossible Samsung+LG product.
+        $brandPattern = '/\b(dell|hp|hewlett[ -]packard|lenovo|cisco|meraki|microsoft|apple|samsung|epson|brother|canon|asus|acer|logitech|jabra|netgear|ubiquiti|fortinet|aruba|juniper|sophos|intel|amd|nvidia|toshiba|xerox|ricoh|lexmark|benq|lg|panasonic|viewsonic|poly|dynabook|msi)\b/iu';
+        if (count($categoryParts) >= 1) {
+            preg_match($categoryPattern, implode(' ', $categoryParts), $sharedCategoryMatch);
+            $sharedCategory = strtolower((string) ($sharedCategoryMatch[1] ?? ''));
+            $allPartsAreTyped = collect($parts)->every(
+                static fn (string $part) => preg_match($categoryPattern, $part) === 1 || preg_match($brandPattern, $part) === 1
+            );
+
+            if ($sharedCategory !== '' && $allPartsAreTyped) {
+                $parts = array_map(static function (string $part) use ($categoryPattern, $sharedCategory) {
+                    return preg_match($categoryPattern, $part) === 1 ? $part : trim($part . ' ' . $sharedCategory);
+                }, $parts);
+                $categoryParts = $parts;
+            }
+        }
+
+        // Split only when every clause names its own product type. This keeps specification
+        // phrases such as "monitor with HDMI and USB-C" as one catalog query.
+        if (count($categoryParts) !== count($parts)) {
+            return [$phrase];
+        }
+
+        return array_values(array_unique(array_map(
+            static fn (string $part) => self::extractCatalogSearchPhrase($part),
+            $parts
+        )));
+    }
+
     public static function extractProductSearchKeywords(string $question): array
     {
         $normalized = self::normalizeQuestion($question);
@@ -190,8 +296,9 @@ class ChatIntentSignals
             'what', 'which', 'would', 'could', 'should', 'like', 'price', 'under', 'below', 'above',
             'something', 'anything', 'around', 'great', 'nice', 'new', 'do', 'does', 'got',
             'invoice', 'invoices', 'payment', 'payments', 'billing', 'receipt', 'balance', 'due',
-            'track', 'tracking', 'shipping', 'delivery',
-            'check',
+            'track', 'tracking', 'shipping', 'delivery', 'use', 'used', 'using', 'query', 'did',
+            'check', 'we', 'us', 'carry', 'stock', 'sell', 'instead', 'ones', 'option', 'options', 'now',
+            'prefer', 'exclude', 'excluding', 'accessory', 'accessories', 'ii',
         ];
 
         $keywords = collect($parts)
@@ -202,22 +309,10 @@ class ChatIntentSignals
             ->values()
             ->all();
 
-        $brandExpansions = [
-            'hp' => ['hp', 'hewlett-packard', 'hewlett packard'],
-            'dell' => ['dell'],
-            'lenovo' => ['lenovo'],
-            'cisco' => ['cisco', 'meraki'],
-        ];
-
-        foreach ($brandExpansions as $brand => $variants) {
-            if (str_contains($normalized, $brand)) {
-                foreach ($variants as $variant) {
-                    if (!in_array($variant, $keywords, true)) {
-                        $keywords[] = $variant;
-                    }
-                }
-            }
-        }
+        $keywords = array_values(array_unique(array_map(
+            static fn (string $keyword) => strtolower(Str::singular($keyword)),
+            $keywords
+        )));
 
         if (str_contains($normalized, 'laptop') && !in_array('notebook', $keywords, true)) {
             $keywords[] = 'notebook';
@@ -227,6 +322,15 @@ class ChatIntentSignals
         }
 
         return array_values(array_unique($keywords));
+    }
+
+    public static function extractExcludedProductTerms(string $question): array
+    {
+        if (preg_match('/(?:exclude|excluding|without|do\s+not\s+show|don[’\']t\s+show)\b(.+)$/iu', $question, $matches) !== 1) {
+            return [];
+        }
+
+        return self::extractProductSearchKeywords((string) ($matches[1] ?? ''));
     }
 
     private static function matchesAnyPattern(string $question, array $patterns): bool
