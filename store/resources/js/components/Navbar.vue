@@ -174,7 +174,7 @@
             <svg class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 9m10-9l2 9m-9 0h14m-5-9v9"></path>
             </svg>
-            <span v-if="cartStore.cartCount > 0" class="absolute left-9 top-0 flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-600 px-1 text-[11px] font-bold text-white">{{ cartStore.cartCount }}</span>
+            <span v-if="cartStore.cartCount > 0" class="absolute left-9 top-0 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#0b3b82] px-1 text-[11px] font-bold text-white">{{ cartStore.cartCount }}</span>
             <span class="hidden text-left sm:block">
               <span class="block text-sm font-bold">Cart</span>
               <span class="block text-xs font-semibold text-slate-500">{{ formattedCartTotal }}</span>
