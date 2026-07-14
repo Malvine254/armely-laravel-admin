@@ -2450,7 +2450,7 @@ class ProductController extends Controller
     public function menuCategories(): JsonResponse
     {
         try {
-            $data = Cache::remember('menu_categories:v9', 3600, function () {
+            $data = Cache::remember('menu_categories:v10:capped-3000', 1800, function () {
                 $parents = \App\Models\Category::query()
                     ->select(['id', 'name', 'slug', 'segment_code', 'sort_order'])
                     ->whereNull('parent_id')
@@ -2460,6 +2460,11 @@ class ProductController extends Controller
                     ->get();
 
                 if ($parents->isEmpty()) {
+                    return [];
+                }
+
+                $cappedProductIds = $this->storefrontCappedProductIds();
+                if (empty($cappedProductIds)) {
                     return [];
                 }
 
@@ -2474,6 +2479,7 @@ class ProductController extends Controller
                 $segmentsWithProducts = [];
                 if (!empty($parentSegments)) {
                     $segmentCounts = Product::query()
+                        ->whereIn('id', $cappedProductIds)
                         ->where('vendor_id', 'TD SYNNEX')
                         ->where('is_hardware', 1)
                         ->whereIn('category_segment', $parentSegments)
@@ -2491,6 +2497,7 @@ class ProductController extends Controller
                 $manufacturersBySegment = [];
                 if (!empty($parentSegments)) {
                     $manufacturerRows = Product::query()
+                        ->whereIn('id', $cappedProductIds)
                         ->where('vendor_id', 'TD SYNNEX')
                         ->where('is_hardware', 1)
                         ->whereIn('category_segment', $parentSegments)
@@ -2530,9 +2537,10 @@ class ProductController extends Controller
                         $seg = trim((string) $cat->segment_code);
                         return $seg !== '' && isset($segmentsWithProducts[$seg]);
                     })
-                    ->map(function ($cat) use ($manufacturersBySegment) {
+                    ->map(function ($cat) use ($manufacturersBySegment, $segmentCounts) {
                         $catSegment = trim((string) $cat->segment_code);
                         $manufacturers = collect($manufacturersBySegment[$catSegment] ?? [])->unique('name')->values();
+                        $categoryCount = (int) optional($segmentCounts->firstWhere('category_segment', $catSegment))->cnt;
 
                         return [
                             'id' => $cat->id,
@@ -2540,7 +2548,10 @@ class ProductController extends Controller
                             'slug' => $cat->slug,
                             'value' => $cat->slug ?: $cat->name,
                             'segment_code' => $catSegment,
-                            'children' => $manufacturers->map(function ($manufacturer) {
+                            'count' => $categoryCount,
+                            'children' => $manufacturers
+                                ->filter(static fn (array $manufacturer) => (int) ($manufacturer['count'] ?? 0) > 0)
+                                ->map(function ($manufacturer) {
                                 return [
                                     'id' => null,
                                     'name' => $manufacturer['name'],
@@ -2550,9 +2561,12 @@ class ProductController extends Controller
                                     'count' => $manufacturer['count'],
                                     'type' => 'vendor',
                                 ];
-                            })->all(),
+                                })->values()->all(),
                         ];
-                    })->values()->all();
+                    })
+                    ->filter(static fn (array $category) => (int) ($category['count'] ?? 0) > 0)
+                    ->values()
+                    ->all();
             });
 
             return response()->json([
