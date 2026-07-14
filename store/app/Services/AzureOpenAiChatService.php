@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Support\ChatIntentSignals;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class AzureOpenAiChatService
 {
@@ -26,6 +27,63 @@ class AzureOpenAiChatService
     public function isConfigured(): bool
     {
         return $this->configured;
+    }
+
+    /**
+     * Convert natural product language into a compact catalog request. The model interprets
+     * meaning only; database retrieval remains authoritative for products, prices and stock.
+     */
+    public function planProductSearch(string $question, array $chatHistory = []): ?array
+    {
+        if (!$this->configured || !ChatIntentSignals::isProductLookupIntent($question, $chatHistory)) {
+            return null;
+        }
+
+        $history = collect($chatHistory)
+            ->take(-6)
+            ->filter(static fn (array $turn) => !empty($turn['content']))
+            ->map(static fn (array $turn) => strtolower((string) ($turn['role'] ?? 'user')) . ': ' . (string) $turn['content'])
+            ->implode("\n");
+
+        $content = $this->callApi([
+            [
+                'role' => 'system',
+                'content' => implode("\n", [
+                    'You convert a product-shopping conversation into one concise catalog search plan.',
+                    'Return JSON only with: query (string), product_type (string or null), is_follow_up (boolean).',
+                    'Remove request/filler language, timing, opinions, and recommendation wording.',
+                    'Keep brands, model numbers, technical specifications, budget, and the requested product noun.',
+                    'For a short refinement such as "Sony?" or "Sony instead", carry forward the product noun from the immediately preceding request.',
+                    'For an explicit topic change, do not carry old terms forward.',
+                    'Do not invent brands, specifications, or catalog facts.',
+                    'Examples:',
+                    '"I have a presentation tomorrow and need a good monitor" => {"query":"monitor","product_type":"monitor","is_follow_up":false}',
+                    'After camera results, "Sony instead" => {"query":"Sony camera","product_type":"camera","is_follow_up":true}',
+                    '"What Cisco networking equipment is available?" => {"query":"Cisco","product_type":null,"is_follow_up":false}',
+                ]),
+            ],
+            [
+                'role' => 'user',
+                'content' => "Conversation:\n{$history}\n\nCurrent request:\n{$question}",
+            ],
+        ], 0.0, 160);
+
+        if ($content === null) {
+            return null;
+        }
+
+        $content = preg_replace('/^```(?:json)?\s*|\s*```$/i', '', trim($content)) ?? trim($content);
+        $plan = json_decode($content, true);
+        $query = trim((string) ($plan['query'] ?? ''));
+        if (!is_array($plan) || $query === '') {
+            return null;
+        }
+
+        return [
+            'query' => Str::limit($query, 160, ''),
+            'product_type' => ($type = trim((string) ($plan['product_type'] ?? ''))) !== '' ? strtolower($type) : null,
+            'is_follow_up' => (bool) ($plan['is_follow_up'] ?? false),
+        ];
     }
 
     /**
@@ -236,11 +294,8 @@ class AzureOpenAiChatService
             $userContent .= "\n\nConversation history:\n{$historyText}";
         }
 
-        $reply = $this->callApi(
-            [['role' => 'system', 'content' => $systemPrompt], ['role' => 'user', 'content' => $userContent]],
-            temperature: 0.3,
-            maxTokens: 600
-        );
+        // Product facts are rendered locally below. Do not send catalog searches to the model.
+        $reply = null;
 
         // Context-aware local fallback — shows real data, not a generic message.
         if ($reply === null) {
@@ -254,9 +309,33 @@ class AzureOpenAiChatService
             }
         }
 
+        // Override generated prose with a deterministic database-backed response. The model may
+        // help elsewhere, but it cannot create catalog facts.
+        $catalogQuery = trim((string) ($context['catalog_search_query'] ?? $question));
+        if (!empty($productSuggestions)) {
+            $top = $productSuggestions[0];
+            $count = count($productSuggestions);
+            $priceValue = (float) ($top['price'] ?? 0);
+            $priceText = $priceValue > 0 ? ' at $' . number_format($priceValue, 2) : '';
+            $sku = trim((string) ($top['sku'] ?? ''));
+            $skuText = $sku !== '' ? ' (SKU: ' . $sku . ')' : '';
+            $isRecommendationFollowUp = Str::contains(strtolower($question), [
+                'which one', 'which is best', 'recommend one', 'do you recommend',
+                'your recommendation', 'pick one', 'pick the best', 'choose for me',
+            ]);
+
+            if ($isRecommendationFollowUp) {
+                $reply = "I recommend **{$top['name']}**{$skuText}{$priceText}. It is the strongest catalog match from the options I just showed you.";
+            } else {
+                $reply = "I found {$count} database product(s) matching **{$catalogQuery}**. Top match: **{$top['name']}**{$skuText}{$priceText}.\n\nThe cards below are the exact catalog records returned by the database.";
+            }
+        } else {
+            $reply = "I searched the product database for **{$catalogQuery}**, but no valid in-stock, priced catalog product matched it.";
+        }
+
         $actions = [];
         if (!empty($productSuggestions)) {
-            $actions[] = ['label' => 'Browse catalog', 'link' => '/products?search=' . urlencode($question)];
+            $actions[] = ['label' => 'Browse catalog', 'link' => '/products?q=' . urlencode($catalogQuery)];
             $actions[] = ['label' => 'Request a quote', 'link' => '/cart'];
             $topId = $productSuggestions[0]['product_id'] ?? null;
             if ($topId) {
@@ -509,6 +588,24 @@ class AzureOpenAiChatService
             // Any mention of orders, quotes, or invoices → show account summary
             elseif (ChatIntentSignals::isCapabilityQuestion($q)) {
                 $reply = "I can help with products, quotes, orders, invoices, payments, and tracking. If you want, tell me what you are trying to do and I will take it from there.";
+            } elseif (ChatIntentSignals::isQuoteIntentQuery($q) && ChatIntentSignals::isInvoiceIntentQuery($q)) {
+                preg_match('/\b(?:latest|last|recent)\s+(\d+)\s+quotes?\b/', $q, $countMatch);
+                $quoteLimit = max(1, min(10, (int) ($countMatch[1] ?? 3)));
+                $pendingInvoices = collect($invoices)
+                    ->filter(static fn (array $invoice) => (float) ($invoice['remaining_amount'] ?? 0) > 0.01)
+                    ->values();
+                $invoiceLines = $pendingInvoices->map(static fn (array $invoice) =>
+                    '• **' . ($invoice['invoice_number'] ?? 'Invoice') . '** — balance **$' .
+                    number_format((float) ($invoice['remaining_amount'] ?? 0), 2) . '**'
+                )->all();
+                $quoteLines = collect($quotes)->take($quoteLimit)->map(static fn (array $quote) =>
+                    '• **' . ($quote['quote_id'] ?? 'Quote') . '** — ' . ucfirst((string) ($quote['status'] ?? 'unknown')) .
+                    ' · $' . number_format((float) ($quote['total_amount'] ?? 0), 2)
+                )->all();
+
+                $reply = "**Pending invoices:**\n" . (empty($invoiceLines) ? 'None.' : implode("\n", $invoiceLines))
+                    . "\n\n**Latest {$quoteLimit} quotes:**\n" . (empty($quoteLines) ? 'None.' : implode("\n", $quoteLines))
+                    . "\n\n**Total outstanding: $" . number_format($openTotal, 2) . '**';
             } elseif (preg_match('/\b(quotes?|orders?|invoices?|payments?|account|summary|status|history)\b/', $q)) {
                 $parts = [];
                 if (!empty($orders)) {

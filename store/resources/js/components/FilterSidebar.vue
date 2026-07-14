@@ -1,5 +1,5 @@
 <template>
-  <div class="w-full lg:w-80 bg-white rounded-lg shadow-sm border border-gray-200 p-6 flex flex-col">
+  <div class="w-full lg:w-80 bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col" :class="compact ? 'p-4' : 'p-6'">
     <!-- Applied Filters Header -->
     <div v-if="hasActiveFilters" class="mb-6 pb-6 border-b border-gray-200">
       <div class="flex items-center justify-between mb-3">
@@ -83,12 +83,15 @@
       </button>
       <div v-show="openSections.categories" class="space-y-3">
         <!-- Skeleton while loading -->
-        <template v-if="normalizedCategories.length === 0">
+        <template v-if="categoriesLoading">
           <div v-for="i in 6" :key="'cat-skel-'+i" class="flex items-center gap-3 animate-pulse">
             <div class="w-4 h-4 rounded-full bg-gray-200"></div>
             <div class="h-4 bg-gray-200 rounded" :style="{ width: (50 + i * 8) + '%' }"></div>
           </div>
         </template>
+        <p v-else-if="normalizedCategories.length === 0" class="rounded-md bg-gray-50 px-3 py-2 text-sm text-gray-500">
+          No matching categories
+        </p>
         <template v-else>
           <input 
             v-model="categorySearch" 
@@ -96,8 +99,8 @@
             placeholder="Search Categories" 
             class="w-full px-3 py-2 border border-gray-300 rounded text-sm outline-none transition" @focus="$event.target.style.borderColor='#2F5597'" @blur="$event.target.style.borderColor='rgb(209, 213, 219)'"
           />
-          <div class="space-y-2">
-            <label v-for="category in filteredCategories" :key="category.name" class="flex items-center gap-3 cursor-pointer">
+          <div class="facet-section-scroll min-w-0 space-y-2 pr-2" :class="compact ? 'max-h-24' : 'max-h-72'">
+            <label v-for="category in filteredCategories" :key="category.name" class="flex min-w-0 items-center gap-3 cursor-pointer" :title="category.name">
               <input 
                 :checked="filters.categories.includes(category.name)" 
                 @change="toggleCategory(category.name)"
@@ -105,7 +108,8 @@
                 name="category"
                 class="w-4 h-4 rounded-full border-gray-300 cursor-pointer" style="accent-color: #2F5597;"
               />
-              <span class="text-sm text-gray-700">{{ category.name }} <span v-if="hasDisplayableCount(category)" class="text-gray-500">({{ category.count }})</span></span>
+              <span class="min-w-0 flex-1 truncate text-sm text-gray-700">{{ category.name }}</span>
+              <span v-if="hasDisplayableCount(category)" class="flex-shrink-0 text-xs text-gray-500">({{ category.count }})</span>
             </label>
           </div>
         </template>
@@ -122,12 +126,15 @@
       </button>
       <div v-show="openSections.vendors" class="space-y-3">
         <!-- Skeleton while loading -->
-        <template v-if="normalizedVendors.length === 0">
+        <template v-if="vendorsLoading">
           <div v-for="i in 8" :key="'ven-skel-'+i" class="flex items-center gap-3 animate-pulse">
             <div class="w-4 h-4 rounded-full bg-gray-200"></div>
             <div class="h-4 bg-gray-200 rounded" :style="{ width: (40 + i * 6) + '%' }"></div>
           </div>
         </template>
+        <p v-else-if="normalizedVendors.length === 0" class="rounded-md bg-gray-50 px-3 py-2 text-sm text-gray-500">
+          No matching vendors
+        </p>
         <template v-else>
           <input 
             v-model="vendorSearch" 
@@ -135,8 +142,8 @@
             placeholder="Search Vendor" 
             class="w-full px-3 py-2 border border-gray-300 rounded text-sm outline-none transition" @focus="$event.target.style.borderColor='#2F5597'" @blur="$event.target.style.borderColor='rgb(209, 213, 219)'"
           />
-          <div class="space-y-2">
-            <label v-for="vendor in filteredVendors" :key="vendor.name" class="flex items-center gap-3 cursor-pointer">
+          <div class="facet-section-scroll min-w-0 space-y-2 pr-2" :class="compact ? 'max-h-24' : 'max-h-72'">
+            <label v-for="vendor in filteredVendors" :key="vendor.name" class="flex min-w-0 items-center gap-3 cursor-pointer" :title="vendor.name">
               <input 
                 :checked="filters.vendors.includes(vendor.name)" 
                 @change="toggleVendor(vendor.name)"
@@ -144,7 +151,8 @@
                 name="vendor-select"
                 class="w-4 h-4 rounded-full border-gray-300 cursor-pointer" style="accent-color: #2F5597;"
               />
-              <span class="text-sm text-gray-700">{{ vendor.name }} <span v-if="hasDisplayableCount(vendor)" class="text-gray-500">({{ vendor.count }})</span></span>
+              <span class="min-w-0 flex-1 truncate text-sm text-gray-700">{{ vendor.name }}</span>
+              <span v-if="hasDisplayableCount(vendor)" class="flex-shrink-0 text-xs text-gray-500">({{ vendor.count }})</span>
             </label>
           </div>
         </template>
@@ -152,7 +160,7 @@
     </div>
 
     <!-- Part Number Filter -->
-    <div class="mb-6 pb-6 border-b border-gray-200">
+    <div v-if="!compact" class="mb-6 pb-6 border-b border-gray-200">
       <button @click="toggleSection('partNumber')" class="flex items-center justify-between w-full mb-3">
         <h4 class="font-semibold text-gray-900">Part Number</h4>
         <svg class="w-4 h-4 text-gray-500" :class="{ 'rotate-180': openSections.partNumber }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -176,7 +184,7 @@
     </div>
 
     <!-- Review Rating Filter -->
-    <div class="mb-6 pb-6 border-b border-gray-200">
+    <div v-if="!compact" class="mb-6 pb-6 border-b border-gray-200">
       <button @click="toggleSection('media')" class="flex items-center justify-between w-full mb-3">
         <h4 class="font-semibold text-gray-900">Review Rating</h4>
         <svg class="w-4 h-4 text-gray-500" :class="{ 'rotate-180': openSections.media }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -280,13 +288,26 @@ const props = defineProps({
       { name: '3 Stars & Up', count: 0 },
       { name: 'Has Reviews', count: 0 }
     ]
+  },
+  compact: {
+    type: Boolean,
+    default: false
+  },
+  vendorsLoading: {
+    type: Boolean,
+    default: false
+  },
+  categoriesLoading: {
+    type: Boolean,
+    default: false
   }
 })
 
 const emit = defineEmits(['filter-change'])
 const DEFAULT_MIN_PRICE = Number(import.meta.env.VITE_MIN_PRICE ?? 100)
 const DEFAULT_MAX_PRICE = 0
-const POPULAR_VENDOR_LIMIT = 12
+const POPULAR_VENDOR_LIMIT = 40
+const POPULAR_CATEGORY_LIMIT = 40
 
 const filters = ref({
   priceMin: DEFAULT_MIN_PRICE,
@@ -376,8 +397,11 @@ const filteredVendors = computed(() => {
 })
 
 const filteredCategories = computed(() => {
-  if (!categorySearch.value) return normalizedCategories.value
-  return normalizedCategories.value.filter(c => c.name.toLowerCase().includes(categorySearch.value.toLowerCase()))
+  const query = categorySearch.value.trim().toLowerCase()
+  return normalizedCategories.value
+    .filter((category) => !query || category.name.toLowerCase().includes(query))
+    .sort((left, right) => Number(right.count || 0) - Number(left.count || 0) || left.name.localeCompare(right.name))
+    .slice(0, POPULAR_CATEGORY_LIMIT)
 })
 
 const isPriceFiltered = computed(() => filters.value.priceMin > DEFAULT_MIN_PRICE || filters.value.priceMax > 0)

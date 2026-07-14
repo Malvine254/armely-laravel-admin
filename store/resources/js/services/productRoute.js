@@ -18,16 +18,20 @@ const SEGMENT_FILTERS = Object.fromEntries(
 
 export const buildProductsLocation = (filters = {}) => {
   const filterPath = []
+  const searchQuery = String(filters.q || '').trim()
 
   Object.entries(FILTER_SEGMENTS).forEach(([key, segment]) => {
+    if (key === 'q') return
     const rawValue = filters[key]
     if (rawValue === undefined || rawValue === null || String(rawValue).trim() === '') return
     filterPath.push(segment, String(rawValue))
   })
 
+  const query = searchQuery ? { q: searchQuery } : undefined
+
   return filterPath.length > 0
-    ? { name: 'products-filter', params: { filterPath } }
-    : { name: 'products' }
+    ? { name: 'products-filter', params: { filterPath }, query }
+    : { name: 'products', query }
 }
 
 export const parseProductsRouteFilters = route => {

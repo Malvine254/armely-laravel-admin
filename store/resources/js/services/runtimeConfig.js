@@ -94,6 +94,47 @@ export const normalizeLocalAssetUrl = (value) => {
   }
 }
 
+/** Resolve locally stored product images without leaking production URLs into local development. */
+export const resolveProductImageUrl = (value) => {
+  const rawValue = String(value || '').trim()
+  if (!rawValue || typeof window === 'undefined') return rawValue
+
+  try {
+    const current = window.location
+    const currentHost = current.hostname.toLowerCase()
+    const isLocal = currentHost === '127.0.0.1' || currentHost === 'localhost'
+    const parsed = new URL(rawValue, current.origin)
+    const storeImageMarker = '/store/images/products/'
+    const rootImageMarker = '/images/products/'
+    let productPath = ''
+
+    if (parsed.pathname.includes(storeImageMarker)) {
+      productPath = parsed.pathname.slice(parsed.pathname.indexOf(storeImageMarker) + '/store'.length)
+    } else if (parsed.pathname.includes(rootImageMarker)) {
+      productPath = parsed.pathname.slice(parsed.pathname.indexOf(rootImageMarker))
+    }
+
+    // External supplier/CDN images are intentionally left untouched.
+    if (!productPath) return normalizeLocalAssetUrl(rawValue)
+
+    if (isLocal) {
+      const assetOrigin = current.port === '8000'
+        ? `${current.protocol}//${current.hostname}:8001`
+        : current.origin
+      return `${assetOrigin}${productPath}${parsed.search}`
+    }
+
+    // Preserve already-absolute production store URLs returned by the API.
+    if (/^https?:\/\//i.test(rawValue) && parsed.pathname.includes(storeImageMarker)) {
+      return rawValue
+    }
+
+    return `${current.origin}${buildStoreUrl(productPath)}${parsed.search}`
+  } catch {
+    return rawValue
+  }
+}
+
 const detectRuntimeApiBaseUrl = () => {
   if (typeof window === 'undefined') {
     return '/api/v1'
