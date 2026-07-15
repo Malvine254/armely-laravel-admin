@@ -270,7 +270,9 @@
                     <div v-if="pricingReady" class="flex flex-wrap items-baseline justify-between gap-2">
                       <div class="flex items-baseline gap-2">
                       <p class="text-xl font-extrabold" style="color: #2F5597;">{{ formatCatalogPrice(product.productPrice[0].rsPrice) }}</p>
-                      <span v-if="product.isOnSale" class="text-sm text-gray-400 line-through">{{ formatCatalogPrice(product.regularPrice) }}</span>
+                      <span v-if="product.isOnSale" class="text-sm text-gray-400 line-through" title="Manufacturer's suggested retail price">
+                        MSRP: {{ formatReferencePrice(product.regularPrice) }}
+                      </span>
                       <span v-if="product.isOnSale" class="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">Offer</span>
                       </div>
                       <p class="text-[11px] text-slate-500">Min Qty: {{ product.productPrice[0].minQty }}</p>
@@ -492,12 +494,12 @@ const TOP_VENDOR_DISPLAY_LIMIT = 40
 const DEFAULT_VENDOR_SCOPE_LIMIT = 12
 const DEFAULT_BROWSE_MIN_PRICE = 100
 const DEFAULT_BROWSE_MAX_PRICE = 0
-const CURATED_CACHE_VERSION = 8
+const CURATED_CACHE_VERSION = 11
 const ENABLE_SERVER_PREFETCH = true
 const ENABLE_VENDOR_COUNTS_API = true
 const PRODUCTS_RESULTS_SOFT_TTL_MS = 5 * 60 * 1000
 const PRODUCTS_RESULTS_HARD_TTL_MS = 24 * 60 * 60 * 1000
-const PRODUCTS_RESULTS_CACHE_PREFIX = 'products_results_cache_v12'
+const PRODUCTS_RESULTS_CACHE_PREFIX = 'products_results_cache_v17'
 const SIDEBAR_FACETS_CACHE_TTL_MS = 10 * 60 * 1000
 const SIDEBAR_VENDORS_STORAGE_KEY = 'products_sidebar_vendors_v1'
 const SIDEBAR_CATEGORIES_STORAGE_KEY = 'products_sidebar_categories_v1'
@@ -2445,6 +2447,11 @@ const formatPrice = (price) => {
 const formatCatalogPrice = (baseUsdPrice) => {
   const adjustedUsd = getCatalogPriceWithRules(baseUsdPrice)
   const converted = convertFromUsd(adjustedUsd)
+  return formatWithCurrency(converted)
+}
+
+const formatReferencePrice = (baseUsdPrice) => {
+  const converted = convertFromUsd(Math.max(0, Number(baseUsdPrice || 0)))
   return formatWithCurrency(converted)
 }
 

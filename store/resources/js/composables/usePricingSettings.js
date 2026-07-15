@@ -3,7 +3,7 @@ import api from '../services/api'
 
 const pricingSettings = ref({
   tax_rate_percent: 0,
-  profit_rate_percent: 0,
+  profit_rate_percent: 15,
   currency_code: 'USD',
   currency_rate: 1,
 })
@@ -38,7 +38,7 @@ const loadPricingSettings = async (force = false) => {
       const data = response.data.data
       pricingSettings.value = {
         tax_rate_percent: Math.max(0, toNumber(data.tax_rate_percent, 0)),
-        profit_rate_percent: Math.max(0, toNumber(data.profit_rate_percent, 0)),
+        profit_rate_percent: Math.max(0, toNumber(data.profit_rate_percent, 15)),
         currency_code: normalizeCurrencyCode(data.currency_code || data.currency || 'USD'),
         currency_rate: Math.max(0.0001, toNumber(data.currency_rate, 1)),
       }

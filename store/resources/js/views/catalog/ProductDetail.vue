@@ -98,8 +98,8 @@
                   <span class="text-sm text-gray-500">/ unit</span>
                 </div>
                 <div v-if="product.isOnSale" class="flex items-center gap-2 text-sm">
-                  <span class="text-gray-500">Regular price</span>
-                  <span class="text-gray-400 line-through">{{ formatAdjustedCurrency(product.regularPrice) }}</span>
+                  <span class="text-gray-500">MSRP</span>
+                  <span class="text-gray-400 line-through">{{ formatReferenceCurrency(product.regularPrice) }}</span>
                   <span v-if="product.offer?.discountPercent" class="font-semibold text-emerald-700">Save {{ product.offer.discountPercent }}%</span>
                 </div>
                 <div v-if="product.productPrice.length > 1" class="mt-3 pt-3 border-t border-blue-100">
@@ -211,6 +211,15 @@
             <!-- Specs Tab -->
             <div v-if="activeTab === 'specs'">
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div v-if="specificationDescription" class="sm:col-span-2 flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                  <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style="background-color: #eef5fc;">
+                    <svg class="w-4 h-4" fill="none" stroke="#2F5597" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h10M4 18h8"/></svg>
+                  </div>
+                  <div class="min-w-0">
+                    <p class="text-xs text-gray-500">Description</p>
+                    <p class="text-sm font-medium text-gray-900 break-words">{{ specificationDescription }}</p>
+                  </div>
+                </div>
                 <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                   <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style="background-color: #eef5fc;">
                     <svg class="w-4 h-4" fill="none" stroke="#2F5597" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z"/></svg>
@@ -721,7 +730,7 @@ const relatedProductsCache = new Map()
 const RELATED_PER_PAGE = 8
 const PRODUCT_DETAIL_CACHE_TTL_MS = 15 * 60 * 1000
 const PRODUCT_DETAIL_FETCH_TIMEOUT_MS = 30000
-const PRODUCT_DETAIL_STORAGE_PREFIX = 'product_detail_v1:'
+const PRODUCT_DETAIL_STORAGE_PREFIX = 'product_detail_v2:'
 const PRODUCT_RELATED_STORAGE_PREFIX = 'product_related_v2:'
 const relatedPage = ref(1)
 
@@ -978,6 +987,10 @@ const formatAdjustedCurrency = (baseUsdPrice) => {
   return formatWithCurrency(convertFromUsd(adjustedUsd))
 }
 
+const formatReferenceCurrency = (baseUsdPrice) => {
+  return formatWithCurrency(convertFromUsd(Math.max(0, Number(baseUsdPrice || 0))))
+}
+
 const getProductIcon = (productName) => {
   const name = productName.toLowerCase()
   if (name.includes('server') || name.includes('instance')) return 'server'
@@ -1228,6 +1241,10 @@ const productDescription = computed(() => {
   if (!desc || desc === name) return ''
   // Sanitize: allow only safe formatting tags, strip everything else
   return desc.replace(/<(?!\/?(br|b|i|strong|em|p|ul|ol|li)\b)[^>]*>/gi, '')
+})
+
+const specificationDescription = computed(() => {
+  return String(product.value?.description || '').trim()
 })
 
 watch(normalizedImages, (images) => {

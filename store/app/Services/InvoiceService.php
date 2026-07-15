@@ -171,7 +171,10 @@ class InvoiceService
 
         foreach ($lookupValues as $lookup) {
             $query = Product::query()
-                ->select(['id', 'tdsynnex_product_id', 'tdsynnex_sku_no', 'mfg_part_no', 'retail_price'])
+                ->select([
+                    'id', 'tdsynnex_product_id', 'tdsynnex_sku_no', 'mfg_part_no',
+                    'base_price', 'sale_price', 'is_on_sale', 'offer_source',
+                ])
                 ->where('vendor_id', 'TD SYNNEX')
                 ->where(function ($q) use ($lookup) {
                     $q->where('mfg_part_no', $lookup)
@@ -206,12 +209,12 @@ class InvoiceService
             $quantity = max(1, (int) ($item['quantity'] ?? 1));
             $product = $this->findProductForInvoiceItem($item);
 
-            $retailUnitPrice = (float) ($product?->retail_price ?? 0);
-            if ($retailUnitPrice <= 0) {
-                $retailUnitPrice = (float) ($item['unit_price'] ?? $item['unitPrice'] ?? $item['price'] ?? 0);
+            $sellUnitPrice = $product ? \App\Support\OfferPricing::sellPrice($product) : 0.0;
+            if ($sellUnitPrice <= 0) {
+                $sellUnitPrice = (float) ($item['unit_price'] ?? $item['unitPrice'] ?? $item['price'] ?? 0);
             }
 
-            $lineTotal = round($retailUnitPrice * $quantity, 2);
+            $lineTotal = round($sellUnitPrice * $quantity, 2);
 
             return [
                 'product_id' => (string) ($item['product_id'] ?? $item['productId'] ?? $item['id'] ?? ''),
@@ -227,7 +230,7 @@ class InvoiceService
                     ?? $item['sku']
                     ?? (string) ($product?->mfg_part_no ?? ''),
                 'quantity' => $quantity,
-                'unit_price' => round($retailUnitPrice, 2),
+                'unit_price' => round($sellUnitPrice, 2),
                 'line_total' => $lineTotal,
             ];
         }, $rows, array_keys($rows));

@@ -46,7 +46,7 @@ class AdminImportedProductController extends Controller
             'has_image' => !empty((array) $product->images),
             'image_attempted_at' => optional($product->image_enrichment_attempted_at)->toIso8601String(),
             'imported_at' => optional($product->search_imported_at)->toIso8601String(),
-            'price' => (float) ($product->retail_price ?: $product->base_price ?: 0),
+            'price' => \App\Support\OfferPricing::sellPrice($product),
             'quantity' => (int) ($product->quantity ?: data_get($product->specifications, 'availableQuantity', 0)),
         ]);
 
