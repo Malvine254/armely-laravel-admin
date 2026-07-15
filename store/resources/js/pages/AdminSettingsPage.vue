@@ -669,6 +669,24 @@
               Operation: {{ catalogOperations.catalog_operation?.status || 'idle' }}
               <span v-if="catalogOperations.catalog_operation?.message">- {{ catalogOperations.catalog_operation?.message }}</span>
             </p>
+            <div v-if="catalogOperations.catalog_operation?.progress" class="mt-3 max-w-2xl">
+              <div class="h-2.5 overflow-hidden rounded-full bg-white/80">
+                <div
+                  class="h-full rounded-full bg-gradient-to-r from-cyan-500 to-[#2F5597] transition-all duration-500"
+                  :style="{ width: `${Math.min(100, Number(catalogOperations.catalog_operation.progress.percent || 0))}%` }"
+                ></div>
+              </div>
+              <div class="mt-2 grid grid-cols-2 gap-x-5 gap-y-1 text-xs text-slate-600 sm:grid-cols-4">
+                <span>{{ Number(catalogOperations.catalog_operation.progress.percent || 0).toFixed(1) }}% complete</span>
+                <span>Scanned: {{ formatNumber(catalogOperations.catalog_operation.progress.scanned) }}</span>
+                <span>Matched: {{ formatNumber(catalogOperations.catalog_operation.progress.matched) }}</span>
+                <span>Updated: {{ formatNumber(catalogOperations.catalog_operation.progress.updated) }}</span>
+                <span>Unchanged: {{ formatNumber(catalogOperations.catalog_operation.progress.unchanged) }}</span>
+                <span>Rate: {{ formatNumber(catalogOperations.catalog_operation.progress.records_per_second) }}/sec</span>
+                <span>Elapsed: {{ formatDuration(catalogOperations.catalog_operation.progress.elapsed_seconds) }}</span>
+                <span>Remaining: {{ formatDuration(catalogOperations.catalog_operation.progress.remaining_seconds) }}</span>
+              </div>
+            </div>
           </div>
           <button
             @click="refreshCatalogOperations"
@@ -1408,6 +1426,17 @@ const formatFileSize = (value) => {
   const size = bytes / (1024 ** unitIndex)
 
   return `${size.toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`
+}
+
+const formatDuration = (value) => {
+  if (value === null || value === undefined) return 'Calculating…'
+  const seconds = Math.max(0, Math.round(Number(value) || 0))
+  const hours = Math.floor(seconds / 3600)
+  const minutes = Math.floor((seconds % 3600) / 60)
+  const remainder = seconds % 60
+  if (hours > 0) return `${hours}h ${minutes}m`
+  if (minutes > 0) return `${minutes}m ${remainder}s`
+  return `${remainder}s`
 }
 
 const showToast = (message, type = 'success') => {

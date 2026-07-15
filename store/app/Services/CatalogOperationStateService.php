@@ -48,6 +48,17 @@ class CatalogOperationStateService
         AppSetting::setValue(self::KEY, $state);
     }
 
+    public function progress(string $message, array $progress): void
+    {
+        $state = $this->get();
+        $state['status'] = 'running';
+        $state['message'] = $message;
+        $state['progress'] = $progress;
+        $state['updated_at'] = now()->toDateTimeString();
+
+        AppSetting::setValue(self::KEY, $state);
+    }
+
     public function append(string $line): void
     {
         $state = $this->get();
@@ -130,6 +141,7 @@ class CatalogOperationStateService
             'started_at' => null,
             'updated_at' => null,
             'finished_at' => null,
+            'progress' => null,
         ];
     }
 }

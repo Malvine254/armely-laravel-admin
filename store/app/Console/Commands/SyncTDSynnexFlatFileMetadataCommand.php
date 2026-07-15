@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\Product;
+use App\Services\CatalogOperationStateService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 
@@ -10,11 +11,12 @@ class SyncTDSynnexFlatFileMetadataCommand extends Command
 {
     protected $signature = 'tdsynnex:sync-flatfile-metadata
         {path? : Path to the TD SYNNEX .ap file (defaults to flat-files/677726.ap)}
-        {--limit=0 : Maximum matching existing products to update; 0 updates all}';
+        {--limit=0 : Maximum matching existing products to update; 0 updates all}
+        {--report-progress : Publish live progress for the Catalog Ops screen}';
 
     protected $description = 'Enrich existing TD SYNNEX products from an AP flat file without changing live price or stock';
 
-    public function handle(): int
+    public function handle(CatalogOperationStateService $stateService): int
     {
         $path = $this->argument('path') ?: base_path('flat-files/677726.ap');
         $path = $this->absolutePath((string) $path);
@@ -33,6 +35,12 @@ class SyncTDSynnexFlatFileMetadataCommand extends Command
         $feedDate = null;
         $matched = 0;
         $updated = 0;
+        $unchanged = 0;
+        $scanned = 0;
+        $startedAt = microtime(true);
+        $lastReportAt = 0.0;
+        $fileSize = max(1, (int) filesize($path));
+        $reportProgress = (bool) $this->option('report-progress');
         $file = new \SplFileObject($path, 'r');
 
         while (!$file->eof()) {
@@ -49,6 +57,34 @@ class SyncTDSynnexFlatFileMetadataCommand extends Command
             }
             if ($recordType !== 'DTL') {
                 continue;
+            }
+
+            $scanned++;
+
+            // Report while scanning, including rows that do not match a product.
+            $scanNow = microtime(true);
+            if ($reportProgress && ($scanned === 1 || $scanned % 2000 === 0 || ($scanNow - $lastReportAt) >= 5)) {
+                $lastReportAt = $scanNow;
+                $position = min($fileSize, max(0, (int) $file->ftell()));
+                $percent = min(99.9, round(($position / $fileSize) * 100, 1));
+                $elapsed = max(0.1, $scanNow - $startedAt);
+                $remainingSeconds = $position > 0
+                    ? max(0, (int) round(($elapsed / $position) * ($fileSize - $position)))
+                    : null;
+
+                $stateService->progress(
+                    sprintf('Flat-file sync %.1f%% - scanned %s, matched %s, updated %s', $percent, number_format($scanned), number_format($matched), number_format($updated)),
+                    [
+                        'percent' => $percent,
+                        'scanned' => $scanned,
+                        'matched' => $matched,
+                        'updated' => $updated,
+                        'unchanged' => $unchanged,
+                        'elapsed_seconds' => (int) round($elapsed),
+                        'remaining_seconds' => $remainingSeconds,
+                        'records_per_second' => round($scanned / $elapsed, 1),
+                    ]
+                );
             }
 
             $sku = trim((string) ($parts[4] ?? ''));
@@ -101,6 +137,8 @@ class SyncTDSynnexFlatFileMetadataCommand extends Command
             if ($product->isDirty()) {
                 $product->save();
                 $updated++;
+            } else {
+                $unchanged++;
             }
 
             if ($limit > 0 && $matched >= $limit) {
@@ -108,7 +146,23 @@ class SyncTDSynnexFlatFileMetadataCommand extends Command
             }
         }
 
-        $this->info("Matched {$matched} existing products; updated {$updated}.");
+        if ($reportProgress) {
+            $stateService->progress(
+                sprintf('Flat-file scan complete - matched %s, updated %s', number_format($matched), number_format($updated)),
+                [
+                    'percent' => 100,
+                    'scanned' => $scanned,
+                    'matched' => $matched,
+                    'updated' => $updated,
+                    'unchanged' => $unchanged,
+                    'elapsed_seconds' => (int) round(microtime(true) - $startedAt),
+                    'remaining_seconds' => 0,
+                    'records_per_second' => round($scanned / max(0.1, microtime(true) - $startedAt), 1),
+                ]
+            );
+        }
+
+        $this->info("Scanned {$scanned} detail rows; matched {$matched} existing products; updated {$updated}; unchanged {$unchanged}.");
         $this->line('Live price, retail price, sale price, quantity, and availability were not changed.');
 
         return self::SUCCESS;

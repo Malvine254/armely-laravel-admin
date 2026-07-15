@@ -39,7 +39,9 @@ class SyncFlatFileMetadataJob implements ShouldQueue
     {
         $stateService->running('Flat-file description and metadata sync started...');
 
-        $exitCode = Artisan::call('tdsynnex:sync-flatfile-metadata');
+        $exitCode = Artisan::call('tdsynnex:sync-flatfile-metadata', [
+            '--report-progress' => true,
+        ]);
         $output = $stateService->normalizeOutput(Artisan::output());
 
         if ($exitCode !== 0) {
