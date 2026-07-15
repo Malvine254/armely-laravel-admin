@@ -33,7 +33,7 @@
       </div>
 
       <!-- Navigation Menu -->
-      <nav class="sidebar-nav mt-6 flex-1 overflow-y-auto pb-4">
+      <nav class="sidebar-nav mt-2 flex-1 overflow-visible pb-2">
         <!-- Dashboard -->
         <router-link
           :to="{ name: 'admin-dashboard-page' }"
@@ -48,12 +48,6 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
           </svg>
           <span>Dashboard</span>
-        </router-link>
-
-        <div class="mt-4 px-4"><p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Catalog</p></div>
-        <router-link :to="{ name: 'admin-imported-products' }" :class="['flex items-center px-6 py-3 border-l-4 transition', isActive('imported-products') ? 'bg-[#2F5597]/10 border-[#2F5597] text-[#2F5597] font-semibold' : 'border-transparent hover:bg-gray-50 hover:border-[#2F5597]/50 text-gray-700']">
-          <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V7a2 2 0 00-1-1.73l-6-3.43a2 2 0 00-2 0l-6 3.43A2 2 0 004 7v6m16 0-8 4-8-4m16 0v4a2 2 0 01-1 1.73l-6 3.43a2 2 0 01-2 0l-6-3.43A2 2 0 014 17v-4"/></svg>
-          <span>Imported Products</span>
         </router-link>
 
         <!-- Quotes Management -->
@@ -208,6 +202,35 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
           </svg>
           <span>Invoices</span>
+        </router-link>
+
+        <!-- Products -->
+        <div class="mt-4 px-4">
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Products</p>
+        </div>
+        <router-link
+          :to="{ name: 'admin-products' }"
+          :class="[
+            'flex items-center px-6 py-3 border-l-4 transition',
+            isActive('products') && !isActive('imported-products')
+              ? 'bg-[#2F5597]/10 border-[#2F5597] text-[#2F5597] font-semibold'
+              : 'border-transparent hover:bg-gray-50 hover:border-[#2F5597]/50 text-gray-700'
+          ]"
+        >
+          <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V7a2 2 0 00-1-1.73l-6-3.43a2 2 0 00-2 0l-6 3.43A2 2 0 004 7v6m16 0-8 4-8-4m16 0v4a2 2 0 01-1 1.73l-6 3.43a2 2 0 01-2 0l-6-3.43A2 2 0 014 17v-4"/></svg>
+          <span>All Products</span>
+        </router-link>
+        <router-link
+          :to="{ name: 'admin-imported-products' }"
+          :class="[
+            'flex items-center px-6 py-3 border-l-4 transition',
+            isActive('imported-products')
+              ? 'bg-[#2F5597]/10 border-[#2F5597] text-[#2F5597] font-semibold'
+              : 'border-transparent hover:bg-gray-50 hover:border-[#2F5597]/50 text-gray-700'
+          ]"
+        >
+          <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 3h8l4 4v14H7a2 2 0 01-2-2V5a2 2 0 012-2zm8 0v5h5M9 13h6m-6 4h6"/></svg>
+          <span>Imported Products</span>
         </router-link>
 
         <!-- Settings -->
@@ -771,23 +794,39 @@ a {
   @apply transition-all duration-200;
 }
 
-/* Thin scrollbar for sidebar nav */
-.sidebar-nav::-webkit-scrollbar {
-  width: 4px;
-}
-.sidebar-nav::-webkit-scrollbar-track {
-  background: transparent;
-}
-.sidebar-nav::-webkit-scrollbar-thumb {
-  background: rgba(47, 85, 151, 0.20);
-  border-radius: 4px;
-}
-.sidebar-nav::-webkit-scrollbar-thumb:hover {
-  background: rgba(47, 85, 151, 0.40);
-}
-/* Firefox */
 .sidebar-nav {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(47, 85, 151, 0.20) transparent;
+  overflow-y: visible;
+}
+
+/* Keep the entire desktop menu visible without its own scrollbar. */
+.sidebar-nav > a {
+  min-height: 36px;
+  padding-top: 0.45rem;
+  padding-bottom: 0.45rem;
+}
+
+.sidebar-nav > div {
+  margin-top: 0.4rem;
+}
+
+.sidebar-nav > div p {
+  line-height: 1rem;
+}
+
+@media (max-height: 760px) and (min-width: 768px) {
+  .admin-header-band {
+    height: 62px;
+  }
+
+  .sidebar-nav > a {
+    min-height: 32px;
+    padding-top: 0.3rem;
+    padding-bottom: 0.3rem;
+    font-size: 0.875rem;
+  }
+
+  .sidebar-nav > div {
+    margin-top: 0.2rem;
+  }
 }
 </style>

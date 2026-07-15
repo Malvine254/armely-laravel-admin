@@ -14,6 +14,53 @@ class AdminImportedProductController extends Controller
         abort_unless(in_array((string) $request->user()?->role, ['admin', 'super_admin'], true), 403);
     }
 
+    public function all(Request $request): JsonResponse
+    {
+        $this->authorizeAdmin($request);
+
+        $query = Product::query();
+        $search = trim((string) $request->query('search', ''));
+        if ($search !== '') {
+            $like = '%' . $search . '%';
+            $query->where(fn ($q) => $q->where('product_name', 'like', $like)
+                ->orWhere('manufacturer', 'like', $like)
+                ->orWhere('mfg_part_no', 'like', $like)
+                ->orWhere('tdsynnex_sku_no', 'like', $like)
+                ->orWhere('tdsynnex_product_id', 'like', $like));
+        }
+
+        $vendor = trim((string) $request->query('vendor', ''));
+        if ($vendor !== '') {
+            $query->where('vendor_id', $vendor);
+        }
+
+        $products = $query->orderByDesc('updated_at')
+            ->paginate(min(100, max(10, (int) $request->query('per_page', 25))));
+        $products->getCollection()->transform(fn (Product $product) => [
+            'id' => $product->id,
+            'name' => $product->product_name,
+            'manufacturer' => $product->manufacturer,
+            'mpn' => $product->mfg_part_no,
+            'sku' => $product->tdsynnex_sku_no ?: $product->tdsynnex_product_id,
+            'vendor' => $product->vendor_id,
+            'price' => \App\Support\OfferPricing::sellPrice($product),
+            'quantity' => (int) ($product->quantity ?: data_get($product->specifications, 'availableQuantity', 0)),
+            'available' => (bool) $product->is_available,
+            'has_image' => !empty((array) $product->images),
+            'updated_at' => optional($product->updated_at)->toIso8601String(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => $products,
+            'stats' => [
+                'total' => Product::count(),
+                'available' => Product::where('is_available', true)->count(),
+                'with_images' => Product::whereNotNull('images')->whereNotIn('images', ['', '[]', 'null'])->count(),
+            ],
+        ]);
+    }
+
     public function index(Request $request): JsonResponse
     {
         $this->authorizeAdmin($request);

@@ -22,6 +22,7 @@ import AdminChatPage from '../pages/AdminChatPage.vue';
 import AdminOrderTrackingPage from '../pages/AdminOrderTrackingPage.vue';
 import AdminChangePasswordPage from '../pages/AdminChangePasswordPage.vue';
 import AdminImportedProductsPage from '../pages/AdminImportedProductsPage.vue';
+import AdminProductsPage from '../pages/AdminProductsPage.vue';
 import Products from '../views/catalog/Products.vue';
 import StoreLanding from '../views/StoreLanding.vue';
 import ProductDetail from '../views/catalog/ProductDetail.vue';
@@ -102,6 +103,12 @@ const routes = [
     path: '/admin/quotes/pending',
     name: 'admin-quotes',
     component: AdminQuotesPage,
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/admin/products',
+    name: 'admin-products',
+    component: AdminProductsPage,
     meta: { requiresAuth: true, requiresAdmin: true },
   },
   {

@@ -160,6 +160,7 @@ Route::prefix('v1')->group(function () {
     Route::middleware(['auth:sanctum', 'active.user'])->group(function () {
         // Dashboard stats
         Route::get('/admin/dashboard/stats', [AdminController::class, 'getDashboardStats']);
+        Route::get('/admin/products', [AdminImportedProductController::class, 'all']);
         Route::get('/admin/imported-products', [AdminImportedProductController::class, 'index']);
         Route::put('/admin/imported-products/{product}', [AdminImportedProductController::class, 'update']);
         Route::post('/admin/imported-products/{product}/enrich-image', [AdminImportedProductController::class, 'enrichImage']);
