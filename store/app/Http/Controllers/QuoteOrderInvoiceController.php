@@ -720,6 +720,17 @@ class QuoteOrderInvoiceController extends Controller
 
             $quotes = Quote::where('user_id', $user->id)
                 ->when($status, fn ($q) => $q->where('status', $status))
+                ->orderByRaw("CASE LOWER(COALESCE(status, ''))
+                    WHEN 'pending_review' THEN 0
+                    WHEN 'draft' THEN 1
+                    WHEN 'approved' THEN 2
+                    WHEN 'active' THEN 2
+                    WHEN 'processing' THEN 3
+                    WHEN 'expired' THEN 7
+                    WHEN 'rejected' THEN 8
+                    WHEN 'cancelled' THEN 9
+                    ELSE 4
+                END ASC")
                 ->orderByDesc('created_at')
                 ->paginate($pageSize, ['*'], 'page', $page);
 
@@ -959,8 +970,9 @@ class QuoteOrderInvoiceController extends Controller
                 ]
             );
 
-            // Send notifications asynchronously after response for faster UX.
-            SendQuoteNotificationJob::dispatchAfterResponse($quote->id, $revisedFromQuoteId);
+            // Persist the email job to the database queue now. The HTTP request
+            // returns after local DB work only; a queue worker handles Graph mail.
+            SendQuoteNotificationJob::dispatch($quote->id, $revisedFromQuoteId);
 
             return response()->json([
                 'success' => true,

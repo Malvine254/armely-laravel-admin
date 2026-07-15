@@ -927,6 +927,7 @@ class ProductController extends Controller
             'pa_browse_page:%s',
             md5(json_encode([
                 'v' => 23,
+                'price_version' => Cache::get('catalog:price_version', '1'),
                 'page' => (int) $pageNo,
                 'page_size' => (int) $pageSize,
                 'hide_zero' => $hideZero,
@@ -2029,7 +2030,11 @@ class ProductController extends Controller
             $authenticatedUser = $this->authenticatedApiUser($request);
 
             if ($this->tdsynnexService->usesPriceAvailabilityAsProductSource()) {
-                $cacheKey = sprintf('pa_product_detail:v2:%s', md5((string) $productId));
+                $cacheKey = sprintf(
+                    'pa_product_detail:v3:%s:%s',
+                    Cache::get('catalog:price_version', '1'),
+                    md5((string) $productId)
+                );
 
                 $product = Cache::remember($cacheKey, 1800, function () use ($productId) {
                     $resolved = $this->getPriceAvailabilityProductFromDatabase($productId, false);
@@ -2115,7 +2120,11 @@ class ProductController extends Controller
             $authenticatedUser = $this->authenticatedApiUser($request);
 
             if ($this->tdsynnexService->usesPriceAvailabilityAsProductSource()) {
-                $cacheKey = sprintf('pa_product_by_sku:v2:%s', md5((string) $skuNo));
+                $cacheKey = sprintf(
+                    'pa_product_by_sku:v3:%s:%s',
+                    Cache::get('catalog:price_version', '1'),
+                    md5((string) $skuNo)
+                );
                 $product = Cache::remember($cacheKey, 1800, function () use ($skuNo) {
                     $resolved = $this->getPriceAvailabilityProductFromDatabase($skuNo, false);
 

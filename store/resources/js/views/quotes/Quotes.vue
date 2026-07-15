@@ -49,6 +49,7 @@
           <div class="md:col-span-3">
             <label class="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">Sort By</label>
             <select v-model="sortBy" class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-0 transition duration-200" style="focus:ring-color: #2F5597; border-color: #e5e7eb;">
+              <option value="priority">Pending &amp; Active First</option>
               <option value="created_desc">Newest First</option>
               <option value="created_asc">Oldest First</option>
               <option value="amount_desc">Highest Amount</option>
@@ -557,7 +558,7 @@ export default {
     const error = ref(null)
     const selectedStatus = ref('')
     const searchQuery = ref('')
-    const sortBy = ref('created_desc')
+    const sortBy = ref('priority')
     const currentPage = ref(1)
     const pageSize = ref(10)
     const selectedQuoteIds = ref([])
@@ -710,6 +711,20 @@ export default {
       })
 
       const sorted = [...filtered]
+      const statusPriority = (status) => {
+        const priorities = {
+          pending_review: 0,
+          draft: 1,
+          approved: 2,
+          active: 2,
+          processing: 3,
+          expired: 7,
+          rejected: 8,
+          cancelled: 9,
+        }
+        return priorities[String(status || '').toLowerCase()] ?? 4
+      }
+
       switch (sortBy.value) {
         case 'created_asc':
           sorted.sort((a, b) => new Date(a.primary?.created_at || 0) - new Date(b.primary?.created_at || 0))
@@ -722,6 +737,13 @@ export default {
           break
         case 'status_asc':
           sorted.sort((a, b) => String(a.primary?.status || '').localeCompare(String(b.primary?.status || '')))
+          break
+        case 'priority':
+          sorted.sort((a, b) => {
+            const priorityDifference = statusPriority(a.primary?.status) - statusPriority(b.primary?.status)
+            if (priorityDifference !== 0) return priorityDifference
+            return new Date(b.primary?.created_at || 0) - new Date(a.primary?.created_at || 0)
+          })
           break
         case 'created_desc':
         default:
@@ -1526,7 +1548,7 @@ export default {
     const resetFilters = () => { 
       selectedStatus.value = ''
       searchQuery.value = ''
-      sortBy.value = 'created_desc'
+      sortBy.value = 'priority'
       currentPage.value = 1
       pageSize.value = 10
       expandedQuoteItems.value = {}
