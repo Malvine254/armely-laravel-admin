@@ -25,7 +25,7 @@ class SyncFlatFileMetadataJob implements ShouldQueue
     public function __construct()
     {
         $this->onConnection('database');
-        $this->onQueue('products-sync');
+        $this->onQueue('products-metadata');
     }
 
     public function middleware(): array

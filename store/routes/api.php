@@ -205,6 +205,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/admin/settings/api/test', [AdminController::class, 'testApiConnection']);
         Route::get('/admin/settings/catalog/status', [AdminController::class, 'getCatalogOperationsStatus']);
         Route::post('/admin/settings/catalog/run', [AdminController::class, 'runCatalogOperation']);
+        Route::post('/admin/settings/catalog/start-worker', [AdminController::class, 'startProductsSyncWorker']);
         Route::post('/admin/settings/catalog/stop-all', [AdminController::class, 'stopAllBackgroundJobs']);
         Route::post('/admin/settings/email', [AdminController::class, 'updateEmailSettings']);
         Route::post('/admin/settings/price-sync', [AdminController::class, 'updatePriceSyncSettings']);

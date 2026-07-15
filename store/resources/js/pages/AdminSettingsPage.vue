@@ -700,15 +700,24 @@
         <div class="rounded-lg border border-rose-200 bg-rose-50 p-4 md:flex md:items-center md:justify-between md:gap-4">
           <div>
             <p class="text-sm font-semibold text-rose-800">Emergency queue controls</p>
-            <p class="mt-1 text-xs text-rose-700">Removes every pending/reserved background job and asks all Laravel queue workers to stop safely.</p>
+            <p class="mt-1 text-xs text-rose-700">Start processes descriptions and metadata first, then pending image jobs. Stop removes every pending/reserved background job.</p>
           </div>
-          <button
-            @click="stopAllBackgroundJobs"
-            :disabled="catalogStopLoading"
-            class="mt-3 w-full whitespace-nowrap rounded-lg bg-rose-600 px-4 py-2 font-semibold text-white transition hover:bg-rose-700 disabled:opacity-50 md:mt-0 md:w-auto"
-          >
-            <i class="fas fa-stop-circle mr-2"></i>{{ catalogStopLoading ? 'Stopping...' : 'Stop All Jobs' }}
-          </button>
+          <div class="mt-3 flex w-full flex-col gap-2 sm:flex-row md:mt-0 md:w-auto">
+            <button
+              @click="startProductsSyncWorker"
+              :disabled="catalogWorkerLoading || catalogStopLoading"
+              class="w-full whitespace-nowrap rounded-lg bg-emerald-600 px-4 py-2 font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-50 md:w-auto"
+            >
+              <i class="fas fa-play-circle mr-2"></i>{{ catalogWorkerLoading ? 'Starting...' : 'Start Products Worker' }}
+            </button>
+            <button
+              @click="stopAllBackgroundJobs"
+              :disabled="catalogStopLoading || catalogWorkerLoading"
+              class="w-full whitespace-nowrap rounded-lg bg-rose-600 px-4 py-2 font-semibold text-white transition hover:bg-rose-700 disabled:opacity-50 md:w-auto"
+            >
+              <i class="fas fa-stop-circle mr-2"></i>{{ catalogStopLoading ? 'Stopping...' : 'Stop All Jobs' }}
+            </button>
+          </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -1229,6 +1238,7 @@ const syncState = ref({ status: 'idle', message: '', output: '', started_at: nul
 let syncPollTimer = null
 const catalogActionLoading = ref(false)
 const catalogStopLoading = ref(false)
+const catalogWorkerLoading = ref(false)
 const showQuickBooksSecret = ref(false)
 const showAddAdminModal = ref(false)
 const currentUserId = ref(null)
@@ -1568,6 +1578,24 @@ const stopAllBackgroundJobs = async () => {
     showToast(message, 'error')
   } finally {
     catalogStopLoading.value = false
+  }
+}
+
+const startProductsSyncWorker = async () => {
+  catalogWorkerLoading.value = true
+  try {
+    const response = await api.post('/admin/settings/catalog/start-worker')
+    if (response.data.success) {
+      catalogCommandOutput.value = response.data.message || 'Products worker started.'
+      startCatalogStatusPolling()
+      showToast(response.data.message || 'Products worker started.', 'success')
+    }
+  } catch (error) {
+    const message = error.response?.data?.message || 'Failed to start products worker'
+    catalogCommandOutput.value = message
+    showToast(message, 'error')
+  } finally {
+    catalogWorkerLoading.value = false
   }
 }
 
