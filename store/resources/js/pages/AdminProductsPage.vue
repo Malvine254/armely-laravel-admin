@@ -20,7 +20,7 @@
         <div v-if="loading" class="p-10 text-center text-slate-500">Loading products…</div>
         <div v-else-if="products.length === 0" class="p-10 text-center text-slate-500">No products match this search.</div>
         <div v-else class="overflow-x-auto">
-          <table class="min-w-full text-left">
+          <table class="w-full min-w-[1600px] text-left">
             <thead class="bg-slate-50 text-xs uppercase text-slate-500"><tr><th class="px-4">Product</th><th class="px-4">Vendor</th><th class="px-4">Price</th><th class="px-4">Inventory</th><th class="px-4">Image</th><th class="px-4">Updated</th></tr></thead>
             <tbody class="divide-y divide-slate-100">
               <tr v-for="product in products" :key="product.id">

@@ -90,7 +90,7 @@
       </div>
 
       <div class="overflow-x-auto admin-table-scroll">
-        <table class="w-full">
+        <table class="w-full min-w-[1500px]">
           <thead class="border-b border-gray-200">
             <tr>
               <th class="px-4 py-4 text-left">
@@ -268,7 +268,7 @@
           <div>
             <p class="text-sm font-semibold text-gray-700 mb-3">Order Items</p>
             <div class="rounded-lg overflow-hidden border border-gray-200">
-              <table class="w-full text-sm">
+              <table class="w-full min-w-[1000px] text-sm">
                 <thead>
                   <tr>
                     <th class="px-4 py-2 text-left font-semibold text-gray-500 uppercase text-xs tracking-wide">Description</th>

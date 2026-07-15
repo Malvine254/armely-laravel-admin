@@ -114,7 +114,7 @@
       </div>
 
       <div class="overflow-x-auto admin-table-scroll">
-        <table class="w-full text-sm">
+        <table class="w-full min-w-[1800px] text-sm">
           <thead class="border-b border-gray-200">
             <tr>
               <th class="px-4 py-3 text-left">
@@ -302,7 +302,7 @@
       </div>
 
       <div class="overflow-x-auto admin-table-scroll">
-        <table class="w-full text-sm">
+        <table class="w-full min-w-[1300px] text-sm">
           <thead class="border-b border-gray-200">
             <tr>
               <th class="px-6 py-3 text-left font-semibold text-gray-700 uppercase text-xs tracking-wide">Admin</th>

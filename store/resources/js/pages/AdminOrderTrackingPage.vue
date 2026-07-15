@@ -79,7 +79,7 @@
     <!-- Orders Tracking Table -->
     <div v-else-if="orders.length > 0" class="admin-table-card rounded-xl border-0 shadow-lg bg-white overflow-hidden">
       <div class="overflow-x-auto admin-table-scroll">
-        <table class="w-full text-sm">
+        <table class="w-full min-w-[1700px] text-sm">
           <thead>
             <tr class="border-b border-gray-100" style="background: linear-gradient(135deg, #2F5597, #1e3a6b);">
               <th class="text-left py-3.5 px-4 font-semibold text-white">Product</th>

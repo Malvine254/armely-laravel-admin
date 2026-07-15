@@ -114,7 +114,7 @@
       </div>
 
       <div class="overflow-x-auto admin-table-scroll">
-        <table class="w-full">
+        <table class="w-full min-w-[1300px]">
           <thead class="bg-gray-50 border-b border-gray-200">
             <tr>
               <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Rank</th>

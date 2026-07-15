@@ -23,7 +23,7 @@
         <div v-if="loading" class="p-10 text-center text-slate-500">Loading imported products…</div>
         <div v-else-if="products.length === 0" class="p-10 text-center text-slate-500">No imported products match these filters.</div>
         <div v-else class="overflow-x-auto">
-          <table class="min-w-full text-left text-sm">
+          <table class="w-full min-w-[1500px] text-left text-sm">
             <thead class="bg-slate-50 text-xs uppercase text-slate-500"><tr><th class="px-4 py-3">Product</th><th class="px-4 py-3">Imported from</th><th class="px-4 py-3">Inventory</th><th class="px-4 py-3">Image</th><th class="px-4 py-3">Review</th></tr></thead>
             <tbody class="divide-y divide-slate-100">
               <tr v-for="product in products" :key="product.id">

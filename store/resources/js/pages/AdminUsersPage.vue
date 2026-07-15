@@ -73,8 +73,8 @@
           </transition>
         </div>
 
-        <div class="overflow-x-auto overflow-y-auto flex-1">
-          <table class="w-full text-sm">
+        <div class="admin-users-table-scroll overflow-x-auto overflow-y-auto flex-1">
+          <table class="w-full min-w-[1700px] text-sm">
             <thead class="border-b border-gray-100 bg-gray-50 sticky top-0 z-10">
               <tr>
                 <!-- Select all -->
@@ -513,4 +513,5 @@ onMounted(() => { fetchCurrentUser(); fetchAdminUsers() })
   flex-direction: column;
   gap: 1rem;
 }
+
 </style>
