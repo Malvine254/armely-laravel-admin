@@ -12,6 +12,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -151,6 +152,47 @@ class AuthController extends Controller
         }
 
         return rtrim($baseUrl, '/') . '/' . $relativePublicPath . $version;
+    }
+
+    private function resolveTeamImageUrl(?User $user, Request $request): ?string
+    {
+        if (!$user || !in_array((string) $user->role, ['admin', 'super_admin'], true)) {
+            return null;
+        }
+
+        $name = trim((string) $user->name);
+        if ($name === '') {
+            return null;
+        }
+
+        try {
+            $database = preg_replace('/[^A-Za-z0-9_]/', '', (string) config('database.main_database', 'armely_main'));
+            if ($database === '') {
+                return null;
+            }
+
+            $image = DB::table($database . '.team')
+                ->whereRaw('LOWER(TRIM(team_name)) = ?', [mb_strtolower($name)])
+                ->value('team_image');
+            $image = trim((string) $image);
+
+            if ($image === '') {
+                return null;
+            }
+
+            if (filter_var($image, FILTER_VALIDATE_URL)) {
+                return $image;
+            }
+
+            return rtrim($request->getSchemeAndHttpHost(), '/') . '/images/team/' . rawurlencode(basename($image));
+        } catch (\Throwable $e) {
+            Log::debug('Team image lookup skipped for store admin.', [
+                'user_id' => $user->id,
+                'message' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
     }
 
     private function strongPasswordRule(): Password
@@ -515,6 +557,7 @@ class AuthController extends Controller
 
         $userData = $user?->toArray() ?? [];
         $userData['profile_picture_url'] = $this->buildProfilePictureUrl($user?->profile_picture);
+        $userData['team_image_url'] = $this->resolveTeamImageUrl($user, $request);
 
         return response()->json([
             'success' => true,

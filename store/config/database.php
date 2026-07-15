@@ -4,6 +4,8 @@ use Illuminate\Support\Str;
 
 return [
 
+    'main_database' => env('MAIN_DB_DATABASE', 'armely_main'),
+
     /*
     |--------------------------------------------------------------------------
     | Default Database Connection Name

@@ -215,7 +215,7 @@
     </div>
 
     <!-- Order Details Modal -->
-    <div v-if="selectedOrder" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" @click="selectedOrder = null">
+    <div v-if="selectedOrder" class="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4" @click="selectedOrder = null">
       <div class="rounded-2xl bg-white shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto border-0" @click.stop>
         <div class="sticky top-0 text-white p-6 border-b border-gray-200" style="background: linear-gradient(135deg, #2F5597, #1e3a6b);">
           <div class="flex justify-between items-center">
@@ -341,7 +341,7 @@
     </div>
 
     <!-- Delete Confirmation Modal -->
-    <div v-if="showDeleteConfirm" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" @click="showDeleteConfirm = false">
+    <div v-if="showDeleteConfirm" class="fixed inset-0 bg-black/50 flex items-center justify-center z-[110] p-4" @click="showDeleteConfirm = false">
       <div class="rounded-2xl bg-white shadow-2xl max-w-md w-full border-0" @click.stop>
         <div class="p-6">
           <div class="flex items-center mb-4">

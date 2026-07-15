@@ -1164,7 +1164,7 @@
     </div>
 
     <!-- Add Admin Modal -->
-    <div v-if="showAddAdminModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click.self="closeAddAdminModal">
+    <div v-if="showAddAdminModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-[100]" @click.self="closeAddAdminModal">
       <div class="rounded-xl bg-white border-0 shadow-2xl w-full max-w-md mx-4 overflow-hidden">
         <div class="p-6 border-b border-gray-200 text-white" style="background: linear-gradient(135deg, #2F5597, #1e3a6b)">
           <h3 class="text-lg font-semibold text-white">Add New Admin</h3>
