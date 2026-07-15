@@ -97,10 +97,10 @@
                   <span class="text-3xl font-extrabold" style="color: #2F5597;">{{ formatAdjustedCurrency(product.productPrice[0].rsPrice) }}</span>
                   <span class="text-sm text-gray-500">/ unit</span>
                 </div>
-                <div v-if="product.isOnSale" class="flex items-center gap-2 text-sm">
+                <div v-if="hasMsrpDiscount(product)" class="flex items-center gap-2 text-sm">
                   <span class="text-gray-500">MSRP</span>
-                  <span class="text-gray-400 line-through">{{ formatReferenceCurrency(product.regularPrice) }}</span>
-                  <span v-if="product.offer?.discountPercent" class="font-semibold text-emerald-700">Save {{ product.offer.discountPercent }}%</span>
+                  <span class="text-gray-400 line-through">{{ formatReferenceCurrency(getProductMsrp(product)) }}</span>
+                  <span class="font-semibold text-emerald-700">Save {{ getMsrpSavingsPercent(product) }}%</span>
                 </div>
                 <div v-if="product.productPrice.length > 1" class="mt-3 pt-3 border-t border-blue-100">
                   <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Volume Pricing</p>
@@ -541,6 +541,10 @@
               <!-- Pricing -->
               <div v-if="relatedProduct.productPrice && relatedProduct.productPrice.length > 0" class="mb-4">
                 <p class="text-2xl font-bold" style="color: #2F5597;">{{ formatAdjustedCurrency(relatedProduct.productPrice[0].rsPrice) }}</p>
+                <div v-if="hasMsrpDiscount(relatedProduct)" class="mt-1 flex items-center gap-2 text-xs">
+                  <span class="text-gray-400 line-through">MSRP: {{ formatReferenceCurrency(getProductMsrp(relatedProduct)) }}</span>
+                  <span class="font-semibold text-emerald-700">Save {{ getMsrpSavingsPercent(relatedProduct) }}%</span>
+                </div>
                 <p class="text-xs text-gray-600">Min Qty: {{ relatedProduct.productPrice[0].minQty }}</p>
               </div>
               <div v-else class="mb-4">
@@ -989,6 +993,25 @@ const formatAdjustedCurrency = (baseUsdPrice) => {
 
 const formatReferenceCurrency = (baseUsdPrice) => {
   return formatWithCurrency(convertFromUsd(Math.max(0, Number(baseUsdPrice || 0))))
+}
+
+const getProductMsrp = (item) => {
+  return Number(item?.msrp || item?.regularPrice || item?.productPrice?.[0]?.msrp || 0)
+}
+
+const getCustomerPrice = (item) => {
+  return getCatalogPriceWithRules(Number(item?.productPrice?.[0]?.rsPrice || 0))
+}
+
+const hasMsrpDiscount = (item) => {
+  const msrp = getProductMsrp(item)
+  const customerPrice = getCustomerPrice(item)
+  return msrp > 0 && customerPrice > 0 && msrp > customerPrice + 0.005
+}
+
+const getMsrpSavingsPercent = (item) => {
+  if (!hasMsrpDiscount(item)) return 0
+  return Math.max(1, Math.round(((getProductMsrp(item) - getCustomerPrice(item)) / getProductMsrp(item)) * 100))
 }
 
 const getProductIcon = (productName) => {

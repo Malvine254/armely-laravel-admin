@@ -97,6 +97,10 @@
 
             <div v-if="product.productPrice && product.productPrice.length > 0" class="mb-4">
               <p class="text-2xl font-bold" style="color: #2F5597;">{{ formatPrice(product.productPrice[0].rsPrice) }}</p>
+              <div v-if="hasMsrpDiscount(product)" class="mt-1 flex items-center gap-2 text-xs">
+                <span class="text-gray-400 line-through">MSRP: {{ formatReferencePrice(getProductMsrp(product)) }}</span>
+                <span class="font-semibold text-emerald-700">Save {{ getMsrpSavingsPercent(product) }}%</span>
+              </div>
               <p class="text-xs text-gray-600">Min Qty: {{ product.productPrice[0].minQty }}</p>
             </div>
 
@@ -233,6 +237,29 @@ const goBack = () => {
 const formatPrice = (price) => {
   const adjustedUsd = getCatalogPriceWithRules(Number(price || 0))
   return formatWithCurrency(convertFromUsd(adjustedUsd))
+}
+
+const formatReferencePrice = (price) => {
+  return formatWithCurrency(convertFromUsd(Math.max(0, Number(price || 0))))
+}
+
+const getProductMsrp = (product) => {
+  return Number(product?.msrp || product?.regularPrice || product?.productPrice?.[0]?.msrp || 0)
+}
+
+const getCustomerPrice = (product) => {
+  return getCatalogPriceWithRules(Number(product?.productPrice?.[0]?.rsPrice || 0))
+}
+
+const hasMsrpDiscount = (product) => {
+  const msrp = getProductMsrp(product)
+  const customerPrice = getCustomerPrice(product)
+  return msrp > 0 && customerPrice > 0 && msrp > customerPrice + 0.005
+}
+
+const getMsrpSavingsPercent = (product) => {
+  if (!hasMsrpDiscount(product)) return 0
+  return Math.max(1, Math.round(((getProductMsrp(product) - getCustomerPrice(product)) / getProductMsrp(product)) * 100))
 }
 
 loadPricingSettings()
