@@ -132,15 +132,55 @@
             </div>
 
             <!-- Empty State -->
-            <div v-if="totalProducts === 0" class="text-center py-9 bg-white rounded-xl border border-gray-200">
+            <div v-if="totalProducts === 0" class="bg-white rounded-xl border border-gray-200 px-5 py-9 sm:px-8">
+              <div class="text-center">
               <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
               </svg>
               <h3 class="text-xl font-bold text-gray-900 mb-2">No Products Found</h3>
-              <p class="text-gray-600 mb-6">Try adjusting your search or filters</p>
+              <p class="text-gray-600 mb-6">Try adjusting your search or ask our procurement team to source it.</p>
+              <p v-if="supplierLookupQueued" class="mx-auto mb-5 max-w-xl rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+                We didn’t find a local match, so we’re checking the supplier catalog. Please retry in a moment; any verified result will be added automatically.
+              </p>
               <button @click="resetFilters" class="px-6 py-2 text-white font-semibold rounded-lg transition" style="background-color: #2F5597;" @mouseenter="$event.target.style.backgroundColor='#1f4788'" @mouseleave="$event.target.style.backgroundColor='#2F5597'">
                 Clear Filters
               </button>
+              <button v-if="searchQuery" @click="openSourcingRequest" class="ml-2 rounded-lg border border-[#2F5597] px-6 py-2 font-semibold text-[#2F5597] transition hover:bg-blue-50">
+                Request sourcing
+              </button>
+              <button v-if="supplierLookupQueued" @click="performSearch(true)" class="ml-2 rounded-lg border border-amber-500 px-6 py-2 font-semibold text-amber-700 transition hover:bg-amber-50">
+                Retry search
+              </button>
+              </div>
+
+              <form v-if="showSourcingForm" @submit.prevent="submitSourcingRequest" class="mx-auto mt-8 max-w-2xl rounded-xl border border-blue-100 bg-blue-50/50 p-5 text-left">
+                <h4 class="font-bold text-[#102a52]">Can’t find this product?</h4>
+                <p class="mt-1 text-sm text-slate-600">We’ll verify supplier availability, pricing, and warranty before offering it for purchase.</p>
+                <div class="mt-4 grid gap-4 sm:grid-cols-2">
+                  <label class="text-sm font-semibold text-slate-700 sm:col-span-2">Product searched
+                    <input v-model.trim="sourcingForm.search_query" required maxlength="500" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-normal outline-none focus:border-[#2F5597]" />
+                  </label>
+                  <label class="text-sm font-semibold text-slate-700">Manufacturer
+                    <input v-model.trim="sourcingForm.manufacturer" maxlength="100" placeholder="e.g. Dell" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-normal outline-none focus:border-[#2F5597]" />
+                  </label>
+                  <label class="text-sm font-semibold text-slate-700">Model or part number
+                    <input v-model.trim="sourcingForm.model_or_part_number" maxlength="150" placeholder="e.g. RB14250" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-normal outline-none focus:border-[#2F5597]" />
+                  </label>
+                  <label class="text-sm font-semibold text-slate-700">Quantity
+                    <input v-model.number="sourcingForm.quantity" type="number" min="1" max="100000" required class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-normal outline-none focus:border-[#2F5597]" />
+                  </label>
+                  <label class="text-sm font-semibold text-slate-700 sm:col-span-2">Additional details
+                    <textarea v-model.trim="sourcingForm.notes" maxlength="2000" rows="3" placeholder="Required configuration, delivery date, or alternatives you would accept" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-normal outline-none focus:border-[#2F5597]"></textarea>
+                  </label>
+                </div>
+                <p v-if="sourcingError" class="mt-3 text-sm font-semibold text-red-700">{{ sourcingError }}</p>
+                <div class="mt-4 flex justify-end gap-2">
+                  <button type="button" @click="showSourcingForm = false" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">Cancel</button>
+                  <button type="submit" :disabled="sourcingSubmitting" class="rounded-lg bg-[#2F5597] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">
+                    {{ sourcingSubmitting ? 'Sending…' : 'Send sourcing request' }}
+                  </button>
+                </div>
+              </form>
             </div>
 
             <!-- Horizontal product cards -->
@@ -540,6 +580,13 @@ const loading = ref(false)
 const pageLoading = ref(false)
 const error = ref('')
 const searchQuery = ref('')
+const supplierLookupQueued = ref(false)
+const showSourcingForm = ref(false)
+const sourcingSubmitting = ref(false)
+const sourcingError = ref('')
+const sourcingForm = reactive({
+  search_query: '', manufacturer: '', model_or_part_number: '', quantity: 1, notes: '',
+})
 const currentPage = ref(1)
 // Prevents the route watcher from double-fetching when we call router.replace ourselves
 let ownRouterReplace = false
@@ -557,6 +604,44 @@ const shareRecipientEmail = ref('')
 const shareNote = ref('')
 const shareGeneratedLink = ref('')
 const shareSubmitting = ref(false)
+
+const inferSourcingIdentifiers = (query) => {
+  const value = String(query || '').trim()
+  const modelMatch = value.match(/\(([A-Z0-9][A-Z0-9-]{3,})\)|\b([A-Z]{1,5}\d[A-Z0-9-]{3,})\b/i)
+  const manufacturer = CURATED_VENDOR_ALLOWLIST.find((vendor) =>
+    value.toUpperCase().includes(vendor.toUpperCase())
+  ) || ''
+  return { manufacturer, model: modelMatch?.[1] || modelMatch?.[2] || '' }
+}
+
+const openSourcingRequest = () => {
+  if (!authStore.isAuthenticated) {
+    router.push({ name: 'login', query: { redirect: route.fullPath } })
+    return
+  }
+  const inferred = inferSourcingIdentifiers(searchQuery.value)
+  sourcingForm.search_query = searchQuery.value
+  sourcingForm.manufacturer = inferred.manufacturer
+  sourcingForm.model_or_part_number = inferred.model
+  sourcingError.value = ''
+  showSourcingForm.value = true
+}
+
+const submitSourcingRequest = async () => {
+  sourcingSubmitting.value = true
+  sourcingError.value = ''
+  try {
+    const response = await api.post('/product-sourcing-requests', sourcingForm)
+    toastStore.addToast(response.data?.message || 'Sourcing request sent.', 'success', 5000)
+    showSourcingForm.value = false
+    sourcingForm.quantity = 1
+    sourcingForm.notes = ''
+  } catch (requestError) {
+    sourcingError.value = requestError.response?.data?.message || 'We could not send your request. Please try again.'
+  } finally {
+    sourcingSubmitting.value = false
+  }
+}
 
 const availableVendors = ref([])
 const allVendors = ref([])
@@ -1448,6 +1533,7 @@ const applyProductResultPayload = (result = {}) => {
   serverPaged.value = Boolean(result.serverPaged)
   serverHasMore.value = Boolean(result.hasMore)
   serverTotalIsEstimate.value = Boolean(result.totalIsEstimate)
+  supplierLookupQueued.value = Boolean(result.supplierLookupQueued)
   if (!Boolean(result.serverPaged)) {
     updateVendorCounts(products.value)
   }
@@ -1484,6 +1570,7 @@ const performSearch = async (resetPage = true) => {
   if (resetPage && normalizedQuery) {
     products.value = []
     serverTotal.value = 0
+    supplierLookupQueued.value = false
   }
   if (normalizedQuery) {
     persistLocalSearchHistory(searchQuery.value)
@@ -1595,6 +1682,7 @@ const performSearch = async (resetPage = true) => {
       let loadedTotal = 0
       let loadedHasMore = false
       let loadedTotalIsEstimate = false
+      let loadedSupplierLookupQueued = false
 
       if (useServerPaged) {
         const response = await api.get('/products', {
@@ -1619,6 +1707,7 @@ const performSearch = async (resetPage = true) => {
         loadedTotal = Number(payload.total || loadedProducts.length || 0)
         loadedHasMore = Boolean(payload.has_more)
         loadedTotalIsEstimate = Boolean(payload.total_is_estimate)
+        loadedSupplierLookupQueued = Boolean(payload.supplier_lookup_queued)
       } else {
         loadedProducts = await fetchAllProductPages(params)
         loadedTotal = loadedProducts.length
@@ -1634,6 +1723,7 @@ const performSearch = async (resetPage = true) => {
       serverTotal.value = loadedTotal
       serverHasMore.value = loadedHasMore
       serverTotalIsEstimate.value = loadedTotalIsEstimate
+      supplierLookupQueued.value = loadedSupplierLookupQueued
 
       if (Array.isArray(products.value)) {
         // Vendor counts should only be recomputed from full client-side datasets.
@@ -1648,10 +1738,13 @@ const performSearch = async (resetPage = true) => {
           serverPaged: useServerPaged,
           hasMore: loadedHasMore,
           totalIsEstimate: loadedTotalIsEstimate,
+          supplierLookupQueued: loadedSupplierLookupQueued,
           timestamp: Date.now()
         }
-        requestCache.set(cacheKey, cachePayload)
-        saveProductResultsCache(cacheKey, cachePayload)
+        if (!loadedSupplierLookupQueued) {
+          requestCache.set(cacheKey, cachePayload)
+          saveProductResultsCache(cacheKey, cachePayload)
+        }
 
         if (useServerPaged && ENABLE_SERVER_PREFETCH) {
           prefetchPage(currentPage.value + 1)
@@ -1664,6 +1757,7 @@ const performSearch = async (resetPage = true) => {
           serverPaged: useServerPaged,
           hasMore: loadedHasMore,
           totalIsEstimate: loadedTotalIsEstimate,
+          supplierLookupQueued: loadedSupplierLookupQueued,
         }
       } else {
         error.value = 'Failed to fetch products'

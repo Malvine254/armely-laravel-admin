@@ -50,6 +50,12 @@
           <span>Dashboard</span>
         </router-link>
 
+        <div class="mt-4 px-4"><p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Catalog</p></div>
+        <router-link :to="{ name: 'admin-imported-products' }" :class="['flex items-center px-6 py-3 border-l-4 transition', isActive('imported-products') ? 'bg-[#2F5597]/10 border-[#2F5597] text-[#2F5597] font-semibold' : 'border-transparent hover:bg-gray-50 hover:border-[#2F5597]/50 text-gray-700']">
+          <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V7a2 2 0 00-1-1.73l-6-3.43a2 2 0 00-2 0l-6 3.43A2 2 0 004 7v6m16 0-8 4-8-4m16 0v4a2 2 0 01-1 1.73l-6 3.43a2 2 0 01-2 0l-6-3.43A2 2 0 014 17v-4"/></svg>
+          <span>Imported Products</span>
+        </router-link>
+
         <!-- Quotes Management -->
         <div class="mt-4 px-4">
           <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Quotes</p>

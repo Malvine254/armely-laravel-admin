@@ -790,6 +790,80 @@ class TDSynnexService
         return $this->priceAvailabilityProductToDatabaseRow($product);
     }
 
+    /**
+     * Resolve a local search miss against AP metadata + PriceAvailability and
+     * persist every supplier result using the normal catalog mapping.
+     */
+    public function importMissingPriceAvailabilitySearch(string $search, int $maxMatches = 50): array
+    {
+        $search = trim($search);
+        if ($search === '') {
+            return ['found' => 0, 'imported' => 0, 'product_ids' => []];
+        }
+
+        $queries = [$search];
+        if (preg_match_all('/[A-Z0-9][A-Z0-9-]{3,}/i', $search, $matches)) {
+            foreach ($matches[0] as $token) {
+                if (preg_match('/\d/', $token)) {
+                    $queries[] = $token;
+                }
+            }
+        }
+        $queries = array_values(array_unique(array_filter(array_map('trim', $queries))));
+
+        $products = [];
+        foreach ($queries as $query) {
+            foreach ($this->searchPriceAvailabilityCatalog($query, $maxMatches) as $product) {
+                $key = (string) ($product['productId'] ?? $product['sku'] ?? '');
+                if ($key !== '') {
+                    $products[$key] = $product;
+                }
+            }
+            if (count($products) >= $maxMatches) {
+                break;
+            }
+        }
+
+        $rows = [];
+        foreach (array_slice(array_values($products), 0, $maxMatches) as $product) {
+            $row = $this->priceAvailabilityProductToDatabaseRow((array) $product);
+            if ($row !== null) {
+                $row['search_imported_at'] = now();
+                $row['search_import_query'] = $search;
+                $row['search_import_review_status'] = 'pending';
+                $rows[] = $row;
+            }
+        }
+        if (empty($rows)) {
+            return ['found' => count($products), 'imported' => 0, 'product_ids' => []];
+        }
+
+        Product::upsert($rows, ['tdsynnex_product_id'], [
+            'tdsynnex_sku_no', 'vendor_id', 'product_name', 'mfg_part_no', 'description',
+            'base_price', 'retail_price', 'billing_model', 'billing_frequency',
+            'is_available', 'is_discontinued', 'is_hardware', 'category_id',
+            'category_segment', 'manufacturer', 'specifications', 'images',
+            'last_synced_at', 'search_imported_at', 'search_import_query',
+            'search_import_review_status', 'updated_at',
+        ]);
+
+        $dbIds = Product::query()
+            ->whereIn('tdsynnex_product_id', array_column($rows, 'tdsynnex_product_id'))
+            ->pluck('id')->map(fn ($id) => (int) $id)->all();
+
+        foreach ($dbIds as $productId) {
+            $product = Product::query()->find($productId);
+            if ($product && empty((array) $product->images)) {
+                \App\Jobs\EnrichPriceAvailabilityProductImageJob::dispatch($productId);
+            }
+        }
+
+        Cache::forget('pa_db_cache_exists');
+        Cache::forget('tdsynnex:priceavailability:vendors:list');
+
+        return ['found' => count($products), 'imported' => count($rows), 'product_ids' => $dbIds];
+    }
+
     private function preferredImageSyncPriceSql(): string
     {
         return 'COALESCE(NULLIF(retail_price, 0), NULLIF(base_price, 0), 0)';
