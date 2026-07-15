@@ -62,6 +62,30 @@
   background-color: rgba(47, 85, 151, 0.035);
 }
 
+/* The admin content pane owns vertical scrolling; tables scroll horizontally only. */
+.admin-font .admin-fit-page {
+  block-size: auto !important;
+  min-block-size: calc(100vh - 170px);
+}
+
+.admin-font .admin-table-card {
+  flex: none !important;
+  overflow: visible;
+}
+
+.admin-font .admin-table-scroll,
+.admin-font .admin-users-table-scroll {
+  min-block-size: auto !important;
+  max-block-size: none !important;
+  flex: none !important;
+  overflow-x: auto !important;
+  overflow-y: visible !important;
+}
+
+.admin-font .admin-table-pagination {
+  position: static !important;
+}
+
 .armely-brand-font {
     font-family: 'Armely Brand', 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
 }
