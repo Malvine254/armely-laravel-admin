@@ -215,13 +215,13 @@ class AdminController extends Controller
         try {
             if (DB::getSchemaBuilder()->hasTable('jobs')) {
                 $pendingJobs = DB::table('jobs')
-                    ->where('queue', 'products-sync')
+                    ->whereIn('queue', ['products-metadata', 'products-sync'])
                     ->count();
             }
 
             if (DB::getSchemaBuilder()->hasTable('failed_jobs')) {
                 $failedJobs = DB::table('failed_jobs')
-                    ->where('queue', 'products-sync')
+                    ->whereIn('queue', ['products-metadata', 'products-sync'])
                     ->count();
             }
         } catch (\Throwable $e) {
@@ -4082,7 +4082,7 @@ class AdminController extends Controller
                     ], 422);
                 }
 
-                $message = 'Flat-file description and metadata sync queued on products-sync queue.';
+                $message = 'Flat-file description and metadata sync queued with priority ahead of image jobs.';
                 $stateService->start($action, (int) $user->id, $message);
                 SyncFlatFileMetadataJob::dispatch();
             }
@@ -4184,6 +4184,64 @@ class AdminController extends Controller
                 'success' => false,
                 'message' => 'Failed to stop background jobs: ' . $e->getMessage(),
             ], 500);
+        }
+    }
+
+    public function startProductsSyncWorker(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if (!$this->isAdminUser($user)) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
+
+        if (PHP_OS_FAMILY === 'Windows' || !function_exists('exec')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This server cannot launch a detached worker from the admin page. Start products-sync through Supervisor or the hosting terminal.',
+            ], 503);
+        }
+
+        try {
+            $logPath = storage_path('logs/products-sync-worker.log');
+            $command = sprintf(
+                'cd %s && nohup %s %s queue:work database --queue=products-metadata,products-sync --sleep=1 --timeout=3600 --tries=1 --stop-when-empty --no-interaction >> %s 2>&1 < /dev/null & echo $!',
+                escapeshellarg(base_path()),
+                escapeshellarg(PHP_BINARY),
+                escapeshellarg(base_path('artisan')),
+                escapeshellarg($logPath)
+            );
+            $output = [];
+            $exitCode = 1;
+            exec($command, $output, $exitCode);
+            $pid = isset($output[0]) && ctype_digit(trim((string) $output[0]))
+                ? (int) trim((string) $output[0])
+                : 0;
+
+            if ($exitCode !== 0 || $pid <= 0) {
+                throw new \RuntimeException('The detached worker process could not be created.');
+            }
+
+            Log::info('Products sync worker started from Catalog Ops', [
+                'admin_id' => $user->id,
+                'admin_email' => $user->email,
+                'pid' => $pid,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => $pid > 0
+                    ? "Products worker started (PID {$pid}). It will stop automatically when the queue is empty."
+                    : 'Products worker started. It will stop automatically when the queue is empty.',
+                'data' => ['pid' => $pid],
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Failed to start products sync worker', ['message' => $e->getMessage()]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to start products worker: ' . $e->getMessage(),
+            ], 503);
         }
     }
 
