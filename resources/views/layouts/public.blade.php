@@ -1347,6 +1347,12 @@ main .service-card {
             <button type="button" class="sub-toggle">Knowledge Hub <span class="mobile-caret" aria-hidden="true"></span></button>
             @include('partials.mobile-menu.knowledge-hub')
         </li>
+        <li class="menu-store-link">
+            <a href="{{ url('/store') }}" target="_blank" rel="noopener noreferrer">
+                <span>Armely Store</span>
+                <span class="menu-new-badge">New</span>
+            </a>
+        </li>
         <li><a href="{{ route('contact') }}">Let's Talk</a></li>
     </ul>
 </div>
