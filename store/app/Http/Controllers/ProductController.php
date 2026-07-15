@@ -1184,6 +1184,18 @@ class ProductController extends Controller
                     $tokenScoreBindings[] = '%' . $term . '%';
                 }
                 $tokenScoreExpr = $tokenScoreParts ? ' + ' . implode(' + ', $tokenScoreParts) : '';
+                $modelScoreParts = [];
+                $modelScoreBindings = [];
+                foreach ($meaningfulTerms as $term) {
+                    // Mixed letter/number tokens are usually model identifiers
+                    // (for example RB14250). They must outrank generic brand/name
+                    // matches even when the exact product has no supplier image.
+                    if (preg_match('/[a-z]/i', $term) && preg_match('/\d/', $term)) {
+                        $modelScoreParts[] = "CASE WHEN LOWER(CONCAT_WS(' ', COALESCE(product_name,''), COALESCE(mfg_part_no,''), COALESCE(tdsynnex_product_id,''), CAST(COALESCE(tdsynnex_sku_no, 0) AS CHAR))) LIKE ? THEN 550 ELSE 0 END";
+                        $modelScoreBindings[] = '%' . $term . '%';
+                    }
+                }
+                $modelScoreExpr = $modelScoreParts ? ' + ' . implode(' + ', $modelScoreParts) : '';
                 $searchOrderExpr = "(
                     CASE WHEN COALESCE(category_segment, '') = ? THEN 500 ELSE 0 END +
                     CASE WHEN CAST(COALESCE(tdsynnex_sku_no, 0) AS CHAR) = ? THEN 700 ELSE 0 END +
@@ -1191,7 +1203,7 @@ class ProductController extends Controller
                     CASE WHEN LOWER(COALESCE(mfg_part_no,'')) = ? THEN 650 ELSE 0 END +
                     CASE WHEN LOWER(COALESCE(product_name,'')) LIKE ? THEN 300 ELSE 0 END +
                     CASE WHEN LOWER(COALESCE(product_name,'')) LIKE ? THEN 150 ELSE 0 END +
-                    CASE WHEN LOWER(COALESCE(manufacturer,''))  LIKE ? THEN  80 ELSE 0 END{$tokenScoreExpr} -
+                    CASE WHEN LOWER(COALESCE(manufacturer,''))  LIKE ? THEN  80 ELSE 0 END{$tokenScoreExpr}{$modelScoreExpr} -
                     CASE WHEN LOWER(COALESCE(product_name,'')) REGEXP '(cable|cord|adapter|mount|stand|riser|dock|case|sleeve|bag|backpack|cartridge|toner|keyboard|mouse|warranty|license|privacy|laptop ps|screen protector|replacement|battery|cooling pad|charger|charging cart|power supply|serial port|parallel port|usb port|kvm|lock)' THEN 400 ELSE 0 END
                 ) DESC";
                 $searchOrderBindings = [
@@ -1203,6 +1215,7 @@ class ProductController extends Controller
                     '%' . $lowerFull . '%',
                     '%' . $lowerFull . '%',
                     ...$tokenScoreBindings,
+                    ...$modelScoreBindings,
                 ];
             }
         }
@@ -1267,15 +1280,16 @@ class ProductController extends Controller
         $offset = ($currentPage - 1) * $perPage;
         $defaultBrowseMaxItems = $isDefaultBrowse ? self::STOREFRONT_MAX_DEFAULT_PRODUCTS : null;
 
-        // Product completeness is the first display priority, including search.
-        // Exact/relevant matches are ranked within the image-ready group, while
-        // image-missing products remain searchable after it.
-        $query->orderByRaw('CASE WHEN (' . $this->hasUsableProductImageSql() . ') THEN 0 ELSE 1 END');
-
-        // When searching: sort image-ready products by relevance score.
+        // Search relevance must lead. Image completeness is only a tie-breaker;
+        // otherwise an exact model match without media is buried below weaker
+        // matches that happen to have supplier images.
         if ($searchOrderExpr !== null) {
             $query->orderByRaw($searchOrderExpr, $searchOrderBindings);
-        } elseif ($isDefaultBrowse) {
+        }
+
+        $query->orderByRaw('CASE WHEN (' . $this->hasUsableProductImageSql() . ') THEN 0 ELSE 1 END');
+
+        if ($searchOrderExpr === null && $isDefaultBrowse) {
             $query->orderByRaw('COALESCE(storefront_rank, 4294967295) ASC');
         }
 
