@@ -270,10 +270,10 @@
                     <div v-if="pricingReady" class="flex flex-wrap items-baseline justify-between gap-2">
                       <div class="flex items-baseline gap-2">
                       <p class="text-xl font-extrabold" style="color: #2F5597;">{{ formatCatalogPrice(product.productPrice[0].rsPrice) }}</p>
-                      <span v-if="product.isOnSale" class="text-sm text-gray-400 line-through" title="Manufacturer's suggested retail price">
-                        MSRP: {{ formatReferencePrice(product.regularPrice) }}
+                      <span v-if="hasMsrpDiscount(product)" class="text-sm text-gray-400 line-through" title="Manufacturer's suggested retail price">
+                        MSRP: {{ formatReferencePrice(getProductMsrp(product)) }}
                       </span>
-                      <span v-if="product.isOnSale" class="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">Offer</span>
+                      <span v-if="hasMsrpDiscount(product)" class="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">Save {{ getMsrpSavingsPercent(product) }}%</span>
                       </div>
                       <p class="text-[11px] text-slate-500">Min Qty: {{ product.productPrice[0].minQty }}</p>
                     </div>
@@ -2453,6 +2453,25 @@ const formatCatalogPrice = (baseUsdPrice) => {
 const formatReferencePrice = (baseUsdPrice) => {
   const converted = convertFromUsd(Math.max(0, Number(baseUsdPrice || 0)))
   return formatWithCurrency(converted)
+}
+
+const getProductMsrp = (product) => {
+  return Number(product?.msrp || product?.regularPrice || product?.productPrice?.[0]?.msrp || 0)
+}
+
+const getCustomerPrice = (product) => {
+  return getCatalogPriceWithRules(Number(product?.productPrice?.[0]?.rsPrice || 0))
+}
+
+const hasMsrpDiscount = (product) => {
+  const msrp = getProductMsrp(product)
+  const customerPrice = getCustomerPrice(product)
+  return msrp > 0 && customerPrice > 0 && msrp > customerPrice + 0.005
+}
+
+const getMsrpSavingsPercent = (product) => {
+  if (!hasMsrpDiscount(product)) return 0
+  return Math.max(1, Math.round(((getProductMsrp(product) - getCustomerPrice(product)) / getProductMsrp(product)) * 100))
 }
 
 const getProductIcon = (productName) => {
