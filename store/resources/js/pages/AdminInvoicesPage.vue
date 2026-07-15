@@ -163,7 +163,7 @@
     <!-- Invoices List -->
     <div v-else class="admin-table-card rounded-xl border-0 shadow-lg bg-white overflow-hidden">
       <div class="overflow-x-auto admin-table-scroll">
-        <table class="w-full">
+        <table class="w-full min-w-[1900px]">
           <thead class="bg-gray-50 border-b border-gray-200">
             <tr>
               <th class="px-4 py-4 w-10">

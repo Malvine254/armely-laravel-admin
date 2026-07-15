@@ -107,7 +107,7 @@
       </div>
 
       <div class="overflow-x-auto admin-table-scroll">
-        <table class="w-full">
+        <table class="w-full min-w-[1700px]">
           <thead class="border-b border-gray-200">
             <tr>
               <th class="px-4 py-4 text-left">

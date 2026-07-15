@@ -116,7 +116,7 @@
           <router-link :to="{ name: 'admin-quotes' }" class="text-[#2F5597] text-sm hover:text-[#2F5597]">View all</router-link>
         </div>
         <div class="overflow-x-auto">
-          <table class="w-full min-w-[680px] text-sm">
+          <table class="w-full min-w-[900px] text-sm">
             <thead>
               <tr class="text-gray-500 border-b border-gray-200">
                 <th class="px-3 py-3 text-left font-medium">Quote</th>

@@ -839,7 +839,7 @@
       
       <div class="p-6">
         <div class="overflow-x-auto">
-          <table class="w-full">
+          <table class="w-full min-w-[1400px]">
             <thead>
               <tr class="bg-gray-50 border-b border-gray-200">
                 <th class="text-left py-3 px-4 text-xs font-semibold text-gray-700 uppercase tracking-wide">Name</th>
@@ -1011,7 +1011,7 @@
           </svg>
         </div>
         <div v-else class="overflow-x-auto">
-          <table class="w-full">
+          <table class="w-full min-w-[1400px]">
             <thead class="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th class="px-4 py-3 text-left w-10">
@@ -1107,7 +1107,7 @@
           </svg>
         </div>
         <div v-else class="overflow-x-auto">
-          <table class="w-full">
+          <table class="w-full min-w-[1400px]">
             <thead class="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th class="px-4 py-3 text-left w-10">
