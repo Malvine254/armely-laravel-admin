@@ -28,6 +28,7 @@
             :media-options="reviewRatingOptions"
             :compact="false"
             @filter-change="handleFilterChange"
+            @clear-all="resetFilters"
             class="lg:absolute lg:inset-0 lg:h-full lg:min-h-0"
           />
         </aside>
@@ -1994,6 +1995,10 @@ const handleFilterChange = (filters) => {
 
 const resetFilters = () => {
   searchQuery.value = ''
+  sortBy.value = 'relevance'
+  searchSuggestionItems.value = []
+  showSearchSuggestions.value = false
+  activeSuggestionIndex.value = -1
   currentPage.value = 1
   currentFilters.value = {
     priceMin: DEFAULT_BROWSE_MIN_PRICE,

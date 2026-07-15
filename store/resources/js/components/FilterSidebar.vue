@@ -303,7 +303,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['filter-change'])
+const emit = defineEmits(['filter-change', 'clear-all'])
 const DEFAULT_MIN_PRICE = Number(import.meta.env.VITE_MIN_PRICE ?? 100)
 const DEFAULT_MAX_PRICE = 0
 const POPULAR_VENDOR_LIMIT = 40
@@ -538,7 +538,7 @@ const clearAllFilters = () => {
   }
   vendorSearch.value = ''
   categorySearch.value = ''
-  applyFilters()
+  emit('clear-all')
 }
 
 const applyFilters = () => {
