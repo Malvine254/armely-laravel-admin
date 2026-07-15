@@ -1908,7 +1908,7 @@ const fetchAdminLogs = async () => {
   adminLogsLoading.value = true
   try {
     const res = await api.get('/admin/logs/admins', {
-      params: { per_page: 25, page: adminLogsPage.value, search: adminLogsSearch.value }
+      params: { per_page: 10, page: adminLogsPage.value, search: adminLogsSearch.value }
     })
     if (res.data.success) {
       adminLogs.value = res.data.data
@@ -1927,7 +1927,7 @@ const fetchUserLogs = async () => {
   userLogsLoading.value = true
   try {
     const res = await api.get('/admin/logs/users', {
-      params: { per_page: 25, page: userLogsPage.value, search: userLogsSearch.value }
+      params: { per_page: 10, page: userLogsPage.value, search: userLogsSearch.value }
     })
     if (res.data.success) {
       userLogs.value = res.data.data

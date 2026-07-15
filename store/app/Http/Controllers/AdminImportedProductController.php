@@ -35,7 +35,7 @@ class AdminImportedProductController extends Controller
         }
 
         $products = $query->orderByDesc('updated_at')
-            ->paginate(min(100, max(10, (int) $request->query('per_page', 25))));
+            ->paginate(min(100, max(10, (int) $request->query('per_page', 10))));
         $products->getCollection()->transform(fn (Product $product) => [
             'id' => $product->id,
             'name' => $product->product_name,
@@ -81,7 +81,7 @@ class AdminImportedProductController extends Controller
             $query->where(fn ($q) => $q->whereNull('images')->orWhere('images', '')->orWhere('images', '[]')->orWhere('images', 'null'));
         }
 
-        $products = $query->orderByDesc('search_imported_at')->paginate(min(100, max(10, (int) $request->query('per_page', 25))));
+        $products = $query->orderByDesc('search_imported_at')->paginate(min(100, max(10, (int) $request->query('per_page', 10))));
         $products->getCollection()->transform(fn (Product $product) => [
             'id' => $product->id,
             'name' => $product->product_name,

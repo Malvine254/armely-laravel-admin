@@ -114,7 +114,7 @@
       </div>
 
       <div class="overflow-x-auto admin-table-scroll">
-        <table class="w-full min-w-[1800px] text-sm">
+        <table class="w-full min-w-[1250px] text-sm">
           <thead class="border-b border-gray-200">
             <tr>
               <th class="px-4 py-3 text-left">
@@ -129,14 +129,13 @@
               <th class="px-6 py-3 text-left font-semibold text-gray-700 uppercase text-xs tracking-wide">User</th>
               <th class="px-6 py-3 text-left font-semibold text-gray-700 uppercase text-xs tracking-wide">Company</th>
               <th class="px-6 py-3 text-left font-semibold text-gray-700 uppercase text-xs tracking-wide">Status</th>
-              <th class="px-6 py-3 text-left font-semibold text-gray-700 uppercase text-xs tracking-wide">Commercial Terms</th>
               <th class="px-6 py-3 text-left font-semibold text-gray-700 uppercase text-xs tracking-wide">Joined</th>
               <th class="px-6 py-3 text-right font-semibold text-gray-700 uppercase text-xs tracking-wide">Actions</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-200">
             <tr v-if="customerUsers.length === 0">
-              <td colspan="7" class="px-6 py-16 text-center">
+              <td colspan="6" class="px-6 py-16 text-center">
                 <i class="fas fa-users text-5xl mb-4 block opacity-20 text-gray-500"></i>
                 <p class="text-gray-500 text-lg font-medium">No customer users found</p>
               </td>
@@ -163,38 +162,6 @@
                 <span :class="['px-3 py-1 rounded-full text-xs font-semibold', statusBadgeClass(user.status)]">
                   {{ formatStatusLabel(user.status) }}
                 </span>
-              </td>
-              <td class="px-6 py-4">
-                <div class="flex flex-wrap items-end gap-2 min-w-[260px]">
-                  <label class="text-xs text-gray-500">
-                    Discount %
-                    <input
-                      v-model.number="specialPricingDrafts[user.id]"
-                      type="number"
-                      min="0"
-                      max="100"
-                      step="0.01"
-                      class="mt-1 w-24 px-2 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
-                    />
-                  </label>
-                  <label class="text-xs text-gray-500">
-                    Shipping $
-                    <input
-                      v-model.number="shippingAmountDrafts[user.id]"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      class="mt-1 w-24 px-2 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
-                    />
-                  </label>
-                  <button
-                    @click="saveUserSpecialPricing(user)"
-                    :disabled="isSubmitting"
-                    class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-[#2F5597] hover:bg-[#1e3a6b] text-white transition disabled:opacity-50"
-                  >
-                    Save
-                  </button>
-                </div>
               </td>
               <td class="px-6 py-4 text-gray-500">{{ formatDate(user.created_at) }}</td>
               <td class="px-6 py-4 text-right whitespace-nowrap">

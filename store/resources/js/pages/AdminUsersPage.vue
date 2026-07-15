@@ -74,7 +74,7 @@
         </div>
 
         <div class="admin-users-table-scroll overflow-x-auto overflow-y-auto flex-1">
-          <table class="w-full min-w-[1700px] text-sm">
+          <table class="w-full min-w-[1100px] text-sm">
             <thead class="border-b border-gray-100 bg-gray-50 sticky top-0 z-10">
               <tr>
                 <!-- Select all -->
@@ -84,15 +84,13 @@
                 </th>
                 <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Admin</th>
                 <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Role</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Permissions</th>
                 <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Login</th>
                 <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Actions</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-50">
               <tr v-if="filteredAdmins.length === 0">
-                <td colspan="7" class="px-6 py-16 text-center text-gray-400 text-sm">No admin users found</td>
+                <td colspan="5" class="px-6 py-16 text-center text-gray-400 text-sm">No admin users found</td>
               </tr>
               <tr v-for="admin in filteredAdmins" :key="admin.id"
                 :class="['transition group', selectedIds.includes(admin.id) ? 'bg-[#2F5597]/5' : 'hover:bg-gray-50']">
@@ -131,22 +129,6 @@
                   </span>
                 </td>
 
-                <!-- Permissions -->
-                <td class="px-4 py-4">
-                  <span v-if="admin.role === 'super_admin'" class="text-xs text-violet-500 font-medium italic">Full access</span>
-                  <span v-else-if="!admin.permissions || admin.permissions.length === 0" class="text-xs text-gray-300 italic">No permissions</span>
-                  <div v-else class="flex flex-wrap gap-1">
-                    <span v-for="p in admin.permissions.slice(0, 3)" :key="p"
-                      class="px-1.5 py-0.5 bg-blue-50 text-blue-700 text-[10px] font-semibold rounded border border-blue-100">
-                      {{ permissionLabel(p) }}
-                    </span>
-                    <span v-if="admin.permissions.length > 3"
-                      class="px-1.5 py-0.5 bg-gray-100 text-gray-500 text-[10px] font-semibold rounded">
-                      +{{ admin.permissions.length - 3 }} more
-                    </span>
-                  </div>
-                </td>
-
                 <!-- Status -->
                 <td class="px-4 py-4">
                   <span :class="[
@@ -155,15 +137,6 @@
                   ]">
                     {{ admin.status === 'active' ? 'Active' : 'Suspended' }}
                   </span>
-                </td>
-
-                <!-- Login -->
-                <td class="px-4 py-4">
-                  <span v-if="admin.force_password_change && isTempExpired(admin.temp_password_expires_at)"
-                    class="text-xs text-rose-500 font-medium">Invite expired</span>
-                  <span v-else-if="admin.force_password_change"
-                    class="text-xs text-amber-600 font-medium">Awaiting login</span>
-                  <span v-else class="text-xs text-emerald-600 font-medium">Active</span>
                 </td>
 
                 <!-- Actions -->

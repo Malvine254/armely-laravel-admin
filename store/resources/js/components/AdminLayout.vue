@@ -1,5 +1,5 @@
 <template>
-  <div class="flex h-screen bg-gray-50 admin-font">
+  <div class="flex h-screen min-h-0 overflow-hidden bg-gray-50 admin-font">
     <!-- Mobile Overlay -->
     <div
       v-show="sidebarOpen"
@@ -10,7 +10,7 @@
     <!-- Sidebar Navigation -->
     <div
       :class="[
-        'w-64 shadow-lg flex flex-col fixed inset-y-0 left-0 z-50 transform transition-transform duration-200 md:static md:translate-x-0 bg-white border-r border-gray-200',
+        'w-64 h-screen min-h-0 overflow-hidden shadow-lg flex flex-col fixed inset-y-0 left-0 z-50 transform transition-transform duration-200 md:static md:translate-x-0 bg-white border-r border-gray-200',
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       ]"
     >
@@ -275,9 +275,9 @@
     </div>
 
     <!-- Main Content Area -->
-    <div class="flex-1 flex flex-col min-w-0">
+    <div class="h-screen min-h-0 flex-1 flex flex-col min-w-0 overflow-hidden">
       <!-- Top Header -->
-      <div class="px-4 sm:px-5 lg:px-8 admin-header-band shadow-md" style="background: linear-gradient(135deg, #2F5597, #1e3a6b);">
+      <div class="sticky top-0 z-30 flex-shrink-0 overflow-visible px-4 sm:px-5 lg:px-8 admin-header-band shadow-md" style="background: linear-gradient(135deg, #2F5597, #1e3a6b);">
         <div class="flex justify-between items-center h-full w-full gap-4">
           <div class="flex items-center gap-3 flex-shrink-0">
             <button
@@ -471,7 +471,7 @@
       </div>
 
       <!-- Page Content -->
-      <div class="flex-1 overflow-auto overflow-x-hidden p-4 sm:p-6 lg:p-8 bg-gray-100">
+      <div class="relative z-0 min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain p-4 sm:p-6 lg:p-8 bg-gray-100">
         <slot></slot>
       </div>
     </div>
