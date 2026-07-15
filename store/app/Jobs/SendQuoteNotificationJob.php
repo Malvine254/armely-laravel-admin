@@ -19,6 +19,9 @@ class SendQuoteNotificationJob implements ShouldQueue
         public int $quoteId,
         public ?string $revisedFromQuoteId = null
     ) {
+        // Quote submission must never wait for Microsoft Graph/email delivery,
+        // even if the application's default queue driver is misconfigured.
+        $this->onConnection('database');
     }
 
     public function handle(NotificationService $notificationService): void

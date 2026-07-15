@@ -350,7 +350,7 @@
           <div class="co-brand-title">InvoiceLens</div>
           <div class="co-brand-sub">OpenInvoice visibility and AP intelligence for operators</div>
           <div class="co-brand-body">InvoiceLens gives Enverus OpenInvoice operators real-time visibility into pending invoice spend, accrual exposure, and approval workflow status before invoices reach the ERP. Built on Microsoft Fabric inside the operator's own Azure tenant. Deployed and supported by Armely.</div>
-          <a href="/invoice-lens" class="co-brand-link">Learn about InvoiceLens
+          <a href="{{ route('invoice-lens') }}" class="co-brand-link">Learn about InvoiceLens
             <svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
           </a>
         </div>

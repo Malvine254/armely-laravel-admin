@@ -332,6 +332,13 @@ class TDSynnexService
                     continue;
                 }
 
+                if (empty($normalized['hasApiResellerPrice'])) {
+                    Log::warning('Catalog sync skipped product with no valid TD API price.', [
+                        'sku' => $normalized['sku'] ?? $normalized['productId'] ?? null,
+                    ]);
+                    continue;
+                }
+
                 $dbRow = $this->priceAvailabilityProductToDatabaseRow($normalized);
                 if ($dbRow === null) {
                     continue;
@@ -376,6 +383,9 @@ class TDSynnexService
 
         Cache::forget('tdsynnex:priceavailability:vendors:list');
         Cache::forget($this->priceAvailabilityCatalogCacheKey());
+        if ($synced > 0) {
+            Cache::forever('catalog:price_version', (string) now()->getTimestampMs());
+        }
 
         return [
             'synced' => $synced,
@@ -485,6 +495,10 @@ class TDSynnexService
             'at'           => $now->toDateTimeString(),
         ]);
 
+        if ($checked > 0) {
+            Cache::forever('catalog:price_version', (string) now()->getTimestampMs());
+        }
+
         return [
             'checked' => $checked,
             'requested' => count($skus),
@@ -512,8 +526,13 @@ class TDSynnexService
                 continue;
             }
 
+            $hasApiPrice = !empty($normalized['hasApiResellerPrice']);
             $skuData[$sku] = [
-                'live_price'           => (float) ($normalized['productPrice'][0]['rsPrice'] ?? 0),
+                // A missing/zero API price must not turn a flat-file fallback
+                // into a fresh live supplier price.
+                'live_price'           => $hasApiPrice
+                    ? (float) ($normalized['productPrice'][0]['rsPrice'] ?? 0)
+                    : null,
                 'live_retail_price'    => !empty($normalized['hasApiRetailPrice'])
                     ? (float) ($normalized['productPrice'][0]['msrp'] ?? 0)
                     : null,
@@ -548,20 +567,22 @@ class TDSynnexService
                 'is_on_sale', 'offer_source', 'sale_started_at',
             ]);
             $msrpPrice = (float) ($current->retail_price ?? 0);
-            $supplierPrice = (float) $live['live_price'];
+            $supplierPrice = (float) ($live['live_price'] ?? 0);
+            $hasValidSupplierPrice = $supplierPrice > 0;
             $previousSupplierPrice = (float) ($current->base_price ?? 0);
             $manualOffer = (string) ($current->offer_source ?? '') === 'manual'
                 && (bool) $current->is_on_sale;
             $verifiedSpecial = (string) ($current->offer_source ?? '') === 'verified_tdsynnex_special'
                 && (bool) $current->is_on_sale
                 && abs((float) ($current->sale_price ?? 0) - $supplierPrice) < 0.01;
-            $newSupplierDrop = $supplierPrice > 0
+            $newSupplierDrop = $hasValidSupplierPrice
                 && $previousSupplierPrice > 0
                 && $supplierPrice < ($previousSupplierPrice - 0.01);
             $continuingSupplierDrop = (string) ($current->offer_source ?? '') === 'tdsynnex_price_drop'
                 && (bool) $current->is_on_sale
                 && abs((float) ($current->sale_price ?? 0) - $supplierPrice) < 0.01;
-            $isOnSale = $manualOffer || $verifiedSpecial || $newSupplierDrop || $continuingSupplierDrop;
+            $isOnSale = $hasValidSupplierPrice
+                && ($manualOffer || $verifiedSpecial || $newSupplierDrop || $continuingSupplierDrop);
             $salePrice = ($manualOffer || $verifiedSpecial)
                 ? (float) $current->sale_price
                 : ($isOnSale ? $supplierPrice : null);
@@ -572,7 +593,7 @@ class TDSynnexService
                 ? $previousSupplierPrice
                 : ($isOnSale ? (float) ($current->supplier_regular_price ?? $previousSupplierPrice) : null);
 
-            $offerUpdates = [
+            $offerUpdates = $hasValidSupplierPrice ? [
                 'sale_price' => $salePrice,
                 'is_on_sale' => $isOnSale,
                 'offer_source' => $offerSource,
@@ -581,25 +602,31 @@ class TDSynnexService
                     ? ($current->is_on_sale ? $current->sale_started_at : $now)
                     : null,
                 'sale_ended_at' => (!$isOnSale && $current->is_on_sale) ? $now : null,
-            ];
+            ] : [];
 
             $mainUpdates = [
-                'base_price'      => $live['live_price'],
                 'quantity'        => $live['live_quantity'],
                 'is_available'    => $live['live_is_available'],
                 'is_discontinued' => $live['live_is_discontinued'],
                 'last_synced_at'  => $now,
             ];
+            if ($hasValidSupplierPrice) {
+                $mainUpdates['base_price'] = $supplierPrice;
+                $mainUpdates['live_price'] = $supplierPrice;
+            }
             if ($live['live_retail_price'] !== null) {
                 $mainUpdates['retail_price'] = $live['live_retail_price'];
+                $mainUpdates['live_retail_price'] = $live['live_retail_price'];
             }
+
+            unset($live['live_price'], $live['live_retail_price']);
 
             \DB::table('products')
                 ->where('id', $productId)
                 ->update(array_merge($live, $offerUpdates, $mainUpdates));
 
             $hasHistory = \DB::table('product_price_histories')->where('product_id', $productId)->exists();
-            if ($supplierPrice > 0 && (!$hasHistory || abs($supplierPrice - (float) ($current->base_price ?? 0)) >= 0.01)) {
+            if ($hasValidSupplierPrice && (!$hasHistory || abs($supplierPrice - (float) ($current->base_price ?? 0)) >= 0.01)) {
                 \DB::table('product_price_histories')->insert([
                     'product_id' => $productId,
                     'supplier_price' => $supplierPrice,
@@ -1503,6 +1530,7 @@ class TDSynnexService
             'costPrice',
             'dealerPrice',
         ]);
+        $hasApiResellerPrice = $resellerPrice > 0;
 
         $msrpPrice = $this->pickFirstNumericValue($row, [
             'msrp',
@@ -1562,6 +1590,7 @@ class TDSynnexService
                 ],
             ],
             'hasApiRetailPrice' => $hasApiRetailPrice,
+            'hasApiResellerPrice' => $hasApiResellerPrice,
             // Keep catalog assembly fast; images are enriched lazily per-page.
             'productImages' => [],
             'images' => [],

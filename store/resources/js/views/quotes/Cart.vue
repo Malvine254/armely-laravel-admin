@@ -3,6 +3,28 @@
     <!-- Navbar -->
     <Navbar />
 
+    <div
+      v-if="isSubmittingQuote"
+      class="fixed inset-0 z-[10020] flex items-center justify-center bg-slate-950/55 px-4 backdrop-blur-sm"
+      role="status"
+      aria-live="assertive"
+      aria-label="Submitting your quote"
+    >
+      <div class="w-full max-w-md rounded-2xl border border-blue-100 bg-white p-7 text-center shadow-2xl">
+        <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-blue-50">
+          <svg class="h-9 w-9 animate-spin text-[#2F5597]" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle class="opacity-25" cx="12" cy="12" r="9" stroke="currentColor" stroke-width="3"></circle>
+            <path class="opacity-90" fill="currentColor" d="M21 12a9 9 0 00-9-9v3a6 6 0 016 6h3z"></path>
+          </svg>
+        </div>
+        <h2 class="mt-5 text-xl font-bold text-slate-900">Submitting your quote</h2>
+        <p class="mt-2 text-sm leading-6 text-slate-600">We’re securely saving your quote. Please keep this page open for a moment.</p>
+        <div class="mt-5 h-2 overflow-hidden rounded-full bg-blue-100">
+          <div class="h-full w-2/3 animate-pulse rounded-full bg-[#2F5597]"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- Main Content -->
     <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-5 py-8">
       <!-- Page Title -->
@@ -151,11 +173,24 @@
                 </svg>
                 <span>Download Quote</span>
               </button>
-              <button @click="requestQuote()" :disabled="isSubmittingQuote" class="w-full px-4 py-3 border-2 font-semibold rounded-lg transition inline-flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed" style="border-color: #2F5597; color: #2F5597;" @mouseenter="!isSubmittingQuote && ($event.target.style.backgroundColor='#cce4f4')" @mouseleave="$event.target.style.backgroundColor='transparent'">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <button
+                @click="requestQuote()"
+                :disabled="isSubmittingQuote"
+                class="w-full px-4 py-3 border-2 font-semibold rounded-lg transition inline-flex items-center justify-center gap-2 disabled:cursor-wait"
+                :style="isSubmittingQuote
+                  ? 'border-color:#2F5597;background-color:#2F5597;color:white;'
+                  : 'border-color:#2F5597;color:#2F5597;'"
+                @mouseenter="!isSubmittingQuote && ($event.currentTarget.style.backgroundColor='#cce4f4')"
+                @mouseleave="!isSubmittingQuote && ($event.currentTarget.style.backgroundColor='transparent')"
+              >
+                <svg v-if="isSubmittingQuote" class="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <circle class="opacity-25" cx="12" cy="12" r="9" stroke="currentColor" stroke-width="3"></circle>
+                  <path class="opacity-90" fill="currentColor" d="M21 12a9 9 0 00-9-9v3a6 6 0 016 6h3z"></path>
+                </svg>
+                <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
                 </svg>
-                <span>{{ isSubmittingQuote ? 'Submitting Quote...' : 'Request Quote' }}</span>
+                <span>{{ isSubmittingQuote ? 'Submitting your quote…' : 'Request Quote' }}</span>
               </button>
               <button @click="openCartShareModal" class="w-full px-4 py-3 border font-semibold rounded-lg transition inline-flex items-center justify-center gap-2" style="border-color: #2F5597; color: #2F5597;" @mouseenter="$event.target.style.backgroundColor='#eef5fc'" @mouseleave="$event.target.style.backgroundColor='transparent'">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -492,7 +527,9 @@ const importSharedCartFromMessage = async () => {
 }
 
 onMounted(async () => {
-  await loadPricingSettings()
+  // Cart contents are local state and should render immediately. Refreshing the
+  // internal pricing configuration must not block cart interaction.
+  void loadPricingSettings()
   const importedFromPublic = await importSharedCartFromPublicToken()
   if (importedFromPublic) return
   await importSharedCartFromMessage()

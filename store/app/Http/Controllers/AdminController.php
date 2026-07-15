@@ -4029,7 +4029,6 @@ class AdminController extends Controller
             $action = (string) $validated['action'];
             $message = '';
             $stateService = app(CatalogOperationStateService::class);
-            $isAsyncQueue = config('queue.default') !== 'sync';
 
             // sync_manual_images runs synchronously (fast folder scan — no queue needed).
             if ($action === 'sync_manual_images') {
@@ -4054,10 +4053,17 @@ class AdminController extends Controller
                 ]);
             }
 
-            if (in_array($action, ['sync_catalog', 'sync_flatfile_metadata', 'enrich_images', 'download_images', 'reindex_products'], true) && !$isAsyncQueue) {
+            // Catalog jobs explicitly select the database connection and the
+            // products-sync queue in their constructors. The application's
+            // default QUEUE_CONNECTION may legitimately remain "sync" for
+            // unrelated jobs, so validate the queue storage actually used here.
+            if (
+                in_array($action, ['sync_catalog', 'sync_flatfile_metadata', 'enrich_images', 'download_images', 'reindex_products'], true)
+                && !Schema::hasTable((string) config('queue.connections.database.table', 'jobs'))
+            ) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Queue driver is set to sync. Configure an async queue (e.g. database/redis) and run queue workers to avoid request timeouts.',
+                    'message' => 'The database queue table is missing. Run Laravel queue migrations before starting this catalog operation.',
                 ], 503);
             }
 
