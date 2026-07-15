@@ -463,15 +463,22 @@
             </div>
 
             <!-- User Avatar -->
-            <div class="w-8 h-8 rounded-full flex items-center justify-center bg-white/20 text-white text-xs font-bold flex-shrink-0">
-              {{ currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'A' }}
+            <div class="w-8 h-8 overflow-hidden rounded-full flex items-center justify-center bg-white/20 text-white text-xs font-bold flex-shrink-0 ring-1 ring-white/30">
+              <img
+                v-if="currentUser.imageUrl"
+                :src="currentUser.imageUrl"
+                :alt="currentUser.name || 'Admin profile'"
+                class="h-full w-full object-cover"
+                @error="currentUser.imageUrl = ''"
+              />
+              <span v-else>{{ currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'A' }}</span>
             </div>
           </div>
         </div>
       </div>
 
       <!-- Page Content -->
-      <div class="relative z-0 min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain p-4 sm:p-6 lg:p-8 bg-gray-100">
+      <div class="relative min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain p-4 sm:p-6 lg:p-8 bg-gray-100">
         <slot></slot>
       </div>
     </div>
@@ -499,7 +506,8 @@ const showSearchDropdown = ref(false)
 
 const currentUser = ref({
   name: '',
-  email: ''
+  email: '',
+  imageUrl: ''
 })
 
 const stats = ref({
@@ -712,7 +720,8 @@ const fetchCurrentUser = async () => {
         if (parsed?.name || parsed?.email) {
           currentUser.value = {
             name: parsed.name || 'Admin User',
-            email: parsed.email || 'No email'
+            email: parsed.email || 'No email',
+            imageUrl: parsed.profile_picture_url || parsed.team_image_url || ''
           }
         }
       } catch (e) {
@@ -725,7 +734,8 @@ const fetchCurrentUser = async () => {
       const user = response.data.data.user || {}
       currentUser.value = {
         name: user.name || 'Admin User',
-        email: user.email || 'No email'
+        email: user.email || 'No email',
+        imageUrl: user.profile_picture_url || user.team_image_url || ''
       }
     }
   } catch (error) {

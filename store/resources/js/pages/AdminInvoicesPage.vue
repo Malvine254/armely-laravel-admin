@@ -316,7 +316,7 @@
     </div>
 
     <!-- Invoice View Modal -->
-    <div v-if="selectedInvoice" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" @click="selectedInvoice = null">
+    <div v-if="selectedInvoice" class="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4" @click="selectedInvoice = null">
       <div class="bg-white rounded-2xl border-0 shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" @click.stop style="background:#fff;">
         <div class="sticky top-0 text-white p-6 border-b border-gray-200" style="background: linear-gradient(135deg, #2F5597, #1e3a6b);">
           <div class="flex justify-between items-center">

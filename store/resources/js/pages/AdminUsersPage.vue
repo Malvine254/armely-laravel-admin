@@ -172,7 +172,7 @@
     </div>
 
     <!-- ── Add Admin Modal ─────────────────────────────── -->
-    <div v-if="showAddModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" @click.self="closeAddModal">
+    <div v-if="showAddModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4" @click.self="closeAddModal">
       <div class="rounded-xl bg-white shadow-2xl w-full max-w-md overflow-hidden">
         <div class="px-6 py-5 border-b" style="background: linear-gradient(135deg,#2F5597,#1e3a6b)">
           <h3 class="text-lg font-semibold text-white">Add New Admin</h3>
@@ -206,7 +206,7 @@
     </div>
 
     <!-- ── Edit Admin Modal (role + permissions) ──────── -->
-    <div v-if="editModal.open" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" @click.self="closeEditModal">
+    <div v-if="editModal.open" class="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4" @click.self="closeEditModal">
       <div class="rounded-xl bg-white shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
         <!-- Header -->
         <div class="px-6 py-5 border-b flex-shrink-0" style="background: linear-gradient(135deg,#2F5597,#1e3a6b)">

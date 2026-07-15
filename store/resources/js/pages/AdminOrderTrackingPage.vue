@@ -244,7 +244,7 @@
     <!-- Order Detail Slide-Over -->
     <div
       v-if="selectedOrder"
-      class="fixed inset-0 z-50 flex justify-end"
+      class="fixed inset-0 z-[100] flex justify-end"
       @click.self="selectedOrder = null"
     >
       <div class="fixed inset-0 bg-black/30" @click="selectedOrder = null"></div>

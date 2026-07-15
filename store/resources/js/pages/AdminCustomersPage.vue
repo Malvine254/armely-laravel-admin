@@ -314,7 +314,7 @@
 
     </div>
 
-    <div v-if="showInviteModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" @click="showInviteModal = false">
+    <div v-if="showInviteModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4" @click="showInviteModal = false">
       <div class="rounded-2xl bg-white shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border-0" @click.stop>
         <div class="sticky top-0 text-white p-6 border-b border-gray-200" style="background: linear-gradient(135deg, #2F5597, #1e3a6b);">
           <div class="flex justify-between items-center">
@@ -421,7 +421,7 @@
       </div>
     </div>
 
-    <div v-if="selectedUser" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" @click="selectedUser = null">
+    <div v-if="selectedUser" class="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4" @click="selectedUser = null">
       <div class="rounded-2xl bg-white shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto border-0" @click.stop>
         <div class="sticky top-0 text-white p-6 border-b border-gray-200" style="background: linear-gradient(135deg, #2F5597, #1e3a6b);">
           <div class="flex justify-between items-center">
@@ -546,7 +546,7 @@
     </div>
 
     <!-- Edit Customer Modal -->
-    <div v-if="showEditModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" @click="showEditModal = false">
+    <div v-if="showEditModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4" @click="showEditModal = false">
       <div class="rounded-2xl bg-white shadow-2xl max-w-4xl w-full border-0 max-h-[90vh] overflow-y-auto" @click.stop>
         <div class="sticky top-0 text-white p-6 border-b border-gray-200 rounded-t-2xl" style="background: linear-gradient(135deg, #2F5597, #1e3a6b);">
           <div class="flex justify-between items-center">
@@ -672,7 +672,7 @@
       </div>
     </div>
 
-    <div v-if="showConfirmModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" @click="showConfirmModal = false">
+    <div v-if="showConfirmModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-[110] p-4" @click="showConfirmModal = false">
       <div class="rounded-2xl bg-white shadow-2xl max-w-md w-full border-0" @click.stop>
         <div class="p-6">
           <div class="flex items-center mb-4">
