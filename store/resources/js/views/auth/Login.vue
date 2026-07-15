@@ -185,25 +185,17 @@ const resolvePostLoginRoute = () => {
     localStorage.removeItem('redirectAfterLogin')
   }
 
-  // Route to admin only when the redirect target explicitly asks for an admin page.
+  // Never enter the admin area through the storefront login. The dedicated
+  // /admin/login page owns all admin-dashboard redirects.
   if (redirectTarget.startsWith('/admin')) {
-    if (!authStore.isAdmin) {
-      return { name: 'products' }
-    }
-
-    if (redirectTarget === '/admin' || redirectTarget === '/admin/') return { name: 'admin-dashboard' }
-    if (redirectTarget === '/admin/dashboard' || redirectTarget.startsWith('/admin/dashboard?')) return { name: 'admin-dashboard-page' }
-    if (redirectTarget.startsWith('/admin/quotes')) return { name: 'admin-quotes' }
-    if (redirectTarget.startsWith('/admin/orders')) return { name: 'admin-orders' }
-    if (redirectTarget.startsWith('/admin/customers')) return { name: 'admin-customers' }
-    if (redirectTarget.startsWith('/admin/reports')) return { name: 'admin-reports' }
-    if (redirectTarget.startsWith('/admin/settings')) return { name: 'admin-settings' }
-    if (redirectTarget.startsWith('/admin/invoices')) return { name: 'admin-invoices' }
-    return { name: 'admin-dashboard-page' }
+    return { name: 'home' }
   }
 
   if (redirectTarget) return redirectTarget
-  return authStore.isAdmin ? { name: 'admin-dashboard-page' } : { name: 'products' }
+  // This is the storefront login. Keep every role, including admins, in the
+  // storefront unless the user arrived with an explicit safe return target.
+  // Admin dashboard routing belongs to the separate /admin/login page.
+  return { name: 'home' }
 }
 
 const handleLogin = async () => {

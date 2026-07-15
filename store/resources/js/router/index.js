@@ -263,7 +263,9 @@ router.beforeEach((to, from, next) => {
   
   // Redirect if already logged in and trying to access login/register
   if ((to.name === 'login' || to.name === 'register') && authStore.isAuthenticated) {
-    next({ name: authStore.isAdmin ? 'admin-dashboard' : 'products' });
+    // The storefront login/register entry points always return to the store,
+    // even for admins. /admin/login owns admin-dashboard redirects.
+    next({ name: 'home' });
     return;
   }
 

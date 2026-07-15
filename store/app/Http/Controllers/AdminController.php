@@ -18,6 +18,7 @@ use App\Services\TDSynnexService;
 use App\Services\AzureGraphMailService;
 use App\Services\PriceSyncSchedulerService;
 use App\Jobs\SyncPriceAvailabilityCatalogJob;
+use App\Jobs\SyncFlatFileMetadataJob;
 use App\Jobs\ReindexProductsJob;
 use App\Models\Message;
 use App\Models\Activity;
@@ -186,10 +187,11 @@ class AdminController extends Controller
 
     private function buildCatalogOperationsStatus(): array
     {
-        $counts = Cache::remember('catalog_ops_counts', 300, function () {
+        $counts = Cache::remember('catalog_ops_counts_v2', 300, function () {
             $baseQuery = Product::query()->where('vendor_id', 'TD SYNNEX');
             return [
                 'total'       => (clone $baseQuery)->count(),
+                'with_descriptions' => (clone $baseQuery)->whereNotNull('description')->where('description', '!=', '')->count(),
                 'with_images' => (clone $baseQuery)->whereNotNull('images')->where('images', '!=', '[]')->count(),
                 'local_images'=> (clone $baseQuery)->where('images', 'like', '%"/images/%')->count(),
                 'last_synced' => (clone $baseQuery)->max('last_synced_at'),
@@ -203,8 +205,10 @@ class AdminController extends Controller
 
         $totalProducts        = $counts['total'];
         $productsWithImages   = $counts['with_images'];
+        $productsWithDescriptions = $counts['with_descriptions'];
         $productsWithLocalImages = $counts['local_images'];
         $lastSyncedAt         = $counts['last_synced'];
+        $flatFilePath = base_path('flat-files/677726.ap');
 
         $pendingJobs = null;
         $failedJobs = null;
@@ -231,8 +235,12 @@ class AdminController extends Controller
             'products_source' => (string) config('tdsynnex.products_source', 'priceavailability'),
             'db_cache_exists' => $dbCacheExists,
             'total_products' => $totalProducts,
+            'products_with_descriptions' => $productsWithDescriptions,
             'products_with_images' => $productsWithImages,
             'products_with_local_images' => $productsWithLocalImages,
+            'flat_file_exists' => is_file($flatFilePath),
+            'flat_file_name' => basename($flatFilePath),
+            'flat_file_size' => is_file($flatFilePath) ? filesize($flatFilePath) : null,
             'last_catalog_sync_at' => $lastSyncedAt ? (string) $lastSyncedAt : null,
             'pending_products_sync_jobs' => $pendingJobs,
             'failed_products_sync_jobs' => $failedJobs,
@@ -4015,7 +4023,7 @@ class AdminController extends Controller
             }
 
             $validated = $request->validate([
-                'action' => 'required|string|in:sync_catalog,enrich_images,download_images,reindex_products,sync_manual_images',
+                'action' => 'required|string|in:sync_catalog,sync_flatfile_metadata,enrich_images,download_images,reindex_products,sync_manual_images',
             ]);
 
             $action = (string) $validated['action'];
@@ -4046,7 +4054,7 @@ class AdminController extends Controller
                 ]);
             }
 
-            if (in_array($action, ['sync_catalog', 'enrich_images', 'download_images', 'reindex_products'], true) && !$isAsyncQueue) {
+            if (in_array($action, ['sync_catalog', 'sync_flatfile_metadata', 'enrich_images', 'download_images', 'reindex_products'], true) && !$isAsyncQueue) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Queue driver is set to sync. Configure an async queue (e.g. database/redis) and run queue workers to avoid request timeouts.',
@@ -4057,6 +4065,20 @@ class AdminController extends Controller
                 $message = 'Catalog sync queued in background on products-sync queue.';
                 $stateService->start($action, (int) $user->id, $message);
                 SyncPriceAvailabilityCatalogJob::dispatch(false, true);
+            }
+
+            if ($action === 'sync_flatfile_metadata') {
+                $flatFilePath = base_path('flat-files/677726.ap');
+                if (!is_file($flatFilePath)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Flat file not found at flat-files/677726.ap. Upload it to the production store before running this operation.',
+                    ], 422);
+                }
+
+                $message = 'Flat-file description and metadata sync queued on products-sync queue.';
+                $stateService->start($action, (int) $user->id, $message);
+                SyncFlatFileMetadataJob::dispatch();
             }
 
             if ($action === 'enrich_images') {
