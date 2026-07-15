@@ -6,6 +6,7 @@ use App\Services\TDSynnexService;
 use App\Services\CustomerPricingService;
 use App\Support\CatalogTaxonomy;
 use App\Support\OfferPricing;
+use App\Support\VerifiedProductContent;
 use App\Exceptions\TDSynnexApiException;
 use App\Models\Product;
 use App\Models\User;
@@ -32,12 +33,12 @@ class ProductController extends Controller
     /** Customer price: active offer first, then regular retail, then supplier fallback. */
     private function preferredDbPriceSql(): string
     {
-        return "COALESCE(NULLIF(CASE WHEN is_on_sale = 1 AND offer_source IN ('manual','verified_tdsynnex_special','tdsynnex_price_drop') THEN sale_price ELSE 0 END, 0), NULLIF(retail_price, 0), 0)";
+        return "COALESCE(NULLIF(CASE WHEN is_on_sale = 1 AND offer_source IN ('manual','verified_tdsynnex_special','tdsynnex_price_drop') THEN sale_price ELSE 0 END, 0), NULLIF(base_price, 0), 0)";
     }
 
     private function offerRegularDbPriceSql(): string
     {
-        return 'COALESCE(NULLIF(CASE WHEN supplier_regular_price > sale_price THEN supplier_regular_price ELSE 0 END, 0), NULLIF(retail_price, 0), base_price)';
+        return 'COALESCE(NULLIF(CASE WHEN supplier_regular_price > sale_price THEN supplier_regular_price ELSE 0 END, 0), base_price)';
     }
 
     /** Regular price used to measure an offer; MSRP remains a separate reference price. */
@@ -138,7 +139,7 @@ class ProductController extends Controller
             ['label' => 'Servers & Storage', 'segment' => '05'],
         ];
 
-        $products = Cache::remember('storefront_featured_offers_v4', now()->addMinutes(15), function () use ($categories) {
+        $products = Cache::remember('storefront_featured_offers_v5', now()->addMinutes(15), function () use ($categories) {
             return collect($categories)->map(function (array $category) {
                 $product = Product::query()
                     ->select('products.*')
@@ -185,6 +186,8 @@ class ProductController extends Controller
                         OR UPPER(COALESCE(manufacturer, '')) LIKE '%QNAP%'
                         THEN 0 ELSE 1 END")
                     ->orderByDesc('quantity')
+                    ->orderByDesc('created_at')
+                    ->orderByDesc('id')
                     ->first();
 
                 if (!$product) {
@@ -207,7 +210,7 @@ class ProductController extends Controller
     /** Popular catalog categories with a representative in-stock product image. */
     public function popularCategories(): JsonResponse
     {
-        $categories = Cache::remember('storefront_popular_categories_v6', now()->addHour(), function () {
+        $categories = Cache::remember('storefront_popular_categories_v7', now()->addHour(), function () {
             $popular = [
                 [
                     'name' => 'Laptops & Notebooks', 'label' => 'Laptops', 'slug' => 'laptops-notebooks', 'segments' => ['01'],
@@ -273,7 +276,8 @@ class ProductController extends Controller
                             THEN 0 ELSE 1 END")
                         ->orderByDesc('units_sold')
                         ->orderByDesc('quantity')
-                        ->orderBy('id')
+                        ->orderByDesc('created_at')
+                        ->orderByDesc('id')
                         ->first();
 
                     if (!$product) {
@@ -1136,6 +1140,8 @@ class ProductController extends Controller
                         'laptop', 'laptops' => ['laptop', 'notebook', 'chromebook'],
                         'desktop', 'desktops' => ['desktop', 'workstation', 'optiplex', 'thinkcentre', 'elitedesk', 'prodesk'],
                         'printer', 'printers' => ['printer', 'multifunction', 'laserjet', 'inkjet'],
+                        'monitor', 'monitors', 'display', 'displays' => ['monitor', 'display'],
+                        'network', 'networking' => ['network', 'switch', 'router', 'firewall', 'access point', 'wireless ap'],
                         default => [$t],
                     };
 
@@ -1261,7 +1267,12 @@ class ProductController extends Controller
         $offset = ($currentPage - 1) * $perPage;
         $defaultBrowseMaxItems = $isDefaultBrowse ? self::STOREFRONT_MAX_DEFAULT_PRODUCTS : null;
 
-        // When searching: sort by relevance score first, then by image/availability for stability.
+        // Product completeness is the first display priority, including search.
+        // Exact/relevant matches are ranked within the image-ready group, while
+        // image-missing products remain searchable after it.
+        $query->orderByRaw('CASE WHEN (' . $this->hasUsableProductImageSql() . ') THEN 0 ELSE 1 END');
+
+        // When searching: sort image-ready products by relevance score.
         if ($searchOrderExpr !== null) {
             $query->orderByRaw($searchOrderExpr, $searchOrderBindings);
         } elseif ($isDefaultBrowse) {
@@ -1294,7 +1305,8 @@ class ProductController extends Controller
                 END");
         }
 
-        $query->orderBy('id');
+        // Within relevance/assortment groups, always show the newest products first.
+        $query->orderByDesc('created_at')->orderByDesc('id');
 
         // Clone the fully-filtered query BEFORE pagination so we can COUNT later.
         $countQuery = $query->clone();
@@ -1380,8 +1392,10 @@ class ProductController extends Controller
             && in_array((string) ($product->offer_source ?? ''), ['manual', 'verified_tdsynnex_special', 'tdsynnex_price_drop'], true)
             && (float) $product->sale_price > 0
             && $offerRegularPrice > (float) $product->sale_price;
-        $regularPrice = $isOnSale ? $offerRegularPrice : $msrp;
-        $price = $isOnSale ? (float) $product->sale_price : $msrp;
+        $price = OfferPricing::sellPrice($product);
+        $regularPrice = $isOnSale
+            ? ($msrp > $price ? $msrp : $offerRegularPrice)
+            : $msrp;
         $images = $this->normalizeSavedProductImages($product->images, $product);
         $primaryImage = (string) ($images[0]['imageUrl'] ?? '');
         $quantity = max(
@@ -1407,7 +1421,12 @@ class ProductController extends Controller
             'vendorId' => $vendor,
             'vendorName' => $vendor,
             'productName' => (string) ($product->product_name ?? $sku),
-            'description' => (string) ($product->description ?? ''),
+            'description' => VerifiedProductContent::meaningfulDescription(
+                $product->description,
+                $product->product_name,
+                $sku,
+                $product->mfg_part_no
+            ),
             'status' => (string) ($spec['status'] ?? ''),
             'price' => (float) ($spec['price'] ?? $price),
             'totalQuantity' => $quantity,
@@ -1806,8 +1825,10 @@ class ProductController extends Controller
                     && in_array((string) ($product->offer_source ?? ''), ['manual', 'verified_tdsynnex_special', 'tdsynnex_price_drop'], true)
                     && (float) $product->sale_price > 0
                     && $offerRegularPrice > (float) $product->sale_price;
-                $regularPrice = $isOnSale ? $offerRegularPrice : $msrp;
-                $price = $isOnSale ? (float) $product->sale_price : $msrp;
+                $price = OfferPricing::sellPrice($product);
+                $regularPrice = $isOnSale
+                    ? ($msrp > $price ? $msrp : $offerRegularPrice)
+                    : $msrp;
 
                 return [
                     'productId' => $product->tdsynnex_product_id,
@@ -2326,6 +2347,9 @@ class ProductController extends Controller
                     ELSE 2
                 END"
             )
+            ->orderByRaw('CASE WHEN (' . $this->hasUsableProductImageSql() . ') THEN 0 ELSE 1 END')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
             ->limit(max(1, $limit) + 1)
             ->get();
 
@@ -2388,7 +2412,8 @@ class ProductController extends Controller
                     WHEN category_segment IN ('01', '02', '03', '04', '05', '06') THEN 1
                     ELSE 2 END")
                 ->orderByRaw("MOD(CRC32(CONCAT(COALESCE(category_segment, ''), '-', id)), 997)")
-                ->orderBy('id')
+                ->orderByDesc('created_at')
+                ->orderByDesc('id')
                 ->limit(self::STOREFRONT_MAX_DEFAULT_PRODUCTS)
                 ->pluck('id')
                 ->map(static fn ($id) => (int) $id)
@@ -2876,6 +2901,8 @@ class ProductController extends Controller
                 'laptop', 'laptops' => ['laptop', 'notebook', 'chromebook'],
                 'desktop', 'desktops' => ['desktop', 'workstation', 'optiplex', 'thinkcentre', 'elitedesk', 'prodesk'],
                 'printer', 'printers' => ['printer', 'multifunction', 'laserjet', 'inkjet'],
+                'monitor', 'monitors', 'display', 'displays' => ['monitor', 'display'],
+                'network', 'networking' => ['network', 'switch', 'router', 'firewall', 'access point', 'wireless ap'],
                 default => [$term],
             };
             $method = $boolean === 'or' ? 'orWhere' : 'where';

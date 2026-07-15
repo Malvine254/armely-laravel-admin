@@ -47,11 +47,22 @@ const categories = ref([])
 const loading = ref(true)
 
 const browseCategory = category => {
-  router.push(buildProductsLocation(
-    category.productType
-      ? { productType: category.productType }
-      : { category: category.category }
-  ))
+  const searchTerms = {
+    'laptops-notebooks': 'laptop',
+    'printers-scanners': 'printer',
+    'monitors-displays': 'monitor',
+    networking: 'networking',
+    'desktops-workstations': 'desktop',
+  }
+
+  router.push(buildProductsLocation({
+    q: searchTerms[category.slug] || category.label,
+    productType: category.productType || 'hardware',
+    category: category.segment || undefined,
+    minPrice: 0,
+    maxPrice: 0,
+    page: 1,
+  }))
 }
 
 onMounted(async () => {

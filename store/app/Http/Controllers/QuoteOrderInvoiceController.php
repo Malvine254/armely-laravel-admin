@@ -331,7 +331,7 @@ class QuoteOrderInvoiceController extends Controller
     private function loadPricingSettings(): array
     {
         $taxRatePercent = max(0, AppSetting::getNumber('pricing.tax_rate_percent', 0));
-        $profitRatePercent = max(0, AppSetting::getNumber('pricing.profit_rate_percent', 0));
+        $profitRatePercent = max(0, AppSetting::getNumber('pricing.profit_rate_percent', 15));
         $currencyCode = strtoupper((string) AppSetting::getValue('pricing.currency_code', 'USD'));
         $currencyRate = max(0.0001, AppSetting::getNumber('pricing.currency_rate', 1));
 
@@ -841,11 +841,10 @@ class QuoteOrderInvoiceController extends Controller
                 $baseUnitPrice = 0.0;
                 if ($product) {
                     // Customer quotes always use retail price — never cost/base price.
-                    // Prefer the stored retail_price; fall back to live_retail_price from
-                    // the most-recent PriceAvailability feed sync.
-                    $retailUnitPrice = (float) ($product->retail_price ?? 0);
-                    if ($retailUnitPrice <= 0) {
-                        $retailUnitPrice = (float) ($product->live_retail_price ?? 0);
+                    // MSRP/list fields are reference-only and never determine charges.
+                    $supplierUnitPrice = (float) ($product->base_price ?? 0);
+                    if ($supplierUnitPrice <= 0) {
+                        $supplierUnitPrice = (float) ($product->live_price ?? 0);
                     }
 
                     $activeOfferPrice = (bool) $product->is_on_sale
@@ -859,8 +858,12 @@ class QuoteOrderInvoiceController extends Controller
                             ? (float) $product->sale_price
                             : 0.0;
 
-                    if ($retailUnitPrice > 0) {
-                        $baseUnitPrice = $activeOfferPrice > 0 ? $activeOfferPrice : $retailUnitPrice;
+                    if ($supplierUnitPrice > 0) {
+                        $baseUnitPrice = $activeOfferPrice > 0 ? $activeOfferPrice : $supplierUnitPrice;
+                        $baseUnitPrice = $this->customerPricingService->applyDiscountPercent(
+                            $baseUnitPrice,
+                            $specialPricingPercent
+                        );
                     }
                 }
 
@@ -889,9 +892,12 @@ class QuoteOrderInvoiceController extends Controller
                     $lineBase = (float) ($enrichedItem['line_total'] ?? 0);
                     $isLast = $idx === count($enrichedItems) - 1;
 
+                    // Unit prices contain the configured profit, while tax remains
+                    // a separate quote total. This prevents invoice consumers from
+                    // charging tax or profit again from already-final line prices.
                     $lineDelta = $isLast
-                        ? round(($totalAmount - $baseSubtotal) - $runningDelta, 2)
-                        : round((($totalAmount - $baseSubtotal) * $lineBase) / $baseSubtotal, 2);
+                        ? round(($subtotal - $baseSubtotal) - $runningDelta, 2)
+                        : round((($subtotal - $baseSubtotal) * $lineBase) / $baseSubtotal, 2);
 
                     $runningDelta = round($runningDelta + $lineDelta, 2);
                     $lineTotalFinal = round($lineBase + $lineDelta, 2);

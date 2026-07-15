@@ -533,7 +533,7 @@
               step="0.01"
               class="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-900 placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
             />
-            <p class="text-xs text-gray-500 mt-1">Markup used to compute invoice subtotal and per-item unit prices.</p>
+            <p class="text-xs text-gray-500 mt-1">Percentage added to the active supplier price. Enter 15 to charge 1.15× the supplier price.</p>
           </div>
         </div>
 
@@ -1259,7 +1259,7 @@ const systemSettings = ref({
   timezone: 'America/New_York',
   maintenance_mode: false,
   tax_rate_percent: 0,
-  profit_rate_percent: 0,
+  profit_rate_percent: 15,
   catalog_show_out_of_stock: false,
   catalog_show_discontinued: false,
   catalog_min_price: 100,

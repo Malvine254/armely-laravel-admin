@@ -446,7 +446,7 @@ class AdminController extends Controller
     private function getPricingSettings(): array
     {
         $taxRatePercent = max(0, AppSetting::getNumber('pricing.tax_rate_percent', 0));
-        $profitRatePercent = max(0, AppSetting::getNumber('pricing.profit_rate_percent', 0));
+        $profitRatePercent = max(0, AppSetting::getNumber('pricing.profit_rate_percent', 15));
 
         return [
             'tax_rate_percent' => $taxRatePercent,
@@ -524,19 +524,13 @@ class AdminController extends Controller
 
     private function createQuotePaymentInvoice(Quote $quote): Invoice
     {
-        $pricing = $this->getPricingSettings();
-        $baseSubtotal = (float) ($quote->total_amount ?? 0);
-        $profitRate = (float) ($pricing['profit_rate_percent'] ?? 0);
-        $taxRate = (float) ($pricing['tax_rate_percent'] ?? 0);
-
-        $profitAmount = round(($baseSubtotal * $profitRate) / 100, 2);
-        $subtotal = round($baseSubtotal + $profitAmount, 2);
-        $tax = $taxRate > 0
-            ? round(($subtotal * $taxRate) / 100, 2)
-            : (float) ($quote->tax_amount ?? 0);
+        $snapshot = (array) data_get($quote->raw_data, 'pricing', []);
+        $quotedTotal = round((float) ($quote->total_amount ?? 0), 2);
+        $tax = round((float) ($quote->tax_amount ?? $snapshot['tax_amount'] ?? 0), 2);
+        $subtotal = round((float) ($snapshot['subtotal'] ?? max(0, $quotedTotal - $tax)), 2);
         $discount = (float) ($quote->discount_amount ?? 0);
         $shipping = $this->extractQuoteShippingAmount($quote);
-        $payableTotal = max(0, $subtotal + $tax + $shipping - $discount);
+        $payableTotal = max(0, $quotedTotal + $shipping - $discount);
         $items = $this->normalizeInvoiceLineItems(is_array($quote->items) ? $quote->items : [], $subtotal);
 
         return Invoice::create([
@@ -551,10 +545,10 @@ class AdminController extends Controller
             'raw_data' => [
                 'source' => 'quote-payment-gate',
                 'quote_id' => $quote->quote_id,
-                'base_subtotal' => $baseSubtotal,
-                'profit_rate_percent' => $profitRate,
-                'profit_amount' => $profitAmount,
-                'tax_rate_percent' => $taxRate,
+                'base_subtotal' => (float) ($snapshot['base_subtotal'] ?? $subtotal),
+                'profit_rate_percent' => (float) ($snapshot['profit_rate_percent'] ?? 0),
+                'profit_amount' => (float) ($snapshot['profit_amount'] ?? 0),
+                'tax_rate_percent' => (float) ($snapshot['tax_rate_percent'] ?? 0),
                 'subtotal' => $subtotal,
                 'tax_amount' => $tax,
                 'shipping_amount' => $shipping,
@@ -566,6 +560,38 @@ class AdminController extends Controller
             'paid_at' => null,
             'notes' => "QUOTE:{$quote->quote_id} | Payment required before final approval",
         ]);
+    }
+
+    private function synchronizePendingQuoteInvoice(Quote $quote, Invoice $invoice): Invoice
+    {
+        $snapshot = (array) data_get($quote->raw_data, 'pricing', []);
+        $quotedTotal = round((float) ($quote->total_amount ?? 0), 2);
+        $tax = round((float) ($quote->tax_amount ?? $snapshot['tax_amount'] ?? 0), 2);
+        $subtotal = round((float) ($snapshot['subtotal'] ?? max(0, $quotedTotal - $tax)), 2);
+        $discount = round((float) ($quote->discount_amount ?? 0), 2);
+        $shipping = $this->extractQuoteShippingAmount($quote);
+        $payableTotal = max(0, $quotedTotal + $shipping - $discount);
+        $rawData = is_array($invoice->raw_data) ? $invoice->raw_data : [];
+
+        $invoice->update([
+            'total_amount' => $payableTotal,
+            'tax_amount' => $tax,
+            'items' => $this->normalizeInvoiceLineItems(is_array($quote->items) ? $quote->items : [], $subtotal),
+            'raw_data' => array_merge($rawData, [
+                'base_subtotal' => (float) ($snapshot['base_subtotal'] ?? $subtotal),
+                'profit_rate_percent' => (float) ($snapshot['profit_rate_percent'] ?? 0),
+                'profit_amount' => (float) ($snapshot['profit_amount'] ?? 0),
+                'tax_rate_percent' => (float) ($snapshot['tax_rate_percent'] ?? 0),
+                'subtotal' => $subtotal,
+                'tax_amount' => $tax,
+                'shipping_amount' => $shipping,
+                'discount_amount' => $discount,
+                'payable_total' => $payableTotal,
+                'pricing_reapplied' => false,
+            ]),
+        ]);
+
+        return $invoice->fresh();
     }
 
     private function createPendingOrderForApprovedQuote(Quote $quote, ?Invoice $invoice = null): Order
@@ -1512,6 +1538,10 @@ class AdminController extends Controller
                             'error' => $notificationError->getMessage(),
                         ]);
                     }
+                } else {
+                    // Quotes already contain profit/tax-adjusted customer pricing.
+                    // Repair legacy pending invoices and never apply the markup again.
+                    $pendingQuoteInvoice = $this->synchronizePendingQuoteInvoice($quote, $pendingQuoteInvoice);
                 }
 
                 if ($quote->status !== 'approved') {
@@ -3738,7 +3768,7 @@ class AdminController extends Controller
                         'timezone' => (string) AppSetting::getValue('system.timezone', env('APP_TIMEZONE', config('app.timezone', 'America/New_York'))),
                         'maintenance_mode' => app()->isDownForMaintenance(),
                         'tax_rate_percent' => AppSetting::getNumber('pricing.tax_rate_percent', (float) env('APP_TAX_RATE_PERCENT', 0)),
-                        'profit_rate_percent' => AppSetting::getNumber('pricing.profit_rate_percent', (float) env('APP_PROFIT_RATE_PERCENT', 0)),
+                        'profit_rate_percent' => AppSetting::getNumber('pricing.profit_rate_percent', (float) env('APP_PROFIT_RATE_PERCENT', 15)),
                     ],
                     'price_sync_settings' => $this->getPriceSyncSettingsPayload(),
                     'catalog_operations' => [],
@@ -4468,7 +4498,7 @@ class AdminController extends Controller
                     'timezone' => (string) AppSetting::getValue('system.timezone', config('app.timezone', 'America/New_York')),
                     'maintenance_mode' => app()->isDownForMaintenance(),
                     'tax_rate_percent' => AppSetting::getNumber('pricing.tax_rate_percent', 0),
-                    'profit_rate_percent' => AppSetting::getNumber('pricing.profit_rate_percent', 0),
+                    'profit_rate_percent' => AppSetting::getNumber('pricing.profit_rate_percent', 15),
                     'currency' => strtoupper((string) AppSetting::getValue('pricing.currency_code', 'USD')),
                     'currency_rate' => AppSetting::getNumber('pricing.currency_rate', 1),
                     'catalog_show_out_of_stock' => (bool) AppSetting::getValue('catalog.show_out_of_stock', false),

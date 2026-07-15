@@ -1948,7 +1948,6 @@ class MessageController extends Controller
             })
             ->where(function ($priced) {
                 $priced->where('sale_price', '>', 0)
-                    ->orWhere('retail_price', '>', 0)
                     ->orWhere('base_price', '>', 0);
             })
             ->where(function ($base) use ($keywords) {
@@ -1993,7 +1992,7 @@ class MessageController extends Controller
                 && (float) $product->sale_price > 0;
             $price = $activeOffer
                 ? (float) $product->sale_price
-                : ((float) $product->retail_price > 0 ? (float) $product->retail_price : (float) $product->base_price);
+                : (float) $product->base_price;
 
             return [
                 'source' => 'db',

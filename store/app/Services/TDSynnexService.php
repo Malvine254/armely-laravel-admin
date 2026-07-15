@@ -208,7 +208,8 @@ class TDSynnexService
                         ->orWhere('specifications->manufacturer', 'like', $like)
                         ->orWhere('specifications->upc', 'like', $like);
                 })
-                ->orderBy('product_name')
+                ->orderByDesc('created_at')
+                ->orderByDesc('id')
                 ->limit($maxMatches)
                 ->get();
 
@@ -733,6 +734,11 @@ class TDSynnexService
         $categoryId = $categoryIdByName[$curatedCategoryName] ?? null;
 
         $timestamp = now();
+        $supplierPrice = (float) ($product['productPrice'][0]['rsPrice'] ?? 0);
+        $retailPrice = (float) ($product['productPrice'][0]['msrp'] ?? $supplierPrice);
+        // PriceAvailability is the sell-price basis. MSRP stays reference-only;
+        // it is not sufficient evidence of a supplier promotion by itself.
+        $hasVerifiedOffer = false;
 
         return [
             'tdsynnex_product_id' => $dbProductId,
@@ -741,8 +747,14 @@ class TDSynnexService
             'product_name' => (string) ($product['productName'] ?? $sku),
             'mfg_part_no' => (string) ($product['mfgPartNo'] ?? $sku),
             'description' => (string) ($product['description'] ?? ''),
-            'base_price' => (float) ($product['productPrice'][0]['rsPrice'] ?? 0),
-            'retail_price' => (float) ($product['productPrice'][0]['msrp'] ?? $product['productPrice'][0]['rsPrice'] ?? 0),
+            'base_price' => $supplierPrice,
+            'supplier_regular_price' => $hasVerifiedOffer ? $retailPrice : null,
+            'retail_price' => $retailPrice,
+            'sale_price' => $hasVerifiedOffer ? $supplierPrice : null,
+            'is_on_sale' => $hasVerifiedOffer,
+            'offer_source' => $hasVerifiedOffer ? 'verified_tdsynnex_special' : null,
+            'sale_started_at' => $hasVerifiedOffer ? $timestamp : null,
+            'sale_ended_at' => null,
             'billing_model' => (string) ($product['billingModel'] ?? ''),
             'billing_frequency' => (string) ($product['billingFrequency'] ?? ''),
             'is_available' => !((bool) ($product['discontinueProduct'] ?? false)),
@@ -840,7 +852,8 @@ class TDSynnexService
 
         Product::upsert($rows, ['tdsynnex_product_id'], [
             'tdsynnex_sku_no', 'vendor_id', 'product_name', 'mfg_part_no', 'description',
-            'base_price', 'retail_price', 'billing_model', 'billing_frequency',
+            'base_price', 'retail_price',
+            'billing_model', 'billing_frequency',
             'is_available', 'is_discontinued', 'is_hardware', 'category_id',
             'category_segment', 'manufacturer', 'specifications', 'images',
             'last_synced_at', 'search_imported_at', 'search_import_query',
@@ -866,7 +879,7 @@ class TDSynnexService
 
     private function preferredImageSyncPriceSql(): string
     {
-        return 'COALESCE(NULLIF(retail_price, 0), NULLIF(base_price, 0), 0)';
+        return 'COALESCE(NULLIF(base_price, 0), 0)';
     }
 
     private function imageSyncMinPrice(): mixed
@@ -1288,7 +1301,8 @@ class TDSynnexService
         if ($this->hasPriceAvailabilityDatabaseCache()) {
             $products = Product::query()
                 ->where('vendor_id', 'TD SYNNEX')
-                ->orderBy('product_name')
+                ->orderByDesc('created_at')
+                ->orderByDesc('id')
                 ->get();
 
             if ($products->count() > 0) {
