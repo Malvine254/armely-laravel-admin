@@ -643,6 +643,7 @@
           <div class="rounded-lg border border-gray-200 bg-gray-50 p-4">
             <p class="text-xs uppercase tracking-widest text-gray-500">Catalog Size</p>
             <p class="mt-2 text-lg font-semibold text-gray-900">{{ formatNumber(catalogOperations.total_products) }} products</p>
+            <p class="mt-1 text-sm text-gray-500">Descriptions: {{ formatNumber(catalogOperations.products_with_descriptions) }}</p>
             <p class="mt-1 text-sm text-gray-500">Images: {{ formatNumber(catalogOperations.products_with_images) }}</p>
           </div>
 
@@ -692,7 +693,7 @@
           </button>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-4 gap-4">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div class="rounded-lg border border-gray-200 bg-gray-50 p-5">
             <h4 class="text-gray-900 font-semibold">Sync Catalog Now</h4>
             <p class="mt-2 text-sm text-gray-500">Pull the latest TD SYNNEX catalog into the local products table now.</p>
@@ -702,6 +703,24 @@
               class="mt-4 w-full px-4 py-2 rounded-lg bg-[#2F5597] hover:bg-[#1e3a6b] text-white font-medium transition disabled:opacity-50"
             >
               <i class="fas fa-database mr-2"></i>Run Catalog Sync
+            </button>
+          </div>
+
+          <div class="rounded-lg border border-cyan-200 bg-cyan-50 p-5">
+            <h4 class="text-gray-900 font-semibold">Sync Flat-File Descriptions</h4>
+            <p class="mt-2 text-sm text-gray-500">Match the production flat file to existing products by TD SYNNEX SKU and sync descriptions and metadata without changing live price or stock.</p>
+            <p class="mt-3 text-xs" :class="catalogOperations.flat_file_exists ? 'text-emerald-700' : 'text-rose-600'">
+              <i class="fas mr-1" :class="catalogOperations.flat_file_exists ? 'fa-circle-check' : 'fa-circle-exclamation'"></i>
+              {{ catalogOperations.flat_file_exists
+                ? `${catalogOperations.flat_file_name} is ready (${formatFileSize(catalogOperations.flat_file_size)})`
+                : 'flat-files/677726.ap is missing on this server' }}
+            </p>
+            <button
+              @click="runCatalogOperation('sync_flatfile_metadata')"
+              :disabled="catalogActionLoading || !catalogOperations.flat_file_exists"
+              class="mt-4 w-full px-4 py-2 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-medium transition disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <i class="fas fa-file-lines mr-2"></i>Sync Descriptions &amp; Metadata
             </button>
           </div>
 
@@ -1378,6 +1397,17 @@ const formatDateTime = (date) => {
 
 const formatNumber = (value) => {
   return Number(value || 0).toLocaleString('en-US')
+}
+
+const formatFileSize = (value) => {
+  const bytes = Number(value || 0)
+  if (bytes <= 0) return '0 B'
+
+  const units = ['B', 'KB', 'MB', 'GB']
+  const unitIndex = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1)
+  const size = bytes / (1024 ** unitIndex)
+
+  return `${size.toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`
 }
 
 const showToast = (message, type = 'success') => {
