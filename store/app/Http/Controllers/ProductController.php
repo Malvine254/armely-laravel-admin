@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use App\Jobs\ImportMissingCatalogSearchJob;
 
 class ProductController extends Controller
 {
@@ -650,6 +651,14 @@ class ProductController extends Controller
             );
 
             $fromDbCache = true;
+            $supplierLookupQueued = false;
+            if (!empty($search) && (int) ($dbPage['total'] ?? 0) === 0) {
+                $supplierLookupQueued = true;
+                $lookupKey = 'catalog_search_import_queued:' . md5(mb_strtolower(trim((string) $search)));
+                if (Cache::add($lookupKey, true, now()->addMinutes(10))) {
+                    ImportMissingCatalogSearchJob::dispatch(trim((string) $search));
+                }
+            }
 
             return response()->json([
                 'success' => true,
@@ -668,8 +677,11 @@ class ProductController extends Controller
                     'cached' => true,
                     'dbCached' => $fromDbCache,
                     'source' => 'priceavailability-db',
+                    'supplier_lookup_queued' => $supplierLookupQueued,
                 ],
-                'message' => 'Products retrieved successfully',
+                'message' => $supplierLookupQueued
+                    ? 'No local match was found. A supplier catalog lookup has been queued; retry shortly.'
+                    : 'Products retrieved successfully',
             ])->header('Cache-Control', $this->productCacheControlHeader($authenticatedUser, 'public, max-age=300'));
         }
 
@@ -932,7 +944,7 @@ class ProductController extends Controller
             ]))
         );
 
-        return Cache::remember($cacheKey, $ttl, function () use (
+        $loader = function () use (
             $search,
             $minPrice,
             $maxPrice,
@@ -960,7 +972,11 @@ class ProductController extends Controller
                 $productType,
                 $category,
             );
-        });
+        };
+
+        // Never retain an empty search result: a targeted supplier import may
+        // populate the database moments later.
+        return $isSearch ? $loader() : Cache::remember($cacheKey, $ttl, $loader);
 
     }
 
@@ -1025,6 +1041,14 @@ class ProductController extends Controller
 
         if ($isDefaultBrowse) {
             $this->applyPriorityItProductFilterToQuery($query);
+            $hasCuratedAssortment = Cache::remember(
+                'storefront_curated_assortment_exists',
+                600,
+                fn () => Product::query()->where('is_storefront_curated', true)->exists()
+            );
+            if ($hasCuratedAssortment) {
+                $query->where('is_storefront_curated', true);
+            }
         }
 
         if ($hideZero) {
@@ -1229,7 +1253,8 @@ class ProductController extends Controller
 
         $this->applyCategorySegmentFilterToQuery($query, $category);
 
-        $query->whereRaw($this->hasUsableProductImageSql());
+        // Do not filter on images. Missing supplier media lowers the nightly
+        // assortment score, while product cards render a product-type placeholder.
 
         $perPage = max(1, $pageSize);
         $currentPage = max(1, $pageNo);
@@ -1239,6 +1264,8 @@ class ProductController extends Controller
         // When searching: sort by relevance score first, then by image/availability for stability.
         if ($searchOrderExpr !== null) {
             $query->orderByRaw($searchOrderExpr, $searchOrderBindings);
+        } elseif ($isDefaultBrowse) {
+            $query->orderByRaw('COALESCE(storefront_rank, 4294967295) ASC');
         }
 
         $query->orderByDesc('is_available');
@@ -2327,7 +2354,19 @@ class ProductController extends Controller
     /** IDs from the same capped pool exposed by the default storefront catalog. */
     private function storefrontCappedProductIds(): array
     {
-        return Cache::remember('storefront_capped_product_ids_v1', 1800, function (): array {
+        return Cache::remember('storefront_capped_product_ids_v2', 1800, function (): array {
+            $curatedIds = Product::query()
+                ->where('is_storefront_curated', true)
+                ->orderBy('storefront_rank')
+                ->limit(self::STOREFRONT_MAX_DEFAULT_PRODUCTS)
+                ->pluck('id')
+                ->map(static fn ($id) => (int) $id)
+                ->all();
+
+            if (!empty($curatedIds)) {
+                return $curatedIds;
+            }
+
             $query = Product::query()
                 ->select('id')
                 ->where('vendor_id', 'TD SYNNEX')
@@ -2756,8 +2795,7 @@ class ProductController extends Controller
         $this->applyVendorFacetFilterToQuery($query, $selectedVendors);
         $this->applyCategorySegmentFilterToQuery($query, $category);
 
-        // Only count products that actually have images — matches what the main listing shows.
-        $query->whereRaw($this->hasUsableProductImageSql());
+        // Facets cover the same catalog, including products without images.
 
         if (
             trim($search) === ''

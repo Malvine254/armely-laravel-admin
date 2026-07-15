@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Models\Product;
 use App\Services\TDSynnexService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -29,6 +30,7 @@ class EnrichPriceAvailabilityProductImageJob implements ShouldQueue
     public function handle(TDSynnexService $service): void
     {
         $result = $service->syncPriceAvailabilityImageForProductId($this->productId);
+        Product::query()->whereKey($this->productId)->update(['image_enrichment_attempted_at' => now()]);
 
         Log::info('PriceAvailability image enrichment result.', [
             'product_id' => $this->productId,

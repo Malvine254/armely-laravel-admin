@@ -12,6 +12,8 @@ use App\Services\TDSynnexService;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\SearchProfileController;
+use App\Http\Controllers\ProductSourcingRequestController;
+use App\Http\Controllers\AdminImportedProductController;
 
 /*
 |--------------------------------------------------------------------------
@@ -81,6 +83,8 @@ Route::prefix('v1')->group(function () {
     Route::get('/products/{productId}/reviews', [ReviewController::class, 'index']);
     Route::get('/shares/public/cart/{token}', [QuoteOrderInvoiceController::class, 'getPublicSharedCart']);
     Route::middleware(['auth:sanctum', 'active.user'])->group(function () {
+        Route::post('/product-sourcing-requests', [ProductSourcingRequestController::class, 'store'])
+            ->middleware('throttle:10,1');
         Route::post('/products/{productId}/reviews', [ReviewController::class, 'store']);
         Route::delete('/products/{productId}/reviews/{reviewId}', [ReviewController::class, 'destroy']);
     });
@@ -156,6 +160,9 @@ Route::prefix('v1')->group(function () {
     Route::middleware(['auth:sanctum', 'active.user'])->group(function () {
         // Dashboard stats
         Route::get('/admin/dashboard/stats', [AdminController::class, 'getDashboardStats']);
+        Route::get('/admin/imported-products', [AdminImportedProductController::class, 'index']);
+        Route::put('/admin/imported-products/{product}', [AdminImportedProductController::class, 'update']);
+        Route::post('/admin/imported-products/{product}/enrich-image', [AdminImportedProductController::class, 'enrichImage']);
         
         // Customer management
         Route::get('/admin/customers', [AdminController::class, 'getCustomers']);

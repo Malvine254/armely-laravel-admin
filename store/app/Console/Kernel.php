@@ -71,6 +71,12 @@ class Kernel extends ConsoleKernel
             ->name('nightly-price-sync')
             ->withoutOverlapping();
 
+        $schedule->command('storefront:rebuild-assortment')
+            ->dailyAt('01:00')
+            ->timezone($scheduleTimezone)
+            ->name('rebuild-storefront-assortment')
+            ->withoutOverlapping();
+
         // Update order statuses every 30 minutes
         $schedule->call(function () {
             $orders = \App\Models\Order::whereIn('status', ['pending', 'processing', 'shipped'])
