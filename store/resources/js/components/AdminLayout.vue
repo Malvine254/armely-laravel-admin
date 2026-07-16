@@ -16,9 +16,14 @@
     >
       <!-- Logo -->
       <div class="px-5 flex items-center justify-between flex-shrink-0 admin-header-band" style="background: linear-gradient(135deg, #2F5597, #1e3a6b);">
-        <div>
-          <h1 class="text-xl font-bold text-white leading-tight">Armely Admin</h1>
-          <p class="text-[11px] text-white/60 mt-0.5">Control Panel</p>
+        <div class="flex min-w-0 items-center gap-2.5">
+          <div class="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-xl bg-white shadow-sm">
+            <img :src="normalizeLocalAssetUrl('/images/logo/armely-store-logo.png')" alt="Armely Store" class="h-full w-full object-contain">
+          </div>
+          <div class="min-w-0">
+            <h1 class="truncate text-base font-bold leading-tight text-white">Armely Admin</h1>
+            <p class="mt-0.5 text-[11px] text-white/60">Control Panel</p>
+          </div>
         </div>
         <button
           type="button"
@@ -490,6 +495,7 @@ import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import api from '@/services/api'
 import { useAuthStore } from '@/stores/authStore'
+import { normalizeLocalAssetUrl } from '@/services/runtimeConfig'
 
 const NOTIF_SEEN_STORAGE_KEY = 'armely_admin_seen_notifications_v1'
 

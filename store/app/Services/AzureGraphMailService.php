@@ -1171,9 +1171,19 @@ class AzureGraphMailService
         $tax         = number_format($taxAmt, 2);
         $total       = number_format($totalAmt, 2);
         $paid        = number_format($paidAmt, 2);
-        $balance     = number_format($totalAmt - $paidAmt, 2);
-        $taxBase = max(0.0, $totalAmt - $taxAmt);
-        $taxRate     = $taxBase > 0 ? round(($taxAmt / $taxBase) * 100) : 0;
+        $balanceDueValue = max(0, $totalAmt - $paidAmt);
+        $creditBalanceValue = max(0, $paidAmt - $totalAmt);
+        $balance     = number_format($balanceDueValue, 2);
+        $storedTaxRate = $breakdown['tax_rate_percent']
+            ?? $breakdownRaw['tax_rate_percent']
+            ?? data_get($breakdownRaw, 'pricing.tax_rate_percent');
+        $taxableSubtotal = (float) ($breakdown['subtotal']
+            ?? $breakdownRaw['subtotal']
+            ?? max(0, $totalAmt - $taxAmt - $shippingAmt));
+        $resolvedTaxRate = is_numeric($storedTaxRate)
+            ? max(0, (float) $storedTaxRate)
+            : ($taxableSubtotal > 0 ? max(0, ($taxAmt / $taxableSubtotal) * 100) : 0);
+        $taxRate = rtrim(rtrim(number_format($resolvedTaxRate, 2, '.', ''), '0'), '.');
         $statusText  = strtoupper($invoice->status ?? 'PENDING');
         $statusBg    = ($invoice->status === 'paid') ? '#d4edda' : '#fff3cd';
         $statusColor = ($invoice->status === 'paid') ? '#155724' : '#856404';
@@ -1255,6 +1265,12 @@ class AzureGraphMailService
                 . "<td style='padding:8px 0;font-size:13px;border-bottom:1px solid #ddd;text-align:right;'>\${$paid}</td></tr>"
                 . "<tr><td style='padding:8px 0;font-size:13px;font-weight:bold;'>Amount Due:</td>"
                 . "<td style='padding:8px 0;font-size:13px;font-weight:bold;text-align:right;'>\${$balance}</td></tr>";
+
+            if ($creditBalanceValue > 0) {
+                $creditBalance = number_format($creditBalanceValue, 2);
+                $paidRows .= "<tr><td style='padding:8px 0;font-size:13px;font-weight:bold;color:#155724;'>Credit Balance:</td>"
+                    . "<td style='padding:8px 0;font-size:13px;font-weight:bold;text-align:right;color:#155724;'>\${$creditBalance}</td></tr>";
+            }
         }
 
         $knownChargeNeedles = ['shipping', 'freight', 'handling', 'tax', 'adult signature', 'minimum order fee', 'recycling'];

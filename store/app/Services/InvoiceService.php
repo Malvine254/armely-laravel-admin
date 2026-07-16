@@ -209,9 +209,16 @@ class InvoiceService
             $quantity = max(1, (int) ($item['quantity'] ?? 1));
             $product = $this->findProductForInvoiceItem($item);
 
-            $sellUnitPrice = $product ? \App\Support\OfferPricing::sellPrice($product) : 0.0;
+            // Quote/order line prices are a financial snapshot. Prefer them over
+            // the current catalog price so later supplier syncs cannot alter an
+            // approved or paid customer amount.
+            $sellUnitPrice = (float) ($item['unit_price']
+                ?? $item['unitPrice']
+                ?? $item['customer_price']
+                ?? $item['price']
+                ?? 0);
             if ($sellUnitPrice <= 0) {
-                $sellUnitPrice = (float) ($item['unit_price'] ?? $item['unitPrice'] ?? $item['price'] ?? 0);
+                $sellUnitPrice = $product ? \App\Support\OfferPricing::sellPrice($product) : 0.0;
             }
 
             $lineTotal = round($sellUnitPrice * $quantity, 2);
@@ -304,6 +311,16 @@ class InvoiceService
             $tdData = null;
 
             $existing = Invoice::where('order_number', $order->order_number)->first();
+
+            // A paid invoice is an immutable financial record. Product prices,
+            // supplier freight, tax, or order status may change later, but those
+            // changes must not rewrite the amount that the customer actually
+            // paid. Recalculating while retaining paid_amount creates impossible
+            // negative balances and misleading payment emails.
+            if ($existing && $existing->status === 'paid') {
+                Log::info("Paid invoice {$existing->invoice_number} left unchanged for order {$order->order_number}");
+                return $existing;
+            }
 
             $sourceItems = is_array($order->items) ? $order->items : [];
             $retailItems = $this->buildRetailInvoiceLineItems($sourceItems);

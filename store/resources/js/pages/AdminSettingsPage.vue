@@ -521,7 +521,7 @@
               step="0.01"
               class="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-900 placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
             />
-            <p class="text-xs text-gray-500 mt-1">Applied when building invoice tax if quote/order tax is not explicitly provided.</p>
+            <p class="text-xs text-gray-500 mt-1">Applied to newly submitted quotes only. Existing quotes and invoices retain their saved tax amount and rate for financial accuracy.</p>
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Default Profit Per Item (%)</label>
@@ -534,6 +534,18 @@
               class="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-900 placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
             />
             <p class="text-xs text-gray-500 mt-1">Percentage added to the active supplier price. Enter 15 to charge 1.15× the supplier price.</p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Default Shipping &amp; Handling ($)</label>
+            <input
+              v-model.number="systemSettings.default_shipping_amount"
+              type="number"
+              min="0"
+              max="999999.99"
+              step="0.01"
+              class="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-900 placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
+            />
+            <p class="text-xs text-gray-500 mt-1">Used for newly submitted quotes unless the customer has a specific shipping amount. Update existing unpaid invoices from Admin → Invoices.</p>
           </div>
         </div>
 
@@ -1307,6 +1319,7 @@ const systemSettings = ref({
   maintenance_mode: false,
   tax_rate_percent: 0,
   profit_rate_percent: 15,
+  default_shipping_amount: 0,
   catalog_show_out_of_stock: false,
   catalog_show_discontinued: false,
   catalog_min_price: 100,
