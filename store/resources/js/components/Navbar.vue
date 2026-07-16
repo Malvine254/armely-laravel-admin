@@ -30,7 +30,7 @@
         </button>
 
         <!-- Global catalog search -->
-        <form class="order-2 hidden min-w-[18rem] max-w-[680px] basis-[34rem] flex-1 lg:flex" role="search" @submit.prevent="submitNavSearch">
+        <form class="order-2 mx-3 hidden min-w-[18rem] max-w-[680px] basis-[34rem] flex-1 lg:flex xl:mx-5 2xl:mx-7" role="search" @submit.prevent="submitNavSearch">
           <div class="flex h-12 min-w-0 flex-1 overflow-hidden rounded-lg border border-slate-300 bg-white transition focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100">
             <input
               v-model="navSearchQuery"
@@ -164,13 +164,13 @@
         </div>
 
         <!-- Right Section Icons -->
-        <div class="order-3 ml-auto flex flex-shrink-0 items-center gap-1 text-[#102f61] sm:gap-2 lg:ml-0 xl:gap-3">
+        <div class="order-3 ml-auto flex flex-shrink-0 items-center gap-1 text-[#102f61] sm:gap-2 lg:ml-0">
           <button v-if="authStore.isAuthenticated" type="button" class="hidden" aria-label="Orders" @click="goToOrders">
             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M7 4h10v3H7V4ZM5 7h14v14H5V7Zm4 4h6m-6 4h6"/></svg>
             <span class="pointer-events-none absolute right-0 top-12 hidden whitespace-nowrap rounded bg-white px-2 py-1 text-xs font-medium text-slate-900 shadow-lg group-hover:block">Orders</span>
           </button>
           <!-- Cart Icon - Always visible (guest + authenticated) -->
-          <button type="button" class="group relative order-2 flex cursor-pointer items-center gap-2 border-l border-slate-200 py-1 pl-4 pr-2 text-[#102f61] transition hover:text-blue-700" @click="goToCart">
+          <button type="button" class="group relative order-1 ml-2 flex cursor-pointer items-center gap-2 border-l border-slate-200 py-1 pl-5 pr-2 text-[#102f61] transition hover:text-blue-700 xl:ml-4" @click="goToCart">
             <svg class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 9m10-9l2 9m-9 0h14m-5-9v9"></path>
             </svg>
@@ -193,7 +193,7 @@
             </button>
 
             <!-- Authenticated Account Menu -->
-            <div ref="accountMenuRef" class="relative order-1 hidden xl:block">
+            <div ref="accountMenuRef" class="relative order-2 ml-2 hidden xl:block">
               <button
                 type="button"
                 class="flex items-center gap-2 rounded-xl border border-transparent px-2.5 py-2 text-[#102f61] transition hover:border-blue-100 hover:bg-blue-50"
@@ -237,12 +237,14 @@
 
           <!-- Unauthenticated User - Login/Sign Up Buttons -->
           <template v-else>
-            <router-link to="/login" class="hidden rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-[#102f61] transition hover:bg-blue-50 xl:inline-block">
-              Log In
-            </router-link>
-            <router-link to="/register" class="hidden rounded-lg bg-[#0b3b82] px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 xl:inline-block">
-              Sign Up
-            </router-link>
+            <div class="order-2 ml-2 hidden items-center gap-3 xl:flex">
+              <router-link to="/login" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-[#102f61] transition hover:bg-blue-50">
+                Log In
+              </router-link>
+              <router-link to="/register" class="rounded-lg bg-[#0b3b82] px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700">
+                Sign Up
+              </router-link>
+            </div>
           </template>
 
       <!-- Mobile Menu Button -->
