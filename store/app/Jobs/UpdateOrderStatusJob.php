@@ -97,13 +97,11 @@ class UpdateOrderStatusJob implements ShouldQueue
             if ($statusChanged || $trackingChanged || $shippingChanged) {
                 if ($this->shouldSendShippingNotification($oldStatus, (string) $this->order->status, $oldTracking, $trackingInfo)) {
                     $notificationService->sendOrderShippedNotification($this->order);
-                } elseif ($this->order->status === 'invoiced') {
-                    // Mark invoice as paid when TD marks the order as invoiced/complete
-                    $invoice = $this->order->invoice;
-                    if ($invoice && $invoice->status !== 'paid') {
-                        $invoice->update(['status' => 'paid', 'paid_at' => now()]);
-                    }
                 }
+
+                // TD SYNNEX "invoiced" means the supplier invoiced Armely. It is
+                // not evidence that the customer paid Armely, so supplier order
+                // status must never mutate invoice payment state.
 
                 Log::info("Order {$this->order->order_number} status updated from {$oldStatus} to {$this->order->status}", [
                     'raw_td_status' => $rawStatus,

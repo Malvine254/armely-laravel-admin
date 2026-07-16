@@ -3777,6 +3777,7 @@ class AdminController extends Controller
                         'maintenance_mode' => app()->isDownForMaintenance(),
                         'tax_rate_percent' => AppSetting::getNumber('pricing.tax_rate_percent', (float) env('APP_TAX_RATE_PERCENT', 0)),
                         'profit_rate_percent' => AppSetting::getNumber('pricing.profit_rate_percent', (float) env('APP_PROFIT_RATE_PERCENT', 15)),
+                        'default_shipping_amount' => AppSetting::getNumber('pricing.default_shipping_amount', (float) env('APP_DEFAULT_SHIPPING_AMOUNT', 0)),
                     ],
                     'price_sync_settings' => $this->getPriceSyncSettingsPayload(),
                     'catalog_operations' => [],
@@ -4466,6 +4467,7 @@ class AdminController extends Controller
                 'maintenance_mode' => 'sometimes|boolean',
                 'tax_rate_percent' => 'sometimes|numeric|min:0|max:100',
                 'profit_rate_percent' => 'sometimes|numeric|min:0|max:500',
+                'default_shipping_amount' => 'sometimes|numeric|min:0|max:999999.99',
                 'currency' => 'sometimes|string|max:10',
                 'currency_rate' => 'sometimes|numeric|min:0.0001|max:1000000',
                 'company_name' => 'sometimes|string|max:255',
@@ -4499,6 +4501,10 @@ class AdminController extends Controller
 
             if (array_key_exists('profit_rate_percent', $validated)) {
                 AppSetting::setValue('pricing.profit_rate_percent', (float) $validated['profit_rate_percent']);
+            }
+
+            if (array_key_exists('default_shipping_amount', $validated)) {
+                AppSetting::setValue('pricing.default_shipping_amount', (float) $validated['default_shipping_amount']);
             }
 
             if (array_key_exists('currency', $validated)) {
@@ -4563,6 +4569,9 @@ class AdminController extends Controller
             if (array_key_exists('profit_rate_percent', $validated)) {
                 $envUpdates['APP_PROFIT_RATE_PERCENT'] = (float) $validated['profit_rate_percent'];
             }
+            if (array_key_exists('default_shipping_amount', $validated)) {
+                $envUpdates['APP_DEFAULT_SHIPPING_AMOUNT'] = (float) $validated['default_shipping_amount'];
+            }
             if (array_key_exists('currency', $validated)) {
                 $envUpdates['APP_CURRENCY'] = strtoupper((string) $validated['currency']);
             }
@@ -4585,6 +4594,7 @@ class AdminController extends Controller
                     'maintenance_mode' => app()->isDownForMaintenance(),
                     'tax_rate_percent' => AppSetting::getNumber('pricing.tax_rate_percent', 0),
                     'profit_rate_percent' => AppSetting::getNumber('pricing.profit_rate_percent', 15),
+                    'default_shipping_amount' => AppSetting::getNumber('pricing.default_shipping_amount', 0),
                     'currency' => strtoupper((string) AppSetting::getValue('pricing.currency_code', 'USD')),
                     'currency_rate' => AppSetting::getNumber('pricing.currency_rate', 1),
                     'catalog_show_out_of_stock' => (bool) AppSetting::getValue('catalog.show_out_of_stock', false),

@@ -332,12 +332,17 @@ class QuoteOrderInvoiceController extends Controller
     {
         $taxRatePercent = max(0, AppSetting::getNumber('pricing.tax_rate_percent', 0));
         $profitRatePercent = max(0, AppSetting::getNumber('pricing.profit_rate_percent', 15));
+        $defaultShippingAmount = max(0, AppSetting::getNumber(
+            'pricing.default_shipping_amount',
+            (float) env('APP_DEFAULT_SHIPPING_AMOUNT', 0)
+        ));
         $currencyCode = strtoupper((string) AppSetting::getValue('pricing.currency_code', 'USD'));
         $currencyRate = max(0.0001, AppSetting::getNumber('pricing.currency_rate', 1));
 
         return [
             'tax_rate_percent' => $taxRatePercent,
             'profit_rate_percent' => $profitRatePercent,
+            'default_shipping_amount' => $defaultShippingAmount,
             'currency_code' => $currencyCode !== '' ? $currencyCode : 'USD',
             'currency_rate' => $currencyRate,
         ];
@@ -895,7 +900,10 @@ class QuoteOrderInvoiceController extends Controller
             $subtotal = round($baseSubtotal + $profitAmount, 2);
             $taxAmount = round(($subtotal * ((float) $pricing['tax_rate_percent'])) / 100, 2);
             $totalAmount = round($subtotal + $taxAmount, 2);
-            $shippingAmount = round((float) ($user->assigned_shipping_amount ?? 0), 2);
+            $assignedShippingAmount = round((float) ($user->assigned_shipping_amount ?? 0), 2);
+            $shippingAmount = $assignedShippingAmount > 0
+                ? $assignedShippingAmount
+                : round((float) $pricing['default_shipping_amount'], 2);
 
             if ($baseSubtotal > 0 && !empty($enrichedItems)) {
                 $runningDelta = 0.0;

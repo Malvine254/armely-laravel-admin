@@ -15,8 +15,12 @@
       <div class="bg-white rounded-2xl shadow-xl p-8">
         <!-- Logo/Header -->
         <div class="text-center mb-8">
-          <div class="w-16 h-16 rounded-xl flex items-center justify-center mx-auto mb-4" style="background: linear-gradient(135deg, #2f5597, #1f4788);">
-            <span class="text-2xl font-bold text-white">AS</span>
+          <div class="mx-auto mb-4 flex h-40 w-40 items-center justify-center">
+            <img
+              :src="normalizeLocalAssetUrl('/images/logo/armely-store-logo.png')"
+              alt="Armely Store — Smart technology. Seamless Procurement"
+              class="h-full w-full object-contain"
+            >
           </div>
           <h2 class="text-2xl font-bold text-slate-900">Armely Admin Portal</h2>
           <p class="text-slate-600 mt-2">Sign in to access the control panel</p>
@@ -103,6 +107,7 @@ import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import { useCartStore } from '@/stores/cartStore'
+import { normalizeLocalAssetUrl } from '@/services/runtimeConfig'
 
 const router = useRouter()
 const authStore = useAuthStore()

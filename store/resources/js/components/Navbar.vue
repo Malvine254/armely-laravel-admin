@@ -20,13 +20,13 @@
       <div class="flex min-h-20 w-full flex-wrap items-center justify-between gap-x-2 py-3 lg:min-h-24 lg:justify-center lg:gap-x-4 2xl:gap-x-7">
         <!-- Logo Section -->
         <button type="button" class="mr-auto flex flex-shrink-0 cursor-pointer items-center gap-2 transition hover:opacity-95 sm:gap-3 lg:mr-0" aria-label="Go to Armely Store home" @click="goToHome">
-          <div class="flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl border border-blue-100 bg-white px-1 shadow-sm" aria-hidden="true">
-            <span class="armely-brand-font text-[13px] leading-none text-[#0b3b82]">armely</span>
-          </div>
-          <div class="text-left">
-            <div class="text-base font-extrabold text-[#102f61] sm:text-xl">Armely Store</div>
-            <div class="hidden text-xs font-medium text-slate-500 sm:block">B2B Procurements</div>
-          </div>
+          <span class="flex h-16 w-16 items-center justify-center sm:h-20 sm:w-20">
+            <img
+              :src="normalizeLocalAssetUrl('/images/logo/armely-store-logo.png')"
+              alt="Armely Store — Smart technology. Seamless Procurement"
+              class="h-full w-full object-contain"
+            >
+          </span>
         </button>
 
         <!-- Global catalog search -->
