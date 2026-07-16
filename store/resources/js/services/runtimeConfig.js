@@ -73,13 +73,29 @@ export const normalizeLocalAssetUrl = (value) => {
   }
 
   try {
-    const assetUrl = new URL(rawValue, window.location.origin)
     const currentHost = (window.location.hostname || '').toLowerCase()
-    const assetHost = assetUrl.hostname.toLowerCase()
     const localHosts = ['127.0.0.1', 'localhost']
+    const isLocalHost = localHosts.includes(currentHost)
+
+    // Production is mounted below /store, while the local artisan server
+    // exposes public files at the origin root. Prefix root-relative project
+    // assets only on non-local subpath deployments and avoid double-prefixing
+    // URLs that already contain APP_BASE_PATH.
+    if (
+      rawValue.startsWith('/')
+      && !rawValue.startsWith('//')
+      && !isLocalHost
+      && APP_BASE_PATH !== '/'
+      && !rawValue.startsWith(APP_BASE_PATH)
+    ) {
+      return buildStoreUrl(rawValue)
+    }
+
+    const assetUrl = new URL(rawValue, window.location.origin)
+    const assetHost = assetUrl.hostname.toLowerCase()
 
     if (
-      localHosts.includes(currentHost) &&
+      isLocalHost &&
       localHosts.includes(assetHost) &&
       assetUrl.port === window.location.port
     ) {
