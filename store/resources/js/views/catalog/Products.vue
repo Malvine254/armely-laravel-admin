@@ -486,6 +486,7 @@ const resetImgErrorMap = () => {
   Object.keys(imgFallbackMap).forEach((key) => { delete imgFallbackMap[key] })
 }
 const ITEMS_PER_PAGE = 12
+const SHOW_NO_IMAGES_FILTER = !import.meta.env.PROD
 const API_PAGE_SIZE = 100
 const SEARCH_TRACK_DEBOUNCE_MS = 15000
 const PROFILE_TERM_LIMIT = 25
@@ -870,13 +871,18 @@ const reviewRatingOptions = computed(() => {
     }
   })
 
-  return [
+  const options = [
     { name: '5 Stars', count: fiveStar },
     { name: '4 Stars & Up', count: fourPlus },
     { name: '3 Stars & Up', count: threePlus },
     { name: 'Has Reviews', count: hasReviews },
-    { name: 'No Images', count: noImages },
   ]
+
+  if (SHOW_NO_IMAGES_FILTER) {
+    options.push({ name: 'No Images', count: noImages })
+  }
+
+  return options
 })
 
 const normalizeSearchText = (value) => String(value || '').toLowerCase().trim().replace(/\s+/g, ' ')
@@ -1976,7 +1982,11 @@ const handleFilterChange = (filters) => {
     vendors: Array.isArray(value.vendors) ? [...value.vendors].map((v) => String(v).trim()) : [],
     categories: Array.isArray(value.categories) ? [...value.categories].map((v) => String(v).trim()) : [],
     lifecycleStatuses: Array.isArray(value.lifecycleStatuses) ? [...value.lifecycleStatuses].map((v) => String(v).trim()) : [],
-    mediaStatuses: Array.isArray(value.mediaStatuses) ? [...value.mediaStatuses].map((v) => String(v).trim()) : [],
+    mediaStatuses: Array.isArray(value.mediaStatuses)
+      ? [...value.mediaStatuses]
+          .map((v) => String(v).trim())
+          .filter((status) => SHOW_NO_IMAGES_FILTER || status !== 'No Images')
+      : [],
   })
 
   const previousNormalized = normalizeFilters(currentFilters.value)
@@ -2568,6 +2578,10 @@ watch(
       nextMediaStatuses = media
         ? String(media).split(',').map((value) => value.trim()).filter(Boolean)
         : []
+    }
+
+    if (!SHOW_NO_IMAGES_FILTER) {
+      nextMediaStatuses = nextMediaStatuses.filter((status) => status !== 'No Images')
     }
 
     currentFilters.value = {
