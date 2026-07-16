@@ -926,7 +926,7 @@ class ProductController extends Controller
         $cacheKey = sprintf(
             'pa_browse_page:%s',
             md5(json_encode([
-                'v' => 23,
+                'v' => 24,
                 'price_version' => Cache::get('catalog:price_version', '1'),
                 'page' => (int) $pageNo,
                 'page_size' => (int) $pageSize,
@@ -1046,14 +1046,12 @@ class ProductController extends Controller
 
         if ($isDefaultBrowse) {
             $this->applyPriorityItProductFilterToQuery($query);
-            $hasCuratedAssortment = Cache::remember(
-                'storefront_curated_assortment_exists',
-                600,
-                fn () => Product::query()->where('is_storefront_curated', true)->exists()
-            );
-            if ($hasCuratedAssortment) {
-                $query->where('is_storefront_curated', true);
-            }
+            // The default storefront is already constrained by availability,
+            // hardware-quality, price, and priority-IT rules below. Do not also
+            // restrict it to the persisted curated snapshot: that snapshot can
+            // contain fewer than the 3,000 products promised by the catalog UI.
+            // Ranking still uses storefront_rank, and the result set remains
+            // capped by STOREFRONT_MAX_DEFAULT_PRODUCTS.
         }
 
         if ($hideZero) {
