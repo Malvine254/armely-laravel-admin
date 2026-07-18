@@ -118,7 +118,7 @@
 
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useCartStore } from '../stores/cartStore'
 import { useToastStore } from '../stores/toastStore'
 import { useAuthStore } from '../stores/authStore'
@@ -132,6 +132,7 @@ import { getRecentlyViewedIds } from '../services/recentlyViewed'
 import { usePricingSettings } from '../composables/usePricingSettings'
 
 const router = useRouter()
+const route = useRoute()
 const cartStore = useCartStore()
 const toastStore = useToastStore()
 const authStore = useAuthStore()
@@ -212,7 +213,9 @@ const openNeed = need => router.push(buildProductsLocation(need.category ? { cat
 const openProcurementRequest = () => {
   if (!authStore.isAuthenticated) {
     toastStore.addToast('Please log in so we can contact you about your request.', 'info')
-    router.push({ name: 'login', query: { redirect: '/store' } })
+    // Redirect values are router-internal paths. APP_BASE_PATH already adds
+    // /store in production, so using /store here would become /store/store.
+    router.push({ name: 'login', query: { redirect: '/?procurement=1' } })
     return
   }
   procurementError.value = ''
@@ -258,6 +261,10 @@ onMounted(async () => {
       .slice(0, 8)
     const recentIds = getRecentlyViewedIds()
     recentProducts.value = recentIds.map(id => rows.find(product => String(product.productId) === id)).filter(Boolean).slice(0, 6)
+    if (authStore.isAuthenticated && route.query.procurement === '1') {
+      showProcurementForm.value = true
+      router.replace({ name: 'home' })
+    }
   } finally {
     loading.value = false
   }

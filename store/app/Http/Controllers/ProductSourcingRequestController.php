@@ -2,12 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\ProductSourcingRequestSubmitted;
 use App\Models\Notification;
 use App\Models\ProductSourcingRequest;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Throwable;
 
 class ProductSourcingRequestController extends Controller
 {
@@ -46,6 +50,29 @@ class ProductSourcingRequestController extends Controller
 
             return $record;
         });
+
+        $sourcingRequest->load('user');
+        $adminEmails = User::query()
+            ->whereIn('role', ['admin', 'super_admin'])
+            ->where('status', 'active')
+            ->whereNotNull('email')
+            ->where('email', '!=', '')
+            ->pluck('email')
+            ->unique();
+
+        foreach ($adminEmails as $adminEmail) {
+            try {
+                Mail::to($adminEmail)->send(new ProductSourcingRequestSubmitted($sourcingRequest));
+            } catch (Throwable $emailError) {
+                // The request is already safely stored; an email transport issue
+                // must not make the customer retry and create a duplicate request.
+                Log::warning('Failed to email admin about product sourcing request.', [
+                    'request_id' => $sourcingRequest->id,
+                    'admin_email' => $adminEmail,
+                    'error' => $emailError->getMessage(),
+                ]);
+            }
+        }
 
         return response()->json([
             'success' => true,
