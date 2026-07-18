@@ -186,147 +186,19 @@
 
             <!-- Horizontal product cards -->
             <div v-else class="mb-8 grid grid-cols-1 gap-4 xl:grid-cols-2">
-              <div v-for="product in paginatedProducts" :key="product.productId" class="group flex min-h-[248px] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_2px_10px_rgba(15,42,82,0.05)] transition hover:border-blue-200 hover:shadow-[0_8px_24px_rgba(15,42,82,0.10)] sm:flex-row">
-                <!-- Product Image -->
-                <div class="relative flex h-52 flex-shrink-0 items-center justify-center overflow-hidden border-b border-slate-100 bg-white transition sm:h-auto sm:min-h-[248px] sm:w-[39%] sm:border-b-0 sm:border-r">
-                  <!-- Actual Product Image if available -->
-                  <img
-                    v-if="getPrimaryImageUrl(product) && !imgErrorMap[product.productId]"
-                    :src="imgFallbackMap[product.productId] || getPrimaryImageUrl(product)"
-                    :alt="product.productName"
-                    class="h-full w-full object-contain p-3"
-                    :loading="paginatedProducts.indexOf(product) < 6 ? 'eager' : 'lazy'"
-                    :fetchpriority="paginatedProducts.indexOf(product) < 3 ? 'high' : 'auto'"
-                    decoding="async"
-                    sizes="(min-width: 1024px) 320px, (min-width: 768px) 50vw, 100vw"
-                    width="320" height="160"
-                    @error="onImgError(product.productId, product)"
-                  />
-                  
-                  <!-- Fallback: Animated background + Icon -->
-                  <template v-if="!getPrimaryImageUrl(product) || imgErrorMap[product.productId]">
-                    <!-- Animated background -->
-                    <div class="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 opacity-80">
-                      <div class="absolute top-2 right-2 w-12 h-12 bg-blue-400 rounded-full opacity-10"></div>
-                      <div class="absolute bottom-4 left-2 w-8 h-8 bg-blue-300 rounded-full opacity-10"></div>
-                    </div>
-                    
-                    <!-- Product Icon based on type -->
-                    <div class="relative z-10 text-center">
-                      <svg v-if="getProductIcon(product.productName) === 'server'" class="w-16 h-16 mx-auto mb-2 text-gray-500" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M20 13H4c-.55 0-1 .45-1 1v6c0 .55.45 1 1 1h16c.55 0 1-.45 1-1v-6c0-.55-.45-1-1-1zM7 19c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zM20 3H4c-.55 0-1 .45-1 1v6c0 .55.45 1 1 1h16c.55 0 1-.45 1-1V4c0-.55-.45-1-1-1zm-3 8h-2V5h2v6z"/>
-                      </svg>
-                      <svg v-else-if="getProductIcon(product.productName) === 'cloud'" class="w-16 h-16 mx-auto mb-2 text-gray-500" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4c-1.48 0-2.85.43-4.01 1.17l1.46 1.46C10.21 5.23 11.08 5 12 5c3.04 0 5.5 2.46 5.5 5.5v.5H19c2.05 0 3.71 1.66 3.71 3.71 0 1.71-1.04 2.86-2.36 3.41z"/>
-                      </svg>
-                      <svg v-else-if="getProductIcon(product.productName) === 'database'" class="w-16 h-16 mx-auto mb-2 text-gray-500" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 3c-4.97 0-9 2.16-9 4.5S7.03 12 12 12s9-2.16 9-4.5S16.97 3 12 3zm0 5c-3.314 0-6-1.343-6-3s2.686-3 6-3 6 1.343 6 3-2.686 3-6 3zm0 7c-4.97 0-9 2.16-9 4.5S7.03 24 12 24s9-2.16 9-4.5-4.03-4.5-9-4.5zm0 5c-3.314 0-6-1.343-6-3s2.686-3 6-3 6 1.343 6 3-2.686 3-6 3z"/>
-                      </svg>
-                      <svg v-else class="w-16 h-16 mx-auto mb-2 text-gray-500" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                      </svg>
-                      <p class="text-xs text-gray-500">Image not available</p>
-                      <p class="mt-1 px-2 text-[11px] font-mono text-gray-600 break-all">
-                        Save as: {{ getExpectedImageFileName(product) }}
-                      </p>
-                    </div>
-                  </template>
-                </div>
-
-                <!-- Product Info -->
-                <div class="flex min-w-0 flex-1 flex-col p-4">
-                  <div class="mb-2 flex items-start justify-between gap-3">
-                    <h3
-                      class="line-clamp-2 min-h-[2.5rem] min-w-0 flex-1 text-sm font-bold leading-5 text-[#102a52]"
-                      :title="buildProductHoverDetails(product)"
-                    >{{ product.productName }}</h3>
-                    <span v-if="product.discontinueProduct" class="flex-shrink-0 rounded bg-red-100 px-2 py-1 text-[10px] font-semibold text-red-700">EOL</span>
-                    <span v-else class="flex-shrink-0 rounded bg-blue-100 px-2 py-1 text-[10px] font-semibold text-[#2F5597]">Active</span>
-                  </div>
-                  <div class="mb-2 flex items-center justify-between gap-3 text-[11px] text-slate-500">
-                    <p class="truncate" :title="`SKU: ${getProductSku(product)}`">SKU: {{ getProductSku(product) }}</p>
-                    <p class="truncate text-right" :title="`Vendor: ${getProductVendor(product)}`">Vendor: {{ getProductVendor(product) }}</p>
-                  </div>
-                  <!-- Reviews -->
-                  <div class="mb-2 flex items-center gap-1">
-                    <svg
-                      v-for="star in 5"
-                      :key="`rating-${product.productId}-${star}`"
-                      class="h-3.5 w-3.5"
-                      :class="star <= Math.round(getReviewStatsForProduct(product.productId).average) ? 'text-yellow-400' : 'text-gray-300'"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
-                    <span class="ml-1 text-[11px] text-gray-500">
-                      {{ getReviewStatsForProduct(product.productId).total > 0
-                        ? `${getReviewStatsForProduct(product.productId).average.toFixed(1)} (${getReviewStatsForProduct(product.productId).total})`
-                        : 'No reviews' }}
-                    </span>
-                  </div>
-                  
-                  <!-- Pricing -->
-                  <div v-if="product.productPrice && product.productPrice.length > 0" class="mb-2">
-                    <div v-if="pricingReady" class="flex flex-wrap items-baseline justify-between gap-2">
-                      <div class="flex items-baseline gap-2">
-                      <p class="text-xl font-extrabold" style="color: #2F5597;">{{ formatCatalogPrice(product.productPrice[0].rsPrice) }}</p>
-                      <span v-if="hasMsrpDiscount(product)" class="text-sm text-gray-400 line-through" title="Manufacturer's suggested retail price">
-                        MSRP: {{ formatReferencePrice(getProductMsrp(product)) }}
-                      </span>
-                      <span v-if="hasMsrpDiscount(product)" class="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">Save {{ getMsrpSavingsPercent(product) }}%</span>
-                      </div>
-                      <p class="text-[11px] text-slate-500">Min Qty: {{ product.productPrice[0].minQty }}</p>
-                    </div>
-                    <div v-else class="h-8 w-28 rounded bg-gray-200 animate-pulse"></div>
-                  </div>
-
-                  <!-- Features -->
-                  <div class="hidden">
-                    <span class="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">{{ getProductMetaPrimary(product) }}</span>
-                    <span class="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">{{ getProductMetaSecondary(product) }}</span>
-                  </div>
-                  <div class="mb-3 flex items-center justify-between gap-3 text-[11px]">
-                    <span class="rounded bg-emerald-50 px-2 py-1 font-semibold" :class="getStockTone(product)">{{ getStockLabel(product) }}</span>
-                    <span class="text-gray-500">{{ getWarehouseSummary(product) }}</span>
-                  </div>
-
-                  <!-- Actions -->
-                  <div class="mt-auto flex w-full gap-2">
-                    <button @click="viewProductDetails(product)" class="inline-flex flex-1 items-center justify-center gap-1 rounded-lg px-3 py-2 text-sm font-semibold text-white transition" style="background-color: #2F5597;" @mouseenter="$event.target.style.backgroundColor='#1f4788'" @mouseleave="$event.target.style.backgroundColor='#2F5597'">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5s8.268 2.943 9.542 7c-1.274 4.057-5.065 7-9.542 7S3.732 16.057 2.458 12z" />
-                      </svg>
-                      <span>View</span>
-                    </button>
-                    <button
-                      @click="addToQuote(product)"
-                      :disabled="isOutOfStock(product)"
-                      class="px-3 py-2 text-white text-sm font-semibold rounded-lg transition disabled:cursor-not-allowed disabled:opacity-60"
-                      style="background-color: #2F5597;"
-                      @mouseenter="!isOutOfStock(product) && ($event.target.style.backgroundColor='#1f4788')"
-                      @mouseleave="$event.target.style.backgroundColor='#2F5597'"
-                      :title="isOutOfStock(product) ? 'Out of stock' : 'Add to Quote'"
-                      aria-label="Add to Quote"
-                    >
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m1.6 8L5.4 5M7 13l-1.2 6.4A1 1 0 006.8 21h10.4a1 1 0 001-.8L20 13M9 21a1 1 0 100-2 1 1 0 000 2zm8 0a1 1 0 100-2 1 1 0 000 2z" />
-                      </svg>
-                    </button>
-                    <button @click="toggleFavorite(product)" class="px-3 py-2 rounded-lg transition border" :style="isFavorite(product.productId) ? { backgroundColor: '#cce4f4', borderColor: '#2F5597', color: '#2F5597' } : { borderColor: '#d1d5db', color: '#4b5563' }" :title="isFavorite(product.productId) ? 'Remove from Favorites' : 'Add to Favorites'">
-                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
-                      </svg>
-                    </button>
-                    <button @click="openShareModal(product)" class="px-3 py-2 rounded-lg transition border border-gray-300 text-gray-600 hover:bg-gray-50" title="Share Product">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C9.886 12.511 11.326 12 12.889 12c2.87 0 5.322 1.723 6.296 4.182m-16.338 0A6.986 6.986 0 019.111 12c1.563 0 3.003.511 4.205 1.342M15 6a3 3 0 11-6 0 3 3 0 016 0zm6 14a2 2 0 11-4 0 2 2 0 014 0zM7 20a2 2 0 11-4 0 2 2 0 014 0z" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              </div>
+              <ProductCard
+                v-for="(product, productIndex) in paginatedProducts"
+                :key="product.productId"
+                :product="product"
+                :image="imgFallbackMap[product.productId] || getPrimaryImageUrl(product)"
+                :favorite="isFavorite(product.productId)"
+                :eager="productIndex < 3"
+                :review-stats="getReviewStatsForProduct(product.productId)"
+                @view="viewProductDetails"
+                @quote="addToQuote"
+                @favorite="toggleFavorite"
+                @share="openShareModal"
+              />
             </div>
 
             <!-- Pagination -->
@@ -435,6 +307,7 @@ import api from '../../services/api'
 import { buildStoreUrl, resolveProductImageUrl } from '../../services/runtimeConfig'
 import { buildProductsLocation, parseProductsRouteFilters } from '../../services/productRoute'
 import Navbar from '../../components/Navbar.vue'
+import ProductCard from '../../components/ProductCard.vue'
 import FilterSidebar from '../../components/FilterSidebar.vue'
 import CatalogHero from '../../components/CatalogHero.vue'
 import PopularCategories from '../../components/PopularCategories.vue'
