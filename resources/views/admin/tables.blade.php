@@ -4454,6 +4454,9 @@ $(document).ready(function() {
             data: { status: status },
             success: function(response) {
                 $row.find('td').eq(5).html(eventRegistrationStatusBadge(status));
+                if (response.invitation_sent) {
+                    $row.find('td').eq(6).html('<span class="text-success"><i class="fas fa-check-circle"></i> Sent</span>');
+                }
                 showEventRegistrationMessage(response.message, true);
             },
             error: function(xhr) {
