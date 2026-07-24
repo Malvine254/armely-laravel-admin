@@ -2,6 +2,8 @@
 
 return [
 
+    'event_registration_to' => env('EVENT_REGISTRATION_TO', env('CONTACT_NOTIFICATION_EMAIL', 'ask.me@armely.com')),
+
     /*
     |--------------------------------------------------------------------------
     | Default Mailer

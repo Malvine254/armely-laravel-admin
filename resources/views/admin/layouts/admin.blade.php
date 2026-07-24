@@ -38,20 +38,35 @@
         transition: all 0.2s ease;
     }
     .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
-        background: #e4e7ec !important;
-        color: #1f2937 !important;
+        background: #eef4ff !important;
+        color: #2f5597 !important;
     }
     .dataTables_wrapper .dataTables_paginate .paginate_button.current,
     .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
-        background: linear-gradient(135deg, #6366f1, #8b5cf6) !important;
+        background: linear-gradient(135deg, #2f5597, #1e3a6d) !important;
         color: #fff !important;
-        box-shadow: 0 8px 16px rgba(99, 102, 241, 0.25);
+        box-shadow: 0 8px 16px rgba(47, 85, 151, 0.25);
     }
     .dataTables_wrapper .dataTables_paginate .paginate_button.disabled {
         opacity: 0.45;
         cursor: not-allowed;
         background: #f9fafb !important;
         color: #98a2b3 !important;
+    }
+    .content-area .pagination .page-link {
+        color: #2f5597;
+        border-color: #d8e2f2;
+    }
+    .content-area .pagination .page-link:hover {
+        color: #1e3a6d;
+        background: #eef4ff;
+        border-color: #c5d5ed;
+    }
+    .content-area .pagination .page-item.active .page-link {
+        color: #fff;
+        background: #2f5597;
+        border-color: #2f5597;
+        box-shadow: 0 5px 12px rgba(47, 85, 151, 0.22);
     }
 
     /* DataTables top controls toolbar */
@@ -139,6 +154,20 @@
     .dataTables_wrapper .dataTables_scrollBody {
         max-height: none !important;
         overflow-y: visible !important;
+    }
+
+    /* Keep tab controls available while the page content scrolls beneath them. */
+    .content-area .nav-tabs,
+    .content-area .nav-pills {
+        position: sticky;
+        top: 72px;
+        z-index: 25;
+        background: #fff;
+    }
+    .content-area .tab-pane .nav-tabs,
+    .content-area .tab-pane .nav-pills {
+        top: 132px;
+        z-index: 24;
     }
 
     .dataTables_wrapper table.dataTable {
@@ -392,6 +421,36 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Bootstrap handles dropdowns via data-bs-toggle; no custom handler needed
+
+    // Preserve active tabs per admin page without changing the URL.
+    const tabControls = Array.from(document.querySelectorAll(
+        '[data-bs-toggle="tab"], [data-bs-toggle="pill"]'
+    )).filter(control => control.getAttribute('data-bs-target') || control.getAttribute('href')?.startsWith('#'));
+    const storagePrefix = 'armely-admin-tab:' + window.location.pathname + ':';
+
+    function tabStorageKey(control) {
+        const tabList = control.closest('[role="tablist"]');
+        return storagePrefix + (tabList?.id || control.parentElement?.parentElement?.id || 'tabs');
+    }
+    function tabTarget(control) {
+        return control.getAttribute('data-bs-target') || control.getAttribute('href');
+    }
+
+    tabControls.forEach(function (control) {
+        control.addEventListener('shown.bs.tab', function () {
+            window.sessionStorage.setItem(tabStorageKey(control), tabTarget(control));
+        });
+    });
+
+    // Restore parent tabs before nested tabs.
+    tabControls
+        .sort((a, b) => a.closest('.tab-pane') ? 1 : (b.closest('.tab-pane') ? -1 : 0))
+        .forEach(function (control) {
+            const savedTarget = window.sessionStorage.getItem(tabStorageKey(control));
+            if (savedTarget && tabTarget(control) === savedTarget) {
+                bootstrap.Tab.getOrCreateInstance(control).show();
+            }
+        });
 });
 </script>
 

@@ -25,6 +25,47 @@
         display: block;
     }
 
+    .event-management-shell {
+        --event-blue: #2f5597;
+        --event-blue-dark: #1e3a6d;
+        --event-blue-soft: #eef4ff;
+        --event-blue-border: #cbdaf3;
+    }
+    .event-management-shell .event-hero {
+        background: linear-gradient(135deg, var(--event-blue), var(--event-blue-dark));
+    }
+    .event-management-shell .event-soft-bg {
+        background: var(--event-blue-soft) !important;
+        border-color: var(--event-blue-border) !important;
+    }
+    .event-management-shell .btn-primary {
+        background: var(--event-blue) !important;
+        border-color: var(--event-blue) !important;
+    }
+    .event-management-shell .btn-primary:hover,
+    .event-management-shell .btn-primary:focus {
+        background: var(--event-blue-dark) !important;
+        border-color: var(--event-blue-dark) !important;
+    }
+    .event-management-shell .btn-outline-primary {
+        color: var(--event-blue) !important;
+        border-color: var(--event-blue) !important;
+    }
+    .event-management-shell .btn-outline-primary:hover,
+    .event-management-shell .btn-outline-primary:focus {
+        color: #fff !important;
+        background: var(--event-blue) !important;
+    }
+    .event-management-shell .nav-pills .nav-link {
+        color: var(--event-blue);
+        font-weight: 600;
+    }
+    .event-management-shell .nav-pills .nav-link.active {
+        color: #fff;
+        background: var(--event-blue);
+        box-shadow: 0 5px 14px rgba(47, 85, 151, 0.22);
+    }
+
     .page-title {
         flex: 0 0 auto;
         margin-bottom: 0.85rem;
@@ -904,27 +945,64 @@
 
         <!-- Events Tab -->
         <div class="tab-pane fade" id="events" role="tabpanel">
-            <div class="card-body">
-                <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#eventModal" onclick="resetEventForm()">
-                    <i class="fas fa-plus"></i> Add New Event
-                </button>
+            <div class="card-body event-management-shell">
+                <div class="event-hero p-3 p-lg-4 mb-4 rounded-3 text-white">
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                        <div>
+                            <h4 class="mb-1"><i class="fas fa-calendar-alt me-2"></i>Event Management</h4>
+                            <p class="mb-0 text-white-50">Manage public events separately from invitation-only experiences.</p>
+                        </div>
+                        <span class="badge bg-light text-primary px-3 py-2">{{ $events->count() }} total events</span>
+                    </div>
+                </div>
+
+                <ul class="nav nav-pills gap-2 mb-4 p-2 event-soft-bg rounded-3" id="eventTypeTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active px-4" id="normal-events-tab" data-bs-toggle="pill" data-bs-target="#normal-events-pane" type="button" role="tab">
+                            <i class="fas fa-globe me-1"></i> Normal Events
+                            <span class="badge bg-white text-primary ms-1">{{ $events->filter(fn($event) => ($event->event_type ?? 'normal') === 'normal')->count() }}</span>
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link px-4" id="private-events-tab" data-bs-toggle="pill" data-bs-target="#private-events-pane" type="button" role="tab">
+                            <i class="fas fa-lock me-1"></i> Private Events
+                            <span class="badge bg-white text-dark ms-1">{{ $events->filter(fn($event) => ($event->event_type ?? 'normal') === 'private')->count() }}</span>
+                        </button>
+                    </li>
+                </ul>
+
+                <div class="tab-content" id="eventTypeTabsContent">
+                <div class="tab-pane fade show active" id="normal-events-pane" role="tabpanel">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div><h5 class="mb-1">Public Events</h5><p class="text-muted mb-0">Visible on the website’s Events page.</p></div>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#eventModal" onclick="resetEventForm('normal')">
+                        <i class="fas fa-plus"></i> Add Normal Event
+                    </button>
+                </div>
                 
-                @if($events->count() > 0)
+                @if($events->filter(fn($event) => ($event->event_type ?? 'normal') === 'normal')->count() > 0)
                     <div class="table-responsive">
-                        <table class="table table-hover" id="eventsDataTable">
+                        <table class="table table-hover align-middle" id="normalEventsDataTable">
                             <thead>
                                 <tr>
                                     <th>Title</th>
                                     <th>Date</th>
+                                    <th>Type</th>
                                     <th>URL</th>
                                     <th width="200">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody id="eventsTable">
-                                @foreach($events as $event)
+                            <tbody id="normalEventsTable">
+                                @foreach($events->filter(fn($event) => ($event->event_type ?? 'normal') === 'normal') as $event)
                                 <tr data-id="{{ $event->id }}">
                                     <td>{{ \Illuminate\Support\Str::limit(strip_tags($event->title ?? ''), 50) }}</td>
                                     <td>{{ $event->start_date ?? 'N/A' }}</td>
+                                    <td>
+                                        <span class="badge {{ ($event->event_type ?? 'normal') === 'private' ? 'bg-dark' : 'bg-primary' }}">{{ ucfirst($event->event_type ?? 'normal') }}</span>
+                                        @if(($event->event_type ?? 'normal') === 'private' && $event->private_slug)
+                                            <button type="button" class="btn btn-link btn-sm copy-private-event-link p-0 ms-1" data-url="{{ route('events.private.register', $event->private_slug) }}" title="Copy private registration link"><i class="fas fa-copy"></i></button>
+                                        @endif
+                                    </td>
                                     <td>
                                         @if($event->url)
                                             <a href="{{ $event->url }}" target="_blank" class="text-primary">
@@ -935,13 +1013,13 @@
                                         @endif
                                     </td>
                                     <td>
-                                        <button class="btn btn-sm btn-info view-event" data-event='@json($event)' title="View">
+                                        <button class="btn btn-sm btn-outline-primary view-event" data-event='@json($event)' title="View">
                                             <i class="fas fa-eye"></i>
                                         </button>
-                                        <button class="btn btn-sm btn-warning edit-event" data-event='@json($event)' title="Edit">
+                                        <button class="btn btn-sm btn-outline-primary edit-event" data-event='@json($event)' title="Edit">
                                             <i class="fas fa-edit"></i>
                                         </button>
-                                        <button class="btn btn-sm btn-danger delete-event" data-id="{{ $event->id }}" title="Delete">
+                                        <button class="btn btn-sm btn-outline-primary delete-event" data-id="{{ $event->id }}" title="Delete">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </td>
@@ -951,8 +1029,123 @@
                         </table>
                     </div>
                 @else
-                    <p class="text-muted"><i class="fas fa-info-circle"></i> No events yet. Add one!</p>
+                    <div class="text-center border rounded-3 p-5 event-soft-bg"><i class="fas fa-calendar-plus fa-2x text-primary mb-3"></i><p class="mb-0 text-muted">No normal events yet.</p></div>
                 @endif
+                </div>
+
+                <div class="tab-pane fade" id="private-events-pane" role="tabpanel">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div><h5 class="mb-1">Invitation-Only Events</h5><p class="text-muted mb-0">Hidden from public listings and accessed through secure registration links.</p></div>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#eventModal" onclick="resetEventForm('private')">
+                        <i class="fas fa-lock"></i> Add Private Event
+                    </button>
+                </div>
+                @if($events->filter(fn($event) => ($event->event_type ?? 'normal') === 'private')->count() > 0)
+                    <div class="table-responsive mb-4">
+                        <table class="table table-hover align-middle" id="privateEventsDataTable">
+                            <thead><tr><th>Title</th><th>Date</th><th>Private Registration</th><th>Event URL</th><th width="200">Actions</th></tr></thead>
+                            <tbody id="privateEventsTable">
+                            @foreach($events->filter(fn($event) => ($event->event_type ?? 'normal') === 'private') as $event)
+                                <tr data-id="{{ $event->id }}">
+                                    <td>{{ \Illuminate\Support\Str::limit(strip_tags($event->title ?? ''), 50) }}</td>
+                                    <td>{{ $event->start_date ?? 'N/A' }}</td>
+                                    <td>
+                                        <button type="button" class="btn btn-outline-primary btn-sm copy-private-event-link" data-url="{{ route('events.private.register', $event->private_slug) }}"><i class="fas fa-copy"></i> Copy Link</button>
+                                    </td>
+                                    <td>@if($event->url)<a href="{{ $event->url }}" target="_blank"><i class="fas fa-external-link-alt"></i> Open</a>@else<span class="text-muted">Not set</span>@endif</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary view-event" data-event='@json($event)' title="View"><i class="fas fa-eye"></i></button>
+                                        <button class="btn btn-sm btn-outline-primary edit-event" data-event='@json($event)' title="Edit"><i class="fas fa-edit"></i></button>
+                                        <button class="btn btn-sm btn-outline-primary delete-event" data-id="{{ $event->id }}" title="Delete"><i class="fas fa-trash"></i></button>
+                                    </td>
+                                </tr>
+                            @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @else
+                    <div class="text-center border rounded-3 p-4 event-soft-bg mb-4"><i class="fas fa-lock fa-2x text-primary mb-2"></i><p class="mb-0 text-muted">No private events yet.</p></div>
+                @endif
+
+                <div class="card event-soft-bg rounded-3 p-3 p-lg-4">
+                <div class="d-flex flex-wrap align-items-end justify-content-between gap-3 mb-3">
+                    <div>
+                        <h5 class="mb-1"><i class="fas fa-user-check"></i> Event Registrations</h5>
+                        <p class="text-muted mb-0">Verify attendees, then send the selected event URL to everyone verified and awaiting a link.</p>
+                    </div>
+                    <div class="d-flex flex-wrap align-items-end gap-2">
+                        <div>
+                            <label for="verifiedEventSelect" class="form-label mb-1">Event link to send</label>
+                            <select id="verifiedEventSelect" class="form-select form-select-sm" style="min-width:260px">
+                                <option value="">Choose an event...</option>
+                                @foreach($events->filter(fn($event) => ($event->event_type ?? 'normal') === 'private' && !empty($event->url)) as $event)
+                                    <option value="{{ $event->id }}">{{ \Illuminate\Support\Str::limit(strip_tags($event->title ?? 'Event'), 45) }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <button type="button" id="sendVerifiedEventLinkBtn" class="btn btn-primary btn-sm">
+                            <i class="fas fa-paper-plane"></i> Send to Verified
+                        </button>
+                        <button type="button" id="sendEventThankYouBtn" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-heart"></i> Send Thank You
+                        </button>
+                    </div>
+                </div>
+
+                <div id="eventRegistrationMessage" class="alert d-none" role="alert"></div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle" id="eventRegistrationsDataTable">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Event</th>
+                                <th>Company Email</th>
+                                <th>Organization</th>
+                                <th>Role</th>
+                                <th>Status</th>
+                                <th>Link</th>
+                                <th width="170">Review</th>
+                            </tr>
+                        </thead>
+                        <tbody id="eventRegistrationsTable">
+                            @forelse($eventRegistrations as $registration)
+                                <tr data-id="{{ $registration->id }}">
+                                    <td>{{ $registration->full_name }}</td>
+                                    <td>{{ $registration->event_name }}</td>
+                                    <td><a href="mailto:{{ $registration->work_email }}">{{ $registration->work_email }}</a></td>
+                                    <td>{{ $registration->organization }}</td>
+                                    <td>{{ $registration->job_title }}</td>
+                                    <td>
+                                        <span class="badge {{ in_array($registration->status, ['verified', 'attended'], true) ? 'bg-success' : ($registration->status === 'rejected' ? 'bg-danger' : 'bg-warning text-dark') }}">
+                                            {{ ucfirst($registration->status ?? 'pending') }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        @if($registration->event_link_sent_at)
+                                            <span class="text-success" title="{{ $registration->event_link_sent_at }}"><i class="fas fa-check-circle"></i> Sent</span>
+                                        @else
+                                            <span class="text-muted">Not sent</span>
+                                        @endif
+                                        @if($registration->thank_you_sent_at)
+                                            <br><span class="text-primary" title="{{ $registration->thank_you_sent_at }}"><i class="fas fa-heart"></i> Thanked</span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        <button type="button" class="btn btn-sm btn-primary review-event-registration" data-status="verified" title="Verify"><i class="fas fa-check"></i></button>
+                                        <button type="button" class="btn btn-sm btn-outline-primary review-event-registration" data-status="attended" title="Mark attended"><i class="fas fa-user-check"></i></button>
+                                        <button type="button" class="btn btn-sm btn-outline-primary review-event-registration" data-status="rejected" title="Reject"><i class="fas fa-times"></i></button>
+                                        <button type="button" class="btn btn-sm btn-outline-primary review-event-registration" data-status="pending" title="Return to pending"><i class="fas fa-undo"></i></button>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr><td colspan="8" class="text-center text-muted">No event registrations yet.</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+                </div>
+                </div>
+                </div>
             </div>
         </div>
 
@@ -2209,14 +2402,39 @@ One or two sentences inviting a conversation.</small>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Event Date *</label>
-                            <input type="text" class="form-control" id="eventDate" name="start_date" required placeholder="DD/MM/YYYY">
-                            <small class="text-muted">Format: DD/MM/YYYY (e.g., 25/12/2025)</small>
+                            <input type="date" class="form-control" id="eventDate" name="start_date" required>
+                            <small class="text-muted"><i class="fas fa-calendar-alt me-1"></i>Select the event date.</small>
                         </div>
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Event URL</label>
+                            <label class="form-label">Event Time *</label>
+                            <input type="time" class="form-control" id="eventTime" name="start_time" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Time Zone *</label>
+                            <select class="form-select" id="eventTimezone" name="timezone" required>
+                                <option value="CST">Central (CST)</option>
+                                <option value="EST">Eastern (EST)</option>
+                                <option value="MST">Mountain (MST)</option>
+                                <option value="PST">Pacific (PST)</option>
+                                <option value="UTC">UTC</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Event Type *</label>
+                            <select class="form-select" id="eventType" name="event_type" required>
+                                <option value="normal">Normal — shown on Events page</option>
+                                <option value="private">Private — hidden registration link</option>
+                            </select>
+                            <small class="text-muted">Private events do not appear on the public Events page.</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Event URL <span class="text-danger">*</span></label>
                             <input type="url" class="form-control" id="eventUrl" name="url" placeholder="https://...">
+                            <small class="text-muted">Required for private events before verified attendees can receive the link.</small>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Recorded URL</label>
@@ -3066,25 +3284,47 @@ $(document).ready(function() {
             url: '/admin/tables/events/list',
             type: 'GET',
             success: function(response) {
-                const tbody = $('#eventsTable');
-                tbody.empty();
-                
-                if (response.data && Array.isArray(response.data)) {
-                    response.data.forEach(function(event) {
-                        const urlLink = event.url ? `<a href="${event.url}" target="_blank" class="text-primary"><i class="fas fa-external-link-alt"></i> Link</a>` : 'N/A';
-                        const row = `<tr data-id="${event.id}">
-                            <td>${event.title || ''}</td>
-                            <td>${event.start_date || 'N/A'}</td>
-                            <td>${urlLink}</td>
-                            <td>
-                                <button class="btn btn-sm btn-info view-event" data-event='${JSON.stringify(event).replace(/'/g, "&apos;")}' title="View"><i class="fas fa-eye"></i></button>
-                                <button class="btn btn-sm btn-warning edit-event" data-event='${JSON.stringify(event).replace(/'/g, "&apos;")}' title="Edit"><i class="fas fa-edit"></i></button>
-                                <button class="btn btn-sm btn-danger delete-event" data-id="${event.id}" title="Delete"><i class="fas fa-trash"></i></button>
-                            </td>
-                        </tr>`;
-                        tbody.append(row);
-                    });
-                }
+                if (!response.data || !Array.isArray(response.data)) return;
+
+                const rows = { normal: [], private: [] };
+                response.data.forEach(function(event) {
+                    const type = (event.event_type || 'normal') === 'private' ? 'private' : 'normal';
+                    const eventJson = JSON.stringify(event).replace(/'/g, '&apos;');
+                    const actions = `
+                        <button class="btn btn-sm btn-outline-primary view-event" data-event='${eventJson}' title="View"><i class="fas fa-eye"></i></button>
+                        <button class="btn btn-sm btn-outline-primary edit-event" data-event='${eventJson}' title="Edit"><i class="fas fa-edit"></i></button>
+                        <button class="btn btn-sm btn-outline-primary delete-event" data-id="${event.id}" title="Delete"><i class="fas fa-trash"></i></button>`;
+
+                    if (type === 'private') {
+                        const privateUrl = `${window.location.origin}/private-events/${event.private_slug}/register`;
+                        rows.private.push([
+                            escapeHtml(event.title || ''),
+                            escapeHtml(event.start_date || 'N/A'),
+                            `<button type="button" class="btn btn-outline-primary btn-sm copy-private-event-link" data-url="${privateUrl}"><i class="fas fa-copy"></i> Copy Link</button>`,
+                            event.url ? `<a href="${escapeHtml(event.url)}" target="_blank"><i class="fas fa-external-link-alt"></i> Open</a>` : '<span class="text-muted">Not set</span>',
+                            actions
+                        ]);
+                    } else {
+                        rows.normal.push([
+                            escapeHtml(event.title || ''),
+                            escapeHtml(event.start_date || 'N/A'),
+                            '<span class="badge bg-primary">Normal</span>',
+                            event.url ? `<a href="${escapeHtml(event.url)}" target="_blank" class="text-primary"><i class="fas fa-external-link-alt"></i> Link</a>` : 'N/A',
+                            actions
+                        ]);
+                    }
+                });
+
+                [
+                    ['#normalEventsDataTable', rows.normal],
+                    ['#privateEventsDataTable', rows.private]
+                ].forEach(function([selector, data]) {
+                    if (!$(selector).length || !$.fn.DataTable) return;
+                    const table = $.fn.DataTable.isDataTable(selector)
+                        ? $(selector).DataTable()
+                        : $(selector).DataTable({ pageLength: 10 });
+                    table.clear().rows.add(data).draw(false);
+                });
             },
             error: function(xhr) {
                 console.error('Error reloading events table:', xhr);
@@ -4109,13 +4349,24 @@ $(document).ready(function() {
     });
     
     // Event Edit
+    function eventDateForPicker(value) {
+        if (!value) return '';
+        const text = String(value).trim();
+        if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
+        const legacy = text.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+        return legacy ? `${legacy[3]}-${legacy[2]}-${legacy[1]}` : '';
+    }
+
     $(document).on('click', '.edit-event', function() {
         const event = $(this).data('event');
         
         $('#eventModalTitle').text('Edit Event');
         $('#eventId').val(event.id);
         $('#eventTitle').val(event.title || '');
-        $('#eventDate').val(event.start_date || '');
+        $('#eventDate').val(eventDateForPicker(event.start_date));
+        $('#eventTime').val(event.start_time || '');
+        $('#eventTimezone').val(event.timezone || 'CST');
+        $('#eventType').val(event.event_type || 'normal');
         $('#eventUrl').val(event.url || '');
         $('#eventRecordedUrl').val(event.recorded_url || '');
         
@@ -4129,10 +4380,13 @@ $(document).ready(function() {
     });
     
     // Event Reset Form
-    window.resetEventForm = function() {
+    window.resetEventForm = function(type = 'normal') {
         $('#eventModalTitle').text('Add New Event');
         $('#eventForm')[0].reset();
         $('#eventId').val('');
+        $('#eventType').val(type);
+        $('#eventTime').val('');
+        $('#eventTimezone').val('CST');
         
         if (eventEditor) {
             eventEditor.setData('');
@@ -4162,7 +4416,118 @@ $(document).ready(function() {
             }
         });
     });
-    
+
+    $(document).on('click', '.copy-private-event-link', async function() {
+        const url = $(this).data('url');
+        try {
+            await navigator.clipboard.writeText(url);
+            showEventRegistrationMessage('Private registration link copied.', true);
+        } catch (error) {
+            window.prompt('Copy this private registration link:', url);
+        }
+    });
+
+    function eventRegistrationStatusBadge(status) {
+        const classes = ['verified', 'attended'].includes(status) ? 'bg-success' : (status === 'rejected' ? 'bg-danger' : 'bg-warning text-dark');
+        const label = status.charAt(0).toUpperCase() + status.slice(1);
+        return `<span class="badge ${classes}">${label}</span>`;
+    }
+
+    function showEventRegistrationMessage(message, success) {
+        $('#eventRegistrationMessage')
+            .removeClass('d-none alert-success alert-danger')
+            .addClass(success ? 'alert-success' : 'alert-danger')
+            .text(message);
+    }
+
+    $(document).on('click', '.review-event-registration', function() {
+        const $button = $(this);
+        const $row = $button.closest('tr');
+        const id = $row.data('id');
+        const status = $button.data('status');
+
+        $row.find('.review-event-registration').prop('disabled', true);
+        $.ajax({
+            url: `/admin/tables/event-registrations/${id}/status`,
+            method: 'POST',
+            headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')},
+            data: { status: status },
+            success: function(response) {
+                $row.find('td').eq(5).html(eventRegistrationStatusBadge(status));
+                showEventRegistrationMessage(response.message, true);
+            },
+            error: function(xhr) {
+                showEventRegistrationMessage(xhr.responseJSON?.message || 'Could not update this registration.', false);
+            },
+            complete: function() {
+                $row.find('.review-event-registration').prop('disabled', false);
+            }
+        });
+    });
+
+    $('#sendVerifiedEventLinkBtn').on('click', function() {
+        const eventId = $('#verifiedEventSelect').val();
+        if (!eventId) {
+            showEventRegistrationMessage('Choose an event with a URL first.', false);
+            return;
+        }
+        if (!confirm('Send this event URL to every verified attendee who has not already received a link?')) {
+            return;
+        }
+
+        const $button = $(this);
+        $button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Sending...');
+        $.ajax({
+            url: '/admin/tables/event-registrations/send-link',
+            method: 'POST',
+            headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')},
+            data: { event_id: eventId },
+            success: function(response) {
+                showEventRegistrationMessage(response.message, true);
+                window.setTimeout(function() { window.location.reload(); }, 1000);
+            },
+            error: function(xhr) {
+                showEventRegistrationMessage(xhr.responseJSON?.message || 'The event links could not be sent.', false);
+            },
+            complete: function() {
+                $button.prop('disabled', false).html('<i class="fas fa-paper-plane"></i> Send to Verified');
+            }
+        });
+    });
+
+    $('#sendEventThankYouBtn').on('click', function() {
+        const eventId = $('#verifiedEventSelect').val();
+        if (!eventId) {
+            showEventRegistrationMessage('Choose an event first.', false);
+            return;
+        }
+        if (!confirm('Send a thank-you email to approved or attended recipients who have not already received one?')) return;
+
+        const $button = $(this);
+        $button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Sending...');
+        $.ajax({
+            url: '/admin/tables/event-registrations/send-thank-you',
+            method: 'POST',
+            headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')},
+            data: { event_id: eventId },
+            success: function(response) {
+                showEventRegistrationMessage(response.message, true);
+            },
+            error: function(xhr) {
+                showEventRegistrationMessage(xhr.responseJSON?.message || 'Thank-you emails could not be sent.', false);
+            },
+            complete: function() {
+                $button.prop('disabled', false).html('<i class="fas fa-heart"></i> Send Thank You');
+            }
+        });
+    });
+
+    $(document).on('shown.bs.tab', '#eventTypeTabs [data-bs-toggle="pill"]', function() {
+        if ($.fn.DataTable) {
+            $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+        }
+    });
+
     // Initialize Event Editor
     let eventEditor;
     $('#eventModal').on('shown.bs.modal', function() {
@@ -4190,8 +4555,11 @@ $(document).ready(function() {
         }
         formData.append('title', $('#eventTitle').val());
         formData.append('start_date', $('#eventDate').val());
+        formData.append('start_time', $('#eventTime').val());
+        formData.append('timezone', $('#eventTimezone').val());
         formData.append('url', $('#eventUrl').val());
         formData.append('recorded_url', $('#eventRecordedUrl').val());
+        formData.append('event_type', $('#eventType').val());
         formData.append('body', eventEditor ? eventEditor.getData() : $('#eventBody').val());
         
         $.ajax({
@@ -4742,7 +5110,9 @@ $(document).ready(function() {
             { id: '#socialDataTable', pageLength: 10 },
             { id: '#storiesDataTable', pageLength: 10 },
             { id: '#caseStudiesDataTable', pageLength: 10 },
-            { id: '#eventsDataTable', pageLength: 10 },
+            { id: '#normalEventsDataTable', pageLength: 10 },
+            { id: '#privateEventsDataTable', pageLength: 10 },
+            { id: '#eventRegistrationsDataTable', pageLength: 10 },
             { id: '#teamDataTable', pageLength: 10 },
             { id: '#newsletterDataTable', pageLength: 10 }
             // Skip blogsDataTable - initialized separately for Server-Side

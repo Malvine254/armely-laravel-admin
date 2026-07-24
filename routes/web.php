@@ -23,6 +23,7 @@ use App\Http\Controllers\DataReadinessLeadController;
 use App\Http\Controllers\ResourceController;
 use App\Http\Controllers\Admin\ResourceController as AdminResourceController;
 use App\Http\Controllers\NewsletterController;
+use App\Http\Controllers\EventRegistrationController;
 use App\Http\Controllers\SitemapController;
 use App\Support\ServiceUrl;
 
@@ -186,6 +187,21 @@ Route::get('/partners/{slug}', function ($slug) {
 
 
 Route::get('/events', [HomeController::class, 'events'])->name('events.index');
+
+// Intentionally unlinked invite-only registration page.
+Route::get('/events/sovereign-data-cloud-executive-briefing/register', [EventRegistrationController::class, 'create'])
+    ->name('events.sovereign-data-cloud.register');
+Route::post('/events/sovereign-data-cloud-executive-briefing/register', [EventRegistrationController::class, 'store'])
+    ->middleware('throttle:10,1')
+    ->name('events.sovereign-data-cloud.register.store');
+Route::get('/private-events/{slug}/register', [EventRegistrationController::class, 'createPrivate'])
+    ->name('events.private.register');
+Route::post('/private-events/{slug}/register', [EventRegistrationController::class, 'storePrivate'])
+    ->middleware('throttle:10,1')
+    ->name('events.private.register.store');
+Route::get('/event-emails/unsubscribe/{token}', [EventRegistrationController::class, 'unsubscribe'])
+    ->middleware('signed')
+    ->name('events.emails.unsubscribe');
 
 Route::get('/company', [HomeController::class, 'company'])->name('company.index');
 Route::get('/career', [HomeController::class, 'career'])->name('career.index');
@@ -406,6 +422,10 @@ Route::prefix('admin')->middleware(['admin'])->group(function () {
     // Events
     Route::post('/tables/events', [TablesController::class, 'storeOrUpdateEvent'])->name('admin.tables.events.store');
     Route::delete('/tables/events/{id}', [TablesController::class, 'deleteEvent'])->name('admin.tables.events.delete');
+    Route::get('/tables/event-registrations/list', [TablesController::class, 'listEventRegistrations'])->name('admin.tables.event-registrations.list');
+    Route::post('/tables/event-registrations/{id}/status', [TablesController::class, 'updateEventRegistrationStatus'])->name('admin.tables.event-registrations.status');
+    Route::post('/tables/event-registrations/send-link', [TablesController::class, 'sendEventLinkToVerified'])->name('admin.tables.event-registrations.send-link');
+    Route::post('/tables/event-registrations/send-thank-you', [TablesController::class, 'sendEventThankYou'])->name('admin.tables.event-registrations.send-thank-you');
     
     // Team
     Route::post('/tables/team', [TablesController::class, 'storeOrUpdateTeam'])->name('admin.tables.team.store');
