@@ -2101,7 +2101,23 @@ class TablesController extends Controller
         string $subject,
         string $html
     ): bool {
-        if ($mailer->sendEmail($from, $to, $subject, $html)) {
+        $resolvedFrom = AzureMailService::normalizeEmail($from);
+        if (!filter_var($resolvedFrom, FILTER_VALIDATE_EMAIL)) {
+            $resolvedFrom = AzureMailService::normalizeEmail((string) config('mail.from.address', ''));
+        }
+
+        if (!filter_var($resolvedFrom, FILTER_VALIDATE_EMAIL)) {
+            Log::error('Event email sender address is missing or invalid', [
+                'to' => $to,
+                'subject' => $subject,
+                'azure_sender_configured' => AzureMailService::outboundFromEmail() !== '',
+                'mail_sender_configured' => trim((string) config('mail.from.address', '')) !== '',
+            ]);
+
+            return false;
+        }
+
+        if ($mailer->sendEmail($resolvedFrom, $to, $subject, $html)) {
             return true;
         }
 
@@ -2110,7 +2126,7 @@ class TablesController extends Controller
             'subject' => $subject,
         ]);
 
-        $sent = (new AzureMailService())->sendEmail($from, $to, $subject, $html);
+        $sent = (new AzureMailService())->sendEmail($resolvedFrom, $to, $subject, $html);
         if ($sent) {
             return true;
         }
@@ -2127,8 +2143,8 @@ class TablesController extends Controller
         }
 
         try {
-            Mail::html($html, function ($message) use ($from, $to, $subject) {
-                $message->from($from, (string) config('mail.from.name', 'Armely'))
+            Mail::html($html, function ($message) use ($resolvedFrom, $to, $subject) {
+                $message->from($resolvedFrom, (string) config('mail.from.name', 'Armely'))
                     ->to($to)
                     ->subject($subject);
 

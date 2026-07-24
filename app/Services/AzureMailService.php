@@ -156,12 +156,16 @@ class AzureMailService
 
     public static function outboundFromEmail(): string
     {
-        return self::normalizeEmail((string) (env('NO_REPLY_EMAIL') ?: env('FROM_EMAIL', env('MAIL_FROM_ADDRESS', ''))));
+        return self::normalizeEmail((string) (
+            config('mail.from.address')
+            ?: env('NO_REPLY_EMAIL')
+            ?: env('FROM_EMAIL', env('MAIL_FROM_ADDRESS', ''))
+        ));
     }
 
     public static function replyToEmail(): ?string
     {
-        $replyTo = self::normalizeEmail((string) env('REPLY_TO_EMAIL', ''));
+        $replyTo = self::normalizeEmail((string) (config('mail.reply_to.address') ?: env('REPLY_TO_EMAIL', '')));
 
         return $replyTo !== '' ? $replyTo : null;
     }
