@@ -1911,7 +1911,8 @@ class TablesController extends Controller
                 ])->render();
 
                 $invitationSent = AzureMailService::isDeliverableEmail($email)
-                    && $mailer->sendEmail(
+                    && $this->sendEventEmailWithRetry(
+                        $mailer,
                         AzureMailService::outboundFromEmail(),
                         $email,
                         'Your event access link: '.$event->title,
@@ -2002,7 +2003,7 @@ class TablesController extends Controller
             ])->render();
 
             if (AzureMailService::isDeliverableEmail($email)
-                && $mailer->sendEmail($from, $email, 'Your event access link: '.($event->title ?? 'Armely Event'), $html)) {
+                && $this->sendEventEmailWithRetry($mailer, $from, $email, 'Your event access link: '.($event->title ?? 'Armely Event'), $html)) {
                 DB::table('event_registrations')->where('id', $registration->id)->update([
                     'event_id' => $event->id,
                     'event_link_sent_at' => now(),
@@ -2071,7 +2072,7 @@ class TablesController extends Controller
 
             $email = AzureMailService::normalizeEmail((string) $registration->work_email);
             if (AzureMailService::isDeliverableEmail($email)
-                && $mailer->sendEmail($from, $email, 'Thank you for joining us: '.$event->title, $html)) {
+                && $this->sendEventEmailWithRetry($mailer, $from, $email, 'Thank you for joining us: '.$event->title, $html)) {
                 DB::table('event_registrations')->where('id', $registration->id)->update([
                     'thank_you_sent_at' => now(),
                     'updated_at' => now(),
@@ -2090,6 +2091,33 @@ class TablesController extends Controller
             'sent' => $sent,
             'failed' => $failed,
         ], $sent > 0 ? 200 : 502);
+    }
+
+    private function sendEventEmailWithRetry(
+        AzureMailService $mailer,
+        string $from,
+        string $to,
+        string $subject,
+        string $html
+    ): bool {
+        if ($mailer->sendEmail($from, $to, $subject, $html)) {
+            return true;
+        }
+
+        Log::warning('Event email first attempt failed; retrying once', [
+            'to' => $to,
+            'subject' => $subject,
+        ]);
+
+        $sent = (new AzureMailService())->sendEmail($from, $to, $subject, $html);
+        if (!$sent) {
+            Log::error('Event email retry failed', [
+                'to' => $to,
+                'subject' => $subject,
+            ]);
+        }
+
+        return $sent;
     }
     
     // ========== TEAM MANAGEMENT ==========
