@@ -92,11 +92,16 @@ class HomeController extends Controller
             }
 
             $events = DB::table('events')
-                ->select('id', 'start_date', 'title', 'body', 'url', 'recorded_url')
+                ->select('id', 'start_date', 'start_time', 'timezone', 'title', 'body', 'url', 'recorded_url')
+                ->when(Schema::hasColumn('events', 'event_type'), fn ($query) => $query->where('event_type', 'normal'))
                 ->orderByDesc('id')
                 ->get()
                 ->map(function ($event) {
-                    $eventDate = $this->parseEventDate((string) ($event->start_date ?? ''));
+                    $eventDate = $this->parseEventDate(
+                        (string) ($event->start_date ?? ''),
+                        (string) ($event->start_time ?? ''),
+                        (string) ($event->timezone ?? 'CST')
+                    );
 
                     if (!$eventDate) {
                         return null;
@@ -144,7 +149,8 @@ class HomeController extends Controller
                         'url' => $event->url,
                         'recorded_url' => $event->recorded_url,
                         'event_timestamp' => $eventTimestamp,
-                        'formatted_date' => $eventDate->format('M ') . $day . $suffix . ' ' . $eventDate->format('Y'),
+                        'formatted_date' => $day.$suffix.' '.$eventDate->format('M, Y')
+                            .(!empty($event->start_time) ? ' '.$eventDate->format('g:i A').' '.($event->timezone ?? 'CST') : ''),
                         'truncated_title' => Str::limit((string) ($event->title ?? ''), 60),
                         'truncated_body' => Str::limit(strip_tags((string) ($event->body ?? '')), 180),
                         'button_text' => $buttonText,
@@ -168,7 +174,7 @@ class HomeController extends Controller
         ]);
     }
 
-    private function parseEventDate(string $value): ?Carbon
+    private function parseEventDate(string $value, string $time = '', string $timezone = 'CST'): ?Carbon
     {
         $value = trim($value);
 
@@ -180,6 +186,16 @@ class HomeController extends Controller
             try {
                 $date = Carbon::createFromFormat($format, $value);
                 if ($date !== false) {
+                    if ($time !== '' && preg_match('/^\d{2}:\d{2}$/', $time)) {
+                        [$hour, $minute] = array_map('intval', explode(':', $time));
+                        $date->setTimezone(match ($timezone) {
+                            'EST' => 'America/New_York',
+                            'MST' => 'America/Denver',
+                            'PST' => 'America/Los_Angeles',
+                            'UTC' => 'UTC',
+                            default => 'America/Chicago',
+                        })->setTime($hour, $minute);
+                    }
                     return $date;
                 }
             } catch (\Throwable $e) {

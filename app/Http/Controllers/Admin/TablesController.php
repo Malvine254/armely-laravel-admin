@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\URL;
 use App\Services\AzureMailService;
 use App\Services\ActivityLogger;
 use App\Services\NewsletterNotificationService;
@@ -138,6 +139,26 @@ class TablesController extends Controller
 
         $eventsTable = $this->tableExists('events') ? 'events' : ($this->tableExists('event') ? 'event' : null);
         $events = $eventsTable ? DB::table($eventsTable)->orderBy('id', 'desc')->limit(50)->get() : collect();
+        $privateEventIds = $events->filter(fn ($event) => ($event->event_type ?? 'normal') === 'private')->pluck('id');
+        $privateEventTitles = $events
+            ->filter(fn ($event) => ($event->event_type ?? 'normal') === 'private')
+            ->pluck('title')
+            ->filter()
+            ->push('Sovereign Data Clouds with Snowflake')
+            ->unique()
+            ->values();
+        $eventRegistrations = $this->tableExists('event_registrations')
+            ? DB::table('event_registrations')
+                ->where(function ($query) use ($privateEventIds, $privateEventTitles) {
+                    $query->whereIn('event_id', $privateEventIds)
+                        ->orWhere(function ($legacyQuery) use ($privateEventTitles) {
+                            $legacyQuery->whereNull('event_id')->whereIn('event_name', $privateEventTitles);
+                        });
+                })
+                ->orderByDesc('id')
+                ->limit(250)
+                ->get()
+            : collect();
 
         $teamTable = $this->tableExists('team') ? 'team' : ($this->tableExists('teams') ? 'teams' : null);
         $team = $teamTable ? DB::table($teamTable)->orderBy('id', 'desc')->limit(50)->get() : collect();
@@ -174,7 +195,7 @@ class TablesController extends Controller
         $caseStudyCategories = $this->caseStudyCategoryOptions();
         $caseStudyTechnologies = $this->caseStudyTechnologyOptions();
 
-        return view('admin.tables', compact('blogs', 'videos', 'careers', 'socialImpact', 'customerStories', 'caseStudies', 'events', 'team', 'contacts', 'newsletterSubscribers', 'siteBanners', 'announcements', 'adminAuthors', 'caseStudyCategories', 'caseStudyTechnologies'));
+        return view('admin.tables', compact('blogs', 'videos', 'careers', 'socialImpact', 'customerStories', 'caseStudies', 'events', 'eventRegistrations', 'team', 'contacts', 'newsletterSubscribers', 'siteBanners', 'announcements', 'adminAuthors', 'caseStudyCategories', 'caseStudyTechnologies'));
     }
     
     // ========== LIST ENDPOINTS FOR AJAX TABLE RELOAD ==========
@@ -1712,6 +1733,13 @@ class TablesController extends Controller
     {
         $table = $this->tableExists('events') ? 'events' : 'event';
         $id = $request->id;
+        $validatedType = $request->validate([
+            'event_type' => ['nullable', Rule::in(['normal', 'private'])],
+            'start_date' => ['required', 'date_format:Y-m-d'],
+            'start_time' => ['required', 'date_format:H:i'],
+            'timezone' => ['required', Rule::in(['CST', 'EST', 'MST', 'PST', 'UTC'])],
+            'url' => [Rule::requiredIf($request->input('event_type') === 'private'), 'nullable', 'url', 'max:2048'],
+        ])['event_type'] ?? 'normal';
         
         if ($id) {
             // Update existing event
@@ -1728,6 +1756,8 @@ class TablesController extends Controller
             if ($request->filled('start_date')) {
                 $data['start_date'] = $request->start_date;
             }
+            $data['start_time'] = $request->start_time;
+            $data['timezone'] = $request->timezone;
             
             if ($request->filled('url')) {
                 $data['url'] = $request->url;
@@ -1738,6 +1768,13 @@ class TablesController extends Controller
                     $data['recorded_url'] = $request->recorded_url;
                 }
             }
+
+            if ($this->columnExists($table, 'event_type')) {
+                $data['event_type'] = $validatedType;
+                if ($validatedType === 'private' && empty(DB::table($table)->where('id', $id)->value('private_slug'))) {
+                    $data['private_slug'] = Str::lower(Str::random(32));
+                }
+            }
             
             if (!empty($data)) {
                 DB::table($table)->where('id', $id)->update($data);
@@ -1745,7 +1782,7 @@ class TablesController extends Controller
             
             $event = DB::table($table)->where('id', $id)->first();
             ActivityLogger::log('update', 'Event', $id, 'Updated event ' . ($event->title ?? ''));
-            if (!empty($data)) {
+            if (!empty($data) && ($event->event_type ?? 'normal') === 'normal') {
                 app(NewsletterNotificationService::class)->sendEventNotification($event);
             }
             return response()->json(['success' => true, 'message' => 'Event updated successfully', 'data' => $event]);
@@ -1755,7 +1792,14 @@ class TablesController extends Controller
                 'title' => $request->title,
                 'body' => $request->body,
                 'start_date' => $request->start_date,
+                'start_time' => $request->start_time,
+                'timezone' => $request->timezone,
             ];
+
+            if ($this->columnExists($table, 'event_type')) {
+                $data['event_type'] = $validatedType;
+                $data['private_slug'] = $validatedType === 'private' ? Str::lower(Str::random(32)) : null;
+            }
             
             if ($request->filled('url')) {
                 $data['url'] = $request->url;
@@ -1768,7 +1812,9 @@ class TablesController extends Controller
             $eventId = DB::table($table)->insertGetId($data);
             $event = DB::table($table)->where('id', $eventId)->first();
             ActivityLogger::log('create', 'Event', $eventId, 'Created event ' . ($event->title ?? ''));
-            app(NewsletterNotificationService::class)->sendEventNotification($event);
+            if (($event->event_type ?? 'normal') === 'normal') {
+                app(NewsletterNotificationService::class)->sendEventNotification($event);
+            }
             
             return response()->json(['success' => true, 'message' => 'Event created successfully', 'data' => $event]);
         }
@@ -1780,6 +1826,211 @@ class TablesController extends Controller
         DB::table($table)->where('id', $id)->delete();
         ActivityLogger::log('delete', 'Event', $id, 'Deleted event #' . $id);
         return response()->json(['success' => true, 'message' => 'Event deleted successfully']);
+    }
+
+    public function listEventRegistrations()
+    {
+        if (!$this->tableExists('event_registrations')) {
+            return response()->json(['success' => true, 'data' => []]);
+        }
+
+        $privateEvents = DB::table('events')->where('event_type', 'private')->get(['id', 'title']);
+        $privateIds = $privateEvents->pluck('id');
+        $privateTitles = $privateEvents->pluck('title')
+            ->push('Sovereign Data Clouds with Snowflake')
+            ->unique()
+            ->values();
+
+        return response()->json([
+            'success' => true,
+            'data' => DB::table('event_registrations')
+                ->where(function ($query) use ($privateIds, $privateTitles) {
+                    $query->whereIn('event_id', $privateIds)
+                        ->orWhere(function ($legacyQuery) use ($privateTitles) {
+                            $legacyQuery->whereNull('event_id')->whereIn('event_name', $privateTitles);
+                        });
+                })
+                ->orderByDesc('id')
+                ->limit(250)
+                ->get(),
+        ]);
+    }
+
+    public function updateEventRegistrationStatus(Request $request, int $id)
+    {
+        $validated = $request->validate([
+            'status' => ['required', Rule::in(['pending', 'verified', 'attended', 'rejected'])],
+        ]);
+
+        $registration = DB::table('event_registrations')->where('id', $id)->first();
+        if (!$registration) {
+            return response()->json(['success' => false, 'message' => 'Registration not found.'], 404);
+        }
+
+        DB::table('event_registrations')->where('id', $id)->update([
+            'status' => $validated['status'],
+            'verified_at' => $validated['status'] === 'verified' ? now() : null,
+            'verified_by' => $validated['status'] === 'verified' ? auth('admin')->id() : null,
+            'updated_at' => now(),
+        ]);
+
+        ActivityLogger::log('update', 'EventRegistration', $id, ucfirst($validated['status']).' event registration for '.$registration->work_email);
+
+        return response()->json(['success' => true, 'message' => 'Registration marked '.$validated['status'].'.']);
+    }
+
+    public function sendEventLinkToVerified(Request $request, AzureMailService $mailer)
+    {
+        $validated = $request->validate([
+            'event_id' => ['required', 'integer'],
+        ]);
+
+        $eventTable = $this->tableExists('events') ? 'events' : 'event';
+        $event = DB::table($eventTable)->where('id', $validated['event_id'])->first();
+        if (!$event) {
+            return response()->json(['success' => false, 'message' => 'Event not found.'], 404);
+        }
+
+        $eventUrl = trim((string) ($event->url ?? ''));
+        if ($eventUrl === '' || !filter_var($eventUrl, FILTER_VALIDATE_URL)) {
+            return response()->json(['success' => false, 'message' => 'Add a valid event URL before sending invitations.'], 422);
+        }
+
+        $registrations = DB::table('event_registrations')
+            ->where('status', 'verified')
+            ->whereNull('event_link_sent_at')
+            ->whereNotExists(function ($query) {
+                $query->selectRaw('1')
+                    ->from('event_email_unsubscribes')
+                    ->whereColumn('event_email_unsubscribes.email', 'event_registrations.work_email');
+            })
+            ->where(function ($query) use ($event) {
+                $query->where('event_id', $event->id)
+                    ->orWhere(function ($legacyQuery) use ($event) {
+                        $legacyQuery->whereNull('event_id')
+                            ->where('event_name', (string) $event->title);
+                    });
+            })
+            ->orderBy('id')
+            ->get();
+
+        if ($registrations->isEmpty()) {
+            return response()->json(['success' => false, 'message' => 'There are no verified attendees waiting for an event link.'], 422);
+        }
+
+        $from = AzureMailService::outboundFromEmail();
+        $sent = 0;
+        $failed = 0;
+
+        foreach ($registrations as $registration) {
+            $email = AzureMailService::normalizeEmail((string) $registration->work_email);
+            $unsubscribeToken = trim((string) ($registration->unsubscribe_token ?? ''));
+            if ($unsubscribeToken === '') {
+                $unsubscribeToken = Str::random(64);
+                DB::table('event_registrations')->where('id', $registration->id)->update([
+                    'unsubscribe_token' => $unsubscribeToken,
+                    'updated_at' => now(),
+                ]);
+            }
+            $html = view('emails.events.verified-event-link', [
+                'name' => (string) $registration->full_name,
+                'eventTitle' => (string) ($event->title ?? $registration->event_name),
+                'eventDate' => (string) ($event->start_date ?? ''),
+                'eventUrl' => $eventUrl,
+                'unsubscribeUrl' => URL::signedRoute('events.emails.unsubscribe', [
+                    'token' => $unsubscribeToken,
+                ]),
+            ])->render();
+
+            if (AzureMailService::isDeliverableEmail($email)
+                && $mailer->sendEmail($from, $email, 'Your event access link: '.($event->title ?? 'Armely Event'), $html)) {
+                DB::table('event_registrations')->where('id', $registration->id)->update([
+                    'event_id' => $event->id,
+                    'event_link_sent_at' => now(),
+                    'updated_at' => now(),
+                ]);
+                $sent++;
+            } else {
+                $failed++;
+            }
+        }
+
+        ActivityLogger::log('email', 'Event', $event->id, "Sent event link to {$sent} verified attendee(s); {$failed} failed.");
+
+        return response()->json([
+            'success' => $sent > 0,
+            'message' => "Event link sent to {$sent} verified attendee(s).".($failed ? " {$failed} could not be delivered." : ''),
+            'sent' => $sent,
+            'failed' => $failed,
+        ], $sent > 0 ? 200 : 502);
+    }
+
+    public function sendEventThankYou(Request $request, AzureMailService $mailer)
+    {
+        $validated = $request->validate(['event_id' => ['required', 'integer']]);
+        $eventTable = $this->tableExists('events') ? 'events' : 'event';
+        $event = DB::table($eventTable)->where('id', $validated['event_id'])->first();
+        if (!$event) {
+            return response()->json(['success' => false, 'message' => 'Event not found.'], 404);
+        }
+
+        $registrations = DB::table('event_registrations')
+            ->whereIn('status', ['verified', 'attended'])
+            ->whereNull('thank_you_sent_at')
+            ->where(function ($query) use ($event) {
+                $query->where('event_id', $event->id)
+                    ->orWhere(function ($legacyQuery) use ($event) {
+                        $legacyQuery->whereNull('event_id')->where('event_name', (string) $event->title);
+                    });
+            })
+            ->whereNotExists(function ($query) {
+                $query->selectRaw('1')
+                    ->from('event_email_unsubscribes')
+                    ->whereColumn('event_email_unsubscribes.email', 'event_registrations.work_email');
+            })
+            ->orderBy('id')
+            ->get();
+
+        if ($registrations->isEmpty()) {
+            return response()->json(['success' => false, 'message' => 'There are no approved or attended recipients awaiting a thank-you email.'], 422);
+        }
+
+        $from = AzureMailService::outboundFromEmail();
+        $sent = 0;
+        $failed = 0;
+        foreach ($registrations as $registration) {
+            $token = trim((string) ($registration->unsubscribe_token ?? '')) ?: Str::random(64);
+            if (empty($registration->unsubscribe_token)) {
+                DB::table('event_registrations')->where('id', $registration->id)->update(['unsubscribe_token' => $token]);
+            }
+
+            $html = view('emails.events.thank-you', [
+                'name' => $registration->full_name,
+                'eventTitle' => $event->title,
+                'unsubscribeUrl' => URL::signedRoute('events.emails.unsubscribe', ['token' => $token]),
+            ])->render();
+
+            $email = AzureMailService::normalizeEmail((string) $registration->work_email);
+            if (AzureMailService::isDeliverableEmail($email)
+                && $mailer->sendEmail($from, $email, 'Thank you for joining us: '.$event->title, $html)) {
+                DB::table('event_registrations')->where('id', $registration->id)->update([
+                    'thank_you_sent_at' => now(),
+                    'updated_at' => now(),
+                ]);
+                $sent++;
+            } else {
+                $failed++;
+            }
+        }
+
+        ActivityLogger::log('email', 'Event', $event->id, "Sent {$sent} event thank-you email(s); {$failed} failed.");
+
+        return response()->json([
+            'success' => $sent > 0,
+            'message' => "Thank-you email sent to {$sent} recipient(s).".($failed ? " {$failed} could not be delivered." : ''),
+            'sent' => $sent,
+            'failed' => $failed,
+        ], $sent > 0 ? 200 : 502);
     }
     
     // ========== TEAM MANAGEMENT ==========

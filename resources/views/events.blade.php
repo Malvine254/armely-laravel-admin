@@ -25,45 +25,20 @@
 
 <section class="modern-hero-events">
     <div class="container">
-        <div class="row align-items-center g-4">
-            <div class="col-lg-7">
+        <div class="row">
+            <div class="col-xl-9 col-lg-10">
                 <div class="events-badge">Armely Events</div>
                 <h1 class="hero-title-events">Discover what's next in data, AI, and digital transformation</h1>
                 <p class="hero-subtitle-events  text-light">Join live sessions, webinars, and workshops designed to help teams learn faster and make better decisions.</p>
-                <ul class="bread-list">
+                <div class="events-hero-summary">
+                    <strong>{{ count($events) }}</strong>
+                    <span>{{ count($events) === 1 ? 'event available' : 'events available' }}</span>
+                </div>
+                <ul class="bread-list" aria-label="Event formats">
                     <li>Live sessions</li>
                     <li>Webinars</li>
                     <li>Workshops</li>
                 </ul>
-            </div>
-            <div class="col-lg-5">
-                <div class="events-hero-panel">
-                   
-                    <h3>Quick access to every event card</h3>
-                    <p>See upcoming sessions, recordings, and event details in one place. Use the button below to jump straight to the cards.</p>
-                    <div class="events-hero-stats">
-                        <div class="events-hero-stat">
-                            <strong>{{ count($events) }}</strong>
-                            <span>Live event cards</span>
-                        </div>
-                        <div class="events-hero-stat">
-                            <strong>Fresh</strong>
-                            <span>Updated when new events are posted</span>
-                        </div>
-                    </div>
-                    <ul class="events-hero-points">
-                        <li>Live sessions, webinars, and workshops</li>
-                        <li>Recording links for past events</li>
-                        <li>Easy jump to the card grid below</li>
-                    </ul>
-                    <a href="#events-grid" class="btn events-hero-btn">
-                        <span class="default-color">View Event Cards</span>
-                        <svg class="icon-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                            <path d="M5 12h14" />
-                            <path d="m13 6 6 6-6 6" />
-                        </svg>
-                    </a>
-                </div>
             </div>
         </div>
     </div>
@@ -185,4 +160,3 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 </script>
 @endpush
-
