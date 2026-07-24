@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -2110,14 +2111,50 @@ class TablesController extends Controller
         ]);
 
         $sent = (new AzureMailService())->sendEmail($from, $to, $subject, $html);
-        if (!$sent) {
-            Log::error('Event email retry failed', [
-                'to' => $to,
-                'subject' => $subject,
-            ]);
+        if ($sent) {
+            return true;
         }
 
-        return $sent;
+        $fallbackMailer = (string) config('mail.default', 'log');
+        if (in_array($fallbackMailer, ['log', 'array'], true)) {
+            Log::error('Event email retry failed and no delivery-capable fallback mailer is configured', [
+                'to' => $to,
+                'subject' => $subject,
+                'fallback_mailer' => $fallbackMailer,
+            ]);
+
+            return false;
+        }
+
+        try {
+            Mail::html($html, function ($message) use ($from, $to, $subject) {
+                $message->from($from, (string) config('mail.from.name', 'Armely'))
+                    ->to($to)
+                    ->subject($subject);
+
+                $replyTo = AzureMailService::replyToEmail();
+                if ($replyTo) {
+                    $message->replyTo($replyTo);
+                }
+            });
+
+            Log::warning('Event email sent through fallback mailer after Graph failed', [
+                'to' => $to,
+                'subject' => $subject,
+                'fallback_mailer' => $fallbackMailer,
+            ]);
+
+            return true;
+        } catch (\Throwable $exception) {
+            Log::error('Event email failed through Graph and fallback mailer', [
+                'to' => $to,
+                'subject' => $subject,
+                'fallback_mailer' => $fallbackMailer,
+                'error' => $exception->getMessage(),
+            ]);
+
+            return false;
+        }
     }
     
     // ========== TEAM MANAGEMENT ==========
