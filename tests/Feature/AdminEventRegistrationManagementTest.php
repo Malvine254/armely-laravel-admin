@@ -34,6 +34,38 @@ class AdminEventRegistrationManagementTest extends TestCase
         $this->assertNotNull(DB::table('event_registrations')->where('id', $id)->value('verified_at'));
     }
 
+    public function test_verifying_an_attendee_automatically_sends_the_event_link(): void
+    {
+        $eventId = DB::table('events')->insertGetId([
+            'title' => 'Private Architecture Briefing',
+            'body' => 'Briefing',
+            'start_date' => '2026-10-05',
+            'start_time' => '11:00',
+            'timezone' => 'CST',
+            'url' => 'https://teams.microsoft.com/l/meetup-join/example',
+            'event_type' => 'private',
+            'private_slug' => 'private-architecture-briefing',
+        ]);
+        $registrationId = $this->registration([
+            'event_id' => $eventId,
+            'event_name' => 'Private Architecture Briefing',
+        ]);
+
+        $this->mock(AzureMailService::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('sendEmail')->once()->andReturnTrue();
+        });
+
+        $this->postJson(route('admin.tables.event-registrations.status', $registrationId), [
+            'status' => 'verified',
+        ])
+            ->assertOk()
+            ->assertJsonPath('invitation_sent', true);
+
+        $this->assertNotNull(
+            DB::table('event_registrations')->where('id', $registrationId)->value('event_link_sent_at')
+        );
+    }
+
     public function test_event_link_is_only_sent_once_to_verified_attendees(): void
     {
         $verifiedId = $this->registration(['status' => 'verified', 'verified_at' => now()]);

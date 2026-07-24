@@ -1856,7 +1856,7 @@ class TablesController extends Controller
         ]);
     }
 
-    public function updateEventRegistrationStatus(Request $request, int $id)
+    public function updateEventRegistrationStatus(Request $request, AzureMailService $mailer, int $id)
     {
         $validated = $request->validate([
             'status' => ['required', Rule::in(['pending', 'verified', 'attended', 'rejected'])],
@@ -1876,7 +1876,66 @@ class TablesController extends Controller
 
         ActivityLogger::log('update', 'EventRegistration', $id, ucfirst($validated['status']).' event registration for '.$registration->work_email);
 
-        return response()->json(['success' => true, 'message' => 'Registration marked '.$validated['status'].'.']);
+        $message = 'Registration marked '.$validated['status'].'.';
+        $invitationSent = null;
+
+        if ($validated['status'] === 'verified' && empty($registration->event_link_sent_at)) {
+            $eventTable = $this->tableExists('events') ? 'events' : 'event';
+            $event = !empty($registration->event_id)
+                ? DB::table($eventTable)->where('id', $registration->event_id)->first()
+                : DB::table($eventTable)->where('title', $registration->event_name)->where('event_type', 'private')->first();
+
+            if (!$event || empty($event->url)) {
+                $message .= ' Invitation not sent because this event does not have an access URL.';
+                $invitationSent = false;
+            } elseif (DB::table('event_email_unsubscribes')->where('email', $registration->work_email)->exists()) {
+                $message .= ' Invitation not sent because this attendee unsubscribed from event emails.';
+                $invitationSent = false;
+            } else {
+                $unsubscribeToken = trim((string) ($registration->unsubscribe_token ?? '')) ?: Str::random(64);
+                if (empty($registration->unsubscribe_token)) {
+                    DB::table('event_registrations')->where('id', $id)->update(['unsubscribe_token' => $unsubscribeToken]);
+                }
+
+                $email = AzureMailService::normalizeEmail((string) $registration->work_email);
+                $html = view('emails.events.verified-event-link', [
+                    'name' => (string) $registration->full_name,
+                    'eventTitle' => (string) $event->title,
+                    'eventDate' => trim(implode(' ', array_filter([
+                        (string) ($event->start_date ?? ''),
+                        (string) ($event->start_time ?? ''),
+                        (string) ($event->timezone ?? ''),
+                    ]))),
+                    'eventUrl' => (string) $event->url,
+                    'unsubscribeUrl' => URL::signedRoute('events.emails.unsubscribe', ['token' => $unsubscribeToken]),
+                ])->render();
+
+                $invitationSent = AzureMailService::isDeliverableEmail($email)
+                    && $mailer->sendEmail(
+                        AzureMailService::outboundFromEmail(),
+                        $email,
+                        'Your event access link: '.$event->title,
+                        $html
+                    );
+
+                if ($invitationSent) {
+                    DB::table('event_registrations')->where('id', $id)->update([
+                        'event_id' => $event->id,
+                        'event_link_sent_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                    $message .= ' The invitation email was sent automatically.';
+                } else {
+                    $message .= ' Verification was saved, but email delivery failed. You can retry with “Send to Verified.”';
+                }
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => $message,
+            'invitation_sent' => $invitationSent,
+        ]);
     }
 
     public function sendEventLinkToVerified(Request $request, AzureMailService $mailer)
