@@ -28,7 +28,7 @@
         <span><strong>Platform:</strong> MS Teams Webinar</span>
         @if($eventDate)<span><strong>Date:</strong> {{ $eventDate }}</span>@endif
     </div>
-    <div class="note"><strong>Access Note:</strong> Due to the interactive nature of our architecture briefings and dedicated workshop environments, attendance is strictly limited to verified Public Sector and enterprise technology leaders. Submitting a request does not guarantee access. Our team reviews all requests within 24–48 hours.</div>
+    <div class="note"><strong>Access Note:</strong> Due to the interactive nature of our architecture briefings and dedicated workshop environments, attendance is strictly limited to verified Public Sector and Enterprise Technology Leaders. </div>
 
     @if(session('success'))
         <div class="alert success" role="status">{{ session('success') }}</div>
@@ -55,9 +55,9 @@
                     @error('full_name')<div class="invalid">{{ $message }}</div>@enderror
                 </div>
                 <div class="group">
-                    <label for="work_email">Company Email Address <span class="required">*</span></label>
+                    <label for="work_email">Organization Email Address <span class="required">*</span></label>
                     <input id="work_email" name="work_email" type="email" value="{{ old('work_email') }}" placeholder="sjenkins@organization.gov" maxlength="255" autocomplete="email" required>
-                    <div class="hint">Company or government email only.</div>
+                    <div class="hint">Organization or government email only.</div>
                     @error('work_email')<div class="invalid">{{ $message }}</div>@enderror
                 </div>
                 <div class="group">
