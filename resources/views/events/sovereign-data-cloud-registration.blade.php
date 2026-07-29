@@ -90,8 +90,7 @@
                         <select id="event_id" name="event_id" required>
                             @forelse($activeEvents ?? [] as $activeEvent)
                                 <option value="{{ $activeEvent->id }}" @selected((string) old('event_id', $defaultEventId ?? '') === (string) $activeEvent->id)>
-                                    {{ $activeEvent->title }} — {{ \Carbon\Carbon::createFromTimestamp($activeEvent->event_timestamp)->format('jS M, Y g:i A') }} {{ $activeEvent->timezone ?? 'CST' }}
-                                </option>
+                                    {{ $activeEvent->title }} 
                             @empty
                                 <option value="" selected disabled>No upcoming private events available</option>
                             @endforelse
