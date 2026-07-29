@@ -62,7 +62,7 @@
                 </div>
                 <div class="group">
                     <label for="organization">Organization / Agency <span class="required">*</span></label>
-                    <input id="organization" name="organization" type="text" value="{{ old('organization') }}" placeholder="e.g. City of Frisco" maxlength="200" autocomplete="organization" required>
+                    <input id="organization" name="organization" type="text" value="{{ old('organization') }}" placeholder="e.g. Company XYZ" maxlength="200" autocomplete="organization" required>
                     @error('organization')<div class="invalid">{{ $message }}</div>@enderror
                 </div>
                 <div class="group">
