@@ -142,6 +142,54 @@
 <script>
 // Countdown Timer for Events
 document.addEventListener("DOMContentLoaded", function () {
+    const alignEventTitlesByRow = () => {
+        const rows = new Map();
+
+        document.querySelectorAll("#events-grid .modern-event-card").forEach(card => {
+            const title = card.querySelector(".event-title");
+            const column = card.parentElement;
+
+            if (!title || !column) {
+                return;
+            }
+
+            title.style.minHeight = "";
+            const rowKey = Math.round(column.offsetTop);
+
+            if (!rows.has(rowKey)) {
+                rows.set(rowKey, []);
+            }
+
+            rows.get(rowKey).push(title);
+        });
+
+        rows.forEach(titles => {
+            const hasWrappedTitle = titles.some(title => {
+                const lineHeight = parseFloat(getComputedStyle(title).lineHeight);
+                return title.getBoundingClientRect().height > lineHeight * 1.5;
+            });
+
+            if (!hasWrappedTitle) {
+                return;
+            }
+
+            titles.forEach(title => {
+                const lineHeight = parseFloat(getComputedStyle(title).lineHeight);
+                title.style.minHeight = `${lineHeight * 2}px`;
+            });
+        });
+    };
+
+    let titleAlignmentFrame;
+    const scheduleTitleAlignment = () => {
+        cancelAnimationFrame(titleAlignmentFrame);
+        titleAlignmentFrame = requestAnimationFrame(alignEventTitlesByRow);
+    };
+
+    scheduleTitleAlignment();
+    window.addEventListener("load", scheduleTitleAlignment);
+    window.addEventListener("resize", scheduleTitleAlignment);
+
     document.querySelectorAll("[data-event-read-more]").forEach(button => {
         button.addEventListener("click", () => {
             const preview = document.getElementById(button.dataset.previewId);
