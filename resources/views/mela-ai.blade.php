@@ -71,13 +71,15 @@
 .mela-hero-content {
     position: relative;
     z-index: 1;
+    max-width: 760px;
 }
 .mela-hero h1 {
-    font-size: 2.8rem;
+    font-size: clamp(2rem, 3.2vw, 3rem);
     font-weight: 800;
     color: #fff;
-    margin-bottom: 20px;
-    line-height: 1.2;
+    margin-bottom: 16px;
+    line-height: 1.18;
+    letter-spacing: -0.01em;
 }
 .mela-hero h1 .highlight {
     background: linear-gradient(135deg, #60a5fa, #a78bfa);
@@ -85,11 +87,20 @@
     -webkit-text-fill-color: transparent;
     background-clip: text;
 }
+.mela-hero-title-tail {
+    display: block;
+    font-size: 0.46em;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    margin-top: 8px;
+    color: rgba(255,255,255,0.92);
+}
 .mela-hero p {
-    font-size: 1.15rem;
+    font-size: 1.25rem;
     color: rgba(255,255,255,0.9);
-    max-width: 600px;
-    line-height: 1.7;
+    max-width: 760px;
+    line-height: 1.6;
+    margin-bottom: 0;
 }
 .mela-hero .badge-ai {
     display: inline-block;
@@ -337,39 +348,45 @@
     margin: 0 auto;
     padding: 0 36px;
     display: grid;
-    grid-template-columns: 0.95fr 1.05fr;
-    gap: 34px;
+    grid-template-columns: 1fr;
+    gap: 18px;
     align-items: start;
 }
-.mela-cta-copy .section-title {
+.mela-cta-copy .section-title,
+.mela-cta-copy .section-titles {
     margin-bottom: 0;
     text-align: left;
 }
 .mela-cta-copy {
-    padding-top: 8px;
+    padding-top: 0;
 }
-.mela-cta-copy .section-title h2 {
+.mela-cta-copy .section-title h2,
+.mela-cta-copy .section-titles h2 {
     font-size: 2rem;
     font-weight: 700;
     color: var(--mela-ink);
-    margin-bottom: 12px;
+    margin-bottom: 8px;
 }
-.mela-cta-copy .section-title p {
+.mela-cta-copy .section-title p,
+.mela-cta-copy .section-titles p {
     font-size: 1.05rem;
     color: var(--mela-muted);
-    max-width: 700px;
+    max-width: 920px;
     margin: 0;
 }
-.mela-cta-copy .section-title hr {
+.mela-cta-copy .section-title hr,
+.mela-cta-copy .section-titles hr {
     width: 60px;
     height: 3px;
     border: none;
     background: linear-gradient(90deg, var(--mela-accent), var(--mela-glow));
-    margin: 15px 0;
+    margin: 12px 0;
     border-radius: 2px;
 }
 .mela-cta-copy .section-title hr,
-.mela-cta-copy .section-title p {
+.mela-cta-copy .section-title p,
+.mela-cta-copy .section-titles hr,
+.mela-cta-copy .section-titles p {
     margin-left: 0;
 }
 .mela-cta-form-wrap {
@@ -379,7 +396,7 @@
 @media (max-width: 900px) {
     .mela-cta-inner {
         grid-template-columns: 1fr;
-        gap: 24px;
+        gap: 16px;
         padding: 0 24px;
     }
 
@@ -608,6 +625,8 @@
     background: linear-gradient(165deg, #ffffff 0%, #f4f8ff 100%);
     border: 1px solid #dbe6f8;
     box-shadow: 0 18px 40px rgba(19, 52, 107, 0.12);
+    border-radius: 18px;
+    padding: 30px;
 }
 
 .mela-cta-section .service-contact-form .form-title {
@@ -625,17 +644,44 @@
 
 .mela-cta-section .service-contact-row label {
     color: #6b7fa3;
+    font-size: 0.76rem;
 }
 
 .mela-cta-section .service-contact-field {
     border: 1px solid #d9e2f3;
-    background: #ffffff;
+    background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
     color: var(--mela-ink);
+    border-radius: 12px;
+    min-height: 52px;
+    padding: 13px 14px;
+    font-size: 0.96rem;
+    transition: border-color 0.22s ease, box-shadow 0.22s ease, background-color 0.22s ease;
+}
+
+.mela-cta-section .service-contact-field::placeholder {
+    color: #8a9ab8;
+}
+
+.mela-cta-section .service-contact-field:hover {
+    border-color: #c8d6ee;
 }
 
 .mela-cta-section .service-contact-field:focus {
     border-color: rgba(47, 85, 151, 0.5);
     box-shadow: 0 0 0 3px rgba(47, 85, 151, 0.14);
+    background: #ffffff;
+}
+
+.mela-cta-section .service-contact-textarea {
+    min-height: 138px;
+}
+
+.mela-cta-section select.service-contact-field {
+    padding-right: 44px;
+    background-image: linear-gradient(45deg, transparent 50%, #6f83ad 50%), linear-gradient(135deg, #6f83ad 50%, transparent 50%);
+    background-position: calc(100% - 20px) calc(50% - 3px), calc(100% - 14px) calc(50% - 3px);
+    background-size: 6px 6px, 6px 6px;
+    background-repeat: no-repeat;
 }
 
 .mela-cta-section .service-contact-submit {
@@ -702,10 +748,31 @@
     .mela-hero-img img { max-width: 180px; margin-top: 30px; }
     .mela-chat-wrapper iframe { height: 400px; }
 }
+
+@media (max-width: 640px) {
+    .mela-cta-section .service-contact-form--card {
+        padding: 22px 18px;
+        border-radius: 14px;
+    }
+}
 </style>
 @endpush
 
 @section('content')
+
+@php
+    $rawHeroTitle = trim((string) ($melaPageTitle ?? 'Mela AI'));
+    $heroDisplayTitle = preg_replace('/\s*[\-\x{2013}\x{2014}]\s*Your\s+Intelligent\s+AI\s+Agent\s*$/iu', '', $rawHeroTitle);
+    $heroDisplayTitle = trim((string) $heroDisplayTitle);
+
+    if ($heroDisplayTitle === '') {
+        $heroDisplayTitle = 'Mela AI';
+    }
+
+    $heroTail = preg_match('/\b(copilot|agent|assistant)\b/i', $heroDisplayTitle)
+        ? 'Built for modern teams'
+        : 'Your Intelligent AI Agent';
+@endphp
 
 
 
@@ -715,7 +782,10 @@
         <div class="row align-items-center">
             <div class="col-lg-7 col-md-7">
                 <div class="mela-hero-content">
-                    <h1>Meet <span class="highlight">{{ $melaPageTitle ?? 'Mela AI' }}</span> &mdash; Your Intelligent AI Agent</h1>
+                    <h1>
+                        <span class="highlight">{{ $heroDisplayTitle }}</span>
+                        <span class="mela-hero-title-tail">{{ $heroTail }}</span>
+                    </h1>
                     <p>{{ $melaPageDescription ?? "Mela is Armely's AI-powered virtual agent, built to help you explore our services, get instant answers, and experience the power of conversational AI — available 24/7." }}</p>
                     <a href="#try-mela" class="btn mela-btn-light">
                         <i class="fa fa-comments" style="margin-right: 8px;"></i>Chat with Mela
