@@ -404,16 +404,18 @@
 }
 
 .event-title {
-    font-size: 1.05rem;
-    font-weight: 700;
-    color: #2d3748;
-    margin-bottom: 0.6rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #4a5568;
+    margin: 0 0 0.6rem;
     line-height: 1.35;
+    min-height: 2.7em;
     transition: color 0.3s ease;
     display: -webkit-box;
     -webkit-line-clamp: 2; /* clamp title to 2 lines */
     -webkit-box-orient: vertical;
     overflow: hidden;
+    overflow-wrap: anywhere;
 }
 
 .modern-event-card:hover .event-title {
@@ -723,7 +725,7 @@
     }
 
     .event-title {
-        font-size: 1.05rem;
+        font-size: 0.95rem;
     }
 
     .event-description {
