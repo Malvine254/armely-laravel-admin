@@ -360,6 +360,9 @@ Route::prefix('admin')->middleware(['admin'])->group(function () {
     
     // Tables Management (CRUD for content)
     Route::get('/tables', [TablesController::class, 'index'])->name('admin.tables');
+    Route::get('/csrf-token', function () {
+        return response()->json(['token' => csrf_token()]);
+    })->name('admin.csrf-token');
     
     // List endpoints for AJAX table reload
     Route::get('/tables/blogs/list', [TablesController::class, 'listBlogs'])->name('admin.tables.blogs.list');

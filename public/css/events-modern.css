@@ -424,6 +424,45 @@
     overflow: hidden;
 }
 
+.event-description-wrapper {
+    flex-grow: 1;
+}
+
+.event-description-full {
+    display: block;
+    overflow: visible;
+    -webkit-line-clamp: initial;
+}
+
+.event-description[hidden] {
+    display: none;
+}
+
+.event-read-more {
+    display: inline-flex;
+    margin-top: 0.45rem;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: #2f5597;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.event-read-more:hover,
+.event-read-more:focus-visible {
+    color: #1e3a6d;
+}
+
+.event-read-more:focus-visible {
+    outline: 2px solid rgba(47, 85, 151, 0.35);
+    outline-offset: 3px;
+    border-radius: 2px;
+}
+
 /* ==================== Event Card Footer (Button) ==================== */
 .event-card-footer {
     padding: 0.75rem 1rem;
@@ -460,15 +499,21 @@
 /* Register Button (Upcoming Events) */
 .btn-register {
     background: linear-gradient(135deg, #2f5597 0%, #1e3a6d 100%);
-    color: #fff;
+    color: #fff !important;
     box-shadow: 0 5px 15px rgba(47, 85, 151, 0.3);
+}
+
+.event-card-footer a.btn-event-action.btn-register,
+.event-card-footer a.btn-event-action.btn-register .btn-icon,
+.event-card-footer a.btn-event-action.btn-register .btn-text {
+    color: #fff !important;
 }
 
 .btn-register:hover {
     background: linear-gradient(135deg, #1e3a6d 0%, #2f5597 100%);
     transform: translateY(-2px);
     box-shadow: 0 8px 20px rgba(47, 85, 151, 0.4);
-    color: #fff;
+    color: #fff !important;
     text-decoration: none;
 }
 
