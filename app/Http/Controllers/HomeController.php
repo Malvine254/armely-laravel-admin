@@ -91,9 +91,23 @@ class HomeController extends Controller
                 ]);
             }
 
+            $eventColumns = ['id', 'start_date', 'title', 'body', 'url'];
+            foreach (['start_time', 'timezone', 'recorded_url'] as $optionalColumn) {
+                if (Schema::hasColumn('events', $optionalColumn)) {
+                    $eventColumns[] = $optionalColumn;
+                }
+            }
+
             $events = DB::table('events')
-                ->select('id', 'start_date', 'start_time', 'timezone', 'title', 'body', 'url', 'recorded_url')
-                ->when(Schema::hasColumn('events', 'event_type'), fn ($query) => $query->where('event_type', 'normal'))
+                ->select($eventColumns)
+                ->when(Schema::hasColumn('events', 'event_type'), function ($query) {
+                    $query->where(function ($normalEvents) {
+                        $normalEvents
+                            ->whereRaw("LOWER(TRIM(COALESCE(event_type, ''))) = ?", ['normal'])
+                            ->orWhereNull('event_type')
+                            ->orWhereRaw("TRIM(event_type) = ''");
+                    });
+                })
                 ->orderByDesc('id')
                 ->get()
                 ->map(function ($event) {
@@ -103,36 +117,53 @@ class HomeController extends Controller
                         (string) ($event->timezone ?? 'CST')
                     );
 
-                    if (!$eventDate) {
-                        return null;
+                    $eventTimestamp = $eventDate?->timestamp;
+                    $currentTimestamp = now()->timestamp;
+                    $eventUrl = (string) ($event->url ?? '');
+                    $recordedUrl = (string) ($event->recorded_url ?? '');
+
+                    // This event already has a dedicated registration Blade.
+                    // Use its named route so the public card always opens the
+                    // existing design and never depends on a stored localhost URL.
+                    if (str_contains($eventUrl, '/events/sovereign-data-cloud-executive-briefing/register')) {
+                        $eventUrl = route('events.sovereign-data-cloud.register');
                     }
 
-                    $eventTimestamp = $eventDate->timestamp;
-                    $currentTimestamp = now()->timestamp;
-
-                    $day = (int) $eventDate->format('j');
-                    $suffix = match (true) {
-                        in_array($day % 100, [11, 12, 13], true) => 'th',
-                        $day % 10 === 1 => 'st',
-                        $day % 10 === 2 => 'nd',
-                        $day % 10 === 3 => 'rd',
-                        default => 'th',
-                    };
+                    $formattedDate = 'Date to be announced';
+                    if ($eventDate) {
+                        $day = (int) $eventDate->format('j');
+                        $suffix = match (true) {
+                            in_array($day % 100, [11, 12, 13], true) => 'th',
+                            $day % 10 === 1 => 'st',
+                            $day % 10 === 2 => 'nd',
+                            $day % 10 === 3 => 'rd',
+                            default => 'th',
+                        };
+                        $formattedDate = $day.$suffix.' '.$eventDate->format('M, Y')
+                            .(!empty($event->start_time) ? ' '.$eventDate->format('g:i A').' '.($event->timezone ?? 'CST') : '');
+                    }
 
                     $buttonText = 'View Recording';
-                    $buttonHref = $event->recorded_url ?: '#';
+                    $buttonHref = $recordedUrl ?: '#';
                     $buttonClass = 'btn-recording';
                     $buttonIcon = '<i class="icofont-play-alt-2"></i>';
                     $buttonStyle = 'background: orange !important;';
                     $buttonDisabled = false;
 
-                    if ($eventTimestamp > $currentTimestamp) {
+                    if (!$eventDate) {
+                        $buttonText = $eventUrl !== '' ? 'Register' : 'Registration coming soon';
+                        $buttonHref = $eventUrl ?: '#';
+                        $buttonClass = $eventUrl !== '' ? 'btn-register' : 'btn-no-recording';
+                        $buttonIcon = '<i class="icofont-ui-calendar"></i>';
+                        $buttonStyle = '';
+                        $buttonDisabled = $eventUrl === '';
+                    } elseif ($eventTimestamp > $currentTimestamp) {
                         $buttonText = 'Register';
-                        $buttonHref = $event->url ?: '#';
+                        $buttonHref = $eventUrl ?: '#';
                         $buttonClass = 'btn-register';
                         $buttonIcon = '<i class="icofont-ui-calendar"></i>';
                         $buttonStyle = '';
-                    } elseif (empty($event->recorded_url)) {
+                    } elseif ($recordedUrl === '') {
                         $buttonText = 'No Recording Link';
                         $buttonHref = '#';
                         $buttonClass = 'btn-no-recording';
@@ -141,18 +172,26 @@ class HomeController extends Controller
                         $buttonDisabled = true;
                     }
 
+                    $fullDescription = $this->makePlainText((string) ($event->body ?? ''));
+
                     return (object) [
                         'id' => $event->id,
                         'start_date' => $event->start_date,
                         'title' => $event->title,
                         'body' => $event->body,
-                        'url' => $event->url,
-                        'recorded_url' => $event->recorded_url,
+                        'url' => $eventUrl,
+                        'recorded_url' => $recordedUrl,
                         'event_timestamp' => $eventTimestamp,
-                        'formatted_date' => $day.$suffix.' '.$eventDate->format('M, Y')
-                            .(!empty($event->start_time) ? ' '.$eventDate->format('g:i A').' '.($event->timezone ?? 'CST') : ''),
-                        'truncated_title' => Str::limit((string) ($event->title ?? ''), 60),
-                        'truncated_body' => Str::limit(strip_tags((string) ($event->body ?? '')), 180),
+                        'formatted_date' => $formattedDate,
+                        // Decode editor-generated entities before Blade safely
+                        // escapes the plain-text card copy. Without this,
+                        // stored "&amp;" becomes visible as the literal text
+                        // "&amp;" after Blade escapes it a second time.
+                        'truncated_title' => $this->makePreviewText((string) ($event->title ?? ''), 60),
+                        'truncated_body' => $this->makePreviewText((string) ($event->body ?? ''), 180),
+                        'full_title' => $this->makePlainText((string) ($event->title ?? '')),
+                        'full_description' => $fullDescription,
+                        'has_more_description' => Str::length($fullDescription) > 180,
                         'button_text' => $buttonText,
                         'button_href' => $buttonHref,
                         'button_class' => $buttonClass,
@@ -1406,13 +1445,30 @@ class HomeController extends Controller
 
     private function makePreviewText(string $html, int $limit = 150): string
     {
+        return Str::limit($this->makePlainText($html), $limit, '...');
+    }
+
+    private function makePlainText(string $html): string
+    {
         // Remove script/style blocks completely so their content never leaks into snippets.
         $withoutBlocks = preg_replace('/<\s*(script|style)\b[^>]*>.*?<\s*\/\s*\1\s*>/is', ' ', $html) ?? $html;
+        $withBlockSpacing = preg_replace(
+            '/<\s*\/?\s*(?:p|div|br|li|ul|ol|h[1-6]|blockquote|section|article)\b[^>]*>/i',
+            ' ',
+            $withoutBlocks
+        ) ?? $withoutBlocks;
 
-        $plainText = html_entity_decode(strip_tags($withoutBlocks), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $plainText = strip_tags($withBlockSpacing);
+        for ($pass = 0; $pass < 3; $pass++) {
+            $decoded = html_entity_decode($plainText, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            if ($decoded === $plainText) {
+                break;
+            }
+            $plainText = $decoded;
+        }
         $normalized = preg_replace('/\s+/u', ' ', $plainText) ?? $plainText;
 
-        return Str::limit(trim($normalized), $limit, '...');
+        return trim($normalized);
     }
 
     private function recentVideos(?string &$dbErrorMessage = null)

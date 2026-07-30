@@ -37,6 +37,14 @@ class AdminMiddleware
             return redirect('/admin/login')->with('error', 'Your account is not active.');
         }
 
-        return $next($request);
+        $response = $next($request);
+
+        // Admin pages contain a session-bound CSRF token and must never be
+        // restored from a shared/browser cache after the session changes.
+        $response->headers->set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+        $response->headers->set('Pragma', 'no-cache');
+        $response->headers->set('Expires', '0');
+
+        return $response;
     }
 }

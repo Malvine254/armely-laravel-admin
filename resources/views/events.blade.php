@@ -64,7 +64,7 @@
                         <div class="event-card-header default-background">
                             <div class="countdown-wrapper">
                                 <div class="countdown-label">Event Countdown</div>
-                                <div class="countdown-timer" id="countdown-{{ $event->event_timestamp }}">
+                                <div class="countdown-timer" id="countdown-{{ $event->event_timestamp ?? 'pending-'.$event->id }}">
                                     <span class="time-block"><span class="time-value">00</span><span class="time-label">Days</span></span>
                                     <span class="time-separator">:</span>
                                     <span class="time-block"><span class="time-value">00</span><span class="time-label">Hrs</span></span>
@@ -83,7 +83,27 @@
                             </div>
                             
                             <h5 class="event-title">{{ $event->truncated_title }}</h5>
-                            <p class="event-description">{{ $event->truncated_body }}</p>
+                            <div class="event-description-wrapper">
+                                <p id="event-description-preview-{{ $event->id }}" class="event-description">
+                                    {{ $event->truncated_body }}
+                                </p>
+                                @if($event->has_more_description)
+                                    <p id="event-description-full-{{ $event->id }}" class="event-description event-description-full" hidden>
+                                        {{ $event->full_description }}
+                                    </p>
+                                    <button
+                                        type="button"
+                                        class="event-read-more"
+                                        data-event-read-more
+                                        data-preview-id="event-description-preview-{{ $event->id }}"
+                                        data-full-id="event-description-full-{{ $event->id }}"
+                                        aria-controls="event-description-full-{{ $event->id }}"
+                                        aria-expanded="false"
+                                    >
+                                        Read full description
+                                    </button>
+                                @endif
+                            </div>
                         </div>
                         
                         <div class="event-card-footer">
@@ -122,6 +142,23 @@
 <script>
 // Countdown Timer for Events
 document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll("[data-event-read-more]").forEach(button => {
+        button.addEventListener("click", () => {
+            const preview = document.getElementById(button.dataset.previewId);
+            const full = document.getElementById(button.dataset.fullId);
+
+            if (!preview || !full) {
+                return;
+            }
+
+            const isExpanded = button.getAttribute("aria-expanded") === "true";
+            preview.hidden = !isExpanded;
+            full.hidden = isExpanded;
+            button.setAttribute("aria-expanded", String(!isExpanded));
+            button.textContent = isExpanded ? "Read full description" : "Show less";
+        });
+    });
+
     const updateCountdown = () => {
         const countdownElements = document.querySelectorAll(".countdown-timer");
         const now = new Date();

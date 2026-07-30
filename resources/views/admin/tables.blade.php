@@ -2394,6 +2394,7 @@ One or two sentences inviting a conversation.</small>
             </div>
             <div class="modal-body">
                 <form id="eventForm">
+                    @csrf
                     <input type="hidden" id="eventId" name="id">
                     <div class="row">
                         <div class="col-md-6 mb-3">
@@ -4540,8 +4541,59 @@ $(document).ready(function() {
         }
     });
     
+    function currentCsrfToken() {
+        return $('#eventForm input[name="_token"]').val()
+            || $('meta[name="csrf-token"]').attr('content')
+            || '';
+    }
+
+    async function refreshCsrfToken() {
+        const response = await fetch('{{ route('admin.csrf-token') }}', {
+            method: 'GET',
+            credentials: 'same-origin',
+            cache: 'no-store',
+            headers: { 'Accept': 'application/json' }
+        });
+
+        if (!response.ok) {
+            throw new Error('Your admin session has expired. Refresh the page and sign in again.');
+        }
+
+        const payload = await response.json();
+        if (!payload.token) {
+            throw new Error('Could not refresh the security token. Refresh the page and try again.');
+        }
+
+        $('#eventForm input[name="_token"]').val(payload.token);
+        $('meta[name="csrf-token"]').attr('content', payload.token);
+        return payload.token;
+    }
+
+    function submitEvent(formData, retried = false) {
+        formData.set('_token', currentCsrfToken());
+
+        return $.ajax({
+            url: '{{ route('admin.tables.events.store') }}',
+            type: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': currentCsrfToken(),
+                'Accept': 'application/json'
+            },
+            data: formData,
+            processData: false,
+            contentType: false
+        }).catch(async function(xhr) {
+            if (xhr.status !== 419 || retried) {
+                throw xhr;
+            }
+
+            formData.set('_token', await refreshCsrfToken());
+            return submitEvent(formData, true);
+        });
+    }
+
     // Event Save
-    $('#saveEventBtn').click(function() {
+    $('#saveEventBtn').click(async function() {
         const $saveBtn = $(this);
         if ($saveBtn.prop('disabled')) {
             return;
@@ -4552,7 +4604,7 @@ $(document).ready(function() {
         const isEdit = id !== '';
         
         const formData = new FormData();
-        formData.append('_token', '{{ csrf_token() }}');
+        formData.append('_token', currentCsrfToken());
         if (isEdit) {
             formData.append('id', id);
         }
@@ -4565,27 +4617,23 @@ $(document).ready(function() {
         formData.append('event_type', $('#eventType').val());
         formData.append('body', eventEditor ? eventEditor.getData() : $('#eventBody').val());
         
-        $.ajax({
-            url: '/admin/tables/events',
-            type: 'POST',
-            data: formData,
-            processData: false,
-            contentType: false,
-            success: function(response) {
-                markAjaxSaveSuccess($saveBtn, 'Event saved successfully.');
-                $('#eventModal').modal('hide');
-                reloadEventsTable();
-                alert('Event saved successfully!');
-            },
-            error: function(xhr) {
-                const message = xhr.responseJSON?.message || 'Unknown error';
-                markAjaxSaveError($saveBtn, 'Error saving event: ' + message);
-                alert('Error saving event: ' + message);
-            },
-            complete: function() {
-                setButtonSaving($saveBtn, false);
-            }
-        });
+        try {
+            await submitEvent(formData);
+            markAjaxSaveSuccess($saveBtn, 'Event saved successfully.');
+            $('#eventModal').modal('hide');
+            reloadEventsTable();
+            alert('Event saved successfully!');
+        } catch (xhr) {
+            const message = xhr?.responseJSON?.message
+                || xhr?.message
+                || (xhr?.status === 419
+                    ? 'Your security token expired. Refresh the page and try again.'
+                    : 'Unknown error');
+            markAjaxSaveError($saveBtn, 'Error saving event: ' + message);
+            alert('Error saving event: ' + message);
+        } finally {
+            setButtonSaving($saveBtn, false);
+        }
     });
     
     // ==================== TEAM HANDLERS ====================
