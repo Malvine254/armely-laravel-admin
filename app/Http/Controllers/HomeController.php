@@ -172,7 +172,13 @@ class HomeController extends Controller
                         $buttonDisabled = true;
                     }
 
-                    $fullDescription = $this->makePlainText((string) ($event->body ?? ''));
+                    $eventBody = (string) ($event->body ?? '');
+                    $fullDescription = $this->makePlainText($eventBody);
+                    $fullDescriptionHtml = $this->sanitizeEventRichText($eventBody);
+                    $hasRichFormatting = preg_match(
+                        '/<(?:p|br|strong|b|em|i|u|s|h[2-6]|ul|ol|li|blockquote|code|pre|a)\b/i',
+                        $fullDescriptionHtml
+                    ) === 1;
 
                     return (object) [
                         'id' => $event->id,
@@ -191,7 +197,8 @@ class HomeController extends Controller
                         'truncated_body' => $this->makePreviewText((string) ($event->body ?? ''), 180),
                         'full_title' => $this->makePlainText((string) ($event->title ?? '')),
                         'full_description' => $fullDescription,
-                        'has_more_description' => Str::length($fullDescription) > 180,
+                        'full_description_html' => $fullDescriptionHtml,
+                        'has_more_description' => Str::length($fullDescription) > 180 || $hasRichFormatting,
                         'button_text' => $buttonText,
                         'button_href' => $buttonHref,
                         'button_class' => $buttonClass,
@@ -211,6 +218,32 @@ class HomeController extends Controller
             'events' => $events,
             'dbErrorMessage' => $dbErrorMessage,
         ]);
+    }
+
+    /**
+     * Keep the formatting produced by the event editor while preventing stored
+     * HTML from injecting scripts, inline handlers, styles, or unsafe URLs.
+     */
+    private function sanitizeEventRichText(string $html): string
+    {
+        $html = preg_replace(
+            '#<(script|style|iframe|object|embed|form)[^>]*>.*?</\1\s*>#is',
+            '',
+            $html
+        ) ?? '';
+
+        $html = strip_tags(
+            $html,
+            '<p><br><strong><b><em><i><u><s><h2><h3><h4><h5><h6><ul><ol><li><blockquote><code><pre><a>'
+        );
+
+        // Formatting is retained, but editor-supplied attributes are removed.
+        // This also removes javascript: URLs and on* event handlers.
+        return preg_replace_callback(
+            '/<([a-z][a-z0-9]*)\b[^>]*>/i',
+            static fn (array $match): string => '<'.strtolower($match[1]).'>',
+            $html
+        ) ?? '';
     }
 
     private function parseEventDate(string $value, string $time = '', string $timezone = 'CST'): ?Carbon

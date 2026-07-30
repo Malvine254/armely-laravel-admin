@@ -18,7 +18,7 @@
 @endpush
 
 @push('styles')
-<link rel="stylesheet" href="{{ asset('css/events-modern.css') }}">
+<link rel="stylesheet" href="{{ asset('css/events-modern.css') }}?v={{ filemtime(public_path('css/events-modern.css')) }}">
 @endpush
 
 @section('content')
@@ -88,9 +88,9 @@
                                     {{ $event->truncated_body }}
                                 </p>
                                 @if($event->has_more_description)
-                                    <p id="event-description-full-{{ $event->id }}" class="event-description event-description-full" hidden>
-                                        {{ $event->full_description }}
-                                    </p>
+                                    <div id="event-description-full-{{ $event->id }}" class="event-description event-description-full event-rich-text" hidden>
+                                        {!! $event->full_description_html !!}
+                                    </div>
                                     <button
                                         type="button"
                                         class="event-read-more"
