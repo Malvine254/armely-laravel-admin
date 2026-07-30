@@ -282,11 +282,15 @@
     overflow: hidden;
     box-shadow: 0 8px 28px rgba(0, 0, 0, 0.08);
     transition: all 0.3s ease;
-    height: auto;
+    height: 286px;
     min-height: 286px;
     display: flex;
     flex-direction: column;
     position: relative;
+}
+
+.modern-event-card.is-description-expanded {
+    height: auto;
 }
 
 .modern-event-card::before {
