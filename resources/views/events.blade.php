@@ -156,10 +156,6 @@ document.addEventListener("DOMContentLoaded", function () {
             full.hidden = isExpanded;
             button.setAttribute("aria-expanded", String(!isExpanded));
             button.textContent = isExpanded ? "Read full description" : "Show less";
-            button.closest(".modern-event-card")?.classList.toggle(
-                "is-description-expanded",
-                !isExpanded
-            );
         });
     });
 
