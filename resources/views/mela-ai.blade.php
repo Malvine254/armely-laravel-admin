@@ -4,6 +4,12 @@
 @section('meta_description', $melaPageDescription ?? 'Discover Mela AI from Armely and how AI-driven solutions can improve productivity, decision-making, and customer outcomes.')
 @section('meta_keywords', 'Mela AI, Armely AI, Microsoft AI, business automation, AI productivity, AI solutions')
 @section('canonical_url', url('/mela-ai'))
+@section('meta_image', asset('images/logo/mela-recorder.png') . '?v=' . filemtime(public_path('images/logo/mela-recorder.png')))
+@section('meta_image_width', '192')
+@section('meta_image_height', '192')
+@section('meta_image_alt', 'Mela AI Meeting Assistant')
+@section('twitter_card', 'summary')
+@section('favicon', asset('images/logo/mela-recorder.png') . '?v=' . filemtime(public_path('images/logo/mela-recorder.png')))
 
 @push('head')
 <meta name="robots" content="index,follow">
@@ -12,7 +18,7 @@
 <meta property="og:description" content="{{ $melaPageDescription ?? 'Discover Mela AI from Armely and how AI-driven solutions can improve productivity, decision-making, and customer outcomes.' }}">
 <meta property="og:url" content="{{ url('/mela-ai') }}">
 <meta property="og:site_name" content="Armely">
-<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="{{ ($melaPageTitle ?? 'Mela AI') }} | Armely">
 <meta name="twitter:description" content="{{ $melaPageDescription ?? 'Discover Mela AI from Armely and how AI-driven solutions can improve productivity, decision-making, and customer outcomes.' }}">
 @endpush
@@ -581,7 +587,10 @@
             </div>
             <div class="col-lg-5 col-md-5">
                 <div class="mela-hero-img">
-                    <img src="{{ asset('images/bot-image/bot.png') }}" alt="Mela AI Agent">
+                    <img
+                        src="{{ asset('images/logo/mela-recorder.png') }}?v={{ filemtime(public_path('images/logo/mela-recorder.png')) }}"
+                        alt="Mela AI Meeting Assistant"
+                    >
                 </div>
             </div>
         </div>
@@ -858,7 +867,7 @@
 <section class="mela-cta-section" id="contact">
     <div class="mela-cta-inner">
         <div class="mela-cta-copy">
-            <div class="section-title">
+            <div class="section-titles">
                 <h2>Book Mela AI for your team.</h2>
                 <hr>
                 <p>Tell us what you want Mela to do, and we will help you map the right discovery session, demo, or implementation path.</p>
