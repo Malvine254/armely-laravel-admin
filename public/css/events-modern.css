@@ -268,13 +268,21 @@
 }
 
 /* ==================== Modern Event Card ==================== */
+#events-grid > .container > .row.g-4 {
+    align-items: flex-start;
+}
+
+#events-grid > .container > .row.g-4 > [class*="col-"] {
+    align-self: flex-start;
+}
+
 .modern-event-card {
     background: #fff;
     border-radius: 12px;
     overflow: hidden;
     box-shadow: 0 8px 28px rgba(0, 0, 0, 0.08);
     transition: all 0.3s ease;
-    height: 100%;
+    height: auto;
     min-height: 286px;
     display: flex;
     flex-direction: column;
@@ -413,9 +421,9 @@
 }
 
 .event-description {
-    font-size: 0.84rem;
+    font-size: 0.78rem;
     color: #718096;
-    line-height: 1.5;
+    line-height: 1.55;
     margin: 0;
     flex-grow: 1;
     display: -webkit-box;
@@ -464,15 +472,51 @@
 
 .event-rich-text ul,
 .event-rich-text ol {
-    padding-left: 1.35rem;
+    margin-left: 0 !important;
+    padding-left: 1.4rem !important;
 }
 
 .event-rich-text ul {
-    list-style: disc;
+    list-style: none !important;
 }
 
 .event-rich-text ol {
-    list-style: decimal;
+    list-style: none !important;
+    counter-reset: event-rich-list;
+}
+
+.event-rich-text ul > li,
+.event-rich-text ol > li {
+    position: relative !important;
+    padding-left: 0.25rem !important;
+}
+
+.event-rich-text ul > li::before {
+    content: "" !important;
+    display: block !important;
+    position: absolute !important;
+    top: 0.62em;
+    left: -1rem;
+    width: 0.34rem;
+    height: 0.34rem;
+    border-radius: 50%;
+    background: #2f5597 !important;
+}
+
+.event-rich-text ol > li {
+    counter-increment: event-rich-list;
+}
+
+.event-rich-text ol > li::before {
+    content: counter(event-rich-list) "." !important;
+    display: block !important;
+    position: absolute !important;
+    top: 0;
+    left: -1.2rem;
+    width: 1rem;
+    color: #2f5597 !important;
+    font-weight: 700 !important;
+    text-align: right !important;
 }
 
 .event-rich-text li + li {
@@ -683,7 +727,7 @@
     }
 
     .event-description {
-        font-size: 0.9rem;
+        font-size: 0.78rem;
     }
 
     .btn-event-action {
