@@ -13,17 +13,19 @@
     <meta property="og:site_name" content="@yield('og_site_name', 'Armely')">
     <meta property="og:image" content="@yield('meta_image', $metaImage ?? asset('images/logo/logo1.png'))">
     <meta property="og:image:secure_url" content="@yield('meta_image', $metaImage ?? asset('images/logo/logo1.png'))">
-    <meta property="og:image:width" content="1200">
-    <meta property="og:image:height" content="630">
-    <meta name="twitter:card" content="summary_large_image">
+    <meta property="og:image:width" content="@yield('meta_image_width', '1200')">
+    <meta property="og:image:height" content="@yield('meta_image_height', '630')">
+    <meta property="og:image:alt" content="@yield('meta_image_alt', 'Armely')">
+    <meta name="twitter:card" content="@yield('twitter_card', 'summary_large_image')">
     <meta name="twitter:title" content="@yield('twitter_title', $metaTitle ?? trim($__env->yieldContent('title', $title ?? 'Armely')))">
     <meta name="twitter:description" content="@yield('twitter_description', $metaDescription ?? 'Armely helps organizations modernize data, AI, cloud, and business applications with Microsoft platform expertise.')">
     <meta name="twitter:image" content="@yield('meta_image', $metaImage ?? asset('images/logo/logo1.png'))">
+    <meta name="twitter:image:alt" content="@yield('meta_image_alt', 'Armely')">
     <meta name="robots" content="@yield('robots', 'index,follow')">
     <link rel="canonical" href="@yield('canonical_url', request()->url())">
     <title>@yield('title', $title ?? 'Armely')</title>
 
-    <link rel="icon" href="{{ asset('images/logo/logo1.png') }}">
+    <link rel="icon" href="@yield('favicon', asset('images/logo/logo1.png'))">
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
