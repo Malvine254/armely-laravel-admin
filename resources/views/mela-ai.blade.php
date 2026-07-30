@@ -29,6 +29,18 @@
    Mela AI Page Styles
    ============================================ */
 
+:root {
+    --mela-ink: #1a2540;
+    --mela-ink-soft: #2b3f63;
+    --mela-accent: #2f5597;
+    --mela-accent-strong: #1f447f;
+    --mela-glow: #667eea;
+    --mela-sand: #f5f9ff;
+    --mela-card: #ffffff;
+    --mela-line: #dbe6f8;
+    --mela-muted: #5b6780;
+}
+
 /* Hero */
 .mela-hero {
     background: linear-gradient(135deg, #1e3a6d 0%, #2f5597 50%, #4a72b5 100%);
@@ -113,12 +125,12 @@
 .mela-section .section-title h2 {
     font-size: 2rem;
     font-weight: 700;
-    color: #1e3a6d;
+    color: var(--mela-ink);
     margin-bottom: 12px;
 }
 .mela-section .section-title p {
     font-size: 1.05rem;
-    color: #555;
+    color: var(--mela-muted);
     max-width: 700px;
     margin: 0 auto;
 }
@@ -126,7 +138,7 @@
     width: 60px;
     height: 3px;
     border: none;
-    background: #2f5597;
+    background: linear-gradient(90deg, var(--mela-accent), var(--mela-glow));
     margin: 15px auto;
     border-radius: 2px;
 }
@@ -150,14 +162,14 @@
     left: 0;
     right: 0;
     height: 4px;
-    background: linear-gradient(90deg, #2f5597, #667eea);
+    background: linear-gradient(90deg, var(--mela-accent), var(--mela-glow));
     transform: scaleX(0);
     transform-origin: left;
     transition: transform 0.3s;
 }
 .capability-card:hover {
     transform: translateY(-6px);
-    box-shadow: 0 12px 35px rgba(47,85,151,0.12);
+    box-shadow: 0 12px 35px rgba(47, 85, 151, 0.12);
 }
 .capability-card:hover::before {
     transform: scaleX(1);
@@ -286,8 +298,8 @@
     background: linear-gradient(180deg, #f5f9ff 0%, #ffffff 100%);
 }
 .video-showcase-card {
-    background: #fff;
-    border: 1px solid #e7eef9;
+    background: #ffffff;
+    border: 1px solid var(--mela-line);
     border-radius: 16px;
     overflow: hidden;
     box-shadow: 0 10px 26px rgba(19, 52, 107, 0.08);
@@ -318,30 +330,33 @@
 /* Shared CTA */
 .mela-cta-section {
     background: #f3f6fb;
-    padding: 48px 0;
+    padding: 30px 0;
 }
 .mela-cta-inner {
     max-width: 1100px;
     margin: 0 auto;
-    padding: 0 56px;
+    padding: 0 36px;
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 72px;
-    align-items: center;
+    grid-template-columns: 0.95fr 1.05fr;
+    gap: 34px;
+    align-items: start;
 }
 .mela-cta-copy .section-title {
     margin-bottom: 0;
     text-align: left;
 }
+.mela-cta-copy {
+    padding-top: 8px;
+}
 .mela-cta-copy .section-title h2 {
     font-size: 2rem;
     font-weight: 700;
-    color: #1e3a6d;
+    color: var(--mela-ink);
     margin-bottom: 12px;
 }
 .mela-cta-copy .section-title p {
     font-size: 1.05rem;
-    color: #555;
+    color: var(--mela-muted);
     max-width: 700px;
     margin: 0;
 }
@@ -349,7 +364,7 @@
     width: 60px;
     height: 3px;
     border: none;
-    background: #2f5597;
+    background: linear-gradient(90deg, var(--mela-accent), var(--mela-glow));
     margin: 15px 0;
     border-radius: 2px;
 }
@@ -364,19 +379,23 @@
 @media (max-width: 900px) {
     .mela-cta-inner {
         grid-template-columns: 1fr;
-        gap: 40px;
+        gap: 24px;
         padding: 0 24px;
+    }
+
+    .mela-cta-copy {
+        padding-top: 0;
     }
 }
 .video-meta h5 {
     font-size: 1rem;
     font-weight: 700;
-    color: #18335e;
+    color: var(--mela-ink);
     margin-bottom: 8px;
 }
 .video-meta p {
     font-size: 0.92rem;
-    color: #5b6780;
+    color: var(--mela-muted);
     margin: 0;
     line-height: 1.55;
 }
@@ -384,7 +403,7 @@
     display: inline-block;
     font-size: 0.78rem;
     font-weight: 600;
-    color: #2f5597;
+    color: var(--mela-accent-strong);
     background: #edf3ff;
     border: 1px solid #dbe6fb;
     border-radius: 999px;
@@ -399,7 +418,7 @@
     font-weight: 800;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: #2f5597;
+    color: var(--mela-accent-strong);
     background: #eef4ff;
     border: 1px solid #d8e4fb;
     border-radius: 999px;
@@ -408,7 +427,7 @@
 }
 .mela-product-card {
     background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
-    border: 1px solid #dbe6f8;
+    border: 1px solid var(--mela-line);
     border-radius: 16px;
     padding: 26px 24px;
     box-shadow: 0 12px 28px rgba(18, 48, 100, 0.08);
@@ -426,7 +445,7 @@
     right: 0;
     top: 0;
     height: 4px;
-    background: linear-gradient(90deg, #2f5597, #4a72b5);
+    background: linear-gradient(90deg, var(--mela-accent), var(--mela-glow));
 }
 .mela-product-card:hover {
     transform: translateY(-4px);
@@ -443,7 +462,7 @@
     width: 42px;
     height: 42px;
     border-radius: 10px;
-    background: #2f5597;
+    background: linear-gradient(135deg, #2f5597, #4a72b5);
     color: #fff;
     display: inline-flex;
     align-items: center;
@@ -455,51 +474,77 @@
     font-size: 0.86rem;
     font-weight: 800;
     letter-spacing: 0.08em;
-    color: #2f5597;
+    color: var(--mela-accent-strong);
     text-transform: uppercase;
     margin-bottom: 10px;
 }
 .mela-product-card h4 {
     font-size: 1.28rem;
-    color: #193c71;
+    color: var(--mela-ink);
     margin-bottom: 8px;
     font-weight: 800;
 }
 .mela-product-card h5 {
-    font-size: 1.04rem;
+    font-size: 1.08rem;
     color: #2f5597;
     font-weight: 700;
-    margin-bottom: 12px;
-    min-height: 3.2em;
+    margin-bottom: 10px;
+    line-height: 1.55;
+}
+.mela-product-subtitle {
+    font-size: 0.97rem;
+    color: #5b6780;
+    line-height: 1.65;
+    margin-bottom: 14px;
 }
 .mela-product-card p {
     font-size: 1.02rem;
-    color: #40526d;
+    color: var(--mela-muted);
     line-height: 1.7;
     margin-bottom: 0;
 }
 .mela-mini-list {
     margin: 14px 0 0;
-    padding-left: 18px;
+    padding-left: 0;
+    list-style: none;
 }
 .mela-mini-list li {
-    font-size: 1rem;
-    margin-bottom: 8px;
+    font-size: 0.97rem;
+    margin-bottom: 9px;
     color: #3a4d67;
-    line-height: 1.65;
+    line-height: 1.62;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+.mela-mini-list li i {
+    color: #2f5597;
+    margin-top: 4px;
+    font-size: 0.78rem;
 }
 .mela-product-card details {
     margin-top: auto;
     border-top: 1px dashed #dce6f6;
-    padding-top: 12px;
+    padding-top: 14px;
 }
 .mela-product-card summary {
     cursor: pointer;
-    color: #2f5597;
+    color: var(--mela-accent-strong);
     font-weight: 700;
+    font-size: 0.94rem;
+    letter-spacing: 0.01em;
 }
 .mela-product-card details p {
     margin-top: 10px;
+    font-size: 0.95rem;
+    color: #40526d;
+}
+.mela-story-block {
+    margin-top: 10px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: #edf3ff;
+    border: 1px solid #d8e4fb;
 }
 .mela-integrations-wrap {
     margin-top: 26px;
@@ -510,7 +555,7 @@
 }
 .mela-integrations-title {
     font-size: 1rem;
-    color: #2f5597;
+    color: var(--mela-ink);
     font-weight: 800;
     margin-bottom: 10px;
     text-transform: uppercase;
@@ -524,7 +569,7 @@
 .mela-integration-chip {
     text-align: center;
     border: 1px solid #d8e4fb;
-    background: #fff;
+    background: #ffffff;
     color: #244b84;
     border-radius: 8px;
     padding: 8px 10px;
@@ -539,7 +584,7 @@
 /* Suite icons use theme color */
 .mela-product-card summary::marker,
 .mela-product-card summary {
-    color: #2f5597;
+    color: var(--mela-accent-strong);
 }
 
 .mela-product-tags {
@@ -557,6 +602,98 @@
     border: 1px solid #d8e4fb;
     border-radius: 999px;
     padding: 4px 10px;
+}
+
+.mela-cta-section .service-contact-form--card {
+    background: linear-gradient(165deg, #ffffff 0%, #f4f8ff 100%);
+    border: 1px solid #dbe6f8;
+    box-shadow: 0 18px 40px rgba(19, 52, 107, 0.12);
+}
+
+.mela-cta-section .service-contact-form .form-title {
+    font-size: 1.12rem;
+    font-weight: 800;
+    color: var(--mela-ink);
+    margin-bottom: 6px;
+}
+
+.mela-cta-section .service-contact-form .form-sub {
+    font-size: 0.9rem;
+    color: var(--mela-muted);
+    margin-bottom: 18px;
+}
+
+.mela-cta-section .service-contact-row label {
+    color: #6b7fa3;
+}
+
+.mela-cta-section .service-contact-field {
+    border: 1px solid #d9e2f3;
+    background: #ffffff;
+    color: var(--mela-ink);
+}
+
+.mela-cta-section .service-contact-field:focus {
+    border-color: rgba(47, 85, 151, 0.5);
+    box-shadow: 0 0 0 3px rgba(47, 85, 151, 0.14);
+}
+
+.mela-cta-section .service-contact-submit {
+    background: linear-gradient(135deg, var(--mela-accent), var(--mela-accent-strong));
+    border-radius: 10px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+}
+
+.mela-cta-section .service-contact-submit:hover {
+    background: linear-gradient(135deg, #3d6ab5, #2f5597);
+    transform: translateY(-2px);
+}
+
+.mela-cta-section .service-contact-note {
+    color: #6b7fa3;
+}
+
+.mela-btn-light,
+.mela-btn-primary {
+    padding: 12px 30px;
+    border-radius: 10px;
+    font-weight: 700;
+    margin-top: 20px;
+    display: inline-block;
+    text-decoration: none;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.mela-btn-light {
+    background: linear-gradient(135deg, #4a72b5, #2f5597);
+    color: #fff;
+    box-shadow: 0 10px 22px rgba(19, 52, 107, 0.24);
+}
+
+.mela-btn-light:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 30px rgba(19, 52, 107, 0.3);
+}
+
+.mela-btn-primary {
+    background: linear-gradient(135deg, var(--mela-accent), var(--mela-accent-strong));
+    color: #fff;
+}
+
+.mela-btn-primary:hover {
+    background: linear-gradient(135deg, #3d6ab5, #2f5597);
+    color: #fff;
+    transform: translateY(-2px);
+}
+
+.mela-hero a,
+.mela-section a,
+.mela-cta-section a,
+.mela-btn-light,
+.mela-btn-primary,
+.mela-cta-section .service-contact-submit {
+    color: #fff !important;
 }
 
 @media (max-width: 768px) {
@@ -580,7 +717,7 @@
                 <div class="mela-hero-content">
                     <h1>Meet <span class="highlight">{{ $melaPageTitle ?? 'Mela AI' }}</span> &mdash; Your Intelligent AI Agent</h1>
                     <p>{{ $melaPageDescription ?? "Mela is Armely's AI-powered virtual agent, built to help you explore our services, get instant answers, and experience the power of conversational AI — available 24/7." }}</p>
-                    <a href="#try-mela" class="btn" style="background: #fff; color: #2f5597; padding: 12px 30px; border-radius: 8px; font-weight: 600; margin-top: 20px; display: inline-block; text-decoration: none; transition: all 0.3s;">
+                    <a href="#try-mela" class="btn mela-btn-light">
                         <i class="fa fa-comments" style="margin-right: 8px;"></i>Chat with Mela
                     </a>
                 </div>
@@ -615,23 +752,24 @@
                         <div class="mela-product-label">PRODUCT 01 · MEETING ASSISTANT</div>
                     </div>
                     <h4>Mela Meetings</h4>
-                    <h5>AI-powered transcription, summaries, and action item extraction — synced to your business tools automatically.</h5>
+                    <h5>AI-powered transcription, summaries, and action item extraction.</h5>
+                    <p class="mela-product-subtitle">Sync every decision and follow-up to the tools your teams already use.</p>
                     <div class="mela-product-tags">
                         <span class="mela-product-tag">Transcription</span>
                         <span class="mela-product-tag">Action Items</span>
                         <span class="mela-product-tag">Meeting Intelligence</span>
                     </div>
                     <ul class="mela-mini-list">
-                        <li>Real-time, speaker-attributed transcription across Teams, Zoom, and Google Meet</li>
-                        <li>Structured meeting summaries with decisions, owners, and follow-ups</li>
-                        <li>Automatic action item extraction pushed to Jira, Asana, or Salesforce</li>
-                        <li>Searchable meeting archive indexed across your organization</li>
-                        <li>Role-based access and enterprise-grade permissions</li>
+                        <li><i class="fa fa-circle"></i><span>Real-time, speaker-attributed transcription across Teams, Zoom, and Google Meet</span></li>
+                        <li><i class="fa fa-circle"></i><span>Structured meeting summaries with decisions, owners, and follow-ups</span></li>
+                        <li><i class="fa fa-circle"></i><span>Automatic action item extraction pushed to Jira, Asana, or Salesforce</span></li>
+                        <li><i class="fa fa-circle"></i><span>Searchable meeting archive indexed across your organization</span></li>
+                        <li><i class="fa fa-circle"></i><span>Role-based access and enterprise-grade permissions</span></li>
                     </ul>
                     <details>
                         <summary>Who it is for + example workflow</summary>
                         <p>Mela Meetings is built for any business team that runs on recurring meetings — sales calls, sprint planning, executive briefings, board reviews, recruiting interviews, and cross-functional standups. It eliminates manual note-taking and ensures decisions and action items are captured, attributed, and routed to the right place automatically.</p>
-                        <p>A sales rep finishes a customer call. Mela Meetings automatically transcribes the conversation, extracts follow-up commitments, and logs them to Salesforce — all before the rep has closed their laptop.</p>
+                        <p class="mela-story-block">Example: A sales rep finishes a customer call. Mela Meetings automatically transcribes the conversation, extracts follow-up commitments, and logs them to Salesforce — all before the rep has closed their laptop.</p>
                     </details>
                 </div>
             </div>
@@ -643,23 +781,24 @@
                         <div class="mela-product-label">PRODUCT 02 · ORGANIZATION CHATS</div>
                     </div>
                     <h4>Mela Org Chat</h4>
-                    <h5>An AI layer across your organization's knowledge, documents, and communications — answering business questions instantly.</h5>
+                    <h5>An AI layer across your organization's knowledge, documents, and communications.</h5>
+                    <p class="mela-product-subtitle">Give every employee fast, reliable answers grounded in your internal sources.</p>
                     <div class="mela-product-tags">
                         <span class="mela-product-tag">Knowledge Chat</span>
                         <span class="mela-product-tag">Source Citations</span>
                         <span class="mela-product-tag">Governance</span>
                     </div>
                     <ul class="mela-mini-list">
-                        <li>Query across internal documents, wikis, past meetings, and policy files</li>
-                        <li>AI answers grounded in your organization's own data — with source citations</li>
-                        <li>Connects to SharePoint, Confluence, Slack, and Google Drive</li>
-                        <li>Role-based access ensures employees only see content they're permitted to view</li>
-                        <li>Audit trail for all queries, supporting compliance and governance requirements</li>
+                        <li><i class="fa fa-circle"></i><span>Query across internal documents, wikis, past meetings, and policy files</span></li>
+                        <li><i class="fa fa-circle"></i><span>AI answers grounded in your organization's own data — with source citations</span></li>
+                        <li><i class="fa fa-circle"></i><span>Connects to SharePoint, Confluence, Slack, and Google Drive</span></li>
+                        <li><i class="fa fa-circle"></i><span>Role-based access ensures employees only see content they're permitted to view</span></li>
+                        <li><i class="fa fa-circle"></i><span>Audit trail for all queries, supporting compliance and governance requirements</span></li>
                     </ul>
                     <details>
                         <summary>Who it is for + example query</summary>
                         <p>Mela Org Chat is for any employee who needs to find information quickly without digging through filing systems, Slack archives, or asking a colleague. It's especially valuable for onboarding new hires, keeping distributed teams aligned, and helping leadership surface the right context before decisions.</p>
-                        <p>An employee asks Mela Org Chat: "What did leadership decide about the Q4 hiring freeze?" Mela retrieves the answer from the all-hands transcript, cross-references the HR policy update, and responds with a cited, accurate summary — in seconds.</p>
+                        <p class="mela-story-block">Example: An employee asks Mela Org Chat, "What did leadership decide about the Q4 hiring freeze?" Mela retrieves the answer from the all-hands transcript, cross-references the HR policy update, and responds with a cited, accurate summary in seconds.</p>
                     </details>
                 </div>
             </div>
@@ -686,7 +825,7 @@
 </section>
 
 <!-- How It Works -->
-<section class="mela-section" style="background: #f8fafd;">
+<section class="mela-section" style="background: #f3f8f6;">
     <div class="container">
         <div class="section-title text-center">
             <h2>How It Works</h2>
@@ -749,10 +888,10 @@
             <span class="use-case-badge"><i class="fa fa-user-shield"></i> Responsible AI</span>
         </div>
         <div class="text-center mt-4">
-            <p style="font-size: 1rem; color: #2c3e50; margin-bottom: 14px;">
+            <p style="font-size: 1rem; color: #3f534c; margin-bottom: 14px;">
                 For more demos on agentic capabilities, including a Meeting Assistant, please contact us.
             </p>
-            <a href="{{ route('contact') }}" class="btn" style="background: #2f5597; color: #fff; padding: 10px 26px; border-radius: 8px; font-weight: 600; text-decoration: none;">
+            <a href="{{ route('contact') }}" class="btn mela-btn-primary" style="padding: 10px 26px; margin-top: 0;">
                 <i class="fa fa-envelope" style="margin-right: 8px;"></i>Contact Us
             </a>
         </div>
@@ -804,7 +943,7 @@
                             <span class="video-chip">Coming Soon</span>
                             <h5 style="font-size: 1.25rem;">Short Video Demos Are Being Prepared</h5>
                             <p style="margin-bottom: 18px;">We are curating demos for Meeting Assistant, autonomous workflows, and multi-agent collaboration.</p>
-                            <a href="{{ route('contact') }}" class="btn" style="background: #2f5597; color: #fff; padding: 10px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+                            <a href="{{ route('contact') }}" class="btn mela-btn-primary" style="padding: 10px 24px; margin-top: 0;">
                                 <i class="fa fa-envelope" style="margin-right: 8px;"></i>Request a Live Demo
                             </a>
                         </div>
@@ -816,7 +955,7 @@
 </section>
 
 <!-- Powered By -->
-<section class="mela-section powered-by" style="background: #f8fafd;">
+<section class="mela-section powered-by" style="background: #f3f8f6;">
     <div class="container">
         <div class="section-title text-center">
             <h2>Powered By</h2>
