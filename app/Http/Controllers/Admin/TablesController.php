@@ -1734,10 +1734,11 @@ class TablesController extends Controller
     {
         $table = $this->tableExists('events') ? 'events' : 'event';
         $id = $request->id;
+        $isUpdate = filled($id);
         $validatedType = $request->validate([
             'event_type' => ['nullable', Rule::in(['normal', 'private'])],
-            'start_date' => ['required', 'date_format:Y-m-d'],
-            'start_time' => ['required', 'date_format:H:i'],
+            'start_date' => [$isUpdate ? 'nullable' : 'required', 'date_format:Y-m-d'],
+            'start_time' => [$isUpdate ? 'nullable' : 'required', 'date_format:H:i'],
             'timezone' => ['required', Rule::in(['CST', 'EST', 'MST', 'PST', 'UTC'])],
             'url' => [Rule::requiredIf($request->input('event_type') === 'private'), 'nullable', 'url', 'max:2048'],
         ])['event_type'] ?? 'normal';
@@ -1757,7 +1758,9 @@ class TablesController extends Controller
             if ($request->filled('start_date')) {
                 $data['start_date'] = $request->start_date;
             }
-            $data['start_time'] = $request->start_time;
+            if ($request->filled('start_time')) {
+                $data['start_time'] = $request->start_time;
+            }
             $data['timezone'] = $request->timezone;
             
             if ($request->filled('url')) {
