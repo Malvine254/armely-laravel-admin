@@ -2578,6 +2578,13 @@ One or two sentences inviting a conversation.</small>
 <!-- CKEditor -->
 <script src="{{ asset('ckeditor/ckeditor.js') }}"></script>
 <script>
+    // Export PDF requires a separate token service and is not used by the
+    // admin editors. Disable it globally to avoid initialization failures.
+    CKEDITOR.config.removePlugins = [CKEDITOR.config.removePlugins, 'exportpdf']
+        .filter(Boolean)
+        .join(',');
+</script>
+<script>
 $(document).ready(function() {
         const $contentTabs = $('#contentManagementTabs');
         const $contentTabsMoreItem = $('#contentTabsMoreItem');
@@ -4371,10 +4378,9 @@ $(document).ready(function() {
         $('#eventUrl').val(event.url || '');
         $('#eventRecordedUrl').val(event.recorded_url || '');
         
-        if (eventEditor) {
+        $('#eventBody').val(event.body || '');
+        if (eventEditor && eventEditor.status === 'ready') {
             eventEditor.setData(event.body || '');
-        } else {
-            $('#eventBody').val(event.body || '');
         }
         
         $('#eventModal').modal('show');
@@ -4389,7 +4395,8 @@ $(document).ready(function() {
         $('#eventTime').val('');
         $('#eventTimezone').val('CST');
         
-        if (eventEditor) {
+        $('#eventBody').val('');
+        if (eventEditor && eventEditor.status === 'ready') {
             eventEditor.setData('');
         }
     };
@@ -4535,10 +4542,15 @@ $(document).ready(function() {
     // Initialize Event Editor
     let eventEditor;
     $('#eventModal').on('shown.bs.modal', function() {
-        if (!eventEditor) {
-            CKEDITOR.replace('eventBody');
-            eventEditor = CKEDITOR.instances.eventBody;
+        const existingEditor = CKEDITOR.instances.eventBody;
+        if (existingEditor && existingEditor.status !== 'destroyed') {
+            eventEditor = existingEditor;
+            return;
         }
+
+        eventEditor = CKEDITOR.replace('eventBody', {
+            removePlugins: 'exportpdf'
+        });
     });
     
     function currentCsrfToken() {
@@ -4615,7 +4627,12 @@ $(document).ready(function() {
         formData.append('url', $('#eventUrl').val());
         formData.append('recorded_url', $('#eventRecordedUrl').val());
         formData.append('event_type', $('#eventType').val());
-        formData.append('body', eventEditor ? eventEditor.getData() : $('#eventBody').val());
+        formData.append(
+            'body',
+            eventEditor && eventEditor.status === 'ready'
+                ? eventEditor.getData()
+                : $('#eventBody').val()
+        );
         
         try {
             await submitEvent(formData);
@@ -4624,7 +4641,11 @@ $(document).ready(function() {
             reloadEventsTable();
             alert('Event saved successfully!');
         } catch (xhr) {
-            const message = xhr?.responseJSON?.message
+            const validationErrors = xhr?.responseJSON?.errors
+                ? Object.values(xhr.responseJSON.errors).flat().join(' ')
+                : '';
+            const message = validationErrors
+                || xhr?.responseJSON?.message
                 || xhr?.message
                 || (xhr?.status === 419
                     ? 'Your security token expired. Refresh the page and try again.'
