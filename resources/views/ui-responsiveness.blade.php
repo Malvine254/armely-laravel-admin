@@ -157,6 +157,10 @@
             text-overflow: ellipsis;
         }
 
+        .status.loading { color: #0369a1; }
+        .status.loaded { color: #047857; }
+        .status.error { color: #b91c1c; }
+
         @media (max-width: 760px) {
             .toolbar { flex-wrap: wrap; }
             .toolbar .input-wrap { width: 100%; }
@@ -256,6 +260,57 @@
         const frameUrl = document.getElementById('frameUrl');
         const previewFrame = document.getElementById('previewFrame');
         const deviceRow = document.getElementById('deviceRow');
+        let currentUrl = '';
+        let loadingStartedAt = 0;
+        let loadingTimer = null;
+        let renderWatchTimer = null;
+        let hasLoadedCurrentPage = false;
+
+        function currentSizeLabel() {
+            const selected = deviceSelect.value;
+            const preset = presets[selected];
+            return preset.width + 'x' + preset.height;
+        }
+
+        function setStatus(text, type = '') {
+            frameUrl.classList.remove('loading', 'loaded', 'error');
+            if (type) {
+                frameUrl.classList.add(type);
+            }
+            frameUrl.textContent = text;
+        }
+
+        function stopLoadingTicker() {
+            if (loadingTimer) {
+                clearInterval(loadingTimer);
+                loadingTimer = null;
+            }
+
+            if (renderWatchTimer) {
+                clearInterval(renderWatchTimer);
+                renderWatchTimer = null;
+            }
+        }
+
+        function startLoadingTicker() {
+            stopLoadingTicker();
+            loadingStartedAt = Date.now();
+            loadingTimer = setInterval(() => {
+                const elapsed = ((Date.now() - loadingStartedAt) / 1000).toFixed(1);
+                setStatus('Loading ' + currentUrl + ' (' + elapsed + 's) | ' + currentSizeLabel(), 'loading');
+            }, 150);
+
+            renderWatchTimer = setTimeout(() => {
+                if (!currentUrl || hasLoadedCurrentPage) {
+                    return;
+                }
+
+                hasLoadedCurrentPage = true;
+                stopLoadingTicker();
+                const elapsed = ((Date.now() - loadingStartedAt) / 1000).toFixed(1);
+                setStatus('Rendered ' + currentUrl + ' in ' + elapsed + 's (background assets may still load) | ' + currentSizeLabel(), 'loaded');
+            }, 3000);
+        }
 
         function applyDevice(size) {
             const preset = presets[size];
@@ -265,7 +320,23 @@
                 chip.classList.toggle('active', chip.dataset.size === size);
             });
             deviceSelect.value = size;
-            frameUrl.textContent = frameUrl.textContent.replace(/\s+\|\s+\d+x\d+$/, '') + ' | ' + preset.width + 'x' + preset.height;
+
+            if (!currentUrl) {
+                setStatus('Enter a URL to begin testing.');
+                return;
+            }
+
+            if (loadingTimer) {
+                const elapsed = ((Date.now() - loadingStartedAt) / 1000).toFixed(1);
+                setStatus('Loading ' + currentUrl + ' (' + elapsed + 's) | ' + currentSizeLabel(), 'loading');
+                return;
+            }
+
+            if (hasLoadedCurrentPage) {
+                setStatus('Loaded ' + currentUrl + ' | ' + currentSizeLabel(), 'loaded');
+            } else {
+                setStatus(currentUrl + ' | ' + currentSizeLabel());
+            }
         }
 
         function normalizeUrl(raw) {
@@ -277,7 +348,10 @@
         }
 
         function showPlaceholder() {
-            frameUrl.textContent = 'Enter a URL to begin testing.';
+            currentUrl = '';
+            hasLoadedCurrentPage = false;
+            stopLoadingTicker();
+            setStatus('Enter a URL to begin testing.');
             previewFrame.removeAttribute('src');
             previewFrame.srcdoc = '<div style="font-family:Arial;padding:24px;color:#111">Enter a URL to begin testing.</div>';
         }
@@ -294,10 +368,53 @@
             }
 
             const url = normalizeUrl(raw);
-            frameUrl.textContent = url;
+            currentUrl = url;
+            hasLoadedCurrentPage = false;
+            startLoadingTicker();
             previewFrame.removeAttribute('srcdoc');
             previewFrame.src = buildProxyUrl(url);
         }
+
+        previewFrame.addEventListener('load', () => {
+            if (!currentUrl) {
+                return;
+            }
+
+            stopLoadingTicker();
+            hasLoadedCurrentPage = true;
+            const elapsed = ((Date.now() - loadingStartedAt) / 1000).toFixed(1);
+            setStatus('Loaded ' + currentUrl + ' in ' + elapsed + 's | ' + currentSizeLabel(), 'loaded');
+        });
+
+        window.addEventListener('message', (event) => {
+            const data = event.data;
+            if (!data || data.__uiResp !== true || !currentUrl) {
+                return;
+            }
+
+            const elapsed = ((Date.now() - loadingStartedAt) / 1000).toFixed(1);
+            if (data.type === 'domready') {
+                hasLoadedCurrentPage = true;
+                stopLoadingTicker();
+                setStatus('Rendered ' + currentUrl + ' in ' + elapsed + 's | ' + currentSizeLabel(), 'loaded');
+                return;
+            }
+
+            if (data.type === 'load') {
+                hasLoadedCurrentPage = true;
+                stopLoadingTicker();
+                setStatus('Loaded ' + currentUrl + ' in ' + elapsed + 's | ' + currentSizeLabel(), 'loaded');
+            }
+        });
+
+        previewFrame.addEventListener('error', () => {
+            if (!currentUrl) {
+                return;
+            }
+
+            stopLoadingTicker();
+            setStatus('Failed to load ' + currentUrl + ' | ' + currentSizeLabel(), 'error');
+        });
 
         loadBtn.addEventListener('click', loadUrl);
         urlInput.addEventListener('keydown', (event) => {
