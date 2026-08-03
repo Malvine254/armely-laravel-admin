@@ -41,6 +41,7 @@ Route::get('/ui-responsiveness', function (\Illuminate\Http\Request $request) {
 })->name('ui-responsiveness');
 Route::get('/ui-responsiveness/proxy-asset', function (Request $request) {
     $rawUrl = trim((string) $request->query('url', ''));
+    $referer = trim((string) $request->query('referer', ''));
 
     if ($rawUrl === '') {
         return response('Missing url query parameter.', 422);
@@ -63,12 +64,19 @@ Route::get('/ui-responsiveness/proxy-asset', function (Request $request) {
     $sourceDir = ($sourcePath === '' || str_ends_with($sourcePath, '/')) ? $sourcePath : dirname($sourcePath) . '/';
 
     try {
-        $upstream = Http::connectTimeout(4)
-            ->timeout(6)
-            ->withHeaders([
+        $headers = [
                 'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
                 'Accept' => '*/*',
-            ])
+            ];
+
+        if (filter_var($referer, FILTER_VALIDATE_URL) && preg_match('/^https?:\/\//i', $referer)) {
+            $headers['Referer'] = $referer;
+        }
+
+        $upstream = Http::connectTimeout(6)
+            ->timeout(20)
+            ->retry(2, 150)
+            ->withHeaders($headers)
             ->get($rawUrl);
     } catch (\Throwable $exception) {
         return response('Could not load asset URL: ' . $exception->getMessage(), 502);
@@ -100,7 +108,7 @@ Route::get('/ui-responsiveness/proxy-asset', function (Request $request) {
 
         $body = preg_replace_callback(
             '/url\((\s*["\']?)([^)"\']+)(["\']?\s*)\)/i',
-            function (array $matches) use ($toAbsolute): string {
+            function (array $matches) use ($toAbsolute, $rawUrl): string {
                 $rawCandidate = trim($matches[2]);
                 if ($rawCandidate === '' || preg_match('/^(data:|blob:|javascript:|#)/i', $rawCandidate)) {
                     return $matches[0];
@@ -109,7 +117,10 @@ Route::get('/ui-responsiveness/proxy-asset', function (Request $request) {
                 $absolute = $toAbsolute($rawCandidate);
                 $absoluteHost = strtolower((string) (parse_url($absolute, PHP_URL_HOST) ?? ''));
                 if ($absoluteHost !== '') {
-                    $absolute = route('ui-responsiveness.proxy-asset', ['url' => $absolute], false);
+                    $absolute = route('ui-responsiveness.proxy-asset', [
+                        'url' => $absolute,
+                        'referer' => $rawUrl,
+                    ], false);
                 }
 
                 return 'url(' . $matches[1] . $absolute . $matches[3] . ')';
@@ -185,14 +196,17 @@ Route::get('/ui-responsiveness/proxy', function (Request $request) {
         }
     };
 
-    $proxyAssetUrl = static function (string $candidate) use ($resolveUrl): string {
+    $proxyAssetUrl = static function (string $candidate) use ($resolveUrl, $rawUrl): string {
         $absolute = $resolveUrl($candidate);
 
         if (!preg_match('/^https?:\/\//i', $absolute)) {
             return $candidate;
         }
 
-        return route('ui-responsiveness.proxy-asset', ['url' => $absolute], false);
+        return route('ui-responsiveness.proxy-asset', [
+            'url' => $absolute,
+            'referer' => $rawUrl,
+        ], false);
     };
 
     // A CSP copied from the upstream page describes its origin, not this local
@@ -235,6 +249,22 @@ Route::get('/ui-responsiveness/proxy', function (Request $request) {
                     ) ?? $tagHtml;
                 }
 
+                if (str_starts_with(strtolower($tagHtml), '<script')) {
+                    $isClassicExternalScript = preg_match('/\ssrc\s*=/i', $tagHtml)
+                        && !preg_match('/\stype\s*=\s*(["\'])module\1/i', $tagHtml);
+                    $isDependencyScript = preg_match(
+                        '/(?:jquery|bootstrap|popper|datatables|owl(?:\.|-|_)|slick|waypoints|counterup|magnific|datepicker|niceselect)/i',
+                        $tagHtml
+                    );
+
+                    // Async scripts execute as soon as their individual download
+                    // finishes. Dependency libraries must instead retain document
+                    // order (jQuery before its plugins, Popper before Bootstrap).
+                    if ($isClassicExternalScript && $isDependencyScript) {
+                        $tagHtml = preg_replace('/\sasync(?:\s*=\s*(["\']).*?\1)?/i', '', $tagHtml) ?? $tagHtml;
+                    }
+                }
+
                 return $tagHtml;
             },
             $html
@@ -255,16 +285,82 @@ Route::get('/ui-responsiveness/proxy', function (Request $request) {
         $html
     ) ?? $html;
 
-    $previewBlockStart = stripos($html, '//  Preview Modal Handler');
-    $previewBlockEnd = stripos($html, '<!--Start Show Session Expire Warning Popup here -->', $previewBlockStart === false ? 0 : $previewBlockStart);
-    if ($previewBlockStart !== false && $previewBlockEnd !== false && $previewBlockEnd > $previewBlockStart) {
-        $html = substr($html, 0, $previewBlockStart) . substr($html, $previewBlockEnd);
+    $runtimeProxyConfig = json_encode([
+        'endpoint' => route('ui-responsiveness.proxy-asset', [], false),
+        'sourceUrl' => $rawUrl,
+    ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+
+    $runtimeProxyScript = <<<'HTML'
+<script data-ui-responsiveness-proxy>
+(function (config) {
+    'use strict';
+
+    var assetAttributes = {
+        SCRIPT: ['src'], LINK: ['href'], IMG: ['src'], SOURCE: ['src'],
+        VIDEO: ['src', 'poster'], AUDIO: ['src'], TRACK: ['src'],
+        INPUT: ['src'], OBJECT: ['data'], EMBED: ['src']
+    };
+
+    function proxify(value) {
+        if (typeof value !== 'string' || value === '' || /^(?:data:|blob:|javascript:|mailto:|tel:|#)/i.test(value)) {
+            return value;
+        }
+
+        try {
+            var absolute = new URL(value, config.sourceUrl);
+            if (!/^https?:$/.test(absolute.protocol)) return value;
+            if (absolute.origin === location.origin && absolute.pathname === config.endpoint) return value;
+            return config.endpoint + '?url=' + encodeURIComponent(absolute.href)
+                + '&referer=' + encodeURIComponent(config.sourceUrl);
+        } catch (error) {
+            return value;
+        }
     }
 
+    var nativeSetAttribute = Element.prototype.setAttribute;
+    Element.prototype.setAttribute = function (name, value) {
+        var attributes = assetAttributes[this.tagName];
+        if (attributes && attributes.indexOf(String(name).toLowerCase()) !== -1) {
+            value = proxify(String(value));
+        }
+        return nativeSetAttribute.call(this, name, value);
+    };
+
+    [
+        [HTMLScriptElement, 'src'], [HTMLLinkElement, 'href'],
+        [HTMLImageElement, 'src'], [HTMLSourceElement, 'src'],
+        [HTMLMediaElement, 'src'], [HTMLVideoElement, 'poster'],
+        [HTMLTrackElement, 'src'], [HTMLInputElement, 'src'],
+        [HTMLObjectElement, 'data'], [HTMLEmbedElement, 'src']
+    ].forEach(function (entry) {
+        var prototype = entry[0] && entry[0].prototype;
+        var property = entry[1];
+        var descriptor = prototype && Object.getOwnPropertyDescriptor(prototype, property);
+        if (!descriptor || !descriptor.get || !descriptor.set || descriptor.configurable === false) return;
+
+        Object.defineProperty(prototype, property, {
+            configurable: descriptor.configurable,
+            enumerable: descriptor.enumerable,
+            get: descriptor.get,
+            set: function (value) { descriptor.set.call(this, proxify(String(value))); }
+        });
+    });
+})($UI_RESPONSIVENESS_PROXY_CONFIG$);
+</script>
+HTML;
+    $runtimeProxyScript = str_replace('$UI_RESPONSIVENESS_PROXY_CONFIG$', $runtimeProxyConfig ?: '{}', $runtimeProxyScript);
+
     if (preg_match('/<head\b[^>]*>/i', $html) === 1) {
-        $html = preg_replace('/<head\b[^>]*>/i', '$0<base href="' . e($baseHref) . '">', $html, 1) ?? $html;
+        $html = preg_replace_callback(
+            '/<head\b[^>]*>/i',
+            static fn (array $matches): string => $matches[0]
+                . '<base href="' . e($baseHref) . '">'
+                . $runtimeProxyScript,
+            $html,
+            1
+        ) ?? $html;
     } else {
-        $html = '<head><base href="' . e($baseHref) . '"></head>' . $html;
+        $html = '<head><base href="' . e($baseHref) . '">' . $runtimeProxyScript . '</head>' . $html;
     }
 
     return response($html, 200, [
