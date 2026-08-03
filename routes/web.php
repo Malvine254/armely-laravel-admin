@@ -193,12 +193,6 @@ Route::get('/ui-responsiveness/proxy', function (Request $request) {
             $head->insertBefore($base, $head->firstChild);
         }
 
-        foreach ($xpath->query('//script') as $scriptNode) {
-            if ($scriptNode instanceof \DOMNode && $scriptNode->parentNode) {
-                $scriptNode->parentNode->removeChild($scriptNode);
-            }
-        }
-
         $html = $dom->saveHTML() ?: $html;
     }
 
