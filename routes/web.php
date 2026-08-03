@@ -307,9 +307,16 @@ Route::get('/ui-responsiveness/proxy', function (Request $request) {
         }
 
         try {
+            // Static HTML assets have already been rewritten by PHP. Resolve
+            // against the preview origin first so those URLs are not proxied a
+            // second time against the upstream page's <base> URL.
+            var localCandidate = new URL(value, location.origin);
+            if (localCandidate.origin === location.origin && localCandidate.pathname === config.endpoint) {
+                return value;
+            }
+
             var absolute = new URL(value, config.sourceUrl);
             if (!/^https?:$/.test(absolute.protocol)) return value;
-            if (absolute.origin === location.origin && absolute.pathname === config.endpoint) return value;
             return config.endpoint + '?url=' + encodeURIComponent(absolute.href)
                 + '&referer=' + encodeURIComponent(config.sourceUrl);
         } catch (error) {
