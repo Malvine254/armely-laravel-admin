@@ -33,6 +33,98 @@
     }
     .event-management-shell .event-hero {
         background: linear-gradient(135deg, var(--event-blue), var(--event-blue-dark));
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 14px 30px rgba(30, 58, 109, 0.18);
+    }
+    .event-management-shell .event-hero::after {
+        content: '';
+        position: absolute;
+        width: 240px;
+        height: 240px;
+        right: -70px;
+        top: -120px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.08);
+    }
+    .event-management-shell .event-hero-content {
+        position: relative;
+        z-index: 1;
+    }
+    .event-management-shell .event-eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        margin-bottom: 0.65rem;
+        color: #dbe8ff;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+    }
+    .event-management-shell .event-stat-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(105px, 1fr));
+        gap: 0.75rem;
+        min-width: min(100%, 390px);
+    }
+    .event-management-shell .event-stat {
+        padding: 0.9rem 1rem;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 0.8rem;
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(8px);
+    }
+    .event-management-shell .event-stat-value {
+        display: block;
+        font-size: 1.55rem;
+        line-height: 1;
+        font-weight: 750;
+    }
+    .event-management-shell .event-stat-label {
+        display: block;
+        margin-top: 0.4rem;
+        color: rgba(255, 255, 255, 0.72);
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    .event-management-shell .event-type-switcher {
+        display: inline-flex;
+        width: auto;
+        max-width: 100%;
+        border: 1px solid var(--event-blue-border);
+    }
+    .event-management-shell .event-type-switcher .nav-link {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        min-height: 44px;
+        border-radius: 0.55rem;
+    }
+    .event-management-shell .event-type-switcher .nav-link:not(.active):hover {
+        background: #fff;
+    }
+    .event-management-shell .event-type-switcher .badge {
+        min-width: 1.7rem;
+        padding: 0.35rem 0.5rem;
+    }
+    @media (max-width: 767.98px) {
+        .event-management-shell .event-stat-grid {
+            width: 100%;
+            min-width: 0;
+        }
+        .event-management-shell .event-type-switcher {
+            display: flex;
+            width: 100%;
+        }
+        .event-management-shell .event-type-switcher .nav-item,
+        .event-management-shell .event-type-switcher .nav-link {
+            flex: 1 1 0;
+        }
+        .event-management-shell .event-type-switcher .nav-link {
+            justify-content: center;
+            padding-inline: 0.75rem !important;
+        }
     }
     .event-management-shell .event-soft-bg {
         background: var(--event-blue-soft) !important;
@@ -945,28 +1037,46 @@
 
         <!-- Events Tab -->
         <div class="tab-pane fade" id="events" role="tabpanel">
+            @php
+                $normalEventCount = $events->filter(fn($event) => ($event->event_type ?? 'normal') === 'normal')->count();
+                $privateEventCount = $events->filter(fn($event) => ($event->event_type ?? 'normal') === 'private')->count();
+            @endphp
             <div class="card-body event-management-shell">
-                <div class="event-hero p-3 p-lg-4 mb-4 rounded-3 text-white">
-                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
-                        <div>
-                            <h4 class="mb-1"><i class="fas fa-calendar-alt me-2"></i>Event Management</h4>
-                            <p class="mb-0 text-white-50">Manage public events separately from invitation-only experiences.</p>
+                <div class="event-hero p-4 p-xl-5 mb-4 rounded-3 text-white">
+                    <div class="event-hero-content d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-4">
+                        <div class="pe-lg-4">
+                            <span class="event-eyebrow"><i class="fas fa-calendar-check"></i> Content workspace</span>
+                            <h3 class="mb-2 fw-bold">Event Management</h3>
+                            <p class="mb-0 text-white-50">Create and manage public events and invitation-only experiences from one place.</p>
                         </div>
-                        <span class="badge bg-light text-primary px-3 py-2">{{ $events->count() }} total events</span>
+                        <div class="event-stat-grid" aria-label="Event totals">
+                            <div class="event-stat">
+                                <span class="event-stat-value">{{ $events->count() }}</span>
+                                <span class="event-stat-label">Total events</span>
+                            </div>
+                            <div class="event-stat">
+                                <span class="event-stat-value">{{ $normalEventCount }}</span>
+                                <span class="event-stat-label">Public</span>
+                            </div>
+                            <div class="event-stat">
+                                <span class="event-stat-value">{{ $privateEventCount }}</span>
+                                <span class="event-stat-label">Private</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <ul class="nav nav-pills gap-2 mb-4 p-2 event-soft-bg rounded-3" id="eventTypeTabs" role="tablist">
+                <ul class="nav nav-pills gap-2 mb-4 p-2 event-soft-bg rounded-3 event-type-switcher" id="eventTypeTabs" role="tablist" aria-label="Event type">
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link active px-4" id="normal-events-tab" data-bs-toggle="pill" data-bs-target="#normal-events-pane" type="button" role="tab">
-                            <i class="fas fa-globe me-1"></i> Normal Events
-                            <span class="badge bg-white text-primary ms-1">{{ $events->filter(fn($event) => ($event->event_type ?? 'normal') === 'normal')->count() }}</span>
+                        <button class="nav-link active px-4" id="normal-events-tab" data-bs-toggle="pill" data-bs-target="#normal-events-pane" type="button" role="tab" aria-controls="normal-events-pane" aria-selected="true">
+                            <i class="fas fa-globe-americas"></i> Public Events
+                            <span class="badge bg-white text-primary">{{ $normalEventCount }}</span>
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link px-4" id="private-events-tab" data-bs-toggle="pill" data-bs-target="#private-events-pane" type="button" role="tab">
-                            <i class="fas fa-lock me-1"></i> Private Events
-                            <span class="badge bg-white text-dark ms-1">{{ $events->filter(fn($event) => ($event->event_type ?? 'normal') === 'private')->count() }}</span>
+                        <button class="nav-link px-4" id="private-events-tab" data-bs-toggle="pill" data-bs-target="#private-events-pane" type="button" role="tab" aria-controls="private-events-pane" aria-selected="false">
+                            <i class="fas fa-lock"></i> Private Events
+                            <span class="badge bg-white text-dark">{{ $privateEventCount }}</span>
                         </button>
                     </li>
                 </ul>
