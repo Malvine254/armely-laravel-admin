@@ -161,18 +161,31 @@
                 <button id="loadBtn" type="button">Go</button>
             </div>
             <select id="deviceSelect">
-                <option value="mobile">Mobile</option>
-                <option value="tablet">Tablet</option>
-                <option value="laptop">Laptop</option>
-                <option value="desktop">Desktop</option>
+                <option value="iphone-se">iPhone SE (375x667)</option>
+                <option value="iphone-12">iPhone 12/13/14 (390x844)</option>
+                <option value="iphone-14-plus">iPhone 14 Plus (428x926)</option>
+                <option value="pixel-7">Pixel 7 (412x915)</option>
+                <option value="galaxy-s20">Galaxy S20 (360x800)</option>
+                <option value="ipad-mini">iPad Mini (768x1024)</option>
+                <option value="ipad-air">iPad Air (820x1180)</option>
+                <option value="ipad-pro-11">iPad Pro 11 (834x1194)</option>
+                <option value="surface-pro-7">Surface Pro 7 (912x1368)</option>
+                <option value="laptop-1366">Laptop 1366 (1366x768)</option>
+                <option value="laptop-1440">Laptop 1440 (1440x900)</option>
+                <option value="desktop-fhd">Desktop FHD (1920x1080)</option>
+                <option value="desktop-qhd">Desktop QHD (2560x1440)</option>
             </select>
         </div>
 
         <div class="device-row" id="deviceRow">
-            <div class="device-chip active" data-size="mobile">📱 Mobile</div>
-            <div class="device-chip" data-size="tablet">📲 Tablet</div>
-            <div class="device-chip" data-size="laptop">💻 Laptop</div>
-            <div class="device-chip" data-size="desktop">🖥 Desktop</div>
+            <div class="device-chip active" data-size="iphone-12">📱 iPhone 12</div>
+            <div class="device-chip" data-size="iphone-se">📱 iPhone SE</div>
+            <div class="device-chip" data-size="pixel-7">📱 Pixel 7</div>
+            <div class="device-chip" data-size="ipad-mini">📲 iPad Mini</div>
+            <div class="device-chip" data-size="ipad-pro-11">📲 iPad Pro 11</div>
+            <div class="device-chip" data-size="laptop-1366">💻 Laptop 1366</div>
+            <div class="device-chip" data-size="laptop-1440">💻 Laptop 1440</div>
+            <div class="device-chip" data-size="desktop-fhd">🖥 Desktop FHD</div>
         </div>
 
         <div class="viewport">
@@ -185,10 +198,19 @@
 
     <script>
         const presets = {
-            mobile: { label: 'Mobile', width: 390 },
-            tablet: { label: 'Tablet', width: 768 },
-            laptop: { label: 'Laptop', width: 1280 },
-            desktop: { label: 'Desktop', width: 1440 }
+            'iphone-se': { label: 'iPhone SE', width: 375, height: 667 },
+            'iphone-12': { label: 'iPhone 12/13/14', width: 390, height: 844 },
+            'iphone-14-plus': { label: 'iPhone 14 Plus', width: 428, height: 926 },
+            'pixel-7': { label: 'Pixel 7', width: 412, height: 915 },
+            'galaxy-s20': { label: 'Galaxy S20', width: 360, height: 800 },
+            'ipad-mini': { label: 'iPad Mini', width: 768, height: 1024 },
+            'ipad-air': { label: 'iPad Air', width: 820, height: 1180 },
+            'ipad-pro-11': { label: 'iPad Pro 11', width: 834, height: 1194 },
+            'surface-pro-7': { label: 'Surface Pro 7', width: 912, height: 1368 },
+            'laptop-1366': { label: 'Laptop 1366', width: 1366, height: 768 },
+            'laptop-1440': { label: 'Laptop 1440', width: 1440, height: 900 },
+            'desktop-fhd': { label: 'Desktop FHD', width: 1920, height: 1080 },
+            'desktop-qhd': { label: 'Desktop QHD', width: 2560, height: 1440 }
         };
 
         const urlInput = document.getElementById('urlInput');
@@ -202,10 +224,12 @@
         function applyDevice(size) {
             const preset = presets[size];
             deviceStage.style.width = preset.width + 'px';
+            previewFrame.style.height = Math.max(540, preset.height) + 'px';
             document.querySelectorAll('.device-chip').forEach(chip => {
                 chip.classList.toggle('active', chip.dataset.size === size);
             });
             deviceSelect.value = size;
+            frameUrl.textContent = frameUrl.textContent.replace(/\s+\|\s+\d+x\d+$/, '') + ' | ' + preset.width + 'x' + preset.height;
         }
 
         function normalizeUrl(raw) {
@@ -259,7 +283,7 @@
             showPlaceholder();
         }
 
-        applyDevice('mobile');
+        applyDevice('iphone-12');
     </script>
 </body>
 </html>
