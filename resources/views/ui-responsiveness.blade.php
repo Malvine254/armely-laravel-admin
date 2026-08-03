@@ -7,74 +7,50 @@
     <style>
         :root {
             color-scheme: dark;
-            --bg: #07111f;
-            --panel: rgba(15, 23, 42, 0.92);
-            --panel-2: rgba(30, 41, 59, 0.9);
-            --text: #f8fafc;
-            --muted: #94a3b8;
+            --bg: #0f172a;
+            --toolbar: #111827;
+            --panel: #1f2937;
+            --text: #f9fafb;
+            --muted: #9ca3af;
             --accent: #38bdf8;
             --accent-2: #818cf8;
-            --border: rgba(148, 163, 184, 0.2);
+            --border: #374151;
         }
 
         * { box-sizing: border-box; }
+        html, body { height: 100%; }
         body {
             margin: 0;
             font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
-            background: radial-gradient(circle at top left, rgba(56,189,248,0.18), transparent 24%), var(--bg);
+            background: var(--bg);
             color: var(--text);
-            min-height: 100vh;
+            overflow: hidden;
         }
 
-        .page {
-            max-width: 1500px;
-            margin: 0 auto;
-            padding: 28px;
-        }
-
-        .hero {
+        .browser-shell {
             display: flex;
-            flex-wrap: wrap;
-            gap: 18px;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .toolbar {
+            display: flex;
             align-items: center;
-            justify-content: space-between;
-            padding: 24px;
+            gap: 8px;
+            padding: 8px;
+            background: var(--toolbar);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .toolbar .input-wrap {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--panel);
             border: 1px solid var(--border);
-            border-radius: 24px;
-            background: linear-gradient(135deg, rgba(15,23,42,0.95), rgba(30,41,59,0.9));
-            box-shadow: 0 20px 60px rgba(2, 6, 23, 0.35);
-        }
-
-        .hero h1 {
-            margin: 0 0 8px;
-            font-size: clamp(1.35rem, 2vw, 1.7rem);
-            font-weight: 700;
-        }
-
-        .hero p {
-            margin: 0;
-            color: var(--muted);
-            max-width: 700px;
-            line-height: 1.6;
-        }
-
-        .controls {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-            margin-top: 18px;
-            align-items: center;
-        }
-
-        .control-group {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            align-items: center;
-            padding: 10px 12px;
             border-radius: 999px;
-            background: var(--panel-2);
-            border: 1px solid var(--border);
+            padding: 6px 10px;
         }
 
         input, select, button {
@@ -82,139 +58,115 @@
         }
 
         input {
-            border: 1px solid var(--border);
-            background: rgba(15, 23, 42, 0.9);
+            flex: 1;
+            border: 0;
+            outline: 0;
+            background: transparent;
             color: var(--text);
-            border-radius: 999px;
-            padding: 10px 14px;
-            min-width: 320px;
+            min-width: 0;
         }
 
-        select {
+        button, select {
             border: 1px solid var(--border);
-            background: rgba(15, 23, 42, 0.9);
+            background: var(--panel);
             color: var(--text);
             border-radius: 999px;
-            padding: 10px 14px;
+            padding: 7px 10px;
         }
 
         button {
-            border: none;
             cursor: pointer;
-            border-radius: 999px;
-            padding: 10px 16px;
-            color: white;
             background: linear-gradient(135deg, var(--accent), var(--accent-2));
+            color: white;
             font-weight: 600;
-            box-shadow: 0 10px 25px rgba(56, 189, 248, 0.2);
+            border: 0;
         }
 
         .device-row {
-            margin-top: 18px;
             display: flex;
             flex-wrap: wrap;
-            gap: 10px;
+            gap: 6px;
+            padding: 6px 8px;
+            background: #0b1120;
+            border-bottom: 1px solid var(--border);
         }
 
         .device-chip {
-            padding: 9px 12px;
+            padding: 6px 10px;
             border-radius: 999px;
-            border: 1px solid var(--border);
-            background: var(--panel-2);
+            background: #1f2937;
             color: var(--muted);
             cursor: pointer;
+            font-size: 0.9rem;
             user-select: none;
-            font-size: 0.95rem;
         }
 
         .device-chip.active {
             color: white;
-            border-color: rgba(56,189,248,0.55);
-            background: rgba(56, 189, 248, 0.16);
+            background: rgba(56, 189, 248, 0.2);
         }
 
-        .frame-shell {
-            margin-top: 22px;
-            padding: 18px;
-            border-radius: 28px;
-            background: linear-gradient(180deg, rgba(15,23,42,0.96), rgba(30,41,59,0.95));
-            border: 1px solid var(--border);
-            box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 20px 60px rgba(2, 6, 23, 0.25);
-        }
-
-        .frame-toolbar {
+        .viewport {
+            flex: 1;
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 14px;
-            padding: 10px 12px;
-            border-radius: 16px;
-            background: rgba(2, 6, 23, 0.45);
-            border: 1px solid var(--border);
+            justify-content: center;
+            align-items: flex-start;
+            padding: 8px;
+            background: #e5e7eb;
+            overflow: auto;
         }
 
-        .frame-toolbar .label {
-            color: var(--muted);
-            font-size: 0.94rem;
-        }
-
-        .device-stage {
-            border-radius: 22px;
-            overflow: hidden;
-            border: 1px solid rgba(148,163,184,0.22);
-            background: white;
-            margin: 0 auto;
-            transition: width 0.25s ease, height 0.25s ease;
+        .frame-wrap {
+            width: 390px;
             max-width: 100%;
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid #d1d5db;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.16);
+            transition: width 0.2s ease;
         }
 
         iframe {
             display: block;
             width: 100%;
-            height: 820px;
+            height: calc(100vh - 110px);
+            min-height: 540px;
             border: 0;
             background: white;
         }
 
-        @media (max-width: 900px) {
-            .page { padding: 16px; }
-            .hero { padding: 18px; }
-            input { min-width: 220px; }
-            iframe { height: 700px; }
+        .status {
+            padding: 4px 8px;
+            color: var(--muted);
+            font-size: 0.85rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
-        @media (max-width: 640px) {
-            .controls { flex-direction: column; align-items: stretch; }
-            .control-group { border-radius: 16px; }
-            input { min-width: 0; width: 100%; }
-            .frame-toolbar { flex-direction: column; align-items: flex-start; }
-            iframe { height: 620px; }
+        @media (max-width: 760px) {
+            .toolbar { flex-wrap: wrap; }
+            .toolbar .input-wrap { width: 100%; }
+            .frame-wrap { width: 100%; }
+            iframe { height: calc(100vh - 130px); }
         }
     </style>
 </head>
 <body>
-    <div class="page">
-        <section class="hero">
-            <div>
-                <h1>Responsive UI Testing Studio</h1>
-                <p>Load any website and preview it across phone, tablet, and laptop screen sizes in a clean, distraction-free setup.</p>
+    <div class="browser-shell">
+        <div class="toolbar">
+            <div class="input-wrap">
+                <input id="urlInput" type="text" placeholder="Enter a URL" value="{{ $initialUrl ?? '' }}">
+                <button id="loadBtn" type="button">Go</button>
             </div>
-            <div class="controls">
-                <div class="control-group">
-                    <input id="urlInput" type="url" placeholder="https://your-site.com" value="{{ $initialUrl ?? '' }}">
-                    <button id="loadBtn" type="button">Load Preview</button>
-                </div>
-                <div class="control-group">
-                    <select id="deviceSelect">
-                        <option value="mobile">Mobile</option>
-                        <option value="tablet">Tablet</option>
-                        <option value="laptop">Laptop</option>
-                        <option value="desktop">Desktop</option>
-                    </select>
-                </div>
-            </div>
-        </section>
+            <select id="deviceSelect">
+                <option value="mobile">Mobile</option>
+                <option value="tablet">Tablet</option>
+                <option value="laptop">Laptop</option>
+                <option value="desktop">Desktop</option>
+            </select>
+        </div>
 
         <div class="device-row" id="deviceRow">
             <div class="device-chip active" data-size="mobile">📱 Mobile</div>
@@ -223,57 +175,62 @@
             <div class="device-chip" data-size="desktop">🖥 Desktop</div>
         </div>
 
-        <section class="frame-shell">
-            <div class="frame-toolbar">
-                <div class="label" id="deviceLabel">Previewing at Mobile width</div>
-                <div class="label" id="frameUrl">Waiting for a URL…</div>
+        <div class="viewport">
+            <div class="frame-wrap" id="deviceStage">
+                <div class="status" id="frameUrl">Enter a URL to begin testing.</div>
+                <iframe id="previewFrame" srcdoc="<div style='font-family:Arial;padding:24px;color:#111'>Enter a URL to begin testing.</div>"></iframe>
             </div>
-            <div class="device-stage" id="deviceStage">
-                <iframe id="previewFrame" srcdoc="<h3 style='font-family:Arial;padding:24px;color:#111'>Enter a URL to begin testing.</h3>"></iframe>
-            </div>
-        </section>
+        </div>
     </div>
 
     <script>
         const presets = {
-            mobile: { label: 'Mobile', width: 390, height: 844 },
-            tablet: { label: 'Tablet', width: 768, height: 1024 },
-            laptop: { label: 'Laptop', width: 1280, height: 900 },
-            desktop: { label: 'Desktop', width: 1440, height: 960 }
+            mobile: { label: 'Mobile', width: 390 },
+            tablet: { label: 'Tablet', width: 768 },
+            laptop: { label: 'Laptop', width: 1280 },
+            desktop: { label: 'Desktop', width: 1440 }
         };
 
         const urlInput = document.getElementById('urlInput');
         const loadBtn = document.getElementById('loadBtn');
         const deviceSelect = document.getElementById('deviceSelect');
         const deviceStage = document.getElementById('deviceStage');
-        const deviceLabel = document.getElementById('deviceLabel');
         const frameUrl = document.getElementById('frameUrl');
         const previewFrame = document.getElementById('previewFrame');
         const deviceRow = document.getElementById('deviceRow');
 
-        let activeDevice = 'mobile';
-
         function applyDevice(size) {
-            activeDevice = size;
             const preset = presets[size];
             deviceStage.style.width = preset.width + 'px';
-            deviceStage.style.maxWidth = '100%';
-            deviceLabel.textContent = 'Previewing at ' + preset.label + ' width';
             document.querySelectorAll('.device-chip').forEach(chip => {
                 chip.classList.toggle('active', chip.dataset.size === size);
             });
             deviceSelect.value = size;
         }
 
+        function normalizeUrl(raw) {
+            const value = raw.trim();
+            if (!value) return '';
+            if (/^https?:\/\//i.test(value)) return value;
+            if (/^www\./i.test(value)) return 'https://' + value;
+            return 'https://' + value;
+        }
+
+        function showPlaceholder() {
+            frameUrl.textContent = 'Enter a URL to begin testing.';
+            previewFrame.srcdoc = '<div style="font-family:Arial;padding:24px;color:#111">Enter a URL to begin testing.</div>';
+        }
+
         function loadUrl() {
-            const url = urlInput.value.trim();
-            if (!url) {
-                frameUrl.textContent = 'Enter a URL to begin testing.';
-                previewFrame.srcdoc = '<h3 style="font-family:Arial;padding:24px;color:#111">Enter a URL to begin testing.</h3>';
+            const raw = urlInput.value.trim();
+            if (!raw) {
+                showPlaceholder();
                 return;
             }
 
+            const url = normalizeUrl(raw);
             frameUrl.textContent = url;
+            previewFrame.srcdoc = '';
             previewFrame.src = url;
         }
 
@@ -293,6 +250,8 @@
 
         if (urlInput.value) {
             loadUrl();
+        } else {
+            showPlaceholder();
         }
 
         applyDevice('mobile');
