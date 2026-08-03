@@ -37,6 +37,90 @@ Route::get('/ui-responsiveness', function (\Illuminate\Http\Request $request) {
         'initialUrl' => $url,
     ]);
 })->name('ui-responsiveness');
+Route::get('/ui-responsiveness/proxy-asset', function (Request $request) {
+    $rawUrl = trim((string) $request->query('url', ''));
+
+    if ($rawUrl === '') {
+        return response('Missing url query parameter.', 422);
+    }
+
+    if (!preg_match('/^https?:\/\//i', $rawUrl)) {
+        return response('Only absolute http(s) URLs are allowed for assets.', 422);
+    }
+
+    if (!filter_var($rawUrl, FILTER_VALIDATE_URL)) {
+        return response('Invalid URL.', 422);
+    }
+
+    $sourceParts = parse_url($rawUrl);
+    $sourceScheme = (string) ($sourceParts['scheme'] ?? 'https');
+    $sourceHost = (string) ($sourceParts['host'] ?? '');
+    $sourceHostLower = strtolower($sourceHost);
+    $sourcePort = isset($sourceParts['port']) ? ':' . $sourceParts['port'] : '';
+    $sourceOrigin = $sourceScheme . '://' . $sourceHost . $sourcePort;
+    $sourcePath = (string) ($sourceParts['path'] ?? '/');
+    $sourceDir = ($sourcePath === '' || str_ends_with($sourcePath, '/')) ? $sourcePath : dirname($sourcePath) . '/';
+
+    try {
+        $upstream = Http::timeout(20)
+            ->withHeaders([
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+                'Accept' => '*/*',
+            ])
+            ->get($rawUrl);
+    } catch (\Throwable $exception) {
+        return response('Could not load asset URL: ' . $exception->getMessage(), 502);
+    }
+
+    if (!$upstream->successful()) {
+        return response('Upstream returned status ' . $upstream->status() . ' for asset request.', 502);
+    }
+
+    $contentType = strtolower((string) $upstream->header('Content-Type', 'application/octet-stream'));
+    $body = (string) $upstream->body();
+
+    if (str_contains($contentType, 'text/css')) {
+        $toAbsolute = function (string $candidate) use ($sourceScheme, $sourceOrigin, $sourceDir): string {
+            if (preg_match('/^https?:\/\//i', $candidate)) {
+                return $candidate;
+            }
+
+            if (str_starts_with($candidate, '//')) {
+                return $sourceScheme . ':' . $candidate;
+            }
+
+            if (str_starts_with($candidate, '/')) {
+                return $sourceOrigin . $candidate;
+            }
+
+            return $sourceOrigin . rtrim($sourceDir, '/') . '/' . ltrim($candidate, '/');
+        };
+
+        $body = preg_replace_callback(
+            '/url\((\s*["\']?)([^)"\']+)(["\']?\s*)\)/i',
+            function (array $matches) use ($toAbsolute, $sourceHostLower): string {
+                $rawCandidate = trim($matches[2]);
+                if ($rawCandidate === '' || preg_match('/^(data:|blob:|javascript:|#)/i', $rawCandidate)) {
+                    return $matches[0];
+                }
+
+                $absolute = $toAbsolute($rawCandidate);
+                $absoluteHost = strtolower((string) (parse_url($absolute, PHP_URL_HOST) ?? ''));
+                if ($absoluteHost !== '' && $absoluteHost === $sourceHostLower) {
+                    $absolute = route('ui-responsiveness.proxy-asset', ['url' => $absolute]);
+                }
+
+                return 'url(' . $matches[1] . $absolute . $matches[3] . ')';
+            },
+            $body
+        ) ?? $body;
+    }
+
+    return response($body, $upstream->status(), [
+        'Content-Type' => $upstream->header('Content-Type', 'application/octet-stream'),
+        'Cache-Control' => 'public, max-age=120',
+    ]);
+})->name('ui-responsiveness.proxy-asset');
 Route::get('/ui-responsiveness/proxy', function (Request $request) {
     $rawUrl = trim((string) $request->query('url', ''));
 
@@ -68,19 +152,53 @@ Route::get('/ui-responsiveness/proxy', function (Request $request) {
     }
 
     $contentType = strtolower((string) $upstream->header('Content-Type', ''));
-    if (!str_contains($contentType, 'text/html')) {
+    if (!str_contains($contentType, 'text/html') && !str_contains($contentType, 'application/xhtml+xml')) {
         return response('Only HTML pages can be previewed.', 415);
     }
 
     $parts = parse_url($rawUrl);
     $scheme = (string) ($parts['scheme'] ?? 'https');
     $host = (string) ($parts['host'] ?? '');
+    $hostLower = strtolower($host);
     $port = isset($parts['port']) ? ':' . $parts['port'] : '';
+    $origin = $scheme . '://' . $host . $port;
     $path = (string) ($parts['path'] ?? '/');
     $directory = ($path === '' || str_ends_with($path, '/')) ? $path : dirname($path);
     $directory = '/' . trim((string) $directory, '/');
     $directory = rtrim($directory, '/') . '/';
-    $baseHref = $scheme . '://' . $host . $port . $directory;
+    $baseHref = $origin . $directory;
+
+    $toAbsoluteUrl = function (string $candidate) use ($scheme, $origin, $directory): string {
+        if (preg_match('/^https?:\/\//i', $candidate)) {
+            return $candidate;
+        }
+
+        if (str_starts_with($candidate, '//')) {
+            return $scheme . ':' . $candidate;
+        }
+
+        if (str_starts_with($candidate, '/')) {
+            return $origin . $candidate;
+        }
+
+        return $origin . rtrim($directory, '/') . '/' . ltrim($candidate, '/');
+    };
+
+    $rewriteImageUrl = function (string $candidate) use ($toAbsoluteUrl, $hostLower): string {
+        $trimmed = trim($candidate);
+        if ($trimmed === '' || preg_match('/^(#|javascript:|mailto:|tel:|data:|blob:)/i', $trimmed)) {
+            return $candidate;
+        }
+
+        $absolute = $toAbsoluteUrl($trimmed);
+        $absoluteHost = strtolower((string) (parse_url($absolute, PHP_URL_HOST) ?? ''));
+
+        if ($absoluteHost === '' || $absoluteHost !== $hostLower) {
+            return $absolute;
+        }
+
+        return route('ui-responsiveness.proxy-asset', ['url' => $absolute]);
+    };
 
     $html = (string) $upstream->body();
     $baseTag = '<base href="' . e($baseHref) . '">';
@@ -89,6 +207,73 @@ Route::get('/ui-responsiveness/proxy', function (Request $request) {
         $html = preg_replace('/<head\b[^>]*>/i', '$0' . $baseTag, $html, 1) ?? $html;
     } else {
         $html = '<head>' . $baseTag . '</head>' . $html;
+    }
+
+    $html = preg_replace_callback(
+        '/<img\b([^>]*?)\bsrc\s*=\s*(["\'])([^"\']+)\2([^>]*)>/i',
+        function (array $matches) use ($rewriteImageUrl): string {
+            $rewritten = $rewriteImageUrl($matches[3]);
+            return '<img' . $matches[1] . 'src=' . $matches[2] . $rewritten . $matches[2] . $matches[4] . '>';
+        },
+        $html
+    ) ?? $html;
+
+    $html = preg_replace_callback(
+        '/<link\b([^>]*?)\bhref\s*=\s*(["\'])([^"\']+)\2([^>]*)>/i',
+        function (array $matches) use ($rewriteImageUrl): string {
+            $attributes = strtolower($matches[1] . ' ' . $matches[4]);
+            if (!str_contains($attributes, 'rel="stylesheet"')
+                && !str_contains($attributes, "rel='stylesheet'")
+                && !str_contains($attributes, 'rel="icon"')
+                && !str_contains($attributes, "rel='icon'")) {
+                return $matches[0];
+            }
+
+            $rewritten = $rewriteImageUrl($matches[3]);
+            return '<link' . $matches[1] . 'href=' . $matches[2] . $rewritten . $matches[2] . $matches[4] . '>';
+        },
+        $html
+    ) ?? $html;
+
+    $html = preg_replace_callback(
+        '/<script\b([^>]*?)\bsrc\s*=\s*(["\'])([^"\']+)\2([^>]*)>/i',
+        function (array $matches) use ($rewriteImageUrl): string {
+            $rewritten = $rewriteImageUrl($matches[3]);
+            return '<script' . $matches[1] . 'src=' . $matches[2] . $rewritten . $matches[2] . $matches[4] . '>';
+        },
+        $html
+    ) ?? $html;
+
+    $html = preg_replace_callback(
+        '/\bsrcset\s*=\s*(["\'])([^"\']+)\1/i',
+        function (array $matches) use ($rewriteImageUrl): string {
+            $quote = $matches[1];
+            $srcset = $matches[2];
+            $items = array_map('trim', explode(',', $srcset));
+            $rewrittenItems = [];
+
+            foreach ($items as $item) {
+                if ($item === '') {
+                    continue;
+                }
+
+                $parts = preg_split('/\s+/', $item, 2);
+                $urlPart = $parts[0] ?? '';
+                $descriptor = $parts[1] ?? '';
+                $rewrittenUrl = $rewriteImageUrl($urlPart);
+                $rewrittenItems[] = trim($rewrittenUrl . ' ' . $descriptor);
+            }
+
+            return 'srcset=' . $quote . implode(', ', $rewrittenItems) . $quote;
+        },
+        $html
+    ) ?? $html;
+
+    $readySignalScript = '<script>(function(){function notify(type){try{window.parent.postMessage({__uiResp:true,type:type,href:location.href},"*");}catch(e){}}if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",function(){notify("domready");});}else{notify("domready");}window.addEventListener("load",function(){notify("load");});})();</script>';
+    if (stripos($html, '</body>') !== false) {
+        $html = preg_replace('/<\/body>/i', $readySignalScript . '</body>', $html, 1) ?? $html;
+    } else {
+        $html .= $readySignalScript;
     }
 
     return response($html, 200, [
