@@ -28,6 +28,13 @@ use App\Http\Controllers\SitemapController;
 use App\Support\ServiceUrl;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
+Route::get('/ui-responsiveness', function (\Illuminate\Http\Request $request) {
+    $url = trim((string) $request->query('url', ''));
+
+    return view('ui-responsiveness', [
+        'initialUrl' => $url,
+    ]);
+})->name('ui-responsiveness');
 // Legacy homepage paths used by old static builds.
 Route::redirect('/index', '/', 301);
 Route::redirect('/home', '/', 301);
