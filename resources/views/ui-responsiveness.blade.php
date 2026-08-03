@@ -357,7 +357,7 @@
         }
 
         function buildProxyUrl(url) {
-            return '/ui-responsiveness/proxy?url=' + encodeURIComponent(url) + '&fast=0';
+            return '/ui-responsiveness/proxy?url=' + encodeURIComponent(url);
         }
 
         function loadUrl() {
