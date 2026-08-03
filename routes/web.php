@@ -62,7 +62,8 @@ Route::get('/ui-responsiveness/proxy-asset', function (Request $request) {
     $sourceDir = ($sourcePath === '' || str_ends_with($sourcePath, '/')) ? $sourcePath : dirname($sourcePath) . '/';
 
     try {
-        $upstream = Http::timeout(20)
+        $upstream = Http::connectTimeout(4)
+            ->timeout(6)
             ->withHeaders([
                 'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
                 'Accept' => '*/*',
@@ -118,11 +119,12 @@ Route::get('/ui-responsiveness/proxy-asset', function (Request $request) {
 
     return response($body, $upstream->status(), [
         'Content-Type' => $upstream->header('Content-Type', 'application/octet-stream'),
-        'Cache-Control' => 'public, max-age=120',
+        'Cache-Control' => 'public, max-age=600',
     ]);
 })->name('ui-responsiveness.proxy-asset');
 Route::get('/ui-responsiveness/proxy', function (Request $request) {
     $rawUrl = trim((string) $request->query('url', ''));
+    $fastMode = (string) $request->query('fast', '1') !== '0';
 
     if ($rawUrl === '') {
         return response('Missing url query parameter.', 422);
@@ -186,7 +188,23 @@ Route::get('/ui-responsiveness/proxy', function (Request $request) {
 
     $rewriteImageUrl = function (string $candidate) use ($toAbsoluteUrl, $hostLower): string {
         $trimmed = trim($candidate);
-        if ($trimmed === '' || preg_match('/^(#|javascript:|mailto:|tel:|data:|blob:)/i', $trimmed)) {
+        if ($trimmed === '' || preg_match('/^(#|about:|javascript:|mailto:|tel:|data:|blob:)/i', $trimmed)) {
+            return $candidate;
+        }
+
+        $absolute = $toAbsoluteUrl($trimmed);
+        $absoluteHost = strtolower((string) (parse_url($absolute, PHP_URL_HOST) ?? ''));
+
+        if ($absoluteHost === '' || $absoluteHost !== $hostLower) {
+            return $absolute;
+        }
+
+        return route('ui-responsiveness.proxy-asset', ['url' => $absolute]);
+    };
+
+    $rewriteStylesheetUrl = function (string $candidate) use ($toAbsoluteUrl, $hostLower): string {
+        $trimmed = trim($candidate);
+        if ($trimmed === '' || preg_match('/^(#|about:|javascript:|mailto:|tel:|data:|blob:)/i', $trimmed)) {
             return $candidate;
         }
 
@@ -210,26 +228,15 @@ Route::get('/ui-responsiveness/proxy', function (Request $request) {
     }
 
     $html = preg_replace_callback(
-        '/<img\b([^>]*?)\bsrc\s*=\s*(["\'])([^"\']+)\2([^>]*)>/i',
-        function (array $matches) use ($rewriteImageUrl): string {
-            $rewritten = $rewriteImageUrl($matches[3]);
-            return '<img' . $matches[1] . 'src=' . $matches[2] . $rewritten . $matches[2] . $matches[4] . '>';
-        },
-        $html
-    ) ?? $html;
-
-    $html = preg_replace_callback(
         '/<link\b([^>]*?)\bhref\s*=\s*(["\'])([^"\']+)\2([^>]*)>/i',
-        function (array $matches) use ($rewriteImageUrl): string {
+        function (array $matches) use ($rewriteStylesheetUrl): string {
             $attributes = strtolower($matches[1] . ' ' . $matches[4]);
             if (!str_contains($attributes, 'rel="stylesheet"')
-                && !str_contains($attributes, "rel='stylesheet'")
-                && !str_contains($attributes, 'rel="icon"')
-                && !str_contains($attributes, "rel='icon'")) {
+                && !str_contains($attributes, "rel='stylesheet'")) {
                 return $matches[0];
             }
 
-            $rewritten = $rewriteImageUrl($matches[3]);
+            $rewritten = $rewriteStylesheetUrl($matches[3]);
             return '<link' . $matches[1] . 'href=' . $matches[2] . $rewritten . $matches[2] . $matches[4] . '>';
         },
         $html
@@ -237,37 +244,27 @@ Route::get('/ui-responsiveness/proxy', function (Request $request) {
 
     $html = preg_replace_callback(
         '/<script\b([^>]*?)\bsrc\s*=\s*(["\'])([^"\']+)\2([^>]*)>/i',
-        function (array $matches) use ($rewriteImageUrl): string {
+        function (array $matches) use ($rewriteImageUrl, $toAbsoluteUrl, $hostLower, $fastMode): string {
+            if ($fastMode) {
+                return '';
+            }
+
+            $absolute = $toAbsoluteUrl($matches[3]);
+            $absoluteHost = strtolower((string) (parse_url($absolute, PHP_URL_HOST) ?? ''));
+
+            if ($absoluteHost !== '' && $absoluteHost !== $hostLower) {
+                return '';
+            }
+
             $rewritten = $rewriteImageUrl($matches[3]);
             return '<script' . $matches[1] . 'src=' . $matches[2] . $rewritten . $matches[2] . $matches[4] . '>';
         },
         $html
     ) ?? $html;
 
-    $html = preg_replace_callback(
-        '/\bsrcset\s*=\s*(["\'])([^"\']+)\1/i',
-        function (array $matches) use ($rewriteImageUrl): string {
-            $quote = $matches[1];
-            $srcset = $matches[2];
-            $items = array_map('trim', explode(',', $srcset));
-            $rewrittenItems = [];
-
-            foreach ($items as $item) {
-                if ($item === '') {
-                    continue;
-                }
-
-                $parts = preg_split('/\s+/', $item, 2);
-                $urlPart = $parts[0] ?? '';
-                $descriptor = $parts[1] ?? '';
-                $rewrittenUrl = $rewriteImageUrl($urlPart);
-                $rewrittenItems[] = trim($rewrittenUrl . ' ' . $descriptor);
-            }
-
-            return 'srcset=' . $quote . implode(', ', $rewrittenItems) . $quote;
-        },
-        $html
-    ) ?? $html;
+    if ($fastMode) {
+        $html = preg_replace('/<script\b(?![^>]*type=["\']application\/ld\+json["\'])[^>]*>[\s\S]*?<\/script>/i', '', $html) ?? $html;
+    }
 
     $readySignalScript = '<script>(function(){function notify(type){try{window.parent.postMessage({__uiResp:true,type:type,href:location.href},"*");}catch(e){}}if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",function(){notify("domready");});}else{notify("domready");}window.addEventListener("load",function(){notify("load");});})();</script>';
     if (stripos($html, '</body>') !== false) {
