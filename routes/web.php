@@ -177,15 +177,6 @@ Route::get('/ui-responsiveness/proxy', function (Request $request) {
         $html = substr($html, 0, $previewBlockStart) . substr($html, $previewBlockEnd);
     }
 
-    $tailMarker = "'); iDoc.close(); } const modal = new bootstrap.Modal(";
-    $tailPosition = stripos($html, $tailMarker);
-    if ($tailPosition !== false) {
-        $bodyClosePosition = stripos($html, '</body>', $tailPosition);
-        if ($bodyClosePosition !== false) {
-            $html = substr($html, 0, $tailPosition) . substr($html, $bodyClosePosition);
-        }
-    }
-
     $previousUseErrors = libxml_use_internal_errors(true);
     $dom = new \DOMDocument('1.0', 'UTF-8');
     $dom->preserveWhiteSpace = true;
@@ -202,44 +193,9 @@ Route::get('/ui-responsiveness/proxy', function (Request $request) {
             $head->insertBefore($base, $head->firstChild);
         }
 
-        foreach ($xpath->query('//body//text()[not(ancestor::script) and not(ancestor::style)]') as $textNode) {
-            if (!$textNode instanceof \DOMText) {
-                continue;
-            }
-
-            $text = trim((string) $textNode->nodeValue);
-            if ($text === '') {
-                continue;
-            }
-
-            $suspiciousMarkers = [
-                'FINAL closing bracket for $(document).ready()',
-                '$(document).ready',
-                'window.setTimeout',
-                'ClientLogWrapper',
-                'printPreviewBtn',
-                'showTranslatedAlert',
-                'document.write(',
-                'GoToNewEditor',
-                'previewFrame.contentWindow.focus',
-                '$(document).on(',
-                '$("#SubmitForm")',
-                'dallasPreferredLanguage',
-            ];
-
-            $isSuspicious = false;
-            foreach ($suspiciousMarkers as $marker) {
-                if (str_contains($text, $marker)) {
-                    $isSuspicious = true;
-                    break;
-                }
-            }
-
-            if ($isSuspicious) {
-                $parent = $textNode->parentNode;
-                if ($parent instanceof \DOMNode) {
-                    $parent->removeChild($textNode);
-                }
+        foreach ($xpath->query('//script') as $scriptNode) {
+            if ($scriptNode instanceof \DOMNode && $scriptNode->parentNode) {
+                $scriptNode->parentNode->removeChild($scriptNode);
             }
         }
 
@@ -248,12 +204,6 @@ Route::get('/ui-responsiveness/proxy', function (Request $request) {
 
     libxml_clear_errors();
     libxml_use_internal_errors($previousUseErrors);
-
-    if (stripos($html, '</body>') !== false) {
-        $html = preg_replace('/<\/body>/i', $readySignalScript . '</body>', $html, 1) ?? $html;
-    } else {
-        $html .= $readySignalScript;
-    }
 
     return response($html, 200, [
         'Content-Type' => 'text/html; charset=UTF-8',
