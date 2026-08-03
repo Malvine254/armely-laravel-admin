@@ -118,6 +118,7 @@ Route::get('/ui-responsiveness/proxy-asset', function (Request $request) {
                 $absoluteHost = strtolower((string) (parse_url($absolute, PHP_URL_HOST) ?? ''));
                 if ($absoluteHost !== '') {
                     $absolute = route('ui-responsiveness.proxy-asset', [
+                        'rev' => 2,
                         'url' => $absolute,
                         'referer' => $rawUrl,
                     ], false);
@@ -204,6 +205,7 @@ Route::get('/ui-responsiveness/proxy', function (Request $request) {
         }
 
         return route('ui-responsiveness.proxy-asset', [
+            'rev' => 2,
             'url' => $absolute,
             'referer' => $rawUrl,
         ], false);
@@ -287,6 +289,7 @@ Route::get('/ui-responsiveness/proxy', function (Request $request) {
 
     $runtimeProxyConfig = json_encode([
         'endpoint' => route('ui-responsiveness.proxy-asset', [], false),
+        'revision' => 2,
         'sourceUrl' => $rawUrl,
     ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
 
@@ -317,7 +320,8 @@ Route::get('/ui-responsiveness/proxy', function (Request $request) {
 
             var absolute = new URL(value, config.sourceUrl);
             if (!/^https?:$/.test(absolute.protocol)) return value;
-            return config.endpoint + '?url=' + encodeURIComponent(absolute.href)
+            return config.endpoint + '?rev=' + encodeURIComponent(config.revision)
+                + '&url=' + encodeURIComponent(absolute.href)
                 + '&referer=' + encodeURIComponent(config.sourceUrl);
         } catch (error) {
             return value;
@@ -372,6 +376,9 @@ HTML;
 
     return response($html, 200, [
         'Content-Type' => 'text/html; charset=UTF-8',
+        'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+        'CDN-Cache-Control' => 'no-store',
+        'Pragma' => 'no-cache',
     ]);
 })->name('ui-responsiveness.proxy');
 // Legacy homepage paths used by old static builds.
