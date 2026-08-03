@@ -41,7 +41,7 @@ class EventRegistrationTest extends TestCase
     public function test_company_email_registration_is_stored_and_sends_both_emails(): void
     {
         $this->mock(AzureMailService::class, function (MockInterface $mock): void {
-            $mock->shouldReceive('sendEmail')->twice()->andReturnTrue();
+            $mock->shouldReceive('sendEmail')->atLeast()->times(2)->andReturnTrue();
         });
 
         $this->post(route('events.sovereign-data-cloud.register.store'), $this->payload())
@@ -57,7 +57,7 @@ class EventRegistrationTest extends TestCase
     public function test_ajax_registration_returns_json_without_a_page_reload(): void
     {
         $this->mock(AzureMailService::class, function (MockInterface $mock): void {
-            $mock->shouldReceive('sendEmail')->twice()->andReturnTrue();
+            $mock->shouldReceive('sendEmail')->atLeast()->times(2)->andReturnTrue();
         });
 
         $this->postJson(route('events.sovereign-data-cloud.register.store'), $this->payload([
@@ -66,6 +66,50 @@ class EventRegistrationTest extends TestCase
             ->assertOk()
             ->assertJsonPath('success', true)
             ->assertJsonStructure(['message']);
+    }
+
+    public function test_new_registration_notifies_each_active_admin_once(): void
+    {
+        config(['mail.event_registration_to' => 'events@armely.com']);
+        $recipients = [];
+
+        DB::table('admin')->insert([
+            [
+                'name' => 'Active Admin',
+                'email' => 'active-admin@armely.com',
+                'password' => 'not-used',
+                'status' => 'active',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'name' => 'Inactive Admin',
+                'email' => 'inactive-admin@armely.com',
+                'password' => 'not-used',
+                'status' => 'inactive',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        ]);
+
+        $this->mock(AzureMailService::class, function (MockInterface $mock) use (&$recipients): void {
+            $mock->shouldReceive('sendEmail')
+                ->andReturnUsing(function ($from, $to) use (&$recipients): bool {
+                    $recipients[] = $to;
+
+                    return true;
+                });
+        });
+
+        $this->post(route('events.sovereign-data-cloud.register.store'), $this->payload())
+            ->assertRedirect(route('events.sovereign-data-cloud.register'));
+
+        $this->assertContains('sarah@city.gov', $recipients);
+        $this->assertContains('events@armely.com', $recipients);
+        $this->assertContains('ask.me@armely.com', $recipients);
+        $this->assertContains('active-admin@armely.com', $recipients);
+        $this->assertNotContains('inactive-admin@armely.com', $recipients);
+        $this->assertSame(1, count(array_keys($recipients, 'active-admin@armely.com', true)));
     }
 
     public function test_signed_unsubscribe_link_suppresses_future_event_email(): void

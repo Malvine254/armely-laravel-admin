@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\AzureMailService;
+use App\Services\NewsletterNotificationService;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\JsonResponse;
@@ -46,17 +47,31 @@ class EventRegistrationController extends Controller
         ]);
     }
 
-    public function store(Request $request, AzureMailService $mailer): RedirectResponse|JsonResponse
+    public function store(
+        Request $request,
+        AzureMailService $mailer,
+        NewsletterNotificationService $notificationService
+    ): RedirectResponse|JsonResponse
     {
-        return $this->handleStore($request, $mailer, null);
+        return $this->handleStore($request, $mailer, $notificationService, null);
     }
 
-    public function storePrivate(Request $request, AzureMailService $mailer, string $slug): RedirectResponse|JsonResponse
+    public function storePrivate(
+        Request $request,
+        AzureMailService $mailer,
+        NewsletterNotificationService $notificationService,
+        string $slug
+    ): RedirectResponse|JsonResponse
     {
-        return $this->handleStore($request, $mailer, $this->privateEvent($slug));
+        return $this->handleStore($request, $mailer, $notificationService, $this->privateEvent($slug));
     }
 
-    private function handleStore(Request $request, AzureMailService $mailer, ?object $event): RedirectResponse|JsonResponse
+    private function handleStore(
+        Request $request,
+        AzureMailService $mailer,
+        NewsletterNotificationService $notificationService,
+        ?object $event
+    ): RedirectResponse|JsonResponse
     {
         $data = $request->validate([
             'full_name' => ['required', 'string', 'max:150'],
@@ -156,7 +171,7 @@ class EventRegistrationController extends Controller
 
         $data['event_name'] = $event->title ?? self::EVENT_NAME;
         $data['unsubscribe_url'] = URL::signedRoute('events.emails.unsubscribe', ['token' => $unsubscribeToken]);
-        $this->sendEmails($mailer, $data);
+        $this->sendEmails($mailer, $notificationService, $data);
 
         $message = 'Thank you, '.$data['full_name'].'. Your request has been received. Our team will review your details and issue your access link within 24–48 hours.';
 
@@ -171,13 +186,24 @@ class EventRegistrationController extends Controller
             ->with('success', $message);
     }
 
-    private function sendEmails(AzureMailService $mailer, array $data): void
+    private function sendEmails(
+        AzureMailService $mailer,
+        NewsletterNotificationService $notificationService,
+        array $data
+    ): void
     {
         $from = AzureMailService::outboundFromEmail();
-        $admin = AzureMailService::normalizeEmail((string) (
+        $configuredRecipient = AzureMailService::normalizeEmail((string) (
             config('mail.event_registration_to')
             ?: env('CONTACT_NOTIFICATION_EMAIL', 'ask.me@armely.com')
         ));
+        $adminRecipients = collect(array_merge(
+            [$configuredRecipient],
+            $notificationService->adminRecipientEmails()
+        ))
+            ->filter(fn ($email) => AzureMailService::isDeliverableEmail((string) $email))
+            ->unique()
+            ->values();
 
         try {
             $isUnsubscribed = DB::table('event_email_unsubscribes')
@@ -190,19 +216,20 @@ class EventRegistrationController extends Controller
                     view('emails.events.registration-confirmation', $data)->render()
                 );
 
-            $adminSent = AzureMailService::isDeliverableEmail($admin)
-                ? $mailer->sendEmail(
+            $adminResults = $adminRecipients->mapWithKeys(
+                fn ($admin) => [(string) $admin => $mailer->sendEmail(
                     $from,
                     $admin,
                     'New event invitation request: '.$data['event_name'],
                     view('emails.events.registration-notification', $data)->render()
-                )
-                : false;
+                )]
+            );
+            $adminsSent = $adminResults->isNotEmpty() && $adminResults->every();
 
-            if (!$userSent || !$adminSent) {
+            if (!$userSent || !$adminsSent) {
                 Log::warning('Event registration email was not delivered', [
                     'registrant_sent' => $userSent,
-                    'admin_sent' => $adminSent,
+                    'admin_results' => $adminResults->all(),
                     'email' => $data['work_email'],
                 ]);
             }
