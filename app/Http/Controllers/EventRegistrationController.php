@@ -224,7 +224,8 @@ class EventRegistrationController extends Controller
                     view('emails.events.registration-notification', $data)->render()
                 )]
             );
-            $adminsSent = $adminResults->isNotEmpty() && $adminResults->every();
+            $adminsSent = $adminResults->isNotEmpty()
+                && $adminResults->every(fn ($sent) => $sent === true);
 
             if (!$userSent || !$adminsSent) {
                 Log::warning('Event registration email was not delivered', [
