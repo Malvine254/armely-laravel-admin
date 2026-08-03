@@ -28,6 +28,8 @@ use App\Http\Controllers\SitemapController;
 use App\Support\ServiceUrl;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use GuzzleHttp\Psr7\Uri;
+use GuzzleHttp\Psr7\UriResolver;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/ui-responsiveness', function (\Illuminate\Http\Request $request) {
@@ -55,7 +57,6 @@ Route::get('/ui-responsiveness/proxy-asset', function (Request $request) {
     $sourceParts = parse_url($rawUrl);
     $sourceScheme = (string) ($sourceParts['scheme'] ?? 'https');
     $sourceHost = (string) ($sourceParts['host'] ?? '');
-    $sourceHostLower = strtolower($sourceHost);
     $sourcePort = isset($sourceParts['port']) ? ':' . $sourceParts['port'] : '';
     $sourceOrigin = $sourceScheme . '://' . $sourceHost . $sourcePort;
     $sourcePath = (string) ($sourceParts['path'] ?? '/');
@@ -99,7 +100,7 @@ Route::get('/ui-responsiveness/proxy-asset', function (Request $request) {
 
         $body = preg_replace_callback(
             '/url\((\s*["\']?)([^)"\']+)(["\']?\s*)\)/i',
-            function (array $matches) use ($toAbsolute, $sourceHostLower): string {
+            function (array $matches) use ($toAbsolute): string {
                 $rawCandidate = trim($matches[2]);
                 if ($rawCandidate === '' || preg_match('/^(data:|blob:|javascript:|#)/i', $rawCandidate)) {
                     return $matches[0];
@@ -107,8 +108,8 @@ Route::get('/ui-responsiveness/proxy-asset', function (Request $request) {
 
                 $absolute = $toAbsolute($rawCandidate);
                 $absoluteHost = strtolower((string) (parse_url($absolute, PHP_URL_HOST) ?? ''));
-                if ($absoluteHost !== '' && $absoluteHost === $sourceHostLower) {
-                    $absolute = route('ui-responsiveness.proxy-asset', ['url' => $absolute]);
+                if ($absoluteHost !== '') {
+                    $absolute = route('ui-responsiveness.proxy-asset', ['url' => $absolute], false);
                 }
 
                 return 'url(' . $matches[1] . $absolute . $matches[3] . ')';
@@ -169,6 +170,90 @@ Route::get('/ui-responsiveness/proxy', function (Request $request) {
     $baseHref = $origin . $directory;
 
     $html = (string) $upstream->body();
+
+    $resolveUrl = static function (string $candidate) use ($rawUrl): string {
+        $candidate = html_entity_decode(trim($candidate), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+        if ($candidate === '' || preg_match('/^(?:data:|blob:|javascript:|mailto:|tel:|#)/i', $candidate)) {
+            return $candidate;
+        }
+
+        try {
+            return (string) UriResolver::resolve(new Uri($rawUrl), new Uri($candidate));
+        } catch (\Throwable $exception) {
+            return $candidate;
+        }
+    };
+
+    $proxyAssetUrl = static function (string $candidate) use ($resolveUrl): string {
+        $absolute = $resolveUrl($candidate);
+
+        if (!preg_match('/^https?:\/\//i', $absolute)) {
+            return $candidate;
+        }
+
+        return route('ui-responsiveness.proxy-asset', ['url' => $absolute], false);
+    };
+
+    // A CSP copied from the upstream page describes its origin, not this local
+    // preview origin, and would consequently block the assets rewritten below.
+    $html = preg_replace(
+        '/<meta\b(?=[^>]*\bhttp-equiv\s*=\s*(["\'])?content-security-policy\1)[^>]*>/i',
+        '',
+        $html
+    ) ?? $html;
+
+    // Keep all browser-fetched assets on the preview origin. This handles both
+    // first-party files and third-party dependencies such as jQuery/CDN scripts.
+    $assetAttributes = [
+        'script' => ['src'],
+        'link' => ['href'],
+        'img' => ['src'],
+        'source' => ['src'],
+        'video' => ['src', 'poster'],
+        'audio' => ['src'],
+        'track' => ['src'],
+        'input' => ['src'],
+        'object' => ['data'],
+        'embed' => ['src'],
+    ];
+
+    foreach ($assetAttributes as $tag => $attributes) {
+        $html = preg_replace_callback(
+            '/<' . $tag . '\b[^>]*>/is',
+            static function (array $tagMatch) use ($attributes, $proxyAssetUrl): string {
+                $tagHtml = $tagMatch[0];
+
+                foreach ($attributes as $attribute) {
+                    $tagHtml = preg_replace_callback(
+                        '/(\s' . $attribute . '\s*=\s*)(["\'])(.*?)\2/is',
+                        static fn (array $attributeMatch): string => $attributeMatch[1]
+                            . $attributeMatch[2]
+                            . e($proxyAssetUrl($attributeMatch[3]))
+                            . $attributeMatch[2],
+                        $tagHtml
+                    ) ?? $tagHtml;
+                }
+
+                return $tagHtml;
+            },
+            $html
+        ) ?? $html;
+    }
+
+    $html = preg_replace_callback(
+        '/(\ssrcset\s*=\s*)(["\'])(.*?)\2/is',
+        static function (array $matches) use ($proxyAssetUrl): string {
+            $candidates = preg_split('/\s*,\s*/', trim($matches[3])) ?: [];
+            $rewritten = array_map(static function (string $candidate) use ($proxyAssetUrl): string {
+                $parts = preg_split('/\s+/', trim($candidate), 2);
+                return e($proxyAssetUrl($parts[0])) . (isset($parts[1]) ? ' ' . $parts[1] : '');
+            }, $candidates);
+
+            return $matches[1] . $matches[2] . implode(', ', $rewritten) . $matches[2];
+        },
+        $html
+    ) ?? $html;
 
     $previewBlockStart = stripos($html, '//  Preview Modal Handler');
     $previewBlockEnd = stripos($html, '<!--Start Show Session Expire Warning Popup here -->', $previewBlockStart === false ? 0 : $previewBlockStart);
