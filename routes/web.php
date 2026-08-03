@@ -26,6 +26,8 @@ use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\EventRegistrationController;
 use App\Http\Controllers\SitemapController;
 use App\Support\ServiceUrl;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/ui-responsiveness', function (\Illuminate\Http\Request $request) {
@@ -35,6 +37,64 @@ Route::get('/ui-responsiveness', function (\Illuminate\Http\Request $request) {
         'initialUrl' => $url,
     ]);
 })->name('ui-responsiveness');
+Route::get('/ui-responsiveness/proxy', function (Request $request) {
+    $rawUrl = trim((string) $request->query('url', ''));
+
+    if ($rawUrl === '') {
+        return response('Missing url query parameter.', 422);
+    }
+
+    if (!preg_match('/^https?:\/\//i', $rawUrl)) {
+        $rawUrl = 'https://' . $rawUrl;
+    }
+
+    if (!filter_var($rawUrl, FILTER_VALIDATE_URL)) {
+        return response('Invalid URL.', 422);
+    }
+
+    try {
+        $upstream = Http::timeout(20)
+            ->withHeaders([
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+                'Accept' => 'text/html,application/xhtml+xml',
+            ])
+            ->get($rawUrl);
+    } catch (\Throwable $exception) {
+        return response('Could not load URL: ' . $exception->getMessage(), 502);
+    }
+
+    if (!$upstream->successful()) {
+        return response('Upstream returned status ' . $upstream->status() . '.', 502);
+    }
+
+    $contentType = strtolower((string) $upstream->header('Content-Type', ''));
+    if (!str_contains($contentType, 'text/html')) {
+        return response('Only HTML pages can be previewed.', 415);
+    }
+
+    $parts = parse_url($rawUrl);
+    $scheme = (string) ($parts['scheme'] ?? 'https');
+    $host = (string) ($parts['host'] ?? '');
+    $port = isset($parts['port']) ? ':' . $parts['port'] : '';
+    $path = (string) ($parts['path'] ?? '/');
+    $directory = ($path === '' || str_ends_with($path, '/')) ? $path : dirname($path);
+    $directory = '/' . trim((string) $directory, '/');
+    $directory = rtrim($directory, '/') . '/';
+    $baseHref = $scheme . '://' . $host . $port . $directory;
+
+    $html = (string) $upstream->body();
+    $baseTag = '<base href="' . e($baseHref) . '">';
+
+    if (preg_match('/<head\b[^>]*>/i', $html) === 1) {
+        $html = preg_replace('/<head\b[^>]*>/i', '$0' . $baseTag, $html, 1) ?? $html;
+    } else {
+        $html = '<head>' . $baseTag . '</head>' . $html;
+    }
+
+    return response($html, 200, [
+        'Content-Type' => 'text/html; charset=UTF-8',
+    ]);
+})->name('ui-responsiveness.proxy');
 // Legacy homepage paths used by old static builds.
 Route::redirect('/index', '/', 301);
 Route::redirect('/home', '/', 301);

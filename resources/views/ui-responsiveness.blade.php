@@ -218,7 +218,12 @@
 
         function showPlaceholder() {
             frameUrl.textContent = 'Enter a URL to begin testing.';
+            previewFrame.removeAttribute('src');
             previewFrame.srcdoc = '<div style="font-family:Arial;padding:24px;color:#111">Enter a URL to begin testing.</div>';
+        }
+
+        function buildProxyUrl(url) {
+            return '/ui-responsiveness/proxy?url=' + encodeURIComponent(url);
         }
 
         function loadUrl() {
@@ -230,8 +235,8 @@
 
             const url = normalizeUrl(raw);
             frameUrl.textContent = url;
-            previewFrame.srcdoc = '';
-            previewFrame.src = url;
+            previewFrame.removeAttribute('srcdoc');
+            previewFrame.src = buildProxyUrl(url);
         }
 
         loadBtn.addEventListener('click', loadUrl);
