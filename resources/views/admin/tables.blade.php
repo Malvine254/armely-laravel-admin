@@ -1037,10 +1037,6 @@
 
         <!-- Events Tab -->
         <div class="tab-pane fade" id="events" role="tabpanel">
-            @php
-                $normalEventCount = $events->filter(fn($event) => ($event->event_type ?? 'normal') === 'normal')->count();
-                $privateEventCount = $events->filter(fn($event) => ($event->event_type ?? 'normal') === 'private')->count();
-            @endphp
             <div class="card-body event-management-shell">
                 <div class="event-hero p-4 p-xl-5 mb-4 rounded-3 text-white">
                     <div class="event-hero-content d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-4">

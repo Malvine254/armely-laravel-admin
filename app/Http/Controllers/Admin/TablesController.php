@@ -140,9 +140,12 @@ class TablesController extends Controller
 
         $eventsTable = $this->tableExists('events') ? 'events' : ($this->tableExists('event') ? 'event' : null);
         $events = $eventsTable ? DB::table($eventsTable)->orderBy('id', 'desc')->limit(50)->get() : collect();
-        $privateEventIds = $events->filter(fn ($event) => ($event->event_type ?? 'normal') === 'private')->pluck('id');
-        $privateEventTitles = $events
-            ->filter(fn ($event) => ($event->event_type ?? 'normal') === 'private')
+        $normalEvents = $events->filter(fn ($event) => ($event->event_type ?? 'normal') === 'normal');
+        $privateEvents = $events->filter(fn ($event) => ($event->event_type ?? 'normal') === 'private');
+        $normalEventCount = $normalEvents->count();
+        $privateEventCount = $privateEvents->count();
+        $privateEventIds = $privateEvents->pluck('id');
+        $privateEventTitles = $privateEvents
             ->pluck('title')
             ->filter()
             ->push('Sovereign Data Clouds with Snowflake')
@@ -196,7 +199,7 @@ class TablesController extends Controller
         $caseStudyCategories = $this->caseStudyCategoryOptions();
         $caseStudyTechnologies = $this->caseStudyTechnologyOptions();
 
-        return view('admin.tables', compact('blogs', 'videos', 'careers', 'socialImpact', 'customerStories', 'caseStudies', 'events', 'eventRegistrations', 'team', 'contacts', 'newsletterSubscribers', 'siteBanners', 'announcements', 'adminAuthors', 'caseStudyCategories', 'caseStudyTechnologies'));
+        return view('admin.tables', compact('blogs', 'videos', 'careers', 'socialImpact', 'customerStories', 'caseStudies', 'events', 'normalEventCount', 'privateEventCount', 'eventRegistrations', 'team', 'contacts', 'newsletterSubscribers', 'siteBanners', 'announcements', 'adminAuthors', 'caseStudyCategories', 'caseStudyTechnologies'));
     }
     
     // ========== LIST ENDPOINTS FOR AJAX TABLE RELOAD ==========
