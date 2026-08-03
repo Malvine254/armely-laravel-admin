@@ -92,6 +92,9 @@
         }
 
         .device-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
             padding: 6px 10px;
             border-radius: 999px;
             background: #1f2937;
@@ -99,6 +102,15 @@
             cursor: pointer;
             font-size: 0.9rem;
             user-select: none;
+        }
+
+        .device-chip svg {
+            width: 14px;
+            height: 14px;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 1.8;
+            flex: 0 0 auto;
         }
 
         .device-chip.active {
@@ -178,14 +190,38 @@
         </div>
 
         <div class="device-row" id="deviceRow">
-            <div class="device-chip active" data-size="iphone-12">📱 iPhone 12</div>
-            <div class="device-chip" data-size="iphone-se">📱 iPhone SE</div>
-            <div class="device-chip" data-size="pixel-7">📱 Pixel 7</div>
-            <div class="device-chip" data-size="ipad-mini">📲 iPad Mini</div>
-            <div class="device-chip" data-size="ipad-pro-11">📲 iPad Pro 11</div>
-            <div class="device-chip" data-size="laptop-1366">💻 Laptop 1366</div>
-            <div class="device-chip" data-size="laptop-1440">💻 Laptop 1440</div>
-            <div class="device-chip" data-size="desktop-fhd">🖥 Desktop FHD</div>
+            <div class="device-chip active" data-size="iphone-12">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2"></rect><line x1="11" y1="19" x2="13" y2="19"></line></svg>
+                <span>iPhone 12</span>
+            </div>
+            <div class="device-chip" data-size="iphone-se">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2"></rect><line x1="11" y1="19" x2="13" y2="19"></line></svg>
+                <span>iPhone SE</span>
+            </div>
+            <div class="device-chip" data-size="pixel-7">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2"></rect><line x1="11" y1="19" x2="13" y2="19"></line></svg>
+                <span>Pixel 7</span>
+            </div>
+            <div class="device-chip" data-size="ipad-mini">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="2"></rect><circle cx="12" cy="18" r="0.8"></circle></svg>
+                <span>iPad Mini</span>
+            </div>
+            <div class="device-chip" data-size="ipad-pro-11">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="2"></rect><circle cx="12" cy="18" r="0.8"></circle></svg>
+                <span>iPad Pro 11</span>
+            </div>
+            <div class="device-chip" data-size="laptop-1366">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="11" rx="1.5"></rect><path d="M2 19h20"></path></svg>
+                <span>Laptop 1366</span>
+            </div>
+            <div class="device-chip" data-size="laptop-1440">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="11" rx="1.5"></rect><path d="M2 19h20"></path></svg>
+                <span>Laptop 1440</span>
+            </div>
+            <div class="device-chip" data-size="desktop-fhd">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="1.5"></rect><path d="M9 20h6"></path><path d="M12 16v4"></path></svg>
+                <span>Desktop FHD</span>
+            </div>
         </div>
 
         <div class="viewport">
