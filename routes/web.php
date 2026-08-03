@@ -124,7 +124,6 @@ Route::get('/ui-responsiveness/proxy-asset', function (Request $request) {
 })->name('ui-responsiveness.proxy-asset');
 Route::get('/ui-responsiveness/proxy', function (Request $request) {
     $rawUrl = trim((string) $request->query('url', ''));
-    $fastMode = (string) $request->query('fast', '1') !== '0';
 
     if ($rawUrl === '') {
         return response('Missing url query parameter.', 422);
@@ -244,10 +243,7 @@ Route::get('/ui-responsiveness/proxy', function (Request $request) {
 
     $html = preg_replace_callback(
         '/<script\b([^>]*?)\bsrc\s*=\s*(["\'])([^"\']+)\2([^>]*)>/i',
-        function (array $matches) use ($rewriteImageUrl, $toAbsoluteUrl, $hostLower, $fastMode): string {
-            if ($fastMode) {
-                return '';
-            }
+        function (array $matches) use ($rewriteImageUrl, $toAbsoluteUrl, $hostLower): string {
 
             $absolute = $toAbsoluteUrl($matches[3]);
             $absoluteHost = strtolower((string) (parse_url($absolute, PHP_URL_HOST) ?? ''));
@@ -262,8 +258,32 @@ Route::get('/ui-responsiveness/proxy', function (Request $request) {
         $html
     ) ?? $html;
 
-    if ($fastMode) {
-        $html = preg_replace('/<script\b(?![^>]*type=["\']application\/ld\+json["\'])[^>]*>[\s\S]*?<\/script>/i', '', $html) ?? $html;
+    $jqueryScriptTags = [];
+    $html = preg_replace_callback(
+        '/<script\b([^>]*?)\bsrc\s*=\s*(["\'])([^"\']+)\2([^>]*)><\/script>/i',
+        function (array $matches) use (&$jqueryScriptTags): string {
+            $scriptTag = $matches[0];
+            $source = strtolower($matches[3]);
+
+            if (str_contains($source, 'jquery.min.js')
+                || str_contains($source, 'jquery-migrate')
+                || str_contains($source, 'jquery-ui.min.js')) {
+                $jqueryScriptTags[] = $scriptTag;
+                return '';
+            }
+
+            return $scriptTag;
+        },
+        $html
+    ) ?? $html;
+
+    if ($jqueryScriptTags !== []) {
+        $insertion = implode("\n", array_unique($jqueryScriptTags)) . "\n";
+        if (preg_match('/<head\b[^>]*>/i', $html) === 1) {
+            $html = preg_replace('/<head\b[^>]*>/i', '$0' . $insertion, $html, 1) ?? $html;
+        } else {
+            $html = $insertion . $html;
+        }
     }
 
     $readySignalScript = '<script>(function(){function notify(type){try{window.parent.postMessage({__uiResp:true,type:type,href:location.href},"*");}catch(e){}}if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",function(){notify("domready");});}else{notify("domready");}window.addEventListener("load",function(){notify("load");});})();</script>';
