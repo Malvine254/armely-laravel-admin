@@ -129,14 +129,45 @@
         }
 
         .frame-wrap {
+            position: relative;
             width: 390px;
-            max-width: 100%;
+            max-width: none;
+            min-width: 320px;
             background: white;
             border-radius: 16px;
             overflow: hidden;
             border: 1px solid #d1d5db;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.16);
             transition: width 0.2s ease;
+        }
+
+        .frame-wrap.is-resizing {
+            transition: none;
+            user-select: none;
+        }
+
+        .frame-wrap.is-resizing iframe {
+            pointer-events: none;
+        }
+
+        .resize-handle {
+            position: absolute;
+            z-index: 10;
+            right: 0;
+            bottom: 0;
+            width: 18px;
+            height: 18px;
+            cursor: nwse-resize;
+            touch-action: none;
+            border-top: 2px solid rgba(56, 189, 248, 0.55);
+            border-left: 2px solid rgba(56, 189, 248, 0.55);
+            border-top-left-radius: 8px;
+            background: rgba(15, 23, 42, 0.28);
+        }
+
+        .resize-handle:hover,
+        .frame-wrap.is-resizing .resize-handle {
+            background: rgba(56, 189, 248, 0.7);
         }
 
         iframe {
@@ -232,6 +263,7 @@
             <div class="frame-wrap" id="deviceStage">
                 <div class="status" id="frameUrl">Enter a URL to begin testing.</div>
                 <iframe id="previewFrame" srcdoc="<div style='font-family:Arial;padding:24px;color:#111'>Enter a URL to begin testing.</div>"></iframe>
+                <div class="resize-handle" id="resizeHandle" title="Drag to resize; double-click to reset" aria-label="Resize preview viewport"></div>
             </div>
         </div>
     </div>
@@ -260,13 +292,20 @@
         const frameUrl = document.getElementById('frameUrl');
         const previewFrame = document.getElementById('previewFrame');
         const deviceRow = document.getElementById('deviceRow');
+        const resizeHandle = document.getElementById('resizeHandle');
         let currentUrl = '';
         let loadingStartedAt = 0;
         let loadingTimer = null;
         let renderWatchTimer = null;
         let hasLoadedCurrentPage = false;
+        let customWidth = null;
+        let customHeight = null;
 
         function currentSizeLabel() {
+            if (customWidth !== null && customHeight !== null) {
+                return customWidth + 'x' + customHeight;
+            }
+
             const selected = deviceSelect.value;
             const preset = presets[selected];
             return preset.width + 'x' + preset.height;
@@ -314,6 +353,8 @@
 
         function applyDevice(size) {
             const preset = presets[size];
+            customWidth = null;
+            customHeight = null;
             deviceStage.style.width = preset.width + 'px';
             previewFrame.style.height = Math.max(540, preset.height) + 'px';
             document.querySelectorAll('.device-chip').forEach(chip => {
@@ -425,6 +466,46 @@
                 applyDevice(chip.dataset.size);
             }
         });
+
+        resizeHandle.addEventListener('pointerdown', (event) => {
+            event.preventDefault();
+            resizeHandle.setPointerCapture(event.pointerId);
+            deviceStage.classList.add('is-resizing');
+
+            const startX = event.clientX;
+            const startY = event.clientY;
+            const startWidth = deviceStage.getBoundingClientRect().width;
+            const startHeight = previewFrame.getBoundingClientRect().height;
+
+            const resize = (moveEvent) => {
+                const width = Math.max(320, Math.min(2560, Math.round(startWidth + moveEvent.clientX - startX)));
+                const height = Math.max(320, Math.min(2560, Math.round(startHeight + moveEvent.clientY - startY)));
+                customWidth = width;
+                customHeight = height;
+                deviceStage.style.width = width + 'px';
+                previewFrame.style.height = height + 'px';
+                document.querySelectorAll('.device-chip').forEach(chip => chip.classList.remove('active'));
+
+                if (currentUrl) {
+                    setStatus((hasLoadedCurrentPage ? 'Loaded ' : '') + currentUrl + ' | ' + currentSizeLabel(), hasLoadedCurrentPage ? 'loaded' : '');
+                } else {
+                    setStatus('Custom viewport | ' + currentSizeLabel());
+                }
+            };
+
+            const finish = () => {
+                deviceStage.classList.remove('is-resizing');
+                resizeHandle.removeEventListener('pointermove', resize);
+                resizeHandle.removeEventListener('pointerup', finish);
+                resizeHandle.removeEventListener('pointercancel', finish);
+            };
+
+            resizeHandle.addEventListener('pointermove', resize);
+            resizeHandle.addEventListener('pointerup', finish);
+            resizeHandle.addEventListener('pointercancel', finish);
+        });
+
+        resizeHandle.addEventListener('dblclick', () => applyDevice(deviceSelect.value));
 
         if (urlInput.value) {
             loadUrl();
