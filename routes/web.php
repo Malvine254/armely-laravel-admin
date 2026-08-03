@@ -62,6 +62,8 @@ Route::get('/ui-responsiveness/proxy-asset', function (Request $request) {
     $sourceOrigin = $sourceScheme . '://' . $sourceHost . $sourcePort;
     $sourcePath = (string) ($sourceParts['path'] ?? '/');
     $sourceDir = ($sourcePath === '' || str_ends_with($sourcePath, '/')) ? $sourcePath : dirname($sourcePath) . '/';
+    $proxyAssetEndpoint = $request->getSchemeAndHttpHost()
+        . route('ui-responsiveness.proxy-asset', [], false);
 
     try {
         $headers = [
@@ -108,7 +110,7 @@ Route::get('/ui-responsiveness/proxy-asset', function (Request $request) {
 
         $body = preg_replace_callback(
             '/url\((\s*["\']?)([^)"\']+)(["\']?\s*)\)/i',
-            function (array $matches) use ($toAbsolute, $rawUrl): string {
+            function (array $matches) use ($toAbsolute, $rawUrl, $proxyAssetEndpoint): string {
                 $rawCandidate = trim($matches[2]);
                 if ($rawCandidate === '' || preg_match('/^(data:|blob:|javascript:|#)/i', $rawCandidate)) {
                     return $matches[0];
@@ -117,11 +119,11 @@ Route::get('/ui-responsiveness/proxy-asset', function (Request $request) {
                 $absolute = $toAbsolute($rawCandidate);
                 $absoluteHost = strtolower((string) (parse_url($absolute, PHP_URL_HOST) ?? ''));
                 if ($absoluteHost !== '') {
-                    $absolute = route('ui-responsiveness.proxy-asset', [
+                    $absolute = $proxyAssetEndpoint . '?' . http_build_query([
                         'rev' => 2,
                         'url' => $absolute,
                         'referer' => $rawUrl,
-                    ], false);
+                    ]);
                 }
 
                 return 'url(' . $matches[1] . $absolute . $matches[3] . ')';
@@ -182,6 +184,8 @@ Route::get('/ui-responsiveness/proxy', function (Request $request) {
     $baseHref = $origin . $directory;
 
     $html = (string) $upstream->body();
+    $proxyAssetEndpoint = $request->getSchemeAndHttpHost()
+        . route('ui-responsiveness.proxy-asset', [], false);
 
     $resolveUrl = static function (string $candidate) use ($rawUrl): string {
         $candidate = html_entity_decode(trim($candidate), ENT_QUOTES | ENT_HTML5, 'UTF-8');
@@ -197,18 +201,18 @@ Route::get('/ui-responsiveness/proxy', function (Request $request) {
         }
     };
 
-    $proxyAssetUrl = static function (string $candidate) use ($resolveUrl, $rawUrl): string {
+    $proxyAssetUrl = static function (string $candidate) use ($resolveUrl, $rawUrl, $proxyAssetEndpoint): string {
         $absolute = $resolveUrl($candidate);
 
         if (!preg_match('/^https?:\/\//i', $absolute)) {
             return $candidate;
         }
 
-        return route('ui-responsiveness.proxy-asset', [
+        return $proxyAssetEndpoint . '?' . http_build_query([
             'rev' => 2,
             'url' => $absolute,
             'referer' => $rawUrl,
-        ], false);
+        ]);
     };
 
     // A CSP copied from the upstream page describes its origin, not this local
@@ -288,7 +292,7 @@ Route::get('/ui-responsiveness/proxy', function (Request $request) {
     ) ?? $html;
 
     $runtimeProxyConfig = json_encode([
-        'endpoint' => route('ui-responsiveness.proxy-asset', [], false),
+        'endpoint' => $proxyAssetEndpoint,
         'revision' => 2,
         'sourceUrl' => $rawUrl,
     ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
@@ -303,6 +307,7 @@ Route::get('/ui-responsiveness/proxy', function (Request $request) {
         VIDEO: ['src', 'poster'], AUDIO: ['src'], TRACK: ['src'],
         INPUT: ['src'], OBJECT: ['data'], EMBED: ['src']
     };
+    var proxyEndpoint = new URL(config.endpoint, location.origin);
 
     function proxify(value) {
         if (typeof value !== 'string' || value === '' || /^(?:data:|blob:|javascript:|mailto:|tel:|#)/i.test(value)) {
@@ -314,7 +319,7 @@ Route::get('/ui-responsiveness/proxy', function (Request $request) {
             // against the preview origin first so those URLs are not proxied a
             // second time against the upstream page's <base> URL.
             var localCandidate = new URL(value, location.origin);
-            if (localCandidate.origin === location.origin && localCandidate.pathname === config.endpoint) {
+            if (localCandidate.origin === proxyEndpoint.origin && localCandidate.pathname === proxyEndpoint.pathname) {
                 return value;
             }
 
