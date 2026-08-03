@@ -160,7 +160,6 @@ Route::get('/ui-responsiveness/proxy', function (Request $request) {
     $parts = parse_url($rawUrl);
     $scheme = (string) ($parts['scheme'] ?? 'https');
     $host = (string) ($parts['host'] ?? '');
-    $hostLower = strtolower($host);
     $port = isset($parts['port']) ? ':' . $parts['port'] : '';
     $origin = $scheme . '://' . $host . $port;
     $path = (string) ($parts['path'] ?? '/');
@@ -170,121 +169,115 @@ Route::get('/ui-responsiveness/proxy', function (Request $request) {
     $baseHref = $origin . $directory;
 
     $toAbsoluteUrl = function (string $candidate) use ($scheme, $origin, $directory): string {
-        if (preg_match('/^https?:\/\//i', $candidate)) {
+        $trimmed = trim($candidate);
+
+        if ($trimmed === '') {
             return $candidate;
         }
 
-        if (str_starts_with($candidate, '//')) {
-            return $scheme . ':' . $candidate;
+        if (preg_match('/^https?:\/\//i', $trimmed)) {
+            return $trimmed;
         }
 
-        if (str_starts_with($candidate, '/')) {
-            return $origin . $candidate;
+        if (str_starts_with($trimmed, '//')) {
+            return $scheme . ':' . $trimmed;
         }
 
-        return $origin . rtrim($directory, '/') . '/' . ltrim($candidate, '/');
+        if (str_starts_with($trimmed, '/')) {
+            return $origin . $trimmed;
+        }
+
+        return $origin . rtrim($directory, '/') . '/' . ltrim($trimmed, '/');
     };
 
-    $rewriteImageUrl = function (string $candidate) use ($toAbsoluteUrl, $hostLower): string {
+    $rewriteAssetUrl = function (string $candidate) use ($toAbsoluteUrl): string {
         $trimmed = trim($candidate);
+
         if ($trimmed === '' || preg_match('/^(#|about:|javascript:|mailto:|tel:|data:|blob:)/i', $trimmed)) {
             return $candidate;
         }
 
         $absolute = $toAbsoluteUrl($trimmed);
-        $absoluteHost = strtolower((string) (parse_url($absolute, PHP_URL_HOST) ?? ''));
-
-        if ($absoluteHost === '' || $absoluteHost !== $hostLower) {
-            return $absolute;
-        }
-
-        return route('ui-responsiveness.proxy-asset', ['url' => $absolute]);
-    };
-
-    $rewriteStylesheetUrl = function (string $candidate) use ($toAbsoluteUrl, $hostLower): string {
-        $trimmed = trim($candidate);
-        if ($trimmed === '' || preg_match('/^(#|about:|javascript:|mailto:|tel:|data:|blob:)/i', $trimmed)) {
-            return $candidate;
-        }
-
-        $absolute = $toAbsoluteUrl($trimmed);
-        $absoluteHost = strtolower((string) (parse_url($absolute, PHP_URL_HOST) ?? ''));
-
-        if ($absoluteHost === '' || $absoluteHost !== $hostLower) {
-            return $absolute;
-        }
 
         return route('ui-responsiveness.proxy-asset', ['url' => $absolute]);
     };
 
     $html = (string) $upstream->body();
-    $baseTag = '<base href="' . e($baseHref) . '">';
 
-    if (preg_match('/<head\b[^>]*>/i', $html) === 1) {
-        $html = preg_replace('/<head\b[^>]*>/i', '$0' . $baseTag, $html, 1) ?? $html;
-    } else {
-        $html = '<head>' . $baseTag . '</head>' . $html;
-    }
+    $previousUseErrors = libxml_use_internal_errors(true);
+    $dom = new \DOMDocument('1.0', 'UTF-8');
+    $dom->preserveWhiteSpace = true;
+    $dom->formatOutput = false;
+    $loaded = $dom->loadHTML('<?xml encoding="utf-8" ?>' . $html, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD | LIBXML_NONET);
 
-    $html = preg_replace_callback(
-        '/<link\b([^>]*?)\bhref\s*=\s*(["\'])([^"\']+)\2([^>]*)>/i',
-        function (array $matches) use ($rewriteStylesheetUrl): string {
-            $attributes = strtolower($matches[1] . ' ' . $matches[4]);
-            if (!str_contains($attributes, 'rel="stylesheet"')
-                && !str_contains($attributes, "rel='stylesheet'")) {
-                return $matches[0];
-            }
+    if ($loaded) {
+        $xpath = new \DOMXPath($dom);
 
-            $rewritten = $rewriteStylesheetUrl($matches[3]);
-            return '<link' . $matches[1] . 'href=' . $matches[2] . $rewritten . $matches[2] . $matches[4] . '>';
-        },
-        $html
-    ) ?? $html;
-
-    $html = preg_replace_callback(
-        '/<script\b([^>]*?)\bsrc\s*=\s*(["\'])([^"\']+)\2([^>]*)>/i',
-        function (array $matches) use ($rewriteImageUrl, $toAbsoluteUrl, $hostLower): string {
-
-            $absolute = $toAbsoluteUrl($matches[3]);
-            $absoluteHost = strtolower((string) (parse_url($absolute, PHP_URL_HOST) ?? ''));
-
-            if ($absoluteHost !== '' && $absoluteHost !== $hostLower) {
-                return '';
-            }
-
-            $rewritten = $rewriteImageUrl($matches[3]);
-            return '<script' . $matches[1] . 'src=' . $matches[2] . $rewritten . $matches[2] . $matches[4] . '>';
-        },
-        $html
-    ) ?? $html;
-
-    $jqueryScriptTags = [];
-    $html = preg_replace_callback(
-        '/<script\b([^>]*?)\bsrc\s*=\s*(["\'])([^"\']+)\2([^>]*)><\/script>/i',
-        function (array $matches) use (&$jqueryScriptTags): string {
-            $scriptTag = $matches[0];
-            $source = strtolower($matches[3]);
-
-            if (str_contains($source, 'jquery.min.js')
-                || str_contains($source, 'jquery-migrate')
-                || str_contains($source, 'jquery-ui.min.js')) {
-                $jqueryScriptTags[] = $scriptTag;
-                return '';
-            }
-
-            return $scriptTag;
-        },
-        $html
-    ) ?? $html;
-
-    if ($jqueryScriptTags !== []) {
-        $insertion = implode("\n", array_unique($jqueryScriptTags)) . "\n";
-        if (preg_match('/<head\b[^>]*>/i', $html) === 1) {
-            $html = preg_replace('/<head\b[^>]*>/i', '$0' . $insertion, $html, 1) ?? $html;
-        } else {
-            $html = $insertion . $html;
+        $head = $dom->getElementsByTagName('head')->item(0);
+        if ($head instanceof \DOMElement) {
+            $base = $dom->createElement('base');
+            $base->setAttribute('href', $baseHref);
+            $head->insertBefore($base, $head->firstChild);
         }
+
+        foreach ($xpath->query('//link[@href]') as $link) {
+            if (!$link instanceof \DOMElement) {
+                continue;
+            }
+
+            $rel = strtolower((string) $link->getAttribute('rel'));
+            if (!str_contains($rel, 'stylesheet') && !str_contains($rel, 'icon')) {
+                continue;
+            }
+
+            $link->setAttribute('href', $rewriteAssetUrl($link->getAttribute('href')));
+        }
+
+        foreach ($xpath->query('//script[@src]') as $script) {
+            if (!$script instanceof \DOMElement) {
+                continue;
+            }
+
+            $script->setAttribute('src', $rewriteAssetUrl($script->getAttribute('src')));
+        }
+
+        foreach ($xpath->query('//img[@src]') as $img) {
+            if (!$img instanceof \DOMElement) {
+                continue;
+            }
+
+            $img->setAttribute('src', $rewriteAssetUrl($img->getAttribute('src')));
+        }
+
+        foreach ($xpath->query('//source[@srcset]') as $sourceNode) {
+            if (!$sourceNode instanceof \DOMElement) {
+                continue;
+            }
+
+            $srcset = (string) $sourceNode->getAttribute('srcset');
+            $rewrittenItems = [];
+
+            foreach (array_map('trim', explode(',', $srcset)) as $item) {
+                if ($item === '') {
+                    continue;
+                }
+
+                $parts = preg_split('/\s+/', $item, 2);
+                $urlPart = $parts[0] ?? '';
+                $descriptor = $parts[1] ?? '';
+                $rewrittenItems[] = trim($rewriteAssetUrl($urlPart) . ' ' . $descriptor);
+            }
+
+            if ($rewrittenItems !== []) {
+                $sourceNode->setAttribute('srcset', implode(', ', $rewrittenItems));
+            }
+        }
+
+        $html = $dom->saveHTML() ?: $html;
     }
+
+    libxml_clear_errors();
+    libxml_use_internal_errors($previousUseErrors);
 
     $readySignalScript = '<script>(function(){function notify(type){try{window.parent.postMessage({__uiResp:true,type:type,href:location.href},"*");}catch(e){}}if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",function(){notify("domready");});}else{notify("domready");}window.addEventListener("load",function(){notify("load");});})();</script>';
     if (stripos($html, '</body>') !== false) {
