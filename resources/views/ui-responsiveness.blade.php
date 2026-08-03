@@ -356,10 +356,6 @@
             previewFrame.srcdoc = '<div style="font-family:Arial;padding:24px;color:#111">Enter a URL to begin testing.</div>';
         }
 
-        function buildProxyUrl(url) {
-            return '/ui-responsiveness/proxy?url=' + encodeURIComponent(url);
-        }
-
         function loadUrl() {
             const raw = urlInput.value.trim();
             if (!raw) {
@@ -372,7 +368,7 @@
             hasLoadedCurrentPage = false;
             startLoadingTicker();
             previewFrame.removeAttribute('srcdoc');
-            previewFrame.src = buildProxyUrl(url);
+            previewFrame.src = '/ui-responsiveness/proxy?url=' + encodeURIComponent(url);
         }
 
         previewFrame.addEventListener('load', () => {

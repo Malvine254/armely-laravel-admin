@@ -167,42 +167,24 @@ Route::get('/ui-responsiveness/proxy', function (Request $request) {
     $directory = '/' . trim((string) $directory, '/');
     $directory = rtrim($directory, '/') . '/';
     $baseHref = $origin . $directory;
-
-    $toAbsoluteUrl = function (string $candidate) use ($scheme, $origin, $directory): string {
-        $trimmed = trim($candidate);
-
-        if ($trimmed === '') {
-            return $candidate;
-        }
-
-        if (preg_match('/^https?:\/\//i', $trimmed)) {
-            return $trimmed;
-        }
-
-        if (str_starts_with($trimmed, '//')) {
-            return $scheme . ':' . $trimmed;
-        }
-
-        if (str_starts_with($trimmed, '/')) {
-            return $origin . $trimmed;
-        }
-
-        return $origin . rtrim($directory, '/') . '/' . ltrim($trimmed, '/');
-    };
-
-    $rewriteAssetUrl = function (string $candidate) use ($toAbsoluteUrl): string {
-        $trimmed = trim($candidate);
-
-        if ($trimmed === '' || preg_match('/^(#|about:|javascript:|mailto:|tel:|data:|blob:)/i', $trimmed)) {
-            return $candidate;
-        }
-
-        $absolute = $toAbsoluteUrl($trimmed);
-
-        return route('ui-responsiveness.proxy-asset', ['url' => $absolute]);
-    };
+    $readySignalScript = '<script>(function(){function notify(type){try{window.parent.postMessage({__uiResp:true,type:type,href:location.href},"*");}catch(e){}}if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",function(){notify("domready");});}else{notify("domready");}window.addEventListener("load",function(){notify("load");});})();</script>';
 
     $html = (string) $upstream->body();
+
+    $previewBlockStart = stripos($html, '//  Preview Modal Handler');
+    $previewBlockEnd = stripos($html, '<!--Start Show Session Expire Warning Popup here -->', $previewBlockStart === false ? 0 : $previewBlockStart);
+    if ($previewBlockStart !== false && $previewBlockEnd !== false && $previewBlockEnd > $previewBlockStart) {
+        $html = substr($html, 0, $previewBlockStart) . substr($html, $previewBlockEnd);
+    }
+
+    $tailMarker = "'); iDoc.close(); } const modal = new bootstrap.Modal(";
+    $tailPosition = stripos($html, $tailMarker);
+    if ($tailPosition !== false) {
+        $bodyClosePosition = stripos($html, '</body>', $tailPosition);
+        if ($bodyClosePosition !== false) {
+            $html = substr($html, 0, $tailPosition) . substr($html, $bodyClosePosition);
+        }
+    }
 
     $previousUseErrors = libxml_use_internal_errors(true);
     $dom = new \DOMDocument('1.0', 'UTF-8');
@@ -220,56 +202,44 @@ Route::get('/ui-responsiveness/proxy', function (Request $request) {
             $head->insertBefore($base, $head->firstChild);
         }
 
-        foreach ($xpath->query('//link[@href]') as $link) {
-            if (!$link instanceof \DOMElement) {
+        foreach ($xpath->query('//body//text()[not(ancestor::script) and not(ancestor::style)]') as $textNode) {
+            if (!$textNode instanceof \DOMText) {
                 continue;
             }
 
-            $rel = strtolower((string) $link->getAttribute('rel'));
-            if (!str_contains($rel, 'stylesheet') && !str_contains($rel, 'icon')) {
+            $text = trim((string) $textNode->nodeValue);
+            if ($text === '') {
                 continue;
             }
 
-            $link->setAttribute('href', $rewriteAssetUrl($link->getAttribute('href')));
-        }
+            $suspiciousMarkers = [
+                'FINAL closing bracket for $(document).ready()',
+                '$(document).ready',
+                'window.setTimeout',
+                'ClientLogWrapper',
+                'printPreviewBtn',
+                'showTranslatedAlert',
+                'document.write(',
+                'GoToNewEditor',
+                'previewFrame.contentWindow.focus',
+                '$(document).on(',
+                '$("#SubmitForm")',
+                'dallasPreferredLanguage',
+            ];
 
-        foreach ($xpath->query('//script[@src]') as $script) {
-            if (!$script instanceof \DOMElement) {
-                continue;
-            }
-
-            $script->setAttribute('src', $rewriteAssetUrl($script->getAttribute('src')));
-        }
-
-        foreach ($xpath->query('//img[@src]') as $img) {
-            if (!$img instanceof \DOMElement) {
-                continue;
-            }
-
-            $img->setAttribute('src', $rewriteAssetUrl($img->getAttribute('src')));
-        }
-
-        foreach ($xpath->query('//source[@srcset]') as $sourceNode) {
-            if (!$sourceNode instanceof \DOMElement) {
-                continue;
-            }
-
-            $srcset = (string) $sourceNode->getAttribute('srcset');
-            $rewrittenItems = [];
-
-            foreach (array_map('trim', explode(',', $srcset)) as $item) {
-                if ($item === '') {
-                    continue;
+            $isSuspicious = false;
+            foreach ($suspiciousMarkers as $marker) {
+                if (str_contains($text, $marker)) {
+                    $isSuspicious = true;
+                    break;
                 }
-
-                $parts = preg_split('/\s+/', $item, 2);
-                $urlPart = $parts[0] ?? '';
-                $descriptor = $parts[1] ?? '';
-                $rewrittenItems[] = trim($rewriteAssetUrl($urlPart) . ' ' . $descriptor);
             }
 
-            if ($rewrittenItems !== []) {
-                $sourceNode->setAttribute('srcset', implode(', ', $rewrittenItems));
+            if ($isSuspicious) {
+                $parent = $textNode->parentNode;
+                if ($parent instanceof \DOMNode) {
+                    $parent->removeChild($textNode);
+                }
             }
         }
 
@@ -279,7 +249,6 @@ Route::get('/ui-responsiveness/proxy', function (Request $request) {
     libxml_clear_errors();
     libxml_use_internal_errors($previousUseErrors);
 
-    $readySignalScript = '<script>(function(){function notify(type){try{window.parent.postMessage({__uiResp:true,type:type,href:location.href},"*");}catch(e){}}if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",function(){notify("domready");});}else{notify("domready");}window.addEventListener("load",function(){notify("load");});})();</script>';
     if (stripos($html, '</body>') !== false) {
         $html = preg_replace('/<\/body>/i', $readySignalScript . '</body>', $html, 1) ?? $html;
     } else {
