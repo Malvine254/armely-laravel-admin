@@ -167,7 +167,6 @@ Route::get('/ui-responsiveness/proxy', function (Request $request) {
     $directory = '/' . trim((string) $directory, '/');
     $directory = rtrim($directory, '/') . '/';
     $baseHref = $origin . $directory;
-    $readySignalScript = '<script>(function(){function notify(type){try{window.parent.postMessage({__uiResp:true,type:type,href:location.href},"*");}catch(e){}}if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",function(){notify("domready");});}else{notify("domready");}window.addEventListener("load",function(){notify("load");});})();</script>';
 
     $html = (string) $upstream->body();
 
@@ -177,27 +176,11 @@ Route::get('/ui-responsiveness/proxy', function (Request $request) {
         $html = substr($html, 0, $previewBlockStart) . substr($html, $previewBlockEnd);
     }
 
-    $previousUseErrors = libxml_use_internal_errors(true);
-    $dom = new \DOMDocument('1.0', 'UTF-8');
-    $dom->preserveWhiteSpace = true;
-    $dom->formatOutput = false;
-    $loaded = $dom->loadHTML('<?xml encoding="utf-8" ?>' . $html, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD | LIBXML_NONET);
-
-    if ($loaded) {
-        $xpath = new \DOMXPath($dom);
-
-        $head = $dom->getElementsByTagName('head')->item(0);
-        if ($head instanceof \DOMElement) {
-            $base = $dom->createElement('base');
-            $base->setAttribute('href', $baseHref);
-            $head->insertBefore($base, $head->firstChild);
-        }
-
-        $html = $dom->saveHTML() ?: $html;
+    if (preg_match('/<head\b[^>]*>/i', $html) === 1) {
+        $html = preg_replace('/<head\b[^>]*>/i', '$0<base href="' . e($baseHref) . '">', $html, 1) ?? $html;
+    } else {
+        $html = '<head><base href="' . e($baseHref) . '"></head>' . $html;
     }
-
-    libxml_clear_errors();
-    libxml_use_internal_errors($previousUseErrors);
 
     return response($html, 200, [
         'Content-Type' => 'text/html; charset=UTF-8',
