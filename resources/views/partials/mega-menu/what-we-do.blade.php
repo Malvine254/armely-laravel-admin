@@ -3,7 +3,7 @@
         <img src="{{ asset('images/blog/advisory_services.png') }}" alt="Consulting team working with data dashboards">
         <div class="mega-feature-card-content">
             <h3>Modernize with Armely</h3>
-            <p>Explore advisory, data, AI, cloud, and business app services built for measurable outcomes.</p>
+            <p>Explore Advisory, Data, AI, Cloud, and Business App services built for measurable outcomes.</p>
         </div>
     </a>
 
@@ -47,7 +47,7 @@
                 <div class="mega-solution-group">
                     <div class="mega-solution-group-title">Everyone</div>
                     <ul class="mega-link-list">
-                        <li><a class="mega-link-with-icon" href="{{ route('mela-ai') }}"><span class="mega-link-icon"><i class="fa-solid fa-microphone-lines" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">Mela AI</span><span class="mega-link-description">Capture meetings, summaries, and follow-ups.</span></span></a></li>
+                        <li><a class="mega-link-with-icon" href="{{ route('mela-meeting-assistant') }}"><span class="mega-link-icon"><i class="fa-solid fa-microphone-lines" aria-hidden="true"></i></span><span class="mega-link-copy"><span class="mega-link-label">Mela Meeting Assistant</span><span class="mega-link-description">Turn Teams meetings into summaries, tasks, and follow-ups.</span></span></a></li>
                     </ul>
                 </div>
                 <div class="mega-solution-group">

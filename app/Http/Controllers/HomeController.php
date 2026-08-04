@@ -27,7 +27,7 @@ class HomeController extends Controller
             $this->recentVideos($dbErrorMessage),
         ];
 
-        return view('home', [
+        return view('home.index', [
             'offers' => $offers,
             'industryListings' => $industryListings,
             'blogs' => $blogs,
@@ -39,7 +39,7 @@ class HomeController extends Controller
 
     public function contact()
     {
-        return view('contact', [
+        return view('contact.index', [
             'recaptchaSiteKey' => config('services.recaptcha.site_key', ''),
         ]);
     }
@@ -62,7 +62,7 @@ class HomeController extends Controller
             $dbErrorMessage = 'We are temporarily unable to load announcements. Please try again in a few moments.';
         }
 
-        return view('announcements', [
+        return view('announcements.index', [
             'announcement' => $announcement,
             'dbErrorMessage' => $dbErrorMessage,
         ]);
@@ -70,12 +70,12 @@ class HomeController extends Controller
 
     public function contactThankYou()
     {
-        return view('contact-thank-you');
+        return view('contact.thank-you');
     }
 
     public function allPartners()
     {
-        return view('partners');
+        return view('company.partners');
     }
 
     public function events()
@@ -85,7 +85,7 @@ class HomeController extends Controller
 
         try {
             if (!Schema::hasTable('events')) {
-                return view('events', [
+                return view('events.index', [
                     'events' => $events,
                     'dbErrorMessage' => $dbErrorMessage,
                 ]);
@@ -214,7 +214,7 @@ class HomeController extends Controller
             $dbErrorMessage = 'We are temporarily unable to load events. Please try again in a few moments.';
         }
 
-        return view('events', [
+        return view('events.index', [
             'events' => $events,
             'dbErrorMessage' => $dbErrorMessage,
         ]);
@@ -398,7 +398,7 @@ class HomeController extends Controller
             return (int) DB::table('industry_listings')->count();
         }, $dbErrorMessage) ?: 0;
 
-        return view('company', [
+        return view('company.index', [
             'portfolioItems' => $portfolioItems,
             'adBanners' => $adBanners,
             'coreValues' => $coreValues,
@@ -437,7 +437,7 @@ class HomeController extends Controller
             $melaPageDescription = 'Discover Mela AI from Armely and how AI-driven solutions can improve productivity, decision-making, and customer outcomes.';
         }
 
-        return view('mela-ai', [
+        return view('services.mela-ai', [
             'melaPortfolio' => $melaPortfolio,
             'melaPageTitle' => $melaPageTitle,
             'melaPageDescription' => $melaPageDescription,
@@ -446,9 +446,20 @@ class HomeController extends Controller
         ]);
     }
 
+    public function melaMeetingAssistant()
+    {
+        $dbErrorMessage = null;
+
+        return view('services.mela-ai', [
+            'isMeetingAssistant' => true,
+            'meetingVideo' => $this->featuredMelaVideo($dbErrorMessage),
+            'dbErrorMessage' => $dbErrorMessage,
+        ]);
+    }
+
     public function invoiceLens()
     {
-        return view('invoice-lens');
+        return view('services.invoice-lens');
     }
 
     public function career()
@@ -461,7 +472,7 @@ class HomeController extends Controller
                 ->get();
         }, $dbErrorMessage);
 
-        return view('career', [
+        return view('company.career', [
             'careerListings' => $careerListings,
             'dbErrorMessage' => $dbErrorMessage,
         ]);
@@ -501,7 +512,7 @@ class HomeController extends Controller
             }
         }
 
-        return view('team', [
+        return view('company.team', [
             'hierarchy' => $hierarchy,
         ]);
     }
@@ -524,7 +535,7 @@ class HomeController extends Controller
             return (int) DB::table('industry_listings')->count();
         }, $dbErrorMessage) ?: 0;
 
-        return view('customer-stories', [
+        return view('customer-stories.index', [
             'testimonials' => $testimonials,
             'caseStudyCount' => $caseStudyCount,
             'dbErrorMessage' => $dbErrorMessage,
@@ -552,7 +563,7 @@ class HomeController extends Controller
                 ->get();
         }, $dbErrorMessage);
 
-        return view('customer-story', [
+        return view('customer-stories.show', [
             'testimonial' => $testimonial,
             'relatedStories' => $relatedStories,
             'dbErrorMessage' => $dbErrorMessage,
@@ -579,7 +590,7 @@ class HomeController extends Controller
                 ->get();
         }, $dbErrorMessage);
 
-        return view('social-impact', [
+        return view('company.social-impact', [
             'gallery' => $gallery,
             'socialImpact' => $socialImpact,
             'dbErrorMessage' => $dbErrorMessage,
@@ -595,7 +606,7 @@ class HomeController extends Controller
                 ->paginate(6);
         }, $dbErrorMessage);
 
-        return view('services', [
+        return view('services.index', [
             'services' => $services,
             'dbErrorMessage' => $dbErrorMessage,
         ]);
@@ -622,7 +633,7 @@ class HomeController extends Controller
                     ->get();
             }, $dbErrorMessage);
 
-            return view('service-details', [
+            return view('services.details', [
                 'service' => (object) ['title' => 'Freemiums'],
                 'relatedServices' => collect(),
                 'freemiums' => $freemiums ?? collect(),
@@ -673,7 +684,7 @@ class HomeController extends Controller
                 ->get();
         }, $dbErrorMessage);
 
-        return view('service-details', [
+        return view('services.details', [
             'service' => $service,
             'relatedServices' => $relatedServices,
             'serviceName' => $name,
@@ -902,7 +913,7 @@ class HomeController extends Controller
             return redirect()->route('career.index')->with('error', 'This job posting has expired and is no longer accepting applications.');
         }
 
-        return view('job-board', [
+        return view('company.job-board', [
             'job' => $job,
             'dbErrorMessage' => $dbErrorMessage,
         ]);
@@ -938,7 +949,7 @@ class HomeController extends Controller
                 ->get();
         }, $dbErrorMessage);
 
-        return view('social-impact-details', [
+        return view('company.social-impact-show', [
             'initiative' => $initiative,
             'relatedStories' => $relatedStories,
             'dbErrorMessage' => $dbErrorMessage,
@@ -1305,7 +1316,7 @@ class HomeController extends Controller
 
     public function industries()
     {
-        return view('industries', [
+        return view('industries.index', [
             'industryPages' => $this->industryPages(),
         ]);
     }
@@ -1327,12 +1338,12 @@ class HomeController extends Controller
 
     public function privacyPolicy()
     {
-        return view('privacy-policy');
+        return view('legal.privacy-policy');
     }
 
     public function support()
     {
-        return view('support');
+        return view('contact.support');
     }
 
     private function offers(?string &$dbErrorMessage = null)
@@ -1540,6 +1551,91 @@ class HomeController extends Controller
                 ->filter(fn ($video) => !empty($video->video_id))
                 ->values();
         }, $dbErrorMessage);
+    }
+
+    private function featuredMelaVideo(?string &$dbErrorMessage = null): ?object
+    {
+        $video = $this->safeDb(function () {
+            $videoTable = Schema::hasTable('videos') ? 'videos' : (Schema::hasTable('video') ? 'video' : null);
+
+            if (!$videoTable || !Schema::hasColumn($videoTable, 'url')) {
+                return null;
+            }
+
+            $selectColumns = ['url'];
+            foreach (['title', 'video_title', 'video_name', 'description'] as $column) {
+                if (Schema::hasColumn($videoTable, $column)) {
+                    $selectColumns[] = $column;
+                }
+            }
+
+            return DB::table($videoTable)
+                ->select($selectColumns)
+                ->orderByDesc('id')
+                ->limit(25)
+                ->get()
+                ->first(function ($item): bool {
+                    $label = strtolower(trim((string) ($item->video_title ?? $item->title ?? $item->video_name ?? '')));
+
+                    return str_contains($label, 'mela') || str_contains($label, 'meeting');
+                });
+        }, $dbErrorMessage);
+
+        if (!is_object($video)) {
+            return (object) [
+                'type' => 'embed',
+                'provider' => 'YouTube',
+                'url' => 'https://www.youtube-nocookie.com/embed/etFEuJzx6cA?rel=0',
+                'title' => 'Mela Meeting Assistant Demo',
+            ];
+        }
+
+        $sourceUrl = trim((string) ($video->url ?? ''));
+        if (preg_match('/<iframe\b[^>]*\bsrc=["\']([^"\']+)["\']/i', $sourceUrl, $matches)) {
+            $sourceUrl = html_entity_decode($matches[1], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        }
+
+        if (!filter_var($sourceUrl, FILTER_VALIDATE_URL) || !in_array(parse_url($sourceUrl, PHP_URL_SCHEME), ['http', 'https'], true)) {
+            return null;
+        }
+
+        $title = trim((string) ($video->video_title ?? $video->title ?? $video->video_name ?? 'Mela Meeting Assistant Demo'));
+        $youtubeId = $this->extractYouTubeId($sourceUrl);
+        if ($youtubeId !== '') {
+            return (object) [
+                'type' => 'embed',
+                'provider' => 'YouTube',
+                'url' => 'https://www.youtube-nocookie.com/embed/'.$youtubeId.'?rel=0',
+                'title' => $title,
+            ];
+        }
+
+        if (preg_match('~vimeo\.com/(?:video/)?([0-9]+)~i', $sourceUrl, $matches)) {
+            return (object) [
+                'type' => 'embed',
+                'provider' => 'Vimeo',
+                'url' => 'https://player.vimeo.com/video/'.$matches[1],
+                'title' => $title,
+            ];
+        }
+
+        $path = strtolower((string) parse_url($sourceUrl, PHP_URL_PATH));
+        if (preg_match('/\.(mp4|webm|ogg)$/', $path)) {
+            return (object) [
+                'type' => 'video',
+                'provider' => 'Video',
+                'url' => $sourceUrl,
+                'title' => $title,
+            ];
+        }
+
+        return (object) [
+            'type' => 'embed',
+            'provider' => str_contains(strtolower((string) parse_url($sourceUrl, PHP_URL_HOST)), 'sharepoint')
+                || str_contains(strtolower((string) parse_url($sourceUrl, PHP_URL_HOST)), 'onedrive') ? 'Microsoft 365' : 'Video',
+            'url' => $sourceUrl,
+            'title' => $title,
+        ];
     }
 
     private function safeDb(callable $callback, ?string &$dbErrorMessage = null)
