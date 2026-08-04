@@ -122,7 +122,7 @@
 .mela-page .mela-faq-card h3 { margin: 0 0 9px; color: var(--mela-primary); font-size: 1.12rem; }
 .mela-page .mela-faq-card h3 i { font-size: 1.05rem; }
 .mela-page .mela-faq-card p { margin: 0; color: var(--mela-muted); font-size: .98rem; }
-.mela-page .mela-cta { padding: 64px 20px; border-top: 1px solid var(--mela-border); background: radial-gradient(circle at 50% 0, rgba(85,126,194,.12), transparent 48%), #f7f9fd; color: var(--mela-text); text-align: center; }
+.mela-page .mela-cta { margin-top: 52px; padding: 52px 20px 8px; border-top: 1px solid var(--mela-border); background: transparent; color: var(--mela-text); text-align: center; }
 .mela-page .mela-cta h2 { margin: 0 0 10px; color: var(--mela-text); }
 .mela-page .mela-cta p { margin-bottom: 24px; color: var(--mela-muted); }
 .mela-page .mela-cta .mela-btn-primary { background: var(--mela-primary); color: #fff; box-shadow: 0 8px 20px rgba(47,85,151,.18); }
@@ -359,15 +359,12 @@
                 <article class="mela-faq-card"><h3><i class="fa-solid fa-layer-group" aria-hidden="true"></i>Do I need Copilot or Teams Premium?</h3><p>No additional Microsoft Copilot or Teams Premium add-on licenses are required. Mela integrates directly with your standard Microsoft Teams and Planner setup.</p></article>
                 <article class="mela-faq-card"><h3><i class="fa-solid fa-stopwatch" aria-hidden="true"></i>How fast is onboarding?</h3><p>Deployment takes under 10 minutes. Your IT administrator adds Mela to the Teams Admin Center, approves Entra ID consent, and enables meeting policies.</p></article>
             </div>
-        </div>
-    </section>
-
-    <section class="mela-cta">
-        <div class="mela-container">
-            <h2>Ready to Elevate Your Team’s Productivity?</h2>
-            <p>Embed intelligent automation into your daily Microsoft 365 workflow today.</p>
-            <a href="{{ route('contact') }}" class="mela-btn mela-btn-primary"><i class="fa-solid fa-rocket" aria-hidden="true"></i> Start Free IT Trial</a>
-            <a href="{{ route('contact') }}" class="mela-btn mela-btn-secondary"><i class="fa-regular fa-calendar" aria-hidden="true"></i> Schedule a Demo</a>
+            <div class="mela-cta">
+                <h2>Ready to Elevate Your Team’s Productivity?</h2>
+                <p>Embed intelligent automation into your daily Microsoft 365 workflow today.</p>
+                <a href="{{ route('contact') }}" class="mela-btn mela-btn-primary"><i class="fa-solid fa-rocket" aria-hidden="true"></i> Start Free IT Trial</a>
+                <a href="{{ route('contact') }}" class="mela-btn mela-btn-secondary"><i class="fa-regular fa-calendar" aria-hidden="true"></i> Schedule a Demo</a>
+            </div>
         </div>
     </section>
 </main>

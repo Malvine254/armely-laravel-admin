@@ -886,19 +886,117 @@
 .armely-energy-page .ind-cta-wrap .section-body { max-width:100%; text-align:center; margin-bottom:28px; }
 .armely-energy-page .ind-cta-form-wrap { text-align:left; }
 
+/* Energy page refinement */
+.armely-energy-page .hero {
+  min-height: auto;
+  padding: 76px 48px 68px;
+}
+.armely-energy-page .ind-hero-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.18fr) minmax(320px, .82fr);
+  gap: 52px;
+  align-items: center;
+}
+.armely-energy-page .ind-hero-copy h1 {
+  max-width: 760px;
+  font-size: clamp(2.35rem, 4.5vw, 4rem);
+}
+.armely-energy-page .ind-hero-actions { margin-bottom: 38px; }
+.armely-energy-page .ind-ops-panel {
+  position: relative;
+  padding: 22px;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 20px;
+  background: rgba(255,255,255,.08);
+  box-shadow: 0 28px 70px rgba(7,20,43,.3);
+  backdrop-filter: blur(14px);
+}
+.armely-energy-page .ind-ops-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 18px;
+  color: #fff;
+}
+.armely-energy-page .ind-ops-header strong { font-size: .94rem; }
+.armely-energy-page .ind-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: rgba(255,255,255,.72);
+  font-size: .72rem;
+}
+.armely-energy-page .ind-live::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #62d6a7;
+  box-shadow: 0 0 0 5px rgba(98,214,167,.12);
+}
+.armely-energy-page .ind-ops-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.armely-energy-page .ind-ops-metric {
+  min-height: 116px;
+  padding: 16px;
+  border-radius: 14px;
+  background: rgba(255,255,255,.1);
+  border: 1px solid rgba(255,255,255,.1);
+}
+.armely-energy-page .ind-ops-icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  margin-bottom: 13px;
+  border-radius: 10px;
+  color: #fff;
+  background: rgba(255,255,255,.14);
+}
+.armely-energy-page .ind-ops-icon .icon-svg { width: 17px; height: 17px; }
+.armely-energy-page .ind-ops-metric strong,
+.armely-energy-page .ind-ops-metric span { display: block; }
+.armely-energy-page .ind-ops-metric strong { color: #fff; font-size: .84rem; margin-bottom: 4px; }
+.armely-energy-page .ind-ops-metric span { color: rgba(255,255,255,.62); font-size: .7rem; line-height: 1.45; }
+@media (max-width: 991.98px) {
+  .armely-energy-page .ind-hero-layout { grid-template-columns: 1fr; }
+  .armely-energy-page .ind-ops-panel { max-width: 620px; }
+}
+@media (max-width: 575.98px) {
+  .armely-energy-page .hero { padding: 58px 22px 50px; }
+  .armely-energy-page .ind-hero-layout { gap: 34px; }
+  .armely-energy-page .ind-ops-metrics { grid-template-columns: 1fr; }
+  .armely-energy-page .ind-ops-metric { min-height: 0; }
+}
+
 </style>
 <div class="armely-energy-page">
 <section class="hero">
   <div class="hero-bg-glow"></div>
-  <div class="hero-inner ind-hero-inner">
-    <div class="ind-eyebrow">Energy</div>
-    <h1>Operational data visibility, AP automation,<br>and field workflow efficiency.</h1>
-    <p class="ind-hero-sub">Armely helps oil and gas operators, utilities, and energy services companies connect their operational systems, automate field and back-office workflows, and build the data infrastructure that makes production and financial reporting faster and more accurate.</p>
-    <div class="ind-hero-actions">
-      <a href="#contact" class="btn-primary">Book a Free Assessment</a>
-      <a href="#delivers" class="btn-outline">See What We Do</a>
+  <div class="hero-inner ind-hero-inner ind-hero-layout">
+    <div class="ind-hero-copy">
+      <div class="ind-eyebrow">Energy &amp; Oil and Gas</div>
+      <h1>Connect operations, automate workflows, and act on trusted data.</h1>
+      <p class="ind-hero-sub">Armely helps operators, utilities, and energy services teams unify production and financial data, reduce invoice friction, and replace manual field and back-office processes with secure, measurable workflows.</p>
+      <div class="ind-hero-actions">
+        <a href="{{ route('contact') }}" class="btn-primary">Book a Free Assessment</a>
+        <a href="#delivers" class="btn-outline">Explore Energy Solutions</a>
+      </div>
+      <div class="ind-trust-row"><div class="ind-trust-item"><span class="ind-trust-dot"></span><div><strong>Operations Data</strong><span>Fabric and Snowflake for production, field, and financial analytics</span></div></div><div class="ind-trust-item"><span class="ind-trust-dot"></span><div><strong>Invoice Automation</strong><span>Invoice Lens for Enverus OpenInvoice operators and suppliers</span></div></div><div class="ind-trust-item"><span class="ind-trust-dot"></span><div><strong>Workflow Automation</strong><span>Field, AFE, and back-office process automation</span></div></div></div>
     </div>
-    <div class="ind-trust-row"><div class="ind-trust-item"><span class="ind-trust-dot"></span><div><strong>Operations Data</strong><span>Fabric and Snowflake for production, field, and financial analytics</span></div></div><div class="ind-trust-item"><span class="ind-trust-dot"></span><div><strong>Invoice Automation</strong><span>Invoice Lens for Enverus OpenInvoice operators and suppliers</span></div></div><div class="ind-trust-item"><span class="ind-trust-dot"></span><div><strong>Workflow Automation</strong><span>Field, AFE, and back-office process automation</span></div></div></div>
+    <aside class="ind-ops-panel" aria-label="Connected energy operations overview">
+      <div class="ind-ops-header"><strong>Connected Energy Operations</strong><span class="ind-live">Systems connected</span></div>
+      <div class="ind-ops-metrics">
+        <div class="ind-ops-metric"><div class="ind-ops-icon"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 19V9m6 10V5m6 14v-7m4 7H2"/></svg></div><strong>Production Analytics</strong><span>Live operational and financial reporting</span></div>
+        <div class="ind-ops-metric"><div class="ind-ops-icon"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 2h9l5 5v15H6z"/><path d="M14 2v6h6M9 13h8M9 17h6"/></svg></div><strong>Invoice Visibility</strong><span>Track status, exceptions, and payment timing</span></div>
+        <div class="ind-ops-metric"><div class="ind-ops-icon"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h7"/><path d="m17 16 2 2 4-5"/></svg></div><strong>Field Workflows</strong><span>Governed approvals and mobile processes</span></div>
+        <div class="ind-ops-metric"><div class="ind-ops-icon"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg></div><strong>Compliance Ready</strong><span>Auditable records, retention, and controls</span></div>
+      </div>
+    </aside>
   </div>
 </section>
 <section class="spectrum">
@@ -931,7 +1029,7 @@
     </div>
     <div class="cr-sup-row"><div class="cr-sup-card"><span class="cr-sup-label">Healthcare</span><p class="cr-sup-desc">Swope Health Services and UNMC: data platform and clinical workflow modernization on Microsoft Azure.</p></div><div class="cr-sup-card"><span class="cr-sup-label">Education</span><p class="cr-sup-desc">Plano ISD: Microsoft 365 governance, SharePoint, and Power Platform implementations across district operations.</p></div><div class="cr-sup-card"><span class="cr-sup-label">Professional Services</span><p class="cr-sup-desc">Consulting and legal firms: Dynamics 365, Power Automate approval workflows, and AI knowledge agents.</p></div></div>
     <div class="cr-cta">
-      <a href="https://armely.com/customer-stories" class="cr-btn"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Read Client Stories on armely.com</span><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>
+      <a href="{{ route('case-studies.index') }}" class="cr-btn"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Read Client Stories</span><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>
     </div>
   </div>
 </section>
@@ -940,14 +1038,7 @@
     <div class="section-eyebrow">Get Started</div>
     <h2 class="section-title">Ready to discuss your energy organization's technology needs?</h2>
     <p class="section-body">Book a free 30-minute assessment. We will review your current systems and come back with recommendations.</p>
-    <div class="ind-cta-form-wrap">
-      <div class="ind-form-row"><label class="ind-form-label">Full Name</label><input class="ind-form-input" type="text" placeholder="Jane Smith"></div>
-      <div class="ind-form-row"><label class="ind-form-label">Business Email</label><input class="ind-form-input" type="email" placeholder="jane@yourorg.com"></div>
-      <div class="ind-form-row"><label class="ind-form-label">Organization</label><input class="ind-form-input" type="text" placeholder="Your organization name"></div>
-      <div class="ind-form-row"><label class="ind-form-label">Primary Need</label><select class="ind-form-select"><option value="">Select...</option><option>Invoice visibility and AP automation for OpenInvoice</option><option>Production and financial analytics dashboards</option><option>Energy data platform for reporting and analytics</option><option>AFE and field workflow automation</option><option>Compliance and document management</option><option>Custom application development for energy operations</option><option>Not sure, need a recommendation</option></select></div>
-      <button class="ind-form-submit">Request Free Assessment</button>
-      <div class="ind-form-note">No spam. No sales pressure. Just a useful conversation.</div>
-    </div>
+    <a href="{{ route('contact') }}" class="btn-primary">Request Your Free Assessment</a>
   </div>
 </section>
 </div>
