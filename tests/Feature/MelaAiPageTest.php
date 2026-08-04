@@ -16,7 +16,7 @@ class MelaAiPageTest extends TestCase
         $this->prepareSchema();
     }
 
-    public function test_mela_ai_page_uses_database_titles(): void
+    public function test_mela_ai_page_presents_the_product_collection(): void
     {
         DB::table('company_portfolios')->insert([
             'title' => 'Agentic Capabilities in Action',
@@ -42,9 +42,51 @@ class MelaAiPageTest extends TestCase
         $response = $this->get(route('mela-ai'));
 
         $response->assertOk();
-        $response->assertSee('<title>Agentic Capabilities in Action</title>', false);
-        $response->assertSee('Meeting Assistant Demo', false);
-        $response->assertDontSee('Agentic Demo 1', false);
+        $response->assertSee('<title>Mela AI | AI Products Built for Modern Work</title>', false);
+        $response->assertSee('The Mela AI Collection', false);
+        $response->assertSee('Mela Meeting Assistant', false);
+        $response->assertSee(route('mela-meeting-assistant'), false);
+        $response->assertSee('Mela Organization Chat', false);
+        $response->assertDontSee('Meeting Assistant Demo', false);
+    }
+
+    public function test_meeting_assistant_has_its_own_product_page(): void
+    {
+        DB::table('videos')->insert([
+            'title' => 'Mela Meeting Assistant Demo',
+            'url' => 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $response = $this->get(route('mela-meeting-assistant'));
+
+        $response->assertOk();
+        $response->assertSee('<title>Mela Meeting Assistant | Microsoft Teams Meeting Automation</title>', false);
+        $response->assertSee('Intelligence Embedded Into How Your Business Works', false);
+        $response->assertSee('Turn Meeting Action Items into Microsoft Planner Tasks in One Click', false);
+        $response->assertSee('How Mela Compares to the Competition', false);
+        $response->assertSee('Deployed to Your Tenant in Under 10 Minutes', false);
+        $response->assertSee(asset('images/mela/meeting-action-items.png'), false);
+        $response->assertSee('https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0', false);
+        $response->assertSee('Mela Meeting Assistant Demo', false);
+        $response->assertDontSee('The Mela AI Collection', false);
+    }
+
+    public function test_solutions_menu_links_directly_to_the_viable_mela_product(): void
+    {
+        $response = $this->get(route('mela-ai'));
+
+        $response->assertOk();
+        $response->assertSee('Mela Meeting Assistant', false);
+        $response->assertSee('href="'.route('mela-meeting-assistant').'"', false);
+    }
+
+    public function test_meeting_assistant_uses_the_default_demo_when_no_database_video_exists(): void
+    {
+        $this->get(route('mela-meeting-assistant'))
+            ->assertOk()
+            ->assertSee('https://www.youtube-nocookie.com/embed/etFEuJzx6cA?rel=0', false);
     }
 
     private function prepareSchema(): void

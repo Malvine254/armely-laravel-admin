@@ -92,7 +92,7 @@ class ServicesController extends Controller
             'advisory' => $all_services->where('category', 'advisory')->count(),
         ];
 
-        return view('services', [
+        return view('services.index', [
             'services' => $all_services,
             'titleToUrl' => $this->titleToUrl,
             'counts' => $counts,

@@ -35,7 +35,7 @@ Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/ui-responsiveness', function (\Illuminate\Http\Request $request) {
     $url = trim((string) $request->query('url', ''));
 
-    return view('ui-responsiveness', [
+    return view('system.ui-responsiveness', [
         'initialUrl' => $url,
     ]);
 })->name('ui-responsiveness');
@@ -437,7 +437,7 @@ Route::redirect('/assessments', '/services/assessments', 301);
 Route::redirect('/services/sql-server', '/services/sql-data-warehousing', 301);
 Route::get('/services/{name}', [HomeController::class, 'serviceDetails'])->name('services.show');
 
-Route::view('/solutions/protective-order-digitization', 'protective-order-solution')->name('protective-order-solution');
+Route::view('/solutions/protective-order-digitization', 'solutions.protective-order')->name('protective-order-solution');
 Route::redirect('/protective-order-solution', '/solutions/protective-order-digitization', 301);
 
 // Accept query parameter format: /service-details?name=ai-consulting
@@ -581,6 +581,7 @@ Route::get('/industries/{industry}', [HomeController::class, 'industryShow'])
     ->where('industry', '[A-Za-z0-9\-]+')
     ->name('industries.show');
 Route::get('/mela-ai', [HomeController::class, 'melaAi'])->name('mela-ai');
+Route::get('/mela-meeting-assistant', [HomeController::class, 'melaMeetingAssistant'])->name('mela-meeting-assistant');
 
 $storeBaseUrl = trim((string) env('STORE_URL', ''));
 
@@ -622,7 +623,7 @@ if (!$storeBridgeDisabledForPathMode) {
             return redirect('/');
         }
 
-        return response()->view('store-bridge', ['targetUrl' => $targetUrl]);
+        return response()->view('system.store-bridge', ['targetUrl' => $targetUrl]);
     })->name('armely-store');
 
     Route::get('/store/{path}', function (\Illuminate\Http\Request $request, string $path) use ($storeBaseUrl, $buildStoreTarget) {
@@ -631,7 +632,7 @@ if (!$storeBridgeDisabledForPathMode) {
             return redirect('/');
         }
 
-        return response()->view('store-bridge', ['targetUrl' => $targetUrl]);
+        return response()->view('system.store-bridge', ['targetUrl' => $targetUrl]);
     })->where('path', '.*');
 } else {
     Route::get('/store', function (\Illuminate\Http\Request $request) use ($storeBaseUrl, $buildStoreTarget) {

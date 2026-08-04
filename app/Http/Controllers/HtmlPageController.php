@@ -101,7 +101,7 @@ class HtmlPageController extends Controller
         $canonicalUrl = URL::to('/all-partners/' . $slug);
 
         // Render within site layout so header/footer are included
-        return response()->view('partner-page', [
+        return response()->view('company.partner-show', [
             'content' => $content,
             'pageTitle' => $meta['title'],
             'metaDescription' => $meta['description'],

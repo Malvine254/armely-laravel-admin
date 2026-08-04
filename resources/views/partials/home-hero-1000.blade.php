@@ -986,7 +986,7 @@
         <div class="hero-panel">
             <div class="hero-copy">
                 <div class="hero-eyebrow">Beyond Imagination</div>
-                <h1>Data, AI, and technology implementation <span class="hero-title-light">that delivers measurable outcomes.</span></h1>
+                <h1>Data, AI, and Technology implementation <span class="hero-title-light">That delivers measurable outcomes.</span></h1>
                 <p>Armely implements Microsoft, Snowflake, and custom-built solutions for healthcare, energy, government, and enterprise organizations. We build it, measure it, and stand behind it.</p>
                 <div class="hero-actions">
                     <a href="#services" class="hero-btn hero-btn-primary">

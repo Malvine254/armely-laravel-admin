@@ -1181,7 +1181,7 @@ main .service-card {
                         <div class="main-menu d-none d-lg-flex align-items-center justify-content-end w-100" style="height: 100%;">
                             <nav class="navigation w-100 d-flex align-items-center" style="height: 100%;">
                                 <ul class="nav menu">
-                                    <li class="mega-nav-item {{ request()->is('company','career','job-board','applications','social-impact','social-impact-details','customer-stories') ? 'active' : '' }}">
+                                    <li class="mega-nav-item {{ request()->is('company','career','job-board','applications','all-partners','social-impact','social-impact-details*','customer-stories*') ? 'active' : '' }}">
                                         <button type="button" class="mega-trigger" aria-expanded="false">
                                             Who We Are
                                             <i class="icofont-rounded-down mega-icon-closed" aria-hidden="true"></i>
@@ -1225,7 +1225,7 @@ main .service-card {
                                             
                                         </div>
                                     </li>
-                                    <li class="mega-nav-item {{ request()->is('services*','service-details*','power-platform','powerplatform','power-apps','powerapps','power-automate','powerautomate','dynamics-365','dynamics365','sharepoint','sharepointonline','api-dev','api-development','sql-server','sql-data-warehousing') ? 'active' : '' }}">
+                                    <li class="mega-nav-item {{ request()->is('services*','service-details*','mela-ai','mela-meeting-assistant','power-platform','powerplatform','power-apps','powerapps','power-automate','powerautomate','dynamics-365','dynamics365','sharepoint','sharepointonline','api-dev','api-development','sql-server','sql-data-warehousing') ? 'active' : '' }}">
                                         <button type="button" class="mega-trigger" aria-expanded="false">
                                             What We Do
                                             <i class="icofont-rounded-down mega-icon-closed" aria-hidden="true"></i>
@@ -1237,7 +1237,7 @@ main .service-card {
                                         </div>
                                     </li>
 
-                                    <li class="mega-nav-item {{ request()->is('industries') ? 'active' : '' }}">
+                                    <li class="mega-nav-item {{ request()->is('industries*') ? 'active' : '' }}">
                                         <button type="button" class="mega-trigger" aria-expanded="false">
                                             Who We Serve
                                             <i class="icofont-rounded-down mega-icon-closed" aria-hidden="true"></i>
@@ -1247,7 +1247,7 @@ main .service-card {
                                             @include('partials.mega-menu.who-we-serve')
                                         </div>
                                     </li>
-                                    <li class="mega-nav-item {{ request()->is('blog','blogs','resources','resources*','case-studies','events') ? 'active' : '' }}">
+                                    <li class="mega-nav-item {{ request()->is('blog','blog*','blogs','resources','resources*','case-studies*','events*') ? 'active' : '' }}">
                                         <button type="button" class="mega-trigger" aria-expanded="false">
                                             Knowledge Hub
                                             <i class="icofont-rounded-down mega-icon-closed" aria-hidden="true"></i>

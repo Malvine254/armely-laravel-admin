@@ -29,7 +29,7 @@
     <div class="mobile-mega-section">
         <h4>Solutions</h4>
         <h4>Everyone</h4>
-        <a href="{{ route('mela-ai') }}">Mela AI</a>
+        <a href="{{ route('mela-meeting-assistant') }}">Mela Meeting Assistant</a>
         <h4>Oil &amp; Gas</h4>
         <a href="{{ route('invoice-lens') }}">InvoiceLens</a>
     </div>
