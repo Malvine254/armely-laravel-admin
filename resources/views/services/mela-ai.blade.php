@@ -163,6 +163,7 @@
 .mela-page .mela-service-hero .mela-hero-copy > p { max-width: 760px; margin-bottom: 28px; color: rgba(255,255,255,.82); font-size: 1rem; font-weight: 300; line-height: 1.7; }
 .mela-page .mela-service-actions { display: flex; flex-wrap: wrap; gap: 12px; }
 .mela-page .mela-service-actions .mela-btn { min-width: 190px; margin: 0; border-radius: 8px; padding: 14px 32px; font-size: .95rem; }
+.mela-page .mela-service-hero .mela-hero-copy > .mela-note { margin: 14px 0 0; color: rgba(255,255,255,.72); font-size: .82rem; line-height: 1.55; }
 .mela-page .mela-service-hero .mela-btn-primary { background: #2f5597; color: #fff; box-shadow: none; }
 .mela-page .mela-service-hero .mela-btn-primary:hover { background: #4779bd; color: #fff; }
 .mela-page .mela-service-hero .mela-btn-secondary { border-width: 1px; border-color: rgba(255,255,255,.25); color: rgba(255,255,255,.85); }
@@ -283,15 +284,14 @@
         <div class="mela-container mela-hero-grid">
             <div class="mela-hero-copy">
                 <div class="mela-service-eyebrow">
-                    <span class="mela-badge">Mela Meeting Assistant</span>
-                    <span class="mela-service-partner">Built for Microsoft Teams, Planner, and Outlook</span>
+                    <span class="mela-badge"><i class="fa-solid fa-bolt" aria-hidden="true"></i> Native Microsoft Teams &amp; Planner Integration</span>
                 </div>
-                <h1>Capture the meeting.<br>Assign the work.<br>Keep every commitment moving.</h1>
-                <p>Mela turns Microsoft Teams meetings into structured summaries, assigned action items, Planner tasks, and Outlook follow-ups—without adding another disconnected tool to your workflow.</p>
+                <h1>Intelligence Embedded Into How Your Business Works</h1>
+                <p>From real-time meeting capture to direct task syncing and automated email summaries, Mela automates post-meeting execution across Microsoft 365.</p>
                 <div class="mela-service-actions">
-                    <a href="#mela-contact" class="mela-btn mela-btn-primary">Request a Free Pilot</a>
-                    <a href="#mela-demo" class="mela-btn mela-btn-secondary">See How Mela Works</a>
+                    <a href="#mela-contact" class="mela-btn mela-btn-primary">Request Free 14-Day Pilot <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
                 </div>
+                <p class="mela-note"><em>Requires Microsoft Teams Admin Access • Guided 10-Minute Onboarding</em></p>
             </div>
             <div class="mela-media" id="mela-demo">
                 <?php
