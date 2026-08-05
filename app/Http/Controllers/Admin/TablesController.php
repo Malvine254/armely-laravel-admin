@@ -1950,7 +1950,11 @@ class TablesController extends Controller
     {
         $validated = $request->validate([
             'event_id' => ['required', 'integer'],
+            'registration_ids' => ['nullable', 'array'],
+            'registration_ids.*' => ['integer', 'distinct'],
+            'is_reminder' => ['nullable', 'boolean'],
         ]);
+        $isReminder = (bool) ($validated['is_reminder'] ?? false);
 
         $eventTable = $this->tableExists('events') ? 'events' : 'event';
         $event = DB::table($eventTable)->where('id', $validated['event_id'])->first();
@@ -1959,13 +1963,12 @@ class TablesController extends Controller
         }
 
         $eventUrl = trim((string) ($event->url ?? ''));
-        if ($eventUrl === '' || !filter_var($eventUrl, FILTER_VALIDATE_URL)) {
+        if (!$isReminder && ($eventUrl === '' || !filter_var($eventUrl, FILTER_VALIDATE_URL))) {
             return response()->json(['success' => false, 'message' => 'Add a valid event URL before sending invitations.'], 422);
         }
 
-        $registrations = DB::table('event_registrations')
-            ->where('status', 'verified')
-            ->whereNull('event_link_sent_at')
+        $registrationsQuery = DB::table('event_registrations')
+            ->whereIn('status', $isReminder ? ['verified', 'attended'] : ['verified'])
             ->whereNotExists(function ($query) {
                 $query->selectRaw('1')
                     ->from('event_email_unsubscribes')
@@ -1977,12 +1980,21 @@ class TablesController extends Controller
                         $legacyQuery->whereNull('event_id')
                             ->where('event_name', (string) $event->title);
                     });
-            })
-            ->orderBy('id')
-            ->get();
+            });
+
+        if (!$isReminder) {
+            $registrationsQuery->whereNull('event_link_sent_at');
+        }
+        if (!empty($validated['registration_ids'])) {
+            $registrationsQuery->whereIn('id', $validated['registration_ids']);
+        }
+
+        $registrations = $registrationsQuery->orderBy('id')->get();
 
         if ($registrations->isEmpty()) {
-            return response()->json(['success' => false, 'message' => 'There are no verified attendees waiting for an event link.'], 422);
+            return response()->json(['success' => false, 'message' => $isReminder
+                ? 'None of the selected recipients are eligible for this event reminder.'
+                : 'There are no verified attendees waiting for an event link.'], 422);
         }
 
         $from = AzureMailService::outboundFromEmail();
@@ -1999,10 +2011,15 @@ class TablesController extends Controller
                     'updated_at' => now(),
                 ]);
             }
-            $html = view('emails.events.verified-event-link', [
+            $emailView = $isReminder ? 'emails.events.reminder' : 'emails.events.verified-event-link';
+            $html = view($emailView, [
                 'name' => (string) $registration->full_name,
                 'eventTitle' => (string) ($event->title ?? $registration->event_name),
-                'eventDate' => (string) ($event->start_date ?? ''),
+                'eventDate' => trim(implode(' ', array_filter([
+                    (string) ($event->start_date ?? ''),
+                    (string) ($event->start_time ?? ''),
+                    (string) ($event->timezone ?? ''),
+                ]))),
                 'eventUrl' => $eventUrl,
                 'unsubscribeUrl' => URL::signedRoute('events.emails.unsubscribe', [
                     'token' => $unsubscribeToken,
@@ -2010,7 +2027,7 @@ class TablesController extends Controller
             ])->render();
 
             if (AzureMailService::isDeliverableEmail($email)
-                && $this->sendEventEmailWithRetry($mailer, $from, $email, 'Your event access link: '.($event->title ?? 'Armely Event'), $html)) {
+                && $this->sendEventEmailWithRetry($mailer, $from, $email, ($isReminder ? 'Reminder: ' : 'Your event access link: ').($event->title ?? 'Armely Event'), $html)) {
                 DB::table('event_registrations')->where('id', $registration->id)->update([
                     'event_id' => $event->id,
                     'event_link_sent_at' => now(),
@@ -2022,11 +2039,12 @@ class TablesController extends Controller
             }
         }
 
-        ActivityLogger::log('email', 'Event', $event->id, "Sent event link to {$sent} verified attendee(s); {$failed} failed.");
+        $emailType = $isReminder ? 'event reminder' : 'event link';
+        ActivityLogger::log('email', 'Event', $event->id, "Sent {$emailType} to {$sent} attendee(s); {$failed} failed.");
 
         return response()->json([
             'success' => $sent > 0,
-            'message' => "Event link sent to {$sent} verified attendee(s).".($failed ? " {$failed} could not be delivered." : ''),
+            'message' => ucfirst($emailType)." sent to {$sent} attendee(s).".($failed ? " {$failed} could not be delivered." : ''),
             'sent' => $sent,
             'failed' => $failed,
         ], $sent > 0 ? 200 : 502);
@@ -2034,14 +2052,18 @@ class TablesController extends Controller
 
     public function sendEventThankYou(Request $request, AzureMailService $mailer)
     {
-        $validated = $request->validate(['event_id' => ['required', 'integer']]);
+        $validated = $request->validate([
+            'event_id' => ['required', 'integer'],
+            'registration_ids' => ['nullable', 'array'],
+            'registration_ids.*' => ['integer', 'distinct'],
+        ]);
         $eventTable = $this->tableExists('events') ? 'events' : 'event';
         $event = DB::table($eventTable)->where('id', $validated['event_id'])->first();
         if (!$event) {
             return response()->json(['success' => false, 'message' => 'Event not found.'], 404);
         }
 
-        $registrations = DB::table('event_registrations')
+        $registrationsQuery = DB::table('event_registrations')
             ->whereIn('status', ['verified', 'attended'])
             ->whereNull('thank_you_sent_at')
             ->where(function ($query) use ($event) {
@@ -2054,12 +2076,16 @@ class TablesController extends Controller
                 $query->selectRaw('1')
                     ->from('event_email_unsubscribes')
                     ->whereColumn('event_email_unsubscribes.email', 'event_registrations.work_email');
-            })
-            ->orderBy('id')
-            ->get();
+            });
+
+        if (!empty($validated['registration_ids'])) {
+            $registrationsQuery->whereIn('id', $validated['registration_ids']);
+        }
+
+        $registrations = $registrationsQuery->orderBy('id')->get();
 
         if ($registrations->isEmpty()) {
-            return response()->json(['success' => false, 'message' => 'There are no approved or attended recipients awaiting a thank-you email.'], 422);
+            return response()->json(['success' => false, 'message' => 'None of the selected recipients are eligible for a thank-you email, or they have already received one.'], 422);
         }
 
         $from = AzureMailService::outboundFromEmail();

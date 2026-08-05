@@ -1585,7 +1585,7 @@ class HomeController extends Controller
             return (object) [
                 'type' => 'embed',
                 'provider' => 'YouTube',
-                'url' => 'https://www.youtube-nocookie.com/embed/etFEuJzx6cA?rel=0',
+                'url' => 'https://www.youtube-nocookie.com/embed/gR2MbJz9mPc?rel=0',
                 'title' => 'Mela Meeting Assistant Demo',
             ];
         }

@@ -1092,20 +1092,27 @@
                 <div class="d-flex flex-wrap align-items-end justify-content-between gap-3 mb-3">
                     <div>
                         <h5 class="mb-1"><i class="fas fa-user-check"></i> Event Registrations</h5>
-                        <p class="text-muted mb-0">Verify attendees, then send the selected event URL to everyone verified and awaiting a link.</p>
+                        <p class="text-muted mb-0">Select individual registrations or send reminders and thank-you emails to everyone eligible for an event.</p>
                     </div>
                     <div class="d-flex flex-wrap align-items-end gap-2">
                         <div>
-                            <label for="verifiedEventSelect" class="form-label mb-1">Event link to send</label>
+                            <label for="verifiedEventSelect" class="form-label mb-1">Event</label>
                             <select id="verifiedEventSelect" class="form-select form-select-sm" style="min-width:260px">
                                 <option value="">Choose an event...</option>
-                                @foreach($events->filter(fn($event) => ($event->event_type ?? 'normal') === 'private' && !empty($event->url)) as $event)
+                                @foreach($events as $event)
                                     <option value="{{ $event->id }}">{{ \Illuminate\Support\Str::limit(strip_tags($event->title ?? 'Event'), 45) }}</option>
                                 @endforeach
                             </select>
                         </div>
+                        <div>
+                            <label for="eventEmailRecipientScope" class="form-label mb-1">Recipients</label>
+                            <select id="eventEmailRecipientScope" class="form-select form-select-sm">
+                                <option value="selected">Selected people</option>
+                                <option value="all">All eligible people</option>
+                            </select>
+                        </div>
                         <button type="button" id="sendVerifiedEventLinkBtn" class="btn btn-primary btn-sm">
-                            <i class="fas fa-paper-plane"></i> Send to Verified
+                            <i class="fas fa-bell"></i> Send Reminder
                         </button>
                         <button type="button" id="sendEventThankYouBtn" class="btn btn-outline-primary btn-sm">
                             <i class="fas fa-heart"></i> Send Thank You
@@ -1118,6 +1125,7 @@
                     <table class="table table-hover align-middle" id="eventRegistrationsDataTable">
                         <thead>
                             <tr>
+                                <th width="42"><input type="checkbox" class="form-check-input" id="selectAllEventRegistrations" aria-label="Select all registrations"></th>
                                 <th>Name</th>
                                 <th>Event</th>
                                 <th>Company Email</th>
@@ -1130,7 +1138,8 @@
                         </thead>
                         <tbody id="eventRegistrationsTable">
                             @forelse($eventRegistrations as $registration)
-                                <tr data-id="{{ $registration->id }}">
+                                <tr data-id="{{ $registration->id }}" data-event-id="{{ $registration->event_id }}">
+                                    <td><input type="checkbox" class="form-check-input event-registration-checkbox" value="{{ $registration->id }}" aria-label="Select {{ $registration->full_name }}"></td>
                                     <td>{{ $registration->full_name }}</td>
                                     <td>{{ $registration->event_name }}</td>
                                     <td><a href="mailto:{{ $registration->work_email }}">{{ $registration->work_email }}</a></td>
@@ -1159,7 +1168,7 @@
                                     </td>
                                 </tr>
                             @empty
-                                <tr><td colspan="8" class="text-center text-muted">No event registrations yet.</td></tr>
+                                <tr><td colspan="9" class="text-center text-muted">No event registrations yet.</td></tr>
                             @endforelse
                         </tbody>
                     </table>
@@ -4482,9 +4491,9 @@ $(document).ready(function() {
             headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')},
             data: { status: status },
             success: function(response) {
-                $row.find('td').eq(5).html(eventRegistrationStatusBadge(status));
+                $row.find('td').eq(6).html(eventRegistrationStatusBadge(status));
                 if (response.invitation_sent) {
-                    $row.find('td').eq(6).html('<span class="text-success"><i class="fas fa-check-circle"></i> Sent</span>');
+                    $row.find('td').eq(7).html('<span class="text-success"><i class="fas fa-check-circle"></i> Sent</span>');
                 }
                 showEventRegistrationMessage(response.message, true);
             },
@@ -4497,13 +4506,40 @@ $(document).ready(function() {
         });
     });
 
+    function selectedEventRegistrationIds() {
+        return $('.event-registration-checkbox:checked').map(function() { return Number(this.value); }).get();
+    }
+
+    $('#selectAllEventRegistrations').on('change', function() {
+        $('.event-registration-checkbox').prop('checked', this.checked);
+    });
+
+    $(document).on('change', '.event-registration-checkbox', function() {
+        const total = $('.event-registration-checkbox').length;
+        const checked = $('.event-registration-checkbox:checked').length;
+        $('#selectAllEventRegistrations').prop('checked', total > 0 && checked === total).prop('indeterminate', checked > 0 && checked < total);
+    });
+
+    function eventEmailAudience() {
+        const scope = $('#eventEmailRecipientScope').val();
+        const ids = selectedEventRegistrationIds();
+        if (scope === 'selected' && ids.length === 0) {
+            showEventRegistrationMessage('Select at least one person, or choose “All eligible people.”', false);
+            return null;
+        }
+        return { scope: scope, ids: scope === 'selected' ? ids : [] };
+    }
+
     $('#sendVerifiedEventLinkBtn').on('click', function() {
         const eventId = $('#verifiedEventSelect').val();
         if (!eventId) {
             showEventRegistrationMessage('Choose an event with a URL first.', false);
             return;
         }
-        if (!confirm('Send this event URL to every verified attendee who has not already received a link?')) {
+        const audience = eventEmailAudience();
+        if (!audience) return;
+        const audienceLabel = audience.scope === 'selected' ? `${audience.ids.length} selected person(s)` : 'all eligible people for this event';
+        if (!confirm(`Send an event reminder to ${audienceLabel}?`)) {
             return;
         }
 
@@ -4513,7 +4549,7 @@ $(document).ready(function() {
             url: '/admin/tables/event-registrations/send-link',
             method: 'POST',
             headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')},
-            data: { event_id: eventId },
+            data: { event_id: eventId, registration_ids: audience.ids, is_reminder: 1 },
             success: function(response) {
                 showEventRegistrationMessage(response.message, true);
                 window.setTimeout(function() { window.location.reload(); }, 1000);
@@ -4522,7 +4558,7 @@ $(document).ready(function() {
                 showEventRegistrationMessage(xhr.responseJSON?.message || 'The event links could not be sent.', false);
             },
             complete: function() {
-                $button.prop('disabled', false).html('<i class="fas fa-paper-plane"></i> Send to Verified');
+                $button.prop('disabled', false).html('<i class="fas fa-bell"></i> Send Reminder');
             }
         });
     });
@@ -4533,7 +4569,10 @@ $(document).ready(function() {
             showEventRegistrationMessage('Choose an event first.', false);
             return;
         }
-        if (!confirm('Send a thank-you email to approved or attended recipients who have not already received one?')) return;
+        const audience = eventEmailAudience();
+        if (!audience) return;
+        const audienceLabel = audience.scope === 'selected' ? `${audience.ids.length} selected person(s)` : 'all eligible people for this event';
+        if (!confirm(`Send a thank-you email to ${audienceLabel}?`)) return;
 
         const $button = $(this);
         $button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Sending...');
@@ -4541,7 +4580,7 @@ $(document).ready(function() {
             url: '/admin/tables/event-registrations/send-thank-you',
             method: 'POST',
             headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')},
-            data: { event_id: eventId },
+            data: { event_id: eventId, registration_ids: audience.ids },
             success: function(response) {
                 showEventRegistrationMessage(response.message, true);
             },
