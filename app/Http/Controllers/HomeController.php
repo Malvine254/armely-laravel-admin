@@ -1805,8 +1805,25 @@ class HomeController extends Controller
             return;
         }
 
-        if (!AzureMailService::isDeliverableEmail((string) $adminEmail)) {
-            Log::warning('Graph admin email skipped: undeliverable admin address', ['email' => $adminEmail]);
+        $adminEmails = collect([$adminEmail, 'ask.me@armely.com']);
+        if (Schema::hasTable('admin') && Schema::hasColumn('admin', 'email')) {
+            $adminQuery = DB::table('admin')->whereNotNull('email');
+            if (Schema::hasColumn('admin', 'status')) {
+                $adminQuery->whereRaw('LOWER(status) = ?', ['active']);
+            }
+            $adminEmails = $adminEmails->merge($adminQuery->pluck('email'));
+        }
+
+        $adminRecipients = $adminEmails
+            ->map(fn ($adminAddress) => AzureMailService::normalizeEmail((string) $adminAddress))
+            ->filter(fn ($adminAddress) => AzureMailService::isDeliverableEmail($adminAddress))
+            ->unique()
+            ->values()
+            ->map(fn ($adminAddress) => ['emailAddress' => ['address' => $adminAddress]])
+            ->all();
+
+        if ($adminRecipients === []) {
+            Log::warning('Graph contact notification skipped: no deliverable admin recipients.');
             return;
         }
 
@@ -1846,13 +1863,7 @@ class HomeController extends Controller
                         'contentType' => 'HTML',
                         'content' => $adminBody,
                     ],
-                    'toRecipients' => [
-                        ['emailAddress' => ['address' => $adminEmail]],
-                        ['emailAddress' => ['address' => 'ask.me@armely.com']],
-                    ],
-                    'ccRecipients' => [
-                        ['emailAddress' => ['address' => 'ask.me@armely.com']],
-                    ],
+                    'toRecipients' => $adminRecipients,
                 ],
                 'saveToSentItems' => true,
             ];
@@ -1861,9 +1872,15 @@ class HomeController extends Controller
                 $adminPayload['message']['replyTo'] = $replyTo;
             }
 
-            Http::withToken($accessToken)
+            $adminResponse = Http::withToken($accessToken)
                 ->withHeaders(['Content-Type' => 'application/json'])
                 ->post("https://graph.microsoft.com/v1.0/users/{$fromEmail}/sendMail", $adminPayload);
+            if (!$adminResponse->successful()) {
+                Log::error('Contact admin notification failed', [
+                    'status' => $adminResponse->status(),
+                    'response' => $adminResponse->body(),
+                ]);
+            }
 
             // User confirmation
             $userBody = view('emails.contact.user-confirmation', [
@@ -1873,7 +1890,9 @@ class HomeController extends Controller
 
             $userPayload = [
                 'message' => [
-                    'subject' => 'Thanks for contacting Armely',
+                    'subject' => str_contains(strtolower($subject), 'mela')
+                        ? 'We received your Mela Meeting Assistant request'
+                        : 'Thanks for contacting Armely',
                     'body' => [
                         'contentType' => 'HTML',
                         'content' => $userBody,
@@ -1890,9 +1909,16 @@ class HomeController extends Controller
             }
 
             if (AzureMailService::isDeliverableEmail($email)) {
-                Http::withToken($accessToken)
+                $userResponse = Http::withToken($accessToken)
                     ->withHeaders(['Content-Type' => 'application/json'])
                     ->post("https://graph.microsoft.com/v1.0/users/{$fromEmail}/sendMail", $userPayload);
+                if (!$userResponse->successful()) {
+                    Log::error('Contact user confirmation failed', [
+                        'status' => $userResponse->status(),
+                        'response' => $userResponse->body(),
+                        'email' => $email,
+                    ]);
+                }
             } else {
                 Log::warning('Contact user confirmation email skipped: undeliverable address', ['email' => $email]);
             }
