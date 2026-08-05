@@ -582,6 +582,8 @@ Route::get('/industries/{industry}', [HomeController::class, 'industryShow'])
     ->name('industries.show');
 Route::get('/mela-ai', [HomeController::class, 'melaAi'])->name('mela-ai');
 Route::get('/mela-meeting-assistant', [HomeController::class, 'melaMeetingAssistant'])->name('mela-meeting-assistant');
+Route::view('/mela-ai-terms-of-use', 'legal.mela-terms-of-use')->name('mela.terms');
+Route::view('/mela-ai-privacy-policy', 'legal.mela-ai-privacy-policy')->name('mela.privacy');
 
 $storeBaseUrl = trim((string) env('STORE_URL', ''));
 

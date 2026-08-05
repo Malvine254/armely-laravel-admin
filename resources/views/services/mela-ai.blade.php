@@ -152,6 +152,45 @@
 .mela-product-points i { margin-top: 5px; color: var(--mela-primary); font-size: .72rem; }
 .mela-product .mela-btn { align-self: flex-start; margin-top: auto; }
 .mela-product-muted { background: linear-gradient(145deg, #fbfcfe, #f3f6fb); }
+.mela-page .mela-service-hero { min-height: auto; display: flex; align-items: center; justify-content: center; padding: 86px 56px 70px; background: linear-gradient(135deg, #173b67 0%, #234f86 100%); }
+.mela-page .mela-service-hero::before, .mela-page .mela-service-hero::after { display: none; }
+.mela-page .mela-service-hero .mela-hero-grid { display: grid; width: min(1120px, 100%); margin: 0 auto; grid-template-columns: minmax(0, 1fr) minmax(360px, .9fr); gap: 48px; align-items: center; }
+.mela-page .mela-service-hero .mela-hero-copy { max-width: 560px; }
+.mela-page .mela-service-eyebrow { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; }
+.mela-page .mela-service-eyebrow .mela-badge { margin: 0; padding: 7px 14px; border: 1px solid rgba(255,255,255,.22); border-radius: 999px; background: rgba(255,255,255,.1); color: rgba(255,255,255,.88); font-size: .72rem; letter-spacing: .12em; text-transform: uppercase; }
+.mela-page .mela-service-partner { color: rgba(255,255,255,.66); font-size: .78rem; }
+.mela-page .mela-service-hero h1 { max-width: 900px; margin-bottom: 18px; font-size: clamp(1.75rem, 3.2vw, 2.7rem); font-weight: 800; line-height: 1.05; letter-spacing: -.04em; }
+.mela-page .mela-service-hero .mela-hero-copy > p { max-width: 760px; margin-bottom: 28px; color: rgba(255,255,255,.82); font-size: 1rem; font-weight: 300; line-height: 1.7; }
+.mela-page .mela-service-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.mela-page .mela-service-actions .mela-btn { min-width: 190px; margin: 0; border-radius: 8px; padding: 14px 32px; font-size: .95rem; }
+.mela-page .mela-service-hero .mela-btn-primary { background: #2f5597; color: #fff; box-shadow: none; }
+.mela-page .mela-service-hero .mela-btn-primary:hover { background: #4779bd; color: #fff; }
+.mela-page .mela-service-hero .mela-btn-secondary { border-width: 1px; border-color: rgba(255,255,255,.25); color: rgba(255,255,255,.85); }
+.mela-page .mela-service-hero .mela-media { width: 100%; margin: 0; }
+.mela-page .mela-contact { padding: 72px 0; background: #eef3f9; border-top: 1px solid var(--mela-border); }
+.mela-page .mela-contact-inner { display: grid; grid-template-columns: minmax(0, .9fr) minmax(420px, 1.1fr); gap: 64px; align-items: start; }
+.mela-page .mela-contact-copy { padding-top: 18px; }
+.mela-page .mela-contact-copy .mela-title { max-width: 520px; margin-bottom: 16px; }
+.mela-page .mela-contact-copy > p { max-width: 520px; color: var(--mela-muted); }
+.mela-page .mela-contact-points { display: grid; gap: 12px; margin: 28px 0 0; padding: 0; list-style: none; }
+.mela-page .mela-contact-points li { display: flex; align-items: center; gap: 10px; color: var(--mela-text); font-size: .9rem; }
+.mela-page .mela-contact-points i { color: var(--mela-primary); }
+.mela-page .mela-contact-form { padding: 34px 32px; border: 1px solid var(--mela-border); border-radius: 14px; background: #fff; box-shadow: 0 14px 36px rgba(18,47,82,.08); }
+.mela-page .mela-form-title { margin-bottom: 5px; color: var(--mela-text); font-size: 1.12rem; font-weight: 700; }
+.mela-page .mela-form-sub { margin-bottom: 22px; color: var(--mela-muted); font-size: .85rem; }
+.mela-page .mela-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
+.mela-page .mela-form-row { margin-bottom: 14px; }
+.mela-page .mela-form-row-full { grid-column: 1 / -1; width: 100%; min-width: 0; }
+.mela-page .mela-form-row label { display: block; margin-bottom: 6px; color: var(--mela-muted); font-size: .75rem; font-weight: 600; letter-spacing: .04em; }
+.mela-page .mela-form-row input, .mela-page .mela-form-row select, .mela-page .mela-form-row textarea { width: 100%; padding: 11px 14px; border: 1px solid rgba(41,78,139,.18); border-radius: 7px; background: #fff; color: var(--mela-text); font: inherit; font-size: .875rem; outline: none; }
+.mela-page .mela-form-row select { display: block; width: 100% !important; max-width: none !important; min-width: 0; }
+.mela-page .mela-form-row .nice-select { display: block; float: none; width: 100% !important; max-width: none !important; min-width: 0; height: auto; min-height: 48px; padding: 11px 42px 11px 14px; border: 1px solid rgba(41,78,139,.18); border-radius: 7px; line-height: 24px; }
+.mela-page .mela-form-row .nice-select .list { width: 100%; }
+.mela-page .mela-form-row textarea { min-height: 112px; resize: vertical; }
+.mela-page .mela-form-row input:focus, .mela-page .mela-form-row select:focus, .mela-page .mela-form-row textarea:focus { border-color: rgba(47,85,151,.55); box-shadow: 0 0 0 3px rgba(47,85,151,.08); }
+.mela-page .mela-form-submit { width: 100%; padding: 14px; border: 0; border-radius: 8px; background: linear-gradient(135deg, #2f5597, #4477bd); color: #fff; font: inherit; font-size: .95rem; font-weight: 600; cursor: pointer; }
+.mela-page .mela-form-submit:disabled { cursor: wait; opacity: .7; }
+.mela-page .mela-form-note { margin-top: 12px; color: var(--mela-muted); font-size: .75rem; text-align: center; }
 .mela-collection-cta { padding: 66px 20px; background: #f4f7fc; text-align: center; }
 .mela-collection-cta h2 { color: var(--mela-text); }
 .mela-collection-cta p { max-width: 620px; margin: 0 auto 22px; color: var(--mela-muted); }
@@ -165,6 +204,16 @@
     .mela-product-grid { grid-template-columns: 1fr; }
     .mela-page .mela-media-bar { min-height: 50px; }
     .mela-page .mela-section, .mela-page .mela-comparison { padding: 48px 0; }
+    .mela-page .mela-service-hero { padding: 64px 22px 56px; }
+    .mela-page .mela-service-hero .mela-hero-grid { grid-template-columns: 1fr; gap: 34px; }
+    .mela-page .mela-service-hero .mela-hero-copy { max-width: 100%; }
+    .mela-page .mela-service-hero h1 { font-size: clamp(1.9rem, 9vw, 2.5rem); }
+    .mela-page .mela-service-actions { display: grid; }
+    .mela-page .mela-service-actions .mela-btn { width: 100%; }
+    .mela-page .mela-contact-inner, .mela-page .mela-form-grid { grid-template-columns: 1fr; }
+    .mela-page .mela-contact-inner { gap: 34px; }
+    .mela-page .mela-contact-form { padding: 26px 20px; }
+    .mela-page .mela-form-row-full { grid-column: auto; }
 }
 </style>
 @endpush
@@ -230,16 +279,21 @@
 </main>
 @else
 <main class="mela-page">
-    <section class="mela-hero">
+    <section class="mela-hero mela-service-hero">
         <div class="mela-container mela-hero-grid">
             <div class="mela-hero-copy">
-                <span class="mela-badge"><i class="fa-solid fa-bolt" aria-hidden="true"></i> Native Microsoft Teams &amp; Planner Integration</span>
-                <h1>Intelligence Embedded Into How Your Business Works</h1>
-                <p>From real-time meeting capture to direct task syncing and automated email summaries, Mela automates post-meeting execution across Microsoft 365.</p>
-                <a href="{{ route('contact') }}" class="mela-btn mela-btn-primary">Request Free 14-Day Pilot <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
-                <p class="mela-note"><em>Requires Microsoft Teams Admin Access • Guided 10-Minute Onboarding</em></p>
+                <div class="mela-service-eyebrow">
+                    <span class="mela-badge">Mela Meeting Assistant</span>
+                    <span class="mela-service-partner">Built for Microsoft Teams, Planner, and Outlook</span>
+                </div>
+                <h1>Capture the meeting.<br>Assign the work.<br>Keep every commitment moving.</h1>
+                <p>Mela turns Microsoft Teams meetings into structured summaries, assigned action items, Planner tasks, and Outlook follow-ups—without adding another disconnected tool to your workflow.</p>
+                <div class="mela-service-actions">
+                    <a href="#mela-contact" class="mela-btn mela-btn-primary">Request a Free Pilot</a>
+                    <a href="#mela-demo" class="mela-btn mela-btn-secondary">See How Mela Works</a>
+                </div>
             </div>
-            <div class="mela-media">
+            <div class="mela-media" id="mela-demo">
                 <?php
                     $playerTitle = trim((string) ($meetingVideo->title ?? 'Mela Meeting Assistant Product Demo'));
                     $playerProvider = trim((string) ($meetingVideo->provider ?? (file_exists(public_path('mela-demo.mp4')) ? 'Video' : 'Demo')));
@@ -362,11 +416,131 @@
             <div class="mela-cta">
                 <h2>Ready to Elevate Your Team’s Productivity?</h2>
                 <p>Embed intelligent automation into your daily Microsoft 365 workflow today.</p>
-                <a href="{{ route('contact') }}" class="mela-btn mela-btn-primary"><i class="fa-solid fa-rocket" aria-hidden="true"></i> Start Free IT Trial</a>
-                <a href="{{ route('contact') }}" class="mela-btn mela-btn-secondary"><i class="fa-regular fa-calendar" aria-hidden="true"></i> Schedule a Demo</a>
+                <a href="#mela-contact" class="mela-btn mela-btn-primary"><i class="fa-solid fa-rocket" aria-hidden="true"></i> Start Free IT Trial</a>
+                <a href="#mela-contact" class="mela-btn mela-btn-secondary"><i class="fa-regular fa-calendar" aria-hidden="true"></i> Schedule a Demo</a>
             </div>
         </div>
     </section>
+
+    <section class="mela-contact" id="mela-contact">
+        <div class="mela-container mela-contact-inner">
+            <div class="mela-contact-copy">
+                <span class="mela-kicker">Get Started</span>
+                <h2 class="mela-title">Let's talk about your meeting workflow.</h2>
+                <p>Book a free 30-minute discovery call. We will review your Microsoft 365 environment and recommend the right Mela Meeting Assistant pilot for your team.</p>
+                <ul class="mela-contact-points">
+                    <li><i class="fa-solid fa-circle-check" aria-hidden="true"></i> Free assessment, no commitment required</li>
+                    <li><i class="fa-solid fa-circle-check" aria-hidden="true"></i> Pilot and tenant-readiness recommendation included</li>
+                    <li><i class="fa-solid fa-circle-check" aria-hidden="true"></i> Response within one business day</li>
+                </ul>
+            </div>
+            <form class="mela-contact-form" id="mela-meeting-contact-form" method="post" action="{{ route('contact.submit') }}">
+                @csrf
+                <div class="alert" id="MelaMeetingSubmitMessage" role="alert" style="display:none"></div>
+                <div class="mela-form-title">Book Your Free Assessment</div>
+                <div class="mela-form-sub">Tell us about your situation.</div>
+                <div class="mela-form-grid">
+                    <div class="mela-form-row">
+                        <label for="mela-contact-name">Full Name *</label>
+                        <input id="mela-contact-name" type="text" name="name" placeholder="Jane Smith" autocomplete="name" required>
+                    </div>
+                    <div class="mela-form-row">
+                        <label for="mela-contact-email">Business Email *</label>
+                        <input id="mela-contact-email" type="email" name="email" placeholder="jane@yourcompany.com" autocomplete="email" required>
+                    </div>
+                    <div class="mela-form-row">
+                        <label for="mela-contact-organization">Organization</label>
+                        <input id="mela-contact-organization" type="text" name="organization" placeholder="Acme Corp" autocomplete="organization">
+                    </div>
+                    <div class="mela-form-row">
+                        <label for="mela-contact-phone">Phone</label>
+                        <input id="mela-contact-phone" type="tel" name="phone" placeholder="Optional" autocomplete="tel">
+                    </div>
+                    <div class="mela-form-row mela-form-row-full">
+                        <label for="mela-contact-subject">Primary Need *</label>
+                        <select id="mela-contact-subject" name="subject" required>
+                            <option value="Mela Meeting Assistant" selected>Mela Meeting Assistant</option>
+                        </select>
+                    </div>
+                    <div class="mela-form-row mela-form-row-full">
+                        <label for="mela-contact-message">Message *</label>
+                        <textarea id="mela-contact-message" name="message" placeholder="Tell us what you need help with..." required></textarea>
+                    </div>
+                    <input type="text" name="website" tabindex="-1" autocomplete="off" style="display:none" aria-hidden="true">
+                    <div class="mela-form-row mela-form-row-full">
+                        <label>Confirm you are not a robot *</label>
+                        @if(!empty(config('services.recaptcha.site_key')))
+                            <div class="g-recaptcha" data-sitekey="{{ config('services.recaptcha.site_key') }}"></div>
+                        @else
+                            <div class="alert alert-warning">reCAPTCHA is not configured. Please set <strong>CAPTURE_SITE_KEY</strong>.</div>
+                        @endif
+                    </div>
+                </div>
+                <button class="mela-form-submit" name="submit_form" type="submit">Request Free Discovery Call</button>
+                <div class="mela-form-note">No spam. No sales pressure. Just a useful conversation.</div>
+                <div class="mela-form-note"><a href="{{ route('mela.terms') }}">Mela Terms of Use</a> &nbsp;•&nbsp; <a href="{{ route('mela.privacy') }}">Mela AI Privacy Policy</a></div>
+            </form>
+        </div>
+    </section>
 </main>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var form = document.getElementById('mela-meeting-contact-form');
+    if (!form) return;
+
+    var submitButton = form.querySelector('button[name="submit_form"]');
+    var messageBox = document.getElementById('MelaMeetingSubmitMessage');
+    var originalButtonText = submitButton.textContent;
+
+    form.addEventListener('submit', function (event) {
+        event.preventDefault();
+        var captchaField = form.querySelector('textarea[name="g-recaptcha-response"]');
+        var captchaResponse = captchaField ? captchaField.value.trim() : '';
+
+        messageBox.style.display = 'none';
+        messageBox.className = 'alert';
+        if (!captchaResponse) {
+            messageBox.classList.add('alert-danger');
+            messageBox.textContent = 'Please verify that you are not a robot.';
+            messageBox.style.display = 'block';
+            return;
+        }
+
+        submitButton.disabled = true;
+        submitButton.textContent = 'Sending...';
+
+        fetch(form.action, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': form.querySelector('input[name="_token"]').value,
+                'Accept': 'application/json'
+            },
+            body: new FormData(form)
+        })
+        .then(function (response) {
+            return response.json().then(function (data) { return { ok: response.ok, data: data }; });
+        })
+        .then(function (result) {
+            messageBox.classList.add(result.ok && result.data.success ? 'alert-success' : 'alert-danger');
+            messageBox.textContent = result.data.message || (result.ok ? 'Your request was sent successfully.' : 'An error occurred. Please try again.');
+            messageBox.style.display = 'block';
+            if (result.ok && result.data.success) {
+                form.reset();
+                if (window.grecaptcha) window.grecaptcha.reset();
+            }
+        })
+        .catch(function () {
+            messageBox.classList.add('alert-danger');
+            messageBox.textContent = 'An error occurred. Please try again.';
+            messageBox.style.display = 'block';
+        })
+        .finally(function () {
+            submitButton.disabled = false;
+            submitButton.textContent = originalButtonText;
+        });
+    });
+});
+</script>
 @endif
 @endsection
