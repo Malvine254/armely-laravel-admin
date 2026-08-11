@@ -584,6 +584,10 @@ Route::get('/mela-ai', [HomeController::class, 'melaAi'])->name('mela-ai');
 Route::get('/mela-meeting-assistant', [HomeController::class, 'melaMeetingAssistant'])->name('mela-meeting-assistant');
 Route::view('/mela-ai-terms-of-use', 'legal.mela-terms-of-use')->name('mela.terms');
 Route::view('/mela-ai-privacy-policy', 'legal.mela-ai-privacy-policy')->name('mela.privacy');
+Route::redirect('/mela-meeting-assistant-terms-of-use', '/mela-ai-terms-of-use', 301);
+Route::redirect('/mela-meeting-assistant-privacy-policy', '/mela-ai-privacy-policy', 301);
+Route::redirect('/mela-meeting-assistant/terms-of-use', '/mela-ai-terms-of-use', 301);
+Route::redirect('/mela-meeting-assistant/privacy-policy', '/mela-ai-privacy-policy', 301);
 
 $storeBaseUrl = trim((string) env('STORE_URL', ''));
 
