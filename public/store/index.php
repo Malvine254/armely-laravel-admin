@@ -49,20 +49,28 @@ if ($candidatePath !== '') {
     $candidatePath = str_replace(['\\', '/'], DIRECTORY_SEPARATOR, $candidatePath);
     $candidateFullPath = realpath($storePublicPath . DIRECTORY_SEPARATOR . $candidatePath);
     $storePublicRealPath = realpath($storePublicPath);
+    $storeStoragePublicRealPath = realpath($storeBasePath . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'app' . DIRECTORY_SEPARATOR . 'public');
+
+    $isWithinAllowedRoot = false;
+    foreach ([$storePublicRealPath, $storeStoragePublicRealPath] as $allowedRoot) {
+        if ($allowedRoot !== false && $candidateFullPath !== false && str_starts_with($candidateFullPath, $allowedRoot)) {
+            $isWithinAllowedRoot = true;
+            break;
+        }
+    }
 
     if (
         $candidateFullPath !== false
-        && $storePublicRealPath !== false
-        && str_starts_with($candidateFullPath, $storePublicRealPath)
+        && $isWithinAllowedRoot
         && is_file($candidateFullPath)
     ) {
         $extension = strtolower((string) pathinfo($candidateFullPath, PATHINFO_EXTENSION));
         $mimeTypes = [
-            'js' => 'application/javascript; charset=UTF-8',
-            'mjs' => 'application/javascript; charset=UTF-8',
-            'css' => 'text/css; charset=UTF-8',
-            'json' => 'application/json; charset=UTF-8',
-            'map' => 'application/json; charset=UTF-8',
+            'js' => 'application/javascript',
+            'mjs' => 'application/javascript',
+            'css' => 'text/css',
+            'json' => 'application/json',
+            'map' => 'application/json',
             'svg' => 'image/svg+xml',
             'png' => 'image/png',
             'jpg' => 'image/jpeg',
@@ -76,7 +84,26 @@ if ($candidatePath !== '') {
             'otf' => 'font/otf',
         ];
 
-        $mimeType = $mimeTypes[$extension] ?? 'application/octet-stream';
+        // Prefer content-based mime detection so files with mismatched
+        // extensions (for example PNG content saved with .webp extension)
+        // are still served with a browser-decodable content type.
+        $detectedMimeType = false;
+        if (function_exists('finfo_open')) {
+            $finfo = @finfo_open(FILEINFO_MIME_TYPE);
+            if ($finfo !== false) {
+                $detectedMimeType = @finfo_file($finfo, $candidateFullPath);
+                @finfo_close($finfo);
+            }
+        }
+
+        $baseMimeType = is_string($detectedMimeType) && $detectedMimeType !== ''
+            ? $detectedMimeType
+            : ($mimeTypes[$extension] ?? 'application/octet-stream');
+
+        $charsetTypes = ['application/javascript', 'text/css', 'application/json'];
+        $mimeType = in_array($baseMimeType, $charsetTypes, true)
+            ? $baseMimeType . '; charset=UTF-8'
+            : $baseMimeType;
         header('Content-Type: ' . $mimeType);
         header('Cache-Control: public, max-age=3600');
         readfile($candidateFullPath);
