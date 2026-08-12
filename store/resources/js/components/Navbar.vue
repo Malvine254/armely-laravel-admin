@@ -1,7 +1,7 @@
 <template>
   <nav class="sticky top-0 z-[100] isolate overflow-x-clip bg-white shadow-[0_4px_18px_rgba(15,42,82,0.10)]">
     <!-- Utility bar -->
-    <div v-if="showUtilityBar" class="hidden bg-gradient-to-r from-[#073b89] via-[#0b4aa0] to-[#073b89] text-white lg:block">
+    <div v-if="showUtilityBar" class="hidden bg-[#102a52] text-white lg:block">
       <div class="mx-auto flex h-10 max-w-[1600px] items-center justify-between px-5 text-xs font-medium">
         <div class="flex items-center gap-2 text-blue-50">
           <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 3 4.5 6v5.4c0 4.7 3.2 8.1 7.5 9.6 4.3-1.5 7.5-4.9 7.5-9.6V6L12 3Zm-3 9 2 2 4-5"/></svg>
@@ -46,7 +46,7 @@
         </form>
 
         <!-- Dynamic category row -->
-        <div class="order-4 -mx-3 mt-3 hidden min-h-14 w-[calc(100%+1.5rem)] flex-none items-stretch justify-center bg-gradient-to-r from-[#073b89] via-[#0b4aa0] to-[#073b89] sm:-mx-4 sm:w-[calc(100%+2rem)] lg:-mx-5 lg:w-[calc(100%+2.5rem)] xl:flex">
+        <div class="order-4 -mx-3 mt-3 hidden min-h-14 w-[calc(100%+1.5rem)] flex-none items-stretch justify-center bg-[#102a52] sm:-mx-4 sm:w-[calc(100%+2rem)] lg:-mx-5 lg:w-[calc(100%+2.5rem)] xl:flex">
           <div ref="categoryMenuRef" class="mx-3 flex w-[calc(100%-1.5rem)] items-stretch justify-center sm:mx-5 sm:w-[calc(100%-2.5rem)] lg:mx-8 lg:w-[calc(100%-4rem)] 2xl:mx-10 2xl:w-[calc(100%-5rem)]">
           <div
             v-for="cat in primaryCategories"
@@ -67,7 +67,7 @@
             </button>
 
             <transition enter-active-class="transition ease-out duration-150" enter-from-class="opacity-0 translate-y-1" enter-to-class="opacity-100 translate-y-0" leave-active-class="transition ease-in duration-100" leave-from-class="opacity-100 translate-y-0" leave-to-class="opacity-0 translate-y-1">
-              <div v-if="categoryDropdownOpen === cat.value" class="absolute left-0 top-full z-[150] mt-1 w-80 overflow-x-hidden rounded-xl border border-white/20 shadow-2xl whitespace-normal" style="background: #122d58;">
+              <div v-if="categoryDropdownOpen === cat.value" class="absolute left-0 top-full z-[150] mt-1 w-80 overflow-x-hidden rounded-xl border border-white/20 shadow-2xl whitespace-normal" style="background: #102a52;">
                 <div class="px-4 py-2.5 border-b border-white/20">
                   <p class="text-xs font-semibold text-white uppercase tracking-widest">{{ cat.name }} Vendors</p>
                 </div>
@@ -109,7 +109,7 @@
               </svg>
             </button>
             <transition enter-active-class="transition ease-out duration-150" enter-from-class="opacity-0 translate-y-1" enter-to-class="opacity-100 translate-y-0" leave-active-class="transition ease-in duration-100" leave-from-class="opacity-100 translate-y-0" leave-to-class="opacity-0 translate-y-1">
-              <div v-if="moreCategoriesOpen" class="absolute right-0 top-full z-[150] mt-1 w-[42rem] max-w-[calc(100vw-2rem)] rounded-xl shadow-2xl overflow-hidden border border-white/20 whitespace-normal" style="background: #122d58;">
+              <div v-if="moreCategoriesOpen" class="absolute right-0 top-full z-[150] mt-1 w-[42rem] max-w-[calc(100vw-2rem)] rounded-xl shadow-2xl overflow-hidden border border-white/20 whitespace-normal" style="background: #102a52;">
                 <div class="px-4 py-2.5 border-b border-white/20">
                   <p class="text-xs font-semibold text-white uppercase tracking-widest">More Categories</p>
                 </div>
@@ -266,7 +266,7 @@
 
       <!-- Mobile Dropdown Menu -->
       <div v-if="mobileMenuOpen" class="xl:hidden pb-4">
-        <div class="rounded-lg border border-white/20 overflow-hidden" style="background: #122d58;">
+        <div class="rounded-lg border border-white/20 overflow-hidden" style="background: #102a52;">
           <form class="border-b border-white/10 p-3 lg:hidden" role="search" @submit.prevent="submitNavSearch">
             <div class="flex h-11 overflow-hidden rounded-lg bg-white">
               <input v-model="navSearchQuery" type="search" class="min-w-0 flex-1 px-3 text-sm text-slate-800 outline-none" placeholder="Search products or part numbers..." aria-label="Search store catalog">
@@ -281,7 +281,7 @@
               <span>Products</span>
               <svg class="w-4 h-4 transition-transform" :class="mobileProductsOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
             </button>
-            <div v-if="mobileProductsOpen" style="background: #122d58;">
+            <div v-if="mobileProductsOpen" style="background: #102a52;">
               <div v-for="cat in productCategories" :key="cat.value">
                 <button
                   type="button"
@@ -661,7 +661,7 @@ const handleLogout = async () => {
 
 <style scoped>
 .store-menu-scroll {
-  scrollbar-color: #38bdf8 #122d58;
+  scrollbar-color: #38bdf8 #102a52;
   scrollbar-width: thin;
 }
 
@@ -671,7 +671,7 @@ const handleLogout = async () => {
 }
 
 .store-menu-scroll::-webkit-scrollbar-track {
-  background: #122d58;
+  background: #102a52;
 }
 
 .store-menu-scroll::-webkit-scrollbar-thumb {
