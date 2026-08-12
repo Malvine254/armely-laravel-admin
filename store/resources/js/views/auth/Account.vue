@@ -620,6 +620,14 @@ watch(userProfilePictureUrl, () => {
   profileAvatarLoadFailed.value = false
 })
 
+watch(
+  () => authStore.user,
+  () => {
+    profileAvatarLoadFailed.value = false
+  },
+  { deep: true }
+)
+
 const handleProfileAvatarError = () => {
   profileAvatarLoadFailed.value = true
 }
@@ -696,11 +704,13 @@ const submitProfilePictureUpload = async () => {
     }
 
     // Update auth store with fresh user data
-    if (data.user) {
+    const updatedUser = data?.user || data?.data?.user || null
+    if (updatedUser) {
       authStore.setUser({
         ...authStore.user,
-        ...data.user
+        ...updatedUser
       })
+      profileAvatarLoadFailed.value = false
       console.log('User updated with profile picture:', authStore.user.profile_picture_url)
     }
 

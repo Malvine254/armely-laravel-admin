@@ -593,6 +593,14 @@ watch(userProfilePictureUrl, () => {
   userAvatarLoadFailed.value = false
 })
 
+watch(
+  () => authStore.user,
+  () => {
+    userAvatarLoadFailed.value = false
+  },
+  { deep: true }
+)
+
 const handleUserAvatarError = () => {
   userAvatarLoadFailed.value = true
 }
