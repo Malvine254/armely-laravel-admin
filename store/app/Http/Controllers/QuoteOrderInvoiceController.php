@@ -1292,6 +1292,11 @@ class QuoteOrderInvoiceController extends Controller
                 $newStatus = 'delivered';
             }
 
+            // Once delivered, never regress to an earlier status due to noisy upstream payloads.
+            if ($this->canonicalOrderStatusForNotification($oldStatus, $oldTracking) === 'delivered') {
+                $newStatus = 'delivered';
+            }
+
             if ($newStatus === 'invoiced') {
                 $this->ensureOrderInvoiceExists($order);
             }
@@ -1652,30 +1657,45 @@ class QuoteOrderInvoiceController extends Controller
 
     private function shouldSendShippingNotification(string $oldStatus, string $newStatus, array $oldTracking, array $newTracking): bool
     {
-        $shippingMilestones = ['invoiced', 'shipped', 'in_transit', 'delivered'];
-        if ($oldStatus !== $newStatus && in_array($newStatus, $shippingMilestones, true)) {
-            return true;
+        $oldCanonical = $this->canonicalOrderStatusForNotification($oldStatus, $oldTracking);
+        $newCanonical = $this->canonicalOrderStatusForNotification($newStatus, $newTracking);
+
+        if ($newCanonical === '' || $oldCanonical === $newCanonical) {
+            return false;
         }
 
-        $oldTrackingNumber = strtolower(trim((string) ($oldTracking['tracking_number'] ?? '')));
-        $newTrackingNumber = strtolower(trim((string) ($newTracking['tracking_number'] ?? '')));
-        if ($oldTrackingNumber !== $newTrackingNumber && $newTrackingNumber !== '') {
-            return true;
+        // Notify only when the order moves forward in the lifecycle.
+        return $this->orderStatusRankForNotification($newCanonical) > $this->orderStatusRankForNotification($oldCanonical);
+    }
+
+    private function canonicalOrderStatusForNotification(?string $status, array $tracking): string
+    {
+        $normalized = strtolower(trim((string) $status));
+
+        if ($this->trackingPayloadIndicatesDelivered($tracking)) {
+            return 'delivered';
         }
 
-        $oldShippingStatus = strtolower(trim((string) ($oldTracking['shipping_status'] ?? '')));
-        $newShippingStatus = strtolower(trim((string) ($newTracking['shipping_status'] ?? '')));
-        if ($oldShippingStatus !== $newShippingStatus && in_array($newShippingStatus, $shippingMilestones, true)) {
-            return true;
-        }
+        return match ($normalized) {
+            'processing', 'confirmed' => 'accepted',
+            'complete', 'completed' => 'invoiced',
+            'partiallyshipped', 'partially_shipped', 'partial' => 'shipped',
+            default => $normalized,
+        };
+    }
 
-        $oldCarrierStatus = strtolower(trim((string) ($oldTracking['carrier_live_status_normalized'] ?? '')));
-        $newCarrierStatus = strtolower(trim((string) ($newTracking['carrier_live_status_normalized'] ?? '')));
-        if ($oldCarrierStatus !== $newCarrierStatus && in_array($newCarrierStatus, $shippingMilestones, true)) {
-            return true;
-        }
-
-        return false;
+    private function orderStatusRankForNotification(string $status): int
+    {
+        return match ($status) {
+            'pending' => 10,
+            'accepted' => 20,
+            'backordered' => 30,
+            'shipped' => 40,
+            'in_transit' => 50,
+            'invoiced' => 60,
+            'delivered' => 70,
+            default => 0,
+        };
     }
 
     private function guessCarrierFromTrackingNumber(?string $trackingNumber): ?string
