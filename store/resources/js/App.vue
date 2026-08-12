@@ -207,7 +207,9 @@ const showStoreFooter = computed(() => {
 
 const showFloatingChatLauncher = computed(() => {
   const routeName = String(route.name || '')
-  if (!authStore.isAuthenticated) return false
+  // Use token presence so temporary user-profile hydration delays do not
+  // hide the launcher for already signed-in users.
+  if (!authStore.token) return false
   if (routeName === 'messages') return false
   if (routeName === 'admin-login') return false
   if (routeName.startsWith('admin-')) return false
