@@ -119,16 +119,39 @@ if ($candidatePath !== '') {
             }
         }
 
-        $baseMimeType = is_string($detectedMimeType) && $detectedMimeType !== ''
-            ? $detectedMimeType
-            : ($mimeTypes[$extension] ?? 'application/octet-stream');
+        $baseMimeType = $mimeTypes[$extension] ?? null;
+
+        // Only let content-based detection override known image types so
+        // mismatched image extensions still render, while JS/CSS keep strict
+        // MIME values required by modern browsers.
+        $imageExtensions = ['svg', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'ico'];
+        if (
+            in_array($extension, $imageExtensions, true)
+            && is_string($detectedMimeType)
+            && str_starts_with($detectedMimeType, 'image/')
+        ) {
+            $baseMimeType = $detectedMimeType;
+        }
+
+        if (!is_string($baseMimeType) || $baseMimeType === '') {
+            $baseMimeType = is_string($detectedMimeType) && $detectedMimeType !== ''
+                ? $detectedMimeType
+                : 'application/octet-stream';
+        }
 
         $charsetTypes = ['application/javascript', 'text/css', 'application/json'];
         $mimeType = in_array($baseMimeType, $charsetTypes, true)
             ? $baseMimeType . '; charset=UTF-8'
             : $baseMimeType;
         header('Content-Type: ' . $mimeType);
-        header('Cache-Control: public, max-age=3600');
+
+        $revalidateExtensions = ['js', 'mjs', 'css', 'json', 'map'];
+        if (in_array($extension, $revalidateExtensions, true)) {
+            // Avoid sticky browser caches after deploys or MIME fixes.
+            header('Cache-Control: no-cache, must-revalidate');
+        } else {
+            header('Cache-Control: public, max-age=3600');
+        }
         readfile($candidateFullPath);
         exit;
     }
