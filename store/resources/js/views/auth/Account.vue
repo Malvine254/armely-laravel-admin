@@ -26,7 +26,7 @@
         <div class="flex flex-col sm:flex-row items-center gap-6">
           <!-- Profile Picture -->
           <div class="relative">
-            <img v-if="userProfilePictureUrl" :src="userProfilePictureUrl" :alt="userName" class="w-24 h-24 rounded-full object-cover border-2" style="border-color: #2F5597;">
+            <img v-if="userProfilePictureUrl && !profileAvatarLoadFailed" :src="userProfilePictureUrl" :alt="userName" class="w-24 h-24 rounded-full object-cover border-2" style="border-color: #2F5597;" @error="handleProfileAvatarError">
             <div v-else class="w-24 h-24 rounded-full flex items-center justify-center text-white font-bold text-xl" style="background-color: #2F5597;">{{ initials }}</div>
             <button @click="triggerProfilePictureUpload" class="absolute bottom-0 right-0 bg-white rounded-full p-2 shadow-lg hover:shadow-xl transition border border-gray-300">
               <svg class="w-4 h-4 text-gray-700" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -189,8 +189,8 @@
               <label class="block text-sm font-medium text-gray-700 mb-1">Profile Picture</label>
               <div class="flex items-center gap-4">
                 <img v-if="profilePicturePreview" :src="profilePicturePreview" alt="Preview" class="w-16 h-16 rounded-full object-cover border-2 border-gray-300">
-                <div v-else-if="userProfilePictureUrl" class="w-16 h-16 rounded-full flex items-center justify-center text-white font-bold" style="background-color: #2F5597;">
-                  <img :src="userProfilePictureUrl" alt="Profile" class="w-16 h-16 rounded-full object-cover">
+                <div v-else-if="userProfilePictureUrl && !profileAvatarLoadFailed" class="w-16 h-16 rounded-full flex items-center justify-center text-white font-bold" style="background-color: #2F5597;">
+                  <img :src="userProfilePictureUrl" alt="Profile" class="w-16 h-16 rounded-full object-cover" @error="handleProfileAvatarError">
                 </div>
                 <div v-else class="w-16 h-16 rounded-full flex items-center justify-center text-white font-bold" style="background-color: #e5e7eb;">
                   <svg class="w-8 h-8 text-gray-400" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -433,7 +433,7 @@
 </style>
 
 <script setup>
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/authStore'
 import { useToastStore } from '../../stores/toastStore'
@@ -507,6 +507,7 @@ const profilePictureInput = ref(null)
 const editProfilePictureInput = ref(null)
 const profilePicturePreview = ref(null)
 const profilePictureFile = ref(null)
+const profileAvatarLoadFailed = ref(false)
 const incompleteFields = computed(() => authStore.user?.incomplete_fields || [])
 const showCompleteProfileModal = ref(false)
 const paymentMethodsLoading = ref(false)
@@ -614,6 +615,14 @@ const userProfilePictureUrl = computed(() => {
   }
   return null
 })
+
+watch(userProfilePictureUrl, () => {
+  profileAvatarLoadFailed.value = false
+})
+
+const handleProfileAvatarError = () => {
+  profileAvatarLoadFailed.value = true
+}
 
 const getActivityIcon = (type) => {
   const icons = {

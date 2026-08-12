@@ -94,8 +94,7 @@ export const normalizeLocalAssetUrl = (value) => {
 
     if (
       isLocalHost &&
-      localHosts.includes(assetHost) &&
-      assetUrl.port === window.location.port
+      localHosts.includes(assetHost)
     ) {
       // In local bridge mode, backend may return absolute URLs rooted at
       // /storage/*; remap them to /store/storage/* so they resolve correctly.
@@ -108,9 +107,9 @@ export const normalizeLocalAssetUrl = (value) => {
         return `${window.location.protocol}//${window.location.host}${prefixedPath}${assetUrl.search}`
       }
 
-      assetUrl.protocol = window.location.protocol
-      assetUrl.hostname = window.location.hostname
-      return assetUrl.toString()
+      // Keep local development assets on the active origin, even when stale
+      // storage contains a different localhost port from a prior session.
+      return `${window.location.protocol}//${window.location.host}${assetUrl.pathname}${assetUrl.search}`
     }
 
     return rawValue
