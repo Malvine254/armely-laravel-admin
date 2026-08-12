@@ -51,6 +51,29 @@ if ($candidatePath !== '') {
     $storePublicRealPath = realpath($storePublicPath);
     $storeStoragePublicRealPath = realpath($storeBasePath . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'app' . DIRECTORY_SEPARATOR . 'public');
 
+    // Compatibility fallback for stale cached HTML that references older
+    // hashed Vite files after a deployment.
+    if (
+        $candidateFullPath === false
+        && preg_match('#^build[\\/]assets[\\/]app-[^\\/]+\.(js|css)$#i', $candidatePath, $match)
+    ) {
+        $assetExtension = strtolower((string) ($match[1] ?? ''));
+        $fallbackGlob = $storePublicPath . DIRECTORY_SEPARATOR . 'build' . DIRECTORY_SEPARATOR . 'assets' . DIRECTORY_SEPARATOR . 'app-*.' . $assetExtension;
+        $fallbackCandidates = glob($fallbackGlob) ?: [];
+
+        if (!empty($fallbackCandidates)) {
+            usort($fallbackCandidates, static function (string $a, string $b): int {
+                return (@filemtime($b) ?: 0) <=> (@filemtime($a) ?: 0);
+            });
+
+            $latestFallback = (string) $fallbackCandidates[0];
+            $resolvedFallback = realpath($latestFallback);
+            if ($resolvedFallback !== false && is_file($resolvedFallback)) {
+                $candidateFullPath = $resolvedFallback;
+            }
+        }
+    }
+
     $isWithinAllowedRoot = false;
     foreach ([$storePublicRealPath, $storeStoragePublicRealPath] as $allowedRoot) {
         if ($allowedRoot !== false && $candidateFullPath !== false && str_starts_with($candidateFullPath, $allowedRoot)) {

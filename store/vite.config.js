@@ -29,6 +29,11 @@ export default defineConfig(({ mode }) => {
                 vue: 'vue/dist/vue.esm-bundler.js',
             },
         },
+        build: {
+            // Preserve previous hashed files so browsers with cached HTML
+            // don't break when they still request the prior asset names.
+            emptyOutDir: false,
+        },
         server: {
             watch: {
                 ignored: ['**/storage/framework/views/**'],

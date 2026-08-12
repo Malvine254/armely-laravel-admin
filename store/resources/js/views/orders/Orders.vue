@@ -634,6 +634,7 @@ import { useRouter } from 'vue-router';
 import { useAuthStore } from '../../stores/authStore';
 import { useToastStore } from '../../stores/toastStore';
 import axios from 'axios';
+import { API_BASE_URL } from '../../services/runtimeConfig';
 import Navbar from '../../components/Navbar.vue';
 import { usePricingSettings } from '../../composables/usePricingSettings';
 
@@ -723,7 +724,7 @@ export default {
           per_page: pagination.value.per_page,
         });
 
-        const response = await axios.get(`/api/v1/orders?${params}`);
+        const response = await axios.get(`${API_BASE_URL}/orders?${params}`);
         
         if (response.data?.success) {
           orders.value = response.data.data;
@@ -779,7 +780,7 @@ export default {
       processingOrderNumber.value = order.order_number;
 
       try {
-        const response = await axios.post(`/api/v1/orders/${order.order_number}/cancel`, {
+        const response = await axios.post(`${API_BASE_URL}/orders/${order.order_number}/cancel`, {
           reason: reason || 'Cancelled by customer',
         });
 
@@ -818,7 +819,7 @@ export default {
       processingOrderNumber.value = order.order_number;
 
       try {
-        const response = await axios.post(`/api/v1/orders/${order.order_number}/mark-delivered`);
+        const response = await axios.post(`${API_BASE_URL}/orders/${order.order_number}/mark-delivered`);
 
         if (response.data?.success) {
           toastStore.addToast('Order marked as delivered', 'success', 3000, { category: 'orders' });
@@ -1292,7 +1293,7 @@ export default {
       liveShippingError.value = null;
 
       try {
-        const response = await axios.get('/api/v1/orders/shipping/live');
+        const response = await axios.get(`${API_BASE_URL}/orders/shipping/live`);
         if (response.data?.success) {
           liveShipments.value = response.data.data || [];
 
