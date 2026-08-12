@@ -9,6 +9,7 @@ if (!defined('LARAVEL_START')) {
 
 // Point to the store app (two levels up from public/store/, then into store/)
 $storeBasePath = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'store';
+$storePublicPath = $storeBasePath . DIRECTORY_SEPARATOR . 'public';
 
 // Determine if the store application is in maintenance mode...
 if (file_exists($maintenance = $storeBasePath . '/storage/framework/maintenance.php')) {
@@ -29,6 +30,59 @@ require $storeBasePath . '/vendor/autoload.php';
 // ---------------------------------------------------------------------------
 $prefix = '/store';
 $prefixLen = 6; // strlen('/store')
+
+// Resolve the request path early so we can serve static files directly.
+$rawRequestUri = (string) ($_SERVER['REQUEST_URI'] ?? '/');
+$rawPath = (string) parse_url($rawRequestUri, PHP_URL_PATH);
+$trimmedPath = $rawPath;
+
+if (substr($trimmedPath, 0, $prefixLen) === $prefix) {
+    $restPath = substr($trimmedPath, $prefixLen);
+    if ($restPath === '' || $restPath === false || $restPath[0] === '/') {
+        $trimmedPath = ($restPath === '' || $restPath === false) ? '/' : $restPath;
+    }
+}
+
+// If a real file exists under store/public, serve it directly.
+$candidatePath = ltrim($trimmedPath, '/');
+if ($candidatePath !== '') {
+    $candidatePath = str_replace(['\\', '/'], DIRECTORY_SEPARATOR, $candidatePath);
+    $candidateFullPath = realpath($storePublicPath . DIRECTORY_SEPARATOR . $candidatePath);
+    $storePublicRealPath = realpath($storePublicPath);
+
+    if (
+        $candidateFullPath !== false
+        && $storePublicRealPath !== false
+        && str_starts_with($candidateFullPath, $storePublicRealPath)
+        && is_file($candidateFullPath)
+    ) {
+        $extension = strtolower((string) pathinfo($candidateFullPath, PATHINFO_EXTENSION));
+        $mimeTypes = [
+            'js' => 'application/javascript; charset=UTF-8',
+            'mjs' => 'application/javascript; charset=UTF-8',
+            'css' => 'text/css; charset=UTF-8',
+            'json' => 'application/json; charset=UTF-8',
+            'map' => 'application/json; charset=UTF-8',
+            'svg' => 'image/svg+xml',
+            'png' => 'image/png',
+            'jpg' => 'image/jpeg',
+            'jpeg' => 'image/jpeg',
+            'gif' => 'image/gif',
+            'webp' => 'image/webp',
+            'ico' => 'image/x-icon',
+            'woff' => 'font/woff',
+            'woff2' => 'font/woff2',
+            'ttf' => 'font/ttf',
+            'otf' => 'font/otf',
+        ];
+
+        $mimeType = $mimeTypes[$extension] ?? 'application/octet-stream';
+        header('Content-Type: ' . $mimeType);
+        header('Cache-Control: public, max-age=3600');
+        readfile($candidateFullPath);
+        exit;
+    }
+}
 
 // Fix REQUEST_URI: /store/api/v1/products → /api/v1/products
 $requestUri = $_SERVER['REQUEST_URI'] ?? '/';
