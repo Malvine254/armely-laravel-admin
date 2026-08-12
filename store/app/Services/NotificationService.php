@@ -162,23 +162,21 @@ class NotificationService
                 return;
             }
 
-            $tracking = is_array($order->tracking_info) ? $order->tracking_info : [];
-            $fingerprint = sha1(json_encode([
-                'status' => strtolower((string) ($order->status ?? '')),
-                'tracking_number' => strtolower(trim((string) ($tracking['tracking_number'] ?? ''))),
-                'shipping_status' => strtolower(trim((string) ($tracking['shipping_status'] ?? ''))),
-                'carrier_live_status_normalized' => strtolower(trim((string) ($tracking['carrier_live_status_normalized'] ?? ''))),
-            ]));
-            $cacheKey = 'notify:order-shipped:' . (string) $order->id . ':' . $fingerprint;
+            $status = strtolower(trim((string) ($order->status ?? '')));
+            if ($status === '') {
+                return;
+            }
 
-            // Idempotency guard: don't resend the same shipping event repeatedly.
-            if (!Cache::add($cacheKey, 1, now()->addHours(24))) {
+            $cacheKey = 'notify:order-status:' . (string) $order->id . ':' . $status;
+
+            // Idempotency guard: notify each order status once per order lifecycle.
+            if (!Cache::add($cacheKey, 1, now()->addDays(365))) {
                 return;
             }
 
             $this->mailer->sendOrderShippedEmail($order);
 
-            Log::info("Order shipped notification sent to user {$order->user_id}");
+            Log::info("Order status notification sent to user {$order->user_id} for status {$status}");
         } catch (\Exception $e) {
             Log::error("Failed to send order shipped notification: " . $e->getMessage());
         }

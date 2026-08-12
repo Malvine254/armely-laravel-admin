@@ -800,6 +800,9 @@ class AzureGraphMailService
         $trackingUrl = e((string) ($tracking['carrier_tracking_url'] ?? ($tracking['tracking_url'] ?? '')));
 
         $title = match ($status) {
+            'pending' => 'Your Order Has Been Placed',
+            'accepted' => 'Your Order Was Accepted',
+            'backordered' => 'Your Order Is Backordered',
             'invoiced' => 'Your Order Is Invoiced',
             'delivered' => 'Your Order Was Delivered',
             'in_transit' => 'Your Order Is In Transit',
@@ -807,6 +810,9 @@ class AzureGraphMailService
         };
 
         $intro = match ($status) {
+            'pending' => 'Your order has been placed and is waiting for supplier acknowledgment.',
+            'accepted' => 'Your supplier has accepted the order and fulfillment is now in progress.',
+            'backordered' => 'Your order is currently backordered. We will keep you updated as stock changes.',
             'invoiced' => 'Your order has been invoiced and is now in fulfillment with our logistics partners.',
             'delivered' => 'Your shipment has been delivered. Thank you for choosing Armely Store.',
             'in_transit' => 'Your order is in transit and on its way to your delivery address.',
@@ -814,6 +820,9 @@ class AzureGraphMailService
         };
 
         $badgeLabel = match ($status) {
+            'pending' => 'Pending',
+            'accepted' => 'Accepted',
+            'backordered' => 'Backordered',
             'invoiced' => 'Invoiced',
             'delivered' => 'Delivered',
             'in_transit' => 'In Transit',
