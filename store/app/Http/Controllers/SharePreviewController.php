@@ -11,6 +11,38 @@ use Illuminate\Support\Str;
 
 class SharePreviewController extends Controller
 {
+    public static function isPreviewCrawler(?string $userAgent): bool
+    {
+        $ua = strtolower(trim((string) $userAgent));
+        if ($ua === '') {
+            return false;
+        }
+
+        $needles = [
+            'facebookexternalhit',
+            'facebot',
+            'twitterbot',
+            'linkedinbot',
+            'whatsapp',
+            'slackbot',
+            'telegrambot',
+            'discordbot',
+            'skypeuripreview',
+            'teams',
+            'googlebot',
+            'bingbot',
+            'bot/',
+        ];
+
+        foreach ($needles as $needle) {
+            if (str_contains($ua, $needle)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public function product(string $productId): View
     {
         $product = Product::query()
