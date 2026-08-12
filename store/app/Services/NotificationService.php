@@ -6,6 +6,7 @@ use App\Models\AppSetting;
 use App\Models\Quote;
 use App\Models\Order;
 use App\Models\Invoice;
+use App\Models\ChatSession;
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -238,6 +239,70 @@ class NotificationService
             Log::info("Quote expiring notification sent to user {$quote->user_id}");
         } catch (\Exception $e) {
             Log::error("Failed to send quote expiring notification: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Send chat escalation notifications to active admin recipients.
+     */
+    public function sendChatEscalationNotification(
+        ChatSession $session,
+        User $customer,
+        ?string $note = null,
+        bool $reopened = false,
+        string $source = 'manual_escalation'
+    ): void {
+        try {
+            $sentAdminEmails = [];
+            $subjectPrefix = $reopened ? 'Reopened escalation' : 'New escalation';
+
+            $admins = User::query()
+                ->whereIn('role', ['admin', 'owner', 'manager'])
+                ->where('status', 'active')
+                ->orderBy('id')
+                ->get(['id', 'name', 'email']);
+
+            foreach ($admins as $admin) {
+                $adminEmail = strtolower(trim((string) $admin->email));
+                if ($adminEmail === '' || isset($sentAdminEmails[$adminEmail])) {
+                    continue;
+                }
+
+                $sent = $this->mailer->sendChatEscalationAdminEmail(
+                    (string) $admin->email,
+                    (string) ($admin->name ?: 'Admin'),
+                    [
+                        'session_id' => (int) $session->id,
+                        'reopened' => $reopened,
+                        'source' => $source,
+                        'note' => $note,
+                        'customer' => [
+                            'id' => (int) $customer->id,
+                            'name' => (string) ($customer->name ?: 'Customer'),
+                            'email' => (string) ($customer->email ?: ''),
+                        ],
+                    ]
+                );
+
+                if ($sent) {
+                    $sentAdminEmails[$adminEmail] = true;
+                }
+            }
+
+            Log::info('Chat escalation notifications processed', [
+                'chat_session_id' => (int) $session->id,
+                'subject_prefix' => $subjectPrefix,
+                'emails_sent' => count($sentAdminEmails),
+                'reopened' => $reopened,
+                'source' => $source,
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Failed to send chat escalation notifications: ' . $e->getMessage(), [
+                'chat_session_id' => (int) $session->id,
+                'customer_id' => (int) $customer->id,
+                'reopened' => $reopened,
+                'source' => $source,
+            ]);
         }
     }
 }
