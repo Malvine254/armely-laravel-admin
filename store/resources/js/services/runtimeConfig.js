@@ -97,6 +97,17 @@ export const normalizeLocalAssetUrl = (value) => {
       localHosts.includes(assetHost) &&
       assetUrl.port === window.location.port
     ) {
+      // In local bridge mode, backend may return absolute URLs rooted at
+      // /storage/*; remap them to /store/storage/* so they resolve correctly.
+      if (
+        APP_BASE_PATH !== '/' &&
+        assetUrl.pathname.startsWith('/storage/') &&
+        !assetUrl.pathname.startsWith(APP_BASE_PATH)
+      ) {
+        const prefixedPath = `${APP_BASE_PATH}${assetUrl.pathname.replace(/^\/+/, '')}`
+        return `${window.location.protocol}//${window.location.host}${prefixedPath}${assetUrl.search}`
+      }
+
       assetUrl.protocol = window.location.protocol
       assetUrl.hostname = window.location.hostname
       return assetUrl.toString()
