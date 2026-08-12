@@ -52,6 +52,18 @@ if (isset($_SERVER['SCRIPT_NAME'])) {
 // Fix SCRIPT_FILENAME if it references the bridge instead of store's index
 $_SERVER['SCRIPT_FILENAME'] = $storeBasePath . DIRECTORY_SEPARATOR . 'public' . DIRECTORY_SEPARATOR . 'index.php';
 
+// When the store runs behind the /store bridge, force asset URLs to keep the
+// /store prefix so @vite() resolves to /store/build/* instead of /build/*.
+if (empty($_ENV['ASSET_URL']) && empty($_SERVER['ASSET_URL'])) {
+    $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+    $assetUrl = $scheme . '://' . $host . '/store';
+
+    putenv('ASSET_URL=' . $assetUrl);
+    $_ENV['ASSET_URL'] = $assetUrl;
+    $_SERVER['ASSET_URL'] = $assetUrl;
+}
+
 // Bootstrap the store Laravel app and handle the request...
 /** @var Application $app */
 $app = require_once $storeBasePath . '/bootstrap/app.php';
