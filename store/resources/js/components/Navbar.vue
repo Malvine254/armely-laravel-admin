@@ -203,7 +203,7 @@
                 @click.stop="accountMenuOpen = !accountMenuOpen"
               >
                 <!-- Profile Picture or Initials -->
-                <img v-if="userProfilePictureUrl" :src="userProfilePictureUrl" :alt="authStore.user?.name" class="h-10 w-10 rounded-full border border-blue-100 object-cover">
+                <img v-if="userProfilePictureUrl && !userAvatarLoadFailed" :src="userProfilePictureUrl" :alt="authStore.user?.name" class="h-10 w-10 rounded-full border border-blue-100 object-cover" @error="handleUserAvatarError">
                 <div v-else class="flex h-10 w-10 items-center justify-center rounded-full border border-blue-100 bg-blue-50 text-xs font-bold text-[#0b3b82]">{{ userInitials }}</div>
                 <span class="text-sm font-medium">Hi, {{ userFirstName }} 👋</span>
                 <svg class="h-4 w-4 flex-shrink-0 transition-transform" :class="accountMenuOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -214,7 +214,7 @@
               <div v-if="accountMenuOpen" class="absolute right-0 top-full z-[200] mt-2 w-64 overflow-hidden rounded-xl border border-blue-300/30 bg-gradient-to-b from-[#0b4aa0] to-[#073b89] py-2 shadow-[0_18px_45px_rgba(7,59,137,0.30)] ring-1 ring-black/5" role="menu" @click="accountMenuOpen = false">
                 <div class="px-4 py-2 border-b border-white/20">
                   <div class="flex items-center gap-3 mb-2">
-                    <img v-if="userProfilePictureUrl" :src="userProfilePictureUrl" :alt="authStore.user?.name" class="w-10 h-10 rounded-full object-cover border border-slate-400">
+                    <img v-if="userProfilePictureUrl && !userAvatarLoadFailed" :src="userProfilePictureUrl" :alt="authStore.user?.name" class="w-10 h-10 rounded-full object-cover border border-slate-400" @error="handleUserAvatarError">
                     <div v-else class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold bg-gradient-to-br from-cyan-400 to-blue-500">{{ userInitials }}</div>
                     <div>
                       <div class="font-semibold text-sm text-white">Hi, {{ userFirstName }} 👋</div>
@@ -363,6 +363,7 @@ const mobileProductsOpen = ref(false)
 const mobileOpenCategory = ref(null)
 const navSearchQuery = ref(parseProductsRouteFilters(route).q ? String(parseProductsRouteFilters(route).q) : '')
 const accountMenuOpen = ref(false)
+const userAvatarLoadFailed = ref(false)
 const accountMenuRef = ref(null)
 const categoryMenuRef = ref(null)
 const primaryCategoryLimit = ref(6)
@@ -584,6 +585,14 @@ const formattedCartTotal = computed(() => `$${Number(cartStore.cartTotal || 0).t
 const userProfilePictureUrl = computed(() => {
   return normalizeLocalAssetUrl(authStore.user?.profile_picture_url) || null
 })
+
+watch(userProfilePictureUrl, () => {
+  userAvatarLoadFailed.value = false
+})
+
+const handleUserAvatarError = () => {
+  userAvatarLoadFailed.value = true
+}
 
 const goToMessages = () => {
   router.push({ name: 'messages' })
