@@ -77,14 +77,12 @@ export const normalizeLocalAssetUrl = (value) => {
     const localHosts = ['127.0.0.1', 'localhost']
     const isLocalHost = localHosts.includes(currentHost)
 
-    // Production is mounted below /store, while the local artisan server
-    // exposes public files at the origin root. Prefix root-relative project
-    // assets only on non-local subpath deployments and avoid double-prefixing
-    // URLs that already contain APP_BASE_PATH.
+    // Prefix root-relative project assets when the app is mounted under a
+    // subpath (including local /store bridge mode), while avoiding
+    // double-prefixing URLs that already contain APP_BASE_PATH.
     if (
       rawValue.startsWith('/')
       && !rawValue.startsWith('//')
-      && !isLocalHost
       && APP_BASE_PATH !== '/'
       && !rawValue.startsWith(APP_BASE_PATH)
     ) {
@@ -137,7 +135,10 @@ export const resolveProductImageUrl = (value) => {
       const assetOrigin = current.port === '8000'
         ? `${current.protocol}//${current.hostname}:8001`
         : current.origin
-      return `${assetOrigin}${productPath}${parsed.search}`
+      const normalizedProductPath = APP_BASE_PATH !== '/'
+        ? buildStoreUrl(productPath)
+        : productPath
+      return `${assetOrigin}${normalizedProductPath}${parsed.search}`
     }
 
     // Preserve already-absolute production store URLs returned by the API.
@@ -164,13 +165,13 @@ const detectRuntimeApiBaseUrl = () => {
     return `http://${hostname}:8001/api/v1`
   }
 
+  if (basePath !== '/') {
+    return `${origin}${basePath}api/v1`
+  }
+
   // Local store app served directly on :8001 keeps API at root /api/v1.
   if ((hostname === '127.0.0.1' || hostname === 'localhost') && port === '8001') {
     return `${origin}/api/v1`
-  }
-
-  if (basePath !== '/') {
-    return `${origin}${basePath}api/v1`
   }
 
   return `${origin}/api/v1`
@@ -189,6 +190,13 @@ const shouldUseConfiguredApiBaseUrl = (value) => {
   const hostname = (window.location.hostname || '').toLowerCase()
   const isLocalHost = hostname === '127.0.0.1' || hostname === 'localhost'
   const isConfiguredLocalHost = /^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?(\/|$)/i.test(configured)
+  const configuredPath = (() => {
+    try {
+      return new URL(configured, window.location.origin).pathname || ''
+    } catch {
+      return ''
+    }
+  })()
 
   // On local/XAMPP, ignore production API env values so the app keeps using
   // runtime detection for the local backend.
@@ -199,6 +207,17 @@ const shouldUseConfiguredApiBaseUrl = (value) => {
   // On real domains, never let a locally baked Vite URL send browser traffic
   // back to the visitor's own machine.
   if (!isLocalHost && isConfiguredLocalHost) {
+    return false
+  }
+
+  // In local bridge mode (/store), force runtime API detection unless the
+  // configured URL already points to the bridged store API path.
+  if (
+    isLocalHost
+    && APP_BASE_PATH !== '/'
+    && /\/api\/v1$/i.test(configuredPath)
+    && !/\/store\/api\/v1$/i.test(configuredPath)
+  ) {
     return false
   }
 
