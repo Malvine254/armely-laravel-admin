@@ -398,28 +398,13 @@ class MessageController extends Controller
                 'last_message_at' => now(),
             ])->save();
 
-            $admins = User::query()
-                ->whereIn('role', ['admin', 'owner', 'manager'])
-                ->get(['id']);
-
-            foreach ($admins as $admin) {
-                Message::createMessage(
-                    (int) $admin->id,
-                    'system',
-                    'Chat escalated to human support',
-                    ($isResolved
-                        ? 'A customer reopened and escalated Mela AI chat session #'
-                        : 'A customer requested human follow-up in Mela AI chat session #') . $session->id,
-                    'CHAT-' . $session->id,
-                    'high',
-                    [
-                        'chat_session_id' => $session->id,
-                        'customer_id' => $request->user()->id,
-                        'note' => $note,
-                        'reopened' => $isResolved,
-                    ]
-                );
-            }
+            $this->notifyEscalationAdmins(
+                $session,
+                $request->user(),
+                $note,
+                $isResolved,
+                $isResolved ? 'manual_escalation_reopen' : 'manual_escalation'
+            );
         }
 
         return response()->json([
@@ -462,6 +447,27 @@ class MessageController extends Controller
 
         $this->syncSessionTitle($session, $storedUserMessage->content);
 
+        if ((bool) $session->escalated_to_human && empty($session->resolved_at)) {
+            $session->forceFill([
+                'last_message_at' => now(),
+            ])->save();
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'reply' => null,
+                    'actions' => [],
+                    'product_suggestions' => [],
+                    'source' => 'human_handoff_waiting',
+                    'wait_for_human' => true,
+                    'chat_session' => [
+                        'id' => $session->id,
+                        'title' => $session->title,
+                    ],
+                ],
+            ]);
+        }
+
         if (!empty($session->resolved_at)) {
             if ($wantsEscalation) {
                 $session->forceFill([
@@ -487,26 +493,13 @@ class MessageController extends Controller
                     'last_message_at' => now(),
                 ])->save();
 
-                $admins = User::query()
-                    ->whereIn('role', ['admin', 'owner', 'manager'])
-                    ->get(['id']);
-
-                foreach ($admins as $admin) {
-                    Message::createMessage(
-                        (int) $admin->id,
-                        'system',
-                        'Chat escalated to human support',
-                        'A customer reopened and escalated Mela AI chat session #' . $session->id,
-                        'CHAT-' . $session->id,
-                        'high',
-                        [
-                            'chat_session_id' => $session->id,
-                            'customer_id' => $user->id,
-                            'source' => 'assistant_reopen_escalation_intent',
-                            'reopened' => true,
-                        ]
-                    );
-                }
+                $this->notifyEscalationAdmins(
+                    $session,
+                    $user,
+                    null,
+                    true,
+                    'assistant_reopen_escalation_intent'
+                );
 
                 return response()->json([
                     'success' => true,
@@ -523,11 +516,7 @@ class MessageController extends Controller
                 ]);
             }
 
-            // Resolved tickets return to AI mode unless user explicitly asks for human support.
-            // Keep resolved_at/escalated_at for admin history visibility.
-            $session->forceFill([
-                'escalated_to_human' => false,
-            ])->save();
+            // Resolved chats may use AI unless the user asks to escalate again.
         }
 
         if (!(bool) $session->escalated_to_human && $wantsEscalation) {
@@ -554,25 +543,13 @@ class MessageController extends Controller
                 'last_message_at' => now(),
             ])->save();
 
-            $admins = User::query()
-                ->whereIn('role', ['admin', 'owner', 'manager'])
-                ->get(['id']);
-
-            foreach ($admins as $admin) {
-                Message::createMessage(
-                    (int) $admin->id,
-                    'system',
-                    'Chat escalated to human support',
-                    'A customer requested human follow-up in Mela AI chat session #' . $session->id,
-                    'CHAT-' . $session->id,
-                    'high',
-                    [
-                        'chat_session_id' => $session->id,
-                        'customer_id' => $user->id,
-                        'source' => 'assistant_escalation_intent',
-                    ]
-                );
-            }
+            $this->notifyEscalationAdmins(
+                $session,
+                $user,
+                null,
+                false,
+                'assistant_escalation_intent'
+            );
 
             return response()->json([
                 'success' => true,
@@ -587,70 +564,6 @@ class MessageController extends Controller
                     ],
                 ],
             ]);
-        }
-
-        if ((bool) $session->escalated_to_human) {
-            // Keep human handoff only when the user explicitly asks for it in this turn.
-            if ($wantsEscalation) {
-                // Check if admin has replied yet
-                $adminMessages = ChatMessage::where('chat_session_id', $session->id)
-                    ->where('role', 'admin')
-                    ->exists();
-
-                if (!$adminMessages) {
-                    // No admin reply yet; send handoff message
-                    $handoffReply = 'This chat is already with our support team — they\'ll be with you shortly! If there\'s anything specific you\'d like them to know, feel free to type it here and they\'ll see it when they join. 😊';
-
-                    ChatMessage::create([
-                        'chat_session_id' => $session->id,
-                        'user_id' => $user->id,
-                        'role' => 'assistant',
-                        'content' => $handoffReply,
-                        'actions' => [],
-                        'metadata' => [
-                            'source' => 'human_handoff_guard',
-                        ],
-                    ]);
-
-                    return response()->json([
-                        'success' => true,
-                        'data' => [
-                            'reply' => $handoffReply,
-                            'actions' => [],
-                            'product_suggestions' => [],
-                            'source' => 'human_handoff_guard',
-                            'chat_session' => [
-                                'id' => $session->id,
-                                'title' => $session->title,
-                            ],
-                        ],
-                    ]);
-                }
-
-                // Admin has replied; just acknowledge message silently
-                $session->forceFill([
-                    'last_message_at' => now(),
-                ])->save();
-
-                return response()->json([
-                    'success' => true,
-                    'data' => [
-                        'reply' => 'Got it — your message has been received! A team member will respond shortly. Thanks for your patience! 🙏',
-                        'actions' => [],
-                        'product_suggestions' => [],
-                        'source' => 'human_handoff_silent',
-                        'chat_session' => [
-                            'id' => $session->id,
-                            'title' => $session->title,
-                        ],
-                    ],
-                ]);
-            }
-
-            // User did not request human handoff in this turn, so continue with AI.
-            $session->forceFill([
-                'escalated_to_human' => false,
-            ])->save();
         }
 
         $context = $this->buildAssistantContext($user, $question, $session->id);
@@ -3043,5 +2956,46 @@ class MessageController extends Controller
         if (!$user || !in_array($user->role ?? '', ['admin', 'owner', 'manager'], true)) {
             abort(403, 'Admin access required');
         }
+    }
+
+    private function notifyEscalationAdmins(
+        ChatSession $session,
+        User $customer,
+        ?string $note = null,
+        bool $reopened = false,
+        string $source = 'manual_escalation'
+    ): void {
+        $adminRecipients = User::query()
+            ->whereIn('role', ['admin', 'owner', 'manager'])
+            ->where('status', 'active')
+            ->get(['id']);
+
+        foreach ($adminRecipients as $admin) {
+            Message::createMessage(
+                (int) $admin->id,
+                'system',
+                'Chat escalated to human support',
+                ($reopened
+                    ? 'A customer reopened and escalated Mela AI chat session #'
+                    : 'A customer requested human follow-up in Mela AI chat session #') . $session->id,
+                'CHAT-' . $session->id,
+                'high',
+                [
+                    'chat_session_id' => $session->id,
+                    'customer_id' => $customer->id,
+                    'note' => $note,
+                    'source' => $source,
+                    'reopened' => $reopened,
+                ]
+            );
+        }
+
+        $this->notificationService->sendChatEscalationNotification(
+            $session,
+            $customer,
+            $note,
+            $reopened,
+            $source
+        );
     }
 }

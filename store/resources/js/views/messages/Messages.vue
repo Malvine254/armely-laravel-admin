@@ -167,6 +167,7 @@
                 v-for="prompt in quickPrompts"
                 :key="prompt"
                 @click="sendChatMessage(prompt)"
+                :disabled="isWaitingForHuman"
                 class="px-3 py-1.5 rounded-full text-xs font-semibold border border-[#2F5597]/30 text-[#2F5597] bg-[#2F5597]/10 hover:bg-[#2F5597]/20"
               >
                 {{ prompt }}
@@ -273,7 +274,9 @@
               <textarea
                 v-model="chatInput"
                 rows="2"
-                placeholder="Ask Mela AI about products, invoices, payments, quotes, and tracking..."
+                :placeholder="isWaitingForHuman
+                  ? 'This chat is escalated. Your message will be sent to a human support agent.'
+                  : 'Ask Mela AI about products, invoices, payments, quotes, and tracking...'"
                 class="flex-1 resize-none rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 min-h-[92px] focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
                 @keydown.enter.exact.prevent="sendChatMessage()"
               ></textarea>
@@ -487,6 +490,9 @@ const quickPrompts = [
 ]
 
 const activeSession = computed(() => chatSessions.value.find((session) => session.id === activeChatSessionId.value) || null)
+const isWaitingForHuman = computed(() => {
+  return !!(activeSession.value?.escalated_to_human && !activeSession.value?.resolved_at)
+})
 
 const chatWelcomeName = computed(() => {
   const name = (authStore.user?.name || '').trim()
@@ -947,16 +953,18 @@ const sendChatMessage = async (prefilled = null) => {
       activeChatSessionId.value = assistantPayload.chat_session.id
     }
 
-    // 3. Push AI reply instantly — it appears the moment it arrives.
-    chatMessages.value.push({
-      id: `assistant-${Date.now()}`,
-      role: 'assistant',
-      text: assistantPayload.reply || 'I could not generate a response right now.',
-      createdAt: new Date().toISOString(),
-      actions: assistantPayload.actions || [],
-      productSuggestions: assistantPayload.product_suggestions || []
-    })
-    await scrollChatToBottom(true)
+    // During human handoff, the backend intentionally returns no AI reply.
+    if (!assistantPayload?.wait_for_human && assistantPayload?.source !== 'human_handoff_waiting') {
+      chatMessages.value.push({
+        id: `assistant-${Date.now()}`,
+        role: 'assistant',
+        text: assistantPayload.reply || 'I could not generate a response right now.',
+        createdAt: new Date().toISOString(),
+        actions: assistantPayload.actions || [],
+        productSuggestions: assistantPayload.product_suggestions || []
+      })
+      await scrollChatToBottom(true)
+    }
 
     // 4. Update the session sidebar preview in-place — no full reload needed.
     const sessionId = activeChatSessionId.value
@@ -965,8 +973,8 @@ const sendChatMessage = async (prefilled = null) => {
       if (idx >= 0) {
         chatSessions.value[idx] = {
           ...chatSessions.value[idx],
-          last_message_preview: (assistantPayload.reply || '').slice(0, 80),
-          last_message_role: 'assistant',
+          last_message_preview: (assistantPayload.reply || outgoing).slice(0, 80),
+          last_message_role: assistantPayload.reply ? 'assistant' : 'user',
           last_message_at: new Date().toISOString(),
         }
       }

@@ -1712,6 +1712,62 @@ class AzureGraphMailService
         return $this->sendEmail($toEmail, $subject, $html, $text);
     }
 
+    public function sendChatEscalationAdminEmail(string $adminEmail, string $adminName, array $payload): bool
+    {
+        if (!$this->isConfigured()) {
+            return false;
+        }
+
+        $safeAdminName = e($adminName ?: 'Admin');
+        $sessionId = (int) ($payload['session_id'] ?? 0);
+        $reopened = (bool) ($payload['reopened'] ?? false);
+        $source = e((string) ($payload['source'] ?? 'manual_escalation'));
+        $note = trim((string) ($payload['note'] ?? ''));
+        $customerName = e((string) data_get($payload, 'customer.name', 'Customer'));
+        $customerEmail = e((string) data_get($payload, 'customer.email', ''));
+        $customerId = (int) data_get($payload, 'customer.id', 0);
+        $storeChatUrl = $this->frontendUrl() . '/admin/chat';
+        $subject = ($reopened ? 'Reopened' : 'New') . " Chat Escalation: #{$sessionId}";
+
+        $noteHtml = $note !== ''
+            ? "<div style='margin-top:14px;padding:12px;border-left:4px solid #2F5597;background:#f4f8ff;border-radius:8px'>"
+                . "<p style='margin:0 0 6px;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:#64748b;font-weight:700'>Customer note</p>"
+                . "<p style='margin:0;font-size:14px;color:#1f2937'>" . e($note) . "</p>"
+              . "</div>"
+            : '';
+
+        $html = $this->buildModernNotificationEmail(
+            'Chat Escalation Alert',
+            "
+                <p style='margin:0 0 12px;font-size:15px;color:#1f2937'>Hello {$safeAdminName},</p>
+                <p style='margin:0 0 14px;font-size:15px;color:#1f2937'>A customer " . ($reopened ? 'reopened and re-escalated' : 'escalated') . " a Mela AI chat and is waiting for a human response.</p>
+                {$this->buildQuoteSummaryCard([
+                    ['label' => 'Chat Session', 'value' => '#' . $sessionId],
+                    ['label' => 'Customer', 'value' => $customerName],
+                    ['label' => 'Customer Email', 'value' => $customerEmail !== '' ? $customerEmail : 'N/A'],
+                    ['label' => 'Customer ID', 'value' => $customerId > 0 ? (string) $customerId : 'N/A'],
+                    ['label' => 'Source', 'value' => $source],
+                ])}
+                {$noteHtml}
+                <p style='margin:14px 0 0;color:#4b5563;font-size:13px'>Open the chat inbox to continue this conversation.</p>
+            ",
+            'Open Chat Escalations',
+            $storeChatUrl,
+            'Replying from admin chat will notify the customer in real time.'
+        );
+
+        $text = "Hello {$adminName},\n\n"
+            . "A customer " . ($reopened ? 'reopened and re-escalated' : 'escalated') . " a Mela AI chat.\n"
+            . "Chat Session: #{$sessionId}\n"
+            . "Customer: " . strip_tags((string) data_get($payload, 'customer.name', 'Customer')) . "\n"
+            . "Customer Email: " . strip_tags((string) data_get($payload, 'customer.email', 'N/A')) . "\n"
+            . "Source: " . (string) data_get($payload, 'source', 'manual_escalation') . "\n"
+            . ($note !== '' ? "Customer note: {$note}\n" : '')
+            . "\nOpen Chat Escalations: {$storeChatUrl}";
+
+        return $this->sendEmail($adminEmail, $subject, $html, $text);
+    }
+
     public function sendSyncStatusEmail(string $jobName, string $status, array $details = []): bool
     {
         if (!$this->isConfigured()) {
