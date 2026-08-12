@@ -36,7 +36,9 @@ export const useAuthStore = defineStore('auth', () => {
 
       if (typeof item === 'string') {
         const isInlineData = item.startsWith('data:image/') || item.startsWith('data:application/')
-        if (isInlineMediaKey || isInlineData || item.length > 20000) {
+        // Keep normal media URLs/paths (e.g. profile pictures), but drop
+        // oversized inline/base64 payloads that can exceed storage limits.
+        if ((isInlineMediaKey && isInlineData) || isInlineData || item.length > 20000) {
           return clean
         }
       }
@@ -59,6 +61,7 @@ export const useAuthStore = defineStore('auth', () => {
     status: value?.status,
     company_name: value?.company_name,
     company: value?.company ? sanitizeStoredUser(value.company) : undefined,
+    profile_picture: value?.profile_picture,
     profile_picture_url: value?.profile_picture_url,
     shipping_address: value?.shipping_address,
     email_verified_at: value?.email_verified_at,
