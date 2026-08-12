@@ -1,6 +1,6 @@
 <template>
-  <div class="group flex min-h-[248px] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_2px_10px_rgba(15,42,82,0.05)] transition hover:border-blue-200 hover:shadow-[0_8px_24px_rgba(15,42,82,0.10)] sm:flex-row">
-    <div class="relative flex h-52 flex-shrink-0 items-center justify-center overflow-hidden border-b border-slate-100 bg-white transition sm:h-auto sm:min-h-[248px] sm:w-[39%] sm:border-b-0 sm:border-r">
+  <div class="product-card-shell group flex h-full min-h-[272px] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_2px_10px_rgba(15,42,82,0.05)] transition hover:border-blue-200 hover:shadow-[0_8px_24px_rgba(15,42,82,0.10)] sm:h-[272px] sm:min-h-0 sm:flex-row">
+    <div class="relative flex h-56 flex-shrink-0 items-center justify-center overflow-hidden border-b border-slate-100 bg-white transition sm:h-full sm:w-[39%] sm:border-b-0 sm:border-r">
       <img v-if="image && !imageFailed" :src="image" :alt="product.productName" class="h-full w-full object-contain p-3" :loading="eager ? 'eager' : 'lazy'" :fetchpriority="eager ? 'high' : 'auto'" decoding="async" sizes="(min-width: 1024px) 320px, (min-width: 768px) 50vw, 100vw" width="320" height="160" @error="imageFailed = true">
       <div v-else class="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 opacity-80"><div class="absolute right-2 top-2 h-12 w-12 rounded-full bg-blue-400 opacity-10"></div><div class="absolute bottom-4 left-2 h-8 w-8 rounded-full bg-blue-300 opacity-10"></div></div>
       <div v-if="!image || imageFailed" class="relative z-10 text-center">
@@ -13,20 +13,20 @@
       </div>
     </div>
 
-    <div class="flex min-w-0 flex-1 flex-col p-4">
+    <div class="flex min-h-0 min-w-0 flex-1 flex-col p-4">
       <div class="mb-2 flex items-start justify-between gap-3">
         <h3 class="line-clamp-2 min-h-[2.5rem] min-w-0 flex-1 text-sm font-bold leading-5 text-[#102a52]" :title="hoverDetails">{{ product.productName }}</h3>
         <span class="flex-shrink-0 rounded px-2 py-1 text-[10px] font-semibold" :class="product.discontinueProduct ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-[#2F5597]'">{{ product.discontinueProduct ? 'EOL' : 'Active' }}</span>
       </div>
       <div class="mb-2 flex items-center justify-between gap-3 text-[11px] text-slate-500">
         <p class="truncate" :title="`SKU: ${sku}`">SKU: {{ sku }}</p>
-        <p class="truncate text-right" :title="`Vendor: ${vendor}`">Vendor: {{ vendor }}</p>
+        <p class="max-w-[54%] truncate text-right" :title="`Vendor: ${vendor}`">Vendor: {{ vendor }}</p>
       </div>
       <div class="mb-2 flex items-center gap-1">
         <svg v-for="star in 5" :key="star" class="h-3.5 w-3.5" :class="star <= Math.round(reviewStats.average) ? 'text-yellow-400' : 'text-gray-300'" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
         <span class="ml-1 text-[11px] text-gray-500">{{ reviewStats.total ? `${reviewStats.average.toFixed(1)} (${reviewStats.total})` : 'No reviews' }}</span>
       </div>
-      <div v-if="basePrice > 0" class="mb-2">
+      <div v-if="basePrice > 0" class="mb-2 min-h-[3.25rem]">
         <div v-if="pricingReady" class="flex flex-wrap items-baseline justify-between gap-2">
           <div class="flex items-baseline gap-2">
             <p class="text-xl font-extrabold text-[#2F5597]">{{ formattedPrice }}</p>
@@ -39,7 +39,7 @@
       </div>
       <div class="mb-3 flex items-center justify-between gap-3 text-[11px]">
         <span class="rounded bg-emerald-50 px-2 py-1 font-semibold" :class="outOfStock ? 'text-red-700' : 'text-emerald-700'">{{ stockLabel }}</span>
-        <span class="text-gray-500">{{ warehouseSummary }}</span>
+        <span class="max-w-[48%] truncate text-right text-gray-500" :title="warehouseSummary">{{ warehouseSummary }}</span>
       </div>
       <div class="mt-auto flex w-full gap-2">
         <button type="button" class="inline-flex flex-1 items-center justify-center gap-1 rounded-lg bg-[#2F5597] px-3 py-2 text-sm font-semibold text-white transition hover:bg-[#1f4788]" @click="$emit('view', product)"><svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5s8.268 2.943 9.542 7c-1.274 4.057-5.065 7-9.542 7S3.732 16.057 2.458 12z"/></svg><span>View</span></button>
