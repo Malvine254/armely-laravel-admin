@@ -437,7 +437,7 @@ import { computed, ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/authStore'
 import { useToastStore } from '../../stores/toastStore'
-import { API_BASE_URL, normalizeLocalAssetUrl } from '../../services/runtimeConfig'
+import { API_BASE_URL, resolveProfilePictureUrl } from '../../services/runtimeConfig'
 import Navbar from '../../components/Navbar.vue'
 import {
   DEFAULT_NOTIFICATION_PREFERENCES,
@@ -610,10 +610,10 @@ const userProfilePictureUrl = computed(() => {
   if (profilePicturePreview.value) {
     return profilePicturePreview.value
   }
-  if (authStore.user?.profile_picture_url) {
-    return normalizeLocalAssetUrl(authStore.user.profile_picture_url)
-  }
-  return null
+  return resolveProfilePictureUrl(
+    authStore.user?.profile_picture_url,
+    authStore.user?.profile_picture
+  )
 })
 
 watch(userProfilePictureUrl, () => {

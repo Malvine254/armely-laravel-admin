@@ -118,6 +118,40 @@ export const normalizeLocalAssetUrl = (value) => {
   }
 }
 
+export const resolveProfilePictureUrl = (profilePictureUrl, profilePicturePath = null) => {
+  const primaryUrl = String(profilePictureUrl || '').trim()
+  if (primaryUrl) {
+    return normalizeLocalAssetUrl(primaryUrl)
+  }
+
+  const rawPath = String(profilePicturePath || '').trim()
+  if (!rawPath) {
+    return null
+  }
+
+  let normalized = rawPath.replace(/\\/g, '/').trim()
+
+  if (/^https?:\/\//i.test(normalized)) {
+    return normalizeLocalAssetUrl(normalized)
+  }
+
+  normalized = normalized.replace(/^\/+/, '')
+
+  if (normalized.includes('/storage/')) {
+    normalized = normalized.slice(normalized.indexOf('/storage/') + '/storage/'.length)
+  }
+
+  if (normalized.startsWith('public/')) {
+    normalized = normalized.slice('public/'.length)
+  }
+
+  if (normalized.startsWith('storage/')) {
+    return normalizeLocalAssetUrl(`/${normalized}`)
+  }
+
+  return normalizeLocalAssetUrl(`/storage/${normalized}`)
+}
+
 /** Resolve locally stored product images without leaking production URLs into local development. */
 export const resolveProductImageUrl = (value) => {
   const rawValue = String(value || '').trim()
