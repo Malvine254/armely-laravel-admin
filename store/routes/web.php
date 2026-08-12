@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Request;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\SharePreviewController;
@@ -34,6 +35,16 @@ Route::get('/share/cart/{messageId}', [SharePreviewController::class, 'cart'])
 
 Route::get('/share/cart/public/{token}', [SharePreviewController::class, 'cartPublic'])
     ->name('store.share.cart.preview.public');
+
+// Direct product links need OG metadata for chat unfurls. Serve preview HTML
+// to crawler user agents, but keep SPA behavior for normal browsers.
+Route::get('/products/{productId}', function (Request $request, string $productId) use ($spaEntrypoint) {
+    if (SharePreviewController::isPreviewCrawler($request->userAgent())) {
+        return app(SharePreviewController::class)->product($productId);
+    }
+
+    return $spaEntrypoint();
+})->where('productId', '[^/]+');
 
 // Store admin is handled by the Vue SPA. Authentication is token-based via
 // /api/v1/auth/*, so these paths should render the SPA entrypoint.
