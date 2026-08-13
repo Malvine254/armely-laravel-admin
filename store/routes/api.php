@@ -14,6 +14,7 @@ use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\SearchProfileController;
 use App\Http\Controllers\ProductSourcingRequestController;
 use App\Http\Controllers\AdminImportedProductController;
+use App\Http\Controllers\BehaviorEventController;
 
 /*
 |--------------------------------------------------------------------------
@@ -77,6 +78,10 @@ Route::prefix('v1')->group(function () {
     Route::get('/pricing/settings', [QuoteOrderInvoiceController::class, 'getPricingSettings']);
     Route::get('/search-profile', [SearchProfileController::class, 'show']);
     Route::post('/search-profile/terms', [SearchProfileController::class, 'track'])->middleware('throttle:60,1');
+    Route::post('/behavior/product-view', [BehaviorEventController::class, 'trackProductView'])->middleware('throttle:120,1');
+    Route::post('/behavior/cart-snapshot', [BehaviorEventController::class, 'syncCartSnapshot'])->middleware('throttle:120,1');
+    Route::post('/behavior/cart-event', [BehaviorEventController::class, 'trackCartEvent'])->middleware('throttle:180,1');
+    Route::post('/behavior/favorite-event', [BehaviorEventController::class, 'trackFavoriteEvent'])->middleware('throttle:120,1');
 
     // Reviews endpoints (public read, auth write)
     Route::get('/products/reviews/stats', [ReviewController::class, 'stats']);

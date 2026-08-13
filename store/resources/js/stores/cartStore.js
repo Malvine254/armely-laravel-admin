@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import { useAuthStore } from './authStore'
+import { syncCartSnapshot, trackCartEvent } from '../services/behaviorTracking'
 
 export const useCartStore = defineStore('cart', () => {
   const items = ref([])
@@ -91,6 +92,7 @@ export const useCartStore = defineStore('cart', () => {
   // Save cart for the current auth context (guest or logged-in user)
   const saveCart = () => {
     writeCartByKey(getCurrentStorageKey(), items.value)
+    syncCartSnapshot(items.value)
   }
 
   const saveRevisionSource = () => {
@@ -115,6 +117,7 @@ export const useCartStore = defineStore('cart', () => {
     if (guestItems.length === 0) {
       items.value = userItems
       writeCartByKey(userStorageKey, userItems)
+      syncCartSnapshot(items.value)
       return
     }
 
@@ -144,6 +147,8 @@ export const useCartStore = defineStore('cart', () => {
     items.value = mergedItems
     writeCartByKey(userStorageKey, mergedItems)
     localStorage.removeItem(GUEST_STORAGE_KEY)
+    trackCartEvent({ eventType: 'merge_guest', metadata: { itemCount: mergedItems.length } })
+    syncCartSnapshot(items.value)
   }
 
   let activeCartScope = 'guest'
@@ -204,6 +209,12 @@ export const useCartStore = defineStore('cart', () => {
       items.value.push(normalizedProduct)
     }
     saveCart()
+    trackCartEvent({
+      eventType: 'add',
+      productId: Number(normalizedProduct.productId),
+      quantity: normalizedProduct.quantity,
+      metadata: { cartCount: items.value.length },
+    })
     return true
   }
 
@@ -211,6 +222,7 @@ export const useCartStore = defineStore('cart', () => {
   const removeItem = (productId) => {
     items.value = items.value.filter(item => item.productId !== productId)
     saveCart()
+    trackCartEvent({ eventType: 'remove', productId: Number(productId), metadata: { cartCount: items.value.length } })
   }
 
   // Update quantity
@@ -226,6 +238,7 @@ export const useCartStore = defineStore('cart', () => {
       } else {
         item.quantity = quantity
         saveCart()
+        trackCartEvent({ eventType: 'update', productId: Number(productId), quantity, metadata: { cartCount: items.value.length } })
       }
     }
     return true
@@ -237,6 +250,7 @@ export const useCartStore = defineStore('cart', () => {
     saveCart()
     revisionSourceQuoteId.value = null
     saveRevisionSource()
+    trackCartEvent({ eventType: 'clear' })
   }
 
   const replaceCartItems = (nextItems = []) => {
@@ -245,6 +259,7 @@ export const useCartStore = defineStore('cart', () => {
       .filter(Boolean)
     items.value = normalizedItems
     saveCart()
+    trackCartEvent({ eventType: 'replace', metadata: { itemCount: normalizedItems.length } })
   }
 
   const setRevisionSource = (quoteId) => {

@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useAuthStore } from './authStore'
+import { trackFavoriteEvent } from '../services/behaviorTracking'
 
 export const useFavoritesStore = defineStore('favorites', () => {
   const items = ref([])
@@ -98,6 +99,11 @@ export const useFavoritesStore = defineStore('favorites', () => {
         addedAt: new Date().toISOString()
       })
       saveFavorites()
+      trackFavoriteEvent({
+        productId: Number(product.productId),
+        eventType: 'add',
+        metadata: { favoriteCount: items.value.length },
+      })
       return true
     }
     return false
@@ -111,6 +117,11 @@ export const useFavoritesStore = defineStore('favorites', () => {
 
     items.value = items.value.filter(item => item.productId !== productId)
     saveFavorites()
+    trackFavoriteEvent({
+      productId: Number(productId),
+      eventType: 'remove',
+      metadata: { favoriteCount: items.value.length },
+    })
     return true
   }
 
@@ -123,9 +134,11 @@ export const useFavoritesStore = defineStore('favorites', () => {
     const exists = items.value.some(item => item.productId === product.productId)
     if (exists) {
       removeItem(product.productId)
+      trackFavoriteEvent({ productId: Number(product.productId), eventType: 'toggle', metadata: { state: 'off' } })
       return false
     } else {
       addItem(product)
+      trackFavoriteEvent({ productId: Number(product.productId), eventType: 'toggle', metadata: { state: 'on' } })
       return true
     }
   }
