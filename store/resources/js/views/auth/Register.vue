@@ -35,21 +35,11 @@
             </div>
           </div>
 
-          <div class="grid grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-semibold text-slate-700 mb-2">Password</label>
               <input v-model="password" type="password" placeholder="••••••••" class="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent transition" style="--tw-ring-color: #2F5597;">
-              <div class="mt-2 grid grid-cols-2 gap-3">
-                <p class="text-xs text-slate-500">Use at least 8 chars with upper/lowercase, number, and symbol</p>
-
-                <ul class="space-y-1 text-xs">
-                  <li :class="passwordChecks.minLength ? 'text-green-700' : 'text-slate-500'">{{ passwordChecks.minLength ? 'OK' : 'X' }} At least 8 characters</li>
-                  <li :class="passwordChecks.hasUpper ? 'text-green-700' : 'text-slate-500'">{{ passwordChecks.hasUpper ? 'OK' : 'X' }} One uppercase letter</li>
-                  <li :class="passwordChecks.hasLower ? 'text-green-700' : 'text-slate-500'">{{ passwordChecks.hasLower ? 'OK' : 'X' }} One lowercase letter</li>
-                  <li :class="passwordChecks.hasNumber ? 'text-green-700' : 'text-slate-500'">{{ passwordChecks.hasNumber ? 'OK' : 'X' }} One number</li>
-                  <li :class="passwordChecks.hasSymbol ? 'text-green-700' : 'text-slate-500'">{{ passwordChecks.hasSymbol ? 'OK' : 'X' }} One symbol</li>
-                </ul>
-              </div>
+              <p class="text-xs text-slate-500 mt-1">Use at least 8 chars with upper/lowercase, number, and symbol</p>
 
               <div v-if="password" class="mt-2">
                 <div class="flex items-center justify-between mb-1">
@@ -64,6 +54,14 @@
                   ></div>
                 </div>
               </div>
+
+              <ul class="mt-2 space-y-1 text-xs">
+                <li :class="passwordChecks.minLength ? 'text-green-700' : 'text-slate-500'">{{ passwordChecks.minLength ? 'OK' : 'X' }} At least 8 characters</li>
+                <li :class="passwordChecks.hasUpper ? 'text-green-700' : 'text-slate-500'">{{ passwordChecks.hasUpper ? 'OK' : 'X' }} One uppercase letter</li>
+                <li :class="passwordChecks.hasLower ? 'text-green-700' : 'text-slate-500'">{{ passwordChecks.hasLower ? 'OK' : 'X' }} One lowercase letter</li>
+                <li :class="passwordChecks.hasNumber ? 'text-green-700' : 'text-slate-500'">{{ passwordChecks.hasNumber ? 'OK' : 'X' }} One number</li>
+                <li :class="passwordChecks.hasSymbol ? 'text-green-700' : 'text-slate-500'">{{ passwordChecks.hasSymbol ? 'OK' : 'X' }} One symbol</li>
+              </ul>
             </div>
 
             <div>
