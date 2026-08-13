@@ -1,5 +1,5 @@
 <template>
-  <div class="fixed top-6 right-6 z-[9999] space-y-3">
+  <div class="fixed top-6 right-6 z-[11050] space-y-3">
     <transition-group name="toast" tag="div">
       <div v-for="toast in toastStore.toasts" :key="toast.id" class="flex items-start gap-3 px-4 py-3 rounded-lg shadow-lg border" :class="toastClasses(toast.type)">
         <div class="mt-0.5">
