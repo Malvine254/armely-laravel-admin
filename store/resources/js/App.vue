@@ -207,10 +207,13 @@ const showStoreFooter = computed(() => {
 
 const showFloatingChatLauncher = computed(() => {
   const routeName = String(route.name || '')
-  // Use token presence so temporary user-profile hydration delays do not
-  // hide the launcher for already signed-in users.
-  if (!authStore.token) return false
+  if (!authStore.isAuthenticated) return false
   if (routeName === 'messages') return false
+  if (routeName === 'login') return false
+  if (routeName === 'register') return false
+  if (routeName === 'forgot-password') return false
+  if (routeName === 'reset-password') return false
+  if (routeName === 'activate-account') return false
   if (routeName === 'admin-login') return false
   if (routeName.startsWith('admin-')) return false
   return true
