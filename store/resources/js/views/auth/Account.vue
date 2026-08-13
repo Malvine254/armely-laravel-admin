@@ -48,7 +48,6 @@
               <ul class="text-sm text-amber-800 mt-1 list-disc list-inside">
                 <li v-if="incompleteFields.includes('phone')">Add phone number</li>
                 <li v-if="incompleteFields.includes('shipping_address')">Add shipping address</li>
-                <li v-if="incompleteFields.includes('profile_picture')">Add profile picture</li>
               </ul>
             </div>
           </div>
@@ -184,7 +183,7 @@
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                <input v-model="editForm.phone" type="tel" placeholder="e.g. +254 700 000 000" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input v-model="editForm.phone" type="tel" placeholder="e.g. 0700 000 000 or +254700000000" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
               </div>
             </div>
             <div class="md:col-span-3">
@@ -245,7 +244,10 @@
                 </div>
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">Country</label>
-                  <input v-model="editForm.shipping.country" type="text" maxlength="2" placeholder="Country code" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase">
+                  <select v-model="editForm.shipping.country" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                    <option value="">Select country</option>
+                    <option v-for="country in shippingCountryOptions" :key="country.value" :value="country.value">{{ country.label }}</option>
+                  </select>
                 </div>
               </div>
             </div>
@@ -605,6 +607,20 @@ const lifecycleTimezones = [
   'Asia/Dubai',
   'Asia/Singapore',
 ]
+const shippingCountryOptions = [
+  { value: 'KE', label: 'Kenya' },
+  { value: 'UG', label: 'Uganda' },
+  { value: 'TZ', label: 'Tanzania' },
+  { value: 'RW', label: 'Rwanda' },
+  { value: 'BI', label: 'Burundi' },
+  { value: 'ZA', label: 'South Africa' },
+  { value: 'NG', label: 'Nigeria' },
+  { value: 'GH', label: 'Ghana' },
+  { value: 'AE', label: 'United Arab Emirates' },
+  { value: 'GB', label: 'United Kingdom' },
+  { value: 'US', label: 'United States' },
+]
+const PHONE_PATTERN = /^\+?[0-9][0-9\s().-]{6,19}$/
 
 // Profile picture handling
 const profilePictureInput = ref(null)
@@ -888,29 +904,81 @@ const handleEditProfile = () => {
   showEditProfileModal.value = true
 }
 
+const normalizePhoneInput = (value) => String(value || '').trim().replace(/\s+/g, ' ')
+
+const hasProfileValue = (value) => String(value || '').trim() !== ''
+
+const hasAnyShippingValue = (shipping) => Object.values(shipping || {}).some(hasProfileValue)
+
+const validatePhoneValue = (label, value) => {
+  if (!value) return true
+  if (!PHONE_PATTERN.test(value)) {
+    toastStore.addToast(`${label} must be a valid phone number.`, 'warning')
+    return false
+  }
+  return true
+}
+
+const validateProfileForm = (phone, shippingAddress) => {
+  if (!validatePhoneValue('Phone number', phone)) {
+    return false
+  }
+
+  if (!validatePhoneValue('Delivery contact phone', shippingAddress.contact_phone)) {
+    return false
+  }
+
+  if (!hasAnyShippingValue(shippingAddress)) {
+    return true
+  }
+
+  const requiredShippingFields = [
+    ['street_1', 'Street 1'],
+    ['city', 'City'],
+    ['state', 'State'],
+    ['postal_code', 'Postal code'],
+    ['country', 'Country'],
+  ]
+  const missingFields = requiredShippingFields
+    .filter(([key]) => !hasProfileValue(shippingAddress[key]))
+    .map(([, label]) => label)
+
+  if (missingFields.length > 0) {
+    toastStore.addToast(`Complete the shipping section: ${missingFields.join(', ')}.`, 'warning')
+    return false
+  }
+
+  return true
+}
+
 const submitEditProfile = async () => {
   editFormLoading.value = true
   try {
     const token = getAuthToken()
+    const normalizedPhone = normalizePhoneInput(editForm.value.phone)
     
     // Use FormData to support file uploads
     const formData = new FormData()
     formData.append('name', editForm.value.name)
     formData.append('email', editForm.value.email)
-    formData.append('phone', editForm.value.phone)
+    formData.append('phone', normalizedPhone)
     formData.append('company_name', editForm.value.company_name)
     
     // Add shipping address as JSON string
     const shippingAddress = {
       label: editForm.value.shipping.label,
       contact_name: editForm.value.shipping.contact_name,
-      contact_phone: editForm.value.shipping.contact_phone,
-      street_1: editForm.value.shipping.street_1,
-      street_2: editForm.value.shipping.street_2,
-      city: editForm.value.shipping.city,
-      state: editForm.value.shipping.state,
-      postal_code: editForm.value.shipping.postal_code,
+      contact_phone: normalizePhoneInput(editForm.value.shipping.contact_phone),
+      street_1: String(editForm.value.shipping.street_1 || '').trim(),
+      street_2: String(editForm.value.shipping.street_2 || '').trim(),
+      city: String(editForm.value.shipping.city || '').trim(),
+      state: String(editForm.value.shipping.state || '').trim(),
+      postal_code: String(editForm.value.shipping.postal_code || '').trim(),
       country: String(editForm.value.shipping.country || '').trim().toUpperCase()
+    }
+
+    if (!validateProfileForm(normalizedPhone, shippingAddress)) {
+      return
     }
     
     // Append shipping address

@@ -622,9 +622,6 @@ class AuthController extends Controller
         if (!$shippingAddress) {
             $incompleteFields[] = 'shipping_address';
         }
-        if ($user && !$user->profile_picture) {
-            $incompleteFields[] = 'profile_picture';
-        }
 
         $userData = $user?->toArray() ?? [];
         $userData['profile_picture_url'] = $this->buildProfilePictureUrl($user?->profile_picture);
@@ -671,20 +668,24 @@ class AuthController extends Controller
         $data = $request->validate([
             'name' => ['sometimes', 'string', 'max:255'],
             'email' => ['sometimes', 'email', 'max:255', 'unique:users,email,' . $user->id],
-            'phone' => ['sometimes', 'nullable', 'string', 'max:50'],
+            'phone' => ['sometimes', 'nullable', 'string', 'max:25', 'regex:/^\+?[0-9][0-9\s().-]{6,19}$/'],
             'company_name' => ['sometimes', 'string', 'max:255'],
             'profile_picture' => ['sometimes', 'image', 'max:2048', 'mimes:jpeg,png,jpg,gif'],
             'shipping_address' => ['sometimes', 'array'],
             'shipping_address.label' => ['nullable', 'string', 'max:255'],
             'shipping_address.contact_name' => ['nullable', 'string', 'max:255'],
-            'shipping_address.contact_phone' => ['nullable', 'string', 'max:50'],
+            'shipping_address.contact_phone' => ['nullable', 'string', 'max:25', 'regex:/^\+?[0-9][0-9\s().-]{6,19}$/'],
             'shipping_address.street_1' => ['nullable', 'string', 'max:255'],
             'shipping_address.street_2' => ['nullable', 'string', 'max:255'],
             'shipping_address.city' => ['nullable', 'string', 'max:100'],
             'shipping_address.state' => ['nullable', 'string', 'max:50'],
             'shipping_address.postal_code' => ['nullable', 'string', 'max:20'],
-            'shipping_address.country' => ['nullable', 'string', 'size:2'],
+            'shipping_address.country' => ['nullable', 'string', 'max:100'],
         ]);
+
+        if (array_key_exists('phone', $data)) {
+            $data['phone'] = $this->normalizePhoneNumber($data['phone']);
+        }
 
         // Handle profile picture upload
         if ($request->hasFile('profile_picture')) {
@@ -751,14 +752,14 @@ class AuthController extends Controller
             $city = trim((string)($shippingAddressPayload['city'] ?? ''));
             $state = trim((string)($shippingAddressPayload['state'] ?? ''));
             $postalCode = trim((string)($shippingAddressPayload['postal_code'] ?? ''));
-            $country = strtoupper(trim((string)($shippingAddressPayload['country'] ?? '')));
+            $country = $this->normalizeCountryCode($shippingAddressPayload['country'] ?? '');
 
             // Only save/update when required shipping fields are present.
             if ($street !== '' && $city !== '' && $state !== '' && $postalCode !== '' && $country !== '') {
                 $addressData = [
                     'label' => trim((string)($shippingAddressPayload['label'] ?? '')) ?: null,
                     'contact_name' => trim((string)($shippingAddressPayload['contact_name'] ?? '')) ?: null,
-                    'contact_phone' => trim((string)($shippingAddressPayload['contact_phone'] ?? '')) ?: null,
+                    'contact_phone' => $this->normalizePhoneNumber($shippingAddressPayload['contact_phone'] ?? ''),
                     'street_1' => $street,
                     'street_2' => trim((string)($shippingAddressPayload['street_2'] ?? '')) ?: null,
                     'city' => $city,
@@ -799,9 +800,6 @@ class AuthController extends Controller
         }
         if (!$this->resolveDefaultShippingAddress($company)) {
             $incompleteFields[] = 'shipping_address';
-        }
-        if (empty($user->fresh()->profile_picture)) {
-            $incompleteFields[] = 'profile_picture';
         }
 
         return response()->json([
@@ -1069,6 +1067,50 @@ class AuthController extends Controller
     {
         $parts = explode('@', $email);
         return $parts[1] ?? null;
+    }
+
+    private function normalizePhoneNumber(mixed $value): ?string
+    {
+        $phone = trim((string) $value);
+        if ($phone === '') {
+            return null;
+        }
+
+        $phone = preg_replace('/\s+/', ' ', $phone);
+        return $phone !== '' ? $phone : null;
+    }
+
+    private function normalizeCountryCode(mixed $value): string
+    {
+        $country = strtoupper(trim((string) $value));
+        if ($country === '') {
+            return '';
+        }
+
+        $aliases = [
+            'KENYA' => 'KE',
+            'UGANDA' => 'UG',
+            'TANZANIA' => 'TZ',
+            'RWANDA' => 'RW',
+            'BURUNDI' => 'BI',
+            'SOUTH AFRICA' => 'ZA',
+            'NIGERIA' => 'NG',
+            'GHANA' => 'GH',
+            'UNITED STATES' => 'US',
+            'USA' => 'US',
+            'US' => 'US',
+            'UNITED KINGDOM' => 'GB',
+            'UK' => 'GB',
+            'GREAT BRITAIN' => 'GB',
+            'UAE' => 'AE',
+            'UNITED ARAB EMIRATES' => 'AE',
+        ];
+
+        if (isset($aliases[$country])) {
+            return $aliases[$country];
+        }
+
+        return preg_match('/^[A-Z]{2}$/', $country) ? $country : '';
     }
 
     private function isPublicEmailDomain(string $domain): bool
