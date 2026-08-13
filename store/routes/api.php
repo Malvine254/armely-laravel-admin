@@ -15,6 +15,7 @@ use App\Http\Controllers\SearchProfileController;
 use App\Http\Controllers\ProductSourcingRequestController;
 use App\Http\Controllers\AdminImportedProductController;
 use App\Http\Controllers\BehaviorEventController;
+use App\Http\Controllers\PriceAlertSubscriptionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -82,6 +83,9 @@ Route::prefix('v1')->group(function () {
     Route::post('/behavior/cart-snapshot', [BehaviorEventController::class, 'syncCartSnapshot'])->middleware('throttle:120,1');
     Route::post('/behavior/cart-event', [BehaviorEventController::class, 'trackCartEvent'])->middleware('throttle:180,1');
     Route::post('/behavior/favorite-event', [BehaviorEventController::class, 'trackFavoriteEvent'])->middleware('throttle:120,1');
+    Route::get('/behavior/price-alert-subscriptions', [PriceAlertSubscriptionController::class, 'index'])->middleware('throttle:60,1');
+    Route::post('/behavior/price-alert-subscriptions', [PriceAlertSubscriptionController::class, 'upsert'])->middleware('throttle:60,1');
+    Route::delete('/behavior/price-alert-subscriptions/{productId}', [PriceAlertSubscriptionController::class, 'deactivate'])->middleware('throttle:60,1');
 
     // Reviews endpoints (public read, auth write)
     Route::get('/products/reviews/stats', [ReviewController::class, 'stats']);

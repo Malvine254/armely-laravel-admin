@@ -1829,6 +1829,68 @@ class AzureGraphMailService
         return $sent;
     }
 
+    public function sendPriceDropAlertEmail(
+        \App\Models\User $user,
+        \App\Models\Product $product,
+        float $previousPrice,
+        float $currentPrice,
+        float $dropAmount,
+        float $dropPercent
+    ): bool {
+        if (!$this->isConfigured()) {
+            return false;
+        }
+
+        if (trim((string) ($user->email ?? '')) === '' || $currentPrice <= 0 || $previousPrice <= 0) {
+            return false;
+        }
+
+        $productName = trim((string) ($product->product_name ?? 'Product'));
+        $partNumber = trim((string) ($product->mfg_part_no ?? ''));
+        $productId = (string) ($product->id ?? '');
+
+        $safeName = e((string) ($user->name ?: 'Customer'));
+        $safeProductName = e($productName);
+        $safePartNumber = e($partNumber !== '' ? $partNumber : 'N/A');
+        $safePrevious = '$' . number_format($previousPrice, 2);
+        $safeCurrent = '$' . number_format($currentPrice, 2);
+        $safeDropAmount = '$' . number_format($dropAmount, 2);
+        $safeDropPercent = number_format(max(0, $dropPercent), 2) . '%';
+        $productUrl = $this->frontendUrl() . '/products/' . rawurlencode($productId);
+
+        $summaryHtml = $this->buildQuoteSummaryCard([
+            ['label' => 'Product', 'value' => $safeProductName],
+            ['label' => 'Part Number', 'value' => $safePartNumber],
+            ['label' => 'Previous Price', 'value' => $safePrevious],
+            ['label' => 'Current Price', 'value' => $safeCurrent],
+            ['label' => 'Drop', 'value' => $safeDropAmount . ' (' . $safeDropPercent . ')'],
+        ]);
+
+        $html = $this->buildModernNotificationEmail(
+            'Price Drop Alert',
+            "
+                <p style='margin:0 0 14px;font-size:16px;color:#1f2937'>Hello {$safeName},</p>
+                <p style='margin:0 0 18px;color:#4b5563'>A product you are tracking just dropped in price.</p>
+                {$summaryHtml}
+            ",
+            'View Product',
+            $productUrl,
+            'You are receiving this email because price alerts are enabled for this item.',
+            '#15803d',
+            'Price Drop',
+            '#15803d'
+        );
+
+        $text = "Hello {$user->name},\n\n"
+            . "Price drop alert for {$productName}" . ($partNumber !== '' ? " ({$partNumber})" : '') . "\n"
+            . "Previous: {$safePrevious}\n"
+            . "Current: {$safeCurrent}\n"
+            . "Drop: {$safeDropAmount} ({$safeDropPercent})\n"
+            . "View product: {$productUrl}";
+
+        return $this->sendEmail($user->email, "Price Drop: {$productName}", $html, $text);
+    }
+
     private function activeAdminEmails(): array
     {
         try {

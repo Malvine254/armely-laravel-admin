@@ -71,6 +71,11 @@ class Kernel extends ConsoleKernel
             ->name('nightly-price-sync')
             ->withoutOverlapping();
 
+        $schedule->job(\App\Jobs\ProcessPriceDropAlertsJob::class, 'default', 'database')
+            ->hourly()
+            ->name('process-price-drop-alerts')
+            ->withoutOverlapping();
+
         $schedule->command('storefront:rebuild-assortment')
             ->dailyAt('01:00')
             ->timezone($scheduleTimezone)

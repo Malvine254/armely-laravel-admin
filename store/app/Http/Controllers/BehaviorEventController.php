@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\PriceAlertSubscription;
+use App\Models\Product;
 use App\Models\UserCartEvent;
 use App\Models\UserCartSnapshot;
 use App\Models\UserFavoriteEvent;
 use App\Models\UserProductView;
+use App\Support\OfferPricing;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -92,6 +95,10 @@ class BehaviorEventController extends Controller
             'event_at' => isset($validated['event_at']) ? now()->parse($validated['event_at']) : now(),
         ]);
 
+        if (in_array((string) $validated['event_type'], ['add', 'update'], true) && isset($validated['product_id'])) {
+            $this->upsertPriceAlertSubscription($identityKey, $userId, (int) $validated['product_id'], 'cart');
+        }
+
         return $this->responseOk($newToken);
     }
 
@@ -115,7 +122,75 @@ class BehaviorEventController extends Controller
             'event_at' => isset($validated['event_at']) ? now()->parse($validated['event_at']) : now(),
         ]);
 
+        if (in_array((string) $validated['event_type'], ['add', 'toggle'], true)) {
+            $this->upsertPriceAlertSubscription($identityKey, $userId, (int) $validated['product_id'], 'favorite');
+        }
+
         return $this->responseOk($newToken);
+    }
+
+    private function upsertPriceAlertSubscription(string $identityKey, ?int $userId, int $productReference, string $source): void
+    {
+        $product = $this->resolveProduct($productReference);
+        if (!$product) {
+            return;
+        }
+
+        $currentPrice = OfferPricing::sellPrice($product);
+        if ($currentPrice <= 0) {
+            return;
+        }
+
+        $subscription = PriceAlertSubscription::query()
+            ->where('product_id', (int) $product->id)
+            ->where(function ($query) use ($identityKey, $userId) {
+                $query->where('identity_key', $identityKey);
+                if ($userId) {
+                    $query->orWhere('user_id', $userId);
+                }
+            })
+            ->first();
+
+        if (!$subscription) {
+            PriceAlertSubscription::create([
+                'identity_key' => $identityKey,
+                'user_id' => $userId,
+                'product_id' => (int) $product->id,
+                'baseline_price' => $currentPrice,
+                'min_drop_amount' => 0,
+                'min_drop_percent' => 5,
+                'cooldown_minutes' => 1440,
+                'source' => $source,
+                'is_active' => true,
+            ]);
+
+            return;
+        }
+
+        $subscription->fill([
+            'identity_key' => $identityKey,
+            'user_id' => $userId,
+            'is_active' => true,
+            'source' => $source,
+        ]);
+
+        if ((float) ($subscription->baseline_price ?? 0) <= 0) {
+            $subscription->baseline_price = $currentPrice;
+        }
+
+        $subscription->save();
+    }
+
+    private function resolveProduct(int $productReference): ?Product
+    {
+        return Product::query()
+            ->where(function ($query) use ($productReference) {
+                $query->where('id', $productReference)
+                    ->orWhere('tdsynnex_product_id', $productReference)
+                    ->orWhere('tdsynnex_sku_no', (string) $productReference);
+            })
+            ->orderByDesc('updated_at')
+            ->first();
     }
 
     private function identity(Request $request): array
