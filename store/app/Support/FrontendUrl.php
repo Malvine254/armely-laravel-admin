@@ -9,7 +9,7 @@ class FrontendUrl
         $configuredUrl = rtrim((string) config('app.frontend_url', ''), '/');
         $appUrl = rtrim((string) config('app.url', ''), '/');
         $baseUrl = $configuredUrl !== '' ? $configuredUrl : $appUrl;
-        $basePath = self::normalizedBasePath((string) env('VITE_APP_BASE_PATH', '/'));
+        $basePath = self::normalizedBasePath((string) config('app.frontend_base_path', '/'));
 
         if ($basePath !== '' && !self::urlPathStartsWith($baseUrl, $basePath)) {
             $baseUrl = rtrim($baseUrl, '/') . $basePath;

@@ -59,6 +59,10 @@ return [
     // Set FRONTEND_URL in your .env — required in production.
     'frontend_url' => env('FRONTEND_URL', env('APP_URL', 'http://localhost')),
 
+    // Optional frontend base path appended to frontend_url when needed
+    // (for subpath deployments such as /store).
+    'frontend_base_path' => env('VITE_APP_BASE_PATH', '/'),
+
     // Base URL for static assets (set this in production .env when the app lives
     // in a subdirectory, e.g. ASSET_URL=https://armely.com/store).
     // Leave empty in local .env so relative /images/... paths work with artisan serve.
