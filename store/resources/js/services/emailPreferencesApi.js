@@ -5,6 +5,10 @@ const normalizeLifecyclePreferences = (raw) => {
 
   return {
     transactional_enabled: data.transactional_enabled !== false,
+    notification_email_enabled: data.notification_email_enabled !== false,
+    quotes_notifications_enabled: data.quotes_notifications_enabled !== false,
+    orders_notifications_enabled: data.orders_notifications_enabled !== false,
+    invoices_notifications_enabled: data.invoices_notifications_enabled !== false,
     marketing_enabled: data.marketing_enabled !== false,
     price_alerts_enabled: data.price_alerts_enabled !== false,
     cart_reminders_enabled: data.cart_reminders_enabled !== false,

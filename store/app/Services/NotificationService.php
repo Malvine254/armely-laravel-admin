@@ -31,7 +31,7 @@ class NotificationService
             ->get();
     }
 
-    private function canSendTransactionalToUserId(?int $userId): bool
+    private function canSendTransactionalToUserId(?int $userId, ?string $category = null): bool
     {
         if (!$userId) {
             return false;
@@ -44,6 +44,22 @@ class NotificationService
             }
 
             $preference = $this->emailPreferences->ensurePreference($user);
+
+            if (!(bool) $preference->notification_email_enabled) {
+                return false;
+            }
+
+            if ($category === 'quotes' && !(bool) $preference->quotes_notifications_enabled) {
+                return false;
+            }
+
+            if ($category === 'orders' && !(bool) $preference->orders_notifications_enabled) {
+                return false;
+            }
+
+            if ($category === 'invoices' && !(bool) $preference->invoices_notifications_enabled) {
+                return false;
+            }
 
             return (bool) $preference->transactional_enabled;
         } catch (\Throwable) {
@@ -79,7 +95,7 @@ class NotificationService
                 $sentAdminEmails[$adminEmail] = true;
             }
 
-            if ($quote->user && !empty($quote->user->email) && $this->canSendTransactionalToUserId((int) $quote->user_id)) {
+            if ($quote->user && !empty($quote->user->email) && $this->canSendTransactionalToUserId((int) $quote->user_id, 'quotes')) {
                 $customerEmail = strtolower(trim((string) $quote->user->email));
                 if ($customerEmail !== '' && !isset($sentAdminEmails[$customerEmail])) {
                     $this->mailer->sendQuoteSubmittedCustomerEmail($quote);
@@ -118,7 +134,7 @@ class NotificationService
                 $sentAdminEmails[$adminEmail] = true;
             }
 
-            if ($quote->user && !empty($quote->user->email) && $this->canSendTransactionalToUserId((int) $quote->user_id)) {
+            if ($quote->user && !empty($quote->user->email) && $this->canSendTransactionalToUserId((int) $quote->user_id, 'quotes')) {
                 $customerEmail = strtolower(trim((string) $quote->user->email));
                 if ($customerEmail !== '' && !isset($sentAdminEmails[$customerEmail])) {
                     $this->mailer->sendQuoteRevisionCustomerEmail($quote, $revisedFromQuoteId);
@@ -137,7 +153,7 @@ class NotificationService
     public function sendQuoteApprovedNotification(Quote $quote): void
     {
         try {
-            if (!$this->canSendTransactionalToUserId((int) $quote->user_id)) {
+            if (!$this->canSendTransactionalToUserId((int) $quote->user_id, 'quotes')) {
                 return;
             }
 
@@ -155,7 +171,7 @@ class NotificationService
     public function sendQuoteRejectedNotification(Quote $quote, string $reason = null): void
     {
         try {
-            if (!$this->canSendTransactionalToUserId((int) $quote->user_id)) {
+            if (!$this->canSendTransactionalToUserId((int) $quote->user_id, 'quotes')) {
                 return;
             }
 
@@ -177,7 +193,7 @@ class NotificationService
                 return;
             }
 
-            if ($this->canSendTransactionalToUserId((int) $order->user_id)) {
+            if ($this->canSendTransactionalToUserId((int) $order->user_id, 'orders')) {
                 $this->mailer->sendOrderConfirmationEmail($order);
             }
             $this->mailer->sendOrderCreatedAdminEmails($order);
@@ -198,7 +214,7 @@ class NotificationService
                 return;
             }
 
-            if (!$this->canSendTransactionalToUserId((int) $order->user_id)) {
+            if (!$this->canSendTransactionalToUserId((int) $order->user_id, 'orders')) {
                 return;
             }
 
@@ -228,7 +244,7 @@ class NotificationService
     public function sendInvoiceNotification(Invoice $invoice): void
     {
         try {
-            if (!$this->canSendTransactionalToUserId((int) $invoice->user_id)) {
+            if (!$this->canSendTransactionalToUserId((int) $invoice->user_id, 'invoices')) {
                 return;
             }
 
@@ -251,7 +267,7 @@ class NotificationService
     public function sendInvoiceReminderNotification(Invoice $invoice, ?string $customMessage = null): bool
     {
         try {
-            if (!$this->canSendTransactionalToUserId((int) $invoice->user_id)) {
+            if (!$this->canSendTransactionalToUserId((int) $invoice->user_id, 'invoices')) {
                 return false;
             }
 
@@ -286,7 +302,7 @@ class NotificationService
                 return;
             }
 
-            if (!$this->canSendTransactionalToUserId((int) $quote->user_id)) {
+            if (!$this->canSendTransactionalToUserId((int) $quote->user_id, 'quotes')) {
                 return;
             }
 
