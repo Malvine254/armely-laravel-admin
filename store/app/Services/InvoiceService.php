@@ -180,10 +180,17 @@ class InvoiceService
             ? $existing->due_at->copy()
             : null;
 
-        $calculatedDueAt = $issuedAt->copy()->addDays($termDays);
+        $deliveredAt = $order->delivered_at instanceof Carbon
+            ? $order->delivered_at->copy()
+            : null;
+
+        $calculatedDueAt = $deliveredAt
+            ? $deliveredAt->copy()->addDays($termDays)
+            : null;
+
         $dueAt = $existingDueAt ?: $calculatedDueAt;
 
-        if ($dueAt->lt($issuedAt)) {
+        if ($dueAt && $dueAt->lt($issuedAt)) {
             $dueAt = $calculatedDueAt;
         }
 
@@ -396,7 +403,7 @@ class InvoiceService
                             'invoice_terms' => [
                                 'due_days' => $invoiceDates['term_days'],
                                 'issued_at' => $invoiceDates['issued_at']->toISOString(),
-                                'due_at' => $invoiceDates['due_at']->toISOString(),
+                                'due_at' => $invoiceDates['due_at']?->toISOString(),
                             ],
                             'invoice_charge_breakdown' => [
                                 'pricing_model' => 'retail',
@@ -437,7 +444,7 @@ class InvoiceService
                             'invoice_terms' => [
                                 'due_days' => $invoiceDates['term_days'],
                                 'issued_at' => $invoiceDates['issued_at']->toISOString(),
-                                'due_at' => $invoiceDates['due_at']->toISOString(),
+                                'due_at' => $invoiceDates['due_at']?->toISOString(),
                             ],
                             'invoice_charge_breakdown' => [
                                 'pricing_model' => 'retail',
