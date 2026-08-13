@@ -1,10 +1,22 @@
 import axios from 'axios'
 import { API_BASE_URL, buildStoreUrl } from './runtimeConfig'
 
+const DEFAULT_API_TIMEOUT_MS = 45000
+const RETRYABLE_ERROR_CODES = new Set(['ECONNABORTED', 'ERR_NETWORK'])
+
+const isRetryableGetError = (error) => {
+  const method = String(error?.config?.method || '').toLowerCase()
+  if (method !== 'get') return false
+
+  const code = String(error?.code || '').toUpperCase()
+  const message = String(error?.message || '').toLowerCase()
+  return RETRYABLE_ERROR_CODES.has(code) || message.includes('timeout') || message.includes('network error')
+}
+
 const api = axios.create({
   baseURL: API_BASE_URL,
-  // Never leave the UI waiting indefinitely for a blocked PHP/DB worker.
-  timeout: 20000,
+  // Allow slower catalog endpoints while still failing eventually.
+  timeout: DEFAULT_API_TIMEOUT_MS,
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json'
@@ -17,6 +29,9 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
+  if (!config.timeout || config.timeout <= 0) {
+    config.timeout = DEFAULT_API_TIMEOUT_MS
+  }
   return config
 })
 
@@ -28,11 +43,18 @@ const clearAuthStorage = () => {
 // Handle response errors
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    if (isRetryableGetError(error) && !error.config?._retry) {
+      error.config._retry = true
+      return api.request(error.config)
+    }
+
     const status = error.response?.status
     const message = error.response?.data?.message || ''
+    const requestUrl = String(error.config?.url || '').toLowerCase()
+    const isLogoutRequest = requestUrl.includes('/auth/logout')
 
-    if (status === 401) {
+    if (status === 401 && !isLogoutRequest) {
       clearAuthStorage()
       window.location.href = buildStoreUrl('login')
     }

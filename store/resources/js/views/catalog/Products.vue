@@ -1279,6 +1279,50 @@ const requestCache = new Map()
 const pendingRequests = new Map()
 let activeSearchRequestId = 0
 const pendingReviewStats = new Set()
+const PRODUCTS_API_TIMEOUT_MS = 45000
+const PRODUCTS_API_RETRY_COUNT = 1
+
+const isRetryableProductsError = (err) => {
+  if (!err) return false
+
+  const code = String(err.code || '').toUpperCase()
+  const message = String(err.message || '').toLowerCase()
+
+  return code === 'ECONNABORTED'
+    || code === 'ERR_NETWORK'
+    || message.includes('timeout')
+    || message.includes('network error')
+}
+
+const getProductsApiErrorMessage = (err) => {
+  if (isRetryableProductsError(err)) {
+    return 'The products service is taking too long to respond. Please retry in a few seconds.'
+  }
+
+  return err?.response?.data?.message || err?.message || 'Failed to fetch products'
+}
+
+const getProductsWithRetry = async (path, options = {}, retries = PRODUCTS_API_RETRY_COUNT) => {
+  let attempt = 0
+  let lastError = null
+
+  while (attempt <= retries) {
+    try {
+      return await api.get(path, {
+        ...options,
+        timeout: PRODUCTS_API_TIMEOUT_MS,
+      })
+    } catch (err) {
+      lastError = err
+      if (!isRetryableProductsError(err) || attempt >= retries) {
+        throw err
+      }
+      attempt += 1
+    }
+  }
+
+  throw lastError || new Error('Failed to fetch products')
+}
 
 const getReviewStatsForProduct = (productId) => getProductReviewStats(productId)
 
@@ -1329,7 +1373,7 @@ const loadReviewStatsForProducts = async (items = []) => {
 
 const fetchAllProductPages = async (params) => {
   // Fetch up to the storefront cap for client-side filtering (partNumber, lifecycle, media)
-  const response = await api.get('/products', {
+  const response = await getProductsWithRetry('/products', {
     params: {
       ...params,
       page: 1,
@@ -1567,7 +1611,7 @@ const performSearch = async (resetPage = true) => {
       let loadedSupplierLookupQueued = false
 
       if (useServerPaged) {
-        const response = await api.get('/products', {
+        const response = await getProductsWithRetry('/products', {
           params: {
             ...params,
             page: currentPage.value,
@@ -1646,7 +1690,7 @@ const performSearch = async (resetPage = true) => {
         return { data: [], total: 0, serverPaged: useServerPaged }
       }
     } catch (err) {
-      error.value = err.response?.data?.message || err.message || 'Failed to fetch products'
+      error.value = getProductsApiErrorMessage(err)
       console.error('❌ Product fetch error:', err)
       return { data: [], total: 0, serverPaged: useServerPaged }
     }
