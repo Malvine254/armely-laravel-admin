@@ -1,3 +1,5 @@
+import { trackProductViewEvent } from './behaviorTracking'
+
 const KEY = 'armely_recently_viewed_ids'
 const LIMIT = 6
 
@@ -20,4 +22,6 @@ export const rememberViewedProduct = productId => {
   } catch {
     // Recently viewed is optional and must never interrupt product loading.
   }
+
+  trackProductViewEvent(productId)
 }
