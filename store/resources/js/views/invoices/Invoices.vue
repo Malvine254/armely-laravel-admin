@@ -85,8 +85,8 @@
           <button @click="downloadSelectedPdfs" class="px-4 py-2 rounded-lg font-semibold border border-[#2F5597] text-[#2F5597] hover:bg-[#edf3fb] transition duration-200">
             Download PDFs
           </button>
-          <button @click="paySelectedInvoices" :disabled="bulkPaying" class="px-4 py-2 rounded-lg text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition duration-200" style="background-color: #2F5597;" @mouseenter="$event.target.style.backgroundColor='#1f4788'" @mouseleave="$event.target.style.backgroundColor='#2F5597'">
-            {{ bulkPaying ? 'Opening QuickBooks...' : 'Pay Selected in QuickBooks' }}
+          <button @click="paySelectedInvoices" :disabled="!quickBooksPaymentsEnabled || bulkPaying" class="px-4 py-2 rounded-lg text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition duration-200" style="background-color: #2F5597;" @mouseenter="$event.target.style.backgroundColor='#1f4788'" @mouseleave="$event.target.style.backgroundColor='#2F5597'">
+            {{ quickBooksPaymentsEnabled ? (bulkPaying ? 'Opening QuickBooks...' : 'Pay Selected in QuickBooks') : 'Pay Selected (Coming Soon)' }}
           </button>
           <button @click="clearSelection" class="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 transition duration-200">
             Clear
@@ -236,13 +236,13 @@
                     <button
                       v-if="canPayInvoice(invoice)"
                       @click="startPayment(invoice)"
-                      :disabled="payingInvoiceNumber === invoice.invoice_number"
+                      :disabled="!quickBooksPaymentsEnabled || payingInvoiceNumber === invoice.invoice_number"
                       class="px-3 py-1.5 text-xs rounded-md text-white font-semibold transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                       style="background-color: #2F5597;"
                       @mouseenter="$event.target.style.backgroundColor='#1f4788'"
                       @mouseleave="$event.target.style.backgroundColor='#2F5597'"
                     >
-                      {{ payingInvoiceNumber === invoice.invoice_number ? 'Starting...' : 'Pay Now' }}
+                      {{ quickBooksPaymentsEnabled ? (payingInvoiceNumber === invoice.invoice_number ? 'Starting...' : 'Pay Now') : 'Pay (Coming Soon)' }}
                     </button>
                   </div>
                 </td>
@@ -398,12 +398,14 @@
             <button
               v-if="canPayInvoice(selectedInvoice)"
               @click="startPayment(selectedInvoice)"
+              :disabled="!quickBooksPaymentsEnabled"
               class="px-4 py-2.5 rounded-lg text-white font-semibold transition duration-200"
+              :class="!quickBooksPaymentsEnabled ? 'opacity-50 cursor-not-allowed' : ''"
               style="background-color: #2F5597;"
               @mouseenter="$event.target.style.backgroundColor='#1f4788'"
               @mouseleave="$event.target.style.backgroundColor='#2F5597'"
             >
-              Pay in QuickBooks
+              {{ quickBooksPaymentsEnabled ? 'Pay in QuickBooks' : 'Pay in QuickBooks (Coming Soon)' }}
             </button>
           </div>
         </div>
@@ -430,6 +432,7 @@ export default {
     const authStore = useAuthStore()
     const toastStore = useToastStore()
     const { loadPricingSettings, formatUsdUsingCurrentCurrency } = usePricingSettings()
+    const quickBooksPaymentsEnabled = false
 
     const invoices = ref([])
     const loading = ref(false)
@@ -823,6 +826,11 @@ export default {
     }
 
     const startPayment = async (invoice) => {
+      if (!quickBooksPaymentsEnabled) {
+        toastStore.addToast('QuickBooks invoice payments are temporarily disabled.', 'info', 3500, { category: 'invoices' })
+        return
+      }
+
       if (!canPayInvoice(invoice)) {
         toastStore.addToast('This invoice is already fully paid.', 'warning', 3000, { category: 'invoices' })
         return
@@ -928,6 +936,11 @@ export default {
     }
 
     const paySelectedInvoices = async () => {
+      if (!quickBooksPaymentsEnabled) {
+        toastStore.addToast('QuickBooks invoice payments are temporarily disabled.', 'info', 3500, { category: 'invoices' })
+        return
+      }
+
       const payableNumbers = selectedInvoices.value.filter((invoiceNumber) => {
         const found = invoices.value.find(inv => inv.invoice_number === invoiceNumber)
         return !!found && canPayInvoice(found)
@@ -1303,6 +1316,7 @@ export default {
       overdueCount,
       totalInvoiceCount,
       selectedOutstandingTotal,
+      quickBooksPaymentsEnabled,
       fetchInvoices,
       viewInvoice,
       downloadPDF,
