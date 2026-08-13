@@ -189,6 +189,11 @@ class NotificationService
     public function sendInvoiceNotification(Invoice $invoice): void
     {
         try {
+            $cacheKey = 'notify:invoice-issued:' . (string) $invoice->id;
+            if (!Cache::add($cacheKey, 1, now()->addDays(365))) {
+                return;
+            }
+
             $this->mailer->sendInvoiceEmail($invoice);
 
             Log::info("Invoice notification sent to user {$invoice->user_id}");

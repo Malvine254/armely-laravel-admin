@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\AppSetting;
 use App\Models\Product;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 
 class InvoiceService
@@ -153,6 +154,44 @@ class InvoiceService
         $walk($raw);
 
         return array_values($linesByKey);
+    }
+
+    private function invoiceTermDays(): int
+    {
+        $configured = (int) round(AppSetting::getNumber('billing.invoice_due_days', 14));
+        return max(1, min(90, $configured));
+    }
+
+    private function resolveInvoiceDates(Order $order, ?Invoice $existing = null): array
+    {
+        $termDays = $this->invoiceTermDays();
+
+        $orderedAt = $order->ordered_at instanceof Carbon
+            ? $order->ordered_at->copy()
+            : Carbon::parse($order->ordered_at ?? now());
+
+        $existingIssuedAt = $existing?->issued_at instanceof Carbon
+            ? $existing->issued_at->copy()
+            : null;
+
+        $issuedAt = $existingIssuedAt ?: $orderedAt;
+
+        $existingDueAt = $existing?->due_at instanceof Carbon
+            ? $existing->due_at->copy()
+            : null;
+
+        $calculatedDueAt = $issuedAt->copy()->addDays($termDays);
+        $dueAt = $existingDueAt ?: $calculatedDueAt;
+
+        if ($dueAt->lt($issuedAt)) {
+            $dueAt = $calculatedDueAt;
+        }
+
+        return [
+            'issued_at' => $issuedAt,
+            'due_at' => $dueAt,
+            'term_days' => $termDays,
+        ];
     }
 
     private function findProductForInvoiceItem(array $item): ?Product
@@ -311,6 +350,7 @@ class InvoiceService
             $tdData = null;
 
             $existing = Invoice::where('order_number', $order->order_number)->first();
+            $invoiceDates = $this->resolveInvoiceDates($order, $existing);
 
             // A paid invoice is an immutable financial record. Product prices,
             // supplier freight, tax, or order status may change later, but those
@@ -353,6 +393,11 @@ class InvoiceService
                     'raw_data' => array_merge(
                         is_array($tdData) ? $tdData : (is_array($order->raw_data) ? $order->raw_data : []),
                         [
+                            'invoice_terms' => [
+                                'due_days' => $invoiceDates['term_days'],
+                                'issued_at' => $invoiceDates['issued_at']->toISOString(),
+                                'due_at' => $invoiceDates['due_at']->toISOString(),
+                            ],
                             'invoice_charge_breakdown' => [
                                 'pricing_model' => 'retail',
                                 'retail_subtotal' => $retailSubtotal,
@@ -369,8 +414,8 @@ class InvoiceService
                             ],
                         ]
                     ),
-                    'issued_at' => $existing->issued_at ?? now(),
-                    'due_at' => $existing->due_at ?? now()->addDays(30),
+                    'issued_at' => $invoiceDates['issued_at'],
+                    'due_at' => $invoiceDates['due_at'],
                     'paid_at' => $existing->paid_at,
                     'notes' => "Invoice for order #{$order->order_number}",
                 ]);
@@ -389,6 +434,11 @@ class InvoiceService
                     'raw_data' => array_merge(
                         is_array($tdData) ? $tdData : (is_array($order->raw_data) ? $order->raw_data : []),
                         [
+                            'invoice_terms' => [
+                                'due_days' => $invoiceDates['term_days'],
+                                'issued_at' => $invoiceDates['issued_at']->toISOString(),
+                                'due_at' => $invoiceDates['due_at']->toISOString(),
+                            ],
                             'invoice_charge_breakdown' => [
                                 'pricing_model' => 'retail',
                                 'retail_subtotal' => $retailSubtotal,
@@ -405,8 +455,8 @@ class InvoiceService
                             ],
                         ]
                     ),
-                    'issued_at' => now(),
-                    'due_at' => now()->addDays(30),
+                    'issued_at' => $invoiceDates['issued_at'],
+                    'due_at' => $invoiceDates['due_at'],
                     'paid_at' => null,
                     'notes' => "Invoice for order #{$order->order_number}",
                 ]);

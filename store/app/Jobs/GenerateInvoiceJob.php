@@ -46,8 +46,8 @@ class GenerateInvoiceJob implements ShouldQueue
                 ]
             );
 
-            // Send payment reminder immediately once invoice is generated from confirmed quote/order.
-            $notificationService->sendInvoiceReminderNotification($invoice);
+            // Send the initial invoice email when the invoice is generated.
+            $notificationService->sendInvoiceNotification($invoice);
 
             Log::info("Invoice {$invoice->invoice_number} generated for order {$this->order->order_number}");
         } catch (\Exception $e) {

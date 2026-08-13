@@ -239,6 +239,12 @@ class QuoteOrderInvoiceController extends Controller
         return $orderNumber;
     }
 
+    private function invoiceDueDays(): int
+    {
+        $configured = (int) round(AppSetting::getNumber('billing.invoice_due_days', 14));
+        return max(1, min(90, $configured));
+    }
+
     private function createFallbackInvoiceForOrder(Order $order): void
     {
         if (Invoice::where('user_id', $order->user_id)->where('order_number', $order->order_number)->exists()) {
@@ -264,7 +270,7 @@ class QuoteOrderInvoiceController extends Controller
                 'order_number' => $order->order_number,
             ],
             'issued_at' => now(),
-            'due_at' => now()->addDays(30),
+            'due_at' => now()->addDays($this->invoiceDueDays()),
             'paid_at' => null,
             'notes' => "Fallback generated for order #{$order->order_number}",
         ]);
@@ -2218,7 +2224,7 @@ class QuoteOrderInvoiceController extends Controller
                     'combined_at' => now()->toISOString(),
                 ],
                 'issued_at' => now(),
-                'due_at' => now()->addDays(30),
+                'due_at' => now()->addDays($this->invoiceDueDays()),
                 'paid_at' => null,
                 'notes' => 'Combined from invoices: ' . implode(', ', $sourceInvoiceNumbers),
             ]);
