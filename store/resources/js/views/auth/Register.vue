@@ -5,10 +5,13 @@
       <div class="bg-white rounded-2xl shadow-xl border border-slate-200 p-8">
         <!-- Header -->
         <div class="text-center mb-8">
-          <div class="w-16 h-16 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg" style="background: linear-gradient(135deg, #2F5597, #1f4788);">
-            <span class="text-white font-bold text-2xl">A</span>
+          <div class="mx-auto mb-4 flex h-28 w-28 items-center justify-center">
+            <img
+              :src="normalizeLocalAssetUrl('/images/logo/armely-store-logo.png')"
+              alt="Armely Store"
+              class="h-full w-full object-contain"
+            >
           </div>
-          <p class="text-sm font-semibold tracking-wide uppercase" style="color: #2F5597;">Armely Store</p>
           <h2 class="text-3xl font-bold text-slate-900 mb-2">Create Account</h2>
           <p class="text-slate-600">Join Armely Store today</p>
         </div>
@@ -98,6 +101,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { normalizeLocalAssetUrl } from '@/services/runtimeConfig'
 import { useAuthStore } from '../../stores/authStore'
 import { useToastStore } from '../../stores/toastStore'
 
