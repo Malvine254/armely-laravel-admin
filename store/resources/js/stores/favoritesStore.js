@@ -8,6 +8,17 @@ export const useFavoritesStore = defineStore('favorites', () => {
   const STORAGE_KEY = 'armely_favorites'
   const authStore = useAuthStore()
 
+  const isSuspendedAccount = () => {
+    const reason = String(authStore.user?.restriction_reason || '').toLowerCase()
+    if (reason === 'company_suspended' || reason === 'user_suspended') {
+      return true
+    }
+
+    const userStatus = String(authStore.user?.status || '').toLowerCase()
+    const companyStatus = String(authStore.user?.company?.status || '').toLowerCase()
+    return userStatus === 'suspended' || companyStatus === 'inactive'
+  }
+
   const resolveImageUrl = (product) => {
     const direct = [
       product?.favoriteImageUrl,
@@ -87,7 +98,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
 
   // Add item to favorites
   const addItem = (product) => {
-    if (authStore.isAuthenticated && authStore.isRestricted) {
+    if (authStore.isAuthenticated && isSuspendedAccount()) {
       return null
     }
 
@@ -111,7 +122,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
 
   // Remove item from favorites
   const removeItem = (productId) => {
-    if (authStore.isAuthenticated && authStore.isRestricted) {
+    if (authStore.isAuthenticated && isSuspendedAccount()) {
       return false
     }
 
@@ -127,7 +138,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
 
   // Toggle favorite
   const toggleFavorite = (product) => {
-    if (authStore.isAuthenticated && authStore.isRestricted) {
+    if (authStore.isAuthenticated && isSuspendedAccount()) {
       return null
     }
 
@@ -150,7 +161,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
 
   // Clear favorites
   const clearFavorites = () => {
-    if (authStore.isAuthenticated && authStore.isRestricted) {
+    if (authStore.isAuthenticated && isSuspendedAccount()) {
       return false
     }
 
