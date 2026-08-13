@@ -10,8 +10,10 @@
           Please activate your account from the email link. Until then, only limited pages and read-only access are available.
         </template>
         <template v-else>
-          <span class="font-semibold">Account Suspended:</span>
-          Your account is currently restricted. You can browse read-only pages, but actions like creating quotes or placing orders are disabled.
+          <span class="font-semibold">{{ isSuspendedRestriction ? 'Account Suspended:' : 'Account Pending Approval:' }}</span>
+          {{ isSuspendedRestriction
+            ? 'Your account is currently restricted. You can browse read-only pages, but actions like creating quotes or placing orders are disabled.'
+            : 'Your account is awaiting review. You can browse products and view your account, but actions like creating quotes, placing orders, and viewing invoices remain disabled until approval.' }}
         </template>
       </div>
     </div>
@@ -198,6 +200,12 @@ const cookieForm = reactive({
 const showRestrictedBanner = computed(() => {
   const hiddenRoutes = ['login', 'register', 'admin-login']
   return authStore.isAuthenticated && authStore.isRestricted && !hiddenRoutes.includes(route.name)
+})
+
+const isSuspendedRestriction = computed(() => {
+  const userStatus = String(authStore.user?.status || '').toLowerCase()
+  const companyStatus = String(authStore.user?.company?.status || '').toLowerCase()
+  return userStatus === 'suspended' || companyStatus === 'inactive'
 })
 
 const showStoreFooter = computed(() => {

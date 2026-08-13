@@ -17,7 +17,9 @@
       >
         <p class="text-sm font-semibold text-amber-900">Account Restricted</p>
         <p class="text-sm text-amber-800">
-          Your account is suspended or pending approval. You can view your account, but changes and transactions are disabled.
+          {{ isSuspendedRestriction
+            ? 'Your account is suspended. You can browse products and view your account, but changes and transactions are disabled.'
+            : 'Your account is pending approval. You can browse products and view your account, but changes and transactions are disabled until approval.' }}
         </p>
       </div>
 
@@ -646,6 +648,11 @@ const userName = computed(() => authStore.user?.name || '')
 const userEmail = computed(() => authStore.user?.email || '')
 const userPhone = computed(() => authStore.user?.phone || 'Not set')
 const isRestricted = computed(() => authStore.isRestricted)
+const isSuspendedRestriction = computed(() => {
+  const userStatus = String(authStore.user?.status || '').toLowerCase()
+  const companyStatus = String(authStore.user?.company?.status || '').toLowerCase()
+  return userStatus === 'suspended' || companyStatus === 'inactive'
+})
 const userRoleLabel = computed(() => {
   const role = authStore.user?.role
   const roleMap = {

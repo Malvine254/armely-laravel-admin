@@ -46,7 +46,7 @@
         </form>
 
         <!-- Dynamic category row -->
-        <div class="order-4 -mx-3 mt-3 hidden min-h-14 w-[calc(100%+1.5rem)] flex-none items-stretch justify-center bg-[#2F5597] sm:-mx-4 sm:w-[calc(100%+2rem)] lg:-mx-5 lg:w-[calc(100%+2.5rem)] xl:flex">
+        <div class="order-4 -mx-3 mt-3 hidden min-h-14 w-[calc(100%+1.5rem)] flex-none items-stretch justify-center bg-[#2F5597] sm:-mx-4 sm:w-[calc(100%+2rem)] lg:-mx-5 lg:w-[calc(100%+2.5rem)] lg:flex">
           <div ref="categoryMenuRef" class="mx-3 flex w-[calc(100%-1.5rem)] items-stretch justify-center sm:mx-5 sm:w-[calc(100%-2.5rem)] lg:mx-8 lg:w-[calc(100%-4rem)] 2xl:mx-10 2xl:w-[calc(100%-5rem)]">
           <div
             v-for="cat in primaryCategories"
@@ -193,7 +193,7 @@
             </button>
 
             <!-- Authenticated Account Menu -->
-            <div ref="accountMenuRef" class="relative order-2 ml-2 hidden xl:block">
+            <div ref="accountMenuRef" class="relative order-2 ml-2 hidden lg:block">
               <button
                 type="button"
                 class="flex items-center gap-2 rounded-xl border border-transparent px-2.5 py-2 text-[#102f61] transition hover:border-blue-100 hover:bg-blue-50"
@@ -224,10 +224,10 @@
                   <div v-if="authStore.user?.company_name" class="text-xs text-slate-300">{{ authStore.user?.company_name }}</div>
                 </div>
                 <router-link to="/account" class="block w-full px-4 py-2 text-left hover:bg-white/10 transition text-slate-100">My Account</router-link>
-                <router-link to="/orders" v-if="authStore.isAuthenticated" class="block w-full px-4 py-2 text-left hover:bg-white/10 transition text-slate-100">My Orders</router-link>
+                <router-link to="/orders" v-if="authStore.hasFeatureAccess('orders')" class="block w-full px-4 py-2 text-left hover:bg-white/10 transition text-slate-100">My Orders</router-link>
                 <router-link to="/messages" v-if="authStore.hasFeatureAccess('messages')" class="block w-full px-4 py-2 text-left hover:bg-white/10 transition text-slate-100">Messages</router-link>
                 <router-link to="/favorites" class="flex w-full items-center justify-between px-4 py-2 text-left hover:bg-white/10 transition text-slate-100"><span>Favorites</span><span v-if="favoritesStore.favoriteCount > 0" class="rounded-full bg-rose-500 px-2 py-0.5 text-xs font-semibold text-white">{{ favoritesStore.favoriteCount }}</span></router-link>
-                <router-link to="/quotes" v-if="authStore.isAuthenticated" class="block w-full px-4 py-2 text-left hover:bg-white/10 transition text-slate-100">My Quotes</router-link>
+                <router-link to="/quotes" v-if="authStore.hasFeatureAccess('quotes')" class="block w-full px-4 py-2 text-left hover:bg-white/10 transition text-slate-100">My Quotes</router-link>
                 <router-link to="/invoices" v-if="authStore.hasFeatureAccess('invoices')" class="block w-full px-4 py-2 text-left hover:bg-white/10 transition text-slate-100">Invoices</router-link>
                 <div class="border-t border-white/20 my-2"></div>
                 <button @click="handleLogout" class="w-full px-4 py-2 text-left hover:bg-rose-500/20 transition text-rose-400"><strong>Sign Out</strong></button>
@@ -237,7 +237,7 @@
 
           <!-- Unauthenticated User - Login/Sign Up Buttons -->
           <template v-else>
-            <div class="order-2 ml-2 hidden items-center gap-3 xl:flex">
+            <div class="order-2 ml-2 hidden items-center gap-3 lg:flex">
               <router-link to="/login" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-[#102f61] transition hover:bg-blue-50">
                 Log In
               </router-link>
@@ -249,7 +249,7 @@
 
       <!-- Mobile Menu Button -->
           <button
-            class="order-3 rounded-lg p-2 text-[#102f61] transition hover:bg-blue-50 hover:text-blue-700 xl:hidden"
+            class="order-3 rounded-lg p-2 text-[#102f61] transition hover:bg-blue-50 hover:text-blue-700 lg:hidden"
             @click="toggleMobileMenu"
             :aria-expanded="mobileMenuOpen ? 'true' : 'false'"
             aria-label="Toggle mobile menu"
@@ -265,7 +265,7 @@
       </div>
 
       <!-- Mobile Dropdown Menu -->
-      <div v-if="mobileMenuOpen" class="xl:hidden pb-4">
+      <div v-if="mobileMenuOpen" class="lg:hidden pb-4">
         <div class="rounded-lg border border-white/20 overflow-hidden" style="background: #2F5597;">
           <form class="border-b border-white/10 p-3 lg:hidden" role="search" @submit.prevent="submitNavSearch">
             <div class="flex h-11 overflow-hidden rounded-lg bg-white">
@@ -321,9 +321,10 @@
             </div>
             <button type="button" @click="goToAccount" class="w-full text-left px-4 py-3 text-sm text-slate-100 transition hover:bg-white/10">My Account</button>
             <button type="button" @click="goToCart" class="w-full text-left px-4 py-3 text-sm text-slate-100 transition hover:bg-white/10">My Quote / Cart</button>
-            <button type="button" @click="goToOrders" class="w-full text-left px-4 py-3 text-sm text-slate-100 transition hover:bg-white/10">My Orders</button>
+            <button v-if="authStore.hasFeatureAccess('orders')" type="button" @click="goToOrders" class="w-full text-left px-4 py-3 text-sm text-slate-100 transition hover:bg-white/10">My Orders</button>
             <button type="button" @click="goToMessages" v-if="authStore.hasFeatureAccess('messages')" class="w-full text-left px-4 py-3 text-sm text-slate-100 transition hover:bg-white/10">Messages</button>
             <button type="button" @click="goToFavorites" class="w-full text-left px-4 py-3 text-sm text-slate-100 transition hover:bg-white/10">Favorites</button>
+            <button v-if="authStore.hasFeatureAccess('quotes')" type="button" @click="router.push({ name: 'quotes' }); closeMobileMenu()" class="w-full text-left px-4 py-3 text-sm text-slate-100 transition hover:bg-white/10">My Quotes</button>
             <button type="button" @click="handleLogout" class="w-full text-left px-4 py-3 text-sm font-semibold text-rose-400 transition hover:bg-rose-500/20">Sign Out</button>
           </template>
           <template v-else>
