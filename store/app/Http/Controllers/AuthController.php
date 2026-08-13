@@ -205,6 +205,16 @@ class AuthController extends Controller
             ->uncompromised();
     }
 
+    public function registrationConfig(): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'recaptcha_site_key' => (string) config('services.recaptcha.site_key', ''),
+            ],
+        ]);
+    }
+
     private function shouldVerifyRecaptcha(): bool
     {
         if ((bool) config('services.recaptcha.bypass', false)) {

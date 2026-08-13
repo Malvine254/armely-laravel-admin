@@ -1,6 +1,6 @@
 <template>
   <div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100 flex items-center justify-center px-4 py-9">
-    <div class="w-full max-w-md">
+    <div class="w-full max-w-2xl">
       <!-- Card -->
       <div class="bg-white rounded-2xl shadow-xl border border-slate-200 p-8">
         <!-- Header -->
@@ -18,19 +18,21 @@
 
         <!-- Form -->
         <form @submit.prevent="handleRegister" class="space-y-4">
-          <div>
-            <label class="block text-sm font-semibold text-slate-700 mb-2">Company Name</label>
-            <input v-model="companyName" type="text" placeholder="Your company" class="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent transition" style="--tw-ring-color: #2F5597;">
-          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-semibold text-slate-700 mb-2">Company Name</label>
+              <input v-model="companyName" type="text" placeholder="Your company" class="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent transition" style="--tw-ring-color: #2F5597;">
+            </div>
 
-          <div>
-            <label class="block text-sm font-semibold text-slate-700 mb-2">Email Address</label>
-            <input v-model="email" type="email" placeholder="you@company.com" class="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent transition" style="--tw-ring-color: #2F5597;">
-          </div>
+            <div>
+              <label class="block text-sm font-semibold text-slate-700 mb-2">Email Address</label>
+              <input v-model="email" type="email" placeholder="you@company.com" class="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent transition" style="--tw-ring-color: #2F5597;">
+            </div>
 
-          <div>
+            <div class="md:col-span-2">
             <label class="block text-sm font-semibold text-slate-700 mb-2">Full Name</label>
             <input v-model="fullName" type="text" placeholder="John Doe" class="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent transition" style="--tw-ring-color: #2F5597;">
+            </div>
           </div>
 
           <div>
@@ -73,6 +75,9 @@
             <div id="register-recaptcha" class="min-h-[78px]"></div>
             <p v-if="recaptchaError" class="text-xs text-red-600">{{ recaptchaError }}</p>
           </div>
+          <p v-else class="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+            reCAPTCHA is still loading. If it does not appear, refresh this page.
+          </p>
 
           <label class="flex items-start">
             <input type="checkbox" class="w-4 h-4 rounded mt-1" style="accent-color: #2F5597;">
@@ -106,7 +111,7 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { normalizeLocalAssetUrl } from '@/services/runtimeConfig'
+import { API_BASE_URL, normalizeLocalAssetUrl } from '@/services/runtimeConfig'
 import { useAuthStore } from '../../stores/authStore'
 import { useToastStore } from '../../stores/toastStore'
 
@@ -120,7 +125,7 @@ const fullName = ref('')
 const password = ref('')
 const confirmPassword = ref('')
 const loading = ref(false)
-const recaptchaSiteKey = (import.meta.env.VITE_RECAPTCHA_SITE_KEY || '').trim()
+const recaptchaSiteKey = ref((import.meta.env.VITE_RECAPTCHA_SITE_KEY || '').trim())
 const recaptchaToken = ref('')
 const recaptchaError = ref('')
 
@@ -137,7 +142,7 @@ const resetRecaptcha = () => {
 }
 
 const renderRecaptcha = () => {
-  if (!recaptchaSiteKey || typeof window === 'undefined' || !window.grecaptcha?.render) {
+  if (!recaptchaSiteKey.value || typeof window === 'undefined' || !window.grecaptcha?.render) {
     return
   }
 
@@ -151,7 +156,7 @@ const renderRecaptcha = () => {
   }
 
   recaptchaWidgetId = window.grecaptcha.render(container, {
-    sitekey: recaptchaSiteKey,
+    sitekey: recaptchaSiteKey.value,
     callback: (token) => {
       recaptchaToken.value = token || ''
       recaptchaError.value = ''
@@ -163,7 +168,7 @@ const renderRecaptcha = () => {
 }
 
 const ensureRecaptchaScript = () => {
-  if (!recaptchaSiteKey || typeof window === 'undefined') {
+  if (!recaptchaSiteKey.value || typeof window === 'undefined') {
     return
   }
 
@@ -188,6 +193,32 @@ const ensureRecaptchaScript = () => {
   script.async = true
   script.defer = true
   document.head.appendChild(script)
+}
+
+const loadRecaptchaSiteKey = async () => {
+  if (recaptchaSiteKey.value) {
+    return
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/registration-config`, {
+      headers: {
+        Accept: 'application/json',
+      },
+    })
+
+    if (!response.ok) {
+      return
+    }
+
+    const data = await response.json()
+    const remoteKey = String(data?.data?.recaptcha_site_key || '').trim()
+    if (remoteKey) {
+      recaptchaSiteKey.value = remoteKey
+    }
+  } catch (_) {
+    // Keep silent and allow standard registration validation to continue.
+  }
 }
 
 const isValidEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value || '')
@@ -288,7 +319,7 @@ const handleRegister = async () => {
     return
   }
 
-  if (recaptchaSiteKey && !recaptchaToken.value) {
+  if (recaptchaSiteKey.value && !recaptchaToken.value) {
     recaptchaError.value = 'Please complete reCAPTCHA verification.'
     toastStore.addToast('Please complete reCAPTCHA verification', 'warning')
     return
@@ -310,13 +341,13 @@ const handleRegister = async () => {
       toastStore.addToast(result.message || 'Registration successful. Please check your email to activate your account.', 'success')
       router.push({ name: 'login', query: { email: email.value } })
     } else {
-      if (recaptchaSiteKey) {
+      if (recaptchaSiteKey.value) {
         resetRecaptcha()
       }
       toastStore.addToast(result.message || 'Registration failed', 'warning')
     }
   } catch (error) {
-    if (recaptchaSiteKey) {
+    if (recaptchaSiteKey.value) {
       resetRecaptcha()
     }
     toastStore.addToast(error.response?.data?.message || 'Registration failed', 'warning')
@@ -325,7 +356,8 @@ const handleRegister = async () => {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
+  await loadRecaptchaSiteKey()
   ensureRecaptchaScript()
 })
 

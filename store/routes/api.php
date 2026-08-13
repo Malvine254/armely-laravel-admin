@@ -50,6 +50,7 @@ Route::get('/debug/test-service', function () {
 Route::prefix('v1')->group(function () {
     Route::post('/stripe/webhook', [StripeController::class, 'webhook']);
     // Auth endpoints
+    Route::get('/auth/registration-config', [AuthController::class, 'registrationConfig']);
     Route::post('/auth/register', [AuthController::class, 'register']);
     Route::post('/auth/login', [AuthController::class, 'login']);
     Route::post('/auth/logout', [AuthController::class, 'logout'])->middleware(['auth:sanctum', 'active.user']);
