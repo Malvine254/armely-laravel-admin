@@ -85,8 +85,8 @@
           <button @click="downloadSelectedPdfs" class="px-4 py-2 rounded-lg font-semibold border border-[#2F5597] text-[#2F5597] hover:bg-[#edf3fb] transition duration-200">
             Download PDFs
           </button>
-          <button @click="paySelectedInvoices" :disabled="!quickBooksPaymentsEnabled || bulkPaying" class="px-4 py-2 rounded-lg text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition duration-200" style="background-color: #2F5597;" @mouseenter="$event.target.style.backgroundColor='#1f4788'" @mouseleave="$event.target.style.backgroundColor='#2F5597'">
-            {{ quickBooksPaymentsEnabled ? (bulkPaying ? 'Opening QuickBooks...' : 'Pay Selected in QuickBooks') : 'Pay Selected (Coming Soon)' }}
+          <button v-if="quickBooksPaymentsEnabled" @click="paySelectedInvoices" :disabled="bulkPaying" class="px-4 py-2 rounded-lg text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition duration-200" style="background-color: #2F5597;" @mouseenter="$event.target.style.backgroundColor='#1f4788'" @mouseleave="$event.target.style.backgroundColor='#2F5597'">
+            {{ bulkPaying ? 'Opening QuickBooks...' : 'Pay Selected in QuickBooks' }}
           </button>
           <button @click="clearSelection" class="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 transition duration-200">
             Clear
@@ -234,15 +234,15 @@
                       PDF
                     </button>
                     <button
-                      v-if="canPayInvoice(invoice)"
+                      v-if="quickBooksPaymentsEnabled && canPayInvoice(invoice)"
                       @click="startPayment(invoice)"
-                      :disabled="!quickBooksPaymentsEnabled || payingInvoiceNumber === invoice.invoice_number"
+                      :disabled="payingInvoiceNumber === invoice.invoice_number"
                       class="px-3 py-1.5 text-xs rounded-md text-white font-semibold transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                       style="background-color: #2F5597;"
                       @mouseenter="$event.target.style.backgroundColor='#1f4788'"
                       @mouseleave="$event.target.style.backgroundColor='#2F5597'"
                     >
-                      {{ quickBooksPaymentsEnabled ? (payingInvoiceNumber === invoice.invoice_number ? 'Starting...' : 'Pay Now') : 'Pay (Coming Soon)' }}
+                      {{ payingInvoiceNumber === invoice.invoice_number ? 'Starting...' : 'Pay Now' }}
                     </button>
                   </div>
                 </td>
@@ -396,16 +396,14 @@
               Download PDF
             </button>
             <button
-              v-if="canPayInvoice(selectedInvoice)"
+              v-if="quickBooksPaymentsEnabled && canPayInvoice(selectedInvoice)"
               @click="startPayment(selectedInvoice)"
-              :disabled="!quickBooksPaymentsEnabled"
               class="px-4 py-2.5 rounded-lg text-white font-semibold transition duration-200"
-              :class="!quickBooksPaymentsEnabled ? 'opacity-50 cursor-not-allowed' : ''"
               style="background-color: #2F5597;"
               @mouseenter="$event.target.style.backgroundColor='#1f4788'"
               @mouseleave="$event.target.style.backgroundColor='#2F5597'"
             >
-              {{ quickBooksPaymentsEnabled ? 'Pay in QuickBooks' : 'Pay in QuickBooks (Coming Soon)' }}
+              Pay in QuickBooks
             </button>
           </div>
         </div>
