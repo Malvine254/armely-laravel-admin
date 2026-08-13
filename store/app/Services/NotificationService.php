@@ -13,7 +13,10 @@ use Illuminate\Support\Facades\Log;
 
 class NotificationService
 {
-    public function __construct(private AzureGraphMailService $mailer) {}
+    public function __construct(
+        private AzureGraphMailService $mailer,
+        private UserEmailPreferenceService $emailPreferences
+    ) {}
 
     private function emailNotificationsEnabled(string $key, bool $default = true): bool
     {
@@ -26,6 +29,28 @@ class NotificationService
             ->where('status', 'active')
             ->orderBy('id')
             ->get();
+    }
+
+    private function canSendTransactionalToUserId(?int $userId): bool
+    {
+        if (!$userId) {
+            return false;
+        }
+
+        try {
+            $user = User::find($userId);
+            if (!$user) {
+                return false;
+            }
+
+            $preference = $this->emailPreferences->ensurePreference($user);
+
+            return (bool) $preference->transactional_enabled;
+        } catch (\Throwable) {
+            // Fail-open to avoid dropping critical notifications if preference
+            // storage is temporarily unavailable.
+            return true;
+        }
     }
 
     /**
@@ -54,7 +79,7 @@ class NotificationService
                 $sentAdminEmails[$adminEmail] = true;
             }
 
-            if ($quote->user && !empty($quote->user->email)) {
+            if ($quote->user && !empty($quote->user->email) && $this->canSendTransactionalToUserId((int) $quote->user_id)) {
                 $customerEmail = strtolower(trim((string) $quote->user->email));
                 if ($customerEmail !== '' && !isset($sentAdminEmails[$customerEmail])) {
                     $this->mailer->sendQuoteSubmittedCustomerEmail($quote);
@@ -93,7 +118,7 @@ class NotificationService
                 $sentAdminEmails[$adminEmail] = true;
             }
 
-            if ($quote->user && !empty($quote->user->email)) {
+            if ($quote->user && !empty($quote->user->email) && $this->canSendTransactionalToUserId((int) $quote->user_id)) {
                 $customerEmail = strtolower(trim((string) $quote->user->email));
                 if ($customerEmail !== '' && !isset($sentAdminEmails[$customerEmail])) {
                     $this->mailer->sendQuoteRevisionCustomerEmail($quote, $revisedFromQuoteId);
@@ -112,6 +137,10 @@ class NotificationService
     public function sendQuoteApprovedNotification(Quote $quote): void
     {
         try {
+            if (!$this->canSendTransactionalToUserId((int) $quote->user_id)) {
+                return;
+            }
+
             $this->mailer->sendQuoteApprovedEmail($quote);
 
             Log::info("Quote approved notification sent to user {$quote->user_id}");
@@ -126,6 +155,10 @@ class NotificationService
     public function sendQuoteRejectedNotification(Quote $quote, string $reason = null): void
     {
         try {
+            if (!$this->canSendTransactionalToUserId((int) $quote->user_id)) {
+                return;
+            }
+
             $this->mailer->sendQuoteRejectedEmail($quote, $reason);
 
             Log::info("Quote rejected notification sent to user {$quote->user_id}");
@@ -144,7 +177,9 @@ class NotificationService
                 return;
             }
 
-            $this->mailer->sendOrderConfirmationEmail($order);
+            if ($this->canSendTransactionalToUserId((int) $order->user_id)) {
+                $this->mailer->sendOrderConfirmationEmail($order);
+            }
             $this->mailer->sendOrderCreatedAdminEmails($order);
 
             Log::info("Order confirmation notification sent to user {$order->user_id}");
@@ -160,6 +195,10 @@ class NotificationService
     {
         try {
             if (!$this->emailNotificationsEnabled('notifications.email.new_orders', true)) {
+                return;
+            }
+
+            if (!$this->canSendTransactionalToUserId((int) $order->user_id)) {
                 return;
             }
 
@@ -189,6 +228,10 @@ class NotificationService
     public function sendInvoiceNotification(Invoice $invoice): void
     {
         try {
+            if (!$this->canSendTransactionalToUserId((int) $invoice->user_id)) {
+                return;
+            }
+
             $cacheKey = 'notify:invoice-issued:' . (string) $invoice->id;
             if (!Cache::add($cacheKey, 1, now()->addDays(365))) {
                 return;
@@ -208,6 +251,10 @@ class NotificationService
     public function sendInvoiceReminderNotification(Invoice $invoice, ?string $customMessage = null): bool
     {
         try {
+            if (!$this->canSendTransactionalToUserId((int) $invoice->user_id)) {
+                return false;
+            }
+
             $recipient = User::find($invoice->user_id);
             if (!$recipient || !$recipient->email) {
                 Log::warning("Invoice reminder skipped: missing user/email for invoice {$invoice->invoice_number}");
@@ -236,6 +283,10 @@ class NotificationService
     {
         try {
             if ($quote->isExpired()) {
+                return;
+            }
+
+            if (!$this->canSendTransactionalToUserId((int) $quote->user_id)) {
                 return;
             }
 
