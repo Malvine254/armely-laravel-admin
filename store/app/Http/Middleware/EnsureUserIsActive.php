@@ -92,12 +92,12 @@ class EnsureUserIsActive
 
     private function isHardBlockReason(string $reason): bool
     {
-        return in_array($reason, ['account_unavailable', 'email_not_verified', 'company_suspended', 'user_suspended'], true);
+        return in_array($reason, ['account_unavailable', 'company_suspended', 'user_suspended'], true);
     }
 
     private function isPendingApprovalReason(string $reason): bool
     {
-        return in_array($reason, ['company_not_approved', 'user_not_active'], true);
+        return in_array($reason, ['email_not_verified', 'company_not_approved', 'user_not_active'], true);
     }
 
     private function isPendingAllowedRequest(Request $request): bool

@@ -358,17 +358,6 @@ class AuthController extends Controller
             ]);
         }
 
-        if (!$user->email_verified_at) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Please activate your account from the email link before logging in.',
-                'data' => [
-                    'activation_required' => true,
-                    'email' => $user->email,
-                ],
-            ], 403);
-        }
-
         $company = $user->company;
         if (!$company) {
             return response()->json([

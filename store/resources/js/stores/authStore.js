@@ -425,7 +425,7 @@ export const useAuthStore = defineStore('auth', () => {
       console.error('Failed to refresh user:', error)
       const status = error.response?.status
       const reason = String(error.response?.data?.data?.restriction_reason || '').toLowerCase()
-      const isHardBlock = reason === 'company_suspended' || reason === 'user_suspended' || reason === 'email_not_verified'
+      const isHardBlock = reason === 'company_suspended' || reason === 'user_suspended'
 
       if (status === 401 || (status === 403 && isHardBlock)) {
         await logout()
