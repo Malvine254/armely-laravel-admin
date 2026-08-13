@@ -35,6 +35,10 @@ class EmailPreferenceLifecycleTest extends TestCase
             $table->id();
             $table->foreignId('user_id')->unique();
             $table->boolean('transactional_enabled')->default(true);
+            $table->boolean('notification_email_enabled')->default(true);
+            $table->boolean('quotes_notifications_enabled')->default(true);
+            $table->boolean('orders_notifications_enabled')->default(true);
+            $table->boolean('invoices_notifications_enabled')->default(true);
             $table->boolean('marketing_enabled')->default(true);
             $table->boolean('price_alerts_enabled')->default(true);
             $table->boolean('cart_reminders_enabled')->default(true);

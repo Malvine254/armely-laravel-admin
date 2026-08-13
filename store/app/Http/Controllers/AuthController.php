@@ -10,6 +10,7 @@ use App\Services\AzureGraphMailService;
 use App\Support\FrontendUrl;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -204,14 +205,86 @@ class AuthController extends Controller
             ->uncompromised();
     }
 
+    private function shouldVerifyRecaptcha(): bool
+    {
+        if ((bool) config('services.recaptcha.bypass', false)) {
+            return false;
+        }
+
+        return trim((string) config('services.recaptcha.site_key', '')) !== '';
+    }
+
+    private function verifyRecaptcha(string $token, ?string $ipAddress): bool
+    {
+        if ((bool) config('services.recaptcha.bypass', false)) {
+            return true;
+        }
+
+        $secret = trim((string) config('services.recaptcha.secret_key', ''));
+        if ($secret === '') {
+            Log::warning('Store registration reCAPTCHA secret is not configured.');
+            return false;
+        }
+
+        try {
+            $payload = [
+                'secret' => $secret,
+                'response' => $token,
+            ];
+
+            if ($ipAddress) {
+                $payload['remoteip'] = $ipAddress;
+            }
+
+            $response = Http::asForm()
+                ->timeout(10)
+                ->post('https://www.google.com/recaptcha/api/siteverify', $payload);
+
+            if (!$response->ok()) {
+                return false;
+            }
+
+            $result = $response->json();
+
+            return (bool) ($result['success'] ?? false);
+        } catch (\Throwable $e) {
+            Log::warning('Store registration reCAPTCHA verification failed.', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return false;
+        }
+    }
+
     public function register(Request $request): JsonResponse
     {
-        $data = $request->validate([
+        $rules = [
             'company_name' => ['required', 'string', 'max:255'],
             'full_name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'confirmed', $this->strongPasswordRule()],
+        ];
+
+        if ($this->shouldVerifyRecaptcha()) {
+            $rules['g-recaptcha-response'] = ['required', 'string'];
+        }
+
+        $data = $request->validate($rules, [
+            'g-recaptcha-response.required' => 'Please verify that you are not a robot.',
         ]);
+
+        if ($this->shouldVerifyRecaptcha()) {
+            $captchaToken = trim((string) ($data['g-recaptcha-response'] ?? ''));
+            if ($captchaToken === '' || !$this->verifyRecaptcha($captchaToken, $request->ip())) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'reCAPTCHA verification failed. Please try again.',
+                    'errors' => [
+                        'captcha' => ['reCAPTCHA verification failed. Please try again.'],
+                    ],
+                ], 422);
+            }
+        }
 
         $domain = $this->extractDomain($data['email']);
         if (!$domain || $this->isPublicEmailDomain($domain)) {
