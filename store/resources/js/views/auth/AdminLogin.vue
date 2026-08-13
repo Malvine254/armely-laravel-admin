@@ -137,6 +137,7 @@ const handleLogin = async () => {
       email: form.value.email,
       password: form.value.password,
       remember: form.value.remember,
+      context: 'admin',
     })
 
     if (result.ok) {

@@ -301,6 +301,7 @@ import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useToastStore } from '../../stores/toastStore'
 import { useAuthStore } from '../../stores/authStore'
+import { getAuthStorageKeys } from '../../services/authContext'
 import { API_BASE_URL } from '../../services/runtimeConfig'
 import Navbar from '../../components/Navbar.vue'
 import { usePricingSettings } from '../../composables/usePricingSettings'
@@ -324,7 +325,10 @@ const selectedHistoryIds = ref([])
 const deletingHistory = ref(false)
 const loadingSessions = ref(true)
 
-const getAuthToken = () => localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
+const getAuthToken = () => {
+  const tokenKey = getAuthStorageKeys('customer').token
+  return localStorage.getItem(tokenKey) || sessionStorage.getItem(tokenKey)
+}
 
 const getChatCacheKey = (scope) => {
   const userId = authStore.user?.id || 'guest'

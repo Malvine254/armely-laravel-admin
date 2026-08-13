@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { APP_BASE_PATH, buildStoreUrl } from './services/runtimeConfig';
+import { AUTH_CONTEXTS, clearScopedAuthStorage, getActiveAuthContext, getAuthStorageKeys } from './services/authContext';
 window.axios = axios;
 
 const appOrigin = typeof window !== 'undefined' ? window.location.origin : '';
@@ -21,14 +22,6 @@ window.axios.defaults.baseURL =
 		: appOrigin;
 window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
-const clearAuthStorage = () => {
-	const keys = ['auth_token', 'armely_user', 'auth_session_expiry', 'auth_restricted', 'auth_remember', 'auth_force_pw'];
-	keys.forEach((k) => {
-		localStorage.removeItem(k);
-		sessionStorage.removeItem(k);
-	});
-};
-
 const redirectToLogin = (reason = 'session-expired') => {
 	if (typeof window === 'undefined') {
 		return;
@@ -44,8 +37,20 @@ const redirectToLogin = (reason = 'session-expired') => {
 	}
 
 	window.__ARMELY_AUTH_REDIRECTING__ = true;
-	window.location.replace(`${buildStoreUrl('login')}?reason=${encodeURIComponent(reason)}`);
+	const loginPath = getActiveAuthContext() === AUTH_CONTEXTS.ADMIN ? 'admin/login' : 'login';
+	window.location.replace(`${buildStoreUrl(loginPath)}?reason=${encodeURIComponent(reason)}`);
 };
+
+window.axios.interceptors.request.use((config) => {
+	const context = getActiveAuthContext();
+	const tokenKey = getAuthStorageKeys(context).token;
+	const token = localStorage.getItem(tokenKey) || sessionStorage.getItem(tokenKey);
+	if (token) {
+		config.headers = config.headers || {};
+		config.headers.Authorization = `Bearer ${token}`;
+	}
+	return config;
+});
 
 window.axios.interceptors.response.use(
 	(response) => response,
@@ -60,9 +65,10 @@ window.axios.interceptors.response.use(
 			|| requestUrl.includes('/auth/activate')
 			|| requestUrl.includes('/auth/resend-activation')
 			|| requestUrl.includes('/auth/logout');
+		const context = getActiveAuthContext();
 
 		if (status === 401 && !isAuthEntryRequest) {
-			clearAuthStorage();
+			clearScopedAuthStorage(context);
 			redirectToLogin('unauthorized');
 		}
 

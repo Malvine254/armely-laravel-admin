@@ -253,6 +253,7 @@ const router = createRouter({
 // Navigation guards
 router.beforeEach((to, from, next) => {
   const authStore = useAuthStore();
+  authStore.syncContextForPath(to.path)
   
   // Redirect to login if accessing protected route while unauthenticated
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
@@ -276,15 +277,13 @@ router.beforeEach((to, from, next) => {
     return;
   }
 
-  if (to.name === 'admin-login' && authStore.isAuthenticated) {
-    if (authStore.isAdmin) {
+  if (to.name === 'admin-login') {
+    if (authStore.isAuthenticated && authStore.isAdmin) {
       next({ name: 'admin-dashboard' });
-    } else {
-      // Non-admin user trying to reach admin login — clear their session
-      // so they can sign in with admin credentials instead of being blocked.
-      authStore.logout();
-      next();
+      return;
     }
+
+    next();
     return;
   }
   
@@ -306,8 +305,6 @@ router.beforeEach((to, from, next) => {
 
   // Check admin requirement
   if (to.meta.requiresAdmin && !authStore.isAdmin) {
-    // Clear the non-admin session and send to admin login
-    authStore.logout();
     next({ name: 'admin-login' });
     return;
   }

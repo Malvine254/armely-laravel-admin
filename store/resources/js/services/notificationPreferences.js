@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import { getAuthStorageKeys } from './authContext'
 
 const DEFAULT_NOTIFICATION_PREFERENCES = {
   email: true,
@@ -8,7 +9,8 @@ const DEFAULT_NOTIFICATION_PREFERENCES = {
 }
 
 const getCurrentStoredUserId = () => {
-  const savedUser = localStorage.getItem('armely_user') || sessionStorage.getItem('armely_user')
+  const userKey = getAuthStorageKeys('customer').user
+  const savedUser = localStorage.getItem(userKey) || sessionStorage.getItem(userKey)
   if (!savedUser) {
     return null
   }
