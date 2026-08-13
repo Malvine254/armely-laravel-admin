@@ -1891,6 +1891,148 @@ class AzureGraphMailService
         return $this->sendEmail($user->email, "Price Drop: {$productName}", $html, $text);
     }
 
+    public function sendAbandonedCartReminderEmail(\App\Models\User $user, array $items, \Illuminate\Support\Carbon $lastSyncedAt): bool
+    {
+        if (!$this->isConfigured()) {
+            return false;
+        }
+
+        if (trim((string) ($user->email ?? '')) === '') {
+            return false;
+        }
+
+        $safeName = e((string) ($user->name ?: 'Customer'));
+        $itemCount = count($items);
+        if ($itemCount === 0) {
+            return false;
+        }
+
+        $rows = '';
+        $total = 0.0;
+        foreach (array_slice($items, 0, 10) as $item) {
+            $name = e((string) ($item['product_name'] ?? 'Product'));
+            $part = e((string) ($item['mfg_part_no'] ?? 'N/A'));
+            $qty = max(1, (int) ($item['quantity'] ?? 1));
+            $unit = (float) ($item['unit_price'] ?? 0);
+            $line = (float) ($item['line_total'] ?? ($unit > 0 ? $unit * $qty : 0));
+            $total += $line;
+
+            $rows .= "
+                <tr>
+                    <td style='padding:10px;border-bottom:1px solid #edf2fb;color:#111827;font-size:13px'>
+                        <p style='margin:0 0 2px;font-weight:600'>{$name}</p>
+                        <p style='margin:0;color:#6b7280;font-size:12px'>Part: {$part}</p>
+                    </td>
+                    <td style='padding:10px;border-bottom:1px solid #edf2fb;color:#111827;font-size:13px;text-align:center'>{$qty}</td>
+                    <td style='padding:10px;border-bottom:1px solid #edf2fb;color:#111827;font-size:13px;text-align:right'>" . ($unit > 0 ? ('$' . number_format($unit, 2)) : 'Unavailable') . "</td>
+                    <td style='padding:10px;border-bottom:1px solid #edf2fb;color:#111827;font-size:13px;text-align:right;font-weight:700'>" . ($line > 0 ? ('$' . number_format($line, 2)) : 'Unavailable') . "</td>
+                </tr>
+            ";
+        }
+
+        $table = "
+            <div style='margin:14px 0 10px;border:1px solid #d8e4f6;border-radius:12px;overflow:hidden;background:#ffffff'>
+                <div style='padding:12px 14px;background:#f4f8ff;border-bottom:1px solid #d8e4f6'>
+                    <p style='margin:0;font-size:13px;font-weight:700;color:#1e3a6e'>Items in Your Cart</p>
+                </div>
+                <table role='presentation' cellpadding='0' cellspacing='0' width='100%' style='border-collapse:collapse'>
+                    <thead>
+                        <tr>
+                            <th style='padding:10px;text-align:left;font-size:12px;color:#6b7280;border-bottom:1px solid #edf2fb'>Item</th>
+                            <th style='padding:10px;text-align:center;font-size:12px;color:#6b7280;border-bottom:1px solid #edf2fb'>Qty</th>
+                            <th style='padding:10px;text-align:right;font-size:12px;color:#6b7280;border-bottom:1px solid #edf2fb'>Unit</th>
+                            <th style='padding:10px;text-align:right;font-size:12px;color:#6b7280;border-bottom:1px solid #edf2fb'>Line Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>{$rows}</tbody>
+                </table>
+                <div style='padding:12px 14px;background:#f8fbff;border-top:1px solid #d8e4f6;text-align:right'>
+                    <p style='margin:0;font-size:12px;color:#6b7280'>Estimated Current Total</p>
+                    <p style='margin:2px 0 0;font-size:20px;font-weight:700;color:#1e3a6e'>$" . number_format($total, 2) . "</p>
+                </div>
+            </div>
+        ";
+
+        $summaryHtml = $this->buildQuoteSummaryCard([
+            ['label' => 'Items', 'value' => (string) $itemCount],
+            ['label' => 'Last Updated', 'value' => $lastSyncedAt->format('M d, Y H:i')],
+        ]);
+
+        $cartUrl = $this->frontendUrl() . '/cart';
+        $html = $this->buildModernNotificationEmail(
+            'You Left Items In Your Cart',
+            "
+                <p style='margin:0 0 14px;font-size:16px;color:#1f2937'>Hello {$safeName},</p>
+                <p style='margin:0 0 18px;color:#4b5563'>You still have items in your cart waiting for your quote request.</p>
+                {$summaryHtml}
+                {$table}
+            ",
+            'Return to Cart',
+            $cartUrl,
+            'Prices shown are current at send time and may change based on live catalog updates.',
+            '#2F5597',
+            'Cart Reminder',
+            '#2F5597'
+        );
+
+        $text = "Hello {$user->name},\n\nYou still have {$itemCount} item(s) in your cart.\n"
+            . "Last updated: " . $lastSyncedAt->format('Y-m-d H:i') . "\n"
+            . "Return to cart: {$cartUrl}";
+
+        return $this->sendEmail($user->email, 'Reminder: Items waiting in your cart', $html, $text);
+    }
+
+    public function sendViewedProductReminderEmail(
+        \App\Models\User $user,
+        \App\Models\Product $product,
+        \Illuminate\Support\Carbon $viewedAt,
+        float $currentPrice
+    ): bool {
+        if (!$this->isConfigured()) {
+            return false;
+        }
+
+        if (trim((string) ($user->email ?? '')) === '') {
+            return false;
+        }
+
+        $safeName = e((string) ($user->name ?: 'Customer'));
+        $productName = trim((string) ($product->product_name ?? 'Product'));
+        $safeProductName = e($productName);
+        $safePartNumber = e((string) ($product->mfg_part_no ?? 'N/A'));
+        $priceLabel = $currentPrice > 0 ? ('$' . number_format($currentPrice, 2)) : 'Unavailable';
+        $productUrl = $this->frontendUrl() . '/products/' . rawurlencode((string) ($product->id ?? ''));
+
+        $summaryHtml = $this->buildQuoteSummaryCard([
+            ['label' => 'Product', 'value' => $safeProductName],
+            ['label' => 'Part Number', 'value' => $safePartNumber],
+            ['label' => 'Current Price', 'value' => $priceLabel],
+            ['label' => 'Viewed On', 'value' => $viewedAt->format('M d, Y H:i')],
+        ]);
+
+        $html = $this->buildModernNotificationEmail(
+            'Still Interested In This Product?',
+            "
+                <p style='margin:0 0 14px;font-size:16px;color:#1f2937'>Hello {$safeName},</p>
+                <p style='margin:0 0 18px;color:#4b5563'>You recently viewed this item. If you are still evaluating options, you can quickly add it to your quote cart.</p>
+                {$summaryHtml}
+            ",
+            'View Product',
+            $productUrl,
+            'You are receiving this because viewed-item reminders are active for your account.',
+            '#2F5597',
+            'Viewed Item Reminder',
+            '#2F5597'
+        );
+
+        $text = "Hello {$user->name},\n\nYou recently viewed {$productName}.\n"
+            . "Current price: {$priceLabel}\n"
+            . "Viewed on: " . $viewedAt->format('Y-m-d H:i') . "\n"
+            . "View product: {$productUrl}";
+
+        return $this->sendEmail($user->email, "Reminder: {$productName}", $html, $text);
+    }
+
     private function activeAdminEmails(): array
     {
         try {
