@@ -1935,8 +1935,7 @@ class QuoteOrderInvoiceController extends Controller
                 $columns[] = 'raw_data';
             }
 
-            $query = Invoice::query()
-                ->select($columns)
+            $baseQuery = Invoice::query()
                 ->where('user_id', $user->id)
                 ->when($status, fn ($q) => $q->where('status', $status))
                 ->when($search !== '', function ($q) use ($search) {
@@ -1945,6 +1944,8 @@ class QuoteOrderInvoiceController extends Controller
                             ->orWhere('order_number', 'like', '%' . $search . '%');
                     });
                 });
+
+            $query = (clone $baseQuery)->select($columns);
 
             $summaryVersion = $this->getInvoiceSummaryVersion((int) $user->id);
             $summaryCacheKey = 'invoice-summary:user:' . $user->id
@@ -1955,7 +1956,7 @@ class QuoteOrderInvoiceController extends Controller
             $summary = Cache::remember(
                 $summaryCacheKey,
                 now()->addSeconds(60),
-                fn () => $this->buildInvoiceSummary($query)
+                fn () => $this->buildInvoiceSummary($baseQuery)
             );
 
             switch ($sort) {
