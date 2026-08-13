@@ -102,6 +102,8 @@ class EnsureUserIsActive
 
     private function isPendingAllowedRequest(Request $request): bool
     {
-        return $request->is('api/v1/auth/me');
+        $path = trim((string) $request->path(), '/');
+
+        return str_ends_with($path, 'api/v1/auth/me');
     }
 }

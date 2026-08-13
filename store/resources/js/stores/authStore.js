@@ -18,6 +18,8 @@ export const useAuthStore = defineStore('auth', () => {
   const rememberSession = ref(localStorage.getItem(REMEMBER_KEY) === 'true')
   let _sessionExpiryTimer = null
 
+  const isValidDate = (value) => value instanceof Date && !Number.isNaN(value.getTime())
+
   const redirectToLogin = (reason = 'session-expired') => {
     if (typeof window === 'undefined') {
       return
@@ -42,11 +44,15 @@ export const useAuthStore = defineStore('auth', () => {
   const scheduleSessionExpiryTimer = () => {
     clearSessionExpiryTimer()
 
-    if (!token.value || !sessionExpiry.value) {
+    if (!token.value || !sessionExpiry.value || !isValidDate(sessionExpiry.value)) {
       return
     }
 
     const msRemaining = sessionExpiry.value.getTime() - Date.now()
+    if (!Number.isFinite(msRemaining)) {
+      return
+    }
+
     if (msRemaining <= 0) {
       logout({ skipRequest: true, redirectReason: 'session-expired' })
       return
@@ -169,7 +175,15 @@ export const useAuthStore = defineStore('auth', () => {
   const loadSessionExpiry = () => {
     const expiry = localStorage.getItem(SESSION_EXPIRY_KEY) || sessionStorage.getItem(SESSION_EXPIRY_KEY)
     if (expiry) {
-      sessionExpiry.value = new Date(expiry)
+      const parsed = new Date(expiry)
+      if (!isValidDate(parsed)) {
+        sessionExpiry.value = null
+        localStorage.removeItem(SESSION_EXPIRY_KEY)
+        sessionStorage.removeItem(SESSION_EXPIRY_KEY)
+        return
+      }
+
+      sessionExpiry.value = parsed
       // Check if session has expired
       if (sessionExpiry.value < new Date()) {
         console.warn('Session has expired')
@@ -409,7 +423,11 @@ export const useAuthStore = defineStore('auth', () => {
       }
     } catch (error) {
       console.error('Failed to refresh user:', error)
-      if (error.response?.status === 401 || error.response?.status === 403) {
+      const status = error.response?.status
+      const reason = String(error.response?.data?.data?.restriction_reason || '').toLowerCase()
+      const isHardBlock = reason === 'company_suspended' || reason === 'user_suspended' || reason === 'email_not_verified'
+
+      if (status === 401 || (status === 403 && isHardBlock)) {
         await logout()
       }
     }
@@ -446,7 +464,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isAuthenticated = computed(() => {
     if (!token.value || !user.value) return false
-    if (sessionExpiry.value && new Date() > sessionExpiry.value) {
+    if (sessionExpiry.value && isValidDate(sessionExpiry.value) && new Date() > sessionExpiry.value) {
       console.warn('Session expired')
       logout()
       return false
@@ -530,7 +548,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   const getSessionTimeRemaining = () => {
-    if (!sessionExpiry.value) return null
+    if (!sessionExpiry.value || !isValidDate(sessionExpiry.value)) return null
     const now = new Date()
     const remaining = sessionExpiry.value - now
     if (remaining < 0) return 0
