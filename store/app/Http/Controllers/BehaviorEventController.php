@@ -41,7 +41,11 @@ class BehaviorEventController extends Controller
             (int) $validated['product_id'],
             1440,
             4320,
-            ['source' => 'product_view']
+            [
+                'source' => 'product_view',
+                'sequence_stage' => 0,
+                'sequence_anchor_at' => now()->toISOString(),
+            ]
         );
 
         return $this->responseOk($newToken);
@@ -88,7 +92,12 @@ class BehaviorEventController extends Controller
             null,
             120,
             1440,
-            ['item_count' => count($normalizedItems), 'total_quantity' => $totalQuantity]
+            [
+                'item_count' => count($normalizedItems),
+                'total_quantity' => $totalQuantity,
+                'sequence_stage' => 0,
+                'sequence_anchor_at' => now()->toISOString(),
+            ]
         );
 
         return $this->responseOk($newToken);
@@ -152,7 +161,11 @@ class BehaviorEventController extends Controller
                 (int) $validated['product_id'],
                 720,
                 2880,
-                ['source' => 'favorite_event']
+                [
+                    'source' => 'favorite_event',
+                    'sequence_stage' => 0,
+                    'sequence_anchor_at' => now()->toISOString(),
+                ]
             );
         }
 

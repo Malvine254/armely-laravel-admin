@@ -75,6 +75,66 @@
         </div>
       </div>
 
+      <div class="mb-8 grid grid-cols-1 gap-6 xl:grid-cols-2">
+        <section class="rounded-lg border border-blue-100 bg-white p-6 shadow-lg">
+          <div class="mb-4 flex items-start justify-between">
+            <div>
+              <p class="text-sm font-semibold text-[#2F5597]">Lifecycle Campaign Metrics</p>
+              <h3 class="text-xl font-bold text-gray-900">Last {{ lifecycleMetrics.windowDays }} Days</h3>
+            </div>
+            <span class="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">{{ lifecycleMetrics.totals.sent }} sent</span>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3 text-sm">
+            <div class="rounded-lg bg-gray-50 px-3 py-2">
+              <p class="text-xs uppercase tracking-wide text-gray-500">Unsubscribes</p>
+              <p class="text-lg font-bold text-gray-900">{{ lifecycleMetrics.totals.unsubscribes }}</p>
+            </div>
+            <div class="rounded-lg bg-gray-50 px-3 py-2">
+              <p class="text-xs uppercase tracking-wide text-gray-500">Idempotency Markers</p>
+              <p class="text-lg font-bold text-gray-900">{{ lifecycleMetrics.totals.idempotencyMarkers }}</p>
+            </div>
+            <div class="rounded-lg bg-gray-50 px-3 py-2">
+              <p class="text-xs uppercase tracking-wide text-gray-500">Active Price Alerts</p>
+              <p class="text-lg font-bold text-gray-900">{{ lifecycleMetrics.activeSubscriptions.priceAlerts }}</p>
+            </div>
+            <div class="rounded-lg bg-gray-50 px-3 py-2">
+              <p class="text-xs uppercase tracking-wide text-gray-500">Active Reminders</p>
+              <p class="text-lg font-bold text-gray-900">{{ lifecycleMetrics.activeSubscriptions.totalReminders }}</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="rounded-lg border border-slate-200 bg-white p-6 shadow-lg">
+          <div class="mb-4 flex items-start justify-between">
+            <div>
+              <p class="text-sm font-semibold text-slate-700">Runtime Health</p>
+              <h3 class="text-xl font-bold text-gray-900">Automation Watch</h3>
+            </div>
+            <span :class="runtimeHealth.overallStatus === 'healthy' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'" class="rounded-full px-3 py-1 text-xs font-bold">{{ runtimeHealth.overallStatus }}</span>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3 text-sm">
+            <div class="rounded-lg bg-gray-50 px-3 py-2">
+              <p class="text-xs uppercase tracking-wide text-gray-500">Queue Pending</p>
+              <p class="text-lg font-bold text-gray-900">{{ runtimeHealth.queuePending }}</p>
+            </div>
+            <div class="rounded-lg bg-gray-50 px-3 py-2">
+              <p class="text-xs uppercase tracking-wide text-gray-500">Queue Failed</p>
+              <p class="text-lg font-bold text-gray-900">{{ runtimeHealth.queueFailed }}</p>
+            </div>
+            <div class="rounded-lg bg-gray-50 px-3 py-2">
+              <p class="text-xs uppercase tracking-wide text-gray-500">Price Job Lag</p>
+              <p class="text-lg font-bold text-gray-900">{{ runtimeHealth.priceDropLag }}</p>
+            </div>
+            <div class="rounded-lg bg-gray-50 px-3 py-2">
+              <p class="text-xs uppercase tracking-wide text-gray-500">Reminder Job Lag</p>
+              <p class="text-lg font-bold text-gray-900">{{ runtimeHealth.reminderLag }}</p>
+            </div>
+          </div>
+        </section>
+      </div>
+
       <!-- Tabs -->
       <div class="mb-6">
         <div class="flex gap-4 border-b border-gray-200">
@@ -252,6 +312,25 @@ const stats = ref({
 
 const pendingQuotes = ref([])
 const recentOrders = ref([])
+const lifecycleMetrics = ref({
+  windowDays: 14,
+  totals: {
+    sent: 0,
+    unsubscribes: 0,
+    idempotencyMarkers: 0,
+  },
+  activeSubscriptions: {
+    priceAlerts: 0,
+    totalReminders: 0,
+  },
+})
+const runtimeHealth = ref({
+  overallStatus: 'unknown',
+  queuePending: 0,
+  queueFailed: 0,
+  priceDropLag: 'n/a',
+  reminderLag: 'n/a',
+})
 
 const categorizedOrders = computed(() => {
   const byStatus = {
@@ -338,10 +417,12 @@ const getStatusBadge = (status) => {
 
 const loadDashboardData = async () => {
   try {
-    const [statsRes, quotesRes, ordersRes] = await Promise.all([
+    const [statsRes, quotesRes, ordersRes, lifecycleRes, healthRes] = await Promise.all([
       axios.get('/api/v1/admin/dashboard/stats'),
       axios.get('/api/v1/admin/quotes/pending?pageSize=100'),
       axios.get('/api/v1/admin/orders?pageSize=25'),
+      axios.get('/api/v1/admin/settings/lifecycle/metrics?days=14'),
+      axios.get('/api/v1/admin/settings/runtime/health'),
     ])
 
     if (statsRes.data?.success) {
@@ -360,6 +441,38 @@ const loadDashboardData = async () => {
 
     if (ordersRes.data?.success) {
       recentOrders.value = Array.isArray(ordersRes.data.data) ? ordersRes.data.data : []
+    }
+
+    if (lifecycleRes.data?.success) {
+      const data = lifecycleRes.data.data || {}
+      const active = data.active_subscriptions || {}
+      const totals = data.totals || {}
+      lifecycleMetrics.value = {
+        windowDays: Number(data.window_days || 14),
+        totals: {
+          sent: Number(totals.sent || 0),
+          unsubscribes: Number(totals.unsubscribes || 0),
+          idempotencyMarkers: Number(totals.idempotency_markers || 0),
+        },
+        activeSubscriptions: {
+          priceAlerts: Number(active.price_alerts || 0),
+          totalReminders: Number(active.abandoned_cart || 0) + Number(active.viewed_product || 0) + Number(active.favorite_product || 0),
+        },
+      }
+    }
+
+    if (healthRes.data?.success) {
+      const data = healthRes.data.data || {}
+      const queue = data.queue || {}
+      const scheduler = data.scheduler || {}
+
+      runtimeHealth.value = {
+        overallStatus: String(data.overall_status || 'unknown'),
+        queuePending: Number(queue.pending_jobs ?? 0),
+        queueFailed: Number(queue.failed_jobs ?? 0),
+        priceDropLag: Number.isFinite(Number(scheduler.price_drop_lag_minutes)) ? `${Number(scheduler.price_drop_lag_minutes)}m` : 'n/a',
+        reminderLag: Number.isFinite(Number(scheduler.reminders_lag_minutes)) ? `${Number(scheduler.reminders_lag_minutes)}m` : 'n/a',
+      }
     }
   } catch (error) {
     console.error('Error loading dashboard:', error)

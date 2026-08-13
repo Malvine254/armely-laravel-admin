@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Models\AppSetting;
 use App\Models\Product;
 use App\Models\ReminderSubscription;
 use App\Models\UserCartSnapshot;
@@ -47,6 +48,11 @@ class ProcessReminderSubscriptionsJob implements ShouldQueue
         $this->processAbandonedCartReminders($mailer, $preferences, $now, $metrics);
         $this->processViewedProductReminders($mailer, $preferences, $now, $metrics);
         $this->processFavoriteProductReminders($mailer, $preferences, $now, $metrics);
+
+        AppSetting::setValue('lifecycle.reminders.last_run_at', $now->toISOString());
+        AppSetting::setValue('lifecycle.reminders.last_metrics', array_merge($metrics, [
+            'processed_at' => $now->toISOString(),
+        ]));
 
         Log::info('ProcessReminderSubscriptionsJob complete', $metrics);
     }
@@ -100,7 +106,14 @@ class ProcessReminderSubscriptionsJob implements ShouldQueue
                         ? $snapshot->last_synced_at
                         : Carbon::parse((string) ($snapshot->last_synced_at ?? $now->toISOString()));
 
-                    $delayMinutes = max(30, (int) ($subscription->delay_minutes ?? 120));
+                    $metadata = is_array($subscription->metadata) ? $subscription->metadata : [];
+                    $sequenceStage = max(0, (int) ($metadata['sequence_stage'] ?? 0));
+                    $delays = $this->sequenceDelaysForTrigger('abandoned_cart', (int) ($subscription->delay_minutes ?? 120));
+                    if ($sequenceStage >= count($delays)) {
+                        $sequenceStage = count($delays) - 1;
+                    }
+
+                    $delayMinutes = $delays[$sequenceStage];
                     if ($lastSyncedAt->copy()->addMinutes($delayMinutes)->greaterThan($now)) {
                         continue;
                     }
@@ -110,7 +123,7 @@ class ProcessReminderSubscriptionsJob implements ShouldQueue
                         continue;
                     }
 
-                    $idempotencyKey = 'abandoned_cart:' . (int) $subscription->id . ':' . $lastSyncedAt->format('YmdHi');
+                    $idempotencyKey = 'abandoned_cart:' . (int) $subscription->id . ':' . $sequenceStage . ':' . $lastSyncedAt->format('YmdHi');
                     if ($preferences->wasIdempotencyKeySent($idempotencyKey)) {
                         continue;
                     }
@@ -124,14 +137,24 @@ class ProcessReminderSubscriptionsJob implements ShouldQueue
                         continue;
                     }
 
-                    $subscription->update(['last_notified_at' => $now]);
+                    $nextStage = min($sequenceStage + 1, count($delays) - 1);
+                    $subscription->update([
+                        'last_notified_at' => $now,
+                        'metadata' => array_merge($metadata, [
+                            'sequence_stage' => $nextStage,
+                            'sequence_anchor_at' => $lastSyncedAt->toISOString(),
+                            'last_sequence_sent_at' => $now->toISOString(),
+                        ]),
+                    ]);
                     $preferences->markIdempotencyKeySent($user, $idempotencyKey, [
                         'subscription_id' => (int) $subscription->id,
                         'trigger_type' => 'abandoned_cart',
+                        'sequence_stage' => $sequenceStage,
                     ]);
                     $preferences->markMarketingSent($user, 'abandoned_cart_reminder', [
                         'subscription_id' => (int) $subscription->id,
                         'trigger_type' => 'abandoned_cart',
+                        'sequence_stage' => $sequenceStage,
                     ]);
                     $metrics['abandoned_sent']++;
                 }
@@ -189,7 +212,14 @@ class ProcessReminderSubscriptionsJob implements ShouldQueue
                         ? $latestView->viewed_at
                         : Carbon::parse((string) ($latestView->viewed_at ?? $now->toISOString()));
 
-                    $delayMinutes = max(30, (int) ($subscription->delay_minutes ?? 1440));
+                    $metadata = is_array($subscription->metadata) ? $subscription->metadata : [];
+                    $sequenceStage = max(0, (int) ($metadata['sequence_stage'] ?? 0));
+                    $delays = $this->sequenceDelaysForTrigger('viewed_product', (int) ($subscription->delay_minutes ?? 1440));
+                    if ($sequenceStage >= count($delays)) {
+                        $sequenceStage = count($delays) - 1;
+                    }
+
+                    $delayMinutes = $delays[$sequenceStage];
                     if ($viewedAt->copy()->addMinutes($delayMinutes)->greaterThan($now)) {
                         continue;
                     }
@@ -217,7 +247,7 @@ class ProcessReminderSubscriptionsJob implements ShouldQueue
 
                     $price = OfferPricing::sellPrice($product);
 
-                    $idempotencyKey = 'viewed_product:' . (int) $subscription->id . ':' . $viewedAt->format('YmdHi');
+                    $idempotencyKey = 'viewed_product:' . (int) $subscription->id . ':' . $sequenceStage . ':' . $viewedAt->format('YmdHi');
                     if ($preferences->wasIdempotencyKeySent($idempotencyKey)) {
                         continue;
                     }
@@ -231,16 +261,26 @@ class ProcessReminderSubscriptionsJob implements ShouldQueue
                         continue;
                     }
 
-                    $subscription->update(['last_notified_at' => $now]);
+                    $nextStage = min($sequenceStage + 1, count($delays) - 1);
+                    $subscription->update([
+                        'last_notified_at' => $now,
+                        'metadata' => array_merge($metadata, [
+                            'sequence_stage' => $nextStage,
+                            'sequence_anchor_at' => $viewedAt->toISOString(),
+                            'last_sequence_sent_at' => $now->toISOString(),
+                        ]),
+                    ]);
                     $preferences->markIdempotencyKeySent($user, $idempotencyKey, [
                         'subscription_id' => (int) $subscription->id,
                         'trigger_type' => 'viewed_product',
                         'product_id' => (int) $product->id,
+                        'sequence_stage' => $sequenceStage,
                     ]);
                     $preferences->markMarketingSent($user, 'viewed_product_reminder', [
                         'subscription_id' => (int) $subscription->id,
                         'trigger_type' => 'viewed_product',
                         'product_id' => (int) $product->id,
+                        'sequence_stage' => $sequenceStage,
                     ]);
                     $metrics['viewed_sent']++;
                 }
@@ -302,7 +342,14 @@ class ProcessReminderSubscriptionsJob implements ShouldQueue
                         ? $latestFavoriteEvent->event_at
                         : Carbon::parse((string) ($latestFavoriteEvent->event_at ?? $now->toISOString()));
 
-                    $delayMinutes = max(30, (int) ($subscription->delay_minutes ?? 720));
+                    $metadata = is_array($subscription->metadata) ? $subscription->metadata : [];
+                    $sequenceStage = max(0, (int) ($metadata['sequence_stage'] ?? 0));
+                    $delays = $this->sequenceDelaysForTrigger('favorite_product', (int) ($subscription->delay_minutes ?? 720));
+                    if ($sequenceStage >= count($delays)) {
+                        $sequenceStage = count($delays) - 1;
+                    }
+
+                    $delayMinutes = $delays[$sequenceStage];
                     if ($favoritedAt->copy()->addMinutes($delayMinutes)->greaterThan($now)) {
                         continue;
                     }
@@ -328,7 +375,7 @@ class ProcessReminderSubscriptionsJob implements ShouldQueue
 
                     $price = OfferPricing::sellPrice($product);
 
-                    $idempotencyKey = 'favorite_product:' . (int) $subscription->id . ':' . $favoritedAt->format('YmdHi');
+                    $idempotencyKey = 'favorite_product:' . (int) $subscription->id . ':' . $sequenceStage . ':' . $favoritedAt->format('YmdHi');
                     if ($preferences->wasIdempotencyKeySent($idempotencyKey)) {
                         continue;
                     }
@@ -342,16 +389,26 @@ class ProcessReminderSubscriptionsJob implements ShouldQueue
                         continue;
                     }
 
-                    $subscription->update(['last_notified_at' => $now]);
+                    $nextStage = min($sequenceStage + 1, count($delays) - 1);
+                    $subscription->update([
+                        'last_notified_at' => $now,
+                        'metadata' => array_merge($metadata, [
+                            'sequence_stage' => $nextStage,
+                            'sequence_anchor_at' => $favoritedAt->toISOString(),
+                            'last_sequence_sent_at' => $now->toISOString(),
+                        ]),
+                    ]);
                     $preferences->markIdempotencyKeySent($user, $idempotencyKey, [
                         'subscription_id' => (int) $subscription->id,
                         'trigger_type' => 'favorite_product',
                         'product_id' => (int) $product->id,
+                        'sequence_stage' => $sequenceStage,
                     ]);
                     $preferences->markMarketingSent($user, 'favorite_product_reminder', [
                         'subscription_id' => (int) $subscription->id,
                         'trigger_type' => 'favorite_product',
                         'product_id' => (int) $product->id,
+                        'sequence_stage' => $sequenceStage,
                     ]);
                     $metrics['favorite_sent']++;
                 }
@@ -429,5 +486,17 @@ class ProcessReminderSubscriptionsJob implements ShouldQueue
         $minutes = max(30, $cooldownMinutes > 0 ? $cooldownMinutes : 1440);
 
         return $lastNotifiedAt->copy()->addMinutes($minutes)->lessThanOrEqualTo($now);
+    }
+
+    private function sequenceDelaysForTrigger(string $triggerType, int $baseDelayMinutes): array
+    {
+        $base = max(30, $baseDelayMinutes);
+
+        return match ($triggerType) {
+            'abandoned_cart' => [120, 1440, 4320],
+            'viewed_product' => [max(1440, $base)],
+            'favorite_product' => [max(720, $base), 2880],
+            default => [$base],
+        };
     }
 }

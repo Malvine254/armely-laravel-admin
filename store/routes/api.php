@@ -225,6 +225,8 @@ Route::prefix('v1')->group(function () {
         Route::post('/admin/settings/price-sync', [AdminController::class, 'updatePriceSyncSettings']);
         Route::post('/admin/settings/price-sync/run-now', [AdminController::class, 'runPriceSyncNow']);
         Route::get('/admin/settings/price-sync/state', [AdminController::class, 'getPriceSyncRunState']);
+        Route::get('/admin/settings/lifecycle/metrics', [AdminController::class, 'getLifecycleCampaignMetrics']);
+        Route::get('/admin/settings/runtime/health', [AdminController::class, 'getRuntimeHealth']);
         Route::post('/admin/settings/system', [AdminController::class, 'updateSystemSettings']);
 
 
