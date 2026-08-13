@@ -47,7 +47,7 @@
               </div>
               <span class="hidden text-xs font-semibold text-[#2F5597] sm:block">Please wait</span>
             </div>
-            <div class="mb-8 grid grid-cols-1 gap-4 xl:grid-cols-2">
+            <div class="mb-8 grid grid-cols-1 gap-4 md:grid-cols-2">
               <div v-for="i in 12" :key="'skel-' + i" class="flex min-h-[248px] flex-col overflow-hidden rounded-xl border border-gray-200 bg-white animate-pulse sm:flex-row">
                 <div class="h-52 bg-gray-100 sm:h-auto sm:min-h-[248px] sm:w-[39%] sm:border-r"></div>
                 <div class="flex-1 space-y-3 p-4">
@@ -185,7 +185,7 @@
             </div>
 
             <!-- Horizontal product cards -->
-            <div v-else class="mb-8 grid grid-cols-1 gap-4 xl:grid-cols-2">
+            <div v-else class="mb-8 grid grid-cols-1 gap-4 md:grid-cols-2">
               <ProductCard
                 v-for="(product, productIndex) in paginatedProducts"
                 :key="product.productId"
