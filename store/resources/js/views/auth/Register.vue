@@ -89,7 +89,7 @@
           </p>
 
           <label class="flex items-start">
-            <input type="checkbox" class="w-4 h-4 rounded mt-1" style="accent-color: #2F5597;">
+            <input v-model="termsAccepted" type="checkbox" class="w-4 h-4 rounded mt-1" style="accent-color: #2F5597;">
             <span class="ml-2 text-sm text-slate-600">I agree to the <a href="#" style="color: #2F5597;">Terms of Service</a> and <a href="https://armely.com/privacy-policy" target="_blank" rel="noopener noreferrer" style="color: #2F5597;">Privacy Policy</a></span>
           </label>
 
@@ -134,6 +134,7 @@ const fullName = ref('')
 const password = ref('')
 const confirmPassword = ref('')
 const loading = ref(false)
+const termsAccepted = ref(false)
 const recaptchaSiteKey = ref((import.meta.env.VITE_RECAPTCHA_SITE_KEY || '').trim())
 const recaptchaToken = ref('')
 const recaptchaError = ref('')
@@ -292,6 +293,9 @@ const canSubmit = computed(() => {
     && isValidEmail(email.value)
     && isStrongPassword(password.value)
     && passwordChecks.value.matchesConfirm
+    && termsAccepted.value
+    && !!recaptchaSiteKey.value
+    && !!recaptchaToken.value
 })
 
 const isStrongPassword = (value) => {
@@ -328,7 +332,18 @@ const handleRegister = async () => {
     return
   }
 
-  if (recaptchaSiteKey.value && !recaptchaToken.value) {
+  if (!termsAccepted.value) {
+    toastStore.addToast('You must accept the Terms of Service and Privacy Policy to continue.', 'warning')
+    return
+  }
+
+  if (!recaptchaSiteKey.value) {
+    recaptchaError.value = 'reCAPTCHA is required and still loading. Please refresh this page.'
+    toastStore.addToast('reCAPTCHA is required and still loading. Please refresh this page.', 'warning')
+    return
+  }
+
+  if (!recaptchaToken.value) {
     recaptchaError.value = 'Please complete reCAPTCHA verification.'
     toastStore.addToast('Please complete reCAPTCHA verification', 'warning')
     return
@@ -343,6 +358,7 @@ const handleRegister = async () => {
       fullName: fullName.value,
       password: password.value,
       confirmPassword: confirmPassword.value,
+      termsAccepted: termsAccepted.value,
       captchaToken: recaptchaToken.value,
     })
 
