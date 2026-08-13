@@ -43,6 +43,17 @@ export const useCartStore = defineStore('cart', () => {
   const getStorageKeyForUser = (userId) => `${USER_STORAGE_PREFIX}${userId}`
   const getRevisionKeyForUser = (userId) => `${USER_REVISION_PREFIX}${userId}`
 
+  const isSuspendedAccount = () => {
+    const reason = String(authStore.user?.restriction_reason || '').toLowerCase()
+    if (reason === 'company_suspended' || reason === 'user_suspended') {
+      return true
+    }
+
+    const userStatus = String(authStore.user?.status || '').toLowerCase()
+    const companyStatus = String(authStore.user?.company?.status || '').toLowerCase()
+    return userStatus === 'suspended' || companyStatus === 'inactive'
+  }
+
   const getCurrentStorageKey = () => {
     const userId = getCurrentUserId()
     if (authStore.isAuthenticated && userId) {
@@ -175,8 +186,8 @@ export const useCartStore = defineStore('cart', () => {
 
   // Add item to cart
   const addItem = (product, quantity = 1) => {
-    // Suspended accounts can browse but cannot perform quote/cart write actions.
-    if (authStore.isAuthenticated && authStore.isRestricted) {
+    // Only suspended users are blocked from cart writes.
+    if (authStore.isAuthenticated && isSuspendedAccount()) {
       return false
     }
 
@@ -227,7 +238,7 @@ export const useCartStore = defineStore('cart', () => {
 
   // Update quantity
   const updateQuantity = (productId, quantity) => {
-    if (authStore.isAuthenticated && authStore.isRestricted) {
+    if (authStore.isAuthenticated && isSuspendedAccount()) {
       return false
     }
 
