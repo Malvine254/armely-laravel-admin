@@ -1036,16 +1036,7 @@ class AzureGraphMailService
             }
         }
 
-        // When items have no prices but a quote total exists, distribute proportionally.
         $qtotal = (float)($quoteTotal ?? 0);
-        $distributeTotal = !$hasAnyPrices && $qtotal > 0;
-        $totalQty = 0;
-        if ($distributeTotal) {
-            foreach ($normalizedItems as $item) {
-                $totalQty += max(1, (int)((is_array($item) ? $item : [])['quantity'] ?? 1));
-            }
-            if ($totalQty === 0) $totalQty = count($normalizedItems);
-        }
 
         $rows = '';
         $runningTotal = 0.0;
@@ -1056,21 +1047,16 @@ class AzureGraphMailService
             $productRef = (string) ($line['mfgPartNo'] ?? $line['mfg_part_no'] ?? $line['sku'] ?? $line['product_id'] ?? 'N/A');
             $quantity = max(1, (int) ($line['quantity'] ?? 1));
 
-            if ($distributeTotal) {
-                $unitPrice = $totalQty > 0 ? $qtotal / $totalQty : 0.0;
-                $lineTotal = $unitPrice * $quantity;
-            } else {
-                $unitPrice = (float)($line['unitPrice'] ?? $line['unit_price'] ?? 0);
-                $lineTotal = isset($line['lineTotal']) || isset($line['line_total'])
-                    ? (float)($line['lineTotal'] ?? $line['line_total'])
-                    : ($quantity * $unitPrice);
-            }
+            $unitPrice = (float)($line['unitPrice'] ?? $line['unit_price'] ?? 0);
+            $lineTotal = isset($line['lineTotal']) || isset($line['line_total'])
+                ? (float)($line['lineTotal'] ?? $line['line_total'])
+                : (($unitPrice > 0) ? ($quantity * $unitPrice) : 0.0);
             $runningTotal += $lineTotal;
 
             $safeName = e($name);
             $safeProductRef = e($productRef);
-            $displayUnit = '$' . number_format($unitPrice, 2);
-            $displayLineTotal = '$' . number_format($lineTotal, 2);
+            $displayUnit = $unitPrice > 0 ? ('$' . number_format($unitPrice, 2)) : 'Unavailable';
+            $displayLineTotal = $lineTotal > 0 ? ('$' . number_format($lineTotal, 2)) : 'Unavailable';
 
             $rows .= "
                 <tr>
@@ -1086,6 +1072,9 @@ class AzureGraphMailService
         }
 
         $displayTotal = '$' . number_format((float) ($quoteTotal ?? $runningTotal), 2);
+        $pricingNote = !$hasAnyPrices
+            ? "<p style='margin:10px 14px 0;color:#92400e;font-size:12px'>Line-item prices were unavailable in the source record. Totals shown are from the persisted quote total.</p>"
+            : '';
 
         return "
             <div style='margin:14px 0 10px;border:1px solid #d8e4f6;border-radius:12px;overflow:hidden;background:#ffffff'>
@@ -1109,6 +1098,7 @@ class AzureGraphMailService
                     <p style='margin:0;font-size:12px;color:#6b7280'>Estimated Total</p>
                     <p style='margin:2px 0 0;font-size:20px;font-weight:700;color:#1e3a6e'>{$displayTotal}</p>
                 </div>
+                {$pricingNote}
             </div>
         ";
     }
@@ -1224,7 +1214,9 @@ class AzureGraphMailService
         $itemsRows = '';
         $items = $invoice->items;
         if ($items && is_array($items) && count($items)) {
-            // Detect if items carry price data; if not, distribute invoice total by qty.
+            // Detect if items carry price data. If missing, keep line values as
+            // unavailable and rely on persisted invoice totals instead of
+            // fabricating per-line prices.
             $invHasAnyPrices = false;
             foreach ($items as $item) {
                 if ((float)(is_array($item) ? ($item['unit_price'] ?? 0) : 0) > 0
@@ -1233,39 +1225,30 @@ class AzureGraphMailService
                     break;
                 }
             }
-            $invDistribute = !$invHasAnyPrices && $totalAmt > 0;
-            $invTotalQty = 0;
-            if ($invDistribute) {
-                foreach ($items as $item) {
-                    $invTotalQty += max(1, (int)((is_array($item) ? $item : [])['quantity'] ?? 1));
-                }
-                if ($invTotalQty === 0) $invTotalQty = count($items);
-            }
 
             foreach ($items as $item) {
                 $line = is_array($item) ? $item : [];
                 $n  = e($this->resolveLineItemName($line, 'Unknown Product'));
                 $q  = max(1, (int)($item['quantity'] ?? 1));
-                if ($invDistribute) {
-                    $rawUp = $invTotalQty > 0 ? $totalAmt / $invTotalQty : 0.0;
-                    $rawLt = $rawUp * $q;
-                } else {
-                    $rawUp = (float)($item['unit_price'] ?? 0);
-                    $rawLt = (float)($item['line_total'] ?? ($rawUp * $q));
-                }
-                $up = number_format($rawUp, 2);
-                $lt = number_format($rawLt, 2);
+                $rawUp = (float)($item['unit_price'] ?? 0);
+                $rawLt = (float)($item['line_total'] ?? (($rawUp > 0) ? ($rawUp * $q) : 0));
+                $up = $rawUp > 0 ? number_format($rawUp, 2) : null;
+                $lt = $rawLt > 0 ? number_format($rawLt, 2) : null;
                 $td = "border:1px solid #ddd;padding:10px 12px;font-size:13px;";
                 $itemsRows .= "<tr>"
                     . "<td style='{$td}'>{$n}</td>"
                     . "<td style='{$td}text-align:right;'>{$q}</td>"
-                    . "<td style='{$td}text-align:right;'>\${$up}</td>"
-                    . "<td style='{$td}text-align:right;font-weight:bold;'>\${$lt}</td>"
+                    . "<td style='{$td}text-align:right;'>" . ($up !== null ? ('\$' . $up) : 'Unavailable') . "</td>"
+                    . "<td style='{$td}text-align:right;font-weight:bold;'>" . ($lt !== null ? ('\$' . $lt) : 'Unavailable') . "</td>"
                     . "</tr>";
             }
         } else {
             $itemsRows = "<tr><td colspan='4' style='border:1px solid #ddd;padding:10px;text-align:center;font-size:13px;color:#999;'>No items found</td></tr>";
         }
+
+        $invoicePricingNote = (is_array($items) && count($items) > 0 && isset($invHasAnyPrices) && !$invHasAnyPrices)
+            ? "<p style='margin:10px 0 0;color:#92400e;font-size:12px'>Line-item prices were unavailable in the source record. Financial totals below come from the persisted invoice totals.</p>"
+            : '';
 
         // Paid / balance rows (only shown when there is a payment)
         $paidRows = '';
@@ -1387,6 +1370,7 @@ class AzureGraphMailService
             . "</tr></thead>"
             . "<tbody>{$itemsRows}</tbody>"
             . "</table>"
+            . $invoicePricingNote
 
             // ── Totals ─────────────────────────────────────────────────────────
             . "<table cellpadding='0' cellspacing='0' align='right' style='width:260px;margin-bottom:30px;'>"
