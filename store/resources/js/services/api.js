@@ -65,9 +65,9 @@ api.interceptors.response.use(
     const requestUrl = String(error.config?.url || '').toLowerCase()
     const isLogoutRequest = requestUrl.includes('/auth/logout')
 
-    if ((status === 401 || status === 419) && !isLogoutRequest) {
+    if (status === 401 && !isLogoutRequest) {
       clearAuthStorage()
-      redirectToLogin(status === 419 ? 'session-expired' : 'unauthorized')
+      redirectToLogin('unauthorized')
     }
 
     if (status === 403) {
