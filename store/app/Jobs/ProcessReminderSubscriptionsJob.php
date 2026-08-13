@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Models\Product;
 use App\Models\ReminderSubscription;
 use App\Models\UserCartSnapshot;
+use App\Models\UserFavoriteEvent;
 use App\Models\UserProductView;
 use App\Services\AzureGraphMailService;
 use App\Services\UserEmailPreferenceService;
@@ -39,10 +40,13 @@ class ProcessReminderSubscriptionsJob implements ShouldQueue
             'abandoned_sent' => 0,
             'viewed_scanned' => 0,
             'viewed_sent' => 0,
+            'favorite_scanned' => 0,
+            'favorite_sent' => 0,
         ];
 
         $this->processAbandonedCartReminders($mailer, $preferences, $now, $metrics);
         $this->processViewedProductReminders($mailer, $preferences, $now, $metrics);
+        $this->processFavoriteProductReminders($mailer, $preferences, $now, $metrics);
 
         Log::info('ProcessReminderSubscriptionsJob complete', $metrics);
     }
@@ -239,6 +243,117 @@ class ProcessReminderSubscriptionsJob implements ShouldQueue
                         'product_id' => (int) $product->id,
                     ]);
                     $metrics['viewed_sent']++;
+                }
+            });
+    }
+
+    private function processFavoriteProductReminders(
+        AzureGraphMailService $mailer,
+        UserEmailPreferenceService $preferences,
+        Carbon $now,
+        array &$metrics
+    ): void {
+        ReminderSubscription::query()
+            ->where('is_active', true)
+            ->where('channel', 'email')
+            ->where('trigger_type', 'favorite_product')
+            ->whereNotNull('user_id')
+            ->whereNotNull('product_id')
+            ->with(['user:id,name,email,status'])
+            ->orderBy('id')
+            ->chunkById(200, function ($subscriptions) use ($mailer, $preferences, $now, &$metrics) {
+                foreach ($subscriptions as $subscription) {
+                    $metrics['favorite_scanned']++;
+
+                    $user = $subscription->user;
+                    if (!$user || strtolower((string) ($user->status ?? 'active')) !== 'active' || trim((string) ($user->email ?? '')) === '') {
+                        continue;
+                    }
+
+                    if (!$preferences->shouldSendReminder($user, 'favorite_product', $now)) {
+                        continue;
+                    }
+
+                    if (!$this->cooldownElapsed($subscription->last_notified_at, (int) ($subscription->cooldown_minutes ?? 0), $now)) {
+                        continue;
+                    }
+
+                    $latestFavoriteEvent = UserFavoriteEvent::query()
+                        ->where('product_id', (int) $subscription->product_id)
+                        ->where(function ($query) use ($subscription) {
+                            $query->where('identity_key', (string) $subscription->identity_key);
+                            if ($subscription->user_id) {
+                                $query->orWhere('user_id', (int) $subscription->user_id);
+                            }
+                        })
+                        ->orderByDesc('event_at')
+                        ->first();
+
+                    if (!$latestFavoriteEvent) {
+                        continue;
+                    }
+
+                    $eventType = (string) ($latestFavoriteEvent->event_type ?? '');
+                    if (!in_array($eventType, ['add', 'toggle'], true)) {
+                        continue;
+                    }
+
+                    $favoritedAt = $latestFavoriteEvent->event_at instanceof Carbon
+                        ? $latestFavoriteEvent->event_at
+                        : Carbon::parse((string) ($latestFavoriteEvent->event_at ?? $now->toISOString()));
+
+                    $delayMinutes = max(30, (int) ($subscription->delay_minutes ?? 720));
+                    if ($favoritedAt->copy()->addMinutes($delayMinutes)->greaterThan($now)) {
+                        continue;
+                    }
+
+                    $product = Product::query()->find((int) $subscription->product_id);
+                    if (!$product) {
+                        continue;
+                    }
+
+                    $cartSnapshot = UserCartSnapshot::query()
+                        ->where(function ($query) use ($subscription) {
+                            $query->where('identity_key', (string) $subscription->identity_key);
+                            if ($subscription->user_id) {
+                                $query->orWhere('user_id', (int) $subscription->user_id);
+                            }
+                        })
+                        ->orderByDesc('last_synced_at')
+                        ->first();
+
+                    if ($cartSnapshot && $this->cartContainsProduct((array) ($cartSnapshot->items ?? []), (int) $subscription->product_id)) {
+                        continue;
+                    }
+
+                    $price = OfferPricing::sellPrice($product);
+
+                    $idempotencyKey = 'favorite_product:' . (int) $subscription->id . ':' . $favoritedAt->format('YmdHi');
+                    if ($preferences->wasIdempotencyKeySent($idempotencyKey)) {
+                        continue;
+                    }
+
+                    if (!$preferences->underDailySendCap($user, 'favorite_product_reminder', 2, $now)) {
+                        continue;
+                    }
+
+                    $sent = $mailer->sendFavoriteProductReminderEmail($user, $product, $favoritedAt, $price);
+                    if (!$sent) {
+                        continue;
+                    }
+
+                    $subscription->update(['last_notified_at' => $now]);
+                    $preferences->markIdempotencyKeySent($user, $idempotencyKey, [
+                        'subscription_id' => (int) $subscription->id,
+                        'trigger_type' => 'favorite_product',
+                        'product_id' => (int) $product->id,
+                    ]);
+                    $preferences->markMarketingSent($user, 'favorite_product_reminder', [
+                        'subscription_id' => (int) $subscription->id,
+                        'trigger_type' => 'favorite_product',
+                        'product_id' => (int) $product->id,
+                    ]);
+                    $metrics['favorite_sent']++;
                 }
             });
     }

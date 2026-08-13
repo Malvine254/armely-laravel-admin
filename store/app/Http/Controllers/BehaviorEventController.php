@@ -145,6 +145,19 @@ class BehaviorEventController extends Controller
 
         if (in_array((string) $validated['event_type'], ['add', 'toggle'], true)) {
             $this->upsertPriceAlertSubscription($identityKey, $userId, (int) $validated['product_id'], 'favorite');
+            $this->upsertReminderSubscription(
+                $identityKey,
+                $userId,
+                'favorite_product',
+                (int) $validated['product_id'],
+                720,
+                2880,
+                ['source' => 'favorite_event']
+            );
+        }
+
+        if ((string) $validated['event_type'] === 'remove') {
+            $this->deactivateReminderSubscription($identityKey, $userId, 'favorite_product', (int) $validated['product_id']);
         }
 
         return $this->responseOk($newToken);
@@ -200,6 +213,29 @@ class BehaviorEventController extends Controller
         }
 
         $subscription->save();
+    }
+
+    private function deactivateReminderSubscription(
+        string $identityKey,
+        ?int $userId,
+        string $triggerType,
+        int $productReference
+    ): void {
+        $product = $this->resolveProduct($productReference);
+        if (!$product) {
+            return;
+        }
+
+        ReminderSubscription::query()
+            ->where('trigger_type', $triggerType)
+            ->where('product_id', (int) $product->id)
+            ->where(function ($query) use ($identityKey, $userId) {
+                $query->where('identity_key', $identityKey);
+                if ($userId) {
+                    $query->orWhere('user_id', $userId);
+                }
+            })
+            ->update(['is_active' => false]);
     }
 
     private function upsertReminderSubscription(

@@ -2048,6 +2048,62 @@ class AzureGraphMailService
         return $this->sendEmail($user->email, "Reminder: {$productName}", $html, $text);
     }
 
+    public function sendFavoriteProductReminderEmail(
+        \App\Models\User $user,
+        \App\Models\Product $product,
+        \Illuminate\Support\Carbon $favoritedAt,
+        float $currentPrice
+    ): bool {
+        if (!$this->isConfigured()) {
+            return false;
+        }
+
+        if (trim((string) ($user->email ?? '')) === '') {
+            return false;
+        }
+
+        $safeName = e((string) ($user->name ?: 'Customer'));
+        $productName = trim((string) ($product->product_name ?? 'Product'));
+        $safeProductName = e($productName);
+        $safePartNumber = e((string) ($product->mfg_part_no ?? 'N/A'));
+        $priceLabel = $currentPrice > 0 ? ('$' . number_format($currentPrice, 2)) : 'Unavailable';
+        $productUrl = $this->frontendUrl() . '/products/' . rawurlencode((string) ($product->id ?? ''));
+        $unsubscribeUrl = $this->marketingUnsubscribeUrl($user, 'browse_reminders');
+        $unsubscribeHtml = $this->marketingUnsubscribeHtml($unsubscribeUrl);
+        $unsubscribeText = $this->marketingUnsubscribeText($unsubscribeUrl);
+
+        $summaryHtml = $this->buildQuoteSummaryCard([
+            ['label' => 'Favorite Item', 'value' => $safeProductName],
+            ['label' => 'Part Number', 'value' => $safePartNumber],
+            ['label' => 'Current Price', 'value' => $priceLabel],
+            ['label' => 'Saved On', 'value' => $favoritedAt->format('M d, Y H:i')],
+        ]);
+
+        $html = $this->buildModernNotificationEmail(
+            'Your Saved Item Is Still Available',
+            "
+                <p style='margin:0 0 14px;font-size:16px;color:#1f2937'>Hello {$safeName},</p>
+                <p style='margin:0 0 18px;color:#4b5563'>You saved this product to favorites. If you are ready, you can move it into your quote cart now.</p>
+                {$summaryHtml}
+                {$unsubscribeHtml}
+            ",
+            'View Favorite Item',
+            $productUrl,
+            'You are receiving this because favorite-item reminders are active for your account.',
+            '#2F5597',
+            'Favorite Item Reminder',
+            '#2F5597'
+        );
+
+        $text = "Hello {$user->name},\n\nYou saved {$productName} to favorites.\n"
+            . "Current price: {$priceLabel}\n"
+            . "Saved on: " . $favoritedAt->format('Y-m-d H:i') . "\n"
+            . "View item: {$productUrl}\n\n"
+            . $unsubscribeText;
+
+        return $this->sendEmail($user->email, "Favorite Reminder: {$productName}", $html, $text);
+    }
+
     private function marketingUnsubscribeUrl(User $user, string $scope): string
     {
         try {
