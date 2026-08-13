@@ -135,7 +135,8 @@ const handleLogin = async () => {
   try {
     const result = await authStore.login({
       email: form.value.email,
-      password: form.value.password
+      password: form.value.password,
+      remember: form.value.remember,
     })
 
     if (result.ok) {

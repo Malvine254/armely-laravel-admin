@@ -268,7 +268,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  const register = async ({ fullName, email, companyName, password, confirmPassword, captchaToken = '' }) => {
+  const register = async ({ fullName, email, companyName, password, confirmPassword, termsAccepted = false, captchaToken = '' }) => {
     try {
       const response = await axios.post(`${API_BASE_URL}/auth/register`, {
         full_name: fullName,
@@ -276,6 +276,7 @@ export const useAuthStore = defineStore('auth', () => {
         password,
         password_confirmation: confirmPassword,
         company_name: companyName,
+        terms_accepted: termsAccepted,
         'g-recaptcha-response': captchaToken,
       })
 

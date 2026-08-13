@@ -273,27 +273,24 @@ class AuthController extends Controller
             'full_name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'confirmed', $this->strongPasswordRule()],
+            'terms_accepted' => ['accepted'],
+            'g-recaptcha-response' => ['required', 'string'],
         ];
 
-        if ($this->shouldVerifyRecaptcha()) {
-            $rules['g-recaptcha-response'] = ['required', 'string'];
-        }
-
         $data = $request->validate($rules, [
+            'terms_accepted.accepted' => 'You must accept the Terms of Service and Privacy Policy.',
             'g-recaptcha-response.required' => 'Please verify that you are not a robot.',
         ]);
 
-        if ($this->shouldVerifyRecaptcha()) {
-            $captchaToken = trim((string) ($data['g-recaptcha-response'] ?? ''));
-            if ($captchaToken === '' || !$this->verifyRecaptcha($captchaToken, $request->ip())) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'reCAPTCHA verification failed. Please try again.',
-                    'errors' => [
-                        'captcha' => ['reCAPTCHA verification failed. Please try again.'],
-                    ],
-                ], 422);
-            }
+        $captchaToken = trim((string) ($data['g-recaptcha-response'] ?? ''));
+        if ($captchaToken === '' || !$this->verifyRecaptcha($captchaToken, $request->ip())) {
+            return response()->json([
+                'success' => false,
+                'message' => 'reCAPTCHA verification failed. Please try again.',
+                'errors' => [
+                    'captcha' => ['reCAPTCHA verification failed. Please try again.'],
+                ],
+            ], 422);
         }
 
         $domain = $this->extractDomain($data['email']);
