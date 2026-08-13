@@ -61,9 +61,9 @@ window.axios.interceptors.response.use(
 			|| requestUrl.includes('/auth/resend-activation')
 			|| requestUrl.includes('/auth/logout');
 
-		if ((status === 401 || status === 419) && !isAuthEntryRequest) {
+		if (status === 401 && !isAuthEntryRequest) {
 			clearAuthStorage();
-			redirectToLogin(status === 419 ? 'session-expired' : 'unauthorized');
+			redirectToLogin('unauthorized');
 		}
 
 		return Promise.reject(error);
