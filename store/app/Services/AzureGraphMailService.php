@@ -372,6 +372,63 @@ class AzureGraphMailService
         return $this->sendEmail($user->email, $subject, $html, $text);
     }
 
+    public function sendNewUserRegistrationAdminEmails(\App\Models\User $user, ?\App\Models\Company $company = null, bool $isNewCompany = false): bool
+    {
+        if (!$this->isConfigured()) {
+            return false;
+        }
+
+        $company ??= $user->company;
+
+        $safeUserName = e($user->name ?: 'New user');
+        $safeUserEmail = e($user->email ?: 'N/A');
+        $safeCompanyName = e($company?->name ?: 'Unknown company');
+        $safeCompanyDomain = e($company?->domain ?: 'N/A');
+        $safeRole = e((string) ($user->role ?: 'buyer'));
+        $safeApprovalType = $isNewCompany ? 'New company registration' : 'New user on existing company';
+        $adminUrl = $this->frontendUrl() . '/admin/customers';
+
+        $summaryHtml = $this->buildQuoteSummaryCard([
+            ['label' => 'Registrant', 'value' => $safeUserName],
+            ['label' => 'Email', 'value' => $safeUserEmail],
+            ['label' => 'Company', 'value' => $safeCompanyName],
+            ['label' => 'Domain', 'value' => $safeCompanyDomain],
+            ['label' => 'Requested Role', 'value' => $safeRole],
+            ['label' => 'Registration Type', 'value' => $safeApprovalType],
+        ]);
+
+        $html = $this->buildModernNotificationEmail(
+            'New Customer Registration',
+            "
+                <p style='margin:0 0 14px;font-size:16px;color:#1f2937'>A new customer registration needs review.</p>
+                <p style='margin:0 0 18px;color:#4b5563'>A user has completed signup and is waiting for activation and administrative approval.</p>
+                {$summaryHtml}
+            ",
+            'Review Customer',
+            $adminUrl,
+            'Review the customer record and approve the user or company when verification is complete.',
+            '#b45309',
+            'Pending Approval',
+            '#b45309'
+        );
+
+        $text = "A new customer registration needs review.\n\n"
+            . "Registrant: {$user->name}\n"
+            . "Email: {$user->email}\n"
+            . "Company: " . ($company?->name ?? 'Unknown company') . "\n"
+            . "Domain: " . ($company?->domain ?? 'N/A') . "\n"
+            . "Requested role: " . ($user->role ?? 'buyer') . "\n"
+            . 'Registration type: ' . ($isNewCompany ? 'New company registration' : 'New user on existing company') . "\n"
+            . "Review: {$adminUrl}";
+
+        $sent = false;
+        foreach ($this->activeAdminEmails() as $adminEmail) {
+            $sent = $this->sendEmail($adminEmail, 'New Customer Registration Requires Review', $html, $text) || $sent;
+        }
+
+        return $sent;
+    }
+
     public function sendQuoteCreatedAdminEmail(string $adminEmail, string $adminName, \App\Models\Quote $quote): bool
     {
         if (!$this->isConfigured()) {
@@ -2130,15 +2187,17 @@ class AzureGraphMailService
     private function activeAdminEmails(): array
     {
         try {
-            $admins = User::where('role', 'admin')
+            $admins = User::whereIn('role', ['admin', 'super_admin'])
                 ->where('status', 'active')
                 ->orderBy('id')
                 ->pluck('email')
                 ->all();
         } catch (\Throwable $e) {
             Log::warning('Unable to load active admin email recipients: ' . $e->getMessage());
-            return [];
+            $admins = [];
         }
+
+        $admins[] = env('ADMIN_EMAIL', '');
 
         return $this->uniqueEmails($admins);
     }

@@ -328,6 +328,31 @@ class AuthController extends Controller
         $activationUrl = $this->buildActivationUrl($user->email, $activationToken);
         $this->sendActivationEmail($user, $activationUrl);
 
+        try {
+            $adminMailSent = $this->azureGraphMailService->sendNewUserRegistrationAdminEmails(
+                $user->loadMissing('company'),
+                $company,
+                $isNewCompany
+            );
+
+            if (!$adminMailSent) {
+                Log::warning('Admin registration notification email was not sent', [
+                    'user_id' => $user->id,
+                    'email' => $user->email,
+                    'company_id' => $company->id,
+                    'is_new_company' => $isNewCompany,
+                ]);
+            }
+        } catch (\Throwable $mailException) {
+            Log::warning('Failed to send admin registration notification email', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'company_id' => $company->id,
+                'is_new_company' => $isNewCompany,
+                'error' => $mailException->getMessage(),
+            ]);
+        }
+
         $message = $company->status === 'approved'
             ? 'Registration successful. Please check your email and activate your account before logging in.'
             : 'Registration successful. Please activate your email. Your company access is still pending admin approval.';
