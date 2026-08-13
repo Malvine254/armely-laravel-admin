@@ -238,7 +238,11 @@ export const useAuthStore = defineStore('auth', () => {
           throw new Error('Invalid response from server')
         }
         
-        user.value = normalizeUserProfile(payload.user)
+        const payloadUser = typeof payload.user === 'object' && payload.user
+          ? { ...payload.user, capabilities: payload.capabilities || payload.user.capabilities || null }
+          : payload.user
+
+        user.value = normalizeUserProfile(payloadUser)
                 saveToken(payload.token, remember)
                 saveUser()
         setRestricted(payload.restricted)
@@ -396,6 +400,9 @@ export const useAuthStore = defineStore('auth', () => {
         if (typeof nextUser === 'object' && payload?.incomplete_fields) {
           nextUser.incomplete_fields = payload.incomplete_fields
         }
+        if (typeof nextUser === 'object' && payload?.capabilities) {
+          nextUser.capabilities = payload.capabilities
+        }
         setUser(nextUser)
         setRestricted(!!payload?.restricted)
         return true
@@ -483,6 +490,25 @@ export const useAuthStore = defineStore('auth', () => {
 
   const hasFeatureAccess = (feature) => {
     if (!isAuthenticated.value) return false
+
+    const capabilities = user.value?.capabilities
+    const capabilityMap = {
+      quotes: 'can_create_quotes',
+      orders: 'can_view_orders',
+      invoices: 'can_view_invoices',
+      messages: 'can_use_messages',
+      admin: 'can_access_admin',
+      reports: 'can_view_reports',
+    }
+
+    const requiredCapability = capabilityMap[feature]
+    if (requiredCapability && capabilities && Object.prototype.hasOwnProperty.call(capabilities, requiredCapability)) {
+      return !!capabilities[requiredCapability]
+    }
+
+    if (isRestricted.value && ['quotes', 'orders', 'invoices', 'messages', 'admin', 'reports'].includes(feature)) {
+      return false
+    }
     
     const featureRoles = {
       'quotes': ['user', 'buyer', 'owner', 'manager', 'admin', 'super_admin'],

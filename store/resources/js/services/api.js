@@ -71,9 +71,10 @@ api.interceptors.response.use(
     }
 
     if (status === 403) {
-      const isSuspension = message.toLowerCase().includes('suspend')
-        || message.toLowerCase().includes('access is blocked')
-        || message.toLowerCase().includes('pending approval')
+      const restrictionReason = String(error.response?.data?.data?.restriction_reason || '').toLowerCase()
+      const isSuspension = restrictionReason === 'company_suspended'
+        || restrictionReason === 'user_suspended'
+        || message.toLowerCase().includes('suspended')
       if (isSuspension) {
         clearAuthStorage()
         redirectToLogin('suspended')
