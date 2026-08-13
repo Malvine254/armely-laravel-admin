@@ -550,6 +550,7 @@ export default {
           params: {
             page: currentPage.value,
             pageSize: pageSize.value,
+            include_items: false,
             status: selectedStatus.value || undefined,
             search: searchQuery.value || undefined,
             sort: sortBy.value || undefined,
@@ -732,7 +733,16 @@ export default {
 
     const viewInvoice = async (invoice) => {
       selectedInvoice.value = invoice
-      await hydrateInvoiceProductNames(invoice)
+
+      try {
+        const response = await axios.get(`/api/v1/invoices/${encodeURIComponent(invoice.invoice_number)}`)
+        if (response.data?.success && response.data?.data) {
+          selectedInvoice.value = response.data.data
+          await hydrateInvoiceProductNames(response.data.data)
+        }
+      } catch (_) {
+        // Keep summary row visible if detail fetch fails.
+      }
     }
 
     const downloadPDF = async (invoice) => {
@@ -1069,6 +1079,11 @@ export default {
     }
 
     const getInvoiceItemPreview = (invoice) => {
+      const previewFromApi = String(invoice?.item_preview || '').trim()
+      if (previewFromApi) {
+        return previewFromApi
+      }
+
       const items = getInvoiceItems(invoice)
       if (!items.length) return ''
 

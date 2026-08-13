@@ -1858,12 +1858,36 @@ class QuoteOrderInvoiceController extends Controller
             $user = $request->user();
             $this->ensureApprovedQuotesHaveOrdersAndInvoicesThrottled($user, 'invoices');
             $page = $request->get('page', 1);
-            $pageSize = $request->get('pageSize', 50);
+            $pageSize = max(5, min(100, (int) $request->get('pageSize', 25)));
             $status = $request->get('status');
             $search = trim((string) $request->get('search', ''));
             $sort = trim((string) $request->get('sort', 'due_asc'));
+            $includeItems = $request->boolean('include_items', false);
 
-            $query = Invoice::where('user_id', $user->id)
+            $columns = [
+                'id',
+                'user_id',
+                'invoice_number',
+                'order_number',
+                'status',
+                'total_amount',
+                'tax_amount',
+                'paid_amount',
+                'issued_at',
+                'due_at',
+                'paid_at',
+                'created_at',
+                'updated_at',
+            ];
+
+            if ($includeItems) {
+                $columns[] = 'items';
+                $columns[] = 'raw_data';
+            }
+
+            $query = Invoice::query()
+                ->select($columns)
+                ->where('user_id', $user->id)
                 ->when($status, fn ($q) => $q->where('status', $status))
                 ->when($search !== '', function ($q) use ($search) {
                     $q->where(function ($subQuery) use ($search) {
@@ -1894,23 +1918,32 @@ class QuoteOrderInvoiceController extends Controller
             $invoices = $query->paginate($pageSize, ['*'], 'page', $page);
             $invoiceRows = $invoices->items();
 
-            $this->prefetchProductNamesForItems(
-                array_map(fn ($inv) => is_array($inv->items) ? $inv->items : [], $invoiceRows)
-            );
+            if ($includeItems) {
+                $this->prefetchProductNamesForItems(
+                    array_map(fn ($inv) => is_array($inv->items) ? $inv->items : [], $invoiceRows)
+                );
 
-            $invoiceRows = array_map(function ($invoice) {
-                $existingItems = is_array($invoice->items) ? $invoice->items : [];
-                $enrichedItems = $this->enrichInvoiceItemsWithProductNames($existingItems);
-                $invoice->items = $enrichedItems;
+                $invoiceRows = array_map(function ($invoice) {
+                    $existingItems = is_array($invoice->items) ? $invoice->items : [];
+                    $enrichedItems = $this->enrichInvoiceItemsWithProductNames($existingItems);
+                    $invoice->items = $enrichedItems;
 
-                if ($enrichedItems !== $existingItems) {
-                    $invoice->update(['items' => $enrichedItems]);
-                }
+                    if ($enrichedItems !== $existingItems) {
+                        $invoice->update(['items' => $enrichedItems]);
+                    }
 
-                $this->appendInvoicePaymentFields($invoice);
+                    $this->appendInvoicePaymentFields($invoice);
 
-                return $invoice;
-            }, $invoiceRows);
+                    return $invoice;
+                }, $invoiceRows);
+            } else {
+                $invoiceRows = array_map(function ($invoice) {
+                    $invoice->setAttribute('item_preview', null);
+                    $this->appendInvoicePaymentFields($invoice);
+
+                    return $invoice;
+                }, $invoiceRows);
+            }
 
             return response()->json([
                 'success' => true,
