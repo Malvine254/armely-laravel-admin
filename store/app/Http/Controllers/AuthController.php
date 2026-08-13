@@ -377,29 +377,16 @@ class AuthController extends Controller
             ], 403);
         }
 
-        $restricted = $company->status !== 'approved' || $user->status !== 'active';
+        $restrictionReason = $this->resolveRestrictionReason($user, $company);
+        $restricted = $restrictionReason !== null;
 
-        $restrictionReason = null;
-        if ($company->status !== 'approved') {
-            $restrictionReason = $company->status === 'inactive'
-                ? 'company_suspended'
-                : 'company_not_approved';
-        } elseif ($user->status !== 'active') {
-            $restrictionReason = $user->status === 'suspended'
-                ? 'user_suspended'
-                : 'user_not_active';
-        }
-
-        if ($restricted) {
-            // Immediately revoke any existing tokens so suspended/inactive users lose access.
+        if ($this->isSuspendedRestrictionReason($restrictionReason)) {
+            // Immediately revoke any existing tokens so suspended users lose access.
             $user->tokens()->delete();
 
-            $message = match ($restrictionReason) {
-                'company_suspended' => 'Login blocked: your company account is suspended. Please contact support.',
-                'company_not_approved' => 'Login blocked: your company account is pending approval.',
-                'user_suspended' => 'Login blocked: your user account is suspended. Please contact support.',
-                default => 'Login blocked: your account is not active.',
-            };
+            $message = $restrictionReason === 'company_suspended'
+                ? 'Login blocked: your company account is suspended. Please contact support.'
+                : 'Login blocked: your user account is suspended. Please contact support.';
 
             return response()->json([
                 'success' => false,
@@ -407,6 +394,7 @@ class AuthController extends Controller
                 'data' => [
                     'restricted' => true,
                     'restriction_reason' => $restrictionReason,
+                    'capabilities' => $this->buildAccessCapabilities($user, $company),
                 ],
             ], 403);
         }
@@ -422,7 +410,9 @@ class AuthController extends Controller
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
-        $message = 'Login successful';
+        $message = $restricted
+            ? 'Login successful. Your account is pending approval, so some actions are temporarily disabled.'
+            : 'Login successful';
 
         $shippingAddress = $this->resolveDefaultShippingAddress($company);
         $userPayload = $user->toArray();
@@ -439,8 +429,9 @@ class AuthController extends Controller
                 'user' => $userPayload,
                 'company' => $company,
                 'shipping_address' => $shippingAddress,
-                'restricted' => false,
-                'restriction_reason' => null,
+                'restricted' => $restricted,
+                'restriction_reason' => $restrictionReason,
+                'capabilities' => $this->buildAccessCapabilities($user, $company),
                 'force_password_change' => (bool) $user->force_password_change,
             ],
         ]);
@@ -606,22 +597,8 @@ class AuthController extends Controller
 
         $shippingAddress = $this->resolveDefaultShippingAddress($company);
 
-        $restricted = !$user || !$company || !$user->email_verified_at || $user->status !== 'active' || $company->status !== 'approved';
-
-        $restrictionReason = null;
-        if ($user && $company) {
-            if (!$user->email_verified_at) {
-                $restrictionReason = 'email_not_verified';
-            } elseif ($company->status !== 'approved') {
-                $restrictionReason = $company->status === 'inactive'
-                    ? 'company_suspended'
-                    : 'company_not_approved';
-            } elseif ($user->status !== 'active') {
-                $restrictionReason = $user->status === 'suspended'
-                    ? 'user_suspended'
-                    : 'user_not_active';
-            }
-        }
+        $restrictionReason = $this->resolveRestrictionReason($user, $company);
+        $restricted = $restrictionReason !== null;
 
         // Detect incomplete profile sections
         $incompleteFields = [];
@@ -649,6 +626,7 @@ class AuthController extends Controller
                 'shipping_address' => $shippingAddress,
                 'restricted' => $restricted,
                 'restriction_reason' => $restrictionReason,
+                'capabilities' => $this->buildAccessCapabilities($user, $company),
                 'incomplete_fields' => $incompleteFields,
             ],
         ]);
@@ -1017,6 +995,60 @@ class AuthController extends Controller
             'success' => true,
             'message' => 'Password has been reset successfully',
         ]);
+    }
+
+    private function resolveRestrictionReason(?User $user, ?Company $company): ?string
+    {
+        if (!$user || !$company) {
+            return 'account_unavailable';
+        }
+
+        if (!$user->email_verified_at) {
+            return 'email_not_verified';
+        }
+
+        if ($company->status === 'inactive') {
+            return 'company_suspended';
+        }
+
+        if ($user->status === 'suspended') {
+            return 'user_suspended';
+        }
+
+        if ($company->status !== 'approved') {
+            return 'company_not_approved';
+        }
+
+        if ($user->status !== 'active') {
+            return 'user_not_active';
+        }
+
+        return null;
+    }
+
+    private function isSuspendedRestrictionReason(?string $restrictionReason): bool
+    {
+        return in_array($restrictionReason, ['company_suspended', 'user_suspended'], true);
+    }
+
+    private function buildAccessCapabilities(?User $user, ?Company $company): array
+    {
+        $reason = $this->resolveRestrictionReason($user, $company);
+        $fullAccess = $reason === null;
+        $accountOnly = in_array($reason, ['company_not_approved', 'user_not_active', 'email_not_verified'], true);
+
+        return [
+            'full_access' => $fullAccess,
+            'can_view_account' => $fullAccess || $accountOnly,
+            'can_update_profile' => $fullAccess,
+            'can_change_password' => $fullAccess,
+            'can_create_quotes' => $fullAccess,
+            'can_view_orders' => $fullAccess,
+            'can_view_invoices' => $fullAccess,
+            'can_use_messages' => $fullAccess,
+            'can_access_admin' => $fullAccess && in_array((string) ($user?->role ?? ''), ['admin', 'super_admin'], true),
+            'can_view_reports' => $fullAccess && in_array((string) ($user?->role ?? ''), ['owner', 'manager', 'admin', 'super_admin'], true),
+        ];
     }
 
     private function extractDomain(string $email): ?string

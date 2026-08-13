@@ -24,13 +24,8 @@ class EnsureUserIsActive
 
         $company = $user->company;
 
-        $isEmailVerified = !is_null($user->email_verified_at);
-        $isUserActive = $user->status === 'active';
-        $isCompanyApproved = $company && $company->status === 'approved';
-
-        $isRestricted = !$isEmailVerified || !$isUserActive || !$isCompanyApproved;
-
-        if (!$isRestricted) {
+        $restrictionReason = $this->resolveRestrictionReason($user, $company);
+        if ($restrictionReason === null) {
             return $next($request);
         }
 
@@ -39,16 +34,74 @@ class EnsureUserIsActive
             return $next($request);
         }
 
-        // Revoke the current access token so restricted users immediately lose API access.
-        $user->currentAccessToken()?->delete();
+        if ($this->isPendingApprovalReason($restrictionReason) && $this->isPendingAllowedRequest($request)) {
+            return $next($request);
+        }
 
-        $message = !$isEmailVerified
-            ? 'Please activate your account from the email link before performing this action.'
-            : 'Your account is suspended or pending approval. Access is blocked.';
+        if ($this->isHardBlockReason($restrictionReason)) {
+            // Revoke token only for hard-block states such as suspension.
+            $user->currentAccessToken()?->delete();
+        }
+
+        $message = match ($restrictionReason) {
+            'email_not_verified' => 'Please activate your account from the email link before performing this action.',
+            'company_not_approved', 'user_not_active' => 'Your account is pending approval. This action is unavailable until approval.',
+            'company_suspended' => 'Your company account is suspended. Please contact support.',
+            'user_suspended' => 'Your user account is suspended. Please contact support.',
+            default => 'Access is blocked for this account.',
+        };
 
         return response()->json([
             'success' => false,
             'message' => $message,
+            'data' => [
+                'restricted' => true,
+                'restriction_reason' => $restrictionReason,
+            ],
         ], 403);
+    }
+
+    private function resolveRestrictionReason($user, $company): ?string
+    {
+        if (!$user || !$company) {
+            return 'account_unavailable';
+        }
+
+        if (is_null($user->email_verified_at)) {
+            return 'email_not_verified';
+        }
+
+        if ($company->status === 'inactive') {
+            return 'company_suspended';
+        }
+
+        if ($user->status === 'suspended') {
+            return 'user_suspended';
+        }
+
+        if ($company->status !== 'approved') {
+            return 'company_not_approved';
+        }
+
+        if ($user->status !== 'active') {
+            return 'user_not_active';
+        }
+
+        return null;
+    }
+
+    private function isHardBlockReason(string $reason): bool
+    {
+        return in_array($reason, ['account_unavailable', 'email_not_verified', 'company_suspended', 'user_suspended'], true);
+    }
+
+    private function isPendingApprovalReason(string $reason): bool
+    {
+        return in_array($reason, ['company_not_approved', 'user_not_active'], true);
+    }
+
+    private function isPendingAllowedRequest(Request $request): bool
+    {
+        return $request->is('api/v1/auth/me');
     }
 }
