@@ -16,6 +16,7 @@ use App\Http\Controllers\ProductSourcingRequestController;
 use App\Http\Controllers\AdminImportedProductController;
 use App\Http\Controllers\BehaviorEventController;
 use App\Http\Controllers\PriceAlertSubscriptionController;
+use App\Http\Controllers\EmailPreferenceController;
 
 /*
 |--------------------------------------------------------------------------
@@ -86,6 +87,9 @@ Route::prefix('v1')->group(function () {
     Route::get('/behavior/price-alert-subscriptions', [PriceAlertSubscriptionController::class, 'index'])->middleware('throttle:60,1');
     Route::post('/behavior/price-alert-subscriptions', [PriceAlertSubscriptionController::class, 'upsert'])->middleware('throttle:60,1');
     Route::delete('/behavior/price-alert-subscriptions/{productId}', [PriceAlertSubscriptionController::class, 'deactivate'])->middleware('throttle:60,1');
+    Route::get('/behavior/email-preferences', [EmailPreferenceController::class, 'show'])->middleware(['auth:sanctum', 'active.user', 'throttle:60,1']);
+    Route::put('/behavior/email-preferences', [EmailPreferenceController::class, 'update'])->middleware(['auth:sanctum', 'active.user', 'throttle:60,1']);
+    Route::get('/behavior/unsubscribe/{token}', [EmailPreferenceController::class, 'unsubscribe'])->middleware('throttle:30,1');
 
     // Reviews endpoints (public read, auth write)
     Route::get('/products/reviews/stats', [ReviewController::class, 'stats']);
