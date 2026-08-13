@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\PriceAlertSubscription;
 use App\Models\Product;
+use App\Models\ReminderSubscription;
 use App\Models\UserCartEvent;
 use App\Models\UserCartSnapshot;
 use App\Models\UserFavoriteEvent;
@@ -32,6 +33,16 @@ class BehaviorEventController extends Controller
             'product_id' => (int) $validated['product_id'],
             'viewed_at' => isset($validated['viewed_at']) ? now()->parse($validated['viewed_at']) : now(),
         ]);
+
+        $this->upsertReminderSubscription(
+            $identityKey,
+            $userId,
+            'viewed_product',
+            (int) $validated['product_id'],
+            1440,
+            4320,
+            ['source' => 'product_view']
+        );
 
         return $this->responseOk($newToken);
     }
@@ -68,6 +79,16 @@ class BehaviorEventController extends Controller
                 'total_quantity' => $totalQuantity,
                 'last_synced_at' => now(),
             ]
+        );
+
+        $this->upsertReminderSubscription(
+            $identityKey,
+            $userId,
+            'abandoned_cart',
+            null,
+            120,
+            1440,
+            ['item_count' => count($normalizedItems), 'total_quantity' => $totalQuantity]
         );
 
         return $this->responseOk($newToken);
@@ -178,6 +199,72 @@ class BehaviorEventController extends Controller
             $subscription->baseline_price = $currentPrice;
         }
 
+        $subscription->save();
+    }
+
+    private function upsertReminderSubscription(
+        string $identityKey,
+        ?int $userId,
+        string $triggerType,
+        ?int $productReference,
+        int $delayMinutes,
+        int $cooldownMinutes,
+        array $metadata = []
+    ): void {
+        $resolvedProductId = null;
+
+        if ($productReference !== null) {
+            $product = $this->resolveProduct($productReference);
+            if (!$product) {
+                return;
+            }
+            $resolvedProductId = (int) $product->id;
+        }
+
+        $subscription = ReminderSubscription::query()
+            ->where('trigger_type', $triggerType)
+            ->where(function ($query) use ($identityKey, $userId) {
+                $query->where('identity_key', $identityKey);
+                if ($userId) {
+                    $query->orWhere('user_id', $userId);
+                }
+            })
+            ->where(function ($query) use ($resolvedProductId) {
+                if ($resolvedProductId === null) {
+                    $query->whereNull('product_id');
+                    return;
+                }
+
+                $query->where('product_id', $resolvedProductId);
+            })
+            ->first();
+
+        if (!$subscription) {
+            ReminderSubscription::create([
+                'identity_key' => $identityKey,
+                'user_id' => $userId,
+                'product_id' => $resolvedProductId,
+                'trigger_type' => $triggerType,
+                'channel' => 'email',
+                'delay_minutes' => max(30, $delayMinutes),
+                'cooldown_minutes' => max(30, $cooldownMinutes),
+                'is_active' => true,
+                'metadata' => $metadata,
+            ]);
+
+            return;
+        }
+
+        $subscription->fill([
+            'identity_key' => $identityKey,
+            'user_id' => $userId,
+            'product_id' => $resolvedProductId,
+            'channel' => 'email',
+            'delay_minutes' => max(30, $delayMinutes),
+            'cooldown_minutes' => max(30, $cooldownMinutes),
+            'is_active' => true,
+            'metadata' => $metadata,
+        ]);
         $subscription->save();
     }
 

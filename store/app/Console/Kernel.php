@@ -76,6 +76,11 @@ class Kernel extends ConsoleKernel
             ->name('process-price-drop-alerts')
             ->withoutOverlapping();
 
+        $schedule->job(\App\Jobs\ProcessReminderSubscriptionsJob::class, 'default', 'database')
+            ->everyThirtyMinutes()
+            ->name('process-reminder-subscriptions')
+            ->withoutOverlapping();
+
         $schedule->command('storefront:rebuild-assortment')
             ->dailyAt('01:00')
             ->timezone($scheduleTimezone)
