@@ -577,10 +577,6 @@ const fallbackIncompleteFields = computed(() => {
     missing.push('shipping_address')
   }
 
-  if (!String(user.profile_picture_url || '').trim()) {
-    missing.push('profile_picture')
-  }
-
   return missing
 })
 
@@ -594,7 +590,6 @@ const missingProfileItems = computed(() => {
   const labels = {
     phone: 'Add phone number',
     shipping_address: 'Add shipping address',
-    profile_picture: 'Add profile picture',
   }
 
   return incompleteProfileFields.value
