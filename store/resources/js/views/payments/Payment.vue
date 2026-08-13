@@ -71,7 +71,7 @@ import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import { useToastStore } from '../../stores/toastStore'
-import { buildStoreUrl } from '../../services/runtimeConfig'
+import { API_BASE_URL, buildStoreUrl } from '../../services/runtimeConfig'
 import Navbar from '../../components/Navbar.vue'
 import { usePricingSettings } from '../../composables/usePricingSettings'
 
@@ -139,7 +139,7 @@ const resolveInvoiceAmount = async () => {
   }
 
   try {
-    const response = await axios.get(`/api/v1/invoices/${invoiceNumber.value}`)
+    const response = await axios.get(`${API_BASE_URL}/invoices/${invoiceNumber.value}`)
     const invoice = response?.data?.data
 
     if (!invoice) {
@@ -187,7 +187,7 @@ const continueToCheckout = async () => {
         throw new Error('No invoices selected for combined payment.')
       }
 
-      response = await axios.post('/api/v1/invoices/pay-multiple', {
+      response = await axios.post(`${API_BASE_URL}/invoices/pay-multiple`, {
         invoice_numbers: invoiceNumbers.value,
       })
     } else {
@@ -195,7 +195,7 @@ const continueToCheckout = async () => {
         throw new Error('Invoice number is required for payment.')
       }
 
-      response = await axios.post(`/api/v1/invoices/${invoiceNumber.value}/pay`)
+      response = await axios.post(`${API_BASE_URL}/invoices/${invoiceNumber.value}/pay`)
     }
 
     const sessionUrl = response?.data?.data?.session_url

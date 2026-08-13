@@ -420,6 +420,7 @@ import { useToastStore } from '../../stores/toastStore'
 import axios from 'axios'
 import Navbar from '../../components/Navbar.vue'
 import { usePricingSettings } from '../../composables/usePricingSettings'
+import { API_BASE_URL } from '../../services/runtimeConfig'
 
 export default {
   components: { Navbar },
@@ -572,7 +573,7 @@ export default {
           return
         }
 
-        const response = await axios.get('/api/v1/invoices', {
+        const response = await axios.get(`${API_BASE_URL}/invoices`, {
           params: {
             page: currentPage.value,
             pageSize: pageSize.value,
@@ -653,7 +654,7 @@ export default {
 
         // 1) Try direct product detail endpoint (product id).
         try {
-          const byId = await axios.get(`/api/v1/products/${encodeURIComponent(id)}`)
+          const byId = await axios.get(`${API_BASE_URL}/products/${encodeURIComponent(id)}`)
           resolved = extractProductName(byId?.data?.data)
         } catch (_) {
           // Try additional fallbacks below.
@@ -662,7 +663,7 @@ export default {
         // 2) Try SKU endpoint because invoice part/SKU may not be productId.
         if (!resolved) {
           try {
-            const bySku = await axios.get(`/api/v1/products/sku/${encodeURIComponent(id)}`)
+            const bySku = await axios.get(`${API_BASE_URL}/products/sku/${encodeURIComponent(id)}`)
             resolved = extractProductName(bySku?.data?.data)
           } catch (_) {
             // Continue to search fallback.
@@ -672,7 +673,7 @@ export default {
         // 3) Try products search endpoint and match best candidate.
         if (!resolved) {
           try {
-            const searched = await axios.get('/api/v1/products', {
+            const searched = await axios.get(`${API_BASE_URL}/products`, {
               params: {
                 search: id,
                 page: 1,
@@ -769,7 +770,7 @@ export default {
       selectedInvoice.value = invoice
 
       try {
-        const response = await axios.get(`/api/v1/invoices/${encodeURIComponent(invoice.invoice_number)}`)
+        const response = await axios.get(`${API_BASE_URL}/invoices/${encodeURIComponent(invoice.invoice_number)}`)
         if (response.data?.success && response.data?.data) {
           selectedInvoice.value = response.data.data
           await hydrateInvoiceProductNames(response.data.data)
@@ -781,7 +782,7 @@ export default {
 
     const downloadPDF = async (invoice) => {
       try {
-        const response = await axios.get(`/api/v1/invoices/${invoice.invoice_number}/pdf`, {
+        const response = await axios.get(`${API_BASE_URL}/invoices/${invoice.invoice_number}/pdf`, {
           responseType: 'blob',
         })
 
@@ -885,7 +886,7 @@ export default {
       }
 
       try {
-        const response = await axios.post('/api/v1/invoices/combine', {
+        const response = await axios.post(`${API_BASE_URL}/invoices/combine`, {
           invoice_numbers: payableNumbers,
         })
 
