@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import axios from 'axios'
-import { API_BASE_URL } from '../services/runtimeConfig'
+import { API_BASE_URL, buildStoreUrl } from '../services/runtimeConfig'
 
 export const useAuthStore = defineStore('auth', () => {
   const initialToken = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token') || null
@@ -16,6 +16,46 @@ export const useAuthStore = defineStore('auth', () => {
   const SESSION_TIMEOUT = 8 * 60 * 60 * 1000 // 8 hours in milliseconds
   const REMEMBER_TIMEOUT = 30 * 24 * 60 * 60 * 1000 // 30 days in milliseconds
   const rememberSession = ref(localStorage.getItem(REMEMBER_KEY) === 'true')
+  let _sessionExpiryTimer = null
+
+  const redirectToLogin = (reason = 'session-expired') => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    const currentPath = String(window.location.pathname || '').toLowerCase()
+    if (currentPath.endsWith('/login') || currentPath.endsWith('/admin/login')) {
+      return
+    }
+
+    const redirectUrl = `${buildStoreUrl('login')}?reason=${encodeURIComponent(reason)}`
+    window.location.replace(redirectUrl)
+  }
+
+  const clearSessionExpiryTimer = () => {
+    if (_sessionExpiryTimer) {
+      clearTimeout(_sessionExpiryTimer)
+      _sessionExpiryTimer = null
+    }
+  }
+
+  const scheduleSessionExpiryTimer = () => {
+    clearSessionExpiryTimer()
+
+    if (!token.value || !sessionExpiry.value) {
+      return
+    }
+
+    const msRemaining = sessionExpiry.value.getTime() - Date.now()
+    if (msRemaining <= 0) {
+      logout({ skipRequest: true, redirectReason: 'session-expired' })
+      return
+    }
+
+    _sessionExpiryTimer = setTimeout(() => {
+      logout({ skipRequest: true, redirectReason: 'session-expired' })
+    }, msRemaining)
+  }
 
   const sanitizeStoredUser = (value, depth = 0) => {
     if (!value || typeof value !== 'object') {
@@ -133,8 +173,11 @@ export const useAuthStore = defineStore('auth', () => {
       // Check if session has expired
       if (sessionExpiry.value < new Date()) {
         console.warn('Session has expired')
-        logout()
+        logout({ skipRequest: true, redirectReason: 'session-expired' })
+        return
       }
+
+      scheduleSessionExpiryTimer()
     }
   }
 
@@ -174,6 +217,7 @@ export const useAuthStore = defineStore('auth', () => {
     const expiry = new Date(Date.now() + timeout)
     sessionExpiry.value = expiry
     storage.setItem(SESSION_EXPIRY_KEY, expiry.toISOString())
+    scheduleSessionExpiryTimer()
     
     axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`
   }
@@ -310,11 +354,12 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  const logout = async () => {
+  const logout = async ({ skipRequest = false, redirectReason = '' } = {}) => {
     stopStatusPolling()
+    clearSessionExpiryTimer()
     try {
       // Call backend logout endpoint to invalidate token
-      if (token.value) {
+      if (token.value && !skipRequest) {
         await axios.post(`${API_BASE_URL}/auth/logout`)
       }
     } catch (error) {
@@ -329,6 +374,9 @@ export const useAuthStore = defineStore('auth', () => {
       rememberSession.value = false
       clearAuthStorage()
       delete axios.defaults.headers.common['Authorization']
+      if (redirectReason) {
+        redirectToLogin(redirectReason)
+      }
     }
   }
 
@@ -468,6 +516,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   if (token.value) {
     axios.defaults.headers.common['Authorization'] = `Bearer ${token.value}`
+    scheduleSessionExpiryTimer()
     // Verify session is still valid, then start polling
     refreshUser().then(ok => { if (ok) startStatusPolling() }).catch(() => logout())
   }

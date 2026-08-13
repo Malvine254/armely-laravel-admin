@@ -343,9 +343,8 @@ router.beforeEach((to, from, next) => {
   // Check if session has expired
   if (authStore.isAuthenticated && authStore.sessionExpiry) {
     const secondsRemaining = authStore.getSessionTimeRemaining();
-    if (secondsRemaining && secondsRemaining < 0) {
-      authStore.logout();
-      next({ name: 'login', query: { 'session-expired': 'true' } });
+    if (secondsRemaining !== null && secondsRemaining <= 0) {
+      authStore.logout({ skipRequest: true, redirectReason: 'session-expired' });
       return;
     }
   }
