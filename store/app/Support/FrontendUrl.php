@@ -11,6 +11,12 @@ class FrontendUrl
         $baseUrl = $configuredUrl !== '' ? $configuredUrl : $appUrl;
         $basePath = self::normalizedBasePath((string) config('app.frontend_base_path', '/'));
 
+        // Local safety net: if no explicit base path is configured and the URL
+        // is local root, default to /store because the storefront SPA is mounted there.
+        if ($basePath === '' && self::isLocalUrl($baseUrl) && !self::urlPathStartsWith($baseUrl, '/store')) {
+            $basePath = '/store';
+        }
+
         if ($basePath !== '' && !self::urlPathStartsWith($baseUrl, $basePath)) {
             $baseUrl = rtrim($baseUrl, '/') . $basePath;
         }

@@ -32,6 +32,16 @@ use GuzzleHttp\Psr7\Uri;
 use GuzzleHttp\Psr7\UriResolver;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
+
+// Backward-compatible redirect for legacy activation links that missed
+// the /store base path in older outbound emails.
+Route::get('/activate-account', function (Request $request) {
+    $queryString = $request->getQueryString();
+    $target = '/store/activate-account' . ($queryString ? ('?' . $queryString) : '');
+
+    return redirect()->to($target);
+})->name('store.activation.legacy.redirect');
+
 Route::get('/ui-responsiveness', function (\Illuminate\Http\Request $request) {
     $url = trim((string) $request->query('url', ''));
 
