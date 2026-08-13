@@ -21,6 +21,10 @@ class EmailPreferenceController extends Controller
             'success' => true,
             'data' => [
                 'transactional_enabled' => (bool) $pref->transactional_enabled,
+                'notification_email_enabled' => (bool) $pref->notification_email_enabled,
+                'quotes_notifications_enabled' => (bool) $pref->quotes_notifications_enabled,
+                'orders_notifications_enabled' => (bool) $pref->orders_notifications_enabled,
+                'invoices_notifications_enabled' => (bool) $pref->invoices_notifications_enabled,
                 'marketing_enabled' => (bool) $pref->marketing_enabled,
                 'price_alerts_enabled' => (bool) $pref->price_alerts_enabled,
                 'cart_reminders_enabled' => (bool) $pref->cart_reminders_enabled,
@@ -41,6 +45,10 @@ class EmailPreferenceController extends Controller
 
         $validated = $request->validate([
             'transactional_enabled' => ['sometimes', 'boolean'],
+            'notification_email_enabled' => ['sometimes', 'boolean'],
+            'quotes_notifications_enabled' => ['sometimes', 'boolean'],
+            'orders_notifications_enabled' => ['sometimes', 'boolean'],
+            'invoices_notifications_enabled' => ['sometimes', 'boolean'],
             'marketing_enabled' => ['sometimes', 'boolean'],
             'price_alerts_enabled' => ['sometimes', 'boolean'],
             'cart_reminders_enabled' => ['sometimes', 'boolean'],
@@ -68,6 +76,10 @@ class EmailPreferenceController extends Controller
             'success' => true,
             'data' => [
                 'transactional_enabled' => (bool) $pref->transactional_enabled,
+                'notification_email_enabled' => (bool) $pref->notification_email_enabled,
+                'quotes_notifications_enabled' => (bool) $pref->quotes_notifications_enabled,
+                'orders_notifications_enabled' => (bool) $pref->orders_notifications_enabled,
+                'invoices_notifications_enabled' => (bool) $pref->invoices_notifications_enabled,
                 'marketing_enabled' => (bool) $pref->marketing_enabled,
                 'price_alerts_enabled' => (bool) $pref->price_alerts_enabled,
                 'cart_reminders_enabled' => (bool) $pref->cart_reminders_enabled,

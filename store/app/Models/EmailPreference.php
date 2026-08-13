@@ -10,6 +10,10 @@ class EmailPreference extends Model
     protected $fillable = [
         'user_id',
         'transactional_enabled',
+        'notification_email_enabled',
+        'quotes_notifications_enabled',
+        'orders_notifications_enabled',
+        'invoices_notifications_enabled',
         'marketing_enabled',
         'price_alerts_enabled',
         'cart_reminders_enabled',
@@ -23,6 +27,10 @@ class EmailPreference extends Model
     {
         return [
             'transactional_enabled' => 'boolean',
+            'notification_email_enabled' => 'boolean',
+            'quotes_notifications_enabled' => 'boolean',
+            'orders_notifications_enabled' => 'boolean',
+            'invoices_notifications_enabled' => 'boolean',
             'marketing_enabled' => 'boolean',
             'price_alerts_enabled' => 'boolean',
             'cart_reminders_enabled' => 'boolean',

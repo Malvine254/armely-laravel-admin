@@ -17,6 +17,10 @@ class UserEmailPreferenceService
             ['user_id' => (int) $user->id],
             [
                 'transactional_enabled' => true,
+                'notification_email_enabled' => true,
+                'quotes_notifications_enabled' => true,
+                'orders_notifications_enabled' => true,
+                'invoices_notifications_enabled' => true,
                 'marketing_enabled' => true,
                 'price_alerts_enabled' => true,
                 'cart_reminders_enabled' => true,

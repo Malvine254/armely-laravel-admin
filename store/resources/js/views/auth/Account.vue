@@ -1018,6 +1018,12 @@ const handleManageNotifications = async () => {
   try {
     const remote = await fetchLifecycleEmailPreferences()
     lifecycleSettings.value = { ...remote }
+    notificationSettings.value = {
+      email: remote.notification_email_enabled !== false,
+      quotes: remote.quotes_notifications_enabled !== false,
+      orders: remote.orders_notifications_enabled !== false,
+      invoices: remote.invoices_notifications_enabled !== false,
+    }
     lifecycleQuietStart.value = minutesToClock(remote.quiet_hours_start)
     lifecycleQuietEnd.value = minutesToClock(remote.quiet_hours_end)
   } catch (error) {
@@ -1037,6 +1043,10 @@ const saveNotificationSettings = async () => {
 
   try {
     const payload = {
+      notification_email_enabled: !!notificationSettings.value.email,
+      quotes_notifications_enabled: !!notificationSettings.value.quotes,
+      orders_notifications_enabled: !!notificationSettings.value.orders,
+      invoices_notifications_enabled: !!notificationSettings.value.invoices,
       marketing_enabled: !!lifecycleSettings.value.marketing_enabled,
       price_alerts_enabled: !!lifecycleSettings.value.price_alerts_enabled,
       cart_reminders_enabled: !!lifecycleSettings.value.cart_reminders_enabled,
@@ -1052,8 +1062,21 @@ const saveNotificationSettings = async () => {
       payload.browse_reminders_enabled = false
     }
 
+    if (!payload.notification_email_enabled) {
+      payload.quotes_notifications_enabled = false
+      payload.orders_notifications_enabled = false
+      payload.invoices_notifications_enabled = false
+    }
+
     const updated = await updateLifecycleEmailPreferences(payload)
     lifecycleSettings.value = { ...updated }
+    notificationSettings.value = {
+      email: updated.notification_email_enabled !== false,
+      quotes: updated.quotes_notifications_enabled !== false,
+      orders: updated.orders_notifications_enabled !== false,
+      invoices: updated.invoices_notifications_enabled !== false,
+    }
+    notificationSettings.value = saveNotificationPreferences(notificationSettings.value, authStore.user?.id)
     lifecycleQuietStart.value = minutesToClock(updated.quiet_hours_start)
     lifecycleQuietEnd.value = minutesToClock(updated.quiet_hours_end)
 
