@@ -106,12 +106,29 @@ class ProcessReminderSubscriptionsJob implements ShouldQueue
                         continue;
                     }
 
+                    $idempotencyKey = 'abandoned_cart:' . (int) $subscription->id . ':' . $lastSyncedAt->format('YmdHi');
+                    if ($preferences->wasIdempotencyKeySent($idempotencyKey)) {
+                        continue;
+                    }
+
+                    if (!$preferences->underDailySendCap($user, 'abandoned_cart_reminder', 2, $now)) {
+                        continue;
+                    }
+
                     $sent = $mailer->sendAbandonedCartReminderEmail($user, $items, $lastSyncedAt);
                     if (!$sent) {
                         continue;
                     }
 
                     $subscription->update(['last_notified_at' => $now]);
+                    $preferences->markIdempotencyKeySent($user, $idempotencyKey, [
+                        'subscription_id' => (int) $subscription->id,
+                        'trigger_type' => 'abandoned_cart',
+                    ]);
+                    $preferences->markMarketingSent($user, 'abandoned_cart_reminder', [
+                        'subscription_id' => (int) $subscription->id,
+                        'trigger_type' => 'abandoned_cart',
+                    ]);
                     $metrics['abandoned_sent']++;
                 }
             });
@@ -195,12 +212,32 @@ class ProcessReminderSubscriptionsJob implements ShouldQueue
                     }
 
                     $price = OfferPricing::sellPrice($product);
+
+                    $idempotencyKey = 'viewed_product:' . (int) $subscription->id . ':' . $viewedAt->format('YmdHi');
+                    if ($preferences->wasIdempotencyKeySent($idempotencyKey)) {
+                        continue;
+                    }
+
+                    if (!$preferences->underDailySendCap($user, 'viewed_product_reminder', 2, $now)) {
+                        continue;
+                    }
+
                     $sent = $mailer->sendViewedProductReminderEmail($user, $product, $viewedAt, $price);
                     if (!$sent) {
                         continue;
                     }
 
                     $subscription->update(['last_notified_at' => $now]);
+                    $preferences->markIdempotencyKeySent($user, $idempotencyKey, [
+                        'subscription_id' => (int) $subscription->id,
+                        'trigger_type' => 'viewed_product',
+                        'product_id' => (int) $product->id,
+                    ]);
+                    $preferences->markMarketingSent($user, 'viewed_product_reminder', [
+                        'subscription_id' => (int) $subscription->id,
+                        'trigger_type' => 'viewed_product',
+                        'product_id' => (int) $product->id,
+                    ]);
                     $metrics['viewed_sent']++;
                 }
             });
