@@ -81,6 +81,11 @@ class Kernel extends ConsoleKernel
             ->name('process-reminder-subscriptions')
             ->withoutOverlapping();
 
+        $schedule->job(\App\Jobs\ProcessInvoicePaymentRemindersJob::class, 'default', 'database')
+            ->everySixHours()
+            ->name('process-invoice-payment-reminders')
+            ->withoutOverlapping();
+
         $schedule->command('storefront:rebuild-assortment')
             ->dailyAt('01:00')
             ->timezone($scheduleTimezone)
