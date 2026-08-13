@@ -1281,6 +1281,10 @@ let activeSearchRequestId = 0
 const pendingReviewStats = new Set()
 const PRODUCTS_API_TIMEOUT_MS = 45000
 const PRODUCTS_API_RETRY_COUNT = 1
+const FACET_REFRESH_MIN_INTERVAL_MS = 30000
+const FACET_REFRESH_DEFER_MS = 120
+let lastFacetRefreshAt = 0
+let facetRefreshTimer = null
 
 const isRetryableProductsError = (err) => {
   if (!err) return false
@@ -1322,6 +1326,43 @@ const getProductsWithRetry = async (path, options = {}, retries = PRODUCTS_API_R
   }
 
   throw lastError || new Error('Failed to fetch products')
+}
+
+const shouldRefreshFacetsNow = () => {
+  const hasSearch = normalizeSearchText(searchQuery.value) !== ''
+  const hasFacetSelection = (currentFilters.value.vendors?.length || 0) > 0
+    || (currentFilters.value.categories?.length || 0) > 0
+
+  // For plain text searches, prioritize product cards and skip expensive facet
+  // refreshes that can queue behind the same PHP worker.
+  if (hasSearch && !hasFacetSelection) {
+    return false
+  }
+
+  return true
+}
+
+const queueFacetRefresh = ({ force = false } = {}) => {
+  if (facetRefreshTimer) {
+    clearTimeout(facetRefreshTimer)
+    facetRefreshTimer = null
+  }
+
+  facetRefreshTimer = setTimeout(async () => {
+    facetRefreshTimer = null
+
+    if (!force && !shouldRefreshFacetsNow()) {
+      return
+    }
+
+    const now = Date.now()
+    if (!force && (now - lastFacetRefreshAt) < FACET_REFRESH_MIN_INTERVAL_MS) {
+      return
+    }
+
+    lastFacetRefreshAt = now
+    await Promise.all([fetchVendors(), fetchCategories()])
+  }, FACET_REFRESH_DEFER_MS)
 }
 
 const getReviewStatsForProduct = (productId) => getProductReviewStats(productId)
@@ -1479,8 +1520,6 @@ const performSearch = async (resetPage = true) => {
   if (resetPage) {
     currentPage.value = 1
     loading.value = true
-    // Keep sidebar counts synchronized with the exact search/filter request.
-    void Promise.all([fetchVendors(), fetchCategories()])
   } else {
     if (products.value.length === 0) {
       loading.value = true
@@ -1675,6 +1714,11 @@ const performSearch = async (resetPage = true) => {
         if (useServerPaged && ENABLE_SERVER_PREFETCH) {
           prefetchPage(currentPage.value + 1)
           if (currentPage.value > 1) prefetchPage(currentPage.value - 1)
+        }
+
+        // Refresh heavy facet queries lazily after products are rendered.
+        if (requestId === activeSearchRequestId) {
+          queueFacetRefresh()
         }
         
         return {
@@ -2581,8 +2625,9 @@ onMounted(async () => {
   await Promise.all([
     loadSearchProfile(),
     loadPricingSettings(true).then(() => { pricingReady.value = true }),
-    fetchVendors(),
-    fetchCategories(),
   ])
+
+  // Initial facet load is non-blocking so product cards render first.
+  queueFacetRefresh({ force: true })
 })
 </script>
