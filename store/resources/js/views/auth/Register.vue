@@ -40,21 +40,6 @@
               <label class="block text-sm font-semibold text-slate-700 mb-2">Password</label>
               <input v-model="password" type="password" placeholder="••••••••" class="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent transition" style="--tw-ring-color: #2F5597;">
 
-              <div class="mt-2 grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-6 items-start">
-                <p class="w-full text-xs text-slate-500 leading-5">Use at least 8 chars with upper/lowercase, number, and symbol</p>
-
-                <ul class="w-full list-none pl-0 space-y-1 text-xs">
-                  <li :class="passwordChecks.minLength ? 'text-green-700' : 'text-slate-500'">{{ passwordChecks.minLength ? 'OK' : 'X' }} At least 8 characters</li>
-                  <li :class="passwordChecks.hasUpper ? 'text-green-700' : 'text-slate-500'">{{ passwordChecks.hasUpper ? 'OK' : 'X' }} One uppercase letter</li>
-                  <li :class="passwordChecks.hasLower ? 'text-green-700' : 'text-slate-500'">{{ passwordChecks.hasLower ? 'OK' : 'X' }} One lowercase letter</li>
-                </ul>
-
-                <ul class="w-full list-none pl-0 space-y-1 text-xs">
-                  <li :class="passwordChecks.hasNumber ? 'text-green-700' : 'text-slate-500'">{{ passwordChecks.hasNumber ? 'OK' : 'X' }} One number</li>
-                  <li :class="passwordChecks.hasSymbol ? 'text-green-700' : 'text-slate-500'">{{ passwordChecks.hasSymbol ? 'OK' : 'X' }} One symbol</li>
-                </ul>
-              </div>
-
               <div v-if="password" class="mt-2">
                 <div class="flex items-center justify-between mb-1">
                   <span class="text-xs font-semibold text-slate-600">Password strength</span>
@@ -76,6 +61,21 @@
               <p v-if="confirmPassword" :class="passwordChecks.matchesConfirm ? 'text-green-700' : 'text-red-600'" class="text-xs mt-2">
                 {{ passwordChecks.matchesConfirm ? 'OK Passwords match' : 'X Passwords do not match yet' }}
               </p>
+            </div>
+
+            <div class="md:col-span-2 mt-2 grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-6 items-start">
+              <p class="w-full text-xs text-slate-500 leading-5">Use at least 8 chars with upper/lowercase, number, and symbol</p>
+
+              <ul class="w-full list-none pl-0 space-y-1 text-xs">
+                <li :class="passwordChecks.minLength ? 'text-green-700' : 'text-slate-500'">{{ passwordChecks.minLength ? 'OK' : 'X' }} At least 8 characters</li>
+                <li :class="passwordChecks.hasUpper ? 'text-green-700' : 'text-slate-500'">{{ passwordChecks.hasUpper ? 'OK' : 'X' }} One uppercase letter</li>
+                <li :class="passwordChecks.hasLower ? 'text-green-700' : 'text-slate-500'">{{ passwordChecks.hasLower ? 'OK' : 'X' }} One lowercase letter</li>
+              </ul>
+
+              <ul class="w-full list-none pl-0 space-y-1 text-xs">
+                <li :class="passwordChecks.hasNumber ? 'text-green-700' : 'text-slate-500'">{{ passwordChecks.hasNumber ? 'OK' : 'X' }} One number</li>
+                <li :class="passwordChecks.hasSymbol ? 'text-green-700' : 'text-slate-500'">{{ passwordChecks.hasSymbol ? 'OK' : 'X' }} One symbol</li>
+              </ul>
             </div>
           </div>
 
