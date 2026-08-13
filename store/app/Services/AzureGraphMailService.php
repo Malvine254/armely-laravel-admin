@@ -1011,6 +1011,34 @@ class AzureGraphMailService
         ";
     }
 
+    private function hasAnyLinePricing(array $items, array $unitKeys, array $lineKeys): bool
+    {
+        foreach ($items as $item) {
+            $line = is_array($item) ? $item : [];
+
+            foreach ($unitKeys as $key) {
+                if ((float) ($line[$key] ?? 0) > 0) {
+                    return true;
+                }
+            }
+
+            foreach ($lineKeys as $key) {
+                if ((float) ($line[$key] ?? 0) > 0) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private function moneyOrUnavailable(float $amount): string
+    {
+        return $amount > 0
+            ? ('$' . number_format($amount, 2))
+            : 'Unavailable';
+    }
+
     private function buildQuoteItemsTable($items, $quoteTotal = null): string
     {
         $normalizedItems = is_array($items) ? $items : [];
@@ -1025,16 +1053,11 @@ class AzureGraphMailService
             ";
         }
 
-        // Detect whether any item carries price data.
-        $hasAnyPrices = false;
-        foreach ($normalizedItems as $item) {
-            $l = is_array($item) ? $item : [];
-            if ((float)($l['unitPrice'] ?? $l['unit_price'] ?? 0) > 0
-                || (float)($l['lineTotal'] ?? $l['line_total'] ?? 0) > 0) {
-                $hasAnyPrices = true;
-                break;
-            }
-        }
+        $hasAnyPrices = $this->hasAnyLinePricing(
+            $normalizedItems,
+            ['unitPrice', 'unit_price'],
+            ['lineTotal', 'line_total']
+        );
 
         $qtotal = (float)($quoteTotal ?? 0);
 
@@ -1055,8 +1078,8 @@ class AzureGraphMailService
 
             $safeName = e($name);
             $safeProductRef = e($productRef);
-            $displayUnit = $unitPrice > 0 ? ('$' . number_format($unitPrice, 2)) : 'Unavailable';
-            $displayLineTotal = $lineTotal > 0 ? ('$' . number_format($lineTotal, 2)) : 'Unavailable';
+            $displayUnit = $this->moneyOrUnavailable($unitPrice);
+            $displayLineTotal = $this->moneyOrUnavailable($lineTotal);
 
             $rows .= "
                 <tr>
@@ -1213,18 +1236,12 @@ class AzureGraphMailService
         // Line items rows
         $itemsRows = '';
         $items = $invoice->items;
+        $invHasAnyPrices = false;
         if ($items && is_array($items) && count($items)) {
             // Detect if items carry price data. If missing, keep line values as
             // unavailable and rely on persisted invoice totals instead of
             // fabricating per-line prices.
-            $invHasAnyPrices = false;
-            foreach ($items as $item) {
-                if ((float)(is_array($item) ? ($item['unit_price'] ?? 0) : 0) > 0
-                    || (float)(is_array($item) ? ($item['line_total'] ?? 0) : 0) > 0) {
-                    $invHasAnyPrices = true;
-                    break;
-                }
-            }
+            $invHasAnyPrices = $this->hasAnyLinePricing($items, ['unit_price'], ['line_total']);
 
             foreach ($items as $item) {
                 $line = is_array($item) ? $item : [];
@@ -1232,21 +1249,19 @@ class AzureGraphMailService
                 $q  = max(1, (int)($item['quantity'] ?? 1));
                 $rawUp = (float)($item['unit_price'] ?? 0);
                 $rawLt = (float)($item['line_total'] ?? (($rawUp > 0) ? ($rawUp * $q) : 0));
-                $up = $rawUp > 0 ? number_format($rawUp, 2) : null;
-                $lt = $rawLt > 0 ? number_format($rawLt, 2) : null;
                 $td = "border:1px solid #ddd;padding:10px 12px;font-size:13px;";
                 $itemsRows .= "<tr>"
                     . "<td style='{$td}'>{$n}</td>"
                     . "<td style='{$td}text-align:right;'>{$q}</td>"
-                    . "<td style='{$td}text-align:right;'>" . ($up !== null ? ('\$' . $up) : 'Unavailable') . "</td>"
-                    . "<td style='{$td}text-align:right;font-weight:bold;'>" . ($lt !== null ? ('\$' . $lt) : 'Unavailable') . "</td>"
+                    . "<td style='{$td}text-align:right;'>" . $this->moneyOrUnavailable($rawUp) . "</td>"
+                    . "<td style='{$td}text-align:right;font-weight:bold;'>" . $this->moneyOrUnavailable($rawLt) . "</td>"
                     . "</tr>";
             }
         } else {
             $itemsRows = "<tr><td colspan='4' style='border:1px solid #ddd;padding:10px;text-align:center;font-size:13px;color:#999;'>No items found</td></tr>";
         }
 
-        $invoicePricingNote = (is_array($items) && count($items) > 0 && isset($invHasAnyPrices) && !$invHasAnyPrices)
+        $invoicePricingNote = (is_array($items) && count($items) > 0 && !$invHasAnyPrices)
             ? "<p style='margin:10px 0 0;color:#92400e;font-size:12px'>Line-item prices were unavailable in the source record. Financial totals below come from the persisted invoice totals.</p>"
             : '';
 
