@@ -15,7 +15,7 @@
 
     <div class="flex min-h-0 min-w-0 flex-1 flex-col p-4">
       <div class="mb-2 flex items-start justify-between gap-3">
-        <h3 class="line-clamp-2 min-h-[2.5rem] min-w-0 flex-1 text-sm font-bold leading-5 text-[#102a52]" :title="hoverDetails">{{ product.productName }}</h3>
+        <h3 class="min-w-0 flex-1 truncate text-[13px] font-semibold leading-5 text-[#102a52]" :title="hoverDetails">{{ product.productName }}</h3>
         <span class="flex-shrink-0 rounded px-2 py-1 text-[10px] font-semibold" :class="product.discontinueProduct ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-[#2F5597]'">{{ product.discontinueProduct ? 'EOL' : 'Active' }}</span>
       </div>
       <div class="mb-2 flex items-center justify-between gap-3 text-[11px] text-slate-500">
