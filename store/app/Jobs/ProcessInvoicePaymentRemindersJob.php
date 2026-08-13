@@ -81,28 +81,29 @@ class ProcessInvoicePaymentRemindersJob implements ShouldQueue
                 $meta['delivery_gate'] = 'delivered';
                 $stage = max(0, (int) ($meta['stage'] ?? 0));
                 $lastSentAt = isset($meta['last_sent_at']) ? Carbon::parse((string) $meta['last_sent_at']) : null;
+                $dueDateLabel = $dueAt->format('M d, Y');
 
                 // Cadence: spaced reminders around due date; never more than one reminder per 24h.
                 $schedule = [
                     [
                         'key' => 'pre_due_2d',
                         'at' => $dueAt->copy()->subDays(2),
-                        'message' => 'Friendly reminder: your invoice will be due soon.',
+                        'message' => "Friendly reminder: delivery has been completed and this invoice is due on {$dueDateLabel}.",
                     ],
                     [
                         'key' => 'due_today',
                         'at' => $dueAt->copy(),
-                        'message' => 'Your invoice is due today. Please arrange payment at your earliest convenience.',
+                        'message' => "Your invoice is due today ({$dueDateLabel}). Please arrange payment according to your B2B terms.",
                     ],
                     [
                         'key' => 'overdue_3d',
                         'at' => $dueAt->copy()->addDays(3),
-                        'message' => 'Payment reminder: this invoice is now overdue. Please complete payment as soon as possible.',
+                        'message' => "Payment reminder: this invoice is now overdue (due {$dueDateLabel}). Please complete payment as soon as possible.",
                     ],
                     [
                         'key' => 'overdue_7d',
                         'at' => $dueAt->copy()->addDays(7),
-                        'message' => 'Final reminder: your invoice remains overdue. Please resolve payment to avoid disruption.',
+                        'message' => "Final reminder: your invoice remains overdue (due {$dueDateLabel}). Please resolve payment to avoid disruption.",
                     ],
                 ];
 
