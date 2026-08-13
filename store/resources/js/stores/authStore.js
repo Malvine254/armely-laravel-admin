@@ -317,7 +317,9 @@ export const useAuthStore = defineStore('auth', () => {
         await axios.post(`${API_BASE_URL}/auth/logout`)
       }
     } catch (error) {
-      console.warn('Logout error (continuing anyway):', error)
+      if (error?.response?.status !== 401) {
+        console.warn('Logout error (continuing anyway):', error)
+      }
     } finally {
       token.value = null
       user.value = null
