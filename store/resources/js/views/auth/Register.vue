@@ -74,6 +74,7 @@
           </div>
 
           <div v-if="recaptchaSiteKey" class="space-y-2">
+            <label class="block text-sm font-semibold text-slate-700">Google reCAPTCHA</label>
             <div id="register-recaptcha" class="min-h-[78px]"></div>
             <p v-if="recaptchaError" class="text-xs text-red-600">{{ recaptchaError }}</p>
           </div>
