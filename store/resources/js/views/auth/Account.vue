@@ -503,6 +503,7 @@
 <script setup>
 import { computed, ref, onMounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
+import { getData as getCountryData } from 'country-list'
 import { useAuthStore } from '../../stores/authStore'
 import { useToastStore } from '../../stores/toastStore'
 import { getAuthStorageKeys } from '../../services/authContext'
@@ -607,19 +608,30 @@ const lifecycleTimezones = [
   'Asia/Dubai',
   'Asia/Singapore',
 ]
-const shippingCountryOptions = [
-  { value: 'KE', label: 'Kenya' },
-  { value: 'UG', label: 'Uganda' },
-  { value: 'TZ', label: 'Tanzania' },
-  { value: 'RW', label: 'Rwanda' },
-  { value: 'BI', label: 'Burundi' },
-  { value: 'ZA', label: 'South Africa' },
-  { value: 'NG', label: 'Nigeria' },
-  { value: 'GH', label: 'Ghana' },
-  { value: 'AE', label: 'United Arab Emirates' },
-  { value: 'GB', label: 'United Kingdom' },
-  { value: 'US', label: 'United States' },
-]
+const shippingCountryOptions = (() => {
+  const preferredOrder = ['US', 'KE', 'UG', 'TZ', 'RW', 'BI', 'ZA', 'NG', 'GH', 'AE', 'GB']
+  const countries = getCountryData()
+    .map((country) => ({
+      value: String(country.code || '').trim().toUpperCase(),
+      label: String(country.name || '').trim(),
+    }))
+    .filter((country) => country.value && country.label)
+
+  countries.sort((left, right) => {
+    const leftIndex = preferredOrder.indexOf(left.value)
+    const rightIndex = preferredOrder.indexOf(right.value)
+
+    if (leftIndex !== -1 || rightIndex !== -1) {
+      if (leftIndex === -1) return 1
+      if (rightIndex === -1) return -1
+      return leftIndex - rightIndex
+    }
+
+    return left.label.localeCompare(right.label)
+  })
+
+  return countries
+})()
 const PHONE_PATTERN = /^\+?[0-9][0-9\s().-]{6,19}$/
 
 // Profile picture handling
