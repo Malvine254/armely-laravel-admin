@@ -83,7 +83,7 @@
 
           <label class="flex items-start">
             <input type="checkbox" class="w-4 h-4 rounded mt-1" style="accent-color: #2F5597;">
-            <span class="ml-2 text-sm text-slate-600">I agree to the <a href="#" style="color: #2F5597;">Terms of Service</a> and <a href="#" style="color: #2F5597;">Privacy Policy</a></span>
+            <span class="ml-2 text-sm text-slate-600">I agree to the <a href="#" style="color: #2F5597;">Terms of Service</a> and <a href="https://armely.com/privacy-policy" target="_blank" rel="noopener noreferrer" style="color: #2F5597;">Privacy Policy</a></span>
           </label>
 
           <button
