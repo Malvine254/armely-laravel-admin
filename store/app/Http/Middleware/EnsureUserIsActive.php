@@ -104,6 +104,10 @@ class EnsureUserIsActive
     {
         $path = trim((string) $request->path(), '/');
 
+        if ($request->isMethod('GET') && str_ends_with($path, 'api/v1/activities')) {
+            return true;
+        }
+
         return str_ends_with($path, 'api/v1/auth/me');
     }
 }
