@@ -84,22 +84,20 @@ class AzureGraphMailService
 
         $subject = 'Activate your Armely Store account';
         $safeName = e($recipientName ?: 'there');
-        $safeUrl = e($activationUrl);
-
-        $html = "
-            <div style='font-family:Segoe UI,Arial,sans-serif;line-height:1.5;color:#1f2937'>
-                <h2 style='margin:0 0 12px;color:#2F5597'>Activate your account</h2>
-                <p>Hello {$safeName},</p>
-                <p>Thank you for registering with Armely Store. Please activate your account to continue.</p>
-                <p style='margin:24px 0'>
-                    <a href='{$safeUrl}' style='background:#2F5597;color:#ffffff;padding:10px 16px;border-radius:6px;text-decoration:none;display:inline-block'>
-                        Activate account
-                    </a>
-                </p>
-                <p>This activation link expires in 24 hours.</p>
-                <p>If you did not request this, you can safely ignore this email.</p>
-            </div>
-        ";
+        $html = $this->buildModernNotificationEmail(
+            'Activate Your Account',
+            "
+                <p style='margin:0 0 14px;font-size:16px;color:#1f2937'>Hello {$safeName},</p>
+                <p style='margin:0 0 16px;color:#475569'>Welcome to Armely Store. Please confirm your email address to activate your account and continue setup.</p>
+                <div style='background:#f8fbff;border:1px solid #dbe7f7;border-radius:10px;padding:12px 14px;margin:14px 0'>
+                    <p style='margin:0;font-size:13px;color:#334155'><strong>Security note:</strong> This activation link expires in 24 hours.</p>
+                </div>
+                <p style='margin:0;color:#64748b;font-size:13px'>If you did not request this account, you can safely ignore this message.</p>
+            ",
+            'Activate Account',
+            $activationUrl,
+            'Need help? Our support team can assist if activation fails.'
+        );
 
         $text = "Hello {$recipientName},\n\n"
             . "Thank you for registering with Armely Store. Activate your account using the link below:\n"
@@ -122,30 +120,30 @@ class AzureGraphMailService
             ? "<tr><td style='padding:6px 0;color:#64748b'>Company</td><td style='padding:6px 0 6px 16px;font-weight:600'>{$companyName}</td></tr>"
             : '';
         $safePassword = e($plainPassword);
-        $loginUrl = e($this->frontendUrl() . '/login');
+        $loginUrl = $this->frontendUrl() . '/login';
         $appName = e(config('app.name', 'Armely Store'));
         $subject = "Your {$appName} Account Invitation";
 
-        $html = "
-            <div style='font-family:Segoe UI,Arial,sans-serif;line-height:1.6;color:#1f2937;max-width:620px'>
-                <h2 style='margin:0 0 8px;color:#2F5597'>You have been invited to {$appName}</h2>
-                <p>Hello {$safeName},</p>
-                <p>An Armely customer account has been created for you. Use the temporary credentials below to sign in.</p>
-                <div style='background:#edf3fb;border:1px solid #d9e6f7;border-radius:10px;padding:16px;margin:24px 0'>
+        $html = $this->buildModernNotificationEmail(
+            'Your Customer Account Is Ready',
+            "
+                <p style='margin:0 0 14px;font-size:16px;color:#1f2937'>Hello {$safeName},</p>
+                <p style='margin:0 0 16px;color:#475569'>An Armely customer account has been created for you. Use these temporary credentials to sign in.</p>
+                <div style='background:#edf3fb;border:1px solid #d9e6f7;border-radius:10px;padding:16px;margin:16px 0'>
                     <table style='border-collapse:collapse;width:100%'>
                         <tr><td style='padding:6px 0;color:#64748b'>Email</td><td style='padding:6px 0 6px 16px;font-weight:600'>{$safeEmail}</td></tr>
-                        <tr><td style='padding:6px 0;color:#64748b'>Password</td><td style='padding:6px 0 6px 16px;font-weight:700;font-family:Consolas,monospace'>{$safePassword}</td></tr>
+                        <tr><td style='padding:6px 0;color:#64748b'>Temporary Password</td><td style='padding:6px 0 6px 16px;font-weight:700;font-family:Consolas,monospace'>{$safePassword}</td></tr>
                         {$companyRow}
                     </table>
                 </div>
-                <p style='background:#fff8e1;border:1px solid #f6c948;border-radius:8px;padding:12px;color:#92610a'>
-                    This temporary password expires in 48 hours. You will be asked to change it after signing in.
-                </p>
-                <p style='margin:28px 0 8px'>
-                    <a href='{$loginUrl}' style='background:#2F5597;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:8px;display:inline-block;font-weight:600'>Sign in</a>
-                </p>
-            </div>
-        ";
+                <div style='background:#fff8e1;border:1px solid #f6c948;border-radius:8px;padding:12px;margin-bottom:8px'>
+                    <p style='margin:0;color:#92400e;font-size:13px'><strong>Action required:</strong> this password expires in 48 hours and must be changed at first sign-in.</p>
+                </div>
+            ",
+            'Sign In',
+            $loginUrl,
+            'If you were not expecting this invitation, please contact support immediately.'
+        );
 
         $text = "Hello {$user->name},\n\n"
             . "An Armely customer account has been created for you.\n"
@@ -167,30 +165,30 @@ class AzureGraphMailService
         $safeEmail = e($user->email);
         $safePassword = e($plainPassword);
         $role = e('Admin');
-        $loginUrl = e(rtrim(config('app.url'), '/') . '/admin/login');
+        $loginUrl = rtrim(config('app.url'), '/') . '/admin/login';
         $appName = e(config('app.name', 'Armely Store'));
         $subject = "Your {$appName} Admin Account Invitation";
 
-        $html = "
-            <div style='font-family:Segoe UI,Arial,sans-serif;line-height:1.6;color:#1f2937;max-width:620px'>
-                <h2 style='margin:0 0 8px;color:#2F5597'>Admin account created</h2>
-                <p>Hello {$safeName},</p>
-                <p>An administrator account has been created for you on the Armely Store Admin Portal.</p>
-                <div style='background:#edf3fb;border:1px solid #d9e6f7;border-radius:10px;padding:16px;margin:24px 0'>
+        $html = $this->buildModernNotificationEmail(
+            'Admin Access Granted',
+            "
+                <p style='margin:0 0 14px;font-size:16px;color:#1f2937'>Hello {$safeName},</p>
+                <p style='margin:0 0 16px;color:#475569'>Your administrator account is ready. Use the credentials below to access the Armely Admin Portal.</p>
+                <div style='background:#edf3fb;border:1px solid #d9e6f7;border-radius:10px;padding:16px;margin:16px 0'>
                     <table style='border-collapse:collapse;width:100%'>
                         <tr><td style='padding:6px 0;color:#64748b'>Email</td><td style='padding:6px 0 6px 16px;font-weight:600'>{$safeEmail}</td></tr>
-                        <tr><td style='padding:6px 0;color:#64748b'>Password</td><td style='padding:6px 0 6px 16px;font-weight:700;font-family:Consolas,monospace'>{$safePassword}</td></tr>
+                        <tr><td style='padding:6px 0;color:#64748b'>Temporary Password</td><td style='padding:6px 0 6px 16px;font-weight:700;font-family:Consolas,monospace'>{$safePassword}</td></tr>
                         <tr><td style='padding:6px 0;color:#64748b'>Role</td><td style='padding:6px 0 6px 16px;font-weight:600'>{$role}</td></tr>
                     </table>
                 </div>
-                <p style='background:#fff8e1;border:1px solid #f6c948;border-radius:8px;padding:12px;color:#92610a'>
-                    This temporary password expires in 48 hours. You will be asked to change it after signing in.
-                </p>
-                <p style='margin:28px 0 8px'>
-                    <a href='{$loginUrl}' style='background:#2F5597;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:8px;display:inline-block;font-weight:600'>Sign in to Admin Portal</a>
-                </p>
-            </div>
-        ";
+                <div style='background:#fff8e1;border:1px solid #f6c948;border-radius:8px;padding:12px;margin-bottom:8px'>
+                    <p style='margin:0;color:#92400e;font-size:13px'><strong>Security:</strong> this temporary password expires in 48 hours and must be changed after login.</p>
+                </div>
+            ",
+            'Sign In To Admin Portal',
+            $loginUrl,
+            'Use a secure network/device when accessing admin tools.'
+        );
 
         $text = "Hello {$user->name},\n\n"
             . "An administrator account has been created for you.\n"
@@ -211,22 +209,20 @@ class AzureGraphMailService
 
         $subject = 'Reset your Armely Store password';
         $safeName = e($recipientName ?: 'there');
-        $safeUrl = e($resetUrl);
-
-        $html = "
-            <div style='font-family:Segoe UI,Arial,sans-serif;line-height:1.5;color:#1f2937'>
-                <h2 style='margin:0 0 12px;color:#2F5597'>Password reset request</h2>
-                <p>Hello {$safeName},</p>
-                <p>We received a request to reset your Armely Store password.</p>
-                <p style='margin:24px 0'>
-                    <a href='{$safeUrl}' style='background:#2F5597;color:#ffffff;padding:10px 16px;border-radius:6px;text-decoration:none;display:inline-block'>
-                        Reset password
-                    </a>
-                </p>
-                <p>This reset link expires in 60 minutes.</p>
-                <p>If you did not request this, you can safely ignore this email.</p>
-            </div>
-        ";
+        $html = $this->buildModernNotificationEmail(
+            'Password Reset Request',
+            "
+                <p style='margin:0 0 14px;font-size:16px;color:#1f2937'>Hello {$safeName},</p>
+                <p style='margin:0 0 16px;color:#475569'>We received a request to reset your Armely Store password.</p>
+                <div style='background:#f8fbff;border:1px solid #dbe7f7;border-radius:10px;padding:12px 14px;margin:14px 0'>
+                    <p style='margin:0;font-size:13px;color:#334155'><strong>Security note:</strong> this reset link expires in 60 minutes.</p>
+                </div>
+                <p style='margin:0;color:#64748b;font-size:13px'>If you did not request this, you can safely ignore this email.</p>
+            ",
+            'Reset Password',
+            $resetUrl,
+            'If this was not you, we recommend changing your password from account settings once signed in.'
+        );
 
         $text = "Hello {$recipientName},\n\n"
             . "We received a request to reset your Armely Store password.\n"
@@ -245,7 +241,7 @@ class AzureGraphMailService
         $safeName    = e($user->name ?: 'there');
         $safeEmail   = e($user->email);
         $companyName = e($user->company->name ?? '');
-        $loginUrl    = e($this->frontendUrl() . '/login');
+        $loginUrl    = $this->frontendUrl() . '/login';
         $appName     = e(config('app.name', 'Armely Store'));
         $supportEmail = e(\App\Models\AppSetting::getValue('system.support_email', env('SUPPORT_EMAIL', 'info@armely.com')));
         $subject     = "Your {$appName} Account Has Been Approved";
@@ -254,36 +250,26 @@ class AzureGraphMailService
             ? "<tr><td style='padding:4px 0;color:#64748b'>Company</td><td style='padding:4px 0 4px 16px;font-weight:600'>{$companyName}</td></tr>"
             : '';
 
-        $html = "
-            <div style='font-family:Segoe UI,Arial,sans-serif;line-height:1.6;color:#1f2937;max-width:600px'>
-                <div style='text-align:center;margin-bottom:24px'>
-                    <div style='display:inline-flex;align-items:center;justify-content:center;width:56px;height:56px;border-radius:50%;background:#d1fae5;font-size:28px;line-height:56px'>&#10003;</div>
-                </div>
-                <h2 style='margin:0 0 8px;color:#2F5597;text-align:center'>Your account has been approved!</h2>
-                <p>Hello {$safeName},</p>
-                <p>Great news — your <strong>{$appName}</strong> account has been reviewed and approved by our team. You can now log in and start using the platform.</p>
-                <div style='background:#edf3fb;border:1px solid #d9e6f7;border-radius:10px;padding:16px;margin:24px 0'>
+        $html = $this->buildModernNotificationEmail(
+            'Account Approved',
+            "
+                <p style='margin:0 0 14px;font-size:16px;color:#1f2937'>Hello {$safeName},</p>
+                <p style='margin:0 0 16px;color:#475569'>Great news. Your <strong>{$appName}</strong> account has been approved and is now active.</p>
+                <div style='background:#edf3fb;border:1px solid #d9e6f7;border-radius:10px;padding:16px;margin:16px 0'>
                     <table style='border-collapse:collapse;width:100%'>
                         <tr><td style='padding:4px 0;color:#64748b'>Account</td><td style='padding:4px 0 4px 16px;font-weight:600'>{$safeEmail}</td></tr>
                         {$companyRow}
                     </table>
                 </div>
-                <p>With your approved account you can:</p>
-                <ul style='padding-left:20px;line-height:1.8'>
-                    <li>Request and manage quotes</li>
-                    <li>Place and track orders</li>
-                    <li>View invoices and payment history</li>
-                    <li>Chat with our Mela AI assistant</li>
-                </ul>
-                <p style='margin:28px 0 8px;text-align:center'>
-                    <a href='{$loginUrl}' style='background:#2F5597;color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:8px;display:inline-block;font-weight:600'>Log in to your account</a>
-                </p>
-                <p style='margin-top:28px;color:#64748b;font-size:12px'>
-                    Questions? Contact us at <a href='mailto:{$supportEmail}' style='color:#2F5597'>{$supportEmail}</a>.<br>
-                    &copy; " . date('Y') . " {$appName}. All rights reserved.
-                </p>
-            </div>
-        ";
+                <p style='margin:0;color:#475569'>You can now request quotes, place orders, track shipments, and manage invoices from your dashboard.</p>
+            ",
+            'Log In To Your Account',
+            $loginUrl,
+            "Questions? Contact us at {$supportEmail}.",
+            '#15803d',
+            'Approved',
+            '#15803d'
+        );
 
         $text = "Hello {$user->name},\n\n"
             . "Great news — your {$appName} account has been approved!\n\n"
@@ -312,27 +298,26 @@ class AzureGraphMailService
             ? "<tr><td style='padding:4px 0;color:#64748b'>Company</td><td style='padding:4px 0 4px 16px;font-weight:600'>{$companyName}</td></tr>"
             : '';
 
-        $html = "
-            <div style='font-family:Segoe UI,Arial,sans-serif;line-height:1.6;color:#1f2937;max-width:600px'>
-                <div style='text-align:center;margin-bottom:24px'>
-                    <div style='display:inline-flex;align-items:center;justify-content:center;width:56px;height:56px;border-radius:50%;background:#fee2e2;font-size:28px;line-height:56px'>&#9888;</div>
-                </div>
-                <h2 style='margin:0 0 8px;color:#b91c1c;text-align:center'>Your account has been suspended</h2>
-                <p>Hello {$safeName},</p>
-                <p>Your <strong>{$appName}</strong> account has been suspended by our team. You will not be able to log in until the suspension is lifted.</p>
-                <div style='background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:16px;margin:24px 0'>
+        $html = $this->buildModernNotificationEmail(
+            'Account Suspended',
+            "
+                <p style='margin:0 0 14px;font-size:16px;color:#1f2937'>Hello {$safeName},</p>
+                <p style='margin:0 0 16px;color:#475569'>Your <strong>{$appName}</strong> account is currently suspended and login access is temporarily disabled.</p>
+                <div style='background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:16px;margin:16px 0'>
                     <table style='border-collapse:collapse;width:100%'>
                         <tr><td style='padding:4px 0;color:#64748b'>Account</td><td style='padding:4px 0 4px 16px;font-weight:600'>{$safeEmail}</td></tr>
                         {$companyRow}
                     </table>
                 </div>
-                <p>If you believe this is a mistake or have questions, please reach out to us.</p>
-                <p style='margin-top:28px;color:#64748b;font-size:12px'>
-                    Contact us at <a href='mailto:{$supportEmail}' style='color:#2F5597'>{$supportEmail}</a>.<br>
-                    &copy; " . date('Y') . " {$appName}. All rights reserved.
-                </p>
-            </div>
-        ";
+                <p style='margin:0;color:#475569'>If you believe this is an error, please contact support and our team will review your account status.</p>
+            ",
+            'Contact Support',
+            "mailto:{$supportEmail}",
+            'We are available to help resolve access issues promptly.',
+            '#b91c1c',
+            'Suspended',
+            '#b91c1c'
+        );
 
         $text = "Hello {$user->name},\n\n"
             . "Your {$appName} account ({$user->email}) has been suspended.\n\n"
@@ -350,7 +335,7 @@ class AzureGraphMailService
         $safeName    = e($user->name ?: 'there');
         $safeEmail   = e($user->email);
         $companyName = e($user->company->name ?? '');
-        $loginUrl    = e($this->frontendUrl() . '/login');
+        $loginUrl    = $this->frontendUrl() . '/login';
         $appName     = e(config('app.name', 'Armely Store'));
         $supportEmail = e(\App\Models\AppSetting::getValue('system.support_email', env('SUPPORT_EMAIL', 'info@armely.com')));
         $subject     = "Your {$appName} Account Has Been Reactivated";
@@ -359,29 +344,26 @@ class AzureGraphMailService
             ? "<tr><td style='padding:4px 0;color:#64748b'>Company</td><td style='padding:4px 0 4px 16px;font-weight:600'>{$companyName}</td></tr>"
             : '';
 
-        $html = "
-            <div style='font-family:Segoe UI,Arial,sans-serif;line-height:1.6;color:#1f2937;max-width:600px'>
-                <div style='text-align:center;margin-bottom:24px'>
-                    <div style='display:inline-flex;align-items:center;justify-content:center;width:56px;height:56px;border-radius:50%;background:#d1fae5;font-size:28px;line-height:56px'>&#10003;</div>
-                </div>
-                <h2 style='margin:0 0 8px;color:#2F5597;text-align:center'>Your account has been reactivated</h2>
-                <p>Hello {$safeName},</p>
-                <p>Good news — your <strong>{$appName}</strong> account has been reactivated. You can now log in and use the platform again.</p>
-                <div style='background:#edf3fb;border:1px solid #d9e6f7;border-radius:10px;padding:16px;margin:24px 0'>
+        $html = $this->buildModernNotificationEmail(
+            'Account Reactivated',
+            "
+                <p style='margin:0 0 14px;font-size:16px;color:#1f2937'>Hello {$safeName},</p>
+                <p style='margin:0 0 16px;color:#475569'>Your <strong>{$appName}</strong> account has been reactivated and access has been restored.</p>
+                <div style='background:#edf3fb;border:1px solid #d9e6f7;border-radius:10px;padding:16px;margin:16px 0'>
                     <table style='border-collapse:collapse;width:100%'>
                         <tr><td style='padding:4px 0;color:#64748b'>Account</td><td style='padding:4px 0 4px 16px;font-weight:600'>{$safeEmail}</td></tr>
                         {$companyRow}
                     </table>
                 </div>
-                <p style='margin:28px 0 8px;text-align:center'>
-                    <a href='{$loginUrl}' style='background:#2F5597;color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:8px;display:inline-block;font-weight:600'>Log in to your account</a>
-                </p>
-                <p style='margin-top:28px;color:#64748b;font-size:12px'>
-                    Questions? Contact us at <a href='mailto:{$supportEmail}' style='color:#2F5597'>{$supportEmail}</a>.<br>
-                    &copy; " . date('Y') . " {$appName}. All rights reserved.
-                </p>
-            </div>
-        ";
+                <p style='margin:0;color:#475569'>You can sign in now and continue with quotes, orders, and invoice management.</p>
+            ",
+            'Log In To Your Account',
+            $loginUrl,
+            "Questions? Contact us at {$supportEmail}.",
+            '#15803d',
+            'Reactivated',
+            '#15803d'
+        );
 
         $text = "Hello {$user->name},\n\n"
             . "Your {$appName} account ({$user->email}) has been reactivated. You can log in here: {$loginUrl}\n\n"
@@ -957,11 +939,12 @@ class AzureGraphMailService
   </div>
 
   <!-- Card -->
-  <div style='background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(15,47,99,0.10)'>
+    <div style='background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 10px 28px rgba(15,47,99,0.12);border:1px solid #dbe7f7'>
 
     <!-- Header band -->
     <div style='background:linear-gradient(135deg,#0f2f63 0%,#2f5597 100%);padding:28px 32px 24px'>
       {$badgeHtml}
+            <p style='margin:0 0 8px;font-size:11px;color:#dbe7ff;letter-spacing:0.08em;text-transform:uppercase;font-weight:700'>Armely Store Notifications</p>
       <h1 style='margin:0;color:#ffffff;font-size:26px;font-weight:700;line-height:1.2'>{$safeTitle}</h1>
     </div>
 
@@ -969,9 +952,9 @@ class AzureGraphMailService
     <div style='padding:28px 32px'>
       {$contentHtml}
 
-      <div style='margin-top:24px'>
+            <div style='margin-top:24px;padding-top:20px;border-top:1px solid #e8eef8'>
         <a href='{$safeButtonUrl}'
-           style='display:inline-block;padding:13px 28px;background:" . e($accentColor) . ";color:#ffffff;text-decoration:none;border-radius:8px;font-weight:700;font-size:14px;letter-spacing:0.02em'>
+                     style='display:inline-block;padding:13px 28px;background:" . e($accentColor) . ";color:#ffffff;text-decoration:none;border-radius:8px;font-weight:700;font-size:14px;letter-spacing:0.02em;box-shadow:0 8px 16px rgba(15,47,99,0.16)'>
           {$safeButtonLabel} &rarr;
         </a>
       </div>
@@ -980,7 +963,7 @@ class AzureGraphMailService
     <!-- Footer note -->
     <div style='padding:16px 32px 20px;background:#f8fbff;border-top:1px solid #e3ebf8'>
       {$footerNoteHtml}
-      <p style='margin:0;font-size:12px;color:#94a3b8'>You received this email because you have an account with Armely Store.
+            <p style='margin:0;font-size:12px;color:#94a3b8'>You received this email because your account is subscribed to operational account notifications.
         &nbsp;&bull;&nbsp; <a href='mailto:{$supportEmail}' style='color:#2f5597;text-decoration:none'>{$supportEmail}</a>
       </p>
     </div>
