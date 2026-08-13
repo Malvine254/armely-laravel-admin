@@ -69,6 +69,11 @@
             </p>
           </div>
 
+          <div v-if="recaptchaSiteKey" class="space-y-2">
+            <div id="register-recaptcha" class="min-h-[78px]"></div>
+            <p v-if="recaptchaError" class="text-xs text-red-600">{{ recaptchaError }}</p>
+          </div>
+
           <label class="flex items-start">
             <input type="checkbox" class="w-4 h-4 rounded mt-1" style="accent-color: #2F5597;">
             <span class="ml-2 text-sm text-slate-600">I agree to the <a href="#" style="color: #2F5597;">Terms of Service</a> and <a href="#" style="color: #2F5597;">Privacy Policy</a></span>
@@ -99,7 +104,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { normalizeLocalAssetUrl } from '@/services/runtimeConfig'
 import { useAuthStore } from '../../stores/authStore'
@@ -115,6 +120,75 @@ const fullName = ref('')
 const password = ref('')
 const confirmPassword = ref('')
 const loading = ref(false)
+const recaptchaSiteKey = (import.meta.env.VITE_RECAPTCHA_SITE_KEY || '').trim()
+const recaptchaToken = ref('')
+const recaptchaError = ref('')
+
+let recaptchaWidgetId = null
+
+const resetRecaptcha = () => {
+  if (typeof window === 'undefined' || !window.grecaptcha || recaptchaWidgetId === null) {
+    recaptchaToken.value = ''
+    return
+  }
+
+  window.grecaptcha.reset(recaptchaWidgetId)
+  recaptchaToken.value = ''
+}
+
+const renderRecaptcha = () => {
+  if (!recaptchaSiteKey || typeof window === 'undefined' || !window.grecaptcha?.render) {
+    return
+  }
+
+  if (recaptchaWidgetId !== null) {
+    return
+  }
+
+  const container = document.getElementById('register-recaptcha')
+  if (!container) {
+    return
+  }
+
+  recaptchaWidgetId = window.grecaptcha.render(container, {
+    sitekey: recaptchaSiteKey,
+    callback: (token) => {
+      recaptchaToken.value = token || ''
+      recaptchaError.value = ''
+    },
+    'expired-callback': () => {
+      recaptchaToken.value = ''
+    },
+  })
+}
+
+const ensureRecaptchaScript = () => {
+  if (!recaptchaSiteKey || typeof window === 'undefined') {
+    return
+  }
+
+  if (window.grecaptcha?.render) {
+    renderRecaptcha()
+    return
+  }
+
+  window.onStoreRegisterRecaptchaLoad = () => {
+    renderRecaptcha()
+  }
+
+  const existing = document.getElementById('store-register-recaptcha-script')
+  if (existing) {
+    existing.addEventListener('load', renderRecaptcha, { once: true })
+    return
+  }
+
+  const script = document.createElement('script')
+  script.id = 'store-register-recaptcha-script'
+  script.src = 'https://www.google.com/recaptcha/api.js?onload=onStoreRegisterRecaptchaLoad&render=explicit'
+  script.async = true
+  script.defer = true
+  document.head.appendChild(script)
+}
 
 const isValidEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value || '')
 
@@ -214,6 +288,12 @@ const handleRegister = async () => {
     return
   }
 
+  if (recaptchaSiteKey && !recaptchaToken.value) {
+    recaptchaError.value = 'Please complete reCAPTCHA verification.'
+    toastStore.addToast('Please complete reCAPTCHA verification', 'warning')
+    return
+  }
+
   loading.value = true
 
   try {
@@ -222,19 +302,36 @@ const handleRegister = async () => {
       email: email.value,
       fullName: fullName.value,
       password: password.value,
-      confirmPassword: confirmPassword.value
+      confirmPassword: confirmPassword.value,
+      captchaToken: recaptchaToken.value,
     })
 
     if (result.ok) {
       toastStore.addToast(result.message || 'Registration successful. Please check your email to activate your account.', 'success')
       router.push({ name: 'login', query: { email: email.value } })
     } else {
+      if (recaptchaSiteKey) {
+        resetRecaptcha()
+      }
       toastStore.addToast(result.message || 'Registration failed', 'warning')
     }
   } catch (error) {
+    if (recaptchaSiteKey) {
+      resetRecaptcha()
+    }
     toastStore.addToast(error.response?.data?.message || 'Registration failed', 'warning')
   } finally {
     loading.value = false
   }
 }
+
+onMounted(() => {
+  ensureRecaptchaScript()
+})
+
+onUnmounted(() => {
+  if (typeof window !== 'undefined' && window.onStoreRegisterRecaptchaLoad) {
+    delete window.onStoreRegisterRecaptchaLoad
+  }
+})
 </script>
