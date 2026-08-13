@@ -299,65 +299,129 @@
     </div>
 
     <!-- Manage Notifications Modal -->
-    <div v-if="showNotificationsModal" class="fixed inset-0 bg-gray-400/20 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
-      <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
-        <div class="p-6">
-          <div class="flex justify-between items-center mb-4">
-            <h3 class="text-xl font-bold text-gray-900">Notification Preferences</h3>
-            <button @click="showNotificationsModal = false" class="text-gray-500 hover:text-gray-700">
-              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div v-if="showNotificationsModal" class="fixed inset-0 z-[9999] flex items-center justify-center bg-gray-400/20 p-4 backdrop-blur-sm">
+      <div class="w-full max-w-3xl overflow-hidden rounded-2xl border border-[#dbe7fa] bg-white shadow-2xl">
+        <div class="bg-gradient-to-r from-[#2F5597] via-[#355fa5] to-[#4175c2] px-6 py-5 text-white">
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <h3 class="text-xl font-bold">Notification & Marketing Preferences</h3>
+              <p class="mt-1 text-sm text-blue-100">Control operational notices, lifecycle reminders, quiet hours, and consent.</p>
+            </div>
+            <button @click="showNotificationsModal = false" class="rounded-md bg-white/15 px-2 py-1 text-white hover:bg-white/25">
+              <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
               </svg>
             </button>
           </div>
-          <div class="space-y-4">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="font-medium text-gray-900">Email Notifications</p>
-                <p class="text-sm text-gray-600">Receive email updates about your orders</p>
+        </div>
+
+        <div class="max-h-[78vh] overflow-y-auto px-6 py-6">
+          <p v-if="lifecycleSettingsError" class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{{ lifecycleSettingsError }}</p>
+
+          <div class="grid gap-5 lg:grid-cols-2">
+            <section class="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
+              <h4 class="text-sm font-extrabold tracking-wide text-slate-800">Account Notifications</h4>
+              <p class="mt-1 text-xs text-slate-500">Stored per device for your operational UI alerts.</p>
+              <div class="mt-4 space-y-3">
+                <label class="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2">
+                  <div>
+                    <p class="text-sm font-semibold text-slate-800">Email Notifications</p>
+                    <p class="text-xs text-slate-500">General updates linked to your account activity.</p>
+                  </div>
+                  <input v-model="notificationSettings.email" type="checkbox" class="h-5 w-5 rounded border-slate-300 text-[#2F5597] focus:ring-[#2F5597]" />
+                </label>
+                <label class="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2">
+                  <div>
+                    <p class="text-sm font-semibold text-slate-800">Quote Updates</p>
+                    <p class="text-xs text-slate-500">Status changes while quote requests are reviewed.</p>
+                  </div>
+                  <input v-model="notificationSettings.quotes" type="checkbox" class="h-5 w-5 rounded border-slate-300 text-[#2F5597] focus:ring-[#2F5597]" />
+                </label>
+                <label class="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2">
+                  <div>
+                    <p class="text-sm font-semibold text-slate-800">Order Updates</p>
+                    <p class="text-xs text-slate-500">Shipment and delivery progress notifications.</p>
+                  </div>
+                  <input v-model="notificationSettings.orders" type="checkbox" class="h-5 w-5 rounded border-slate-300 text-[#2F5597] focus:ring-[#2F5597]" />
+                </label>
+                <label class="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2">
+                  <div>
+                    <p class="text-sm font-semibold text-slate-800">Invoice Reminders</p>
+                    <p class="text-xs text-slate-500">Friendly reminders for pending invoice actions.</p>
+                  </div>
+                  <input v-model="notificationSettings.invoices" type="checkbox" class="h-5 w-5 rounded border-slate-300 text-[#2F5597] focus:ring-[#2F5597]" />
+                </label>
               </div>
-              <label class="relative inline-flex items-center cursor-pointer">
-                <input v-model="notificationSettings.email" type="checkbox" class="sr-only peer">
-                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-              </label>
-            </div>
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="font-medium text-gray-900">Quote Updates</p>
-                <p class="text-sm text-gray-600">Get notified when quote status changes</p>
+            </section>
+
+            <section class="rounded-xl border border-[#cfe0f8] bg-[#f4f8ff] p-4">
+              <h4 class="text-sm font-extrabold tracking-wide text-[#17315e]">Lifecycle Marketing Controls</h4>
+              <p class="mt-1 text-xs text-[#41608f]">Synced server-side across devices and respected by campaign automations.</p>
+
+              <div class="mt-4 space-y-3">
+                <label class="flex items-center justify-between rounded-lg border border-[#d7e4f8] bg-white px-3 py-2">
+                  <div>
+                    <p class="text-sm font-semibold text-slate-800">Marketing Enabled</p>
+                    <p class="text-xs text-slate-500">Master switch for promotional lifecycle emails.</p>
+                  </div>
+                  <input v-model="lifecycleSettings.marketing_enabled" type="checkbox" class="h-5 w-5 rounded border-slate-300 text-[#2F5597] focus:ring-[#2F5597]" />
+                </label>
+                <label class="flex items-center justify-between rounded-lg border border-[#d7e4f8] bg-white px-3 py-2">
+                  <div>
+                    <p class="text-sm font-semibold text-slate-800">Price Drop Alerts</p>
+                    <p class="text-xs text-slate-500">Notifies you when tracked products drop in price.</p>
+                  </div>
+                  <input v-model="lifecycleSettings.price_alerts_enabled" type="checkbox" class="h-5 w-5 rounded border-slate-300 text-[#2F5597] focus:ring-[#2F5597]" />
+                </label>
+                <label class="flex items-center justify-between rounded-lg border border-[#d7e4f8] bg-white px-3 py-2">
+                  <div>
+                    <p class="text-sm font-semibold text-slate-800">Cart Reminders</p>
+                    <p class="text-xs text-slate-500">Sends staged reminders for abandoned carts.</p>
+                  </div>
+                  <input v-model="lifecycleSettings.cart_reminders_enabled" type="checkbox" class="h-5 w-5 rounded border-slate-300 text-[#2F5597] focus:ring-[#2F5597]" />
+                </label>
+                <label class="flex items-center justify-between rounded-lg border border-[#d7e4f8] bg-white px-3 py-2">
+                  <div>
+                    <p class="text-sm font-semibold text-slate-800">Browse & Favorites Reminders</p>
+                    <p class="text-xs text-slate-500">Follow-ups for viewed and favorited products.</p>
+                  </div>
+                  <input v-model="lifecycleSettings.browse_reminders_enabled" type="checkbox" class="h-5 w-5 rounded border-slate-300 text-[#2F5597] focus:ring-[#2F5597]" />
+                </label>
               </div>
-              <label class="relative inline-flex items-center cursor-pointer">
-                <input v-model="notificationSettings.quotes" type="checkbox" class="sr-only peer">
-                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-              </label>
-            </div>
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="font-medium text-gray-900">Order Updates</p>
-                <p class="text-sm text-gray-600">Track shipment and delivery status</p>
+
+              <div class="mt-4 rounded-lg border border-[#d7e4f8] bg-white p-3">
+                <p class="text-sm font-semibold text-slate-800">Quiet Hours</p>
+                <p class="mt-1 text-xs text-slate-500">Pause lifecycle emails during your preferred local time range.</p>
+                <div class="mt-3 grid gap-3 sm:grid-cols-3">
+                  <label class="text-xs font-semibold text-slate-600">Timezone
+                    <select v-model="lifecycleSettings.timezone" class="mt-1 w-full rounded-lg border border-slate-300 px-2 py-2 text-sm text-slate-700 focus:border-[#2F5597] focus:outline-none focus:ring-2 focus:ring-[#2F5597]/30">
+                      <option value="">Use app default</option>
+                      <option v-for="tz in lifecycleTimezones" :key="tz" :value="tz">{{ tz }}</option>
+                    </select>
+                  </label>
+                  <label class="text-xs font-semibold text-slate-600">Start
+                    <input v-model="lifecycleQuietStart" type="time" class="mt-1 w-full rounded-lg border border-slate-300 px-2 py-2 text-sm text-slate-700 focus:border-[#2F5597] focus:outline-none focus:ring-2 focus:ring-[#2F5597]/30" />
+                  </label>
+                  <label class="text-xs font-semibold text-slate-600">End
+                    <input v-model="lifecycleQuietEnd" type="time" class="mt-1 w-full rounded-lg border border-slate-300 px-2 py-2 text-sm text-slate-700 focus:border-[#2F5597] focus:outline-none focus:ring-2 focus:ring-[#2F5597]/30" />
+                  </label>
+                </div>
               </div>
-              <label class="relative inline-flex items-center cursor-pointer">
-                <input v-model="notificationSettings.orders" type="checkbox" class="sr-only peer">
-                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-              </label>
-            </div>
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="font-medium text-gray-900">Invoice Reminders</p>
-                <p class="text-sm text-gray-600">Reminders for pending invoices</p>
-              </div>
-              <label class="relative inline-flex items-center cursor-pointer">
-                <input v-model="notificationSettings.invoices" type="checkbox" class="sr-only peer">
-                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-              </label>
-            </div>
+            </section>
           </div>
-          <div class="flex gap-3 pt-6">
-            <button @click="saveNotificationSettings" class="flex-1 px-4 py-2 text-white font-semibold rounded-lg" style="background-color: #2F5597;">
-              Save Preferences
-            </button>
-            <button @click="showNotificationsModal = false" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50">
-              Cancel
+        </div>
+
+        <div class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4">
+          <p class="text-xs text-slate-500">Lifecycle preferences are stored centrally and affect all reminder and price-alert campaigns.</p>
+          <div class="flex w-full gap-3 sm:w-auto">
+            <button @click="showNotificationsModal = false" class="flex-1 rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-white sm:flex-none">Cancel</button>
+            <button
+              @click="saveNotificationSettings"
+              :disabled="lifecycleSettingsSaving"
+              class="flex-1 rounded-lg px-5 py-2 text-sm font-semibold text-white disabled:opacity-60 sm:flex-none"
+              style="background-color: #2F5597;"
+            >
+              {{ lifecycleSettingsSaving ? 'Saving…' : 'Save Preferences' }}
             </button>
           </div>
         </div>
@@ -433,7 +497,7 @@
 </style>
 
 <script setup>
-import { computed, ref, onMounted, watch } from 'vue'
+import { computed, ref, onMounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/authStore'
 import { useToastStore } from '../../stores/toastStore'
@@ -444,6 +508,12 @@ import {
   loadNotificationPreferences,
   saveNotificationPreferences,
 } from '../../services/notificationPreferences'
+import {
+  fetchLifecycleEmailPreferences,
+  updateLifecycleEmailPreferences,
+  clockToMinutes,
+  minutesToClock,
+} from '../../services/emailPreferencesApi'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -501,6 +571,34 @@ const notificationSettings = ref({
   orders: true,
   invoices: true
 })
+
+const lifecycleSettingsLoading = ref(false)
+const lifecycleSettingsSaving = ref(false)
+const lifecycleSettingsError = ref('')
+const lifecycleSettings = ref({
+  transactional_enabled: true,
+  marketing_enabled: true,
+  price_alerts_enabled: true,
+  cart_reminders_enabled: true,
+  browse_reminders_enabled: true,
+  timezone: '',
+  quiet_hours_start: null,
+  quiet_hours_end: null,
+})
+const lifecycleQuietStart = ref('')
+const lifecycleQuietEnd = ref('')
+const lifecycleTimezones = [
+  'UTC',
+  'America/New_York',
+  'America/Chicago',
+  'America/Denver',
+  'America/Los_Angeles',
+  'Europe/London',
+  'Europe/Berlin',
+  'Africa/Nairobi',
+  'Asia/Dubai',
+  'Asia/Singapore',
+]
 
 // Profile picture handling
 const profilePictureInput = ref(null)
@@ -908,19 +1006,65 @@ const submitChangePassword = async () => {
   }
 }
 
-const handleManageNotifications = () => {
+const handleManageNotifications = async () => {
   notificationSettings.value = {
     ...DEFAULT_NOTIFICATION_PREFERENCES,
     ...loadNotificationPreferences(authStore.user?.id),
   }
 
+  lifecycleSettingsError.value = ''
+  lifecycleSettingsLoading.value = true
+
+  try {
+    const remote = await fetchLifecycleEmailPreferences()
+    lifecycleSettings.value = { ...remote }
+    lifecycleQuietStart.value = minutesToClock(remote.quiet_hours_start)
+    lifecycleQuietEnd.value = minutesToClock(remote.quiet_hours_end)
+  } catch (error) {
+    lifecycleSettingsError.value = error?.response?.data?.message || 'Could not load lifecycle preferences. You can still save local notification choices.'
+  } finally {
+    lifecycleSettingsLoading.value = false
+  }
+
   showNotificationsModal.value = true
 }
 
-const saveNotificationSettings = () => {
+const saveNotificationSettings = async () => {
+  lifecycleSettingsSaving.value = true
+  lifecycleSettingsError.value = ''
+
   notificationSettings.value = saveNotificationPreferences(notificationSettings.value, authStore.user?.id)
-  toastStore.addToast('Notification preferences saved!', 'success')
-  showNotificationsModal.value = false
+
+  try {
+    const payload = {
+      marketing_enabled: !!lifecycleSettings.value.marketing_enabled,
+      price_alerts_enabled: !!lifecycleSettings.value.price_alerts_enabled,
+      cart_reminders_enabled: !!lifecycleSettings.value.cart_reminders_enabled,
+      browse_reminders_enabled: !!lifecycleSettings.value.browse_reminders_enabled,
+      timezone: lifecycleSettings.value.timezone || null,
+      quiet_hours_start: clockToMinutes(lifecycleQuietStart.value),
+      quiet_hours_end: clockToMinutes(lifecycleQuietEnd.value),
+    }
+
+    if (!payload.marketing_enabled) {
+      payload.price_alerts_enabled = false
+      payload.cart_reminders_enabled = false
+      payload.browse_reminders_enabled = false
+    }
+
+    const updated = await updateLifecycleEmailPreferences(payload)
+    lifecycleSettings.value = { ...updated }
+    lifecycleQuietStart.value = minutesToClock(updated.quiet_hours_start)
+    lifecycleQuietEnd.value = minutesToClock(updated.quiet_hours_end)
+
+    toastStore.addToast('Preferences saved successfully.', 'success')
+    showNotificationsModal.value = false
+  } catch (error) {
+    lifecycleSettingsError.value = error?.response?.data?.message || 'Failed to save lifecycle preferences.'
+    toastStore.addToast(lifecycleSettingsError.value, 'error')
+  } finally {
+    lifecycleSettingsSaving.value = false
+  }
 }
 
 const fetchSavedPaymentMethods = async () => {

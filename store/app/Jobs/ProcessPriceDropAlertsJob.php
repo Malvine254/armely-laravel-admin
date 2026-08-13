@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Models\AppSetting;
 use App\Models\PriceAlertSubscription;
 use App\Services\AzureGraphMailService;
 use App\Services\UserEmailPreferenceService;
@@ -120,6 +121,13 @@ class ProcessPriceDropAlertsJob implements ShouldQueue
                     $sent++;
                 }
             });
+
+        AppSetting::setValue('lifecycle.price_drop.last_run_at', $now->toISOString());
+        AppSetting::setValue('lifecycle.price_drop.last_metrics', [
+            'scanned' => $scanned,
+            'sent' => $sent,
+            'processed_at' => $now->toISOString(),
+        ]);
 
         Log::info('ProcessPriceDropAlertsJob complete', [
             'scanned' => $scanned,

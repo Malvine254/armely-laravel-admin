@@ -22,6 +22,9 @@ use App\Jobs\SyncFlatFileMetadataJob;
 use App\Jobs\ReindexProductsJob;
 use App\Models\Message;
 use App\Models\Activity;
+use App\Models\SuppressionEvent;
+use App\Models\PriceAlertSubscription;
+use App\Models\ReminderSubscription;
 use App\Exceptions\TDSynnexApiException;
 use App\Jobs\GenerateInvoiceJob;
 use Illuminate\Http\Request;
@@ -4445,6 +4448,157 @@ class AdminController extends Controller
         ]);
 
         return response()->json(['success' => true, 'data' => $state]);
+    }
+
+    public function getLifecycleCampaignMetrics(Request $request): JsonResponse
+    {
+        try {
+            $user = $request->user();
+            if (!$this->isAdminUser($user)) {
+                return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+            }
+
+            $days = max(1, min(90, (int) $request->get('days', 14)));
+            $since = now()->subDays($days);
+
+            $sendRows = SuppressionEvent::query()
+                ->select('reason', DB::raw('COUNT(*) as total'))
+                ->where('event_type', 'marketing_sent')
+                ->where('occurred_at', '>=', $since)
+                ->groupBy('reason')
+                ->get();
+
+            $campaignSends = [];
+            $totalSent = 0;
+            foreach ($sendRows as $row) {
+                $reason = (string) ($row->reason ?? '');
+                $key = str_starts_with($reason, 'campaign:') ? substr($reason, 9) : $reason;
+                $count = (int) ($row->total ?? 0);
+                if ($key === '') {
+                    $key = 'unknown';
+                }
+                $campaignSends[$key] = ($campaignSends[$key] ?? 0) + $count;
+                $totalSent += $count;
+            }
+
+            $idempotencyRecorded = SuppressionEvent::query()
+                ->where('event_type', 'marketing_idempotency')
+                ->where('occurred_at', '>=', $since)
+                ->count();
+
+            $unsubscribes = SuppressionEvent::query()
+                ->where('event_type', 'unsubscribe')
+                ->where('occurred_at', '>=', $since)
+                ->get(['metadata']);
+
+            $unsubscribeByScope = [
+                'marketing' => 0,
+                'price_alerts' => 0,
+                'cart_reminders' => 0,
+                'browse_reminders' => 0,
+                'unknown' => 0,
+            ];
+
+            foreach ($unsubscribes as $event) {
+                $metadata = is_array($event->metadata) ? $event->metadata : [];
+                $scope = (string) ($metadata['scope'] ?? 'unknown');
+                if (!array_key_exists($scope, $unsubscribeByScope)) {
+                    $scope = 'unknown';
+                }
+                $unsubscribeByScope[$scope]++;
+            }
+
+            $activeSubscriptions = [
+                'price_alerts' => PriceAlertSubscription::query()->where('is_active', true)->count(),
+                'abandoned_cart' => ReminderSubscription::query()->where('is_active', true)->where('trigger_type', 'abandoned_cart')->count(),
+                'viewed_product' => ReminderSubscription::query()->where('is_active', true)->where('trigger_type', 'viewed_product')->count(),
+                'favorite_product' => ReminderSubscription::query()->where('is_active', true)->where('trigger_type', 'favorite_product')->count(),
+            ];
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'window_days' => $days,
+                    'since' => $since->toISOString(),
+                    'totals' => [
+                        'sent' => $totalSent,
+                        'idempotency_markers' => (int) $idempotencyRecorded,
+                        'unsubscribes' => (int) $unsubscribes->count(),
+                    ],
+                    'campaign_sends' => $campaignSends,
+                    'unsubscribe_by_scope' => $unsubscribeByScope,
+                    'active_subscriptions' => $activeSubscriptions,
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Failed to load lifecycle campaign metrics: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to load lifecycle campaign metrics',
+            ], 500);
+        }
+    }
+
+    public function getRuntimeHealth(Request $request): JsonResponse
+    {
+        try {
+            $user = $request->user();
+            if (!$this->isAdminUser($user)) {
+                return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+            }
+
+            $priceDropLastRun = AppSetting::getValue('lifecycle.price_drop.last_run_at', null);
+            $remindersLastRun = AppSetting::getValue('lifecycle.reminders.last_run_at', null);
+
+            $priceDropLagMinutes = $priceDropLastRun ? now()->diffInMinutes(Carbon::parse((string) $priceDropLastRun)) : null;
+            $remindersLagMinutes = $remindersLastRun ? now()->diffInMinutes(Carbon::parse((string) $remindersLastRun)) : null;
+
+            $pendingJobs = null;
+            $failedJobs = null;
+            if (Schema::hasTable('jobs')) {
+                $pendingJobs = DB::table('jobs')->count();
+            }
+            if (Schema::hasTable('failed_jobs')) {
+                $failedJobs = DB::table('failed_jobs')->count();
+            }
+
+            $schedulerHealthy = ($priceDropLagMinutes === null || $priceDropLagMinutes <= 90)
+                && ($remindersLagMinutes === null || $remindersLagMinutes <= 90);
+
+            $queueHealthy = $failedJobs === null ? true : $failedJobs < 50;
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'overall_status' => ($schedulerHealthy && $queueHealthy) ? 'healthy' : 'warning',
+                    'scheduler' => [
+                        'price_drop_last_run_at' => $priceDropLastRun,
+                        'price_drop_lag_minutes' => $priceDropLagMinutes,
+                        'reminders_last_run_at' => $remindersLastRun,
+                        'reminders_lag_minutes' => $remindersLagMinutes,
+                        'healthy' => $schedulerHealthy,
+                    ],
+                    'queue' => [
+                        'connection' => (string) config('queue.default', 'database'),
+                        'pending_jobs' => $pendingJobs,
+                        'failed_jobs' => $failedJobs,
+                        'healthy' => $queueHealthy,
+                    ],
+                    'lifecycle_job_metrics' => [
+                        'price_drop' => AppSetting::getValue('lifecycle.price_drop.last_metrics', []),
+                        'reminders' => AppSetting::getValue('lifecycle.reminders.last_metrics', []),
+                    ],
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Failed to load runtime health: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to load runtime health',
+            ], 500);
+        }
     }
 
     /**
