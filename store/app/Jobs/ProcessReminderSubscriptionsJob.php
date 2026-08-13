@@ -7,6 +7,7 @@ use App\Models\ReminderSubscription;
 use App\Models\UserCartSnapshot;
 use App\Models\UserProductView;
 use App\Services\AzureGraphMailService;
+use App\Services\UserEmailPreferenceService;
 use App\Support\OfferPricing;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -29,7 +30,7 @@ class ProcessReminderSubscriptionsJob implements ShouldQueue
         return [(new WithoutOverlapping('process-reminder-subscriptions'))->expireAfter(1200)];
     }
 
-    public function handle(AzureGraphMailService $mailer): void
+    public function handle(AzureGraphMailService $mailer, UserEmailPreferenceService $preferences): void
     {
         $now = now();
 
@@ -40,13 +41,18 @@ class ProcessReminderSubscriptionsJob implements ShouldQueue
             'viewed_sent' => 0,
         ];
 
-        $this->processAbandonedCartReminders($mailer, $now, $metrics);
-        $this->processViewedProductReminders($mailer, $now, $metrics);
+        $this->processAbandonedCartReminders($mailer, $preferences, $now, $metrics);
+        $this->processViewedProductReminders($mailer, $preferences, $now, $metrics);
 
         Log::info('ProcessReminderSubscriptionsJob complete', $metrics);
     }
 
-    private function processAbandonedCartReminders(AzureGraphMailService $mailer, Carbon $now, array &$metrics): void
+    private function processAbandonedCartReminders(
+        AzureGraphMailService $mailer,
+        UserEmailPreferenceService $preferences,
+        Carbon $now,
+        array &$metrics
+    ): void
     {
         ReminderSubscription::query()
             ->where('is_active', true)
@@ -55,12 +61,16 @@ class ProcessReminderSubscriptionsJob implements ShouldQueue
             ->whereNotNull('user_id')
             ->with(['user:id,name,email,status'])
             ->orderBy('id')
-            ->chunkById(200, function ($subscriptions) use ($mailer, $now, &$metrics) {
+            ->chunkById(200, function ($subscriptions) use ($mailer, $preferences, $now, &$metrics) {
                 foreach ($subscriptions as $subscription) {
                     $metrics['abandoned_scanned']++;
 
                     $user = $subscription->user;
                     if (!$user || strtolower((string) ($user->status ?? 'active')) !== 'active' || trim((string) ($user->email ?? '')) === '') {
+                        continue;
+                    }
+
+                    if (!$preferences->shouldSendReminder($user, 'abandoned_cart', $now)) {
                         continue;
                     }
 
@@ -107,7 +117,12 @@ class ProcessReminderSubscriptionsJob implements ShouldQueue
             });
     }
 
-    private function processViewedProductReminders(AzureGraphMailService $mailer, Carbon $now, array &$metrics): void
+    private function processViewedProductReminders(
+        AzureGraphMailService $mailer,
+        UserEmailPreferenceService $preferences,
+        Carbon $now,
+        array &$metrics
+    ): void
     {
         ReminderSubscription::query()
             ->where('is_active', true)
@@ -117,12 +132,16 @@ class ProcessReminderSubscriptionsJob implements ShouldQueue
             ->whereNotNull('product_id')
             ->with(['user:id,name,email,status'])
             ->orderBy('id')
-            ->chunkById(200, function ($subscriptions) use ($mailer, $now, &$metrics) {
+            ->chunkById(200, function ($subscriptions) use ($mailer, $preferences, $now, &$metrics) {
                 foreach ($subscriptions as $subscription) {
                     $metrics['viewed_scanned']++;
 
                     $user = $subscription->user;
                     if (!$user || strtolower((string) ($user->status ?? 'active')) !== 'active' || trim((string) ($user->email ?? '')) === '') {
+                        continue;
+                    }
+
+                    if (!$preferences->shouldSendReminder($user, 'viewed_product', $now)) {
                         continue;
                     }
 

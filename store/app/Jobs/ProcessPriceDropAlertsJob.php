@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\PriceAlertSubscription;
 use App\Services\AzureGraphMailService;
+use App\Services\UserEmailPreferenceService;
 use App\Support\OfferPricing;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -26,7 +27,7 @@ class ProcessPriceDropAlertsJob implements ShouldQueue
         return [(new WithoutOverlapping('process-price-drop-alerts'))->expireAfter(1200)];
     }
 
-    public function handle(AzureGraphMailService $mailer): void
+    public function handle(AzureGraphMailService $mailer, UserEmailPreferenceService $preferences): void
     {
         $now = now();
         $scanned = 0;
@@ -39,7 +40,7 @@ class ProcessPriceDropAlertsJob implements ShouldQueue
                 'user:id,name,email,status',
             ])
             ->orderBy('id')
-            ->chunkById(200, function ($subscriptions) use (&$scanned, &$sent, $mailer, $now) {
+            ->chunkById(200, function ($subscriptions) use (&$scanned, &$sent, $mailer, $preferences, $now) {
                 foreach ($subscriptions as $subscription) {
                     $scanned++;
 
@@ -47,6 +48,10 @@ class ProcessPriceDropAlertsJob implements ShouldQueue
                     $user = $subscription->user;
 
                     if (!$product || !$user || strtolower((string) ($user->status ?? 'active')) !== 'active') {
+                        continue;
+                    }
+
+                    if (!$preferences->shouldSendPriceAlert($user, $now)) {
                         continue;
                     }
 

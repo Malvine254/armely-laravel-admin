@@ -1857,6 +1857,9 @@ class AzureGraphMailService
         $safeDropAmount = '$' . number_format($dropAmount, 2);
         $safeDropPercent = number_format(max(0, $dropPercent), 2) . '%';
         $productUrl = $this->frontendUrl() . '/products/' . rawurlencode($productId);
+        $unsubscribeUrl = $this->marketingUnsubscribeUrl($user, 'price_alerts');
+        $unsubscribeHtml = $this->marketingUnsubscribeHtml($unsubscribeUrl);
+        $unsubscribeText = $this->marketingUnsubscribeText($unsubscribeUrl);
 
         $summaryHtml = $this->buildQuoteSummaryCard([
             ['label' => 'Product', 'value' => $safeProductName],
@@ -1872,6 +1875,7 @@ class AzureGraphMailService
                 <p style='margin:0 0 14px;font-size:16px;color:#1f2937'>Hello {$safeName},</p>
                 <p style='margin:0 0 18px;color:#4b5563'>A product you are tracking just dropped in price.</p>
                 {$summaryHtml}
+                {$unsubscribeHtml}
             ",
             'View Product',
             $productUrl,
@@ -1886,7 +1890,8 @@ class AzureGraphMailService
             . "Previous: {$safePrevious}\n"
             . "Current: {$safeCurrent}\n"
             . "Drop: {$safeDropAmount} ({$safeDropPercent})\n"
-            . "View product: {$productUrl}";
+            . "View product: {$productUrl}\n\n"
+            . $unsubscribeText;
 
         return $this->sendEmail($user->email, "Price Drop: {$productName}", $html, $text);
     }
@@ -1959,6 +1964,9 @@ class AzureGraphMailService
         ]);
 
         $cartUrl = $this->frontendUrl() . '/cart';
+        $unsubscribeUrl = $this->marketingUnsubscribeUrl($user, 'cart_reminders');
+        $unsubscribeHtml = $this->marketingUnsubscribeHtml($unsubscribeUrl);
+        $unsubscribeText = $this->marketingUnsubscribeText($unsubscribeUrl);
         $html = $this->buildModernNotificationEmail(
             'You Left Items In Your Cart',
             "
@@ -1966,6 +1974,7 @@ class AzureGraphMailService
                 <p style='margin:0 0 18px;color:#4b5563'>You still have items in your cart waiting for your quote request.</p>
                 {$summaryHtml}
                 {$table}
+                {$unsubscribeHtml}
             ",
             'Return to Cart',
             $cartUrl,
@@ -1977,7 +1986,8 @@ class AzureGraphMailService
 
         $text = "Hello {$user->name},\n\nYou still have {$itemCount} item(s) in your cart.\n"
             . "Last updated: " . $lastSyncedAt->format('Y-m-d H:i') . "\n"
-            . "Return to cart: {$cartUrl}";
+            . "Return to cart: {$cartUrl}\n\n"
+            . $unsubscribeText;
 
         return $this->sendEmail($user->email, 'Reminder: Items waiting in your cart', $html, $text);
     }
@@ -2002,6 +2012,9 @@ class AzureGraphMailService
         $safePartNumber = e((string) ($product->mfg_part_no ?? 'N/A'));
         $priceLabel = $currentPrice > 0 ? ('$' . number_format($currentPrice, 2)) : 'Unavailable';
         $productUrl = $this->frontendUrl() . '/products/' . rawurlencode((string) ($product->id ?? ''));
+        $unsubscribeUrl = $this->marketingUnsubscribeUrl($user, 'browse_reminders');
+        $unsubscribeHtml = $this->marketingUnsubscribeHtml($unsubscribeUrl);
+        $unsubscribeText = $this->marketingUnsubscribeText($unsubscribeUrl);
 
         $summaryHtml = $this->buildQuoteSummaryCard([
             ['label' => 'Product', 'value' => $safeProductName],
@@ -2016,6 +2029,7 @@ class AzureGraphMailService
                 <p style='margin:0 0 14px;font-size:16px;color:#1f2937'>Hello {$safeName},</p>
                 <p style='margin:0 0 18px;color:#4b5563'>You recently viewed this item. If you are still evaluating options, you can quickly add it to your quote cart.</p>
                 {$summaryHtml}
+                {$unsubscribeHtml}
             ",
             'View Product',
             $productUrl,
@@ -2028,9 +2042,43 @@ class AzureGraphMailService
         $text = "Hello {$user->name},\n\nYou recently viewed {$productName}.\n"
             . "Current price: {$priceLabel}\n"
             . "Viewed on: " . $viewedAt->format('Y-m-d H:i') . "\n"
-            . "View product: {$productUrl}";
+            . "View product: {$productUrl}\n\n"
+            . $unsubscribeText;
 
         return $this->sendEmail($user->email, "Reminder: {$productName}", $html, $text);
+    }
+
+    private function marketingUnsubscribeUrl(User $user, string $scope): string
+    {
+        try {
+            return app(UserEmailPreferenceService::class)->unsubscribeUrl($user, $scope);
+        } catch (\Throwable) {
+            return '';
+        }
+    }
+
+    private function marketingUnsubscribeHtml(string $url): string
+    {
+        if (trim($url) === '') {
+            return '';
+        }
+
+        $safeUrl = e($url);
+
+        return "
+            <p style='margin:16px 0 0;color:#6b7280;font-size:12px'>
+                Prefer fewer messages? <a href='{$safeUrl}' style='color:#2563eb'>Unsubscribe from this category</a>.
+            </p>
+        ";
+    }
+
+    private function marketingUnsubscribeText(string $url): string
+    {
+        if (trim($url) === '') {
+            return '';
+        }
+
+        return "Unsubscribe from this category: {$url}";
     }
 
     private function activeAdminEmails(): array
