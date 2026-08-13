@@ -40,6 +40,12 @@
         }
         .invoice-meta {
             text-align: right;
+        .company-logo {
+            max-width: 190px;
+            height: auto;
+            margin-bottom: 8px;
+            display: block;
+        }
         }
         .invoice-meta h2 {
             font-size: 24px;
@@ -157,7 +163,7 @@
         <!-- Header -->
         <header>
             <div class="company-info">
-                <h1>ARMELY STORE</h1>
+                <img src="{{ 'file://' . public_path('images/logo/armely-store-logo.png') }}" alt="Armely Store" class="company-logo">
                 <p>Your B2B Hardware Partner</p>
             </div>
             <div class="invoice-meta">

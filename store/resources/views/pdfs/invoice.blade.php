@@ -52,6 +52,12 @@
             margin-bottom: 5px;
         }
         .document-title {
+        .company-logo {
+            max-width: 210px;
+            height: auto;
+            margin-bottom: 8px;
+            display: block;
+        }
             font-size: 24px;
             font-weight: bold;
             color: var(--brand-primary-dark);
@@ -186,7 +192,7 @@
         <div class="header">
             <div class="header-content">
                 <div class="header-left">
-                    <div class="company-name">Armely Store</div>
+                    <img src="{{ 'file://' . public_path('images/logo/armely-store-logo.png') }}" alt="Armely Store" class="company-logo">
                     <div>IT Hardware & Cloud Solutions Provider</div>
                 </div>
                 <div class="header-right">

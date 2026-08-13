@@ -24,6 +24,11 @@ class AzureGraphMailService
         return FrontendUrl::base();
     }
 
+    private function logoUrl(): string
+    {
+        return rtrim($this->frontendUrl(), '/') . '/images/logo/armely-store-logo.png';
+    }
+
     public function sendTestEmail(string $recipientEmail, string $recipientName = 'Admin'): bool
     {
         if (!$this->isConfigured()) {
@@ -889,7 +894,7 @@ class AzureGraphMailService
         $appUrl    = $this->frontendUrl();
 
         $html = $this->buildFullInvoiceHtml($invoice, $customer, false);
-        $text = "Hello {$safeName},\n\nYour invoice #{$invNumber} is ready for payment.\n{$appUrl}/invoices";
+        $text = "Hello {$safeName},\n\nYour invoice #{$invNumber} is available for your records. As a B2B account, payment is expected after delivery based on your agreed terms.\n{$appUrl}/invoices";
 
         return $this->sendEmail($customer->email, "Invoice #{$invNumber}", $html, $text);
     }
@@ -929,6 +934,7 @@ class AzureGraphMailService
         $safeTitle       = e($title);
         $safeButtonLabel = e($buttonLabel);
         $safeButtonUrl   = e($buttonUrl);
+        $safeLogoUrl     = e($this->logoUrl());
         $safeFooterNote  = $footerNote ? e($footerNote) : '';
         $year            = date('Y');
         $supportEmail    = e((string) AppSetting::getValue('system.support_email', env('SUPPORT_EMAIL', 'info@armely.com')));
@@ -947,7 +953,7 @@ class AzureGraphMailService
 
   <!-- Logo bar -->
   <div style='text-align:center;margin-bottom:20px'>
-    <span style='display:inline-block;background:#0f2f63;color:#fff;padding:8px 20px;border-radius:8px;font-size:13px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase'>Armely Store</span>
+        <img src='{$safeLogoUrl}' alt='Armely Store' style='max-width:190px;height:auto;display:inline-block'>
   </div>
 
   <!-- Card -->
@@ -1129,10 +1135,11 @@ class AzureGraphMailService
     private function buildFullInvoiceHtml(\App\Models\Invoice $invoice, \App\Models\User $user, bool $isReminder, ?string $customReminderMessage = null): string
     {
         $appUrl        = $this->frontendUrl();
+        $logoUrl       = e($this->logoUrl());
         $supportEmail  = e((string) AppSetting::getValue('system.support_email', env('SUPPORT_EMAIL', 'info@armely.com')));
         $invNumber   = e($invoice->invoice_number);
         $issuedAt    = $invoice->issued_at?->format('M d, Y') ?? 'N/A';
-        $dueDate     = $invoice->due_at?->format('M d, Y') ?? 'On Demand';
+        $dueDate     = $invoice->due_at?->format('M d, Y') ?? 'Pending delivery';
         $totalAmt    = (float)($invoice->total_amount ?? 0);
         $taxAmt      = (float)($invoice->tax_amount ?? 0);
         $paidAmt     = (float)($invoice->paid_amount ?? 0);
@@ -1348,7 +1355,7 @@ class AzureGraphMailService
             // ── Header ────────────────────────────────────────────────────────
             . "<table width='100%' cellpadding='0' cellspacing='0' style='border-bottom:2px solid #2F5597;padding-bottom:20px;margin-bottom:30px;'><tr>"
             . "<td valign='top'>"
-            . "<h1 style='margin:0 0 4px;color:#2F5597;font-size:26px;'>ARMELY STORE</h1>"
+            . "<img src='{$logoUrl}' alt='Armely Store' style='max-width:190px;height:auto;display:block;margin:0 0 8px;'>"
             . "<p style='margin:0;font-size:12px;color:#666;'>Your B2B Hardware Partner</p>"
             . "</td>"
             . "<td valign='top' align='right'>"
@@ -1405,7 +1412,7 @@ class AzureGraphMailService
 
             // ── CTA & Footer ───────────────────────────────────────────────────
             . "<div style='clear:both;margin-top:30px;padding-top:20px;'>"
-            . "<a href='{$appUrl}/invoices' style='display:inline-block;padding:12px 24px;background:#2F5597;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:bold;font-size:14px;'>View &amp; Pay Invoice</a>"
+            . "<a href='{$appUrl}/invoices' style='display:inline-block;padding:12px 24px;background:#2F5597;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:bold;font-size:14px;'>View Invoice Details</a>"
             . "</div>"
             . "<div style='margin-top:50px;padding-top:20px;border-top:1px solid #ddd;text-align:center;font-size:12px;color:#999;'>"
             . "<p style='margin:0;'>Thank you for your business! | www.armely.com | {$supportEmail}</p>"
