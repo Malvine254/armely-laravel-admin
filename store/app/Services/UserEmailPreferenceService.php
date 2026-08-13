@@ -57,6 +57,57 @@ class UserEmailPreferenceService
         return !$this->isQuietHours($pref, $when ?: now());
     }
 
+    public function underDailySendCap(User $user, string $campaign, int $dailyCap, ?Carbon $when = null): bool
+    {
+        $now = $when ?: now();
+        $start = $now->copy()->startOfDay();
+
+        $sentCount = SuppressionEvent::query()
+            ->where('user_id', (int) $user->id)
+            ->where('event_type', 'marketing_sent')
+            ->where('reason', $this->campaignReason($campaign))
+            ->where('occurred_at', '>=', $start)
+            ->count();
+
+        return $sentCount < max(1, $dailyCap);
+    }
+
+    public function markMarketingSent(User $user, string $campaign, array $metadata = []): void
+    {
+        SuppressionEvent::query()->create([
+            'user_id' => (int) $user->id,
+            'email' => (string) ($user->email ?? ''),
+            'event_type' => 'marketing_sent',
+            'channel' => 'email',
+            'reason' => $this->campaignReason($campaign),
+            'source' => 'lifecycle_job',
+            'metadata' => $metadata,
+            'occurred_at' => now(),
+        ]);
+    }
+
+    public function wasIdempotencyKeySent(string $key): bool
+    {
+        return SuppressionEvent::query()
+            ->where('event_type', 'marketing_idempotency')
+            ->where('reason', $this->idempotencyReason($key))
+            ->exists();
+    }
+
+    public function markIdempotencyKeySent(User $user, string $key, array $metadata = []): void
+    {
+        SuppressionEvent::query()->create([
+            'user_id' => (int) $user->id,
+            'email' => (string) ($user->email ?? ''),
+            'event_type' => 'marketing_idempotency',
+            'channel' => 'email',
+            'reason' => $this->idempotencyReason($key),
+            'source' => 'lifecycle_job',
+            'metadata' => $metadata,
+            'occurred_at' => now(),
+        ]);
+    }
+
     public function unsubscribeUrl(User $user, string $scope): string
     {
         $token = $this->issueToken($user, $scope);
@@ -162,6 +213,16 @@ class UserEmailPreferenceService
         return in_array($value, ['marketing', 'price_alerts', 'cart_reminders', 'browse_reminders'], true)
             ? $value
             : 'marketing';
+    }
+
+    private function campaignReason(string $campaign): string
+    {
+        return 'campaign:' . substr(preg_replace('/[^a-z0-9_\-]/i', '_', strtolower($campaign)) ?: 'unknown', 0, 52);
+    }
+
+    private function idempotencyReason(string $key): string
+    {
+        return 'idem:' . hash('sha256', $key);
     }
 
     private function isQuietHours(EmailPreference $preference, Carbon $when): bool

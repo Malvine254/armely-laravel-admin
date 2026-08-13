@@ -80,6 +80,15 @@ class ProcessPriceDropAlertsJob implements ShouldQueue
                         continue;
                     }
 
+                    $idempotencyKey = 'price_drop:' . (int) $subscription->id . ':' . $now->format('YmdH');
+                    if ($preferences->wasIdempotencyKeySent($idempotencyKey)) {
+                        continue;
+                    }
+
+                    if (!$preferences->underDailySendCap($user, 'price_drop_alert', 3, $now)) {
+                        continue;
+                    }
+
                     $emailSent = $mailer->sendPriceDropAlertEmail(
                         $user,
                         $product,
@@ -96,6 +105,16 @@ class ProcessPriceDropAlertsJob implements ShouldQueue
                     $subscription->update([
                         'last_notified_at' => $now,
                         'baseline_price' => $current,
+                    ]);
+
+                    $preferences->markIdempotencyKeySent($user, $idempotencyKey, [
+                        'subscription_id' => (int) $subscription->id,
+                        'product_id' => (int) $product->id,
+                    ]);
+
+                    $preferences->markMarketingSent($user, 'price_drop_alert', [
+                        'subscription_id' => (int) $subscription->id,
+                        'product_id' => (int) $product->id,
                     ]);
 
                     $sent++;
