@@ -40,6 +40,17 @@ const clearAuthStorage = () => {
   keys.forEach(k => { localStorage.removeItem(k); sessionStorage.removeItem(k) })
 }
 
+const redirectToLogin = (reason = 'session-expired') => {
+  if (typeof window === 'undefined') return
+  if (window.__ARMELY_AUTH_REDIRECTING__) return
+
+  const currentPath = String(window.location.pathname || '').toLowerCase()
+  if (currentPath.endsWith('/login') || currentPath.endsWith('/admin/login')) return
+
+  window.__ARMELY_AUTH_REDIRECTING__ = true
+  window.location.replace(`${buildStoreUrl('login')}?reason=${encodeURIComponent(reason)}`)
+}
+
 // Handle response errors
 api.interceptors.response.use(
   (response) => response,
@@ -54,9 +65,9 @@ api.interceptors.response.use(
     const requestUrl = String(error.config?.url || '').toLowerCase()
     const isLogoutRequest = requestUrl.includes('/auth/logout')
 
-    if (status === 401 && !isLogoutRequest) {
+    if ((status === 401 || status === 419) && !isLogoutRequest) {
       clearAuthStorage()
-      window.location.href = buildStoreUrl('login')
+      redirectToLogin(status === 419 ? 'session-expired' : 'unauthorized')
     }
 
     if (status === 403) {
@@ -65,7 +76,7 @@ api.interceptors.response.use(
         || message.toLowerCase().includes('pending approval')
       if (isSuspension) {
         clearAuthStorage()
-        window.location.href = buildStoreUrl('login') + '?reason=suspended'
+        redirectToLogin('suspended')
       }
     }
 
