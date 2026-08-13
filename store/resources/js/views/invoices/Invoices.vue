@@ -8,11 +8,11 @@
         <p class="text-gray-600 text-lg">Track balances, download PDFs, and pay invoices through QuickBooks</p>
       </div>
 
-      <div v-if="invoices.length > 0" class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+      <div v-if="pagination.total > 0" class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
         <div class="group relative overflow-hidden rounded-2xl border p-5 sm:p-6 transition duration-300 hover:-translate-y-0.5" style="background: linear-gradient(160deg, #ffffff 0%, #f7fbff 62%, #eef4ff 100%); border-color: #d9e6f7; box-shadow: 0 12px 26px rgba(47,85,151,0.1);">
           <div class="pointer-events-none absolute -right-6 -top-6 h-16 w-16 rounded-full" style="background: radial-gradient(circle, rgba(47,85,151,0.2) 0%, rgba(47,85,151,0) 70%);"></div>
           <p class="text-gray-600 text-xs font-semibold uppercase tracking-wide">Total Invoices</p>
-          <p class="text-3xl font-bold text-gray-900 mt-2">{{ invoices.length }}</p>
+          <p class="text-3xl font-bold text-gray-900 mt-2">{{ totalInvoiceCount }}</p>
           <div class="mt-4 h-1.5 w-16 rounded-full" style="background: linear-gradient(90deg, #2F5597, #7fa2d8);"></div>
         </div>
         <div class="group relative overflow-hidden rounded-2xl border p-5 sm:p-6 transition duration-300 hover:-translate-y-0.5" style="background: linear-gradient(160deg, #ffffff 0%, #f7fbff 62%, #eef4ff 100%); border-color: #d9e6f7; box-shadow: 0 12px 26px rgba(47,85,151,0.1);">
@@ -253,7 +253,7 @@
 
         <div class="border-t px-4 sm:px-5 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4" style="border-color: #d9e6f7; background: #f9fcff;">
           <div class="flex items-center gap-3 text-sm text-gray-700">
-            <span class="font-medium">Showing {{ paginationStart }}-{{ paginationEnd }} of {{ filteredInvoices.length }}</span>
+            <span class="font-medium">Showing {{ paginationStart }}-{{ paginationEnd }} of {{ pagination.total }}</span>
             <div class="flex items-center gap-2">
               <label class="text-xs font-semibold uppercase tracking-wide text-gray-600">Rows</label>
               <select
@@ -444,6 +444,13 @@ export default {
     const combinedBundle = ref(null)
     const payingInvoiceNumber = ref(null)
     const bulkPaying = ref(false)
+    const invoiceSummary = ref({
+      total_invoices: 0,
+      active_invoices: 0,
+      overdue_count: 0,
+      paid_amount: 0,
+      outstanding_amount: 0,
+    })
     const pagination = ref({
       current_page: 1,
       per_page: 10,
@@ -516,9 +523,28 @@ export default {
     })
 
     const activeInvoices = computed(() => invoices.value.filter(inv => inv.status !== 'merged'))
-    const totalOutstanding = computed(() => activeInvoices.value.reduce((sum, inv) => sum + getOutstanding(inv), 0))
-    const totalPaid = computed(() => activeInvoices.value.reduce((sum, inv) => sum + Number(inv.paid_amount || 0), 0))
-    const overdueCount = computed(() => activeInvoices.value.filter(inv => inv.status === 'overdue').length)
+    const totalInvoiceCount = computed(() => Number(invoiceSummary.value.total_invoices || pagination.value.total || invoices.value.length || 0))
+    const totalOutstanding = computed(() => {
+      const summaryValue = Number(invoiceSummary.value.outstanding_amount)
+      if (Number.isFinite(summaryValue) && summaryValue >= 0) {
+        return summaryValue
+      }
+      return activeInvoices.value.reduce((sum, inv) => sum + getOutstanding(inv), 0)
+    })
+    const totalPaid = computed(() => {
+      const summaryValue = Number(invoiceSummary.value.paid_amount)
+      if (Number.isFinite(summaryValue) && summaryValue >= 0) {
+        return summaryValue
+      }
+      return activeInvoices.value.reduce((sum, inv) => sum + Number(inv.paid_amount || 0), 0)
+    })
+    const overdueCount = computed(() => {
+      const summaryValue = Number(invoiceSummary.value.overdue_count)
+      if (Number.isFinite(summaryValue) && summaryValue >= 0) {
+        return summaryValue
+      }
+      return activeInvoices.value.filter(inv => inv.status === 'overdue').length
+    })
 
     const unpaidInvoices = computed(() => {
       return filteredInvoices.value.filter(inv => canPayInvoice(inv))
@@ -562,6 +588,14 @@ export default {
         }
 
         invoices.value = Array.isArray(response.data.data) ? response.data.data : []
+        const summaryInfo = response.data.summary || {}
+        invoiceSummary.value = {
+          total_invoices: Number(summaryInfo.total_invoices || 0),
+          active_invoices: Number(summaryInfo.active_invoices || 0),
+          overdue_count: Number(summaryInfo.overdue_count || 0),
+          paid_amount: Number(summaryInfo.paid_amount || 0),
+          outstanding_amount: Number(summaryInfo.outstanding_amount || 0),
+        }
         const pageInfo = response.data.pagination || {}
         pagination.value = {
           current_page: Number(pageInfo.current_page || currentPage.value || 1),
@@ -1266,6 +1300,7 @@ export default {
       totalOutstanding,
       totalPaid,
       overdueCount,
+      totalInvoiceCount,
       selectedOutstandingTotal,
       fetchInvoices,
       viewInvoice,

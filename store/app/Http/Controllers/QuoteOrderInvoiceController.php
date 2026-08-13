@@ -182,6 +182,54 @@ class QuoteOrderInvoiceController extends Controller
         Cache::put($cacheKey, true, now()->addSeconds($ttlSeconds));
     }
 
+    private function invoiceSummaryVersionKey(int $userId): string
+    {
+        return "invoice-summary-version:user:{$userId}";
+    }
+
+    private function getInvoiceSummaryVersion(int $userId): int
+    {
+        $versionKey = $this->invoiceSummaryVersionKey($userId);
+
+        if (!Cache::has($versionKey)) {
+            Cache::forever($versionKey, 1);
+            return 1;
+        }
+
+        return max(1, (int) Cache::get($versionKey, 1));
+    }
+
+    private function bumpInvoiceSummaryVersion(int $userId): void
+    {
+        $versionKey = $this->invoiceSummaryVersionKey($userId);
+
+        if (!Cache::has($versionKey)) {
+            Cache::forever($versionKey, 2);
+            return;
+        }
+
+        Cache::increment($versionKey);
+    }
+
+    private function buildInvoiceSummary($baseQuery): array
+    {
+        $row = (clone $baseQuery)
+            ->selectRaw('COUNT(*) as total_invoices')
+            ->selectRaw("SUM(CASE WHEN status <> 'merged' THEN 1 ELSE 0 END) as active_invoices")
+            ->selectRaw("SUM(CASE WHEN status = 'overdue' THEN 1 ELSE 0 END) as overdue_count")
+            ->selectRaw("SUM(CASE WHEN status <> 'merged' THEN COALESCE(paid_amount, 0) ELSE 0 END) as paid_amount")
+            ->selectRaw("SUM(CASE WHEN status <> 'merged' THEN GREATEST(COALESCE(total_amount, 0) - COALESCE(paid_amount, 0), 0) ELSE 0 END) as outstanding_amount")
+            ->first();
+
+        return [
+            'total_invoices' => (int) ($row->total_invoices ?? 0),
+            'active_invoices' => (int) ($row->active_invoices ?? 0),
+            'overdue_count' => (int) ($row->overdue_count ?? 0),
+            'paid_amount' => (float) ($row->paid_amount ?? 0),
+            'outstanding_amount' => (float) ($row->outstanding_amount ?? 0),
+        ];
+    }
+
     private function generateLocalOrderNumber(): string
     {
         do {
@@ -1854,6 +1902,8 @@ class QuoteOrderInvoiceController extends Controller
      */
     public function getInvoices(Request $request): JsonResponse
     {
+        $startedAt = microtime(true);
+
         try {
             $user = $request->user();
             $this->ensureApprovedQuotesHaveOrdersAndInvoicesThrottled($user, 'invoices');
@@ -1895,6 +1945,18 @@ class QuoteOrderInvoiceController extends Controller
                             ->orWhere('order_number', 'like', '%' . $search . '%');
                     });
                 });
+
+            $summaryVersion = $this->getInvoiceSummaryVersion((int) $user->id);
+            $summaryCacheKey = 'invoice-summary:user:' . $user->id
+                . ':v:' . $summaryVersion
+                . ':status:' . ($status ?: 'all')
+                . ':search:' . md5(strtolower($search));
+
+            $summary = Cache::remember(
+                $summaryCacheKey,
+                now()->addSeconds(60),
+                fn () => $this->buildInvoiceSummary($query)
+            );
 
             switch ($sort) {
                 case 'due_desc':
@@ -1954,6 +2016,7 @@ class QuoteOrderInvoiceController extends Controller
                     'current_page' => $invoices->currentPage(),
                     'last_page' => $invoices->lastPage(),
                 ],
+                'summary' => $summary,
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to fetch invoices: ' . $e->getMessage());
@@ -1962,6 +2025,20 @@ class QuoteOrderInvoiceController extends Controller
                 'message' => 'Failed to fetch invoices',
                 'error' => $e->getMessage(),
             ], 500);
+        } finally {
+            $elapsedMs = (int) round((microtime(true) - $startedAt) * 1000);
+
+            if ($elapsedMs >= 700) {
+                Log::warning('Invoices list request was slow', [
+                    'elapsed_ms' => $elapsedMs,
+                    'user_id' => optional($request->user())->id,
+                    'page' => (int) $request->get('page', 1),
+                    'page_size' => (int) $request->get('pageSize', 25),
+                    'status' => $request->get('status'),
+                    'search' => trim((string) $request->get('search', '')),
+                    'include_items' => $request->boolean('include_items', false),
+                ]);
+            }
         }
     }
 
@@ -2157,6 +2234,8 @@ class QuoteOrderInvoiceController extends Controller
                     'notes' => trim(($invoice->notes ? $invoice->notes . ' ' : '') . 'Merged into ' . $combinedInvoice->invoice_number),
                 ]);
             }
+
+            $this->bumpInvoiceSummaryVersion((int) $user->id);
 
             return response()->json([
                 'success' => true,
