@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { API_BASE_URL, buildStoreUrl } from './runtimeConfig'
+import { AUTH_CONTEXTS, clearScopedAuthStorage, getActiveAuthContext, getAuthStorageKeys } from './authContext'
 
 const DEFAULT_API_TIMEOUT_MS = 45000
 const RETRYABLE_ERROR_CODES = new Set(['ECONNABORTED', 'ERR_NETWORK'])
@@ -25,7 +26,9 @@ const api = axios.create({
 
 // Add token to requests
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
+  const context = getActiveAuthContext()
+  const tokenKey = getAuthStorageKeys(context).token
+  const token = localStorage.getItem(tokenKey) || sessionStorage.getItem(tokenKey)
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
@@ -35,11 +38,6 @@ api.interceptors.request.use((config) => {
   return config
 })
 
-const clearAuthStorage = () => {
-  const keys = ['auth_token', 'armely_user', 'auth_session_expiry', 'auth_restricted', 'auth_remember', 'auth_force_pw']
-  keys.forEach(k => { localStorage.removeItem(k); sessionStorage.removeItem(k) })
-}
-
 const redirectToLogin = (reason = 'session-expired') => {
   if (typeof window === 'undefined') return
   if (window.__ARMELY_AUTH_REDIRECTING__) return
@@ -48,7 +46,8 @@ const redirectToLogin = (reason = 'session-expired') => {
   if (currentPath.endsWith('/login') || currentPath.endsWith('/admin/login')) return
 
   window.__ARMELY_AUTH_REDIRECTING__ = true
-  window.location.replace(`${buildStoreUrl('login')}?reason=${encodeURIComponent(reason)}`)
+  const loginPath = getActiveAuthContext() === AUTH_CONTEXTS.ADMIN ? 'admin/login' : 'login'
+  window.location.replace(`${buildStoreUrl(loginPath)}?reason=${encodeURIComponent(reason)}`)
 }
 
 // Handle response errors
@@ -64,9 +63,10 @@ api.interceptors.response.use(
     const message = error.response?.data?.message || ''
     const requestUrl = String(error.config?.url || '').toLowerCase()
     const isLogoutRequest = requestUrl.includes('/auth/logout')
+    const context = getActiveAuthContext()
 
     if (status === 401 && !isLogoutRequest) {
-      clearAuthStorage()
+      clearScopedAuthStorage(context)
       redirectToLogin('unauthorized')
     }
 
@@ -76,7 +76,7 @@ api.interceptors.response.use(
         || restrictionReason === 'user_suspended'
         || message.toLowerCase().includes('suspended')
       if (isSuspension) {
-        clearAuthStorage()
+        clearScopedAuthStorage(context)
         redirectToLogin('suspended')
       }
     }

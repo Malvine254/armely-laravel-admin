@@ -503,6 +503,7 @@ import { computed, ref, onMounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/authStore'
 import { useToastStore } from '../../stores/toastStore'
+import { getAuthStorageKeys } from '../../services/authContext'
 import { API_BASE_URL, resolveProfilePictureUrl } from '../../services/runtimeConfig'
 import Navbar from '../../components/Navbar.vue'
 import {
@@ -523,7 +524,10 @@ const toastStore = useToastStore()
 const activities = ref([])
 const loading = ref(false)
 
-const getAuthToken = () => localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token') || authStore.token
+const getAuthToken = () => {
+  const tokenKey = getAuthStorageKeys('customer').token
+  return localStorage.getItem(tokenKey) || sessionStorage.getItem(tokenKey) || authStore.token
+}
 
 // Modal states
 const showEditProfileModal = ref(false)

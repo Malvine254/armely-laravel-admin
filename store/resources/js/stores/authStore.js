@@ -2,20 +2,25 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import axios from 'axios'
 import { API_BASE_URL, buildStoreUrl } from '../services/runtimeConfig'
+import { AUTH_CONTEXTS, getActiveAuthContext, getAuthContextForPath, getAuthStorageKeys } from '../services/authContext'
 
 export const useAuthStore = defineStore('auth', () => {
-  const initialToken = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token') || null
+  const currentContext = ref(getActiveAuthContext())
+  const getStorageKeys = (context = currentContext.value) => getAuthStorageKeys(context)
+  const readScopedStorage = (keyName, context = currentContext.value) => {
+    const key = getStorageKeys(context)[keyName]
+    return key ? (localStorage.getItem(key) || sessionStorage.getItem(key)) : null
+  }
+
+  const initialToken = readScopedStorage('token') || null
   const token = ref(initialToken)
   const user = ref(null)
-  const accessRestricted = ref(localStorage.getItem('auth_restricted') === 'true')
-  const forcePasswordChange = ref(localStorage.getItem('auth_force_pw') === 'true' || sessionStorage.getItem('auth_force_pw') === 'true')
+  const accessRestricted = ref(readScopedStorage('restricted') === 'true')
+  const forcePasswordChange = ref(readScopedStorage('forcePasswordChange') === 'true')
   const sessionExpiry = ref(null)
-  const USER_KEY = 'armely_user'
-  const SESSION_EXPIRY_KEY = 'auth_session_expiry'
-  const REMEMBER_KEY = 'auth_remember'
   const SESSION_TIMEOUT = 8 * 60 * 60 * 1000 // 8 hours in milliseconds
   const REMEMBER_TIMEOUT = 30 * 24 * 60 * 60 * 1000 // 30 days in milliseconds
-  const rememberSession = ref(localStorage.getItem(REMEMBER_KEY) === 'true')
+  const rememberSession = ref(localStorage.getItem(getStorageKeys().remember) === 'true')
   let _sessionExpiryTimer = null
 
   const isValidDate = (value) => value instanceof Date && !Number.isNaN(value.getTime())
@@ -30,8 +35,17 @@ export const useAuthStore = defineStore('auth', () => {
       return
     }
 
-    const redirectUrl = `${buildStoreUrl('login')}?reason=${encodeURIComponent(reason)}`
+    const loginPath = currentContext.value === AUTH_CONTEXTS.ADMIN ? 'admin/login' : 'login'
+    const redirectUrl = `${buildStoreUrl(loginPath)}?reason=${encodeURIComponent(reason)}`
     window.location.replace(redirectUrl)
+  }
+
+  const applyAuthHeader = () => {
+    if (token.value) {
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token.value}`
+    } else {
+      delete axios.defaults.headers.common['Authorization']
+    }
   }
 
   const clearSessionExpiryTimer = () => {
@@ -143,25 +157,25 @@ export const useAuthStore = defineStore('auth', () => {
     return clean
   }
 
-  const clearAuthStorage = () => {
-    localStorage.removeItem('auth_token')
-    localStorage.removeItem('auth_restricted')
-    localStorage.removeItem('auth_force_pw')
-    localStorage.removeItem(USER_KEY)
-    localStorage.removeItem(SESSION_EXPIRY_KEY)
-    localStorage.removeItem(REMEMBER_KEY)
-    sessionStorage.removeItem('auth_token')
-    sessionStorage.removeItem('auth_restricted')
-    sessionStorage.removeItem('auth_force_pw')
-    sessionStorage.removeItem(USER_KEY)
-    sessionStorage.removeItem(SESSION_EXPIRY_KEY)
-    sessionStorage.removeItem(REMEMBER_KEY)
+  const clearAuthStorage = (context = currentContext.value) => {
+    const keys = Object.values(getStorageKeys(context))
+    keys.forEach((key) => {
+      localStorage.removeItem(key)
+      sessionStorage.removeItem(key)
+    })
   }
 
   const getAuthStorage = () => (rememberSession.value ? localStorage : sessionStorage)
 
-  const loadUser = () => {
-    const saved = localStorage.getItem(USER_KEY) || sessionStorage.getItem(USER_KEY)
+  const loadScopedState = (context = currentContext.value) => {
+    const keys = getStorageKeys(context)
+
+    token.value = localStorage.getItem(keys.token) || sessionStorage.getItem(keys.token) || null
+    accessRestricted.value = (localStorage.getItem(keys.restricted) || sessionStorage.getItem(keys.restricted)) === 'true'
+    forcePasswordChange.value = (localStorage.getItem(keys.forcePasswordChange) || sessionStorage.getItem(keys.forcePasswordChange)) === 'true'
+    rememberSession.value = localStorage.getItem(keys.remember) === 'true'
+
+    const saved = localStorage.getItem(keys.user) || sessionStorage.getItem(keys.user)
     if (saved) {
       try {
         user.value = normalizeUserProfile(JSON.parse(saved))
@@ -169,28 +183,61 @@ export const useAuthStore = defineStore('auth', () => {
         console.error('Failed to load user:', e)
         user.value = null
       }
+    } else {
+      user.value = null
+    }
+
+    const expiry = localStorage.getItem(keys.sessionExpiry) || sessionStorage.getItem(keys.sessionExpiry)
+    if (!expiry) {
+      sessionExpiry.value = null
+      applyAuthHeader()
+      return
+    }
+
+    const parsed = new Date(expiry)
+    if (!isValidDate(parsed)) {
+      sessionExpiry.value = null
+      localStorage.removeItem(keys.sessionExpiry)
+      sessionStorage.removeItem(keys.sessionExpiry)
+      applyAuthHeader()
+      return
+    }
+
+    sessionExpiry.value = parsed
+    if (sessionExpiry.value < new Date()) {
+      console.warn('Session has expired')
+      logout({ skipRequest: true, redirectReason: 'session-expired' })
+      return
+    }
+
+    applyAuthHeader()
+  }
+
+  const syncContext = (context = getActiveAuthContext()) => {
+    const nextContext = context || AUTH_CONTEXTS.CUSTOMER
+    if (currentContext.value === nextContext) {
+      applyAuthHeader()
+      return
+    }
+
+    stopStatusPolling()
+    clearSessionExpiryTimer()
+    currentContext.value = nextContext
+    loadScopedState(nextContext)
+
+    if (token.value) {
+      scheduleSessionExpiryTimer()
+      refreshUser().then(ok => { if (ok) startStatusPolling() }).catch(() => logout())
     }
   }
 
+  const loadUser = () => {
+    loadScopedState(currentContext.value)
+  }
+
   const loadSessionExpiry = () => {
-    const expiry = localStorage.getItem(SESSION_EXPIRY_KEY) || sessionStorage.getItem(SESSION_EXPIRY_KEY)
-    if (expiry) {
-      const parsed = new Date(expiry)
-      if (!isValidDate(parsed)) {
-        sessionExpiry.value = null
-        localStorage.removeItem(SESSION_EXPIRY_KEY)
-        sessionStorage.removeItem(SESSION_EXPIRY_KEY)
-        return
-      }
-
-      sessionExpiry.value = parsed
-      // Check if session has expired
-      if (sessionExpiry.value < new Date()) {
-        console.warn('Session has expired')
-        logout({ skipRequest: true, redirectReason: 'session-expired' })
-        return
-      }
-
+    loadScopedState(currentContext.value)
+    if (sessionExpiry.value) {
       scheduleSessionExpiryTimer()
     }
   }
@@ -198,13 +245,14 @@ export const useAuthStore = defineStore('auth', () => {
   const saveUser = () => {
     if (user.value) {
       const storage = getAuthStorage()
+      const keys = getStorageKeys()
       try {
-        storage.setItem(USER_KEY, JSON.stringify(normalizeUserProfile(user.value)))
+        storage.setItem(keys.user, JSON.stringify(normalizeUserProfile(user.value)))
       } catch (error) {
         console.warn('User profile was too large for browser storage; saving compact session profile.', error)
         try {
-          storage.removeItem(USER_KEY)
-          storage.setItem(USER_KEY, JSON.stringify(minimalStoredUser(user.value)))
+          storage.removeItem(keys.user)
+          storage.setItem(keys.user, JSON.stringify(minimalStoredUser(user.value)))
         } catch (fallbackError) {
           console.warn('Unable to persist user profile in browser storage.', fallbackError)
         }
@@ -219,30 +267,31 @@ export const useAuthStore = defineStore('auth', () => {
 
   const saveToken = (newToken, remember = false) => {
     rememberSession.value = !!remember
-    clearAuthStorage()
+    clearAuthStorage(currentContext.value)
 
     token.value = newToken
     const storage = getAuthStorage()
-    storage.setItem('auth_token', newToken)
-    storage.setItem(REMEMBER_KEY, String(rememberSession.value))
+    const keys = getStorageKeys()
+    storage.setItem(keys.token, newToken)
+    storage.setItem(keys.remember, String(rememberSession.value))
     
     // Set session expiry time
     const timeout = rememberSession.value ? REMEMBER_TIMEOUT : SESSION_TIMEOUT
     const expiry = new Date(Date.now() + timeout)
     sessionExpiry.value = expiry
-    storage.setItem(SESSION_EXPIRY_KEY, expiry.toISOString())
+    storage.setItem(keys.sessionExpiry, expiry.toISOString())
     scheduleSessionExpiryTimer()
-    
-    axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`
+    applyAuthHeader()
   }
 
   const setRestricted = (restricted) => {
     accessRestricted.value = !!restricted
-    getAuthStorage().setItem('auth_restricted', String(!!restricted))
+    getAuthStorage().setItem(getStorageKeys().restricted, String(!!restricted))
   }
 
-  const login = async ({ email, password, remember = false }) => {
+  const login = async ({ email, password, remember = false, context = currentContext.value }) => {
     try {
+      syncContext(context)
       const response = await axios.post(`${API_BASE_URL}/auth/login`, { email, password })
       if (response.data?.success) {
         const payload = response.data.data
@@ -262,7 +311,7 @@ export const useAuthStore = defineStore('auth', () => {
         setRestricted(payload.restricted)
         const forcePw = !!payload.force_password_change
         forcePasswordChange.value = forcePw
-        getAuthStorage().setItem('auth_force_pw', String(forcePw))
+        getAuthStorage().setItem(getStorageKeys().forcePasswordChange, String(forcePw))
         startStatusPolling()
         return {
           ok: true,
@@ -391,8 +440,8 @@ export const useAuthStore = defineStore('auth', () => {
       setRestricted(false)
       sessionExpiry.value = null
       rememberSession.value = false
-      clearAuthStorage()
-      delete axios.defaults.headers.common['Authorization']
+      clearAuthStorage(currentContext.value)
+      applyAuthHeader()
       if (redirectReason) {
         redirectToLogin(redirectReason)
       }
@@ -543,8 +592,9 @@ export const useAuthStore = defineStore('auth', () => {
 
   const clearForcePasswordChange = () => {
     forcePasswordChange.value = false
-    localStorage.removeItem('auth_force_pw')
-    sessionStorage.removeItem('auth_force_pw')
+    const key = getStorageKeys().forcePasswordChange
+    localStorage.removeItem(key)
+    sessionStorage.removeItem(key)
   }
 
   const getSessionTimeRemaining = () => {
@@ -560,13 +610,14 @@ export const useAuthStore = defineStore('auth', () => {
   loadSessionExpiry()
 
   if (token.value) {
-    axios.defaults.headers.common['Authorization'] = `Bearer ${token.value}`
+    applyAuthHeader()
     scheduleSessionExpiryTimer()
     // Verify session is still valid, then start polling
     refreshUser().then(ok => { if (ok) startStatusPolling() }).catch(() => logout())
   }
 
   return {
+    currentContext,
     token,
     user,
     accessRestricted,
@@ -588,6 +639,8 @@ export const useAuthStore = defineStore('auth', () => {
     refreshUser,
     setUser,
     clearForcePasswordChange,
+    syncContext,
+    syncContextForPath: (path) => syncContext(getAuthContextForPath(path)),
     startStatusPolling,
     stopStatusPolling,
   }

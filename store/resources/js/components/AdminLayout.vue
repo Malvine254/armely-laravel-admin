@@ -719,7 +719,7 @@ watch(
 
 const fetchCurrentUser = async () => {
   try {
-    const cached = localStorage.getItem('armely_user')
+    const cached = localStorage.getItem('admin_user') || sessionStorage.getItem('admin_user')
     if (cached) {
       try {
         const parsed = JSON.parse(cached)
