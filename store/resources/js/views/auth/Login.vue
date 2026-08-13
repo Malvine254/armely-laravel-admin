@@ -49,10 +49,13 @@
         <div class="p-8">
         <!-- Header -->
         <div class="text-center mb-8">
-          <div class="w-16 h-16 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg" style="background: linear-gradient(135deg, #2F5597, #1f4788);">
-            <span class="text-white font-bold text-2xl">A</span>
+          <div class="mx-auto mb-4 flex h-28 w-28 items-center justify-center">
+            <img
+              :src="normalizeLocalAssetUrl('/images/logo/armely-store-logo.png')"
+              alt="Armely Store"
+              class="h-full w-full object-contain"
+            >
           </div>
-          <p class="text-sm font-semibold tracking-wide uppercase" style="color: #2F5597;">Armely Store</p>
           <h2 class="text-3xl font-bold text-slate-900 mb-2">Welcome Back</h2>
           <p class="text-slate-600">Sign in to your Armely Store account</p>
         </div>
@@ -116,6 +119,7 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { normalizeLocalAssetUrl } from '@/services/runtimeConfig'
 import { useAuthStore } from '../../stores/authStore'
 import { useCartStore } from '../../stores/cartStore'
 import { useToastStore } from '../../stores/toastStore'
