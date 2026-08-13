@@ -36,6 +36,7 @@
 import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import axios from 'axios'
+import { API_BASE_URL } from '@/services/runtimeConfig'
 
 const route = useRoute()
 const loading = ref(true)
@@ -54,7 +55,7 @@ onMounted(async () => {
   }
 
   try {
-    const response = await axios.get('/api/v1/auth/activate', {
+    const response = await axios.get(`${API_BASE_URL}/auth/activate`, {
       params: { token, email }
     })
 
