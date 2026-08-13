@@ -544,6 +544,7 @@ import { useCartStore } from '../../stores/cartStore'
 import Navbar from '../../components/Navbar.vue'
 import axios from 'axios'
 import { usePricingSettings } from '../../composables/usePricingSettings'
+import { API_BASE_URL } from '../../services/runtimeConfig'
 
 export default {
   components: { Navbar },
@@ -922,7 +923,7 @@ export default {
         let resolved = null
 
         try {
-          const byId = await axios.get(`/api/v1/products/${encodeURIComponent(id)}`)
+          const byId = await axios.get(`${API_BASE_URL}/products/${encodeURIComponent(id)}`)
           resolved = extractProductName(byId?.data?.data)
         } catch (_) {
           // Continue to SKU/search fallbacks.
@@ -930,7 +931,7 @@ export default {
 
         if (!resolved) {
           try {
-            const bySku = await axios.get(`/api/v1/products/sku/${encodeURIComponent(id)}`)
+            const bySku = await axios.get(`${API_BASE_URL}/products/sku/${encodeURIComponent(id)}`)
             resolved = extractProductName(bySku?.data?.data)
           } catch (_) {
             // Continue to search fallback.
@@ -939,7 +940,7 @@ export default {
 
         if (!resolved) {
           try {
-            const searched = await axios.get('/api/v1/products', {
+            const searched = await axios.get(`${API_BASE_URL}/products`, {
               params: {
                 search: id,
                 page: 1,
@@ -1037,9 +1038,9 @@ export default {
         }
 
         const [allQuotes, allOrders, allInvoices] = await Promise.all([
-          fetchAllPages('/api/v1/quotes', 100),
-          fetchAllPages('/api/v1/orders', 100),
-          fetchAllPages('/api/v1/invoices', 200)
+          fetchAllPages(`${API_BASE_URL}/quotes`, 100),
+          fetchAllPages(`${API_BASE_URL}/orders`, 100),
+          fetchAllPages(`${API_BASE_URL}/invoices`, 200)
         ])
 
         if (Array.isArray(allQuotes)) {
@@ -1195,7 +1196,7 @@ export default {
 
     const downloadQuotePdf = async (quote) => {
       try {
-        const response = await axios.get(`/api/v1/quotes/${quote.quote_id}/pdf`, {
+        const response = await axios.get(`${API_BASE_URL}/quotes/${quote.quote_id}/pdf`, {
           responseType: 'blob'
         })
 
@@ -1312,7 +1313,7 @@ export default {
         processingQuoteId.value = quote.quote_id
 
         try {
-          const response = await axios.post(`/api/v1/quotes/${quote.quote_id}/cancel`, {
+          const response = await axios.post(`${API_BASE_URL}/quotes/${quote.quote_id}/cancel`, {
             reason: 'Cancelled by customer (bulk action)',
           })
 
@@ -1380,7 +1381,7 @@ export default {
       processingQuoteId.value = quote.quote_id
 
       try {
-        const response = await axios.post(`/api/v1/quotes/${quote.quote_id}/cancel`, {
+        const response = await axios.post(`${API_BASE_URL}/quotes/${quote.quote_id}/cancel`, {
           reason: reason || 'Cancelled by customer',
         })
 

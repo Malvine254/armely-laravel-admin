@@ -343,6 +343,7 @@ import { useQuotesStore } from '../../stores/quotesStore'
 import { useToastStore } from '../../stores/toastStore'
 import { useAuthStore } from '../../stores/authStore'
 import { usePricingSettings } from '../../composables/usePricingSettings'
+import { API_BASE_URL } from '../../services/runtimeConfig'
 import api from '../../services/api'
 import Navbar from '../../components/Navbar.vue'
 
@@ -881,7 +882,7 @@ const requestQuote = async (shippingConfirmed = false) => {
       return
     }
 
-    const response = await axios.post('/api/v1/quotes', {
+    const response = await axios.post(`${API_BASE_URL}/quotes`, {
       items: quoteItems,
       description: cartStore.revisionSourceQuoteId
         ? `Revision of quote ${cartStore.revisionSourceQuoteId}`
