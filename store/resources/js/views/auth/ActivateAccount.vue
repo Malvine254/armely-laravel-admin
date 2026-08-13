@@ -2,8 +2,12 @@
   <div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100 flex items-center justify-center px-4 py-9">
     <div class="w-full max-w-md">
       <div class="bg-white rounded-2xl shadow-xl border border-slate-200 p-8 text-center">
-        <div class="w-16 h-16 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg" style="background: linear-gradient(135deg, #2F5597, #1f4788);">
-          <span class="text-white font-bold text-2xl">A</span>
+        <div class="mx-auto mb-4 flex h-28 w-28 items-center justify-center">
+          <img
+            :src="normalizeLocalAssetUrl('/images/logo/armely-store-logo.png')"
+            alt="Armely Store"
+            class="h-full w-full object-contain"
+          >
         </div>
 
         <p class="text-sm font-semibold tracking-wide uppercase" style="color: #2F5597;">Armely Store</p>
@@ -36,7 +40,7 @@
 import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import axios from 'axios'
-import { API_BASE_URL } from '@/services/runtimeConfig'
+import { API_BASE_URL, normalizeLocalAssetUrl } from '@/services/runtimeConfig'
 
 const route = useRoute()
 const loading = ref(true)
