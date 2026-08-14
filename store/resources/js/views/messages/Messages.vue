@@ -1,8 +1,8 @@
 <template>
-  <div class="h-dvh overflow-hidden bg-gray-50 text-gray-900">
+  <div class="h-dvh overflow-hidden bg-gray-50 text-gray-900 flex flex-col">
     <Navbar />
 
-    <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-5 py-3 sm:py-4 h-[calc(100dvh-5rem)] flex flex-col overflow-hidden">
+    <div class="max-w-7xl w-full mx-auto px-3 sm:px-4 lg:px-5 py-3 sm:py-4 flex-1 min-h-0 flex flex-col overflow-hidden">
       <div class="grid grid-cols-1 xl:grid-cols-12 gap-5 flex-1 min-h-0 overflow-hidden relative">
         <section
           class="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden min-h-0 flex flex-col xl:col-span-4 transition-transform duration-300 ease-out xl:static xl:translate-x-0 xl:top-auto xl:bottom-auto xl:left-auto xl:z-auto"
@@ -163,15 +163,6 @@
               >
                 {{ activeSession?.resolved_at ? (escalating ? 'Reopening...' : 'Reopen to Human') : activeSession?.escalated_to_human ? 'Escalated' : (escalating ? 'Escalating...' : 'Escalate to Human') }}
               </button>
-              <button
-                v-for="prompt in quickPrompts"
-                :key="prompt"
-                @click="sendChatMessage(prompt)"
-                :disabled="isWaitingForHuman"
-                class="px-3 py-1.5 rounded-full text-xs font-semibold border border-[#2F5597]/30 text-[#2F5597] bg-[#2F5597]/10 hover:bg-[#2F5597]/20"
-              >
-                {{ prompt }}
-              </button>
             </div>
           </div>
 
@@ -180,11 +171,6 @@
             <div class="flex justify-start">
               <div class="max-w-[90%] sm:max-w-[78%] rounded-2xl rounded-bl-md px-4 py-3 shadow-sm bg-white border border-gray-200 text-gray-900">
                 <p class="text-sm whitespace-pre-wrap leading-relaxed">I'm Mela AI, your Armely assistant. Ask me about products, quotes, orders, invoices, or anything else you're working on.</p>
-                <div class="mt-3 flex flex-wrap gap-2">
-                  <button @click="openActionLink('/products')" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-[#2F5597]/30 text-[#2F5597] bg-[#2F5597]/10 hover:bg-[#2F5597]/20">Browse products</button>
-                  <button @click="openActionLink('/quotes')" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-[#2F5597]/30 text-[#2F5597] bg-[#2F5597]/10 hover:bg-[#2F5597]/20">Open quotes</button>
-                  <button @click="openActionLink('/invoices')" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-[#2F5597]/30 text-[#2F5597] bg-[#2F5597]/10 hover:bg-[#2F5597]/20">Open invoices</button>
-                </div>
               </div>
             </div>
             <div
@@ -270,7 +256,7 @@
           </div>
 
           <form
-            class="shrink-0 p-4 border-t border-gray-200 bg-white"
+            class="shrink-0 p-3 sm:p-4 border-t border-gray-200 bg-white"
             style="padding-bottom: calc(1rem + env(safe-area-inset-bottom));"
             @submit.prevent="sendChatMessage()"
           >
@@ -281,13 +267,13 @@
                 :placeholder="isWaitingForHuman
                   ? 'This chat is escalated. Your message will be sent to a human support agent.'
                   : 'Ask Mela AI about products, invoices, payments, quotes, and tracking...'"
-                class="flex-1 resize-none rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 min-h-[92px] focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
+                class="flex-1 resize-none rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 min-h-[84px] focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
                 @keydown.enter.exact.prevent="sendChatMessage()"
               ></textarea>
               <button
                 type="submit"
                 :disabled="sendingChat || !chatInput.trim()"
-                class="px-4 rounded-xl text-white font-semibold transition min-h-[92px] disabled:opacity-50 disabled:cursor-not-allowed"
+                class="px-4 rounded-xl text-white font-semibold transition min-h-[84px] disabled:opacity-50 disabled:cursor-not-allowed"
                 style="background-color: #2F5597;"
               >
                 Send
@@ -515,13 +501,6 @@ const deleteSelectedChats = async () => {
 const clearAllChats = async () => {
   await deleteChatSessions({ clearAll: true })
 }
-
-const quickPrompts = [
-  'Recommend a Dell laptop under $1500',
-  'Show my unpaid invoices',
-  'Track my latest order',
-  'Help me find networking equipment'
-]
 
 const activeSession = computed(() => chatSessions.value.find((session) => session.id === activeChatSessionId.value) || null)
 const isWaitingForHuman = computed(() => {
