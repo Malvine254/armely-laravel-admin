@@ -666,6 +666,12 @@ class MessageController extends Controller
         $actions            = (array) ($agentResult['actions'] ?? []);
         $productSuggestions = (array) ($agentResult['product_suggestions'] ?? []);
         $source             = (string) ($agentResult['source'] ?? 'azure_openai');
+        $intent             = (string) ($agentResult['intent'] ?? 'general_support');
+
+        if (!$this->shouldIncludeAssistantActions($question, $intent, $context, $productSuggestions)) {
+            $actions = [];
+        }
+
         $degraded           = in_array($source, ['local_fallback', 'assistant_error_fallback'], true);
 
         ChatMessage::create([
@@ -676,7 +682,7 @@ class MessageController extends Controller
             'actions' => $actions,
             'metadata' => [
                 'source'              => $source,
-                'intent'              => $agentResult['intent'] ?? null,
+                'intent'              => $intent,
                 'degraded'            => $degraded,
                 'product_suggestions' => $productSuggestions,
             ],
@@ -1342,6 +1348,30 @@ class MessageController extends Controller
         return $deduped;
     }
 
+    private function shouldIncludeAssistantActions(string $question, string $intent, array $context, array $productSuggestions = []): bool
+    {
+        if ($intent === 'product_search' || !empty($productSuggestions)) {
+            return true;
+        }
+
+        if (ChatIntentSignals::isDueAmountQuestion($question)) {
+            return false;
+        }
+
+        $normalized = ChatIntentSignals::normalizeQuestion($question);
+        $hasExplicitActionRequest = (bool) preg_match('/\b(open|view|show|go to|take me|navigate|browse|download|pay|track|manage|list|see all)\b/u', $normalized);
+        if ($hasExplicitActionRequest) {
+            return true;
+        }
+
+        $focusedInvoice = $context['focused_invoice'] ?? null;
+        if ($focusedInvoice && ChatIntentSignals::isInvoiceIntentQuery($question)) {
+            return true;
+        }
+
+        return false;
+    }
+
     private function resolveSmartIntent(string $question, array $context, array $chatHistory): ?string
     {
         $q = strtolower(trim($question));
@@ -1353,6 +1383,18 @@ class MessageController extends Controller
         $intent = ChatIntentSignals::classifyAssistantIntent($question, $recentChatTurns);
         if ($intent !== 'general_support') {
             return $intent;
+        }
+
+        $accountIntentCount = collect([
+            ChatIntentSignals::isQuoteIntentQuery($question),
+            ChatIntentSignals::isOrderIntentQuery($question),
+            ChatIntentSignals::isInvoiceIntentQuery($question),
+        ])->filter()->count();
+
+        // Explicit mixed account questions should stay broad (support summary)
+        // rather than being collapsed to the first detected follow-up topic.
+        if ($accountIntentCount > 1) {
+            return 'general_support';
         }
 
         $followUpTopic = $this->inferFollowUpTopic($q, $recentChatTurns);
@@ -1412,6 +1454,35 @@ class MessageController extends Controller
         $followUpTopic = $this->inferFollowUpTopic($questionLower, $recentChatTurns);
         $wantsRankedItem = (bool) preg_match('/\b(most recent|latest|newest|last|first|earliest|oldest)\b/', $questionLower);
         $preferEarliest = (bool) preg_match('/\b(first|earliest|oldest)\b/', $questionLower);
+        $accountIntentCount = collect([
+            ChatIntentSignals::isQuoteIntentQuery($question),
+            ChatIntentSignals::isOrderIntentQuery($question),
+            ChatIntentSignals::isInvoiceIntentQuery($question),
+        ])->filter()->count();
+
+        if (ChatIntentSignals::isDueAmountQuestion($question) || (ChatIntentSignals::isInvoiceIntentQuery($question) && $accountIntentCount > 1)) {
+            if ($openCount === 0) {
+                return 'You currently have no outstanding balance due. If you want, I can still summarize your latest orders and quotes.';
+            }
+
+            return "Your total outstanding balance due is {$openTotal} across {$openCount} open invoice(s). If you want, I can also break this down per invoice and relate each to its order/quote.";
+        }
+
+        if ($accountIntentCount > 1) {
+            $orderCount = count($orders);
+            $quoteCount = count($quotes);
+            $latestOrder = $orders[0]['order_number'] ?? null;
+            $latestOrderStatus = $orders[0]['status'] ?? null;
+            $latestOrderLine = $latestOrder
+                ? " Latest order: **{$latestOrder}**" . ($latestOrderStatus ? ' (' . ucfirst((string) $latestOrderStatus) . ').' : '.')
+                : '';
+
+            $balanceLine = $openCount > 0
+                ? " Outstanding balance: {$openTotal} across {$openCount} open invoice(s)."
+                : ' No outstanding balance due right now.';
+
+            return "You currently have {$quoteCount} quote(s) and {$orderCount} order(s).{$latestOrderLine}{$balanceLine}";
+        }
 
         if ($wantsRankedItem && $followUpTopic === 'quote') {
             $quote = $this->pickRankedContextItem($quotes, $preferEarliest);

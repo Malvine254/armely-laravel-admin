@@ -38,6 +38,15 @@ class ChatIntentSignalsTest extends TestCase
         $this->assertSame('invoice_payment', ChatIntentSignals::classifyAssistantIntent('show my unpaid invoices'));
         $this->assertSame('quote_management', ChatIntentSignals::classifyAssistantIntent('show my last 2 quotes'));
         $this->assertSame('product_search', ChatIntentSignals::classifyAssistantIntent('find me cisco switches'));
+        $this->assertSame('general_support', ChatIntentSignals::classifyAssistantIntent('check my quotes and orders'));
+        $this->assertSame('invoice_payment', ChatIntentSignals::classifyAssistantIntent('how much is due for the order/quotes'));
+    }
+
+    public function test_it_detects_due_amount_questions(): void
+    {
+        $this->assertTrue(ChatIntentSignals::isDueAmountQuestion('How much is due for my account?'));
+        $this->assertTrue(ChatIntentSignals::isDueAmountQuestion('What do I owe right now?'));
+        $this->assertFalse(ChatIntentSignals::isDueAmountQuestion('show my latest quotes'));
     }
 
     public function test_it_keeps_account_queries_separate_from_product_search(): void

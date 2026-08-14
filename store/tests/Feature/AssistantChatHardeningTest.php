@@ -147,4 +147,60 @@ class AssistantChatHardeningTest extends TestCase
         $this->assertNotNull($route);
         $this->assertContains('throttle:30,1', $route->gatherMiddleware());
     }
+
+    public function test_due_questions_return_natural_reply_without_action_buttons(): void
+    {
+        $companyId = \DB::table('companies')->insertGetId([
+            'name' => 'Due Co',
+            'status' => 'approved',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $user = User::query()->create([
+            'name' => 'Due User',
+            'email' => 'due-user@example.com',
+            'password' => bcrypt('secret123'),
+            'status' => 'active',
+            'role' => 'customer',
+            'company_id' => $companyId,
+            'email_verified_at' => now(),
+        ]);
+
+        $response = $this->actingAs($user, 'sanctum')->postJson('/api/v1/messages/assistant/chat', [
+            'message' => 'how much is due for the order/quotes',
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.actions', []);
+    }
+
+    public function test_mixed_account_summary_question_avoids_forced_quote_buttons(): void
+    {
+        $companyId = \DB::table('companies')->insertGetId([
+            'name' => 'Mixed Co',
+            'status' => 'approved',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $user = User::query()->create([
+            'name' => 'Mixed User',
+            'email' => 'mixed-user@example.com',
+            'password' => bcrypt('secret123'),
+            'status' => 'active',
+            'role' => 'customer',
+            'company_id' => $companyId,
+            'email_verified_at' => now(),
+        ]);
+
+        $response = $this->actingAs($user, 'sanctum')->postJson('/api/v1/messages/assistant/chat', [
+            'message' => 'check my quotes and orders',
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.actions', []);
+    }
 }
