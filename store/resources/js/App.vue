@@ -1,5 +1,5 @@
 <template>
-  <div id="app">
+  <div id="app" :class="isMessagesRoute ? 'h-dvh overflow-hidden' : ''">
     <div
       v-if="showRestrictedBanner"
       class="sticky top-0 z-[10000] border-b border-amber-300 bg-amber-100"
@@ -33,7 +33,7 @@
     </button>
 
     <button
-      v-if="showBackToTop"
+      v-if="showBackToTop && !isMessagesRoute"
       type="button"
       @click="scrollToTop"
       class="fixed w-11 h-11 rounded-full shadow-lg flex items-center justify-center text-white z-[10001] transition"
@@ -210,8 +210,10 @@ const isSuspendedRestriction = computed(() => {
 
 const showStoreFooter = computed(() => {
   const routeName = String(route.name || '')
-  return !routeName.startsWith('admin-') && routeName !== 'admin-login'
+  return !routeName.startsWith('admin-') && routeName !== 'admin-login' && routeName !== 'messages'
 })
+
+const isMessagesRoute = computed(() => String(route.name || '') === 'messages')
 
 const showFloatingChatLauncher = computed(() => {
   const routeName = String(route.name || '')
