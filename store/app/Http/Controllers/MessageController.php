@@ -715,8 +715,11 @@ class MessageController extends Controller
             $fallbackProductSuggestions = [];
 
             try {
-                $fallbackSearchContext = $this->buildProductSearchContext($question, []);
-                $fallbackProductSuggestions = $this->searchProductsForAssistant($question, [], 6, $fallbackSearchContext);
+                $allowProductFallback = ChatIntentSignals::isProductLookupIntent($question, []);
+                if ($allowProductFallback) {
+                    $fallbackSearchContext = $this->buildProductSearchContext($question, []);
+                    $fallbackProductSuggestions = $this->searchProductsForAssistant($question, [], 6, $fallbackSearchContext);
+                }
 
                 if (!empty($fallbackProductSuggestions)) {
                     $count = count($fallbackProductSuggestions);
@@ -1140,23 +1143,27 @@ class MessageController extends Controller
         $isAccountQuestion = ChatIntentSignals::isQuoteIntentQuery($question)
             || ChatIntentSignals::isInvoiceIntentQuery($question)
             || ChatIntentSignals::isOrderIntentQuery($question);
+        $isGeneralConversation = ChatIntentSignals::isGeneralConversationQuery($question);
         $productSearchPlan = $isAccountQuestion
+            || $isGeneralConversation
             ? null
             : $this->assistantService->planProductSearch($question, $recentChatTurns);
         $catalogSearchQuery = $isAccountQuestion
+            || $isGeneralConversation
             ? ''
             : trim((string) ($productSearchPlan['query'] ?? ''));
-        if (!$isAccountQuestion && $catalogSearchQuery === '') {
+        if (!$isAccountQuestion && !$isGeneralConversation && $catalogSearchQuery === '') {
             $catalogSearchQuery = $this->resolveConversationalCatalogSearchQuery($question, $recentChatTurns);
         }
         $catalogSearchQueries  = ChatIntentSignals::extractCatalogSearchPhrases($catalogSearchQuery);
         $excludedProductTerms = ChatIntentSignals::extractExcludedProductTerms($question);
-        $shouldSuggestProducts = ChatIntentSignals::isCatalogQueryAudit($question)
-            || $this->isProductDiscoveryIntent($catalogSearchQuery, $recentChatTurns);
+        $shouldSuggestProducts = !$isGeneralConversation
+            && (ChatIntentSignals::isCatalogQueryAudit($question)
+            || $this->isProductDiscoveryIntent($catalogSearchQuery, $recentChatTurns));
         // A conversational follow-up can intentionally contain no new catalog terms. Still run
         // it through product search so buildProductSearchContext() can reuse the prior cards.
         $productSearchInputs = $catalogSearchQueries;
-        if (empty($productSearchInputs) && $this->isProductDiscoveryIntent($question, $recentChatTurns)) {
+        if (!$isGeneralConversation && empty($productSearchInputs) && $this->isProductDiscoveryIntent($question, $recentChatTurns)) {
             $productSearchInputs = [$question];
             $shouldSuggestProducts = true;
         }
@@ -2248,6 +2255,10 @@ class MessageController extends Controller
             return false;
         }
 
+        if (ChatIntentSignals::isGeneralConversationQuery($question)) {
+            return false;
+        }
+
         $greetings = ['hi', 'hello', 'hey', 'yo', 'good morning', 'good afternoon', 'good evening', 'howdy', 'sup', 'whats up', 'thanks', 'thank you', 'thx', 'ok', 'okay', 'bye', 'goodbye'];
         if (in_array($q, $greetings, true)) {
             return false;
@@ -2291,7 +2302,10 @@ class MessageController extends Controller
             }
         }
 
-        if ($hasMeaningfulKeywords && !Str::contains($q, $financeSignals)) {
+        if ($hasMeaningfulKeywords
+            && Str::contains($q, ['search for', 'find', 'looking for', 'need ', 'want ', 'show me', 'compare', 'available', 'in stock'])
+            && !Str::contains($q, $financeSignals)
+        ) {
             return true;
         }
 

@@ -290,6 +290,7 @@ class ChatIntentSignals
             'have', 'all', 'more', 'details', 'about', 'find', 'search', 'suggestion', 'suggestions',
             'suggest', 'suggested', 'recommended', 'recommend', 'available', 'current', 'from',
             'product', 'products', 'item', 'items', 'one', 'two', 'three', 'hi', 'hello', 'hey', 'to', 'today',
+            'buddy', 'friend', 'bro', 'dude', 'sir', 'madam',
             'last', 'latest', 'recent', 'newest', 'first', 'earliest', 'oldest', 'previous', 'former',
             'order', 'quote', 'quotes', 'cart', 'make', 'proceed', 'request', 'them', 'those', 'are', 'please',
             'add', 'added', 'placing', 'place', 'good', 'looking', 'look', 'get', 'some', 'any',
