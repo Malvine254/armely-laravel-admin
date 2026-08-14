@@ -1,8 +1,8 @@
 <template>
-  <div class="min-h-screen bg-gray-50 text-gray-900">
+  <div class="h-dvh overflow-hidden bg-gray-50 text-gray-900">
     <Navbar />
 
-    <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-5 py-4 sm:py-5 h-[calc(100dvh-9.5rem)] md:h-[calc(100dvh-5rem)] flex flex-col overflow-hidden">
+    <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-5 py-3 sm:py-4 h-[calc(100dvh-5rem)] flex flex-col overflow-hidden">
       <div class="grid grid-cols-1 xl:grid-cols-12 gap-5 flex-1 min-h-0 overflow-hidden relative">
         <section
           class="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden min-h-0 flex flex-col xl:col-span-4 transition-transform duration-300 ease-out xl:static xl:translate-x-0 xl:top-auto xl:bottom-auto xl:left-auto xl:z-auto"
@@ -324,6 +324,8 @@ const manageHistoryMode = ref(false)
 const selectedHistoryIds = ref([])
 const deletingHistory = ref(false)
 const loadingSessions = ref(true)
+let previousBodyOverflow = ''
+let previousHtmlOverflow = ''
 
 const configuredAllowedAssistantHosts = String(import.meta.env.VITE_ASSISTANT_ALLOWED_LINK_HOSTS || '')
   .split(',')
@@ -545,7 +547,7 @@ const scrollChatToBottom = async (smooth = false) => {
   if (!chatScrollRef.value) return
   chatScrollRef.value.scrollTo({
     top: chatScrollRef.value.scrollHeight,
-    behavior: smooth ? 'smooth' : 'instant',
+    behavior: smooth ? 'smooth' : 'auto',
   })
 }
 
@@ -1081,6 +1083,11 @@ const sendChatMessage = async (prefilled = null) => {
 }
 
 onMounted(async () => {
+  previousBodyOverflow = document.body.style.overflow || ''
+  previousHtmlOverflow = document.documentElement.style.overflow || ''
+  document.body.style.overflow = 'hidden'
+  document.documentElement.style.overflow = 'hidden'
+
   const cachedSessions = readCachedJson(getChatCacheKey('sessions'), [])
   if (Array.isArray(cachedSessions) && cachedSessions.length > 0) {
     chatSessions.value = cachedSessions
@@ -1107,6 +1114,8 @@ onMounted(async () => {
 
 onUnmounted(() => {
   stopMessagePolling()
+  document.body.style.overflow = previousBodyOverflow
+  document.documentElement.style.overflow = previousHtmlOverflow
 })
 </script>
 

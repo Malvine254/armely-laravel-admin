@@ -203,4 +203,42 @@ class AssistantChatHardeningTest extends TestCase
             ->assertJsonPath('success', true)
             ->assertJsonPath('data.actions', []);
     }
+
+    public function test_greeting_after_quote_turn_does_not_get_forced_back_to_quote_agent(): void
+    {
+        $companyId = \DB::table('companies')->insertGetId([
+            'name' => 'Greeting Co',
+            'status' => 'approved',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $user = User::query()->create([
+            'name' => 'Greeting User',
+            'email' => 'greeting-user@example.com',
+            'password' => bcrypt('secret123'),
+            'status' => 'active',
+            'role' => 'customer',
+            'company_id' => $companyId,
+            'email_verified_at' => now(),
+        ]);
+
+        $first = $this->actingAs($user, 'sanctum')->postJson('/api/v1/messages/assistant/chat', [
+            'message' => 'check my quotes',
+        ]);
+
+        $first->assertOk()->assertJsonPath('success', true);
+        $chatSessionId = (int) ($first->json('data.chat_session.id') ?? 0);
+        $this->assertGreaterThan(0, $chatSessionId);
+
+        $second = $this->actingAs($user, 'sanctum')->postJson('/api/v1/messages/assistant/chat', [
+            'message' => 'hi',
+            'chat_session_id' => $chatSessionId,
+        ]);
+
+        $second->assertOk()->assertJsonPath('success', true);
+        $reply = strtolower((string) $second->json('data.reply'));
+        $this->assertStringNotContainsString('you have **', $reply);
+        $this->assertStringNotContainsString('quote(s) on record', $reply);
+    }
 }
