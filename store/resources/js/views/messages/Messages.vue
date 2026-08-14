@@ -244,8 +244,14 @@
               </div>
             </div>
 
-            <div v-if="sendingChat" class="flex justify-start">
-              <div class="bg-white border border-gray-200 rounded-2xl rounded-bl-md px-4 py-3">
+            <!-- Always reserve this row so the typing indicator never shifts messages. -->
+            <div class="h-12 flex justify-start items-start" aria-live="polite" aria-atomic="true">
+              <div
+                v-show="sendingChat"
+                class="bg-white border border-gray-200 rounded-2xl rounded-bl-md px-4 py-3 shadow-sm pointer-events-none select-none"
+                role="status"
+                aria-label="Mela AI is typing"
+              >
                 <div class="flex items-center gap-1">
                   <span class="h-2 w-2 bg-[#2F5597] rounded-full animate-bounce [animation-delay:-0.2s]"></span>
                   <span class="h-2 w-2 bg-[#2F5597] rounded-full animate-bounce [animation-delay:-0.1s]"></span>
@@ -272,7 +278,7 @@
               ></textarea>
               <button
                 type="submit"
-                :disabled="sendingChat || !chatInput.trim()"
+                :disabled="chatRequestInFlight || !chatInput.trim()"
                 class="px-4 rounded-xl text-white font-semibold transition min-h-[84px] disabled:opacity-50 disabled:cursor-not-allowed"
                 style="background-color: #2F5597;"
               >
@@ -304,6 +310,7 @@ const { loadPricingSettings, formatUsdUsingCurrentCurrency } = usePricingSetting
 const chatMessages = ref([])
 const chatInput = ref('')
 const sendingChat = ref(false)
+const chatRequestInFlight = ref(false)
 const chatScrollRef = ref(null)
 const chatSessions = ref([])
 const activeChatSessionId = ref(null)
@@ -375,6 +382,24 @@ const normalizeProductSuggestions = (suggestions) => {
 const cacheSessionMessages = (sessionId, messages) => {
   if (!sessionId) return
   writeCachedJson(getChatCacheKey(`session:${sessionId}`), messages)
+}
+
+const updateSessionPreviewInstantly = (sessionId, preview, role = 'user') => {
+  if (!sessionId) return
+
+  const index = chatSessions.value.findIndex((session) => Number(session.id) === Number(sessionId))
+  if (index < 0) return
+
+  const updated = {
+    ...chatSessions.value[index],
+    last_message_preview: String(preview || '').slice(0, 80),
+    last_message_role: role,
+    last_message_at: new Date().toISOString(),
+  }
+
+  chatSessions.value.splice(index, 1)
+  chatSessions.value.unshift(updated)
+  writeCachedJson(getChatCacheKey('sessions'), chatSessions.value)
 }
 
 const clearCachedSessionMessages = (sessionId) => {
@@ -536,7 +561,7 @@ const scrollChatToBottom = async (smooth = false) => {
 
 const refreshChatMessages = async () => {
   // Never run while a send is in-flight — it would clobber the optimistic message.
-  if (!activeChatSessionId.value || sendingChat.value) return
+  if (!activeChatSessionId.value || chatRequestInFlight.value) return
 
   try {
     const token = getAuthToken()
@@ -553,6 +578,10 @@ const refreshChatMessages = async () => {
 
     const payload = await response.json()
     const loadedMessages = payload?.data?.messages || []
+
+    // A send may have started while this session request was in flight. Never let
+    // the older response erase the optimistic message that is already on screen.
+    if (chatRequestInFlight.value) return
     const updatedSession = payload?.data?.session || {}
 
     const sessionIndex = chatSessions.value.findIndex((s) => s.id === activeChatSessionId.value)
@@ -590,6 +619,7 @@ const refreshChatMessages = async () => {
           // Optimistic message: adopt real ID and timestamp silently
           cm.id = sm.id
           if (sm.createdAt) cm.createdAt = sm.createdAt
+          delete cm.optimistic
         }
       })
       cacheSessionMessages(activeChatSessionId.value, chatMessages.value)
@@ -970,23 +1000,36 @@ const renderMessageHtml = (text) => {
 
 const sendChatMessage = async (prefilled = null) => {
   const outgoing = (prefilled ?? chatInput.value).trim()
-  if (!outgoing || sendingChat.value) return
+  if (!outgoing || chatRequestInFlight.value) return
+
+  chatRequestInFlight.value = true
+  stopMessagePolling()
 
   // 1. Show user message instantly (optimistic).
+  const optimisticId = `user-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
   chatMessages.value.push({
-    id: `user-${Date.now()}`,
+    id: optimisticId,
     role: 'user',
     text: outgoing,
     createdAt: new Date().toISOString(),
     actions: [],
-    productSuggestions: []
+    productSuggestions: [],
+    optimistic: true,
   })
   chatInput.value = ''
-  await scrollChatToBottom()
 
-  // 2. Freeze polling so it can't clobber the optimistic message while we wait.
+  // Cache the optimistic state before any network work begins.
+  if (activeChatSessionId.value) {
+    cacheSessionMessages(activeChatSessionId.value, chatMessages.value)
+    updateSessionPreviewInstantly(activeChatSessionId.value, outgoing, 'user')
+  }
+
+  // Commit one browser frame containing the user bubble before the typing state
+  // is enabled. This guarantees the visual order: user message, then typing.
+  await scrollChatToBottom()
+  await new Promise((resolve) => window.requestAnimationFrame(() => resolve()))
   sendingChat.value = true
-  stopMessagePolling()
+  await scrollChatToBottom()
 
   try {
     const token = getAuthToken()
@@ -1032,15 +1075,11 @@ const sendChatMessage = async (prefilled = null) => {
     // 4. Update the session sidebar preview in-place — no full reload needed.
     const sessionId = activeChatSessionId.value
     if (sessionId) {
-      const idx = chatSessions.value.findIndex((s) => s.id === sessionId)
-      if (idx >= 0) {
-        chatSessions.value[idx] = {
-          ...chatSessions.value[idx],
-          last_message_preview: (assistantPayload.reply || outgoing).slice(0, 80),
-          last_message_role: assistantPayload.reply ? 'assistant' : 'user',
-          last_message_at: new Date().toISOString(),
-        }
-      }
+      updateSessionPreviewInstantly(
+        sessionId,
+        assistantPayload.reply || outgoing,
+        assistantPayload.reply ? 'assistant' : 'user'
+      )
     }
 
     // 5. Reconcile temp IDs with real DB IDs (no visible re-render).
@@ -1060,6 +1099,7 @@ const sendChatMessage = async (prefilled = null) => {
     await scrollChatToBottom()
   } finally {
     sendingChat.value = false
+    chatRequestInFlight.value = false
     // 6. Resume polling — new messages (e.g. admin replies) will appear automatically.
     startMessagePolling()
   }

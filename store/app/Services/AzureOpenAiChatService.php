@@ -144,6 +144,49 @@ class AzureOpenAiChatService
         return $result['reply'] ?? null;
     }
 
+    public function generateProductNarration(string $question, array $products, array $context = [], array $chatHistory = []): ?string
+    {
+        if (!$this->configured) {
+            return null;
+        }
+
+        $facts = array_map(static fn (array $product) => [
+            'name' => (string) ($product['name'] ?? ''),
+            'sku' => (string) ($product['sku'] ?? ''),
+            'vendor' => (string) ($product['vendor'] ?? ''),
+            'price' => (float) ($product['price'] ?? 0),
+            'description' => (string) ($product['description'] ?? ''),
+            'match_reason' => (string) ($product['why'] ?? ''),
+        ], array_slice($products, 0, 6));
+
+        $query = trim((string) ($context['catalog_search_query'] ?? $question));
+        $history = $this->formatHistory($chatHistory, 4);
+        $system = implode("\n", [
+            'You are Mela AI, a natural and perceptive IT procurement assistant.',
+            'Write a fresh response to the customer based only on the catalog JSON supplied.',
+            'Do not reuse a stock opening or a repeated response pattern.',
+            'Respond in the language and conversational style used by the customer.',
+            'Interpret goals such as budget, performance, portability, business use, and compatibility.',
+            'Mention only product names, vendors, prices, SKUs, and specifications present in the JSON.',
+            'Never invent a feature or claim that one product is best without explaining the evidence in the supplied facts.',
+            'The product cards appear directly below your response, so summarize insight instead of listing every card.',
+            'Use two or three concise sentences. Do not use a canned call-to-action.',
+            'If the JSON is empty, say naturally that the catalog has no confident match and ask one useful refining question.',
+        ]);
+
+        $user = "Customer request: {$question}\nResolved catalog query: {$query}\nCatalog JSON: "
+            . json_encode($facts, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        if ($history !== '') {
+            $user .= "\nRecent conversation:\n{$history}";
+        }
+
+        return $this->callApi(
+            [['role' => 'system', 'content' => $system], ['role' => 'user', 'content' => $user]],
+            temperature: 0.7,
+            maxTokens: 220
+        );
+    }
+
     private function normalizeIntent(string $intent): ?string
     {
         return in_array($intent, ['product_search', 'order_status', 'quote_management', 'invoice_payment', 'general_support'], true)
@@ -182,6 +225,13 @@ class AzureOpenAiChatService
 
         if (!preg_match('/\b(this|that|these|those|recent|latest|most|last|first|earliest|oldest|previous|same|it|them|details|more)\b/', $question)) {
             return null;
+        }
+
+        foreach (array_reverse($chatHistory) as $turn) {
+            $storedIntent = strtolower(trim((string) ($turn['intent'] ?? '')));
+            if (in_array($storedIntent, ['quote_management', 'order_status', 'invoice_payment'], true)) {
+                return $storedIntent;
+            }
         }
 
         $lastUserMessage = null;
@@ -493,6 +543,20 @@ class AzureOpenAiChatService
         $openTotal          = (float) ($context['summary']['open_invoice_total'] ?? 0);
         $productSuggestions = (array) ($context['product_suggestions'] ?? []);
 
+        // Casual conversation must never be sent with account context or allowed to
+        // fall through to catalog/account summaries. Besides avoiding irrelevant replies,
+        // this keeps private account details out of a response the customer did not request.
+        if (ChatIntentSignals::isGeneralConversationQuery($question)) {
+            $casualReply = $this->runConversationAgent($question, $firstName, $chatHistory);
+            return [
+                'reply' => $casualReply,
+                'actions' => [],
+                'product_suggestions' => [],
+                'source' => 'conversation_agent',
+                'intent' => 'general_support',
+            ];
+        }
+
         $accountText = $this->buildAccountContextText($firstName, $orders, $quotes, $invoices, $openCount, $openTotal);
 
         $systemPrompt = implode("\n", [
@@ -512,7 +576,9 @@ class AzureOpenAiChatService
             '- If you cannot resolve a technical or complex issue, suggest escalation to human support in a helpful way.',
             '',
             '## Rules',
-            '- Always answer from the account data below and keep the tone conversational.',
+            '- Use account data only when the customer asks about their account, orders, quotes, invoices, payments, or a specific reference.',
+            '- Never volunteer account counts, balances, or records in greetings, small talk, compliments, or unrelated questions.',
+            '- If the question is outside the supplied facts, say what you can help with or ask one focused follow-up question. Do not guess.',
             '- If a specific reference (order number, invoice number) is not in the data, explain that clearly and offer a next step.',
             '- Never invent order, invoice, or quote details not present in the data.',
             '- Keep replies helpful and solution-based, not stiff or overly formatted.',
@@ -592,7 +658,7 @@ class AzureOpenAiChatService
                     $ctxParts[] = "{$openCount} open invoice(s)";
                 }
                 $ctxLine = count($ctxParts) ? ' Your account has ' . implode(', ', $ctxParts) . '.' : '';
-                $reply = "I can help with invoices, payments, quotes, order tracking, and product recommendations.{$ctxLine} Tell me what you want to check.";
+                $reply = "I can help with products, quotes, orders, invoices, and payments. Tell me what you're working on, and I'll help with the next step.";
             }
         }
 
@@ -617,6 +683,82 @@ class AzureOpenAiChatService
             'source'              => 'support_agent',
             'intent'              => 'general_support',
         ];
+    }
+
+    private function runConversationAgent(string $question, string $firstName, array $chatHistory): string
+    {
+        $history = $this->formatHistory($chatHistory, 4);
+        $nameInstruction = $firstName !== 'there'
+            ? "The customer's first name is {$firstName}; use it only if it sounds natural."
+            : 'The customer name is unknown; do not invent or request it.';
+
+        $systemPrompt = implode("\n", [
+            'You are Mela AI, Armely\'s warm, sharp, conversational assistant.',
+            'Respond naturally to the customer\'s exact message instead of selecting a canned response.',
+            'Match their energy without becoming unprofessional, repetitive, or overly enthusiastic.',
+            'Keep simple conversational replies to one or two short sentences.',
+            'Do not mention products, searches, orders, quotes, invoices, balances, or account totals unless the current message asks about them.',
+            'Do not claim you performed an action or accessed information.',
+            'Never invent customer facts. Ask a concise follow-up only when it genuinely helps.',
+            $nameInstruction,
+        ]);
+
+        $userContent = "Current customer message:\n{$question}";
+        if ($history !== '') {
+            $userContent .= "\n\nRecent conversation for tone and continuity:\n{$history}";
+        }
+
+        return $this->callApi(
+            [['role' => 'system', 'content' => $systemPrompt], ['role' => 'user', 'content' => $userContent]],
+            temperature: 0.65,
+            maxTokens: 120
+        ) ?? $this->buildCasualConversationReply($question, $firstName)
+            ?? 'I’m here. What would you like to work on?';
+    }
+
+    private function buildCasualConversationReply(string $question, string $firstName): ?string
+    {
+        $q = ChatIntentSignals::normalizeQuestion($question);
+
+        if (!ChatIntentSignals::isGeneralConversationQuery($q)) {
+            return null;
+        }
+
+        if (preg_match('/\bi (?:like|love) (?:your|the) (?:vibe|style|energy|personality|attitude|tone)\b/u', $q)) {
+            return "Thank you — I like your vibe too. What are we working on today?";
+        }
+
+        if (preg_match('/\b(?:you(?:\'re| are)|ur) (?:cool|funny|helpful|awesome|great|nice|amazing)\b/u', $q)) {
+            return "Thank you — that made my day. What can I help you with?";
+        }
+
+        if (ChatIntentSignals::isCorrectionOrRejectionQuery($q)) {
+            return "You're right — that wasn't what you asked for. I won't carry that result forward; tell me what you meant and I'll follow your request more carefully.";
+        }
+
+        if (ChatIntentSignals::isThanksQuery($q)) {
+            $name = $firstName !== 'there' ? ", {$firstName}" : '';
+            return "You're welcome{$name}. What else can I help with?";
+        }
+
+        if (ChatIntentSignals::isCapabilityQuestion($q)) {
+            return 'I can find products, build quotes, track orders, review invoices, and help with payments. What would you like to do?';
+        }
+
+        if (ChatIntentSignals::isGreetingQuery($q)) {
+            $name = $firstName !== 'there' ? ", {$firstName}" : '';
+            return "Hey{$name}! What are we working on today?";
+        }
+
+        if (str_contains($q, 'how are you') || str_contains($q, "how's it going")) {
+            return "I'm doing well and ready to help. How are you?";
+        }
+
+        if (str_contains($q, 'who are you') || str_contains($q, 'your name')) {
+            return "I'm Mela AI, Armely's assistant for products, quotes, orders, invoices, and payments.";
+        }
+
+        return "I'm here and happy to chat. What are you working on?";
     }
 
     // ─── Shared helpers ────────────────────────────────────────────────────────

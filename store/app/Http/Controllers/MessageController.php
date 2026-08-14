@@ -684,6 +684,7 @@ class MessageController extends Controller
                 'source'              => $source,
                 'intent'              => $intent,
                 'degraded'            => $degraded,
+                'catalog_search_query' => $context['catalog_search_query'] ?? null,
                 'product_suggestions' => $productSuggestions,
             ],
         ]);
@@ -1144,6 +1145,9 @@ class MessageController extends Controller
                 ->map(fn (ChatMessage $item) => [
                     'role' => $item->role,
                     'content' => $item->content,
+                    'intent' => (string) data_get($item->metadata, 'intent', ''),
+                    'source' => (string) data_get($item->metadata, 'source', ''),
+                    'catalog_search_query' => (string) data_get($item->metadata, 'catalog_search_query', ''),
                     'product_suggestions' => array_values(array_filter((array) data_get($item->metadata, 'product_suggestions', []))),
                     'has_product_suggestions' => !empty((array) data_get($item->metadata, 'product_suggestions', [])),
                 ])
@@ -1157,32 +1161,35 @@ class MessageController extends Controller
             || ChatIntentSignals::isInvoiceIntentQuery($question)
             || ChatIntentSignals::isOrderIntentQuery($question);
         $isGeneralConversation = ChatIntentSignals::isGeneralConversationQuery($question);
-        $productSearchPlan = $isAccountQuestion
-            || $isGeneralConversation
+        // The model may refine a catalog request, but it must never create product intent.
+        // A deterministic gate prevents unrelated prose from becoming a search query.
+        $hasLocalProductIntent = !$isAccountQuestion
+            && !$isGeneralConversation
+            && ChatIntentSignals::isProductLookupIntent($question, $recentChatTurns);
+        $productSearchPlan = !$hasLocalProductIntent
             ? null
             : $this->assistantService->planProductSearch($question, $recentChatTurns);
-        $catalogSearchQuery = $isAccountQuestion
-            || $isGeneralConversation
+        $catalogSearchQuery = !$hasLocalProductIntent
             ? ''
             : trim((string) ($productSearchPlan['query'] ?? ''));
-        if (!$isAccountQuestion && !$isGeneralConversation && $catalogSearchQuery === '') {
+        if ($hasLocalProductIntent && $catalogSearchQuery === '') {
             $catalogSearchQuery = $this->resolveConversationalCatalogSearchQuery($question, $recentChatTurns);
         }
         $catalogSearchQueries  = ChatIntentSignals::extractCatalogSearchPhrases($catalogSearchQuery);
         $excludedProductTerms = ChatIntentSignals::extractExcludedProductTerms($question);
-        $shouldSuggestProducts = !$isGeneralConversation
-            && (ChatIntentSignals::isCatalogQueryAudit($question)
-            || $this->isProductDiscoveryIntent($catalogSearchQuery, $recentChatTurns));
+        $budgetPriority = (bool) preg_match('/\b(budget(?: friendly)?|affordable|low cost|lower cost|economical|inexpensive|cheapest|value)\b/i', $question);
+        $shouldSuggestProducts = $hasLocalProductIntent
+            && $this->isProductDiscoveryIntent($catalogSearchQuery, $recentChatTurns);
         // A conversational follow-up can intentionally contain no new catalog terms. Still run
         // it through product search so buildProductSearchContext() can reuse the prior cards.
         $productSearchInputs = $catalogSearchQueries;
-        if (!$isGeneralConversation && empty($productSearchInputs) && $this->isProductDiscoveryIntent($question, $recentChatTurns)) {
+        if ($hasLocalProductIntent && empty($productSearchInputs)) {
             $productSearchInputs = [$question];
             $shouldSuggestProducts = true;
         }
 
         $productSuggestions = collect($productSearchInputs)
-            ->flatMap(function (string $searchQuery) use ($historyPreferences, $catalogSearchQueries, $recentChatTurns, $productSearchPlan, $excludedProductTerms) {
+            ->flatMap(function (string $searchQuery) use ($historyPreferences, $catalogSearchQueries, $recentChatTurns, $productSearchPlan, $excludedProductTerms, $budgetPriority) {
                 // Each independent clause gets its own constraints; otherwise "monitors and
                 // printers" would incorrectly require one product to be both categories.
                 // Chat history is required for follow-ups such as "which one do you recommend?"
@@ -1194,6 +1201,7 @@ class MessageController extends Controller
                     $searchContext['required_category'] = strtolower($plannedProductType);
                 }
                 $searchContext['excluded_terms'] = $excludedProductTerms;
+                $searchContext['budget_priority'] = $budgetPriority || (bool) ($searchContext['budget_priority'] ?? false);
                 $perQueryLimit = count($catalogSearchQueries) > 1
                     ? max(2, (int) ceil(6 / count($catalogSearchQueries)))
                     : 6;
@@ -1582,7 +1590,22 @@ class MessageController extends Controller
             return $topic;
         }
 
+        if (!$this->isContextualFollowUpQuery($question)) {
+            return null;
+        }
+
         foreach (array_reverse($recentChatTurns) as $turn) {
+            $intent = strtolower(trim((string) ($turn['intent'] ?? '')));
+            $intentTopic = match ($intent) {
+                'quote_management' => 'quote',
+                'order_status' => 'order',
+                'invoice_payment' => 'invoice',
+                default => null,
+            };
+            if ($intentTopic !== null) {
+                return $intentTopic;
+            }
+
             $text = strtolower(trim((string) ($turn['content'] ?? '')));
             if ($text === '') {
                 continue;
@@ -1595,6 +1618,16 @@ class MessageController extends Controller
         }
 
         return null;
+    }
+
+    private function isContextualFollowUpQuery(string $question): bool
+    {
+        $q = ChatIntentSignals::normalizeQuestion($question);
+
+        return $q !== '' && (bool) preg_match(
+            '/\b(it|that|this|these|those|them|one|ones|same|previous|earlier|former|latter|what about|how about|and the|also|instead|cheaper|more expensive|oldest|newest|latest|first|last|next|details|more)\b/u',
+            $q
+        );
     }
 
     private function detectAccountTopicFromText(string $text): ?string
@@ -1641,6 +1674,21 @@ class MessageController extends Controller
         $customerName = trim((string) ($context['customer']['name'] ?? ''));
         $firstName = $customerName !== '' ? explode(' ', $customerName)[0] : '';
         $greet = $firstName !== '' ? "{$firstName}, " : '';
+        $naturalReply = $this->assistantService->generateProductNarration(
+            $question,
+            $productSuggestions,
+            $context,
+            (array) ($context['recent_chat_turns'] ?? [])
+        );
+
+        if ($naturalReply !== null) {
+            return [
+                'reply' => $naturalReply,
+                'actions' => $actions,
+                'product_suggestions' => $productSuggestions,
+                'source' => 'product_narration_agent',
+            ];
+        }
 
         if (!empty($productSuggestions)) {
             $count = count($productSuggestions);
@@ -1662,7 +1710,10 @@ class MessageController extends Controller
                 if ($topVendor !== '') {
                     $reply .= " from {$topVendor}";
                 }
-                $reply .= '. It is the strongest match from the products I just showed you.';
+                $reason = trim((string) ($top['why'] ?? $top['description'] ?? ''));
+                $reply .= $reason !== ''
+                    ? '. ' . rtrim($reason, '.') . '.'
+                    : '. It is the strongest match among the products shown.';
 
                 return [
                     'reply' => $reply,
@@ -1672,28 +1723,40 @@ class MessageController extends Controller
                 ];
             }
 
-            $reply = "{$greet}";
-            if ($count === 1) {
-                $reply .= "I found a great match for you!";
+            $questionLower = strtolower($question);
+            $catalogQuery = trim((string) ($context['catalog_search_query'] ?? 'products'));
+            $isLowestPriceRequest = (bool) preg_match('/\b(cheapest|lowest price|least expensive|budget(?: friendly)?|affordable|inexpensive|low cost)\b/i', $questionLower);
+
+            if ($isLowestPriceRequest) {
+                $subject = Str::plural(trim((string) preg_replace(
+                    '/\b(cheapest|lowest price|least expensive|budget(?: friendly)?|affordable|inexpensive|low cost)\b/i',
+                    '',
+                    $catalogQuery
+                )) ?: 'product');
+                $reply = "Here are the lowest-priced **{$subject}** I found in the current catalog. ";
+                $reply .= "The most affordable match is **{$topName}**";
             } else {
-                $reply .= "I found {$count} products that fit your search!";
+                $reply = $count === 1
+                    ? "I found one catalog match for **{$catalogQuery}**: **{$topName}**"
+                    : "Here are {$count} catalog matches for **{$catalogQuery}**. The closest match is **{$topName}**";
             }
 
             if ($topPrice && $topPrice !== '$0.00') {
-                $reply .= " The top pick is **{$topName}** at {$topPrice}";
+                $reply .= " at {$topPrice}";
                 if ($topVendor !== '') {
                     $reply .= " from {$topVendor}";
                 }
                 $reply .= '.';
-            } else {
-                $reply .= " Top pick: **{$topName}**";
+            } elseif (!$isLowestPriceRequest) {
                 if ($topVendor !== '') {
                     $reply .= " from {$topVendor}";
                 }
                 $reply .= '.';
             }
 
-            $reply .= ' Check out the product cards below for details on why each was selected. Want me to help you request a quote or find more options?';
+            if ($isLowestPriceRequest && $count > 1) {
+                $reply .= ' The remaining cards continue from lower to higher price.';
+            }
 
             return [
                 'reply' => $reply,
@@ -1849,6 +1912,7 @@ class MessageController extends Controller
         $rawKeywords = $this->extractProductSearchKeywords($question);
         $deviceType = strtolower((string) ($searchContext['device_type'] ?? ''));
         $maxBudget = isset($searchContext['max_budget']) ? (float) $searchContext['max_budget'] : null;
+        $budgetPriority = (bool) ($searchContext['budget_priority'] ?? false);
         $requiredBrand = strtolower((string) ($searchContext['required_brand'] ?? ''));
         $requiredCategory = strtolower((string) ($searchContext['required_category'] ?? ''));
         $excludedTerms = array_values(array_filter(array_map('strtolower', (array) ($searchContext['excluded_terms'] ?? []))));
@@ -2257,7 +2321,16 @@ class MessageController extends Controller
                     fn (string $term) => $this->containsCatalogTerm($haystack, $term)
                 );
             })
-            ->sortByDesc('score')
+            ->sort(function (array $a, array $b) use ($budgetPriority) {
+                if ($budgetPriority) {
+                    $priceComparison = ((float) ($a['price'] ?? INF)) <=> ((float) ($b['price'] ?? INF));
+                    if ($priceComparison !== 0) {
+                        return $priceComparison;
+                    }
+                }
+
+                return ((float) ($b['score'] ?? 0)) <=> ((float) ($a['score'] ?? 0));
+            })
             ->values()
             ->take($limit)
             ->map(function (array $item) {
@@ -2476,6 +2549,7 @@ class MessageController extends Controller
         }
         $texts[] = $question;
         $joined = strtolower(implode(' ', array_filter($texts)));
+        $budgetPriority = (bool) preg_match('/\b(budget(?: friendly)?|affordable|low cost|lower cost|economical|inexpensive|cheapest|value)\b/i', $joined);
 
         $deviceType = null;
         if (str_contains($joined, 'laptop') || str_contains($joined, 'notebook')) {
@@ -2586,6 +2660,7 @@ class MessageController extends Controller
         return [
             'device_type' => $deviceType,
             'max_budget' => $maxBudget,
+            'budget_priority' => $budgetPriority,
             'required_brand' => $requiredBrand,
             'required_category' => $requiredCategory,
             'transactional_follow_up' => $transactionalFollowUp,
@@ -2657,7 +2732,7 @@ class MessageController extends Controller
             'hub', 'backpack', 'folio', 'power bank', 'battery', 'warranty', 'service plan', 'kit',
             'mount', 'mounting', 'bracket', 'arm', 'riser', 'shelf', 'tray', 'cart', 'trolley',
             'pdu', 'power distribution', 'power strip', 'surge protector',
-            'monitor clip', 'privacy screen', 'screen filter', 'display filter', 'privacy filter',
+            'monitor clip', 'privacy screen', 'privacyview', 'screen filter', 'display filter', 'privacy filter',
             'security lock', 'laptop lock', 'notebook lock', 'wedge lock', 'cable lock',
             'low profile lock', 'holder', 'stylus', 'earbud', 'card reader', 'memory card reader',
             'connect a usb', 'usb type-a device', 'pass-through port',

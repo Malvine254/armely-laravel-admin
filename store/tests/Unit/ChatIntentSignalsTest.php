@@ -14,6 +14,7 @@ class ChatIntentSignalsTest extends TestCase
         $this->assertTrue(ChatIntentSignals::isGeneralConversationQuery('thank you'));
         $this->assertTrue(ChatIntentSignals::isSmallTalkQuery('how are you'));
         $this->assertTrue(ChatIntentSignals::isSmallTalkQuery('what is your name'));
+        $this->assertTrue(ChatIntentSignals::isGeneralConversationQuery('i like your vibe'));
     }
 
     public function test_it_identifies_capability_questions_without_overrouting(): void
@@ -30,6 +31,121 @@ class ChatIntentSignalsTest extends TestCase
         $this->assertFalse(ChatIntentSignals::isProductLookupIntent('how are you'));
         $this->assertFalse(ChatIntentSignals::isProductLookupIntent('what is your name'));
         $this->assertFalse(ChatIntentSignals::isProductLookupIntent('tell me a joke'));
+        $this->assertFalse(ChatIntentSignals::isProductLookupIntent('i like your vibe'));
+        $this->assertSame('general_support', ChatIntentSignals::classifyAssistantIntent('i like your vibe'));
+        $this->assertTrue(ChatIntentSignals::isProductLookupIntent('I need a camera for our conference room'));
+        $this->assertTrue(ChatIntentSignals::isProductLookupIntent('compare wireless headsets'));
+    }
+
+    public function test_unrelated_language_cannot_authorize_a_catalog_search(): void
+    {
+        $messages = [
+            'help me reset my password',
+            'write an email to my manager',
+            'I need help understanding this page',
+            'that sounds good',
+            'can you explain how billing works?',
+            'I love your energy',
+        ];
+
+        foreach ($messages as $message) {
+            $this->assertFalse(
+                ChatIntentSignals::isProductLookupIntent($message),
+                "Unexpected product intent for: {$message}"
+            );
+        }
+    }
+
+    public function test_it_handles_unfamiliar_products_without_a_fixed_dictionary(): void
+    {
+        $productRequests = [
+            'I need an oscilloscope for the lab',
+            'we want two KVM-over-IP consoles under 2000',
+            'I am after a LoRaWAN gateway with PoE',
+            'I would like a Fluke 289 multimeter',
+        ];
+
+        foreach ($productRequests as $message) {
+            $this->assertTrue(
+                ChatIntentSignals::isProductLookupIntent($message),
+                "Expected open-vocabulary product intent for: {$message}"
+            );
+        }
+
+        $nonProductRequests = [
+            'I need help understanding my account',
+            'I need you to write a proposal',
+            'I want to know how this works',
+            'I need a vacation',
+            'I need some sleep',
+        ];
+
+        foreach ($nonProductRequests as $message) {
+            $this->assertFalse(
+                ChatIntentSignals::isProductLookupIntent($message),
+                "Unexpected open-vocabulary product intent for: {$message}"
+            );
+        }
+    }
+
+    public function test_conversation_and_negative_corrections_override_product_history(): void
+    {
+        $historyWithProducts = [[
+            'role' => 'assistant',
+            'content' => 'Here are matching products.',
+            'product_suggestions' => [[
+                'product_id' => '6762259',
+                'name' => 'Logitech Zone Vibe',
+            ]],
+        ]];
+
+        $this->assertSame('general_support', ChatIntentSignals::classifyAssistantIntent('can we have a talk', $historyWithProducts));
+        $this->assertFalse(ChatIntentSignals::isProductLookupIntent('can we have a talk', $historyWithProducts));
+
+        foreach ([
+            'i did not ask for that',
+            'i dd not ask for that',
+            "that's not what I asked",
+            'this is not what I wanted',
+            'you misunderstood my question',
+        ] as $correction) {
+            $this->assertTrue(ChatIntentSignals::isCorrectionOrRejectionQuery($correction));
+            $this->assertSame('general_support', ChatIntentSignals::classifyAssistantIntent($correction, $historyWithProducts));
+            $this->assertFalse(ChatIntentSignals::isProductLookupIntent($correction, $historyWithProducts));
+        }
+    }
+
+    public function test_product_follow_ups_use_prior_cards_without_treating_corrections_as_follow_ups(): void
+    {
+        $historyWithProducts = [[
+            'role' => 'assistant',
+            'intent' => 'product_search',
+            'content' => 'I found three conference-room cameras.',
+            'product_suggestions' => [['product_id' => 'CAM-1', 'name' => 'Camera One']],
+        ]];
+
+        foreach (['show me cheaper ones', 'what about Jabra instead', 'how about these?', 'show more like that', 'some of its specifications please'] as $followUp) {
+            $this->assertTrue(
+                ChatIntentSignals::isProductLookupIntent($followUp, $historyWithProducts),
+                "Expected product follow-up for: {$followUp}"
+            );
+        }
+
+        $this->assertFalse(ChatIntentSignals::isProductLookupIntent('I did not ask for that', $historyWithProducts));
+    }
+
+    public function test_trust_questions_and_friendly_address_stay_conversational(): void
+    {
+        foreach (['are you accurate and trustworthy', 'but can you be trusted', 'can I trust you', 'buddy'] as $message) {
+            $this->assertTrue(ChatIntentSignals::isGeneralConversationQuery($message));
+            $this->assertSame('general_support', ChatIntentSignals::classifyAssistantIntent($message));
+            $this->assertFalse(ChatIntentSignals::isProductLookupIntent($message));
+        }
+
+        foreach (['sasa', 'nisaidie', 'habari', 'pooor'] as $message) {
+            $this->assertTrue(ChatIntentSignals::isGeneralConversationQuery($message));
+            $this->assertFalse(ChatIntentSignals::isProductLookupIntent($message));
+        }
     }
 
     public function test_it_classifies_intent_using_a_single_authority(): void
