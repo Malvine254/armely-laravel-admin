@@ -367,8 +367,30 @@ class AzureOpenAiChatService
         $orders    = (array) ($context['recent_orders'] ?? []);
         $firstName = $this->firstName($context);
 
+        $detailReply = $this->buildOrderDetailReply($question, $orders, $chatHistory);
+        if ($detailReply !== null) {
+            return [
+                'reply'               => $detailReply,
+                'actions'             => [['label' => 'View my orders', 'link' => '/orders']],
+                'product_suggestions' => [],
+                'source'              => 'order_agent',
+                'intent'              => 'order_status',
+            ];
+        }
+
+        $requestedStatuses = $this->requestedOrderStatuses($question);
+        if (!empty($requestedStatuses)) {
+            $orders = array_values(array_filter($orders, static fn (array $order) => in_array(
+                strtolower(trim((string) ($order['status'] ?? ''))),
+                $requestedStatuses,
+                true
+            )));
+        }
+
         if (empty($orders)) {
-            $reply = "I don't see any orders on your account yet. Once you submit a quote it will appear here as an order.";
+            $reply = !empty($requestedStatuses)
+                ? "I don't see any matching " . implode(' or ', $requestedStatuses) . " orders on your account."
+                : "I don't see any orders on your account yet. Once you submit a quote it will appear here as an order.";
         } else {
             $lines = [];
             foreach ($orders as $order) {
@@ -392,6 +414,81 @@ class AzureOpenAiChatService
             'source'              => 'order_agent',
             'intent'              => 'order_status',
         ];
+    }
+
+    private function buildOrderDetailReply(string $question, array $orders, array $chatHistory): ?string
+    {
+        $q = ChatIntentSignals::normalizeQuestion($question);
+        $asksForItem = (bool) preg_match('/\b(product|item|name|bought|purchased|delivered)\b/u', $q);
+        $asksForPrice = (bool) preg_match('/\b(how much|price|cost|unit price|paid for it)\b/u', $q);
+        if (!$asksForItem && !$asksForPrice) {
+            return null;
+        }
+
+        $order = $this->findReferencedOrder($question, $orders, $chatHistory);
+        if ($order === null) {
+            return null;
+        }
+
+        $items = array_values(array_filter((array) ($order['items'] ?? []), static fn ($item) => is_array($item) && !empty($item['name'])));
+        if (empty($items)) {
+            return null;
+        }
+
+        $number = (string) ($order['order_number'] ?? '');
+        $lines = array_map(function (array $item) use ($asksForPrice) {
+            $name = (string) $item['name'];
+            $quantity = max(1, (int) ($item['quantity'] ?? 1));
+            $unitPrice = (float) ($item['unit_price'] ?? 0);
+            $detail = $quantity > 1 ? " (qty: {$quantity})" : '';
+            if ($asksForPrice && $unitPrice > 0) {
+                $detail .= ' — $' . number_format($unitPrice, 2) . ' each';
+            }
+            return "• **{$name}**{$detail}";
+        }, $items);
+
+        $label = count($items) === 1 ? 'product' : 'products';
+        return "The {$label} on order **{$number}** " . (count($items) === 1 ? 'was' : 'were') . ":\n\n" . implode("\n", $lines);
+    }
+
+    private function findReferencedOrder(string $question, array $orders, array $chatHistory): ?array
+    {
+        $haystack = ChatIntentSignals::normalizeQuestion($question . ' ' . collect($chatHistory)
+            ->take(-4)
+            ->pluck('content')
+            ->implode(' '));
+
+        foreach ($orders as $order) {
+            $number = strtolower(trim((string) ($order['order_number'] ?? '')));
+            if ($number !== '' && str_contains($haystack, $number)) {
+                return $order;
+            }
+        }
+
+        $statuses = $this->requestedOrderStatuses($question);
+        if (empty($statuses)) {
+            $statuses = $this->requestedOrderStatuses($haystack);
+        }
+        foreach ($orders as $order) {
+            if (in_array(strtolower(trim((string) ($order['status'] ?? ''))), $statuses, true)) {
+                return $order;
+            }
+        }
+
+        return count($orders) === 1 ? $orders[0] : null;
+    }
+
+    private function requestedOrderStatuses(string $question): array
+    {
+        $q = ChatIntentSignals::normalizeQuestion($question);
+        if ((bool) preg_match('/\b(delivered|complete|completed)\b/u', $q)) {
+            return ['delivered', 'complete', 'completed'];
+        }
+        if ((bool) preg_match('/\b(pending|processing|confirmed|cancelled|canceled|shipped)\b/u', $q, $match)) {
+            return [$match[1] === 'canceled' ? 'cancelled' : $match[1]];
+        }
+
+        return [];
     }
 
     private function runQuoteAgent(string $question, array $context, array $chatHistory): array

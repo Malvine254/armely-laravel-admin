@@ -1074,7 +1074,7 @@ class MessageController extends Controller
             ? Order::where('user_id', $user->id)
                 ->orderByDesc('created_at')
                 ->limit(6)
-                ->get(['order_number', 'quote_id', 'status', 'payment_status', 'total_amount', 'tracking_info', 'created_at'])
+                ->get(['order_number', 'quote_id', 'status', 'payment_status', 'total_amount', 'items', 'tracking_info', 'created_at'])
             : collect();
 
         $completedPaidQuotes = $hasQuotesTable
@@ -1227,12 +1227,42 @@ class MessageController extends Controller
             ],
             'recent_invoices' => $invoiceSummaries,
             'recent_orders' => $recentOrders->map(function (Order $order) {
+                $items = collect(is_array($order->items) ? $order->items : [])
+                    ->map(function ($item) {
+                        if (!is_array($item)) {
+                            return null;
+                        }
+
+                        $name = trim((string) ($item['product_name'] ?? $item['name'] ?? $item['description'] ?? ''));
+                        if ($name === '') {
+                            return null;
+                        }
+
+                        $quantity = max(1, (int) ($item['quantity'] ?? $item['qty'] ?? 1));
+                        $unitPrice = (float) ($item['unit_price'] ?? $item['unitPrice'] ?? $item['price'] ?? $item['customer_price'] ?? 0);
+                        $lineTotal = (float) ($item['line_total'] ?? $item['lineTotal'] ?? 0);
+                        if ($unitPrice <= 0 && $lineTotal > 0) {
+                            $unitPrice = $lineTotal / $quantity;
+                        }
+
+                        return [
+                            'name' => $name,
+                            'quantity' => $quantity,
+                            'unit_price' => round($unitPrice, 2),
+                            'line_total' => round($lineTotal > 0 ? $lineTotal : $unitPrice * $quantity, 2),
+                        ];
+                    })
+                    ->filter()
+                    ->values()
+                    ->all();
+
                 return [
                     'order_number' => $order->order_number,
                     'quote_id' => $order->quote_id,
                     'status' => $order->status,
                     'payment_status' => $order->payment_status,
                     'total_amount' => (float) $order->total_amount,
+                    'items' => $items,
                     'tracking_info' => $order->tracking_info,
                     'created_at' => optional($order->created_at)?->toIso8601String(),
                 ];
@@ -1625,7 +1655,7 @@ class MessageController extends Controller
         $q = ChatIntentSignals::normalizeQuestion($question);
 
         return $q !== '' && (bool) preg_match(
-            '/\b(it|that|this|these|those|them|one|ones|same|previous|earlier|former|latter|what about|how about|and the|also|instead|cheaper|more expensive|oldest|newest|latest|first|last|next|details|more)\b/u',
+            '/\b(it|that|this|these|those|them|one|ones|same|previous|earlier|former|latter|what about|how about|and the|also|instead|cheaper|more expensive|oldest|newest|latest|first|last|next|details|more|price|cost|how much|product name)\b/u',
             $q
         );
     }
