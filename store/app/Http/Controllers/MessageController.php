@@ -2670,27 +2670,59 @@ class MessageController extends Controller
 
     private function extractProductImageUrl(mixed $images): ?string
     {
-        if (!is_array($images)) {
-            return null;
+        $candidates = [];
+
+        if (is_string($images) && trim($images) !== '') {
+            $candidates[] = trim($images);
         }
 
-        foreach ($images as $image) {
-            if (is_string($image) && trim($image) !== '') {
-                $url = trim($image);
-                if ($this->isValidImageUrl($url)) {
-                    return $this->resolveImageUrl($url);
+        if (is_array($images)) {
+            foreach ($images as $image) {
+                if (is_string($image) && trim($image) !== '') {
+                    $candidates[] = trim($image);
+                    continue;
+                }
+
+                if (is_array($image)) {
+                    $candidates[] = trim((string) ($image['imageUrl'] ?? $image['imageURL'] ?? $image['imagePath'] ?? $image['image_url'] ?? $image['url'] ?? ''));
                 }
             }
+        }
 
-            if (is_array($image)) {
-                $url = trim((string) ($image['imageUrl'] ?? $image['url'] ?? ''));
-                if ($this->isValidImageUrl($url)) {
-                    return $this->resolveImageUrl($url);
-                }
+        foreach ($candidates as $candidate) {
+            $url = $this->normalizeProductImagePath($candidate);
+            if ($this->isValidImageUrl($url)) {
+                return $this->resolveImageUrl($url);
             }
         }
 
         return null;
+    }
+
+    private function normalizeProductImagePath(string $url): string
+    {
+        $normalized = trim($url);
+        if ($normalized === '') {
+            return '';
+        }
+
+        if (preg_match('/^https?:\/\//i', $normalized) === 1 || str_starts_with($normalized, '/')) {
+            return $normalized;
+        }
+
+        if (str_starts_with($normalized, 'images/')) {
+            return '/' . $normalized;
+        }
+
+        if (str_starts_with($normalized, 'store/images/')) {
+            return '/' . $normalized;
+        }
+
+        if (str_starts_with($normalized, 'storage/')) {
+            return '/' . $normalized;
+        }
+
+        return $normalized;
     }
 
     private function resolveImageUrl(string $url): string
@@ -2710,14 +2742,23 @@ class MessageController extends Controller
         }
 
         if (str_starts_with($url, '/')) {
-            return (bool) preg_match('/^\/images\/.+\.(?:jpg|jpeg|png|webp|gif|avif)(?:\?.*)?$/i', $url);
+            return (bool) preg_match('/^\/(?:store\/)?images\/.+\.(?:jpg|jpeg|png|webp|gif|avif|svg)(?:\?.*)?$/i', $url)
+                || (bool) preg_match('/^\/storage\/.+\.(?:jpg|jpeg|png|webp|gif|avif|svg)(?:\?.*)?$/i', $url);
         }
 
         if (!filter_var($url, FILTER_VALIDATE_URL)) {
             return false;
         }
 
-        return (bool) preg_match('/\.(?:jpg|jpeg|png|webp|gif|avif)(?:\?.*)?$/i', $url);
+        $path = (string) parse_url($url, PHP_URL_PATH);
+        if ($path === '') {
+            return false;
+        }
+
+        return (bool) preg_match('/\.(?:jpg|jpeg|png|webp|gif|avif|svg)$/i', $path)
+            || str_contains(strtolower($path), '/images/products/')
+            || str_contains(strtolower($path), '/store/images/products/')
+            || str_contains(strtolower($path), '/storage/');
     }
 
     private function resolveOrCreateChatSession(int $userId, mixed $chatSessionId): ChatSession

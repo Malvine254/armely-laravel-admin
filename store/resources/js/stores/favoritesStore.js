@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useAuthStore } from './authStore'
 import { trackFavoriteEvent } from '../services/behaviorTracking'
+import { resolveProductImageUrl } from '../services/runtimeConfig'
 
 export const useFavoritesStore = defineStore('favorites', () => {
   const items = ref([])
@@ -35,14 +36,14 @@ export const useFavoritesStore = defineStore('favorites', () => {
 
     for (const value of direct) {
       const url = String(value || '').trim()
-      if (url.length > 0) return url
+      if (url.length > 0) return resolveProductImageUrl(url)
     }
 
     const images = Array.isArray(product?.productImages) ? product.productImages : []
     for (const image of images) {
       if (typeof image === 'string') {
         const url = image.trim()
-        if (url.length > 0) return url
+        if (url.length > 0) return resolveProductImageUrl(url)
         continue
       }
 
@@ -55,7 +56,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
         || image?.thumbnailUrl
         || ''
       ).trim()
-      if (url.length > 0) return url
+      if (url.length > 0) return resolveProductImageUrl(url)
     }
 
     return ''
