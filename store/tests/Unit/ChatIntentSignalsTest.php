@@ -12,6 +12,8 @@ class ChatIntentSignalsTest extends TestCase
         $this->assertTrue(ChatIntentSignals::isGeneralConversationQuery('hey'));
         $this->assertTrue(ChatIntentSignals::isGeneralConversationQuery('hi buddy'));
         $this->assertTrue(ChatIntentSignals::isGeneralConversationQuery('thank you'));
+        $this->assertTrue(ChatIntentSignals::isSmallTalkQuery('how are you'));
+        $this->assertTrue(ChatIntentSignals::isSmallTalkQuery('what is your name'));
     }
 
     public function test_it_identifies_capability_questions_without_overrouting(): void
@@ -25,6 +27,17 @@ class ChatIntentSignalsTest extends TestCase
     {
         $this->assertTrue(ChatIntentSignals::isProductLookupIntent('search for me meraki'));
         $this->assertTrue(ChatIntentSignals::isProductLookupIntent('check for hp monitors between 200 and 500 dollars'));
+        $this->assertFalse(ChatIntentSignals::isProductLookupIntent('how are you'));
+        $this->assertFalse(ChatIntentSignals::isProductLookupIntent('what is your name'));
+        $this->assertFalse(ChatIntentSignals::isProductLookupIntent('tell me a joke'));
+    }
+
+    public function test_it_classifies_intent_using_a_single_authority(): void
+    {
+        $this->assertSame('general_support', ChatIntentSignals::classifyAssistantIntent('how are you'));
+        $this->assertSame('invoice_payment', ChatIntentSignals::classifyAssistantIntent('show my unpaid invoices'));
+        $this->assertSame('quote_management', ChatIntentSignals::classifyAssistantIntent('show my last 2 quotes'));
+        $this->assertSame('product_search', ChatIntentSignals::classifyAssistantIntent('find me cisco switches'));
     }
 
     public function test_it_keeps_account_queries_separate_from_product_search(): void
