@@ -110,6 +110,7 @@ class AzureOpenAiChatService
         // current question actually looks like a product search and the assistant has
         // meaningful product discovery signals from context.
         if ($intent === 'general_support'
+            && ChatIntentSignals::isProductLookupIntent($question, $chatHistory)
             && ($context['product_intent'] ?? false)
             && !empty($context['product_suggestions'])
         ) {
