@@ -1391,6 +1391,10 @@ class MessageController extends Controller
             ChatIntentSignals::isInvoiceIntentQuery($question),
         ])->filter()->count();
 
+        if (ChatIntentSignals::isGeneralConversationQuery($question) || ChatIntentSignals::isSmallTalkQuery($question)) {
+            return 'general_support';
+        }
+
         // Explicit mixed account questions should stay broad (support summary)
         // rather than being collapsed to the first detected follow-up topic.
         if ($accountIntentCount > 1) {
