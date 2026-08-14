@@ -13,6 +13,12 @@ class ChatIntentSignals
             return 'general_support';
         }
 
+        // Payment/balance questions should resolve to invoice intent even when users
+        // mention related entities like orders or quotes in the same sentence.
+        if (self::isInvoiceIntentQuery($question) && self::isDueAmountQuestion($question)) {
+            return 'invoice_payment';
+        }
+
         $accountIntentCount = collect([
             self::isQuoteIntentQuery($question),
             self::isOrderIntentQuery($question),
@@ -44,6 +50,22 @@ class ChatIntentSignals
         }
 
         return 'general_support';
+    }
+
+    public static function isDueAmountQuestion(string $question): bool
+    {
+        $q = self::normalizeQuestion($question);
+
+        return $q !== '' && self::matchesAnyPattern($q, [
+            '/\bhow much is due\b/u',
+            '/\bwhat(?:\'s| is) due\b/u',
+            '/\bamount due\b/u',
+            '/\bhow much do i owe\b/u',
+            '/\bwhat do i owe\b/u',
+            '/\bbalance due\b/u',
+            '/\boutstanding\b/u',
+            '/\bremaining balance\b/u',
+        ]);
     }
 
     public static function normalizeQuestion(string $question): string
