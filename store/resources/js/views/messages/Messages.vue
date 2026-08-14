@@ -269,7 +269,11 @@
             </div>
           </div>
 
-          <form class="shrink-0 p-4 border-t border-gray-200 bg-white" @submit.prevent="sendChatMessage()">
+          <form
+            class="shrink-0 p-4 border-t border-gray-200 bg-white"
+            style="padding-bottom: calc(1rem + env(safe-area-inset-bottom));"
+            @submit.prevent="sendChatMessage()"
+          >
             <div class="flex gap-2 items-stretch">
               <textarea
                 v-model="chatInput"
