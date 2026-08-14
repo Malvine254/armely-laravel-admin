@@ -325,6 +325,18 @@ const selectedHistoryIds = ref([])
 const deletingHistory = ref(false)
 const loadingSessions = ref(true)
 
+const configuredAllowedAssistantHosts = String(import.meta.env.VITE_ASSISTANT_ALLOWED_LINK_HOSTS || '')
+  .split(',')
+  .map((host) => host.trim().toLowerCase())
+  .filter(Boolean)
+
+const assistantAllowedHosts = Array.from(new Set([
+  window.location.hostname.toLowerCase(),
+  'armely.com',
+  'www.armely.com',
+  ...configuredAllowedAssistantHosts,
+]))
+
 const getAuthToken = () => {
   const tokenKey = getAuthStorageKeys('customer').token
   return localStorage.getItem(tokenKey) || sessionStorage.getItem(tokenKey)
@@ -774,7 +786,13 @@ const escalateActiveChat = async () => {
 const openActionLink = async (link) => {
   if (!link) return
 
-  if (link.startsWith('/api/')) {
+  const sanitizedLink = sanitizeAssistantLink(link)
+  if (!sanitizedLink) {
+    toastStore.addToast('Blocked an untrusted link from assistant output.', 'warning')
+    return
+  }
+
+  if (sanitizedLink.startsWith('/api/')) {
     const token = getAuthToken()
     if (!token) {
       toastStore.addToast('Please log in to continue', 'warning')
@@ -783,7 +801,7 @@ const openActionLink = async (link) => {
     }
 
     try {
-      const response = await fetch(link, {
+      const response = await fetch(sanitizedLink, {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -798,7 +816,7 @@ const openActionLink = async (link) => {
       const blob = await response.blob()
       const blobUrl = window.URL.createObjectURL(blob)
       const fileName = (() => {
-        const parts = String(link).split('/').filter(Boolean)
+        const parts = String(sanitizedLink).split('/').filter(Boolean)
         if (parts.length >= 2 && parts[parts.length - 1] === 'pdf') {
           return `${parts[parts.length - 2]}.pdf`
         }
@@ -820,7 +838,19 @@ const openActionLink = async (link) => {
   }
 
   try {
-    await router.push(link)
+    if (sanitizedLink.startsWith('/')) {
+      await router.push(sanitizedLink)
+      return
+    }
+
+    const url = new URL(sanitizedLink)
+    const isSameOrigin = url.origin === window.location.origin
+    if (isSameOrigin) {
+      await router.push(`${url.pathname}${url.search}${url.hash}`)
+      return
+    }
+
+    window.open(sanitizedLink, '_blank', 'noopener')
   } catch (error) {
     console.error('Error opening action link:', error)
     toastStore.addToast('Unable to open action link', 'error')
@@ -896,15 +926,43 @@ const escapeHtml = (text) => {
     .replace(/'/g, '&#039;')
 }
 
+const sanitizeAssistantLink = (rawLink) => {
+  const link = String(rawLink || '').trim()
+  if (!link) return null
+
+  if (link.startsWith('/')) {
+    return link.startsWith('//') ? null : link
+  }
+
+  let parsed
+  try {
+    parsed = new URL(link)
+  } catch {
+    return null
+  }
+
+  if (!['http:', 'https:'].includes(parsed.protocol)) {
+    return null
+  }
+
+  const hostname = parsed.hostname.toLowerCase()
+  const isAllowedHost = assistantAllowedHosts.some((allowed) => hostname === allowed || hostname.endsWith(`.${allowed}`))
+  return isAllowedHost ? parsed.toString() : null
+}
+
 const renderMessageHtml = (text) => {
   const safe = escapeHtml(text)
 
   let html = safe
     // Markdown links  [text](url)
-    .replace(
-      /\[([^\]]+)\]\(((?:\/|https?:\/\/)[^)\s]+)\)/g,
-      '<a href="$2" class="text-[#1d4b8f] font-semibold underline hover:text-[#153a69]" target="_blank" rel="noopener">$1</a>'
-    )
+    .replace(/\[([^\]]+)\]\(((?:\/|https?:\/\/)[^)\s]+)\)/g, (match, label, url) => {
+      const sanitizedLink = sanitizeAssistantLink(url)
+      if (!sanitizedLink) {
+        return `<span class="text-gray-500">${label}</span>`
+      }
+
+      return `<a href="${sanitizedLink}" class="text-[#1d4b8f] font-semibold underline hover:text-[#153a69]" target="_blank" rel="noopener">${label}</a>`
+    })
     // Bold  **text**
     .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
     // Newlines
@@ -968,6 +1026,10 @@ const sendChatMessage = async (prefilled = null) => {
         productSuggestions: assistantPayload.product_suggestions || []
       })
       await scrollChatToBottom(true)
+    }
+
+    if (assistantPayload?.degraded) {
+      toastStore.addToast('Assistant is in degraded mode. Response may be limited.', 'warning')
     }
 
     // 4. Update the session sidebar preview in-place — no full reload needed.

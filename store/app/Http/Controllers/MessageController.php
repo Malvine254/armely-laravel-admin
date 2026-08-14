@@ -666,6 +666,7 @@ class MessageController extends Controller
         $actions            = (array) ($agentResult['actions'] ?? []);
         $productSuggestions = (array) ($agentResult['product_suggestions'] ?? []);
         $source             = (string) ($agentResult['source'] ?? 'azure_openai');
+        $degraded           = in_array($source, ['local_fallback', 'assistant_error_fallback'], true);
 
         ChatMessage::create([
             'chat_session_id' => $session->id,
@@ -676,6 +677,7 @@ class MessageController extends Controller
             'metadata' => [
                 'source'              => $source,
                 'intent'              => $agentResult['intent'] ?? null,
+                'degraded'            => $degraded,
                 'product_suggestions' => $productSuggestions,
             ],
         ]);
@@ -691,6 +693,8 @@ class MessageController extends Controller
                 'actions'             => $actions,
                 'product_suggestions' => $productSuggestions,
                 'source'              => $source,
+                'status'              => $degraded ? 'degraded' : 'ok',
+                'degraded'            => $degraded,
                 'chat_session' => [
                     'id'    => $session->id,
                     'title' => $session->title,
@@ -753,6 +757,7 @@ class MessageController extends Controller
                         'actions' => $fallbackActions,
                         'metadata' => [
                             'source' => 'assistant_error_fallback',
+                            'degraded' => true,
                             'product_suggestions' => $fallbackProductSuggestions,
                         ],
                     ]);
@@ -776,6 +781,8 @@ class MessageController extends Controller
                     'actions' => $fallbackActions,
                     'product_suggestions' => $fallbackProductSuggestions,
                     'source' => 'assistant_error_fallback',
+                    'status' => 'degraded',
+                    'degraded' => true,
                     'chat_session' => [
                         'id' => $session?->id ?? ($validated['chat_session_id'] ?? null),
                         'title' => $session?->title ?? 'New chat',
@@ -1343,21 +1350,9 @@ class MessageController extends Controller
         }
 
         $recentChatTurns = (array) ($context['recent_chat_turns'] ?? $chatHistory);
-        $accountIntentCount = collect([
-            $this->isQuoteIntentQuery($q),
-            $this->isOrderIntentQuery($q),
-            $this->isInvoiceIntentQuery($q),
-        ])->filter()->count();
-        if ($accountIntentCount > 1) {
-            return 'general_support';
-        }
-
-        if (ChatIntentSignals::isProductLookupIntent($question, $recentChatTurns)) {
-            return 'product_search';
-        }
-
-        if (ChatIntentSignals::isGeneralConversationQuery($q)) {
-            return 'general_support';
+        $intent = ChatIntentSignals::classifyAssistantIntent($question, $recentChatTurns);
+        if ($intent !== 'general_support') {
+            return $intent;
         }
 
         $followUpTopic = $this->inferFollowUpTopic($q, $recentChatTurns);
@@ -1370,19 +1365,7 @@ class MessageController extends Controller
             };
         }
 
-        if ($this->isQuoteIntentQuery($q)) {
-            return 'quote_management';
-        }
-
-        if ($this->isOrderIntentQuery($q)) {
-            return 'order_status';
-        }
-
-        if ($this->isInvoiceIntentQuery($q)) {
-            return 'invoice_payment';
-        }
-
-        return null;
+        return 'general_support';
     }
 
     private function isGeneralConversationQuery(string $questionLower): bool
@@ -2255,8 +2238,12 @@ class MessageController extends Controller
             return false;
         }
 
-        if (ChatIntentSignals::isGeneralConversationQuery($question)) {
+        if (ChatIntentSignals::isGeneralConversationQuery($question) || ChatIntentSignals::isSmallTalkQuery($question)) {
             return false;
+        }
+
+        if (ChatIntentSignals::isProductLookupIntent($question, $recentChatTurns)) {
+            return true;
         }
 
         $greetings = ['hi', 'hello', 'hey', 'yo', 'good morning', 'good afternoon', 'good evening', 'howdy', 'sup', 'whats up', 'thanks', 'thank you', 'thx', 'ok', 'okay', 'bye', 'goodbye'];
@@ -2302,11 +2289,8 @@ class MessageController extends Controller
             }
         }
 
-        if ($hasMeaningfulKeywords
-            && Str::contains($q, ['search for', 'find', 'looking for', 'need ', 'want ', 'show me', 'compare', 'available', 'in stock'])
-            && !Str::contains($q, $financeSignals)
-        ) {
-            return true;
+        if ($hasMeaningfulKeywords && !Str::contains($q, $financeSignals)) {
+            return false;
         }
 
         $recentUserText = collect($recentChatTurns)

@@ -163,7 +163,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/messages/chats/{chatSessionId}', [MessageController::class, 'getChatSessionMessages']);
         Route::delete('/messages/chats/{chatSessionId}', [MessageController::class, 'deleteChatSession']);
         Route::post('/messages/chats/{chatSessionId}/escalate', [MessageController::class, 'escalateChatSession']);
-        Route::post('/messages/assistant/chat', [MessageController::class, 'assistantChat']);
+        Route::post('/messages/assistant/chat', [MessageController::class, 'assistantChat'])->middleware('throttle:30,1');
         Route::get('/messages/unread-count', [MessageController::class, 'getUnreadCount']);
         Route::post('/messages/{id}/read', [MessageController::class, 'markAsRead']);
         Route::post('/messages/mark-all-read', [MessageController::class, 'markAllAsRead']);

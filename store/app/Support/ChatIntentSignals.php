@@ -6,6 +6,46 @@ use Illuminate\Support\Str;
 
 class ChatIntentSignals
 {
+    public static function classifyAssistantIntent(string $question, array $recentChatTurns = []): string
+    {
+        $q = self::normalizeQuestion($question);
+        if ($q === '') {
+            return 'general_support';
+        }
+
+        $accountIntentCount = collect([
+            self::isQuoteIntentQuery($question),
+            self::isOrderIntentQuery($question),
+            self::isInvoiceIntentQuery($question),
+        ])->filter()->count();
+
+        if ($accountIntentCount > 1) {
+            return 'general_support';
+        }
+
+        if (self::isGeneralConversationQuery($question) || self::isSmallTalkQuery($question)) {
+            return 'general_support';
+        }
+
+        if (self::isOrderIntentQuery($question)) {
+            return 'order_status';
+        }
+
+        if (self::isInvoiceIntentQuery($question)) {
+            return 'invoice_payment';
+        }
+
+        if (self::isQuoteIntentQuery($question)) {
+            return 'quote_management';
+        }
+
+        if (self::isProductLookupIntent($question, $recentChatTurns)) {
+            return 'product_search';
+        }
+
+        return 'general_support';
+    }
+
     public static function normalizeQuestion(string $question): string
     {
         $normalized = mb_strtolower(trim($question));
@@ -19,6 +59,24 @@ class ChatIntentSignals
         return self::isGreetingQuery($question)
             || self::isCapabilityQuestion($question)
             || self::isThanksQuery($question);
+    }
+
+    public static function isSmallTalkQuery(string $question): bool
+    {
+        $q = self::normalizeQuestion($question);
+
+        return $q !== '' && self::matchesAnyPattern($q, [
+            '/\bhow are you\b/u',
+            '/\bhow.?s it going\b/u',
+            '/\bwho are you\b/u',
+            '/\bwhat.?s your name\b/u',
+            '/\bwhat is your name\b/u',
+            '/\bwho made you\b/u',
+            '/\btell me a joke\b/u',
+            '/\bjoke\b/u',
+            '/\bhow do you work\b/u',
+            '/\bcan we chat\b/u',
+        ]);
     }
 
     public static function isGreetingQuery(string $question): bool
@@ -116,6 +174,10 @@ class ChatIntentSignals
             return false;
         }
 
+        if (self::isGeneralConversationQuery($question) || self::isSmallTalkQuery($question)) {
+            return false;
+        }
+
         if (self::containsAnyPattern($q, [
             '/\bquote(s)?\b/u',
             '/\border(s)?\b/u',
@@ -132,11 +194,9 @@ class ChatIntentSignals
             return false;
         }
 
-        if (!empty(self::extractProductSearchKeywords($question))) {
-            return true;
-        }
+        $keywords = self::extractProductSearchKeywords($question);
 
-        if (self::containsAnyPattern($q, [
+        $hasExplicitProductRequest = self::containsAnyPattern($q, [
             '/\bsearch for\b/u',
             '/\bfind(?: me)?\b/u',
             '/\blooking for\b/u',
@@ -155,7 +215,17 @@ class ChatIntentSignals
             '/\bcatalogue?\b/u',
             '/\brecommend\b/u',
             '/\bsuggest(?:ion|ions|ed)?\b/u',
-        ])) {
+        ]);
+
+        $hasProductNoun = self::containsAnyPattern($q, [
+            '/\b(laptop|notebook|desktop|printer|server|monitor|switch|router|firewall|access\s*point|wifi|wireless|tablet|projector|scanner|workstation|chromebook|thin\s*client|mini\s*pc|all\s*-?\s*in\s*-?\s*one|docking|dock|keyboard|mouse|webcam|headset|ups|storage|ssd|sku|model|part\s*number)\b/u',
+        ]);
+
+        if ($hasExplicitProductRequest && (!empty($keywords) || $hasProductNoun)) {
+            return true;
+        }
+
+        if ($hasProductNoun && !empty($keywords)) {
             return true;
         }
 
@@ -300,6 +370,7 @@ class ChatIntentSignals
             'track', 'tracking', 'shipping', 'delivery', 'use', 'used', 'using', 'query', 'did',
             'check', 'we', 'us', 'carry', 'stock', 'sell', 'instead', 'ones', 'option', 'options', 'now',
             'prefer', 'exclude', 'excluding', 'accessory', 'accessories', 'ii',
+            'how', 'who', 'whom', 'whose', 'yourself', 'name', 'joke', 'chat', 'going',
         ];
 
         $keywords = collect($parts)

@@ -160,52 +160,14 @@ class AzureOpenAiChatService
             return 'general_support';
         }
 
-        if (ChatIntentSignals::isProductLookupIntent($question, $chatHistory)) {
-            return 'product_search';
-        }
-
-        if (ChatIntentSignals::isGeneralConversationQuery($q)) {
-            return 'general_support';
+        $intent = ChatIntentSignals::classifyAssistantIntent($question, $chatHistory);
+        if ($intent !== 'general_support') {
+            return $intent;
         }
 
         $historyIntent = $this->inferIntentFromRecentHistory($q, $chatHistory);
         if ($historyIntent !== null) {
             return $historyIntent;
-        }
-
-        // Multi-domain: mentions orders AND quotes together → general_support (shows combined account summary)
-        $hasOrderSignal = (bool) preg_match('/\borders?\b/', $q);
-        $hasQuoteSignal = (bool) preg_match('/\bquotes?\b/', $q);
-        if ($hasOrderSignal && $hasQuoteSignal) {
-            return 'general_support';
-        }
-
-        // Order signals — broad: "my orders", "previous orders", "order history", "order #123", etc.
-        if ($hasOrderSignal || ChatIntentSignals::isOrderIntentQuery($q) || preg_match('/\b(order (status|history|track|number|detail)|track(ing)?|shipment|delivery|shipped|dispatch|where is my|has my order|when will|order #)\b/', $q)) {
-            return 'order_status';
-        }
-
-        // Invoice / payment signals
-        if (ChatIntentSignals::isInvoiceIntentQuery($q) || preg_match('/\b(invoices?|payments?|pay|balance due|billing|receipt|download pdf|invoice pdf|outstanding|amount due|what do i owe)\b/', $q)) {
-            return 'invoice_payment';
-        }
-
-        // Quote signals — broad: "my quotes", "quote history", "get a quote", "reorder", etc.
-        if ($hasQuoteSignal || ChatIntentSignals::isQuoteIntentQuery($q) || preg_match('/\b(quote (status|history|number)|get a quote|request (a )?quote|reorder|pending quote|open quote|same order again)\b/', $q)) {
-            return 'quote_management';
-        }
-
-        // Explicit product / catalog signals.
-        // Only classify as product_search when the query is clearly asking for product discovery,
-        // otherwise allow general support to handle conceptual or account-oriented questions.
-        if (preg_match('/\b(laptop|notebook|desktop|printer|server|monitor|switch|router|firewall|wifi|wireless|tablet|projector|ups|storage|ssd|keyboard|mouse|webcam|headset|workstation|chromebook|thin client|mini pc|all.in.one|docking|dock|scanner|sku|catalog|buy|purchase|spec|model|find me|search for|looking for|compare)\b/', $q)
-            ) {
-            return 'product_search';
-        }
-
-        // Implicit product interest — recommendation requests and need-based queries
-        if (preg_match('/\b(recommend|suggestion|suggest|what (should|would|can) (i|we)|what.*good|any good|best (for|option)|need (a|an|the)|want (a|an|the)|something (for|that|to)|option(s)? for|help me (find|choose|pick)|which (one|is better))\b/', $q)) {
-            return 'product_search';
         }
 
         // Multi-domain / ambiguous → general support
@@ -252,11 +214,6 @@ class AzureOpenAiChatService
     private function isExplicitProductSearchQuery(string $query): bool
     {
         return ChatIntentSignals::isProductLookupIntent($query);
-
-        $query = strtolower(trim($query));
-
-        // Product search queries must include clear product discovery signals.
-        return (bool) preg_match('/\b(search for|find (?:me )?|looking for|recommend|suggest|best|buy|purchase|catalog|catalogue|sku|model|spec|part number|quote|price|under|below|budget)\b/', $query);
     }
 
     // ─── Specialist agents ─────────────────────────────────────────────────────
