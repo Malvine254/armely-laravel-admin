@@ -80,7 +80,23 @@ class ChatIntentSignals
     {
         return self::isGreetingQuery($question)
             || self::isCapabilityQuestion($question)
-            || self::isThanksQuery($question);
+            || self::isThanksQuery($question)
+            || self::isCorrectionOrRejectionQuery($question)
+            || self::isSmallTalkQuery($question);
+    }
+
+    public static function isCorrectionOrRejectionQuery(string $question): bool
+    {
+        $q = self::normalizeQuestion($question);
+
+        return $q !== '' && self::matchesAnyPattern($q, [
+            '/\bi (?:did not|didn.?t|dd not|do not|don.?t|never) ask (?:for )?(?:that|this|those|these)\b/u',
+            '/\bthat(?:\'s| is) not what i (?:asked|meant|wanted)\b/u',
+            '/\bthis (?:isn.?t|is not) what i (?:asked|meant|wanted)\b/u',
+            '/\b(?:no|stop),? that(?:\'s| is) (?:wrong|not right|irrelevant)\b/u',
+            '/\bwhy (?:are|did) you (?:show|showing|send|sending|give|giving) me\b/u',
+            '/\byou (?:misunderstood|misread) (?:me|my question)\b/u',
+        ]);
     }
 
     public static function isSmallTalkQuery(string $question): bool
@@ -98,6 +114,16 @@ class ChatIntentSignals
             '/\bjoke\b/u',
             '/\bhow do you work\b/u',
             '/\bcan we chat\b/u',
+            '/\bcan we (?:have a |just )?(?:talk|conversation)\b/u',
+            '/\b(?:are you|can you be|should i consider you) (?:accurate|trustworthy|trusted|reliable|honest)\b/u',
+            '/\bcan (?:i|we) trust you\b/u',
+            '/\b(?:buddy|pal|mate)\b/u',
+            '/\b(?:sasa|nisaidie|habari|mambo)\b/u',
+            '/\bpo+or\b/u',
+            '/\b(?:i am|i.?m|im) (?:tired|frustrated|annoyed|upset) (?:of|with|by) (?:this|the|you)\b/u',
+            '/\bi (?:like|love) (?:your|the) (?:vibe|style|energy|personality|attitude|tone)\b/u',
+            '/\b(?:you(?:\'re| are)|ur) (?:cool|funny|helpful|awesome|great|nice|amazing)\b/u',
+            '/\b(?:nice|cool|great|good) (?:vibe|style|energy|personality|attitude|tone)\b/u',
         ]);
     }
 
@@ -196,7 +222,7 @@ class ChatIntentSignals
             return false;
         }
 
-        if (self::isGeneralConversationQuery($question) || self::isSmallTalkQuery($question)) {
+        if (self::isGeneralConversationQuery($question)) {
             return false;
         }
 
@@ -237,13 +263,46 @@ class ChatIntentSignals
             '/\bcatalogue?\b/u',
             '/\brecommend\b/u',
             '/\bsuggest(?:ion|ions|ed)?\b/u',
+            '/\bi (?:need|want|would like)\b/u',
+            '/\b(?:buy|purchase|price|compare|show me)\b/u',
         ]);
 
         $hasProductNoun = self::containsAnyPattern($q, [
-            '/\b(laptop|notebook|desktop|printer|server|monitor|switch|router|firewall|access\s*point|wifi|wireless|tablet|projector|scanner|workstation|chromebook|thin\s*client|mini\s*pc|all\s*-?\s*in\s*-?\s*one|docking|dock|keyboard|mouse|webcam|headset|ups|storage|ssd|sku|model|part\s*number)\b/u',
+            '/\b(laptop|notebook|desktop|computer|pc|printer|server|monitor|display|switch|router|firewall|access\s*point|wifi|wireless|tablet|phone|smartphone|camera|projector|scanner|workstation|chromebook|thin\s*client|mini\s*pc|all\s*-?\s*in\s*-?\s*one|docking|dock|keyboard|mouse|webcam|headset|earbuds|speaker|microphone|ups|storage|ssd|hard\s*drive|memory|ram|gpu|cable|adapter|sku|model|part\s*number)\b/u',
+        ]) || !empty(array_intersect($keywords, [
+            'laptop', 'notebook', 'desktop', 'computer', 'pc', 'printer', 'server', 'monitor',
+            'display', 'switch', 'router', 'firewall', 'tablet', 'phone', 'smartphone', 'camera',
+            'projector', 'scanner', 'workstation', 'chromebook', 'dock', 'keyboard', 'mouse',
+            'webcam', 'headset', 'earbud', 'speaker', 'microphone', 'ups', 'storage', 'ssd',
+            'memory', 'ram', 'gpu', 'cable', 'adapter', 'sku', 'model',
+        ]));
+
+        $hasStrongCatalogRequest = self::containsAnyPattern($q, [
+            '/\bsearch(?: for)?\b/u',
+            '/\bfind(?: me)?\b/u',
+            '/\blook(?:ing)? for\b/u',
+            '/\bbrowse\b/u',
+            '/\blookup\b/u',
+            '/\b(?:product )?catalogue?\b/u',
+            '/\bdo we (?:have|carry|stock|sell)\b/u',
         ]);
 
-        if ($hasExplicitProductRequest && (!empty($keywords) || $hasProductNoun)) {
+        // Generalize to products the application has never heard of. The grammar of
+        // "I need/want a <thing>" is useful evidence, provided the request is not an
+        // abstract need, support request, or conversational statement.
+        $hasOpenVocabularyShoppingRequest = self::containsAnyPattern($q, [
+            '/\bi (?:need|want|would like|am after) (?:an? |some |\d+ )?[a-z0-9][a-z0-9+.#\/-]*(?:\s+[a-z0-9][a-z0-9+.#\/-]*){0,8}(?:\s+(?:for|under|below|with|that)\b|$)/u',
+            '/\bwe (?:need|want|would like|are after) (?:an? |some |\d+ )?[a-z0-9][a-z0-9+.#\/-]*(?:\s+[a-z0-9][a-z0-9+.#\/-]*){0,8}(?:\s+(?:for|under|below|with|that)\b|$)/u',
+        ]) && !self::containsAnyPattern($q, [
+            '/\bneed (?:some )?help\b/u',
+            '/\bneed (?:you|advice|information|guidance|support|assistance|clarification|an explanation|to know|to understand|to reset|to write|to create|to explain|to fix)\b/u',
+            '/\bwant (?:you|to know|to understand|to ask|to say|to tell|to write|to create|to explain)\b/u',
+            '/\b(?:vacation|break|sleep|coffee|food|water|friend|hug|joke)\b/u',
+        ]);
+
+        if (($hasExplicitProductRequest && $hasProductNoun)
+            || ($hasStrongCatalogRequest && !empty($keywords))
+            || ($hasOpenVocabularyShoppingRequest && !empty($keywords))) {
             return true;
         }
 
@@ -258,12 +317,22 @@ class ChatIntentSignals
 
         return $recentSuggestedProducts && self::containsAnyPattern($q, [
             '/\bit\b/u',
+            '/\bits\b/u',
             '/\bthat\b/u',
+            '/\bthis\b/u',
             '/\bthose\b/u',
+            '/\bthese\b/u',
             '/\bthem\b/u',
+            '/\bones?\b/u',
             '/\bsimilar\b/u',
             '/\bmore\b/u',
+            '/\b(?:spec|specs|specification|specifications|features|details)\b/u',
             '/\banother\b/u',
+            '/\bcheaper\b/u',
+            '/\bmore expensive\b/u',
+            '/\bwhat about\b/u',
+            '/\bhow about\b/u',
+            '/\binstead\b/u',
         ]);
     }
 
