@@ -302,7 +302,7 @@ import { useRouter } from 'vue-router'
 import { useToastStore } from '../../stores/toastStore'
 import { useAuthStore } from '../../stores/authStore'
 import { getAuthStorageKeys } from '../../services/authContext'
-import { API_BASE_URL } from '../../services/runtimeConfig'
+import { API_BASE_URL, resolveProductImageUrl } from '../../services/runtimeConfig'
 import Navbar from '../../components/Navbar.vue'
 import { usePricingSettings } from '../../composables/usePricingSettings'
 
@@ -367,6 +367,18 @@ const writeCachedJson = (key, value) => {
 }
 
 const getCachedSessionMessages = (sessionId) => readCachedJson(getChatCacheKey(`session:${sessionId}`), [])
+
+const normalizeProductSuggestions = (suggestions) => {
+  if (!Array.isArray(suggestions)) return []
+
+  return suggestions.map((item) => {
+    const imageUrl = String(item?.image_url || '').trim()
+    return {
+      ...item,
+      image_url: imageUrl ? resolveProductImageUrl(imageUrl) : '',
+    }
+  })
+}
 
 const cacheSessionMessages = (sessionId, messages) => {
   if (!sessionId) return
@@ -575,7 +587,7 @@ const refreshChatMessages = async () => {
       senderName: item.sender_name || null,
       createdAt: item.created_at || null,
       actions: item.actions || [],
-      productSuggestions: item.product_suggestions || []
+      productSuggestions: normalizeProductSuggestions(item.product_suggestions || [])
     }))
 
     if (!serverMessages.length) return
@@ -738,7 +750,7 @@ const selectChatSession = async (sessionId) => {
       senderName: item.sender_name || null,
       createdAt: item.created_at || null,
       actions: item.actions || [],
-      productSuggestions: item.product_suggestions || []
+      productSuggestions: normalizeProductSuggestions(item.product_suggestions || [])
     }))
     cacheSessionMessages(sessionId, chatMessages.value)
 
@@ -1023,7 +1035,7 @@ const sendChatMessage = async (prefilled = null) => {
         text: assistantPayload.reply || 'I could not generate a response right now.',
         createdAt: new Date().toISOString(),
         actions: assistantPayload.actions || [],
-        productSuggestions: assistantPayload.product_suggestions || []
+        productSuggestions: normalizeProductSuggestions(assistantPayload.product_suggestions || [])
       })
       await scrollChatToBottom(true)
     }

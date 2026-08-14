@@ -154,8 +154,14 @@ export const resolveProfilePictureUrl = (profilePictureUrl, profilePicturePath =
 
 /** Resolve locally stored product images without leaking production URLs into local development. */
 export const resolveProductImageUrl = (value) => {
-  const rawValue = String(value || '').trim()
+  let rawValue = String(value || '').trim()
   if (!rawValue || typeof window === 'undefined') return rawValue
+
+  if (!/^https?:\/\//i.test(rawValue) && !rawValue.startsWith('/')) {
+    if (rawValue.startsWith('images/') || rawValue.startsWith('store/images/') || rawValue.startsWith('storage/')) {
+      rawValue = `/${rawValue}`
+    }
+  }
 
   try {
     const current = window.location
