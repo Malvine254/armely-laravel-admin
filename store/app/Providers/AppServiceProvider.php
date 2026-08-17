@@ -14,7 +14,7 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        $basePath = trim((string) env('VITE_APP_BASE_PATH', '/'), '/');
+        $basePath = trim((string) config('app.frontend_base_path', '/'), '/');
         $buildDirectory = $basePath !== '' ? $basePath.'/build' : 'build';
 
         Vite::useBuildDirectory($buildDirectory);
