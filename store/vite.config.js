@@ -6,6 +6,8 @@ import tailwindcss from '@tailwindcss/vite';
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, process.cwd(), '');
     const appBasePath = env.VITE_APP_BASE_PATH || '/';
+    const normalizedBasePath = appBasePath.replace(/^\/+|\/+$/g, '');
+    const buildDirectory = normalizedBasePath ? `${normalizedBasePath}/build` : 'build';
 
     return {
         base: appBasePath,
@@ -13,6 +15,7 @@ export default defineConfig(({ mode }) => {
             laravel({
                 input: ['resources/css/app.css', 'resources/js/app.js'],
                 refresh: true,
+                buildDirectory,
             }),
             vue({
                 template: {
