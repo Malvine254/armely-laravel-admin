@@ -73,11 +73,20 @@ const loading = ref(true)
  * This allows the browser to automatically use the current domain.
  */
 const categoryImages = {
-  'laptops-notebooks': 'http://127.0.0.1:8001/store/images/products/15369139.jpg',
-  'printers-scanners': 'http://127.0.0.1:8001/store/images/products/9111913.jpeg',
-  'monitors-displays': 'http://127.0.0.1:8001/store/images/products/15378549.jpg',
-  networking: 'http://127.0.0.1:8001/store/images/products/6791825.png',
-  'desktops-workstations': 'http://127.0.0.1:8001/store/images/products/15329586.jpg',
+  'laptops-notebooks': '15369139.jpg',
+  'printers-scanners': '9111913.jpeg',
+  'monitors-displays': '15378549.jpg',
+  networking: '6791825.png',
+  'desktops-workstations': '15329586.jpg',
+}
+
+const productImageFolder = '/store/images/products'
+
+const buildCategoryImagePath = fileName => {
+  // Enforce filename-only values to avoid accidental path traversal.
+  const safeFileName = String(fileName || '').replace(/[\\/]/g, '')
+
+  return safeFileName ? `${productImageFolder}/${safeFileName}` : ''
 }
 
 /*
@@ -87,7 +96,8 @@ const categoryImages = {
  * in the map above, fall back to its API image.
  */
 const getCategoryImage = category => {
-  const customImage = categoryImages[category.slug]
+  const customImageFile = categoryImages[category.slug]
+  const customImage = buildCategoryImagePath(customImageFile)
 
   if (customImage) {
     return customImage
