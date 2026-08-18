@@ -16,26 +16,15 @@
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600,700|inter:400,500,600,700&display=swap" rel="stylesheet" />
 
-        <!-- Google Analytics (GA4) and Google Ads -->
-        @php($ga4Id = config('services.google_analytics.ga4_id', ''))
-        @php($adsId = config('services.google_ads.id', ''))
-        @if($ga4Id || $adsId)
-            <script async src="https://www.googletagmanager.com/gtag/js?id={{ $ga4Id ?: $adsId }}"></script>
-            <script>
-                window.dataLayer = window.dataLayer || [];
-                function gtag(){dataLayer.push(arguments);}
-                gtag('js', new Date());
-                @if($ga4Id)
-                gtag('config', '{{ $ga4Id }}');
-                @endif
-                @if($adsId)
-                gtag('config', '{{ $adsId }}', {
-                    'allow_google_signals': true,
-                    'allow_ad_personalization_signals': true
-                });
-                @endif
-            </script>
-        @endif
+        <!-- Google tag (gtag.js) -->
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-36JYKD3V6K"></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+
+            gtag('config', 'G-36JYKD3V6K');
+        </script>
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
