@@ -42,12 +42,13 @@ return [
     ],
 
     'google_analytics' => [
-        'ga4_id' => env('GA4_ID', ''),
+        // Prefer store-specific ID so /store can be tracked independently.
+        'ga4_id' => env('STORE_GA4_ID', env('GA4_ID', '')),
     ],
 
     'google_ads' => [
-        'id' => env('GOOGLE_ADS_ID', ''),
-        'contact_form_conversion_label' => env('GOOGLE_ADS_CONTACT_FORM_CONVERSION_LABEL', 'contact_form_submit'),
+        'id' => env('STORE_GOOGLE_ADS_ID', env('GOOGLE_ADS_ID', '')),
+        'contact_form_conversion_label' => env('STORE_GOOGLE_ADS_CONTACT_FORM_CONVERSION_LABEL', env('GOOGLE_ADS_CONTACT_FORM_CONVERSION_LABEL', 'contact_form_submit')),
     ],
 
     'stripe' => [
