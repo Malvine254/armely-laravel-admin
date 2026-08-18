@@ -43,12 +43,14 @@ return [
 
     'google_analytics' => [
         // Prefer store-specific ID so /store can be tracked independently.
-        'ga4_id' => env('STORE_GA4_ID', env('GA4_ID', '')),
+        // If store value is blank, fall back to the shared main-site value.
+        'ga4_id' => env('STORE_GA4_ID') ?: env('GA4_ID', ''),
     ],
 
     'google_ads' => [
-        'id' => env('STORE_GOOGLE_ADS_ID', env('GOOGLE_ADS_ID', '')),
-        'contact_form_conversion_label' => env('STORE_GOOGLE_ADS_CONTACT_FORM_CONVERSION_LABEL', env('GOOGLE_ADS_CONTACT_FORM_CONVERSION_LABEL', 'contact_form_submit')),
+        // If store value is blank, fall back to the shared main-site value.
+        'id' => env('STORE_GOOGLE_ADS_ID') ?: env('GOOGLE_ADS_ID', ''),
+        'contact_form_conversion_label' => env('STORE_GOOGLE_ADS_CONTACT_FORM_CONVERSION_LABEL') ?: env('GOOGLE_ADS_CONTACT_FORM_CONVERSION_LABEL', 'contact_form_submit'),
     ],
 
     'stripe' => [
