@@ -17,14 +17,17 @@
         <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600,700|inter:400,500,600,700&display=swap" rel="stylesheet" />
 
         <!-- Google tag (gtag.js) -->
-        <script async src="https://www.googletagmanager.com/gtag/js?id=G-36JYKD3V6K"></script>
-        <script>
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
+        @php($ga4Id = config('services.google_analytics.ga4_id', ''))
+        @if($ga4Id)
+            <script async src="https://www.googletagmanager.com/gtag/js?id={{ $ga4Id }}"></script>
+            <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
 
-            gtag('config', 'G-36JYKD3V6K');
-        </script>
+                gtag('config', '{{ $ga4Id }}');
+            </script>
+        @endif
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
