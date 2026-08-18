@@ -41,6 +41,15 @@ return [
         'bypass' => env('RECAPTCHA_BYPASS', false),
     ],
 
+    'google_analytics' => [
+        'ga4_id' => env('GA4_ID', ''),
+    ],
+
+    'google_ads' => [
+        'id' => env('GOOGLE_ADS_ID', ''),
+        'contact_form_conversion_label' => env('GOOGLE_ADS_CONTACT_FORM_CONVERSION_LABEL', 'contact_form_submit'),
+    ],
+
     'stripe' => [
         'key' => env('STRIPE_KEY'),
         'secret' => env('STRIPE_SECRET'),
