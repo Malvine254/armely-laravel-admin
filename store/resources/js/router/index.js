@@ -250,6 +250,19 @@ const router = createRouter({
   routes,
 });
 
+const trackSpaPageView = (to) => {
+  if (typeof window === 'undefined' || typeof window.gtag !== 'function') {
+    return;
+  }
+
+  const pagePath = to?.fullPath || window.location.pathname;
+  window.gtag('event', 'page_view', {
+    page_title: document.title,
+    page_location: window.location.href,
+    page_path: pagePath,
+  });
+};
+
 // Navigation guards
 router.beforeEach((to, from, next) => {
   const authStore = useAuthStore();
@@ -352,6 +365,8 @@ router.beforeEach((to, from, next) => {
 // Session expiration warning
 router.afterEach((to, from) => {
   const authStore = useAuthStore();
+
+  trackSpaPageView(to);
   
   if (authStore.isAuthenticated && authStore.sessionExpiry) {
     const secondsRemaining = authStore.getSessionTimeRemaining();
