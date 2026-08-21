@@ -391,7 +391,8 @@ watch(
 )
 
 const productCategories = ref([])
-const MENU_CATEGORIES_STORAGE_KEY = 'store_menu_categories_v5_capped_3000'
+const MENU_CATEGORIES_STORAGE_KEY = 'store_menu_categories_v7_canonical_eligible_capped_3000'
+const MENU_CATEGORIES_REQUEST_REVISION = 'canonical-eligible-taxonomy-20260821-1'
 const MENU_CATEGORIES_SOFT_TTL_MS = 15 * 60 * 1000
 const MENU_CATEGORIES_HARD_TTL_MS = 7 * 24 * 60 * 60 * 1000
 
@@ -512,7 +513,9 @@ const saveMenuCategoriesToStorage = (rows) => {
 
 const fetchMenuCategories = async () => {
   try {
-    const { data } = await api.get('/menu-categories')
+    const { data } = await api.get('/menu-categories', {
+      params: { catalog_revision: MENU_CATEGORIES_REQUEST_REVISION },
+    })
     if (data.success && Array.isArray(data.data)) {
       const normalized = normalizeMenuCategories(data.data)
       if (normalized.length > 0) {
