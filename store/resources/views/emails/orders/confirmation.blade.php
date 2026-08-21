@@ -1,22 +1,8 @@
-@component('mail::message')
-# Order Confirmed
-
-Hello {{ $customer->name }},
-
-Thank you for your order! Your order has been confirmed and submitted to our fulfillment team.
-
-**Order Details:**
-- Order Number: {{ $order->order_number }}
-- Total Amount: ${{ number_format($order->total_amount, 2) }}
-- Items: {{ count($order->items ?? []) }}
-- Order Date: {{ $order->ordered_at->format('M d, Y H:i A') }}
-
-@component('mail::button', ['url' => config('app.url') . '/orders/' . $order->id])
-Track Order
-@endcomponent
-
-You will receive tracking information once your order has shipped.
-
-Thanks,<br>
-{{ config('app.name') }}
-@endcomponent
+@extends('emails.layouts.modern', ['emailTitle' => 'Order Confirmed', 'emailBadge' => 'Order Update', 'emailAccent' => '#16a34a'])
+@section('content')
+<p style="margin:0 0 14px;font-size:16px;">Hello <strong>{{ $customer->name }}</strong>,</p>
+<p style="margin:0 0 16px;color:#475569;">Your order is confirmed and has moved to our fulfillment team.</p>
+@include('emails.partials.details', ['rows' => ['Order number' => e($order->order_number), 'Total' => '$'.number_format($order->total_amount, 2), 'Items' => count($order->items ?? []), 'Order date' => optional($order->ordered_at)->format('M d, Y g:i A') ?? 'Pending']])
+@include('emails.partials.button', ['url' => rtrim(\App\Support\FrontendUrl::base(), '/') . '/orders', 'label' => 'View Order'])
+@endsection
+@section('footer-note')We will send another update when tracking information becomes available.@endsection

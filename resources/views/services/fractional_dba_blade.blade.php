@@ -13,17 +13,18 @@
 }
 
 /* HERO */
-.armely-fractional-dba-page .hero { background: linear-gradient(135deg, #0d1a30 0%, #162b49 60%, #0d1a30 100%); padding: 96px 56px 72px; position: relative; overflow: hidden; }
+.armely-fractional-dba-page .hero { min-height: 0; display: flex; flex-direction: column; justify-content: flex-start; background: #1a2e52; padding: 72px 56px 80px; position: relative; overflow: hidden; }
+.armely-fractional-dba-page .hero-bg-glow { position: absolute; top: -180px; right: -100px; width: 720px; height: 720px; background: radial-gradient(circle, rgba(41,78,139,0.2) 0%, transparent 68%); pointer-events: none; }
 .armely-fractional-dba-page .hero-inner { max-width: 1120px; margin: 0 auto; display: grid; grid-template-columns: 1fr 380px; gap: 52px; align-items: center; }
 .armely-fractional-dba-page .hero-eyebrow { display: inline-flex; align-items: center; gap: 10px; margin-bottom: 20px; }
 .armely-fractional-dba-page .eyebrow-badge { background: rgba(47,85,151,0.35); border: 1px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.9); font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.12em; padding: 5px 14px; border-radius: 40px; }
 .armely-fractional-dba-page .eyebrow-partner { font-size: 0.78rem; color: rgba(255,255,255,0.5); }
-.armely-fractional-dba-page .hero h1 { font-size: clamp(1.75rem, 3.2vw, 2.6rem); font-weight: 800; line-height: 1.1; color: #fff; margin-bottom: 18px; letter-spacing: -0.03em; }
-.armely-fractional-dba-page .hero h1 em { font-style: normal; font-weight: 300; color: rgba(255,255,255,0.65); }
-.armely-fractional-dba-page .hero-sub { font-size: 1rem; font-weight: 300; color: rgba(255,255,255,0.72); max-width: 540px; margin-bottom: 28px; line-height: 1.78; }
+.armely-fractional-dba-page .hero h1 { font-family: 'Segoe UI', Arial, sans-serif; font-size: clamp(2rem, 3.5vw, 3rem); font-weight: 700; line-height: 1.12; color: #fff; max-width: 820px; margin-bottom: 24px; letter-spacing: -0.025em; }
+.armely-fractional-dba-page .hero h1 .hero-title-break { display: block; margin-top: 8px; color: #fff; font-size: 0.62em; font-weight: 600; line-height: 1.2; letter-spacing: -0.015em; }
+.armely-fractional-dba-page .hero-sub { font-size: 1.05rem; font-weight: 300; color: rgba(255,255,255,0.82); max-width: 580px; margin-bottom: 40px; line-height: 1.8; }
 .armely-fractional-dba-page .hero-platforms { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 32px; }
 .armely-fractional-dba-page .hero-platform { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.18); color: rgba(255,255,255,0.8); border-radius: 999px; padding: 5px 13px; }
-.armely-fractional-dba-page .hero-actions { display: flex; gap: 14px; flex-wrap: wrap; }
+.armely-fractional-dba-page .hero-actions { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 0; }
 .armely-fractional-dba-page .btn-primary { background: var(--blue); color: #fff; border-radius: 7px; padding: 13px 28px; font-family: 'Poppins', sans-serif; font-size: 0.925rem; font-weight: 600; text-decoration: none; display: inline-block; transition: background 0.2s; }
 .armely-fractional-dba-page .btn-primary:hover { background: var(--blue-lt); }
 .armely-fractional-dba-page .btn-outline { background: transparent; color: rgba(255,255,255,0.85); border: 1px solid rgba(255,255,255,0.25); border-radius: 7px; padding: 13px 28px; font-family: 'Poppins', sans-serif; font-size: 0.925rem; font-weight: 500; text-decoration: none; display: inline-block; }
@@ -41,28 +42,71 @@
 .armely-fractional-dba-page .avail-desc { font-size: 0.72rem; color: rgba(255,255,255,0.5); }
 
 /* Problem strip */
-.armely-fractional-dba-page .strip { background: #fff; border-top: 3px solid var(--blue); border-bottom: 1px solid var(--border); }
-.armely-fractional-dba-page .strip-inner { max-width: 1120px; margin: 0 auto; padding: 0 56px; display: grid; grid-template-columns: 1fr 1fr 1fr; }
-.armely-fractional-dba-page .strip-item { padding: 20px 24px 20px 0; border-right: 1px solid var(--border); }
-.armely-fractional-dba-page .strip-item:last-child { border-right: none; padding-right: 0; padding-left: 24px; }
-.armely-fractional-dba-page .strip-item:nth-child(2) { padding-left: 24px; }
-.armely-fractional-dba-page .strip-lbl { font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: var(--blue); margin-bottom: 4px; }
-.armely-fractional-dba-page .strip-text { font-size: 0.875rem; font-weight: 600; color: #162b49; line-height: 1.45; }
+.armely-fractional-dba-page .strip { background: var(--navy-mid); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.armely-fractional-dba-page .strip-inner { max-width: 1120px; margin: 0 auto; padding: 28px 56px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.armely-fractional-dba-page .strip-item { min-height: 156px; padding: 22px 22px 20px; background: #fff; border: 1px solid var(--border); border-top: 3px solid var(--blue); border-radius: 12px; box-shadow: 0 5px 18px rgba(18,47,82,0.06); }
+.armely-fractional-dba-page .strip-item:last-child { border-right: 1px solid var(--border); padding-right: 22px; padding-left: 22px; border-top-color: #1d9e75; }
+.armely-fractional-dba-page .strip-item:nth-child(2) { padding-left: 22px; border-top-color: #c9893f; }
+.armely-fractional-dba-page .strip-lbl { display: inline-block; font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: var(--blue); margin-bottom: 12px; }
+.armely-fractional-dba-page .strip-item:nth-child(2) .strip-lbl { color: #a66d2d; }
+.armely-fractional-dba-page .strip-item:last-child .strip-lbl { color: #168161; }
+.armely-fractional-dba-page .strip-text { font-size: 0.875rem; font-weight: 500; color: #294e8b; line-height: 1.65; }
 
 /* Sections */
-.armely-fractional-dba-page section { padding: 64px 56px; }
-.armely-fractional-dba-page .alt-bg { background: var(--navy-mid); }
-.armely-fractional-dba-page .section-inner { max-width: 1120px; margin: 0 auto; }
-.armely-fractional-dba-page .section-eyebrow { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.14em; color: var(--blue); margin-bottom: 12px; font-weight: 600; }
-.armely-fractional-dba-page .section-title { font-size: clamp(1.5rem, 2.8vw, 2.2rem); font-weight: 800; color: #1A2540; line-height: 1.12; letter-spacing: -0.025em; margin-bottom: 14px; max-width: 640px; }
-.armely-fractional-dba-page .section-body { font-size: 0.925rem; font-weight: 300; max-width: 560px; line-height: 1.8; color: var(--text-body); margin-bottom: 32px; }
+.armely-fractional-dba-page section { padding: 60px 56px 52px; }
+  .armely-fractional-dba-page .alt-bg { background: var(--navy-mid); }
+  .armely-fractional-dba-page .section-inner { max-width: 1120px; margin: 0 auto; }
+  .armely-fractional-dba-page .section-heading { max-width: 820px; margin-bottom: 28px; }
+  .armely-fractional-dba-page .section-heading-centered { margin-left: auto; margin-right: auto; text-align: center; }
+  .armely-fractional-dba-page .section-heading-centered .section-eyebrow::after { margin-left: auto; margin-right: auto; }
+  .armely-fractional-dba-page .section-heading-centered .section-body { margin-left: auto; margin-right: auto; }
+  .armely-fractional-dba-page .section-heading-wide { max-width: 100%; }
+  .armely-fractional-dba-page .section-heading-wide .section-title { max-width: 100%; text-wrap: wrap; }
+  .armely-fractional-dba-page .section-eyebrow {
+    display: inline-block;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.13em;
+    color: var(--blue);
+    margin-bottom: 14px;
+    font-weight: 700;
+    line-height: 1.35;
+  }
+  .armely-fractional-dba-page .section-eyebrow::after {
+    content: "";
+    display: block;
+    width: 64px;
+    height: 2px;
+    margin-top: 10px;
+    border-radius: 999px;
+    background: rgba(47,85,151,0.25);
+  }
+  .armely-fractional-dba-page .section-title {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: clamp(1.7rem, 2.5vw, 2.25rem);
+    font-weight: 700;
+    color: #294e8b;
+    line-height: 1.2;
+    letter-spacing: -0.025em;
+    margin: 0 0 14px;
+    max-width: 760px;
+    text-wrap: balance;
+  }
+  .armely-fractional-dba-page .section-body {
+    font-size: 1rem;
+    font-weight: 300;
+    max-width: 660px;
+    line-height: 1.7;
+    color: var(--text-body);
+    margin: 0;
+  }
 
 /* Who cards */
 .armely-fractional-dba-page .who-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
 .armely-fractional-dba-page .who-card { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 24px; box-shadow: 0 4px 16px rgba(18,47,82,0.05); }
 .armely-fractional-dba-page .who-icon { width: 44px; height: 44px; border-radius: 12px; background: var(--blue-dim); border: 1px solid var(--blue-dim2); display: flex; align-items: center; justify-content: center; margin-bottom: 14px; }
 .armely-fractional-dba-page .who-icon svg { width: 22px; height: 22px; stroke: var(--blue); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-.armely-fractional-dba-page .who-title { font-size: 0.925rem; font-weight: 700; color: #162b49; margin-bottom: 6px; line-height: 1.3; }
+.armely-fractional-dba-page .who-title { min-height: 2.6em; font-size: 0.925rem; font-weight: 700; color: #294e8b; margin-bottom: 8px; line-height: 1.3; }
 .armely-fractional-dba-page .who-desc { font-size: 0.8rem; color: var(--text-muted); line-height: 1.68; }
 
 /* Cover cards */
@@ -70,13 +114,13 @@
 .armely-fractional-dba-page .cover-card { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 20px; display: flex; gap: 14px; }
 .armely-fractional-dba-page .cover-icon { width: 38px; height: 38px; border-radius: 10px; background: var(--blue-dim); border: 1px solid var(--blue-dim2); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .armely-fractional-dba-page .cover-icon svg { width: 18px; height: 18px; stroke: var(--blue); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-.armely-fractional-dba-page .cover-title { font-size: 0.875rem; font-weight: 700; color: #162b49; margin-bottom: 4px; }
+.armely-fractional-dba-page .cover-title { font-size: 0.875rem; font-weight: 700; color: #294e8b; margin-bottom: 4px; }
 .armely-fractional-dba-page .cover-desc { font-size: 0.78rem; color: var(--text-muted); line-height: 1.65; }
 
 /* Platform cards */
 .armely-fractional-dba-page .plat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
 .armely-fractional-dba-page .plat-card { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 24px; text-align: center; box-shadow: 0 4px 16px rgba(18,47,82,0.05); }
-.armely-fractional-dba-page .plat-name { font-size: 1.1rem; font-weight: 800; color: #162b49; margin-bottom: 6px; }
+.armely-fractional-dba-page .plat-name { font-size: 1.1rem; font-weight: 800; color: #294e8b; margin-bottom: 6px; }
 .armely-fractional-dba-page .plat-desc { font-size: 0.78rem; color: var(--text-muted); line-height: 1.65; margin-bottom: 10px; }
 .armely-fractional-dba-page .plat-tag { display: inline-block; font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--blue); background: var(--blue-dim); border-radius: 4px; padding: 2px 8px; }
 
@@ -85,7 +129,7 @@
 .armely-fractional-dba-page .eng-card { background: #fff; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; box-shadow: 0 4px 16px rgba(18,47,82,0.05); }
 .armely-fractional-dba-page .eng-head { padding: 16px 20px; border-bottom: 1px solid var(--border); background: var(--navy-mid); }
 .armely-fractional-dba-page .eng-lbl { font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); margin-bottom: 4px; }
-.armely-fractional-dba-page .eng-name { font-size: 1rem; font-weight: 700; color: #162b49; }
+.armely-fractional-dba-page .eng-name { font-size: 1rem; font-weight: 700; color: #294e8b; }
 .armely-fractional-dba-page .eng-body { padding: 18px 20px; }
 .armely-fractional-dba-page .eng-desc { font-size: 0.8rem; color: var(--text-muted); line-height: 1.68; margin-bottom: 12px; }
 .armely-fractional-dba-page .eng-best { font-size: 0.72rem; font-weight: 600; color: var(--blue); }
@@ -96,7 +140,7 @@
 .armely-fractional-dba-page .cr-label { display: flex; align-items: center; gap: 9px; margin-bottom: 10px; }
 .armely-fractional-dba-page .cr-check { width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; background: var(--blue-dim); border: 1px solid var(--blue-dim2); border-radius: 50%; flex-shrink: 0; }
 .armely-fractional-dba-page .cr-check svg { width: 11px; height: 11px; stroke: var(--blue); fill: none; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
-.armely-fractional-dba-page .cr-industry { font-size: 0.875rem; font-weight: 700; color: #162b49; }
+.armely-fractional-dba-page .cr-industry { font-size: 0.875rem; font-weight: 700; color: #294e8b; }
 .armely-fractional-dba-page .cr-desc { font-size: 0.8rem; color: var(--text-muted); line-height: 1.65; }
 .armely-fractional-dba-page .cr-cta { text-align: center; }
 .armely-fractional-dba-page .cr-btn { display: inline-flex; align-items: center; gap: 10px; background: var(--blue); color: #fff; border-radius: 8px; padding: 12px 24px; font-size: 0.875rem; font-weight: 600; text-decoration: none; }
@@ -128,13 +172,18 @@
   .armely-fractional-dba-page .cover-grid { grid-template-columns: 1fr; }
   .armely-fractional-dba-page .cr-grid { grid-template-columns: 1fr 1fr; }
   .armely-fractional-dba-page .strip-inner { grid-template-columns: 1fr; }
-  .armely-fractional-dba-page .strip-item { border-right: none; border-bottom: 1px solid var(--border); padding: 16px 0; padding-left: 0 !important; }
-  .armely-fractional-dba-page .strip-item:last-child { border-bottom: none; }
+  .armely-fractional-dba-page .strip-inner { gap: 14px; }
+  .armely-fractional-dba-page .strip-item { min-height: 0; border-right: 1px solid var(--border); padding: 20px; }
+  .armely-fractional-dba-page .strip-item:last-child { border-bottom: 1px solid var(--border); padding: 20px; }
+  .armely-fractional-dba-page .strip-item:nth-child(2) { padding-left: 20px; }
   .armely-fractional-dba-page .hero,
   .armely-fractional-dba-page section,
   .armely-fractional-dba-page .strip-inner { padding-left: 24px; padding-right: 24px; }
 }
 @media (max-width: 600px) {
+  .armely-fractional-dba-page .strip-inner { padding: 22px 20px; grid-template-columns: 1fr; }
+  .armely-fractional-dba-page .section-eyebrow { letter-spacing: 0.12em; }
+  .armely-fractional-dba-page .section-title { font-size: clamp(1.7rem, 7vw, 2.3rem); }
   .armely-fractional-dba-page .who-grid,
   .armely-fractional-dba-page .plat-grid,
   .armely-fractional-dba-page .eng-grid,
@@ -146,13 +195,14 @@
 
 {{-- HERO --}}
 <section class="hero">
+  <div class="hero-bg-glow" aria-hidden="true"></div>
   <div class="hero-inner">
     <div>
       <div class="hero-eyebrow">
         <span class="eyebrow-badge">Fractional DBA Services</span>
         <span class="eyebrow-partner">Armely</span>
       </div>
-      <h1>Senior database expertise. <em>No headcount required.</em></h1>
+      <h1>Senior database expertise.<span class="hero-title-break">No headcount required.</span></h1>
       <p class="hero-sub">Armely provides experienced database administration for organizations that need senior DBA coverage without a full-time hire. Available on a monthly retainer, by the hour, or as a fixed-scope project.</p>
       <div class="hero-platforms">
         <span class="hero-platform">SQL Server</span>
@@ -211,9 +261,11 @@
 {{-- WHO THIS IS FOR --}}
 <section>
   <div class="section-inner">
-    <div class="section-eyebrow">Who This Is For</div>
-    <h2 class="section-title">Three situations where a fractional DBA makes sense.</h2>
-    <p class="section-body">Every engagement looks different, but the underlying situation is usually one of three things.</p>
+    <div class="section-heading section-heading-centered">
+      <div class="section-eyebrow">Who this is for</div>
+      <h2 class="section-title">When a fractional DBA makes sense.</h2>
+      <p class="section-body">Most teams do not need a full-time database hire. They need a steady senior resource who can keep systems healthy without adding headcount.</p>
+    </div>
     <div class="who-grid">
       <div class="who-card">
         <div class="who-icon"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
@@ -237,9 +289,11 @@
 {{-- WHAT WE COVER --}}
 <section class="alt-bg" id="what-we-cover">
   <div class="section-inner">
-    <div class="section-eyebrow">What We Cover</div>
-    <h2 class="section-title">What a fractional DBA from Armely actually does.</h2>
-    <p class="section-body">Not a helpdesk. Not someone who shows up after things break. A senior DBA who knows your environment and stays ahead of problems before they reach production.</p>
+    <div class="section-heading section-heading-centered section-heading-wide">
+      <div class="section-eyebrow">What we cover</div>
+      <h2 class="section-title">What an Armely fractional DBA actually handles.</h2>
+      <p class="section-body">This is not a reactive helpdesk model. It is hands-on database leadership that keeps the environment stable, secure, and ready for growth.</p>
+    </div>
     <div class="cover-grid">
       <div class="cover-card">
         <div class="cover-icon"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
@@ -290,9 +344,11 @@
 {{-- PLATFORMS --}}
 <section>
   <div class="section-inner">
-    <div class="section-eyebrow">Platforms</div>
-    <h2 class="section-title">SQL Server, Azure SQL, and Snowflake.</h2>
-    <p class="section-body">All three platforms under one engagement. No need to source separate expertise for each system your organization runs.</p>
+    <div class="section-heading section-heading-centered section-heading-wide">
+      <div class="section-eyebrow">Platforms</div>
+      <h2 class="section-title">Support across the platforms your team already depends on.</h2>
+      <p class="section-body">One engagement can cover the database platforms your team already relies on, without splitting the work across multiple specialists.</p>
+    </div>
     <div class="plat-grid">
       <div class="plat-card">
         <div class="plat-name">SQL Server</div>
@@ -316,9 +372,11 @@
 {{-- ENGAGEMENT MODELS --}}
 <section class="alt-bg">
   <div class="section-inner">
-    <div class="section-eyebrow">Engagement Models</div>
-    <h2 class="section-title">Three ways to engage. One scope or all three over time.</h2>
-    <p class="section-body">Most clients start with a fixed-scope engagement to evaluate the relationship, then move to a retainer once they know what ongoing coverage looks like.</p>
+    <div class="section-heading section-heading-centered">
+      <div class="section-eyebrow">Engagement models</div>
+      <h2 class="section-title">How we work with your team.</h2>
+      <p class="section-body">Most clients begin with a focused project, then move to a retainer once the right level of support is clear.</p>
+    </div>
     <div class="eng-grid">
       <div class="eng-card">
         <div class="eng-head">
@@ -357,8 +415,10 @@
 {{-- CLIENT RESULTS --}}
 <section style="background: var(--navy-mid);">
   <div class="section-inner">
-    <div class="section-eyebrow">Client Results</div>
-    <h2 class="section-title">What clients say about working with Armely on database work.</h2>
+    <div class="section-heading section-heading-centered section-heading-wide">
+      <div class="section-eyebrow">Client results</div>
+      <h2 class="section-title">Results from real database and platform work.</h2>
+    </div>
     <div class="cr-grid">
       <div class="cr-card">
         <div class="cr-label">
@@ -396,9 +456,11 @@
 <section class="cta-section" id="contact">
   <div class="cta-inner">
     <div class="cta-copy">
-      <div class="section-eyebrow">Talk to a DBA</div>
-      <h2 class="section-title">Start with a free database environment review.</h2>
-      <p class="section-body">Armely reviews your current database environment, identifies the gaps most likely to cause problems, and recommends the right level of ongoing coverage for your organization. No commitment required beyond the call.</p>
+      <div class="section-heading section-heading-centered">
+        <div class="section-eyebrow">Talk to a DBA</div>
+        <h2 class="section-title">Start with a practical database review.</h2>
+        <p class="section-body">We review your current environment, point out the issues most likely to cause trouble, and recommend the right level of support for your team. No commitment required beyond the conversation.</p>
+      </div>
     </div>
     <div class="cta-form">
       <div class="form-row"><label>Full Name</label><input type="text" placeholder="Jane Smith"></div>
