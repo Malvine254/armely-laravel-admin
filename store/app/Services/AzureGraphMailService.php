@@ -1016,7 +1016,7 @@ class AzureGraphMailService
             : '';
 
         return "<!DOCTYPE html><html lang='en'><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width,initial-scale=1.0'><title>{$safeTitle}</title>
-<style>@media only screen and (max-width:620px){.promo-column{display:block!important;width:100%!important;padding:0 0 12px!important}.promo-shell{padding:10px 6px 20px!important}.promo-body{padding:18px 14px!important}.promo-header{padding:18px 14px!important}.promo-title{font-size:22px!important}.promo-image{height:150px!important}.promo-button{display:block!important;text-align:center!important}}</style></head>
+<style>@media only screen and (max-width:620px){.promo-column{display:inline-block!important;width:50%!important;padding:3px!important;box-sizing:border-box!important;vertical-align:top!important}.promo-shell{padding:6px 3px 14px!important}.promo-body{padding:13px 9px!important;font-size:13px!important}.promo-header{padding:12px 10px!important}.promo-title{font-size:18px!important}.promo-logo-cell{width:54px!important;padding-right:8px!important}.promo-logo-box{width:46px!important;height:40px!important;padding:3px!important}.promo-logo{width:46px!important;max-height:40px!important}.promo-image{height:82px!important}.promo-card-body{padding:8px!important}.promo-name{font-size:11px!important;min-height:30px!important}.promo-part,.promo-meta{font-size:9px!important}.promo-price{font-size:15px!important}.promo-button{display:block!important;text-align:center!important;padding:10px 12px!important;font-size:12px!important}}</style></head>
 <body style='margin:0;padding:0;background:#eef3fa;font-family:\"Segoe UI\",Arial,sans-serif'>
 <div class='promo-shell' style='max-width:{$containerWidth};margin:0 auto;padding:{$outerPadding}'>
 
@@ -1026,9 +1026,9 @@ class AzureGraphMailService
     <!-- Header band -->
     <div class='promo-header' bgcolor='#0f2f63' style='background-color:#0f2f63;background-image:linear-gradient(135deg,#0f2f63 0%,#2f5597 100%);padding:{$headerPadding}'>
       <table role='presentation' cellpadding='0' cellspacing='0' width='100%' style='width:100%;border-collapse:collapse'><tr>
-        <td width='92' style='width:92px;padding-right:18px;vertical-align:middle'>
-          <div style='width:78px;height:64px;background:#ffffff;border-radius:10px;text-align:center;padding:5px'>
-            <img src='{$safeLogoUrl}' width='78' alt='Armely Store' style='display:block;width:78px;max-height:64px;height:auto;margin:0 auto'>
+        <td class='promo-logo-cell' width='92' style='width:92px;padding-right:18px;vertical-align:middle'>
+          <div class='promo-logo-box' style='width:78px;height:64px;background:#ffffff;border-radius:10px;text-align:center;padding:5px'>
+            <img class='promo-logo' src='{$safeLogoUrl}' width='78' alt='Armely Store' style='display:block;width:78px;max-height:64px;height:auto;margin:0 auto'>
           </div>
         </td>
         <td style='vertical-align:middle'>
@@ -2231,8 +2231,8 @@ class AzureGraphMailService
             $priceLabel = $price > 0 ? '$' . number_format($price, 2) : 'Request pricing';
             $quantity = max(1, (int) ($line['quantity'] ?? 1));
             $quantityHtml = isset($line['quantity'])
-                ? "<span style='color:#64748b;font-size:12px'>Qty {$quantity}</span>"
-                : "<span style='color:#64748b;font-size:12px'>Current catalog price</span>";
+                ? "<span class='promo-meta' style='color:#64748b;font-size:12px'>Qty {$quantity}</span>"
+                : "<span class='promo-meta' style='color:#64748b;font-size:12px'>Current catalog price</span>";
             $image = (string) ($line['image_url'] ?? $this->logoUrl());
             $imageHost = strtolower((string) parse_url($image, PHP_URL_HOST));
             if (in_array($imageHost, ['127.0.0.1', 'localhost'], true)) {
@@ -2245,10 +2245,10 @@ class AzureGraphMailService
                 <a href='{$url}' style='display:block;text-decoration:none;color:inherit'>
                     <div style='border:1px solid #dbe5f3;border-radius:12px;background:#fff;overflow:hidden'>
                         <div style='background:#f8fafc;padding:10px;text-align:center'><img class='promo-image' src='{$image}' width='220' height='132' alt='{$name}' style='display:block;width:100%;height:132px;object-fit:contain;margin:0 auto'></div>
-                        <div style='padding:12px 13px 14px'>
-                            <p style='margin:0 0 6px;color:#0f172a;font-size:14px;line-height:1.35;font-weight:700;min-height:38px'>{$name}</p>
-                            <p style='margin:0 0 11px;color:#64748b;font-size:11px'>Part {$part}</p>
-                            <p style='margin:0 0 3px;color:#1d4ed8;font-size:20px;font-weight:800'>{$priceLabel}</p>
+                        <div class='promo-card-body' style='padding:12px 13px 14px'>
+                            <p class='promo-name' style='margin:0 0 6px;color:#0f172a;font-size:14px;line-height:1.35;font-weight:700;min-height:38px'>{$name}</p>
+                            <p class='promo-part' style='margin:0 0 11px;color:#64748b;font-size:11px'>Part {$part}</p>
+                            <p class='promo-price' style='margin:0 0 3px;color:#1d4ed8;font-size:20px;font-weight:800'>{$priceLabel}</p>
                             {$quantityHtml}
                         </div>
                     </div>

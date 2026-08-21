@@ -1,45 +1,14 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-	<meta charset="UTF-8" />
-	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-	<title>Invoice</title>
-</head>
-<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; color: #111827;">
-	<div style="max-width: 640px; margin: 0 auto; padding: 24px; background: #ffffff;">
-		@php
-			$breakdown = is_array($invoice->raw_data['invoice_charge_breakdown'] ?? null)
-				? $invoice->raw_data['invoice_charge_breakdown']
-				: [];
-			$shippingAmount = (float) ($breakdown['shipping_amount'] ?? 0);
-			$taxAmount = (float) ($invoice->tax_amount ?? 0);
-			$subtotalAmount = max(0, (float) ($invoice->total_amount ?? 0) - $taxAmount - $shippingAmount);
-		@endphp
-		<h2 style="margin: 0 0 12px;">Invoice Ready</h2>
-		<p style="margin: 0 0 16px;">Hello {{ $customer->name ?? 'Customer' }},</p>
-		<p style="margin: 0 0 16px;">
-			Your invoice has been generated and is ready for payment.
-		</p>
-
-		<div style="border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px; margin-bottom: 16px;">
-			<p style="margin: 0 0 8px;"><strong>Invoice:</strong> {{ $invoice->invoice_number }}</p>
-			<p style="margin: 0 0 8px;"><strong>Order:</strong> {{ $invoice->order_number }}</p>
-			<p style="margin: 0 0 8px;"><strong>Subtotal (Retail):</strong> ${{ number_format($subtotalAmount, 2) }}</p>
-			<p style="margin: 0 0 8px;"><strong>Shipping (TD SYNNEX):</strong> ${{ number_format($shippingAmount, 2) }}</p>
-			<p style="margin: 0 0 8px;"><strong>Total:</strong> ${{ number_format($invoice->total_amount ?? 0, 2) }}</p>
-			<p style="margin: 0;"><strong>Due:</strong> {{ $invoice->due_at?->format('M d, Y') ?? 'On Demand' }}</p>
-		</div>
-
-		<a
-			href="{{ config('app.url') }}/invoices"
-			style="display: inline-block; padding: 10px 18px; background: #1f4b99; color: #ffffff; text-decoration: none; border-radius: 8px;"
-		>
-			View Invoice
-		</a>
-
-		<p style="margin: 20px 0 0; color: #6b7280; font-size: 12px;">
-			If you have any questions about your invoice, please contact our accounting team.
-		</p>
-	</div>
-</body>
-</html>
+@php
+    $breakdown = is_array($invoice->raw_data['invoice_charge_breakdown'] ?? null) ? $invoice->raw_data['invoice_charge_breakdown'] : [];
+    $shippingAmount = (float) ($breakdown['shipping_amount'] ?? 0);
+    $taxAmount = (float) ($invoice->tax_amount ?? 0);
+    $subtotalAmount = max(0, (float) ($invoice->total_amount ?? 0) - $taxAmount - $shippingAmount);
+@endphp
+@extends('emails.layouts.modern', ['emailTitle' => 'Invoice Issued', 'emailBadge' => 'Billing Record', 'emailAccent' => '#2563eb'])
+@section('content')
+<p style="margin:0 0 14px;font-size:16px;">Hello <strong>{{ $customer->name ?? 'Customer' }}</strong>,</p>
+<p style="margin:0 0 16px;color:#475569;">Your invoice has been issued with the approved amount for this order.</p>
+@include('emails.partials.details', ['rows' => ['Invoice' => e($invoice->invoice_number), 'Order' => e($invoice->order_number), 'Subtotal' => '$'.number_format($subtotalAmount, 2), 'Shipping' => '$'.number_format($shippingAmount, 2), 'Tax' => '$'.number_format($taxAmount, 2), 'Invoice total' => '<span style="color:#1d4ed8;font-size:18px">$'.number_format($invoice->total_amount ?? 0, 2).'</span>', 'Due date' => optional($invoice->due_at)->format('M d, Y') ?? 'Begins after delivery']])
+@include('emails.partials.button', ['url' => rtrim(\App\Support\FrontendUrl::base(), '/') . '/invoices', 'label' => 'View Invoice'])
+@endsection
+@section('footer-note')Keep this invoice for your records. Contact accounting if any order or billing details need correction.@endsection
