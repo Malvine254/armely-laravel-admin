@@ -501,7 +501,7 @@ Route::post('/case-studies/lead', [CaseStudiesController::class, 'submitLead'])-
 Route::get('/case-studies/access/{caseStudy}', [CaseStudiesController::class, 'accessCaseStudy'])->name('case-studies.access');
 Route::get('/white-papers/access/{paper}', [CaseStudiesController::class, 'accessWhitePaper'])->name('white-papers.access');
 Route::get('/white-papers/view/{slug}', [ResourceController::class, 'show'])->name('white-papers.view');
-Route::get('/resources', [ResourceController::class, 'index'])->name('resources.index');
+Route::get('/resources', fn () => abort(404))->name('resources.index');
 Route::redirect('/Resources', '/resources', 301);
 Route::redirect('/Resources/', '/resources', 301);
 Route::get('/whitepapers/{slug}', [ResourceController::class, 'show'])->name('whitepapers.show');
