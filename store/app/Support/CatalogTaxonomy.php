@@ -19,7 +19,7 @@ class CatalogTaxonomy
             ['name' => 'Networking',                'slug' => 'networking',              'segment_codes' => ['04'], 'keywords' => ['switch', 'router', 'firewall', 'access point', 'wi-fi', 'wifi', 'wireless ap', 'network hub', 'meraki', 'fortinet', 'ubiquiti', 'aruba', 'cbs350', 'usw-pro', 'sg350']],
             ['name' => 'Servers & Storage',         'slug' => 'servers-storage',         'segment_codes' => ['05'], 'keywords' => ['server', 'poweredge', 'proliant', 'thinksystem', 'nas', 'san', 'raid', 'network attached', 'synology', 'qnap', 'storage array', 'ssd array']],
             ['name' => 'Printers & Scanners',       'slug' => 'printers-scanners',       'segment_codes' => ['06'], 'keywords' => ['printer', 'scanner', 'multifunction', 'mfp', 'plotter', 'laserjet', 'inkjet', 'label printer', 'document scanner', 'imageFORMULA', 'fi-']],
-            ['name' => 'Memory & Storage Upgrades', 'slug' => 'memory-storage-upgrades', 'segment_codes' => ['07'], 'keywords' => ['memory module', 'ram', 'dimm', 'sodimm', 'nvme', 'flash drive', 'usb drive', 'external drive', 'hard drive', 'solid state drive']],
+            ['name' => 'Memory & Storage Upgrades', 'slug' => 'memory-storage-upgrades', 'segment_codes' => ['07'], 'keywords' => ['memory module', 'ram', 'dimm', 'sodimm', 'ddr4', 'ddr5', 'nvme', 'ssd', 'hdd', 'flash drive', 'usb drive', 'external drive', 'hard drive', 'solid state drive', 'sd card', 'microsd']],
             ['name' => 'Docking Stations & Hubs',   'slug' => 'docking-stations-hubs',  'segment_codes' => ['08'], 'keywords' => ['docking station', 'dock station', 'thunderbolt dock', 'usb-c dock', 'universal dock', 'wd19', 'wd22', 'thinkpad dock', 'hp dock', 'caldigit']],
             // Video Conferencing must be checked before Peripherals so bar/speakerphone products
             // are not swallowed by the generic 'speaker' or 'headset' keywords below.
@@ -78,11 +78,12 @@ class CatalogTaxonomy
             return $normalizedSource;
         }
 
-        $haystack = mb_strtolower(trim($sourceCategoryName . ' ' . $productName . ' ' . $description));
+        $haystack = self::normalizedSearchText($sourceCategoryName . ' ' . $productName . ' ' . $description);
 
         foreach (self::curatedCategories() as $category) {
             foreach ($category['keywords'] as $keyword) {
-                if ($keyword !== '' && str_contains($haystack, mb_strtolower($keyword))) {
+                $needle = self::normalizedSearchText($keyword);
+                if ($needle !== '' && str_contains(" {$haystack} ", " {$needle} ")) {
                     return $category['name'];
                 }
             }
@@ -101,6 +102,14 @@ class CatalogTaxonomy
         ];
 
         return $map[$prefix] ?? 'Peripherals';
+    }
+
+    private static function normalizedSearchText(string $value): string
+    {
+        $normalized = mb_strtolower(trim($value));
+        $normalized = preg_replace('/[^\pL\pN]+/u', ' ', $normalized) ?? $normalized;
+
+        return trim(preg_replace('/\s+/u', ' ', $normalized) ?? $normalized);
     }
 
     public static function segmentCodeForCategory(string $categoryName): ?string
