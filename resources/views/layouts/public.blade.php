@@ -717,7 +717,7 @@ main .service-card {
     }
 
     .mega-link-description {
-        font-size: 11.5px;
+        font-size: 11px;
     }
 
     .mega-feature-card img {
@@ -750,7 +750,7 @@ main .service-card {
 .mega-solution-group-title {
     margin: 0 0 6px;
     color: #3d4f7a;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.04em;
     line-height: 1.25;
@@ -861,7 +861,7 @@ main .service-card {
     display: block;
     margin-top: 2px;
     color: #788091;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 400;
     line-height: 1.4;
     white-space: normal !important;
