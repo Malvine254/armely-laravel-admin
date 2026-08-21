@@ -370,6 +370,9 @@ const DEFAULT_VENDOR_SCOPE_LIMIT = 12
 const DEFAULT_BROWSE_MIN_PRICE = 100
 const DEFAULT_BROWSE_MAX_PRICE = 0
 const CURATED_CACHE_VERSION = 11
+// Bump whenever persisted catalog classification changes. This becomes part of
+// the URL so browsers cannot reuse an older publicly cached catalog response.
+const CATALOG_REQUEST_REVISION = 'taxonomy-20260821-1'
 const ENABLE_SERVER_PREFETCH = true
 const ENABLE_VENDOR_COUNTS_API = true
 const PRODUCTS_RESULTS_SOFT_TTL_MS = 5 * 60 * 1000
@@ -1606,6 +1609,7 @@ const performSearch = async (resetPage = true) => {
         && !hasClientOnlyFilters
 
       const params = {
+        catalog_revision: CATALOG_REQUEST_REVISION,
         curated_it_mix: true,
         hide_zero_price: true,
         catalog_clean: true,
@@ -1859,6 +1863,7 @@ const fetchCategories = async () => {
       && !requiresClientForFilters(currentFilters.value)
 
     const params = {
+      catalog_revision: CATALOG_REQUEST_REVISION,
       hide_zero_price: true,
       catalog_clean: true,
     }
@@ -2017,6 +2022,7 @@ const prefetchPage = (page) => {
   if (!ENABLE_SERVER_PREFETCH || page < 1 || !serverPaged.value) return
 
   const params = {
+    catalog_revision: CATALOG_REQUEST_REVISION,
     curated_it_mix: true,
   }
 
