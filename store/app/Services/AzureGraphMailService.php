@@ -26,7 +26,31 @@ class AzureGraphMailService
 
     private function logoUrl(): string
     {
-        return rtrim($this->frontendUrl(), '/') . '/images/logo/armely-store-logo.png';
+        return $this->marketingStoreUrl() . '/images/logo/armely-store-logo.png';
+    }
+
+    private function marketingStoreUrl(): string
+    {
+        $url = rtrim($this->frontendUrl(), '/');
+        $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+
+        return in_array($host, ['127.0.0.1', 'localhost'], true)
+            ? rtrim((string) env('PUBLIC_STOREFRONT_URL', 'https://armely.com/store'), '/')
+            : $url;
+    }
+
+    private function productImageUrl(Product $product): string
+    {
+        $images = is_array($product->images) ? $product->images : [];
+        $candidate = $images[0]['imageUrl'] ?? $images[0]['url'] ?? $images[0] ?? '';
+        if (!is_string($candidate) || trim($candidate) === '') {
+            return $this->logoUrl();
+        }
+
+        $candidate = trim($candidate);
+        return preg_match('#^https?://#i', $candidate)
+            ? $candidate
+            : $this->marketingStoreUrl() . '/' . ltrim($candidate, '/');
     }
 
     public function sendTestEmail(string $recipientEmail, string $recipientName = 'Admin'): bool
@@ -968,7 +992,8 @@ class AzureGraphMailService
         ?string $footerNote = null,
         string $accentColor = '#2f5597',
         ?string $badgeLabel = null,
-        ?string $badgeColor = null
+        ?string $badgeColor = null,
+        bool $wideLayout = false
     ): string {
         $safeTitle       = e($title);
         $safeButtonLabel = e($buttonLabel);
@@ -977,6 +1002,10 @@ class AzureGraphMailService
         $safeFooterNote  = $footerNote ? e($footerNote) : '';
         $year            = date('Y');
         $supportEmail    = e((string) AppSetting::getValue('system.support_email', env('SUPPORT_EMAIL', 'info@armely.com')));
+        $containerWidth  = $wideLayout ? '860px' : '680px';
+        $outerPadding    = $wideLayout ? '18px 10px 28px' : '32px 16px 48px';
+        $headerPadding   = $wideLayout ? '22px 26px 18px' : '28px 32px 24px';
+        $bodyPadding     = $wideLayout ? '22px 26px' : '28px 32px';
 
         $footerNoteHtml = $footerNote
             ? "<p style='margin:0 0 12px;color:#64748b;font-size:13px;line-height:1.6'>{$safeFooterNote}</p>"
@@ -986,31 +1015,36 @@ class AzureGraphMailService
             ? "<span style='display:inline-block;margin-bottom:10px;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;background:" . e($badgeColor ?? $accentColor) . ";color:#fff'>" . e($badgeLabel) . "</span>"
             : '';
 
-        return "<!DOCTYPE html><html lang='en'><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width,initial-scale=1.0'><title>{$safeTitle}</title></head>
+        return "<!DOCTYPE html><html lang='en'><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width,initial-scale=1.0'><title>{$safeTitle}</title>
+<style>@media only screen and (max-width:620px){.promo-column{display:block!important;width:100%!important;padding:0 0 12px!important}.promo-shell{padding:10px 6px 20px!important}.promo-body{padding:18px 14px!important}.promo-header{padding:18px 14px!important}.promo-title{font-size:22px!important}.promo-image{height:150px!important}.promo-button{display:block!important;text-align:center!important}}</style></head>
 <body style='margin:0;padding:0;background:#eef3fa;font-family:\"Segoe UI\",Arial,sans-serif'>
-<div style='max-width:680px;margin:0 auto;padding:32px 16px 48px'>
-
-  <!-- Logo bar -->
-  <div style='text-align:center;margin-bottom:20px'>
-        <img src='{$safeLogoUrl}' alt='Armely Store' style='max-width:190px;height:auto;display:inline-block'>
-  </div>
+<div class='promo-shell' style='max-width:{$containerWidth};margin:0 auto;padding:{$outerPadding}'>
 
   <!-- Card -->
     <div style='background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 10px 28px rgba(15,47,99,0.12);border:1px solid #dbe7f7'>
 
     <!-- Header band -->
-    <div style='background:linear-gradient(135deg,#0f2f63 0%,#2f5597 100%);padding:28px 32px 24px'>
-      {$badgeHtml}
-            <p style='margin:0 0 8px;font-size:11px;color:#dbe7ff;letter-spacing:0.08em;text-transform:uppercase;font-weight:700'>Armely Store Notifications</p>
-      <h1 style='margin:0;color:#ffffff;font-size:26px;font-weight:700;line-height:1.2'>{$safeTitle}</h1>
+    <div class='promo-header' bgcolor='#0f2f63' style='background-color:#0f2f63;background-image:linear-gradient(135deg,#0f2f63 0%,#2f5597 100%);padding:{$headerPadding}'>
+      <table role='presentation' cellpadding='0' cellspacing='0' width='100%' style='width:100%;border-collapse:collapse'><tr>
+        <td width='92' style='width:92px;padding-right:18px;vertical-align:middle'>
+          <div style='width:78px;height:64px;background:#ffffff;border-radius:10px;text-align:center;padding:5px'>
+            <img src='{$safeLogoUrl}' width='78' alt='Armely Store' style='display:block;width:78px;max-height:64px;height:auto;margin:0 auto'>
+          </div>
+        </td>
+        <td style='vertical-align:middle'>
+          {$badgeHtml}
+          <p style='margin:0 0 6px;font-size:10px;color:#dbe7ff;letter-spacing:0.08em;text-transform:uppercase;font-weight:700'>Armely Store</p>
+          <h1 class='promo-title' style='margin:0;color:#ffffff!important;font-size:25px;font-weight:700;line-height:1.2'>{$safeTitle}</h1>
+        </td>
+      </tr></table>
     </div>
 
     <!-- Body -->
-    <div style='padding:28px 32px'>
+    <div class='promo-body' style='padding:{$bodyPadding}'>
       {$contentHtml}
 
             <div style='margin-top:24px;padding-top:20px;border-top:1px solid #e8eef8'>
-        <a href='{$safeButtonUrl}'
+        <a class='promo-button' href='{$safeButtonUrl}'
                      style='display:inline-block;padding:13px 28px;background:" . e($accentColor) . ";color:#ffffff;text-decoration:none;border-radius:8px;font-weight:700;font-size:14px;letter-spacing:0.02em;box-shadow:0 8px 16px rgba(15,47,99,0.16)'>
           {$safeButtonLabel} &rarr;
         </a>
@@ -1968,12 +2002,15 @@ class AzureGraphMailService
             $unit = (float) ($item['unit_price'] ?? 0);
             $line = (float) ($item['line_total'] ?? ($unit > 0 ? $unit * $qty : 0));
             $total += $line;
+            $imageUrl = e((string) ($item['image_url'] ?? $this->logoUrl()));
 
             $rows .= "
                 <tr>
                     <td style='padding:10px;border-bottom:1px solid #edf2fb;color:#111827;font-size:13px'>
-                        <p style='margin:0 0 2px;font-weight:600'>{$name}</p>
-                        <p style='margin:0;color:#6b7280;font-size:12px'>Part: {$part}</p>
+                        <table role='presentation' cellpadding='0' cellspacing='0'><tr>
+                            <td style='padding-right:10px'><img src='{$imageUrl}' width='58' height='58' alt='' style='display:block;width:58px;height:58px;object-fit:contain;border:1px solid #e5e7eb;border-radius:9px;background:#fff'></td>
+                            <td><p style='margin:0 0 2px;font-weight:700'>{$name}</p><p style='margin:0;color:#6b7280;font-size:12px'>Part: {$part}</p></td>
+                        </tr></table>
                     </td>
                     <td style='padding:10px;border-bottom:1px solid #edf2fb;color:#111827;font-size:13px;text-align:center'>{$qty}</td>
                     <td style='padding:10px;border-bottom:1px solid #edf2fb;color:#111827;font-size:13px;text-align:right'>" . ($unit > 0 ? ('$' . number_format($unit, 2)) : 'Unavailable') . "</td>
@@ -2004,31 +2041,34 @@ class AzureGraphMailService
                 </div>
             </div>
         ";
+        $table = $this->buildMarketingArrayGrid($items);
 
         $summaryHtml = $this->buildQuoteSummaryCard([
             ['label' => 'Items', 'value' => (string) $itemCount],
             ['label' => 'Last Updated', 'value' => $lastSyncedAt->format('M d, Y H:i')],
         ]);
 
-        $cartUrl = $this->frontendUrl() . '/cart';
+        $cartUrl = $this->marketingStoreUrl() . '/cart';
         $unsubscribeUrl = $this->marketingUnsubscribeUrl($user, 'cart_reminders');
         $unsubscribeHtml = $this->marketingUnsubscribeHtml($unsubscribeUrl);
         $unsubscribeText = $this->marketingUnsubscribeText($unsubscribeUrl);
         $html = $this->buildModernNotificationEmail(
-            'You Left Items In Your Cart',
+            'Your Quote Cart Is Waiting',
             "
                 <p style='margin:0 0 14px;font-size:16px;color:#1f2937'>Hello {$safeName},</p>
-                <p style='margin:0 0 18px;color:#4b5563'>You still have items in your cart waiting for your quote request.</p>
+                <p style='margin:0 0 8px;color:#4b5563'>You picked out some great equipment but have not requested pricing yet.</p>
+                <p style='margin:0 0 18px;color:#4b5563'>Inventory and supplier pricing can move quickly—review your cart and send it to our team when you are ready.</p>
                 {$summaryHtml}
                 {$table}
                 {$unsubscribeHtml}
             ",
-            'Return to Cart',
+            'Review Cart & Request Quote',
             $cartUrl,
             'Prices shown are current at send time and may change based on live catalog updates.',
             '#2F5597',
             'Cart Reminder',
-            '#2F5597'
+            '#2F5597',
+            true
         );
 
         $text = "Hello {$user->name},\n\nYou still have {$itemCount} item(s) in your cart.\n"
@@ -2036,7 +2076,7 @@ class AzureGraphMailService
             . "Return to cart: {$cartUrl}\n\n"
             . $unsubscribeText;
 
-        return $this->sendEmail($user->email, 'Reminder: Items waiting in your cart', $html, $text);
+        return $this->sendEmail($user->email, 'Your quote cart is waiting — request current pricing', $html, $text);
     }
 
     public function sendViewedProductReminderEmail(
@@ -2058,32 +2098,42 @@ class AzureGraphMailService
         $safeProductName = e($productName);
         $safePartNumber = e((string) ($product->mfg_part_no ?? 'N/A'));
         $priceLabel = $currentPrice > 0 ? ('$' . number_format($currentPrice, 2)) : 'Unavailable';
-        $productUrl = $this->frontendUrl() . '/products/' . rawurlencode((string) ($product->id ?? ''));
+        $productUrl = $this->marketingStoreUrl() . '/products/' . rawurlencode((string) ($product->id ?? ''));
         $unsubscribeUrl = $this->marketingUnsubscribeUrl($user, 'browse_reminders');
         $unsubscribeHtml = $this->marketingUnsubscribeHtml($unsubscribeUrl);
         $unsubscribeText = $this->marketingUnsubscribeText($unsubscribeUrl);
-
-        $summaryHtml = $this->buildQuoteSummaryCard([
-            ['label' => 'Product', 'value' => $safeProductName],
-            ['label' => 'Part Number', 'value' => $safePartNumber],
-            ['label' => 'Current Price', 'value' => $priceLabel],
-            ['label' => 'Viewed On', 'value' => $viewedAt->format('M d, Y H:i')],
-        ]);
+        $relatedProducts = Product::query()
+            ->where('id', '<>', $product->id)
+            ->where('is_available', true)
+            ->where('quantity', '>', 0)
+            ->where(function ($query) use ($product) {
+                if ($product->category_id) {
+                    $query->where('category_id', $product->category_id);
+                }
+                if (trim((string) $product->manufacturer) !== '') {
+                    $query->orWhere('manufacturer', $product->manufacturer);
+                }
+            })
+            ->orderByDesc('storefront_score')
+            ->limit(2)
+            ->get();
+        $productGrid = $this->buildMarketingProductGrid(collect([$product])->concat($relatedProducts)->all());
 
         $html = $this->buildModernNotificationEmail(
             'Still Interested In This Product?',
             "
                 <p style='margin:0 0 14px;font-size:16px;color:#1f2937'>Hello {$safeName},</p>
-                <p style='margin:0 0 18px;color:#4b5563'>You recently viewed this item. If you are still evaluating options, you can quickly add it to your quote cart.</p>
-                {$summaryHtml}
+                <p style='margin:0 0 18px;color:#4b5563'>Still comparing options? This item you viewed is ready to add to a quote.</p>
+                {$productGrid}
                 {$unsubscribeHtml}
             ",
-            'View Product',
+            'View Product & Request Quote',
             $productUrl,
             'You are receiving this because viewed-item reminders are active for your account.',
             '#2F5597',
             'Viewed Item Reminder',
-            '#2F5597'
+            '#2F5597',
+            true
         );
 
         $text = "Hello {$user->name},\n\nYou recently viewed {$productName}.\n"
@@ -2149,6 +2199,76 @@ class AzureGraphMailService
             . $unsubscribeText;
 
         return $this->sendEmail($user->email, "Favorite Reminder: {$productName}", $html, $text);
+    }
+
+    private function buildMarketingProductGrid(array $products): string
+    {
+        $items = [];
+        foreach (array_slice($products, 0, 6) as $product) {
+            if (!$product instanceof Product) {
+                continue;
+            }
+            $items[] = [
+                'product_name' => (string) ($product->product_name ?? 'Product'),
+                'mfg_part_no' => (string) ($product->mfg_part_no ?? ''),
+                'unit_price' => \App\Support\OfferPricing::sellPrice($product),
+                'image_url' => $this->productImageUrl($product),
+                'product_url' => $this->marketingStoreUrl() . '/products/' . rawurlencode((string) $product->id),
+            ];
+        }
+
+        return $this->buildMarketingArrayGrid($items);
+    }
+
+    private function buildMarketingArrayGrid(array $items): string
+    {
+        $cells = [];
+        foreach (array_slice($items, 0, 6) as $item) {
+            $line = is_array($item) ? $item : [];
+            $name = e(Str::limit((string) ($line['product_name'] ?? 'Product'), 72));
+            $part = e((string) ($line['mfg_part_no'] ?? ''));
+            $price = (float) ($line['unit_price'] ?? 0);
+            $priceLabel = $price > 0 ? '$' . number_format($price, 2) : 'Request pricing';
+            $quantity = max(1, (int) ($line['quantity'] ?? 1));
+            $quantityHtml = isset($line['quantity'])
+                ? "<span style='color:#64748b;font-size:12px'>Qty {$quantity}</span>"
+                : "<span style='color:#64748b;font-size:12px'>Current catalog price</span>";
+            $image = (string) ($line['image_url'] ?? $this->logoUrl());
+            $imageHost = strtolower((string) parse_url($image, PHP_URL_HOST));
+            if (in_array($imageHost, ['127.0.0.1', 'localhost'], true)) {
+                $image = $this->marketingStoreUrl() . '/' . ltrim((string) parse_url($image, PHP_URL_PATH), '/');
+            }
+            $image = e($image);
+            $url = e((string) ($line['product_url'] ?? ($this->marketingStoreUrl() . '/products')));
+
+            $cells[] = "<td class='promo-column' width='33.33%' style='width:33.33%;padding:0 6px;vertical-align:top'>
+                <a href='{$url}' style='display:block;text-decoration:none;color:inherit'>
+                    <div style='border:1px solid #dbe5f3;border-radius:12px;background:#fff;overflow:hidden'>
+                        <div style='background:#f8fafc;padding:10px;text-align:center'><img class='promo-image' src='{$image}' width='220' height='132' alt='{$name}' style='display:block;width:100%;height:132px;object-fit:contain;margin:0 auto'></div>
+                        <div style='padding:12px 13px 14px'>
+                            <p style='margin:0 0 6px;color:#0f172a;font-size:14px;line-height:1.35;font-weight:700;min-height:38px'>{$name}</p>
+                            <p style='margin:0 0 11px;color:#64748b;font-size:11px'>Part {$part}</p>
+                            <p style='margin:0 0 3px;color:#1d4ed8;font-size:20px;font-weight:800'>{$priceLabel}</p>
+                            {$quantityHtml}
+                        </div>
+                    </div>
+                </a>
+            </td>";
+        }
+
+        if ($cells === []) {
+            return '';
+        }
+
+        $rows = '';
+        foreach (array_chunk($cells, 3) as $row) {
+            while (count($row) < 3) {
+                $row[] = "<td class='promo-column' width='33.33%' style='width:33.33%;padding:0 6px'></td>";
+            }
+            $rows .= "<tr>" . implode('', $row) . "</tr><tr><td colspan='3' height='12' style='height:12px;line-height:12px'>&nbsp;</td></tr>";
+        }
+
+        return "<table role='presentation' cellpadding='0' cellspacing='0' width='100%' style='width:100%;border-collapse:collapse;margin:14px -6px 0'>{$rows}</table>";
     }
 
     private function marketingUnsubscribeUrl(User $user, string $scope): string

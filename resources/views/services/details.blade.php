@@ -177,6 +177,7 @@
 		'api-data-access' => 'services.apidataaccess',
 		'sharepoint-online' => 'services.sharepointonline',
 		'm365-governance' => 'services.m365-governance',
+		'fractional-dba' => 'services.fractional_dba_blade',
 		'training' => 'services.training_blade',
 		'managed-services' => 'services.managed-services',
 		'copilot' => 'services.copilot',

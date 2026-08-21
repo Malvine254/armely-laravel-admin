@@ -153,6 +153,7 @@ const onProductImageError = product => {
 const heroFallbackCandidates = [
   buildStoreUrl('images/hero-hardware.png'),
   '/images/hero-hardware.png',
+  '/images/hero-hardware.png',
   '/store/images/hero-hardware.png',
   '/store/public/images/hero-hardware.png',
 ].filter((value, index, rows) => value && rows.indexOf(value) === index)

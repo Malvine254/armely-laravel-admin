@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\AppSetting;
 use App\Models\Product;
+use App\Models\Quote;
 use App\Models\ReminderSubscription;
 use App\Models\UserCartSnapshot;
 use App\Models\UserFavoriteEvent;
@@ -123,6 +124,15 @@ class ProcessReminderSubscriptionsJob implements ShouldQueue
                         continue;
                     }
 
+                    if ($this->hasRequestedQuoteSince(
+                        (int) $user->id,
+                        array_column($items, 'product_id'),
+                        $lastSyncedAt
+                    )) {
+                        $subscription->update(['is_active' => false]);
+                        continue;
+                    }
+
                     $idempotencyKey = 'abandoned_cart:' . (int) $subscription->id . ':' . $sequenceStage . ':' . $lastSyncedAt->format('YmdHi');
                     if ($preferences->wasIdempotencyKeySent($idempotencyKey)) {
                         continue;
@@ -229,6 +239,11 @@ class ProcessReminderSubscriptionsJob implements ShouldQueue
                         continue;
                     }
 
+                    if ($this->hasRequestedQuoteSince((int) $user->id, [(int) $product->id], $viewedAt)) {
+                        $subscription->update(['is_active' => false]);
+                        continue;
+                    }
+
                     // Skip viewed reminders when the product is already in the
                     // user's most recent cart snapshot.
                     $cartSnapshot = UserCartSnapshot::query()
@@ -241,7 +256,7 @@ class ProcessReminderSubscriptionsJob implements ShouldQueue
                         ->orderByDesc('last_synced_at')
                         ->first();
 
-                    if ($cartSnapshot && $this->cartContainsProduct((array) ($cartSnapshot->items ?? []), (int) $subscription->product_id)) {
+                    if ($cartSnapshot && $this->cartContainsProduct((array) ($cartSnapshot->items ?? []), $product)) {
                         continue;
                     }
 
@@ -369,7 +384,7 @@ class ProcessReminderSubscriptionsJob implements ShouldQueue
                         ->orderByDesc('last_synced_at')
                         ->first();
 
-                    if ($cartSnapshot && $this->cartContainsProduct((array) ($cartSnapshot->items ?? []), (int) $subscription->product_id)) {
+                    if ($cartSnapshot && $this->cartContainsProduct((array) ($cartSnapshot->items ?? []), $product)) {
                         continue;
                     }
 
@@ -437,14 +452,27 @@ class ProcessReminderSubscriptionsJob implements ShouldQueue
             return [];
         }
 
+        $references = array_values(array_unique(array_map(fn ($item) => $item['product_id'], $normalized)));
         $products = Product::query()
-            ->whereIn('id', array_values(array_unique(array_map(fn ($item) => $item['product_id'], $normalized))))
-            ->get()
-            ->keyBy('id');
+            ->where(function ($query) use ($references) {
+                $query->whereIn('id', $references)
+                    ->orWhereIn('tdsynnex_product_id', $references)
+                    ->orWhereIn('tdsynnex_sku_no', array_map('strval', $references));
+            })
+            ->get();
+
+        $productsByReference = [];
+        foreach ($products as $product) {
+            foreach ([$product->id, $product->tdsynnex_product_id, $product->tdsynnex_sku_no] as $reference) {
+                if ($reference !== null && trim((string) $reference) !== '') {
+                    $productsByReference[(string) $reference] = $product;
+                }
+            }
+        }
 
         $result = [];
         foreach ($normalized as $line) {
-            $product = $products->get($line['product_id']);
+            $product = $productsByReference[(string) $line['product_id']] ?? null;
             if (!$product) {
                 continue;
             }
@@ -459,17 +487,90 @@ class ProcessReminderSubscriptionsJob implements ShouldQueue
                 'quantity' => $quantity,
                 'unit_price' => $unitPrice,
                 'line_total' => $unitPrice > 0 ? round($unitPrice * $quantity, 2) : 0.0,
+                'image_url' => $this->productImageUrl($product),
+                'product_url' => $this->publicStoreUrl() . '/products/' . rawurlencode((string) $product->id),
             ];
         }
 
         return $result;
     }
 
-    private function cartContainsProduct(array $items, int $productId): bool
+    private function productImageUrl(Product $product): ?string
     {
+        $images = is_array($product->images) ? $product->images : [];
+        $candidate = $images[0]['imageUrl'] ?? $images[0]['url'] ?? $images[0] ?? null;
+        if (!is_string($candidate) || trim($candidate) === '') {
+            return null;
+        }
+
+        $candidate = trim($candidate);
+        if (preg_match('#^https?://#i', $candidate)) {
+            return $candidate;
+        }
+
+        return $this->publicStoreUrl() . '/' . ltrim($candidate, '/');
+    }
+
+    private function publicStoreUrl(): string
+    {
+        $url = rtrim((string) config('app.frontend_url', ''), '/');
+        $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+        if (in_array($host, ['127.0.0.1', 'localhost', ''], true)) {
+            return rtrim((string) env('PUBLIC_STOREFRONT_URL', 'https://armely.com/store'), '/');
+        }
+
+        return $url;
+    }
+
+    private function hasRequestedQuoteSince(int $userId, array $productIds, Carbon $since): bool
+    {
+        $references = Product::query()
+            ->whereIn('id', array_map('intval', $productIds))
+            ->get(['id', 'tdsynnex_product_id', 'tdsynnex_sku_no', 'mfg_part_no'])
+            ->flatMap(fn (Product $product) => [
+                (string) $product->id,
+                (string) ($product->tdsynnex_product_id ?? ''),
+                (string) ($product->tdsynnex_sku_no ?? ''),
+                (string) ($product->mfg_part_no ?? ''),
+            ])
+            ->filter()
+            ->unique()
+            ->all();
+
+        if ($references === []) {
+            return false;
+        }
+
+        return Quote::query()
+            ->where('user_id', $userId)
+            ->where('created_at', '>=', $since)
+            ->whereNotIn('status', ['cancelled', 'rejected'])
+            ->get(['items'])
+            ->contains(function (Quote $quote) use ($references): bool {
+                foreach ((array) ($quote->items ?? []) as $item) {
+                    $line = is_array($item) ? $item : [];
+                    foreach (['product_id', 'productId', 'id', 'sku', 'partNumber', 'mfg_part_no', 'mfgPartNo'] as $key) {
+                        if (isset($line[$key]) && in_array((string) $line[$key], $references, true)) {
+                            return true;
+                        }
+                    }
+                }
+
+                return false;
+            });
+    }
+
+    private function cartContainsProduct(array $items, Product $product): bool
+    {
+        $references = array_map('strval', array_filter([
+            $product->id,
+            $product->tdsynnex_product_id,
+            $product->tdsynnex_sku_no,
+        ], fn ($value) => $value !== null && trim((string) $value) !== ''));
+
         foreach ($items as $item) {
             $line = is_array($item) ? $item : [];
-            if ((int) ($line['productId'] ?? 0) === $productId) {
+            if (in_array((string) ($line['productId'] ?? ''), $references, true)) {
                 return true;
             }
         }
@@ -494,7 +595,9 @@ class ProcessReminderSubscriptionsJob implements ShouldQueue
 
         return match ($triggerType) {
             'abandoned_cart' => [120, 1440, 4320],
-            'viewed_product' => [max(1440, $base)],
+            // A light two-touch browse sequence: next day, then four days
+            // after the original view. Idempotency and daily caps still apply.
+            'viewed_product' => [max(1440, $base), 5760],
             'favorite_product' => [max(720, $base), 2880],
             default => [$base],
         };

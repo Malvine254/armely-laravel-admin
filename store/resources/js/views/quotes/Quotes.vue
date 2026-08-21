@@ -1138,7 +1138,7 @@ export default {
     }
 
     const isQuoteLockedForPayment = (quote) => {
-      return isQuoteApprovedUnpaid(quote) && isQuotePaymentWindowExpired(quote)
+      return false
     }
 
     const canViewLinkedInvoice = (quote) => {
@@ -1248,7 +1248,7 @@ export default {
           from: 'quotes',
         },
       })
-      toastStore.addToast(`Invoice ${invoice.invoice_number} is ready for payment`, 'info', 3000, { category: 'invoices' })
+      toastStore.addToast(`Viewing invoice ${invoice.invoice_number}`, 'info', 3000, { category: 'invoices' })
     }
 
     const toggleQuoteSelection = (quoteId, checked) => {

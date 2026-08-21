@@ -400,7 +400,7 @@
                       @mouseenter="$event.target.style.backgroundColor='#1f4788'"
                       @mouseleave="$event.target.style.backgroundColor='#2F5597'"
                     >
-                      Pay via Invoice
+                      View Invoice
                     </button>
                   </div>
                 </td>
@@ -619,7 +619,7 @@
               @mouseenter="$event.target.style.backgroundColor='#1f4788'"
               @mouseleave="$event.target.style.backgroundColor='#2F5597'"
             >
-              Pay via Invoice
+              View Invoice
             </button>
           </div>
         </div>
@@ -1277,7 +1277,7 @@ export default {
           from: 'orders',
         },
       });
-      toastStore.addToast(`Invoice ${order.linked_invoice_number} is ready for payment`, 'info', 3000, { category: 'invoices' });
+      toastStore.addToast(`Viewing invoice ${order.linked_invoice_number}`, 'info', 3000, { category: 'invoices' });
     };
 
 
