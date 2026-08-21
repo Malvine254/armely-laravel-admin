@@ -2540,7 +2540,7 @@ class ProductController extends Controller
     public function menuCategories(): JsonResponse
     {
         try {
-            $data = Cache::remember('menu_categories:v12:canonical-eligible-capped-3000', 1800, function () {
+            $data = Cache::remember('menu_categories:v13:count-sorted-capped-3000', 1800, function () {
                 $parents = \App\Models\Category::query()
                     ->select(['id', 'name', 'slug', 'segment_code', 'sort_order'])
                     ->whereNull('parent_id')
@@ -2626,7 +2626,6 @@ class ProductController extends Controller
                             $manufacturersBySegment[$segment][$canonicalName] = [
                                 'name' => $canonicalName,
                                 'count' => 0,
-                                'priority' => in_array($canonicalName, ['HP', 'DELL', 'LENOVO', 'APPLE', 'MICROSOFT', 'CISCO', 'BROTHER', 'CANON', 'EPSON'], true) ? 0 : 1,
                             ];
                         }
                         $manufacturersBySegment[$segment][$canonicalName]['count'] += (int) $row->product_count;
@@ -2635,8 +2634,8 @@ class ProductController extends Controller
                     foreach ($manufacturersBySegment as $segment => $rows) {
                         $rows = array_values($rows);
                         usort($rows, function ($left, $right) {
-                            return [$left['priority'], -$left['count'], $left['name']]
-                                <=> [$right['priority'], -$right['count'], $right['name']];
+                            return [-$left['count'], $left['name']]
+                                <=> [-$right['count'], $right['name']];
                         });
 
                         $manufacturersBySegment[$segment] = $rows;
