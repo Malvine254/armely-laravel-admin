@@ -241,23 +241,41 @@ class NotificationService
     /**
      * Send invoice notification to customer
      */
-    public function sendInvoiceNotification(Invoice $invoice): void
+    public function sendInvoiceNotification(Invoice $invoice): bool
     {
         try {
             if (!$this->canSendTransactionalToUserId((int) $invoice->user_id, 'invoices')) {
-                return;
+                return false;
             }
 
-            $cacheKey = 'notify:invoice-issued:' . (string) $invoice->id;
-            if (!Cache::add($cacheKey, 1, now()->addDays(365))) {
-                return;
+            // A database-backed claim makes invoice delivery idempotent across
+            // cache clears, deployments, queue retries, and multiple workers.
+            $claimBefore = now()->subMinutes(10);
+            $claimed = Invoice::whereKey($invoice->id)
+                ->whereNull('issued_email_sent_at')
+                ->where(function ($query) use ($claimBefore) {
+                    $query->whereNull('issued_email_attempted_at')
+                        ->orWhere('issued_email_attempted_at', '<', $claimBefore);
+                })
+                ->update(['issued_email_attempted_at' => now()]);
+
+            if ($claimed !== 1) {
+                return false;
             }
 
-            $this->mailer->sendInvoiceEmail($invoice);
+            if (!$this->mailer->sendInvoiceEmail($invoice->fresh())) {
+                Invoice::whereKey($invoice->id)->update(['issued_email_attempted_at' => null]);
+                return false;
+            }
+
+            Invoice::whereKey($invoice->id)->update(['issued_email_sent_at' => now()]);
 
             Log::info("Invoice notification sent to user {$invoice->user_id}");
+            return true;
         } catch (\Exception $e) {
+            Invoice::whereKey($invoice->id)->whereNull('issued_email_sent_at')->update(['issued_email_attempted_at' => null]);
             Log::error("Failed to send invoice notification: " . $e->getMessage());
+            return false;
         }
     }
 

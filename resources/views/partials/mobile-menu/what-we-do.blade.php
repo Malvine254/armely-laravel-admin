@@ -2,7 +2,7 @@
     <div class="mobile-mega-section">
         <h4>Strategy & Advisory</h4>
         <a href="{{ route('services.show', ['name' => 'data-strategy']) }}">Data &amp; AI Strategy</a>
-        <a href="{{ route('services.show', ['name' => 'm365-governance']) }}">M365 Governance</a>
+        <a href="{{ route('services.show', ['name' => 'fractional-dba']) }}">Fractional DBA</a>
         <a href="{{ route('assessments') }}">Assessments</a>
         <a href="{{ route('services.show', ['name' => 'training']) }}">Training</a>
         <a href="{{ route('services.show', ['name' => 'managed-services']) }}">Managed Services</a>

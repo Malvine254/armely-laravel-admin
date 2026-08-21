@@ -91,6 +91,27 @@ return Application::configure(basePath: dirname(__DIR__))
             ->name('update-order-statuses')
             ->withoutOverlapping();
 
+        // Lifecycle mail must execute even when a dedicated database queue
+        // worker is unavailable. Running the orchestrator synchronously keeps
+        // the scheduler as the single reliable clock; each campaign still has
+        // its own database idempotency and frequency guards.
+        $schedule->call(function (): void {
+            \App\Jobs\ProcessReminderSubscriptionsJob::dispatchSync();
+        })
+            ->everyThirtyMinutes()
+            ->name('process-reminder-subscriptions')
+            ->withoutOverlapping(20);
+
+        $schedule->job(\App\Jobs\ProcessPriceDropAlertsJob::class, 'default', 'database')
+            ->hourly()
+            ->name('process-price-drop-alerts')
+            ->withoutOverlapping();
+
+        $schedule->job(\App\Jobs\ProcessInvoicePaymentRemindersJob::class, 'default', 'database')
+            ->everySixHours()
+            ->name('process-invoice-payment-reminders')
+            ->withoutOverlapping();
+
         // Import flat file then sync Excel catalog files against TD SYNNEX API daily.
         $schedule->command('tdsynnex:sync-catalog')
             ->daily()

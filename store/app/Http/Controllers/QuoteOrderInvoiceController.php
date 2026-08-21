@@ -1100,12 +1100,6 @@ class QuoteOrderInvoiceController extends Controller
             // Map the response to ensure frontend field names match
             $mappedOrders = $orders->items();
 
-            foreach ($mappedOrders as $order) {
-                if ($order instanceof Order) {
-                    $this->refreshOrderStatusFromTdSynnex($order);
-                }
-            }
-
             $this->prefetchProductNamesForItems(
                 array_map(fn ($o) => is_array($o->items) ? $o->items : [], $mappedOrders)
             );
@@ -1355,10 +1349,6 @@ class QuoteOrderInvoiceController extends Controller
                 $this->ensureOrderInvoiceExists($order);
             }
 
-            if ($newStatus === 'delivered') {
-                $this->ensureDeliveredOrderInvoiceAvailableAndSent($order);
-            }
-
             $updates = [
                 'status' => $newStatus,
                 'raw_data' => $response,
@@ -1391,6 +1381,10 @@ class QuoteOrderInvoiceController extends Controller
 
                 $order->update($updates);
                 $order->refresh();
+
+                if ($newStatus === 'delivered') {
+                    $this->ensureOrderInvoiceExists($order);
+                }
 
                 if ($this->shouldSendShippingNotification($oldStatus, $newStatus, $oldTracking, $updates['tracking_info'])) {
                     $this->notificationService->sendOrderShippedNotification($order);
@@ -1445,21 +1439,6 @@ class QuoteOrderInvoiceController extends Controller
 
             return null;
         }
-    }
-
-    private function ensureDeliveredOrderInvoiceAvailableAndSent(Order $order): void
-    {
-        $invoice = $this->ensureOrderInvoiceExists($order);
-        if (!$invoice) {
-            return;
-        }
-
-        $cacheKey = 'notify:delivered-invoice:' . (string) $invoice->id;
-        if (!Cache::add($cacheKey, 1, now()->addHours(24))) {
-            return;
-        }
-
-        $this->notificationService->sendInvoiceNotification($invoice);
     }
 
     private function canCheckShippingStatus(Order $order): bool
@@ -2364,7 +2343,9 @@ class QuoteOrderInvoiceController extends Controller
             ]);
 
             $order->refresh();
-            $this->ensureDeliveredOrderInvoiceAvailableAndSent($order);
+            // Recalculate financial due dates after delivery without sending
+            // another copy of the already-issued invoice email.
+            $this->ensureOrderInvoiceExists($order);
             $this->notificationService->sendOrderShippedNotification($order);
 
             Activity::log(

@@ -80,7 +80,7 @@ const categoryImages = {
   'desktops-workstations': '15329586.jpg',
 }
 
-const productImageFolder = '/store/images/products'
+const productImageFolder = '/images/products'
 
 const buildCategoryImagePath = fileName => {
   // Enforce filename-only values to avoid accidental path traversal.

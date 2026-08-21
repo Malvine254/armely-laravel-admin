@@ -81,6 +81,17 @@ class BehaviorFavoriteReminderTest extends TestCase
             $table->timestamps();
         });
 
+        Schema::create('user_cart_snapshots', function (Blueprint $table) {
+            $table->id();
+            $table->string('identity_key', 96)->unique();
+            $table->unsignedBigInteger('user_id')->nullable();
+            $table->json('items');
+            $table->unsignedInteger('item_count')->default(0);
+            $table->unsignedInteger('total_quantity')->default(0);
+            $table->timestamp('last_synced_at');
+            $table->timestamps();
+        });
+
         Schema::create('app_settings', function (Blueprint $table) {
             $table->id();
             $table->string('key')->unique();
@@ -90,6 +101,8 @@ class BehaviorFavoriteReminderTest extends TestCase
 
         \DB::table('products')->insert([
             'id' => 101,
+            'tdsynnex_product_id' => 9001,
+            'tdsynnex_sku_no' => '9001',
             'product_name' => 'Rugged Notebook',
             'mfg_part_no' => 'RN-101',
             'base_price' => 1200,
@@ -135,5 +148,32 @@ class BehaviorFavoriteReminderTest extends TestCase
 
         $subscription->refresh();
         $this->assertFalse((bool) $subscription->is_active);
+    }
+
+    public function test_identical_cart_heartbeat_does_not_restart_reminder_and_empty_cart_deactivates_it(): void
+    {
+        $user = User::query()->create([
+            'name' => 'Cart User',
+            'email' => 'cart@example.com',
+            'password' => 'secret123',
+            'status' => 'active',
+            'role' => 'customer',
+        ]);
+
+        $payload = ['items' => [['productId' => 9001, 'quantity' => 2]]];
+        $this->actingAs($user, 'sanctum')->postJson('/api/v1/behavior/cart-snapshot', $payload)->assertOk();
+
+        $subscription = ReminderSubscription::query()->where('trigger_type', 'abandoned_cart')->firstOrFail();
+        $originalSyncedAt = \DB::table('user_cart_snapshots')->value('last_synced_at');
+        $subscription->update(['metadata' => ['sequence_stage' => 1]]);
+
+        $this->travel(30)->minutes();
+        $this->actingAs($user, 'sanctum')->postJson('/api/v1/behavior/cart-snapshot', $payload)->assertOk();
+
+        $this->assertSame($originalSyncedAt, \DB::table('user_cart_snapshots')->value('last_synced_at'));
+        $this->assertSame(1, (int) $subscription->fresh()->metadata['sequence_stage']);
+
+        $this->actingAs($user, 'sanctum')->postJson('/api/v1/behavior/cart-snapshot', ['items' => []])->assertOk();
+        $this->assertFalse((bool) $subscription->fresh()->is_active);
     }
 }

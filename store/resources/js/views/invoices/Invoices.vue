@@ -5,7 +5,7 @@
     <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-5 py-8">
       <div class="mb-8">
         <h1 class="text-4xl font-bold text-gray-900 mb-2">Invoices</h1>
-        <p class="text-gray-600 text-lg">Track balances, download PDFs, and pay invoices through QuickBooks</p>
+        <p class="text-gray-600 text-lg">Track invoice balances, due dates, delivery status, and payment records</p>
       </div>
 
       <div v-if="pagination.total > 0" class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
@@ -77,7 +77,7 @@
         </div>
         <div class="flex gap-2">
           <button @click="combineSelectedInvoices" class="px-4 py-2 rounded-lg font-semibold border border-[#2F5597] text-[#2F5597] hover:bg-[#edf3fb] transition duration-200">
-            Combine for QuickBooks
+            Combine Invoices
           </button>
           <button @click="selectAllUnpaid" class="px-4 py-2 rounded-lg font-semibold border border-[#2563eb] text-[#2563eb] hover:bg-[#eff6ff] transition duration-200">
             Select All Unpaid

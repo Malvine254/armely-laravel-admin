@@ -54,7 +54,7 @@ class BehaviorEventController extends Controller
     public function syncCartSnapshot(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'items' => ['required', 'array', 'max:300'],
+            'items' => ['present', 'array', 'max:300'],
             'items.*.productId' => ['required'],
             'items.*.quantity' => ['required', 'integer', 'min:1', 'max:9999'],
         ]);
@@ -74,16 +74,42 @@ class BehaviorEventController extends Controller
 
         $totalQuantity = array_reduce($normalizedItems, fn (int $sum, array $item): int => $sum + (int) $item['quantity'], 0);
 
-        UserCartSnapshot::updateOrCreate(
-            ['identity_key' => $identityKey],
-            [
+        $snapshot = UserCartSnapshot::query()->where('identity_key', $identityKey)->first();
+        $existingItems = $snapshot && is_array($snapshot->items) ? $snapshot->items : [];
+        $cartChanged = !$snapshot || $existingItems !== $normalizedItems;
+
+        if ($snapshot) {
+            $snapshot->fill([
+                'user_id' => $userId,
+                'items' => $normalizedItems,
+                'item_count' => count($normalizedItems),
+                'total_quantity' => $totalQuantity,
+            ]);
+            if ($cartChanged) {
+                $snapshot->last_synced_at = now();
+            }
+            $snapshot->save();
+        } else {
+            UserCartSnapshot::create([
+                'identity_key' => $identityKey,
                 'user_id' => $userId,
                 'items' => $normalizedItems,
                 'item_count' => count($normalizedItems),
                 'total_quantity' => $totalQuantity,
                 'last_synced_at' => now(),
-            ]
-        );
+            ]);
+        }
+
+        if (count($normalizedItems) === 0) {
+            $this->deactivateReminderSubscription($identityKey, $userId, 'abandoned_cart', null);
+            return $this->responseOk($newToken);
+        }
+
+        // Identical background snapshots are heartbeats, not new cart intent.
+        // Preserve the original abandonment clock and campaign sequence.
+        if (!$cartChanged) {
+            return $this->responseOk($newToken);
+        }
 
         $this->upsertReminderSubscription(
             $identityKey,
@@ -232,16 +258,21 @@ class BehaviorEventController extends Controller
         string $identityKey,
         ?int $userId,
         string $triggerType,
-        int $productReference
+        ?int $productReference
     ): void {
-        $product = $this->resolveProduct($productReference);
-        if (!$product) {
-            return;
+        $productId = null;
+        if ($productReference !== null) {
+            $product = $this->resolveProduct($productReference);
+            if (!$product) {
+                return;
+            }
+            $productId = (int) $product->id;
         }
 
         ReminderSubscription::query()
             ->where('trigger_type', $triggerType)
-            ->where('product_id', (int) $product->id)
+            ->when($productId === null, fn ($query) => $query->whereNull('product_id'))
+            ->when($productId !== null, fn ($query) => $query->where('product_id', $productId))
             ->where(function ($query) use ($identityKey, $userId) {
                 $query->where('identity_key', $identityKey);
                 if ($userId) {

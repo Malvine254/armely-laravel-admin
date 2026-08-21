@@ -5573,7 +5573,23 @@ class AdminController extends Controller
 
             // Step 1: attempt TD SYNNEX submission BEFORE marking paid.
             // If TD rejects, we do not mark the invoice as paid.
-            $tdResult = $this->submitTdSynnexOrderForPaidInvoice($invoice);
+            if ($invoice->status === 'paid') {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Invoice is already marked as paid',
+                    'data' => ['invoice' => $invoice],
+                ]);
+            }
+
+            $order = $invoice->order;
+            if (!$order || strtolower((string) $order->status) !== 'delivered' || !$order->delivered_at) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Payment can only be recorded after the linked order is delivered.',
+                ], 422);
+            }
+
+            $tdResult = ['submitted' => null, 'skipped' => false];
 
             // TD call was made and it failed — block payment
             if (($tdResult['submitted'] ?? null) === false) {
@@ -5590,6 +5606,11 @@ class AdminController extends Controller
                 'paid_at'     => $validated['payment_date'] ?? now(),
                 'notes'       => $validated['payment_notes'] ?? $invoice->notes,
                 'paid_amount' => $invoice->total_amount,
+            ]);
+
+            $order->update([
+                'payment_status' => 'paid',
+                'payment_method' => 'admin_recorded',
             ]);
 
             $responseMessage = 'Invoice marked as paid';
@@ -6015,18 +6036,34 @@ EOT;
 
             $paymentDate = $request->input('payment_date', now()->toDateString());
 
-            $updatedCount = Invoice::whereIn('id', $request->invoice_ids)
-                ->where('status', 'pending')
-                ->update([
+            $eligibleInvoices = Invoice::whereIn('id', $request->invoice_ids)
+                ->whereNotIn('status', ['paid', 'cancelled', 'merged'])
+                ->whereHas('order', function ($query) {
+                    $query->where('status', 'delivered')->whereNotNull('delivered_at');
+                })
+                ->with('order')
+                ->get();
+
+            foreach ($eligibleInvoices as $invoice) {
+                $invoice->update([
                     'status' => 'paid',
                     'paid_at' => $paymentDate,
-                    'updated_at' => now(),
+                    'paid_amount' => $invoice->total_amount,
                 ]);
+                $invoice->order?->update([
+                    'payment_status' => 'paid',
+                    'payment_method' => 'admin_recorded',
+                ]);
+            }
+
+            $updatedCount = $eligibleInvoices->count();
+            $skippedCount = count($request->invoice_ids) - $updatedCount;
 
             return response()->json([
                 'success' => true,
                 'message' => "$updatedCount invoice(s) marked as paid",
                 'updated_count' => $updatedCount,
+                'skipped_count' => $skippedCount,
             ]);
         } catch (\Exception $e) {
             Log::error('Bulk mark invoices paid failed: ' . $e->getMessage());

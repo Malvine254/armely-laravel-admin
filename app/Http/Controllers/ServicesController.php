@@ -31,6 +31,7 @@ class ServicesController extends Controller
         'Robotic Processing Automation' => 'robotic-processing-automation',
         'SharePoint Online' => 'sharepoint-online',
         'Microsoft 365 Governance and Adoption' => 'm365-governance',
+        'Fractional DBA' => 'fractional-dba',
         'Managed Services' => 'managed-services',
         'SQL Server Support' => 'sql-server-support',
         'Applications Support' => 'applications-support',
@@ -54,7 +55,7 @@ class ServicesController extends Controller
             'sql server support', 'applications support', 'sql support', 'appsupport', 'managed services'
         ],
         'advisory' => [
-            'freemium', 'consulting', 'strategy'
+            'freemium', 'consulting', 'strategy', 'fractional dba'
         ]
     ];
 

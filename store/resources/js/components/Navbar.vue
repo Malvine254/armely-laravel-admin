@@ -638,8 +638,7 @@ const goToProducts = () => {
 
 const goToHome = () => {
   closeAll()
-  // The brand logo always returns to the canonical storefront root.
-  window.location.assign('/store')
+  router.push({ name: 'home' })
 }
 
 const browseProducts = (category = null) => {
