@@ -397,8 +397,8 @@ watch(
 )
 
 const productCategories = ref([])
-const MENU_CATEGORIES_STORAGE_KEY = 'store_menu_categories_v7_canonical_eligible_capped_3000'
-const MENU_CATEGORIES_REQUEST_REVISION = 'canonical-eligible-taxonomy-20260821-1'
+const MENU_CATEGORIES_STORAGE_KEY = 'store_menu_categories_v8_count_sorted_capped_3000'
+const MENU_CATEGORIES_REQUEST_REVISION = 'count-sorted-taxonomy-20260821-1'
 const MENU_CATEGORIES_SOFT_TTL_MS = 15 * 60 * 1000
 const MENU_CATEGORIES_HARD_TTL_MS = 7 * 24 * 60 * 60 * 1000
 
