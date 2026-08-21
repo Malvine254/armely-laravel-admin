@@ -791,7 +791,8 @@
             <h4 class="text-gray-900 font-semibold">Sync Manual Images</h4>
             <p class="mt-2 text-sm text-gray-500">
               After uploading image files to <code class="bg-purple-100 px-1 rounded text-xs">public/images/products/</code> named as
-              <code class="bg-purple-100 px-1 rounded text-xs">{tdsynnex_product_id}.jpg</code>, click here to link them to products in the database.
+              <code class="bg-purple-100 px-1 rounded text-xs">{tdsynnex_product_id}.jpg</code>, click here to make them the product's primary image.
+              JPG, JPEG, PNG, GIF, and WebP files are supported. Existing supplier images will be replaced.
             </p>
             <button
               @click="runCatalogOperation('sync_manual_images')"
@@ -1546,6 +1547,15 @@ const stopCatalogStatusPolling = () => {
 }
 
 const runCatalogOperation = async (action) => {
+  if (
+    action === 'sync_manual_images'
+    && !window.confirm(
+      'Sync manual product images now? Matching files will become the primary image and replace existing supplier image links. This may update thousands of products.'
+    )
+  ) {
+    return
+  }
+
   catalogActionLoading.value = true
   try {
     const response = await api.post('/admin/settings/catalog/run', { action })
