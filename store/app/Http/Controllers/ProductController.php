@@ -8,6 +8,7 @@ use App\Support\CatalogTaxonomy;
 use App\Support\OfferPricing;
 use App\Support\VerifiedProductContent;
 use App\Exceptions\TDSynnexApiException;
+use App\Models\Category;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -1284,6 +1285,10 @@ class ProductController extends Controller
         // matches that happen to have supplier images.
         if ($searchOrderExpr !== null) {
             $query->orderByRaw($searchOrderExpr, $searchOrderBindings);
+        }
+
+        if ($searchOrderExpr === null && $category !== '') {
+            $this->applyCategoryRelevanceOrdering($query, $category);
         }
 
         $query->orderByRaw('CASE WHEN (' . $this->hasUsableProductImageSql() . ') THEN 0 ELSE 1 END');
@@ -3088,6 +3093,47 @@ class ProductController extends Controller
                 });
             }
         });
+    }
+
+    private function applyCategoryRelevanceOrdering(\Illuminate\Database\Eloquent\Builder $query, string $category): void
+    {
+        $segments = array_values(array_filter(
+            array_map('trim', explode(',', trim($category))),
+            static fn (string $segment): bool => (bool) preg_match('/^\d{2}$/', $segment)
+        ));
+
+        if (empty($segments)) {
+            $menuCategory = Category::query()
+                ->whereNull('parent_id')
+                ->where(function ($categoryQuery) use ($category) {
+                    $categoryQuery->where('slug', $category)
+                        ->orWhereRaw('LOWER(name) = ?', [strtolower($category)]);
+                })
+                ->first();
+
+            if ($menuCategory) {
+                $segments = array_values(array_filter(
+                    array_map('trim', explode(',', (string) $menuCategory->segment_code))
+                ));
+            }
+        }
+
+        if (!in_array('07', $segments, true)) {
+            return;
+        }
+
+        $nameSql = "LOWER(COALESCE(product_name, ''))";
+        $componentPattern = '(^|[^a-z0-9])(memory module|memory upgrade|ram|dimm|sodimm|ddr[345]?|nvme|ssd|hdd|hard drive|solid state drive|flash drive|sd card|microsd)([^a-z0-9]|$)';
+        $systemPattern = '(^|[^a-z0-9])(laptop|notebook|desktop|workstation|tower|server|chromebook|tablet|system|btx base|pc[0-9]*)([^a-z0-9]|$)';
+
+        $query->orderByRaw(
+            "CASE
+                WHEN {$nameSql} REGEXP ? AND {$nameSql} NOT REGEXP ? THEN 0
+                WHEN {$nameSql} REGEXP ? THEN 1
+                ELSE 2
+            END",
+            [$componentPattern, $systemPattern, $componentPattern]
+        );
     }
 
     private function parseFacetVendors(string $vendors): array
