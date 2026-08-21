@@ -20,7 +20,7 @@
 .armely-fractional-dba-page .eyebrow-badge { background: rgba(47,85,151,0.35); border: 1px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.9); font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.12em; padding: 5px 14px; border-radius: 40px; }
 .armely-fractional-dba-page .eyebrow-partner { font-size: 0.78rem; color: rgba(255,255,255,0.5); }
 .armely-fractional-dba-page .hero h1 { font-family: 'Segoe UI', Arial, sans-serif; font-size: clamp(2rem, 3.5vw, 3rem); font-weight: 700; line-height: 1.12; color: #fff; max-width: 820px; margin-bottom: 24px; letter-spacing: -0.025em; }
-.armely-fractional-dba-page .hero h1 .hero-title-break { display: block; margin-top: 8px; color: #fff; font-size: 0.62em; font-weight: 600; line-height: 1.2; letter-spacing: -0.015em; }
+.armely-fractional-dba-page .hero h1 .hero-title-break { display: block; margin-top: 7px; color: #fff; font-size: 0.45em; font-weight: 500; line-height: 1.25; letter-spacing: 0; }
 .armely-fractional-dba-page .hero-sub { font-size: 1.05rem; font-weight: 300; color: rgba(255,255,255,0.82); max-width: 580px; margin-bottom: 40px; line-height: 1.8; }
 .armely-fractional-dba-page .hero-platforms { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 32px; }
 .armely-fractional-dba-page .hero-platform { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.18); color: rgba(255,255,255,0.8); border-radius: 999px; padding: 5px 13px; }
