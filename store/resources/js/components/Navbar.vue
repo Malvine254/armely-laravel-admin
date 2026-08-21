@@ -58,8 +58,10 @@
             <button
               type="button"
               class="flex h-full w-full min-w-0 items-center justify-center gap-1 px-1.5 py-2 text-sm font-semibold text-white transition hover:bg-white/10 hover:text-cyan-200 2xl:px-2"
+              :class="isCategoryActive(cat) ? 'bg-white/20 text-cyan-200 ring-2 ring-inset ring-cyan-300' : ''"
               @click="toggleCategoryDropdown(cat)"
               :aria-expanded="categoryDropdownOpen === cat.value"
+              :aria-current="isCategoryActive(cat) ? 'page' : undefined"
               aria-haspopup="menu"
             >
               <span class="min-w-0 truncate">{{ cat.name }}</span>
@@ -103,6 +105,7 @@
             <button
               type="button"
               class="flex h-full w-full items-center justify-center gap-1 px-1.5 py-2 text-sm font-semibold text-slate-100 transition hover:bg-white/10 hover:text-cyan-300 2xl:px-2"
+              :class="hasActiveOverflowCategory ? 'bg-white/20 text-cyan-200 ring-2 ring-inset ring-cyan-300' : ''"
               @click="toggleMoreCategories"
             >
               More Categories
@@ -122,7 +125,8 @@
                       :key="cat.value"
                       type="button"
                       class="flex w-full min-w-0 items-center justify-between gap-2 px-4 py-2.5 text-left text-sm font-semibold transition"
-                      :class="activeMoreCategory?.value === cat.value ? 'bg-white/10 text-cyan-300' : 'text-slate-200 hover:bg-white/10 hover:text-cyan-300'"
+                      :class="isCategoryActive(cat) ? 'bg-cyan-300 text-[#102f61]' : (activeMoreCategory?.value === cat.value ? 'bg-white/10 text-cyan-300' : 'text-slate-200 hover:bg-white/10 hover:text-cyan-300')"
+                      :aria-current="isCategoryActive(cat) ? 'page' : undefined"
                       @mouseenter="activeMoreCategoryValue = cat.value"
                       @focus="activeMoreCategoryValue = cat.value"
                       @click="activeMoreCategoryValue = cat.value"
@@ -289,6 +293,8 @@
                   type="button"
                   @click="toggleMobileCategory(cat.value)"
                   class="w-full flex items-center justify-between gap-3 px-8 py-2.5 text-sm text-slate-300 hover:bg-white/10 transition"
+                  :class="isCategoryActive(cat) ? 'bg-white/15 font-semibold text-cyan-300' : ''"
+                  :aria-current="isCategoryActive(cat) ? 'page' : undefined"
                 >
                   <span class="min-w-0 flex-1 truncate text-left">{{ cat.name }}</span>
                   <svg class="w-4 h-4 flex-shrink-0 transition-transform" :class="mobileOpenCategory === cat.value ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -439,6 +445,17 @@ const recalculatePrimaryCategories = () => {
 
 const primaryCategories = computed(() => productCategories.value.slice(0, primaryCategoryLimit.value))
 const overflowCategories = computed(() => productCategories.value.slice(primaryCategoryLimit.value))
+const activeCategoryFilter = computed(() => String(parseProductsRouteFilters(route).category || '').trim().toLowerCase())
+const isCategoryActive = category => {
+  const active = activeCategoryFilter.value
+  if (!active) return false
+
+  return [category?.value, category?.slug, category?.name, category?.segment_code]
+    .map(value => String(value || '').trim().toLowerCase())
+    .filter(Boolean)
+    .includes(active)
+}
+const hasActiveOverflowCategory = computed(() => overflowCategories.value.some(isCategoryActive))
 const activeMoreCategory = computed(() => {
   if (overflowCategories.value.length === 0) return null
   return overflowCategories.value.find(cat => cat.value === activeMoreCategoryValue.value) || overflowCategories.value[0]
