@@ -2535,7 +2535,7 @@ class ProductController extends Controller
     public function menuCategories(): JsonResponse
     {
         try {
-            $data = Cache::remember('menu_categories:v10:capped-3000', 1800, function () {
+            $data = Cache::remember('menu_categories:v12:canonical-eligible-capped-3000', 1800, function () {
                 $parents = \App\Models\Category::query()
                     ->select(['id', 'name', 'slug', 'segment_code', 'sort_order'])
                     ->whereNull('parent_id')
@@ -2563,11 +2563,19 @@ class ProductController extends Controller
 
                 $segmentsWithProducts = [];
                 if (!empty($parentSegments)) {
-                    $segmentCounts = Product::query()
+                    $segmentCountsQuery = Product::query()
                         ->whereIn('id', $cappedProductIds)
                         ->where('vendor_id', 'TD SYNNEX')
-                        ->where('is_hardware', 1)
-                        ->whereIn('category_segment', $parentSegments)
+                        ->whereIn('category_segment', $parentSegments);
+                    $this->applySidebarFacetProductFilters(
+                        $segmentCountsQuery,
+                        true,
+                        self::STOREFRONT_MIN_PRICE,
+                        null,
+                        true,
+                        'hardware'
+                    );
+                    $segmentCounts = $segmentCountsQuery
                         ->selectRaw('category_segment, COUNT(*) as cnt')
                         ->groupBy('category_segment')
                         ->get();
@@ -2581,13 +2589,21 @@ class ProductController extends Controller
 
                 $manufacturersBySegment = [];
                 if (!empty($parentSegments)) {
-                    $manufacturerRows = Product::query()
+                    $manufacturerQuery = Product::query()
                         ->whereIn('id', $cappedProductIds)
                         ->where('vendor_id', 'TD SYNNEX')
-                        ->where('is_hardware', 1)
                         ->whereIn('category_segment', $parentSegments)
                         ->whereNotNull('manufacturer')
-                        ->where('manufacturer', '<>', '')
+                        ->where('manufacturer', '<>', '');
+                    $this->applySidebarFacetProductFilters(
+                        $manufacturerQuery,
+                        true,
+                        self::STOREFRONT_MIN_PRICE,
+                        null,
+                        true,
+                        'hardware'
+                    );
+                    $manufacturerRows = $manufacturerQuery
                         ->selectRaw('category_segment, manufacturer, COUNT(*) as product_count')
                         ->groupBy('category_segment', 'manufacturer')
                         ->get();
@@ -2600,14 +2616,19 @@ class ProductController extends Controller
                             continue;
                         }
 
-                        $manufacturersBySegment[$segment][] = [
-                            'name' => $name,
-                            'count' => (int) $row->product_count,
-                            'priority' => in_array($name, ['HP', 'Dell', 'Lenovo', 'Apple', 'Microsoft', 'Cisco', 'Brother', 'Canon', 'Epson'], true) ? 0 : 1,
-                        ];
+                        $canonicalName = $this->normalizeCuratedVendorName($name);
+                        if (!isset($manufacturersBySegment[$segment][$canonicalName])) {
+                            $manufacturersBySegment[$segment][$canonicalName] = [
+                                'name' => $canonicalName,
+                                'count' => 0,
+                                'priority' => in_array($canonicalName, ['HP', 'DELL', 'LENOVO', 'APPLE', 'MICROSOFT', 'CISCO', 'BROTHER', 'CANON', 'EPSON'], true) ? 0 : 1,
+                            ];
+                        }
+                        $manufacturersBySegment[$segment][$canonicalName]['count'] += (int) $row->product_count;
                     }
 
                     foreach ($manufacturersBySegment as $segment => $rows) {
+                        $rows = array_values($rows);
                         usort($rows, function ($left, $right) {
                             return [$left['priority'], -$left['count'], $left['name']]
                                 <=> [$right['priority'], -$right['count'], $right['name']];
