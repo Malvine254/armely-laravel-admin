@@ -5,7 +5,6 @@
     </div>
     <div class="mobile-mega-section">
         <h4>Explore</h4>
-        <a href="{{ route('resources.index') }}">Resources</a>
         <a href="{{ route('events.index') }}">Events</a>
     </div>
     <div class="mobile-mega-section">
