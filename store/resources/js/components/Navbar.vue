@@ -57,8 +57,8 @@
           >
             <button
               type="button"
-              class="flex h-full w-full min-w-0 items-center justify-center gap-1 px-1.5 py-2 text-sm font-semibold text-white transition hover:bg-white/10 hover:text-cyan-200 2xl:px-2"
-              :class="isCategoryActive(cat) ? 'bg-white/20 text-cyan-200 ring-2 ring-inset ring-cyan-300' : ''"
+              class="flex h-full w-full min-w-0 items-center justify-center gap-1 border-b-[3px] border-transparent px-1.5 py-2 text-sm font-semibold text-white transition hover:bg-white/10 hover:text-cyan-200 2xl:px-2"
+              :class="isCategoryActive(cat) ? 'border-cyan-300 bg-[#244a86] text-white' : ''"
               @click="toggleCategoryDropdown(cat)"
               :aria-expanded="categoryDropdownOpen === cat.value"
               :aria-current="isCategoryActive(cat) ? 'page' : undefined"
@@ -80,7 +80,9 @@
                     v-for="sub in cat.children"
                     :key="`${cat.value}-${sub.value}`"
                     type="button"
-                    class="block w-full min-w-0 text-left px-4 py-2.5 text-sm text-slate-200 hover:bg-white/10 hover:text-cyan-300 transition"
+                    class="block w-full min-w-0 border-l-[3px] border-transparent px-4 py-2.5 text-left text-sm text-slate-200 transition hover:bg-white/10 hover:text-cyan-300"
+                    :class="isVendorActive(sub) ? 'border-cyan-300 bg-white/15 font-semibold text-white' : ''"
+                    :aria-current="isVendorActive(sub) ? 'page' : undefined"
                     @click="browseCategoryVendor(cat.value, sub.name)"
                   >
                     <span class="flex min-w-0 items-center justify-between gap-3">
@@ -104,8 +106,8 @@
           <div v-if="overflowCategories.length > 0" class="relative flex min-w-0 flex-1 items-center" @mouseenter="moreCategoriesOpen = true" @mouseleave="moreCategoriesOpen = false">
             <button
               type="button"
-              class="flex h-full w-full items-center justify-center gap-1 px-1.5 py-2 text-sm font-semibold text-slate-100 transition hover:bg-white/10 hover:text-cyan-300 2xl:px-2"
-              :class="hasActiveOverflowCategory ? 'bg-white/20 text-cyan-200 ring-2 ring-inset ring-cyan-300' : ''"
+              class="flex h-full w-full items-center justify-center gap-1 border-b-[3px] border-transparent px-1.5 py-2 text-sm font-semibold text-slate-100 transition hover:bg-white/10 hover:text-cyan-300 2xl:px-2"
+              :class="hasActiveOverflowCategory ? 'border-cyan-300 bg-[#244a86] text-white' : ''"
               @click="toggleMoreCategories"
             >
               More Categories
@@ -124,8 +126,8 @@
                       v-for="cat in overflowCategories"
                       :key="cat.value"
                       type="button"
-                      class="flex w-full min-w-0 items-center justify-between gap-2 px-4 py-2.5 text-left text-sm font-semibold transition"
-                      :class="isCategoryActive(cat) ? 'bg-cyan-300 text-[#102f61]' : (activeMoreCategory?.value === cat.value ? 'bg-white/10 text-cyan-300' : 'text-slate-200 hover:bg-white/10 hover:text-cyan-300')"
+                      class="flex w-full min-w-0 items-center justify-between gap-2 border-l-[3px] border-transparent px-4 py-2.5 text-left text-sm font-semibold transition"
+                      :class="isCategoryActive(cat) ? 'border-l-[3px] border-cyan-300 bg-white/15 text-white' : (activeMoreCategory?.value === cat.value ? 'bg-white/10 text-cyan-300' : 'text-slate-200 hover:bg-white/10 hover:text-cyan-300')"
                       :aria-current="isCategoryActive(cat) ? 'page' : undefined"
                       @mouseenter="activeMoreCategoryValue = cat.value"
                       @focus="activeMoreCategoryValue = cat.value"
@@ -151,7 +153,9 @@
                         v-for="sub in activeMoreCategory.children"
                         :key="`${activeMoreCategory.value}-${sub.value}`"
                         type="button"
-                        class="block w-full min-w-0 text-left px-4 py-2 text-sm text-slate-200 hover:bg-white/10 hover:text-cyan-300 transition"
+                        class="block w-full min-w-0 border-l-[3px] border-transparent px-4 py-2 text-left text-sm text-slate-200 transition hover:bg-white/10 hover:text-cyan-300"
+                        :class="isVendorActive(sub) ? 'border-cyan-300 bg-white/15 font-semibold text-white' : ''"
+                        :aria-current="isVendorActive(sub) ? 'page' : undefined"
                         @click="browseCategoryVendor(activeMoreCategory.value, sub.name)"
                       >
                         <span class="flex min-w-0 items-center justify-between gap-3">
@@ -293,7 +297,7 @@
                   type="button"
                   @click="toggleMobileCategory(cat.value)"
                   class="w-full flex items-center justify-between gap-3 px-8 py-2.5 text-sm text-slate-300 hover:bg-white/10 transition"
-                  :class="isCategoryActive(cat) ? 'bg-white/15 font-semibold text-cyan-300' : ''"
+                  :class="isCategoryActive(cat) ? 'border-l-[3px] border-cyan-300 bg-white/10 font-semibold text-white' : 'border-l-[3px] border-transparent'"
                   :aria-current="isCategoryActive(cat) ? 'page' : undefined"
                 >
                   <span class="min-w-0 flex-1 truncate text-left">{{ cat.name }}</span>
@@ -314,7 +318,9 @@
                     :key="`${cat.value}-${sub.value}`"
                     type="button"
                     @click="browseCategoryVendor(cat.value, sub.name)"
-                    class="w-full text-left px-8 py-2 text-sm text-slate-300 hover:bg-white/10 transition"
+                    class="w-full border-l-[3px] border-transparent px-8 py-2 text-left text-sm text-slate-300 transition hover:bg-white/10"
+                    :class="isVendorActive(sub) ? 'border-cyan-300 bg-white/15 font-semibold text-white' : ''"
+                    :aria-current="isVendorActive(sub) ? 'page' : undefined"
                   >
                     {{ sub.name }}
                   </button>
@@ -446,6 +452,17 @@ const recalculatePrimaryCategories = () => {
 const primaryCategories = computed(() => productCategories.value.slice(0, primaryCategoryLimit.value))
 const overflowCategories = computed(() => productCategories.value.slice(primaryCategoryLimit.value))
 const activeCategoryFilter = computed(() => String(parseProductsRouteFilters(route).category || '').trim().toLowerCase())
+const normalizeMenuFilterValue = value => String(value || '')
+  .trim()
+  .toUpperCase()
+  .replace(/[^A-Z0-9]+/g, ' ')
+  .replace(/\s+/g, ' ')
+  .trim()
+const activeVendorFilters = computed(() => {
+  const filters = parseProductsRouteFilters(route)
+  const raw = filters.vendors ?? filters.vendor ?? ''
+  return String(raw).split(',').map(normalizeMenuFilterValue).filter(Boolean)
+})
 const isCategoryActive = category => {
   const active = activeCategoryFilter.value
   if (!active) return false
@@ -454,6 +471,13 @@ const isCategoryActive = category => {
     .map(value => String(value || '').trim().toLowerCase())
     .filter(Boolean)
     .includes(active)
+}
+const isVendorActive = vendor => {
+  if (activeVendorFilters.value.length === 0) return false
+  const candidates = [vendor?.name, vendor?.value, vendor?.slug]
+    .map(normalizeMenuFilterValue)
+    .filter(Boolean)
+  return candidates.some(candidate => activeVendorFilters.value.includes(candidate))
 }
 const hasActiveOverflowCategory = computed(() => overflowCategories.value.some(isCategoryActive))
 const activeMoreCategory = computed(() => {
