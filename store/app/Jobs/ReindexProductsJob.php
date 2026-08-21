@@ -3,8 +3,10 @@
 namespace App\Jobs;
 
 use App\Http\Controllers\ProductController;
+use App\Models\Category;
 use App\Models\Product;
 use App\Services\CatalogOperationStateService;
+use App\Support\CatalogTaxonomy;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -39,16 +41,17 @@ class ReindexProductsJob implements ShouldQueue
         $updated   = 0;
         $chunkSize = 500;
 
+        $categoryIds = Category::query()
+            ->whereNull('parent_id')
+            ->pluck('id', 'name')
+            ->all();
+
         // ── Pass 1: backfill category_segment from specifications JSON ────────
         Product::query()
             ->where('vendor_id', 'TD SYNNEX')
-            ->where(function ($q) {
-                $q->whereNull('category_segment')
-                  ->orWhere('category_segment', '');
-            })
-            ->select(['id', 'specifications'])
+            ->select(['id', 'product_name', 'description', 'category_id', 'category_segment', 'specifications'])
             ->orderBy('id')
-            ->chunk($chunkSize, function ($products) use (&$total, &$updated) {
+            ->chunkById($chunkSize, function ($products) use (&$total, &$updated, $categoryIds) {
                 foreach ($products as $product) {
                     $total++;
                     $spec = is_array($product->specifications)
@@ -56,11 +59,23 @@ class ReindexProductsJob implements ShouldQueue
                         : (json_decode($product->specifications ?? '{}', true) ?: []);
 
                     $categoryCode = trim((string) ($spec['categoryCode'] ?? ''));
-                    $segment      = substr($categoryCode, 0, 2) ?: null;
+                    $categoryName = CatalogTaxonomy::inferCategoryName(
+                        (string) ($spec['sourceCategoryName'] ?? $spec['categoryName'] ?? ''),
+                        (string) ($product->product_name ?? ''),
+                        (string) ($product->description ?? ''),
+                        $categoryCode
+                    );
+                    $segment = CatalogTaxonomy::segmentCodeForCategory($categoryName);
+                    $categoryId = $categoryIds[$categoryName] ?? null;
 
-                    if ($segment !== null) {
-                        Product::where('id', $product->id)
-                            ->update(['category_segment' => $segment]);
+                    if ($segment !== null && (
+                        (string) $product->category_segment !== $segment
+                        || (int) $product->category_id !== (int) $categoryId
+                    )) {
+                        Product::whereKey($product->id)->update([
+                            'category_id' => $categoryId,
+                            'category_segment' => $segment,
+                        ]);
                         $updated++;
                     }
                 }
@@ -94,7 +109,7 @@ class ReindexProductsJob implements ShouldQueue
         Log::info('ReindexProductsJob: cache flushed', ['result' => $flushed]);
 
         $summary = "Reindex complete.\n"
-            . "category_segment: updated {$updated} / {$total} rows.\n"
+            . "category classification: corrected {$updated} / {$total} rows.\n"
             . "is_hardware: corrected {$hwUpdated} rows.\n"
             . 'Browse caches cleared.';
 
