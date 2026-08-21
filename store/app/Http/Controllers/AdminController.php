@@ -4036,8 +4036,18 @@ class AdminController extends Controller
 
             // sync_manual_images runs synchronously (fast folder scan — no queue needed).
             if ($action === 'sync_manual_images') {
-                \Artisan::call('products:sync-manual-images', ['--quiet-output' => true]);
+                $exitCode = \Artisan::call('products:sync-manual-images', [
+                    '--force' => true,
+                    '--quiet-output' => true,
+                ]);
                 $output = \Artisan::output();
+                if ($exitCode !== 0) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Manual image sync failed. ' . (trim($output) ?: 'Check that public/images/products exists and is readable.'),
+                        'data' => ['output' => trim($output)],
+                    ], 422);
+                }
                 // Flush product listing caches so newly-linked images are visible immediately.
                 try {
                     \Artisan::call('cache:clear');
@@ -4048,7 +4058,7 @@ class AdminController extends Controller
                 }
                 return response()->json([
                     'success' => true,
-                    'message' => 'Manual image sync complete. Product caches cleared — images are now visible.',
+                    'message' => 'Manual images linked successfully. Existing supplier images were replaced and product caches were cleared.',
                     'data' => [
                         'output' => trim($output),
                         // Immediately stop polling by reporting the operation as complete.

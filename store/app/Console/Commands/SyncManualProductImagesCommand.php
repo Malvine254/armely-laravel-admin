@@ -196,7 +196,7 @@ class SyncManualProductImagesCommand extends Command
             $this->warn('  (DRY-RUN — no changes made)');
         }
 
-        return self::SUCCESS;
+        return $failed > 0 ? self::FAILURE : self::SUCCESS;
     }
 
     /**
