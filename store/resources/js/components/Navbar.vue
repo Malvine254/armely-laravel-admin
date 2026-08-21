@@ -46,7 +46,7 @@
         </form>
 
         <!-- Dynamic category row -->
-        <div class="order-4 -mx-3 mt-3 hidden min-h-14 w-[calc(100%+1.5rem)] flex-none items-stretch justify-center bg-[#2F5597] sm:-mx-4 sm:w-[calc(100%+2rem)] lg:-mx-5 lg:w-[calc(100%+2.5rem)] lg:flex">
+        <div data-category-menu class="order-4 -mx-3 mt-3 hidden min-h-14 w-[calc(100%+1.5rem)] flex-none items-stretch justify-center bg-[#2F5597] sm:-mx-4 sm:w-[calc(100%+2rem)] lg:-mx-5 lg:w-[calc(100%+2.5rem)] lg:flex">
           <div ref="categoryMenuRef" class="mx-3 flex w-[calc(100%-1.5rem)] items-stretch justify-center sm:mx-5 sm:w-[calc(100%-2.5rem)] lg:mx-8 lg:w-[calc(100%-4rem)] 2xl:mx-10 2xl:w-[calc(100%-5rem)]">
           <div
             v-for="cat in primaryCategories"
@@ -58,7 +58,9 @@
             <button
               type="button"
               class="flex h-full w-full min-w-0 items-center justify-center gap-1 px-1.5 py-2 text-sm font-semibold text-white transition hover:bg-white/10 hover:text-cyan-200 2xl:px-2"
-              @click="browseProducts(cat.value)"
+              @click="toggleCategoryDropdown(cat)"
+              :aria-expanded="categoryDropdownOpen === cat.value"
+              aria-haspopup="menu"
             >
               <span class="min-w-0 truncate">{{ cat.name }}</span>
               <svg class="h-3.5 w-3.5 flex-shrink-0 transition-transform" :class="categoryDropdownOpen === cat.value ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -374,6 +376,10 @@ const handleDocumentClick = event => {
   if (accountMenuOpen.value && !accountMenuRef.value?.contains(event.target)) {
     accountMenuOpen.value = false
   }
+  if (!event.target?.closest?.('[data-category-menu]')) {
+    categoryDropdownOpen.value = null
+    moreCategoriesOpen.value = false
+  }
 }
 
 const submitNavSearch = () => {
@@ -563,6 +569,16 @@ const toggleMoreCategories = () => {
   if (moreCategoriesOpen.value && !activeMoreCategoryValue.value && overflowCategories.value.length > 0) {
     activeMoreCategoryValue.value = overflowCategories.value[0].value
   }
+}
+
+const toggleCategoryDropdown = (category) => {
+  if (!Array.isArray(category?.children) || category.children.length === 0) {
+    browseProducts(category?.value)
+    return
+  }
+
+  moreCategoriesOpen.value = false
+  categoryDropdownOpen.value = categoryDropdownOpen.value === category.value ? null : category.value
 }
 
 const toggleMobileCategory = (category) => {
