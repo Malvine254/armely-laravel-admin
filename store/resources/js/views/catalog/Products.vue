@@ -2488,6 +2488,7 @@ watch(
     const lifecycle = routeFilters.lifecycle
     const media = routeFilters.media
     const page = routeFilters.page
+    const hasExplicitPage = page !== undefined && String(page).trim() !== ''
     searchQuery.value = newQuery ? String(newQuery) : ''
 
     const hasVendorQuery = newVendor !== undefined || newVendors !== undefined
@@ -2570,7 +2571,9 @@ watch(
       return
     }
 
-    performSearch(queryChanged)
+    // A page encoded in the URL is authoritative during reload/deep-linking.
+    // Only reset for a genuinely new search that did not request a page.
+    performSearch(queryChanged && !hasExplicitPage)
     if (newQuery) {
       nextTick(() => scrollToCatalog())
     }
