@@ -26,13 +26,13 @@ store/prod.env
 Homestead.json
 Homestead.yaml
 Thumbs.db
+/vendor/
 
 # Environment and secret files stay local only
 
 # Exceptions: allow committing these files/directories for shared-host deployments
 # (useful when the server cannot run Composer or download the MaxMind DB)
 !composer.lock
-!vendor/
 !.env.example
 !**/.env.example
 !storage/app/geoip/
