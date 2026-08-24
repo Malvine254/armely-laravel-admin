@@ -33,6 +33,10 @@ use GuzzleHttp\Psr7\UriResolver;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
 
+Route::get('/mela-meeting-assistant/help', function () {
+    return view('help.help');
+})->name('help');
+
 // Backward-compatible redirect for legacy activation links that missed
 // the /store base path in older outbound emails.
 Route::get('/activate-account', function (Request $request) {
