@@ -19,6 +19,7 @@
 /storage/*.key
 /storage/pail
 /vendor
+/public/images/
 /flat-files/*.ap
 /flat-files/*.AP
 /flat-files/*.sql
