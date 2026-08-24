@@ -8,6 +8,7 @@
 .phpunit.result.cache
 /.fleet
 /.idea
+/store/vendor.rar
 /.nova
 /.phpunit.cache
 /.vscode
