@@ -247,11 +247,12 @@
 
           <!-- Unauthenticated User - Login/Sign Up Buttons -->
           <template v-else>
-            <div class="order-2 ml-2 hidden items-center gap-3 lg:flex">
-              <router-link to="/login" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-[#102f61] transition hover:bg-blue-50">
+            <div class="order-2 ml-2 hidden items-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-[#102f61] shadow-sm lg:flex">
+              <router-link to="/login" class="transition hover:text-blue-700">
                 Log In
               </router-link>
-              <router-link to="/register" class="rounded-lg bg-[#0b3b82] px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700">
+              <span class="px-2 text-slate-300" aria-hidden="true">/</span>
+              <router-link to="/register" class="transition hover:text-blue-700">
                 Sign Up
               </router-link>
             </div>
@@ -342,8 +343,11 @@
             <button type="button" @click="handleLogout" class="w-full text-left px-4 py-3 text-sm font-semibold text-rose-400 transition hover:bg-rose-500/20">Sign Out</button>
           </template>
           <template v-else>
-            <router-link to="/login" @click="closeMobileMenu" class="block w-full text-left px-4 py-3 text-sm text-slate-100 transition hover:bg-white/10">Log In</router-link>
-            <router-link to="/register" @click="closeMobileMenu" class="block w-full text-left px-4 py-3 text-sm text-slate-100 transition hover:bg-white/10">Sign Up</router-link>
+            <div class="flex items-center px-4 py-3 text-sm font-semibold text-slate-100">
+              <router-link to="/login" @click="closeMobileMenu" class="transition hover:text-white">Log In</router-link>
+              <span class="px-2 text-slate-500" aria-hidden="true">/</span>
+              <router-link to="/register" @click="closeMobileMenu" class="transition hover:text-white">Sign Up</router-link>
+            </div>
           </template>
         </div>
       </div>
