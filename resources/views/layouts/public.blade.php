@@ -1257,63 +1257,7 @@ main .service-card {
                                             @include('partials.mega-menu.knowledge-hub')
                                         </div>
                                     </li>
-                                   <!-- <li class="mega-nav-item {{ request()->is('mela-ai') ? 'active' : '' }}">
-    <button type="button" class="mega-trigger" aria-expanded="false">
-        Solutions
-        <i class="icofont-rounded-down mega-icon-closed" aria-hidden="true"></i>
-        <i class="icofont-rounded-up mega-icon-open" aria-hidden="true"></i>
-    </button>
-
-    <div class="mega-panel" role="region" aria-label="Solutions menu">
-        <div class="mega-panel-inner">
-            <a class="mega-feature-card" href="{{ route('mela-ai') }}">
-                <img src="{{ asset('images/blog/ai 2.png') }}" alt="Mela AI solution">
-                <div class="mega-feature-card-content">
-                    <h3>Mela AI</h3>
-                    <p>Explore Armely’s AI solution for smarter engagement, automation, and intelligent business support.</p>
-                </div>
-            </a>
-
-            <div class="mega-columns">
-                <div>
-                    <h3 class="mega-column-title">AI Solutions</h3>
-                    <ul class="mega-link-list">
-                        <li>
-                            <a href="{{ route('mela-ai') }}">
-                                Mela AI
-                                <span class="mega-link-description">An intelligent AI solution built to support business users and customer engagement.</span>
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-
-                <div>
-                    <h3 class="mega-column-title">Automation</h3>
-                    <ul class="mega-link-list">
-                        <li>
-                            <a href="{{ route('services.show', ['name' => 'generative-ai']) }}">
-                                Generative AI
-                                <span class="mega-link-description">Deploy enterprise AI experiences powered by modern language models.</span>
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-
-                <div>
-                    <h3 class="mega-column-title">Productivity</h3>
-                    <ul class="mega-link-list">
-                        <li>
-                            <a href="{{ route('services.show', ['name' => 'copilot']) }}">
-                                Microsoft Copilot
-                                <span class="mega-link-description">Improve productivity with AI-powered assistance across Microsoft 365.</span>
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </div>
-</li> -->
+                                   
                                     <li class="{{ request()->is('contact') ? 'active' : '' }} desktop-contact-link"><a href="{{ route('contact') }}">Let's Talk</a></li>
                                 </ul>
                             </nav>

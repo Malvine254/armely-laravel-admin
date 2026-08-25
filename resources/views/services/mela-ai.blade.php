@@ -350,11 +350,17 @@
                     <p class="mela-muted">Capture 100% of meeting commitments and create tasks without requiring video or audio recordings.</p>
                     <ul class="mela-features">
                         <li><i class="fa-solid fa-check" aria-hidden="true"></i><strong>Zero “Recording Anxiety”:</strong> Captures transcriptions independently, eliminating awkward recording pop-ups and compliance roadblocks.</li>
-                        <li><i class="fa-solid fa-check" aria-hidden="true"></i><strong>Command-Driven Privacy:</strong> Type <code>@mela please join</code> when business begins, and <code>@mela please leave</code> when private chatter starts.</li>
+                        <li><i class="fa-solid fa-check" aria-hidden="true"></i><strong>Command-Driven Privacy:</strong> Type <code>@mela please join</code> when business begins, and <code>@mela please leave</code> when private chatter starts. 
+                        
+                        <code>@mela what did last person say</code> - live meeting notes, 
+                        <code>@mela summarize, generate minutes, or fetch transcript</code>, 
+                         <code>@mela help</code> - to get more help regarding how to use or configure Mela 
+                    
+                    </li>
                         <li><i class="fa-solid fa-check" aria-hidden="true"></i><strong>Native Microsoft Planner Sync:</strong> Review tasks in chat and click <strong>“Post to Planner”</strong> to publish action items instantly.</li>
                         <li><i class="fa-solid fa-check" aria-hidden="true"></i><strong>Automated Email Summaries:</strong> Every attendee automatically receives a structured Outlook email recap with key decisions and assigned tasks.</li>
                     </ul>
-                    <div class="mela-roadmap"><i class="fa-solid fa-rocket" aria-hidden="true"></i><span><strong>Multi-Platform Roadmap:</strong> Need Jira, Slack, or Asana integrations? <a href="{{ route('contact') }}">Request Enterprise Pilot Access <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a></span></div>
+                    <!-- <div class="mela-roadmap"><i class="fa-solid fa-rocket" aria-hidden="true"></i><span><strong>Multi-Platform Roadmap:</strong> Need Jira, Slack, or Asana integrations? <a href="{{ route('contact') }}">Request Enterprise Pilot Access <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a></span></div> -->
                 </div>
                 <figure class="mela-action-preview">
                     <img
@@ -371,8 +377,195 @@
                 <article class="mela-step"><span class="mela-step-icon"><i class="fa-solid fa-arrow-up-right-dots" aria-hidden="true"></i></span><h3>Sync to Planner</h3><p>Refine titles, pick due dates, and hit <strong>“Post to Planner.”</strong></p></article>
                 <article class="mela-step"><span class="mela-step-icon"><i class="fa-solid fa-envelope-open-text" aria-hidden="true"></i></span><h3>Automated Email Recap</h3><p>All attendees receive a full meeting summary email in Outlook instantly.</p></article>
             </div>
+            <div class="mela-steps">
+                <article class="mela-step"><span class="mela-step-icon"><i class="fa-solid fa-door-closed" aria-hidden="true">
+                    </i></span><h3>Leave Meeting</h3><p>Type <code>@mela please leave </code> respectifully leaves the meeting and stops recording.</p>
+                </article>
+                <article class="mela-step"><span class="mela-step-icon"><i class="fa-solid fa-circle-pause" aria-hidden="true">
+                    </i></span><h3>Pause Recording</h3><p>Type <code>@mela pause recording or @mela unpause recording </code> </p>
+                </article>
+                <article class="mela-step"><span class="mela-step-icon"><i class="fa-solid fa-envelope" aria-hidden="true">
+                    </i></span><h3>Draft Emails</h3><p>Type new email, invitation, or sample message.</p>
+                </article>
+                <article class="mela-step"><span class="mela-step-icon"><i class="fa-solid fa-calendar" aria-hidden="true">
+                    </i></span><h3>Calendar</h3><p>Reads your daily meetings, weekly and past meetings.</p>
+                </article>
+
+            </div>
         </div>
     </section>
+    <section class="mela-section">
+    <div class="mela-container">
+        <h2 class="mela-title mela-feature-title">
+            Go Beyond Notes. Turn Every Conversation Into Action.
+        </h2>
+
+        <p class="mela-muted" style="max-width:760px;margin:0 auto;text-align:center">
+            Mela understands your meetings, captures important discussions, identifies decisions,
+            and helps your teams move from conversations to execution.
+        </p>
+
+        <div class="mela-steps">
+
+            <article class="mela-step">
+                <span class="mela-step-icon">
+                    <i class="fa-solid fa-wave-square" aria-hidden="true"></i>
+                </span>
+                <h3>Real-Time Transcription</h3>
+                <p>
+                    Capture meeting conversations automatically with AI-powered transcription
+                    designed for modern collaboration.
+                </p>
+            </article>
+
+            <article class="mela-step">
+                <span class="mela-step-icon">
+                    <i class="fa-solid fa-user-group" aria-hidden="true"></i>
+                </span>
+                <h3>Speaker Attribution</h3>
+                <p>
+                    Understand who said what with speaker-aware transcripts that make meetings
+                    easier to review.
+                </p>
+            </article>
+
+            <article class="mela-step">
+                <span class="mela-step-icon">
+                    <i class="fa-solid fa-lightbulb" aria-hidden="true"></i>
+                </span>
+                <h3>Decision Intelligence</h3>
+                <p>
+                    Automatically identify decisions, owners, commitments, and follow-up actions
+                    from every discussion.
+                </p>
+            </article>
+
+            <article class="mela-step">
+                <span class="mela-step-icon">
+                    <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                </span>
+                <h3>Searchable Meeting Archive</h3>
+                <p>
+                    Quickly find past conversations, decisions, and action items across your
+                    organization's meeting history.
+                </p>
+            </article>
+
+        </div>
+    </div>
+</section>
+
+
+<section class="mela-section" style="background:var(--mela-light)">
+    <div class="mela-container">
+
+
+        <h2 class="mela-title mela-feature-title">
+            Designed Around How Teams Actually Work
+        </h2>
+
+        <div class="mela-grid-2">
+
+            <div>
+                <ul class="mela-features">
+
+                    <li>
+                        <i class="fa-solid fa-check" aria-hidden="true"></i>
+                        <strong>Sales Teams:</strong>
+                        Capture customer conversations, commitments, and next steps automatically.
+                    </li>
+
+                    <li>
+                        <i class="fa-solid fa-check" aria-hidden="true"></i>
+                        <strong>Leadership Teams:</strong>
+                        Preserve important decisions from executive meetings and reviews.
+                    </li>
+
+                    <li>
+                        <i class="fa-solid fa-check" aria-hidden="true"></i>
+                        <strong>Engineering Teams:</strong>
+                        Convert technical discussions into actionable work items.
+                    </li>
+
+                    <li>
+                        <i class="fa-solid fa-check" aria-hidden="true"></i>
+                        <strong>Operations Teams:</strong>
+                        Maintain searchable knowledge from recurring meetings.
+                    </li>
+
+                </ul>
+            </div>
+
+            <div>
+                <div class="mela-action-preview">
+                    <div style="padding:30px;text-align:center">
+                        <span class="mela-step-icon">
+                            <i class="fa-solid fa-plug" aria-hidden="true"></i>
+                        </span>
+
+                        <h3 style="margin-top:15px">
+                            Connect Your Existing Tools
+                        </h3>
+
+                        <p class="mela-muted">
+                            Extend meeting intelligence across your workflow with integrations
+                            for Planner, Jira, Salesforce, Asana, SharePoint, and other business systems.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+</section>
+
+
+<section class="mela-section">
+    <div class="mela-container">
+
+        <h2 class="mela-title mela-feature-title">
+            AI Built With Security and Governance in Mind
+        </h2>
+
+        <div class="mela-deploy-grid">
+
+            <article class="mela-deploy-card">
+                <span class="mela-num">1</span>
+                <h3>Microsoft 365 Native</h3>
+                <p>
+                    Designed to work within your Microsoft ecosystem using existing collaboration tools.
+                </p>
+            </article>
+
+            <article class="mela-deploy-card">
+                <span class="mela-num">2</span>
+                <h3>Role-Based Access</h3>
+                <p>
+                    Control access and protect meeting information using enterprise permissions.
+                </p>
+            </article>
+
+            <article class="mela-deploy-card">
+                <span class="mela-num">3</span>
+                <h3>Secure Data Handling</h3>
+                <p>
+                    Keep business conversations protected with enterprise-grade security practices.
+                </p>
+            </article>
+
+            <article class="mela-deploy-card">
+                <span class="mela-num">4</span>
+                <h3>Scalable AI Workflows</h3>
+                <p>
+                    Expand meeting intelligence into the tools your organization already uses.
+                </p>
+            </article>
+
+        </div>
+
+    </div>
+</section>
 
     <section class="mela-comparison">
         <div class="mela-container">
@@ -388,6 +581,7 @@
             </table></div>
         </div>
     </section>
+    
 
     <section id="deployment" class="mela-section">
         <div class="mela-container">

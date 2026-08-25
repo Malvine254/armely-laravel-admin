@@ -594,7 +594,9 @@ Route::get('/industries', [HomeController::class, 'industries'])->name('industri
 Route::get('/industries/{industry}', [HomeController::class, 'industryShow'])
     ->where('industry', '[A-Za-z0-9\-]+')
     ->name('industries.show');
-Route::get('/mela-ai', [HomeController::class, 'melaAi'])->name('mela-ai');
+
+//Route::get('/mela-ai', [HomeController::class, 'melaAi'])->name('mela-ai');
+
 Route::get('/mela-meeting-assistant', [HomeController::class, 'melaMeetingAssistant'])->name('mela-meeting-assistant');
 Route::view('/mela-ai-terms-of-use', 'legal.mela-terms-of-use')->name('mela.terms');
 Route::view('/mela-ai-privacy-policy', 'legal.mela-ai-privacy-policy')->name('mela.privacy');
