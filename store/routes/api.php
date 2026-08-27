@@ -58,6 +58,9 @@ Route::prefix('v1')->group(function () {
     Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
     Route::get('/auth/activate', [AuthController::class, 'activateAccount']);
     Route::post('/auth/resend-activation', [AuthController::class, 'resendActivation']);
+    Route::get('/profile-pictures/{path}', [AuthController::class, 'profilePicture'])
+        ->where('path', 'profile-pictures/.*')
+        ->middleware('throttle:120,1');
     Route::get('/auth/me', [AuthController::class, 'me'])->middleware(['auth:sanctum', 'active.user']);
     Route::match(['put', 'post'], '/auth/update-profile', [AuthController::class, 'updateProfile'])->middleware(['auth:sanctum', 'active.user']);
     Route::delete('/auth/account', [AuthController::class, 'deleteAccount'])->middleware(['auth:sanctum', 'active.user']);

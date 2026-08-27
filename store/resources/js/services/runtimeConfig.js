@@ -84,6 +84,9 @@ export const normalizeLocalAssetUrl = (value) => {
     if (
       rawValue.startsWith('/')
       && !rawValue.startsWith('//')
+      // Profile uploads are exposed by the host application's root storage
+      // mount. Product images are handled separately by resolveProductImageUrl.
+      && !rawValue.startsWith('/storage/')
       && APP_BASE_PATH !== '/'
       && !rawValue.startsWith(APP_BASE_PATH)
     ) {
@@ -92,6 +95,19 @@ export const normalizeLocalAssetUrl = (value) => {
 
     const assetUrl = new URL(rawValue, window.location.origin)
     const assetHost = assetUrl.hostname.toLowerCase()
+
+    // Older API payloads may contain /store/storage/* even though the shared
+    // public-storage mount lives at /storage/*. Repair those URLs at runtime.
+    const mountedStoragePrefix = `${APP_BASE_PATH}storage/`.replace(/\/+/g, '/')
+    if (
+      !isLocalHost
+      && assetHost === currentHost
+      && APP_BASE_PATH !== '/'
+      && assetUrl.pathname.startsWith(mountedStoragePrefix)
+    ) {
+      const rootStoragePath = assetUrl.pathname.slice(APP_BASE_PATH.length - 1)
+      return `${window.location.origin}${rootStoragePath}${assetUrl.search}`
+    }
 
     if (
       isLocalHost &&

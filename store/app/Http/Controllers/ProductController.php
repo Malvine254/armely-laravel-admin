@@ -211,7 +211,7 @@ class ProductController extends Controller
     /** Popular catalog categories with a representative in-stock product image. */
     public function popularCategories(): JsonResponse
     {
-        $categories = Cache::remember('storefront_popular_categories_v7', now()->addHour(), function () {
+        $categories = Cache::remember('storefront_popular_categories_v8_validated-images', now()->addHour(), function () {
             $popular = [
                 [
                     'name' => 'Laptops & Notebooks', 'label' => 'Laptops', 'slug' => 'laptops-notebooks', 'segments' => ['01'],
@@ -261,7 +261,7 @@ class ProductController extends Controller
                         );
                     }
 
-                    $product = $query
+                    $products = $query
                         ->withSum('orderLineItems as units_sold', 'quantity')
                         ->orderByRaw("CASE WHEN
                             UPPER(COALESCE(manufacturer, '')) LIKE '%DELL%'
@@ -279,16 +279,23 @@ class ProductController extends Controller
                         ->orderByDesc('quantity')
                         ->orderByDesc('created_at')
                         ->orderByDesc('id')
-                        ->first();
+                        ->limit(25)
+                        ->get();
 
-                    if (!$product) {
+                    if ($products->isEmpty()) {
                         return null;
                     }
 
-                    $images = $this->normalizeSavedProductImages($product->images, $product);
-                    $imageUrl = (string) ($images[0]['imageUrl'] ?? '');
-                    if ($imageUrl === '') {
-                        return null;
+                    $product = $products->first();
+                    $imageUrl = '';
+                    foreach ($products as $candidate) {
+                        $images = $this->normalizeSavedProductImages($candidate->images, $candidate);
+                        $candidateUrl = (string) ($images[0]['imageUrl'] ?? '');
+                        if ($candidateUrl !== '') {
+                            $product = $candidate;
+                            $imageUrl = $candidateUrl;
+                            break;
+                        }
                     }
 
                     return [

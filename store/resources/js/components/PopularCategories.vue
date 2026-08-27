@@ -34,11 +34,17 @@
             class="flex h-[190px] w-full items-center justify-center bg-white px-4 pb-2 pt-5"
           >
             <img
+              v-if="getCategoryImage(category) && !failedCategoryImages[category.slug]"
               :src="getCategoryImage(category)"
               :alt="`${category.label} category`"
               class="h-full w-full object-contain transition duration-300 group-hover:scale-[1.03]"
               loading="lazy"
+              @error="failedCategoryImages[category.slug] = true"
             />
+            <svg v-else class="h-20 w-20 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 7.5A2.5 2.5 0 0 1 6.5 5h11A2.5 2.5 0 0 1 20 7.5v9a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.5v-9Z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="m7 15 2.5-2.5 2 2 2.5-3 3 3.5M8.5 9.5h.01"/>
+            </svg>
           </span>
 
           <span
@@ -63,48 +69,11 @@ const router = useRouter()
 
 const categories = ref([])
 const loading = ref(true)
+const failedCategoryImages = ref({})
 
-/*
- * Popular category images
- *
- * Using relative /store/images/products paths instead of localhost
- * or a hardcoded production hostname.
- *
- * This allows the browser to automatically use the current domain.
- */
-const categoryImages = {
-  'laptops-notebooks': '15369139.jpg',
-  'printers-scanners': '9111913.jpeg',
-  'monitors-displays': '15378549.jpg',
-  networking: '6791825.png',
-  'desktops-workstations': '15329586.jpg',
-}
-
-const productImageFolder = '/images/products'
-
-const buildCategoryImagePath = fileName => {
-  // Enforce filename-only values to avoid accidental path traversal.
-  const safeFileName = String(fileName || '').replace(/[\\/]/g, '')
-
-  return safeFileName ? `${productImageFolder}/${safeFileName}` : ''
-}
-
-/*
- * Return our custom category image when available.
- *
- * If another category comes from the API that is not included
- * in the map above, fall back to its API image.
- */
-const getCategoryImage = category => {
-  const customImageFile = categoryImages[category.slug]
-  const customImage = buildCategoryImagePath(customImageFile)
-
-  if (customImage) {
-    return customImage
-  }
-
-  return resolveProductImageUrl(category.imageUrl)
-}
+// The API validates local files and selects a current representative product.
+// Do not override it with filenames that may not exist in a deployment.
+const getCategoryImage = category => resolveProductImageUrl(category.imageUrl)
 
 const browseCategory = category => {
   const searchTerms = {

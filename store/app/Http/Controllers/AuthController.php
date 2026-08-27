@@ -122,9 +122,12 @@ class AuthController extends Controller
             return null;
         }
 
-        $relativePublicPath = 'storage/' . ltrim($normalizedPath, '/');
         $absoluteDiskPath = storage_path('app/public/' . ltrim($normalizedPath, '/'));
-        $version = is_file($absoluteDiskPath) ? ('?v=' . (string) @filemtime($absoluteDiskPath)) : '';
+        if (!is_file($absoluteDiskPath)) {
+            return null;
+        }
+
+        $version = '?v=' . (string) @filemtime($absoluteDiskPath);
 
         $baseUrl = '';
 
@@ -152,7 +155,27 @@ class AuthController extends Controller
             $baseUrl = rtrim((string) config('app.frontend_url'), '/');
         }
 
-        return rtrim($baseUrl, '/') . '/' . $relativePublicPath . $version;
+        $encodedPath = implode('/', array_map('rawurlencode', explode('/', $normalizedPath)));
+
+        return rtrim($baseUrl, '/') . '/api/v1/profile-pictures/' . $encodedPath . $version;
+    }
+
+    public function profilePicture(string $path)
+    {
+        $normalizedPath = $this->normalizeStoredProfilePicturePath($path);
+        if (!$normalizedPath || !str_starts_with($normalizedPath, 'profile-pictures/')) {
+            abort(404);
+        }
+
+        $disk = Storage::disk('public');
+        if (!$disk->exists($normalizedPath)) {
+            abort(404);
+        }
+
+        return response()->file($disk->path($normalizedPath), [
+            'Cache-Control' => 'public, max-age=86400, immutable',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
     }
 
     private function resolveTeamImageUrl(?User $user, Request $request): ?string
