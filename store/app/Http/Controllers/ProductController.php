@@ -1938,6 +1938,16 @@ class ProductController extends Controller
                 continue;
             }
 
+            // Do not publish stale local image paths from the database. A missing
+            // file would otherwise hit the SPA catch-all and return HTML to an
+            // <img> request instead of allowing the frontend placeholder to show.
+            if (str_starts_with($url, '/')) {
+                $localPath = (string) parse_url($url, PHP_URL_PATH);
+                if ($localPath === '' || !is_file(public_path(ltrim($localPath, '/')))) {
+                    continue;
+                }
+            }
+
             // External URLs are routed through the server-side proxy so the browser never
             // makes cross-origin image requests (avoids CORS/CSP failures and timeouts).
             // The proxy downloads and caches each image locally on first hit.

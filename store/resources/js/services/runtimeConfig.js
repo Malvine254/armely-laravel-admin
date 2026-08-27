@@ -182,13 +182,10 @@ export const resolveProductImageUrl = (value) => {
     if (!productPath) return normalizeLocalAssetUrl(rawValue)
 
     if (isLocal) {
-      const assetOrigin = current.port === '8000'
-        ? `${current.protocol}//${current.hostname}:8001`
-        : current.origin
       const normalizedProductPath = APP_BASE_PATH !== '/'
         ? buildStoreUrl(productPath)
         : productPath
-      return `${assetOrigin}${normalizedProductPath}${parsed.search}`
+      return `${current.origin}${normalizedProductPath}${parsed.search}`
     }
 
     // Preserve already-absolute production store URLs returned by the API.
@@ -207,21 +204,11 @@ const detectRuntimeApiBaseUrl = () => {
     return '/api/v1'
   }
 
-  const { origin, hostname, port } = window.location
+  const { origin } = window.location
   const basePath = APP_BASE_PATH
-
-  // Local dev: root app runs on :8000 while store API is served on :8001.
-  if ((hostname === '127.0.0.1' || hostname === 'localhost') && port === '8000') {
-    return `http://${hostname}:8001/api/v1`
-  }
 
   if (basePath !== '/') {
     return `${origin}${basePath}api/v1`
-  }
-
-  // Local store app served directly on :8001 keeps API at root /api/v1.
-  if ((hostname === '127.0.0.1' || hostname === 'localhost') && port === '8001') {
-    return `${origin}/api/v1`
   }
 
   return `${origin}/api/v1`

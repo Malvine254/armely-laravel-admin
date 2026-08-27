@@ -62,5 +62,5 @@ Route::get('/login', $spaEntrypoint)->name('login');
 // Store SPA catch-all - serve the Vue.js SPA for all unmatched routes
 // BUT exclude API routes (both /api and /store/api) and system routes
 Route::get('/{any}', $spaEntrypoint)
-    ->where('any', '^(?!api/|store/api/|upload/).*$')
+    ->where('any', '^(?!api/|store/api/|upload/|images/|storage/|build/).*$')
     ->name('store.catchall');
