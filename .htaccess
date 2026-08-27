@@ -18,6 +18,11 @@
     RewriteRule ^ / [L,R=301,NE]
 
     # 3a. Serve real static files from store/public/ (store CSS, JS, images …).
+    # Serve legacy product-image URLs from the store's public image directory.
+    RewriteCond %{REQUEST_URI} ^/images/products/(.+)$ [NC]
+    RewriteCond %{DOCUMENT_ROOT}/store/public/images/products/%1 -f
+    RewriteRule ^images/products/(.+)$ store/public/images/products/$1 [L]
+
     RewriteCond %{REQUEST_URI} ^/store/(.+)$ [NC]
     RewriteCond %{DOCUMENT_ROOT}/store/public/%1 -f
     RewriteRule ^store/(.+)$ store/public/$1 [L]

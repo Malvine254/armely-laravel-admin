@@ -51,6 +51,22 @@ if ($candidatePath !== '') {
     $storePublicRealPath = realpath($storePublicPath);
     $storeStoragePublicRealPath = realpath($storeBasePath . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'app' . DIRECTORY_SEPARATOR . 'public');
 
+    // Shared hosts may not support Laravel's public/storage symlink. Resolve
+    // /store/storage/* directly from storage/app/public as a fallback.
+    if (
+        $candidateFullPath === false
+        && str_starts_with(str_replace(DIRECTORY_SEPARATOR, '/', $candidatePath), 'storage/')
+        && $storeStoragePublicRealPath !== false
+    ) {
+        $storageRelativePath = substr(
+            str_replace(DIRECTORY_SEPARATOR, '/', $candidatePath),
+            strlen('storage/')
+        );
+        $candidateFullPath = realpath(
+            $storeStoragePublicRealPath . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $storageRelativePath)
+        );
+    }
+
     // Compatibility fallback for stale cached HTML that references older
     // hashed Vite files after a deployment.
     if (
