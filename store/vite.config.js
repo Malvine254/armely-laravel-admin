@@ -6,8 +6,7 @@ import tailwindcss from '@tailwindcss/vite';
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, process.cwd(), '');
     const appBasePath = env.VITE_APP_BASE_PATH || '/';
-    const normalizedBasePath = appBasePath.replace(/^\/+|\/+$/g, '');
-    const buildDirectory = normalizedBasePath ? `${normalizedBasePath}/build` : 'build';
+    const buildDirectory = env.VITE_BUILD_DIRECTORY || 'build';
 
     return {
         base: appBasePath,

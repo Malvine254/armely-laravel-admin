@@ -14,9 +14,8 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        $basePath = trim((string) config('app.frontend_base_path', '/'), '/');
-        $buildDirectory = $basePath !== '' ? $basePath.'/build' : 'build';
-
-        Vite::useBuildDirectory($buildDirectory);
+        // The browser URL prefix (/store/) is independent from the physical
+        // manifest location inside this Laravel application's public folder.
+        Vite::useBuildDirectory((string) env('VITE_BUILD_DIRECTORY', 'build'));
     }
 }
