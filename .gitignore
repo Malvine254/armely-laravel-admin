@@ -8,6 +8,7 @@
 .env.backup
 .env.production
 store/prod.env
+/store/.env.prod
 .phpactor.json
 .phpunit.result.cache
 /.fleet
