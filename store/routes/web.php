@@ -22,8 +22,14 @@ Route::get('/dashboard', function () {
     abort(404);
 });
 
-// Lightweight public ping for deployment health checks (no auth)
-Route::get('/admin/ping', [AdminController::class, 'ping'])->name('store.admin.ping');
+// Lightweight public ping for deployment health checks (no auth). Keep this
+// self-contained so it remains available during controller deployments.
+Route::get('/admin/ping', static function () {
+    return response()->json([
+        'success' => true,
+        'service' => 'armely-store',
+    ]);
+})->name('store.admin.ping');
 
 // Public share preview pages for WhatsApp/Teams/chat link unfurls.
 Route::get('/share/product/{productId}', [SharePreviewController::class, 'product'])

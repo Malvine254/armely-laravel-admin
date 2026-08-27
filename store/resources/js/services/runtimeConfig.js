@@ -221,6 +221,13 @@ const shouldUseConfiguredApiBaseUrl = (value) => {
     return false
   }
 
+  // Reject path-like values missing a leading slash (for example
+  // `store/api/v1`), because Axios would resolve them relative to the current
+  // page and produce routes such as /store/login/store/api/v1.
+  if (!configured.startsWith('/') && !/^https?:\/\//i.test(configured)) {
+    return false
+  }
+
   if (typeof window === 'undefined') {
     return true
   }
