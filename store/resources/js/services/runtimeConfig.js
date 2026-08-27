@@ -55,10 +55,11 @@ const detectRuntimeBasePath = () => {
 
 const configuredBasePath = import.meta.env.VITE_APP_BASE_PATH || ''
 
-// Prefer explicit env config, then runtime URL detection (for subpath deployments),
-// and finally Vite's BASE_URL fallback.
+// Prefer the live browser location so one build works both at a local root and
+// under the production /store subpath. Environment values remain the SSR/build
+// fallback when window is unavailable.
 export const APP_BASE_PATH = normalizeBasePath(
-  configuredBasePath || detectRuntimeBasePath() || import.meta.env.BASE_URL || '/'
+  detectRuntimeBasePath() || configuredBasePath || import.meta.env.BASE_URL || '/'
 )
 
 export const buildStoreUrl = (path = '') => {
@@ -247,13 +248,14 @@ const shouldUseConfiguredApiBaseUrl = (value) => {
     return false
   }
 
-  // In local bridge mode (/store), force runtime API detection unless the
-  // configured URL already points to the bridged store API path.
+  // Whenever the app is mounted below a subpath, force runtime API detection
+  // unless the configured URL includes that same subpath. This prevents a
+  // bundle built locally with /api/v1 from calling the main site's API after
+  // it is deployed at /store.
   if (
-    isLocalHost
-    && APP_BASE_PATH !== '/'
+    APP_BASE_PATH !== '/'
     && /\/api\/v1$/i.test(configuredPath)
-    && !/\/store\/api\/v1$/i.test(configuredPath)
+    && !configuredPath.startsWith(`${APP_BASE_PATH}api/`)
   ) {
     return false
   }
