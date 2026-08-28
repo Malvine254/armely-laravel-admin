@@ -3667,13 +3667,18 @@ class ProductController extends Controller
         }
 
         $destDir = public_path(config('tdsynnex.local_images.dest_dir', 'images/products'));
-        $urlPrefix = rtrim((string) config('tdsynnex.local_images.url_prefix', '/images/products'), '/');
-        $cacheKey = 'img-proxy:' . md5($url);
+        $fileStem = md5($url);
 
-        // Check if we already have a local copy (stored path in cache).
-        $localUrl = Cache::get($cacheKey);
-        if ($localUrl) {
-            return redirect($localUrl, 301);
+        // Serve cached files through this endpoint. Redirecting to /images/*
+        // breaks when the Store is mounted below /store in production.
+        foreach (['jpg', 'jpeg', 'png', 'gif', 'webp'] as $cachedExtension) {
+            $cachedPath = $destDir . DIRECTORY_SEPARATOR . $fileStem . '.' . $cachedExtension;
+            if (is_file($cachedPath)) {
+                return response()->file($cachedPath, [
+                    'Cache-Control' => 'public, max-age=2592000, immutable',
+                    'X-Content-Type-Options' => 'nosniff',
+                ]);
+            }
         }
 
         try {
@@ -3681,18 +3686,28 @@ class ProductController extends Controller
                 'User-Agent' => 'Mozilla/5.0 (compatible; ArmelyStore/1.0)',
             ])->timeout(10)->get($url);
 
-            if (!$response->successful() || strlen($response->body()) < 500) {
-                abort(404, 'Remote image not available');
+            $contentType = strtolower(trim((string) $response->header('Content-Type')));
+            if (
+                !$response->successful()
+                || strlen($response->body()) < 500
+                || !str_starts_with($contentType, 'image/')
+            ) {
+                return $this->imageProxyPlaceholderResponse();
             }
 
-            $ext = strtolower(pathinfo(parse_url($url, PHP_URL_PATH) ?? '', PATHINFO_EXTENSION));
+            $ext = match (true) {
+                str_contains($contentType, 'png') => 'png',
+                str_contains($contentType, 'webp') => 'webp',
+                str_contains($contentType, 'gif') => 'gif',
+                str_contains($contentType, 'jpeg'), str_contains($contentType, 'jpg') => 'jpg',
+                default => strtolower(pathinfo(parse_url($url, PHP_URL_PATH) ?? '', PATHINFO_EXTENSION)),
+            };
             if (!in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'], true)) {
                 $ext = 'jpg';
             }
 
-            $filename = md5($url) . '.' . $ext;
+            $filename = $fileStem . '.' . $ext;
             $localPath = $destDir . DIRECTORY_SEPARATOR . $filename;
-            $localUrl = $urlPrefix . '/' . $filename;
 
             if (!is_dir($destDir)) {
                 mkdir($destDir, 0775, true);
@@ -3700,13 +3715,33 @@ class ProductController extends Controller
 
             file_put_contents($localPath, $response->body());
 
-            // Cache the local URL for 30 days so subsequent requests redirect immediately.
-            Cache::put($cacheKey, $localUrl, now()->addDays(30));
-
-            return redirect($localUrl, 301);
+            return response()->file($localPath, [
+                'Cache-Control' => 'public, max-age=2592000, immutable',
+                'X-Content-Type-Options' => 'nosniff',
+            ]);
         } catch (\Throwable $e) {
             Log::debug('imageProxy failed', ['url' => $url, 'error' => $e->getMessage()]);
-            abort(502, 'Could not fetch remote image');
+            return $this->imageProxyPlaceholderResponse();
         }
+    }
+
+    private function imageProxyPlaceholderResponse(): \Illuminate\Http\Response
+    {
+        $svg = <<<'SVG'
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480" viewBox="0 0 640 480" role="img" aria-label="Product image unavailable">
+  <rect width="640" height="480" fill="#f8fafc"/>
+  <g fill="none" stroke="#cbd5e1" stroke-linecap="round" stroke-linejoin="round" stroke-width="12">
+    <rect x="190" y="120" width="260" height="240" rx="24"/>
+    <path d="m220 320 70-72 54 52 56-82 28 38"/>
+    <circle cx="270" cy="190" r="24"/>
+  </g>
+</svg>
+SVG;
+
+        return response($svg, 200, [
+            'Content-Type' => 'image/svg+xml; charset=UTF-8',
+            'Cache-Control' => 'public, max-age=3600',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
     }
 }

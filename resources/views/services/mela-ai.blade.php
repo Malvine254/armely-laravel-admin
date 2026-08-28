@@ -37,7 +37,7 @@
 }
 .mela-page * { box-sizing: border-box; }
 .mela-page .mela-container { width: min(1140px, calc(100% - 40px)); margin: 0 auto; }
-.mela-page .mela-hero { position: relative; overflow: hidden; background: radial-gradient(circle at 82% 18%, rgba(106,145,211,.3), transparent 28%), linear-gradient(135deg, #142b52, #2f5597); color: #fff; padding: 58px 0; }
+.mela-page .mela-hero { position: relative; overflow: hidden; background: radial-gradient(circle at 82% 18%, rgba(106,145,211,.3), transparent 28%), linear-gradient(135deg, #142b52, #2f5597); color: #fff; padding: 10px 0; }
 .mela-page .mela-hero::before { content: ""; position: absolute; width: 420px; height: 420px; left: -230px; bottom: -300px; border: 1px solid rgba(255,255,255,.12); border-radius: 50%; }
 .mela-page .mela-hero-grid { position: relative; z-index: 1; }
 .mela-page .mela-hero-grid, .mela-page .mela-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; }
@@ -154,7 +154,7 @@
 .mela-product-muted { background: linear-gradient(145deg, #fbfcfe, #f3f6fb); }
 .mela-page .mela-service-hero { min-height: auto; display: flex; align-items: center; justify-content: center; padding: 86px 56px 70px; background: linear-gradient(135deg, #173b67 0%, #234f86 100%); }
 .mela-page .mela-service-hero::before, .mela-page .mela-service-hero::after { display: none; }
-.mela-page .mela-service-hero .mela-hero-grid { display: grid; width: min(1120px, 100%); margin: 0 auto; grid-template-columns: minmax(0, 1fr) minmax(360px, .9fr); gap: 48px; align-items: center; }
+.mela-page .mela-service-hero .mela-hero-grid { display: grid; width: min(1120px, 100%); margin: 0 auto; grid-template-columns: minmax(0, 1fr) minmax(360px, .9fr); gap: 30px; align-items: center; }
 .mela-page .mela-service-hero .mela-hero-copy { max-width: 560px; }
 .mela-page .mela-service-eyebrow { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; }
 .mela-page .mela-service-eyebrow .mela-badge { margin: 0; padding: 7px 14px; border: 1px solid rgba(255,255,255,.22); border-radius: 999px; background: rgba(255,255,255,.1); color: rgba(255,255,255,.88); font-size: .72rem; letter-spacing: .12em; text-transform: uppercase; }
@@ -162,6 +162,18 @@
 .mela-page .mela-service-hero h1 { max-width: 900px; margin-bottom: 18px; font-size: clamp(1.75rem, 3.2vw, 2.7rem); font-weight: 800; line-height: 1.05; letter-spacing: -.04em; }
 .mela-page .mela-service-hero .mela-hero-copy > p { max-width: 760px; margin-bottom: 28px; color: rgba(255,255,255,.82); font-size: 1rem; font-weight: 300; line-height: 1.7; }
 .mela-page .mela-service-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.mela-page .mela-service-actions {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 14px;
+    align-items: center;
+}
+
+.mela-page .mela-service-actions .mela-btn {
+    white-space: nowrap;
+    min-width: auto;
+}
 .mela-page .mela-service-actions .mela-btn { min-width: 190px; margin: 0; border-radius: 8px; padding: 14px 32px; font-size: .95rem; }
 .mela-page .mela-service-hero .mela-hero-copy > .mela-note { margin: 14px 0 0; color: rgba(255,255,255,.72); font-size: .82rem; line-height: 1.55; }
 .mela-page .mela-service-hero .mela-btn-primary { background: #2f5597; color: #fff; box-shadow: none; }
@@ -289,9 +301,21 @@
                 <h1>Intelligence Embedded Into How Your Business Works</h1>
                 <p>From real-time meeting capture to direct task syncing and automated email summaries, Mela automates post-meeting execution across Microsoft 365.</p>
                 <div class="mela-service-actions">
-                    <a href="#mela-contact" class="mela-btn mela-btn-primary">Request Free 14-Day Pilot <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+                   <div class="mela-service-actions">
+                        <a href="#mela-contact" class="mela-btn mela-btn-primary">
+                            Request Free 14-Day Pilot 
+                            <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                        </a>
+
+                        <a href="{{ route('help') }}" class="mela-btn btn btn-light">
+                            View Command Guide 
+                            <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                        </a>
+                    </div>
+
                 </div>
-                <p class="mela-note"><em>Requires Microsoft Teams Admin Access • Guided 10-Minute Onboarding</em></p>
+                <br>
+                <p class="mela-note mt-4"><em>Requires Microsoft Teams Admin Access • Guided 10-Minute Onboarding</em></p>
             </div>
             <div class="mela-media" id="mela-demo">
                 <?php
@@ -352,9 +376,6 @@
                         <li><i class="fa-solid fa-check" aria-hidden="true"></i><strong>Zero “Recording Anxiety”:</strong> Captures transcriptions independently, eliminating awkward recording pop-ups and compliance roadblocks.</li>
                         <li><i class="fa-solid fa-check" aria-hidden="true"></i><strong>Command-Driven Privacy:</strong> Type <code>@mela please join</code> when business begins, and <code>@mela please leave</code> when private chatter starts. 
                         
-                        <code>@mela what did last person say</code> - live meeting notes, 
-                        <code>@mela summarize, generate minutes, or fetch transcript</code>, 
-                         <code>@mela help</code> - to get more help regarding how to use or configure Mela 
                     
                     </li>
                         <li><i class="fa-solid fa-check" aria-hidden="true"></i><strong>Native Microsoft Planner Sync:</strong> Review tasks in chat and click <strong>“Post to Planner”</strong> to publish action items instantly.</li>
@@ -394,6 +415,7 @@
             </div>
         </div>
     </section>
+  
     <section class="mela-section">
     <div class="mela-container">
         <h2 class="mela-title mela-feature-title">
@@ -573,11 +595,132 @@
             <div class="mela-table-wrap"><table>
                 <thead><tr><th>Capability</th><th>Standard Teams</th><th>3rd-Party Bots</th><th class="mela-highlight">Mela Meeting Assistant</th></tr></thead>
                 <tbody>
-                    <tr><td><strong>Recording Dependency</strong></td><td>Requires active video/audio recording with consent pop-ups.</td><td>Forces call recording; inserts intrusive guest bots.</td><td class="mela-highlight"><strong>Independent of call recording</strong> via <code>@mela</code> commands.</td></tr>
-                    <tr><td><strong>Privacy Control</strong></td><td>Full-call recording or admin rules.</td><td>Stays for the full call, capturing private side-chatter.</td><td class="mela-highlight"><strong>On-Demand Privacy:</strong> Join/leave anytime via <code>@mela please join/leave</code>.</td></tr>
-                    <tr><td><strong>Data Governance</strong></td><td>Standard OneDrive / SharePoint storage.</td><td>Stored on external third-party servers.</td><td class="mela-highlight"><strong>100% Secure M365:</strong> Operates entirely within your enterprise environment.</td></tr>
-                    <tr><td><strong>Task Execution &amp; Recaps</strong></td><td>Static text notes requiring copy-pasting.</td><td>Isolated lists on external web portals.</td><td class="mela-highlight"><strong>1-Click Planner Sync + Email Summaries:</strong> Direct task export and attendee recaps.</td></tr>
-                </tbody>
+
+<tr>
+    <td><strong>Meeting Participation Control</strong></td>
+    <td>
+        Requires starting a full recording session or manual note taking.
+    </td>
+    <td>
+        Automatically joins meetings and remains present for the entire call.
+    </td>
+    <td class="mela-highlight">
+        <strong>On-Demand Control:</strong><br>
+        Use <code>@mela please join</code> when needed and 
+        <code>@mela please leave</code> when private discussions begin.
+    </td>
+</tr>
+
+
+<tr>
+    <td><strong>Recording Privacy Control</strong></td>
+    <td>
+        Limited control once recording begins.
+    </td>
+    <td>
+        Captures the entire meeting, including conversations where the bot is not needed.
+    </td>
+    <td class="mela-highlight">
+        <strong>Flexible Privacy:</strong><br>
+        Pause and resume capture using 
+        <code>@mela pause recording</code> and 
+        <code>@mela unpause recording</code>.
+    </td>
+</tr>
+
+
+<tr>
+    <td><strong>Live Meeting Assistance</strong></td>
+    <td>
+        Requires participants to manually review notes.
+    </td>
+    <td>
+        Provides transcripts but limited real-time interaction.
+    </td>
+    <td class="mela-highlight">
+        <strong>Real-Time Meeting Intelligence:</strong><br>
+        Ask <code>@mela what did last person say</code> to quickly catch up during conversations.
+    </td>
+</tr>
+
+
+<tr>
+    <td><strong>Meeting Summaries &amp; Minutes</strong></td>
+    <td>
+        Requires manual summary creation.
+    </td>
+    <td>
+        Generates summaries through external portals.
+    </td>
+    <td class="mela-highlight">
+        <strong>Instant AI Notes:</strong><br>
+        Use <code>@mela summarize</code>,
+        <code>@mela generate minutes</code>,
+        or <code>@mela fetch transcript</code>.
+    </td>
+</tr>
+
+
+<tr>
+    <td><strong>Task Execution &amp; Follow-Up</strong></td>
+    <td>
+        Static notes requiring manual copy and tracking.
+    </td>
+    <td>
+        Creates isolated tasks outside existing business workflows.
+    </td>
+    <td class="mela-highlight">
+        <strong>Microsoft Planner Integration:</strong><br>
+        Convert action items into Planner tasks and assign follow-ups directly.
+    </td>
+</tr>
+
+
+<tr>
+    <td><strong>Email &amp; Calendar Assistance</strong></td>
+    <td>
+        Requires switching between applications.
+    </td>
+    <td>
+        Usually focused only on meeting transcription.
+    </td>
+    <td class="mela-highlight">
+        <strong>Microsoft 365 Workflow Assistant:</strong><br>
+        Draft emails, review calendar information, and manage meeting workflows.
+    </td>
+</tr>
+
+
+<tr>
+    <td><strong>Command Discovery &amp; Support</strong></td>
+    <td>
+        Requires searching documentation.
+    </td>
+    <td>
+        Limited command-based interaction.
+    </td>
+    <td class="mela-highlight">
+        <strong>Built-In Help:</strong><br>
+        Type <code>@mela help</code> to view available commands and guidance.
+    </td>
+</tr>
+
+
+<tr>
+    <td><strong>Data Governance</strong></td>
+    <td>
+        Standard Microsoft storage and compliance controls.
+    </td>
+    <td>
+        Meeting data may be processed outside your Microsoft environment.
+    </td>
+    <td class="mela-highlight">
+        <strong>Microsoft 365 Native:</strong><br>
+        Designed to operate within your organization's Microsoft ecosystem.
+    </td>
+</tr>
+
+</tbody>
             </table></div>
         </div>
     </section>
