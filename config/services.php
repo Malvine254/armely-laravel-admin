@@ -51,6 +51,10 @@ return [
         'contact_form_conversion_label' => env('GOOGLE_ADS_CONTACT_FORM_CONVERSION_LABEL', 'contact_form_submit'),
     ],
 
+    'linkedin_insight' => [
+        'partner_id' => env('LINKEDIN_INSIGHT_PARTNER_ID', ''),
+    ],
+
     'azure_mail' => [
         'tenant_id'     => env('AZURE_TENANT_ID', ''),
         'client_id'     => env('AZURE_CLIENT_ID', ''),

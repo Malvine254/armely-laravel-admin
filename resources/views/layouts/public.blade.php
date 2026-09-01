@@ -1672,6 +1672,35 @@ main .service-card {
 <!-- Main Scripts -->
 <script src="{{ asset('js/main.js') }}?v={{ file_exists(public_path('js/main.js')) ? filemtime(public_path('js/main.js')) : '' }}" defer></script>
 
+@php($linkedinPartnerId = config('services.linkedin_insight.partner_id', ''))
+@if($linkedinPartnerId)
+<script>
+    window._linkedin_partner_id = @json($linkedinPartnerId);
+    window._linkedin_data_partner_ids = window._linkedin_data_partner_ids || [];
+    window._linkedin_data_partner_ids.push(window._linkedin_partner_id);
+</script>
+<script>
+    (function (linkedInTracker) {
+        if (!linkedInTracker) {
+            window.lintrk = function (event, data) {
+                window.lintrk.q.push([event, data]);
+            };
+            window.lintrk.q = [];
+        }
+
+        var firstScript = document.getElementsByTagName('script')[0];
+        var insightScript = document.createElement('script');
+        insightScript.type = 'text/javascript';
+        insightScript.async = true;
+        insightScript.src = 'https://snap.licdn.com/li.lms-analytics/insight.min.js';
+        firstScript.parentNode.insertBefore(insightScript, firstScript);
+    })(window.lintrk);
+</script>
+<noscript>
+    <img height="1" width="1" style="display:none;" alt="" src="https://px.ads.linkedin.com/collect/?pid={{ urlencode($linkedinPartnerId) }}&amp;fmt=gif">
+</noscript>
+@endif
+
 @stack('scripts')
 </body>
 </html>
