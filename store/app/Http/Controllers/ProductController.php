@@ -984,7 +984,7 @@ class ProductController extends Controller
         $cacheKey = sprintf(
             'pa_browse_page:%s',
             md5(json_encode([
-                'v' => 27,
+                'v' => 28,
                 'price_version' => Cache::get('catalog:price_version', '1'),
                 'page' => (int) $pageNo,
                 'page_size' => (int) $pageSize,
@@ -1127,13 +1127,12 @@ class ProductController extends Controller
         }
 
         if ($isDefaultBrowse) {
-            $this->applyPriorityItProductFilterToQuery($query);
             // The default storefront is already constrained by availability,
-            // hardware-quality, price, and priority-IT rules below. Do not also
+            // hardware quality and price. Do not also
             // restrict it to the persisted curated snapshot: that snapshot can
             // contain fewer than the 3,000 products promised by the catalog UI.
-            // Ranking still uses storefront_rank, and the result set remains
-            // capped by STOREFRONT_MAX_DEFAULT_PRODUCTS.
+            // The shared ID pool ranks priority IT products without excluding
+            // other eligible hardware needed to fill the 3,000-product cap.
         }
 
         if ($hideZero) {
@@ -2522,7 +2521,7 @@ class ProductController extends Controller
     /** IDs from the same capped pool exposed by the default storefront catalog. */
     private function storefrontCappedProductIds(): array
     {
-        return Cache::remember('storefront_capped_product_ids_v6', 1800, function (): array {
+        return Cache::remember('storefront_capped_product_ids_v7', 1800, function (): array {
             $query = Product::query()
                 ->select('id')
                 ->where('vendor_id', 'TD SYNNEX')
@@ -2539,8 +2538,9 @@ class ProductController extends Controller
                         ->orWhereRaw($this->preferredDbPriceSql() . ' >= ?', [$this->storefrontMinPrice(null) ?? self::STOREFRONT_MIN_PRICE]);
                 });
 
-            $this->applyCuratedDefaultBrowseFilters($query);
-            $this->applyPriorityItProductFilterToQuery($query);
+            if ((bool) config('tdsynnex.catalog.hardware_only', true)) {
+                $this->applyHardwareOnlyExclusions($query);
+            }
             $this->applyCatalogCleanFilterToQuery($query);
 
             return $query
