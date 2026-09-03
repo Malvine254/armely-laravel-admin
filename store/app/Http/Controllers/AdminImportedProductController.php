@@ -9,6 +9,67 @@ use Illuminate\Http\Request;
 
 class AdminImportedProductController extends Controller
 {
+    private ?array $cachedLocalImageProductIds = null;
+
+    private function applyImageFilter($query, string $imageFilter): void
+    {
+        $localImageProductIds = $this->localImageProductIds();
+
+        if ($imageFilter === 'with_image') {
+            $query->where(function ($q) use ($localImageProductIds) {
+                $q->where('images', 'like', '%http%');
+                if ($localImageProductIds !== []) {
+                    $q->orWhereIn('tdsynnex_product_id', $localImageProductIds);
+                }
+            });
+        } elseif ($imageFilter === 'no_image') {
+            $query->where(fn ($q) => $q->whereNull('images')->orWhere('images', 'not like', '%http%'));
+            if ($localImageProductIds !== []) {
+                $query->where(fn ($q) => $q->whereNull('tdsynnex_product_id')
+                    ->orWhereNotIn('tdsynnex_product_id', $localImageProductIds));
+            }
+        }
+    }
+
+    private function localImageProductIds(): array
+    {
+        if ($this->cachedLocalImageProductIds !== null) {
+            return $this->cachedLocalImageProductIds;
+        }
+
+        $paths = glob(public_path('images/products/*.{jpg,jpeg,png,webp,gif,avif}'), GLOB_BRACE) ?: [];
+
+        return $this->cachedLocalImageProductIds = array_values(array_unique(array_filter(array_map(
+            static function (string $path): ?int {
+                $stem = pathinfo($path, PATHINFO_FILENAME);
+                return ctype_digit($stem) ? (int) $stem : null;
+            },
+            $paths
+        ))));
+    }
+
+    private function hasUsableImage(Product $product): bool
+    {
+        foreach ((array) $product->images as $image) {
+            $url = is_array($image)
+                ? trim((string) ($image['imageUrl'] ?? $image['url'] ?? ''))
+                : trim((string) $image);
+
+            if (str_starts_with($url, 'http')) {
+                return true;
+            }
+
+            if (str_starts_with($url, '/')) {
+                $path = (string) parse_url($url, PHP_URL_PATH);
+                if ($path !== '' && is_file(public_path(ltrim($path, '/')))) {
+                    return true;
+                }
+            }
+        }
+
+        return in_array((int) $product->tdsynnex_product_id, $this->localImageProductIds(), true);
+    }
+
     private function authorizeAdmin(Request $request): void
     {
         abort_unless(in_array((string) $request->user()?->role, ['admin', 'super_admin'], true), 403);
@@ -34,6 +95,9 @@ class AdminImportedProductController extends Controller
             $query->where('vendor_id', $vendor);
         }
 
+        $imageFilter = trim((string) $request->query('image_filter', 'all'));
+        $this->applyImageFilter($query, $imageFilter);
+
         $products = $query->orderByDesc('updated_at')
             ->paginate(min(100, max(10, (int) $request->query('per_page', 10))));
         $products->getCollection()->transform(fn (Product $product) => [
@@ -46,7 +110,7 @@ class AdminImportedProductController extends Controller
             'price' => \App\Support\OfferPricing::sellPrice($product),
             'quantity' => (int) ($product->quantity ?: data_get($product->specifications, 'availableQuantity', 0)),
             'available' => (bool) $product->is_available,
-            'has_image' => !empty((array) $product->images),
+            'has_image' => $this->hasUsableImage($product),
             'updated_at' => optional($product->updated_at)->toIso8601String(),
         ]);
 
@@ -56,7 +120,8 @@ class AdminImportedProductController extends Controller
             'stats' => [
                 'total' => Product::count(),
                 'available' => Product::where('is_available', true)->count(),
-                'with_images' => Product::whereNotNull('images')->whereNotIn('images', ['', '[]', 'null'])->count(),
+                'with_images' => tap(Product::query(), fn ($query) => $this->applyImageFilter($query, 'with_image'))->count(),
+                'without_images' => tap(Product::query(), fn ($query) => $this->applyImageFilter($query, 'no_image'))->count(),
             ],
         ]);
     }

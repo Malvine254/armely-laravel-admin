@@ -2421,19 +2421,7 @@ class ProductController extends Controller
     /** IDs from the same capped pool exposed by the default storefront catalog. */
     private function storefrontCappedProductIds(): array
     {
-        return Cache::remember('storefront_capped_product_ids_v2', 1800, function (): array {
-            $curatedIds = Product::query()
-                ->where('is_storefront_curated', true)
-                ->orderBy('storefront_rank')
-                ->limit(self::STOREFRONT_MAX_DEFAULT_PRODUCTS)
-                ->pluck('id')
-                ->map(static fn ($id) => (int) $id)
-                ->all();
-
-            if (!empty($curatedIds)) {
-                return $curatedIds;
-            }
-
+        return Cache::remember('storefront_capped_product_ids_v4', 1800, function (): array {
             $query = Product::query()
                 ->select('id')
                 ->where('vendor_id', 'TD SYNNEX')
@@ -2442,19 +2430,29 @@ class ProductController extends Controller
                     $q->where('is_discontinued', false)->orWhereNull('is_discontinued');
                 })
                 ->whereRaw($this->stockQuantitySql() . ' > 0')
-                ->whereRaw($this->preferredDbPriceSql() . ' >= ?', [$this->storefrontMinPrice(null) ?? self::STOREFRONT_MIN_PRICE])
-                ->whereRaw($this->hasUsableProductImageSql());
+                ->whereRaw($this->preferredDbPriceSql() . ' >= ?', [$this->storefrontMinPrice(null) ?? self::STOREFRONT_MIN_PRICE]);
 
             $this->applyCuratedDefaultBrowseFilters($query);
             $this->applyPriorityItProductFilterToQuery($query);
+            $this->applyCatalogCleanFilterToQuery($query);
 
             return $query
+                ->orderByRaw('CASE WHEN (' . $this->hasUsableProductImageSql() . ') THEN 0 ELSE 1 END')
+                ->orderByRaw('COALESCE(storefront_rank, 4294967295) ASC')
                 ->orderByRaw("CASE
                     WHEN LOWER(COALESCE(product_name, '')) REGEXP '(^|[[:space:]-])(laptop|notebook|desktop|workstation|monitor|printer|server|switch|router|firewall|access point)([[:space:]-]|$)'
                         AND LOWER(COALESCE(product_name, '')) NOT REGEXP '(battery|replacement|adapter|cable|cord|charger|charging cart|cooling|backpack|carry case|briefcase|sleeve|bag|lock|stand|mount|bracket|dock|docking|keyboard|mouse|memory|drive|converter|serial port|parallel port|usb port|hub|enclosure|tray|kit|kvm console|privacy screen|laptop ps|monitor shelf|desktop set|warranty|support|paper|cartridge|toner|ink|screen protector|power supply)' THEN 0
                     WHEN category_segment IN ('01', '02', '03', '04', '05', '06') THEN 1
                     ELSE 2 END")
                 ->orderByRaw("MOD(CRC32(CONCAT(COALESCE(category_segment, ''), '-', id)), 997)")
+                ->orderByRaw("CASE category_segment
+                    WHEN '01' THEN 0
+                    WHEN '02' THEN 1
+                    WHEN '03' THEN 2
+                    WHEN '06' THEN 3
+                    WHEN '04' THEN 4
+                    WHEN '05' THEN 5
+                    ELSE 6 END")
                 ->orderByDesc('created_at')
                 ->orderByDesc('id')
                 ->limit(self::STOREFRONT_MAX_DEFAULT_PRODUCTS)
@@ -2557,7 +2555,7 @@ class ProductController extends Controller
     public function menuCategories(): JsonResponse
     {
         try {
-            $data = Cache::remember('menu_categories:v13:count-sorted-capped-3000', 1800, function () {
+            $data = Cache::remember('menu_categories:v14:aligned-storefront-cap', 1800, function () {
                 $parents = \App\Models\Category::query()
                     ->select(['id', 'name', 'slug', 'segment_code', 'sort_order'])
                     ->whereNull('parent_id')
@@ -2728,7 +2726,7 @@ class ProductController extends Controller
             $cacheKey = sprintf(
                 'pa_category_counts:%s',
                 md5(json_encode([
-                    'v' => 3,
+                    'v' => 4,
                     'hide_zero' => $hideZero,
                     'min_price' => $minPrice,
                     'max_price' => $maxPrice,
@@ -2789,6 +2787,11 @@ class ProductController extends Controller
         }
 
         $query = Product::query()->where('vendor_id', 'TD SYNNEX');
+        $cappedProductIds = $this->storefrontCappedProductIds();
+        if (empty($cappedProductIds)) {
+            return [];
+        }
+        $query->whereIn('id', $cappedProductIds);
         $this->applySidebarFacetProductFilters($query, $hideZero, $minPrice, $maxPrice, $catalogClean, $productType, $search, $selectedVendors);
 
         // Group by denormalized category_segment column (first 2 chars of UNSPSC categoryCode)
@@ -3221,7 +3224,7 @@ class ProductController extends Controller
         $cacheKey = sprintf(
             'pa_default_browse_vendors:%s',
             md5(json_encode([
-                'v' => 2,
+                'v' => 3,
                 'min_price' => $minPrice,
                 'max_price' => $maxPrice,
                 'hide_zero' => $hideZero,
@@ -3237,6 +3240,11 @@ class ProductController extends Controller
 
         return Cache::remember($cacheKey, 300, function () use ($minPrice, $maxPrice, $hideZero, $catalogClean, $productType, $search, $category) {
             $query = Product::query()->where('vendor_id', 'TD SYNNEX');
+            $cappedProductIds = $this->storefrontCappedProductIds();
+            if (empty($cappedProductIds)) {
+                return [];
+            }
+            $query->whereIn('id', $cappedProductIds);
             $this->applySidebarFacetProductFilters($query, $hideZero, $minPrice, $maxPrice, $catalogClean, $productType, $search, [], $category);
 
             $rows = $query
