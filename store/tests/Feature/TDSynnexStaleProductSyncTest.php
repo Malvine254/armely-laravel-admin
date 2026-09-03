@@ -96,6 +96,27 @@ class TDSynnexStaleProductSyncTest extends TestCase
         $this->assertNull($product->live_checked_at);
     }
 
+    public function test_placeholder_row_without_live_price_is_quarantined_from_storefront(): void
+    {
+        $product = $this->createProduct();
+
+        Http::fake([
+            '*' => Http::response($this->priceAvailabilityResponse('-'), 200, [
+                'Content-Type' => 'application/xml',
+            ]),
+        ]);
+
+        $result = app(TDSynnexService::class)->refreshLivePricesInDatabase(['1900150025']);
+
+        $product->refresh();
+        $this->assertSame(1, $result['checked'], json_encode($result));
+        $this->assertFalse((bool) $product->is_available);
+        $this->assertTrue((bool) $product->is_discontinued);
+        $this->assertSame(0, $product->quantity);
+        $this->assertFalse($product->live_is_available);
+        $this->assertTrue($product->live_is_discontinued);
+    }
+
     private function createProduct(): Product
     {
         return Product::create([

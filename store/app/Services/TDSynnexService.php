@@ -552,6 +552,12 @@ class TDSynnexService
             }
 
             $hasApiPrice = !empty($normalized['hasApiResellerPrice']);
+            $supplierStatus = strtolower(trim((string) ($normalized['status'] ?? '')));
+            $supplierOrderable = in_array($supplierStatus, ['active', 'available', 'in stock'], true);
+            if (!$hasApiPrice && !$supplierOrderable && empty($normalized['discontinueProduct'])) {
+                continue;
+            }
+
             $skuData[$sku] = [
                 // A missing/zero API price must not turn a flat-file fallback
                 // into a fresh live supplier price.

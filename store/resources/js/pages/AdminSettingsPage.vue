@@ -293,6 +293,28 @@
           </p>
         </div>
 
+        <div class="rounded-lg border border-gray-200 bg-gray-50 p-4">
+          <label for="price-sync-target-skus" class="block text-sm font-semibold text-gray-800">Verify specific SKU(s)</label>
+          <p class="mt-1 text-xs text-gray-500">Use this to immediately check selected database products against TD SYNNEX. Products no longer listed by the supplier will be made unavailable.</p>
+          <div class="mt-3 flex flex-col gap-3 md:flex-row">
+            <textarea
+              id="price-sync-target-skus"
+              v-model="priceSyncTargetSkus"
+              rows="2"
+              placeholder="15220324"
+              class="min-h-11 flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-[#2F5597] focus:ring-2 focus:ring-[#2F5597]/20"
+            ></textarea>
+            <button
+              type="button"
+              @click="runPriceSyncNow('specific')"
+              :disabled="syncState.status === 'running' || !priceSyncTargetSkus.trim()"
+              class="self-stretch rounded-lg bg-[#2F5597] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#1e3a6b] disabled:cursor-not-allowed disabled:opacity-50 md:self-end"
+            >
+              <i class="fas fa-search mr-2"></i>Verify SKU(s)
+            </button>
+          </div>
+        </div>
+
         <!-- Live Sync Status Panel -->
         <div v-if="syncState.status !== 'idle'" class="rounded-lg border p-4 space-y-2"
           :class="{
@@ -334,7 +356,7 @@
 
         <div class="flex flex-col md:flex-row justify-end gap-3 border-t border-gray-200 pt-6">
           <button
-            @click="runPriceSyncNow"
+            @click="runPriceSyncNow('all')"
             :disabled="syncState.status === 'running'"
             class="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition disabled:opacity-50"
           >
@@ -1310,6 +1332,7 @@ const priceSyncSettings = ref({
     issues: [],
   },
 })
+const priceSyncTargetSkus = ref('')
 
 const systemSettings = ref({
   company_name: 'Armely Store',
@@ -1730,14 +1753,17 @@ const stopSyncPolling = () => {
   }
 }
 
-const runPriceSyncNow = async () => {
+const runPriceSyncNow = async (scope = 'all') => {
   try {
-    const response = await api.post('/admin/settings/price-sync/run-now', {})
+    const targeted = scope === 'specific'
+    const skus = targeted ? priceSyncTargetSkus.value.trim() : ''
+    const response = await api.post('/admin/settings/price-sync/run-now', { skus })
     if (response.data.success) {
+      const scopeLabel = targeted ? `Specific SKU(s): ${skus}` : 'All products'
       syncState.value = {
         status: 'running',
-        message: 'Starting — All products...',
-        output: `Started at ${new Date().toLocaleString()}\nScope: All products`,
+        message: `Starting — ${scopeLabel}...`,
+        output: `Started at ${new Date().toLocaleString()}\nScope: ${scopeLabel}`,
         started_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         finished_at: null

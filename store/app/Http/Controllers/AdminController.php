@@ -4421,9 +4421,15 @@ class AdminController extends Controller
                 }
             }
 
-            $scope      = 'all';
-            $skusRaw    = '';
-            $scopeLabel = 'All products in database';
+            $validated = $request->validate([
+                'skus' => ['nullable', 'string', 'max:5000'],
+            ]);
+            $skuList = $this->normalizePriceSyncSkuList((string) ($validated['skus'] ?? ''));
+            $scope = empty($skuList) ? 'all' : 'specific';
+            $skusRaw = implode(',', $skuList);
+            $scopeLabel = empty($skuList)
+                ? 'All products in database'
+                : count($skuList) . ' specific SKU' . (count($skuList) === 1 ? '' : 's');
             $runState = $this->priceSyncSchedulerService->startBackgroundRun($scope, $skusRaw, 'manual');
 
 
