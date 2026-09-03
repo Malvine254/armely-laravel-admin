@@ -1453,7 +1453,7 @@ class ProductController extends Controller
                 $product->mfg_part_no
             ),
             'status' => (string) ($spec['status'] ?? ''),
-            'price' => (float) ($spec['price'] ?? $price),
+            'price' => $price,
             'totalQuantity' => $quantity,
             'availableQuantity' => $quantity,
             'qty' => (string) $quantity,

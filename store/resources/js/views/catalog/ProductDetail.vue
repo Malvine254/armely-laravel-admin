@@ -708,7 +708,7 @@ const isLoading = ref(false)
 const activeTab = ref('description')
 const loadError = ref('')
 const descriptionExpanded = ref(false)
-const { loadPricingSettings, getCatalogPriceWithRules, convertFromUsd, formatWithCurrency } = usePricingSettings()
+const { loadPricingSettings, convertFromUsd, formatWithCurrency } = usePricingSettings()
 
 // Reviews state
 const reviews = ref([])
@@ -987,8 +987,7 @@ const goBack = () => {
 }
 
 const formatAdjustedCurrency = (baseUsdPrice) => {
-  const adjustedUsd = getCatalogPriceWithRules(Number(baseUsdPrice || 0))
-  return formatWithCurrency(convertFromUsd(adjustedUsd))
+  return formatWithCurrency(convertFromUsd(Number(baseUsdPrice || 0)))
 }
 
 const formatReferenceCurrency = (baseUsdPrice) => {
@@ -1000,7 +999,7 @@ const getProductMsrp = (item) => {
 }
 
 const getCustomerPrice = (item) => {
-  return getCatalogPriceWithRules(Number(item?.productPrice?.[0]?.rsPrice || 0))
+  return Number(item?.productPrice?.[0]?.rsPrice || 0)
 }
 
 const hasMsrpDiscount = (item) => {
