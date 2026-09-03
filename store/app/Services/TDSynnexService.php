@@ -899,6 +899,11 @@ class TDSynnexService
             throw new \RuntimeException('This supplier product is not currently eligible for the storefront.');
         }
 
+        $specifications = json_decode((string) $row['specifications'], true) ?: [];
+        $specifications['supplierOrderable'] = $isSupplierOrderable;
+        $row['specifications'] = $specifications;
+        $row['images'] = json_decode((string) $row['images'], true) ?: [];
+
         $row['search_imported_at'] = now();
         $row['search_import_query'] = trim($searchQuery) ?: $identifier;
         $row['search_import_review_status'] = 'approved';
@@ -921,6 +926,7 @@ class TDSynnexService
         Cache::forget('tdsynnex:priceavailability:vendors:list');
         Cache::forget('storefront_capped_product_ids_v5');
         Cache::forget('menu_categories:v15:pinned-storefront-cap');
+        Cache::forever('catalog:price_version', (string) now()->getTimestampMs());
 
         return $product->fresh();
     }

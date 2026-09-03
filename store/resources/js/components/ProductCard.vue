@@ -54,6 +54,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { usePricingSettings } from '../composables/usePricingSettings'
+import { isSupplierOrderable } from '../services/productAvailability'
 
 const props = defineProps({
   product: { type: Object, required: true },
@@ -87,9 +88,9 @@ const expectedImageFileName = computed(() => {
   return `${source.trim().replace(/[^a-z0-9._-]+/gi, '-').replace(/^-+|-+$/g, '') || 'product'}.jpg`
 })
 const quantity = computed(() => { const value = Number(props.product.availableQuantity ?? props.product.totalQuantity ?? props.product.quantity ?? props.product.qty); return Number.isFinite(value) ? Math.max(0, value) : null })
-const outOfStock = computed(() => props.product.isAvailable === false || quantity.value === 0)
-const stockLabel = computed(() => outOfStock.value ? 'Out of stock' : quantity.value === null ? 'Stock: Check availability' : `Stock: ${quantity.value}`)
-const warehouseSummary = computed(() => Array.isArray(props.product.AvailabilityByWarehouse) && props.product.AvailabilityByWarehouse.length ? `${props.product.AvailabilityByWarehouse.length} warehouse${props.product.AvailabilityByWarehouse.length === 1 ? '' : 's'}` : quantity.value > 0 ? 'Available now' : 'Request quote')
+const outOfStock = computed(() => props.product.isAvailable === false || (quantity.value === 0 && !isSupplierOrderable(props.product)))
+const stockLabel = computed(() => isSupplierOrderable(props.product) && quantity.value === 0 ? 'Supplier orderable' : outOfStock.value ? 'Out of stock' : quantity.value === null ? 'Stock: Check availability' : `Stock: ${quantity.value}`)
+const warehouseSummary = computed(() => isSupplierOrderable(props.product) && quantity.value === 0 ? 'Special order' : Array.isArray(props.product.AvailabilityByWarehouse) && props.product.AvailabilityByWarehouse.length ? `${props.product.AvailabilityByWarehouse.length} warehouse${props.product.AvailabilityByWarehouse.length === 1 ? '' : 's'}` : quantity.value > 0 ? 'Available now' : 'Request quote')
 const productIcon = computed(() => {
   const name = String(props.product.productName || '').toLowerCase()
   if (name.includes('server') || name.includes('instance')) return 'server'

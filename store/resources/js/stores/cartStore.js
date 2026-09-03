@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import { useAuthStore } from './authStore'
 import { syncCartSnapshot, trackCartEvent } from '../services/behaviorTracking'
+import { isSupplierOrderable } from '../services/productAvailability'
 
 export const useCartStore = defineStore('cart', () => {
   const items = ref([])
@@ -198,7 +199,7 @@ export const useCartStore = defineStore('cart', () => {
       NaN
     )
 
-    if (Number.isFinite(availableQty) && availableQty <= 0) {
+    if (Number.isFinite(availableQty) && availableQty <= 0 && !isSupplierOrderable(product)) {
       return false
     }
 

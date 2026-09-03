@@ -694,6 +694,7 @@ import { API_BASE_URL, buildStoreUrl } from '../../services/runtimeConfig'
 import { usePricingSettings } from '../../composables/usePricingSettings'
 import api from '../../services/api'
 import { rememberViewedProduct } from '../../services/recentlyViewed'
+import { isSupplierOrderable } from '../../services/productAvailability'
 
 const router = useRouter()
 const route = useRoute()
@@ -734,7 +735,7 @@ const relatedProductsCache = new Map()
 const RELATED_PER_PAGE = 8
 const PRODUCT_DETAIL_CACHE_TTL_MS = 15 * 60 * 1000
 const PRODUCT_DETAIL_FETCH_TIMEOUT_MS = 30000
-const PRODUCT_DETAIL_STORAGE_PREFIX = 'product_detail_v2:'
+const PRODUCT_DETAIL_STORAGE_PREFIX = 'product_detail_v3:'
 const PRODUCT_RELATED_STORAGE_PREFIX = 'product_related_v2:'
 const relatedPage = ref(1)
 
@@ -902,7 +903,7 @@ const loadProductDetail = async (productId) => {
 
   try {
     if (!cachedProduct) {
-      const response = await fetchWithTimeout(`${API_BASE_URL}/products/${productId}`)
+      const response = await fetchWithTimeout(`${API_BASE_URL}/products/${productId}`, { cache: 'no-store' })
       if (!response.ok) {
         throw new Error(response.status === 404 ? 'Product not found.' : `Failed to fetch product (${response.status}).`)
       }
@@ -1079,7 +1080,7 @@ const getAvailableQuantity = (item) => {
   return Number.isFinite(qty) ? Math.max(0, qty) : null
 }
 
-const isOutOfStock = (item) => getAvailableQuantity(item) === 0
+const isOutOfStock = (item) => getAvailableQuantity(item) === 0 && !isSupplierOrderable(item)
 
 const getStockRank = (item) => {
   const qty = getAvailableQuantity(item)
@@ -1095,7 +1096,7 @@ const getStockLabel = (item) => {
   const qty = getAvailableQuantity(item)
   if (qty !== null) {
     if (qty > 0) return `Stock: ${qty}`
-    return 'Out of stock'
+    return isSupplierOrderable(item) ? 'Supplier orderable' : 'Out of stock'
   }
 
   return 'Stock: Check availability'
@@ -1104,7 +1105,7 @@ const getStockLabel = (item) => {
 const getStockTone = (item) => {
   const qty = getAvailableQuantity(item)
   if (qty === null) return 'text-amber-600'
-  return qty > 0 ? 'text-emerald-600' : 'text-red-600'
+  return qty > 0 || isSupplierOrderable(item) ? 'text-emerald-600' : 'text-red-600'
 }
 
 const getWarehouseSummary = (item) => {
@@ -1115,7 +1116,7 @@ const getWarehouseSummary = (item) => {
 
   const qty = getAvailableQuantity(item)
   if (qty !== null) {
-    return qty > 0 ? 'Available now' : 'Request quote'
+    return qty > 0 ? 'Available now' : isSupplierOrderable(item) ? 'Special order' : 'Request quote'
   }
 
   return 'No live count'
@@ -1127,7 +1128,7 @@ const getProductMetaPrimary = (item) => {
 
   const qty = getAvailableQuantity(item)
   if (qty !== null) {
-    return qty > 0 ? 'In Stock' : 'Out of Stock'
+    return qty > 0 ? 'In Stock' : isSupplierOrderable(item) ? 'Supplier Orderable' : 'Out of Stock'
   }
 
   return item?.discontinueProduct ? 'Legacy Product' : 'Catalog Product'
@@ -1139,7 +1140,7 @@ const getProductMetaSecondary = (item) => {
 
   const qty = getAvailableQuantity(item)
   if (qty !== null) {
-    return qty > 0 ? `${qty} available` : 'Request quote'
+    return qty > 0 ? `${qty} available` : isSupplierOrderable(item) ? 'Special order' : 'Request quote'
   }
 
   return 'Request quote'

@@ -130,6 +130,7 @@ import { resolveProductImageUrl } from '../services/runtimeConfig'
 import { buildProductsLocation } from '../services/productRoute'
 import { getRecentlyViewedIds } from '../services/recentlyViewed'
 import { usePricingSettings } from '../composables/usePricingSettings'
+import { isSupplierOrderable } from '../services/productAvailability'
 
 const router = useRouter()
 const route = useRoute()
@@ -175,10 +176,11 @@ const stockQuantity = product => {
   const quantity = Number(value)
   return Number.isFinite(quantity) ? Math.max(0, quantity) : null
 }
-const isOutOfStock = product => product?.isAvailable === false || stockQuantity(product) === 0
+const isOutOfStock = product => product?.isAvailable === false || (stockQuantity(product) === 0 && !isSupplierOrderable(product))
 const stockLabel = product => {
   const quantity = stockQuantity(product)
   if (isOutOfStock(product)) return 'Out of stock'
+  if (quantity === 0 && isSupplierOrderable(product)) return 'Supplier orderable'
   return quantity === null ? 'Stock available' : `${quantity.toLocaleString()} in stock`
 }
 const addToQuote = product => {

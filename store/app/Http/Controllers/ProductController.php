@@ -1441,6 +1441,12 @@ class ProductController extends Controller
             (int) ($spec['availableQuantity'] ?? 0),
             (int) ($product->quantity ?? 0)
         );
+        $supplierStatus = strtolower(trim((string) ($spec['status'] ?? $spec['GlobalProductStatusCode'] ?? '')));
+        $supplierOrderable = (bool) $product->is_storefront_pinned
+            && (bool) $product->is_available
+            && !(bool) $product->is_discontinued
+            && ((bool) ($spec['supplierOrderable'] ?? false)
+                || in_array($supplierStatus, ['active', 'available', 'in stock'], true));
         $vendor = trim((string) ($spec['manufacturer'] ?? $product->vendor_id ?? 'TD SYNNEX'));
         if ($vendor === '') {
             $vendor = 'TD SYNNEX';
@@ -1466,6 +1472,8 @@ class ProductController extends Controller
                 $product->mfg_part_no
             ),
             'status' => (string) ($spec['status'] ?? ''),
+            'isAvailable' => (bool) $product->is_available,
+            'supplierOrderable' => $supplierOrderable,
             'price' => $price,
             'totalQuantity' => $quantity,
             'availableQuantity' => $quantity,
@@ -2064,7 +2072,7 @@ class ProductController extends Controller
 
             if ($this->tdsynnexService->usesPriceAvailabilityAsProductSource()) {
                 $cacheKey = sprintf(
-                    'pa_product_detail:v3:%s:%s',
+                    'pa_product_detail:v4:%s:%s',
                     Cache::get('catalog:price_version', '1'),
                     md5((string) $productId)
                 );
@@ -2154,7 +2162,7 @@ class ProductController extends Controller
 
             if ($this->tdsynnexService->usesPriceAvailabilityAsProductSource()) {
                 $cacheKey = sprintf(
-                    'pa_product_by_sku:v3:%s:%s',
+                    'pa_product_by_sku:v4:%s:%s',
                     Cache::get('catalog:price_version', '1'),
                     md5((string) $skuNo)
                 );

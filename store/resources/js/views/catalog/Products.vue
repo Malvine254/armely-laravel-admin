@@ -317,6 +317,7 @@ import { trackSearchTerm, hasTrackingConsent, getSearchProfileTerms, getSearchSu
 import api from '../../services/api'
 import { buildStoreUrl, resolveProductImageUrl } from '../../services/runtimeConfig'
 import { buildProductsLocation, parseProductsRouteFilters } from '../../services/productRoute'
+import { isSupplierOrderable } from '../../services/productAvailability'
 import Navbar from '../../components/Navbar.vue'
 import ProductCard from '../../components/ProductCard.vue'
 import FilterSidebar from '../../components/FilterSidebar.vue'
@@ -2210,7 +2211,7 @@ const getAvailableQuantity = (product) => {
   return Number.isFinite(qty) ? Math.max(0, qty) : null
 }
 
-const isOutOfStock = (product) => getAvailableQuantity(product) === 0
+const isOutOfStock = (product) => getAvailableQuantity(product) === 0 && !isSupplierOrderable(product)
 
 const getStockRank = (product) => {
   const qty = getAvailableQuantity(product)
@@ -2226,7 +2227,7 @@ const getStockLabel = (product) => {
   const qty = getAvailableQuantity(product)
   if (qty !== null) {
     if (qty > 0) return `Stock: ${qty}`
-    return 'Out of stock'
+    return isSupplierOrderable(product) ? 'Supplier orderable' : 'Out of stock'
   }
 
   return 'Stock: Check availability'
@@ -2235,7 +2236,7 @@ const getStockLabel = (product) => {
 const getStockTone = (product) => {
   const qty = getAvailableQuantity(product)
   if (qty === null) return 'text-amber-600'
-  return qty > 0 ? 'text-emerald-600' : 'text-red-600'
+  return qty > 0 || isSupplierOrderable(product) ? 'text-emerald-600' : 'text-red-600'
 }
 
 const getWarehouseSummary = (product) => {
@@ -2246,7 +2247,7 @@ const getWarehouseSummary = (product) => {
 
   const qty = getAvailableQuantity(product)
   if (qty !== null) {
-    return qty > 0 ? 'Available now' : 'Request quote'
+    return qty > 0 ? 'Available now' : isSupplierOrderable(product) ? 'Special order' : 'Request quote'
   }
 
   return 'No live count'
@@ -2258,7 +2259,7 @@ const getProductMetaPrimary = (product) => {
 
   const qty = getAvailableQuantity(product)
   if (qty !== null) {
-    return qty > 0 ? 'In Stock' : 'Out of Stock'
+    return qty > 0 ? 'In Stock' : isSupplierOrderable(product) ? 'Supplier Orderable' : 'Out of Stock'
   }
 
   return product?.discontinueProduct ? 'Legacy Product' : 'Catalog Product'
@@ -2270,7 +2271,7 @@ const getProductMetaSecondary = (product) => {
 
   const qty = getAvailableQuantity(product)
   if (qty !== null) {
-    return qty > 0 ? `${qty} available` : 'Request quote'
+    return qty > 0 ? `${qty} available` : isSupplierOrderable(product) ? 'Special order' : 'Request quote'
   }
 
   return 'Request quote'
