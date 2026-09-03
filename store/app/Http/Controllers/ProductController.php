@@ -984,7 +984,7 @@ class ProductController extends Controller
         $cacheKey = sprintf(
             'pa_browse_page:%s',
             md5(json_encode([
-                'v' => 26,
+                'v' => 27,
                 'price_version' => Cache::get('catalog:price_version', '1'),
                 'page' => (int) $pageNo,
                 'page_size' => (int) $pageSize,
@@ -1068,6 +1068,20 @@ class ProductController extends Controller
         $catalogMaxPrice  = null;
 
         $query = Product::query()->where('vendor_id', 'TD SYNNEX');
+
+        if ($curatedItMix && empty($search)) {
+            $cappedProductIds = $this->storefrontCappedProductIds();
+            if (empty($cappedProductIds)) {
+                return [
+                    'records' => [],
+                    'total' => 0,
+                    'has_more' => false,
+                    'total_is_estimate' => false,
+                    'media_counts' => ['has_images' => 0, 'no_images' => 0],
+                ];
+            }
+            $query->whereIn('id', $cappedProductIds);
+        }
 
         if (!$showOutOfStock) {
             $query->where('is_available', true)
@@ -2508,7 +2522,7 @@ class ProductController extends Controller
     /** IDs from the same capped pool exposed by the default storefront catalog. */
     private function storefrontCappedProductIds(): array
     {
-        return Cache::remember('storefront_capped_product_ids_v5', 1800, function (): array {
+        return Cache::remember('storefront_capped_product_ids_v6', 1800, function (): array {
             $query = Product::query()
                 ->select('id')
                 ->where('vendor_id', 'TD SYNNEX')

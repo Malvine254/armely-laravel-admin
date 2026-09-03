@@ -386,7 +386,7 @@ const DEFAULT_BROWSE_MAX_PRICE = 0
 const CURATED_CACHE_VERSION = 11
 // Bump whenever persisted catalog classification changes. This becomes part of
 // the URL so browsers cannot reuse an older publicly cached catalog response.
-const CATALOG_REQUEST_REVISION = 'category-media-facets-20260903-1'
+const CATALOG_REQUEST_REVISION = 'capped-media-facets-20260903-2'
 const ENABLE_SERVER_PREFETCH = true
 const ENABLE_VENDOR_COUNTS_API = true
 const PRODUCTS_RESULTS_SOFT_TTL_MS = 5 * 60 * 1000
