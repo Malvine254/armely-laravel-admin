@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Jobs\EnrichPriceAvailabilityProductImageJob;
 use App\Models\Product;
 use App\Services\TDSynnexService;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class AdminImportedProductController extends Controller
 {
@@ -256,6 +258,16 @@ class AdminImportedProductController extends Controller
                 (string) ($validated['search_query'] ?? ''),
                 (int) $request->user()->id
             );
+        } catch (QueryException $exception) {
+            Log::error('Supplier product import database failure', [
+                'identifier' => $validated['identifier'],
+                'error_code' => $exception->getCode(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'The product could not be saved because the catalog database is not ready.',
+            ], 500);
         } catch (\InvalidArgumentException|\RuntimeException $exception) {
             return response()->json(['success' => false, 'message' => $exception->getMessage()], 422);
         }

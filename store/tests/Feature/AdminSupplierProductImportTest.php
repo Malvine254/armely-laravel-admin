@@ -7,6 +7,7 @@ use App\Models\Product;
 use App\Models\User;
 use App\Services\TDSynnexService;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -169,6 +170,32 @@ class AdminSupplierProductImportTest extends TestCase
         $this->actingAs($customer, 'sanctum')
             ->getJson('/api/v1/admin/imported-products/supplier-search?q=Lenovo')
             ->assertForbidden();
+    }
+
+    public function test_import_database_failure_does_not_expose_sql(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin', 'status' => 'active']);
+        $service = Mockery::mock(TDSynnexService::class);
+        $service->shouldReceive('importSelectedPriceAvailabilityProduct')
+            ->once()
+            ->andThrow(new QueryException(
+                'mysql',
+                'insert into products (secret_column) values (?)',
+                ['secret-value'],
+                new \PDOException("Unknown column 'secret_column'")
+            ));
+        $this->app->instance(TDSynnexService::class, $service);
+
+        $response = $this->actingAs($admin, 'sanctum')
+            ->postJson('/api/v1/admin/imported-products/import', [
+                'identifier' => '7624063',
+                'search_query' => '7624063',
+            ]);
+
+        $response->assertServerError()
+            ->assertJsonPath('message', 'The product could not be saved because the catalog database is not ready.');
+        $this->assertStringNotContainsString('secret_column', $response->getContent());
+        $this->assertStringNotContainsString('secret-value', $response->getContent());
     }
 
     public function test_admin_can_remove_an_imported_product_pin(): void
