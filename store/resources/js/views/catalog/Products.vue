@@ -325,7 +325,7 @@ const toastStore = useToastStore()
 const cartStore = useCartStore()
 const favoritesStore = useFavoritesStore()
 const authStore = useAuthStore()
-const { loadPricingSettings, getCatalogPriceWithRules, convertFromUsd, formatWithCurrency } = usePricingSettings()
+const { loadPricingSettings, convertFromUsd, formatWithCurrency } = usePricingSettings()
 const pricingReady = ref(false)
 const imgErrorMap = reactive({})
 const imgFallbackMap = reactive({})
@@ -2427,8 +2427,7 @@ const formatPrice = (price) => {
 }
 
 const formatCatalogPrice = (baseUsdPrice) => {
-  const adjustedUsd = getCatalogPriceWithRules(baseUsdPrice)
-  const converted = convertFromUsd(adjustedUsd)
+  const converted = convertFromUsd(Math.max(0, Number(baseUsdPrice || 0)))
   return formatWithCurrency(converted)
 }
 
@@ -2442,7 +2441,7 @@ const getProductMsrp = (product) => {
 }
 
 const getCustomerPrice = (product) => {
-  return getCatalogPriceWithRules(Number(product?.productPrice?.[0]?.rsPrice || 0))
+  return Number(product?.productPrice?.[0]?.rsPrice || 0)
 }
 
 const hasMsrpDiscount = (product) => {

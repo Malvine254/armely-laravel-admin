@@ -513,7 +513,30 @@ class TDSynnexService
         $xmlPayload = $this->buildPriceAvailabilityXmlPayload($skuBatch);
         $response   = $this->postPriceAvailabilityXml($xmlPayload, $region, $useTest);
 
+        if (!array_key_exists('PriceAvailabilityList', $response)) {
+            throw new TDSynnexApiException(
+                'PriceAvailability response did not contain a product result list; no products were changed.'
+            );
+        }
+
         $skuData = [];
+
+        foreach ($skuBatch as $requestedSku) {
+            $requestedSku = trim((string) $requestedSku);
+            if ($requestedSku === '') {
+                continue;
+            }
+
+            $skuData[$requestedSku] = [
+                'live_price' => null,
+                'live_retail_price' => null,
+                'live_quantity' => 0,
+                'live_is_available' => false,
+                'live_is_discontinued' => true,
+                'live_checked_at' => $now,
+                'updated_at' => $now,
+            ];
+        }
 
         foreach ($this->extractPriceAvailabilityRows($response) as $row) {
             $normalized = $this->normalizePriceAvailabilityProduct($row, $metadata);
@@ -550,13 +573,24 @@ class TDSynnexService
 
         $checked = 0;
 
-        // Batch-update: find existing products by tdsynnex_sku_no, update live_* columns
-        // AND apply immediately to main display columns (quantity, availability, price).
+        // Apply by either stored TD identifier so legacy/imported rows with a null
+        // tdsynnex_sku_no cannot escape live verification and remain storefront-visible.
         $existingProducts = \DB::table('products')
-            ->whereIn('tdsynnex_sku_no', array_keys($skuData))
-            ->pluck('tdsynnex_sku_no', 'id');
+            ->where(function ($query) use ($skuData) {
+                $identifiers = array_keys($skuData);
+                $query->whereIn('tdsynnex_sku_no', $identifiers)
+                    ->orWhere(function ($fallback) use ($identifiers) {
+                        $fallback->where(function ($missingSku) {
+                            $missingSku->whereNull('tdsynnex_sku_no')
+                                ->orWhere('tdsynnex_sku_no', '');
+                        })->whereIn('tdsynnex_product_id', $identifiers);
+                    });
+            })
+            ->get(['id', 'tdsynnex_sku_no', 'tdsynnex_product_id']);
 
-        foreach ($existingProducts as $productId => $sku) {
+        foreach ($existingProducts as $existingProduct) {
+            $productId = $existingProduct->id;
+            $sku = trim((string) ($existingProduct->tdsynnex_sku_no ?: $existingProduct->tdsynnex_product_id));
             if (!isset($skuData[$sku])) {
                 continue;
             }
@@ -625,7 +659,8 @@ class TDSynnexService
                 ->where('id', $productId)
                 ->update(array_merge($live, $offerUpdates, $mainUpdates));
 
-            $hasHistory = \DB::table('product_price_histories')->where('product_id', $productId)->exists();
+            $hasHistory = $hasValidSupplierPrice
+                && \DB::table('product_price_histories')->where('product_id', $productId)->exists();
             if ($hasValidSupplierPrice && (!$hasHistory || abs($supplierPrice - (float) ($current->base_price ?? 0)) >= 0.01)) {
                 \DB::table('product_price_histories')->insert([
                     'product_id' => $productId,
@@ -1893,10 +1928,18 @@ class TDSynnexService
     private function buildSkuListFromDatabase(): array
     {
         return \DB::table('products')
-            ->whereNotNull('tdsynnex_sku_no')
-            ->where('tdsynnex_sku_no', '!=', '')
+            ->where(function ($query) {
+                $query->where(function ($sku) {
+                    $sku->whereNotNull('tdsynnex_sku_no')
+                        ->where('tdsynnex_sku_no', '!=', '');
+                })->orWhere(function ($productId) {
+                    $productId->whereNotNull('tdsynnex_product_id')
+                        ->where('tdsynnex_product_id', '!=', '');
+                });
+            })
             ->orderBy('id')
-            ->pluck('tdsynnex_sku_no')
+            ->get(['tdsynnex_sku_no', 'tdsynnex_product_id'])
+            ->map(fn ($product) => $product->tdsynnex_sku_no ?: $product->tdsynnex_product_id)
             ->map(fn ($v) => trim((string) $v))
             ->filter(fn ($v) => $v !== '')
             ->unique()

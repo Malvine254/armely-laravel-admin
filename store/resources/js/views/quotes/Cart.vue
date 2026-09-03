@@ -362,11 +362,10 @@ const cartShareRecipientEmail = ref('')
 const cartShareNote = ref('')
 const cartShareGeneratedLink = ref('')
 const cartShareSubmitting = ref(false)
-const { loadPricingSettings, getCatalogPriceWithRules, convertFromUsd, formatWithCurrency } = usePricingSettings()
+const { loadPricingSettings, convertFromUsd, formatWithCurrency } = usePricingSettings()
 
 const getAdjustedUnitUsd = (item) => {
-  const base = Number(item?.productPrice?.[0]?.rsPrice || 0)
-  return getCatalogPriceWithRules(base)
+  return Number(item?.productPrice?.[0]?.rsPrice || 0)
 }
 
 const quoteSubtotalUsd = computed(() => {

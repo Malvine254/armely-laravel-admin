@@ -950,37 +950,14 @@ class QuoteOrderInvoiceController extends Controller
                 ];
             }
 
-            $profitAmount = round(($baseSubtotal * ((float) $pricing['profit_rate_percent'])) / 100, 2);
-            $subtotal = round($baseSubtotal + $profitAmount, 2);
+            $profitAmount = 0.0;
+            $subtotal = $baseSubtotal;
             $taxAmount = round(($subtotal * ((float) $pricing['tax_rate_percent'])) / 100, 2);
             $totalAmount = round($subtotal + $taxAmount, 2);
             $assignedShippingAmount = round((float) ($user->assigned_shipping_amount ?? 0), 2);
             $shippingAmount = $assignedShippingAmount > 0
                 ? $assignedShippingAmount
                 : round((float) $pricing['default_shipping_amount'], 2);
-
-            if ($baseSubtotal > 0 && !empty($enrichedItems)) {
-                $runningDelta = 0.0;
-                foreach ($enrichedItems as $idx => &$enrichedItem) {
-                    $lineBase = (float) ($enrichedItem['line_total'] ?? 0);
-                    $isLast = $idx === count($enrichedItems) - 1;
-
-                    // Unit prices contain the configured profit, while tax remains
-                    // a separate quote total. This prevents invoice consumers from
-                    // charging tax or profit again from already-final line prices.
-                    $lineDelta = $isLast
-                        ? round(($subtotal - $baseSubtotal) - $runningDelta, 2)
-                        : round((($subtotal - $baseSubtotal) * $lineBase) / $baseSubtotal, 2);
-
-                    $runningDelta = round($runningDelta + $lineDelta, 2);
-                    $lineTotalFinal = round($lineBase + $lineDelta, 2);
-                    $qty = max(1, (int) ($enrichedItem['quantity'] ?? 1));
-
-                    $enrichedItem['line_total'] = $lineTotalFinal;
-                    $enrichedItem['unit_price'] = round($lineTotalFinal / $qty, 2);
-                }
-                unset($enrichedItem);
-            }
 
             // Store in local database
             $quote = Quote::create([
@@ -999,7 +976,7 @@ class QuoteOrderInvoiceController extends Controller
                     'pricing' => [
                         'base_subtotal' => $baseSubtotal,
                         'special_pricing_percent' => $specialPricingPercent,
-                        'profit_rate_percent' => (float) $pricing['profit_rate_percent'],
+                        'profit_rate_percent' => 0.0,
                         'profit_amount' => $profitAmount,
                         'tax_rate_percent' => (float) $pricing['tax_rate_percent'],
                         'tax_amount' => $taxAmount,
