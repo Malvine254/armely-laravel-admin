@@ -386,7 +386,7 @@ const DEFAULT_BROWSE_MAX_PRICE = 0
 const CURATED_CACHE_VERSION = 11
 // Bump whenever persisted catalog classification changes. This becomes part of
 // the URL so browsers cannot reuse an older publicly cached catalog response.
-const CATALOG_REQUEST_REVISION = 'taxonomy-relevance-20260821-2'
+const CATALOG_REQUEST_REVISION = 'category-media-facets-20260903-1'
 const ENABLE_SERVER_PREFETCH = true
 const ENABLE_VENDOR_COUNTS_API = true
 const PRODUCTS_RESULTS_SOFT_TTL_MS = 5 * 60 * 1000
@@ -669,6 +669,8 @@ const currentFilters = ref({
   lifecycleStatuses: [],
   mediaStatuses: []
 })
+const mediaFacetCounts = ref({ hasImages: 0, noImages: 0 })
+const mediaFacetCountsLoaded = ref(false)
 
 const hasActiveCatalogState = computed(() => (
   String(searchQuery.value || '').trim() !== ''
@@ -703,10 +705,14 @@ const buildProductsRouteQuery = () => {
 }
 
 const requiresClientForFilters = (filters) => {
+  const clientMediaStatuses = Array.isArray(filters?.mediaStatuses)
+    ? filters.mediaStatuses.filter((status) => !['Has Images', 'No Images'].includes(status))
+    : []
+
   return (
     String(filters?.partNumber || '').trim().length > 0
     || (Array.isArray(filters?.lifecycleStatuses) && filters.lifecycleStatuses.length > 0)
-    || (Array.isArray(filters?.mediaStatuses) && filters.mediaStatuses.length > 0)
+    || clientMediaStatuses.length > 0
   )
 }
 
@@ -776,6 +782,11 @@ const reviewRatingOptions = computed(() => {
       noImages += 1
     }
   })
+
+  if (mediaFacetCountsLoaded.value) {
+    hasImages = mediaFacetCounts.value.hasImages
+    noImages = mediaFacetCounts.value.noImages
+  }
 
   const options = [
     { name: '5 Stars', count: fiveStar },
@@ -1539,6 +1550,10 @@ const applyProductResultPayload = (result = {}) => {
   serverHasMore.value = Boolean(result.hasMore)
   serverTotalIsEstimate.value = Boolean(result.totalIsEstimate)
   supplierLookupQueued.value = Boolean(result.supplierLookupQueued)
+  if (result.mediaCounts) {
+    mediaFacetCounts.value = result.mediaCounts
+    mediaFacetCountsLoaded.value = true
+  }
   if (!Boolean(result.serverPaged)) {
     updateVendorCounts(products.value)
   }
@@ -1675,6 +1690,12 @@ const performSearch = async (resetPage = true) => {
         params.category = categoryEntry?.value || selectedCategoryName
       }
 
+      const selectedImageStatuses = currentFilters.value.mediaStatuses
+        .filter((status) => ['Has Images', 'No Images'].includes(status))
+      if (selectedImageStatuses.length > 0) {
+        params.media = selectedImageStatuses.join(',')
+      }
+
       if (currentFilters.value.priceMin > 0) {
         params.min_price = currentFilters.value.priceMin
       }
@@ -1712,6 +1733,12 @@ const performSearch = async (resetPage = true) => {
         loadedHasMore = Boolean(payload.has_more)
         loadedTotalIsEstimate = Boolean(payload.total_is_estimate)
         loadedSupplierLookupQueued = Boolean(payload.supplier_lookup_queued)
+        const rawMediaCounts = payload.media_counts || {}
+        mediaFacetCounts.value = {
+          hasImages: Number(rawMediaCounts.has_images || 0),
+          noImages: Number(rawMediaCounts.no_images || 0),
+        }
+        mediaFacetCountsLoaded.value = true
       } else {
         loadedProducts = await fetchAllProductPages(params)
         loadedTotal = loadedProducts.length
@@ -1743,6 +1770,7 @@ const performSearch = async (resetPage = true) => {
           hasMore: loadedHasMore,
           totalIsEstimate: loadedTotalIsEstimate,
           supplierLookupQueued: loadedSupplierLookupQueued,
+          mediaCounts: mediaFacetCounts.value,
           timestamp: Date.now()
         }
         if (!loadedSupplierLookupQueued) {
@@ -1767,6 +1795,7 @@ const performSearch = async (resetPage = true) => {
           hasMore: loadedHasMore,
           totalIsEstimate: loadedTotalIsEstimate,
           supplierLookupQueued: loadedSupplierLookupQueued,
+          mediaCounts: mediaFacetCounts.value,
         }
       } else {
         error.value = 'Failed to fetch products'

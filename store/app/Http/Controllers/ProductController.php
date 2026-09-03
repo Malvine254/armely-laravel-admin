@@ -21,6 +21,7 @@ class ProductController extends Controller
 {
     private const STOREFRONT_MIN_PRICE = 100.0; // Fallback default
     private const STOREFRONT_MAX_DEFAULT_PRODUCTS = 3000;
+    private ?array $localProductImageIds = null;
 
     protected TDSynnexService $tdsynnexService;
     protected CustomerPricingService $customerPricingService;
@@ -76,7 +77,48 @@ class ProductController extends Controller
 
     private function hasUsableProductImageSql(): string
     {
-        return "(images IS NOT NULL AND images <> '' AND images <> '[]' AND images <> 'null')";
+        $externalImageSql = "LOWER(CAST(COALESCE(images, '') AS CHAR)) LIKE '%http%'";
+        $localImageIds = $this->localProductImageIds();
+        if (empty($localImageIds)) {
+            return "({$externalImageSql})";
+        }
+
+        $quotedIds = implode(',', array_map(
+            static fn (string $id): string => "'{$id}'",
+            $localImageIds
+        ));
+
+        return "({$externalImageSql} OR tdsynnex_product_id IN ({$quotedIds}))";
+    }
+
+    private function applyProductImageFilter(
+        \Illuminate\Database\Eloquent\Builder $query,
+        bool $hasImages
+    ): void {
+        $imageSql = $this->hasUsableProductImageSql();
+        $query->whereRaw($hasImages ? $imageSql : "NOT ({$imageSql})");
+    }
+
+    private function localProductImageIds(): array
+    {
+        if ($this->localProductImageIds !== null) {
+            return $this->localProductImageIds;
+        }
+
+        $directory = public_path(config('tdsynnex.local_images.dest_dir', 'images/products'));
+        if (!is_dir($directory)) {
+            return $this->localProductImageIds = [];
+        }
+
+        $ids = [];
+        foreach (glob($directory . '/*.{jpg,jpeg,png,webp,gif,avif}', GLOB_BRACE) ?: [] as $path) {
+            $id = pathinfo($path, PATHINFO_FILENAME);
+            if (preg_match('/^\d+$/', $id)) {
+                $ids[$id] = true;
+            }
+        }
+
+        return $this->localProductImageIds = array_keys($ids);
     }
 
     private function applyPriorityItProductFilterToQuery(\Illuminate\Database\Eloquent\Builder $query): void
@@ -379,6 +421,7 @@ class ProductController extends Controller
             $billingModels = $request->query('billing_models'); // comma-separated list
             $productType = $this->normalizeProductType((string) $request->query('product_type', ''));
             $category = trim((string) $request->query('category', ''));
+            $media = trim((string) $request->query('media', ''));
             $useDbCache = $request->query('use_db_cache', true); // Use database cache by default
             // hide items with zero MSRP price by default; set ?hide_zero_price=false to disable
             $hideZero = filter_var($request->query('hide_zero_price', true), FILTER_VALIDATE_BOOLEAN);
@@ -392,7 +435,7 @@ class ProductController extends Controller
 
             if ($this->tdsynnexService->usesPriceAvailabilityAsProductSource()) {
                 $hasPriceAvailabilityDbCache = $this->tdsynnexService->hasPriceAvailabilityDatabaseCache();
-                return $this->indexFromPriceAvailability($request, $search, $minPrice, $maxPrice, $billingModels, $hideZero, $pageNo, $pageSize, (bool) $useDbCache, $catalogClean, $productType, $category);
+                return $this->indexFromPriceAvailability($request, $search, $minPrice, $maxPrice, $billingModels, $hideZero, $pageNo, $pageSize, (bool) $useDbCache, $catalogClean, $productType, $category, $media);
             }
 
             // Use single vendor if no vendor list specified
@@ -601,7 +644,8 @@ class ProductController extends Controller
         bool $useDbCache = true,
         bool $catalogClean = false,
         string $productType = 'hardware',
-        string $category = ''
+        string $category = '',
+        string $media = ''
     ): JsonResponse {
         $authenticatedUser = $this->authenticatedApiUser($request);
 
@@ -663,6 +707,7 @@ class ProductController extends Controller
                 $curatedItMix,
                 $productType,
                 $category,
+                $media,
             );
 
             $fromDbCache = true;
@@ -693,6 +738,7 @@ class ProductController extends Controller
                     'dbCached' => $fromDbCache,
                     'source' => 'priceavailability-db',
                     'supplier_lookup_queued' => $supplierLookupQueued,
+                    'media_counts' => $dbPage['media_counts'] ?? ['has_images' => 0, 'no_images' => 0],
                 ],
                 'message' => $supplierLookupQueued
                     ? 'No local match was found. A supplier catalog lookup has been queued; retry shortly.'
@@ -927,7 +973,8 @@ class ProductController extends Controller
         bool $catalogClean = false,
         bool $curatedItMix = false,
         string $productType = 'hardware',
-        string $category = ''
+        string $category = '',
+        string $media = ''
     ): array {
         // All browse pages (default and filtered) are cached.
         // Search queries use a shorter TTL since results should feel responsive.
@@ -937,7 +984,7 @@ class ProductController extends Controller
         $cacheKey = sprintf(
             'pa_browse_page:%s',
             md5(json_encode([
-                'v' => 24,
+                'v' => 26,
                 'price_version' => Cache::get('catalog:price_version', '1'),
                 'page' => (int) $pageNo,
                 'page_size' => (int) $pageSize,
@@ -947,6 +994,7 @@ class ProductController extends Controller
                 'catalog_clean' => $catalogClean,
                 'product_type' => $productType,
                 'category' => $category,
+                'media' => $media,
                 'curated_it_mix' => $curatedItMix,
                 'selected_vendors' => $selectedVendors,
                 'billing_models' => $billingModels,
@@ -972,7 +1020,8 @@ class ProductController extends Controller
             $catalogClean,
             $curatedItMix,
             $productType,
-            $category
+            $category,
+            $media
         ) {
             return $this->fetchPriceAvailabilityPageFromDatabaseUncached(
                 $search,
@@ -987,6 +1036,7 @@ class ProductController extends Controller
                 $curatedItMix,
                 $productType,
                 $category,
+                $media,
             );
         };
 
@@ -1008,7 +1058,8 @@ class ProductController extends Controller
         bool $catalogClean = false,
         bool $curatedItMix = false,
         string $productType = 'hardware',
-        string $category = ''
+        string $category = '',
+        string $media = ''
     ): array {
         $showOutOfStock   = false;
         $showDiscontinued = false;
@@ -1288,8 +1339,21 @@ class ProductController extends Controller
 
         $this->applyCategorySegmentFilterToQuery($query, $category);
 
-        // Do not filter on images. Missing supplier media lowers the nightly
-        // assortment score, while product cards render a product-type placeholder.
+        $hasImagesQuery = $query->clone();
+        $this->applyProductImageFilter($hasImagesQuery, true);
+        $noImagesQuery = $query->clone();
+        $this->applyProductImageFilter($noImagesQuery, false);
+        $mediaCounts = [
+            'has_images' => $hasImagesQuery->count(),
+            'no_images' => $noImagesQuery->count(),
+        ];
+
+        $selectedMedia = array_values(array_unique(array_filter(array_map('trim', explode(',', $media)))));
+        $filterHasImages = in_array('Has Images', $selectedMedia, true);
+        $filterNoImages = in_array('No Images', $selectedMedia, true);
+        if ($filterHasImages xor $filterNoImages) {
+            $this->applyProductImageFilter($query, $filterHasImages);
+        }
 
         $perPage = max(1, $pageSize);
         $currentPage = max(1, $pageNo);
@@ -1355,6 +1419,7 @@ class ProductController extends Controller
                 'total' => $defaultBrowseMaxItems,
                 'has_more' => false,
                 'total_is_estimate' => false,
+                'media_counts' => $mediaCounts,
             ];
         }
 
@@ -1387,6 +1452,7 @@ class ProductController extends Controller
             'total' => $total,
             'has_more' => $hasMore,
             'total_is_estimate' => false,
+            'media_counts' => $mediaCounts,
         ];
     }
 
