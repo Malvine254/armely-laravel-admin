@@ -20,7 +20,7 @@ use App\Jobs\ImportMissingCatalogSearchJob;
 class ProductController extends Controller
 {
     private const STOREFRONT_MIN_PRICE = 100.0; // Fallback default
-    private const STOREFRONT_MAX_DEFAULT_PRODUCTS = 3000;
+    private const STOREFRONT_MAX_DEFAULT_PRODUCTS = 10000;
     private ?array $localProductImageIds = null;
 
     protected TDSynnexService $tdsynnexService;
@@ -73,6 +73,16 @@ class ProductController extends Controller
         $value = (float) $requested;
 
         return $value > 0 ? $value : null;
+    }
+
+    private function storefrontProductLimit(): int
+    {
+        $configured = (int) \App\Models\AppSetting::getValue(
+            'catalog.storefront_product_limit',
+            config('storefront.assortment_size', self::STOREFRONT_MAX_DEFAULT_PRODUCTS)
+        );
+
+        return max(1000, min(50000, $configured));
     }
 
     private function hasUsableProductImageSql(): string
@@ -984,7 +994,7 @@ class ProductController extends Controller
         $cacheKey = sprintf(
             'pa_browse_page:%s',
             md5(json_encode([
-                'v' => 28,
+                'v' => 29,
                 'price_version' => Cache::get('catalog:price_version', '1'),
                 'page' => (int) $pageNo,
                 'page_size' => (int) $pageSize,
@@ -1130,9 +1140,9 @@ class ProductController extends Controller
             // The default storefront is already constrained by availability,
             // hardware quality and price. Do not also
             // restrict it to the persisted curated snapshot: that snapshot can
-            // contain fewer than the 3,000 products promised by the catalog UI.
+            // contain fewer than the 10,000 products promised by the catalog UI.
             // The shared ID pool ranks priority IT products without excluding
-            // other eligible hardware needed to fill the 3,000-product cap.
+            // other eligible hardware needed to fill the 10,000-product target.
         }
 
         if ($hideZero) {
@@ -1371,7 +1381,7 @@ class ProductController extends Controller
         $perPage = max(1, $pageSize);
         $currentPage = max(1, $pageNo);
         $offset = ($currentPage - 1) * $perPage;
-        $defaultBrowseMaxItems = $isDefaultBrowse ? self::STOREFRONT_MAX_DEFAULT_PRODUCTS : null;
+        $defaultBrowseMaxItems = $isDefaultBrowse ? $this->storefrontProductLimit() : null;
 
         // Search relevance must lead. Image completeness is only a tie-breaker;
         // otherwise an exact model match without media is buried below weaker
@@ -2521,7 +2531,7 @@ class ProductController extends Controller
     /** IDs from the same capped pool exposed by the default storefront catalog. */
     private function storefrontCappedProductIds(): array
     {
-        return Cache::remember('storefront_capped_product_ids_v7', 1800, function (): array {
+        return Cache::remember('storefront_capped_product_ids_v8', 1800, function (): array {
             $query = Product::query()
                 ->select('id')
                 ->where('vendor_id', 'TD SYNNEX')
@@ -2563,7 +2573,7 @@ class ProductController extends Controller
                     ELSE 6 END")
                 ->orderByDesc('created_at')
                 ->orderByDesc('id')
-                ->limit(self::STOREFRONT_MAX_DEFAULT_PRODUCTS)
+                ->limit($this->storefrontProductLimit())
                 ->pluck('id')
                 ->map(static fn ($id) => (int) $id)
                 ->all();

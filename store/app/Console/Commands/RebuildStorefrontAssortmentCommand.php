@@ -11,12 +11,15 @@ use Illuminate\Support\Facades\DB;
 class RebuildStorefrontAssortmentCommand extends Command
 {
     protected $signature = 'storefront:rebuild-assortment {--dry-run : Score products without writing changes}';
-    protected $description = 'Build the balanced, purchase-informed 3,000-product storefront assortment';
+    protected $description = 'Build the balanced, purchase-informed 10,000-product storefront assortment';
 
     public function handle(): int
     {
         $quotas = (array) config('storefront.category_quotas', []);
-        $limit = max(1, (int) config('storefront.assortment_size', 3000));
+        $limit = max(1000, min(50000, (int) \App\Models\AppSetting::getValue(
+            'catalog.storefront_product_limit',
+            config('storefront.assortment_size', 10000)
+        )));
         $since = now()->subDays(90);
 
         $orderUnits = DB::table('order_line_items')

@@ -619,7 +619,7 @@
             </label>
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-2">Minimum Price ($)</label>
               <input
@@ -641,6 +641,18 @@
                 class="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-900 placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
               />
               <p class="text-xs text-gray-500 mt-1">Products above this price are hidden. Set to 0 to disable.</p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Storefront Product Limit</label>
+              <input
+                v-model.number="systemSettings.catalog_storefront_product_limit"
+                type="number"
+                min="1000"
+                max="50000"
+                step="500"
+                class="w-full px-4 py-2 border border-gray-200 bg-gray-50 text-gray-900 placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5597]"
+              />
+              <p class="text-xs text-gray-500 mt-1">Maximum products shown in the storefront. Products with images are prioritized.</p>
             </div>
           </div>
         </div>
@@ -1348,6 +1360,7 @@ const systemSettings = ref({
   catalog_show_discontinued: false,
   catalog_min_price: 100,
   catalog_max_price: 3000,
+  catalog_storefront_product_limit: 10000,
 })
 
 const catalogOperations = ref({

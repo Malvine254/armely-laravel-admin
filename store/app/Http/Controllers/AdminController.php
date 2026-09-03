@@ -3774,6 +3774,7 @@ class AdminController extends Controller
                         'catalog_show_discontinued' => (bool) AppSetting::getValue('catalog.show_discontinued', false),
                         'catalog_min_price' => (float) AppSetting::getValue('catalog.min_price', 100),
                         'catalog_max_price' => (float) AppSetting::getValue('catalog.max_price', 3000),
+                        'catalog_storefront_product_limit' => (int) AppSetting::getValue('catalog.storefront_product_limit', config('storefront.assortment_size', 10000)),
                         'currency' => strtoupper((string) AppSetting::getValue('pricing.currency_code', env('APP_CURRENCY', 'USD'))),
                         'currency_rate' => AppSetting::getNumber('pricing.currency_rate', (float) env('APP_CURRENCY_RATE', 1)),
                         'timezone' => (string) AppSetting::getValue('system.timezone', env('APP_TIMEZONE', config('app.timezone', 'America/New_York'))),
@@ -4647,6 +4648,7 @@ class AdminController extends Controller
                 'catalog_show_discontinued' => 'sometimes|boolean',
                 'catalog_min_price' => 'sometimes|numeric|min:0',
                 'catalog_max_price' => 'sometimes|numeric|min:0',
+                'catalog_storefront_product_limit' => 'sometimes|integer|min:1000|max:50000',
             ]);
 
             // Handle maintenance mode
@@ -4719,6 +4721,11 @@ class AdminController extends Controller
                 $catalogSettingsChanged = true;
             }
 
+            if (array_key_exists('catalog_storefront_product_limit', $validated)) {
+                AppSetting::setValue('catalog.storefront_product_limit', (int) $validated['catalog_storefront_product_limit']);
+                $catalogSettingsChanged = true;
+            }
+
             if ($catalogSettingsChanged) {
                 \Illuminate\Support\Facades\Cache::flush();
             }
@@ -4771,6 +4778,7 @@ class AdminController extends Controller
                     'catalog_show_discontinued' => (bool) AppSetting::getValue('catalog.show_discontinued', false),
                     'catalog_min_price' => (float) AppSetting::getValue('catalog.min_price', 100),
                     'catalog_max_price' => (float) AppSetting::getValue('catalog.max_price', 3000),
+                    'catalog_storefront_product_limit' => (int) AppSetting::getValue('catalog.storefront_product_limit', config('storefront.assortment_size', 10000)),
                 ],
             ]);
         } catch (\Exception $e) {

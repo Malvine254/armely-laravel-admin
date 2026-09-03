@@ -10,9 +10,9 @@ class CurateCatalogCommand extends Command
 {
     protected $signature = 'tdsynnex:curate-catalog
         {--dry-run : Show what would change without writing to the database}
-        {--total=3000 : Approximate total products to keep across all categories}';
+        {--total=10000 : Approximate total products to keep across all categories}';
 
-    protected $description = 'Narrow the product catalog to ~3 000 high-demand B2B items by scoring each product on brand, stock, and price';
+    protected $description = 'Narrow the product catalog to ~10 000 high-demand B2B items by scoring each product on brand, stock, and price';
 
     // ── Brand tier lookup ─────────────────────────────────────────────────────
     private const BRAND_TIER_1 = [

@@ -386,7 +386,7 @@ const DEFAULT_BROWSE_MAX_PRICE = 0
 const CURATED_CACHE_VERSION = 11
 // Bump whenever persisted catalog classification changes. This becomes part of
 // the URL so browsers cannot reuse an older publicly cached catalog response.
-const CATALOG_REQUEST_REVISION = 'filled-capped-catalog-20260903-3'
+const CATALOG_REQUEST_REVISION = 'image-first-catalog-10000-20260903-4'
 const ENABLE_SERVER_PREFETCH = true
 const ENABLE_VENDOR_COUNTS_API = true
 const PRODUCTS_RESULTS_SOFT_TTL_MS = 5 * 60 * 1000
@@ -1467,7 +1467,7 @@ const fetchAllProductPages = async (params) => {
     params: {
       ...params,
       page: 1,
-      per_page: 3000,
+      per_page: 10000,
       hide_zero_price: true,
       catalog_clean: true,
     }
