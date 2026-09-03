@@ -30,7 +30,7 @@
         </button>
 
         <!-- Global catalog search -->
-        <form class="order-2 mx-3 hidden min-w-[18rem] max-w-[680px] basis-[34rem] flex-1 lg:flex xl:mx-5 2xl:mx-7" role="search" @submit.prevent="submitNavSearch">
+        <form data-nav-search class="relative order-2 mx-3 hidden min-w-[18rem] max-w-[680px] basis-[34rem] flex-1 lg:flex xl:mx-5 2xl:mx-7" role="search" @submit.prevent="submitNavSearch">
           <div class="flex h-12 min-w-0 flex-1 overflow-hidden rounded-lg border border-slate-300 bg-white transition focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100">
             <input
               v-model="navSearchQuery"
@@ -38,10 +38,33 @@
               class="min-w-0 flex-1 border-0 bg-transparent px-4 text-sm text-slate-800 outline-none placeholder:text-slate-400"
               placeholder="Search products, categories, or part numbers..."
               aria-label="Search store catalog"
+              autocomplete="off"
+              :aria-expanded="showSearchHistory"
+              aria-controls="nav-search-history"
+              @focus="openSearchHistory"
+              @input="openSearchHistory"
+              @keydown.down.prevent="highlightNextHistory"
+              @keydown.up.prevent="highlightPreviousHistory"
+              @keydown.esc="closeSearchHistory"
             >
             <button type="submit" class="flex w-14 items-center justify-center bg-[#0b3b82] text-white transition hover:bg-blue-700" aria-label="Search">
               <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m21 21-4.35-4.35m1.35-5.65a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z"/></svg>
             </button>
+          </div>
+          <div v-if="showSearchHistory && filteredSearchHistory.length" id="nav-search-history" class="absolute inset-x-0 top-full z-[180] mt-2 overflow-hidden rounded-lg border border-slate-200 bg-white py-2 shadow-xl" role="listbox">
+            <div class="flex items-center justify-between px-4 pb-1.5 pt-1">
+              <span class="text-xs font-semibold uppercase text-slate-500">Recent searches</span>
+              <button type="button" class="text-xs font-semibold text-[#2F5597] hover:text-blue-700" @mousedown.prevent @click="clearSearchHistory">Clear all</button>
+            </div>
+            <div v-for="(term, index) in filteredSearchHistory" :key="term" class="group flex items-center" :class="activeHistoryIndex === index ? 'bg-slate-100' : 'hover:bg-slate-50'" role="option" :aria-selected="activeHistoryIndex === index">
+              <button type="button" class="flex min-w-0 flex-1 items-center gap-3 px-4 py-2.5 text-left text-sm text-slate-800" @mousedown.prevent @click="selectSearchHistory(term)">
+                <svg class="h-4 w-4 flex-none text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 8v4l2.5 1.5M21 12a9 9 0 1 1-3.2-6.9"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M21 4v5h-5"/></svg>
+                <span class="truncate">{{ term }}</span>
+              </button>
+              <button type="button" class="mr-2 flex h-8 w-8 flex-none items-center justify-center text-slate-400 hover:text-slate-700" :aria-label="`Remove ${term} from search history`" title="Remove" @mousedown.prevent @click="removeSearchHistory(term)">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 6l12 12M18 6 6 18"/></svg>
+              </button>
+            </div>
           </div>
         </form>
 
@@ -278,12 +301,27 @@
       <!-- Mobile Dropdown Menu -->
       <div v-if="mobileMenuOpen" class="lg:hidden pb-4">
         <div class="rounded-lg border border-white/20 overflow-hidden" style="background: #2F5597;">
-          <form class="border-b border-white/10 p-3 lg:hidden" role="search" @submit.prevent="submitNavSearch">
+          <form data-nav-search class="relative border-b border-white/10 p-3 lg:hidden" role="search" @submit.prevent="submitNavSearch">
             <div class="flex h-11 overflow-hidden rounded-lg bg-white">
-              <input v-model="navSearchQuery" type="search" class="min-w-0 flex-1 px-3 text-sm text-slate-800 outline-none" placeholder="Search products or part numbers..." aria-label="Search store catalog">
+              <input v-model="navSearchQuery" type="search" class="min-w-0 flex-1 px-3 text-sm text-slate-800 outline-none" placeholder="Search products or part numbers..." aria-label="Search store catalog" autocomplete="off" :aria-expanded="showSearchHistory" aria-controls="mobile-nav-search-history" @focus="openSearchHistory" @input="openSearchHistory" @keydown.down.prevent="highlightNextHistory" @keydown.up.prevent="highlightPreviousHistory" @keydown.esc="closeSearchHistory">
               <button type="submit" class="flex w-11 items-center justify-center bg-blue-600 text-white" aria-label="Search">
                 <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m21 21-4.35-4.35m1.35-5.65a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z"/></svg>
               </button>
+            </div>
+            <div v-if="showSearchHistory && filteredSearchHistory.length" id="mobile-nav-search-history" class="absolute inset-x-3 top-full z-[180] overflow-hidden rounded-lg border border-slate-200 bg-white py-2 shadow-xl" role="listbox">
+              <div class="flex items-center justify-between px-3 pb-1.5 pt-1">
+                <span class="text-xs font-semibold uppercase text-slate-500">Recent searches</span>
+                <button type="button" class="text-xs font-semibold text-[#2F5597]" @mousedown.prevent @click="clearSearchHistory">Clear all</button>
+              </div>
+              <div v-for="(term, index) in filteredSearchHistory" :key="term" class="flex items-center" :class="activeHistoryIndex === index ? 'bg-slate-100' : ''" role="option" :aria-selected="activeHistoryIndex === index">
+                <button type="button" class="flex min-w-0 flex-1 items-center gap-3 px-3 py-2.5 text-left text-sm text-slate-800" @mousedown.prevent @click="selectSearchHistory(term)">
+                  <svg class="h-4 w-4 flex-none text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 8v4l2.5 1.5M21 12a9 9 0 1 1-3.2-6.9"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M21 4v5h-5"/></svg>
+                  <span class="truncate">{{ term }}</span>
+                </button>
+                <button type="button" class="mr-1 flex h-9 w-9 flex-none items-center justify-center text-slate-400" :aria-label="`Remove ${term} from search history`" @mousedown.prevent @click="removeSearchHistory(term)">
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 6l12 12M18 6 6 18"/></svg>
+                </button>
+              </div>
             </div>
           </form>
           <!-- Products Section -->
@@ -381,12 +419,94 @@ const activeMoreCategoryValue = ref(null)
 const mobileProductsOpen = ref(false)
 const mobileOpenCategory = ref(null)
 const navSearchQuery = ref(parseProductsRouteFilters(route).q ? String(parseProductsRouteFilters(route).q) : '')
+const searchHistory = ref([])
+const showSearchHistory = ref(false)
+const activeHistoryIndex = ref(-1)
 const accountMenuOpen = ref(false)
 const userAvatarLoadFailed = ref(false)
 const accountMenuRef = ref(null)
 const categoryMenuRef = ref(null)
 const primaryCategoryLimit = ref(6)
 let categoryMenuResizeObserver = null
+const SEARCH_HISTORY_KEY = 'armely_products_search_history'
+const SEARCH_HISTORY_LIMIT = 12
+
+const normalizeSearchTerm = value => String(value || '').trim().replace(/\s+/g, ' ')
+const filteredSearchHistory = computed(() => {
+  const query = normalizeSearchTerm(navSearchQuery.value).toLowerCase()
+  return searchHistory.value
+    .filter(term => !query || term.toLowerCase().includes(query))
+    .slice(0, 8)
+})
+
+const saveSearchHistory = () => {
+  try {
+    localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(searchHistory.value))
+  } catch {
+    // Search remains usable when browser storage is unavailable.
+  }
+}
+
+const loadSearchHistory = () => {
+  try {
+    const stored = JSON.parse(localStorage.getItem(SEARCH_HISTORY_KEY) || '[]')
+    searchHistory.value = Array.isArray(stored)
+      ? stored.map(normalizeSearchTerm).filter(term => term.length > 1).slice(0, SEARCH_HISTORY_LIMIT)
+      : []
+  } catch {
+    searchHistory.value = []
+  }
+}
+
+const rememberSearch = value => {
+  const term = normalizeSearchTerm(value)
+  if (term.length < 2) return
+  searchHistory.value = [
+    term,
+    ...searchHistory.value.filter(item => item.toLowerCase() !== term.toLowerCase()),
+  ].slice(0, SEARCH_HISTORY_LIMIT)
+  saveSearchHistory()
+}
+
+const openSearchHistory = () => {
+  activeHistoryIndex.value = -1
+  showSearchHistory.value = filteredSearchHistory.value.length > 0
+}
+
+const closeSearchHistory = () => {
+  showSearchHistory.value = false
+  activeHistoryIndex.value = -1
+}
+
+const selectSearchHistory = term => {
+  navSearchQuery.value = term
+  submitNavSearch()
+}
+
+const removeSearchHistory = term => {
+  searchHistory.value = searchHistory.value.filter(item => item !== term)
+  saveSearchHistory()
+  activeHistoryIndex.value = -1
+  showSearchHistory.value = filteredSearchHistory.value.length > 0
+}
+
+const clearSearchHistory = () => {
+  searchHistory.value = []
+  saveSearchHistory()
+  closeSearchHistory()
+}
+
+const highlightNextHistory = () => {
+  if (!showSearchHistory.value || filteredSearchHistory.value.length === 0) return
+  activeHistoryIndex.value = (activeHistoryIndex.value + 1) % filteredSearchHistory.value.length
+}
+
+const highlightPreviousHistory = () => {
+  if (!showSearchHistory.value || filteredSearchHistory.value.length === 0) return
+  activeHistoryIndex.value = activeHistoryIndex.value <= 0
+    ? filteredSearchHistory.value.length - 1
+    : activeHistoryIndex.value - 1
+}
 
 const handleDocumentClick = event => {
   if (accountMenuOpen.value && !accountMenuRef.value?.contains(event.target)) {
@@ -396,18 +516,25 @@ const handleDocumentClick = event => {
     categoryDropdownOpen.value = null
     moreCategoriesOpen.value = false
   }
+  if (!event.target?.closest?.('[data-nav-search]')) {
+    closeSearchHistory()
+  }
 }
 
 const submitNavSearch = () => {
-  const query = navSearchQuery.value.trim()
-  router.push(buildProductsLocation(query ? { q: query } : {}))
+  if (activeHistoryIndex.value >= 0 && filteredSearchHistory.value[activeHistoryIndex.value]) {
+    navSearchQuery.value = filteredSearchHistory.value[activeHistoryIndex.value]
+  }
+  const normalizedQuery = normalizeSearchTerm(navSearchQuery.value)
+  rememberSearch(normalizedQuery)
+  closeSearchHistory()
+  router.push(buildProductsLocation(normalizedQuery ? { q: normalizedQuery } : {}))
   closeAll()
 }
 
 watch(
-  () => route.fullPath,
-  () => {
-    const value = parseProductsRouteFilters(route).q
+  () => normalizeSearchTerm(parseProductsRouteFilters(route).q),
+  value => {
     navSearchQuery.value = value ? String(value) : ''
   }
 )
@@ -580,6 +707,7 @@ const fetchMenuCategories = async () => {
 }
 
 onMounted(() => {
+  loadSearchHistory()
   document.addEventListener('click', handleDocumentClick)
   categoryMenuResizeObserver = new ResizeObserver(recalculatePrimaryCategories)
   if (categoryMenuRef.value) categoryMenuResizeObserver.observe(categoryMenuRef.value)

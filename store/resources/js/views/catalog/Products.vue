@@ -817,6 +817,7 @@ const persistLocalSearchHistory = (term) => {
   const normalized = normalizeSearchHistoryTerm(term)
   if (normalized.length < 2 || typeof window === 'undefined') return
 
+  loadLocalSearchHistory()
   const withoutTerm = localSearchHistory.value.filter(
     (item) => normalizeSearchHistoryTerm(item).toLowerCase() !== normalized.toLowerCase()
   )
