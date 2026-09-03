@@ -4,12 +4,17 @@ namespace App\Http\Controllers;
 
 use App\Jobs\EnrichPriceAvailabilityProductImageJob;
 use App\Models\Product;
+use App\Services\TDSynnexService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class AdminImportedProductController extends Controller
 {
     private ?array $cachedLocalImageProductIds = null;
+
+    public function __construct(private readonly TDSynnexService $tdsynnexService)
+    {
+    }
 
     private function applyImageFilter($query, string $imageFilter): void
     {
@@ -155,6 +160,7 @@ class AdminImportedProductController extends Controller
             'sku' => $product->tdsynnex_sku_no ?: $product->tdsynnex_product_id,
             'query' => $product->search_import_query,
             'status' => $product->search_import_review_status ?: 'pending',
+            'storefront_pinned' => (bool) $product->is_storefront_pinned,
             'has_image' => !empty((array) $product->images),
             'image_attempted_at' => optional($product->image_enrichment_attempted_at)->toIso8601String(),
             'imported_at' => optional($product->search_imported_at)->toIso8601String(),
@@ -181,6 +187,90 @@ class AdminImportedProductController extends Controller
             'search_import_reviewed_by' => $request->user()->id,
         ]);
         return response()->json(['success' => true, 'message' => 'Product review status updated.']);
+    }
+
+    public function supplierSearch(Request $request): JsonResponse
+    {
+        $this->authorizeAdmin($request);
+        $validated = $request->validate([
+            'q' => ['required', 'string', 'min:2', 'max:500'],
+            'limit' => ['nullable', 'integer', 'min:1', 'max:50'],
+        ]);
+
+        $query = trim($validated['q']);
+        $results = $this->tdsynnexService->searchPriceAvailabilityCatalog(
+            $query,
+            (int) ($validated['limit'] ?? 25),
+            false
+        );
+        $mappedRows = collect($results)->mapWithKeys(function (array $product) {
+            $row = $this->tdsynnexService->mapPriceAvailabilityCatalogProductToDatabaseRow($product);
+            $identifier = (string) ($product['sku'] ?? $product['productId'] ?? '');
+            return $row === null ? [] : [$identifier => $row];
+        });
+        $identifiers = $mappedRows->pluck('tdsynnex_product_id')->unique()->values();
+        $localProducts = Product::query()
+            ->whereIn('tdsynnex_product_id', $identifiers)
+            ->get()->keyBy('tdsynnex_product_id');
+
+        $data = collect($results)->take((int) ($validated['limit'] ?? 25))->map(function (array $product) use ($localProducts, $mappedRows) {
+            $identifier = (string) ($product['sku'] ?? $product['productId'] ?? '');
+            $local = $localProducts->get($mappedRows->get($identifier)['tdsynnex_product_id'] ?? null);
+
+            return [
+                'identifier' => $identifier,
+                'product_id' => (string) ($product['productId'] ?? $identifier),
+                'name' => (string) ($product['productName'] ?? $identifier),
+                'manufacturer' => (string) ($product['manufacturer'] ?? $product['vendorName'] ?? ''),
+                'mpn' => (string) ($product['mfgPartNo'] ?? ''),
+                'price' => (float) data_get($product, 'productPrice.0.rsPrice', $product['price'] ?? 0),
+                'quantity' => (int) ($product['availableQuantity'] ?? $product['totalQuantity'] ?? 0),
+                'discontinued' => (bool) ($product['discontinueProduct'] ?? false),
+                'already_imported' => $local !== null,
+                'storefront_pinned' => (bool) ($local?->is_storefront_pinned),
+            ];
+        })->values();
+
+        return response()->json(['success' => true, 'data' => $data]);
+    }
+
+    public function importSupplierProduct(Request $request): JsonResponse
+    {
+        $this->authorizeAdmin($request);
+        $validated = $request->validate([
+            'identifier' => ['required', 'string', 'max:150'],
+            'search_query' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        try {
+            $product = $this->tdsynnexService->importSelectedPriceAvailabilityProduct(
+                $validated['identifier'],
+                (string) ($validated['search_query'] ?? ''),
+                (int) $request->user()->id
+            );
+        } catch (\InvalidArgumentException|\RuntimeException $exception) {
+            return response()->json(['success' => false, 'message' => $exception->getMessage()], 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Product imported and pinned to the storefront assortment.',
+            'data' => ['id' => $product->id, 'storefront_pinned' => true],
+        ], 201);
+    }
+
+    public function updateStorefrontPin(Request $request, Product $product): JsonResponse
+    {
+        $this->authorizeAdmin($request);
+        $validated = $request->validate(['pinned' => ['required', 'boolean']]);
+        $product->update([
+            'is_storefront_pinned' => $validated['pinned'],
+            'storefront_pinned_at' => $validated['pinned'] ? now() : null,
+        ]);
+        \Illuminate\Support\Facades\Cache::forget('storefront_capped_product_ids_v5');
+        \Illuminate\Support\Facades\Cache::forget('menu_categories:v15:pinned-storefront-cap');
+
+        return response()->json(['success' => true, 'message' => $validated['pinned'] ? 'Product pinned to storefront.' : 'Storefront pin removed.']);
     }
 
     public function enrichImage(Request $request, Product $product): JsonResponse

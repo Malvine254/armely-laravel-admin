@@ -81,7 +81,10 @@ class ProductController extends Controller
 
     private function applyPriorityItProductFilterToQuery(\Illuminate\Database\Eloquent\Builder $query): void
     {
-        $query->whereIn('category_segment', $this->priorityItCategorySegments());
+        $query->where(function ($scope) {
+            $scope->where('is_storefront_pinned', true)
+                ->orWhereIn('category_segment', $this->priorityItCategorySegments());
+        });
     }
 
     private function priorityItCategorySegments(): array
@@ -1027,7 +1030,10 @@ class ProductController extends Controller
         }
 
         if ($catalogMinPrice !== null && $minPrice === null) {
-            $query->whereRaw($this->preferredDbPriceSql() . ' >= ?', [$catalogMinPrice]);
+            $query->where(function ($scope) use ($catalogMinPrice) {
+                $scope->where('is_storefront_pinned', true)
+                    ->orWhereRaw($this->preferredDbPriceSql() . ' >= ?', [$catalogMinPrice]);
+            });
         }
 
         if ($catalogMaxPrice !== null && $maxPrice === null) {
@@ -1296,6 +1302,10 @@ class ProductController extends Controller
 
         if ($searchOrderExpr === null && $category !== '') {
             $this->applyCategoryRelevanceOrdering($query, $category);
+        }
+
+        if ($isDefaultBrowse) {
+            $query->orderByDesc('is_storefront_pinned');
         }
 
         $query->orderByRaw('CASE WHEN (' . $this->hasUsableProductImageSql() . ') THEN 0 ELSE 1 END');
@@ -2421,7 +2431,7 @@ class ProductController extends Controller
     /** IDs from the same capped pool exposed by the default storefront catalog. */
     private function storefrontCappedProductIds(): array
     {
-        return Cache::remember('storefront_capped_product_ids_v4', 1800, function (): array {
+        return Cache::remember('storefront_capped_product_ids_v5', 1800, function (): array {
             $query = Product::query()
                 ->select('id')
                 ->where('vendor_id', 'TD SYNNEX')
@@ -2430,13 +2440,17 @@ class ProductController extends Controller
                     $q->where('is_discontinued', false)->orWhereNull('is_discontinued');
                 })
                 ->whereRaw($this->stockQuantitySql() . ' > 0')
-                ->whereRaw($this->preferredDbPriceSql() . ' >= ?', [$this->storefrontMinPrice(null) ?? self::STOREFRONT_MIN_PRICE]);
+                ->where(function ($scope) {
+                    $scope->where('is_storefront_pinned', true)
+                        ->orWhereRaw($this->preferredDbPriceSql() . ' >= ?', [$this->storefrontMinPrice(null) ?? self::STOREFRONT_MIN_PRICE]);
+                });
 
             $this->applyCuratedDefaultBrowseFilters($query);
             $this->applyPriorityItProductFilterToQuery($query);
             $this->applyCatalogCleanFilterToQuery($query);
 
             return $query
+                ->orderByDesc('is_storefront_pinned')
                 ->orderByRaw('CASE WHEN (' . $this->hasUsableProductImageSql() . ') THEN 0 ELSE 1 END')
                 ->orderByRaw('COALESCE(storefront_rank, 4294967295) ASC')
                 ->orderByRaw("CASE
@@ -2555,7 +2569,7 @@ class ProductController extends Controller
     public function menuCategories(): JsonResponse
     {
         try {
-            $data = Cache::remember('menu_categories:v14:aligned-storefront-cap', 1800, function () {
+            $data = Cache::remember('menu_categories:v15:pinned-storefront-cap', 1800, function () {
                 $parents = \App\Models\Category::query()
                     ->select(['id', 'name', 'slug', 'segment_code', 'sort_order'])
                     ->whereNull('parent_id')
@@ -3549,11 +3563,16 @@ class ProductController extends Controller
 
     private function applyCuratedDefaultBrowseFilters(\Illuminate\Database\Eloquent\Builder $query): void
     {
-        $this->applyCuratedVendorScope($query);
-
         if ((bool) config('tdsynnex.catalog.hardware_only', true)) {
             $this->applyHardwareOnlyExclusions($query);
         }
+
+        $query->where(function ($scope) {
+            $scope->where('is_storefront_pinned', true)
+                ->orWhere(function ($normalProducts) {
+                    $this->applyCuratedVendorScope($normalProducts);
+                });
+        });
     }
 
     private function applyHardwareOnlyExclusions(\Illuminate\Database\Eloquent\Builder $query): void

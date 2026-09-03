@@ -187,7 +187,7 @@ class TDSynnexService
     /**
      * Search PriceAvailability catalog without loading the entire SKU universe.
      */
-    public function searchPriceAvailabilityCatalog(string $search, int $maxMatches = 800): array
+    public function searchPriceAvailabilityCatalog(string $search, int $maxMatches = 800, bool $preferDatabase = true, bool $useCache = true): array
     {
         $needle = strtolower(trim($search));
         if ($needle === '') {
@@ -195,7 +195,7 @@ class TDSynnexService
         }
 
         // When DB has data, search there instead of parsing flat files
-        if ($this->hasPriceAvailabilityDatabaseCache()) {
+        if ($preferDatabase && $this->hasPriceAvailabilityDatabaseCache()) {
             $like = '%' . $search . '%';
             $products = Product::query()
                 ->where('vendor_id', 'TD SYNNEX')
@@ -258,7 +258,7 @@ class TDSynnexService
             (bool) config('tdsynnex.xml.use_test_by_default', true),
         ]));
 
-        return Cache::remember($cacheKey, now()->addSeconds(600), function () use ($needle, $maxMatches) {
+        $loader = function () use ($needle, $maxMatches) {
             $matchedSkus = $this->findMatchingSkusInApFiles($needle, $maxMatches);
             if (empty($matchedSkus)) {
                 return [];
@@ -293,7 +293,9 @@ class TDSynnexService
             }
 
             return array_values($unique);
-        });
+        };
+
+        return $useCache ? Cache::remember($cacheKey, now()->addSeconds(600), $loader) : $loader();
     }
 
     /**
@@ -819,6 +821,7 @@ class TDSynnexService
             'sale_ended_at' => null,
             'billing_model' => (string) ($product['billingModel'] ?? ''),
             'billing_frequency' => (string) ($product['billingFrequency'] ?? ''),
+            'quantity' => (int) ($product['availableQuantity'] ?? $product['totalQuantity'] ?? 0),
             'is_available' => !((bool) ($product['discontinueProduct'] ?? false)),
             'is_discontinued' => (bool) ($product['discontinueProduct'] ?? false),
             'is_hardware' => \App\Http\Controllers\ProductController::isHardwareProduct(
@@ -862,6 +865,62 @@ class TDSynnexService
     public function mapPriceAvailabilityCatalogProductToDatabaseRow(array $product): ?array
     {
         return $this->priceAvailabilityProductToDatabaseRow($product);
+    }
+
+    public function importSelectedPriceAvailabilityProduct(string $identifier, string $searchQuery, int $adminId): Product
+    {
+        $identifier = trim($identifier);
+        if ($identifier === '') {
+            throw new \InvalidArgumentException('A supplier SKU or product ID is required.');
+        }
+
+        $needle = strtoupper($identifier);
+        $matches = $this->searchPriceAvailabilityCatalog($identifier, 50, false, false);
+        $selected = collect($matches)->first(function (array $product) use ($needle) {
+            foreach (['productId', 'sku', 'synnexSKU', 'mfgPartNo'] as $field) {
+                if (strtoupper(trim((string) ($product[$field] ?? ''))) === $needle) {
+                    return true;
+                }
+            }
+            return false;
+        });
+
+        if (!$selected) {
+            throw new \RuntimeException('The selected product could not be verified in the live supplier catalog.');
+        }
+
+        $row = $this->priceAvailabilityProductToDatabaseRow($selected);
+        if ($row === null) {
+            throw new \RuntimeException('The supplier product did not contain a valid product identifier.');
+        }
+        if (!$row['is_hardware'] || !$row['is_available'] || $row['is_discontinued'] || $row['quantity'] < 1 || $row['base_price'] <= 0) {
+            throw new \RuntimeException('This supplier product is not currently eligible for the storefront.');
+        }
+
+        $row['search_imported_at'] = now();
+        $row['search_import_query'] = trim($searchQuery) ?: $identifier;
+        $row['search_import_review_status'] = 'approved';
+        $row['search_import_reviewed_at'] = now();
+        $row['search_import_reviewed_by'] = $adminId;
+        $row['is_storefront_pinned'] = true;
+        $row['storefront_pinned_at'] = now();
+        unset($row['created_at']);
+
+        $product = Product::query()->updateOrCreate(
+            ['tdsynnex_product_id' => $row['tdsynnex_product_id']],
+            $row
+        );
+
+        if (empty((array) $product->images)) {
+            \App\Jobs\EnrichPriceAvailabilityProductImageJob::dispatch($product->id);
+        }
+
+        Cache::forget('pa_db_cache_exists');
+        Cache::forget('tdsynnex:priceavailability:vendors:list');
+        Cache::forget('storefront_capped_product_ids_v5');
+        Cache::forget('menu_categories:v15:pinned-storefront-cap');
+
+        return $product->fresh();
     }
 
     /**

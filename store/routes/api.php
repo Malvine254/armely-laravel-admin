@@ -179,7 +179,10 @@ Route::prefix('v1')->group(function () {
         Route::get('/admin/dashboard/stats', [AdminController::class, 'getDashboardStats']);
         Route::get('/admin/products', [AdminImportedProductController::class, 'all']);
         Route::get('/admin/imported-products', [AdminImportedProductController::class, 'index']);
+        Route::get('/admin/imported-products/supplier-search', [AdminImportedProductController::class, 'supplierSearch']);
+        Route::post('/admin/imported-products/import', [AdminImportedProductController::class, 'importSupplierProduct']);
         Route::put('/admin/imported-products/{product}', [AdminImportedProductController::class, 'update']);
+        Route::put('/admin/imported-products/{product}/storefront-pin', [AdminImportedProductController::class, 'updateStorefrontPin']);
         Route::post('/admin/imported-products/{product}/enrich-image', [AdminImportedProductController::class, 'enrichImage']);
         
         // Customer management

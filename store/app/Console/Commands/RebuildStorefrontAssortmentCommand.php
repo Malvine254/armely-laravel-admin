@@ -41,7 +41,10 @@ class RebuildStorefrontAssortmentCommand extends Command
         $candidates = Product::query()
             ->where('vendor_id', 'TD SYNNEX')
             ->where('is_hardware', true)
-            ->whereIn('category_segment', array_keys($quotas))
+            ->where(function ($query) use ($quotas) {
+                $query->where('is_storefront_pinned', true)
+                    ->orWhereIn('category_segment', array_keys($quotas));
+            })
             ->where('is_available', true)
             ->where(function ($q) { $q->where('is_discontinued', false)->orWhereNull('is_discontinued'); })
             ->whereRaw('COALESCE(NULLIF(retail_price, 0), NULLIF(base_price, 0), 0) > 0')
@@ -76,12 +79,18 @@ class RebuildStorefrontAssortmentCommand extends Command
             return $product;
         });
 
-        $selected = collect();
+        $selected = $scored
+            ->where('is_storefront_pinned', true)
+            ->sortBy(fn (Product $product) => [$product->storefront_pinned_at?->timestamp ?? PHP_INT_MAX, $product->id])
+            ->take($limit)
+            ->values();
         foreach ($quotas as $segment => $quota) {
+            $remainingQuota = max(0, (int) $quota - $selected->where('category_segment', (string) $segment)->count());
             $selected = $selected->concat(
                 $scored->where('category_segment', (string) $segment)
+                    ->whereNotIn('id', $selected->pluck('id'))
                     ->sortByDesc(fn (Product $p) => [(float) $p->storefront_score, (int) $p->quantity, -$p->id])
-                    ->take((int) $quota)
+                    ->take($remainingQuota)
             );
         }
 
