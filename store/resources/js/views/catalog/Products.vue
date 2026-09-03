@@ -115,7 +115,15 @@
                 </div>
                 <p class="mt-1 text-xs text-slate-500">High quality technology and business supplies.</p>
               </div>
-              <div class="flex items-center gap-3">
+              <div class="flex flex-wrap items-center gap-3">
+                <button
+                  v-if="hasActiveCatalogState"
+                  type="button"
+                  @click="resetFilters"
+                  class="rounded-lg border border-[#2F5597] bg-white px-3 py-2 text-sm font-semibold text-[#2F5597] transition hover:bg-blue-50"
+                >
+                  Clear filters
+                </button>
                 <label class="text-sm text-gray-600 font-medium whitespace-nowrap">Sort by:</label>
                 <select
                   v-model="sortBy"
@@ -655,6 +663,19 @@ const currentFilters = ref({
   lifecycleStatuses: [],
   mediaStatuses: []
 })
+
+const hasActiveCatalogState = computed(() => (
+  String(searchQuery.value || '').trim() !== ''
+  || currentFilters.value.priceMin !== DEFAULT_BROWSE_MIN_PRICE
+  || currentFilters.value.priceMax !== DEFAULT_BROWSE_MAX_PRICE
+  || String(currentFilters.value.partNumber || '').trim() !== ''
+  || String(currentFilters.value.productType || '').trim() !== ''
+  || currentFilters.value.vendors.length > 0
+  || currentFilters.value.categories.length > 0
+  || currentFilters.value.lifecycleStatuses.length > 0
+  || currentFilters.value.mediaStatuses.length > 0
+  || sortBy.value !== 'relevance'
+))
 
 const buildProductsRouteQuery = () => {
   const query = {}
