@@ -211,7 +211,7 @@
             <!-- Pagination -->
             <div v-if="totalPages > 1" class="mt-8 flex flex-col items-center justify-between gap-3 border-t border-slate-200 pt-4">
               <p class="whitespace-nowrap text-sm font-medium text-slate-600">{{ visibleProductsRangeLabel }}</p>
-              <div class="flex w-full flex-nowrap items-center justify-center gap-1.5 overflow-hidden sm:gap-2">
+              <div ref="paginationRow" class="flex w-full flex-nowrap items-center justify-center gap-1.5 overflow-hidden sm:gap-2">
               <!-- Previous Button -->
               <button
                 @click="previousPage"
@@ -370,8 +370,11 @@ const resetImgErrorMap = () => {
   Object.keys(imgFallbackMap).forEach((key) => { delete imgFallbackMap[key] })
 }
 const ITEMS_PER_PAGE = 12
-const viewportWidth = ref(typeof window === 'undefined' ? 1280 : window.innerWidth)
-const SHOW_NO_IMAGES_FILTER = !import.meta.env.PROD
+const paginationRow = ref(null)
+const paginationWidth = ref(0)
+const SHOW_IMAGE_FILTERS = !['false', '0', 'off', 'no'].includes(
+  String(import.meta.env.VITE_SHOW_IMAGE_FILTERS ?? 'true').trim().toLowerCase()
+)
 const API_PAGE_SIZE = 100
 const SEARCH_TRACK_DEBOUNCE_MS = 15000
 const PROFILE_TERM_LIMIT = 25
@@ -751,6 +754,7 @@ const reviewRatingOptions = computed(() => {
   let fourPlus = 0
   let threePlus = 0
   let hasReviews = 0
+  let hasImages = 0
   let noImages = 0
 
   products.value.forEach((product) => {
@@ -767,7 +771,9 @@ const reviewRatingOptions = computed(() => {
     if (stats.average >= 3) {
       threePlus += 1
     }
-    if (!getPrimaryImageUrl(product)) {
+    if (getPrimaryImageUrl(product)) {
+      hasImages += 1
+    } else {
       noImages += 1
     }
   })
@@ -779,7 +785,8 @@ const reviewRatingOptions = computed(() => {
     { name: 'Has Reviews', count: hasReviews },
   ]
 
-  if (SHOW_NO_IMAGES_FILTER) {
+  if (SHOW_IMAGE_FILTERS) {
+    options.push({ name: 'Has Images', count: hasImages })
     options.push({ name: 'No Images', count: noImages })
   }
 
@@ -1183,6 +1190,7 @@ const filteredProducts = computed(() => {
       const stats = getProductReviewStats(product.productId)
       return filters.mediaStatuses.some((status) => {
         if (status === 'No Images') return !getPrimaryImageUrl(product)
+        if (status === 'Has Images') return !!getPrimaryImageUrl(product)
         if (status === '5 Stars') return stats.average >= 4.5
         if (status === '4 Stars & Up') return stats.average >= 4
         if (status === '3 Stars & Up') return stats.average >= 3
@@ -1288,8 +1296,9 @@ const paginatedProducts = computed(() => {
 
 const pageNumbers = computed(() => {
   const pages = []
-  const availableWidth = Math.max(240, viewportWidth.value - 150)
-  const maxPagesToShow = Math.max(3, Math.min(10, Math.floor(availableWidth / 44)))
+  const rowWidth = paginationWidth.value || 360
+  const navigationWidth = rowWidth >= 640 ? 230 : 100
+  const maxPagesToShow = Math.max(3, Math.min(10, Math.floor((rowWidth - navigationWidth) / 44)))
   let startPage = Math.max(1, currentPage.value - Math.floor(maxPagesToShow / 2))
   let endPage = Math.min(totalPages.value, startPage + maxPagesToShow - 1)
 
@@ -1977,7 +1986,7 @@ const handleFilterChange = (filters) => {
     mediaStatuses: Array.isArray(value.mediaStatuses)
       ? [...value.mediaStatuses]
           .map((v) => String(v).trim())
-          .filter((status) => SHOW_NO_IMAGES_FILTER || status !== 'No Images')
+          .filter((status) => SHOW_IMAGE_FILTERS || !['Has Images', 'No Images'].includes(status))
       : [],
   })
 
@@ -2497,6 +2506,16 @@ watch(
   { immediate: true }
 )
 
+watch(paginationRow, (nextRow, previousRow) => {
+  if (previousRow) {
+    paginationResizeObserver?.unobserve(previousRow)
+  }
+  if (nextRow) {
+    paginationWidth.value = nextRow.getBoundingClientRect().width
+    paginationResizeObserver?.observe(nextRow)
+  }
+})
+
 watch(
   () => route.fullPath,
   () => {
@@ -2573,8 +2592,8 @@ watch(
         : []
     }
 
-    if (!SHOW_NO_IMAGES_FILTER) {
-      nextMediaStatuses = nextMediaStatuses.filter((status) => status !== 'No Images')
+    if (!SHOW_IMAGE_FILTERS) {
+      nextMediaStatuses = nextMediaStatuses.filter((status) => !['Has Images', 'No Images'].includes(status))
     }
 
     currentFilters.value = {
@@ -2643,10 +2662,12 @@ watch(
 )
 
 onMounted(async () => {
-  const updateViewportWidth = () => { viewportWidth.value = window.innerWidth }
-  window.addEventListener('resize', updateViewportWidth, { passive: true })
-  updateViewportWidth()
-  viewportResizeCleanup = () => window.removeEventListener('resize', updateViewportWidth)
+  paginationResizeObserver = new ResizeObserver((entries) => {
+    paginationWidth.value = entries[0]?.contentRect?.width || 0
+  })
+  if (paginationRow.value) {
+    paginationResizeObserver.observe(paginationRow.value)
+  }
 
   if (route.query.next === 'login') {
     const query = {}
@@ -2670,6 +2691,6 @@ onMounted(async () => {
   queueFacetRefresh({ force: true })
 })
 
-let viewportResizeCleanup = null
-onUnmounted(() => viewportResizeCleanup?.())
+let paginationResizeObserver = null
+onUnmounted(() => paginationResizeObserver?.disconnect())
 </script>

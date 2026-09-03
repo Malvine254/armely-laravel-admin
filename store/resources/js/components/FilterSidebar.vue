@@ -229,7 +229,17 @@
             Has Reviews
           </button>
           <button
-            v-if="showNoImagesFilter"
+            v-if="showImageFilters"
+            @click="setHasImages"
+            class="px-3 py-1.5 text-xs font-semibold rounded-full border transition"
+            style="border-color: #2F5597; color: #2F5597;"
+            @mouseenter="$event.target.style.backgroundColor='#eef4ff'"
+            @mouseleave="$event.target.style.backgroundColor='transparent'"
+          >
+            Has Images
+          </button>
+          <button
+            v-if="showImageFilters"
             @click="setNoImages"
             class="px-3 py-1.5 text-xs font-semibold rounded-full border transition"
             style="border-color: #9333ea; color: #9333ea;"
@@ -313,7 +323,9 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['filter-change', 'clear-all'])
-const showNoImagesFilter = !import.meta.env.PROD
+const showImageFilters = !['false', '0', 'off', 'no'].includes(
+  String(import.meta.env.VITE_SHOW_IMAGE_FILTERS ?? 'true').trim().toLowerCase()
+)
 const DEFAULT_MIN_PRICE = Number(import.meta.env.VITE_MIN_PRICE ?? 100)
 const DEFAULT_MAX_PRICE = 0
 const POPULAR_VENDOR_LIMIT = 40
@@ -323,6 +335,7 @@ const filters = ref({
   priceMin: DEFAULT_MIN_PRICE,
   priceMax: DEFAULT_MAX_PRICE,
   partNumber: '',
+  productType: '',
   vendors: [],
   categories: [],
   lifecycleStatuses: [],
@@ -335,11 +348,12 @@ const syncFromActiveFilters = (source = {}) => {
     priceMin: Math.max(DEFAULT_MIN_PRICE, Number(next.priceMin ?? DEFAULT_MIN_PRICE)),
     priceMax: Math.max(0, Number(next.priceMax ?? DEFAULT_MAX_PRICE)),
     partNumber: String(next.partNumber ?? ''),
+    productType: String(next.productType ?? ''),
     vendors: Array.isArray(next.vendors) ? [...next.vendors] : [],
     categories: Array.isArray(next.categories) ? [...next.categories] : [],
     lifecycleStatuses: Array.isArray(next.lifecycleStatuses) ? [...next.lifecycleStatuses] : [],
     mediaStatuses: Array.isArray(next.mediaStatuses)
-      ? next.mediaStatuses.filter((status) => showNoImagesFilter || status !== 'No Images')
+      ? next.mediaStatuses.filter((status) => showImageFilters || !['Has Images', 'No Images'].includes(status))
       : []
   }
 }
@@ -530,6 +544,11 @@ const setHasReviews = () => {
 
 const setNoImages = () => {
   filters.value.mediaStatuses = ['No Images']
+  applyFilters()
+}
+
+const setHasImages = () => {
+  filters.value.mediaStatuses = ['Has Images']
   applyFilters()
 }
 
