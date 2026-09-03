@@ -22,10 +22,10 @@
               <tr v-for="result in supplierResults" :key="result.identifier">
                 <td class="px-4 py-3"><p class="max-w-xl font-bold text-[#102a52]">{{ result.name }}</p><p class="text-xs text-slate-500">{{ result.manufacturer || 'Unknown manufacturer' }}</p></td>
                 <td class="px-4 py-3 text-xs text-slate-600"><p>SKU {{ result.identifier }}</p><p>MPN {{ result.mpn || '—' }}</p></td>
-                <td class="px-4 py-3"><p class="font-semibold">${{ Number(result.price).toFixed(2) }}</p><p :class="result.quantity > 0 && !result.discontinued ? 'text-emerald-700' : 'text-red-700'" class="text-xs font-bold">{{ result.discontinued ? 'Discontinued' : `${result.quantity} available` }}</p></td>
+                <td class="px-4 py-3"><p class="font-semibold">${{ Number(result.price).toFixed(2) }}</p><p :class="result.orderable ? 'text-emerald-700' : 'text-red-700'" class="text-xs font-bold">{{ availabilityLabel(result) }}</p></td>
                 <td class="px-4 py-3 text-right">
                   <span v-if="result.storefront_pinned" class="rounded-full bg-emerald-100 px-3 py-1.5 text-xs font-bold text-emerald-700">Pinned</span>
-                  <button v-else :disabled="importingIdentifier === result.identifier || result.discontinued || result.quantity < 1 || result.price <= 0" @click="importProduct(result)" class="rounded-lg bg-[#102a52] px-3 py-2 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-40">
+                  <button v-else :disabled="importingIdentifier === result.identifier || !result.orderable || result.price <= 0" @click="importProduct(result)" class="rounded-lg bg-[#102a52] px-3 py-2 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-40">
                     {{ importingIdentifier === result.identifier ? 'Importing…' : result.already_imported ? 'Pin to storefront' : 'Import to storefront' }}
                   </button>
                 </td>
@@ -97,6 +97,12 @@ const meta = reactive({ current_page: 1, last_page: 1 })
 const filters = reactive({ search: '', status: '', missing_image: false })
 const statCards = computed(() => [{ label: 'Imported', value: stats.total }, { label: 'Pending review', value: stats.pending }, { label: 'Missing images', value: stats.missing_images }])
 const formatDate = (value) => value ? new Date(value).toLocaleString() : '—'
+const availabilityLabel = (result) => {
+  if (result.discontinued) return 'Discontinued'
+  if (result.quantity > 0) return `${result.quantity} available`
+  if (result.orderable) return `${result.status || 'Active'} · supplier orderable`
+  return `${result.status || 'Unavailable'} · 0 available`
+}
 
 const load = async (page = 1) => {
   loading.value = true

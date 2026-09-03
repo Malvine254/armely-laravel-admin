@@ -216,6 +216,12 @@ class AdminImportedProductController extends Controller
         $data = collect($results)->take((int) ($validated['limit'] ?? 25))->map(function (array $product) use ($localProducts, $mappedRows) {
             $identifier = (string) ($product['sku'] ?? $product['productId'] ?? '');
             $local = $localProducts->get($mappedRows->get($identifier)['tdsynnex_product_id'] ?? null);
+            $status = trim((string) ($product['status'] ?? ''));
+            $quantity = (int) ($product['availableQuantity'] ?? $product['totalQuantity'] ?? 0);
+            $discontinued = (bool) ($product['discontinueProduct'] ?? false);
+            $orderable = !$discontinued && (
+                $quantity > 0 || in_array(strtolower($status), ['active', 'available', 'in stock'], true)
+            );
 
             return [
                 'identifier' => $identifier,
@@ -224,8 +230,10 @@ class AdminImportedProductController extends Controller
                 'manufacturer' => (string) ($product['manufacturer'] ?? $product['vendorName'] ?? ''),
                 'mpn' => (string) ($product['mfgPartNo'] ?? ''),
                 'price' => (float) data_get($product, 'productPrice.0.rsPrice', $product['price'] ?? 0),
-                'quantity' => (int) ($product['availableQuantity'] ?? $product['totalQuantity'] ?? 0),
-                'discontinued' => (bool) ($product['discontinueProduct'] ?? false),
+                'quantity' => $quantity,
+                'status' => $status,
+                'discontinued' => $discontinued,
+                'orderable' => $orderable,
                 'already_imported' => $local !== null,
                 'storefront_pinned' => (bool) ($local?->is_storefront_pinned),
             ];

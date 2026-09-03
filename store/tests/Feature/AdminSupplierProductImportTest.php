@@ -124,6 +124,7 @@ class AdminSupplierProductImportTest extends TestCase
             ->getJson('/api/v1/admin/imported-products/supplier-search?q=Lenovo%20IdeaPad')
             ->assertOk()
             ->assertJsonPath('data.0.identifier', '1900150025')
+            ->assertJsonPath('data.0.orderable', true)
             ->assertJsonPath('data.0.storefront_pinned', false);
     }
 
@@ -142,6 +143,24 @@ class AdminSupplierProductImportTest extends TestCase
         $this->assertSame('approved', $product->search_import_review_status);
         $this->assertSame(7, $product->search_import_reviewed_by);
         $this->assertSame('Supplier text from TD', $product->description);
+    }
+
+    public function test_active_zero_stock_supplier_product_can_be_imported_as_orderable(): void
+    {
+        Queue::fake();
+        $supplierProduct = $this->supplierProduct();
+        $supplierProduct['status'] = 'Active';
+        $supplierProduct['availableQuantity'] = 0;
+        $supplierProduct['totalQuantity'] = 0;
+        $service = Mockery::mock(TDSynnexService::class)->makePartial();
+        $service->shouldReceive('searchPriceAvailabilityCatalog')
+            ->once()->with('1900150025', 50, false, false)->andReturn([$supplierProduct]);
+
+        $product = $service->importSelectedPriceAvailabilityProduct('1900150025', 'Lenovo IdeaPad', 7);
+
+        $this->assertTrue($product->is_storefront_pinned);
+        $this->assertTrue((bool) $product->is_available);
+        $this->assertSame(0, $product->quantity);
     }
 
     public function test_non_admin_cannot_search_supplier_catalog(): void
@@ -214,6 +233,7 @@ class AdminSupplierProductImportTest extends TestCase
             'manufacturer' => 'Lenovo',
             'availableQuantity' => 18,
             'totalQuantity' => 18,
+            'status' => 'Active',
             'discontinueProduct' => false,
             'flatCategoryName' => 'Laptops',
             'productPrice' => [['rsPrice' => 966.47, 'msrp' => 1099.99]],

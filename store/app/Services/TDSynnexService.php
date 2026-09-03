@@ -893,7 +893,9 @@ class TDSynnexService
         if ($row === null) {
             throw new \RuntimeException('The supplier product did not contain a valid product identifier.');
         }
-        if (!$row['is_hardware'] || !$row['is_available'] || $row['is_discontinued'] || $row['quantity'] < 1 || $row['base_price'] <= 0) {
+        $supplierStatus = strtolower(trim((string) ($selected['status'] ?? '')));
+        $isSupplierOrderable = in_array($supplierStatus, ['active', 'available', 'in stock'], true);
+        if (!$row['is_hardware'] || !$row['is_available'] || $row['is_discontinued'] || (!$isSupplierOrderable && $row['quantity'] < 1) || $row['base_price'] <= 0) {
             throw new \RuntimeException('This supplier product is not currently eligible for the storefront.');
         }
 

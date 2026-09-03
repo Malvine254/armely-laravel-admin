@@ -48,7 +48,10 @@ class RebuildStorefrontAssortmentCommand extends Command
             ->where('is_available', true)
             ->where(function ($q) { $q->where('is_discontinued', false)->orWhereNull('is_discontinued'); })
             ->whereRaw('COALESCE(NULLIF(retail_price, 0), NULLIF(base_price, 0), 0) > 0')
-            ->whereRaw("COALESCE(quantity, CAST(JSON_UNQUOTE(JSON_EXTRACT(specifications, '$.availableQuantity')) AS UNSIGNED), 0) > 0")
+            ->where(function ($query) {
+                $query->where('is_storefront_pinned', true)
+                    ->orWhereRaw("COALESCE(quantity, CAST(JSON_UNQUOTE(JSON_EXTRACT(specifications, '$.availableQuantity')) AS UNSIGNED), 0) > 0");
+            })
             ->get();
 
         $preferredBrands = array_map('strtoupper', (array) config('storefront.preferred_brands', []));

@@ -1020,7 +1020,10 @@ class ProductController extends Controller
 
         if (!$showOutOfStock) {
             $query->where('is_available', true)
-                ->whereRaw($this->stockQuantitySql() . ' > 0');
+                ->where(function ($scope) {
+                    $scope->where('is_storefront_pinned', true)
+                        ->orWhereRaw($this->stockQuantitySql() . ' > 0');
+                });
         }
 
         if (!$showDiscontinued) {
@@ -2439,7 +2442,10 @@ class ProductController extends Controller
                 ->where(function ($q) {
                     $q->where('is_discontinued', false)->orWhereNull('is_discontinued');
                 })
-                ->whereRaw($this->stockQuantitySql() . ' > 0')
+                ->where(function ($scope) {
+                    $scope->where('is_storefront_pinned', true)
+                        ->orWhereRaw($this->stockQuantitySql() . ' > 0');
+                })
                 ->where(function ($scope) {
                     $scope->where('is_storefront_pinned', true)
                         ->orWhereRaw($this->preferredDbPriceSql() . ' >= ?', [$this->storefrontMinPrice(null) ?? self::STOREFRONT_MIN_PRICE]);
