@@ -1,1 +1,20 @@
-{"resources/css/app.css":{"file":"assets/app-BNflwMpz.css","src":"resources/css/app.css","isEntry":true,"name":"app","names":["app.css"]},"resources/js/app.js":{"file":"assets/app-CJQnXWfy.js","name":"app","src":"resources/js/app.js","isEntry":true,"css":["assets/app-BMXfqIb1.css"]}}
+{
+  "resources/css/app.css": {
+    "file": "assets/app-BNflwMpz.css",
+    "src": "resources/css/app.css",
+    "isEntry": true,
+    "name": "app",
+    "names": [
+      "app.css"
+    ]
+  },
+  "resources/js/app.js": {
+    "file": "assets/app-Ch2dL1ae.js",
+    "name": "app",
+    "src": "resources/js/app.js",
+    "isEntry": true,
+    "css": [
+      "assets/app-BMXfqIb1.css"
+    ]
+  }
+}

@@ -373,9 +373,7 @@ const resetImgErrorMap = () => {
 const ITEMS_PER_PAGE = 12
 const paginationRow = ref(null)
 const paginationWidth = ref(0)
-const SHOW_IMAGE_FILTERS = !['false', '0', 'off', 'no'].includes(
-  String(import.meta.env.VITE_SHOW_IMAGE_FILTERS ?? 'true').trim().toLowerCase()
-)
+const SHOW_IMAGE_FILTERS = true
 const API_PAGE_SIZE = 100
 const SEARCH_TRACK_DEBOUNCE_MS = 15000
 const PROFILE_TERM_LIMIT = 25
