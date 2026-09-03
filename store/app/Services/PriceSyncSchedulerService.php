@@ -35,16 +35,16 @@ class PriceSyncSchedulerService
 
     public function kickOffDueScheduledRun(): void
     {
-        $fallbackEnabled = (bool) AppSetting::getValue('price_sync.enable_http_fallback', false);
-        if (!$fallbackEnabled) {
-            return;
-        }
-
-        if (!Cache::add('price_sync.schedule_tick', true, now()->addMinute())) {
-            return;
-        }
-
         try {
+            $fallbackEnabled = (bool) AppSetting::getValue('price_sync.enable_http_fallback', false);
+            if (!$fallbackEnabled) {
+                return;
+            }
+
+            if (!Cache::add('price_sync.schedule_tick', true, now()->addMinute())) {
+                return;
+            }
+
             $timezone = $this->resolveTimezone();
             $time = $this->resolveScheduledTime();
 
