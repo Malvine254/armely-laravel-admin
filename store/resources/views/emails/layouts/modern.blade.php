@@ -34,7 +34,7 @@
 <body style="margin:0;padding:0;background:#eef3fa;font-family:'Segoe UI',Arial,sans-serif;color:#1f2937;">
 <div class="email-shell" style="max-width:760px;margin:0 auto;padding:22px 12px 32px;">
     <div style="background:#ffffff;border:1px solid #dbe7f7;border-radius:16px;overflow:hidden;box-shadow:0 10px 28px rgba(15,47,99,.10);">
-        <div class="email-header" style="background-color:#0f2f63;padding:22px 26px;">
+        <div class="email-header" bgcolor="#173b73" style="background-color:#173b73;background-image:linear-gradient(135deg,#173b73 0%,#2F5597 100%);padding:22px 26px;">
             <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;width:100%;">
                 <tr>
                     <td class="email-logo-cell" width="92" style="width:92px;padding-right:18px;vertical-align:middle;">
@@ -42,10 +42,10 @@
                             <img class="email-logo" src="{{ $logoUrl }}" width="78" alt="Armely Store" style="display:block;width:78px;max-height:64px;height:auto;margin:0 auto;">
                         </div>
                     </td>
-                    <td style="vertical-align:middle;">
+                    <td style="vertical-align:middle;color:#ffffff;">
                         <span style="display:inline-block;margin-bottom:7px;padding:4px 11px;border-radius:20px;background:{{ $emailAccent }};color:#ffffff;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;">{{ $emailBadge }}</span>
                         <p style="margin:0 0 5px;color:#dbe7ff;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;">Armely Store</p>
-                        <h1 class="email-title" style="margin:0;color:#ffffff!important;font-size:25px;line-height:1.2;font-weight:700;">{{ $emailTitle }}</h1>
+                        <h1 class="email-title" style="margin:0;color:#ffffff!important;font-family:'Segoe UI',Arial,sans-serif;font-size:25px;line-height:1.2;font-weight:700;"><font color="#ffffff">{{ $emailTitle }}</font></h1>
                     </td>
                 </tr>
             </table>

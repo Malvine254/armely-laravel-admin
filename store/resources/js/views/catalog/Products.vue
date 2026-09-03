@@ -114,16 +114,15 @@
                   <span class="text-sm font-bold text-[#2F5597]">{{ totalProducts.toLocaleString() }} results</span>
                 </div>
                 <p class="mt-1 text-xs text-slate-500">High quality technology and business supplies.</p>
+                <div v-if="hasActiveCatalogState" class="mt-3 flex flex-wrap items-center gap-2">
+                  <span class="text-sm font-semibold text-gray-900">Applied Filters</span>
+                  <button type="button" @click="resetFilters" class="inline-flex items-center gap-1 text-sm font-medium text-[#2F5597] transition hover:opacity-70">
+                    Clear All
+                    <span aria-hidden="true" class="text-lg leading-none">×</span>
+                  </button>
+                </div>
               </div>
               <div class="flex flex-wrap items-center gap-3">
-                <button
-                  v-if="hasActiveCatalogState"
-                  type="button"
-                  @click="resetFilters"
-                  class="rounded-lg border border-[#2F5597] bg-white px-3 py-2 text-sm font-semibold text-[#2F5597] transition hover:bg-blue-50"
-                >
-                  Clear filters
-                </button>
                 <label class="text-sm text-gray-600 font-medium whitespace-nowrap">Sort by:</label>
                 <select
                   v-model="sortBy"
@@ -210,25 +209,27 @@
             </div>
 
             <!-- Pagination -->
-            <div v-if="totalPages > 1" class="mt-8 flex flex-col items-center justify-between gap-3 border-t border-slate-200 pt-4 sm:flex-row">
+            <div v-if="totalPages > 1" class="mt-8 flex flex-col items-center justify-between gap-3 border-t border-slate-200 pt-4">
               <p class="whitespace-nowrap text-sm font-medium text-slate-600">{{ visibleProductsRangeLabel }}</p>
-              <div class="flex items-center gap-2">
+              <div class="flex w-full flex-nowrap items-center justify-center gap-1.5 overflow-hidden sm:gap-2">
               <!-- Previous Button -->
               <button
                 @click="previousPage"
                 :disabled="currentPage === 1"
-                class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white transition"
+                title="Previous page"
+                aria-label="Previous page"
+                class="inline-flex h-10 flex-shrink-0 items-center justify-center gap-1 rounded-lg border border-gray-300 px-3 text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white sm:px-4"
               >
-                ← Previous
+                <span aria-hidden="true">←</span><span class="hidden sm:inline">Previous</span>
               </button>
 
               <!-- Page Numbers -->
-              <div class="flex gap-1 flex-wrap justify-center">
+              <div class="flex min-w-0 flex-nowrap justify-center gap-1">
                 <button
                   v-for="page in pageNumbers"
                   :key="page"
                   @click="goToPage(page)"
-                  :class="['px-3 py-2 rounded-lg transition', page === currentPage ? 'text-white font-semibold' : 'border border-gray-300 text-gray-700 hover:bg-gray-50']"
+                  :class="['h-10 w-10 flex-shrink-0 rounded-lg transition', page === currentPage ? 'text-white font-semibold' : 'border border-gray-300 text-gray-700 hover:bg-gray-50']"
                   :style="page === currentPage ? { backgroundColor: '#2F5597' } : {}"
                 >
                   {{ page }}
@@ -239,9 +240,11 @@
               <button
                 @click="nextPage"
                 :disabled="currentPage === totalPages"
-                class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white transition"
+                title="Next page"
+                aria-label="Next page"
+                class="inline-flex h-10 flex-shrink-0 items-center justify-center gap-1 rounded-lg border border-gray-300 px-3 text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white sm:px-4"
               >
-                Next →
+                <span class="hidden sm:inline">Next</span><span aria-hidden="true">→</span>
               </button>
               </div>
             </div>
@@ -303,7 +306,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, reactive, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, reactive, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useToastStore } from '../../stores/toastStore'
 import { useCartStore } from '../../stores/cartStore'
@@ -367,6 +370,7 @@ const resetImgErrorMap = () => {
   Object.keys(imgFallbackMap).forEach((key) => { delete imgFallbackMap[key] })
 }
 const ITEMS_PER_PAGE = 12
+const viewportWidth = ref(typeof window === 'undefined' ? 1280 : window.innerWidth)
 const SHOW_NO_IMAGES_FILTER = !import.meta.env.PROD
 const API_PAGE_SIZE = 100
 const SEARCH_TRACK_DEBOUNCE_MS = 15000
@@ -1284,7 +1288,8 @@ const paginatedProducts = computed(() => {
 
 const pageNumbers = computed(() => {
   const pages = []
-  const maxPagesToShow = 10
+  const availableWidth = Math.max(240, viewportWidth.value - 150)
+  const maxPagesToShow = Math.max(3, Math.min(10, Math.floor(availableWidth / 44)))
   let startPage = Math.max(1, currentPage.value - Math.floor(maxPagesToShow / 2))
   let endPage = Math.min(totalPages.value, startPage + maxPagesToShow - 1)
 
@@ -2638,6 +2643,11 @@ watch(
 )
 
 onMounted(async () => {
+  const updateViewportWidth = () => { viewportWidth.value = window.innerWidth }
+  window.addEventListener('resize', updateViewportWidth, { passive: true })
+  updateViewportWidth()
+  viewportResizeCleanup = () => window.removeEventListener('resize', updateViewportWidth)
+
   if (route.query.next === 'login') {
     const query = {}
     if (route.query.email) query.email = String(route.query.email)
@@ -2659,4 +2669,7 @@ onMounted(async () => {
   // Initial facet load is non-blocking so product cards render first.
   queueFacetRefresh({ force: true })
 })
+
+let viewportResizeCleanup = null
+onUnmounted(() => viewportResizeCleanup?.())
 </script>

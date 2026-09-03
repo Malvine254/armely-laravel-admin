@@ -25,15 +25,17 @@ class PriceSyncStatusMail extends Mailable
 
     public function envelope(): Envelope
     {
+        $phaseLabel = \Illuminate\Support\Str::headline($this->phase);
         $emoji = match ($this->phase) {
             'started'   => '🔄',
             'completed' => '✅',
+            'completed_with_errors' => '⚠️',
             'failed'    => '❌',
             default     => '📋',
         };
 
         return new Envelope(
-            subject: "[Armely Store] {$emoji} {$this->jobName} {$this->phase}",
+            subject: "[Armely Store] {$emoji} {$this->jobName}: {$phaseLabel}",
         );
     }
 

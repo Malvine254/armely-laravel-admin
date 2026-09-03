@@ -1024,17 +1024,17 @@ class AzureGraphMailService
     <div style='background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 10px 28px rgba(15,47,99,0.12);border:1px solid #dbe7f7'>
 
     <!-- Header band -->
-    <div class='promo-header' bgcolor='#0f2f63' style='background-color:#0f2f63;background-image:linear-gradient(135deg,#0f2f63 0%,#2f5597 100%);padding:{$headerPadding}'>
+    <div class='promo-header' bgcolor='#173b73' style='background-color:#173b73;background-image:linear-gradient(135deg,#173b73 0%,#2f5597 100%);padding:{$headerPadding}'>
       <table role='presentation' cellpadding='0' cellspacing='0' width='100%' style='width:100%;border-collapse:collapse'><tr>
         <td class='promo-logo-cell' width='92' style='width:92px;padding-right:18px;vertical-align:middle'>
           <div class='promo-logo-box' style='width:78px;height:64px;background:#ffffff;border-radius:10px;text-align:center;padding:5px'>
             <img class='promo-logo' src='{$safeLogoUrl}' width='78' alt='Armely Store' style='display:block;width:78px;max-height:64px;height:auto;margin:0 auto'>
           </div>
         </td>
-        <td style='vertical-align:middle'>
+        <td style='vertical-align:middle;color:#ffffff'>
           {$badgeHtml}
           <p style='margin:0 0 6px;font-size:10px;color:#dbe7ff;letter-spacing:0.08em;text-transform:uppercase;font-weight:700'>Armely Store</p>
-          <h1 class='promo-title' style='margin:0;color:#ffffff!important;font-size:25px;font-weight:700;line-height:1.2'>{$safeTitle}</h1>
+          <h1 class='promo-title' style='margin:0;color:#ffffff!important;font-family:Segoe UI,Arial,sans-serif;font-size:25px;font-weight:700;line-height:1.2'><font color='#ffffff'>{$safeTitle}</font></h1>
         </td>
       </tr></table>
     </div>
@@ -1855,22 +1855,22 @@ class AzureGraphMailService
         }
 
         $safeJob    = e($jobName);
-        $safeStatus = e($status);
         $supportEmail = env('SUPPORT_EMAIL', 'info@armely.com');
 
         $statusColors = [
             'started'   => ['#1d4ed8', '#dbeafe', 'Started'],
             'completed' => ['#15803d', '#dcfce7', 'Completed'],
+            'completed_with_errors' => ['#b45309', '#fef3c7', 'Completed With Errors'],
             'failed'    => ['#b91c1c', '#fee2e2', 'Failed'],
         ];
-        [$headerColor, $badgeBg, $badgeLabel] = $statusColors[$status] ?? ['#374151', '#f3f4f6', ucfirst($status)];
+        [$headerColor, $badgeBg, $badgeLabel] = $statusColors[$status] ?? ['#374151', '#f3f4f6', \Illuminate\Support\Str::headline($status)];
 
         $rows = '';
         foreach ($details as $label => $value) {
             if ($label === 'log' && is_array($value)) {
                 continue;
             }
-            $safeLabel = e((string) $label);
+            $safeLabel = e(\Illuminate\Support\Str::headline((string) $label));
             $safeValue = e((string) $value);
             $rows .= "<tr><td style='padding:6px 12px;color:#6b7280;font-size:13px;border-bottom:1px solid #f3f4f6'>{$safeLabel}</td>"
                    . "<td style='padding:6px 12px;font-size:13px;font-weight:600;border-bottom:1px solid #f3f4f6'>{$safeValue}</td></tr>";

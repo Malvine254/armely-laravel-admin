@@ -29,6 +29,14 @@
           <span>{{ cat }}</span>
           <button @click="removeCategory(cat)" class="hover:font-semibold">×</button>
         </div>
+        <div v-if="filters.productType" class="flex items-center gap-1 px-3 py-1 rounded-full text-sm" style="background-color: #cce4f4; color: #2F5597;">
+          <span>{{ filters.productType === 'hardware' ? 'Hardware' : 'Software' }}</span>
+          <button @click="clearProductType" aria-label="Remove product type filter" class="hover:font-semibold">×</button>
+        </div>
+        <div v-for="status in filters.lifecycleStatuses" :key="`lifecycle-${status}`" class="flex items-center gap-1 px-3 py-1 rounded-full text-sm" style="background-color: #cce4f4; color: #2F5597;">
+          <span>{{ status }}</span>
+          <button @click="toggleLifecycleStatus(status)" :aria-label="`Remove ${status} filter`" class="hover:font-semibold">×</button>
+        </div>
         <!-- Review Rating / Image Filter Badges -->
         <div
           v-for="status in filters.mediaStatuses"
@@ -420,10 +428,17 @@ const priceFilterLabel = computed(() => {
 const hasActiveFilters = computed(() => {
   return isPriceFiltered.value
     || !!filters.value.partNumber
+    || !!filters.value.productType
     || filters.value.vendors.length > 0
     || filters.value.categories.length > 0
+    || filters.value.lifecycleStatuses.length > 0
     || filters.value.mediaStatuses.length > 0
 })
+
+const clearProductType = () => {
+  filters.value.productType = ''
+  applyFilters()
+}
 
 const clearPartNumberFilter = () => {
   filters.value.partNumber = ''
