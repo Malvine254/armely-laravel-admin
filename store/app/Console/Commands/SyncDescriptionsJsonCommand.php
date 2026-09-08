@@ -6,6 +6,7 @@ use App\Models\Product;
 use App\Services\CatalogOperationStateService;
 use App\Support\MojibakeRepairer;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Cache;
 
 class SyncDescriptionsJsonCommand extends Command
 {
@@ -135,6 +136,11 @@ class SyncDescriptionsJsonCommand extends Command
                     'records_per_second' => round($scanned / max(0.1, microtime(true) - $startedAt), 1),
                 ]
             );
+        }
+
+        if ($updated > 0) {
+            $catalogVersion = (int) Cache::get('catalog:price_version', 1);
+            Cache::put('catalog:price_version', $catalogVersion + 1, now()->addYear());
         }
 
         $this->info("Scanned {$scanned} entries; matched {$matched} existing products; updated {$updated}; unchanged {$unchanged}.");
