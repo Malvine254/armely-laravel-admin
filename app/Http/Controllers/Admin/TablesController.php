@@ -1109,6 +1109,24 @@ class TablesController extends Controller
             'profile' => ['nullable', 'image', 'max:5120'],
         ]);
 
+        try {
+            return $this->persistCustomerStory($request);
+        } catch (\Throwable $e) {
+            // Surface the real reason instead of a blank 500, and log it with a trace
+            // so it can be diagnosed from storage/logs/laravel.log even without APP_DEBUG.
+            Log::error('storeOrUpdateCustomerStory failed: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to save customer story: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    private function persistCustomerStory(Request $request): \Illuminate\Http\JsonResponse
+    {
         $table = $this->tableExists('customer_stories') ? 'customer_stories' : 'customer_story';
         
         if ($request->has('id') && $request->id) {
@@ -1133,12 +1151,7 @@ class TablesController extends Controller
             }
 
             if ($request->hasFile('profile')) {
-                try {
-                    $data = array_merge($data, $this->storeCustomerStoryProfileImage($request->file('profile'), $table));
-                } catch (\Throwable $e) {
-                    Log::error('Customer story profile upload failed: ' . $e->getMessage());
-                    return response()->json(['success' => false, 'message' => 'Failed to upload profile image: ' . $e->getMessage()], 422);
-                }
+                $data = array_merge($data, $this->storeCustomerStoryProfileImage($request->file('profile'), $table));
             }
 
             if (!empty($data)) {
@@ -1170,12 +1183,7 @@ class TablesController extends Controller
             }
 
             if ($request->hasFile('profile')) {
-                try {
-                    $data = array_merge($data, $this->storeCustomerStoryProfileImage($request->file('profile'), $table));
-                } catch (\Throwable $e) {
-                    Log::error('Customer story profile upload failed: ' . $e->getMessage());
-                    return response()->json(['success' => false, 'message' => 'Failed to upload profile image: ' . $e->getMessage()], 422);
-                }
+                $data = array_merge($data, $this->storeCustomerStoryProfileImage($request->file('profile'), $table));
             }
 
             $id = DB::table($table)->insertGetId($data);
