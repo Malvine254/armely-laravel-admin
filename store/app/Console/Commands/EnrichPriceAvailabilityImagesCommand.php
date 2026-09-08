@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Jobs\EnrichPriceAvailabilityProductImageJob;
 use App\Models\Product;
+use App\Services\CatalogOperationStateService;
 use App\Services\TDSynnexService;
 use Illuminate\Console\Command;
 
@@ -14,7 +15,7 @@ class EnrichPriceAvailabilityImagesCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'tdsynnex:enrich-priceavailability-images {--chunk=1 : Number of products per batch} {--limit=0 : Max products to process (0 = all)} {--sync : Run inline and block until complete} {--descriptions : Backfill Icecat descriptions for products with missing descriptions} {--bing-descriptions : Allow Bing web search snippets as a fallback when richer descriptions are unavailable} {--force-descriptions : Overwrite existing descriptions with fresh pulled descriptions} {--vendor=TD SYNNEX : Product vendor_id filter} {--search= : Product search filter (title, SKU, MPN, description, manufacturer)} {--manufacturer= : Manufacturer filter (from specifications.manufacturer)} {--manufacturer-id= : Manufacturer identifier filter (alias of manufacturer)} {--sku= : SKU/MPN filter, accepts CSV for multiple values} {--current-source= : Only refresh products whose current primary image source matches this value, for example bing-images} {--force-web-refresh : Include rows that already have images and prioritize web/title lookup}';
+    protected $signature = 'tdsynnex:enrich-priceavailability-images {--chunk=1 : Number of products per batch} {--limit=0 : Max products to process (0 = all)} {--sync : Run inline and block until complete} {--descriptions : Backfill Icecat descriptions for products with missing descriptions} {--bing-descriptions : Allow Bing web search snippets as a fallback when richer descriptions are unavailable} {--force-descriptions : Overwrite existing descriptions with fresh pulled descriptions} {--vendor=TD SYNNEX : Product vendor_id filter} {--search= : Product search filter (title, SKU, MPN, description, manufacturer)} {--manufacturer= : Manufacturer filter (from specifications.manufacturer)} {--manufacturer-id= : Manufacturer identifier filter (alias of manufacturer)} {--sku= : SKU/MPN filter, accepts CSV for multiple values} {--current-source= : Only refresh products whose current primary image source matches this value, for example bing-images} {--force-web-refresh : Include rows that already have images and prioritize web/title lookup} {--report-progress : Publish live progress for the Catalog Ops screen}';
 
     /**
      * The console command description.
@@ -23,7 +24,7 @@ class EnrichPriceAvailabilityImagesCommand extends Command
      */
     protected $description = 'Fetch Icecat images (and optionally descriptions) for PriceAvailability products from Icecat and persist to DB';
 
-    public function handle(TDSynnexService $service): int
+    public function handle(TDSynnexService $service, CatalogOperationStateService $stateService): int
     {
         try {
             if (!$service->usesPriceAvailabilityAsProductSource()) {
@@ -34,6 +35,7 @@ class EnrichPriceAvailabilityImagesCommand extends Command
             $chunk = max(1, (int) $this->option('chunk'));
             $limit = max(0, (int) $this->option('limit'));
             $descriptionMode = (bool) $this->option('descriptions');
+            $reportProgress = (bool) $this->option('report-progress');
             $vendor = trim((string) $this->option('vendor'));
             $search = trim((string) $this->option('search'));
             $manufacturer = trim((string) $this->option('manufacturer'));
@@ -157,7 +159,7 @@ class EnrichPriceAvailabilityImagesCommand extends Command
                 $product,
                 bool $didUpdate,
                 array $images
-            ) use ($command, $totalToProcess, $startTime) {
+            ) use ($command, $totalToProcess, $startTime, $reportProgress, $stateService) {
                 $elapsed = microtime(true) - $startTime;
                 $rate = $processed > 0 ? round($elapsed / $processed, 1) : 0;
                 $pct = $totalToProcess > 0 ? round(($processed / $totalToProcess) * 100, 1) : 0;
@@ -181,6 +183,22 @@ class EnrichPriceAvailabilityImagesCommand extends Command
                         $rate
                     )
                 );
+
+                if ($reportProgress && ($processed === 1 || $processed % 25 === 0 || $processed === $totalToProcess)) {
+                    $stateService->progress(
+                        sprintf('Image enrichment %.1f%% - %d/%d processed, SKU:%s', $pct, $processed, $totalToProcess, $sku),
+                        [
+                            'percent' => $pct,
+                            'scanned' => $processed,
+                            'matched' => $totalToProcess,
+                            'updated' => $updated,
+                            'unchanged' => $processed - $updated,
+                            'elapsed_seconds' => (int) round($elapsed),
+                            'remaining_seconds' => $processed > 0 ? max(0, (int) round(($elapsed / $processed) * ($totalToProcess - $processed))) : null,
+                            'records_per_second' => $elapsed > 0 ? round($processed / $elapsed, 1) : 0,
+                        ]
+                    );
+                }
             }, $filters);
 
             $elapsed = round(microtime(true) - $startTime, 1);
@@ -198,9 +216,25 @@ class EnrichPriceAvailabilityImagesCommand extends Command
             $this->line("Total products with images:  " . $withImages);
             $this->line("Time elapsed:                {$elapsed}s");
 
+            if ($reportProgress) {
+                $stateService->complete(
+                    'Image enrichment complete.',
+                    sprintf(
+                        "Image enrichment complete.\nProcessed: %d\nUpdated: %d\nTotal products with images: %d\nTime elapsed: %ss",
+                        (int) ($result['processed'] ?? 0),
+                        (int) ($result['updated'] ?? 0),
+                        $withImages,
+                        $elapsed
+                    )
+                );
+            }
+
             return self::SUCCESS;
         } catch (\Throwable $e) {
             $this->error('Image enrichment failed: ' . $e->getMessage());
+            if ($reportProgress ?? false) {
+                $stateService->fail('Image enrichment failed: ' . $e->getMessage());
+            }
             return self::FAILURE;
         }
     }

@@ -10,7 +10,6 @@ use App\Models\Company;
 use App\Models\Product;
 use App\Models\AppSetting;
 use App\Jobs\DownloadProductImagesJob;
-use App\Jobs\EnrichPriceAvailabilityImagesJob;
 use App\Services\NotificationService;
 use App\Services\CatalogOperationStateService;
 use App\Services\EnvironmentSettingsService;
@@ -4118,7 +4117,7 @@ class AdminController extends Controller
             // default QUEUE_CONNECTION may legitimately remain "sync" for
             // unrelated jobs, so validate the queue storage actually used here.
             if (
-                in_array($action, ['sync_catalog', 'sync_flatfile_metadata', 'enrich_images', 'download_images', 'reindex_products'], true)
+                in_array($action, ['sync_catalog', 'sync_flatfile_metadata', 'download_images', 'reindex_products'], true)
                 && !Schema::hasTable((string) config('queue.connections.database.table', 'jobs'))
             ) {
                 return response()->json([
@@ -4174,9 +4173,16 @@ class AdminController extends Controller
             }
 
             if ($action === 'enrich_images') {
-                $message = 'Image enrichment queued in background on products-sync queue.';
+                // Runs as a detached process (not the products-sync queue) so it processes
+                // every product missing an image, without depending on a queue worker.
+                $message = 'Image enrichment started in the background for all products missing images.';
                 $stateService->start($action, (int) $user->id, $message);
-                EnrichPriceAvailabilityImagesJob::dispatch(50, 0, true);
+                $this->spawnDetachedArtisanCommand('tdsynnex:enrich-priceavailability-images', [
+                    '--chunk' => 50,
+                    '--limit' => 0,
+                    '--sync' => true,
+                    '--report-progress' => true,
+                ]);
             }
 
             if ($action === 'download_images') {

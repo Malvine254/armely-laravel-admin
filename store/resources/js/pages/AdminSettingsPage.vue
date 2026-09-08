@@ -829,7 +829,7 @@
 
           <div class="rounded-lg border border-gray-200 bg-gray-50 p-5">
             <h4 class="text-gray-900 font-semibold">Enrich Missing Images</h4>
-            <p class="mt-2 text-sm text-gray-500">Fetch and save missing product images for a small admin-safe batch.</p>
+            <p class="mt-2 text-sm text-gray-500">Fetch and save images for every product currently missing one. Runs in the background and may take a while for a large catalog.</p>
             <button
               @click="runCatalogOperation('enrich_images')"
               :disabled="catalogActionLoading"
