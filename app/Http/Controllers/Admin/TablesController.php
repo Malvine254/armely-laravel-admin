@@ -1184,6 +1184,15 @@ class TablesController extends Controller
 
             if ($request->hasFile('profile')) {
                 $data = array_merge($data, $this->storeCustomerStoryProfileImage($request->file('profile'), $table));
+            } else {
+                // The profile column is NOT NULL without a default on some environments,
+                // so the insert must always name it even when no photo was uploaded.
+                foreach (['profile', 'profile_image', 'image'] as $col) {
+                    if ($this->columnExists($table, $col)) {
+                        $data[$col] = '';
+                        break;
+                    }
+                }
             }
 
             $id = DB::table($table)->insertGetId($data);
