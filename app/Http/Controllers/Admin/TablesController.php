@@ -1124,16 +1124,11 @@ class TablesController extends Controller
             }
 
             if ($request->hasFile('profile')) {
-                $image = $request->file('profile');
-                $filename = time() . '_' . $image->getClientOriginalName();
-                $image->move(public_path('images/customers'), $filename);
-
-                if ($this->columnExists($table, 'profile')) {
-                    $data['profile'] = 'images/customers/' . $filename;
-                } elseif ($this->columnExists($table, 'profile_image')) {
-                    $data['profile_image'] = 'images/customers/' . $filename;
-                } elseif ($this->columnExists($table, 'image')) {
-                    $data['image'] = 'images/customers/' . $filename;
+                try {
+                    $data = array_merge($data, $this->storeCustomerStoryProfileImage($request->file('profile'), $table));
+                } catch (\Throwable $e) {
+                    Log::error('Customer story profile upload failed: ' . $e->getMessage());
+                    return response()->json(['success' => false, 'message' => 'Failed to upload profile image: ' . $e->getMessage()], 422);
                 }
             }
 
@@ -1166,16 +1161,11 @@ class TablesController extends Controller
             }
 
             if ($request->hasFile('profile')) {
-                $image = $request->file('profile');
-                $filename = time() . '_' . $image->getClientOriginalName();
-                $image->move(public_path('images/customers'), $filename);
-
-                if ($this->columnExists($table, 'profile')) {
-                    $data['profile'] = 'images/customers/' . $filename;
-                } elseif ($this->columnExists($table, 'profile_image')) {
-                    $data['profile_image'] = 'images/customers/' . $filename;
-                } elseif ($this->columnExists($table, 'image')) {
-                    $data['image'] = 'images/customers/' . $filename;
+                try {
+                    $data = array_merge($data, $this->storeCustomerStoryProfileImage($request->file('profile'), $table));
+                } catch (\Throwable $e) {
+                    Log::error('Customer story profile upload failed: ' . $e->getMessage());
+                    return response()->json(['success' => false, 'message' => 'Failed to upload profile image: ' . $e->getMessage()], 422);
                 }
             }
 
@@ -1184,6 +1174,33 @@ class TablesController extends Controller
             ActivityLogger::log('create', 'CustomerStory', $id, 'Created customer story ' . ($story->name ?? ''));
             return response()->json(['success' => true, 'message' => 'Customer story created successfully', 'data' => $story]);
         }
+    }
+    
+    /**
+     * Move an uploaded customer story profile photo, creating the destination
+     * folder if it's missing, and return the column(s) to merge into the row data.
+     */
+    private function storeCustomerStoryProfileImage($image, string $table): array
+    {
+        $directory = public_path('images/customers');
+        if (!File::isDirectory($directory)) {
+            File::makeDirectory($directory, 0755, true);
+        }
+
+        $filename = time() . '_' . $image->getClientOriginalName();
+        $image->move($directory, $filename);
+
+        if ($this->columnExists($table, 'profile')) {
+            return ['profile' => 'images/customers/' . $filename];
+        }
+        if ($this->columnExists($table, 'profile_image')) {
+            return ['profile_image' => 'images/customers/' . $filename];
+        }
+        if ($this->columnExists($table, 'image')) {
+            return ['image' => 'images/customers/' . $filename];
+        }
+
+        return [];
     }
     
     public function deleteCustomerStory($id)
