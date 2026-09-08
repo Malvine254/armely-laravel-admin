@@ -429,6 +429,7 @@ class TDSynnexService
         $batchNum     = 0;
 
         $batchErrors = [];
+        $failedSkus  = [];
         $cancelled = false;
 
         foreach ($batches as $skuBatch) {
@@ -456,6 +457,7 @@ class TDSynnexService
                             $checked += $this->processLivePriceBatch($subBatch, $region, $useTest, $now);
                         } catch (\Throwable $subError) {
                             $batchErrors[] = "Batch {$batchNum}." . ($subIdx + 1) . ": " . $subError->getMessage();
+                            $failedSkus = array_merge($failedSkus, $subBatch);
                             Log::warning('Live price sync sub-batch failed, skipped', [
                                 'batch' => $batchNum,
                                 'sub_batch' => $subIdx + 1,
@@ -468,6 +470,7 @@ class TDSynnexService
                     // Log the error but continue processing remaining batches — one failed
                     // batch (timeout, network blip) must not abort the entire sync run.
                     $batchErrors[] = "Batch {$batchNum}: " . $errorMessage;
+                    $failedSkus = array_merge($failedSkus, $skuBatch);
                     Log::warning('Live price sync batch failed, continuing', [
                         'batch'  => $batchNum,
                         'skus'   => $skuBatch,
@@ -487,6 +490,40 @@ class TDSynnexService
                     ]);
                     break;
                 }
+            }
+        }
+
+        // Give transient network/timeout issues a chance to clear, then retry
+        // every SKU that failed once more before reporting it as a permanent error.
+        if (!$cancelled && !empty($failedSkus)) {
+            $failedSkus = array_values(array_unique($failedSkus));
+            Log::info('Live price refresh retrying failed batches once more', [
+                'failed_sku_count' => count($failedSkus),
+            ]);
+
+            usleep(2_000_000);
+
+            $retryBatchSize = max(1, min(10, $batchSize));
+            $retryBatches = array_chunk($failedSkus, $retryBatchSize);
+            $recoveredSkus = [];
+
+            foreach ($retryBatches as $retryIdx => $retryBatch) {
+                try {
+                    $checked += $this->processLivePriceBatch($retryBatch, $region, $useTest, $now);
+                    $recoveredSkus = array_merge($recoveredSkus, $retryBatch);
+                } catch (\Throwable $retryError) {
+                    Log::warning('Live price sync final retry batch failed, skipped', [
+                        'retry_batch' => $retryIdx + 1,
+                        'skus' => $retryBatch,
+                        'error' => $retryError->getMessage(),
+                    ]);
+                }
+            }
+
+            if (!empty($recoveredSkus)) {
+                $recovered = count($recoveredSkus);
+                $batchErrors[] = "Recovered {$recovered} SKU(s) on final retry pass.";
+                Log::info('Live price refresh final retry recovered SKUs', ['recovered' => $recovered]);
             }
         }
 
@@ -513,7 +550,10 @@ class TDSynnexService
     {
         $metadata   = $this->readApMetadata($skuBatch);
         $xmlPayload = $this->buildPriceAvailabilityXmlPayload($skuBatch);
-        $response   = $this->postPriceAvailabilityXml($xmlPayload, $region, $useTest);
+        // Runs from a queued job (not a web request), so it can tolerate a longer
+        // per-batch timeout than the default used for synchronous admin searches.
+        $liveRefreshTimeout = (int) config('tdsynnex.price_availability.live_refresh_timeout', 20);
+        $response   = $this->postPriceAvailabilityXml($xmlPayload, $region, $useTest, $liveRefreshTimeout);
 
         if (!array_key_exists('PriceAvailabilityList', $response)) {
             throw new TDSynnexApiException(
@@ -4660,12 +4700,14 @@ XML;
      * @return array
      * @throws TDSynnexApiException
      */
-    public function postPriceAvailabilityXml(string $xml, string $region = 'us', ?bool $useTest = null): array
+    public function postPriceAvailabilityXml(string $xml, string $region = 'us', ?bool $useTest = null, ?int $timeoutOverride = null): array
     {
         $url = $this->resolveXmlEndpoint($region, 'priceavailability', $useTest);
 
         try {
-            $timeout = max(1, (int) config('tdsynnex.price_availability.request_timeout', config('tdsynnex.timeout', 30)));
+            $timeout = $timeoutOverride !== null
+                ? max(1, $timeoutOverride)
+                : max(1, (int) config('tdsynnex.price_availability.request_timeout', config('tdsynnex.timeout', 30)));
             $maxAttempts = max(1, (int) config('tdsynnex.retry.max_attempts', 3));
             $retryDelayMs = max(0, (int) config('tdsynnex.retry.delay', 1000));
 

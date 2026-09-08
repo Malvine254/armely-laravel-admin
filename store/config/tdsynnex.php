@@ -120,6 +120,8 @@ return [
         'cache_ttl' => env('SYNNEX_PRICE_AVAILABILITY_CACHE_TTL', 900),
         // Keep API requests below PHP max_execution_time in web requests.
         'request_timeout' => env('SYNNEX_PRICE_AVAILABILITY_TIMEOUT', 8),
+        // Longer timeout for the queued live price refresh job, which isn't bound by web request limits.
+        'live_refresh_timeout' => env('SYNNEX_PRICE_AVAILABILITY_LIVE_REFRESH_TIMEOUT', 20),
         'max_runtime_seconds' => env('SYNNEX_PRICE_AVAILABILITY_MAX_RUNTIME', 45),
         'flat_file_path' => env('SYNNEX_FLAT_FILE_PATH', ''),
         'flat_files_dir' => env('SYNNEX_FLAT_FILES_DIR', 'flat-files'),
