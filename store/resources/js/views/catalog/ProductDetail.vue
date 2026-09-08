@@ -473,9 +473,9 @@
         
         <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
           <div v-for="relatedProduct in paginatedRelated" :key="relatedProduct.productId"
-               class="group flex min-h-[248px] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_2px_10px_rgba(15,42,82,0.05)] transition hover:border-blue-200 hover:shadow-[0_8px_24px_rgba(15,42,82,0.10)] sm:flex-row">
+               class="group flex min-h-[248px] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_2px_10px_rgba(15,42,82,0.05)] transition hover:border-blue-200 hover:shadow-[0_8px_24px_rgba(15,42,82,0.10)] sm:h-[248px] sm:min-h-0 sm:flex-row">
             <!-- Product Image -->
-            <div class="relative flex aspect-square w-full flex-shrink-0 items-center justify-center overflow-hidden border-b border-slate-100 bg-white sm:aspect-auto sm:h-auto sm:min-h-[248px] sm:w-[39%] sm:border-b-0 sm:border-r">
+            <div class="relative flex aspect-square w-full flex-shrink-0 items-center justify-center overflow-hidden border-b border-slate-100 bg-white sm:aspect-auto sm:h-full sm:min-h-0 sm:w-[39%] sm:border-b-0 sm:border-r">
               <img
                 v-if="getPrimaryImageUrl(relatedProduct)"
                 :src="getPrimaryImageUrl(relatedProduct)"
