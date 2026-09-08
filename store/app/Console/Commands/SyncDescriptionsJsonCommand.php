@@ -11,7 +11,8 @@ class SyncDescriptionsJsonCommand extends Command
     protected $signature = 'descriptions:sync-json
         {path? : Path to descriptions.json (defaults to descriptions/descriptions.json)}
         {--limit=0 : Maximum matching existing products to update; 0 updates all}
-        {--report-progress : Publish live progress for the Catalog Ops screen}';
+        {--report-progress : Publish live progress for the Catalog Ops screen}
+        {--force : Re-save every matched product even if the value already looks identical}';
 
     protected $description = 'Sync product descriptions and manufacturer metadata from descriptions/descriptions.json, matched by TD SYNNEX SKU';
 
@@ -38,6 +39,7 @@ class SyncDescriptionsJsonCommand extends Command
 
         $limit = max(0, (int) $this->option('limit'));
         $reportProgress = (bool) $this->option('report-progress');
+        $force = (bool) $this->option('force');
         $total = count($entries);
         $scanned = 0;
         $matched = 0;
@@ -106,7 +108,7 @@ class SyncDescriptionsJsonCommand extends Command
                 'specifications' => $specifications,
             ]);
 
-            if ($product->isDirty()) {
+            if ($product->isDirty() || $force) {
                 $product->save();
                 $updated++;
             } else {

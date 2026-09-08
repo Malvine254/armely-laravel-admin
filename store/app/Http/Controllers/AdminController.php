@@ -4158,9 +4158,11 @@ class AdminController extends Controller
 
                 // Spawn a detached process (like the price sync) so live progress is
                 // reported immediately without depending on a products-metadata queue worker.
+                // Always force-save so re-running always re-applies the JSON as the source of truth,
+                // even if a product's stored value already looks identical.
                 $message = 'Product descriptions (JSON) sync started in the background.';
                 $stateService->start($action, (int) $user->id, $message);
-                $this->spawnDetachedArtisanCommand('descriptions:sync-json', ['--report-progress' => true]);
+                $this->spawnDetachedArtisanCommand('descriptions:sync-json', ['--report-progress' => true, '--force' => true]);
             }
 
             if ($action === 'enrich_images') {
