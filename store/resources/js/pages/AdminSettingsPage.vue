@@ -797,6 +797,24 @@
             </button>
           </div>
 
+          <div class="rounded-lg border border-teal-200 bg-teal-50 p-5">
+            <h4 class="text-gray-900 font-semibold">Sync Product Descriptions (JSON)</h4>
+            <p class="mt-2 text-sm text-gray-500">Match <code class="bg-teal-100 px-1 rounded text-xs">descriptions/descriptions.json</code> to existing products by TD SYNNEX SKU and sync descriptions, manufacturer, and part number.</p>
+            <p class="mt-3 text-xs" :class="catalogOperations.descriptions_json_exists ? 'text-emerald-700' : 'text-rose-600'">
+              <i class="fas mr-1" :class="catalogOperations.descriptions_json_exists ? 'fa-circle-check' : 'fa-circle-exclamation'"></i>
+              {{ catalogOperations.descriptions_json_exists
+                ? `${catalogOperations.descriptions_json_name} is ready (${formatFileSize(catalogOperations.descriptions_json_size)})`
+                : 'descriptions/descriptions.json is missing on this server' }}
+            </p>
+            <button
+              @click="runCatalogOperation('sync_descriptions_json')"
+              :disabled="catalogActionLoading || !catalogOperations.descriptions_json_exists"
+              class="mt-4 w-full px-4 py-2 rounded-lg bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-medium transition disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <i class="fas fa-align-left mr-2"></i>Sync Descriptions (JSON)
+            </button>
+          </div>
+
           <div class="rounded-lg border border-gray-200 bg-gray-50 p-5">
             <h4 class="text-gray-900 font-semibold">Enrich Missing Images</h4>
             <p class="mt-2 text-sm text-gray-500">Fetch and save missing product images for a small admin-safe batch.</p>

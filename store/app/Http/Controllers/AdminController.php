@@ -19,6 +19,7 @@ use App\Services\AzureGraphMailService;
 use App\Services\PriceSyncSchedulerService;
 use App\Jobs\SyncPriceAvailabilityCatalogJob;
 use App\Jobs\SyncFlatFileMetadataJob;
+use App\Jobs\SyncDescriptionsJsonJob;
 use App\Jobs\ReindexProductsJob;
 use App\Models\Message;
 use App\Models\Activity;
@@ -212,6 +213,7 @@ class AdminController extends Controller
         $productsWithLocalImages = $counts['local_images'];
         $lastSyncedAt         = $counts['last_synced'];
         $flatFilePath = base_path('flat-files/677726.ap');
+        $descriptionsJsonPath = base_path('descriptions/descriptions.json');
 
         $pendingJobs = null;
         $failedJobs = null;
@@ -244,6 +246,9 @@ class AdminController extends Controller
             'flat_file_exists' => is_file($flatFilePath),
             'flat_file_name' => basename($flatFilePath),
             'flat_file_size' => is_file($flatFilePath) ? filesize($flatFilePath) : null,
+            'descriptions_json_exists' => is_file($descriptionsJsonPath),
+            'descriptions_json_name' => basename($descriptionsJsonPath),
+            'descriptions_json_size' => is_file($descriptionsJsonPath) ? filesize($descriptionsJsonPath) : null,
             'last_catalog_sync_at' => $lastSyncedAt ? (string) $lastSyncedAt : null,
             'pending_products_sync_jobs' => $pendingJobs,
             'failed_products_sync_jobs' => $failedJobs,
@@ -4028,7 +4033,7 @@ class AdminController extends Controller
             }
 
             $validated = $request->validate([
-                'action' => 'required|string|in:sync_catalog,sync_flatfile_metadata,enrich_images,download_images,reindex_products,sync_manual_images',
+                'action' => 'required|string|in:sync_catalog,sync_flatfile_metadata,sync_descriptions_json,enrich_images,download_images,reindex_products,sync_manual_images',
             ]);
 
             $action = (string) $validated['action'];
@@ -4073,7 +4078,7 @@ class AdminController extends Controller
             // default QUEUE_CONNECTION may legitimately remain "sync" for
             // unrelated jobs, so validate the queue storage actually used here.
             if (
-                in_array($action, ['sync_catalog', 'sync_flatfile_metadata', 'enrich_images', 'download_images', 'reindex_products'], true)
+                in_array($action, ['sync_catalog', 'sync_flatfile_metadata', 'sync_descriptions_json', 'enrich_images', 'download_images', 'reindex_products'], true)
                 && !Schema::hasTable((string) config('queue.connections.database.table', 'jobs'))
             ) {
                 return response()->json([
@@ -4100,6 +4105,20 @@ class AdminController extends Controller
                 $message = 'Flat-file description and metadata sync queued with priority ahead of image jobs.';
                 $stateService->start($action, (int) $user->id, $message);
                 SyncFlatFileMetadataJob::dispatch();
+            }
+
+            if ($action === 'sync_descriptions_json') {
+                $descriptionsJsonPath = base_path('descriptions/descriptions.json');
+                if (!is_file($descriptionsJsonPath)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Descriptions file not found at descriptions/descriptions.json. Upload it to the production store before running this operation.',
+                    ], 422);
+                }
+
+                $message = 'Product descriptions (JSON) sync queued in background on products-metadata queue.';
+                $stateService->start($action, (int) $user->id, $message);
+                SyncDescriptionsJsonJob::dispatch();
             }
 
             if ($action === 'enrich_images') {
