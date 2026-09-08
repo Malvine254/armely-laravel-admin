@@ -19,7 +19,6 @@ use App\Services\AzureGraphMailService;
 use App\Services\PriceSyncSchedulerService;
 use App\Jobs\SyncPriceAvailabilityCatalogJob;
 use App\Jobs\SyncFlatFileMetadataJob;
-use App\Jobs\SyncDescriptionsJsonJob;
 use App\Jobs\ReindexProductsJob;
 use App\Models\Message;
 use App\Models\Activity;
@@ -262,6 +261,47 @@ class AdminController extends Controller
     private function tdsynnexServiceAvailable(): bool
     {
         return app()->bound(TDSynnexService::class) || class_exists(TDSynnexService::class);
+    }
+
+    /**
+     * Launch an artisan command as a detached OS process so it runs immediately
+     * and reports live progress, without depending on a queue worker being active.
+     */
+    private function spawnDetachedArtisanCommand(string $commandSignature, array $options = []): void
+    {
+        $phpBin = PHP_BINARY;
+        $artisan = base_path('artisan');
+        $optionArgs = [];
+        foreach ($options as $name => $value) {
+            $optionArgs[] = $value === true ? $name : ($name . '=' . $value);
+        }
+
+        if (PHP_OS_FAMILY === 'Windows') {
+            $cmd = sprintf(
+                'cmd /C start "" /B %s %s %s %s > NUL 2>&1',
+                $this->shellArg($phpBin),
+                $this->shellArg($artisan),
+                $this->shellArg($commandSignature),
+                implode(' ', array_map(fn (string $arg) => $this->shellArg($arg), $optionArgs))
+            );
+            pclose(popen($cmd, 'r'));
+
+            return;
+        }
+
+        $cmd = sprintf(
+            '%s %s %s %s > /dev/null 2>&1 &',
+            escapeshellarg($phpBin),
+            escapeshellarg($artisan),
+            escapeshellarg($commandSignature),
+            implode(' ', array_map('escapeshellarg', $optionArgs))
+        );
+        exec($cmd);
+    }
+
+    private function shellArg(string $value): string
+    {
+        return '"' . str_replace('"', '\"', $value) . '"';
     }
 
     private function isUnknownProductName(?string $value): bool
@@ -4078,7 +4118,7 @@ class AdminController extends Controller
             // default QUEUE_CONNECTION may legitimately remain "sync" for
             // unrelated jobs, so validate the queue storage actually used here.
             if (
-                in_array($action, ['sync_catalog', 'sync_flatfile_metadata', 'sync_descriptions_json', 'enrich_images', 'download_images', 'reindex_products'], true)
+                in_array($action, ['sync_catalog', 'sync_flatfile_metadata', 'enrich_images', 'download_images', 'reindex_products'], true)
                 && !Schema::hasTable((string) config('queue.connections.database.table', 'jobs'))
             ) {
                 return response()->json([
@@ -4116,9 +4156,11 @@ class AdminController extends Controller
                     ], 422);
                 }
 
-                $message = 'Product descriptions (JSON) sync queued in background on products-metadata queue.';
+                // Spawn a detached process (like the price sync) so live progress is
+                // reported immediately without depending on a products-metadata queue worker.
+                $message = 'Product descriptions (JSON) sync started in the background.';
                 $stateService->start($action, (int) $user->id, $message);
-                SyncDescriptionsJsonJob::dispatch();
+                $this->spawnDetachedArtisanCommand('descriptions:sync-json', ['--report-progress' => true]);
             }
 
             if ($action === 'enrich_images') {
