@@ -815,6 +815,18 @@
             </button>
           </div>
 
+          <div class="rounded-lg border border-amber-200 bg-amber-50 p-5">
+            <h4 class="text-gray-900 font-semibold">Repair Description Characters (All Products)</h4>
+            <p class="mt-2 text-sm text-gray-500">Fix <code class="bg-amber-100 px-1 rounded text-xs">??</code> / <code class="bg-amber-100 px-1 rounded text-xs">???</code> corrupted characters (®, ™, apostrophes, dashes) in every product's description, including products not listed in descriptions.json.</p>
+            <button
+              @click="runCatalogOperation('repair_description_mojibake')"
+              :disabled="catalogActionLoading"
+              class="mt-4 w-full px-4 py-2 rounded-lg bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 text-white font-medium transition disabled:opacity-50"
+            >
+              <i class="fas fa-wand-magic-sparkles mr-2"></i>Repair Description Characters
+            </button>
+          </div>
+
           <div class="rounded-lg border border-gray-200 bg-gray-50 p-5">
             <h4 class="text-gray-900 font-semibold">Enrich Missing Images</h4>
             <p class="mt-2 text-sm text-gray-500">Fetch and save missing product images for a small admin-safe batch.</p>

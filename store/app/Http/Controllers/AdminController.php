@@ -4073,7 +4073,7 @@ class AdminController extends Controller
             }
 
             $validated = $request->validate([
-                'action' => 'required|string|in:sync_catalog,sync_flatfile_metadata,sync_descriptions_json,enrich_images,download_images,reindex_products,sync_manual_images',
+                'action' => 'required|string|in:sync_catalog,sync_flatfile_metadata,sync_descriptions_json,repair_description_mojibake,enrich_images,download_images,reindex_products,sync_manual_images',
             ]);
 
             $action = (string) $validated['action'];
@@ -4163,6 +4163,14 @@ class AdminController extends Controller
                 $message = 'Product descriptions (JSON) sync started in the background.';
                 $stateService->start($action, (int) $user->id, $message);
                 $this->spawnDetachedArtisanCommand('descriptions:sync-json', ['--report-progress' => true, '--force' => true]);
+            }
+
+            if ($action === 'repair_description_mojibake') {
+                // Fixes the same "??"/"???" artifacts across every product, including ones
+                // never listed in descriptions.json (e.g. sourced from the flat file or API).
+                $message = 'Description character repair started in the background for all products.';
+                $stateService->start($action, (int) $user->id, $message);
+                $this->spawnDetachedArtisanCommand('products:repair-description-mojibake', ['--report-progress' => true]);
             }
 
             if ($action === 'enrich_images') {
