@@ -1100,6 +1100,15 @@ class TablesController extends Controller
     // Customer Stories Management
     public function storeOrUpdateCustomerStory(Request $request)
     {
+        $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'position' => ['required', 'string', 'max:255'],
+            'body_content' => ['required', 'string'],
+            'company' => ['nullable', 'string', 'max:255'],
+            'pdf_url' => ['nullable', 'string', 'max:2048'],
+            'profile' => ['nullable', 'image', 'max:5120'],
+        ]);
+
         $table = $this->tableExists('customer_stories') ? 'customer_stories' : 'customer_story';
         
         if ($request->has('id') && $request->id) {

@@ -4083,6 +4083,17 @@ $(document).ready(function() {
         if ($saveBtn.prop('disabled')) {
             return;
         }
+
+        const bodyContent = storyEditor ? storyEditor.getData().trim() : '';
+        const missing = [];
+        if (!$('#storyName').val().trim()) missing.push('Name');
+        if (!$('#storyPosition').val().trim()) missing.push('Job Title');
+        if (!bodyContent) missing.push('Story Content');
+        if (missing.length) {
+            alert('Please fill in the required field(s): ' + missing.join(', '));
+            return;
+        }
+
         setButtonSaving($saveBtn, true, 'Saving customer story...');
 
         const formData = new FormData();
@@ -4098,7 +4109,7 @@ $(document).ready(function() {
         formData.append('position', $('#storyPosition').val());
         formData.append('company', $('#storyCompany').val());
         formData.append('pdf_url', $('#storyPdfUrl').val());
-        formData.append('body_content', storyEditor ? storyEditor.getData() : '');
+        formData.append('body_content', bodyContent);
         
         const imageFile = $('#storyImage')[0].files[0];
         if (imageFile) {
