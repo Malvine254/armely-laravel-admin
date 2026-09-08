@@ -475,12 +475,12 @@
           <div v-for="relatedProduct in paginatedRelated" :key="relatedProduct.productId"
                class="group flex min-h-[248px] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_2px_10px_rgba(15,42,82,0.05)] transition hover:border-blue-200 hover:shadow-[0_8px_24px_rgba(15,42,82,0.10)] sm:flex-row">
             <!-- Product Image -->
-            <div class="relative flex h-52 flex-shrink-0 items-center justify-center overflow-hidden border-b border-slate-100 bg-white sm:h-auto sm:min-h-[248px] sm:w-[39%] sm:border-b-0 sm:border-r">
+            <div class="relative flex aspect-square w-full flex-shrink-0 items-center justify-center overflow-hidden border-b border-slate-100 bg-white sm:aspect-auto sm:h-auto sm:min-h-[248px] sm:w-[39%] sm:border-b-0 sm:border-r">
               <img
                 v-if="getPrimaryImageUrl(relatedProduct)"
                 :src="getPrimaryImageUrl(relatedProduct)"
                 :alt="relatedProduct.productName"
-                class="h-full w-full object-contain p-3"
+                class="max-h-full max-w-full object-contain p-3"
                 loading="lazy"
                 decoding="async"
                 sizes="(min-width: 1024px) 240px, (min-width: 640px) 50vw, 100vw"
