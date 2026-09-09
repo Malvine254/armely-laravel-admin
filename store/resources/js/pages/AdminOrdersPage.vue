@@ -161,12 +161,17 @@
               </td>
               <td class="px-6 py-4">
                 <div class="flex justify-center gap-2">
-                  <button
-                    @click="viewOrderDetails(order)"
-                    class="px-3 py-1.5 bg-[#2F5597]/10 hover:bg-[#2F5597]/20 text-[#2F5597] font-medium rounded-lg transition border border-[#2F5597]/30 text-xs"
+                  <select
+                    :value="''"
+                    @change="handleOrderAction($event, order)"
+                    class="min-w-[160px] rounded-lg border border-[#2F5597]/30 bg-white px-3 py-2 text-xs font-medium text-[#2F5597] shadow-sm focus:outline-none focus:ring-2 focus:ring-[#2F5597]/20"
+                    aria-label="Order actions"
                   >
-                    <i class="fas fa-eye mr-1"></i>View
-                  </button>
+                    <option value="">Actions</option>
+                    <option value="view">View</option>
+                    <option value="download">Download Invoice</option>
+                    <option v-if="order.status !== 'cancelled' && canCancelOrder(order)" value="cancel">Cancel Order</option>
+                  </select>
                 </div>
               </td>
             </tr>
@@ -787,21 +792,23 @@ const viewOrderDetails = (order) => {
   }
 }
 
-const cancelOrder = async () => {
-  if (!selectedOrder.value) return
+const cancelOrder = async (order = selectedOrder.value) => {
+  if (!order) return
 
   const reason = prompt('Please provide a reason for cancellation:')
   if (!reason) return
 
   isSubmitting.value = true
   try {
-    const response = await api.post(`/admin/orders/${selectedOrder.value.order_number}/cancel`, {
+    const response = await api.post(`/admin/orders/${order.order_number}/cancel`, {
       reason: reason
     })
 
     if (response.data.success) {
       alert('Order cancelled successfully!')
-      selectedOrder.value = null
+      if (selectedOrder.value?.order_number === order.order_number) {
+        selectedOrder.value = null
+      }
       fetchOrders()
     }
   } catch (error) {
@@ -812,11 +819,32 @@ const cancelOrder = async () => {
   }
 }
 
-const downloadInvoice = async () => {
-  if (!selectedOrder.value) return
+const handleOrderAction = (event, order) => {
+  const action = event.target.value
+  event.target.value = ''
+
+  if (!action) return
+
+  if (action === 'view') {
+    viewOrderDetails(order)
+    return
+  }
+
+  if (action === 'download') {
+    downloadInvoice(order)
+    return
+  }
+
+  if (action === 'cancel') {
+    cancelOrder(order)
+  }
+}
+
+const downloadInvoice = async (order = selectedOrder.value) => {
+  if (!order) return
 
   try {
-    const invoiceNumber = selectedOrder.value.linked_invoice_number || selectedOrder.value.order_number
+    const invoiceNumber = order.linked_invoice_number || order.order_number
     const response = await api.get(`/invoices/${invoiceNumber}/pdf`, {
       responseType: 'blob'
     })

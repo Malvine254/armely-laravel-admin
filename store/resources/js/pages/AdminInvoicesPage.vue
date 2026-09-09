@@ -224,61 +224,20 @@
                 </span>
               </td>
               <td class="px-6 py-4">
-                <div class="flex justify-center items-center gap-2">
-                  <!-- View -->
-                  <button
-                    @click="viewInvoice(invoice)"
-                    title="View Invoice"
-                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-[#2F5597]/10 text-[#2F5597] border border-[#2F5597]/30 hover:bg-[#2F5597]/20 transition-colors duration-150"
+                <div class="flex justify-center items-center">
+                  <select
+                    :value="''"
+                    @change="handleInvoiceAction($event, invoice)"
+                    class="min-w-[170px] rounded-lg border border-[#2F5597]/30 bg-white px-3 py-2 text-xs font-medium text-[#2F5597] shadow-sm focus:outline-none focus:ring-2 focus:ring-[#2F5597]/20"
+                    aria-label="Invoice actions"
                   >
-                    <i class="fas fa-eye"></i>
-                    <span>View</span>
-                  </button>
-
-                  <!-- Edit -->
-                  <button
-                    v-if="canEditInvoiceCharges(invoice)"
-                    @click="viewInvoice(invoice)"
-                    title="Edit Invoice Charges"
-                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-amber-500/10 text-amber-700 border border-amber-500/30 hover:bg-amber-500/20 transition-colors duration-150"
-                  >
-                    <i class="fas fa-pen"></i>
-                    <span>Edit</span>
-                  </button>
-
-                  <!-- Send Reminder -->
-                  <button
-                    v-if="invoice.status !== 'cancelled' && invoice.status !== 'merged'"
-                    @click="sendReminder(invoice)"
-                    :disabled="sendingReminderInvoiceId === invoice.id"
-                    title="Send Payment Reminder"
-                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-blue-500/10 text-blue-700 border border-blue-500/30 hover:bg-blue-500/20 transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    <i :class="sendingReminderInvoiceId === invoice.id ? 'fas fa-spinner fa-spin' : 'fas fa-envelope'"></i>
-                    <span>{{ sendingReminderInvoiceId === invoice.id ? 'Sending…' : 'Send Reminder' }}</span>
-                  </button>
-
-                  <!-- Mark Paid -->
-                  <button
-                    v-if="invoice.status === 'pending'"
-                    @click="markAsPaid(invoice)"
-                    title="Mark as Paid"
-                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-emerald-500/10 text-emerald-600 border border-emerald-500/30 hover:bg-emerald-500/20 transition-colors duration-150"
-                  >
-                    <i class="fas fa-check"></i>
-                    <span>Mark Paid</span>
-                  </button>
-
-                  <button
-                    v-if="canResubmitToTd(invoice)"
-                    @click="resubmitToTdSynnex(invoice)"
-                    :disabled="resubmittingInvoiceId === invoice.id"
-                    title="Verify order with TD SYNNEX and resubmit if missing"
-                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-amber-500/10 text-amber-700 border border-amber-500/30 hover:bg-amber-500/20 transition-colors duration-150 disabled:opacity-50"
-                  >
-                    <i :class="resubmittingInvoiceId === invoice.id ? 'fas fa-spinner fa-spin' : 'fas fa-rotate'"></i>
-                    <span>{{ resubmittingInvoiceId === invoice.id ? 'Checking...' : 'Verify / Resubmit TD' }}</span>
-                  </button>
+                    <option value="">Actions</option>
+                    <option value="view">View</option>
+                    <option v-if="canEditInvoiceCharges(invoice)" value="edit">Edit</option>
+                    <option v-if="invoice.status !== 'cancelled' && invoice.status !== 'merged'" value="reminder">Send Reminder</option>
+                    <option v-if="invoice.status === 'pending'" value="paid">Mark Paid</option>
+                    <option v-if="canResubmitToTd(invoice)" value="td">Verify / Resubmit TD</option>
+                  </select>
                 </div>
               </td>
             </tr>
@@ -723,6 +682,33 @@ const statusBadgeClass = (status) => {
 
 const isOverdue = (dueDate) => {
   return new Date(dueDate) < new Date() && selectedInvoice.value?.status === 'pending'
+}
+
+const handleInvoiceAction = (event, invoice) => {
+  const action = event.target.value
+  event.target.value = ''
+
+  if (!action) return
+
+  switch (action) {
+    case 'view':
+      viewInvoice(invoice)
+      break
+    case 'edit':
+      viewInvoice(invoice)
+      break
+    case 'reminder':
+      sendReminder(invoice)
+      break
+    case 'paid':
+      markAsPaid(invoice)
+      break
+    case 'td':
+      resubmitToTdSynnex(invoice)
+      break
+    default:
+      break
+  }
 }
 
 const toggleSelect = (id) => {
