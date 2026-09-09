@@ -306,7 +306,7 @@
                             Start 14-Day Free Pilot →
                         </a>
 
-                        <a href="{{ route('help') }}" class="mela-btn btn btn-light">
+                        <a href="#mela-contact" class="mela-btn btn btn-light">
                             Schedule a 15-Min Demo
                         </a>
                     </div>
