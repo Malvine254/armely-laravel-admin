@@ -672,6 +672,10 @@ class HomeController extends Controller
             ];
         }
 
+        if (strtolower((string) $name) === 'fractional-dba') {
+            $service->title = 'Fractional DBA';
+        }
+
         $relatedServices = $this->safeDb(function () use ($service) {
             if (empty($service->id)) {
                 return collect();

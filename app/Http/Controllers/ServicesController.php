@@ -179,8 +179,14 @@ class ServicesController extends Controller
             $content = null;
         }
 
+        $resolvedTitle = $title ?? Str::headline(str_replace('-', ' ', $name));
+
+        if ($name === 'fractional-dba') {
+            $resolvedTitle = 'Fractional DBA';
+        }
+
         return view('services.show', [
-            'title' => $title ?? Str::headline(str_replace('-', ' ', $name)),
+            'title' => $resolvedTitle,
             'content' => $content,
             'name' => $name,
         ]);
