@@ -1788,8 +1788,8 @@ class AdminController extends Controller
             ]);
 
             // Detect top-level API error (errorMessage / errorDetail format)
-            $tdTopErrorMessage = trim((string) ($tdResponse['errorMessage'] ?? $tdResponse['error'] ?? ''));
-            $tdTopErrorDetail  = trim((string) ($tdResponse['errorDetail'] ?? ''));
+            $tdTopErrorMessage = trim((string) ($tdResponse['errorMessage'] ?? data_get($tdResponse, 'OrderResponse.ErrorMessage') ?? $tdResponse['error'] ?? ''));
+            $tdTopErrorDetail  = trim((string) ($tdResponse['errorDetail'] ?? data_get($tdResponse, 'OrderResponse.ErrorDetail') ?? ''));
             if ($tdTopErrorMessage !== '') {
                 $tdRejectionReason = $tdTopErrorDetail ?: $tdTopErrorMessage;
                 $localStatus = 'failed';
@@ -6654,8 +6654,8 @@ EOT;
             $tdResponse = $tdsynnexService->placeOrder($orderData, 'us', false); // false = production endpoint
 
             // Detect top-level API error (errorMessage / errorDetail format)
-            $tdErrorMessage = trim((string) ($tdResponse['errorMessage'] ?? $tdResponse['error'] ?? ''));
-            $tdErrorDetail  = trim((string) ($tdResponse['errorDetail'] ?? ''));
+            $tdErrorMessage = trim((string) ($tdResponse['errorMessage'] ?? data_get($tdResponse, 'OrderResponse.ErrorMessage') ?? $tdResponse['error'] ?? ''));
+            $tdErrorDetail  = trim((string) ($tdResponse['errorDetail'] ?? data_get($tdResponse, 'OrderResponse.ErrorDetail') ?? ''));
             if ($tdErrorMessage !== '') {
                 $reason = $tdErrorDetail ?: $tdErrorMessage;
                 $existingOrder->update([
@@ -6671,7 +6671,7 @@ EOT;
             $tdRejectionReason = null;
             $orderResponse = is_array($tdResponse['OrderResponse'] ?? null)
                 ? $tdResponse['OrderResponse']
-                : (array_intersect(['Code', 'Reason', 'OrderNumber', 'PONumber', 'Items'], array_keys($tdResponse)) ? $tdResponse : []);
+                : (array_intersect(['Code', 'Reason', 'ErrorMessage', 'ErrorDetail', 'OrderNumber', 'PONumber', 'Items'], array_keys($tdResponse)) ? $tdResponse : []);
             if (!empty($orderResponse)) {
                 $tdRejectionReason = $orderResponse['Reason'] ?? null;
                 if (!$tdRejectionReason) {

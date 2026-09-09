@@ -39,4 +39,37 @@ class TDSynnexOrderResponseTest extends TestCase
         $this->assertSame('ACCEPTED', $response['status']);
         $this->assertSame('Q-TEST-1', $response['poNumber']);
     }
+
+    public function test_nested_order_response_exposes_supplier_error(): void
+    {
+        config()->set('tdsynnex.price_availability.customer_no', 'customer');
+        config()->set('tdsynnex.price_availability.username', 'user');
+        config()->set('tdsynnex.price_availability.password', 'password');
+
+        Http::fake([
+            '*' => Http::response(
+                '<?xml version="1.0"?><SynnexB2B><OrderResponse>'
+                . '<ErrorMessage>XML services has not been registered.</ErrorMessage>'
+                . '<ErrorDetail>Contact TD SYNNEX Helpdesk.</ErrorDetail>'
+                . '</OrderResponse></SynnexB2B>',
+                200,
+                ['Content-Type' => 'application/xml']
+            ),
+        ]);
+
+        $response = app(TDSynnexService::class)->placeOrder([
+            'poNumber' => 'Q-TEST-2',
+            'poDate' => '2026-09-09',
+            'shipTo' => ['companyName' => 'Armely'],
+            'poLine' => [[
+                'lineNumber' => '1',
+                'partNumber' => '1234567',
+                'quantity' => 1,
+                'unitPrice' => '1.00',
+            ]],
+        ], 'us', false);
+
+        $this->assertSame('XML services has not been registered.', $response['errorMessage']);
+        $this->assertSame('Contact TD SYNNEX Helpdesk.', $response['errorDetail']);
+    }
 }

@@ -4474,7 +4474,7 @@ class TDSynnexService
         // Normalize XML OrderResponse shape so existing callers can read order number/status.
         $orderResponse = is_array($response['OrderResponse'] ?? null)
             ? $response['OrderResponse']
-            : (array_intersect(['Code', 'Reason', 'OrderNumber', 'PONumber', 'Items'], array_keys($response)) ? $response : []);
+            : (array_intersect(['Code', 'Reason', 'ErrorMessage', 'ErrorDetail', 'OrderNumber', 'PONumber', 'Items'], array_keys($response)) ? $response : []);
         if (!empty($orderResponse)) {
             $item = $orderResponse['Items']['Item'] ?? null;
             if (is_array($item) && isset($item[0]) && is_array($item[0])) {
@@ -4490,6 +4490,8 @@ class TDSynnexService
                 ?? (is_array($item) ? ($item['Code'] ?? '') : '')
             );
             $response['poNumber'] = (string) ($orderResponse['PONumber'] ?? ($orderData['poNumber'] ?? ''));
+            $response['errorMessage'] = (string) ($orderResponse['ErrorMessage'] ?? '');
+            $response['errorDetail'] = (string) ($orderResponse['ErrorDetail'] ?? '');
         }
         
         // Log the full response for debugging
