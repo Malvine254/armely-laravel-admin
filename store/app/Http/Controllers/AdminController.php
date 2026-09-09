@@ -5683,14 +5683,23 @@ class AdminController extends Controller
             }
 
             $order = $invoice->order;
-            if (!$order || strtolower((string) $order->status) !== 'delivered' || !$order->delivered_at) {
+            if (!$order) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Payment can only be recorded after the linked order is delivered.',
+                    'message' => 'Payment cannot be recorded because this invoice has no linked order.',
                 ], 422);
             }
 
-            $tdResult = ['submitted' => null, 'skipped' => false];
+            if (in_array(strtolower((string) $order->status), ['cancelled', 'canceled'], true)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Payment cannot be recorded for a cancelled order.',
+                ], 422);
+            }
+
+            $tdResult = trim((string) $order->tdsynnex_order_id) !== ''
+                ? ['submitted' => null, 'skipped' => true, 'reason' => 'Order was already submitted to TD SYNNEX']
+                : $this->submitTdSynnexOrderForPaidInvoice($invoice);
 
             // TD call was made and it failed — block payment
             if (($tdResult['submitted'] ?? null) === false) {
@@ -6139,13 +6148,26 @@ EOT;
 
             $eligibleInvoices = Invoice::whereIn('id', $request->invoice_ids)
                 ->whereNotIn('status', ['paid', 'cancelled', 'merged'])
-                ->whereHas('order', function ($query) {
-                    $query->where('status', 'delivered')->whereNotNull('delivered_at');
-                })
                 ->with('order')
                 ->get();
 
+            $updatedCount = 0;
+            $errors = [];
             foreach ($eligibleInvoices as $invoice) {
+                $order = $invoice->order;
+                if (!$order || in_array(strtolower((string) $order->status), ['cancelled', 'canceled'], true)) {
+                    $errors[] = "Invoice {$invoice->invoice_number}: missing or cancelled linked order";
+                    continue;
+                }
+
+                $tdResult = trim((string) $order->tdsynnex_order_id) !== ''
+                    ? ['submitted' => null, 'skipped' => true]
+                    : $this->submitTdSynnexOrderForPaidInvoice($invoice);
+                if (($tdResult['submitted'] ?? null) === false) {
+                    $errors[] = "Invoice {$invoice->invoice_number}: " . ($tdResult['error'] ?? 'TD SYNNEX rejected the order');
+                    continue;
+                }
+
                 $invoice->update([
                     'status' => 'paid',
                     'paid_at' => $paymentDate,
@@ -6155,16 +6177,17 @@ EOT;
                     'payment_status' => 'paid',
                     'payment_method' => 'admin_recorded',
                 ]);
+                $updatedCount++;
             }
 
-            $updatedCount = $eligibleInvoices->count();
             $skippedCount = count($request->invoice_ids) - $updatedCount;
 
             return response()->json([
                 'success' => true,
-                'message' => "$updatedCount invoice(s) marked as paid",
+                'message' => "$updatedCount invoice(s) marked as paid" . ($skippedCount > 0 ? "; {$skippedCount} skipped" : ''),
                 'updated_count' => $updatedCount,
                 'skipped_count' => $skippedCount,
+                'errors' => $errors,
             ]);
         } catch (\Exception $e) {
             Log::error('Bulk mark invoices paid failed: ' . $e->getMessage());
@@ -6256,7 +6279,7 @@ EOT;
     }
 
     /**
-     * Submit order to TD SYNNEX after an invoice is marked as paid.
+     * Submit the pending order to TD SYNNEX before an invoice is marked as paid.
      * Returns an array with submission result details.
      */
     private function submitTdSynnexOrderForPaidInvoice(Invoice $invoice): array
