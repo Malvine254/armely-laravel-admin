@@ -55,13 +55,16 @@ class RefreshLivePricesJob implements ShouldQueue
 
             Log::info('RefreshLivePricesJob complete', $result);
 
-            $mailer->sendSyncStatusEmail('Live Price Refresh', 'completed', [
+            $batchErrors = $result['batch_errors'] ?? [];
+            $mailer->sendSyncStatusEmail('Live Price Refresh', empty($batchErrors) ? 'completed' : 'completed_with_errors', [
                 'Finished At' => now()->format('Y-m-d H:i:s T'),
                 'Sync Scope' => $scopeLabel,
                 'Requested Products' => $result['requested'] ?? ($specificSkus === null ? 'All' : count($specificSkus)),
-                'Products Checked' => $result['checked'],
+                'SKUs Refreshed' => "{$result['checked']} of {$result['requested']}",
+                'Database Rows Updated' => $result['updated'] ?? $result['checked'],
+                'Batch Errors' => empty($batchErrors) ? 'None' : count($batchErrors) . " final retry batch(es) failed ({$result['failed']} SKU(s))",
                 'Duration (s)'     => $elapsed,
-                'Next Step'        => 'Nightly sync at midnight will apply changes to displayed prices',
+                'Columns Updated' => 'price, stock quantity, availability — applied immediately',
             ]);
         } catch (\Throwable $e) {
             Log::error('RefreshLivePricesJob failed', ['error' => $e->getMessage()]);

@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Product;
 use App\Services\TDSynnexService;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
@@ -14,6 +15,12 @@ class TDSynnexStaleProductSyncTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        config()->set('database.default', 'sqlite');
+        config()->set('database.connections.sqlite.database', ':memory:');
+        DB::purge();
+        DB::reconnect();
+        config()->set('tdsynnex.price_availability.final_retry_delay_ms', 0);
 
         Schema::create('products', function (Blueprint $table) {
             $table->id();
@@ -115,6 +122,49 @@ class TDSynnexStaleProductSyncTest extends TestCase
         $this->assertSame(0, $product->quantity);
         $this->assertFalse($product->live_is_available);
         $this->assertTrue($product->live_is_discontinued);
+    }
+
+    public function test_successful_final_retry_clears_the_batch_error(): void
+    {
+        $this->createProduct();
+
+        Http::fakeSequence()
+            ->push('<?xml version="1.0"?><priceResponse><errorMessage>Client.InvalidRequest</errorMessage></priceResponse>', 200)
+            ->push($this->priceAvailabilityResponse('Available'), 200);
+
+        $result = app(TDSynnexService::class)->refreshLivePricesInDatabase(['1900150025']);
+
+        $this->assertSame(1, $result['checked']);
+        $this->assertSame(0, $result['failed']);
+        $this->assertSame([], $result['batch_errors']);
+    }
+
+    public function test_checked_count_tracks_unique_skus_separately_from_updated_rows(): void
+    {
+        $this->createProduct();
+        Product::create([
+            'tdsynnex_product_id' => 'legacy-1900150025',
+            'tdsynnex_sku_no' => '1900150025',
+            'vendor_id' => 'TD SYNNEX',
+            'product_name' => 'Duplicate legacy row',
+            'base_price' => 825,
+            'retail_price' => 907.50,
+            'quantity' => 10,
+            'is_available' => true,
+            'is_discontinued' => false,
+        ]);
+
+        Http::fake([
+            '*' => Http::response($this->priceAvailabilityResponse('Available'), 200, [
+                'Content-Type' => 'application/xml',
+            ]),
+        ]);
+
+        $result = app(TDSynnexService::class)->refreshLivePricesInDatabase(['1900150025']);
+
+        $this->assertSame(1, $result['checked']);
+        $this->assertSame(2, $result['updated']);
+        $this->assertSame(1, $result['requested']);
     }
 
     private function createProduct(): Product

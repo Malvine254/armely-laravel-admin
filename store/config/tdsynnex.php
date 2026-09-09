@@ -122,6 +122,7 @@ return [
         'request_timeout' => env('SYNNEX_PRICE_AVAILABILITY_TIMEOUT', 8),
         // Longer timeout for the queued live price refresh job, which isn't bound by web request limits.
         'live_refresh_timeout' => env('SYNNEX_PRICE_AVAILABILITY_LIVE_REFRESH_TIMEOUT', 20),
+        'final_retry_delay_ms' => env('SYNNEX_PRICE_AVAILABILITY_FINAL_RETRY_DELAY_MS', 2000),
         'max_runtime_seconds' => env('SYNNEX_PRICE_AVAILABILITY_MAX_RUNTIME', 45),
         'flat_file_path' => env('SYNNEX_FLAT_FILE_PATH', ''),
         'flat_files_dir' => env('SYNNEX_FLAT_FILES_DIR', 'flat-files'),

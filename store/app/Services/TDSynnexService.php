@@ -416,26 +416,31 @@ class TDSynnexService
         }
 
         if (empty($skus)) {
-            return ['checked' => 0, 'requested' => 0];
+            return ['checked' => 0, 'updated' => 0, 'requested' => 0, 'failed' => 0, 'batch_errors' => [], 'cancelled' => false];
         }
 
         $batchSize = max(1, (int) config('tdsynnex.price_availability.batch_size', 50));
         $region    = (string) config('tdsynnex.price_availability.region', 'us');
         $useTest   = (bool) config('tdsynnex.xml.use_test_by_default', true);
-        $checked   = 0;
+        $checkedSkus = [];
+        $updated = 0;
         $now       = now();
         $batches      = array_chunk($skus, $batchSize);
         $totalBatches = count($batches);
         $batchNum     = 0;
 
         $batchErrors = [];
+        $attemptErrors = [];
         $failedSkus  = [];
         $cancelled = false;
 
         foreach ($batches as $skuBatch) {
             $batchNum++;
             try {
-                $checked += $this->processLivePriceBatch($skuBatch, $region, $useTest, $now);
+                $updated += $this->processLivePriceBatch($skuBatch, $region, $useTest, $now);
+                foreach ($skuBatch as $sku) {
+                    $checkedSkus[$sku] = true;
+                }
             } catch (\Throwable $e) {
                 $errorMessage = $e->getMessage();
                 $isTransient = $this->isTransientPriceAvailabilityError($errorMessage);
@@ -454,9 +459,12 @@ class TDSynnexService
 
                     foreach ($subBatches as $subIdx => $subBatch) {
                         try {
-                            $checked += $this->processLivePriceBatch($subBatch, $region, $useTest, $now);
+                            $updated += $this->processLivePriceBatch($subBatch, $region, $useTest, $now);
+                            foreach ($subBatch as $sku) {
+                                $checkedSkus[$sku] = true;
+                            }
                         } catch (\Throwable $subError) {
-                            $batchErrors[] = "Batch {$batchNum}." . ($subIdx + 1) . ": " . $subError->getMessage();
+                            $attemptErrors[] = "Batch {$batchNum}." . ($subIdx + 1) . ": " . $subError->getMessage();
                             $failedSkus = array_merge($failedSkus, $subBatch);
                             Log::warning('Live price sync sub-batch failed, skipped', [
                                 'batch' => $batchNum,
@@ -469,7 +477,7 @@ class TDSynnexService
                 } else {
                     // Log the error but continue processing remaining batches — one failed
                     // batch (timeout, network blip) must not abort the entire sync run.
-                    $batchErrors[] = "Batch {$batchNum}: " . $errorMessage;
+                    $attemptErrors[] = "Batch {$batchNum}: " . $errorMessage;
                     $failedSkus = array_merge($failedSkus, $skuBatch);
                     Log::warning('Live price sync batch failed, continuing', [
                         'batch'  => $batchNum,
@@ -480,13 +488,13 @@ class TDSynnexService
             }
 
             if ($onBatch !== null) {
-                $continue = $onBatch($batchNum, $totalBatches, $checked);
+                $continue = $onBatch($batchNum, $totalBatches, count($checkedSkus));
                 if ($continue === false) {
                     $cancelled = true;
                     Log::warning('Live price refresh cancelled between batches', [
                         'batch' => $batchNum,
                         'total_batches' => $totalBatches,
-                        'checked' => $checked,
+                        'checked' => count($checkedSkus),
                     ]);
                     break;
                 }
@@ -501,7 +509,10 @@ class TDSynnexService
                 'failed_sku_count' => count($failedSkus),
             ]);
 
-            usleep(2_000_000);
+            $retryDelayMs = max(0, (int) config('tdsynnex.price_availability.final_retry_delay_ms', 2000));
+            if ($retryDelayMs > 0) {
+                usleep($retryDelayMs * 1000);
+            }
 
             $retryBatchSize = max(1, min(10, $batchSize));
             $retryBatches = array_chunk($failedSkus, $retryBatchSize);
@@ -509,9 +520,13 @@ class TDSynnexService
 
             foreach ($retryBatches as $retryIdx => $retryBatch) {
                 try {
-                    $checked += $this->processLivePriceBatch($retryBatch, $region, $useTest, $now);
+                    $updated += $this->processLivePriceBatch($retryBatch, $region, $useTest, $now);
+                    foreach ($retryBatch as $sku) {
+                        $checkedSkus[$sku] = true;
+                    }
                     $recoveredSkus = array_merge($recoveredSkus, $retryBatch);
                 } catch (\Throwable $retryError) {
+                    $batchErrors[] = "Final retry batch " . ($retryIdx + 1) . ': ' . $retryError->getMessage();
                     Log::warning('Live price sync final retry batch failed, skipped', [
                         'retry_batch' => $retryIdx + 1,
                         'skus' => $retryBatch,
@@ -522,14 +537,20 @@ class TDSynnexService
 
             if (!empty($recoveredSkus)) {
                 $recovered = count($recoveredSkus);
-                $batchErrors[] = "Recovered {$recovered} SKU(s) on final retry pass.";
                 Log::info('Live price refresh final retry recovered SKUs', ['recovered' => $recovered]);
             }
+        } elseif ($cancelled) {
+            $batchErrors = $attemptErrors;
         }
+
+        $checked = count($checkedSkus);
+        $failed = count(array_diff($skus, array_keys($checkedSkus)));
 
         Log::info('Live price refresh complete', [
             'requested'    => count($skus),
             'checked'      => $checked,
+            'updated'      => $updated,
+            'failed'       => $failed,
             'batch_errors' => count($batchErrors),
             'at'           => $now->toDateTimeString(),
         ]);
@@ -540,7 +561,9 @@ class TDSynnexService
 
         return [
             'checked' => $checked,
+            'updated' => $updated,
             'requested' => count($skus),
+            'failed' => $failed,
             'batch_errors' => $batchErrors,
             'cancelled' => $cancelled,
         ];

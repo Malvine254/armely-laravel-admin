@@ -74,7 +74,7 @@ class RefreshLivePricesCommand extends Command
                         "Started at {$startedAt}",
                         "Scope: {$scopeLabel}",
                         "Progress: batch {$batchNum} of {$totalBatches} ({$pct}%)",
-                        "Products updated so far: {$checked}",
+                        "SKUs refreshed so far: {$checked}",
                         "Elapsed: {$elapsed}s",
                     ])
                 );
@@ -98,7 +98,8 @@ class RefreshLivePricesCommand extends Command
             $summaryLines = [
                 "Finished at " . now()->format('Y-m-d H:i:s T'),
                 "Scope:            {$scopeLabel}",
-                "Products updated: {$result['checked']} of {$result['requested']} requested",
+                "SKUs refreshed:    {$result['checked']} of {$result['requested']} requested",
+                "Database rows:     {$result['updated']} updated",
                 "Duration:         {$elapsed}s",
                 "Price, stock & availability columns updated immediately.",
             ];
@@ -114,18 +115,20 @@ class RefreshLivePricesCommand extends Command
             }
             $summary = implode("\n", $summaryLines);
 
-            $this->info("Products updated: {$result['checked']} of {$result['requested']}");
+            $this->info("SKUs refreshed: {$result['checked']} of {$result['requested']}");
+            $this->line("Database rows updated: {$result['updated']}");
             if ($errorCount > 0) {
                 $this->warn("Batch errors (skipped): {$errorCount}");
             }
             $this->line("Duration: {$elapsed}s");
-            $this->writeState($statusLabel, "Done — {$result['checked']} product(s) updated in {$elapsed}s" . ($errorCount > 0 ? " ({$errorCount} batch error(s))" : ''), $summary);
+            $this->writeState($statusLabel, "Done — {$result['checked']} of {$result['requested']} SKU(s) refreshed in {$elapsed}s" . ($errorCount > 0 ? " ({$result['failed']} SKU(s) still failed)" : ''), $summary);
 
             $mailer->sendSyncStatusEmail('Live Price Refresh', $errorCount > 0 ? 'completed_with_errors' : 'completed', [
                 'Finished At'      => now()->format('Y-m-d H:i:s T'),
                 'Sync Scope'       => $scopeLabel,
-                'Products Updated' => "{$result['checked']} of {$result['requested']} requested",
-                'Batch Errors'     => $errorCount > 0 ? "{$errorCount} batch(es) skipped (timeout/network)" : 'None',
+                'SKUs Refreshed'   => "{$result['checked']} of {$result['requested']} requested",
+                'Database Rows Updated' => $result['updated'],
+                'Batch Errors'     => $errorCount > 0 ? "{$errorCount} final retry batch(es) failed ({$result['failed']} SKU(s))" : 'None',
                 'Duration (s)'     => $elapsed,
                 'Columns Updated'  => 'price, stock quantity, availability — applied immediately',
             ]);
@@ -153,7 +156,7 @@ class RefreshLivePricesCommand extends Command
                 'output'      => $output,
                 'started_at'  => is_array($existing) ? ($existing['started_at'] ?? now()->toDateTimeString()) : now()->toDateTimeString(),
                 'updated_at'  => now()->toDateTimeString(),
-                'finished_at' => in_array($status, ['completed', 'failed', 'cancelled']) ? now()->toDateTimeString() : null,
+                'finished_at' => in_array($status, ['completed', 'completed_with_errors', 'failed', 'cancelled'], true) ? now()->toDateTimeString() : null,
             ]);
         } catch (\Throwable) {}
     }
