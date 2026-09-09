@@ -271,6 +271,7 @@ Route::prefix('v1')->group(function () {
         Route::put('/admin/invoices/{invoiceId}', [AdminController::class, 'updateInvoiceCharges']);
         Route::get('/admin/invoices/{status}', [AdminController::class, 'getInvoicesByStatus']);
         Route::post('/admin/invoices/{invoiceId}/mark-paid', [AdminController::class, 'markInvoiceAsPaid']);
+        Route::post('/admin/invoices/{invoiceId}/resubmit-tdsynnex', [AdminController::class, 'resubmitInvoiceOrderToTdSynnex']);
         Route::post('/admin/invoices/{invoiceId}/send-reminder', [AdminController::class, 'sendInvoiceReminder']);
         Route::get('/admin/invoices/{invoiceId}/pdf', [AdminController::class, 'downloadInvoicePdf']);
     });

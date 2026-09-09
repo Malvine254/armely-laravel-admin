@@ -5697,7 +5697,10 @@ class AdminController extends Controller
                 ], 422);
             }
 
-            $tdResult = trim((string) $order->tdsynnex_order_id) !== ''
+            $orderRawData = is_array($order->raw_data) ? $order->raw_data : [];
+            $alreadySubmitted = trim((string) $order->tdsynnex_order_id) !== ''
+                && !(bool) ($orderRawData['td_submission_pending'] ?? false);
+            $tdResult = $alreadySubmitted
                 ? ['submitted' => null, 'skipped' => true, 'reason' => 'Order was already submitted to TD SYNNEX']
                 : $this->submitTdSynnexOrderForPaidInvoice($invoice);
 
@@ -5706,6 +5709,14 @@ class AdminController extends Controller
                 return response()->json([
                     'success' => false,
                     'message' => 'Payment not recorded — TD SYNNEX rejected the order: ' . $tdResult['error'],
+                    'data' => ['td_result' => $tdResult],
+                ], 422);
+            }
+
+            if (!$alreadySubmitted && ($tdResult['submitted'] ?? null) !== true) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Payment not recorded — the order was not created in TD SYNNEX: ' . ($tdResult['reason'] ?? 'Unknown submission result'),
                     'data' => ['td_result' => $tdResult],
                 ], 422);
             }
@@ -5749,6 +5760,79 @@ class AdminController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to update invoice status',
+            ], 500);
+        }
+    }
+
+    /**
+     * Recover a paid invoice whose pending order was never submitted to TD SYNNEX.
+     */
+    public function resubmitInvoiceOrderToTdSynnex(Request $request, $invoiceId): JsonResponse
+    {
+        try {
+            $currentUser = $request->user();
+            if (!in_array((string) $currentUser->role, ['admin', 'super_admin'], true)) {
+                return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+            }
+
+            $invoice = Invoice::with('order')->findOrFail($invoiceId);
+            $order = $invoice->order;
+            if (!$order) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This invoice has no linked order to submit.',
+                ], 422);
+            }
+
+            if (in_array(strtolower((string) $order->status), ['cancelled', 'canceled'], true)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'A cancelled order cannot be submitted to TD SYNNEX.',
+                ], 422);
+            }
+
+            $rawData = is_array($order->raw_data) ? $order->raw_data : [];
+            $submissionPending = (bool) ($rawData['td_submission_pending'] ?? false);
+            if (trim((string) $order->tdsynnex_order_id) !== '' && !$submissionPending) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Order {$order->tdsynnex_order_id} is already recorded as submitted to TD SYNNEX.",
+                ], 409);
+            }
+
+            $tdResult = $this->submitTdSynnexOrderForPaidInvoice($invoice);
+            if (($tdResult['submitted'] ?? null) !== true) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Order was not submitted to TD SYNNEX: ' . ($tdResult['error'] ?? $tdResult['reason'] ?? 'Unknown supplier response'),
+                    'data' => ['td_result' => $tdResult],
+                ], 422);
+            }
+
+            Log::info('Admin resubmitted invoice order to TD SYNNEX', [
+                'invoice_id' => $invoice->id,
+                'invoice_number' => $invoice->invoice_number,
+                'tdsynnex_order_id' => $tdResult['order_number'] ?? null,
+                'admin_id' => $currentUser->id,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => "Order {$tdResult['order_number']} was submitted to TD SYNNEX.",
+                'data' => [
+                    'invoice' => $invoice->fresh(['order']),
+                    'td_result' => $tdResult,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to resubmit invoice order to TD SYNNEX', [
+                'invoice_id' => $invoiceId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to submit order to TD SYNNEX: ' . $e->getMessage(),
             ], 500);
         }
     }
@@ -6160,11 +6244,18 @@ EOT;
                     continue;
                 }
 
-                $tdResult = trim((string) $order->tdsynnex_order_id) !== ''
+                $orderRawData = is_array($order->raw_data) ? $order->raw_data : [];
+                $alreadySubmitted = trim((string) $order->tdsynnex_order_id) !== ''
+                    && !(bool) ($orderRawData['td_submission_pending'] ?? false);
+                $tdResult = $alreadySubmitted
                     ? ['submitted' => null, 'skipped' => true]
                     : $this->submitTdSynnexOrderForPaidInvoice($invoice);
                 if (($tdResult['submitted'] ?? null) === false) {
                     $errors[] = "Invoice {$invoice->invoice_number}: " . ($tdResult['error'] ?? 'TD SYNNEX rejected the order');
+                    continue;
+                }
+                if (!$alreadySubmitted && ($tdResult['submitted'] ?? null) !== true) {
+                    $errors[] = "Invoice {$invoice->invoice_number}: order was not created in TD SYNNEX (" . ($tdResult['reason'] ?? 'unknown result') . ')';
                     continue;
                 }
 

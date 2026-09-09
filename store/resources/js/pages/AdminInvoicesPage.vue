@@ -496,6 +496,16 @@
           <!-- Action Buttons -->
           <div class="flex space-x-3 justify-end border-t border-gray-200 pt-4">
             <button
+              v-if="canResubmitToTd(selectedInvoice)"
+              @click="resubmitToTdSynnex"
+              :disabled="resubmittingToTd"
+              class="px-6 py-2 bg-amber-600 hover:bg-amber-700 text-white font-medium rounded-lg transition disabled:opacity-50"
+              title="Submit this paid invoice's pending order to TD SYNNEX"
+            >
+              <i :class="resubmittingToTd ? 'fas fa-spinner fa-spin mr-2' : 'fas fa-rotate mr-2'"></i>
+              {{ resubmittingToTd ? 'Submitting...' : 'Resubmit to TD SYNNEX' }}
+            </button>
+            <button
               @click="selectedInvoice = null"
               class="px-6 py-2 border border-[#2F5597]/50 rounded-lg text-[#2F5597] font-medium hover:bg-[#2F5597]/20 transition"
             >
@@ -547,6 +557,7 @@ const reminderCustomMessage = ref('')
 const editTaxAmount = ref(0)
 const editShippingAmount = ref(0)
 const savingInvoiceCharges = ref(false)
+const resubmittingToTd = ref(false)
 const stats = ref({
   total: 0,
   pending: 0,
@@ -649,6 +660,13 @@ const getInvoiceSubtotal = (invoice) => {
 const canEditInvoiceCharges = (invoice) => {
   if (!invoice) return false
   return !['cancelled', 'merged'].includes(String(invoice.status || '').toLowerCase())
+}
+
+const canResubmitToTd = (invoice) => {
+  if (!invoice || String(invoice.status || '').toLowerCase() !== 'paid' || !invoice.order) return false
+  if (['cancelled', 'canceled'].includes(String(invoice.order.status || '').toLowerCase())) return false
+
+  return !invoice.order.tdsynnex_order_id || Boolean(invoice.order.raw_data?.td_submission_pending)
 }
 
 const editInvoiceTotal = computed(() => {
@@ -896,6 +914,27 @@ const recordPayment = async () => {
     alert('Failed to record payment: ' + (error.response?.data?.message || error.message))
   } finally {
     isSubmitting.value = false
+  }
+}
+
+const resubmitToTdSynnex = async () => {
+  if (!selectedInvoice.value || !canResubmitToTd(selectedInvoice.value)) return
+  if (!confirm(`Submit the order for invoice ${selectedInvoice.value.invoice_number} to TD SYNNEX now?`)) return
+
+  resubmittingToTd.value = true
+  try {
+    const response = await api.post(`/admin/invoices/${selectedInvoice.value.id}/resubmit-tdsynnex`)
+    if (response.data.success) {
+      selectedInvoice.value = response.data.data?.invoice || selectedInvoice.value
+      alert(response.data.message)
+      await fetchInvoices()
+      await fetchStats()
+    }
+  } catch (error) {
+    console.error('Failed to resubmit order to TD SYNNEX:', error)
+    alert(error.response?.data?.message || 'Failed to submit order to TD SYNNEX')
+  } finally {
+    resubmittingToTd.value = false
   }
 }
 
