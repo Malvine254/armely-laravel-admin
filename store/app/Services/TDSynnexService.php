@@ -579,8 +579,14 @@ class TDSynnexService
         $response   = $this->postPriceAvailabilityXml($xmlPayload, $region, $useTest, $liveRefreshTimeout);
 
         if (!array_key_exists('PriceAvailabilityList', $response)) {
+            $supplierError = data_get($response, 'errorMessage')
+                ?? data_get($response, 'ErrorMessage')
+                ?? data_get($response, 'message');
+
             throw new TDSynnexApiException(
-                'PriceAvailability response did not contain a product result list; no products were changed.'
+                $supplierError
+                    ? 'PriceAvailability supplier error: ' . trim((string) $supplierError)
+                    : 'PriceAvailability response did not contain a product result list; no products were changed.'
             );
         }
 
@@ -763,6 +769,7 @@ class TDSynnexService
             'could not resolve host',
             'failed to connect',
             'temporarily unavailable',
+            'did not contain a product result list',
         ] as $needle) {
             if (str_contains($haystack, $needle)) {
                 return true;

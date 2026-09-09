@@ -167,6 +167,35 @@ class TDSynnexStaleProductSyncTest extends TestCase
         $this->assertSame(1, $result['requested']);
     }
 
+    public function test_missing_result_list_is_retried_in_smaller_batches(): void
+    {
+        $this->createProduct();
+        Product::create([
+            'tdsynnex_product_id' => '1900150026',
+            'tdsynnex_sku_no' => '1900150026',
+            'vendor_id' => 'TD SYNNEX',
+            'product_name' => 'Second product',
+            'base_price' => 100,
+            'retail_price' => 120,
+            'quantity' => 5,
+            'is_available' => true,
+            'is_discontinued' => false,
+        ]);
+        config()->set('tdsynnex.price_availability.batch_size', 2);
+
+        Http::fakeSequence()
+            ->push('<?xml version="1.0"?><priceResponse></priceResponse>', 200)
+            ->push($this->priceAvailabilityResponse('Available', '1900150025'), 200)
+            ->push($this->priceAvailabilityResponse('Available', '1900150026'), 200);
+
+        $result = app(TDSynnexService::class)->refreshLivePricesInDatabase(['1900150025', '1900150026']);
+
+        $this->assertSame(2, $result['checked']);
+        $this->assertSame(0, $result['failed']);
+        $this->assertSame([], $result['batch_errors']);
+        Http::assertSentCount(3);
+    }
+
     private function createProduct(): Product
     {
         return Product::create([
@@ -183,10 +212,10 @@ class TDSynnexStaleProductSyncTest extends TestCase
         ]);
     }
 
-    private function priceAvailabilityResponse(string $status): string
+    private function priceAvailabilityResponse(string $status, string $sku = '1900150025'): string
     {
         return '<?xml version="1.0"?><priceResponse><PriceAvailabilityList>'
-            . '<lineNumber>1</lineNumber><synnexSKU>1900150025</synnexSKU>'
+            . '<lineNumber>1</lineNumber><synnexSKU>' . $sku . '</synnexSKU>'
             . '<status>' . $status . '</status><totalQuantity>0</totalQuantity>'
             . '</PriceAvailabilityList></priceResponse>';
     }
