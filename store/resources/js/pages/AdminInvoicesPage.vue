@@ -932,7 +932,25 @@ const resubmitToTdSynnex = async (invoice = selectedInvoice.value) => {
 
   resubmittingInvoiceId.value = invoice.id
   try {
-    const response = await api.post(`/admin/invoices/${invoice.id}/resubmit-tdsynnex`)
+    let response
+    try {
+      response = await api.post(`/admin/invoices/${invoice.id}/resubmit-tdsynnex`)
+    } catch (verificationError) {
+      const verificationInconclusive = verificationError.response?.status === 502
+        && verificationError.response?.data?.data?.verification?.exists === null
+
+      if (!verificationInconclusive) throw verificationError
+
+      const forceConfirmed = confirm(
+        'TD SYNNEX could not confirm whether this order exists. Force submission may create a duplicate order. Submit it anyway?'
+      )
+      if (!forceConfirmed) return
+
+      response = await api.post(`/admin/invoices/${invoice.id}/resubmit-tdsynnex`, {
+        force_submit: true
+      })
+    }
+
     if (response.data.success) {
       if (selectedInvoice.value?.id === invoice.id) {
         selectedInvoice.value = response.data.data?.invoice || selectedInvoice.value

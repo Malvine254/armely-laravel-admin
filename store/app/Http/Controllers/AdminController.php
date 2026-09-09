@@ -5775,6 +5775,11 @@ class AdminController extends Controller
                 return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
             }
 
+            $validated = $request->validate([
+                'force_submit' => 'sometimes|boolean',
+            ]);
+            $forceSubmit = (bool) ($validated['force_submit'] ?? false);
+
             $invoice = Invoice::with('order')->findOrFail($invoiceId);
             $order = $invoice->order;
             if (!$order) {
@@ -5816,12 +5821,23 @@ class AdminController extends Controller
                 ]);
             }
 
-            if ($verification['exists'] === null) {
+            if ($verification['exists'] === null && !$forceSubmit) {
                 return response()->json([
                     'success' => false,
                     'message' => 'TD SYNNEX order verification was inconclusive. Nothing was submitted to avoid creating a duplicate: ' . $verification['message'],
                     'data' => ['verification' => $verification],
                 ], 502);
+            }
+
+            if ($verification['exists'] === null && $forceSubmit) {
+                Log::warning('Admin force-submitting invoice order after inconclusive TD verification', [
+                    'invoice_id' => $invoice->id,
+                    'invoice_number' => $invoice->invoice_number,
+                    'order_id' => $order->id,
+                    'po_number' => $order->quote_id ?: $order->tdsynnex_order_id ?: $order->order_number,
+                    'admin_id' => $currentUser->id,
+                    'verification_message' => $verification['message'],
+                ]);
             }
 
             $tdResult = $this->submitTdSynnexOrderForPaidInvoice($invoice);
