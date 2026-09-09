@@ -6669,7 +6669,9 @@ EOT;
             }
 
             $tdRejectionReason = null;
-            $orderResponse = is_array($tdResponse['OrderResponse'] ?? null) ? $tdResponse['OrderResponse'] : [];
+            $orderResponse = is_array($tdResponse['OrderResponse'] ?? null)
+                ? $tdResponse['OrderResponse']
+                : (array_intersect(['Code', 'Reason', 'OrderNumber', 'PONumber', 'Items'], array_keys($tdResponse)) ? $tdResponse : []);
             if (!empty($orderResponse)) {
                 $tdRejectionReason = $orderResponse['Reason'] ?? null;
                 if (!$tdRejectionReason) {
