@@ -63,7 +63,11 @@ class MelaAiPageTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('<title>Mela Meeting Assistant | Microsoft Teams Meeting Automation</title>', false);
-        $response->assertSee('Intelligence Embedded Into How Your Business Works', false);
+        $response->assertSee('Turn Teams Meetings into Actionable Planner Tasks - Instantly', false);
+        $response->assertSee('Mela automatically transcribes, assigns tasks directly in Planner, and emails structured recaps so your team stays focused on execution', false);
+        $response->assertSee('Start 14-Day Free Pilot →', false);
+        $response->assertSee('Schedule a 15-Min Demo', false);
+        $response->assertSee('Requires Teams Admin consent • Fast, guided 10-min setup', false);
         $response->assertSee('Turn Meeting Action Items into Microsoft Planner Tasks in One Click', false);
         $response->assertSee('How Mela Compares to the Competition', false);
         $response->assertSee('Deployed to Your Tenant in Under 10 Minutes', false);

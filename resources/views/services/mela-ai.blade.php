@@ -298,24 +298,22 @@
                 <div class="mela-service-eyebrow">
                     <span class="mela-badge"><i class="fa-solid fa-bolt" aria-hidden="true"></i> Native Microsoft Teams &amp; Planner Integration</span>
                 </div>
-                <h1>Intelligence Embedded Into How Your Business Works</h1>
-                <p>From real-time meeting capture to direct task syncing and automated email summaries, Mela automates post-meeting execution across Microsoft 365.</p>
+                <h1>Turn Teams Meetings into Actionable Planner Tasks - Instantly</h1>
+                <p>Mela automatically transcribes, assigns tasks directly in Planner, and emails structured recaps so your team stays focused on execution</p>
                 <div class="mela-service-actions">
                    <div class="mela-service-actions">
                         <a href="#mela-contact" class="mela-btn mela-btn-primary">
-                            Request Free 14-Day Pilot 
-                            <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                            Start 14-Day Free Pilot →
                         </a>
 
                         <a href="{{ route('help') }}" class="mela-btn btn btn-light">
-                            View Command Guide 
-                            <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                            Schedule a 15-Min Demo
                         </a>
                     </div>
 
                 </div>
                 <br>
-                <p class="mela-note mt-4"><em>Requires Microsoft Teams Admin Access • Guided 10-Minute Onboarding</em></p>
+                <p class="mela-note mt-4"><em>Requires Teams Admin consent • Fast, guided 10-min setup</em></p>
             </div>
             <div class="mela-media" id="mela-demo">
                 <?php
