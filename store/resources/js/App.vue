@@ -17,6 +17,17 @@
         </template>
       </div>
     </div>
+    <div
+      v-if="isImpersonating"
+      class="sticky top-0 z-[10001] border-b border-blue-200 bg-blue-50"
+    >
+      <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-2.5 text-sm text-blue-950">
+        <span>Support session: viewing {{ impersonationDetails.customerName }}'s account.</span>
+        <button type="button" @click="returnToAdmin" class="rounded-lg bg-[#2F5597] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#1e3a6b]">
+          Return to Admin
+        </button>
+      </div>
+    </div>
     <router-view />
 
     <button
@@ -208,6 +219,18 @@ const isSuspendedRestriction = computed(() => {
   return userStatus === 'suspended' || companyStatus === 'inactive'
 })
 
+const impersonationDetails = computed(() => {
+  try {
+    return JSON.parse(sessionStorage.getItem('armely_impersonation') || '{}')
+  } catch {
+    return {}
+  }
+})
+
+const isImpersonating = computed(() => {
+  return !String(route.path || '').startsWith('/admin') && !!impersonationDetails.value.customerName
+})
+
 const showStoreFooter = computed(() => {
   const routeName = String(route.name || '')
   return !routeName.startsWith('admin-') && routeName !== 'admin-login' && routeName !== 'messages'
@@ -244,6 +267,15 @@ const scrollToTop = () => {
 
 const openMelaAssistant = () => {
   router.push({ name: 'messages' })
+}
+
+const returnToAdmin = async () => {
+  try {
+    await authStore.endImpersonation()
+  } catch (error) {
+    console.warn('Could not revoke the support token before returning to admin:', error)
+  }
+  await router.push({ name: 'AdminCustomers' })
 }
 
 const acceptCookies = () => {

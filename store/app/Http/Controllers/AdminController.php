@@ -1201,6 +1201,63 @@ class AdminController extends Controller
     }
 
     /**
+     * Create a temporary customer session for an authorized administrator.
+     */
+    public function impersonateCustomerUser(Request $request, int $userId): JsonResponse
+    {
+        try {
+            $actor = $request->user();
+
+            if (!$actor || !in_array($actor->role, ['admin', 'super_admin'], true) || !$this->hasPermission($actor, 'manage_customers')) {
+                return response()->json(['success' => false, 'message' => 'You do not have permission to access customer accounts'], 403);
+            }
+
+            $customer = User::with('company')
+                ->whereNotIn('role', ['admin', 'super_admin'])
+                ->findOrFail($userId);
+
+            if (!$customer->company || $customer->status !== 'active' || $customer->company->status !== 'approved') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Only active customers with an approved company can be accessed.',
+                ], 422);
+            }
+
+            $token = $customer->createToken('admin-impersonation')->plainTextToken;
+
+            Activity::log($actor->id, 'admin', 'impersonated_customer', 'Started a customer support session', [
+                'customer_user_id' => $customer->id,
+                'customer_email' => $customer->email,
+                'company_id' => $customer->company_id,
+            ]);
+
+            Activity::log($customer->id, 'admin', 'customer_impersonated', 'Customer account accessed by an administrator for support', [
+                'admin_user_id' => $actor->id,
+                'admin_email' => $actor->email,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'token' => $token,
+                    'user' => $customer,
+                    'company' => $customer->company,
+                    'admin' => [
+                        'id' => $actor->id,
+                        'name' => $actor->name,
+                        'email' => $actor->email,
+                    ],
+                ],
+            ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['success' => false, 'message' => 'Customer user not found'], 404);
+        } catch (\Exception $e) {
+            Log::error('Failed to impersonate customer user: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Unable to start the customer support session'], 500);
+        }
+    }
+
+    /**
      * Invite a customer user with temporary credentials.
      */
     public function inviteCustomerUser(Request $request): JsonResponse

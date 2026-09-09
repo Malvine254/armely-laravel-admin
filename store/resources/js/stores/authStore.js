@@ -597,6 +597,47 @@ export const useAuthStore = defineStore('auth', () => {
     sessionStorage.removeItem(key)
   }
 
+  const startImpersonation = (payload) => {
+    const impersonatedUser = payload?.user
+    const impersonationToken = payload?.token
+    if (!impersonatedUser || !impersonationToken) {
+      throw new Error('Invalid customer support session')
+    }
+
+    const customerKeys = getAuthStorageKeys(AUTH_CONTEXTS.CUSTOMER)
+    clearAuthStorage(AUTH_CONTEXTS.CUSTOMER)
+
+    const expiresAt = new Date(Date.now() + SESSION_TIMEOUT).toISOString()
+    const customer = normalizeUserProfile({
+      ...impersonatedUser,
+      company: payload.company || impersonatedUser.company,
+      company_name: payload.company?.name || impersonatedUser.company_name,
+    })
+
+    sessionStorage.setItem(customerKeys.token, impersonationToken)
+    sessionStorage.setItem(customerKeys.user, JSON.stringify(customer))
+    sessionStorage.setItem(customerKeys.sessionExpiry, expiresAt)
+    sessionStorage.setItem(customerKeys.restricted, 'false')
+    sessionStorage.setItem(customerKeys.remember, 'false')
+    sessionStorage.setItem(customerKeys.forcePasswordChange, 'false')
+    sessionStorage.setItem('armely_impersonation', JSON.stringify({
+      customerName: customer.name,
+      adminName: payload.admin?.name || 'Admin',
+    }))
+  }
+
+  const endImpersonation = async () => {
+    try {
+      await axios.post(`${API_BASE_URL}/auth/end-impersonation`)
+    } finally {
+      stopStatusPolling()
+      clearSessionExpiryTimer()
+      clearAuthStorage(AUTH_CONTEXTS.CUSTOMER)
+      sessionStorage.removeItem('armely_impersonation')
+      syncContext(AUTH_CONTEXTS.ADMIN)
+    }
+  }
+
   const getSessionTimeRemaining = () => {
     if (!sessionExpiry.value || !isValidDate(sessionExpiry.value)) return null
     const now = new Date()
@@ -639,6 +680,8 @@ export const useAuthStore = defineStore('auth', () => {
     refreshUser,
     setUser,
     clearForcePasswordChange,
+    startImpersonation,
+    endImpersonation,
     syncContext,
     syncContextForPath: (path) => syncContext(getAuthContextForPath(path)),
     startStatusPolling,

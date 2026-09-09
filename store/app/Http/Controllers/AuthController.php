@@ -676,6 +676,25 @@ class AuthController extends Controller
         ]);
     }
 
+    public function endImpersonation(Request $request): JsonResponse
+    {
+        $token = $request->user()?->currentAccessToken();
+
+        if (!$token || $token->name !== 'admin-impersonation') {
+            return response()->json([
+                'success' => false,
+                'message' => 'This is not an impersonation session.',
+            ], 422);
+        }
+
+        $token->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Customer support session ended.',
+        ]);
+    }
+
     public function updateProfile(Request $request): JsonResponse
     {
         $user = $request->user();

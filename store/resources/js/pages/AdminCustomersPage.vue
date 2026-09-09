@@ -215,6 +215,16 @@
                   >
                     Orders
                   </button>
+                  <button
+                    v-if="user.status === 'active' && user.company?.status === 'approved'"
+                    @click="impersonateCustomer(user)"
+                    :disabled="impersonatingUserId === user.id"
+                    class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-[#2F5597]/50 text-[#2F5597] hover:bg-[#2F5597]/10 transition disabled:opacity-50"
+                    title="Open this customer's account in a support session"
+                  >
+                    <i :class="impersonatingUserId === user.id ? 'fas fa-spinner fa-spin mr-1' : 'fas fa-right-to-bracket mr-1'"></i>
+                    {{ impersonatingUserId === user.id ? 'Opening...' : 'Sign in as' }}
+                  </button>
                 </div>
               </td>
             </tr>
@@ -718,9 +728,11 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AdminLayout from '@/components/AdminLayout.vue'
 import api from '@/services/api'
+import { useAuthStore } from '@/stores/authStore'
 
 const route = useRoute()
 const router = useRouter()
+const authStore = useAuthStore()
 
 const activeTab = ref('customers')
 const userTabs = [
@@ -738,6 +750,7 @@ const currentPage = ref(1)
 const totalCustomers = ref(0)
 const lastPage = ref(1)
 const isSubmitting = ref(false)
+const impersonatingUserId = ref(null)
 const showConfirmModal = ref(false)
 const showInviteModal = ref(false)
 const bulkAction = ref('')
@@ -1153,6 +1166,27 @@ const viewCustomerOrders = (user) => {
       customer_email: user.email
     }
   })
+}
+
+const impersonateCustomer = async (user) => {
+  if (!confirm(`Open ${user.name}'s account in a customer support session? You can return to the admin portal at any time.`)) {
+    return
+  }
+
+  impersonatingUserId.value = user.id
+  try {
+    const response = await api.post(`/admin/customers/users/${user.id}/impersonate`)
+    if (!response.data?.success) {
+      throw new Error(response.data?.message || 'Unable to start the customer support session')
+    }
+
+    authStore.startImpersonation(response.data.data)
+    await router.push({ name: 'home' })
+  } catch (error) {
+    alert(error.response?.data?.message || error.message || 'Unable to start the customer support session')
+  } finally {
+    impersonatingUserId.value = null
+  }
 }
 
 const applyFilters = () => {

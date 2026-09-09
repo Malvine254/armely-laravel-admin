@@ -54,6 +54,7 @@ Route::prefix('v1')->group(function () {
     Route::post('/auth/register', [AuthController::class, 'register']);
     Route::post('/auth/login', [AuthController::class, 'login']);
     Route::post('/auth/logout', [AuthController::class, 'logout'])->middleware(['auth:sanctum', 'active.user']);
+    Route::post('/auth/end-impersonation', [AuthController::class, 'endImpersonation'])->middleware('auth:sanctum');
     Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword']);
     Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
     Route::get('/auth/activate', [AuthController::class, 'activateAccount']);
@@ -196,6 +197,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/admin/customers/bulk-delete', [AdminController::class, 'bulkDeleteUsers']);
         Route::post('/admin/customers/bulk-suspend', [AdminController::class, 'bulkSuspendUsers']);
         Route::post('/admin/customers/resend-invite', [AdminController::class, 'resendCustomerInvite']);
+        Route::post('/admin/customers/users/{userId}/impersonate', [AdminController::class, 'impersonateCustomerUser']);
 
         // Quote management
         Route::get('/admin/quotes/stats', [AdminController::class, 'getQuoteStats']);
