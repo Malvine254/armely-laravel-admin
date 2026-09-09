@@ -6668,10 +6668,6 @@ EOT;
                 return ['submitted' => false, 'error' => $reason];
             }
 
-            $orderNumber = $this->findOrderNumber($tdResponse) ?: $existingOrder->order_number;
-            $normalizedOrderData = $this->normalizeTdOrderStatusPayload($tdResponse);
-            $localStatus = $this->mapCanonicalToLocalOrderStatus($normalizedOrderData['normalized_status'] ?? null);
-
             $tdRejectionReason = null;
             $orderResponse = is_array($tdResponse['OrderResponse'] ?? null) ? $tdResponse['OrderResponse'] : [];
             if (!empty($orderResponse)) {
@@ -6685,6 +6681,45 @@ EOT;
                     }
                 }
             }
+
+            if ($tdRejectionReason) {
+                $existingOrder->update([
+                    'status' => 'failed',
+                    'raw_data' => $tdResponse,
+                    'cancellation_reason' => $tdRejectionReason,
+                    'tracking_info' => ['td_rejection_reason' => $tdRejectionReason],
+                ]);
+
+                Log::warning("TD SYNNEX rejected order for invoice {$invoice->invoice_number}: {$tdRejectionReason}");
+                return ['submitted' => false, 'error' => $tdRejectionReason];
+            }
+
+            $orderNumber = trim((string) $this->findOrderNumber($tdResponse));
+            if ($orderNumber === '' || $orderNumber === (string) $existingOrder->order_number) {
+                $existingRawData = is_array($existingOrder->raw_data) ? $existingOrder->raw_data : [];
+                $existingOrder->update([
+                    'raw_data' => array_merge($existingRawData, [
+                        'td_submission_pending' => true,
+                        'td_last_submission_response' => $tdResponse,
+                        'td_last_submission_attempt_at' => now()->toISOString(),
+                    ]),
+                ]);
+
+                Log::warning('TD SYNNEX submission returned no supplier-assigned order number', [
+                    'invoice_id' => $invoice->id,
+                    'invoice_number' => $invoice->invoice_number,
+                    'local_order_number' => $existingOrder->order_number,
+                    'response' => $tdResponse,
+                ]);
+
+                return [
+                    'submitted' => false,
+                    'error' => 'TD SYNNEX did not return a supplier order number. The local order remains pending and was not treated as submitted.',
+                ];
+            }
+
+            $normalizedOrderData = $this->normalizeTdOrderStatusPayload($tdResponse);
+            $localStatus = $this->mapCanonicalToLocalOrderStatus($normalizedOrderData['normalized_status'] ?? null);
 
             $updateData = [
                 'order_number'       => $orderNumber,
