@@ -268,6 +268,17 @@
                     <i class="fas fa-check"></i>
                     <span>Mark Paid</span>
                   </button>
+
+                  <button
+                    v-if="canResubmitToTd(invoice)"
+                    @click="resubmitToTdSynnex(invoice)"
+                    :disabled="resubmittingInvoiceId === invoice.id"
+                    title="Submit pending order to TD SYNNEX"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-amber-500/10 text-amber-700 border border-amber-500/30 hover:bg-amber-500/20 transition-colors duration-150 disabled:opacity-50"
+                  >
+                    <i :class="resubmittingInvoiceId === invoice.id ? 'fas fa-spinner fa-spin' : 'fas fa-rotate'"></i>
+                    <span>{{ resubmittingInvoiceId === invoice.id ? 'Submitting...' : 'Resubmit to TD' }}</span>
+                  </button>
                 </div>
               </td>
             </tr>
@@ -498,12 +509,12 @@
             <button
               v-if="canResubmitToTd(selectedInvoice)"
               @click="resubmitToTdSynnex"
-              :disabled="resubmittingToTd"
+              :disabled="resubmittingInvoiceId === selectedInvoice.id"
               class="px-6 py-2 bg-amber-600 hover:bg-amber-700 text-white font-medium rounded-lg transition disabled:opacity-50"
               title="Submit this paid invoice's pending order to TD SYNNEX"
             >
-              <i :class="resubmittingToTd ? 'fas fa-spinner fa-spin mr-2' : 'fas fa-rotate mr-2'"></i>
-              {{ resubmittingToTd ? 'Submitting...' : 'Resubmit to TD SYNNEX' }}
+              <i :class="resubmittingInvoiceId === selectedInvoice.id ? 'fas fa-spinner fa-spin mr-2' : 'fas fa-rotate mr-2'"></i>
+              {{ resubmittingInvoiceId === selectedInvoice.id ? 'Submitting...' : 'Resubmit to TD SYNNEX' }}
             </button>
             <button
               @click="selectedInvoice = null"
@@ -557,7 +568,7 @@ const reminderCustomMessage = ref('')
 const editTaxAmount = ref(0)
 const editShippingAmount = ref(0)
 const savingInvoiceCharges = ref(false)
-const resubmittingToTd = ref(false)
+const resubmittingInvoiceId = ref(null)
 const stats = ref({
   total: 0,
   pending: 0,
@@ -917,15 +928,17 @@ const recordPayment = async () => {
   }
 }
 
-const resubmitToTdSynnex = async () => {
-  if (!selectedInvoice.value || !canResubmitToTd(selectedInvoice.value)) return
-  if (!confirm(`Submit the order for invoice ${selectedInvoice.value.invoice_number} to TD SYNNEX now?`)) return
+const resubmitToTdSynnex = async (invoice = selectedInvoice.value) => {
+  if (!invoice || !canResubmitToTd(invoice)) return
+  if (!confirm(`Submit the order for invoice ${invoice.invoice_number} to TD SYNNEX now?`)) return
 
-  resubmittingToTd.value = true
+  resubmittingInvoiceId.value = invoice.id
   try {
-    const response = await api.post(`/admin/invoices/${selectedInvoice.value.id}/resubmit-tdsynnex`)
+    const response = await api.post(`/admin/invoices/${invoice.id}/resubmit-tdsynnex`)
     if (response.data.success) {
-      selectedInvoice.value = response.data.data?.invoice || selectedInvoice.value
+      if (selectedInvoice.value?.id === invoice.id) {
+        selectedInvoice.value = response.data.data?.invoice || selectedInvoice.value
+      }
       alert(response.data.message)
       await fetchInvoices()
       await fetchStats()
@@ -934,7 +947,7 @@ const resubmitToTdSynnex = async () => {
     console.error('Failed to resubmit order to TD SYNNEX:', error)
     alert(error.response?.data?.message || 'Failed to submit order to TD SYNNEX')
   } finally {
-    resubmittingToTd.value = false
+    resubmittingInvoiceId.value = null
   }
 }
 
