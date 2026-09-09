@@ -273,11 +273,11 @@
                     v-if="canResubmitToTd(invoice)"
                     @click="resubmitToTdSynnex(invoice)"
                     :disabled="resubmittingInvoiceId === invoice.id"
-                    title="Submit pending order to TD SYNNEX"
+                    title="Verify order with TD SYNNEX and resubmit if missing"
                     class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-amber-500/10 text-amber-700 border border-amber-500/30 hover:bg-amber-500/20 transition-colors duration-150 disabled:opacity-50"
                   >
                     <i :class="resubmittingInvoiceId === invoice.id ? 'fas fa-spinner fa-spin' : 'fas fa-rotate'"></i>
-                    <span>{{ resubmittingInvoiceId === invoice.id ? 'Submitting...' : 'Resubmit to TD' }}</span>
+                    <span>{{ resubmittingInvoiceId === invoice.id ? 'Checking...' : 'Verify / Resubmit TD' }}</span>
                   </button>
                 </div>
               </td>
@@ -511,10 +511,10 @@
               @click="resubmitToTdSynnex"
               :disabled="resubmittingInvoiceId === selectedInvoice.id"
               class="px-6 py-2 bg-amber-600 hover:bg-amber-700 text-white font-medium rounded-lg transition disabled:opacity-50"
-              title="Submit this paid invoice's pending order to TD SYNNEX"
+              title="Verify order with TD SYNNEX and resubmit if missing"
             >
               <i :class="resubmittingInvoiceId === selectedInvoice.id ? 'fas fa-spinner fa-spin mr-2' : 'fas fa-rotate mr-2'"></i>
-              {{ resubmittingInvoiceId === selectedInvoice.id ? 'Submitting...' : 'Resubmit to TD SYNNEX' }}
+              {{ resubmittingInvoiceId === selectedInvoice.id ? 'Checking...' : 'Verify / Resubmit TD' }}
             </button>
             <button
               @click="selectedInvoice = null"
@@ -675,9 +675,7 @@ const canEditInvoiceCharges = (invoice) => {
 
 const canResubmitToTd = (invoice) => {
   if (!invoice || String(invoice.status || '').toLowerCase() !== 'paid' || !invoice.order) return false
-  if (['cancelled', 'canceled'].includes(String(invoice.order.status || '').toLowerCase())) return false
-
-  return !invoice.order.tdsynnex_order_id || Boolean(invoice.order.raw_data?.td_submission_pending)
+  return !['cancelled', 'canceled'].includes(String(invoice.order.status || '').toLowerCase())
 }
 
 const editInvoiceTotal = computed(() => {
@@ -930,7 +928,7 @@ const recordPayment = async () => {
 
 const resubmitToTdSynnex = async (invoice = selectedInvoice.value) => {
   if (!invoice || !canResubmitToTd(invoice)) return
-  if (!confirm(`Submit the order for invoice ${invoice.invoice_number} to TD SYNNEX now?`)) return
+  if (!confirm(`Check TD SYNNEX for invoice ${invoice.invoice_number} and submit the order if it is missing?`)) return
 
   resubmittingInvoiceId.value = invoice.id
   try {

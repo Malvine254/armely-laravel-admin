@@ -5791,13 +5791,37 @@ class AdminController extends Controller
                 ], 422);
             }
 
-            $rawData = is_array($order->raw_data) ? $order->raw_data : [];
-            $submissionPending = (bool) ($rawData['td_submission_pending'] ?? false);
-            if (trim((string) $order->tdsynnex_order_id) !== '' && !$submissionPending) {
+            $verification = $this->verifyTdSynnexOrder($order);
+            if ($verification['exists'] === true) {
+                $rawData = is_array($order->raw_data) ? $order->raw_data : [];
+                $confirmedOrderId = $verification['order_number']
+                    ?: $order->tdsynnex_order_id
+                    ?: $order->order_number;
+                $order->update([
+                    'tdsynnex_order_id' => $confirmedOrderId,
+                    'raw_data' => array_merge($rawData, [
+                        'td_submission_pending' => false,
+                        'td_last_verified_at' => now()->toISOString(),
+                        'td_last_status_response' => $verification['response'],
+                    ]),
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => "TD SYNNEX confirmed that order {$confirmedOrderId} already exists. No duplicate was submitted.",
+                    'data' => [
+                        'invoice' => $invoice->fresh(['order']),
+                        'verification' => $verification,
+                    ],
+                ]);
+            }
+
+            if ($verification['exists'] === null) {
                 return response()->json([
                     'success' => false,
-                    'message' => "Order {$order->tdsynnex_order_id} is already recorded as submitted to TD SYNNEX.",
-                ], 409);
+                    'message' => 'TD SYNNEX order verification was inconclusive. Nothing was submitted to avoid creating a duplicate: ' . $verification['message'],
+                    'data' => ['verification' => $verification],
+                ], 502);
             }
 
             $tdResult = $this->submitTdSynnexOrderForPaidInvoice($invoice);
@@ -5835,6 +5859,50 @@ class AdminController extends Controller
                 'message' => 'Failed to submit order to TD SYNNEX: ' . $e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * Verify a PO against TD SYNNEX before attempting recovery submission.
+     */
+    private function verifyTdSynnexOrder(Order $order): array
+    {
+        $poNumber = trim((string) ($order->quote_id ?: $order->tdsynnex_order_id ?: $order->order_number));
+        if ($poNumber === '') {
+            return ['exists' => null, 'message' => 'No PO number is available for verification.', 'response' => null, 'order_number' => null];
+        }
+
+        $response = app(TDSynnexService::class)->checkPoStatus($poNumber, 'us', false);
+        $canonicalStatus = $this->extractTdStatusFromPoResponse($response);
+        $externalOrderNumber = $this->findOrderNumber($response);
+
+        if ($canonicalStatus !== null || $externalOrderNumber !== null) {
+            return [
+                'exists' => true,
+                'message' => 'Order found in TD SYNNEX.',
+                'response' => $response,
+                'order_number' => $externalOrderNumber,
+                'status' => $canonicalStatus,
+            ];
+        }
+
+        $responseText = strtolower((string) json_encode($response));
+        foreach (['not found', 'no record', 'does not exist', 'invalid po', 'unknown po'] as $absenceMessage) {
+            if (str_contains($responseText, $absenceMessage)) {
+                return [
+                    'exists' => false,
+                    'message' => "TD SYNNEX did not find PO {$poNumber}.",
+                    'response' => $response,
+                    'order_number' => null,
+                ];
+            }
+        }
+
+        return [
+            'exists' => null,
+            'message' => (string) ($response['error'] ?? $response['errorMessage'] ?? 'TD SYNNEX returned no recognizable PO status.'),
+            'response' => $response,
+            'order_number' => null,
+        ];
     }
 
     /**
