@@ -56,7 +56,7 @@
     .clients-hero { padding: 150px 24px 70px; background: #10213b; color: #ffffff; }
     .clients-shell { width: min(1120px, calc(100% - 48px)); margin: 0 auto; }
     .clients-eyebrow { margin-bottom: 16px; color: #8eb6ee; font-size: 0.78rem; font-weight: 700; letter-spacing: 0; text-transform: uppercase; }
-    .clients-hero h1 { max-width: 760px; margin: 0; font-size: clamp(2.2rem, 5vw, 4.4rem); line-height: 1.02; letter-spacing: 0; }
+    .clients-page .clients-hero h1 { max-width: 760px; margin: 0; color: #ffffff; font-size: clamp(2.2rem, 5vw, 4.4rem); line-height: 1.02; letter-spacing: 0; }
     .clients-hero p { max-width: 680px; margin: 22px 0 0; color: #ced9e9; font-size: 1.05rem; line-height: 1.7; }
     .clients-directory { padding: 72px 0 88px; }
     .clients-sector + .clients-sector { margin-top: 56px; }
