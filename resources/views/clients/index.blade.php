@@ -6,8 +6,6 @@
 @section('robots', 'index,follow')
 
 @php
-    use Illuminate\Support\Str;
-
     $logo = fn (string $filename, string $directory = 'brand-partners') => is_file(public_path('images/' . $directory . '/' . $filename))
         ? asset('images/' . $directory . '/' . $filename)
         : null;
@@ -45,6 +43,8 @@
             ['name' => 'Homeward Bound', 'logo' => $logo('homeward_bound.png')],
         ],
     ];
+
+    $clients = array_merge(...array_values($clientSectors));
 @endphp
 
 @push('styles')
@@ -58,10 +58,6 @@
     .clients-page .clients-hero h1 { max-width: 760px; margin: 0; color: #ffffff; font-size: clamp(2.2rem, 5vw, 4.4rem); line-height: 1.02; letter-spacing: 0; }
     .clients-hero p { max-width: 680px; margin: 22px 0 0; color: #ced9e9; font-size: 1.05rem; line-height: 1.7; }
     .clients-directory { padding: 72px 0 88px; }
-    .clients-sector + .clients-sector { margin-top: 56px; }
-    .clients-sector-head { display: flex; align-items: baseline; justify-content: space-between; gap: 24px; margin-bottom: 18px; padding-bottom: 12px; border-bottom: 1px solid #d7e0ed; }
-    .clients-sector h2 { margin: 0; color: #203a63; font-size: 1.25rem; line-height: 1.3; letter-spacing: 0; }
-    .clients-count { color: #72809a; font-size: 0.88rem; }
     .clients-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
     .clients-card { min-width: 0; display: flex; flex-direction: column; padding: 14px; background: #ffffff; border: 1px solid #dfe6f0; border-radius: 8px; box-shadow: 0 8px 20px rgba(31, 53, 96, 0.05); }
     .clients-logo { height: 112px; min-height: 112px; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 14px; border: 1px solid #e5eaf2; border-radius: 6px; background: #ffffff; }
@@ -97,36 +93,28 @@
 
     <section class="clients-directory" aria-label="Client directory">
         <div class="clients-shell">
-            @foreach($clientSectors as $sector => $clients)
-                <section class="clients-sector">
-                    <div class="clients-sector-head">
-                        <h2>{{ $sector }}</h2>
-                        <span class="clients-count">{{ count($clients) }} {{ Str::plural('organization', count($clients)) }}</span>
-                    </div>
-                    <div class="clients-grid">
-                        @foreach($clients as $client)
-                            <article class="clients-card">
-                                <div class="clients-logo">
-                                    @if($client['logo'])
-                                        <img
-                                            src="{{ $client['logo'] }}"
-                                            alt="{{ $client['name'] }} logo"
-                                            loading="lazy"
-                                            decoding="async"
-                                            @if(!empty($client['logo_scale']))
-                                            style="transform: scale({{ $client['logo_scale'] }}); transform-origin: center;"
-                                            @endif
-                                        >
-                                    @else
-                                        <span class="clients-logo-fallback">{{ $client['name'] }}</span>
+            <div class="clients-grid">
+                @foreach($clients as $client)
+                    <article class="clients-card">
+                        <div class="clients-logo">
+                            @if($client['logo'])
+                                <img
+                                    src="{{ $client['logo'] }}"
+                                    alt="{{ $client['name'] }} logo"
+                                    loading="lazy"
+                                    decoding="async"
+                                    @if(!empty($client['logo_scale']))
+                                    style="transform: scale({{ $client['logo_scale'] }}); transform-origin: center;"
                                     @endif
-                                </div>
-                                <h3 class="clients-name">{{ $client['name'] }}</h3>
-                            </article>
-                        @endforeach
-                    </div>
-                </section>
-            @endforeach
+                                >
+                            @else
+                                <span class="clients-logo-fallback">{{ $client['name'] }}</span>
+                            @endif
+                        </div>
+                        <h3 class="clients-name">{{ $client['name'] }}</h3>
+                    </article>
+                @endforeach
+            </div>
 
             <div class="clients-cta">
                 <div>

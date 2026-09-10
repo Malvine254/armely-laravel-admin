@@ -60,14 +60,14 @@
         'Enterprise & Logistics' => [
             ['name' => 'Sage Butte Energy', 'outcome' => 'Aries database modernization and OpenInvoice AP integration', 'logo' => $clientLogo('sage_bute.webp'), 'logo_scale' => 1.38, 'href' => route('case-studies.index', ['industry' => 'energy-oil-gas'])],
             ['name' => 'BNSF Railway', 'outcome' => 'Automated vehicle data management platform', 'logo' => $clientLogo('bnsf.png'), 'href' => route('case-studies.index', ['industry' => 'transportation-logistics'])],
-            ['name' => 'Colonial Pipeline', 'outcome' => 'Critical infrastructure and energy', 'logo' => $clientLogo('ColonialPipeline.webp'), 'logo_scale' => 1.25, 'href' => route('case-studies.index', ['industry' => 'energy-oil-gas'])],
+            ['name' => 'Colonial Pipeline', 'outcome' => 'Enterprise data analytics and Power BI training programs', 'logo' => $clientLogo('ColonialPipeline.webp'), 'logo_scale' => 1.25, 'href' => route('case-studies.index', ['industry' => 'energy-oil-gas'])],
             ['name' => 'DH Pace', 'outcome' => 'Commercial facilities and logistics', 'logo' => $clientLogo('dh-pace-logo.png'), 'logo_scale' => 2.2, 'href' => route('case-studies.index', ['industry' => 'transportation-logistics'])],
         ],
         'Public Sector & Municipal' => [
-            ['name' => 'City of San Diego', 'outcome' => 'Municipal government', 'logo' => $clientLogo('City of San Diego.png'), 'href' => route('case-studies.index', ['industry' => 'government-public-sector'])],
+            ['name' => 'City of San Diego', 'outcome' => 'Municipal data modernization and process workflows', 'logo' => $clientLogo('City of San Diego.png'), 'href' => route('case-studies.index', ['industry' => 'government-public-sector'])],
             ['name' => 'Dallas County', 'outcome' => 'Government data and compliance modernization', 'logo' => $clientLogo('dallas_county.jpg'), 'logo_scale' => 1.95, 'href' => route('case-studies.index', ['industry' => 'government-public-sector'])],
             ['name' => 'City of Frisco', 'outcome' => 'Microsoft 365 governance and adoption program', 'logo' => $clientLogo('frisco.jpeg'), 'logo_scale' => 1.4, 'href' => route('case-studies.index', ['industry' => 'government-public-sector'])],
-            ['name' => 'City of Topeka', 'outcome' => 'Municipal government', 'logo' => $clientLogo('City of Topeka.png'), 'logo_scale' => 1.35, 'href' => route('case-studies.index', ['industry' => 'government-public-sector'])],
+            ['name' => 'City of Topeka', 'outcome' => 'Municipal operational dashboards, data integration, and Power BI training', 'logo' => $clientLogo('City of Topeka.png'), 'logo_scale' => 1.35, 'href' => route('case-studies.index', ['industry' => 'government-public-sector'])],
         ],
         'Healthcare & Life Sciences' => [
             ['name' => 'UNMC', 'outcome' => 'Data platform and clinical workflow modernization on Azure', 'logo' => $clientLogo('university_of_nebrask1.png'), 'href' => route('case-studies.index', ['industry' => 'healthcare'])],
@@ -78,7 +78,7 @@
         'Finance, Legal & Education' => [
             ['name' => 'Bank OZK', 'outcome' => 'Financial services', 'logo' => $clientLogo('Bank_OZK_Logo.png'), 'href' => route('case-studies.index', ['industry' => 'financial-services'])],
             ['name' => 'Plano ISD', 'outcome' => 'Microsoft 365, SharePoint, and Power Platform district rollout', 'logo' => asset('images/partners/Plano.png'), 'logo_scale' => 1.28, 'href' => route('case-studies.index', ['industry' => 'government-public-sector'])],
-            ['name' => 'UT Dallas', 'outcome' => 'Higher education', 'logo' => $clientLogo('UTDallas.png'), 'logo_scale' => 1.9, 'href' => route('case-studies.index', ['industry' => 'higher-education'])],
+            ['name' => 'UT Dallas', 'outcome' => 'Academic operations data analytics and reporting', 'logo' => $clientLogo('UTDallas.png'), 'logo_scale' => 1.9, 'href' => route('case-studies.index', ['industry' => 'higher-education'])],
             ['name' => 'Lambda Legal', 'outcome' => "Legal operations modernization and Raiser's Edge integration", 'logo' => $clientLogo('lambda.png'), 'href' => route('case-studies.index', ['industry' => 'legal-social-services'])],
         ],
     ];
