@@ -25,7 +25,7 @@
         ],
         'Healthcare & Life Sciences' => [
             ['name' => 'UNMC', 'logo' => $logo('university_of_nebrask1.png'), 'href' => route('case-studies.index', ['industry' => 'healthcare'])],
-            ['name' => 'Esse Health', 'logo' => $logo('esseHealth.png'), 'logo_scale' => 1.4, 'href' => route('case-studies.index', ['industry' => 'healthcare'])],
+            ['name' => 'Esse Health', 'logo' => $logo('esse_health.jpg'), 'logo_scale' => 1.4, 'href' => route('case-studies.index', ['industry' => 'healthcare'])],
             ['name' => 'American Medical Staffing', 'logo' => $logo('ams.svg'), 'href' => route('case-studies.index', ['industry' => 'healthcare'])],
             ['name' => 'Swope Health', 'logo' => $logo('swope_health.png'), 'href' => route('case-studies.index', ['industry' => 'healthcare'])],
             ['name' => 'MHC', 'logo' => $logo('mhc.png'), 'href' => route('case-studies.index', ['industry' => 'transportation-logistics'])],
