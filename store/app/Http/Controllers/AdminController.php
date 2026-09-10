@@ -2658,7 +2658,10 @@ class AdminController extends Controller
         $packages = [];
 
         // Navigate typical TD SYNNEX PO status response structure
-        $items = $poResponse['POStatusResponse']['Items']['Item'] ?? $poResponse['Items']['Item'] ?? [];
+        $items = $poResponse['OrderStatusResponse']['Items']['Item']
+            ?? $poResponse['POStatusResponse']['Items']['Item']
+            ?? $poResponse['Items']['Item']
+            ?? [];
         if (!empty($items) && !isset($items[0])) {
             $items = [$items]; // single item
         }
@@ -2671,7 +2674,8 @@ class AdminController extends Controller
             foreach ($pkgs as $pkg) {
                 $packages[] = [
                     'tracking_number' => $pkg['TrackingNumber'] ?? $pkg['trackingNumber'] ?? null,
-                    'carrier' => $pkg['ShipMethodDescription'] ?? $pkg['Carrier'] ?? $pkg['carrier'] ?? null,
+                    'carrier' => $pkg['ShipMethodDescription'] ?? $pkg['Carrier'] ?? $pkg['carrier']
+                        ?? $item['ShipMethodDescription'] ?? $item['ShipMethod'] ?? null,
                     'ship_date' => $pkg['DateShipped'] ?? $pkg['ShipDate'] ?? $pkg['shipDate'] ?? null,
                     'weight' => $pkg['Weight'] ?? null,
                     'sku' => $item['SKU'] ?? $item['MfgPartNumber'] ?? null,

@@ -63,7 +63,7 @@ class UpdateOrderStatusJob implements ShouldQueue
             $trackingNumber = $this->deepFindFirstByKeys($tdStatus, ['tracking_number', 'trackingNumber', 'TrackingNumber', 'carrierTrackingNumber', 'shipmentTrackingNumber', 'proNumber', 'ProNumber']);
             $shippingStatus = $this->deepFindFirstByKeys($tdStatus, ['shippingStatus', 'shipping_status', 'shipmentStatus', 'ShipmentStatus', 'deliveryStatus', 'DeliveryStatus', 'status', 'Status']);
             $freightAmount = $this->deepFindFirstByKeys($tdStatus, ['freight', 'Freight', 'freightAmount', 'poFreight', 'shippingAmount', 'shipping_amount', 'totalFreight', 'TotalFreight']);
-            $estimatedDelivery = $this->deepFindFirstByKeys($tdStatus, ['estimatedDeliveryDate', 'EstimatedDeliveryDate', 'estimatedShipDate', 'EstimatedShipDate', 'estimatedArrivalDate', 'EstimatedArrivalDate']);
+            $estimatedDelivery = $this->deepFindFirstByKeys($tdStatus, ['estimatedDeliveryDate', 'EstimatedDeliveryDate', 'estimatedShipDate', 'EstimatedShipDate', 'estimatedArrivalDate', 'EstimatedArrivalDate', 'ETADate', 'etaDate']);
             $carrier = $this->deepFindFirstByKeys($tdStatus, ['ShipMethodDescription', 'shipMethodDescription', 'Carrier', 'carrier', 'shipMethod', 'ShipMethod']);
             $shipDate = $this->deepFindFirstByKeys($tdStatus, ['DateShipped', 'dateShipped', 'ShipDatetime', 'shipDatetime', 'ShipDate', 'shipDate']);
             $tdOrderNumber = $this->deepFindFirstByKeys($tdStatus, ['OrderNumber', 'orderNumber', 'order_number', 'SynnexOrderNumber', 'synnexOrderNumber']);
@@ -174,7 +174,7 @@ class UpdateOrderStatusJob implements ShouldQueue
 
             // If status changed, send notification
             if ($statusChanged || $trackingChanged || $shippingChanged) {
-                if ($this->shouldSendShippingNotification($oldStatus, (string) $this->order->status, $oldTracking, $trackingInfo)) {
+                if ($this->shouldSendStatusChangeNotification($oldStatus, (string) $this->order->status)) {
                     $notificationService->sendOrderShippedNotification($this->order);
                 }
 
@@ -434,33 +434,8 @@ class UpdateOrderStatusJob implements ShouldQueue
         };
     }
 
-    private function shouldSendShippingNotification(string $oldStatus, string $newStatus, array $oldTracking, array $newTracking): bool
+    private function shouldSendStatusChangeNotification(string $oldStatus, string $newStatus): bool
     {
-        // Every supplier status transition is customer-visible and must notify,
-        // including accepted, backordered, invoiced, cancelled, and delivered.
-        if ($oldStatus !== $newStatus && trim($newStatus) !== '') {
-            return true;
-        }
-
-        $shippingMilestones = ['shipped', 'in_transit', 'delivered'];
-        $oldTrackingNumber = strtolower(trim((string) ($oldTracking['tracking_number'] ?? '')));
-        $newTrackingNumber = strtolower(trim((string) ($newTracking['tracking_number'] ?? '')));
-        if ($oldTrackingNumber !== $newTrackingNumber && $newTrackingNumber !== '') {
-            return true;
-        }
-
-        $oldShippingStatus = strtolower(trim((string) ($oldTracking['shipping_status'] ?? '')));
-        $newShippingStatus = strtolower(trim((string) ($newTracking['shipping_status'] ?? '')));
-        if ($oldShippingStatus !== $newShippingStatus && $newShippingStatus !== '') {
-            return true;
-        }
-
-        $oldCarrierStatus = strtolower(trim((string) ($oldTracking['carrier_live_status_normalized'] ?? '')));
-        $newCarrierStatus = strtolower(trim((string) ($newTracking['carrier_live_status_normalized'] ?? '')));
-        if ($oldCarrierStatus !== $newCarrierStatus && in_array($newCarrierStatus, $shippingMilestones, true)) {
-            return true;
-        }
-
-        return false;
+        return trim($newStatus) !== '' && $oldStatus !== $newStatus;
     }
 }

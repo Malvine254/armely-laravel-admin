@@ -130,20 +130,17 @@
                 <span class="font-medium text-[#2F5597] font-mono">{{ order.order_number }}</span>
               </td>
               <td class="px-6 py-4">
-                <ul class="space-y-1 text-xs">
-                  <li class="flex items-center gap-1.5">
-                    <span class="w-1.5 h-1.5 rounded-full bg-slate-500 shrink-0"></span>
-                    <span class="text-gray-500 shrink-0">Local:</span>
-                    <span :class="['px-2 py-0.5 rounded-full font-semibold', statusClass(order.status)]">{{ order.status }}</span>
-                  </li>
-                  <li class="flex items-center gap-1.5">
-                    <span class="w-1.5 h-1.5 rounded-full bg-[#2F5597] shrink-0"></span>
-                    <span class="text-gray-500 shrink-0">TD:</span>
-                    <span v-if="getTdStatusLabel(order)" class="px-2 py-0.5 rounded-full font-semibold bg-[#2F5597]/20 text-[#2F5597]">{{ getTdStatusLabel(order) }}</span>
-                    <span v-else-if="tdStatusLoading[order.order_number]" class="text-gray-500 italic"><i class="fas fa-spinner fa-spin mr-0.5"></i>checking…</span>
-                    <span v-else class="text-gray-400">—</span>
-                  </li>
-                </ul>
+                <div class="flex items-center gap-2">
+                  <span :class="['inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold', statusClass(order.status)]">
+                    {{ formatStatusLabel(order.status) }}
+                  </span>
+                  <i
+                    v-if="tdStatusLoading[order.order_number]"
+                    class="fas fa-spinner fa-spin text-xs text-slate-400"
+                    aria-label="Refreshing fulfillment status"
+                    title="Refreshing fulfillment status"
+                  ></i>
+                </div>
               </td>
               <td class="px-6 py-4">
                 <p class="font-medium text-gray-900">{{ getUserName(order) }}</p>
