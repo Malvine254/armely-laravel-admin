@@ -658,7 +658,7 @@
         display: flex;
         flex-direction: column;
         align-items: center;
-        justify-content: center;
+        justify-content: flex-start;
         gap: 10px;
         min-height: 172px;
         padding: 16px 16px 14px;
@@ -679,7 +679,9 @@
 
     .client-logo-wrap {
         width: 100%;
-        min-height: 92px;
+        height: 106px;
+        min-height: 106px;
+        flex: 0 0 106px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -720,7 +722,10 @@
     }
 
     .client-label {
-        display: block;
+        min-height: 2.3em;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         color: #1f3560;
         font-size: 1rem;
         font-weight: 500;

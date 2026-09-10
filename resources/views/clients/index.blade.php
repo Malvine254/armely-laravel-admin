@@ -63,11 +63,11 @@
     .clients-sector h2 { margin: 0; color: #203a63; font-size: 1.25rem; line-height: 1.3; letter-spacing: 0; }
     .clients-count { color: #72809a; font-size: 0.88rem; }
     .clients-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
-    .clients-card { min-width: 0; padding: 14px; background: #ffffff; border: 1px solid #dfe6f0; border-radius: 8px; box-shadow: 0 8px 20px rgba(31, 53, 96, 0.05); }
-    .clients-logo { min-height: 112px; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 14px; border: 1px solid #e5eaf2; border-radius: 6px; background: #ffffff; }
+    .clients-card { min-width: 0; display: flex; flex-direction: column; padding: 14px; background: #ffffff; border: 1px solid #dfe6f0; border-radius: 8px; box-shadow: 0 8px 20px rgba(31, 53, 96, 0.05); }
+    .clients-logo { height: 112px; min-height: 112px; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 14px; border: 1px solid #e5eaf2; border-radius: 6px; background: #ffffff; }
     .clients-logo img { display: block; max-width: 100%; max-height: 80px; object-fit: contain; }
     .clients-logo-fallback { color: #203a63; font-size: 1rem; font-weight: 800; line-height: 1.2; text-align: center; }
-    .clients-name { margin: 13px 0 2px; color: #172b4d; font-size: 0.95rem; font-weight: 600; line-height: 1.3; text-align: center; }
+    .clients-name { min-height: 2.6em; margin: 13px 0 2px; display: flex; align-items: center; justify-content: center; color: #172b4d; font-size: 0.95rem; font-weight: 600; line-height: 1.3; text-align: center; }
     .clients-cta { margin-top: 72px; padding: 34px; display: flex; align-items: center; justify-content: space-between; gap: 24px; background: #ffffff; border: 1px solid #dfe6f0; border-radius: 8px; }
     .clients-cta h2 { margin: 0 0 6px; color: #203a63; font-size: 1.35rem; letter-spacing: 0; }
     .clients-cta p { margin: 0; color: #65738c; }
@@ -79,7 +79,7 @@
         .clients-directory { padding: 52px 0 64px; }
         .clients-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
         .clients-card { padding: 10px; }
-        .clients-logo { min-height: 92px; padding: 10px; }
+        .clients-logo { height: 92px; min-height: 92px; padding: 10px; }
         .clients-cta { margin-top: 52px; padding: 24px; align-items: flex-start; flex-direction: column; }
     }
 </style>
