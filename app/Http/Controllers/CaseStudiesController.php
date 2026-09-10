@@ -20,6 +20,10 @@ class CaseStudiesController extends Controller
 {
     public function index(Request $request)
     {
+        $requestedIndustry = (string) $request->query('case_industry', $request->query('industry', ''));
+        $selectedIndustry = $this->normalizedIndustryKey($requestedIndustry)
+            ?? Str::slug(Str::lower($requestedIndustry));
+
         $caseStudies = $this->allCaseStudies($request)->map(function ($caseStudy) {
             $caseStudy->preview = $this->makePreviewText((string) ($caseStudy->body ?? ''), 120);
             $caseStudy->slug = $this->caseStudySlug($caseStudy);
@@ -43,7 +47,7 @@ class CaseStudiesController extends Controller
             'caseStudies' => $caseStudies,
             'whitePapers' => $whitePapers,
             'recaptchaSiteKey' => config('services.recaptcha.site_key', ''),
-            'selectedIndustry' => (string) ($request->query('case_industry', $request->query('industry', ''))),
+            'selectedIndustry' => $selectedIndustry,
             'selectedTopic' => (string) $request->query('case_topic', $request->query('topic', '')),
             'selectedWhiteTopic' => (string) $request->query('white_topic', ''),
             'industryFilters' => $this->industryFilters(),
@@ -509,6 +513,8 @@ class CaseStudiesController extends Controller
                 'legal-social-services' => ['legal', 'social services', 'social service', 'nonprofit', 'community'],
                 'transportation-logistics' => ['transportation', 'logistics', 'supply chain', 'fleet', 'shipping', 'freight', 'mhc'],
                 'agriculture-cannabis' => ['agriculture', 'agri', 'farming', 'farm', 'cannabis', 'cultivation'],
+                'higher-education' => ['higher education', 'university', 'college', 'academic', 'ut dallas'],
+                'financial-services' => ['financial services', 'finance', 'banking', 'bank', 'ozk'],
                 default => [$label],
             };
 
@@ -1050,7 +1056,7 @@ class CaseStudiesController extends Controller
 
     private function industryFilters(): array
     {
-        return Cache::remember('case_studies_industry_filters', now()->addMinutes(15), function (): array {
+        return Cache::remember('case_studies_industry_filters_v2', now()->addMinutes(15), function (): array {
             if (Schema::hasTable('case_study_categories')) {
                 try {
                     $managed = DB::table('case_study_categories')
@@ -1061,20 +1067,21 @@ class CaseStudiesController extends Controller
                         ->get();
 
                     if ($managed->isNotEmpty()) {
-                        $filters = [];
+                        $filters = $this->defaultIndustryFilters();
                         foreach ($managed as $category) {
-                            $key = trim((string) ($category->slug ?? ''));
+                            $rawKey = trim((string) ($category->slug ?? ''));
                             $label = trim((string) ($category->name ?? ''));
-                            if ($key === '' || $label === '') {
+                            if ($rawKey === '' || $label === '') {
                                 continue;
                             }
 
+                            $key = $this->normalizedIndustryKey($rawKey)
+                                ?? $this->normalizedIndustryKey($label)
+                                ?? Str::slug(Str::lower($rawKey));
                             $filters[$key] = $label;
                         }
 
-                        if (!empty($filters)) {
-                            return $filters;
-                        }
+                        return $filters;
                     }
                 } catch (QueryException $e) {
                     Log::warning('Failed to load managed case-study categories', [
@@ -1096,6 +1103,8 @@ class CaseStudiesController extends Controller
             'legal-social-services' => 'Legal (Social Services)',
             'transportation-logistics' => 'Transportation & Logistics',
             'agriculture-cannabis' => 'Agriculture/Cannabis',
+            'higher-education' => 'Higher Education',
+            'financial-services' => 'Financial Services',
         ];
     }
 
@@ -1114,6 +1123,7 @@ class CaseStudiesController extends Controller
             'oil-gas' => 'energy-oil-gas',
             'oil-and-gas' => 'energy-oil-gas',
             'government-public-sector' => 'government-public-sector',
+            'government' => 'government-public-sector',
             'public-sector' => 'government-public-sector',
             'state-local-government' => 'government-public-sector',
             'local-government' => 'government-public-sector',
@@ -1126,7 +1136,12 @@ class CaseStudiesController extends Controller
             'agriculture' => 'agriculture-cannabis',
             'agriculture-cannabis' => 'agriculture-cannabis',
             'cannabis' => 'agriculture-cannabis',
-            'education' => 'government-public-sector',
+            'education' => 'higher-education',
+            'higher-education' => 'higher-education',
+            'university' => 'higher-education',
+            'finance' => 'financial-services',
+            'financial-services' => 'financial-services',
+            'banking' => 'financial-services',
             'high-tech' => null,
             'high-tech-consulting' => null,
             'power-platform' => null,
@@ -1900,7 +1915,8 @@ class CaseStudiesController extends Controller
 
             $industryFilters = $this->industryFilters();
             $industryParam = (string) $request->query('case_industry', $request->query('industry', ''));
-            $industry = Str::slug(Str::lower($industryParam));
+            $industry = $this->normalizedIndustryKey($industryParam)
+                ?? Str::slug(Str::lower($industryParam));
             $hasActiveFilter = false;
             if ($industry !== '' && array_key_exists($industry, $industryFilters)) {
                 $hasActiveFilter = true;
@@ -2049,6 +2065,8 @@ class CaseStudiesController extends Controller
             'legal-social-services' => ['Legal', 'Social Services', 'social', 'nonprofit', 'community', 'Swope'],
             'transportation-logistics' => ['Transportation', 'Logistics', 'supply chain', 'fleet', 'shipping', 'freight', 'MHC'],
             'agriculture-cannabis' => ['Agriculture', 'agri', 'farming', 'farm', 'Cannabis', 'cultivation'],
+            'higher-education' => ['Higher Education', 'Education', 'university', 'college', 'academic', 'UT Dallas'],
+            'financial-services' => ['Financial Services', 'finance', 'banking', 'bank', 'OZK'],
             default => [$this->industryFilters()[$industry] ?? $industry, str_replace('-', ' ', $industry)],
         };
     }
