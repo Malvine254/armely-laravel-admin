@@ -16,18 +16,18 @@
         'Enterprise & Logistics' => [
             ['name' => 'Delta Air Lines', 'logo' => $logo('delta-air-lines.png')],
             ['name' => 'BNSF Railway', 'logo' => $logo('bnsf.png')],
-            ['name' => 'Colonial Pipeline', 'logo' => $logo('colonial-pipeline.png')],
-            ['name' => 'DH Pace', 'logo' => $logo('dh-pace.png')],
+            ['name' => 'Colonial Pipeline', 'logo' => $logo('ColonialPipeline.webp')],
+            ['name' => 'DH Pace', 'logo' => $logo('dh-pace-logo.png')],
         ],
         'Public Sector & Municipal' => [
-            ['name' => 'City of San Diego', 'logo' => $logo('city-of-san-diego.png')],
+            ['name' => 'City of San Diego', 'logo' => $logo('City of San Diego.png')],
             ['name' => 'Dallas County', 'logo' => $logo('dallas_county.jpg')],
             ['name' => 'City of Frisco', 'logo' => $logo('frisco.jpeg')],
-            ['name' => 'City of Topeka', 'logo' => $logo('city-of-topeka.png')],
+            ['name' => 'City of Topeka', 'logo' => $logo('City of Topeka.png')],
         ],
         'Healthcare & Life Sciences' => [
             ['name' => 'UNMC', 'logo' => $logo('university_of_nebrask1.png')],
-            ['name' => 'Esse Health', 'logo' => $logo('esse_health.jpg')],
+            ['name' => 'Esse Health', 'logo' => $logo('esseHealth.png')],
             ['name' => 'Kettering Health', 'logo' => $logo('kettering-health.png')],
             ['name' => 'Swope Health', 'logo' => $logo('swope_health.png')],
             ['name' => 'MHC', 'logo' => $logo('mhc.png')],
@@ -37,9 +37,9 @@
             ['name' => 'QB Energy', 'logo' => $logo('qb_energy.jpg')],
         ],
         'Finance, Legal & Education' => [
-            ['name' => 'Bank OZK', 'logo' => $logo('bank-ozk.png')],
+            ['name' => 'Bank OZK', 'logo' => $logo('Bank_OZK_Logo.png')],
             ['name' => 'Plano ISD', 'logo' => $logo('Plano.png', 'partners')],
-            ['name' => 'UT Dallas', 'logo' => $logo('ut-dallas.png')],
+            ['name' => 'UT Dallas', 'logo' => $logo('UTDallas.png')],
             ['name' => 'Lambda Legal', 'logo' => $logo('lambda.png')],
         ],
         'Nonprofit & Social Services' => [
