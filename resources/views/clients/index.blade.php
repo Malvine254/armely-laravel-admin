@@ -53,7 +53,7 @@
     .clients-page,
     .clients-page * { box-sizing: border-box; }
     .clients-page { background: #f7f9fd; color: #172b4d; font-family: Poppins, sans-serif; }
-    .clients-hero { padding: 150px 24px 70px; background: #10213b; color: #ffffff; }
+    .clients-hero { padding: 72px 24px 70px; background: #10213b; color: #ffffff; }
     .clients-shell { width: min(1120px, calc(100% - 48px)); margin: 0 auto; }
     .clients-eyebrow { margin-bottom: 16px; color: #8eb6ee; font-size: 0.78rem; font-weight: 700; letter-spacing: 0; text-transform: uppercase; }
     .clients-page .clients-hero h1 { max-width: 760px; margin: 0; color: #ffffff; font-size: clamp(2.2rem, 5vw, 4.4rem); line-height: 1.02; letter-spacing: 0; }
@@ -76,7 +76,7 @@
     @media (max-width: 900px) { .clients-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
     @media (max-width: 600px) {
         .clients-shell { width: min(100%, calc(100% - 28px)); }
-        .clients-hero { padding: 116px 0 54px; }
+        .clients-hero { padding: 48px 0 54px; }
         .clients-directory { padding: 52px 0 64px; }
         .clients-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
         .clients-card { padding: 10px; }
