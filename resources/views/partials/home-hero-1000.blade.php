@@ -642,18 +642,6 @@
         gap: 14px;
     }
 
-    .client-sector + .client-sector {
-        margin-top: 34px;
-    }
-
-    .client-sector-title {
-        margin: 0 0 14px;
-        color: #1f3560;
-        font-size: 1.05rem;
-        font-weight: 700;
-        line-height: 1.3;
-    }
-
     .client-card {
         display: flex;
         flex-direction: column;
@@ -1125,10 +1113,8 @@
             <div class="armely-home-eyebrow">Organizations that trust Armely to deliver</div>
         </div>
 
-        @foreach($clientSectors as $sector => $cards)
-            <section class="client-sector" aria-labelledby="client-sector-{{ $loop->index }}">
-                <h3 id="client-sector-{{ $loop->index }}" class="client-sector-title">{{ $sector }}</h3>
-                <div class="client-grid">
+        <div class="client-grid">
+            @foreach($clientSectors as $cards)
                     @foreach($cards as $card)
                         <a href="{{ $card['href'] }}" class="client-card">
                             <div class="client-logo-wrap{{ !empty($card['logo_tone']) ? ' ' . $card['logo_tone'] : '' }}">
@@ -1152,9 +1138,8 @@
                             <p class="client-outcome">{{ $card['outcome'] }}</p>
                         </a>
                     @endforeach
-                </div>
-            </section>
-        @endforeach
+            @endforeach
+        </div>
 
         <div class="section-footer">
             <a href="{{ route('clients.index') }}" class="armely-home-link">
