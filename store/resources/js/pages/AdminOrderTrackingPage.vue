@@ -147,13 +147,6 @@
                 <span :class="statusBadgeClass(order.status)">
                   {{ formatStatus(order.status) }}
                 </span>
-                <div v-if="order.td_status" class="text-[10px] text-gray-400 mt-1 flex items-center gap-1">
-                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block"></span>
-                  TD: {{ formatStatus(order.td_status) }}
-                </div>
-                <div v-else-if="order.po_number && order.po_number !== order.order_number" class="text-[10px] text-amber-500 mt-1">
-                  Checking TD…
-                </div>
               </td>
 
               <!-- Shipping Column (moved from orders page) -->

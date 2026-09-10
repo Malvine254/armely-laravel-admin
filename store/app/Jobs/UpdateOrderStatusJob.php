@@ -64,6 +64,7 @@ class UpdateOrderStatusJob implements ShouldQueue
             $shippingStatus = $this->deepFindFirstByKeys($tdStatus, ['shippingStatus', 'shipping_status', 'shipmentStatus', 'ShipmentStatus', 'deliveryStatus', 'DeliveryStatus', 'status', 'Status']);
             $freightAmount = $this->deepFindFirstByKeys($tdStatus, ['freight', 'Freight', 'freightAmount', 'poFreight', 'shippingAmount', 'shipping_amount', 'totalFreight', 'TotalFreight']);
             $estimatedDelivery = $this->deepFindFirstByKeys($tdStatus, ['estimatedDeliveryDate', 'EstimatedDeliveryDate', 'estimatedShipDate', 'EstimatedShipDate', 'estimatedArrivalDate', 'EstimatedArrivalDate', 'ETADate', 'etaDate']);
+            $actualDelivery = $this->deepFindFirstByKeys($tdStatus, ['DeliveredDate', 'deliveredDate', 'DeliveryDate', 'deliveryDate', 'ActualDeliveryDate', 'actualDeliveryDate']);
             $carrier = $this->deepFindFirstByKeys($tdStatus, ['ShipMethodDescription', 'shipMethodDescription', 'Carrier', 'carrier', 'shipMethod', 'ShipMethod']);
             $shipDate = $this->deepFindFirstByKeys($tdStatus, ['DateShipped', 'dateShipped', 'ShipDatetime', 'shipDatetime', 'ShipDate', 'shipDate']);
             $tdOrderNumber = $this->deepFindFirstByKeys($tdStatus, ['OrderNumber', 'orderNumber', 'order_number', 'SynnexOrderNumber', 'synnexOrderNumber']);
@@ -86,6 +87,7 @@ class UpdateOrderStatusJob implements ShouldQueue
                 'tracking_number' => $trackingNumber ? (string) $trackingNumber : null,
                 'shipping_status' => $shippingStatus ? (string) $shippingStatus : null,
                 'estimated_delivery_date' => $estimatedDelivery ? (string) $estimatedDelivery : null,
+                'actual_delivery_date' => $actualDelivery ? (string) $actualDelivery : null,
                 'carrier' => $carrier ? (string) $carrier : null,
                 'ship_date' => $shipDate ? (string) $shipDate : null,
                 'td_order_status_code' => $rawStatus !== '' ? $rawStatus : null,
@@ -121,8 +123,11 @@ class UpdateOrderStatusJob implements ShouldQueue
                 'tracking_info' => $trackingInfo,
             ];
 
-            if ($normalized === 'delivered' && $this->order->delivered_at === null) {
-                $updates['delivered_at'] = now();
+            $confirmedDeliveryAt = $this->confirmedDeliveryTimestamp($trackingInfo);
+            if ($normalized === 'delivered'
+                && $this->order->delivered_at === null
+                && $confirmedDeliveryAt !== null) {
+                $updates['delivered_at'] = $confirmedDeliveryAt;
             }
 
             if ($normalized !== 'delivered' && $this->order->delivered_at !== null) {
@@ -165,7 +170,7 @@ class UpdateOrderStatusJob implements ShouldQueue
                         'shipped_at' => $shipDate ?: $this->order->shipped_at,
                         'expected_delivery_at' => $estimatedDelivery ?: null,
                         'delivered_at' => $shipmentStatus === 'delivered'
-                            ? ($this->order->delivered_at ?: now())
+                            ? ($this->order->delivered_at ?: $confirmedDeliveryAt)
                             : null,
                         'raw_data' => $carrierLive ?: $tdStatus,
                     ], fn ($value) => $value !== null && $value !== '')
@@ -336,6 +341,28 @@ class UpdateOrderStatusJob implements ShouldQueue
         }
 
         return $oldStatus === 'delivered' && $this->order->delivered_at !== null;
+    }
+
+    private function confirmedDeliveryTimestamp(array $tracking): mixed
+    {
+        foreach ([
+            'actual_delivery_date',
+            'carrier_delivered_at',
+            'customer_confirmed_delivered_at',
+        ] as $key) {
+            $value = $tracking[$key] ?? null;
+            if (is_string($value) && trim($value) !== '') {
+                return trim($value);
+            }
+        }
+
+        foreach ($this->order->shipments as $shipment) {
+            if ($shipment->delivered_at !== null) {
+                return $shipment->delivered_at;
+            }
+        }
+
+        return null;
     }
 
     /**
