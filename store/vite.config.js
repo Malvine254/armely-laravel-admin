@@ -7,7 +7,7 @@ export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, process.cwd(), '');
     const appBasePath = env.VITE_APP_BASE_PATH || '/';
     const buildDirectory = env.VITE_BUILD_DIRECTORY || 'build';
-    const showProductsWithoutImages = String(env.STOREFRONT_SHOW_PRODUCTS_WITHOUT_IMAGES ?? 'true').toLowerCase() !== 'false';
+    const showProductsWithoutImages = String(env.STOREFRONT_SHOW_PRODUCTS_WITHOUT_IMAGES ?? 'false').toLowerCase() !== 'false';
 
     return {
         base: appBasePath,

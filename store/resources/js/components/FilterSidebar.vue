@@ -257,7 +257,7 @@
             Clear
           </button>
         </div>
-        <label v-for="status in mediaOptions" :key="status.name" class="flex items-center justify-between gap-3 cursor-pointer">
+        <label v-for="status in visibleMediaOptions" :key="status.name" class="flex items-center justify-between gap-3 cursor-pointer">
           <div class="flex items-center gap-3">
             <input
               :checked="filters.mediaStatuses.includes(status.name)"
@@ -326,6 +326,9 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['filter-change', 'clear-all'])
+const visibleMediaOptions = computed(() => props.showNoImageFilter
+  ? props.mediaOptions
+  : props.mediaOptions.filter((status) => status.name !== 'No Images'))
 const DEFAULT_MIN_PRICE = Number(import.meta.env.VITE_MIN_PRICE ?? 100)
 const DEFAULT_MAX_PRICE = 0
 const POPULAR_VENDOR_LIMIT = 40
