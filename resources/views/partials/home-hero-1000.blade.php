@@ -61,7 +61,7 @@
             ['name' => 'Sage Butte Energy', 'outcome' => 'Aries database modernization and OpenInvoice AP integration', 'logo' => $clientLogo('sage_bute.webp'), 'logo_scale' => 1.38, 'href' => route('case-studies.index', ['industry' => 'energy-oil-gas'])],
             ['name' => 'BNSF Railway', 'outcome' => 'Automated vehicle data management platform', 'logo' => $clientLogo('bnsf.png'), 'href' => route('case-studies.index', ['industry' => 'transportation-logistics'])],
             ['name' => 'Colonial Pipeline', 'outcome' => 'Critical infrastructure and energy', 'logo' => $clientLogo('ColonialPipeline.webp'), 'href' => route('case-studies.index', ['industry' => 'energy-oil-gas'])],
-            ['name' => 'DH Pace', 'outcome' => 'Commercial facilities and logistics', 'logo' => $clientLogo('dh-pace-logo.png'), 'href' => route('case-studies.index', ['industry' => 'transportation-logistics'])],
+            ['name' => 'DH Pace', 'outcome' => 'Commercial facilities and logistics', 'logo' => $clientLogo('dh-pace-logo.png'), 'logo_scale' => 2.2, 'href' => route('case-studies.index', ['industry' => 'transportation-logistics'])],
         ],
         'Public Sector & Municipal' => [
             ['name' => 'City of San Diego', 'outcome' => 'Municipal government', 'logo' => $clientLogo('City of San Diego.png'), 'href' => route('case-studies.index', ['industry' => 'government-public-sector'])],
@@ -71,14 +71,14 @@
         ],
         'Healthcare & Life Sciences' => [
             ['name' => 'UNMC', 'outcome' => 'Data platform and clinical workflow modernization on Azure', 'logo' => $clientLogo('university_of_nebrask1.png'), 'href' => route('case-studies.index', ['industry' => 'healthcare'])],
-            ['name' => 'Esse Health', 'outcome' => 'Healthcare and life sciences', 'logo' => $clientLogo('esseHealth.png'), 'href' => route('case-studies.index', ['industry' => 'healthcare'])],
+            ['name' => 'Esse Health', 'outcome' => 'Healthcare and life sciences', 'logo' => $clientLogo('esseHealth.png'), 'logo_scale' => 1.4, 'href' => route('case-studies.index', ['industry' => 'healthcare'])],
             ['name' => 'American Medical Staffing', 'outcome' => 'Healthcare staffing and workforce solutions', 'logo' => $clientLogo('ams.svg'), 'href' => route('case-studies.index', ['industry' => 'healthcare'])],
             ['name' => 'Swope Health', 'outcome' => 'Power BI dashboards across clinical and admin operations', 'logo' => $clientLogo('swope_health.png'), 'href' => route('case-studies.index', ['industry' => 'healthcare'])],
         ],
         'Finance, Legal & Education' => [
             ['name' => 'Bank OZK', 'outcome' => 'Financial services', 'logo' => $clientLogo('Bank_OZK_Logo.png'), 'href' => route('case-studies.index', ['industry' => 'financial-services'])],
             ['name' => 'Plano ISD', 'outcome' => 'Microsoft 365, SharePoint, and Power Platform district rollout', 'logo' => asset('images/partners/Plano.png'), 'logo_scale' => 1.28, 'href' => route('case-studies.index', ['industry' => 'government-public-sector'])],
-            ['name' => 'UT Dallas', 'outcome' => 'Higher education', 'logo' => $clientLogo('UTDallas.png'), 'href' => route('case-studies.index', ['industry' => 'higher-education'])],
+            ['name' => 'UT Dallas', 'outcome' => 'Higher education', 'logo' => $clientLogo('UTDallas.png'), 'logo_scale' => 2, 'href' => route('case-studies.index', ['industry' => 'higher-education'])],
             ['name' => 'Lambda Legal', 'outcome' => "Legal operations modernization and Raiser's Edge integration", 'logo' => $clientLogo('lambda.png'), 'href' => route('case-studies.index', ['industry' => 'legal-social-services'])],
         ],
     ];

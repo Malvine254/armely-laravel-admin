@@ -17,7 +17,7 @@
             ['name' => 'Sage Butte Energy', 'logo' => $logo('sage_bute.webp')],
             ['name' => 'BNSF Railway', 'logo' => $logo('bnsf.png')],
             ['name' => 'Colonial Pipeline', 'logo' => $logo('ColonialPipeline.webp')],
-            ['name' => 'DH Pace', 'logo' => $logo('dh-pace-logo.png')],
+            ['name' => 'DH Pace', 'logo' => $logo('dh-pace-logo.png'), 'logo_scale' => 2.2],
         ],
         'Public Sector & Municipal' => [
             ['name' => 'City of San Diego', 'logo' => $logo('City of San Diego.png')],
@@ -27,7 +27,7 @@
         ],
         'Healthcare & Life Sciences' => [
             ['name' => 'UNMC', 'logo' => $logo('university_of_nebrask1.png')],
-            ['name' => 'Esse Health', 'logo' => $logo('esseHealth.png')],
+            ['name' => 'Esse Health', 'logo' => $logo('esseHealth.png'), 'logo_scale' => 1.4],
             ['name' => 'American Medical Staffing', 'logo' => $logo('ams.svg')],
             ['name' => 'Swope Health', 'logo' => $logo('swope_health.png')],
             ['name' => 'MHC', 'logo' => $logo('mhc.png')],
@@ -38,7 +38,7 @@
         'Finance, Legal & Education' => [
             ['name' => 'Bank OZK', 'logo' => $logo('Bank_OZK_Logo.png')],
             ['name' => 'Plano ISD', 'logo' => $logo('Plano.png', 'partners')],
-            ['name' => 'UT Dallas', 'logo' => $logo('UTDallas.png')],
+            ['name' => 'UT Dallas', 'logo' => $logo('UTDallas.png'), 'logo_scale' => 2],
             ['name' => 'Lambda Legal', 'logo' => $logo('lambda.png')],
         ],
         'Nonprofit & Social Services' => [
@@ -108,7 +108,15 @@
                             <article class="clients-card">
                                 <div class="clients-logo">
                                     @if($client['logo'])
-                                        <img src="{{ $client['logo'] }}" alt="{{ $client['name'] }} logo" loading="lazy" decoding="async">
+                                        <img
+                                            src="{{ $client['logo'] }}"
+                                            alt="{{ $client['name'] }} logo"
+                                            loading="lazy"
+                                            decoding="async"
+                                            @if(!empty($client['logo_scale']))
+                                            style="transform: scale({{ $client['logo_scale'] }}); transform-origin: center;"
+                                            @endif
+                                        >
                                     @else
                                         <span class="clients-logo-fallback">{{ $client['name'] }}</span>
                                     @endif
