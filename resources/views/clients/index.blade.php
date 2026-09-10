@@ -14,7 +14,7 @@
 
     $clientSectors = [
         'Enterprise & Logistics' => [
-            ['name' => 'Delta Air Lines', 'logo' => $logo('delta-air-lines.png')],
+            ['name' => 'Sage Butte Energy', 'logo' => $logo('sage_bute.webp')],
             ['name' => 'BNSF Railway', 'logo' => $logo('bnsf.png')],
             ['name' => 'Colonial Pipeline', 'logo' => $logo('ColonialPipeline.webp')],
             ['name' => 'DH Pace', 'logo' => $logo('dh-pace-logo.png')],
@@ -28,12 +28,11 @@
         'Healthcare & Life Sciences' => [
             ['name' => 'UNMC', 'logo' => $logo('university_of_nebrask1.png')],
             ['name' => 'Esse Health', 'logo' => $logo('esseHealth.png')],
-            ['name' => 'Kettering Health', 'logo' => $logo('kettering-health.png')],
+            ['name' => 'American Medical Staffing', 'logo' => $logo('ams.svg')],
             ['name' => 'Swope Health', 'logo' => $logo('swope_health.png')],
             ['name' => 'MHC', 'logo' => $logo('mhc.png')],
         ],
         'Energy' => [
-            ['name' => 'Sage Butte Energy', 'logo' => $logo('sage_bute.webp')],
             ['name' => 'QB Energy', 'logo' => $logo('qb_energy.jpg')],
         ],
         'Finance, Legal & Education' => [

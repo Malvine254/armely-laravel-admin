@@ -58,7 +58,7 @@
 
     $clientSectors = [
         'Enterprise & Logistics' => [
-            ['name' => 'Delta Air Lines', 'outcome' => 'Enterprise aviation and logistics', 'logo' => $clientLogo('delta-air-lines.png'), 'href' => route('case-studies.index', ['industry' => 'transportation-logistics'])],
+            ['name' => 'Sage Butte Energy', 'outcome' => 'Aries database modernization and OpenInvoice AP integration', 'logo' => $clientLogo('sage_bute.webp'), 'logo_scale' => 1.38, 'href' => route('case-studies.index', ['industry' => 'energy-oil-gas'])],
             ['name' => 'BNSF Railway', 'outcome' => 'Automated vehicle data management platform', 'logo' => $clientLogo('bnsf.png'), 'href' => route('case-studies.index', ['industry' => 'transportation-logistics'])],
             ['name' => 'Colonial Pipeline', 'outcome' => 'Critical infrastructure and energy', 'logo' => $clientLogo('ColonialPipeline.webp'), 'href' => route('case-studies.index', ['industry' => 'energy-oil-gas'])],
             ['name' => 'DH Pace', 'outcome' => 'Commercial facilities and logistics', 'logo' => $clientLogo('dh-pace-logo.png'), 'href' => route('case-studies.index', ['industry' => 'transportation-logistics'])],
@@ -72,7 +72,7 @@
         'Healthcare & Life Sciences' => [
             ['name' => 'UNMC', 'outcome' => 'Data platform and clinical workflow modernization on Azure', 'logo' => $clientLogo('university_of_nebrask1.png'), 'href' => route('case-studies.index', ['industry' => 'healthcare'])],
             ['name' => 'Esse Health', 'outcome' => 'Healthcare and life sciences', 'logo' => $clientLogo('esseHealth.png'), 'href' => route('case-studies.index', ['industry' => 'healthcare'])],
-            ['name' => 'Kettering Health', 'outcome' => 'Healthcare and life sciences', 'logo' => $clientLogo('kettering-health.png'), 'href' => route('case-studies.index', ['industry' => 'healthcare'])],
+            ['name' => 'American Medical Staffing', 'outcome' => 'Healthcare staffing and workforce solutions', 'logo' => $clientLogo('ams.svg'), 'href' => route('case-studies.index', ['industry' => 'healthcare'])],
             ['name' => 'Swope Health', 'outcome' => 'Power BI dashboards across clinical and admin operations', 'logo' => $clientLogo('swope_health.png'), 'href' => route('case-studies.index', ['industry' => 'healthcare'])],
         ],
         'Finance, Legal & Education' => [
