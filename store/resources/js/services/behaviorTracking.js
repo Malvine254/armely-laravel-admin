@@ -1,8 +1,19 @@
 import api from './api'
 
+const VISITOR_STORAGE_KEY = 'armely_behavior_visitor'
+
+const visitorToken = () => {
+  let token = localStorage.getItem(VISITOR_STORAGE_KEY)
+  if (!token) {
+    token = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}-${Math.random().toString(16).slice(2)}`
+    localStorage.setItem(VISITOR_STORAGE_KEY, token)
+  }
+  return token
+}
+
 const postSafe = async (url, payload) => {
   try {
-    await api.post(url, payload)
+    await api.post(url, { ...payload, visitor_token: visitorToken() })
   } catch {
     // Tracking is best-effort and must never interrupt UX.
   }

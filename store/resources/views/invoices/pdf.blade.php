@@ -41,7 +41,7 @@
         .invoice-meta {
             text-align: right;
         .company-logo {
-            max-width: 190px;
+            max-width: 110px;
             height: auto;
             margin-bottom: 8px;
             display: block;

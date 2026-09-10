@@ -61,6 +61,56 @@ class UserEmailPreferenceService
         return !$this->isQuietHours($pref, $when ?: now());
     }
 
+    public function shouldSendOrderJourneyUpdate(User $user, ?Carbon $when = null): bool
+    {
+        $pref = $this->ensurePreference($user);
+
+        if (!$pref->transactional_enabled
+            || !$pref->notification_email_enabled
+            || !$pref->orders_notifications_enabled) {
+            return false;
+        }
+
+        return !$this->isQuietHours($pref, $when ?: now());
+    }
+
+    /**
+     * Apply both a campaign cap and a customer-wide lifecycle cap. This keeps
+     * overlapping cart, browse, favorite, and price campaigns from piling up.
+     */
+    public function canSendLifecycleMarketing(
+        User $user,
+        string $campaign,
+        int $campaignDailyCap = 1,
+        int $globalDailyCap = 2,
+        int $minimumGapHours = 12,
+        ?Carbon $when = null
+    ): bool {
+        $now = $when ?: now();
+        $base = SuppressionEvent::query()
+            ->where('user_id', (int) $user->id)
+            ->where('event_type', 'marketing_sent');
+
+        if ((clone $base)->where('occurred_at', '>=', $now->copy()->startOfDay())->count() >= max(1, $globalDailyCap)) {
+            return false;
+        }
+
+        if ((clone $base)
+            ->where('reason', $this->campaignReason($campaign))
+            ->where('occurred_at', '>=', $now->copy()->startOfDay())
+            ->count() >= max(1, $campaignDailyCap)) {
+            return false;
+        }
+
+        if ($minimumGapHours > 0 && (clone $base)
+            ->where('occurred_at', '>', $now->copy()->subHours($minimumGapHours))
+            ->exists()) {
+            return false;
+        }
+
+        return true;
+    }
+
     public function underDailySendCap(User $user, string $campaign, int $dailyCap, ?Carbon $when = null): bool
     {
         $now = $when ?: now();

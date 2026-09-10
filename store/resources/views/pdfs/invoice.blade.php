@@ -53,7 +53,7 @@
         }
         .document-title {
         .company-logo {
-            max-width: 210px;
+            max-width: 110px;
             height: auto;
             margin-bottom: 8px;
             display: block;

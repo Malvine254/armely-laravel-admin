@@ -102,6 +102,16 @@ return Application::configure(basePath: dirname(__DIR__))
             ->name('process-reminder-subscriptions')
             ->withoutOverlapping(20);
 
+        // A small number of reassurance messages for orders whose carrier
+        // status has not changed: days 3, 7, and 12 after shipment, then stop.
+        $schedule->call(function (): void {
+            \App\Jobs\ProcessOrderJourneyRemindersJob::dispatchSync();
+        })
+            ->dailyAt('10:00')
+            ->timezone('America/Chicago')
+            ->name('process-order-journey-reminders')
+            ->withoutOverlapping();
+
         $schedule->job(\App\Jobs\ProcessPriceDropAlertsJob::class, 'default', 'database')
             ->hourly()
             ->name('process-price-drop-alerts')

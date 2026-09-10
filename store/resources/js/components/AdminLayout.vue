@@ -434,13 +434,23 @@
                 leave-to-class="opacity-0 translate-y-1 scale-95"
               >
                 <div v-if="showNotifDropdown" class="absolute right-0 top-full mt-2 w-80 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 overflow-hidden">
-                  <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between" style="background: linear-gradient(135deg, #2F5597, #1e3a6b);">
-                    <p class="text-sm font-semibold text-white">Notifications</p>
-                    <span class="text-[10px] font-bold bg-white/20 text-white px-2 py-0.5 rounded-full">{{ totalNotifCount }} new</span>
+                  <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between gap-3" style="background: linear-gradient(135deg, #2F5597, #1e3a6b);">
+                    <div>
+                      <p class="text-sm font-semibold text-white">Notifications</p>
+                      <p class="mt-0.5 text-[10px] text-white/65">{{ totalNotifCount }} unread</p>
+                    </div>
+                    <button
+                      v-if="totalNotifCount > 0"
+                      type="button"
+                      class="rounded-lg border border-white/20 bg-white/10 px-2.5 py-1.5 text-[11px] font-semibold text-white transition hover:bg-white/20"
+                      @click.stop="markAllNotificationsRead"
+                    >
+                      Mark all read
+                    </button>
                   </div>
                   <div class="max-h-80 overflow-y-auto divide-y divide-gray-50">
                     <!-- Pending Quotes -->
-                    <router-link v-if="stats.pending_quotes > 0" :to="{ name: 'admin-quotes' }" @click="showNotifDropdown = false" class="flex items-start gap-3 px-4 py-3 hover:bg-blue-50/60 transition group">
+                    <router-link v-if="stats.pending_quotes > 0" :to="{ name: 'admin-quotes' }" @click="openNotification('pending_quotes')" class="flex items-start gap-3 px-4 py-3 hover:bg-blue-50/60 transition group">
                       <div class="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0 mt-0.5">
                         <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                       </div>
@@ -452,7 +462,7 @@
                     </router-link>
 
                     <!-- Processing Orders -->
-                    <router-link v-if="stats.processing_orders > 0" :to="{ name: 'admin-orders' }" @click="showNotifDropdown = false" class="flex items-start gap-3 px-4 py-3 hover:bg-blue-50/60 transition group">
+                    <router-link v-if="stats.processing_orders > 0" :to="{ name: 'admin-orders' }" @click="openNotification('processing_orders')" class="flex items-start gap-3 px-4 py-3 hover:bg-blue-50/60 transition group">
                       <div class="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5">
                         <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
                       </div>
@@ -464,7 +474,7 @@
                     </router-link>
 
                     <!-- Chat Escalations -->
-                    <router-link v-if="escalatedChatCount > 0" :to="{ name: 'admin-chat' }" @click="showNotifDropdown = false" class="flex items-start gap-3 px-4 py-3 hover:bg-blue-50/60 transition group">
+                    <router-link v-if="escalatedChatCount > 0" :to="{ name: 'admin-chat' }" @click="openNotification('escalated_chat')" class="flex items-start gap-3 px-4 py-3 hover:bg-blue-50/60 transition group">
                       <div class="w-9 h-9 rounded-full bg-rose-100 flex items-center justify-center flex-shrink-0 mt-0.5">
                         <svg class="w-4 h-4 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-3 3v-3z"/></svg>
                       </div>
@@ -476,7 +486,7 @@
                     </router-link>
 
                     <!-- Pending Account Approvals -->
-                    <router-link v-if="stats.pending_users > 0" :to="{ name: 'AdminCustomers' }" @click="showNotifDropdown = false" class="flex items-start gap-3 px-4 py-3 hover:bg-blue-50/60 transition group">
+                    <router-link v-if="stats.pending_users > 0" :to="{ name: 'AdminCustomers' }" @click="openNotification('pending_users')" class="flex items-start gap-3 px-4 py-3 hover:bg-blue-50/60 transition group">
                       <div class="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0 mt-0.5">
                         <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
                       </div>
@@ -488,7 +498,7 @@
                     </router-link>
 
                     <!-- Overdue Invoices -->
-                    <router-link v-if="stats.overdue_invoices > 0" :to="{ name: 'admin-invoices' }" @click="showNotifDropdown = false" class="flex items-start gap-3 px-4 py-3 hover:bg-blue-50/60 transition group">
+                    <router-link v-if="stats.overdue_invoices > 0" :to="{ name: 'admin-invoices' }" @click="openNotification('overdue_invoices')" class="flex items-start gap-3 px-4 py-3 hover:bg-blue-50/60 transition group">
                       <div class="w-9 h-9 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0 mt-0.5">
                         <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                       </div>
@@ -631,6 +641,15 @@ const markAllNotificationsSeen = () => {
   persistSeenBaseline()
 }
 
+const markAllNotificationsRead = () => {
+  markAllNotificationsSeen()
+}
+
+const openNotification = (key) => {
+  markNotificationSeen(key)
+  showNotifDropdown.value = false
+}
+
 const suppressedByRoute = computed(() => {
   const path = route.path
   return {
@@ -672,11 +691,7 @@ const totalNotifCount = computed(() => {
 })
 
 const toggleNotifications = () => {
-  const willOpen = !showNotifDropdown.value
-  showNotifDropdown.value = willOpen
-  if (willOpen) {
-    markAllNotificationsSeen()
-  }
+  showNotifDropdown.value = !showNotifDropdown.value
 }
 
 const navigateSearch = (section) => {

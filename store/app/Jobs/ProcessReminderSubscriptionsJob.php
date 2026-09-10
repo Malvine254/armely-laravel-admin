@@ -138,7 +138,7 @@ class ProcessReminderSubscriptionsJob implements ShouldQueue
                         continue;
                     }
 
-                    if (!$preferences->underDailySendCap($user, 'abandoned_cart_reminder', 2, $now)) {
+                    if (!$preferences->canSendLifecycleMarketing($user, 'abandoned_cart_reminder', 1, 2, 12, $now)) {
                         continue;
                     }
 
@@ -267,7 +267,7 @@ class ProcessReminderSubscriptionsJob implements ShouldQueue
                         continue;
                     }
 
-                    if (!$preferences->underDailySendCap($user, 'viewed_product_reminder', 2, $now)) {
+                    if (!$preferences->canSendLifecycleMarketing($user, 'viewed_product_reminder', 1, 2, 12, $now)) {
                         continue;
                     }
 
@@ -395,7 +395,7 @@ class ProcessReminderSubscriptionsJob implements ShouldQueue
                         continue;
                     }
 
-                    if (!$preferences->underDailySendCap($user, 'favorite_product_reminder', 2, $now)) {
+                    if (!$preferences->canSendLifecycleMarketing($user, 'favorite_product_reminder', 1, 2, 12, $now)) {
                         continue;
                     }
 
@@ -498,7 +498,10 @@ class ProcessReminderSubscriptionsJob implements ShouldQueue
     private function productImageUrl(Product $product): ?string
     {
         $images = is_array($product->images) ? $product->images : [];
-        $candidate = $images[0]['imageUrl'] ?? $images[0]['url'] ?? $images[0] ?? null;
+        $first = $images[0] ?? null;
+        $candidate = is_array($first)
+            ? ($first['imageUrl'] ?? $first['image_url'] ?? $first['imageURL'] ?? $first['imagePath'] ?? $first['url'] ?? null)
+            : $first;
         if (!is_string($candidate) || trim($candidate) === '') {
             return null;
         }

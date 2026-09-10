@@ -12,6 +12,7 @@ use App\Models\UserProductView;
 use App\Support\OfferPricing;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class BehaviorEventController extends Controller
@@ -364,18 +365,85 @@ class BehaviorEventController extends Controller
     {
         $user = $request->user('sanctum');
         if ($user) {
-            return ['user:' . $user->getAuthIdentifier(), $user->getAuthIdentifier(), null];
+            $userIdentity = 'user:' . $user->getAuthIdentifier();
+            $visitorToken = (string) ($request->input('visitor_token') ?: $request->cookie(self::COOKIE_NAME));
+
+            if ($this->isUsableVisitorToken($visitorToken)) {
+                $this->claimGuestBehavior(
+                    'guest:' . hash('sha256', $visitorToken),
+                    $userIdentity,
+                    (int) $user->getAuthIdentifier()
+                );
+            }
+
+            return [$userIdentity, $user->getAuthIdentifier(), null];
         }
 
-        $token = (string) $request->cookie(self::COOKIE_NAME);
+        $token = (string) ($request->input('visitor_token') ?: $request->cookie(self::COOKIE_NAME));
         $newToken = null;
 
-        if (!preg_match('/^[a-f0-9-]{36}$/i', $token)) {
+        if (!$this->isUsableVisitorToken($token)) {
             $token = (string) Str::uuid();
             $newToken = $token;
         }
 
         return ['guest:' . hash('sha256', $token), null, $newToken];
+    }
+
+    private function isUsableVisitorToken(string $token): bool
+    {
+        $length = strlen($token);
+
+        // Laravel may encrypt/sign cookies depending on the middleware stack.
+        // Treat any bounded opaque value as a stable identifier.
+        return $length >= 16 && $length <= 512;
+    }
+
+    /** Link pre-login browsing intent to the customer once they authenticate. */
+    private function claimGuestBehavior(string $guestIdentity, string $userIdentity, int $userId): void
+    {
+        DB::transaction(function () use ($guestIdentity, $userIdentity, $userId): void {
+            UserProductView::query()->where('identity_key', $guestIdentity)->whereNull('user_id')->update([
+                'identity_key' => $userIdentity,
+                'user_id' => $userId,
+            ]);
+            UserCartEvent::query()->where('identity_key', $guestIdentity)->whereNull('user_id')->update([
+                'identity_key' => $userIdentity,
+                'user_id' => $userId,
+            ]);
+            UserFavoriteEvent::query()->where('identity_key', $guestIdentity)->whereNull('user_id')->update([
+                'identity_key' => $userIdentity,
+                'user_id' => $userId,
+            ]);
+
+            ReminderSubscription::query()
+                ->where('identity_key', $guestIdentity)
+                ->whereNull('user_id')
+                ->orderBy('id')
+                ->get()
+                ->each(function (ReminderSubscription $guest) use ($userIdentity, $userId): void {
+                    $existing = ReminderSubscription::query()
+                        ->where('user_id', $userId)
+                        ->where('trigger_type', $guest->trigger_type)
+                        ->where('product_id', $guest->product_id)
+                        ->first();
+
+                    if ($existing) {
+                        if ($guest->updated_at && (!$existing->updated_at || $guest->updated_at->greaterThan($existing->updated_at))) {
+                            $existing->fill([
+                                'is_active' => $guest->is_active,
+                                'delay_minutes' => $guest->delay_minutes,
+                                'cooldown_minutes' => $guest->cooldown_minutes,
+                                'metadata' => $guest->metadata,
+                            ])->save();
+                        }
+                        $guest->delete();
+                        return;
+                    }
+
+                    $guest->update(['identity_key' => $userIdentity, 'user_id' => $userId]);
+                });
+        });
     }
 
     private function responseOk(?string $newToken): JsonResponse

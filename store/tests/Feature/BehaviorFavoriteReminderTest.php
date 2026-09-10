@@ -92,6 +92,27 @@ class BehaviorFavoriteReminderTest extends TestCase
             $table->timestamps();
         });
 
+        Schema::create('user_product_views', function (Blueprint $table) {
+            $table->id();
+            $table->string('identity_key', 96);
+            $table->unsignedBigInteger('user_id')->nullable();
+            $table->unsignedBigInteger('product_id');
+            $table->timestamp('viewed_at');
+            $table->timestamps();
+        });
+
+        Schema::create('user_cart_events', function (Blueprint $table) {
+            $table->id();
+            $table->string('identity_key', 96);
+            $table->unsignedBigInteger('user_id')->nullable();
+            $table->string('event_type', 24);
+            $table->unsignedBigInteger('product_id')->nullable();
+            $table->unsignedInteger('quantity')->nullable();
+            $table->json('metadata')->nullable();
+            $table->timestamp('event_at');
+            $table->timestamps();
+        });
+
         Schema::create('app_settings', function (Blueprint $table) {
             $table->id();
             $table->string('key')->unique();
@@ -175,5 +196,44 @@ class BehaviorFavoriteReminderTest extends TestCase
 
         $this->actingAs($user, 'sanctum')->postJson('/api/v1/behavior/cart-snapshot', ['items' => []])->assertOk();
         $this->assertFalse((bool) $subscription->fresh()->is_active);
+    }
+
+    public function test_guest_product_interest_is_claimed_after_login(): void
+    {
+        $user = User::query()->create([
+            'name' => 'Known Shopper',
+            'email' => 'shopper@example.com',
+            'password' => 'secret123',
+            'status' => 'active',
+            'role' => 'customer',
+        ]);
+
+        $visitorToken = (string) \Illuminate\Support\Str::uuid();
+        $viewResponse = $this->withUnencryptedCookie('armely_behavior_visitor', $visitorToken)
+            ->postJson('/api/v1/behavior/product-view', ['product_id' => 101, 'visitor_token' => $visitorToken]);
+        $viewResponse->assertOk();
+
+        $issuedCookies = $viewResponse->headers->getCookies();
+        if ($issuedCookies !== []) {
+            $visitorToken = $issuedCookies[0]->getValue();
+        }
+
+        $this->assertDatabaseHas('reminder_subscriptions', [
+            'trigger_type' => 'viewed_product',
+            'product_id' => 101,
+            'user_id' => null,
+        ]);
+
+        $this->actingAs($user, 'sanctum')
+            ->withUnencryptedCookie('armely_behavior_visitor', $visitorToken)
+            ->postJson('/api/v1/behavior/cart-snapshot', ['items' => [], 'visitor_token' => $visitorToken])
+            ->assertOk();
+
+        $this->assertDatabaseHas('reminder_subscriptions', [
+            'trigger_type' => 'viewed_product',
+            'product_id' => 101,
+            'user_id' => $user->id,
+            'identity_key' => 'user:' . $user->id,
+        ]);
     }
 }

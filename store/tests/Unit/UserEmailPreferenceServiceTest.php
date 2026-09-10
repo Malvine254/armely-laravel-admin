@@ -120,4 +120,21 @@ class UserEmailPreferenceServiceTest extends TestCase
         $service->markIdempotencyKeySent($user, $idempotencyKey, ['subscription_id' => 42]);
         $this->assertTrue($service->wasIdempotencyKeySent($idempotencyKey));
     }
+
+    public function test_lifecycle_messages_are_spaced_across_campaigns(): void
+    {
+        $service = app(UserEmailPreferenceService::class);
+        $user = User::query()->create([
+            'name' => 'Lifecycle User',
+            'email' => 'lifecycle@example.com',
+            'password' => 'secret123',
+            'status' => 'active',
+            'role' => 'customer',
+        ]);
+
+        $this->assertTrue($service->canSendLifecycleMarketing($user, 'abandoned_cart_reminder', 1, 2, 12, now()));
+        $service->markMarketingSent($user, 'abandoned_cart_reminder');
+
+        $this->assertFalse($service->canSendLifecycleMarketing($user, 'viewed_product_reminder', 1, 2, 12, now()));
+    }
 }

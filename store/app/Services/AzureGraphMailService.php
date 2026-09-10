@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\AppSetting;
 use App\Models\Product;
 use App\Models\User;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -42,7 +43,10 @@ class AzureGraphMailService
     private function productImageUrl(Product $product): string
     {
         $images = is_array($product->images) ? $product->images : [];
-        $candidate = $images[0]['imageUrl'] ?? $images[0]['url'] ?? $images[0] ?? '';
+        $first = $images[0] ?? null;
+        $candidate = is_array($first)
+            ? ($first['imageUrl'] ?? $first['image_url'] ?? $first['imageURL'] ?? $first['imagePath'] ?? $first['url'] ?? '')
+            : $first;
         if (!is_string($candidate) || trim($candidate) === '') {
             return $this->logoUrl();
         }
@@ -477,7 +481,6 @@ class AzureGraphMailService
             "
                 <p style='margin:0 0 14px;font-size:16px;color:#1f2937'>Hello {$safeName},</p>
                 <p style='margin:0 0 18px;color:#4b5563'>A new quote has been submitted and requires your review.</p>
-                {$summaryHtml}
                 {$itemsHtml}
             ",
             'Review Quote',
@@ -521,7 +524,6 @@ class AzureGraphMailService
             "
                 <p style='margin:0 0 14px;font-size:16px;color:#1f2937'>Hello {$safeName},</p>
                 <p style='margin:0 0 18px;color:#4b5563'>Thank you for your request. We have received your quote and our team will review it shortly.</p>
-                {$summaryHtml}
                 {$itemsHtml}
             ",
             'View Quote',
@@ -566,7 +568,6 @@ class AzureGraphMailService
             "
                 <p style='margin:0 0 14px;font-size:16px;color:#1f2937'>Hello {$safeName},</p>
                 <p style='margin:0 0 18px;color:#4b5563'>A customer submitted a revision request for an existing quote.</p>
-                {$summaryHtml}
                 {$itemsHtml}
             ",
             'Review Revision',
@@ -617,7 +618,6 @@ class AzureGraphMailService
             "
                 <p style='margin:0 0 14px;font-size:16px;color:#1f2937'>Hello {$safeName},</p>
                 <p style='margin:0 0 18px;color:#4b5563'>Your quote revision has been submitted successfully and is now under review.</p>
-                {$summaryHtml}
                 {$itemsHtml}
             ",
             'View Quotes',
@@ -663,7 +663,6 @@ class AzureGraphMailService
             "
                 <p style='margin:0 0 14px;font-size:16px;color:#1f2937'>Hello {$safeName},</p>
                 <p style='margin:0 0 18px;color:#4b5563'>Good news! Your quote has been approved and is ready to be converted into an order.</p>
-                {$summaryHtml}
                 {$itemsHtml}
                 <p style='margin:18px 0 0;color:#4b5563'>Ready to place an order? Log in and convert this quote to an order directly from your account.</p>
             ",
@@ -947,6 +946,77 @@ class AzureGraphMailService
         return $this->sendEmail($customer->email, "{$title}: {$orderNumber}", $html, $text);
     }
 
+    public function sendOrderJourneyReminderEmail(\App\Models\Order $order, int $daysInTransit): bool
+    {
+        if (!$this->isConfigured()) {
+            return false;
+        }
+
+        $customer = $order->user;
+        if (!$customer || trim((string) ($customer->email ?? '')) === '') {
+            return false;
+        }
+
+        $tracking = is_array($order->tracking_info) ? $order->tracking_info : [];
+        $safeName = e((string) ($customer->name ?: 'Customer'));
+        $orderNumber = e((string) $order->order_number);
+        $status = strtolower(trim((string) ($order->status ?: 'shipped')));
+        $statusLabel = $status === 'in_transit' ? 'In Transit' : 'Shipped';
+        $trackingNumber = e((string) ($tracking['tracking_number'] ?? ''));
+        $trackingUrl = e((string) ($tracking['carrier_tracking_url'] ?? ($tracking['tracking_url'] ?? '')));
+        $estimatedDelivery = trim((string) ($tracking['estimated_delivery_date'] ?? ''));
+        $etaLabel = 'Carrier estimate pending';
+
+        if ($estimatedDelivery !== '') {
+            try {
+                $etaLabel = Carbon::parse($estimatedDelivery)->format('M d, Y');
+            } catch (\Throwable) {
+                $etaLabel = $estimatedDelivery;
+            }
+        }
+
+        $trackingHtml = $trackingNumber !== ''
+            ? "<p style='margin:8px 0 0'><strong>Tracking #:</strong> {$trackingNumber}</p>"
+            : '';
+        if ($trackingUrl !== '') {
+            $trackingHtml .= "<p style='margin:10px 0 0'><a href='{$trackingUrl}' style='color:#2F5597;text-decoration:none'>Open live carrier tracking</a></p>";
+        }
+
+        $summaryHtml = $this->buildQuoteSummaryCard([
+            ['label' => 'Order Number', 'value' => $orderNumber],
+            ['label' => 'Current Status', 'value' => $statusLabel],
+            ['label' => 'Estimated Delivery', 'value' => e($etaLabel)],
+        ]);
+        $appUrl = $this->frontendUrl();
+        $html = $this->buildModernNotificationEmail(
+            'Your Order Is Still On The Way',
+            "
+                <p style='margin:0 0 14px;font-size:16px;color:#1f2937'>Hello {$safeName},</p>
+                <p style='margin:0 0 18px;color:#4b5563'>Your order is still moving through the delivery network. There is no new milestone to report, but we are continuing to check TD SYNNEX and the carrier for you.</p>
+                {$summaryHtml}
+                <div style='margin:16px 0;padding:14px 16px;border:1px solid #dbe5f5;background:#f8fbff;border-radius:10px;color:#334155;font-size:14px'>{$trackingHtml}</div>
+            ",
+            'View Live Order Details',
+            $appUrl . '/orders/' . $order->id,
+            'We only send these reassurance updates occasionally while an order is in transit.',
+            '#2F5597',
+            $statusLabel,
+            '#2F5597'
+        );
+
+        $text = "Hello {$customer->name},\n\nYour order {$order->order_number} is still on the way."
+            . "\nStatus: {$statusLabel}\nEstimated delivery: {$etaLabel}";
+        if ($trackingNumber !== '') {
+            $text .= "\nTracking #: {$trackingNumber}";
+        }
+        if ($trackingUrl !== '') {
+            $text .= "\nCarrier tracking: {$trackingUrl}";
+        }
+        $text .= "\nOrder details: {$appUrl}/orders/{$order->id}";
+
+        return $this->sendEmail($customer->email, "Still on the way: {$order->order_number}", $html, $text);
+    }
+
     public function sendInvoiceEmail(\App\Models\Invoice $invoice): bool
     {
         if (!$this->isConfigured()) {
@@ -999,7 +1069,8 @@ class AzureGraphMailService
         string $accentColor = '#2f5597',
         ?string $badgeLabel = null,
         ?string $badgeColor = null,
-        bool $wideLayout = false
+        bool $wideLayout = true,
+        bool $compactLowercase = false
     ): string {
         $safeTitle       = e($title);
         $safeButtonLabel = e($buttonLabel);
@@ -1012,6 +1083,10 @@ class AzureGraphMailService
         $outerPadding    = $wideLayout ? '18px 10px 28px' : '32px 16px 48px';
         $headerPadding   = $wideLayout ? '22px 26px 18px' : '28px 32px 24px';
         $bodyPadding     = $wideLayout ? '22px 26px' : '28px 32px';
+        $shellClass      = $compactLowercase ? 'promo-shell marketing-compact' : 'promo-shell';
+        $compactCss      = $compactLowercase
+            ? '.marketing-compact,.marketing-compact p,.marketing-compact h1,.marketing-compact a,.marketing-compact span{text-transform:lowercase!important}.marketing-compact .promo-body{font-size:13px!important}.marketing-compact .promo-body p{font-size:13px!important;line-height:1.5!important}.marketing-compact .promo-title{font-size:19px!important}.marketing-compact .summary-label{font-size:10px!important}.marketing-compact .summary-value{font-size:14px!important}.marketing-compact .promo-name{font-size:11px!important;line-height:1.35!important;color:#475569!important;font-weight:600!important;text-transform:none!important}.marketing-compact .promo-price{font-size:16px!important}.marketing-compact .promo-part,.marketing-compact .promo-meta{font-size:10px!important}.marketing-compact .promo-button{font-size:12px!important;padding:10px 18px!important}'
+            : '';
 
         $footerNoteHtml = $footerNote
             ? "<p style='margin:0 0 12px;color:#64748b;font-size:13px;line-height:1.6'>{$safeFooterNote}</p>"
@@ -1022,9 +1097,9 @@ class AzureGraphMailService
             : '';
 
         return "<!DOCTYPE html><html lang='en'><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width,initial-scale=1.0'><title>{$safeTitle}</title>
-<style>@media only screen and (max-width:620px){.promo-column{display:inline-block!important;width:50%!important;padding:3px!important;box-sizing:border-box!important;vertical-align:top!important}.promo-shell{padding:6px 3px 14px!important}.promo-body{padding:13px 9px!important;font-size:13px!important}.promo-header{padding:12px 10px!important}.promo-title{font-size:18px!important}.promo-logo-cell{width:54px!important;padding-right:8px!important}.promo-logo-box{width:46px!important;height:40px!important;padding:3px!important}.promo-logo{width:46px!important;max-height:40px!important}.promo-image{height:82px!important}.promo-card-body{padding:8px!important}.promo-name{font-size:11px!important;min-height:30px!important}.promo-part,.promo-meta{font-size:9px!important}.promo-price{font-size:15px!important}.promo-button{display:block!important;text-align:center!important;padding:10px 12px!important;font-size:12px!important}}</style></head>
+<style>{$compactCss}@media only screen and (max-width:620px){.promo-column{display:inline-block!important;width:50%!important;padding:3px!important;box-sizing:border-box!important;vertical-align:top!important}.promo-shell{padding:6px 3px 14px!important}.promo-body{padding:13px 9px!important;font-size:13px!important}.promo-header{padding:12px 10px!important}.promo-title{font-size:18px!important}.promo-logo-cell{width:54px!important;padding-right:8px!important}.promo-logo-box{width:46px!important;height:40px!important;padding:3px!important}.promo-logo{width:46px!important;max-height:40px!important}.promo-image{height:82px!important}.promo-card-body{padding:8px!important}.promo-name{font-size:11px!important;min-height:30px!important}.promo-part,.promo-meta{font-size:9px!important}.promo-price{font-size:15px!important}.promo-button{display:block!important;text-align:center!important;padding:10px 12px!important;font-size:12px!important}}</style></head>
 <body style='margin:0;padding:0;background:#eef3fa;font-family:\"Segoe UI\",Arial,sans-serif'>
-<div class='promo-shell' style='max-width:{$containerWidth};margin:0 auto;padding:{$outerPadding}'>
+<div class='{$shellClass}' style='max-width:{$containerWidth};margin:0 auto;padding:{$outerPadding}'>
 
   <!-- Card -->
     <div style='background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 10px 28px rgba(15,47,99,0.12);border:1px solid #dbe7f7'>
@@ -1084,8 +1159,8 @@ class AzureGraphMailService
 
             $rowsHtml .= "
                 <div style='display:block;padding:10px 0;border-bottom:{$border}'>
-                    <p style='margin:0 0 4px;font-size:12px;letter-spacing:0.03em;text-transform:uppercase;color:#6b7280'>{$label}</p>
-                    <p style='margin:0;font-size:18px;color:#111827;font-weight:600'>{$value}</p>
+                    <p class='summary-label' style='margin:0 0 4px;font-size:12px;letter-spacing:0.03em;text-transform:uppercase;color:#6b7280'>{$label}</p>
+                    <p class='summary-value' style='margin:0;font-size:18px;color:#111827;font-weight:600'>{$value}</p>
                 </div>
             ";
         }
@@ -1428,14 +1503,14 @@ class AzureGraphMailService
             . "<meta name='viewport' content='width=device-width,initial-scale=1.0'>"
             . "<title>Invoice #{$invNumber}</title></head>"
             . "<body style='margin:0;padding:0;font-family:Segoe UI,Tahoma,Geneva,Verdana,sans-serif;line-height:1.6;color:#333;background:#f8fafc;'>"
-            . "<div style='max-width:720px;margin:0 auto;padding:40px 20px;'>"
+            . "<div style='max-width:860px;margin:0 auto;padding:40px 20px;'>"
             . "{$reminderBanner}"
             . "<div style='background:#ffffff;border:1px solid #e2e8f0;border-radius:8px;padding:40px;'>"
 
             // ── Header ────────────────────────────────────────────────────────
             . "<table width='100%' cellpadding='0' cellspacing='0' style='border-bottom:2px solid #2F5597;padding-bottom:20px;margin-bottom:30px;'><tr>"
             . "<td valign='top'>"
-            . "<img src='{$logoUrl}' alt='Armely Store' style='max-width:190px;height:auto;display:block;margin:0 0 8px;'>"
+            . "<img src='{$logoUrl}' alt='Armely Store' style='max-width:110px;height:auto;display:block;margin:0 0 8px;'>"
             . "<p style='margin:0;font-size:12px;color:#666;'>Your B2B Hardware Partner</p>"
             . "</td>"
             . "<td valign='top' align='right'>"
@@ -1782,7 +1857,7 @@ class AzureGraphMailService
                     ['label' => 'Items',     'value' => (string) $itemCount],
                 ])}
                 {$noteHtml}
-                <p style='margin:16px 0 0;color:#4b5563;font-size:13px'>Click the button below to open the shared cart and import the items into your own quote.</p>
+                <p style='margin:16px 0 0;color:#4b5563;font-size:13px'><a href='{$safeUrl}' style='color:#2F5597;text-decoration:underline'>Click here to open the shared cart and import the items into your own quote.</a></p>
                 <p style='margin:8px 0 0;color:#6b7280;font-size:12px;word-break:break-all'>Or copy this link: <a href='{$safeUrl}' style='color:#2F5597'>{$safeUrl}</a></p>
             ",
             'Open Shared Cart',
@@ -1937,20 +2012,17 @@ class AzureGraphMailService
         $productId = (string) ($product->id ?? '');
 
         $safeName = e((string) ($user->name ?: 'Customer'));
-        $safeProductName = e($productName);
-        $safePartNumber = e($partNumber !== '' ? $partNumber : 'N/A');
         $safePrevious = '$' . number_format($previousPrice, 2);
         $safeCurrent = '$' . number_format($currentPrice, 2);
         $safeDropAmount = '$' . number_format($dropAmount, 2);
         $safeDropPercent = number_format(max(0, $dropPercent), 2) . '%';
-        $productUrl = $this->frontendUrl() . '/products/' . rawurlencode($productId);
+        $productUrl = $this->marketingStoreUrl() . '/products/' . rawurlencode($productId);
         $unsubscribeUrl = $this->marketingUnsubscribeUrl($user, 'price_alerts');
         $unsubscribeHtml = $this->marketingUnsubscribeHtml($unsubscribeUrl);
         $unsubscribeText = $this->marketingUnsubscribeText($unsubscribeUrl);
+        $productCard = $this->buildMarketingProductGrid([$product]);
 
         $summaryHtml = $this->buildQuoteSummaryCard([
-            ['label' => 'Product', 'value' => $safeProductName],
-            ['label' => 'Part Number', 'value' => $safePartNumber],
             ['label' => 'Previous Price', 'value' => $safePrevious],
             ['label' => 'Current Price', 'value' => $safeCurrent],
             ['label' => 'Drop', 'value' => $safeDropAmount . ' (' . $safeDropPercent . ')'],
@@ -1961,6 +2033,7 @@ class AzureGraphMailService
             "
                 <p style='margin:0 0 14px;font-size:16px;color:#1f2937'>Hello {$safeName},</p>
                 <p style='margin:0 0 18px;color:#4b5563'>A product you are tracking just dropped in price.</p>
+                {$productCard}
                 {$summaryHtml}
                 {$unsubscribeHtml}
             ",
@@ -1969,7 +2042,9 @@ class AzureGraphMailService
             'You are receiving this email because price alerts are enabled for this item.',
             '#15803d',
             'Price Drop',
-            '#15803d'
+            '#15803d',
+            true,
+            true
         );
 
         $text = "Hello {$user->name},\n\n"
@@ -2074,6 +2149,7 @@ class AzureGraphMailService
             '#2F5597',
             'Cart Reminder',
             '#2F5597',
+            true,
             true
         );
 
@@ -2101,8 +2177,6 @@ class AzureGraphMailService
 
         $safeName = e((string) ($user->name ?: 'Customer'));
         $productName = trim((string) ($product->product_name ?? 'Product'));
-        $safeProductName = e($productName);
-        $safePartNumber = e((string) ($product->mfg_part_no ?? 'N/A'));
         $priceLabel = $currentPrice > 0 ? ('$' . number_format($currentPrice, 2)) : 'Unavailable';
         $productUrl = $this->marketingStoreUrl() . '/products/' . rawurlencode((string) ($product->id ?? ''));
         $unsubscribeUrl = $this->marketingUnsubscribeUrl($user, 'browse_reminders');
@@ -2139,6 +2213,7 @@ class AzureGraphMailService
             '#2F5597',
             'Viewed Item Reminder',
             '#2F5597',
+            true,
             true
         );
 
@@ -2167,17 +2242,14 @@ class AzureGraphMailService
 
         $safeName = e((string) ($user->name ?: 'Customer'));
         $productName = trim((string) ($product->product_name ?? 'Product'));
-        $safeProductName = e($productName);
-        $safePartNumber = e((string) ($product->mfg_part_no ?? 'N/A'));
         $priceLabel = $currentPrice > 0 ? ('$' . number_format($currentPrice, 2)) : 'Unavailable';
-        $productUrl = $this->frontendUrl() . '/products/' . rawurlencode((string) ($product->id ?? ''));
+        $productUrl = $this->marketingStoreUrl() . '/products/' . rawurlencode((string) ($product->id ?? ''));
         $unsubscribeUrl = $this->marketingUnsubscribeUrl($user, 'browse_reminders');
         $unsubscribeHtml = $this->marketingUnsubscribeHtml($unsubscribeUrl);
         $unsubscribeText = $this->marketingUnsubscribeText($unsubscribeUrl);
+        $productCard = $this->buildMarketingProductGrid([$product]);
 
         $summaryHtml = $this->buildQuoteSummaryCard([
-            ['label' => 'Favorite Item', 'value' => $safeProductName],
-            ['label' => 'Part Number', 'value' => $safePartNumber],
             ['label' => 'Current Price', 'value' => $priceLabel],
             ['label' => 'Saved On', 'value' => $favoritedAt->format('M d, Y H:i')],
         ]);
@@ -2187,6 +2259,7 @@ class AzureGraphMailService
             "
                 <p style='margin:0 0 14px;font-size:16px;color:#1f2937'>Hello {$safeName},</p>
                 <p style='margin:0 0 18px;color:#4b5563'>You saved this product to favorites. If you are ready, you can move it into your quote cart now.</p>
+                {$productCard}
                 {$summaryHtml}
                 {$unsubscribeHtml}
             ",
@@ -2195,7 +2268,9 @@ class AzureGraphMailService
             'You are receiving this because favorite-item reminders are active for your account.',
             '#2F5597',
             'Favorite Item Reminder',
-            '#2F5597'
+            '#2F5597',
+            true,
+            true
         );
 
         $text = "Hello {$user->name},\n\nYou saved {$productName} to favorites.\n"
@@ -2231,15 +2306,18 @@ class AzureGraphMailService
         $cells = [];
         foreach (array_slice($items, 0, 6) as $item) {
             $line = is_array($item) ? $item : [];
-            $name = e(Str::limit((string) ($line['product_name'] ?? 'Product'), 72));
-            $part = e((string) ($line['mfg_part_no'] ?? ''));
+            $name = e(Str::title(Str::lower(Str::limit((string) ($line['product_name'] ?? 'Product'), 72))));
+            $part = e(Str::lower((string) ($line['mfg_part_no'] ?? '')));
             $price = (float) ($line['unit_price'] ?? 0);
             $priceLabel = $price > 0 ? '$' . number_format($price, 2) : 'Request pricing';
             $quantity = max(1, (int) ($line['quantity'] ?? 1));
             $quantityHtml = isset($line['quantity'])
                 ? "<span class='promo-meta' style='color:#64748b;font-size:12px'>Qty {$quantity}</span>"
                 : "<span class='promo-meta' style='color:#64748b;font-size:12px'>Current catalog price</span>";
-            $image = (string) ($line['image_url'] ?? $this->logoUrl());
+            $image = trim((string) ($line['image_url'] ?? ''));
+            if ($image === '') {
+                $image = $this->logoUrl();
+            }
             $imageHost = strtolower((string) parse_url($image, PHP_URL_HOST));
             if (in_array($imageHost, ['127.0.0.1', 'localhost'], true)) {
                 $image = $this->marketingStoreUrl() . '/' . ltrim((string) parse_url($image, PHP_URL_PATH), '/');
@@ -2250,9 +2328,9 @@ class AzureGraphMailService
             $cells[] = "<td class='promo-column' width='33.33%' style='width:33.33%;padding:0 6px;vertical-align:top'>
                 <a href='{$url}' style='display:block;text-decoration:none;color:inherit'>
                     <div style='border:1px solid #dbe5f3;border-radius:12px;background:#fff;overflow:hidden'>
-                        <div style='background:#f8fafc;padding:10px;text-align:center'><img class='promo-image' src='{$image}' width='220' height='132' alt='{$name}' style='display:block;width:100%;height:132px;object-fit:contain;margin:0 auto'></div>
+                        <div style='background:#f8fafc;padding:10px;text-align:center'><img class='promo-image' src='{$image}' width='220' height='132' alt='{$name}' style='display:block;width:100%;height:132px;object-fit:contain;margin:0 auto' border='0'></div>
                         <div class='promo-card-body' style='padding:12px 13px 14px'>
-                            <p class='promo-name' style='margin:0 0 6px;color:#0f172a;font-size:14px;line-height:1.35;font-weight:700;min-height:38px'>{$name}</p>
+                            <p class='promo-name' style='margin:0 0 6px;color:#475569;font-size:11px;line-height:1.35;font-weight:600;min-height:32px;text-transform:none'>{$name}</p>
                             <p class='promo-part' style='margin:0 0 11px;color:#64748b;font-size:11px'>Part {$part}</p>
                             <p class='promo-price' style='margin:0 0 3px;color:#1d4ed8;font-size:20px;font-weight:800'>{$priceLabel}</p>
                             {$quantityHtml}
