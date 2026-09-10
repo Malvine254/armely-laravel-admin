@@ -26,6 +26,7 @@
             :active-filters="currentFilters"
             :lifecycle-options="lifecycleOptions"
             :media-options="reviewRatingOptions"
+            :show-no-image-filter="SHOW_PRODUCTS_WITHOUT_IMAGES"
             :compact="false"
             @filter-change="handleFilterChange"
             @clear-all="resetFilters"
@@ -373,7 +374,7 @@ const resetImgErrorMap = () => {
 const ITEMS_PER_PAGE = 12
 const paginationRow = ref(null)
 const paginationWidth = ref(0)
-const SHOW_IMAGE_FILTERS = true
+const SHOW_PRODUCTS_WITHOUT_IMAGES = __SHOW_PRODUCTS_WITHOUT_IMAGES__
 const API_PAGE_SIZE = 100
 const SEARCH_TRACK_DEBOUNCE_MS = 15000
 const PROFILE_TERM_LIMIT = 25
@@ -795,8 +796,8 @@ const reviewRatingOptions = computed(() => {
     { name: 'Has Reviews', count: hasReviews },
   ]
 
-  if (SHOW_IMAGE_FILTERS) {
-    options.push({ name: 'Has Images', count: hasImages })
+  options.push({ name: 'Has Images', count: hasImages })
+  if (SHOW_PRODUCTS_WITHOUT_IMAGES) {
     options.push({ name: 'No Images', count: noImages })
   }
 
@@ -2015,7 +2016,7 @@ const handleFilterChange = (filters) => {
     mediaStatuses: Array.isArray(value.mediaStatuses)
       ? [...value.mediaStatuses]
           .map((v) => String(v).trim())
-          .filter((status) => SHOW_IMAGE_FILTERS || !['Has Images', 'No Images'].includes(status))
+          .filter((status) => SHOW_PRODUCTS_WITHOUT_IMAGES || status !== 'No Images')
       : [],
   })
 
@@ -2621,8 +2622,8 @@ watch(
         : []
     }
 
-    if (!SHOW_IMAGE_FILTERS) {
-      nextMediaStatuses = nextMediaStatuses.filter((status) => !['Has Images', 'No Images'].includes(status))
+    if (!SHOW_PRODUCTS_WITHOUT_IMAGES) {
+      nextMediaStatuses = nextMediaStatuses.filter((status) => status !== 'No Images')
     }
 
     currentFilters.value = {

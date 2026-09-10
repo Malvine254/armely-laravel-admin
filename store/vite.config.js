@@ -7,6 +7,7 @@ export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, process.cwd(), '');
     const appBasePath = env.VITE_APP_BASE_PATH || '/';
     const buildDirectory = env.VITE_BUILD_DIRECTORY || 'build';
+    const showProductsWithoutImages = String(env.STOREFRONT_SHOW_PRODUCTS_WITHOUT_IMAGES ?? 'true').toLowerCase() !== 'false';
 
     return {
         base: appBasePath,
@@ -30,6 +31,9 @@ export default defineConfig(({ mode }) => {
             alias: {
                 vue: 'vue/dist/vue.esm-bundler.js',
             },
+        },
+        define: {
+            __SHOW_PRODUCTS_WITHOUT_IMAGES__: JSON.stringify(showProductsWithoutImages),
         },
         build: {
             // Preserve previous hashed files so browsers with cached HTML

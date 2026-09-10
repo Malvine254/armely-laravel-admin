@@ -85,6 +85,30 @@ class ProductController extends Controller
         return max(1000, min(50000, $configured));
     }
 
+    private function storefrontShowsProductsWithoutImages(): bool
+    {
+        return (bool) config('storefront.show_products_without_images', true);
+    }
+
+    private function apiProductHasUsableImage(array $product): bool
+    {
+        $candidates = [
+            $product['imageUrl'] ?? null,
+            $product['image_url'] ?? null,
+            data_get($product, 'media.primaryImageUrl'),
+            data_get($product, 'media.largeImageUrl'),
+            data_get($product, 'media.thumbnailUrl'),
+        ];
+
+        foreach ((array) ($product['productImages'] ?? $product['images'] ?? []) as $image) {
+            $candidates[] = is_array($image)
+                ? ($image['imageUrl'] ?? $image['image_url'] ?? $image['url'] ?? null)
+                : $image;
+        }
+
+        return collect($candidates)->contains(fn ($value): bool => is_string($value) && trim($value) !== '');
+    }
+
     private function hasUsableProductImageSql(): string
     {
         $externalImageSql = "LOWER(CAST(COALESCE(images, '') AS CHAR)) LIKE '%http%'";
@@ -539,6 +563,13 @@ class ProductController extends Controller
             }
 
             $allProducts = array_map(fn (array $product) => $this->normalizeApiProductPrice($product), $allProducts);
+
+            if (!$this->storefrontShowsProductsWithoutImages()) {
+                $allProducts = array_filter(
+                    $allProducts,
+                    fn ($product): bool => $this->apiProductHasUsableImage((array) $product)
+                );
+            }
 
             // Optionally hide zero‑priced products
             if ($hideZero) {
@@ -1010,6 +1041,7 @@ class ProductController extends Controller
                 'billing_models' => $billingModels,
                 'search' => $search,
                 'hardware_only' => (bool) config('tdsynnex.catalog.hardware_only', true),
+                'show_products_without_images' => $this->storefrontShowsProductsWithoutImages(),
                 // Catalog visibility settings — any change busts the cache
                 'show_oos' => (bool) \App\Models\AppSetting::getValue('catalog.show_out_of_stock', false),
                 'show_disc' => (bool) \App\Models\AppSetting::getValue('catalog.show_discontinued', false),
@@ -1362,6 +1394,10 @@ class ProductController extends Controller
 
         $this->applyCategorySegmentFilterToQuery($query, $category);
 
+        if (!$this->storefrontShowsProductsWithoutImages()) {
+            $this->applyProductImageFilter($query, true);
+        }
+
         $hasImagesQuery = $query->clone();
         $this->applyProductImageFilter($hasImagesQuery, true);
         $noImagesQuery = $query->clone();
@@ -1373,7 +1409,8 @@ class ProductController extends Controller
 
         $selectedMedia = array_values(array_unique(array_filter(array_map('trim', explode(',', $media)))));
         $filterHasImages = in_array('Has Images', $selectedMedia, true);
-        $filterNoImages = in_array('No Images', $selectedMedia, true);
+        $filterNoImages = $this->storefrontShowsProductsWithoutImages()
+            && in_array('No Images', $selectedMedia, true);
         if ($filterHasImages xor $filterNoImages) {
             $this->applyProductImageFilter($query, $filterHasImages);
         }

@@ -229,7 +229,6 @@
             Has Reviews
           </button>
           <button
-            v-if="showImageFilters"
             @click="setHasImages"
             class="px-3 py-1.5 text-xs font-semibold rounded-full border transition"
             style="border-color: #2F5597; color: #2F5597;"
@@ -239,7 +238,7 @@
             Has Images
           </button>
           <button
-            v-if="showImageFilters"
+            v-if="showNoImageFilter"
             @click="setNoImages"
             class="px-3 py-1.5 text-xs font-semibold rounded-full border transition"
             style="border-color: #9333ea; color: #9333ea;"
@@ -319,11 +318,14 @@ const props = defineProps({
   categoriesLoading: {
     type: Boolean,
     default: false
+  },
+  showNoImageFilter: {
+    type: Boolean,
+    default: true
   }
 })
 
 const emit = defineEmits(['filter-change', 'clear-all'])
-const showImageFilters = true
 const DEFAULT_MIN_PRICE = Number(import.meta.env.VITE_MIN_PRICE ?? 100)
 const DEFAULT_MAX_PRICE = 0
 const POPULAR_VENDOR_LIMIT = 40
@@ -351,7 +353,7 @@ const syncFromActiveFilters = (source = {}) => {
     categories: Array.isArray(next.categories) ? [...next.categories] : [],
     lifecycleStatuses: Array.isArray(next.lifecycleStatuses) ? [...next.lifecycleStatuses] : [],
     mediaStatuses: Array.isArray(next.mediaStatuses)
-      ? next.mediaStatuses.filter((status) => showImageFilters || !['Has Images', 'No Images'].includes(status))
+      ? next.mediaStatuses.filter((status) => props.showNoImageFilter || status !== 'No Images')
       : []
   }
 }
