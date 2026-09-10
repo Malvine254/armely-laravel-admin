@@ -12,35 +12,35 @@
 
     $clientSectors = [
         'Enterprise & Logistics' => [
-            ['name' => 'Sage Butte Energy', 'logo' => $logo('sage_bute.webp')],
-            ['name' => 'BNSF Railway', 'logo' => $logo('bnsf.png')],
-            ['name' => 'Colonial Pipeline', 'logo' => $logo('ColonialPipeline.webp')],
-            ['name' => 'DH Pace', 'logo' => $logo('dh-pace-logo.png'), 'logo_scale' => 2.2],
+            ['name' => 'Sage Butte Energy', 'logo' => $logo('sage_bute.webp'), 'href' => route('case-studies.index', ['industry' => 'energy-oil-gas'])],
+            ['name' => 'BNSF Railway', 'logo' => $logo('bnsf.png'), 'href' => route('case-studies.index', ['industry' => 'transportation-logistics'])],
+            ['name' => 'Colonial Pipeline', 'logo' => $logo('ColonialPipeline.webp'), 'href' => route('case-studies.index', ['industry' => 'energy-oil-gas'])],
+            ['name' => 'DH Pace', 'logo' => $logo('dh-pace-logo.png'), 'logo_scale' => 2.2, 'href' => route('case-studies.index', ['industry' => 'transportation-logistics'])],
         ],
         'Public Sector & Municipal' => [
-            ['name' => 'City of San Diego', 'logo' => $logo('City of San Diego.png')],
-            ['name' => 'Dallas County', 'logo' => $logo('dallas_county.jpg')],
-            ['name' => 'City of Frisco', 'logo' => $logo('frisco.jpeg')],
-            ['name' => 'City of Topeka', 'logo' => $logo('City of Topeka.png')],
+            ['name' => 'City of San Diego', 'logo' => $logo('City of San Diego.png'), 'href' => route('case-studies.index', ['industry' => 'government-public-sector'])],
+            ['name' => 'Dallas County', 'logo' => $logo('dallas_county.jpg'), 'href' => route('case-studies.index', ['industry' => 'government-public-sector'])],
+            ['name' => 'City of Frisco', 'logo' => $logo('frisco.jpeg'), 'href' => route('case-studies.index', ['industry' => 'government-public-sector'])],
+            ['name' => 'City of Topeka', 'logo' => $logo('City of Topeka.png'), 'href' => route('case-studies.index', ['industry' => 'government-public-sector'])],
         ],
         'Healthcare & Life Sciences' => [
-            ['name' => 'UNMC', 'logo' => $logo('university_of_nebrask1.png')],
-            ['name' => 'Esse Health', 'logo' => $logo('esseHealth.png'), 'logo_scale' => 1.4],
-            ['name' => 'American Medical Staffing', 'logo' => $logo('ams.svg')],
-            ['name' => 'Swope Health', 'logo' => $logo('swope_health.png')],
-            ['name' => 'MHC', 'logo' => $logo('mhc.png')],
+            ['name' => 'UNMC', 'logo' => $logo('university_of_nebrask1.png'), 'href' => route('case-studies.index', ['industry' => 'healthcare'])],
+            ['name' => 'Esse Health', 'logo' => $logo('esseHealth.png'), 'logo_scale' => 1.4, 'href' => route('case-studies.index', ['industry' => 'healthcare'])],
+            ['name' => 'American Medical Staffing', 'logo' => $logo('ams.svg'), 'href' => route('case-studies.index', ['industry' => 'healthcare'])],
+            ['name' => 'Swope Health', 'logo' => $logo('swope_health.png'), 'href' => route('case-studies.index', ['industry' => 'healthcare'])],
+            ['name' => 'MHC', 'logo' => $logo('mhc.png'), 'href' => route('case-studies.index', ['industry' => 'transportation-logistics'])],
         ],
         'Energy' => [
-            ['name' => 'QB Energy', 'logo' => $logo('qb_energy.jpg')],
+            ['name' => 'QB Energy', 'logo' => $logo('qb_energy.jpg'), 'href' => route('case-studies.index', ['industry' => 'energy-oil-gas'])],
         ],
         'Finance, Legal & Education' => [
-            ['name' => 'Bank OZK', 'logo' => $logo('Bank_OZK_Logo.png')],
-            ['name' => 'Plano ISD', 'logo' => $logo('Plano.png', 'partners')],
-            ['name' => 'UT Dallas', 'logo' => $logo('UTDallas.png'), 'logo_scale' => 2],
-            ['name' => 'Lambda Legal', 'logo' => $logo('lambda.png')],
+            ['name' => 'Bank OZK', 'logo' => $logo('Bank_OZK_Logo.png'), 'href' => route('case-studies.index', ['industry' => 'financial-services'])],
+            ['name' => 'Plano ISD', 'logo' => $logo('Plano.png', 'partners'), 'href' => route('case-studies.index', ['industry' => 'government-public-sector'])],
+            ['name' => 'UT Dallas', 'logo' => $logo('UTDallas.png'), 'logo_scale' => 2, 'href' => route('case-studies.index', ['industry' => 'higher-education'])],
+            ['name' => 'Lambda Legal', 'logo' => $logo('lambda.png'), 'href' => route('case-studies.index', ['industry' => 'legal-social-services'])],
         ],
         'Nonprofit & Social Services' => [
-            ['name' => 'Homeward Bound', 'logo' => $logo('homeward_bound.png')],
+            ['name' => 'Homeward Bound', 'logo' => $logo('homeward_bound.png'), 'href' => route('case-studies.index', ['industry' => 'legal-social-services'])],
         ],
     ];
 
@@ -59,7 +59,9 @@
     .clients-hero p { max-width: 680px; margin: 22px 0 0; color: #ced9e9; font-size: 1.05rem; line-height: 1.7; }
     .clients-directory { padding: 72px 0 88px; }
     .clients-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
-    .clients-card { min-width: 0; display: flex; flex-direction: column; padding: 14px; background: #ffffff; border: 1px solid #dfe6f0; border-radius: 8px; box-shadow: 0 8px 20px rgba(31, 53, 96, 0.05); }
+    .clients-card { min-width: 0; display: flex; flex-direction: column; padding: 14px; color: inherit; text-decoration: none; background: #ffffff; border: 1px solid #dfe6f0; border-radius: 8px; box-shadow: 0 8px 20px rgba(31, 53, 96, 0.05); transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease; }
+    .clients-card:hover { transform: translateY(-2px); border-color: rgba(47, 85, 151, 0.2); box-shadow: 0 12px 24px rgba(31, 53, 96, 0.09); }
+    .clients-card:focus-visible { outline: 3px solid rgba(47, 85, 151, 0.35); outline-offset: 3px; }
     .clients-logo { height: 112px; min-height: 112px; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 14px; border: 1px solid #e5eaf2; border-radius: 6px; background: #ffffff; }
     .clients-logo img { display: block; max-width: 100%; max-height: 80px; object-fit: contain; }
     .clients-logo-fallback { color: #203a63; font-size: 1rem; font-weight: 800; line-height: 1.2; text-align: center; }
@@ -95,7 +97,7 @@
         <div class="clients-shell">
             <div class="clients-grid">
                 @foreach($clients as $client)
-                    <article class="clients-card">
+                    <a class="clients-card" href="{{ $client['href'] }}" aria-label="View {{ $client['name'] }} case studies">
                         <div class="clients-logo">
                             @if($client['logo'])
                                 <img
@@ -112,7 +114,7 @@
                             @endif
                         </div>
                         <h3 class="clients-name">{{ $client['name'] }}</h3>
-                    </article>
+                    </a>
                 @endforeach
             </div>
 
