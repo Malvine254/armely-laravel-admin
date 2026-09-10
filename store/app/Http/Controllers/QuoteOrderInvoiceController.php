@@ -14,6 +14,7 @@ use App\Models\Activity;
 use App\Models\Message;
 use App\Models\User;
 use App\Jobs\SendQuoteNotificationJob;
+use App\Jobs\UpdateOrderStatusJob;
 use App\Services\TDSynnexService;
 use App\Services\PdfService;
 use App\Services\NotificationService;
@@ -1077,6 +1078,14 @@ class QuoteOrderInvoiceController extends Controller
             // Map the response to ensure frontend field names match
             $mappedOrders = $orders->items();
 
+            // Customer order history uses the same authoritative TD synchronizer
+            // as admin and the scheduler before statuses are returned.
+            foreach ($mappedOrders as $order) {
+                $order->loadMissing(['quote', 'invoice']);
+                UpdateOrderStatusJob::dispatchSync($order);
+                $order->refresh()->loadMissing('invoice');
+            }
+
             $this->prefetchProductNamesForItems(
                 array_map(fn ($o) => is_array($o->items) ? $o->items : [], $mappedOrders)
             );
@@ -1139,7 +1148,14 @@ class QuoteOrderInvoiceController extends Controller
                 ->limit(12)
                 ->get();
 
-            $orders->each(fn (Order $order) => $this->refreshOrderStatusFromTdSynnex($order));
+            $orders->each(function (Order $order) {
+                UpdateOrderStatusJob::dispatchSync($order);
+                $order->refresh()->loadMissing([
+                    'quote',
+                    'invoice',
+                    'shipments' => fn ($query) => $query->latest('updated_at'),
+                ]);
+            });
 
             $snapshots = $orders
                 ->map(fn (Order $order) => $this->buildShippingSnapshot($order))
@@ -1171,17 +1187,9 @@ class QuoteOrderInvoiceController extends Controller
         $trackingEligible = $this->canCheckShippingStatus($order);
         $trackingInfo = is_array($order->tracking_info) ? $order->tracking_info : [];
 
-        $status = $latestShipment?->status ?? $order->status ?? 'pending';
-        if ((string) $order->status === 'delivered') {
-            $status = 'delivered';
-        }
-        $carrierLiveStatus = strtolower((string) ($trackingInfo['carrier_live_status_normalized'] ?? ''));
-        if (in_array($carrierLiveStatus, ['shipped', 'in_transit', 'delivered'], true)) {
-            $status = $carrierLiveStatus;
-        }
-        if ($this->trackingPayloadIndicatesDelivered($trackingInfo)) {
-            $status = 'delivered';
-        }
+        // The synchronized order status is sourced from TD SYNNEX and always
+        // wins. Shipment/carrier records enrich tracking but cannot override it.
+        $status = (string) ($order->status ?? 'pending');
         if ($status === 'confirmed') {
             $status = 'processing';
         }
@@ -1198,10 +1206,6 @@ class QuoteOrderInvoiceController extends Controller
         $shippedAt = $latestShipment?->shipped_at ?? $order->shipped_at;
         $etaAt = $latestShipment?->expected_delivery_at ?? $order->delivered_at;
         $deliveredAt = $latestShipment?->delivered_at ?? $order->delivered_at;
-
-        if ($deliveredAt !== null) {
-            $status = 'delivered';
-        }
 
         return [
             'order_number' => $order->order_number,
@@ -1248,6 +1252,12 @@ class QuoteOrderInvoiceController extends Controller
 
     private function refreshOrderStatusFromTdSynnex(Order $order): void
     {
+        // Retained as a compatibility wrapper for any internal callers. All TD
+        // synchronization and notification behavior lives in the shared job.
+        UpdateOrderStatusJob::dispatchSync($order);
+        $order->refresh();
+        return;
+
         if (in_array((string) $order->status, ['cancelled'], true)) {
             return;
         }

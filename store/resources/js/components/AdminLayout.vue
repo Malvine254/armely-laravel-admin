@@ -10,17 +10,22 @@
     <!-- Sidebar Navigation -->
     <div
       :class="[
-        'w-64 h-screen min-h-0 overflow-hidden shadow-lg flex flex-col fixed inset-y-0 left-0 z-50 transform transition-transform duration-200 md:static md:translate-x-0 bg-white border-r border-gray-200',
+        'admin-sidebar w-64 h-screen min-h-0 overflow-hidden shadow-lg flex flex-col fixed inset-y-0 left-0 z-50 transform transition-all duration-300 md:static md:translate-x-0 bg-white border-r border-slate-200',
+        sidebarCollapsed ? 'md:w-20 is-collapsed' : 'md:w-64',
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       ]"
     >
       <!-- Logo -->
-      <div class="px-5 flex items-center justify-between flex-shrink-0 admin-header-band" style="background: linear-gradient(135deg, #2F5597, #1e3a6b);">
+      <div class="sidebar-brand px-4 flex items-center justify-between flex-shrink-0 admin-header-band" style="background: linear-gradient(135deg, #2F5597, #1e3a6b);">
         <div class="flex min-w-0 items-center gap-2.5">
-          <div class="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-xl bg-white shadow-sm">
-            <img :src="normalizeLocalAssetUrl('/images/logo/armely-store-logo.png')" alt="Armely Store" class="h-full w-full object-contain">
+          <div class="sidebar-logo flex h-10 w-10 flex-shrink-0 items-center justify-center text-white" aria-label="Armely Store">
+            <svg class="h-9 w-9" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path d="M10.5 14.5h19l1.7 18H8.8l1.7-18Z" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>
+              <path d="M14.5 15v-2.5a5.5 5.5 0 0 1 11 0V15" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+              <path d="M24.8 22.1a5.2 5.2 0 1 0 0 6.8m0-6.8v6.8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
           </div>
-          <div class="min-w-0">
+          <div class="sidebar-brand-copy min-w-0">
             <h1 class="truncate text-base font-bold leading-tight text-white">Armely Admin</h1>
             <p class="mt-0.5 text-[11px] text-white/60">Control Panel</p>
           </div>
@@ -35,6 +40,17 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
+        <button
+          type="button"
+          class="sidebar-collapse-button hidden md:flex h-8 w-8 items-center justify-center rounded-lg text-white/75 hover:bg-white/15 hover:text-white transition"
+          @click="sidebarCollapsed = !sidebarCollapsed"
+          :aria-label="sidebarCollapsed ? 'Expand admin navigation' : 'Collapse admin navigation'"
+          :title="sidebarCollapsed ? 'Expand menu' : 'Collapse menu'"
+        >
+          <svg class="h-4 w-4 transition-transform" :class="sidebarCollapsed ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
       </div>
 
       <!-- Navigation Menu -->
@@ -42,6 +58,7 @@
         <!-- Dashboard -->
         <router-link
           :to="{ name: 'admin-dashboard-page' }"
+          title="Dashboard"
           :class="[
             'flex items-center px-6 py-3 border-l-4 transition',
             isActive('dashboard')
@@ -61,6 +78,7 @@
         </div>
         <router-link
           :to="{ name: 'admin-quotes' }"
+          title="Pending Quotes"
           :class="[
             'flex items-center px-6 py-3 border-l-4 transition',
             isActive('quotes')
@@ -83,6 +101,7 @@
         </div>
         <router-link
           :to="{ name: 'admin-orders' }"
+          title="All Orders"
           :class="[
             'flex items-center px-6 py-3 border-l-4 transition',
             isActive('orders')
@@ -100,6 +119,7 @@
         </router-link>
         <router-link
           :to="{ name: 'admin-order-tracking' }"
+          title="Order Tracking"
           :class="[
             'flex items-center px-6 py-3 border-l-4 transition',
             isActive('orders/tracking')
@@ -119,6 +139,7 @@
         </div>
         <router-link
           :to="{ name: 'AdminUsers' }"
+          title="Admins"
           :class="[
             'flex items-center px-6 py-3 border-l-4 transition',
             isActive('users')
@@ -133,6 +154,7 @@
         </router-link>
         <router-link
           :to="{ name: 'AdminCustomers' }"
+          title="Customers"
           :class="[
             'flex items-center px-6 py-3 border-l-4 transition',
             isActive('customers')
@@ -155,6 +177,7 @@
         </div>
         <router-link
           :to="{ name: 'admin-chat' }"
+          title="Chat Escalations"
           :class="[
             'flex items-center px-6 py-3 border-l-4 transition',
             isActive('chat')
@@ -177,6 +200,7 @@
         </div>
         <router-link
           :to="{ name: 'admin-reports' }"
+          title="Revenue Reports"
           :class="[
             'flex items-center px-6 py-3 border-l-4 transition',
             isActive('reports')
@@ -196,6 +220,7 @@
         </div>
         <router-link
           :to="{ name: 'admin-invoices' }"
+          title="Invoices"
           :class="[
             'flex items-center px-6 py-3 border-l-4 transition',
             isActive('invoices')
@@ -215,6 +240,7 @@
         </div>
         <router-link
           :to="{ name: 'admin-products' }"
+          title="All Products"
           :class="[
             'flex items-center px-6 py-3 border-l-4 transition',
             isActive('products') && !isActive('imported-products')
@@ -227,6 +253,7 @@
         </router-link>
         <router-link
           :to="{ name: 'admin-imported-products' }"
+          title="Imported Products"
           :class="[
             'flex items-center px-6 py-3 border-l-4 transition',
             isActive('imported-products')
@@ -244,6 +271,7 @@
         </div>
         <router-link
           :to="{ name: 'admin-settings' }"
+          title="Settings"
           :class="[
             'flex items-center px-6 py-3 border-l-4 transition',
             isActive('settings')
@@ -261,20 +289,23 @@
       </nav>
 
       <!-- User Profile -->
-      <div class="border-t border-gray-200 p-4 flex-shrink-0">
-        <div class="flex items-center gap-3 mb-3">
+      <div class="sidebar-account border-t border-slate-200 bg-slate-50/80 p-3 flex-shrink-0">
+        <div class="sidebar-profile flex items-center gap-3 mb-2 rounded-xl p-2">
           <div class="w-10 h-10 rounded-full flex items-center justify-center" style="background: linear-gradient(135deg, #2F5597, #1e3a6b);">
             <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
             </svg>
           </div>
-          <div class="flex-1 min-w-0">
+          <div class="sidebar-profile-copy flex-1 min-w-0">
             <p class="font-semibold text-sm truncate text-gray-900">{{ currentUser.name || 'Loading...' }}</p>
             <p class="text-xs text-gray-500 truncate">{{ currentUser.email || 'Please wait' }}</p>
           </div>
         </div>
-        <button @click="logout" class="w-full bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-400 hover:to-rose-500 py-2 rounded text-sm font-semibold transition text-white">
-          Sign Out
+        <button @click="logout" class="sidebar-signout group flex w-full items-center justify-center gap-2 rounded-xl border border-rose-200 bg-white px-3 py-2.5 text-sm font-semibold text-rose-600 shadow-sm transition hover:border-rose-300 hover:bg-rose-50 hover:shadow" title="Sign out">
+          <svg class="h-4 w-4 flex-shrink-0 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h6a2 2 0 012 2v1" />
+          </svg>
+          <span>Sign Out</span>
         </button>
       </div>
     </div>
@@ -292,6 +323,17 @@
               aria-label="Open sidebar"
             >
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              class="hidden md:flex h-9 w-9 items-center justify-center rounded-lg text-white/75 hover:bg-white/15 hover:text-white transition"
+              @click="sidebarCollapsed = !sidebarCollapsed"
+              :aria-label="sidebarCollapsed ? 'Expand admin navigation' : 'Collapse admin navigation'"
+              :title="sidebarCollapsed ? 'Expand menu' : 'Collapse menu'"
+            >
+              <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
@@ -495,7 +537,6 @@ import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import api from '@/services/api'
 import { useAuthStore } from '@/stores/authStore'
-import { normalizeLocalAssetUrl } from '@/services/runtimeConfig'
 
 const NOTIF_SEEN_STORAGE_KEY = 'armely_admin_seen_notifications_v1'
 
@@ -504,6 +545,7 @@ const route = useRoute()
 const authStore = useAuthStore()
 
 const sidebarOpen = ref(false)
+const sidebarCollapsed = ref(true)
 const showNotifDropdown = ref(false)
 const notifRef = ref(null)
 const searchRef = ref(null)
@@ -819,6 +861,9 @@ a {
   min-height: 36px;
   padding-top: 0.45rem;
   padding-bottom: 0.45rem;
+  margin: 0.1rem 0.5rem;
+  border-left-width: 0;
+  border-radius: 0.75rem;
 }
 
 .sidebar-nav > div {
@@ -827,6 +872,61 @@ a {
 
 .sidebar-nav > div p {
   line-height: 1rem;
+}
+
+@media (min-width: 768px) {
+  .admin-sidebar.is-collapsed .sidebar-brand {
+    justify-content: center;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  .admin-sidebar.is-collapsed .sidebar-logo {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+
+  .admin-sidebar.is-collapsed .sidebar-brand-copy,
+  .admin-sidebar.is-collapsed .sidebar-collapse-button,
+  .admin-sidebar.is-collapsed .sidebar-nav > div,
+  .admin-sidebar.is-collapsed .sidebar-nav > a > span,
+  .admin-sidebar.is-collapsed .sidebar-profile-copy,
+  .admin-sidebar.is-collapsed .sidebar-signout > span {
+    display: none;
+  }
+
+  .admin-sidebar.is-collapsed .sidebar-nav {
+    padding-left: 0.45rem;
+    padding-right: 0.45rem;
+  }
+
+  .admin-sidebar.is-collapsed .sidebar-nav > a {
+    justify-content: center;
+    margin: 0.25rem 0;
+    padding-left: 0;
+    padding-right: 0;
+    min-height: 2.65rem;
+  }
+
+  .admin-sidebar.is-collapsed .sidebar-nav > a > svg {
+    margin-right: 0;
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+
+  .admin-sidebar.is-collapsed .sidebar-account {
+    padding: 0.55rem;
+  }
+
+  .admin-sidebar.is-collapsed .sidebar-profile {
+    justify-content: center;
+    padding: 0.25rem;
+  }
+
+  .admin-sidebar.is-collapsed .sidebar-signout {
+    padding-left: 0;
+    padding-right: 0;
+  }
 }
 
 @media (max-height: 760px) and (min-width: 768px) {

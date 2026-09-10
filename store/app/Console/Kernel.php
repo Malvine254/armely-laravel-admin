@@ -94,7 +94,9 @@ class Kernel extends ConsoleKernel
 
         // Update order statuses every 30 minutes
         $schedule->call(function () {
-            $orders = \App\Models\Order::whereIn('status', ['pending', 'processing', 'shipped'])
+            // Invoiced/backordered orders can still gain tracking, and an
+            // incorrectly cached delivered state must be allowed to reconcile.
+            $orders = \App\Models\Order::whereNotIn('status', ['cancelled', 'failed'])
                 ->get();
             
             foreach ($orders as $order) {

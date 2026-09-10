@@ -210,7 +210,7 @@ class NotificationService
     public function sendOrderShippedNotification(Order $order): void
     {
         try {
-            if (!$this->emailNotificationsEnabled('notifications.email.new_orders', true)) {
+            if (!$this->emailNotificationsEnabled('notifications.email.order_status_updates', true)) {
                 return;
             }
 
@@ -223,14 +223,29 @@ class NotificationService
                 return;
             }
 
-            $cacheKey = 'notify:order-status:' . (string) $order->id . ':' . $status;
+            $tracking = is_array($order->tracking_info) ? $order->tracking_info : [];
+            $eventFingerprint = implode('|', [
+                $status,
+                (string) ($tracking['td_status_changed_at'] ?? ''),
+                (string) ($tracking['tracking_number'] ?? ''),
+                (string) ($tracking['shipping_status'] ?? ''),
+            ]);
+            $cacheKey = 'notify:order-status:' . (string) $order->id . ':' . sha1($eventFingerprint);
 
-            // Idempotency guard: notify each order status once per order lifecycle.
+            // Idempotency guard: notify once per actual supplier status/tracking
+            // event while allowing the same status to recur later in the lifecycle.
             if (!Cache::add($cacheKey, 1, now()->addDays(365))) {
                 return;
             }
 
-            $this->mailer->sendOrderShippedEmail($order);
+            $sent = $this->mailer->sendOrderShippedEmail($order);
+
+            // A transient mail failure must remain retryable on the next sync.
+            if (!$sent) {
+                Cache::forget($cacheKey);
+                Log::warning("Order status email was not accepted for order {$order->id}, status {$status}");
+                return;
+            }
 
             Log::info("Order status notification sent to user {$order->user_id} for status {$status}");
         } catch (\Exception $e) {

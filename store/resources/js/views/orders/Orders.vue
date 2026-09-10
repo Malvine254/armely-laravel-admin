@@ -1133,35 +1133,9 @@ export default {
       }
 
       const order = orderOrStatus;
-      const liveShipment = findLiveShipmentForOrder(order);
       const base = resolveStatus(String(order?.status || '').toLowerCase());
-
-      if (liveShipment?.status) {
-        const liveStatus = resolveStatus(String(liveShipment.status || '').toLowerCase());
-        if (liveStatus === 'delivered') {
-          return 'delivered';
-        }
-        if (liveStatus === 'in_transit') {
-          return 'in_transit';
-        }
-        if (liveStatus === 'shipped' && ['pending', 'accepted', 'backordered', 'invoiced'].includes(base)) {
-          return 'shipped';
-        }
-      }
-
-      if (hasDeliveredEvidence(order)) {
-        return 'delivered';
-      }
-
-      if (base === 'in_transit') {
-        return 'in_transit';
-      }
-
-      const trackingSignal = readTrackingSignal(order);
-      if (trackingSignal.includes('in transit') || trackingSignal.includes('on the way') || trackingSignal.includes('out for delivery')) {
-        return 'in_transit';
-      }
-
+      // Backend order.status is refreshed from TD SYNNEX. Carrier snapshots are
+      // tracking enrichment only and must never supersede the supplier status.
       return base;
     };
 

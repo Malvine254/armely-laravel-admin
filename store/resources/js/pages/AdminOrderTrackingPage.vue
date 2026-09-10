@@ -5,7 +5,7 @@
     <div class="admin-fit-page">
 
     <!-- Stats Summary -->
-    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
       <div v-for="stat in statCards" :key="stat.key"
         class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 cursor-pointer transition hover:shadow-md"
         :class="statusFilter === stat.key ? 'ring-2 ring-[#2F5597]' : ''"
@@ -42,6 +42,7 @@
             <option value="shipped">Shipped</option>
             <option value="invoiced">Invoiced</option>
             <option value="failed">Failed</option>
+            <option value="delivered">Delivered</option>
           </select>
         </div>
         <div class="flex items-end">
@@ -464,13 +465,10 @@ const loading = ref(true)
 const refreshing = ref(false)
 
 const statCards = [
-  { key: '',            label: 'All',         color: 'text-gray-800' },
-  { key: 'pending',     label: 'Pending',     color: 'text-amber-600' },
-  { key: 'accepted',    label: 'Accepted',    color: 'text-[#2F5597]' },
+  { key: '',            label: 'All Orders',  color: 'text-gray-800' },
   { key: 'backordered', label: 'Backordered', color: 'text-orange-600' },
   { key: 'shipped',     label: 'Shipped',     color: 'text-indigo-600' },
   { key: 'invoiced',    label: 'Invoiced',    color: 'text-emerald-600' },
-  { key: 'delivered',   label: 'Delivered',   color: 'text-green-600' },
 ]
 
 const statusCounts = computed(() => {

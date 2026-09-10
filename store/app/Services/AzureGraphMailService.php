@@ -874,6 +874,8 @@ class AzureGraphMailService
             'invoiced' => 'Your Order Is Invoiced',
             'delivered' => 'Your Order Was Delivered',
             'in_transit' => 'Your Order Is In Transit',
+            'cancelled' => 'Your Order Was Cancelled',
+            'failed' => 'Your Order Needs Attention',
             default => 'Your Order Has Shipped',
         };
 
@@ -884,6 +886,8 @@ class AzureGraphMailService
             'invoiced' => 'Your order has been invoiced and is now in fulfillment with our logistics partners.',
             'delivered' => 'Your shipment has been delivered. Thank you for choosing Armely Store.',
             'in_transit' => 'Your order is in transit and on its way to your delivery address.',
+            'cancelled' => 'TD SYNNEX reports that your order was cancelled. Please contact us if you need assistance.',
+            'failed' => 'TD SYNNEX could not continue processing your order. Our team will help you with next steps.',
             default => 'Great news! Your order has shipped and is now on its way.',
         };
 
@@ -894,6 +898,8 @@ class AzureGraphMailService
             'invoiced' => 'Invoiced',
             'delivered' => 'Delivered',
             'in_transit' => 'In Transit',
+            'cancelled' => 'Cancelled',
+            'failed' => 'Needs Attention',
             default => 'Shipped',
         };
 

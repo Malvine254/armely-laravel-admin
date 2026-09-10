@@ -19,6 +19,7 @@ use App\Services\PriceSyncSchedulerService;
 use App\Jobs\SyncPriceAvailabilityCatalogJob;
 use App\Jobs\SyncFlatFileMetadataJob;
 use App\Jobs\ReindexProductsJob;
+use App\Jobs\UpdateOrderStatusJob;
 use App\Models\Message;
 use App\Models\Activity;
 use App\Models\SuppressionEvent;
@@ -2402,9 +2403,13 @@ class AdminController extends Controller
 
             if ($this->canCheckShippingStatus($order)) {
                 try {
-                    $statusResponse = app(TDSynnexService::class)->checkPoStatus($order->quote_id ?: $externalOrderId);
+                    // Use the same synchronizer as the scheduled job so viewing
+                    // All Orders also persists TD status and shipment details.
+                    UpdateOrderStatusJob::dispatchSync($order);
+                    $order->refresh()->loadMissing('invoice');
+                    $statusResponse = is_array($order->raw_data) ? $order->raw_data : null;
                     $normalized = $this->normalizeTdOrderStatusPayload($statusResponse, $order);
-                    $statusSource = 'xml-postatus';
+                    $statusSource = $statusResponse ? 'xml-postatus' : 'local-raw-data';
                 } catch (\Exception $apiEx) {
                     Log::debug('TD SYNNEX XML PO status lookup failed for ' . $externalOrderId . ', using local raw_data: ' . $apiEx->getMessage());
                     $statusSource = 'local-raw-data';
@@ -2418,6 +2423,7 @@ class AdminController extends Controller
                     'queried_order_id' => $externalOrderId,
                     'td_synnex_status' => $statusResponse,
                     'normalized_status' => $normalized['normalized_status'],
+                    'synchronized_status' => $order->status,
                     'raw_status' => $normalized['raw_status'],
                     'shipping_status' => $normalized['shipping_status'],
                     'tracking_number' => $normalized['tracking_number'],
@@ -2541,9 +2547,7 @@ class AdminController extends Controller
             $orders = $query->orderBy('created_at', 'desc')
                 ->paginate($pageSize, ['*'], 'page', $page);
 
-            $tdsynnexService = app(TDSynnexService::class);
-
-            $orderRows = array_map(function ($order) use ($tdsynnexService) {
+            $orderRows = array_map(function ($order) {
                 $trackingInfo = $this->parseTrackingInfoValue($order->tracking_info ?? null);
 
                 // The PO number submitted to TD SYNNEX is the quote_id (e.g. Q-20260505-0003)
@@ -2555,36 +2559,14 @@ class AdminController extends Controller
 
                 if ($poNumber && $this->canCheckShippingStatus($order)) {
                     try {
-                        $poResponse = $tdsynnexService->checkPoStatus($poNumber, 'us', false);
-                        if (is_array($poResponse) && empty($poResponse['error']) && empty($poResponse['errorMessage'])) {
+                        UpdateOrderStatusJob::dispatchSync($order);
+                        $order->refresh();
+                        $trackingInfo = $this->parseTrackingInfoValue($order->tracking_info ?? null);
+                        $poResponse = is_array($order->raw_data) ? $order->raw_data : [];
+                        if ($poResponse && empty($poResponse['error']) && empty($poResponse['errorMessage'])) {
                             $liveStatus = $poResponse;
                             $packages   = $this->extractPackagesFromPoStatus($poResponse);
-                            // Extract TD SYNNEX canonical status from response
-                            $tdStatus = $this->extractTdStatusFromPoResponse($poResponse);
-                            // Persist updated status + tracking locally (fire-and-forget)
-                            if ($tdStatus && $tdStatus !== $order->status) {
-                                $oldStatus = (string) ($order->status ?? '');
-                                $oldTrackingInfo = $this->parseTrackingInfoValue($order->tracking_info ?? null);
-                                $update = ['status' => $tdStatus];
-                                if (!empty($packages[0]['tracking_number']) && !$order->tracking_info) {
-                                    $update['tracking_info'] = json_encode([
-                                        'tracking_number' => $packages[0]['tracking_number'],
-                                        'carrier'         => $packages[0]['carrier'] ?? null,
-                                    ]);
-                                    $update['shipped_at'] = $order->shipped_at ?? now();
-                                }
-                                $order->update($update);
-
-                                $newTrackingInfo = $this->parseTrackingInfoValue($order->fresh()->tracking_info ?? null);
-                                $newStatus = (string) ($order->fresh()->status ?? $tdStatus);
-                                $shippingMilestones = ['invoiced', 'shipped', 'in_transit', 'delivered'];
-                                $trackingAdded = trim((string) ($oldTrackingInfo['tracking_number'] ?? '')) === ''
-                                    && trim((string) ($newTrackingInfo['tracking_number'] ?? '')) !== '';
-
-                                if (($oldStatus !== $newStatus && in_array($newStatus, $shippingMilestones, true)) || $trackingAdded) {
-                                    $this->notificationService->sendOrderShippedNotification($order->fresh());
-                                }
-                            }
+                            $tdStatus = (string) $order->status;
                         }
                     } catch (\Exception $ex) {
                         Log::debug("Live PO status check failed for {$order->order_number} (PO {$poNumber}): {$ex->getMessage()}");
