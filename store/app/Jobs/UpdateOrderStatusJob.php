@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Models\Order;
 use App\Services\TDSynnexService;
 use App\Services\NotificationService;
+use App\Services\CarrierTrackingService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -26,17 +27,21 @@ class UpdateOrderStatusJob implements ShouldQueue
         $this->order = $order;
     }
 
-    public function handle(TDSynnexService $tdsynnexService, NotificationService $notificationService): void
+    public function handle(
+        TDSynnexService $tdsynnexService,
+        NotificationService $notificationService,
+        CarrierTrackingService $carrierTrackingService
+    ): void
     {
         try {
-            $this->order->loadMissing(['quote', 'invoice']);
+            $this->order->loadMissing(['quote', 'invoice', 'shipments']);
 
             if (!$this->canCheckShippingStatus($this->order)) {
                 return;
             }
 
             $poNumber = trim((string) ($this->order->quote_id ?: $this->order->order_number));
-            if ($poNumber === '' || in_array((string) $this->order->status, ['cancelled'], true)) {
+            if ($poNumber === '') {
                 return;
             }
 
@@ -68,6 +73,15 @@ class UpdateOrderStatusJob implements ShouldQueue
                 : $rawStatus;
             $normalized = self::normalizeTdStatus((string) $statusToNormalize) ?: $this->order->status;
             $oldTracking = is_array($this->order->tracking_info) ? $this->order->tracking_info : [];
+            $resolvedTrackingNumber = trim((string) ($trackingNumber ?: ($oldTracking['tracking_number'] ?? '')));
+            $resolvedCarrier = trim((string) ($carrier ?: ($oldTracking['carrier'] ?? '')));
+            $trackingUrl = $oldTracking['carrier_tracking_url'] ?? $oldTracking['tracking_url'] ?? null;
+            $carrierLive = $carrierTrackingService->resolveLiveStatus(
+                $resolvedCarrier,
+                $resolvedTrackingNumber,
+                is_string($trackingUrl) ? $trackingUrl : null
+            );
+
             $trackingInfo = array_merge($oldTracking, array_filter([
                 'tracking_number' => $trackingNumber ? (string) $trackingNumber : null,
                 'shipping_status' => $shippingStatus ? (string) $shippingStatus : null,
@@ -77,14 +91,24 @@ class UpdateOrderStatusJob implements ShouldQueue
                 'td_order_status_code' => $rawStatus !== '' ? $rawStatus : null,
                 'td_order_number' => $tdOrderNumber ? (string) $tdOrderNumber : null,
                 'td_synced_at' => now()->toIso8601String(),
+                'freight_amount' => is_numeric((string) $freightAmount) ? (float) $freightAmount : null,
+                'freight_source' => is_numeric((string) $freightAmount) ? 'td_synnex_po_status' : null,
+                'carrier_live_status' => $carrierLive['raw_status'] ?? null,
+                'carrier_live_status_normalized' => $carrierLive['status'] ?? null,
+                'carrier_live_checked_at' => $carrierLive['checked_at'] ?? null,
+                'carrier_tracking_url' => $carrierLive['tracking_url'] ?? null,
             ], fn ($value) => $value !== null && $value !== ''));
 
             $oldStatus = (string) ($this->order->status ?? '');
-            // TD's current PO/shipping response is authoritative. Do not let a
-            // stale locally cached delivery flag override a newer TD status.
-            if (str_contains($deliverySignal, 'deliver')) {
-                $normalized = 'delivered';
-            }
+            // TD remains authoritative through fulfillment, but PO status often
+            // stays "Invoiced" after last-mile delivery. A verified delivery is
+            // terminal and must never regress during a later PO status refresh.
+            $normalized = $this->resolveEffectiveStatus(
+                $normalized,
+                $tdStatus,
+                $trackingInfo,
+                $oldStatus
+            );
 
             if ($oldStatus !== $normalized && trim((string) $normalized) !== '') {
                 $trackingInfo['td_status_changed_at'] = now()->toIso8601String();
@@ -126,6 +150,27 @@ class UpdateOrderStatusJob implements ShouldQueue
 
             $this->order->update($updates);
             $this->order->refresh();
+
+            if ($resolvedTrackingNumber !== '') {
+                $shipmentStatus = $this->normalizeFulfillmentStatus(
+                    (string) ($carrierLive['status'] ?? $shippingStatus ?? $normalized)
+                ) ?: $normalized;
+
+                $this->order->shipments()->updateOrCreate(
+                    ['tracking_number' => $resolvedTrackingNumber],
+                    array_filter([
+                        'carrier' => $resolvedCarrier ?: null,
+                        'tracking_url' => $carrierLive['tracking_url'] ?? $trackingUrl,
+                        'status' => $shipmentStatus,
+                        'shipped_at' => $shipDate ?: $this->order->shipped_at,
+                        'expected_delivery_at' => $estimatedDelivery ?: null,
+                        'delivered_at' => $shipmentStatus === 'delivered'
+                            ? ($this->order->delivered_at ?: now())
+                            : null,
+                        'raw_data' => $carrierLive ?: $tdStatus,
+                    ], fn ($value) => $value !== null && $value !== '')
+                );
+            }
 
             // If status changed, send notification
             if ($statusChanged || $trackingChanged || $shippingChanged) {
@@ -271,6 +316,122 @@ class UpdateOrderStatusJob implements ShouldQueue
         }
 
         return false;
+    }
+
+    private function deliveryWasConfirmed(string $oldStatus, array $tracking): bool
+    {
+        if (isset($tracking['customer_confirmed_delivered_at'])) {
+            return true;
+        }
+
+        $deliveredBy = strtolower(trim((string) ($tracking['delivered_by'] ?? '')));
+        if (in_array($deliveredBy, ['customer', 'carrier', 'admin'], true)) {
+            return true;
+        }
+
+        foreach (['carrier_live_status_normalized', 'carrier_live_status', 'delivery_status'] as $key) {
+            if (str_contains(strtolower((string) ($tracking[$key] ?? '')), 'deliver')) {
+                return true;
+            }
+        }
+
+        return $oldStatus === 'delivered' && $this->order->delivered_at !== null;
+    }
+
+    /**
+     * Reconcile the complete fulfillment chain. TD PO status is the baseline;
+     * TD package events, persisted shipments, and carrier events can advance it.
+     * Confirmed delivery is terminal.
+     */
+    private function resolveEffectiveStatus(
+        string $tdOrderStatus,
+        array $tdPayload,
+        array $tracking,
+        string $oldStatus
+    ): string {
+        $candidates = [$tdOrderStatus];
+
+        $tdFulfillmentValues = [];
+        $this->collectValuesByKeys($tdPayload, [
+            'shippingStatus', 'shipping_status', 'shipmentStatus', 'ShipmentStatus',
+            'deliveryStatus', 'DeliveryStatus', 'packageStatus', 'PackageStatus',
+            'lineStatus', 'LineStatus', 'itemStatus', 'ItemStatus',
+        ], $tdFulfillmentValues);
+        array_push($candidates, ...$tdFulfillmentValues);
+
+        foreach ([
+            'carrier_live_status_normalized', 'carrier_live_status', 'shipping_status',
+            'delivery_status', 'latest_status',
+        ] as $key) {
+            if (!empty($tracking[$key])) {
+                $candidates[] = (string) $tracking[$key];
+            }
+        }
+
+        foreach ($this->order->shipments as $shipment) {
+            if ($shipment->status) {
+                $candidates[] = (string) $shipment->status;
+            }
+            if ($shipment->delivered_at !== null) {
+                $candidates[] = 'delivered';
+            }
+        }
+
+        if ($this->deliveryWasConfirmed($oldStatus, $tracking)) {
+            $candidates[] = 'delivered';
+        }
+
+        $effective = $this->normalizeFulfillmentStatus($tdOrderStatus) ?: $oldStatus ?: 'pending';
+        $effectiveRank = $this->fulfillmentStatusRank($effective);
+
+        foreach ($candidates as $candidate) {
+            $status = $this->normalizeFulfillmentStatus((string) $candidate);
+            if ($status === '') {
+                continue;
+            }
+
+            $rank = $this->fulfillmentStatusRank($status);
+            if ($rank > $effectiveRank) {
+                $effective = $status;
+                $effectiveRank = $rank;
+            }
+        }
+
+        return $effective;
+    }
+
+    private function normalizeFulfillmentStatus(string $raw): string
+    {
+        $value = strtolower(trim($raw));
+        if ($value === '') return '';
+        if (str_contains($value, 'deliver')) return 'delivered';
+        if (str_contains($value, 'out for delivery') || str_contains($value, 'transit') || str_contains($value, 'on the way')) return 'in_transit';
+        if (str_contains($value, 'partial') && str_contains($value, 'ship')) return 'shipped';
+        if (str_contains($value, 'ship') || str_contains($value, 'picked up') || str_contains($value, 'label created')) return 'shipped';
+        if (str_contains($value, 'invoice') || str_contains($value, 'complete')) return 'invoiced';
+        if (str_contains($value, 'backorder')) return 'backordered';
+        if (str_contains($value, 'accept') || str_contains($value, 'confirm') || str_contains($value, 'process')) return 'accepted';
+        if (str_contains($value, 'cancel') || str_contains($value, 'void')) return 'cancelled';
+        if (str_contains($value, 'exception') || str_contains($value, 'fail') || str_contains($value, 'return')) return 'failed';
+        if (str_contains($value, 'pending') || str_contains($value, 'open') || str_contains($value, 'received')) return 'pending';
+
+        return '';
+    }
+
+    private function fulfillmentStatusRank(string $status): int
+    {
+        return match ($status) {
+            'pending' => 0,
+            'accepted' => 10,
+            'backordered' => 15,
+            'invoiced' => 20,
+            'cancelled' => 25,
+            'shipped' => 30,
+            'in_transit' => 40,
+            'failed' => 45,
+            'delivered' => 50,
+            default => -1,
+        };
     }
 
     private function shouldSendShippingNotification(string $oldStatus, string $newStatus, array $oldTracking, array $newTracking): bool

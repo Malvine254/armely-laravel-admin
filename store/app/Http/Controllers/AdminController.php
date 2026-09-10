@@ -1095,8 +1095,14 @@ class AdminController extends Controller
                 'total_quotes' => Quote::count(),
                 'pending_quotes' => Quote::where('status', 'pending_review')->count(),
                 'total_orders' => Order::count(),
-                'processing_orders' => Order::whereIn('status', ['pending', 'processing', 'confirmed'])->count(),
-                'completed_orders' => Order::where('status', 'delivered')->count(),
+                'processing_orders' => Order::whereIn('status', ['accepted', 'backordered', 'processing', 'confirmed', 'shipped'])->count(),
+                'completed_orders' => Order::whereIn('status', ['invoiced', 'delivered'])->count(),
+                'order_status_counts' => [
+                    'pending' => Order::where('status', 'pending')->count(),
+                    'in_progress' => Order::whereIn('status', ['accepted', 'backordered', 'processing', 'confirmed', 'shipped'])->count(),
+                    'invoiced' => Order::where('status', 'invoiced')->count(),
+                    'delivered' => Order::where('status', 'delivered')->count(),
+                ],
                 'monthly_revenue' => Order::where('status', 'delivered')
                     ->whereMonth('created_at', now()->month)
                     ->whereYear('created_at', now()->year)

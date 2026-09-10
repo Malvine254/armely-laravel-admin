@@ -94,9 +94,11 @@ class Kernel extends ConsoleKernel
 
         // Update order statuses every 30 minutes
         $schedule->call(function () {
-            // Invoiced/backordered orders can still gain tracking, and an
-            // incorrectly cached delivered state must be allowed to reconcile.
-            $orders = \App\Models\Order::whereNotIn('status', ['cancelled', 'failed'])
+            // Every submitted supplier order remains eligible: even cancelled,
+            // failed, invoiced, or delivered POs may receive a later carrier or
+            // freight event that changes the effective fulfillment state.
+            $orders = \App\Models\Order::whereHas('quote', fn ($query) => $query->where('status', 'approved'))
+                ->whereHas('invoice', fn ($query) => $query->where('status', 'paid'))
                 ->get();
             
             foreach ($orders as $order) {

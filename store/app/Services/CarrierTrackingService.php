@@ -11,6 +11,13 @@ class CarrierTrackingService
     public function resolveLiveStatus(?string $carrier, ?string $trackingNumber, ?string $trackingUrl = null): ?array
     {
         $carrier = strtolower(trim((string) $carrier));
+        $carrier = match (true) {
+            str_contains($carrier, 'fedex') => 'fedex',
+            str_contains($carrier, 'ups') => 'ups',
+            str_contains($carrier, 'usps'), str_contains($carrier, 'postal') => 'usps',
+            str_contains($carrier, 'dhl') => 'dhl',
+            default => $carrier,
+        };
         $trackingNumber = $this->extractTrackingNumber($trackingNumber ?: $trackingUrl);
         $trackingUrl = $this->normalizeTrackingUrl($carrier, $trackingNumber, $trackingUrl);
 
@@ -199,13 +206,6 @@ class CarrierTrackingService
                     'raw_status' => $keyword,
                 ];
             }
-        }
-
-        if (str_contains($plain, 'fedex') && str_contains($plain, 'track')) {
-            return [
-                'status' => 'in_transit',
-                'raw_status' => 'tracking page available',
-            ];
         }
 
         return null;

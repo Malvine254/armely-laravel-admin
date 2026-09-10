@@ -2,30 +2,19 @@
   <AdminLayout>
     <template #title>Dashboard</template>
 
-    <section class="dashboard-surface mb-8 overflow-hidden rounded-3xl p-6 md:p-8">
-      <div class="absolute inset-0 pointer-events-none dashboard-orb"></div>
-      <div class="relative z-10 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div>
-          <p class="text-[11px] uppercase tracking-[0.18em] text-blue-200 font-semibold">Operations Center</p>
-          <h2 class="text-2xl md:text-3xl font-semibold text-white mt-1">Store Performance Radar</h2>
-          <p class="text-blue-100/80 mt-2 max-w-2xl text-xs md:text-sm">
-            Live command view of quotes, orders, and invoice pressure for the current business cycle.
-          </p>
-        </div>
-        <div class="flex items-center gap-3">
-          <span class="rounded-full border border-white/25 bg-white/10 px-4 py-2 text-[11px] text-white/80">
-            Last sync: {{ lastSyncLabel }}
-          </span>
-          <button
-            @click="refreshStats"
-            :disabled="refreshing"
-            class="rounded-full bg-white/20 hover:bg-white/30 backdrop-blur px-5 py-2 text-xs font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {{ refreshing ? 'Refreshing...' : 'Refresh' }}
-          </button>
-        </div>
-      </div>
-    </section>
+    <div class="mb-5 flex flex-wrap items-center justify-end gap-3">
+      <span class="text-xs text-slate-500">Updated {{ lastSyncLabel }}</span>
+      <button
+        @click="refreshStats"
+        :disabled="refreshing"
+        class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-[#2F5597] shadow-sm transition hover:border-blue-200 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        <svg class="h-4 w-4" :class="refreshing ? 'animate-spin' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9M20 20v-5h-.581m-15.357-2A8.001 8.001 0 0019.418 15" />
+        </svg>
+        {{ refreshing ? 'Refreshing' : 'Refresh data' }}
+      </button>
+    </div>
 
     <section class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 mb-8">
       <article
@@ -43,68 +32,39 @@
     </section>
 
     <section class="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-8">
-      <article class="glass-card rounded-2xl p-6 xl:col-span-1">
+      <article class="glass-card rounded-2xl p-6 xl:col-span-2">
         <div class="flex items-center justify-between mb-5">
-          <h3 class="text-gray-900 text-base font-semibold">Invoice Pressure</h3>
-          <span class="text-xs text-gray-500">Current snapshot</span>
-        </div>
-
-        <div class="flex items-center justify-center py-2">
-          <div class="relative size-48">
-            <div class="size-48 rounded-full chart-ring" :style="invoiceDonutStyle"></div>
-            <div class="absolute inset-4 rounded-full bg-white flex flex-col items-center justify-center">
-              <span class="text-xs text-gray-500">Revenue</span>
-              <span class="text-lg font-semibold text-[#2F5597]">${{ formatCurrency(stats.monthly_revenue) }}</span>
-            </div>
+          <div>
+            <h3 class="text-gray-900 text-base font-semibold">Recent Order Value</h3>
+            <p class="mt-1 text-xs text-gray-500">Daily order value from the latest activity</p>
           </div>
+          <span class="rounded-lg bg-blue-50 px-2.5 py-1 text-xs font-semibold text-[#2F5597]">USD</span>
         </div>
-
-        <div class="space-y-3 mt-6">
-          <div v-for="bucket in invoiceBuckets" :key="bucket.label" class="flex items-center justify-between text-sm">
-            <div class="flex items-center gap-2 text-gray-700">
-              <span class="size-2.5 rounded-full" :style="{ backgroundColor: bucket.color }"></span>
-              {{ bucket.label }}
-            </div>
-            <span class="font-semibold text-gray-900">{{ bucket.count }}</span>
-          </div>
+        <div class="h-72">
+          <Line :data="orderTrendData" :options="lineChartOptions" />
         </div>
       </article>
 
-      <article class="glass-card rounded-2xl p-6 xl:col-span-1">
+      <article class="glass-card rounded-2xl p-6">
+        <div class="flex items-center justify-between mb-5">
+          <div>
+            <h3 class="text-gray-900 text-base font-semibold">Order Status</h3>
+            <p class="mt-1 text-xs text-gray-500">Current fulfillment mix</p>
+          </div>
+          <router-link :to="{ name: 'admin-orders' }" class="text-[#2F5597] text-xs hover:underline">View orders</router-link>
+        </div>
+        <div class="mx-auto h-72 max-w-xs">
+          <Doughnut :data="orderStatusData" :options="doughnutOptions" />
+        </div>
+      </article>
+
+      <article class="glass-card rounded-2xl p-6 xl:col-span-3">
         <div class="flex items-center justify-between mb-5">
           <h3 class="text-gray-900 text-base font-semibold">Quote Funnel</h3>
           <router-link :to="{ name: 'admin-quotes' }" class="text-[#2F5597] text-xs hover:text-[#2F5597]">Manage quotes</router-link>
         </div>
-
-        <div class="space-y-4">
-          <div v-for="step in quoteFunnel" :key="step.label">
-            <div class="flex items-center justify-between text-sm mb-1">
-              <span class="text-gray-700">{{ step.label }}</span>
-              <span class="text-gray-900 font-semibold">{{ step.count }}</span>
-            </div>
-            <div class="h-2 rounded-full bg-gray-100 overflow-hidden">
-              <div class="h-full rounded-full bg-gradient-to-r from-[#1e3a6b] to-[#2F5597]" :style="{ width: step.width + '%' }"></div>
-            </div>
-          </div>
-        </div>
-      </article>
-
-      <article class="glass-card rounded-2xl p-6 xl:col-span-1">
-        <div class="flex items-center justify-between mb-5">
-          <h3 class="text-gray-900 text-base font-semibold">Order Flow</h3>
-          <router-link :to="{ name: 'admin-orders' }" class="text-[#2F5597] text-xs hover:text-[#2F5597]">Open orders</router-link>
-        </div>
-
-        <div class="space-y-4">
-          <div v-for="row in orderPipeline" :key="row.label">
-            <div class="flex items-center justify-between text-sm mb-1">
-              <span class="text-gray-700">{{ row.label }}</span>
-              <span class="text-gray-900 font-semibold">{{ row.count }}</span>
-            </div>
-            <div class="h-2 rounded-full bg-gray-100 overflow-hidden">
-              <div class="h-full rounded-full" :style="{ width: row.width + '%', background: row.gradient }"></div>
-            </div>
-          </div>
+        <div class="h-64">
+          <Bar :data="quotePipelineData" :options="barChartOptions" />
         </div>
       </article>
     </section>
@@ -154,7 +114,7 @@
           <div v-if="recentOrders.length === 0" class="rounded-xl border border-gray-200 px-4 py-6 text-gray-500 text-sm text-center">
             No recent orders.
           </div>
-          <div v-for="order in recentOrders" :key="order.id" class="rounded-xl border border-gray-200 p-4 hover:bg-gray-50 transition-colors">
+          <div v-for="order in recentOrders.slice(0, 5)" :key="order.id" class="rounded-xl border border-gray-200 p-4 hover:bg-gray-50 transition-colors">
             <div class="flex items-center justify-between gap-2">
               <p class="text-[#2F5597] font-medium">{{ order.order_number }}</p>
               <span :class="['px-2.5 py-1 rounded-full text-[11px] font-semibold capitalize', statusBadgeClass(order.status)]">{{ order.status }}</span>
@@ -175,6 +135,33 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import AdminLayout from '@/components/AdminLayout.vue'
 import api from '@/services/api'
+import { Bar, Doughnut, Line } from 'vue-chartjs'
+import {
+  ArcElement,
+  BarElement,
+  CategoryScale,
+  Chart as ChartJS,
+  Filler,
+  Legend,
+  LinearScale,
+  LineElement,
+  PointElement,
+  Title,
+  Tooltip,
+} from 'chart.js'
+
+ChartJS.register(
+  ArcElement,
+  BarElement,
+  CategoryScale,
+  Filler,
+  Legend,
+  LinearScale,
+  LineElement,
+  PointElement,
+  Title,
+  Tooltip,
+)
 
 const stats = ref({
   total_quotes: 0,
@@ -216,6 +203,107 @@ const orderPending = computed(() => {
   return Math.max(pending, 0)
 })
 
+const orderTrendData = computed(() => {
+  const grouped = new Map()
+  ;[...recentOrders.value].reverse().forEach((order) => {
+    const date = new Date(order.created_at)
+    if (Number.isNaN(date.getTime())) return
+    const key = date.toISOString().slice(0, 10)
+    grouped.set(key, (grouped.get(key) || 0) + Number(order.total_amount || 0))
+  })
+
+  const entries = [...grouped.entries()].slice(-14)
+  return {
+    labels: entries.map(([date]) => new Date(`${date}T12:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })),
+    datasets: [{
+      label: 'Order value',
+      data: entries.map(([, value]) => value),
+      borderColor: '#2F5597',
+      backgroundColor: 'rgba(47, 85, 151, 0.12)',
+      pointBackgroundColor: '#ffffff',
+      pointBorderColor: '#2F5597',
+      pointBorderWidth: 2,
+      pointRadius: 3,
+      pointHoverRadius: 5,
+      borderWidth: 3,
+      tension: 0.38,
+      fill: true,
+    }],
+  }
+})
+
+const lineChartOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  interaction: { intersect: false, mode: 'index' },
+  plugins: {
+    legend: { display: false },
+    tooltip: { callbacks: { label: (context) => ` $${formatCurrency(context.parsed.y)}` } },
+  },
+  scales: {
+    x: { grid: { display: false }, border: { display: false }, ticks: { color: '#64748b' } },
+    y: {
+      beginAtZero: true,
+      border: { display: false },
+      grid: { color: 'rgba(148, 163, 184, 0.16)' },
+      ticks: { color: '#64748b', callback: (value) => `$${Number(value).toLocaleString('en-US')}` },
+    },
+  },
+}
+
+const orderStatusData = computed(() => {
+  const counts = stats.value.order_status_counts || {}
+  return {
+    labels: ['Pending', 'In progress', 'Invoiced', 'Delivered'],
+    datasets: [{
+      data: [
+        Number(counts.pending ?? orderPending.value),
+        Number(counts.in_progress ?? stats.value.processing_orders),
+        Number(counts.invoiced || 0),
+        Number(counts.delivered ?? stats.value.completed_orders),
+      ],
+      backgroundColor: ['#f59e0b', '#3b82f6', '#10b981', '#2F5597'],
+      borderColor: '#ffffff',
+      borderWidth: 4,
+      hoverOffset: 6,
+    }],
+  }
+})
+
+const doughnutOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  cutout: '68%',
+  plugins: {
+    legend: { position: 'bottom', labels: { usePointStyle: true, pointStyle: 'circle', boxWidth: 8, padding: 16, color: '#475569' } },
+  },
+}
+
+const quotePipelineData = computed(() => {
+  const resolved = Math.max(stats.value.total_quotes - stats.value.pending_quotes, 0)
+  return {
+    labels: ['Submitted', 'Pending review', 'Resolved'],
+    datasets: [{
+      label: 'Quotes',
+      data: [stats.value.total_quotes, stats.value.pending_quotes, resolved],
+      backgroundColor: ['#2F5597', '#f59e0b', '#10b981'],
+      borderRadius: 8,
+      borderSkipped: false,
+      maxBarThickness: 54,
+    }],
+  }
+})
+
+const barChartOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: { legend: { display: false } },
+  scales: {
+    x: { grid: { display: false }, border: { display: false }, ticks: { color: '#475569' } },
+    y: { beginAtZero: true, border: { display: false }, grid: { color: 'rgba(148, 163, 184, 0.16)' }, ticks: { precision: 0, color: '#64748b' } },
+  },
+}
+
 const kpiCards = computed(() => [
   {
     label: 'Total Quotes',
@@ -246,61 +334,6 @@ const kpiCards = computed(() => [
     hint: `${stats.value.total_customers || 0} total customer accounts`
   }
 ])
-
-const quoteFunnel = computed(() => {
-  const approved = Math.max(stats.value.total_quotes - stats.value.pending_quotes, 0)
-  const total = Math.max(stats.value.total_quotes, 1)
-
-  return [
-    { label: 'Submitted', count: stats.value.total_quotes, width: 100 },
-    { label: 'Pending Review', count: stats.value.pending_quotes, width: Math.round((stats.value.pending_quotes / total) * 100) },
-    { label: 'Approved', count: approved, width: Math.round((approved / total) * 100) }
-  ]
-})
-
-const orderPipeline = computed(() => {
-  const total = Math.max(stats.value.total_orders, 1)
-  return [
-    {
-      label: 'Pending',
-      count: orderPending.value,
-      width: Math.round((orderPending.value / total) * 100),
-      gradient: 'linear-gradient(90deg, #f59e0b, #fbbf24)'
-    },
-    {
-      label: 'Processing',
-      count: stats.value.processing_orders,
-      width: Math.round((stats.value.processing_orders / total) * 100),
-      gradient: 'linear-gradient(90deg, #0ea5e9, #38bdf8)'
-    },
-    {
-      label: 'Completed',
-      count: stats.value.completed_orders,
-      width: Math.round((stats.value.completed_orders / total) * 100),
-      gradient: 'linear-gradient(90deg, #10b981, #34d399)'
-    }
-  ]
-})
-
-const invoiceBuckets = computed(() => {
-  const settled = Math.max(stats.value.total_orders - stats.value.pending_invoices - stats.value.overdue_invoices, 0)
-  return [
-    { label: 'Settled', count: settled, color: '#2F5597' },
-    { label: 'Pending', count: stats.value.pending_invoices, color: '#facc15' },
-    { label: 'Overdue', count: stats.value.overdue_invoices, color: '#fb7185' }
-  ]
-})
-
-const invoiceDonutStyle = computed(() => {
-  const total = Math.max(invoiceBuckets.value.reduce((sum, bucket) => sum + bucket.count, 0), 1)
-  const settled = Math.round((invoiceBuckets.value[0].count / total) * 100)
-  const pending = Math.round((invoiceBuckets.value[1].count / total) * 100)
-  const overdue = Math.max(100 - settled - pending, 0)
-
-  return {
-    background: `conic-gradient(#2F5597 0% ${settled}%, #facc15 ${settled}% ${settled + pending}%, #fb7185 ${settled + pending}% ${settled + pending + overdue}%, #e5e7eb ${settled + pending + overdue}% 100%)`
-  }
-})
 
 const lastSyncLabel = computed(() => {
   if (!lastUpdated.value) return 'Waiting for first sync'
@@ -348,7 +381,7 @@ const fetchDashboardData = async () => {
     const [statsRes, quotesRes, ordersRes] = await Promise.all([
       api.get('/admin/dashboard/stats'),
       api.get('/admin/quotes/pending?pageSize=5'),
-      api.get('/admin/orders?pageSize=5')
+      api.get('/admin/orders?pageSize=30')
     ])
 
     if (statsRes.data.success) {
@@ -385,37 +418,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.dashboard-surface {
-  position: relative;
-  background: linear-gradient(135deg, #2F5597 0%, #1e3a6b 60%, #162844 100%);
-  border: none;
-  box-shadow: 0 8px 32px rgba(47, 85, 151, 0.25), 0 2px 8px rgba(0, 0, 0, 0.08);
-}
-
-.dashboard-orb::before,
-.dashboard-orb::after {
-  content: '';
-  position: absolute;
-  border-radius: 9999px;
-  filter: blur(60px);
-}
-
-.dashboard-orb::before {
-  width: 240px;
-  height: 240px;
-  top: -90px;
-  right: -70px;
-  background: rgba(100, 160, 255, 0.2);
-}
-
-.dashboard-orb::after {
-  width: 180px;
-  height: 180px;
-  bottom: -80px;
-  left: -40px;
-  background: rgba(47, 85, 151, 0.15);
-}
-
 .glass-card {
   background: #ffffff;
   border: 1px solid #e5e7eb;
@@ -429,7 +431,4 @@ onUnmounted(() => {
   transform: translateY(-1px);
 }
 
-.chart-ring {
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06), 0 0 20px rgba(47, 85, 151, 0.06);
-}
 </style>
