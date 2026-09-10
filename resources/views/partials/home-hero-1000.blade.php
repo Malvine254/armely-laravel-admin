@@ -52,58 +52,34 @@
         ],
     ];
 
-    $clientCards = [
-        [
-            'name' => 'Swope Health Services',
-            'outcome' => 'Power BI dashboards across clinical and admin operations',
-            'logo' => asset('images/brand-partners/swope_health.png'),
-            'href' => route('case-studies.index', ['industry' => 'healthcare']),
+    $clientLogo = fn (string $filename) => is_file(public_path('images/brand-partners/' . $filename))
+        ? asset('images/brand-partners/' . $filename)
+        : null;
+
+    $clientSectors = [
+        'Enterprise & Logistics' => [
+            ['name' => 'Delta Air Lines', 'outcome' => 'Enterprise aviation and logistics', 'logo' => $clientLogo('delta-air-lines.png'), 'href' => route('case-studies.index', ['industry' => 'transportation-logistics'])],
+            ['name' => 'BNSF Railway', 'outcome' => 'Automated vehicle data management platform', 'logo' => $clientLogo('bnsf.png'), 'href' => route('case-studies.index', ['industry' => 'transportation-logistics'])],
+            ['name' => 'Colonial Pipeline', 'outcome' => 'Critical infrastructure and energy', 'logo' => $clientLogo('colonial-pipeline.png'), 'href' => route('case-studies.index', ['industry' => 'energy-oil-gas'])],
+            ['name' => 'DH Pace', 'outcome' => 'Commercial facilities and logistics', 'logo' => $clientLogo('dh-pace.png'), 'href' => route('case-studies.index', ['industry' => 'transportation-logistics'])],
         ],
-        [
-            'name' => 'UNMC',
-            'outcome' => 'Data platform and clinical workflow modernization on Azure',
-            'logo' => asset('images/brand-partners/university_of_nebrask1.png'),
-            'href' => route('case-studies.index', ['industry' => 'healthcare']),
+        'Public Sector & Municipal' => [
+            ['name' => 'City of San Diego', 'outcome' => 'Municipal government', 'logo' => $clientLogo('city-of-san-diego.png'), 'href' => route('case-studies.index', ['industry' => 'government-public-sector'])],
+            ['name' => 'Dallas County', 'outcome' => 'Government data and compliance modernization', 'logo' => $clientLogo('dallas_county.jpg'), 'logo_scale' => 1.95, 'href' => route('case-studies.index', ['industry' => 'government-public-sector'])],
+            ['name' => 'City of Frisco', 'outcome' => 'Microsoft 365 governance and adoption program', 'logo' => $clientLogo('frisco.jpeg'), 'logo_scale' => 1.4, 'href' => route('case-studies.index', ['industry' => 'government-public-sector'])],
+            ['name' => 'City of Topeka', 'outcome' => 'Municipal government', 'logo' => $clientLogo('city-of-topeka.png'), 'href' => route('case-studies.index', ['industry' => 'government-public-sector'])],
         ],
-        [
-            'name' => 'Sage Butte Energy',
-            'outcome' => 'Aries database modernization and OpenInvoice AP integration',
-            'logo' => asset('images/brand-partners/sage_bute.webp'),
-            'logo_scale' => 1.38,
-            'href' => route('case-studies.index', ['industry' => 'energy-oil-gas']),
+        'Healthcare & Life Sciences' => [
+            ['name' => 'UNMC', 'outcome' => 'Data platform and clinical workflow modernization on Azure', 'logo' => $clientLogo('university_of_nebrask1.png'), 'href' => route('case-studies.index', ['industry' => 'healthcare'])],
+            ['name' => 'Esse Health', 'outcome' => 'Healthcare and life sciences', 'logo' => $clientLogo('esse_health.jpg'), 'href' => route('case-studies.index', ['industry' => 'healthcare'])],
+            ['name' => 'Kettering Health', 'outcome' => 'Healthcare and life sciences', 'logo' => $clientLogo('kettering-health.png'), 'href' => route('case-studies.index', ['industry' => 'healthcare'])],
+            ['name' => 'Swope Health', 'outcome' => 'Power BI dashboards across clinical and admin operations', 'logo' => $clientLogo('swope_health.png'), 'href' => route('case-studies.index', ['industry' => 'healthcare'])],
         ],
-        [
-            'name' => 'Plano ISD',
-            'outcome' => 'Microsoft 365, SharePoint, and Power Platform district rollout',
-            'logo' => asset('images/partners/Plano.png'),
-            'logo_scale' => 1.28,
-            'href' => route('case-studies.index', ['industry' => 'government-public-sector']),
-        ],
-        [
-            'name' => 'City of Frisco',
-            'outcome' => 'Microsoft 365 governance and adoption program',
-            'logo' => asset('images/brand-partners/frisco.jpeg'),
-            'logo_scale' => 1.4,
-            'href' => route('case-studies.index', ['industry' => 'government-public-sector']),
-        ],
-        [
-            'name' => 'BNSF Railway',
-            'outcome' => 'Automated vehicle data management platform',
-            'logo' => asset('images/brand-partners/bnsf.png'),
-            'href' => route('case-studies.index', ['industry' => 'transportation-logistics']),
-        ],
-        [
-            'name' => 'Lambda Legal',
-            'outcome' => "Legal operations modernization and Raiser's Edge integration",
-            'logo' => asset('images/brand-partners/lambda.png'),
-            'href' => route('case-studies.index', ['industry' => 'legal-social-services']),
-        ],
-        [
-            'name' => 'Dallas County',
-            'outcome' => 'Government data and compliance modernization',
-            'logo' => asset('images/brand-partners/dallas_county.jpg'),
-            'logo_scale' => 1.95,
-            'href' => route('case-studies.index', ['industry' => 'government-public-sector']),
+        'Finance, Legal & Education' => [
+            ['name' => 'Bank OZK', 'outcome' => 'Financial services', 'logo' => $clientLogo('bank-ozk.png'), 'href' => route('case-studies.index', ['industry' => 'financial-services'])],
+            ['name' => 'Plano ISD', 'outcome' => 'Microsoft 365, SharePoint, and Power Platform district rollout', 'logo' => asset('images/partners/Plano.png'), 'logo_scale' => 1.28, 'href' => route('case-studies.index', ['industry' => 'government-public-sector'])],
+            ['name' => 'UT Dallas', 'outcome' => 'Higher education', 'logo' => $clientLogo('ut-dallas.png'), 'href' => route('case-studies.index', ['industry' => 'higher-education'])],
+            ['name' => 'Lambda Legal', 'outcome' => "Legal operations modernization and Raiser's Edge integration", 'logo' => $clientLogo('lambda.png'), 'href' => route('case-studies.index', ['industry' => 'legal-social-services'])],
         ],
     ];
 
@@ -613,6 +589,13 @@
         margin-top: 28px;
     }
 
+    .armely-home-clients .section-footer {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
     .armely-home-link {
         display: inline-flex;
         align-items: center;
@@ -659,6 +642,18 @@
         gap: 14px;
     }
 
+    .client-sector + .client-sector {
+        margin-top: 34px;
+    }
+
+    .client-sector-title {
+        margin: 0 0 14px;
+        color: #1f3560;
+        font-size: 1.05rem;
+        font-weight: 700;
+        line-height: 1.3;
+    }
+
     .client-card {
         display: flex;
         flex-direction: column;
@@ -688,6 +683,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
+        overflow: hidden;
         padding: 10px 14px;
         border-radius: 12px;
         background: #ffffff;
@@ -1124,31 +1120,44 @@
             <div class="armely-home-eyebrow">Organizations that trust Armely to deliver</div>
         </div>
 
-        <div class="client-grid">
-            @foreach($clientCards as $card)
-                <a href="{{ $card['href'] }}" class="client-card">
-                    <div class="client-logo-wrap{{ !empty($card['logo_tone']) ? ' ' . $card['logo_tone'] : '' }}">
-                        <img
-                            src="{{ $card['logo'] }}"
-                            alt="{{ $card['name'] }} logo"
-                            loading="lazy"
-                            decoding="async"
-                            data-fallback="{{ $card['name'] }}"
-                            @if(!empty($card['logo_scale']))
-                            style="transform: scale({{ $card['logo_scale'] }}); transform-origin: center;"
-                            @endif
-                            onerror="this.style.display='none';var fallback=document.createElement('span');fallback.className='client-logo-text';fallback.textContent=this.dataset.fallback;this.insertAdjacentElement('afterend',fallback);"
-                        >
-                    </div>
-                    <span class="client-label">{{ $card['name'] }}</span>
-                    <p class="client-outcome">{{ $card['outcome'] }}</p>
-                </a>
-            @endforeach
-        </div>
+        @foreach($clientSectors as $sector => $cards)
+            <section class="client-sector" aria-labelledby="client-sector-{{ $loop->index }}">
+                <h3 id="client-sector-{{ $loop->index }}" class="client-sector-title">{{ $sector }}</h3>
+                <div class="client-grid">
+                    @foreach($cards as $card)
+                        <a href="{{ $card['href'] }}" class="client-card">
+                            <div class="client-logo-wrap{{ !empty($card['logo_tone']) ? ' ' . $card['logo_tone'] : '' }}">
+                                @if($card['logo'])
+                                    <img
+                                        src="{{ $card['logo'] }}"
+                                        alt="{{ $card['name'] }} logo"
+                                        loading="lazy"
+                                        decoding="async"
+                                        data-fallback="{{ $card['name'] }}"
+                                        @if(!empty($card['logo_scale']))
+                                        style="transform: scale({{ $card['logo_scale'] }}); transform-origin: center;"
+                                        @endif
+                                        onerror="this.style.display='none';var fallback=document.createElement('span');fallback.className='client-logo-text';fallback.textContent=this.dataset.fallback;this.insertAdjacentElement('afterend',fallback);"
+                                    >
+                                @else
+                                    <span class="client-logo-text">{{ $card['name'] }}</span>
+                                @endif
+                            </div>
+                            <span class="client-label">{{ $card['name'] }}</span>
+                            <p class="client-outcome">{{ $card['outcome'] }}</p>
+                        </a>
+                    @endforeach
+                </div>
+            </section>
+        @endforeach
 
         <div class="section-footer">
+            <a href="{{ route('clients.index') }}" class="armely-home-link">
+                <span>View All Clients</span>
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
+            </a>
             <a href="{{ route('customer-stories.index') }}" class="armely-home-link">
-                <span>See all Clients</span>
+                <span>What Our Clients Say</span>
                 <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
             </a>
         </div>

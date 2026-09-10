@@ -578,6 +578,7 @@ Route::get('/event-emails/unsubscribe/{token}', [EventRegistrationController::cl
 Route::get('/company', [HomeController::class, 'company'])->name('company.index');
 Route::get('/career', [HomeController::class, 'career'])->name('career.index');
 // Route::get('/team', [HomeController::class, 'team'])->name('team.index'); // Hidden per request
+Route::view('/clients', 'clients.index')->name('clients.index');
 Route::get('/customer-stories', [HomeController::class, 'customerStories'])->name('customer-stories.index');
 Route::get('/customer-stories/{story}', [HomeController::class, 'customerStoryShow'])
     ->whereNumber('story')
