@@ -32,6 +32,12 @@
     };
 
     $reviewedAt = function ($story) {
+        $legacyReviewedBy = trim((string) ($story->reviewed_by ?? ''));
+
+        if (empty($story->reviewed_at) && $legacyReviewedBy !== '') {
+            return $legacyReviewedBy;
+        }
+
         try {
             $date = !empty($story->reviewed_at)
                 ? Carbon::parse($story->reviewed_at)
@@ -40,7 +46,7 @@
             $date = null;
         }
 
-        return $date ? 'Reviewed ' . $date->format('F Y') : 'Reviewed by Armely client';
+        return $date ? 'Reviewed ' . $date->format('F Y') : ($legacyReviewedBy !== '' ? $legacyReviewedBy : 'Reviewed by Armely client');
     };
 
     $accentColors = ['#1fa37a', '#c6561f', '#8fa0b8'];
