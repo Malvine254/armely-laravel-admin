@@ -1751,6 +1751,8 @@ class MessageController extends Controller
                 $reply = 'Here are the products again. Use **View details** on each card to open its product page.';
             } elseif (preg_match('/\b(?:description|descriptions|price|prices)\b/u', $questionLower) === 1) {
                 $reply = 'Here are the catalog descriptions and current prices for those products. Each card also links to the full product details.';
+            } elseif (preg_match('/\b(?:spec|specs|specification|specifications|feature|features|detail|details)\b/u', $questionLower) === 1) {
+                $reply = 'Here are the selected products with their catalog specifications and features. Use **View details** for the complete product record.';
             } elseif (preg_match('/\badd\b.*\bquote\b/u', $questionLower) === 1) {
                 $reply = 'I kept the selected products below. Review them, then use **Request quote** on the products you want before confirming the quote.';
                 $actions = collect($actions)

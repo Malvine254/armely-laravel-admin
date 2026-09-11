@@ -548,6 +548,53 @@ class AssistantChatHardeningTest extends TestCase
         ));
     }
 
+    public function test_printer_flow_refines_recommends_shows_specs_and_prepares_quote(): void
+    {
+        $user = $this->createCustomer('Printer Flow User', 'printer-flow@example.com');
+        $this->insertCatalogProduct('CANON-COLOR', 'Canon Color Laser Printer', 'Duplex color laser printer with economical toner.', 799, 'Printers', 'Canon');
+        $this->insertCatalogProduct('HP-COLOR', 'HP Enterprise Color Laser Printer', 'High-volume duplex color laser printer.', 1199, 'Printers', 'HP');
+        $this->insertCatalogProduct('BROTHER-MONO', 'Brother Mono Laser Printer', 'Compact monochrome laser printer.', 399, 'Printers', 'Brother');
+
+        $first = $this->actingAs($user, 'sanctum')->postJson('/api/v1/messages/assistant/chat', [
+            'message' => 'Show me color laser printers for a small accounting office.',
+        ])->assertOk();
+        $sessionId = (int) $first->json('data.chat_session.id');
+        $this->assertNotEmpty($first->json('data.product_suggestions'));
+
+        $refined = $this->actingAs($user, 'sanctum')->postJson('/api/v1/messages/assistant/chat', [
+            'message' => 'Show Canon printers under $900.',
+            'chat_session_id' => $sessionId,
+        ])->assertOk();
+        $this->assertSame(
+            ['CANON-COLOR'],
+            collect($refined->json('data.product_suggestions'))->pluck('product_id')->values()->all()
+        );
+
+        $recommended = $this->actingAs($user, 'sanctum')->postJson('/api/v1/messages/assistant/chat', [
+            'message' => 'Which one would you recommend for low running costs?',
+            'chat_session_id' => $sessionId,
+        ])->assertOk();
+        $this->assertSame('CANON-COLOR', $recommended->json('data.product_suggestions.0.product_id'));
+
+        $specifications = $this->actingAs($user, 'sanctum')->postJson('/api/v1/messages/assistant/chat', [
+            'message' => 'Show its specifications.',
+            'chat_session_id' => $sessionId,
+        ]);
+        $specifications->assertOk();
+        $this->assertSame('local_product_context_follow_up', $specifications->json('data.source'));
+        $this->assertSame('CANON-COLOR', $specifications->json('data.product_suggestions.0.product_id'));
+
+        $quote = $this->actingAs($user, 'sanctum')->postJson('/api/v1/messages/assistant/chat', [
+            'message' => 'Add that printer to a quote.',
+            'chat_session_id' => $sessionId,
+        ]);
+        $quote->assertOk()->assertJsonPath('data.source', 'local_product_context_follow_up');
+        $this->assertSame('CANON-COLOR', $quote->json('data.product_suggestions.0.product_id'));
+        $this->assertFalse(collect($quote->json('data.actions', []))->contains(
+            static fn (array $action) => ($action['label'] ?? '') === 'Open quotes'
+        ));
+    }
+
     private function createCustomer(string $name, string $email): User
     {
         $companyId = DB::table('companies')->insertGetId([
@@ -573,7 +620,8 @@ class AssistantChatHardeningTest extends TestCase
         string $name,
         string $description,
         float $price,
-        string $category
+        string $category,
+        string $manufacturer = 'Contoso'
     ): void {
         DB::table('products')->insert([
             'tdsynnex_product_id' => $productId,
@@ -587,7 +635,7 @@ class AssistantChatHardeningTest extends TestCase
             'is_available' => true,
             'quantity' => 10,
             'is_discontinued' => false,
-            'manufacturer' => 'Contoso',
+            'manufacturer' => $manufacturer,
             'category_segment' => $category,
             'created_at' => now(),
             'updated_at' => now(),

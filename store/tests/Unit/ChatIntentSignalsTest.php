@@ -175,6 +175,7 @@ class ChatIntentSignalsTest extends TestCase
             'show me their images please',
             'provide a description and price for each product',
             'give me the links to those products',
+            'show its specifications',
             'exclude accessories and discontinued products',
             'add the best access point and switch to a quote',
         ] as $followUp) {
