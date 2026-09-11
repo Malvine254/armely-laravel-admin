@@ -157,9 +157,9 @@ class UpdateOrderStatusJob implements ShouldQueue
             $this->order->refresh();
 
             if ($resolvedTrackingNumber !== '') {
-                $shipmentStatus = $this->normalizeFulfillmentStatus(
+                $shipmentStatus = $this->normalizeShipmentStatus(
                     (string) ($carrierLive['status'] ?? $shippingStatus ?? $normalized)
-                ) ?: $normalized;
+                );
 
                 $this->order->shipments()->updateOrCreate(
                     ['tracking_number' => $resolvedTrackingNumber],
@@ -443,6 +443,21 @@ class UpdateOrderStatusJob implements ShouldQueue
         if (str_contains($value, 'pending') || str_contains($value, 'open') || str_contains($value, 'received')) return 'pending';
 
         return '';
+    }
+
+    private function normalizeShipmentStatus(string $raw): string
+    {
+        $value = strtolower(trim($raw));
+
+        if (str_contains($value, 'return')) return 'returned';
+        if (str_contains($value, 'exception') || str_contains($value, 'fail')) return 'pending';
+
+        $status = $this->normalizeFulfillmentStatus($value);
+
+        if ($status === 'delivered') return 'delivered';
+        if ($status === 'in_transit' || $status === 'shipped') return 'in_transit';
+
+        return 'pending';
     }
 
     private function fulfillmentStatusRank(string $status): int
