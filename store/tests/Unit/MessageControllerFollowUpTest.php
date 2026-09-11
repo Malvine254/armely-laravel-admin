@@ -44,6 +44,28 @@ class MessageControllerFollowUpTest extends TestCase
         ]));
     }
 
+    public function test_product_requirements_are_extracted_from_common_spec_formats(): void
+    {
+        $reflection = new ReflectionClass(MessageController::class);
+        $controller = $reflection->newInstanceWithoutConstructor();
+        $method = $reflection->getMethod('buildProductSearchContext');
+
+        $wordWarranty = $method->invoke(
+            $controller,
+            'Laptop under $1500 with 32 GB RAM, USB-C, and three-year warranty',
+            []
+        );
+        $numericWarranty = $method->invoke(
+            $controller,
+            'Notebook below $1500 with 32GB memory, USB C, and 3 year warranty',
+            []
+        );
+
+        $this->assertSame(1500.0, $wordWarranty['max_budget']);
+        $this->assertSame(['32 GB RAM', 'USB-C', '3-year warranty'], array_column($wordWarranty['required_specs'], 'label'));
+        $this->assertSame(['32 GB RAM', 'USB-C', '3-year warranty'], array_column($numericWarranty['required_specs'], 'label'));
+    }
+
     public function test_order_agent_answers_line_item_name_and_price_follow_ups(): void
     {
         $reflection = new ReflectionClass(AzureOpenAiChatService::class);

@@ -1219,7 +1219,7 @@ class MessageController extends Controller
                 // so the search can reuse the exact products shown in the preceding answer.
                 $searchContext = $this->buildProductSearchContext($searchQuery, $recentChatTurns);
                 $requestContext = $this->buildProductSearchContext($question, $recentChatTurns);
-                foreach (['max_budget', 'budget_priority', 'required_brand'] as $sharedConstraint) {
+                foreach (['max_budget', 'budget_priority', 'required_brand', 'required_specs'] as $sharedConstraint) {
                     if (($requestContext[$sharedConstraint] ?? null) !== null) {
                         $searchContext[$sharedConstraint] = $requestContext[$sharedConstraint];
                     }
@@ -2088,6 +2088,7 @@ class MessageController extends Controller
                 'is_discontinued',
                 'manufacturer',
                 'category_segment',
+                'specifications',
             ]);
 
         $candidates = $products->map(function (Product $product) {
@@ -2107,6 +2108,7 @@ class MessageController extends Controller
                 'price' => $price,
                 'description' => (string) ($product->description ?? ''),
                 'category' => (string) ($product->category_segment ?? ''),
+                'specifications' => (array) ($product->specifications ?? []),
                 'image_url' => $this->extractProductImageUrl($product->images),
                 'is_discontinued' => (bool) $product->is_discontinued,
             ];
@@ -2168,6 +2170,8 @@ class MessageController extends Controller
                 $sku = strtolower((string) ($candidate['sku'] ?? ''));
                 $isAccessory = $this->isAccessoryLikeProduct($candidate);
                 $isDeviceMatch = $this->matchesRequestedDevice($candidate, $deviceType);
+                $requiredSpecs = (array) ($searchContext['required_specs'] ?? []);
+                $matchedSpecs = $this->matchRequiredProductSpecs($candidate, $requiredSpecs);
 
                 $score = 0;
                 $matched = [];
@@ -2252,6 +2256,8 @@ class MessageController extends Controller
                     $score -= ($deviceType !== '') ? 12 : 5;
                 }
 
+                $score += count($matchedSpecs) * 5;
+
                 $price = (float) ($candidate['price'] ?? 0);
                 if ($price > 0 && $price < 1200) {
                     $score += 1;
@@ -2288,6 +2294,10 @@ class MessageController extends Controller
                     $whyText .= ' Confirmed ' . $deviceType . ' match.';
                 }
 
+                if (!empty($matchedSpecs)) {
+                    $whyText .= ' Verified: ' . implode(', ', $matchedSpecs) . '.';
+                }
+
                 return [
                     'score' => $score,
                     'matched_keyword_count' => count($matched),
@@ -2300,6 +2310,7 @@ class MessageController extends Controller
                     'image_url' => $candidate['image_url'] ?? null,
                     'is_accessory' => $isAccessory,
                     'device_match' => $isDeviceMatch,
+                    'specs_match' => count($matchedSpecs) === count($requiredSpecs),
                     'why' => $whyText,
                     'actions' => [
                         [
@@ -2346,6 +2357,10 @@ class MessageController extends Controller
 
                 $price = (float) ($item['price'] ?? 0);
                 if ($maxBudget !== null && $maxBudget > 0 && $price > $maxBudget) {
+                    return false;
+                }
+
+                if (!($item['specs_match'] ?? true)) {
                     return false;
                 }
 
@@ -2403,6 +2418,7 @@ class MessageController extends Controller
                 unset($item['matched_keyword_count']);
                 unset($item['is_accessory']);
                 unset($item['device_match']);
+                unset($item['specs_match']);
                 return $item;
             })
             ->all();
@@ -2571,6 +2587,37 @@ class MessageController extends Controller
             }
         }
 
+        $requiredSpecs = [];
+        if (preg_match('/\b(\d{1,4})\s*(gb|tb)\s+(?:of\s+)?(?:ram|memory)\b/i', $joined, $memoryMatch) === 1) {
+            $amount = strtolower($memoryMatch[1] . ' ' . $memoryMatch[2]);
+            $requiredSpecs[] = [
+                'label' => strtoupper($amount) . ' RAM',
+                'terms' => [$amount . ' ram', str_replace(' ', '', $amount) . ' ram', $amount],
+            ];
+        }
+
+        if (preg_match('/\b(?:usb\s*-?\s*c|type\s*-?\s*c)\b/i', $joined) === 1) {
+            $requiredSpecs[] = [
+                'label' => 'USB-C',
+                'terms' => ['usb-c', 'usb c', 'type-c', 'type c'],
+            ];
+        }
+
+        if (preg_match('/\b(one|two|three|four|five|\d+)\s*[- ]?\s*year\s+warranty\b/i', $joined, $warrantyMatch) === 1) {
+            $numberWords = ['one' => 1, 'two' => 2, 'three' => 3, 'four' => 4, 'five' => 5];
+            $rawYears = strtolower((string) $warrantyMatch[1]);
+            $years = (int) ($numberWords[$rawYears] ?? $rawYears);
+            $requiredSpecs[] = [
+                'label' => $years . '-year warranty',
+                'terms' => [
+                    $years . '-year warranty',
+                    $years . ' year warranty',
+                    $rawYears . '-year warranty',
+                    $rawYears . ' year warranty',
+                ],
+            ];
+        }
+
         $requiredBrand = null;
         $knownBrands = [
             'dell', 'hp', 'hewlett-packard', 'lenovo', 'cisco', 'meraki', 'microsoft', 'apple',
@@ -2637,6 +2684,7 @@ class MessageController extends Controller
             'budget_priority' => $budgetPriority,
             'required_brand' => $requiredBrand,
             'required_category' => $requiredCategory,
+            'required_specs' => $requiredSpecs,
             'transactional_follow_up' => $transactionalFollowUp,
             'recent_suggested_products' => $recentSuggestedProducts,
         ];
@@ -2687,6 +2735,32 @@ class MessageController extends Controller
         }
 
         return false;
+    }
+
+    private function matchRequiredProductSpecs(array $candidate, array $requiredSpecs): array
+    {
+        if (empty($requiredSpecs)) {
+            return [];
+        }
+
+        $haystack = strtolower(trim(
+            (string) ($candidate['name'] ?? '') . ' ' .
+            (string) ($candidate['description'] ?? '') . ' ' .
+            (string) json_encode($candidate['specifications'] ?? [])
+        ));
+
+        return collect($requiredSpecs)
+            ->filter(function ($requirement) use ($haystack) {
+                $terms = (array) ($requirement['terms'] ?? []);
+
+                return collect($terms)->contains(
+                    fn ($term) => $this->containsCatalogTerm($haystack, (string) $term)
+                );
+            })
+            ->pluck('label')
+            ->filter()
+            ->values()
+            ->all();
     }
 
     private function isAccessoryLikeProduct(array $candidate): bool

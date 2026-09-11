@@ -36,6 +36,14 @@ class ChatIntentSignalsTest extends TestCase
         );
 
         $this->assertSame(
+            ['wireless access point', 'wireless router', 'network switch'],
+            ChatIntentSignals::resolveCatalogSearchPhrases(
+                'What equipment should I buy for office Wi-Fi coverage?',
+                'office equipment'
+            )
+        );
+
+        $this->assertSame(
             ['monitor', 'dock', 'headset'],
             ChatIntentSignals::resolveCatalogSearchPhrases(
                 'Find compatible monitors, docks, and headsets for the laptops you just showed me.',

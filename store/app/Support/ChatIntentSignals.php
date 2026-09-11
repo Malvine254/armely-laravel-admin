@@ -471,7 +471,9 @@ class ChatIntentSignals
     {
         $normalized = self::normalizeQuestion($question);
 
-        if (preg_match('/\b(?:wi-?fi|wireless)\b.*\b(?:coverage|equipment|network|office|employees?)\b/i', $normalized) === 1) {
+        $hasWirelessSignal = preg_match('/\b(?:wi-?fi|wireless|wlan)\b/i', $normalized) === 1;
+        $hasInfrastructureSignal = preg_match('/\b(?:coverage|equipment|network|office|employees?)\b/i', $normalized) === 1;
+        if ($hasWirelessSignal && $hasInfrastructureSignal) {
             return ['wireless access point', 'wireless router', 'network switch'];
         }
 

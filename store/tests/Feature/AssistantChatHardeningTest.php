@@ -99,6 +99,7 @@ class AssistantChatHardeningTest extends TestCase
             $table->boolean('is_discontinued')->nullable();
             $table->string('manufacturer')->nullable();
             $table->string('category_segment')->nullable();
+            $table->json('specifications')->nullable();
             $table->timestamps();
         });
     }
@@ -107,6 +108,7 @@ class AssistantChatHardeningTest extends TestCase
     {
         $user = $this->createCustomer('Laptop Search User', 'laptop-search@example.com');
         $this->insertCatalogProduct('LAPTOP-32', 'Contoso Business Notebook 14', 'Business notebook with 32 GB RAM, USB-C power delivery, and three-year warranty.', 1399, 'Laptops');
+        $this->insertCatalogProduct('LAPTOP-16', 'Contoso Business Notebook 13', 'Business notebook with 16 GB RAM and USB-C power delivery.', 1099, 'Laptops');
         $this->insertCatalogProduct('USB-HUB', 'Add USB Type-C and three USB Type-A ports to your laptop', 'Portable USB hub for laptop peripherals.', 33.55, 'Computer Accessories');
 
         $response = $this->actingAs($user, 'sanctum')->postJson('/api/v1/messages/assistant/chat', [
@@ -116,6 +118,7 @@ class AssistantChatHardeningTest extends TestCase
         $response->assertOk();
         $productIds = collect($response->json('data.product_suggestions'))->pluck('product_id')->all();
         $this->assertContains('LAPTOP-32', $productIds, json_encode($productIds));
+        $this->assertNotContains('LAPTOP-16', $productIds, json_encode($productIds));
         $this->assertNotContains('USB-HUB', $productIds, json_encode($productIds));
     }
 
