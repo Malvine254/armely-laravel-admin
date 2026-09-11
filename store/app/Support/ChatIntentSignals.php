@@ -467,6 +467,56 @@ class ChatIntentSignals
         )));
     }
 
+    public static function resolveCatalogSearchPhrases(string $question, string $plannedQuery = ''): array
+    {
+        $normalized = self::normalizeQuestion($question);
+
+        if (preg_match('/\b(?:wi-?fi|wireless)\b.*\b(?:coverage|equipment|network|office|employees?)\b/i', $normalized) === 1) {
+            return ['wireless access point', 'wireless router', 'network switch'];
+        }
+
+        $requestedScope = preg_replace(
+            '/\bfor\s+(?:the|those|these|my|our)\b.*$/i',
+            '',
+            $normalized
+        ) ?? $normalized;
+
+        $categoryAliases = [
+            'monitor' => ['monitor', 'monitors', 'display', 'displays'],
+            'dock' => ['dock', 'docks', 'docking station', 'docking stations'],
+            'headset' => ['headset', 'headsets'],
+            'laptop' => ['laptop', 'laptops', 'notebook', 'notebooks'],
+            'desktop' => ['desktop', 'desktops', 'workstation', 'workstations'],
+            'printer' => ['printer', 'printers'],
+            'server' => ['server', 'servers'],
+            'switch' => ['network switch', 'network switches', 'ethernet switch', 'ethernet switches'],
+            'router' => ['router', 'routers', 'gateway', 'gateways'],
+            'access point' => ['access point', 'access points', 'wireless ap', 'wireless aps'],
+            'camera' => ['camera', 'cameras', 'webcam', 'webcams'],
+            'scanner' => ['scanner', 'scanners'],
+            'projector' => ['projector', 'projectors'],
+            'tablet' => ['tablet', 'tablets'],
+        ];
+
+        $requestedCategories = [];
+        foreach ($categoryAliases as $catalogTerm => $aliases) {
+            foreach ($aliases as $alias) {
+                if (preg_match('/(?<![a-z0-9])' . preg_quote($alias, '/') . '(?![a-z0-9])/i', $requestedScope) === 1) {
+                    $requestedCategories[] = $catalogTerm;
+                    break;
+                }
+            }
+        }
+
+        if (!empty($requestedCategories)) {
+            return array_values(array_unique($requestedCategories));
+        }
+
+        $query = trim($plannedQuery) !== '' ? $plannedQuery : $question;
+
+        return self::extractCatalogSearchPhrases($query);
+    }
+
     public static function extractProductSearchKeywords(string $question): array
     {
         $normalized = self::normalizeQuestion($question);

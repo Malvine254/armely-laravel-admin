@@ -17,6 +17,33 @@ class ChatIntentSignalsTest extends TestCase
         $this->assertTrue(ChatIntentSignals::isGeneralConversationQuery('i like your vibe'));
     }
 
+    public function test_resolves_complex_requests_to_catalog_taxonomy(): void
+    {
+        $this->assertSame(
+            ['laptop'],
+            ChatIntentSignals::resolveCatalogSearchPhrases(
+                'Compare three business laptops under $1,500 with 32 GB RAM, USB-C charging, and a three-year warranty.',
+                'business laptop 32 GB RAM USB-C three-year warranty under $1,500'
+            )
+        );
+
+        $this->assertSame(
+            ['wireless access point', 'wireless router', 'network switch'],
+            ChatIntentSignals::resolveCatalogSearchPhrases(
+                'I need Wi-Fi coverage for a two-floor office with 80 employees. What equipment should I consider?',
+                'Wi-Fi equipment for two-floor office 80 employees'
+            )
+        );
+
+        $this->assertSame(
+            ['monitor', 'dock', 'headset'],
+            ChatIntentSignals::resolveCatalogSearchPhrases(
+                'Find compatible monitors, docks, and headsets for the laptops you just showed me.',
+                'compatible monitor dock headset'
+            )
+        );
+    }
+
     public function test_it_identifies_capability_questions_without_overrouting(): void
     {
         $this->assertTrue(ChatIntentSignals::isCapabilityQuestion('what can you do'));

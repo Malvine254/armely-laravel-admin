@@ -1194,11 +1194,15 @@ class MessageController extends Controller
         if ($hasLocalProductIntent && $catalogSearchQuery === '') {
             $catalogSearchQuery = $this->resolveConversationalCatalogSearchQuery($question, $recentChatTurns);
         }
-        $catalogSearchQueries  = ChatIntentSignals::extractCatalogSearchPhrases($catalogSearchQuery);
+        $catalogSearchQueries = !$hasLocalProductIntent
+            ? []
+            : ChatIntentSignals::resolveCatalogSearchPhrases($question, $catalogSearchQuery);
+        if (!empty($catalogSearchQueries)) {
+            $catalogSearchQuery = implode(', ', $catalogSearchQueries);
+        }
         $excludedProductTerms = ChatIntentSignals::extractExcludedProductTerms($question);
         $budgetPriority = (bool) preg_match('/\b(budget(?: friendly)?|affordable|low cost|lower cost|economical|inexpensive|cheapest|value)\b/i', $question);
-        $shouldSuggestProducts = $hasLocalProductIntent
-            && $this->isProductDiscoveryIntent($catalogSearchQuery, $recentChatTurns);
+        $shouldSuggestProducts = $hasLocalProductIntent;
         // A conversational follow-up can intentionally contain no new catalog terms. Still run
         // it through product search so buildProductSearchContext() can reuse the prior cards.
         $productSearchInputs = $catalogSearchQueries;
@@ -1208,14 +1212,23 @@ class MessageController extends Controller
         }
 
         $productSuggestions = collect($productSearchInputs)
-            ->flatMap(function (string $searchQuery) use ($historyPreferences, $catalogSearchQueries, $recentChatTurns, $productSearchPlan, $excludedProductTerms, $budgetPriority) {
+            ->flatMap(function (string $searchQuery) use ($question, $historyPreferences, $catalogSearchQueries, $recentChatTurns, $productSearchPlan, $excludedProductTerms, $budgetPriority) {
                 // Each independent clause gets its own constraints; otherwise "monitors and
                 // printers" would incorrectly require one product to be both categories.
                 // Chat history is required for follow-ups such as "which one do you recommend?"
                 // so the search can reuse the exact products shown in the preceding answer.
                 $searchContext = $this->buildProductSearchContext($searchQuery, $recentChatTurns);
+                $requestContext = $this->buildProductSearchContext($question, $recentChatTurns);
+                foreach (['max_budget', 'budget_priority', 'required_brand'] as $sharedConstraint) {
+                    if (($requestContext[$sharedConstraint] ?? null) !== null) {
+                        $searchContext[$sharedConstraint] = $requestContext[$sharedConstraint];
+                    }
+                }
                 $plannedProductType = trim((string) ($productSearchPlan['product_type'] ?? ''));
-                if ($plannedProductType !== '') {
+                if ($plannedProductType !== ''
+                    && count($catalogSearchQueries) === 1
+                    && empty($searchContext['device_type'])
+                ) {
                     $searchContext['device_type'] = strtolower($plannedProductType);
                     $searchContext['required_category'] = strtolower($plannedProductType);
                 }
@@ -2235,7 +2248,7 @@ class MessageController extends Controller
                     }
                 }
 
-                if ($isAccessory) {
+                if ($isAccessory && !$this->isRequestedAccessoryType($deviceType)) {
                     $score -= ($deviceType !== '') ? 12 : 5;
                 }
 
@@ -2320,7 +2333,10 @@ class MessageController extends Controller
                     return false;
                 }
 
-                if ($deviceType !== '' && ($item['is_accessory'] ?? false)) {
+                if ($deviceType !== ''
+                    && ($item['is_accessory'] ?? false)
+                    && !$this->isRequestedAccessoryType($deviceType)
+                ) {
                     return false;
                 }
 
@@ -2428,101 +2444,6 @@ class MessageController extends Controller
         return array_values(array_unique(array_filter($queries, static fn ($q) => is_string($q) && trim($q) !== '')));
     }
 
-    private function isProductDiscoveryIntent(string $question, array $recentChatTurns = []): bool
-    {
-        $q = strtolower(trim($question));
-        if ($q === '') {
-            return false;
-        }
-
-        if (ChatIntentSignals::isGeneralConversationQuery($question) || ChatIntentSignals::isSmallTalkQuery($question)) {
-            return false;
-        }
-
-        if (ChatIntentSignals::isProductLookupIntent($question, $recentChatTurns)) {
-            return true;
-        }
-
-        $greetings = ['hi', 'hello', 'hey', 'yo', 'good morning', 'good afternoon', 'good evening', 'howdy', 'sup', 'whats up', 'thanks', 'thank you', 'thx', 'ok', 'okay', 'bye', 'goodbye'];
-        if (in_array($q, $greetings, true)) {
-            return false;
-        }
-
-        $productSignals = [
-            'laptop', 'notebook', 'desktop', 'monitor', 'printer', 'server', 'sku', 'model', 'spec',
-            'recommend', 'suggest', 'sample list', 'best', 'buy', 'purchase', 'network',
-            'switch', 'router', 'firewall', 'access point', 'wifi', 'wireless', 'catalogue', 'catalog',
-            'workstation', 'tablet', 'projector', 'scanner', 'ups', 'storage', 'ssd', 'ram', 'memory',
-            'headset', 'webcam', 'docking', 'dock', 'keyboard', 'mouse', 'display',
-            'thin client', 'chromebook', 'all-in-one', 'mini pc',
-        ];
-
-        $financeSignals = [
-            'invoice', 'payment', 'pay', 'balance', 'due', 'download', 'pdf', 'billing', 'receipt',
-            'reminder', 'send reminder', 'quote', 'quotes', 'my quotes', 'current quotes', 'open quotes',
-        ];
-
-        $hasCurrentProductSignal = false;
-        foreach ($productSignals as $signal) {
-            if (str_contains($q, $signal)) {
-                $hasCurrentProductSignal = true;
-                break;
-            }
-        }
-
-        $hasMeaningfulKeywords = count($this->extractProductSearchKeywords($question)) > 0;
-
-        if (!$hasCurrentProductSignal && !$hasMeaningfulKeywords && Str::contains($q, $financeSignals)) {
-            return false;
-        }
-
-        if (Str::contains($q, ['do we have', 'availability', 'in stock', 'check for', 'search for'])) {
-            return true;
-        }
-
-        foreach ($productSignals as $signal) {
-            if (str_contains($q, $signal)) {
-                return true;
-            }
-        }
-
-        if ($hasMeaningfulKeywords && !Str::contains($q, $financeSignals)) {
-            return false;
-        }
-
-        $recentUserText = collect($recentChatTurns)
-            ->filter(static fn (array $turn) => strtolower((string) ($turn['role'] ?? '')) === 'user')
-            ->pluck('content')
-            ->map(static fn ($t) => strtolower((string) $t))
-            ->implode(' ');
-
-        $followUpSignals = [
-            'which one', 'which is best', 'recommend one', 'top one', 'best one',
-            'can you recommend', 'show more', 'similar options', 'other options', 'another option',
-            'under', 'below', 'not more than', 'within budget',
-            'from the list', 'from your list', 'why did you suggest'
-        ];
-
-        $isLikelyProductFollowUp = Str::contains($q, $followUpSignals);
-
-        if ($recentUserText !== '' && $isLikelyProductFollowUp) {
-            $recentHasProductSuggestions = collect($recentChatTurns)
-                ->contains(static fn (array $turn) => (bool) ($turn['has_product_suggestions'] ?? false));
-
-            if ($recentHasProductSuggestions) {
-                return true;
-            }
-
-            foreach (['laptop', 'notebook', 'recommend', 'sample list', 'buy', 'purchase', 'printer', 'network'] as $signal) {
-                if (str_contains($recentUserText, $signal)) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
     private function extractPreferenceKeywordsFromHistory(array $recentChatTurns): array
     {
         $userTexts = collect($recentChatTurns)
@@ -2617,6 +2538,10 @@ class MessageController extends Controller
             $deviceType = 'router';
         } elseif (str_contains($joined, 'access point') || str_contains($joined, 'wireless ap')) {
             $deviceType = 'access point';
+        } elseif (str_contains($joined, 'dock') || str_contains($joined, 'docking station')) {
+            $deviceType = 'dock';
+        } elseif (str_contains($joined, 'headset')) {
+            $deviceType = 'headset';
         } elseif (str_contains($joined, 'camera') || str_contains($joined, 'webcam')) {
             $deviceType = 'camera';
         } elseif (str_contains($joined, 'tablet') || str_contains($joined, 'ipad')) {
@@ -2662,7 +2587,7 @@ class MessageController extends Controller
         }
 
         $requiredCategory = null;
-        foreach (['monitor', 'display', 'laptop', 'notebook', 'desktop', 'workstation', 'printer', 'server', 'switch', 'router', 'access point', 'firewall', 'scanner', 'projector', 'tablet', 'ups', 'storage'] as $category) {
+        foreach (['monitor', 'display', 'laptop', 'notebook', 'desktop', 'workstation', 'printer', 'server', 'switch', 'router', 'access point', 'dock', 'headset', 'firewall', 'scanner', 'projector', 'tablet', 'ups', 'storage'] as $category) {
             if (str_contains($joined, $category)) {
                 $requiredCategory = $category;
                 break;
@@ -2744,6 +2669,8 @@ class MessageController extends Controller
             'switch' => ['switch', 'ethernet switch'],
             'router' => ['router', 'gateway'],
             'access point' => ['access point', 'wireless ap', 'wifi ap'],
+            'dock' => ['dock', 'docking station', 'port replicator'],
+            'headset' => ['headset', 'headphones', 'earphones'],
             'firewall' => ['firewall', 'security appliance'],
             'camera' => ['camera', 'webcam', 'video bar', 'videobar'],
             'tablet' => ['tablet', 'ipad'],
@@ -2764,14 +2691,13 @@ class MessageController extends Controller
 
     private function isAccessoryLikeProduct(array $candidate): bool
     {
-        $haystack = strtolower(trim(
+        $identity = strtolower(trim(
             (string) ($candidate['name'] ?? '') . ' ' .
-            (string) ($candidate['description'] ?? '') . ' ' .
             (string) ($candidate['category'] ?? '') . ' ' .
             (string) ($candidate['sku'] ?? '')
         ));
 
-        if ($haystack === '') {
+        if ($identity === '') {
             return false;
         }
 
@@ -2788,12 +2714,24 @@ class MessageController extends Controller
         ];
 
         foreach ($accessoryTerms as $term) {
-            if (str_contains($haystack, $term)) {
+            if (str_contains($identity, $term)) {
+                return true;
+            }
+        }
+
+        $description = strtolower((string) ($candidate['description'] ?? ''));
+        foreach (['connect a usb', 'usb type-a device', 'pass-through port'] as $signature) {
+            if (str_contains($description, $signature)) {
                 return true;
             }
         }
 
         return false;
+    }
+
+    private function isRequestedAccessoryType(string $deviceType): bool
+    {
+        return in_array($deviceType, ['dock', 'headset'], true);
     }
 
     private function isConflictingDeviceProduct(array $candidate, string $deviceType): bool
@@ -2840,6 +2778,8 @@ class MessageController extends Controller
             'switch' => ['switch', 'ethernet switch', 'managed switch'],
             'router' => ['router', 'gateway'],
             'access point' => ['access point', 'wireless ap', 'wifi ap'],
+            'dock' => ['dock', 'docking station', 'port replicator'],
+            'headset' => ['headset', 'headphones', 'earphones'],
             'camera' => ['camera', 'webcam', 'video bar', 'videobar'],
             'tablet' => ['tablet', 'ipad'],
             'phone' => ['phone', 'handset', 'telephone'],

@@ -79,6 +79,80 @@ class AssistantChatHardeningTest extends TestCase
             $table->text('value')->nullable();
             $table->timestamps();
         });
+
+        Schema::create('products', function (Blueprint $table) {
+            $table->id();
+            $table->string('tdsynnex_product_id')->nullable();
+            $table->string('tdsynnex_sku_no')->nullable();
+            $table->string('vendor_id')->nullable();
+            $table->string('product_name')->nullable();
+            $table->string('mfg_part_no')->nullable();
+            $table->text('description')->nullable();
+            $table->decimal('base_price', 12, 2)->default(0);
+            $table->decimal('retail_price', 12, 2)->default(0);
+            $table->decimal('sale_price', 12, 2)->default(0);
+            $table->boolean('is_on_sale')->default(false);
+            $table->string('offer_source')->nullable();
+            $table->json('images')->nullable();
+            $table->boolean('is_available')->nullable();
+            $table->integer('quantity')->nullable();
+            $table->boolean('is_discontinued')->nullable();
+            $table->string('manufacturer')->nullable();
+            $table->string('category_segment')->nullable();
+            $table->timestamps();
+        });
+    }
+
+    public function test_complex_laptop_request_excludes_accessories(): void
+    {
+        $user = $this->createCustomer('Laptop Search User', 'laptop-search@example.com');
+        $this->insertCatalogProduct('LAPTOP-32', 'Contoso Business Notebook 14', 'Business notebook with 32 GB RAM, USB-C power delivery, and three-year warranty.', 1399, 'Laptops');
+        $this->insertCatalogProduct('USB-HUB', 'Add USB Type-C and three USB Type-A ports to your laptop', 'Portable USB hub for laptop peripherals.', 33.55, 'Computer Accessories');
+
+        $response = $this->actingAs($user, 'sanctum')->postJson('/api/v1/messages/assistant/chat', [
+            'message' => 'Compare three business laptops under $1,500 with 32 GB RAM, USB-C charging, and a three-year warranty.',
+        ]);
+
+        $response->assertOk();
+        $productIds = collect($response->json('data.product_suggestions'))->pluck('product_id')->all();
+        $this->assertContains('LAPTOP-32', $productIds, json_encode($productIds));
+        $this->assertNotContains('USB-HUB', $productIds, json_encode($productIds));
+    }
+
+    public function test_office_wifi_request_searches_infrastructure_categories(): void
+    {
+        $user = $this->createCustomer('WiFi Search User', 'wifi-search@example.com');
+        $this->insertCatalogProduct('AP-1', 'Ceiling Wireless Access Point', 'WiFi 6 wireless AP for office deployments.', 449, 'Wireless Access Points');
+        $this->insertCatalogProduct('ROUTER-1', 'Business Wireless Router', 'Secure wireless gateway for small offices.', 699, 'Routers');
+        $this->insertCatalogProduct('SWITCH-1', '48-Port Managed Network Switch', 'Managed Ethernet switch with PoE for access points.', 899, 'Network Switches');
+
+        $response = $this->actingAs($user, 'sanctum')->postJson('/api/v1/messages/assistant/chat', [
+            'message' => 'I need Wi-Fi coverage for a two-floor office with 80 employees. What equipment should I consider?',
+        ]);
+
+        $response->assertOk();
+        $productIds = collect($response->json('data.product_suggestions'))->pluck('product_id')->all();
+        $this->assertContains('AP-1', $productIds, json_encode($productIds));
+        $this->assertContains('ROUTER-1', $productIds, json_encode($productIds));
+        $this->assertContains('SWITCH-1', $productIds, json_encode($productIds));
+    }
+
+    public function test_multi_category_request_returns_each_requested_product_type(): void
+    {
+        $user = $this->createCustomer('Bundle Search User', 'bundle-search@example.com');
+        $this->insertCatalogProduct('MONITOR-1', '27-inch Business Monitor', 'USB-C office display.', 329, 'Monitors');
+        $this->insertCatalogProduct('DOCK-1', 'Universal USB-C Docking Station', 'Laptop dock with dual display support.', 249, 'Docking Stations');
+        $this->insertCatalogProduct('HEADSET-1', 'Teams Wireless Headset', 'Business headset with noise-cancelling microphone.', 199, 'Headsets');
+
+        $response = $this->actingAs($user, 'sanctum')->postJson('/api/v1/messages/assistant/chat', [
+            'message' => 'Find compatible monitors, docks, and headsets for the laptops you just showed me.',
+        ]);
+
+        $response->assertOk();
+        $productIds = collect($response->json('data.product_suggestions'))->pluck('product_id')->all();
+        $this->assertContains('MONITOR-1', $productIds);
+        $this->assertContains('DOCK-1', $productIds);
+        $this->assertContains('HEADSET-1', $productIds);
     }
 
     public function test_assistant_chat_marks_fallback_responses_as_degraded(): void
@@ -412,5 +486,51 @@ class AssistantChatHardeningTest extends TestCase
         $reply = strtolower((string) $second->json('data.reply'));
         $this->assertStringNotContainsString('you have **', $reply);
         $this->assertStringNotContainsString('quote(s) on record', $reply);
+    }
+
+    private function createCustomer(string $name, string $email): User
+    {
+        $companyId = DB::table('companies')->insertGetId([
+            'name' => $name . ' Company',
+            'status' => 'approved',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return User::query()->create([
+            'name' => $name,
+            'email' => $email,
+            'password' => bcrypt('secret123'),
+            'status' => 'active',
+            'role' => 'customer',
+            'company_id' => $companyId,
+            'email_verified_at' => now(),
+        ]);
+    }
+
+    private function insertCatalogProduct(
+        string $productId,
+        string $name,
+        string $description,
+        float $price,
+        string $category
+    ): void {
+        DB::table('products')->insert([
+            'tdsynnex_product_id' => $productId,
+            'tdsynnex_sku_no' => $productId,
+            'product_name' => $name,
+            'description' => $description,
+            'base_price' => $price,
+            'retail_price' => $price,
+            'sale_price' => 0,
+            'is_on_sale' => false,
+            'is_available' => true,
+            'quantity' => 10,
+            'is_discontinued' => false,
+            'manufacturer' => 'Contoso',
+            'category_segment' => $category,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
     }
 }
