@@ -259,6 +259,83 @@ class AssistantChatHardeningTest extends TestCase
         ));
     }
 
+    public function test_structured_planner_handles_novel_product_wording_but_catalog_owns_facts(): void
+    {
+        config()->set('services.azure_openai.endpoint', 'https://example.openai.azure.com');
+        config()->set('services.azure_openai.api_key', 'test-key');
+        config()->set('services.azure_openai.deployment', 'test-deployment');
+
+        Http::fake(function ($request) {
+            $body = $request->data();
+            $system = (string) data_get($body, 'messages.0.content', '');
+
+            if (str_contains($system, 'catalog search plan')) {
+                return Http::response([
+                    'choices' => [[
+                        'message' => ['content' => json_encode([
+                            'is_product_request' => true,
+                            'query' => 'wireless collaboration bar',
+                            'product_type' => 'video conferencing device',
+                            'constraints' => ['wireless', 'video conferencing'],
+                            'operation' => 'search',
+                            'selection' => 'many',
+                            'is_follow_up' => false,
+                        ])],
+                    ]],
+                ]);
+            }
+
+            return Http::response([
+                'choices' => [[
+                    'message' => ['content' => 'Here is the catalog match.'],
+                ]],
+            ]);
+        });
+
+        $user = $this->createCustomer('Novel Wording User', 'novel-wording@example.com');
+        $this->insertCatalogProduct('CONF-BAR', 'Contoso Wireless Collaboration Bar', 'Wireless video conferencing device for meeting rooms.', 899, 'Video Conferencing');
+
+        $response = $this->actingAs($user, 'sanctum')->postJson('/api/v1/messages/assistant/chat', [
+            'message' => 'I need something for wireless meetings where remote participants can see and hear the room.',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('data.product_suggestions.0.product_id', 'CONF-BAR');
+        $response->assertJsonPath('data.product_suggestions.0.name', 'Contoso Wireless Collaboration Bar');
+        $this->assertSame(899.0, (float) $response->json('data.product_suggestions.0.price'));
+    }
+
+    public function test_non_product_planner_result_cannot_activate_catalog_search(): void
+    {
+        config()->set('services.azure_openai.endpoint', 'https://example.openai.azure.com');
+        config()->set('services.azure_openai.api_key', 'test-key');
+        config()->set('services.azure_openai.deployment', 'test-deployment');
+        Http::fake([
+            '*' => Http::response([
+                'choices' => [[
+                    'message' => ['content' => json_encode([
+                        'is_product_request' => false,
+                        'query' => '',
+                        'product_type' => null,
+                        'constraints' => [],
+                        'operation' => 'none',
+                        'selection' => 'none',
+                        'is_follow_up' => false,
+                    ])],
+                ]],
+            ]),
+        ]);
+
+        $user = $this->createCustomer('Planner Boundary User', 'planner-boundary@example.com');
+        $this->insertCatalogProduct('BOUNDARY-1', 'Boundary Product', 'A product that must not be returned.', 100, 'Miscellaneous');
+
+        $response = $this->actingAs($user, 'sanctum')->postJson('/api/v1/messages/assistant/chat', [
+            'message' => 'I am planning a better way to organize our meeting room.',
+        ]);
+
+        $response->assertOk()->assertJsonPath('data.product_suggestions', []);
+    }
+
     public function test_current_question_is_not_duplicated_in_azure_history(): void
     {
         config()->set('services.azure_openai.endpoint', 'https://example.openai.azure.com');

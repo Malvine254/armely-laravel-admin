@@ -1183,14 +1183,19 @@ class MessageController extends Controller
             || ChatIntentSignals::isOrderIntentQuery($question)
         );
         $isGeneralConversation = ChatIntentSignals::isGeneralConversationQuery($question);
+        $productSearchPlan = null;
+        if (!$isAccountQuestion && !$isGeneralConversation) {
+            $productSearchPlan = $this->assistantService->planProductSearch($question, $recentChatTurns);
+        }
         // The model may refine a catalog request, but it must never create product intent.
         // A deterministic gate prevents unrelated prose from becoming a search query.
         $hasLocalProductIntent = !$isAccountQuestion
             && !$isGeneralConversation
-            && ChatIntentSignals::isProductLookupIntent($question, $recentChatTurns);
-        $productSearchPlan = !$hasLocalProductIntent || $isProductContextFollowUp
-            ? null
-            : $this->assistantService->planProductSearch($question, $recentChatTurns);
+            && (ChatIntentSignals::isProductLookupIntent($question, $recentChatTurns)
+                || (bool) ($productSearchPlan['is_product_request'] ?? false));
+        if ($isProductContextFollowUp || !$hasLocalProductIntent) {
+            $productSearchPlan = $isProductContextFollowUp ? null : $productSearchPlan;
+        }
         $catalogSearchQuery = !$hasLocalProductIntent
             ? ''
             : trim((string) ($productSearchPlan['query'] ?? ''));

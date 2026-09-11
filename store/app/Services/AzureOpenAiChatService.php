@@ -36,13 +36,24 @@ class AzureOpenAiChatService
      */
     public function planProductSearch(string $question, array $chatHistory = []): ?array
     {
-        if (!$this->configured || !ChatIntentSignals::isProductLookupIntent($question, $chatHistory)) {
+        if (!$this->configured) {
             return null;
         }
 
         $history = collect($chatHistory)
             ->take(-6)
-            ->filter(static fn (array $turn) => !empty($turn['content']))
+            ->filter(function (array $turn) use ($chatHistory): bool {
+                if (empty($turn['content'])) {
+                    return false;
+                }
+
+                if (!empty((array) ($turn['product_suggestions'] ?? []))) {
+                    return true;
+                }
+
+                return strtolower((string) ($turn['role'] ?? '')) === 'user'
+                    && ChatIntentSignals::isProductLookupIntent((string) $turn['content'], $chatHistory);
+            })
             ->map(static fn (array $turn) => strtolower((string) ($turn['role'] ?? 'user')) . ': ' . (string) $turn['content'])
             ->implode("\n");
 
@@ -50,17 +61,22 @@ class AzureOpenAiChatService
             [
                 'role' => 'system',
                 'content' => implode("\n", [
-                    'You convert a product-shopping conversation into one concise catalog search plan.',
-                    'Return JSON only with: query (string), product_type (string or null), is_follow_up (boolean).',
+                    'You convert a customer message into a concise catalog search plan.',
+                    'Return JSON only with: is_product_request (boolean), query (string), product_type (string or null), constraints (array of strings), operation (one of search, refine, recommend, present, quote_review, or none), selection (one of many, one, or none), is_follow_up (boolean).',
+                    'Set is_product_request false for greetings, general advice, account questions, quotes history, orders, invoices, payments, or support questions without a product selection request.',
                     'Remove request/filler language, timing, opinions, and recommendation wording.',
-                    'Keep brands, model numbers, technical specifications, budget, and the requested product noun.',
+                    'Keep brands, model numbers, technical specifications, budget, business use, compatibility, and the requested product concept.',
+                    'Put every explicit requirement that affects catalog matching in constraints, using short factual phrases.',
+                    'Use product_type only when the message or recent product context supports it. Do not invent taxonomy labels.',
+                    'For recommendation, presentation, or quote_review operations, set query to the existing product context when appropriate instead of inventing a new search.',
                     'For a short refinement such as "Sony?" or "Sony instead", carry forward the product noun from the immediately preceding request.',
                     'For an explicit topic change, do not carry old terms forward.',
                     'Do not invent brands, specifications, or catalog facts.',
                     'Examples:',
                     '"I have a presentation tomorrow and need a good monitor" => {"query":"monitor","product_type":"monitor","is_follow_up":false}',
                     'After camera results, "Sony instead" => {"query":"Sony camera","product_type":"camera","is_follow_up":true}',
-                    '"What Cisco networking equipment is available?" => {"query":"Cisco","product_type":null,"is_follow_up":false}',
+                    '"What Cisco networking equipment is available?" => {"is_product_request":true,"query":"Cisco networking equipment","product_type":"network equipment","constraints":["Cisco"],"operation":"search","selection":"many","is_follow_up":false}',
+                    '"Can you explain invoices?" => {"is_product_request":false,"query":"","product_type":null,"constraints":[],"operation":"none","selection":"none","is_follow_up":false}',
                 ]),
             ],
             [
@@ -75,14 +91,45 @@ class AzureOpenAiChatService
 
         $content = preg_replace('/^```(?:json)?\s*|\s*```$/i', '', trim($content)) ?? trim($content);
         $plan = json_decode($content, true);
-        $query = trim((string) ($plan['query'] ?? ''));
-        if (!is_array($plan) || $query === '') {
+        if (!is_array($plan)) {
             return null;
         }
 
+        $query = trim((string) ($plan['query'] ?? ''));
+        $isProductRequest = (bool) ($plan['is_product_request'] ?? ($query !== ''));
+        $operation = strtolower(trim((string) ($plan['operation'] ?? 'search')));
+        $selection = strtolower(trim((string) ($plan['selection'] ?? 'many')));
+        if (!in_array($operation, ['search', 'refine', 'recommend', 'present', 'quote_review', 'none'], true)) {
+            $operation = 'search';
+        }
+        if (!in_array($selection, ['many', 'one', 'none'], true)) {
+            $selection = 'many';
+        }
+        if (!$isProductRequest || $query === '') {
+            return [
+                'is_product_request' => false,
+                'query' => '',
+                'product_type' => null,
+                'constraints' => [],
+                'operation' => 'none',
+                'selection' => 'none',
+                'is_follow_up' => (bool) ($plan['is_follow_up'] ?? false),
+            ];
+        }
+
         return [
+            'is_product_request' => true,
             'query' => Str::limit($query, 160, ''),
             'product_type' => ($type = trim((string) ($plan['product_type'] ?? ''))) !== '' ? strtolower($type) : null,
+            'constraints' => collect((array) ($plan['constraints'] ?? []))
+                ->map(static fn ($constraint) => Str::limit(trim((string) $constraint), 80, ''))
+                ->filter()
+                ->unique()
+                ->take(12)
+                ->values()
+                ->all(),
+            'operation' => $operation,
+            'selection' => $selection,
             'is_follow_up' => (bool) ($plan['is_follow_up'] ?? false),
         ];
     }
