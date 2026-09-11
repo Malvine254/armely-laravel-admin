@@ -668,6 +668,10 @@ class MessageController extends Controller
         $source             = (string) ($agentResult['source'] ?? 'azure_openai');
         $intent             = (string) ($agentResult['intent'] ?? 'general_support');
 
+        if ($intent !== 'product_search' || !ChatIntentSignals::isProductLookupIntent($question, $chatHistory)) {
+            $productSuggestions = [];
+        }
+
         if (!$this->shouldIncludeAssistantActions($question, $intent, $context, $productSuggestions)) {
             $actions = [];
         }

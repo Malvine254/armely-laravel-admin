@@ -638,7 +638,6 @@ class AzureOpenAiChatService
         $invoices           = (array) ($context['recent_invoices'] ?? []);
         $openCount          = (int) ($context['summary']['open_invoice_count'] ?? 0);
         $openTotal          = (float) ($context['summary']['open_invoice_total'] ?? 0);
-        $productSuggestions = (array) ($context['product_suggestions'] ?? []);
 
         // Casual conversation must never be sent with account context or allowed to
         // fall through to catalog/account summaries. Besides avoiding irrelevant replies,
@@ -670,12 +669,15 @@ class AzureOpenAiChatService
             '- You have FULL access to the customer\'s account data — orders, quotes, and invoices — provided below.',
             '- Answer account questions directly from the provided data. Do not redirect the customer to "check their page".',
             '- Help with greetings, thank-yous, account questions, platform navigation, and general IT procurement questions.',
+            '- Answer general IT and procurement questions directly with useful explanations, steps, and tradeoffs when possible.',
             '- If you cannot resolve a technical or complex issue, suggest escalation to human support in a helpful way.',
             '',
             '## Rules',
             '- Use account data only when the customer asks about their account, orders, quotes, invoices, payments, or a specific reference.',
+            '- Do not initiate a catalog search, recommend catalog items, or mention product cards unless the customer explicitly asks to find, show, compare, buy, or recommend products.',
+            '- A message that merely mentions a device or category is a general question, not permission to display products.',
             '- Never volunteer account counts, balances, or records in greetings, small talk, compliments, or unrelated questions.',
-            '- If the question is outside the supplied facts, say what you can help with or ask one focused follow-up question. Do not guess.',
+            '- For time-sensitive facts or facts outside your knowledge, state the limitation and ask one focused follow-up question. Do not guess.',
             '- If a specific reference (order number, invoice number) is not in the data, explain that clearly and offer a next step.',
             '- Never invent order, invoice, or quote details not present in the data.',
             '- Keep replies helpful and solution-based, not stiff or overly formatted.',
@@ -769,14 +771,10 @@ class AzureOpenAiChatService
         if (!empty($quotes)) {
             $actions[] = ['label' => 'View quotes', 'link' => '/quotes'];
         }
-        if (!empty($productSuggestions)) {
-            $actions[] = ['label' => 'Browse products', 'link' => '/products'];
-        }
-
         return [
             'reply'               => $reply,
             'actions'             => $actions,
-            'product_suggestions' => $productSuggestions,
+            'product_suggestions' => [],
             'source'              => 'support_agent',
             'intent'              => 'general_support',
         ];

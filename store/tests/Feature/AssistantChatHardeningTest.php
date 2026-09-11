@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
@@ -13,6 +14,11 @@ class AssistantChatHardeningTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        config()->set('database.default', 'sqlite');
+        config()->set('database.connections.sqlite.database', ':memory:');
+        DB::purge();
+        DB::reconnect();
 
         config()->set('services.azure_openai.endpoint', '');
         config()->set('services.azure_openai.api_key', '');
@@ -135,6 +141,38 @@ class AssistantChatHardeningTest extends TestCase
             'matching product',
             strtolower((string) $response->json('data.reply'))
         );
+    }
+
+    public function test_general_product_question_does_not_display_catalog_products(): void
+    {
+        $companyId = \DB::table('companies')->insertGetId([
+            'name' => 'General Question Co',
+            'status' => 'approved',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $user = User::query()->create([
+            'name' => 'General Question User',
+            'email' => 'general-question@example.com',
+            'password' => bcrypt('secret123'),
+            'status' => 'active',
+            'role' => 'customer',
+            'company_id' => $companyId,
+            'email_verified_at' => now(),
+        ]);
+
+        $response = $this->actingAs($user, 'sanctum')->postJson('/api/v1/messages/assistant/chat', [
+            'message' => 'Can you explain how long a business laptop should last?',
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.product_suggestions', []);
+
+        $this->assertFalse(collect($response->json('data.actions', []))->contains(
+            static fn (array $action) => str_contains(strtolower((string) ($action['label'] ?? '')), 'product')
+        ));
     }
 
     public function test_assistant_chat_endpoint_declares_throttle_middleware(): void

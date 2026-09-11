@@ -306,10 +306,6 @@ class ChatIntentSignals
             return true;
         }
 
-        if ($hasProductNoun && !empty($keywords)) {
-            return true;
-        }
-
         $recentSuggestedProducts = collect($recentChatTurns)
             ->filter(static fn (array $turn) => strtolower((string) ($turn['role'] ?? '')) === 'assistant')
             ->flatMap(static fn (array $turn) => (array) ($turn['product_suggestions'] ?? []))

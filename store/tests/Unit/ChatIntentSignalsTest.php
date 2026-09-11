@@ -56,6 +56,37 @@ class ChatIntentSignalsTest extends TestCase
         }
     }
 
+    public function test_product_mentions_do_not_display_products_without_an_explicit_request(): void
+    {
+        $generalQuestions = [
+            'how long should a business laptop last?',
+            'what is the difference between a router and a firewall?',
+            'can you explain monitor refresh rates?',
+            'are laser printers expensive to maintain?',
+            'we already use dell laptops in the office',
+        ];
+
+        foreach ($generalQuestions as $message) {
+            $this->assertFalse(
+                ChatIntentSignals::isProductLookupIntent($message),
+                "Unexpected product display intent for: {$message}"
+            );
+            $this->assertSame('general_support', ChatIntentSignals::classifyAssistantIntent($message));
+        }
+
+        foreach ([
+            'show me business laptops',
+            'find a router for a small office',
+            'recommend a monitor for design work',
+            'compare available laser printers',
+        ] as $message) {
+            $this->assertTrue(
+                ChatIntentSignals::isProductLookupIntent($message),
+                "Expected explicit product display intent for: {$message}"
+            );
+        }
+    }
+
     public function test_it_handles_unfamiliar_products_without_a_fixed_dictionary(): void
     {
         $productRequests = [
