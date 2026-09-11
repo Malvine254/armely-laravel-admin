@@ -521,10 +521,17 @@ class HomeController extends Controller
     {
         $dbErrorMessage = null;
         $testimonials = $this->safeDb(function () {
-            return DB::table('customer_stories')
-                ->select('id', 'name', 'position', 'company', 'pdf_url', 'body_content', 'profile', 'created_at')
-                ->orderBy('id', 'desc')
-                ->get();
+            $query = DB::table('customer_stories')
+                ->select('id', 'name', 'position', 'company', 'pdf_url', 'body_content', 'profile', 'created_at');
+
+            if (Schema::hasColumn('customer_stories', 'reviewed_at')) {
+                $query->addSelect('reviewed_at');
+            }
+            if (Schema::hasColumn('customer_stories', 'reviewed_by')) {
+                $query->addSelect('reviewed_by');
+            }
+
+            return $query->orderBy('id', 'desc')->get();
         }, $dbErrorMessage);
 
         $caseStudyCount = $this->safeDb(function () {
@@ -546,21 +553,33 @@ class HomeController extends Controller
     {
         $dbErrorMessage = null;
         $testimonial = $this->safeDb(function () use ($story) {
-            return DB::table('customer_stories')
-                ->select('id', 'name', 'position', 'company', 'pdf_url', 'body_content', 'profile', 'created_at')
-                ->where('id', $story)
-                ->first();
+            $query = DB::table('customer_stories')
+                ->select('id', 'name', 'position', 'company', 'pdf_url', 'body_content', 'profile', 'created_at');
+
+            if (Schema::hasColumn('customer_stories', 'reviewed_at')) {
+                $query->addSelect('reviewed_at');
+            }
+            if (Schema::hasColumn('customer_stories', 'reviewed_by')) {
+                $query->addSelect('reviewed_by');
+            }
+
+            return $query->where('id', $story)->first();
         }, $dbErrorMessage);
 
         abort_unless($testimonial, 404);
 
         $relatedStories = $this->safeDb(function () use ($story) {
-            return DB::table('customer_stories')
-                ->select('id', 'name', 'position', 'company', 'pdf_url', 'body_content', 'profile', 'created_at')
-                ->where('id', '!=', $story)
-                ->orderBy('id', 'desc')
-                ->limit(3)
-                ->get();
+            $query = DB::table('customer_stories')
+                ->select('id', 'name', 'position', 'company', 'pdf_url', 'body_content', 'profile', 'created_at');
+
+            if (Schema::hasColumn('customer_stories', 'reviewed_at')) {
+                $query->addSelect('reviewed_at');
+            }
+            if (Schema::hasColumn('customer_stories', 'reviewed_by')) {
+                $query->addSelect('reviewed_by');
+            }
+
+            return $query->where('id', '!=', $story)->orderBy('id', 'desc')->limit(3)->get();
         }, $dbErrorMessage);
 
         return view('customer-stories.show', [
