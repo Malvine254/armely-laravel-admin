@@ -1105,6 +1105,7 @@ class TablesController extends Controller
             'position' => ['required', 'string', 'max:255'],
             'body_content' => ['required', 'string'],
             'company' => ['nullable', 'string', 'max:255'],
+            'reviewed_by' => ['nullable', 'string', 'max:255'],
             'pdf_url' => ['nullable', 'string', 'max:2048'],
             'profile' => ['nullable', 'image', 'max:5120'],
         ]);
@@ -1142,6 +1143,9 @@ class TablesController extends Controller
             if ($request->has('company') && $this->columnExists($table, 'company')) {
                 $data['company'] = $request->input('company');
             }
+            if ($request->has('reviewed_by') && $this->columnExists($table, 'reviewed_by')) {
+                $data['reviewed_by'] = $request->input('reviewed_by');
+            }
             if ($request->has('pdf_url') && $this->columnExists($table, 'pdf_url')) {
                 $data['pdf_url'] = $request->input('pdf_url');
             }
@@ -1173,6 +1177,9 @@ class TablesController extends Controller
             }
             if ($request->has('company') && $this->columnExists($table, 'company')) {
                 $data['company'] = $request->input('company');
+            }
+            if ($request->has('reviewed_by') && $this->columnExists($table, 'reviewed_by')) {
+                $data['reviewed_by'] = $request->input('reviewed_by');
             }
             if ($request->has('pdf_url') && $this->columnExists($table, 'pdf_url')) {
                 $data['pdf_url'] = $request->input('pdf_url');
@@ -1745,6 +1752,9 @@ class TablesController extends Controller
         }
         if ($request->has('company') && $this->columnExists($table, 'company')) {
             $data['company'] = $request->input('company');
+        }
+        if ($request->has('reviewed_by') && $this->columnExists($table, 'reviewed_by')) {
+            $data['reviewed_by'] = $request->input('reviewed_by');
         }
         if ($request->has('pdf_url') && $this->columnExists($table, 'pdf_url')) {
             $data['pdf_url'] = $request->input('pdf_url');

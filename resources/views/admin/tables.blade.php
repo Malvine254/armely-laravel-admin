@@ -2387,6 +2387,11 @@ One or two sentences inviting a conversation.</small>
                             <input type="text" class="form-control" id="storyPosition" name="position" required placeholder="e.g. IT Manager">
                         </div>
                         <div class="col-md-4 mb-3">
+                            <label class="form-label">Reviewed by</label>
+                            <input type="text" class="form-control" id="storyReviewedBy" name="reviewed_by" placeholder="e.g. Reviewed by Armely client">
+                            <small class="text-muted">Text shown on the public review card.</small>
+                        </div>
+                        <div class="col-md-4 mb-3">
                             <label class="form-label">Company</label>
                             <input type="text" class="form-control" id="storyCompany" name="company" placeholder="e.g. KCG, Inc.">
                         </div>
@@ -4046,6 +4051,7 @@ $(document).ready(function() {
         $('#storyModalTitle').text('Add New Customer Story');
         $('#storyForm')[0].reset();
         $('#storyId').val('');
+        $('#storyReviewedBy').val('');
         if (storyEditor) {
             storyEditor.setData('');
         }
@@ -4058,6 +4064,7 @@ $(document).ready(function() {
         $('#storyId').val(story.id);
         $('#storyName').val(story.name || '');
         $('#storyPosition').val(story.position || '');
+        $('#storyReviewedBy').val(story.reviewed_by || '');
         $('#storyCompany').val(story.company || '');
         $('#storyPdfUrl').val(story.pdf_url || '');
         
@@ -4107,6 +4114,7 @@ $(document).ready(function() {
         }
         formData.append('name', $('#storyName').val());
         formData.append('position', $('#storyPosition').val());
+        formData.append('reviewed_by', $('#storyReviewedBy').val());
         formData.append('company', $('#storyCompany').val());
         formData.append('pdf_url', $('#storyPdfUrl').val());
         formData.append('body_content', bodyContent);
