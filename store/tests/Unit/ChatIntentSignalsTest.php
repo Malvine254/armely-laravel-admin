@@ -87,6 +87,44 @@ class ChatIntentSignalsTest extends TestCase
         }
     }
 
+    public function test_adversarial_product_display_boundaries_are_explicit_and_current(): void
+    {
+        foreach ([
+            'show me monitors with USB-C features',
+            'do you carry laptops?',
+            'do you sell printers?',
+        ] as $request) {
+            $this->assertSame('product_search', ChatIntentSignals::classifyAssistantIntent($request));
+            $this->assertTrue(ChatIntentSignals::isProductLookupIntent($request));
+        }
+
+        foreach ([
+            'do not show me laptops',
+            "don't recommend routers",
+            'what is a purchase order?',
+        ] as $request) {
+            $this->assertSame('general_support', ChatIntentSignals::classifyAssistantIntent($request));
+            $this->assertFalse(ChatIntentSignals::isProductLookupIntent($request));
+        }
+
+        $mixedHistory = [
+            [
+                'role' => 'assistant',
+                'intent' => 'product_search',
+                'product_suggestions' => [['product_id' => 'LAPTOP-1']],
+            ],
+            ['role' => 'user', 'content' => 'show my invoice'],
+            [
+                'role' => 'assistant',
+                'intent' => 'invoice_payment',
+                'product_suggestions' => [],
+            ],
+        ];
+
+        $this->assertSame('general_support', ChatIntentSignals::classifyAssistantIntent('what about it?', $mixedHistory));
+        $this->assertFalse(ChatIntentSignals::isProductLookupIntent('what about it?', $mixedHistory));
+    }
+
     public function test_it_handles_unfamiliar_products_without_a_fixed_dictionary(): void
     {
         $productRequests = [

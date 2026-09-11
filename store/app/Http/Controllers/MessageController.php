@@ -274,6 +274,7 @@ class MessageController extends Controller
                     'text' => $message->content,
                     'actions' => $message->actions ?? [],
                     'product_suggestions' => (array) data_get($message->metadata, 'product_suggestions', []),
+                    'degraded' => (bool) data_get($message->metadata, 'degraded', false),
                     'sender_name' => $senderName,
                     'created_at' => $message->created_at,
                 ];
@@ -668,15 +669,21 @@ class MessageController extends Controller
         $source             = (string) ($agentResult['source'] ?? 'azure_openai');
         $intent             = (string) ($agentResult['intent'] ?? 'general_support');
 
-        if ($intent !== 'product_search' || !ChatIntentSignals::isProductLookupIntent($question, $chatHistory)) {
+        $productDisplayAuthorized = ChatIntentSignals::isProductLookupIntent($question, $chatHistory);
+        if ($intent !== 'product_search' || !$productDisplayAuthorized) {
             $productSuggestions = [];
+            if ($intent === 'product_search') {
+                $intent = 'general_support';
+                $actions = [];
+            }
         }
 
         if (!$this->shouldIncludeAssistantActions($question, $intent, $context, $productSuggestions)) {
             $actions = [];
         }
 
-        $degraded           = in_array($source, ['local_fallback', 'assistant_error_fallback'], true);
+        $degraded = (bool) ($agentResult['degraded'] ?? false)
+            || in_array($source, ['local_fallback', 'assistant_error_fallback'], true);
 
         ChatMessage::create([
             'chat_session_id' => $session->id,
@@ -1156,6 +1163,14 @@ class MessageController extends Controller
                     'has_product_suggestions' => !empty((array) data_get($item->metadata, 'product_suggestions', [])),
                 ])
                 ->all();
+
+            $latestTurn = end($recentChatTurns);
+            if (is_array($latestTurn)
+                && strtolower((string) ($latestTurn['role'] ?? '')) === 'user'
+                && ChatIntentSignals::normalizeQuestion((string) ($latestTurn['content'] ?? ''))
+                    === ChatIntentSignals::normalizeQuestion($question)) {
+                array_pop($recentChatTurns);
+            }
         }
 
         // The resolved query already contains any intentional refinement. Feeding all earlier

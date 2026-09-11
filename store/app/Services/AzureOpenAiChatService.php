@@ -14,6 +14,7 @@ class AzureOpenAiChatService
     private string $deployment;
     private string $apiVersion;
     private bool $configured;
+    private bool $lastRequestDegraded = false;
 
     public function __construct()
     {
@@ -122,13 +123,18 @@ class AzureOpenAiChatService
             'intent'   => $intent,
         ]);
 
-        return match ($intent) {
+        $this->lastRequestDegraded = false;
+        $result = match ($intent) {
             'product_search'   => $this->runProductAgent($question, $context, $chatHistory),
             'order_status'     => $this->runOrderAgent($question, $context, $chatHistory),
             'quote_management' => $this->runQuoteAgent($question, $context, $chatHistory),
             'invoice_payment'  => $this->runInvoiceAgent($question, $context, $chatHistory),
             default            => $this->runSupportAgent($question, $context, $chatHistory),
         };
+
+        $result['degraded'] = (bool) ($result['degraded'] ?? false) || $this->lastRequestDegraded;
+
+        return $result;
     }
 
     /**
@@ -653,7 +659,13 @@ class AzureOpenAiChatService
             ];
         }
 
-        $accountText = $this->buildAccountContextText($firstName, $orders, $quotes, $invoices, $openCount, $openTotal);
+        $isAccountQuestion = !ChatIntentSignals::isInformationalAccountQuery($question)
+            && (ChatIntentSignals::isOrderIntentQuery($question)
+                || ChatIntentSignals::isQuoteIntentQuery($question)
+                || ChatIntentSignals::isInvoiceIntentQuery($question));
+        $accountText = $isAccountQuestion
+            ? $this->buildAccountContextText($firstName, $orders, $quotes, $invoices, $openCount, $openTotal)
+            : 'No customer account records are included because the current request is not account-related.';
 
         $systemPrompt = implode("\n", [
             'You are Mela AI, the customer account assistant for Armely — a B2B IT procurement platform.',
@@ -951,6 +963,7 @@ class AzureOpenAiChatService
                 ]);
 
             if (!$response->ok()) {
+                $this->lastRequestDegraded = true;
                 Log::warning('Azure OpenAI response not OK', [
                     'status' => $response->status(),
                     'body'   => substr($response->body(), 0, 500),
@@ -967,8 +980,14 @@ class AzureOpenAiChatService
             }
 
             $content = trim((string) $content);
-            return $content !== '' ? $content : null;
+            if ($content === '') {
+                $this->lastRequestDegraded = true;
+                return null;
+            }
+
+            return $content;
         } catch (\Throwable $e) {
+            $this->lastRequestDegraded = true;
             Log::warning('Azure OpenAI request failed', ['message' => $e->getMessage()]);
             return null;
         }

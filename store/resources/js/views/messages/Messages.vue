@@ -186,6 +186,9 @@
                   : 'bg-white border border-gray-200 text-gray-900 rounded-bl-md'"
               >
                 <p class="text-sm whitespace-pre-wrap leading-relaxed" v-html="renderMessageHtml(chat.text)"></p>
+                <p v-if="chat.degraded" class="mt-2 text-xs font-semibold text-amber-700">
+                  Limited response — live assistant services were unavailable.
+                </p>
 
                 <div v-if="chat.productSuggestions?.length" class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   <article
@@ -323,6 +326,10 @@ const deletingHistory = ref(false)
 const loadingSessions = ref(true)
 let previousBodyOverflow = ''
 let previousHtmlOverflow = ''
+let pollingFailureCount = 0
+
+const POLLING_BASE_DELAY_MS = 5000
+const POLLING_MAX_DELAY_MS = 60000
 
 const configuredAllowedAssistantHosts = String(import.meta.env.VITE_ASSISTANT_ALLOWED_LINK_HOSTS || '')
   .split(',')
@@ -349,7 +356,7 @@ const getChatCacheKey = (scope) => {
 const readCachedJson = (key, fallback) => {
   if (typeof window === 'undefined') return fallback
   try {
-    const raw = localStorage.getItem(key)
+    const raw = sessionStorage.getItem(key)
     return raw ? JSON.parse(raw) : fallback
   } catch (error) {
     return fallback
@@ -359,16 +366,20 @@ const readCachedJson = (key, fallback) => {
 const writeCachedJson = (key, value) => {
   if (typeof window === 'undefined') return
   try {
-    localStorage.setItem(key, JSON.stringify(value))
+    sessionStorage.setItem(key, JSON.stringify(value))
   } catch (error) {
     // Ignore storage write failures.
   }
 }
 
-const getCachedSessionMessages = (sessionId) => readCachedJson(getChatCacheKey(`session:${sessionId}`), [])
+const PRODUCT_SUGGESTION_MAX_AGE_MS = 24 * 60 * 60 * 1000
 
-const normalizeProductSuggestions = (suggestions) => {
+const normalizeProductSuggestions = (suggestions, createdAt = null) => {
   if (!Array.isArray(suggestions)) return []
+  const createdTimestamp = createdAt ? new Date(createdAt).getTime() : Number.NaN
+  if (Number.isFinite(createdTimestamp) && Date.now() - createdTimestamp > PRODUCT_SUGGESTION_MAX_AGE_MS) {
+    return []
+  }
 
   return suggestions.map((item) => {
     const imageUrl = String(item?.image_url || '').trim()
@@ -377,6 +388,26 @@ const normalizeProductSuggestions = (suggestions) => {
       image_url: imageUrl ? resolveProductImageUrl(imageUrl) : '',
     }
   })
+}
+
+const getCachedSessionMessages = (sessionId) => {
+  const messages = readCachedJson(getChatCacheKey(`session:${sessionId}`), [])
+  if (!Array.isArray(messages)) return []
+
+  return messages.map((message) => ({
+    ...message,
+    productSuggestions: normalizeProductSuggestions(message.productSuggestions, message.createdAt),
+  }))
+}
+
+const clearLegacyPersistentChatCache = () => {
+  if (typeof window === 'undefined') return
+  for (let index = localStorage.length - 1; index >= 0; index -= 1) {
+    const key = localStorage.key(index)
+    if (key?.startsWith('mela-chat:')) {
+      localStorage.removeItem(key)
+    }
+  }
 }
 
 const cacheSessionMessages = (sessionId, messages) => {
@@ -404,7 +435,7 @@ const updateSessionPreviewInstantly = (sessionId, preview, role = 'user') => {
 
 const clearCachedSessionMessages = (sessionId) => {
   if (!sessionId || typeof window === 'undefined') return
-  localStorage.removeItem(getChatCacheKey(`session:${sessionId}`))
+  sessionStorage.removeItem(getChatCacheKey(`session:${sessionId}`))
 }
 
 const selectedHistoryCount = computed(() => selectedHistoryIds.value.length)
@@ -561,7 +592,7 @@ const scrollChatToBottom = async (smooth = false) => {
 
 const refreshChatMessages = async () => {
   // Never run while a send is in-flight — it would clobber the optimistic message.
-  if (!activeChatSessionId.value || chatRequestInFlight.value) return
+  if (!activeChatSessionId.value || chatRequestInFlight.value) return null
 
   try {
     const token = getAuthToken()
@@ -574,14 +605,14 @@ const refreshChatMessages = async () => {
       }
     })
 
-    if (!response.ok) return
+    if (!response.ok) return false
 
     const payload = await response.json()
     const loadedMessages = payload?.data?.messages || []
 
     // A send may have started while this session request was in flight. Never let
     // the older response erase the optimistic message that is already on screen.
-    if (chatRequestInFlight.value) return
+    if (chatRequestInFlight.value) return null
     const updatedSession = payload?.data?.session || {}
 
     const sessionIndex = chatSessions.value.findIndex((s) => s.id === activeChatSessionId.value)
@@ -601,10 +632,11 @@ const refreshChatMessages = async () => {
       senderName: item.sender_name || null,
       createdAt: item.created_at || null,
       actions: item.actions || [],
-      productSuggestions: normalizeProductSuggestions(item.product_suggestions || [])
+      productSuggestions: normalizeProductSuggestions(item.product_suggestions || [], item.created_at),
+      degraded: !!item.degraded,
     }))
 
-    if (!serverMessages.length) return
+    if (!serverMessages.length) return true
 
     const clientCount = chatMessages.value.length
     const serverCount = serverMessages.length
@@ -623,7 +655,7 @@ const refreshChatMessages = async () => {
         }
       })
       cacheSessionMessages(activeChatSessionId.value, chatMessages.value)
-      return
+      return true
     }
 
     // Server has new messages (e.g. admin reply) — smart merge: append only what's new.
@@ -635,31 +667,56 @@ const refreshChatMessages = async () => {
         cacheSessionMessages(activeChatSessionId.value, chatMessages.value)
         await scrollChatToBottom(true)
       }
-      return
+      return true
     }
 
     // Server has fewer messages than client (e.g. after deletion) — full replace.
     chatMessages.value = serverMessages
     cacheSessionMessages(activeChatSessionId.value, serverMessages)
+    return true
   } catch {
-    // Silence transient polling errors.
+    return false
   }
 }
 
-const startMessagePolling = () => {
+const scheduleMessagePoll = (delay = POLLING_BASE_DELAY_MS) => {
   if (pollingInterval.value) {
-    clearInterval(pollingInterval.value)
+    clearTimeout(pollingInterval.value)
   }
 
-  pollingInterval.value = setInterval(() => {
-    refreshChatMessages()
-  }, 5000)
+  pollingInterval.value = setTimeout(async () => {
+    pollingInterval.value = null
+    if (document.hidden) return
+
+    const succeeded = await refreshChatMessages()
+    pollingFailureCount = succeeded === false ? pollingFailureCount + 1 : 0
+    const nextDelay = Math.min(
+      POLLING_BASE_DELAY_MS * (2 ** pollingFailureCount),
+      POLLING_MAX_DELAY_MS
+    )
+    scheduleMessagePoll(nextDelay)
+  }, delay)
+}
+
+const startMessagePolling = () => {
+  pollingFailureCount = 0
+  if (!document.hidden) scheduleMessagePoll()
 }
 
 const stopMessagePolling = () => {
   if (!pollingInterval.value) return
-  clearInterval(pollingInterval.value)
+  clearTimeout(pollingInterval.value)
   pollingInterval.value = null
+}
+
+const handleDocumentVisibilityChange = () => {
+  if (document.hidden) {
+    stopMessagePolling()
+    return
+  }
+
+  void refreshChatMessages()
+  startMessagePolling()
 }
 
 const fetchChatSessions = async () => {
@@ -765,7 +822,8 @@ const selectChatSession = async (sessionId) => {
       senderName: item.sender_name || null,
       createdAt: item.created_at || null,
       actions: item.actions || [],
-      productSuggestions: normalizeProductSuggestions(item.product_suggestions || [])
+      productSuggestions: normalizeProductSuggestions(item.product_suggestions || [], item.created_at),
+      degraded: !!item.degraded,
     }))
     cacheSessionMessages(sessionId, chatMessages.value)
 
@@ -1063,7 +1121,8 @@ const sendChatMessage = async (prefilled = null) => {
         text: assistantPayload.reply || 'I could not generate a response right now.',
         createdAt: new Date().toISOString(),
         actions: assistantPayload.actions || [],
-        productSuggestions: normalizeProductSuggestions(assistantPayload.product_suggestions || [])
+        productSuggestions: normalizeProductSuggestions(assistantPayload.product_suggestions || []),
+        degraded: !!assistantPayload.degraded,
       })
       await scrollChatToBottom(true)
     }
@@ -1106,6 +1165,8 @@ const sendChatMessage = async (prefilled = null) => {
 }
 
 onMounted(async () => {
+  clearLegacyPersistentChatCache()
+  document.addEventListener('visibilitychange', handleDocumentVisibilityChange)
   previousBodyOverflow = document.body.style.overflow || ''
   previousHtmlOverflow = document.documentElement.style.overflow || ''
   document.body.style.overflow = 'hidden'
@@ -1137,6 +1198,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   stopMessagePolling()
+  document.removeEventListener('visibilitychange', handleDocumentVisibilityChange)
   document.body.style.overflow = previousBodyOverflow
   document.documentElement.style.overflow = previousHtmlOverflow
 })

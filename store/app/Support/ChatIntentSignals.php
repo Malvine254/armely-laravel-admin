@@ -80,6 +80,7 @@ class ChatIntentSignals
     {
         return self::isGreetingQuery($question)
             || self::isCapabilityQuestion($question)
+            || self::isInformationalAccountQuery($question)
             || self::isThanksQuery($question)
             || self::isCorrectionOrRejectionQuery($question)
             || self::isSmallTalkQuery($question);
@@ -156,10 +157,31 @@ class ChatIntentSignals
             '/\bwhat are your capabilities?\b/u',
             '/\bwhat are you capable of\b/u',
             '/\bwhat can you help with\b/u',
-            '/\bcapabilities?\b/u',
-            '/\bfeatures?\b/u',
-            '/\boptions?\b/u',
+            '/\bwhat (?:capabilities|features|options) do you have\b/u',
+            '/\bwhat are your (?:capabilities|features|options)\b/u',
         ]);
+    }
+
+    public static function isInformationalAccountQuery(string $question): bool
+    {
+        $q = self::normalizeQuestion($question);
+        if ($q === '' || !self::containsAnyPattern($q, [
+            '/\b(?:purchase order|order|quote|invoice|payment|billing|shipment|tracking)\b/u',
+        ])) {
+            return false;
+        }
+
+        $asksForExplanation = self::containsAnyPattern($q, [
+            '/^(?:what is|what are|what does|how does|how do|explain|describe|tell me about)\b/u',
+            '/\b(?:difference|differences) between\b/u',
+        ]);
+        $referencesCustomerData = self::containsAnyPattern($q, [
+            '/\b(?:my|our|mine|ours|me|us)\b/u',
+            '/\b(?:latest|last|recent|current|pending|unpaid|outstanding|status|balance|due)\b/u',
+            '/(?:#|\b[a-z]{1,6}[-_])?\d{3,}\b/u',
+        ]);
+
+        return $asksForExplanation && !$referencesCustomerData;
     }
 
     public static function isQuoteIntentQuery(string $question): bool
@@ -242,6 +264,13 @@ class ChatIntentSignals
             return false;
         }
 
+        if (self::containsAnyPattern($q, [
+            '/^(?:please\s+)?(?:do not|don[’\']t|dont|never|stop)\s+(?:show|display|list|find|search|recommend|suggest)\b/u',
+            '/^(?:i|we)\s+(?:do not|don[’\']t|dont)\s+(?:want|need)\b/u',
+        ])) {
+            return false;
+        }
+
         $keywords = self::extractProductSearchKeywords($question);
 
         $hasExplicitProductRequest = self::containsAnyPattern($q, [
@@ -285,6 +314,7 @@ class ChatIntentSignals
             '/\blookup\b/u',
             '/\b(?:product )?catalogue?\b/u',
             '/\bdo we (?:have|carry|stock|sell)\b/u',
+            '/\bdo you (?:have|carry|stock|sell)\b/u',
         ]);
 
         // Generalize to products the application has never heard of. The grammar of
@@ -306,9 +336,10 @@ class ChatIntentSignals
             return true;
         }
 
-        $recentSuggestedProducts = collect($recentChatTurns)
-            ->filter(static fn (array $turn) => strtolower((string) ($turn['role'] ?? '')) === 'assistant')
-            ->flatMap(static fn (array $turn) => (array) ($turn['product_suggestions'] ?? []))
+        $latestAssistantTurn = collect($recentChatTurns)
+            ->reverse()
+            ->first(static fn (array $turn) => strtolower((string) ($turn['role'] ?? '')) === 'assistant');
+        $recentSuggestedProducts = collect((array) ($latestAssistantTurn['product_suggestions'] ?? []))
             ->contains(static fn ($item) => is_array($item) && !empty($item['product_id']));
 
         return $recentSuggestedProducts && self::containsAnyPattern($q, [

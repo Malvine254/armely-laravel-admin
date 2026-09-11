@@ -3,8 +3,10 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Services\AzureOpenAiChatService;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
@@ -108,6 +110,11 @@ class AssistantChatHardeningTest extends TestCase
             ->assertJsonPath('data.status', 'degraded')
             ->assertJsonPath('data.source', 'local_fallback')
             ->assertJsonPath('data.product_suggestions', []);
+
+        $sessionId = $response->json('data.chat_session.id');
+        $history = $this->actingAs($user, 'sanctum')->getJson("/api/v1/messages/chats/{$sessionId}");
+        $history->assertOk();
+        $this->assertTrue((bool) collect($history->json('data.messages'))->last()['degraded']);
     }
 
     public function test_small_talk_does_not_trigger_product_suggestions(): void
@@ -173,6 +180,133 @@ class AssistantChatHardeningTest extends TestCase
         $this->assertFalse(collect($response->json('data.actions', []))->contains(
             static fn (array $action) => str_contains(strtolower((string) ($action['label'] ?? '')), 'product')
         ));
+    }
+
+    public function test_current_question_is_not_duplicated_in_azure_history(): void
+    {
+        config()->set('services.azure_openai.endpoint', 'https://example.openai.azure.com');
+        config()->set('services.azure_openai.api_key', 'test-key');
+        config()->set('services.azure_openai.deployment', 'test-deployment');
+
+        $capturedBody = null;
+        Http::fake(function ($request) use (&$capturedBody) {
+            $capturedBody = $request->data();
+
+            return Http::response([
+                'choices' => [[
+                    'message' => ['content' => 'A concise answer from Mela.'],
+                ]],
+            ]);
+        });
+
+        $companyId = DB::table('companies')->insertGetId([
+            'name' => 'History Co',
+            'status' => 'approved',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $user = User::query()->create([
+            'name' => 'History User',
+            'email' => 'history-user@example.com',
+            'password' => bcrypt('secret123'),
+            'status' => 'active',
+            'role' => 'customer',
+            'company_id' => $companyId,
+            'email_verified_at' => now(),
+        ]);
+
+        $question = 'Explain endpoint detection and response for my team.';
+        $this->actingAs($user, 'sanctum')->postJson('/api/v1/messages/assistant/chat', [
+            'message' => $question,
+        ])->assertOk();
+
+        $this->assertSame(1, substr_count((string) json_encode($capturedBody), $question));
+    }
+
+    public function test_general_support_prompt_does_not_send_account_records_to_azure(): void
+    {
+        config()->set('services.azure_openai.endpoint', 'https://example.openai.azure.com');
+        config()->set('services.azure_openai.api_key', 'test-key');
+        config()->set('services.azure_openai.deployment', 'test-deployment');
+
+        $capturedBody = null;
+        Http::fake(function ($request) use (&$capturedBody) {
+            $capturedBody = $request->data();
+
+            return Http::response([
+                'choices' => [[
+                    'message' => ['content' => 'A business laptop commonly lasts three to five years.'],
+                ]],
+            ]);
+        });
+
+        $context = [
+            'customer' => ['name' => 'Privacy User'],
+            'summary' => [
+                'open_invoice_count' => 1,
+                'open_invoice_total' => 9876.54,
+            ],
+            'recent_orders' => [[
+                'order_number' => 'PRIVATE-ORDER-123',
+                'status' => 'processing',
+                'total_amount' => 9876.54,
+            ]],
+            'completed_paid_quotes' => [[
+                'quote_id' => 'PRIVATE-QUOTE-456',
+                'total_amount' => 9876.54,
+            ]],
+            'recent_invoices' => [[
+                'invoice_number' => 'PRIVATE-INVOICE-789',
+                'remaining_amount' => 9876.54,
+            ]],
+            'product_suggestions' => [],
+            'product_intent' => false,
+            'smart_intent' => 'general_support',
+        ];
+
+        $service = new AzureOpenAiChatService();
+        $result = $service->orchestrate('How long should a business laptop last?', $context);
+
+        $payload = json_encode($capturedBody);
+        $this->assertSame('general_support', $result['intent']);
+        $this->assertStringNotContainsString('PRIVATE-ORDER-123', $payload);
+        $this->assertStringNotContainsString('PRIVATE-QUOTE-456', $payload);
+        $this->assertStringNotContainsString('PRIVATE-INVOICE-789', $payload);
+        $this->assertStringNotContainsString('9876.54', $payload);
+
+        $service->orchestrate('Explain the difference between an invoice and a quote.', $context);
+        $informationalPayload = json_encode($capturedBody);
+        $this->assertStringNotContainsString('PRIVATE-ORDER-123', $informationalPayload);
+        $this->assertStringNotContainsString('PRIVATE-QUOTE-456', $informationalPayload);
+        $this->assertStringNotContainsString('PRIVATE-INVOICE-789', $informationalPayload);
+        $this->assertStringNotContainsString('9876.54', $informationalPayload);
+    }
+
+    public function test_azure_failure_is_reported_as_a_degraded_response(): void
+    {
+        config()->set('services.azure_openai.endpoint', 'https://example.openai.azure.com');
+        config()->set('services.azure_openai.api_key', 'test-key');
+        config()->set('services.azure_openai.deployment', 'test-deployment');
+        Http::fake(['*' => Http::response(['error' => 'temporary failure'], 503)]);
+
+        $result = (new AzureOpenAiChatService())->orchestrate(
+            'How should I secure an office network?',
+            [
+                'customer' => ['name' => 'Network User'],
+                'summary' => [],
+                'recent_orders' => [],
+                'completed_paid_quotes' => [],
+                'recent_invoices' => [],
+                'product_suggestions' => [],
+                'product_intent' => false,
+                'smart_intent' => 'general_support',
+            ]
+        );
+
+        $this->assertTrue($result['degraded']);
+        $this->assertSame('general_support', $result['intent']);
+        $this->assertNotEmpty($result['reply']);
     }
 
     public function test_assistant_chat_endpoint_declares_throttle_middleware(): void
