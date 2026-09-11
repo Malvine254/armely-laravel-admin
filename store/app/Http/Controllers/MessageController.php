@@ -2633,7 +2633,7 @@ class MessageController extends Controller
         $budgetPriority = (bool) preg_match('/\b(budget(?: friendly)?|affordable|low cost|lower cost|economical|inexpensive|cheapest|value)\b/i', $joined);
 
         $deviceType = null;
-        if (preg_match('/\b(?:laptop|lptop|notebook)\b/i', $joined) === 1) {
+        if (preg_match('/\b(?:laptops?|lptops?|notebooks?)\b/i', $joined) === 1) {
             $deviceType = 'laptop';
         } elseif (str_contains($joined, 'desktop') || str_contains($joined, 'workstation')) {
             $deviceType = 'desktop';
@@ -2921,7 +2921,8 @@ class MessageController extends Controller
             'monitor clip', 'privacy screen', 'privacyview', 'screen filter', 'display filter', 'privacy filter',
             'security lock', 'laptop lock', 'notebook lock', 'wedge lock', 'cable lock',
             'low profile lock', 'holder', 'stylus', 'earbud', 'card reader', 'memory card reader',
-            'connect a usb', 'usb type-a device', 'pass-through port',
+            'connect a usb', 'usb type-a device', 'pass-through port', 'kvm', 'console', 'power cord',
+            'usb connection', 'usb connectivity',
         ];
 
         foreach ($accessoryTerms as $term) {
@@ -2970,14 +2971,24 @@ class MessageController extends Controller
             return true;
         }
 
-        $haystack = strtolower(trim(
+        $identity = strtolower(trim(
             (string) ($candidate['name'] ?? '') . ' ' .
-            (string) ($candidate['description'] ?? '') . ' ' .
             (string) ($candidate['category'] ?? '')
         ));
+        $haystack = strtolower(trim($identity . ' ' . (string) ($candidate['description'] ?? '')));
 
-        if ($haystack === '') {
+        if ($identity === '') {
             return false;
+        }
+
+        if ($deviceType === 'laptop') {
+            $category = strtolower((string) ($candidate['category'] ?? ''));
+            $name = strtolower((string) ($candidate['name'] ?? ''));
+            $realLaptopIdentity = preg_match('/\b(?:laptop|notebook|ultrabook|chromebook)\b/u', $name) === 1
+                || preg_match('/\b(?:laptop|notebook)s?\b/u', $category) === 1;
+            if (!$realLaptopIdentity || $this->isAccessoryLikeProduct($candidate)) {
+                return false;
+            }
         }
 
         $deviceAliases = [

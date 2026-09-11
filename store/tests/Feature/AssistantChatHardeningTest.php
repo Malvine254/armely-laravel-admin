@@ -312,6 +312,10 @@ class AssistantChatHardeningTest extends TestCase
         $this->insertCatalogProduct('LAPTOP-900', 'Contoso AI Laptop 15', 'Laptop with NVIDIA graphics for entry-level AI development.', 899, 'Laptops');
         $this->insertCatalogProduct('LAPTOP-1500', 'Contoso Deep Learning Laptop 16', 'Laptop with NVIDIA RTX graphics and 32 GB RAM for deep learning.', 1499, 'Laptops');
         $this->insertCatalogProduct('PROJECTOR-1', 'Portable Presentation Projector', 'Portable projector for presentations.', 1001, 'Projectors');
+        $this->insertCatalogProduct('LAPTOP-CORD', '6ft Laptop Power Cord', 'Power cord for most laptop power bricks.', 6, 'Computer Accessories', 'StarTech');
+        $this->insertCatalogProduct('LAPTOP-BAG', 'Classic Laptop Topload Bag', 'Padded laptop compartment and carrying handle.', 27, 'Computer Accessories', 'Targus');
+        $this->insertCatalogProduct('LAPTOP-HUB', 'USB Hub for Laptop', 'Adds USB ports to a laptop.', 34, 'Computer Accessories', 'StarTech');
+        $this->insertCatalogProduct('LAPTOP-KVM', 'Portable KVM Console for Laptop', 'Use a laptop to access servers and devices.', 603, 'Computer Accessories', 'StarTech');
 
         $first = $this->actingAs($user, 'sanctum')->postJson('/api/v1/messages/assistant/chat', [
             'message' => 'hi check for me lptops best for my ai project below 1k dollars budget',
@@ -320,6 +324,9 @@ class AssistantChatHardeningTest extends TestCase
         $firstIds = collect($first->json('data.product_suggestions'))->pluck('product_id');
         $this->assertContains('LAPTOP-900', $firstIds, json_encode($first->json('data')));
         $this->assertNotContains('PROJECTOR-1', $firstIds, json_encode($firstIds->values()->all()));
+        foreach (['LAPTOP-CORD', 'LAPTOP-BAG', 'LAPTOP-HUB', 'LAPTOP-KVM'] as $accessoryId) {
+            $this->assertNotContains($accessoryId, $firstIds, json_encode($first->json('data')));
+        }
 
         $this->actingAs($user, 'sanctum')->postJson('/api/v1/messages/assistant/chat', [
             'message' => 'deep learning',
