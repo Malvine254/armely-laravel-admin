@@ -94,6 +94,12 @@ class ChatIntentSignals
     {
         $q = self::normalizeQuestion($question);
 
+        if (self::matchesAnyPattern($q, [
+            '/\b(?:i|we)\s+(?:need|want|am looking for)\b.*\b(?:laptop|notebook|desktop|computer|printer|monitor|switch|router|server|camera|projector|tablet|phone)\b/u',
+        ])) {
+            return false;
+        }
+
         return $q !== '' && self::matchesAnyPattern($q, [
             '/\bi (?:did not|didn.?t|dd not|do not|don.?t|never) ask (?:for )?(?:that|this|those|these)\b/u',
             '/\bthat(?:\'s| is) not what i (?:asked|meant|wanted)\b/u',
@@ -397,7 +403,9 @@ class ChatIntentSignals
 
         return $q !== '' && self::containsAnyPattern($q, [
             '/^(?:yes|yeah|yep|sure|okay|ok|both|all)(?:\s+(?:please|of them|options))?[.!?]*$/u',
-            '/\b(?:add|put|place)\b.*\b(?:it|that|this|one|product|laptop|printer)\b.*\b(?:cart|basket)\b/u',
+            '/\b(?:add|put|place)\b.*\b(?:it|that|this|one|product|item)\b.*\b(?:cart|basket)\b/u',
+            '/\b(?:generate|create|prepare|make)\b.*\bquote\b.*\b(?:it|that|this|one|item|product)\b/u',
+            '/\bquote\b.*\b(?:it|that|this|one|item|product)\b/u',
             '/\b(?:go with|i(?:\'ll| will) go with|trust your|use your)\b.*\b(?:recommend|recommendation|choice|suggestion)\b/u',
             '/\b(?:i|we)\s+(?:asked|was asking|were asking)\b.*\b(?:about|for)\b/u',
             '/\b(?:their|those|these|the product|the products|each product|each one)\b.*\b(?:image|images|picture|pictures|photo|photos|description|descriptions|price|prices|link|links|url|urls)\b/u',

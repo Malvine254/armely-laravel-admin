@@ -357,6 +357,40 @@ class AssistantChatHardeningTest extends TestCase
         $this->assertStringContainsString('LAPTOP', (string) $recommendation->json('data.product_suggestions.0.product_id'));
     }
 
+    public function test_real_laptop_correction_replaces_stale_monitor_context(): void
+    {
+        $user = $this->createCustomer('Context Replacement User', 'context-replacement@example.com');
+        $this->insertCatalogProduct('MONITOR-CONTEXT', 'Contoso Business Monitor', '24-inch office monitor.', 250, 'Monitors');
+        $this->insertCatalogProduct('LAPTOP-CORD-CONTEXT', 'Laptop Power Cord', 'Power cord for laptop adapters.', 8, 'Computer Accessories', 'StarTech');
+
+        $first = $this->actingAs($user, 'sanctum')->postJson('/api/v1/messages/assistant/chat', [
+            'message' => 'Show me monitors under $1500.',
+        ])->assertOk();
+        $sessionId = (int) $first->json('data.chat_session.id');
+
+        $recommendation = $this->actingAs($user, 'sanctum')->postJson('/api/v1/messages/assistant/chat', [
+            'message' => 'Which one do you recommend?',
+            'chat_session_id' => $sessionId,
+        ])->assertOk();
+        $this->assertSame('MONITOR-CONTEXT', $recommendation->json('data.product_suggestions.0.product_id'));
+
+        $quote = $this->actingAs($user, 'sanctum')->postJson('/api/v1/messages/assistant/chat', [
+            'message' => 'Generate the quote for the item.',
+            'chat_session_id' => $sessionId,
+        ])->assertOk();
+        $this->assertSame('local_product_context_follow_up', $quote->json('data.source'));
+        $this->assertSame('MONITOR-CONTEXT', $quote->json('data.product_suggestions.0.product_id'));
+        $this->assertFalse(str_contains(strtolower((string) $quote->json('data.reply')), 'quote(s) on record'));
+
+        $laptop = $this->actingAs($user, 'sanctum')->postJson('/api/v1/messages/assistant/chat', [
+            'message' => 'I need a real laptop, not accessories.',
+            'chat_session_id' => $sessionId,
+        ])->assertOk();
+        $this->assertSame([], $laptop->json('data.product_suggestions'));
+        $this->assertStringNotContainsString('MONITOR-CONTEXT', json_encode($laptop->json('data')));
+        $this->assertStringNotContainsString('LAPTOP-CORD-CONTEXT', json_encode($laptop->json('data')));
+    }
+
     public function test_non_product_planner_result_cannot_activate_catalog_search(): void
     {
         config()->set('services.azure_openai.endpoint', 'https://example.openai.azure.com');
